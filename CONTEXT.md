@@ -40,10 +40,50 @@ The signal the supervisor uses to tell "slow but working" from "hung" — activi
 leaf's progress log within a window.
 _Avoid_: ping, pulse
 
+**Issue thread**:
+The GitHub issue's comment stream, used as the framework's observability channel — the
+conductor posts the plan, per-cycle outcomes, and the final result/bail there. It is the
+canonical human-facing record of a run.
+_Avoid_: log, comments (as the canonical record)
+
+**Attempt budget**:
+The capped number of revise attempts the conductor will make against a `REJECT` verdict
+(default 2) before bailing the issue and escalating. Distinct from the supervisor's
+stuck-retry budget.
+_Avoid_: retries (unqualified)
+
+**Plan**:
+The conductor's decomposition of an issue into a checklist of small steps, each a single
+TDD cycle's worth and aligned to an acceptance criterion. It is looped to completion.
+Sizing is surfaced here, not enforced as a gate.
+_Avoid_: TODO list, backlog
+
+**Ledger**:
+The local, committed file (one per issue) that holds the plan as a checkbox list and is
+the **source of truth** for which steps are done. Committed atomically with each cycle's
+code; the issue thread mirrors it. Resume reads the ledger for the next unchecked step.
+_Avoid_: TODO.md (it generalizes that), state file
+
+**Acceptance criterion**:
+A condition from the issue that must hold for the issue to be considered done. The plan's
+steps map to criteria; the conductor loops until all are covered.
+_Avoid_: requirement, spec (unqualified)
+
+**Dependency marker**:
+A reference in a GitHub issue declaring that it depends on another issue. An issue is
+**solvable** only once its dependencies are closed. The dependency graph is the
+eligibility signal for automated issue selection in later rungs (preferred over a
+hand-applied label).
+_Avoid_: blocker (ok as a gloss), prerequisite
+
 ## Scope ladder
 
-The framework grows in three rungs, each wrapping the previous — never a rewrite:
+The framework grows in three rungs, each wrapping the previous — never a rewrite. Issue
+selection changes per rung; everything below the selection layer stays the same:
 
-1. **Single issue** — solve one GitHub issue end-to-end.
-2. **Loop** — run the single-issue conductor across all open issues, one after another.
-3. **Parallel** — run several issue-conductors at once, solving issues concurrently.
+1. **Single issue** — the human names the one issue to solve (`/solve-issue <number>`). XP:
+   point it at exactly one, no automated selection yet.
+2. **Loop** — run the single-issue conductor across all *solvable* issues (dependencies
+   closed), one after another.
+3. **Parallel** — run several issue-conductors at once over the solvable set, respecting
+   the dependency graph, solving issues concurrently.
