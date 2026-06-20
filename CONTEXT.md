@@ -87,6 +87,13 @@ Forcing a general implementation by adding successive failing tests for further 
 rather than hand-writing generality. The only sanctioned route to general code here.
 _Avoid_: parameterization (unqualified)
 
+**Bail**:
+The conductor's terminal stop on an issue it cannot complete. It preserves completed
+commits, pushes the branch, posts a diagnostic comment that classifies the cause as a
+**system failure** (plumbing broke) or a **process failure** (methodology spoke), and
+opens no PR. Re-running resumes from the ledger.
+_Avoid_: abort, fail (unqualified)
+
 **Dependency marker**:
 A reference in a GitHub issue declaring that it depends on another issue. An issue is
 **solvable** only once its dependencies are closed. The dependency graph is the
