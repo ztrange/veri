@@ -69,6 +69,24 @@ A condition from the issue that must hold for the issue to be considered done. T
 steps map to criteria; the conductor loops until all are covered.
 _Avoid_: requirement, spec (unqualified)
 
+**Issue branch**:
+The per-issue git branch (`tdd/<issue>-slug`) all of an issue's commits land on. On
+completion it is pushed and a draft PR (`Closes #<n>`) is opened for human review. In v2
+each issue branch lives in its own git worktree so parallel conductors don't collide.
+_Avoid_: feature branch (ok as a gloss)
+
+**Cycle**:
+One Red→Green→Refactor pass over a single plan step. Structure: red (developer writes one
+failing test) → verify-red (blind) → green (developer writes minimum impl) → verify-green
+(blind) → green commit → refactor loop (one behavior-preserving transformation per leaf,
+suite-gated, until none remain) → verify-refactor (blind, once) → refactor commit.
+_Avoid_: iteration, round
+
+**Triangulation**:
+Forcing a general implementation by adding successive failing tests for further cases,
+rather than hand-writing generality. The only sanctioned route to general code here.
+_Avoid_: parameterization (unqualified)
+
 **Dependency marker**:
 A reference in a GitHub issue declaring that it depends on another issue. An issue is
 **solvable** only once its dependencies are closed. The dependency graph is the
