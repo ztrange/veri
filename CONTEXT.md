@@ -1,9 +1,11 @@
-# TDD Issue-Solver Framework
+# veri
 
 A Claude Code skill suite that solves GitHub issues by strict TDD/XP discipline.
 A conductor drives one issue at a time through Red → Green → Refactor cycles,
 spawning supervised `claude -p` leaf subprocesses, with independent agents
-verifying that each test genuinely fails and genuinely passes. _(Name provisional.)_
+verifying that each test genuinely fails and genuinely passes. The name comes from
+that blind independent verification — the core that sets veri apart from the
+reference suite it grew out of.
 
 ## Language
 
