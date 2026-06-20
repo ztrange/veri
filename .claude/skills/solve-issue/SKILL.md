@@ -108,7 +108,25 @@ it. Then:
 - Commit the refactor (only if something changed):
   `git add -A && git commit -m "refactor: <what> (#<n>)"`.
 
-### 6. Draft PR
+### 6. Check off the criterion
+
+The cycle is complete and the criterion is satisfied. Tick its checkbox in the issue
+body so progress-against-spec is visible at a glance (the issue-body mirror, alongside
+the phase comments). Use the helper — do **not** hand-edit the body with `sed`/inline
+substitution (the matching is deterministic and lives in one tested place):
+
+```
+.claude/skills/solve-issue/scripts/tick-issue-criterion.sh <n> '<distinctive substring>'
+```
+
+(The helper ships with this skill, in its `scripts/` directory.)
+
+Pass a substring that uniquely identifies this criterion (e.g. a verbatim fragment of
+its text). The helper flips the first unchecked `- [ ]` containing that substring to
+`- [x]` and exits non-zero if nothing matched — if it does, re-check the substring
+rather than editing by hand.
+
+### 7. Draft PR
 
 The full suite must be green and the work committed before this step.
 
