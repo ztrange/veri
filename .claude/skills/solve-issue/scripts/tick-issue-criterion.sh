@@ -23,7 +23,7 @@ if [[ -n "${GH_REPO:-}" ]]; then
   repo_args=(--repo "$GH_REPO")
 fi
 
-body="$(gh issue view "$n" "${repo_args[@]}" --json body -q .body)"
+body="$(gh issue view "$n" "${repo_args[@]+"${repo_args[@]}"}" --json body -q .body)"
 
 new="$(printf '%s' "$body" | "$HERE/tick-criterion.sh" "$matcher")" || {
   status=$?
@@ -36,4 +36,4 @@ new="$(printf '%s' "$body" | "$HERE/tick-criterion.sh" "$matcher")" || {
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 printf '%s' "$new" > "$tmp"
-gh issue edit "$n" "${repo_args[@]}" --body-file "$tmp" >/dev/null
+gh issue edit "$n" "${repo_args[@]+"${repo_args[@]}"}" --body-file "$tmp" >/dev/null
