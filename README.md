@@ -63,6 +63,11 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 
 ## Status
 
-Design complete (grilled into ADRs + glossary). Next: PRD and the v0 **walking skeleton** —
-supervisor + conductor + the five leaves, exercised on a single-criterion issue → one full
-cycle → draft PR.
+Design complete (grilled into ADRs + glossary). The first walking-skeleton slice has
+landed: a crude `/solve-issue` conductor (`.claude/skills/solve-issue/`) that drives one
+issue through a single inline Red → Green → Refactor pass, narrated to the issue thread,
+checks off each satisfied acceptance criterion in the issue body (via veri's first
+unit-tested shell helper), and opens a draft PR — no supervisor, leaves, ledger, or blind
+verification yet (those arrive in later slices). Demo materials live in
+[`fixtures/`](./fixtures). Next: extract the supervisor + `claude -p` leaves and the
+committed ledger.
