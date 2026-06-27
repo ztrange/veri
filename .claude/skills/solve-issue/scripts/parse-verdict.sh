@@ -81,5 +81,15 @@ reason="$(rtrim "$reason")"
 reason="$(ltrim "$reason")"
 reason="$(rtrim "$reason")"
 
+# A leaf often wraps its verdict block in a ``` (or ~~~) code fence; the opening fence
+# sits above the VERDICT line and is ignored, but the closing fence trails the reason.
+# Drop a trailing fence-only line so it doesn't leak into the mirrored reason.
+fence_re='^[[:space:]]*(```|~~~)[[:space:]]*$'
+last="${reason##*$'\n'}"
+if [[ "$last" =~ $fence_re ]]; then
+  if [[ "$reason" == *$'\n'* ]]; then reason="${reason%$'\n'*}"; else reason=""; fi
+  reason="$(rtrim "$reason")"
+fi
+
 printf '%s\n' "$reason"
 exit "$code"

@@ -13,12 +13,11 @@ trustworthy:
 Work inside the current repository (you may read any file and run the test command). Keep
 your investigation tight and on-task.
 
-End your output with EXACTLY this block and nothing after it:
+End your output with EXACTLY these two lines and nothing after them — no surrounding code
+fence, no extra formatting:
 
-```
 VERDICT: PASS        (or REJECT)
 REASON: <one or two sentences — the objective result plus the judgement behind it>
-```
 
 Use `PASS` only if every check below holds; otherwise `REJECT` and name the first thing
 that fails. A `REJECT` stops the run, so be specific enough that a human can act on it.

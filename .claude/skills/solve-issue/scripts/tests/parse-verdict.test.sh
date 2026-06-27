@@ -77,6 +77,25 @@ check "reason inline after verdict" 1 'VERDICT: REJECT — the test never actual
 check "unknown verdict word" 2 'VERDICT: MAYBE
 REASON: unsure' ''
 
+# 10. a verdict block wrapped in a ``` code fence (leaves often do this) must not leak
+#     the closing fence into the reason. Regression from the live verify-red demo.
+check "fenced verdict block" 1 'I ran the test myself.
+```
+VERDICT: REJECT
+REASON: The test asserts a constant and never calls slugify().
+```' \
+'The test asserts a constant and never calls slugify().'
+
+# 11. a tilde fence and a language-tagged fence are stripped the same way
+check "multiline reason then fence" 1 'VERDICT: REJECT
+REASON: Two problems:
+- vacuous assertion
+- no call to the function
+```' \
+'Two problems:
+- vacuous assertion
+- no call to the function'
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
