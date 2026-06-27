@@ -7,21 +7,24 @@ description: >-
   `/solve-issue <number>`. Use when the user names one GitHub issue to solve under TDD.
 ---
 
-# solve-issue — the veri conductor (blind-verification slice)
+# solve-issue — the veri conductor (supervised-leaves slice)
 
 You are the **conductor**. You drive exactly one GitHub issue end-to-end through a single
 Red → Green → Refactor pass, but you **write no code yourself**. Each phase is performed
 by a short-lived developer **leaf** (`claude -p` subprocess), and after each phase a
-separate **blind independent verifier** leaf confirms the work. You orchestrate the
+separate **blind independent verifier** leaf confirms the work. Every leaf — developer or
+verifier — is launched **through the supervisor** (`supervise.sh`), never directly, so a
+hung or runaway leaf is killed instead of stalling the whole run. You orchestrate the
 leaves, branch on their verdicts, narrate every phase and verdict to the issue thread,
 and leave the result on a **draft PR** for a human to review and merge.
 
-This slice adds blind verification on top of the v0 walking skeleton. The following are
-still **out of scope** and must NOT be attempted here — they arrive in later slices: the
-**supervisor** (heartbeat + hard timeout around each leaf — #4), **retries / the bounded
-revise loop** on a `REJECT` (#5), the **multi-step plan loop** and the **committed
-ledger** (#6). For now a `REJECT` simply **stops the run cleanly** — veri stays usable; it
-just refuses to proceed on an unverified step.
+This slice makes veri **unstuckable** by routing every leaf through the supervisor, on top
+of the blind-verification slice. The following are still **out of scope** and must NOT be
+attempted here — they arrive in later slices: **retries / the bounded revise loop** on a
+`REJECT`, and the supervisor's **stuck-retry** (both #5); the **multi-step plan loop** and
+the **committed ledger** (#6). For now a `REJECT` **stops the run cleanly**, and a
+**killed-stuck** leaf causes a **clean bail** — veri stays usable; it just refuses to
+proceed on an unverified or stuck step.
 
 ## The two roles, and why the verifier is blind
 
@@ -43,13 +46,21 @@ verification.
 Let `S=.claude/skills/solve-issue/scripts`. All leaf machinery lives there and is unit-
 tested (`$S/tests/*.test.sh`):
 
-- `$S/run-leaf.sh <name> <prompt-file|-> [claude args...]` — launch one leaf, teeing its
-  output to `.tdd/<name>.log` for inspection. (`-` reads the prompt from stdin.)
+- `$S/supervise.sh <name> <cmd> [args...]` — **the leaf launcher.** Spawns `<cmd>` under a
+  heartbeat + hard-timeout watchdog, owns the `.tdd/<name>.log` progress log, and returns
+  the captured output on stdout. **Exit 0 = success, 1 = leaf-failure, 2 = killed-stuck**
+  (hung past the heartbeat window or over the hard timeout); a one-line status goes to
+  stderr. Tunables: `VERI_HEARTBEAT` (silence window s, default 45), `VERI_TIMEOUT` (hard
+  cap s, default 900). **Every leaf is launched through this — never call `run-leaf.sh` or
+  `claude` directly.**
+- `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation (resolve
+  the prompt, exec `claude -p`). You always run it *via* `supervise.sh`, not on its own.
 - `$S/build-verify-prompt.sh <red|green|refactor> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
 - `$S/verify.sh <red|green|refactor> <spec-file> <test-path> [target]` — the **verify
-  verb**: build the blind prompt → launch the verifier leaf → parse the verdict. Prints
-  the verifier's **reason** on stdout; **exit 0 = PASS, 1 = REJECT, 2 = malformed**.
+  verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
+  parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
+  REJECT, 2 = malformed or killed-stuck**.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
 - `$S/tick-issue-criterion.sh <n> '<substring>'` — tick a criterion checkbox in the
@@ -102,11 +113,14 @@ criterion you are solving, and noting that each phase will be blind-verified:
    failing test pinning the criterion to **observable external behavior** (not internals),
    with **no production code**, and to run it and confirm it fails for the right reason.
    Include in the prompt: the issue's behavior spec, the test command, and the target test
-   file/name. Write it to `.tdd/develop-red.prompt`, then launch the leaf:
+   file/name. Write it to `.tdd/develop-red.prompt`, then launch the leaf **through the
+   supervisor**:
    ```
-   $S/run-leaf.sh develop-red .tdd/develop-red.prompt --permission-mode bypassPermissions
+   $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions
    ```
-   The leaf writes the test to disk. Note the **test path** and **target test id** it used.
+   If `supervise.sh` exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
+   cleanly (see *Bailing on a killed-stuck leaf*); do not retry. Otherwise the leaf wrote
+   the test to disk — note the **test path** and **target test id** it used.
 2. **Verify (blind).** Run the verifier against the on-disk test and spec:
    ```
    $S/verify.sh red .tdd/issue-<n>-spec.md <test-path> <target-test-id>
@@ -115,23 +129,28 @@ criterion you are solving, and noting that each phase will be blind-verified:
 3. **Narrate + branch.** Post a `### 🔴 Red` comment with the test and the failing output,
    followed by a `### 🔎 verify-red — PASS|REJECT` comment carrying the verifier's reason.
    - **PASS (exit 0):** continue to Green.
-   - **REJECT (exit 1) or malformed (exit 2):** **stop** — see *Stopping on a REJECT*.
+   - **REJECT (exit 1):** **stop cleanly** — see *Stopping on a REJECT*.
+   - **Malformed / killed-stuck (exit 2):** the verdict could not be obtained (unparseable
+     or the verifier leaf was killed) — **bail** as a system failure (see *Bailing on a
+     killed-stuck leaf*), not a clean process stop.
 
 ### 4. Green — minimum implementation (developer leaf), then verify-green (blind)
 
 1. **Develop.** Compose a developer-leaf prompt to write the **minimum** production code
    that makes the failing test pass — no generality, options, or cases the test does not
    demand — and to run the **full suite** and confirm green. Include the spec, the test
-   command, and the target test. Write to `.tdd/develop-green.prompt` and launch:
+   command, and the target test. Write to `.tdd/develop-green.prompt` and launch **through
+   the supervisor** (exit **2** → **bail**, see *Bailing on a killed-stuck leaf*):
    ```
-   $S/run-leaf.sh develop-green .tdd/develop-green.prompt --permission-mode bypassPermissions
+   $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions
    ```
 2. **Verify (blind).** `$S/verify.sh green .tdd/issue-<n>-spec.md <test-path> <target-test-id>`.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS:** **commit the green state** before refactoring:
      `git add -A && git commit -m "feat: <criterion summary> (#<n>)"`. Continue to Refactor.
-   - **REJECT / malformed:** **stop** — see *Stopping on a REJECT*.
+   - **REJECT (exit 1):** **stop cleanly** — see *Stopping on a REJECT*.
+   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing on a killed-stuck leaf*.
 
 ### 5. Refactor — one tidy-up pass (developer leaf), then verify-refactor (blind, once)
 
@@ -141,15 +160,20 @@ criterion you are solving, and noting that each phase will be blind-verified:
    a later slice; if generality is missing, the leaf should *note* it, not hand-write it).
    The leaf must run the full suite and keep it green, reverting any change that breaks it.
    If nothing is worth tidying, the leaf should say so. Write to `.tdd/develop-refactor.prompt`
-   and launch as above (`develop-refactor`).
+   and launch **through the supervisor** as above (exit **2** → **bail**):
+   ```
+   $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions
+   ```
 2. **Verify (blind, once).** `$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path>` —
    one verdict on the settled result (suite still green, code up to standard).
 3. **Narrate + branch.** Post `### 🛠️ Refactor` (what changed, or "no refactor warranted",
    + green suite output) and `### 🔎 verify-refactor — PASS|REJECT` (the reason).
    - **PASS:** commit the refactor **only if something changed**:
      `git add -A && git commit -m "refactor: <what> (#<n>)"`. Continue to step 6.
-   - **REJECT / malformed:** **stop** — see *Stopping on a REJECT*. (The green commit
+   - **REJECT (exit 1):** **stop cleanly** — see *Stopping on a REJECT*. (The green commit
      from step 4 is preserved.)
+   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing on a killed-stuck
+     leaf*. (The green commit from step 4 is preserved.)
 
 ### 6. Check off the criterion
 
@@ -181,8 +205,8 @@ Report back to the user with the branch name and the PR URL.
 
 ## Stopping on a REJECT
 
-When `verify.sh` exits non-zero (`1` REJECT, `2` malformed), the run stops here — there is
-no revise loop yet (that is #5). Stop **cleanly**:
+When `verify.sh` exits **1 (REJECT)**, the run stops here — there is no revise loop yet
+(that is #5). Stop **cleanly**:
 
 1. Post a `### 🛑 Stopped — verify-<phase> REJECT` comment on the issue carrying the
    verifier's **reason** verbatim, so the next human (or the future revise loop) knows
@@ -193,6 +217,26 @@ no revise loop yet (that is #5). Stop **cleanly**:
 
 A `REJECT` is veri working as designed — the blind verifier refusing to rubber-stamp
 unverified work — not an error to retry your way around.
+
+## Bailing on a killed-stuck leaf
+
+When `supervise.sh` exits **2 (killed-stuck)** for a developer leaf, or `verify.sh` exits
+**2** (a verdict that could not be obtained — unparseable, or the verifier leaf killed),
+the failure is in the **plumbing**, not the methodology. There is no stuck-retry yet (that
+is #5), so **bail** — terminally stop this issue while preserving progress (ADR-0011):
+
+1. **Preserve completed commits.** Do not revert; any green commit already made stays.
+2. **Push the branch** so the partial work and the leaf logs are recoverable:
+   `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
+3. Post a `### ⛔ Bailed — <phase> killed-stuck` comment that **classifies the cause** as a
+   **system failure** (the supervisor killed a hung/runaway leaf, or no verdict could be
+   read — the plumbing broke), names the phase, and points at the progress log
+   (`.tdd/<phase>.log`) for forensics. This classification distinguishes a bail from a
+   methodology `REJECT`.
+4. **Open no PR** and do **not** tick the criterion.
+5. Report to the user: the phase, that it was a killed-stuck/system bail, and the branch.
+
+Re-running later resumes from where the commits left off (full resume is #6).
 
 ## Detecting the test command
 
@@ -212,6 +256,8 @@ guessing. Pass it into every developer-leaf prompt so the leaves run the same su
 - **You write no code.** Developer leaves write the test, the implementation, and the
   refactor; you orchestrate. Red and green are always performed by leaves **distinct from
   the verifier**.
+- **Every leaf is launched through `supervise.sh`** — never `run-leaf.sh` or `claude`
+  directly. The supervisor is the one place stuck-detection lives.
 - One failing test, then minimum code, then one tidy-up pass — in that order. Never
   production code before its failing test.
 - Every phase is **blind-verified** before you proceed, and **every verdict is mirrored**
@@ -219,5 +265,5 @@ guessing. Pass it into every developer-leaf prompt so the leaves run the same su
 - The full suite must be green before you commit and before you open the PR.
 - The PR is always a **draft**, always carries `Closes #<n>`, and is **never merged** by
   you.
-- On a `REJECT`, stop cleanly and report; do not loop, retry, or hand-fix (that machinery
-  is #4/#5).
+- On a `REJECT`, **stop cleanly**; on a **killed-stuck** leaf, **bail** (preserve commits,
+  classify as a system failure). Do not loop, retry, or hand-fix — that machinery is #5.
