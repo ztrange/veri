@@ -1,12 +1,16 @@
 # veri fixtures
 
-Materials to demo the veri walking skeleton (`/solve-issue`) end-to-end on a seeded
-single-criterion issue.
+Materials to demo `/solve-issue` end-to-end on a seeded single-criterion issue, and to
+demo the blind verifier in isolation.
 
 - [`demo-project/`](./demo-project) — a minimal, zero-dependency Python target. No
   implementation yet; one trivial passing test keeps the baseline green.
 - [`seed-demo-issue.sh`](./seed-demo-issue.sh) — creates the single-criterion fixture
   issue (`slugify(text)`) on a GitHub repo.
+- [`demo-verify-red-catch.sh`](./demo-verify-red-catch.sh) — stands up a throwaway copy of
+  the demo project, drops in a deliberately **weak** test, and runs the real blind
+  `verify-red` against it. A correct verifier REJECTs it (exit 1). No GitHub needed; makes
+  one real `claude -p` call (set `CLAUDE_BIN` to a stub for a dry run of the plumbing).
 
 ## Running the demo
 
@@ -37,7 +41,19 @@ runs against a real GitHub repo with push access. Use a throwaway repo:
 ## What you should observe
 
 - A `tdd/<n>-demo-add-a-slugify...` branch is created.
-- The issue thread carries a start comment, then 🔴 Red, 🟢 Green, 🛠️ Refactor, and a
-  final ✅ Done comment with the PR link.
+- The issue thread carries a start comment, then for each phase a developer-phase comment
+  (🔴 Red, 🟢 Green, 🛠️ Refactor) **followed by its blind verdict** (🔎 verify-red /
+  verify-green / verify-refactor — PASS|REJECT + reason), and a final ✅ Done comment with
+  the PR link.
 - The full suite (`python3 -m unittest discover -q`) is green before the commits.
 - A **draft** PR exists, linked with `Closes #<n>`, **not merged**.
+- On a `REJECT`, instead of a PR you get a 🛑 Stopped comment carrying the verifier's
+  reason, and any earlier green commit is preserved on the branch.
+
+## Demoing the blind verifier alone
+
+To see verification catch bad work without a full GitHub run:
+
+```sh
+fixtures/demo-verify-red-catch.sh   # expect: REJECT (exit 1)
+```
