@@ -7,7 +7,7 @@ description: >-
   `/solve-issue <number>`. Use when the user names one GitHub issue to solve under TDD.
 ---
 
-# solve-issue — the veri conductor (supervised-leaves slice)
+# solve-issue — the veri conductor (retries slice)
 
 You are the **conductor**. You drive exactly one GitHub issue end-to-end through a single
 Red → Green → Refactor pass, but you **write no code yourself**. Each phase is performed
@@ -18,13 +18,20 @@ hung or runaway leaf is killed instead of stalling the whole run. You orchestrat
 leaves, branch on their verdicts, narrate every phase and verdict to the issue thread,
 and leave the result on a **draft PR** for a human to review and merge.
 
-This slice makes veri **unstuckable** by routing every leaf through the supervisor, on top
-of the blind-verification slice. The following are still **out of scope** and must NOT be
-attempted here — they arrive in later slices: **retries / the bounded revise loop** on a
-`REJECT`, and the supervisor's **stuck-retry** (both #5); the **multi-step plan loop** and
-the **committed ledger** (#6). For now a `REJECT` **stops the run cleanly**, and a
-**killed-stuck** leaf causes a **clean bail** — veri stays usable; it just refuses to
-proceed on an unverified or stuck step.
+This slice makes veri **self-correcting** by adding the two retry axes, on top of the
+supervised-leaves slice:
+
+- **Revise loop (verdict axis):** a `REJECT` no longer stops the run — the conductor spawns
+  a **fresh** developer leaf carrying the rejection reason and re-verifies, up to a bounded
+  **attempt budget** (default 2), then bails the step.
+- **Stuck-retry (liveness axis):** the supervisor relaunches a killed-stuck leaf up to its
+  own budget (`VERI_STUCK_RETRIES`, default 1) before reporting killed-stuck.
+
+These two budgets are **independent**: one handles a leaf that finished with a bad verdict,
+the other a leaf that never produced one. Still **out of scope** (later slices): the
+**multi-step plan loop** and the **committed ledger** (#6). A step that exhausts its revise
+budget, or a leaf that stays killed-stuck past the supervisor's budget, **bails** —
+preserving progress and classifying the cause (process vs system).
 
 ## The two roles, and why the verifier is blind
 
@@ -49,10 +56,12 @@ tested (`$S/tests/*.test.sh`):
 - `$S/supervise.sh <name> <cmd> [args...]` — **the leaf launcher.** Spawns `<cmd>` under a
   heartbeat + hard-timeout watchdog, owns the `.tdd/<name>.log` progress log, and returns
   the captured output on stdout. **Exit 0 = success, 1 = leaf-failure, 2 = killed-stuck**
-  (hung past the heartbeat window or over the hard timeout); a one-line status goes to
-  stderr. Tunables: `VERI_HEARTBEAT` (silence window s, default 45), `VERI_TIMEOUT` (hard
-  cap s, default 900). **Every leaf is launched through this — never call `run-leaf.sh` or
-  `claude` directly.**
+  (hung past the heartbeat window or over the hard timeout, **after** its stuck-retry
+  budget). A one-line status goes to stderr. Tunables: `VERI_HEARTBEAT` (silence window s,
+  default 45), `VERI_TIMEOUT` (hard cap s, default 900), `VERI_STUCK_RETRIES` (extra
+  attempts after a killed-stuck, default 1 — the **liveness** axis, independent of the
+  conductor's verdict-axis `REVISE_BUDGET`). **Every leaf is launched through this — never
+  call `run-leaf.sh` or `claude` directly.**
 - `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation (resolve
   the prompt, exec `claude -p`). You always run it *via* `supervise.sh`, not on its own.
 - `$S/build-verify-prompt.sh <red|green|refactor> <spec-file> <test-path> [target]` —
@@ -129,10 +138,11 @@ criterion you are solving, and noting that each phase will be blind-verified:
 3. **Narrate + branch.** Post a `### 🔴 Red` comment with the test and the failing output,
    followed by a `### 🔎 verify-red — PASS|REJECT` comment carrying the verifier's reason.
    - **PASS (exit 0):** continue to Green.
-   - **REJECT (exit 1):** **stop cleanly** — see *Stopping on a REJECT*.
+   - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. It
+     returns either PASS (continue to Green) or budget-exhausted (**bail**, process failure).
    - **Malformed / killed-stuck (exit 2):** the verdict could not be obtained (unparseable
-     or the verifier leaf was killed) — **bail** as a system failure (see *Bailing on a
-     killed-stuck leaf*), not a clean process stop.
+     or the verifier leaf was killed) — **bail** as a system failure (see *Bailing*), not a
+     clean process stop.
 
 ### 4. Green — minimum implementation (developer leaf), then verify-green (blind)
 
@@ -149,8 +159,9 @@ criterion you are solving, and noting that each phase will be blind-verified:
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS:** **commit the green state** before refactoring:
      `git add -A && git commit -m "feat: <criterion summary> (#<n>)"`. Continue to Refactor.
-   - **REJECT (exit 1):** **stop cleanly** — see *Stopping on a REJECT*.
-   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing on a killed-stuck leaf*.
+   - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
+     recovered PASS, commit the green state and continue; on budget-exhausted, **bail**.
+   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing*.
 
 ### 5. Refactor — one tidy-up pass (developer leaf), then verify-refactor (blind, once)
 
@@ -170,10 +181,11 @@ criterion you are solving, and noting that each phase will be blind-verified:
    + green suite output) and `### 🔎 verify-refactor — PASS|REJECT` (the reason).
    - **PASS:** commit the refactor **only if something changed**:
      `git add -A && git commit -m "refactor: <what> (#<n>)"`. Continue to step 6.
-   - **REJECT (exit 1):** **stop cleanly** — see *Stopping on a REJECT*. (The green commit
+   - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
+     recovered PASS, commit and continue; on budget-exhausted, **bail**. (The green commit
+     from step 4 is preserved either way.)
+   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing*. (The green commit
      from step 4 is preserved.)
-   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing on a killed-stuck
-     leaf*. (The green commit from step 4 is preserved.)
 
 ### 6. Check off the criterion
 
@@ -203,38 +215,65 @@ The full suite must be green and the work committed before this step.
 
 Report back to the user with the branch name and the PR URL.
 
-## Stopping on a REJECT
+## Revising on a REJECT
 
-When `verify.sh` exits **1 (REJECT)**, the run stops here — there is no revise loop yet
-(that is #5). Stop **cleanly**:
+A `REJECT` (verify.sh exit **1**) does **not** stop the run. The conductor gets a bounded
+**attempt budget** — `REVISE_BUDGET` revise attempts, **default 2** — to satisfy the blind
+verifier before bailing the step. The rejection **reason is the carry-forward signal**:
+leaves never share context, so each revise leaf is told explicitly what to fix.
 
-1. Post a `### 🛑 Stopped — verify-<phase> REJECT` comment on the issue carrying the
-   verifier's **reason** verbatim, so the next human (or the future revise loop) knows
-   exactly what failed and why.
-2. Leave any already-made commits in place (e.g. a green commit before a refactor REJECT);
-   do **not** open a PR, and do **not** tick the criterion.
-3. Report to the user: the phase that was rejected, the reason, and the branch name.
+For attempt `k = 1 … REVISE_BUDGET`:
 
-A `REJECT` is veri working as designed — the blind verifier refusing to rubber-stamp
-unverified work — not an error to retry your way around.
+1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
+   the verifier's **rejection reason verbatim**.
+2. **Fresh developer leaf.** Compose a revise prompt that includes the issue spec, the
+   **current test and/or code on disk**, and the **rejection reason**, instructing a brand-
+   new leaf to address *that specific objection* — rewrite the test (red), fix the
+   implementation (green), or redo the tidy-up (refactor) — without drifting beyond what the
+   criterion and the reason require. Write it to `.tdd/revise-<phase>-<k>.prompt` and launch
+   **through the supervisor** (exit **2 → bail**, system failure):
+   ```
+   $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions
+   ```
+3. **Re-verify (blind, same phase).** `$S/verify.sh <phase> .tdd/issue-<n>-spec.md <test-path> [target]`.
+   - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
+     with the reason, and resume the cycle from where that phase's PASS would continue.
+   - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
+   - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
-## Bailing on a killed-stuck leaf
+If all `REVISE_BUDGET` attempts are still `REJECT`, **bail the step** as a **process
+failure** (the methodology could not satisfy the blind verifier within budget), recording
+the **last rejection reason**.
 
-When `supervise.sh` exits **2 (killed-stuck)** for a developer leaf, or `verify.sh` exits
-**2** (a verdict that could not be obtained — unparseable, or the verifier leaf killed),
-the failure is in the **plumbing**, not the methodology. There is no stuck-retry yet (that
-is #5), so **bail** — terminally stop this issue while preserving progress (ADR-0011):
+`REVISE_BUDGET` (verdict axis) is **independent** of the supervisor's `VERI_STUCK_RETRIES`
+(liveness axis): the first governs a leaf that finished with a bad verdict, the second a
+leaf that never produced one. A `REJECT` is veri working as designed — the blind verifier
+refusing to rubber-stamp — so the bounded revise is a *correction*, never an excuse to keep
+hammering past the budget.
+
+## Bailing
+
+A **bail** terminally stops this issue while preserving progress (ADR-0011). Two causes
+reach it, and the bail comment must **classify which**:
+
+- **System failure (plumbing broke).** `supervise.sh` exits **2 (killed-stuck)** for a
+  developer leaf even after its stuck-retry budget, or `verify.sh` exits **2** (no readable
+  verdict — unparseable, or the verifier leaf killed).
+- **Process failure (methodology spoke).** A step exhausted its `REVISE_BUDGET` and the
+  blind verifier still says `REJECT`.
+
+To bail:
 
 1. **Preserve completed commits.** Do not revert; any green commit already made stays.
 2. **Push the branch** so the partial work and the leaf logs are recoverable:
    `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
-3. Post a `### ⛔ Bailed — <phase> killed-stuck` comment that **classifies the cause** as a
-   **system failure** (the supervisor killed a hung/runaway leaf, or no verdict could be
-   read — the plumbing broke), names the phase, and points at the progress log
-   (`.tdd/<phase>.log`) for forensics. This classification distinguishes a bail from a
-   methodology `REJECT`.
+3. Post a `### ⛔ Bailed — <phase> (<system|process> failure)` comment that **classifies the
+   cause**, names the phase, carries the last reason (rejection reason or kill cause), and
+   points at the progress log (`.tdd/<phase>.log` or `.tdd/revise-<phase>-*.log`) for
+   forensics.
 4. **Open no PR** and do **not** tick the criterion.
-5. Report to the user: the phase, that it was a killed-stuck/system bail, and the branch.
+5. Report to the user: the phase, the **classification** (system vs process), the reason,
+   and the branch name.
 
 Re-running later resumes from where the commits left off (full resume is #6).
 
@@ -265,5 +304,7 @@ guessing. Pass it into every developer-leaf prompt so the leaves run the same su
 - The full suite must be green before you commit and before you open the PR.
 - The PR is always a **draft**, always carries `Closes #<n>`, and is **never merged** by
   you.
-- On a `REJECT`, **stop cleanly**; on a **killed-stuck** leaf, **bail** (preserve commits,
-  classify as a system failure). Do not loop, retry, or hand-fix — that machinery is #5.
+- On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
+  the reason); if it exhausts, **bail** (process failure). On a **killed-stuck** leaf past
+  its retry budget, or an unreadable verdict, **bail** (system failure). Always preserve
+  commits and classify the cause. Never hand-fix the code yourself or loop past the budget.

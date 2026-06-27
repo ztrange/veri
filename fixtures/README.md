@@ -11,6 +11,10 @@ demo the blind verifier in isolation.
   the demo project, drops in a deliberately **weak** test, and runs the real blind
   `verify-red` against it. A correct verifier REJECTs it (exit 1). No GitHub needed; makes
   one real `claude -p` call (set `CLAUDE_BIN` to a stub for a dry run of the plumbing).
+- [`demo-revise-recovers.sh`](./demo-revise-recovers.sh) — shows the **revise loop**
+  recovering a step: the real `verify.sh`/`supervise.sh` plumbing is driven with a stub leaf
+  that REJECTs the first attempt and PASSes after a supervised revise leaf carries the
+  reason forward — recovered within the attempt budget, exit 0. No GitHub, no model call.
 
 ## Running the demo
 
