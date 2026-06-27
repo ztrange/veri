@@ -2,3 +2,6 @@
 
 __pycache__/
 *.pyc
+
+# veri run state (per-issue leaf logs, ledger scratch)
+.tdd/
