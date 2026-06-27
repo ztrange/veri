@@ -67,6 +67,19 @@ out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$work/argv" \
 code=$?
 [[ "$code" -ne 0 ]] && ok || no "unknown phase exits non-zero (code=$code)"
 
+# 6. a hung verifier leaf is killed by the supervisor → no verdict → exit 2, so the
+#    conductor never proceeds on a verification it could not obtain
+cat > "$stubdir/claude-hang" <<'STUB'
+#!/usr/bin/env bash
+echo "thinking..."; sleep 60
+STUB
+chmod +x "$stubdir/claude-hang"
+out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+          "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>/dev/null )"
+code=$?
+{ [[ "$code" == 2 ]] && [[ "$out" == *'killed-stuck'* ]]; } && ok \
+  || no "hung verifier leaf → killed-stuck exit 2 (code=$code)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

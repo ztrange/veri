@@ -44,10 +44,26 @@ fi
 # Build the blind prompt (exits 2 on unknown phase / unreadable files — propagated).
 prompt="$("$HERE/build-verify-prompt.sh" "$phase" "$spec_file" "$test_path" "$target")"
 
-# Launch the verifier leaf; capture its full output for parsing.
-out="$(printf '%s' "$prompt" | "$HERE/run-leaf.sh" "verify-$phase" - "${leaf_args[@]}")"
+# Launch the verifier leaf THROUGH THE SUPERVISOR (no leaf is launched directly, #4).
+# supervise.sh owns the .tdd/verify-<phase>.log progress log and returns the captured
+# output; a hung/runaway verifier is killed and reported killed-stuck (exit 2).
+mkdir -p .tdd
+promptfile=".tdd/verify-$phase.prompt"
+printf '%s' "$prompt" > "$promptfile"
 
-# The verdict is the parse result, not the leaf's process status.
+set +e
+out="$("$HERE/supervise.sh" "verify-$phase" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
+scode=$?
+set -e
+
+# A killed-stuck verifier yields no verdict — surface it as malformed (the conductor
+# stops, just as it would on an unparseable verdict).
+if [[ "$scode" -eq 2 ]]; then
+  echo "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-$phase.log)"
+  exit 2
+fi
+
+# The verdict is the parse result of the captured output, not the leaf's process status.
 set +e
 reason="$(printf '%s' "$out" | "$HERE/parse-verdict.sh")"
 vcode=$?
