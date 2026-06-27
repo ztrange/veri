@@ -7,8 +7,9 @@
 #   * heartbeat — activity on the leaf's progress log within a window tells "slow but
 #     working" from "hung". A leaf silent past the window is killed.
 #   * hard timeout — a leaf that exceeds the wall-clock cap is killed even if still noisy.
-# A killed leaf is reported as `killed-stuck`; the conductor turns that into a clean bail
-# (retry arrives in #5).
+# A killed leaf is retried up to VERI_STUCK_RETRIES times (default 1) on a fresh attempt; if
+# it still can't recover it is reported as `killed-stuck`, which the conductor turns into a
+# clean bail.
 #
 # Usage:
 #   supervise.sh <name> <cmd> [args...]
