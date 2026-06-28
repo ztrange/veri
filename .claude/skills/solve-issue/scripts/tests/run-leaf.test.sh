@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Tests for scripts/run-leaf.sh — the leaf invocation, driven against a stub `claude` on
-# PATH (no real subprocess, no model call). run-leaf builds and execs the `claude -p` call
-# for one leaf and streams its output to stdout; it does NOT own a progress log — since #4
-# the supervisor (supervise.sh) is the single launch choke point and owns `.tdd/<name>.log`.
+# PATH (no real subprocess, no model call). run-leaf runs claude in --output-format
+# stream-json so the leaf streams events (the supervisor's heartbeat), then appends the
+# clean final result via extract-result.sh. It does NOT own a progress log — since #4 the
+# supervisor (supervise.sh) is the single launch choke point and owns `.tdd/<name>.log`.
 #
-# The stub `claude` records its argv to $ARGV_OUT, prints $FAKE_OUT_TEXT, exits $FAKE_CODE.
+# The stub `claude` records its argv to $ARGV_OUT, emits a minimal stream-json stream whose
+# result event carries $FAKE_RESULT, and exits $FAKE_CODE.
 #
 # Run: scripts/tests/run-leaf.test.sh
 set -uo pipefail
@@ -21,44 +23,49 @@ trap 'rm -rf "$stubdir" "$work"' EXIT
 cat > "$stubdir/claude" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$ARGV_OUT"
-printf '%s' "${FAKE_OUT_TEXT:-}"
+# A minimal stream-json stream: a system event, an assistant event, then the result.
+printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
+printf '{"type":"assistant","message":{"content":[{"type":"text","text":"%s"}]}}\n' "${FAKE_RESULT:-ok}"
+printf '{"type":"result","subtype":"success","is_error":false,"result":"%s"}\n' "${FAKE_RESULT:-ok}"
 exit "${FAKE_CODE:-0}"
 STUB
 chmod +x "$stubdir/claude"
 
-run() {  # run <prompt-file> <fake-out-text> <fake-code> [extra args...]
-  local pf="$1" text="$2" fcode="$3"; shift 3
+run() {  # run <prompt-file> <fake-result> <fake-code> [extra args...]
+  local pf="$1" res="$2" fcode="$3"; shift 3
   ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$work/argv" \
-      FAKE_OUT_TEXT="$text" FAKE_CODE="$fcode" \
+      FAKE_RESULT="$res" FAKE_CODE="$fcode" \
       "$LEAF" "$pf" "$@" )
 }
 
 printf 'Verify the test for issue 3.' > "$work/prompt.txt"
 
-# 1. streams the leaf's stdout to the caller (the supervisor captures it)
-out="$(run "$work/prompt.txt" 'hello from leaf
-VERDICT: PASS' 0)"
-[[ "$out" == *'VERDICT: PASS'* ]] && ok || no "returns leaf stdout"
+# 1. the EXTRACTED final result text reaches the caller (clean, for parse-verdict)
+out="$(run "$work/prompt.txt" 'VERDICT: PASS' 0)"
+[[ "$out" == *'VERDICT: PASS'* ]] && ok || no "returns extracted result text"
 
-# 2. feeds the prompt-file contents to claude via -p
+# 2. the RAW stream is also emitted (it is what grows the supervisor's heartbeat log)
+[[ "$out" == *'"type":"result"'* ]] && ok || no "streams raw events for heartbeat"
+
+# 3. runs claude in stream-json with the prompt via -p
 grep -q -- '-p' "$work/argv" && grep -q 'Verify the test for issue 3.' "$work/argv" \
-  && ok || no "passes prompt via -p"
+  && grep -q -- 'stream-json' "$work/argv" && ok || no "passes prompt via -p in stream-json"
 
-# 3. propagates the leaf's non-zero exit status
+# 4. propagates the leaf's non-zero exit status
 run "$work/prompt.txt" 'VERDICT: REJECT' 1 >/dev/null; code=$?
 [[ "$code" == 1 ]] && ok || no "propagates leaf exit status (got $code)"
 
-# 4. passes extra args through to the leaf (e.g. a tool allowlist)
-run "$work/prompt.txt" 'ok' 0 --allowed-tools 'Read,Bash' >/dev/null
+# 5. passes extra args through to the leaf (e.g. a tool allowlist)
+run "$work/prompt.txt" ok 0 --allowed-tools 'Read,Bash' >/dev/null
 grep -q -- '--allowed-tools' "$work/argv" && grep -q 'Read,Bash' "$work/argv" \
   && ok || no "passes extra args through"
 
-# 5. prompt-file of "-" reads the prompt from stdin
+# 6. prompt-file of "-" reads the prompt from stdin
 out="$(printf 'piped prompt body' | run - 'VERDICT: PASS' 0)"
 grep -q 'piped prompt body' "$work/argv" && ok || no "reads prompt from stdin on -"
 
-# 6. it does NOT create a progress log itself — that is the supervisor's job now
-run "$work/prompt.txt" 'ok' 0 >/dev/null
+# 7. it does NOT create a progress log itself — that is the supervisor's job now
+run "$work/prompt.txt" ok 0 >/dev/null
 [[ ! -e "$work/.tdd" ]] && ok || no "does not own a .tdd log"
 
 echo "----"
