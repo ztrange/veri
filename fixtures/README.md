@@ -21,6 +21,10 @@ demo the blind verifier in isolation.
 - [`demo-ledger-loop.sh`](./demo-ledger-loop.sh) — deterministic (no model) demo of the
   **loop + resume** primitives: drives the real `next-unchecked.sh`/`tick-ledger.sh` to
   drain a ledger, including a simulated stop-and-resume from the next unchecked step.
+- [`demo-classified-bail.sh`](./demo-classified-bail.sh) — deterministic demo of the
+  **classified bail**: for each forced cause it runs the real `classify-bail.sh` and renders
+  the bail comment, showing a plumbing failure is labelled `system`, a methodology failure
+  `process`, and an unknown cause errors rather than mislabelling.
 
 ## Running the demo
 

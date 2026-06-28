@@ -5,5 +5,8 @@ __pycache__/
 
 # veri run state (per-issue leaf logs, prompts) is ignored — EXCEPT the committed
 # ledger (.tdd/issue-<n>.md), which is the source of truth for which steps are done.
+# The blind-spec scratch (.tdd/issue-<n>-spec.md) is run state, so it is re-ignored
+# (last match wins): the ledger is tracked, the spec is not.
 .tdd/*
 !.tdd/issue-*.md
+.tdd/issue-*-spec.md

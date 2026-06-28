@@ -90,6 +90,9 @@ tested (`$S/tests/*.test.sh`):
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
 - `$S/tick-ledger.sh .tdd/issue-<n>.md '<substring>'` — check a step off in the **committed
   ledger**, in place (staged + committed together with that step's green code).
+- `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
+  (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
+  non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
 
 ## Inputs
 
@@ -102,7 +105,12 @@ Work through these steps in order. If a **preflight** step fails, stop and tell 
 what is wrong — do not start a cycle on a poisoned baseline. Once the cycle is underway,
 drive it to a draft PR or to a clean stop on a `REJECT`.
 
-### 0. Preflight
+### 0. Preflight — baseline checks (bail before any cycle)
+
+These run **first**, before any branch or cycle. If any fails, the baseline is poisoned —
+**bail immediately**: report which check failed and stop. This is a degenerate bail (no
+branch, no commits, nothing to revert or push) — just refuse to start. A red, dirty, or
+unauthenticated baseline never gets a cycle.
 
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
    `git status --porcelain` is empty. If dirty, stop and ask the user to commit or stash.
@@ -309,27 +317,33 @@ hammering past the budget.
 
 ## Bailing
 
-A **bail** terminally stops this issue while preserving progress (ADR-0011). Two causes
-reach it, and the bail comment must **classify which**:
+A **bail** terminally stops this issue while preserving progress (ADR-0011). Each bail has
+a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>`:
 
-- **System failure (plumbing broke).** `supervise.sh` exits **2 (killed-stuck)** for a
-  developer leaf even after its stuck-retry budget, or `verify.sh` exits **2** (no readable
-  verdict — unparseable, or the verifier leaf killed).
-- **Process failure (methodology spoke).** A step exhausted its `REVISE_BUDGET` and the
-  blind verifier still says `REJECT`.
+- `killed-stuck` — `supervise.sh` exited **2** for a developer leaf even after its
+  stuck-retry budget → **system** failure (plumbing broke).
+- `no-verdict` — `verify.sh` exited **2** (unparseable verdict, or the verifier leaf was
+  killed) → **system** failure.
+- `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
+  `REJECT` → **process** failure (methodology spoke).
 
 To bail:
 
-1. **Preserve completed commits.** Do not revert; any green commit already made stays.
-2. **Push the branch** so the partial work and the leaf logs are recoverable:
+1. **Revert only the half-done step.** Completed steps are committed; the failing step's
+   test/code is still uncommitted (the cycle bailed before its atomic green commit). Drop
+   exactly that half-done work — `git reset --hard HEAD` — which leaves every completed
+   step's commit (and the ledger's checked steps) intact.
+2. **Classify deterministically.** `classification="$($S/classify-bail.sh <cause>)"`
+   (`<cause>` is one of the tokens above). This keeps the label consistent rather than
+   ad-hoc; an unknown token makes it exit non-zero — pick the right token.
+3. **Push the branch** so completed steps and the leaf logs are recoverable:
    `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
-3. Post a `### ⛔ Bailed — <phase> (<system|process> failure)` comment that **classifies the
-   cause**, names the phase, carries the last reason (rejection reason or kill cause), and
-   points at the progress log (`.tdd/<phase>.log` or `.tdd/revise-<phase>-*.log`) for
-   forensics.
-4. **Open no PR.** Leave the ledger as-is: steps completed before the bail stay checked, so
-   a re-run resumes from the failed step (see *Resume*).
-5. Report to the user: the phase, the **classification** (system vs process), the reason,
+4. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
+   carries the last reason (rejection reason or kill cause), and points at the progress log
+   (`.tdd/<phase>.log` or `.tdd/revise-<phase>-*.log`) for forensics.
+5. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
+   failing step (see *Resume*).
+6. Report to the user: the phase, the **classification** (system vs process), the reason,
    and the branch name.
 
 ## Resume
