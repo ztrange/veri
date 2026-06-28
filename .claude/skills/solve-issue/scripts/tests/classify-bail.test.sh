@@ -3,10 +3,11 @@
 # Given a cause as $1, print the category on the first stdout line and exit 0.
 # Zero-dependency plain-shell asserts, same idiom as parse-verdict.test.sh.
 #
-# Contract under test (THIS step, issue #18):
-#   classify-bail.sh killed-stuck  → first stdout line `system`, exit 0
-#   classify-bail.sh no-verdict    → first stdout line `system`, exit 0
-# (Other causes are later steps and are not pinned here.)
+# Contract under test (issue #18):
+#   classify-bail.sh killed-stuck     → first stdout line `system`,  exit 0
+#   classify-bail.sh no-verdict       → first stdout line `system`,  exit 0
+#   classify-bail.sh revise-exhausted → first stdout line `process`, exit 0
+#   classify-bail.sh <unrecognised>   → error on stderr, exit non-zero
 #
 # Run: scripts/tests/classify-bail.test.sh
 set -uo pipefail
