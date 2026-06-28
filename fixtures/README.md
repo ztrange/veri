@@ -15,6 +15,12 @@ demo the blind verifier in isolation.
   recovering a step: the real `verify.sh`/`supervise.sh` plumbing is driven with a stub leaf
   that REJECTs the first attempt and PASSes after a supervised revise leaf carries the
   reason forward — recovered within the attempt budget, exit 0. No GitHub, no model call.
+- [`seed-demo-multi-issue.sh`](./seed-demo-multi-issue.sh) — creates the **multi-criterion**
+  fixture issue (a general `slugify` specified by several triangulating criteria) for
+  demoing the loops + ledger rung: a committed plan ledger and one cycle per criterion.
+- [`demo-ledger-loop.sh`](./demo-ledger-loop.sh) — deterministic (no model) demo of the
+  **loop + resume** primitives: drives the real `next-unchecked.sh`/`tick-ledger.sh` to
+  drain a ledger, including a simulated stop-and-resume from the next unchecked step.
 
 ## Running the demo
 
