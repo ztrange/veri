@@ -2,6 +2,7 @@
 # classify-bail.sh — classify a bail's <cause> into a category.
 #
 # Given a cause as $1, print its category on the first stdout line and exit 0.
+# An unrecognised cause prints an error to stderr and exits non-zero (2).
 #
 # Usage:   classify-bail.sh <cause>
 set -euo pipefail
@@ -14,5 +15,9 @@ case "$cause" in
     ;;
   revise-exhausted)
     echo process
+    ;;
+  *)
+    echo "classify-bail: unknown cause: $cause" >&2
+    exit 2
     ;;
 esac

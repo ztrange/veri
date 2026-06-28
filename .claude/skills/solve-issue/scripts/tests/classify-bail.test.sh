@@ -29,6 +29,19 @@ check() {
   fi
 }
 
+# check_nonzero <name> <cause> — an unrecognised cause must exit non-zero (an error),
+# never a silent or default classification.
+check_nonzero() {
+  local name="$1" cause="$2" code
+  "$CLASSIFY" "$cause" >/dev/null 2>&1 && code=0 || code=$?
+  if [[ "$code" != 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (want non-zero exit, got $code)"
+  fi
+}
+
 # 1. a killed-stuck cause classifies as system
 check "killed-stuck is system" killed-stuck 0 system
 
@@ -37,6 +50,9 @@ check "no-verdict is system" no-verdict 0 system
 
 # 3. a revise-exhausted cause classifies as process
 check "revise-exhausted is process" revise-exhausted 0 process
+
+# 4. an unrecognised cause is an error, not a silent/default classification
+check_nonzero "unknown cause exits non-zero" wat
 
 echo "----"
 echo "$pass passed, $fail failed"
