@@ -3,5 +3,7 @@
 __pycache__/
 *.pyc
 
-# veri run state (per-issue leaf logs, ledger scratch)
-.tdd/
+# veri run state (per-issue leaf logs, prompts) is ignored — EXCEPT the committed
+# ledger (.tdd/issue-<n>.md), which is the source of truth for which steps are done.
+.tdd/*
+!.tdd/issue-*.md
