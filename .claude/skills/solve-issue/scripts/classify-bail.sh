@@ -12,4 +12,7 @@ case "$cause" in
   killed-stuck | no-verdict)
     echo system
     ;;
+  revise-exhausted)
+    echo process
+    ;;
 esac

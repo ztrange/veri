@@ -35,6 +35,9 @@ check "killed-stuck is system" killed-stuck 0 system
 # 2. a no-verdict cause classifies as system
 check "no-verdict is system" no-verdict 0 system
 
+# 3. a revise-exhausted cause classifies as process
+check "revise-exhausted is process" revise-exhausted 0 process
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
