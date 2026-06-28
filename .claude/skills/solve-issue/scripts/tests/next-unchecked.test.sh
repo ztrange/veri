@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Unit tests for scripts/next-unchecked.sh — the loop/resume primitive. Given a ledger
+# (checkbox markdown) on stdin, print the description of the FIRST unchecked `- [ ]` step
+# and exit 0; exit 3 when every step is checked (or there are none) — the signal that the
+# cycle loop is complete. Mirrors the checkbox grammar of tick-criterion.sh.
+#
+# Run: scripts/tests/next-unchecked.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+NEXT="$HERE/../next-unchecked.sh"
+pass=0 fail=0
+check() {  # check <name> <expected-exit> <input> <expected-stdout>
+  local name="$1" exp_code="$2" input="$3" exp="$4" out code
+  out="$(printf '%s' "$input" | "$NEXT")" && code=0 || code=$?
+  if [[ "$code" == "$exp_code" && "$out" == "$exp" ]]; then pass=$((pass + 1)); else
+    fail=$((fail + 1)); echo "FAIL - $name (want exit $exp_code, got $code)"
+    diff <(printf '%s\n' "$exp") <(printf '%s\n' "$out") | sed 's/^/    /'
+  fi
+}
+
+ledger='# Plan for #42
+
+- [x] add the slugify lowercasing
+- [ ] collapse non-alphanumerics to a single hyphen
+- [ ] strip leading and trailing hyphens'
+
+# 1. returns the description of the first UNCHECKED step, skipping checked ones
+check "first unchecked description" 0 "$ledger" "collapse non-alphanumerics to a single hyphen"
+
+# 2. all steps checked → exit 3, no output (loop is done)
+done_ledger='- [x] one
+- [x] two'
+check "all checked exits 3" 3 "$done_ledger" ""
+
+# 3. no checkboxes at all → exit 3
+check "no checkboxes exits 3" 3 "# just a heading
+some prose" ""
+
+# 4. an indented / nested step is still found
+check "nested step" 0 "  - [ ] nested criterion" "nested criterion"
+
+# 5. the description is preserved verbatim, including backticks/special chars
+lit='- [x] done one
+- [ ] `slugify("a/b")` returns `a-b`'
+check "verbatim special chars" 0 "$lit" '`slugify("a/b")` returns `a-b`'
+
+# 6. the very first line being unchecked is returned (no checked lines before it)
+check "first line unchecked" 0 '- [ ] only step' "only step"
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]

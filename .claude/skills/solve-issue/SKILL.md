@@ -1,13 +1,14 @@
 ---
 name: solve-issue
 description: >-
-  Drive one GitHub issue through a single Red → Green → Refactor TDD pass in which a
-  blind, independent verifier confirms each phase, narrating every phase and verdict as a
-  comment on the issue thread, and leave the result on a draft PR. Invoke as
+  Drive one GitHub issue end-to-end under TDD: scope it into a committed plan ledger, then
+  loop Red → Green → Refactor cycles — each blind-verified by an independent agent — until
+  every acceptance criterion is covered, narrating each phase to the issue thread and
+  leaving the result on a draft PR. Resumable from the ledger. Invoke as
   `/solve-issue <number>`. Use when the user names one GitHub issue to solve under TDD.
 ---
 
-# solve-issue — the veri conductor (retries slice)
+# solve-issue — the veri conductor (loops + ledger slice)
 
 You are the **conductor**. You drive exactly one GitHub issue end-to-end through a single
 Red → Green → Refactor pass, but you **write no code yourself**. Each phase is performed
@@ -18,20 +19,25 @@ hung or runaway leaf is killed instead of stalling the whole run. You orchestrat
 leaves, branch on their verdicts, narrate every phase and verdict to the issue thread,
 and leave the result on a **draft PR** for a human to review and merge.
 
-This slice makes veri **self-correcting** by adding the two retry axes, on top of the
-supervised-leaves slice:
+This slice lifts veri from a single criterion to a **full multi-criterion issue**, solved
+by a **resumable loop** over a committed **ledger**, on top of everything earlier (blind
+verification, the supervisor, and the two retry axes — the **revise loop** on a `REJECT`
+and the supervisor's **stuck-retry**, all still in force):
 
-- **Revise loop (verdict axis):** a `REJECT` no longer stops the run — the conductor spawns
-  a **fresh** developer leaf carrying the rejection reason and re-verifies, up to a bounded
-  **attempt budget** (default 2), then bails the step.
-- **Stuck-retry (liveness axis):** the supervisor relaunches a killed-stuck leaf up to its
-  own budget (`VERI_STUCK_RETRIES`, default 1) before reporting killed-stuck.
+- **Scope & plan → ledger.** The conductor decomposes the issue into a checklist of small
+  steps — each one cycle's worth, aligned to an acceptance criterion — written to a
+  committed per-issue **ledger** (`.tdd/issue-<n>.md`) that is the **source of truth** for
+  which steps are done, and mirrored to the issue thread.
+- **The cycle loop.** The conductor loops Red → Green → Refactor over the ledger's steps
+  until every criterion is covered, checking each step off in the ledger **atomically with
+  its green commit** so git and ledger never diverge.
+- **Resume.** Re-running `/solve-issue <n>` reads the ledger and continues from the first
+  unchecked step.
 
-These two budgets are **independent**: one handles a leaf that finished with a bad verdict,
-the other a leaf that never produced one. Still **out of scope** (later slices): the
-**multi-step plan loop** and the **committed ledger** (#6). A step that exhausts its revise
-budget, or a leaf that stays killed-stuck past the supervisor's budget, **bails** —
-preserving progress and classifying the cause (process vs system).
+Still **out of scope** (later slices): hardened edges and completion polish (#7), and the
+parallel rung. A step that exhausts its revise budget, or a leaf that stays killed-stuck
+past the supervisor's budget, **bails** — preserving completed steps' commits and
+classifying the cause (process vs system).
 
 ## The two roles, and why the verifier is blind
 
@@ -79,7 +85,11 @@ tested (`$S/tests/*.test.sh`):
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
 - `$S/tick-issue-criterion.sh <n> '<substring>'` — tick a criterion checkbox in the
-  issue body.
+  issue body (the human-facing mirror).
+- `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
+  description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
+- `$S/tick-ledger.sh .tdd/issue-<n>.md '<substring>'` — check a step off in the **committed
+  ledger**, in place (staged + committed together with that step's green code).
 
 ## Inputs
 
@@ -103,29 +113,66 @@ drive it to a draft PR or to a clean stop on a `REJECT`.
 4. **Default branch.** Capture it for the PR base:
    `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 
-### 1. Read the issue, capture the spec, and branch
+### 1. Read the issue, capture the spec, and branch (or resume)
 
 1. Read the issue: `gh issue view <n> --json number,title,body,url`.
-2. Identify the **single acceptance criterion** from the body. This slice expects a
-   single-criterion issue; if you see several independent criteria, pick the first /
-   primary one and note in your start comment that you are solving that one.
-3. **Write the behavior spec to a file** the verifier leaves will read:
+2. **Write the behavior spec to a file** the verifier leaves will read:
    `mkdir -p .tdd && gh issue view <n> --json body -q .body > .tdd/issue-<n>-spec.md`.
    (The verifier is blind; this on-disk spec — never your narration — is what it sees.)
-4. Derive a slug from the title — lowercase, non-alphanumerics to `-`, collapse and trim
+3. Derive a slug from the title — lowercase, non-alphanumerics to `-`, collapse and trim
    `-`, cap to ~6 words. Create and switch to the per-issue branch:
    `git switch -c tdd/<n>-<slug>` (off the default branch). If it already exists, switch.
+4. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists on the branch, this
+   is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
+   comment naming the next unchecked step, and go straight to the cycle loop (step 3).
+   Otherwise continue to step 2 to scope and plan.
 
-### 2. Start comment
+### 2. Scope & plan → the ledger
 
-Post a short comment on the issue announcing veri has started, naming the branch and the
-criterion you are solving, and noting that each phase will be blind-verified:
-`gh issue comment <n> --body "..."`.
+Decompose the issue into a **plan**: a checklist of small steps, each one cycle's worth and
+aligned to an acceptance criterion. Surface sizing (note if a step looks too big to be one
+cycle) but do **not** gate on it.
 
-### 3. Red — one failing test (developer leaf), then verify-red (blind)
+1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
+   ```
+   # Plan for #<n> — <issue title>
+
+   - [ ] <step 1: a behaviour-level criterion, one cycle's worth>
+   - [ ] <step 2: …>
+   ```
+   Each step's text should be a distinctive, behaviour-level description — it doubles as the
+   substring you will pass to `tick-ledger.sh`. Prefer the issue's own acceptance-criteria
+   wording where it maps cleanly to one cycle.
+2. **Commit the ledger** as the run's starting point:
+   `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
+   (The ledger is committed — `.gitignore` tracks `.tdd/issue-*.md` while ignoring leaf
+   logs.)
+3. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment listing the steps,
+   noting that the ledger is the source of truth and each step will be blind-verified.
+
+### 2b. Start comment
+
+Post a short comment announcing veri has started, naming the branch and the number of plan
+steps, and noting each phase will be blind-verified: `gh issue comment <n> --body "..."`.
+
+### 3. The cycle loop
+
+Loop until the ledger has no unchecked step. Each iteration runs **one full cycle** (Red →
+Green → Refactor) for the next step:
+
+```
+$S/next-unchecked.sh < .tdd/issue-<n>.md        # exit 3 ⇒ all steps done → go to step 4 (PR)
+```
+
+Let **STEP** be that step's description. Run the Red, Green, and Refactor phases below
+**against STEP's criterion** (use STEP's wording as the criterion the leaves pin, and as
+the `<substring>` for ticking). When a step's cycle completes (refactor verified), loop
+back to `next-unchecked.sh` for the following step. The phase sub-steps are:
+
+#### Red — one failing test (developer leaf), then verify-red (blind)
 
 1. **Develop.** Compose a developer-leaf prompt that instructs it to write **exactly one**
-   failing test pinning the criterion to **observable external behavior** (not internals),
+   failing test pinning **STEP's criterion** to **observable external behavior** (not internals),
    with **no production code**, and to run it and confirm it fails for the right reason.
    Include in the prompt: the issue's behavior spec, the test command, and the target test
    file/name. Write it to `.tdd/develop-red.prompt`, then launch the leaf **through the
@@ -150,62 +197,65 @@ criterion you are solving, and noting that each phase will be blind-verified:
      or the verifier leaf was killed) — **bail** as a system failure (see *Bailing*), not a
      clean process stop.
 
-### 4. Green — minimum implementation (developer leaf), then verify-green (blind)
+#### Green — minimum implementation (developer leaf), then verify-green (blind)
 
 1. **Develop.** Compose a developer-leaf prompt to write the **minimum** production code
    that makes the failing test pass — no generality, options, or cases the test does not
    demand — and to run the **full suite** and confirm green. Include the spec, the test
    command, and the target test. Write to `.tdd/develop-green.prompt` and launch **through
-   the supervisor** (exit **2** → **bail**, see *Bailing on a killed-stuck leaf*):
+   the supervisor** (exit **2** → **bail**):
    ```
    $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions
    ```
 2. **Verify (blind).** `$S/verify.sh green .tdd/issue-<n>-spec.md <test-path> <target-test-id>`.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
-   - **PASS:** **commit the green state** before refactoring:
-     `git add -A && git commit -m "feat: <criterion summary> (#<n>)"`. Continue to Refactor.
+   - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
+     then commit the code **and** the ticked ledger in **one** commit so git and ledger
+     never diverge:
+     ```
+     $S/tick-ledger.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
+     git add -A && git commit -m "feat: <STEP summary> (#<n>)"
+     ```
+     Continue to the Refactor loop.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
-     recovered PASS, commit the green state and continue; on budget-exhausted, **bail**.
+     recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
+     **bail**.
    - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing*.
 
-### 5. Refactor — one tidy-up pass (developer leaf), then verify-refactor (blind, once)
+#### Refactor loop — behavior-preserving transforms until none, then verify-refactor (blind, once)
 
-1. **Develop.** Compose a developer-leaf prompt for **one behavior-preserving** tidy-up
-   pass over the code and test just written (naming, duplication, clarity) — no change to
-   observable behavior, no untested generality (generality comes only from triangulation,
-   a later slice; if generality is missing, the leaf should *note* it, not hand-write it).
-   The leaf must run the full suite and keep it green, reverting any change that breaks it.
-   If nothing is worth tidying, the leaf should say so. Write to `.tdd/develop-refactor.prompt`
-   and launch **through the supervisor** as above (exit **2** → **bail**):
+1. **Loop the transforms.** Repeatedly launch a developer leaf that applies **one**
+   behavior-preserving transformation (naming, duplication, clarity) and runs the **full
+   suite**, keeping it green (revert any change that breaks it). Each leaf returns either
+   "applied <transform>, suite green" or "nothing left to tidy". Keep going until a leaf
+   reports **nothing remains** (or you've made the codebase genuinely clean). Crucial rule:
+   **no untested generality** — generality comes only from **triangulation**. If the code
+   is **overfit** (e.g. hard-codes the one tested case), the leaf must **flag it as needing
+   a triangulating test**, *not* hand-generalize it. Write each prompt to
+   `.tdd/develop-refactor.prompt` and launch **through the supervisor** (exit **2** → **bail**):
    ```
    $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions
    ```
-2. **Verify (blind, once).** `$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path>` —
-   one verdict on the settled result (suite still green, code up to standard).
-3. **Narrate + branch.** Post `### 🛠️ Refactor` (what changed, or "no refactor warranted",
-   + green suite output) and `### 🔎 verify-refactor — PASS|REJECT` (the reason).
-   - **PASS:** commit the refactor **only if something changed**:
-     `git add -A && git commit -m "refactor: <what> (#<n>)"`. Continue to step 6.
-   - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
-     recovered PASS, commit and continue; on budget-exhausted, **bail**. (The green commit
-     from step 4 is preserved either way.)
-   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing*. (The green commit
-     from step 4 is preserved.)
+   Commit a transform only if it changed something:
+   `git add -A && git commit -m "refactor: <what> (#<n>)"`.
+2. **Verify (blind, once) on the settled result.** `$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path>`
+   — one verdict on the final state (suite still green, code up to standard, no smuggled
+   generality).
+3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
+   warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
+   - **PASS:** the step's cycle is complete — **mirror to the issue**: post a `### ✅ Step
+     done` comment, and tick the matching acceptance criterion in the **issue body**
+     (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Then loop back to
+     the top of **step 3** for the next unchecked ledger step.
+   - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
+     budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
+   - **Malformed / killed-stuck (exit 2):** **bail**. (Earlier steps' commits are preserved.)
 
-### 6. Check off the criterion
+### 4. Draft PR
 
-The cycle is complete and verified. Tick its checkbox in the issue body so progress-
-against-spec is visible. Use the helper — do **not** hand-edit with `sed`:
-```
-$S/tick-issue-criterion.sh <n> '<distinctive substring of the criterion>'
-```
-It flips the first unchecked `- [ ]` containing that substring to `- [x]` and exits non-
-zero if nothing matched — if it does, re-check the substring rather than editing by hand.
-
-### 7. Draft PR
-
-The full suite must be green and the work committed before this step.
+Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off. The full suite
+must be green and all work committed before this step.
 
 1. Push the branch: `git push -u origin tdd/<n>-<slug>`.
 2. Open a **draft** PR linked to the issue; the body must contain `Closes #<n>`:
@@ -214,7 +264,7 @@ The full suite must be green and the work committed before this step.
      --title "<type>: <criterion summary> (#<n>)" \
      --body "Closes #<n>
 
-   <one-paragraph summary of the blind-verified R→G→R pass>"
+   <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>"
    ```
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
 4. Post a final `### ✅ Done — <pr-url>` comment.
@@ -277,11 +327,29 @@ To bail:
    cause**, names the phase, carries the last reason (rejection reason or kill cause), and
    points at the progress log (`.tdd/<phase>.log` or `.tdd/revise-<phase>-*.log`) for
    forensics.
-4. **Open no PR** and do **not** tick the criterion.
+4. **Open no PR.** Leave the ledger as-is: steps completed before the bail stay checked, so
+   a re-run resumes from the failed step (see *Resume*).
 5. Report to the user: the phase, the **classification** (system vs process), the reason,
    and the branch name.
 
-Re-running later resumes from where the commits left off (full resume is #6).
+## Resume
+
+The committed ledger makes a run **resumable**: re-running `/solve-issue <n>` picks up
+where a previous run stopped (a bail, an interruption, or a human pause), without redoing
+finished steps.
+
+On re-run, after re-creating/switching to the branch (step 1), the **resume check** finds
+an existing `.tdd/issue-<n>.md`. When it does:
+
+1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
+   file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
+2. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
+   loop continues from exactly there. Already-checked steps (and their commits) are kept.
+3. Post a `### ▶️ Resuming` comment naming that step, then run the cycle loop (step 3) as
+   normal. When `next-unchecked.sh` exits 3, every step is done → go to the draft PR.
+
+Because each step was checked off **atomically with its green commit**, the ledger and the
+git history agree on exactly what is done — so resume never repeats or skips a step.
 
 ## Detecting the test command
 
@@ -303,8 +371,13 @@ guessing. Pass it into every developer-leaf prompt so the leaves run the same su
   the verifier**.
 - **Every leaf is launched through `supervise.sh`** — never `run-leaf.sh` or `claude`
   directly. The supervisor is the one place stuck-detection lives.
-- One failing test, then minimum code, then one tidy-up pass — in that order. Never
-  production code before its failing test.
+- One failing test, then minimum code, then the refactor loop — in that order, per step.
+  Never production code before its failing test.
+- **The committed ledger is the source of truth.** Loop the cycle over its steps until none
+  remain; check each step off **atomically with its green commit**; the issue thread only
+  **mirrors** the ledger. Never hand-edit the ledger — use `tick-ledger.sh`.
+- **Generality comes only from triangulation.** Overfit code is flagged for a triangulating
+  test, never hand-generalized in a refactor.
 - Every phase is **blind-verified** before you proceed, and **every verdict is mirrored**
   to the issue thread.
 - The full suite must be green before you commit and before you open the PR.
