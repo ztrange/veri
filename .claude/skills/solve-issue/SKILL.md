@@ -60,10 +60,16 @@ tested (`$S/tests/*.test.sh`):
   budget). A one-line status goes to stderr. Tunables: `VERI_HEARTBEAT` (silence window s,
   default 45), `VERI_TIMEOUT` (hard cap s, default 900), `VERI_STUCK_RETRIES` (extra
   attempts after a killed-stuck, default 1 — the **liveness** axis, independent of the
-  conductor's verdict-axis `REVISE_BUDGET`). **Every leaf is launched through this — never
-  call `run-leaf.sh` or `claude` directly.**
-- `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation (resolve
-  the prompt, exec `claude -p`). You always run it *via* `supervise.sh`, not on its own.
+  conductor's verdict-axis `REVISE_BUDGET`). Because leaves **stream** (below), the default
+  `VERI_HEARTBEAT` is a real silence window — a working leaf keeps it fresh, a genuinely
+  hung one trips it — so just use the defaults; no need to pin heartbeat to the timeout.
+  **Every leaf is launched through this — never call `run-leaf.sh` or `claude` directly.**
+- `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation. Runs
+  `claude -p --output-format stream-json` so the leaf **streams events as it works** (that
+  is the supervisor's heartbeat), then appends the clean final result. You always run it
+  *via* `supervise.sh`, not on its own.
+- `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
+  by `run-leaf.sh`; passes plain text through unchanged).
 - `$S/build-verify-prompt.sh <red|green|refactor> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
 - `$S/verify.sh <red|green|refactor> <spec-file> <test-path> [target]` — the **verify
