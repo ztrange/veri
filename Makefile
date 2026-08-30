@@ -16,3 +16,10 @@ test:
 	done; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
+
+# `make docs-check` verifies docs/walkthrough.html still matches the scripts it quotes —
+# byte-for-byte listings, line counts, and in-page anchors. Kept out of `test` on purpose:
+# veri bails on a red baseline, and doc drift should not block a TDD cycle.
+.PHONY: docs-check
+docs-check:
+	@python3 docs/check-walkthrough.py
