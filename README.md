@@ -57,10 +57,12 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 
 ## Documentation
 
-- [`docs/walkthrough.html`](./docs/walkthrough.html) — **veri, Annotated**: a line-by-line
-  reading of all eleven shell scripts, ordered by the data flow of one cycle, with a bash
-  primer covering every construct they use. Quotes each script verbatim by line range;
-  `make docs-check` verifies it has not drifted from the source.
+- [`docs/walkthrough.html`](./docs/walkthrough.html) — **veri, Annotated**: every one of
+  the eleven scripts in full, source beside commentary, ordered by the data flow of one
+  cycle. Bash constructs in the commentary carry a hover gloss and link into a reference
+  section covering every construct the suite uses. The page is **generated** from the real
+  scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
+  drift; `make docs-check` verifies the committed page still matches.
 - [`CONTEXT.md`](./CONTEXT.md) — the domain glossary (ubiquitous language) and scope ladder.
 - [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0011, one per resolved
   design fork.
