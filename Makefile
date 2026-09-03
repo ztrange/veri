@@ -24,9 +24,16 @@ test:
 #
 # Neither is part of `test` on purpose: veri bails on a red baseline (SKILL.md preflight
 # 0.3), so prose lagging behind code must not block a TDD cycle on this repo.
-.PHONY: docs docs-check
+# `docs-check` answers one question — is the docs pipeline sound and current? — in two
+# phases: the guards still fire (docs/tests/build-guards.test.sh breaks the build on
+# purpose and asserts it refuses), then the committed page still matches a fresh build.
+# A guard nobody has watched fail is decoration, which is why the tests run first.
+.PHONY: docs docs-check docs-test
 docs:
 	@python3 docs/build-walkthrough.py
 
-docs-check:
+docs-test:
+	@docs/tests/build-guards.test.sh
+
+docs-check: docs-test
 	@python3 docs/check-walkthrough.py
