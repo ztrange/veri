@@ -15,9 +15,9 @@ Green → Refactor cycle over every step of its plan, but you **write no code yo
 Each phase is performed by a short-lived developer **leaf** (`claude -p` subprocess), and
 after each phase a separate **blind independent verifier** leaf confirms the work. Every
 leaf — developer or verifier — is launched **through the supervisor** (`supervise.sh`),
-never directly, so a hung or runaway leaf is killed instead of stalling the whole run. You orchestrate the
-leaves, branch on their verdicts, narrate every phase and verdict to the issue thread,
-and leave the result on a **draft PR** for a human to review and merge.
+never directly, so a hung or runaway leaf is killed instead of stalling the whole run. You
+orchestrate the leaves, branch on their verdicts, narrate every phase and verdict to the
+issue thread, and leave the result on a **draft PR** for a human to review and merge.
 
 This slice lifts veri from a single criterion to a **full multi-criterion issue**, solved
 by a **resumable loop** over a committed **ledger**, on top of everything earlier (blind
