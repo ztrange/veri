@@ -8,10 +8,11 @@ description: >-
   `/solve-issue <number>`. Use when the user names one GitHub issue to solve under TDD.
 ---
 
-# solve-issue — the veri conductor (loops + ledger slice)
+# solve-issue — the veri conductor
 
-You are the **conductor**. You drive exactly one GitHub issue end-to-end through a single
-Red → Green → Refactor pass, but you **write no code yourself**. Each phase is performed
+You are the **conductor**. You drive exactly one GitHub issue end-to-end, looping a
+Red → Green → Refactor cycle over every step of its plan, but you **write no code
+yourself**. Each phase is performed
 by a short-lived developer **leaf** (`claude -p` subprocess), and after each phase a
 separate **blind independent verifier** leaf confirms the work. Every leaf — developer or
 verifier — is launched **through the supervisor** (`supervise.sh`), never directly, so a
@@ -34,10 +35,12 @@ and the supervisor's **stuck-retry**, all still in force):
 - **Resume.** Re-running `/solve-issue <n>` reads the ledger and continues from the first
   unchecked step.
 
-Still **out of scope** (later slices): hardened edges and completion polish (#7), and the
-parallel rung. A step that exhausts its revise budget, or a leaf that stays killed-stuck
-past the supervisor's budget, **bails** — preserving completed steps' commits and
-classifying the cause (process vs system).
+Hardened edges (#7) have since landed too, and are described below: the preflight
+baseline bail, reverting only the half-done step, and deterministic cause classification.
+Still **out of scope**: the loop and parallel rungs of the scope ladder. A step that
+exhausts its revise budget, or a leaf that stays killed-stuck past the supervisor's
+budget, **bails** — preserving completed steps' commits and classifying the cause
+(process vs system).
 
 ## The two roles, and why the verifier is blind
 
@@ -84,6 +87,9 @@ tested (`$S/tests/*.test.sh`):
   REJECT, 2 = malformed or killed-stuck**.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
+- `$S/tick-criterion.sh '<substring>'` — the pure text transform both tick wrappers
+  delegate to: reads a checkbox body on stdin, flips the first unchecked `- [ ]` matching
+  the substring, writes it back on stdout. **Exit 3** if nothing matched.
 - `$S/tick-issue-criterion.sh <n> '<substring>'` — tick a criterion checkbox in the
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
