@@ -82,6 +82,7 @@ ORIENTATION_NAV = [
     ("division", "The division of labour"),
     ("exitcodes", "The exit-code contract"),
     ("map", "Map of the eleven scripts"),
+    ("dataflow", "How the data moves"),
     ("howtoread", "How to read this page"),
 ]
 
@@ -212,6 +213,184 @@ INTRO_HTML = r'''
   from any of the others. When stage 4 completes, the conductor loops back to stage 1 for
   the next unchecked step &mdash; that loop turns one cycle into a whole issue.
 </p>
+
+<h3 id="dataflow">How the data moves</h3>
+<p>
+  The map above says which scripts exist. This says what actually travels between them
+  &mdash; because in veri the interesting content is not the calls, it is
+  <strong>what crosses each boundary</strong>: a file on disk, a line of stdout, or a
+  single exit code that chooses the next branch.
+</p>
+
+<figure class="dataflow">
+<div class="scroller">
+<svg viewBox="0 0 1080 840" role="img" aria-label="One veri cycle as a data flow: the committed ledger feeds next-unchecked.sh, whose printed step becomes a prompt; every leaf is launched through supervise.sh, which watches a log file's modification time as a heartbeat and an rc file for completion; the verifier's prompt is built from the spec and test path alone; parse-verdict.sh turns the leaf's stdout into exit code 0, 1 or 2, which selects between committing the step, revising it, or bailing.">
+  <defs>
+    <marker id="df-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
+    </marker>
+    <marker id="df-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec0)"/>
+    </marker>
+    <marker id="df-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec1)"/>
+    </marker>
+    <marker id="df-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec2)"/>
+    </marker>
+  </defs>
+
+  <!-- legend -->
+  <rect x="790" y="26" width="22" height="13" rx="2" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.2"/>
+  <text x="820" y="36" font-size="10.5" fill="var(--ink-soft)">a script</text>
+  <rect x="790" y="48" width="22" height="13" rx="2" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="3 2.5"/>
+  <text x="820" y="58" font-size="10.5" fill="var(--ink-soft)">a file on disk</text>
+
+  <!-- 1. ledger -->
+  <rect x="250" y="24" width="300" height="46" rx="5" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="400" y="45" font-size="12.5" fill="var(--ink)" text-anchor="middle">.tdd/issue-&lt;n&gt;.md</text>
+  <text x="400" y="60" font-size="10" fill="var(--ink-faint)" text-anchor="middle">the committed ledger &mdash; source of truth</text>
+  <line x1="400" y1="70" x2="400" y2="100" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="410" y="89" font-size="10" fill="var(--ink-faint)">stdin</text>
+
+  <!-- 2. next-unchecked -->
+  <rect x="250" y="102" width="300" height="46" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <circle cx="250" cy="125" r="10" fill="var(--accent)"/>
+  <text x="250" y="129" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">1</text>
+  <text x="400" y="122" font-size="12.5" fill="var(--ink)" text-anchor="middle">next-unchecked.sh</text>
+  <text x="400" y="138" font-size="10" fill="var(--ink-faint)" text-anchor="middle">first unchecked step</text>
+  <line x1="550" y1="125" x2="696" y2="125" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="623" y="117" font-size="10" fill="var(--ec3)" text-anchor="middle">exit 3 &mdash; all steps done</text>
+  <rect x="700" y="102" width="250" height="46" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <text x="825" y="130" font-size="12.5" fill="var(--ink)" text-anchor="middle">push &rarr; draft PR</text>
+  <line x1="400" y1="148" x2="400" y2="182" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="410" y="169" font-size="10" fill="var(--ink-faint)">stdout: the step&rsquo;s text</text>
+
+  <!-- 3. prompt file -->
+  <rect x="250" y="186" width="300" height="46" rx="5" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="400" y="207" font-size="12.5" fill="var(--ink)" text-anchor="middle">.tdd/develop-&lt;phase&gt;.prompt</text>
+  <text x="400" y="222" font-size="10" fill="var(--ink-faint)" text-anchor="middle">the conductor composes it</text>
+  <line x1="400" y1="232" x2="400" y2="262" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+
+  <!-- 4. supervisor -->
+  <rect x="185" y="266" width="430" height="132" rx="7" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.8"/>
+  <circle cx="185" cy="332" r="10" fill="var(--accent)"/>
+  <text x="185" y="336" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">2</text>
+  <text x="200" y="288" font-size="11.5" fill="var(--ink)">supervise.sh &mdash; every leaf is launched here</text>
+  <rect x="200" y="300" width="128" height="42" rx="4" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.1"/>
+  <text x="264" y="325" font-size="10.5" fill="var(--ink)" text-anchor="middle">run-leaf.sh</text>
+  <line x1="328" y1="321" x2="338" y2="321" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#df-a)"/>
+  <rect x="342" y="300" width="106" height="42" rx="4" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.1"/>
+  <text x="395" y="325" font-size="10.5" fill="var(--ink)" text-anchor="middle">claude -p</text>
+  <line x1="448" y1="321" x2="458" y2="321" stroke="var(--ink-faint)" stroke-width="1.2" marker-end="url(#df-a)"/>
+  <rect x="462" y="300" width="138" height="42" rx="4" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.1"/>
+  <text x="531" y="325" font-size="10.5" fill="var(--ink)" text-anchor="middle">extract-result.sh</text>
+  <text x="400" y="364" font-size="10" fill="var(--ink-faint)" text-anchor="middle">never blocks on the leaf &mdash; it watches two files instead</text>
+  <text x="400" y="382" font-size="10" fill="var(--ink-faint)" text-anchor="middle">kills what hangs &middot; retries a hang, never a real answer</text>
+
+  <rect x="680" y="272" width="280" height="44" rx="5" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="820" y="291" font-size="11.5" fill="var(--ink)" text-anchor="middle">.tdd/&lt;name&gt;.log</text>
+  <text x="820" y="306" font-size="10" fill="var(--ink-faint)" text-anchor="middle">mtime = the heartbeat</text>
+  <line x1="615" y1="294" x2="676" y2="294" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="645" y="287" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">writes</text>
+
+  <rect x="680" y="330" width="280" height="44" rx="5" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="820" y="349" font-size="11.5" fill="var(--ink)" text-anchor="middle">.tdd/&lt;name&gt;.rc</text>
+  <text x="820" y="364" font-size="10" fill="var(--ink-faint)" text-anchor="middle">exists &rArr; the leaf finished itself</text>
+  <line x1="615" y1="352" x2="676" y2="352" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="645" y="345" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">on exit</text>
+
+  <line x1="400" y1="398" x2="400" y2="432" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="410" y="419" font-size="10" fill="var(--ink-faint)">stdout: captured output &middot; exit 0 &middot; 1 &middot; 2</text>
+
+  <!-- 5. build-verify-prompt + spec -->
+  <rect x="250" y="436" width="300" height="46" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <circle cx="250" cy="459" r="10" fill="var(--accent)"/>
+  <text x="250" y="463" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="400" y="456" font-size="12.5" fill="var(--ink)" text-anchor="middle">build-verify-prompt.sh</text>
+  <text x="400" y="472" font-size="10" fill="var(--ink-faint)" text-anchor="middle">assembles the blind prompt</text>
+  <rect x="680" y="436" width="280" height="46" rx="5" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" stroke-dasharray="4 3"/>
+  <text x="820" y="457" font-size="11.5" fill="var(--ink)" text-anchor="middle">.tdd/issue-&lt;n&gt;-spec.md</text>
+  <text x="820" y="472" font-size="10" fill="var(--ink-faint)" text-anchor="middle">the issue&rsquo;s behaviour spec</text>
+  <line x1="676" y1="459" x2="554" y2="459" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="615" y="452" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">spec + test path</text>
+  <text x="615" y="474" font-size="9.5" fill="var(--accent)" text-anchor="middle">and nothing else</text>
+
+  <line x1="400" y1="482" x2="400" y2="512" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+
+  <!-- 6. verify -->
+  <rect x="250" y="516" width="300" height="46" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <circle cx="250" cy="539" r="10" fill="var(--accent)"/>
+  <text x="250" y="543" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="400" y="536" font-size="12.5" fill="var(--ink)" text-anchor="middle">verify.sh &rarr; blind verifier leaf</text>
+  <text x="400" y="552" font-size="10" fill="var(--ink-faint)" text-anchor="middle">also launched through supervise.sh</text>
+  <line x1="400" y1="562" x2="400" y2="592" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#df-a)"/>
+  <text x="410" y="580" font-size="10" fill="var(--ink-faint)">stdout: the leaf&rsquo;s raw text</text>
+
+  <!-- 7. parse-verdict -->
+  <rect x="250" y="596" width="300" height="46" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <circle cx="250" cy="619" r="10" fill="var(--accent)"/>
+  <text x="250" y="623" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="400" y="616" font-size="12.5" fill="var(--ink)" text-anchor="middle">parse-verdict.sh</text>
+  <text x="400" y="632" font-size="10" fill="var(--ink-faint)" text-anchor="middle">the verdict is parsed, not the exit status</text>
+
+  <!-- 8. the branch -->
+  <polyline points="320,642 320,672 170,672 170,736" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#df-p)"/>
+  <text x="245" y="665" font-size="10.5" fill="var(--ec0)" text-anchor="middle">exit 0 &mdash; PASS</text>
+  <polyline points="400,642 400,736" fill="none" stroke="var(--ec1)" stroke-width="1.5" marker-end="url(#df-r)"/>
+  <text x="392" y="704" font-size="10.5" fill="var(--ec1)" text-anchor="end">exit 1 &mdash; REJECT</text>
+  <polyline points="480,642 480,700 700,700 700,736" fill="none" stroke="var(--ec2)" stroke-width="1.5" marker-end="url(#df-b)"/>
+  <text x="592" y="693" font-size="10.5" fill="var(--ec2)" text-anchor="middle">exit 2 &mdash; no verdict</text>
+
+  <rect x="60" y="740" width="225" height="54" rx="5" fill="var(--panel)" stroke="var(--ec0)" stroke-width="1.5"/>
+  <circle cx="60" cy="767" r="10" fill="var(--accent)"/>
+  <text x="60" y="771" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">4</text>
+  <text x="176" y="762" font-size="12" fill="var(--ink)" text-anchor="middle">tick-ledger.sh</text>
+  <text x="176" y="778" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">ticked + committed atomically</text>
+
+  <rect x="310" y="740" width="180" height="54" rx="5" fill="var(--panel)" stroke="var(--ec1)" stroke-width="1.5"/>
+  <text x="400" y="762" font-size="12" fill="var(--ink)" text-anchor="middle">revise loop</text>
+  <text x="400" y="778" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">&le; 2 attempts, fresh leaf</text>
+
+  <rect x="560" y="740" width="280" height="54" rx="5" fill="var(--panel)" stroke="var(--ec2)" stroke-width="1.5"/>
+  <circle cx="560" cy="767" r="10" fill="var(--accent)"/>
+  <text x="560" y="771" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">5</text>
+  <text x="704" y="762" font-size="12" fill="var(--ink)" text-anchor="middle">classify-bail.sh</text>
+  <text x="704" y="778" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">system failure | process failure</text>
+
+  <!-- loop back to the ledger -->
+  <polyline points="176,794 176,816 28,816 28,125 246,125" fill="none" stroke="var(--ec0)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#df-p)"/>
+  <text x="18" y="452" font-size="10" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 18 452)">loop &mdash; the next unchecked step</text>
+
+  <!-- revise returns to a fresh prompt -->
+  <polyline points="400,794 400,812 1036,812 1036,209 554,209" fill="none" stroke="var(--ec1)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#df-r)"/>
+  <text x="800" y="201" font-size="9.5" fill="var(--ec1)" text-anchor="middle">a new prompt carrying the rejection reason</text>
+</svg>
+</div>
+<figcaption>
+  One step&rsquo;s journey. Solid lines carry data; dashed lines are the two ways a cycle
+  repeats. The three coloured branches at the bottom are the whole control flow of veri
+  &mdash; <b>everything downstream of a step turns on one integer</b>.
+</figcaption>
+</figure>
+
+<p>
+  Three things in that picture are worth naming, because they are the design and not just
+  the plumbing.
+</p>
+<ul>
+  <li><strong>The supervisor never blocks on the leaf.</strong> It watches a log file&rsquo;s
+      modification time (activity, so it is alive) and an rc file&rsquo;s existence (so it
+      finished on its own). Both are ordinary files, and the leaf cooperates with neither.</li>
+  <li><strong>The verifier&rsquo;s prompt is built from two inputs.</strong> The spec and the
+      test path &mdash; there is no third arrow into
+      <code>build-verify-prompt.sh</code>, which is exactly why the developer&rsquo;s
+      rationale cannot reach the agent judging it.</li>
+  <li><strong>The verdict is parsed from stdout, not read from an exit status.</strong>
+      <code>claude -p</code> exits <code>0</code> whether it approves or refuses, so the
+      judgement lives in the text and only becomes an integer at
+      <code>parse-verdict.sh</code>.</li>
+</ul>
 
 <h3 id="howtoread">How to read this page</h3>
 <p>
