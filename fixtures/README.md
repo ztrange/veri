@@ -1,7 +1,8 @@
 # veri fixtures
 
-Materials to demo `/solve-issue` end-to-end on a seeded single-criterion issue, and to
-demo the blind verifier in isolation.
+Materials to demo `/solve-issue` end-to-end — on a seeded single-criterion issue and on
+a multi-criterion one that exercises the ledger loop, the revise loop and a classified
+bail — and to demo the blind verifier in isolation.
 
 - [`demo-project/`](./demo-project) — a minimal, zero-dependency Python target. No
   implementation yet; one trivial passing test keeps the baseline green.
@@ -61,8 +62,12 @@ runs against a real GitHub repo with push access. Use a throwaway repo:
   the PR link.
 - The full suite (`python3 -m unittest discover -q`) is green before the commits.
 - A **draft** PR exists, linked with `Closes #<n>`, **not merged**.
-- On a `REJECT`, instead of a PR you get a 🛑 Stopped comment carrying the verifier's
-  reason, and any earlier green commit is preserved on the branch.
+- A `REJECT` does not stop the run: it enters the bounded revise loop (`REVISE_BUDGET`,
+  default 2), and each attempt is mirrored as a ♻️ Revise comment carrying the verifier's
+  reason verbatim. Only an exhausted budget — or a killed-stuck leaf, or an unreadable
+  verdict — **bails**, and then you get a ⛔ Bailed comment naming the phase and
+  classifying the cause as a **system** or **process** failure, with every completed
+  step's commit preserved on the pushed branch and no PR opened.
 
 ## Demoing the blind verifier alone
 

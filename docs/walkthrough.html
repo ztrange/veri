@@ -648,7 +648,7 @@ html{scroll-behavior:smooth}
 <span class="l"></span>
 <span class="l">re='^[[:space:]]*- \[ \] (.*)$'</span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Nine of the eleven scripts open
+  variables, and let a pipeline fail if any stage does. Ten of the eleven scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
@@ -1068,7 +1068,7 @@ html{scroll-behavior:smooth}
   <code>pwd</code> prints where you actually landed.
 </p><p>
   This is how a script finds its siblings regardless of the caller's working directory.
-  Every multi-script suite needs it, and four of veri's scripts have this exact line.
+  Every multi-script suite needs it, and five of veri's scripts have this exact line.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 29"><span class="l"></span>
 <span class="l">if [[ "$prompt_src" == "-" ]]; then</span>
 <span class="l">  prompt="$(cat)"</span>
@@ -2042,7 +2042,7 @@ html{scroll-behavior:smooth}
       <li><code>-o pipefail</code> — a <strong>pipeline fails if any stage fails</strong>.
           By default <code>a | b</code> reports only <code>b</code>'s status, so a crash in
           <code>a</code> vanishes.</li>
-    </ul><p class="seen">9 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
+    </ul><p class="seen">10 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
       Wherever you see this, the exit code is <strong>meaningful information</strong>, not a
       malfunction — the script wants to branch on it.
     </p><p class="seen"><code>run-leaf.sh</code>, <code>verify.sh</code> (twice).</p><p class="used-by"><b>Referenced from</b><a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#verify"><code>verify.sh</code></a></p></div></div></div><div class="primer-group"><h3 id="p-vars">Variables &amp; expansion</h3><div class="cards"><div class="card" id="p-quote"><code class="card-sig">"$var"</code><p class="card-name">Quoting — the one habit that matters most</p><p>

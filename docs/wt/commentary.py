@@ -588,7 +588,7 @@ SCRIPTS += [dict(
 </p>'''),
         dict(lines=(14, 16), html=r'''<p>
   {{p-strict|set -euo pipefail}} is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Nine of the eleven scripts open
+  variables, and let a pipeline fail if any stage does. Ten of the eleven scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
@@ -903,7 +903,7 @@ SCRIPTS += [dict(
   <code>pwd</code> prints where you actually landed.
 </p><p>
   This is how a script finds its siblings regardless of the caller's working directory.
-  Every multi-script suite needs it, and four of veri's scripts have this exact line.
+  Every multi-script suite needs it, and five of veri's scripts have this exact line.
 </p>'''),
         dict(lines=(30, 35), html=r'''<p>
   The prompt comes from a file, or &mdash; when the argument is <code>-</code> &mdash; from

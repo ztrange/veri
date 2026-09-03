@@ -69,11 +69,19 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 
 ## Status
 
-Design complete (grilled into ADRs + glossary). The first walking-skeleton slice has
-landed: a crude `/solve-issue` conductor (`.claude/skills/solve-issue/`) that drives one
-issue through a single inline Red → Green → Refactor pass, narrated to the issue thread,
-checks off each satisfied acceptance criterion in the issue body (via veri's first
-unit-tested shell helper), and opens a draft PR — no supervisor, leaves, ledger, or blind
-verification yet (those arrive in later slices). Demo materials live in
-[`fixtures/`](./fixtures). Next: extract the supervisor + `claude -p` leaves and the
-committed ledger.
+Rung 1 of the scope ladder — **single issue, end to end** — is complete. The
+`/solve-issue` conductor (`.claude/skills/solve-issue/`) decomposes an issue into a
+committed ledger and loops it through Red → Green → Refactor, writing no code itself:
+every phase is a short-lived `claude -p` leaf launched through the supervisor, and every
+phase is confirmed by a blind independent verifier that runs the test itself. A `REJECT`
+enters the bounded revise loop; a hang or an unreadable verdict bails, preserving
+completed commits and classifying the cause as system or process. Runs are resumable from
+the ledger, and finish on a draft PR.
+
+Shipped: the walking skeleton (#2), blind verification (#3), supervised leaves (#4),
+retries (#5), loops + ledger (#6), hardened edges (#7), bounded stuck-retry (#12),
+streaming heartbeat (#14) and deterministic bail classification (#18).
+
+Next: rung 2 of the [scope ladder](./CONTEXT.md) — drain every *solvable* issue (its
+dependencies closed) one after another — then rung 3, several conductors in parallel over
+git worktrees. Demo materials live in [`fixtures/`](./fixtures).
