@@ -17,9 +17,16 @@ test:
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
-# `make docs-check` verifies docs/walkthrough.html still matches the scripts it quotes —
-# byte-for-byte listings, line counts, and in-page anchors. Kept out of `test` on purpose:
-# veri bails on a red baseline, and doc drift should not block a TDD cycle.
-.PHONY: docs-check
+# docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
+# so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
+# regenerates into a buffer and diffs against the committed file, which fails both when a
+# script has moved on without its commentary and when the page was hand-edited.
+#
+# Neither is part of `test` on purpose: veri bails on a red baseline (SKILL.md preflight
+# 0.3), so prose lagging behind code must not block a TDD cycle on this repo.
+.PHONY: docs docs-check
+docs:
+	@python3 docs/build-walkthrough.py
+
 docs-check:
 	@python3 docs/check-walkthrough.py
