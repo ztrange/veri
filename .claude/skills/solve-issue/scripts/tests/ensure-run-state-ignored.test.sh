@@ -62,6 +62,26 @@ cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
 { [[ "$same" == 0 ]] && [[ "$code" == 0 ]] && [[ "$out" == *"already present"* ]]; } \
   && ok || no "already carries the rule: leaves .gitignore byte-identical and reports already present (cmp=$same want 0 identical, exit=$code want 0, stdout='$out' want it to contain 'already present')"
 
+# 3. a repo whose .gitignore already has unrelated rules — they survive, and the run gets reported.
+# The seed deliberately ends WITHOUT a trailing newline: that is where a naive append fuses `*.log`
+# and `.tdd/*` into one line, silently destroying both rules. We assert the old rules still *work*
+# (via git, not by grepping) rather than that the bytes are still somewhere in the file.
+repo="$work/unrelated"
+new_repo "$repo"
+printf 'node_modules/\n*.log' > "$repo/.gitignore"
+
+out="$("$ENSURE" "$repo" 2>/dev/null)" && code=0 || code=$?
+
+ignored "$repo" node_modules/x && modules_code=0 || modules_code=$?
+ignored "$repo" debug.log && debuglog_code=0 || debuglog_code=$?
+ignored "$repo" .tdd/develop-red.log && log_code=0 || log_code=$?
+ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
+
+{ [[ "$modules_code" == 0 ]] && [[ "$debuglog_code" == 0 ]] \
+  && [[ "$log_code" == 0 ]] && [[ "$ledger_code" == 1 ]] \
+  && [[ "$code" == 0 ]] && [[ "$out" == *"added"* ]]; } \
+  && ok || no "unrelated .gitignore: keeps every existing line and reports added (node_modules/x=$modules_code want 0 still ignored, debug.log=$debuglog_code want 0 still ignored, develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored, exit=$code want 0, stdout='$out' want it to contain 'added')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
