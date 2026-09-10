@@ -29,7 +29,7 @@ PAGE_TEMPLATE = '''<!doctype html>
      fills the trail from window.__VERI_NAV__ as you scroll. -->
 <div class="crumb">
   <a class="crumb-home" href="#top">veri, Annotated</a>
-  <span class="crumb-trail" aria-live="polite"></span>
+  <span class="crumb-trail"></span>
 </div>
 
 <div class="wrap">
