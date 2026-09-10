@@ -19,8 +19,16 @@ if [ -f "$gitignore" ] && grep -qxF '.tdd/issue-*-spec.md' "$gitignore"; then
   exit 0
 fi
 
+# An existing .gitignore need not end in a newline; appending straight onto it would fuse its
+# last rule with `.tdd/*` into one line, destroying both. Terminate that line first.
+if [ -s "$gitignore" ] && [ "$(tail -c 1 "$gitignore")" != "" ]; then
+  echo "" >> "$gitignore"
+fi
+
 cat >> "$gitignore" <<'RULE'
 .tdd/*
 !.tdd/issue-*.md
 .tdd/issue-*-spec.md
 RULE
+
+echo "added"
