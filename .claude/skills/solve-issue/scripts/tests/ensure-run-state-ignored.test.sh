@@ -24,6 +24,12 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
+# new_repo <path> — an empty git repo at <path>, so check-ignore has a repo to answer within.
+new_repo() {
+  mkdir -p "$1"
+  git init -q "$1" >/dev/null 2>&1
+}
+
 # ignored <repo> <path> — git's verdict on one path, as an exit code we can assert on.
 # 0 = ignored, 1 = not ignored, anything else = git errored (a broken test, not a verdict).
 ignored() {
@@ -32,8 +38,7 @@ ignored() {
 
 # 1. a repo with no .gitignore at all gets one that separates run scratch from the ledger
 repo="$work/fresh"
-mkdir -p "$repo"
-git init -q "$repo" >/dev/null 2>&1
+new_repo "$repo"
 
 "$ENSURE" "$repo" >/dev/null 2>&1
 
@@ -45,8 +50,7 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
 
 # 2. a repo that already carries the rule — running it a second time changes nothing and says so
 repo="$work/twice"
-mkdir -p "$repo"
-git init -q "$repo" >/dev/null 2>&1
+new_repo "$repo"
 
 "$ENSURE" "$repo" >/dev/null 2>&1
 before="$work/twice.gitignore.before"
