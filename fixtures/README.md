@@ -38,10 +38,15 @@ runs against a real GitHub repo with push access. Use a throwaway repo:
    git init && git add -A && git commit -m "chore: seed demo project"
    gh repo create veri-demo --private --source=. --push
    ```
-   Copy the `solve-issue` skill into the target so it's invocable there:
+   Make the `solve-issue` skill invocable there. Nothing is copied: install it once,
+   user-level, as a symlink to the veri clone (the README's *Install* section), or for a
+   one-off symlink it into the target's own `.claude/skills/`:
    ```sh
-   mkdir -p .claude/skills && cp -r <veri-repo>/.claude/skills/solve-issue .claude/skills/
+   mkdir -p .claude/skills && ln -s <veri-repo>/.claude/skills/solve-issue .claude/skills/solve-issue
    ```
+   The conductor's preflight then writes the `.tdd` ignore rule into the target's
+   `.gitignore` on the first run (`ensure-run-state-ignored.sh`), so leaf logs never land
+   in the demo repo's history.
 
 2. **Seed the fixture issue** on that repo:
    ```sh
