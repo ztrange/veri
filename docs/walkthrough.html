@@ -136,10 +136,15 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
 /* ── side-by-side listing ── */
 .ann{border:1px solid var(--rule);border-radius:8px;overflow:hidden;
   margin:22px 0 30px;background:var(--panel);box-shadow:var(--shadow)}
+/* Deliberately NOT sticky. Its parent .ann is overflow:hidden, which makes .ann itself
+   the sticky container — so this header could never stick to the viewport, only sit at a
+   fixed offset inside its own box. At top:0 that coincided with its natural position and
+   looked harmless; at top:var(--crumb-h) it sat 44px lower and covered line 1 of every
+   listing. The breadcrumb names the current file now, which is what a sticky header here
+   was reaching for, so this is a plain header again. */
 .ann-head{display:flex;justify-content:space-between;align-items:center;gap:14px;
   padding:9px 16px;border-bottom:1px solid var(--rule);background:var(--panel-2);
-  font-family:"JetBrains Mono",monospace;font-size:11.5px;position:sticky;
-  top:var(--crumb-h);z-index:3}
+  font-family:"JetBrains Mono",monospace;font-size:11.5px}
 .ann-head .fname{color:var(--ink);font-weight:500}
 .ann-head .fmeta{color:var(--ink-faint)}
 .ann-row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
@@ -266,7 +271,8 @@ footer .mono{font-size:12.5px;color:var(--ink-faint)}
   .rail{position:static;height:auto;max-height:46vh;border-right:0;
     border-bottom:1px solid var(--rule);padding:20px 24px 24px}
   .wrap,.wide{padding:0 22px}
-  .crumb{padding:0 22px;--crumb-h:38px}
+  :root{--crumb-h:38px}
+  .crumb{padding:0 22px}
   .mast{padding-top:38px}
   .contract dl{grid-template-columns:1fr}
   .contract dt{border-bottom:0;padding-bottom:3px;background:transparent}
@@ -289,7 +295,7 @@ html{scroll-behavior:smooth}
      fills the trail from window.__VERI_NAV__ as you scroll. -->
 <div class="crumb">
   <a class="crumb-home" href="#top">veri, Annotated</a>
-  <span class="crumb-trail" aria-live="polite"></span>
+  <span class="crumb-trail"></span>
 </div>
 
 <div class="wrap">
@@ -2503,6 +2509,7 @@ html{scroll-behavior:smooth}
   var measured = false, current = -2;      // -2 so the first pass always paints
 
   function measure() {
+    barH = crumb ? crumb.offsetHeight : 0;
     for (var i = 0; i < rows.length; i++) {
       rows[i].top = rows[i].el.getBoundingClientRect().top + window.scrollY;
     }
@@ -2513,15 +2520,16 @@ html{scroll-behavior:smooth}
   /* The line that decides "inside": just below the sticky bar, plus a little, so a
      heading counts as current from the moment it clears the bar rather than when it
      reaches the top of the viewport. */
+  var barH = 0;
   function line() {
-    return window.scrollY + (crumb ? crumb.offsetHeight : 0) + 26;
+    return window.scrollY + barH + 26;
   }
 
   function pick() {
     if (!measured) measure();
     // at the very bottom, the last section wins outright — it may be too short to
     // ever cross the line on its own, and "nothing selected" there reads as a bug
-    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) {
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
       return rows.length - 1;
     }
     var y = line(), idx = -1;
@@ -2575,11 +2583,23 @@ html{scroll-behavior:smooth}
     else if (b.bottom > r.bottom - 8) rail.scrollTop += (b.bottom - (r.bottom - 8));
   }
 
-  var queued = false;
+  /* A frame request alone is not enough. requestAnimationFrame does not fire while the
+     document is not being painted — a background tab, an occluded window — and `queued`
+     would then stay true forever, so every later schedule() returns early and the
+     indicator never recovers even once the page is visible again. A timer races the
+     frame; whichever arrives first does the work and the loser finds the latch clear. */
+  var queued = false, timer = 0;
   function schedule() {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(function () { queued = false; paint(pick()); });
+    var run = function () {
+      if (!queued) return;
+      queued = false;
+      if (timer) { clearTimeout(timer); timer = 0; }
+      paint(pick());
+    };
+    timer = setTimeout(run, 120);
+    requestAnimationFrame(run);
   }
 
   window.addEventListener("scroll", schedule, { passive: true });

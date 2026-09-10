@@ -125,6 +125,7 @@
   var measured = false, current = -2;      // -2 so the first pass always paints
 
   function measure() {
+    barH = crumb ? crumb.offsetHeight : 0;
     for (var i = 0; i < rows.length; i++) {
       rows[i].top = rows[i].el.getBoundingClientRect().top + window.scrollY;
     }
@@ -135,15 +136,16 @@
   /* The line that decides "inside": just below the sticky bar, plus a little, so a
      heading counts as current from the moment it clears the bar rather than when it
      reaches the top of the viewport. */
+  var barH = 0;
   function line() {
-    return window.scrollY + (crumb ? crumb.offsetHeight : 0) + 26;
+    return window.scrollY + barH + 26;
   }
 
   function pick() {
     if (!measured) measure();
     // at the very bottom, the last section wins outright — it may be too short to
     // ever cross the line on its own, and "nothing selected" there reads as a bug
-    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) {
+    if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) {
       return rows.length - 1;
     }
     var y = line(), idx = -1;
@@ -197,11 +199,23 @@
     else if (b.bottom > r.bottom - 8) rail.scrollTop += (b.bottom - (r.bottom - 8));
   }
 
-  var queued = false;
+  /* A frame request alone is not enough. requestAnimationFrame does not fire while the
+     document is not being painted — a background tab, an occluded window — and `queued`
+     would then stay true forever, so every later schedule() returns early and the
+     indicator never recovers even once the page is visible again. A timer races the
+     frame; whichever arrives first does the work and the loser finds the latch clear. */
+  var queued = false, timer = 0;
   function schedule() {
     if (queued) return;
     queued = true;
-    requestAnimationFrame(function () { queued = false; paint(pick()); });
+    var run = function () {
+      if (!queued) return;
+      queued = false;
+      if (timer) { clearTimeout(timer); timer = 0; }
+      paint(pick());
+    };
+    timer = setTimeout(run, 120);
+    requestAnimationFrame(run);
   }
 
   window.addEventListener("scroll", schedule, { passive: true });

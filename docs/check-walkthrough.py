@@ -103,6 +103,60 @@ else:
         bad.append("refs with no tooltip data: %s" % sorted(used - set(tips)))
     print("references: %d entries, %d distinct refs used, all resolve" % (len(tips), len(used)))
 
+# 4 ── the location indicators: one model, three renderings ────────────────────
+# The rail, the scrollspy and the breadcrumb all derive from nav_entries(). These
+# checks are what "they cannot disagree" actually means, plus the two regressions
+# that were found by putting the page in a browser.
+
+if not doc.startswith("<!doctype html>"):
+    bad.append("no <!doctype html> — the page renders in quirks mode, where "
+               "document.scrollingElement is <body> and sticky/scroll measurement break")
+
+m = re.search(r"window\.__VERI_NAV__ = (\[.*?\]);", doc, re.S)
+if not m:
+    bad.append("scrollspy model (window.__VERI_NAV__) missing from the page")
+else:
+    nav = json.loads(m.group(1))
+    nav_ids = [e["id"] for e in nav]
+    if not nav_ids:
+        bad.append("scrollspy model is empty")
+    # every entry must resolve to a heading AND to a rail link, or the spy silently
+    # skips it: getElementById returns null and the row is dropped.
+    missing_heading = [i for i in nav_ids if ('id="%s"' % i) not in prose]
+    rail_html = re.search(r'<aside class="rail">(.*?)</aside>', doc, re.S)
+    rail_hrefs = re.findall(r'<a href="#([^"]+)"', rail_html.group(1)) if rail_html else []
+    missing_link = [i for i in nav_ids if i not in rail_hrefs]
+    orphan_link = [h for h in rail_hrefs if h not in nav_ids]
+    if missing_heading:
+        bad.append("nav entries with no heading on the page: %s" % missing_heading)
+    if missing_link:
+        bad.append("nav entries with no rail link: %s" % missing_link)
+    if orphan_link:
+        bad.append("rail links not in the scrollspy model: %s" % orphan_link)
+    if [e for e in nav if not e.get("trail")]:
+        bad.append("nav entries with an empty breadcrumb trail")
+    print("indicators: %d nav entries, %d rail links, all resolve" % (len(nav_ids), len(rail_hrefs)))
+
+# the breadcrumb's home crumb points at #top; without it the link is dead
+if 'href="#top"' in prose and 'id="top"' not in prose:
+    bad.append('breadcrumb home links to #top but no element has id="top"')
+
+# REGRESSION: .ann-head must not be sticky. Its parent .ann is overflow:hidden, which
+# makes .ann the sticky container — so the header can never stick to the viewport, only
+# sit at a fixed offset inside its own box. At top:var(--crumb-h) it sat 44px down and
+# covered line 1 of all 11 listings (#!/usr/bin/env bash, invisible).
+ann_head = re.search(r"\.ann-head\{([^}]*)\}", doc)
+if ann_head and "position:sticky" in ann_head.group(1).replace(" ", ""):
+    bad.append(".ann-head is position:sticky again — its overflow:hidden parent scopes "
+               "the stickiness, and a non-zero top hides line 1 of every listing")
+
+# REGRESSION: the scrollspy must not depend on requestAnimationFrame alone. A document
+# that is not being painted gets no frames, the in-flight latch never clears, and the
+# indicator stops for the life of the page — including after it becomes visible again.
+spy = doc[doc.rfind("__VERI_NAV__"):]
+if "requestAnimationFrame" in spy and "setTimeout" not in spy:
+    bad.append("scrollspy schedules on requestAnimationFrame with no timer fallback")
+
 for tag in ("div", "span", "pre", "p", "table", "svg"):
     o = len(re.findall(r"<%s[ >]" % tag, doc)); c = len(re.findall(r"</%s>" % tag, doc))
     if o != c:

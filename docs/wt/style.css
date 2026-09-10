@@ -129,10 +129,15 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
 /* ── side-by-side listing ── */
 .ann{border:1px solid var(--rule);border-radius:8px;overflow:hidden;
   margin:22px 0 30px;background:var(--panel);box-shadow:var(--shadow)}
+/* Deliberately NOT sticky. Its parent .ann is overflow:hidden, which makes .ann itself
+   the sticky container — so this header could never stick to the viewport, only sit at a
+   fixed offset inside its own box. At top:0 that coincided with its natural position and
+   looked harmless; at top:var(--crumb-h) it sat 44px lower and covered line 1 of every
+   listing. The breadcrumb names the current file now, which is what a sticky header here
+   was reaching for, so this is a plain header again. */
 .ann-head{display:flex;justify-content:space-between;align-items:center;gap:14px;
   padding:9px 16px;border-bottom:1px solid var(--rule);background:var(--panel-2);
-  font-family:"JetBrains Mono",monospace;font-size:11.5px;position:sticky;
-  top:var(--crumb-h);z-index:3}
+  font-family:"JetBrains Mono",monospace;font-size:11.5px}
 .ann-head .fname{color:var(--ink);font-weight:500}
 .ann-head .fmeta{color:var(--ink-faint)}
 .ann-row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
@@ -259,7 +264,8 @@ footer .mono{font-size:12.5px;color:var(--ink-faint)}
   .rail{position:static;height:auto;max-height:46vh;border-right:0;
     border-bottom:1px solid var(--rule);padding:20px 24px 24px}
   .wrap,.wide{padding:0 22px}
-  .crumb{padding:0 22px;--crumb-h:38px}
+  :root{--crumb-h:38px}
+  .crumb{padding:0 22px}
   .mast{padding-top:38px}
   .contract dl{grid-template-columns:1fr}
   .contract dt{border-bottom:0;padding-bottom:3px;background:transparent}
