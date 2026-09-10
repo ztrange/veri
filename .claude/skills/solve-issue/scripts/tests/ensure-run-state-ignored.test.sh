@@ -25,7 +25,7 @@ pass=0 fail=0
 # ignored <repo> <path> — git's verdict on one path, as an exit code we can assert on.
 # 0 = ignored, 1 = not ignored, anything else = git errored (a broken test, not a verdict).
 ignored() {
-  git -C "$1" check-ignore -q "$2" >/dev/null 2>&1
+  git -C "$1" check-ignore -q "$2" 2>/dev/null
 }
 
 # 1. a repo with no .gitignore at all gets one that separates run scratch from the ledger
