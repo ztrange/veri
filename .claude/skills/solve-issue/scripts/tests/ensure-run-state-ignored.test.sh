@@ -43,6 +43,21 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
 { [[ "$log_code" == 0 ]] && [[ "$ledger_code" == 1 ]]; } \
   && ok || no "no .gitignore: creates one ignoring .tdd/develop-red.log but not .tdd/issue-7.md (develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored)"
 
+# 2. a repo that already carries the rule — running it a second time changes nothing and says so
+repo="$work/twice"
+mkdir -p "$repo"
+git init -q "$repo" >/dev/null 2>&1
+
+"$ENSURE" "$repo" >/dev/null 2>&1
+before="$work/twice.gitignore.before"
+cp "$repo/.gitignore" "$before"
+
+out="$("$ENSURE" "$repo" 2>/dev/null)" && code=0 || code=$?
+cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
+
+{ [[ "$same" == 0 ]] && [[ "$code" == 0 ]] && [[ "$out" == *"already present"* ]]; } \
+  && ok || no "already carries the rule: leaves .gitignore byte-identical and reports already present (cmp=$same want 0 identical, exit=$code want 0, stdout='$out' want it to contain 'already present')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

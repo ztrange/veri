@@ -10,8 +10,16 @@
 set -euo pipefail
 
 root="${1:-.}"
+gitignore="$root/.gitignore"
 
-cat >> "$root/.gitignore" <<'RULE'
+# The rule's last line is its sentinel: it is written last, so seeing it whole and on its own
+# line means the block landed. -F -x keeps the glob literal and forbids a partial-line match.
+if [ -f "$gitignore" ] && grep -qxF '.tdd/issue-*-spec.md' "$gitignore"; then
+  echo "already present"
+  exit 0
+fi
+
+cat >> "$gitignore" <<'RULE'
 .tdd/*
 !.tdd/issue-*.md
 .tdd/issue-*-spec.md
