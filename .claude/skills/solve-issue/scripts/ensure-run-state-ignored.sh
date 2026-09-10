@@ -11,8 +11,8 @@ set -euo pipefail
 
 root="${1:-.}"
 
-{
-  echo '.tdd/*'
-  echo '!.tdd/issue-*.md'
-  echo '.tdd/issue-*-spec.md'
-} >> "$root/.gitignore"
+cat >> "$root/.gitignore" <<'RULE'
+.tdd/*
+!.tdd/issue-*.md
+.tdd/issue-*-spec.md
+RULE
