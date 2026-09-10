@@ -91,3 +91,123 @@
   if (document.readyState !== "loading") flash();
   else document.addEventListener("DOMContentLoaded", flash);
 })();
+
+/* veri, Annotated — scrollspy: where am I.
+   Two readouts of one fact. The rail marks the entry you are inside; the sticky
+   breadcrumb at the top of the page names its full path. Both read the same ordered
+   model, window.__VERI_NAV__, which the generator builds from the same list the rail
+   itself is rendered from — so they cannot disagree about section boundaries.
+
+   Positions are measured once and cached, not recomputed per scroll event: this page
+   is ~2300 lines of layout and a getBoundingClientRect() per entry per frame is enough
+   to make scrolling stutter. The cache is dropped on resize, on font load (webfonts
+   land after first paint and move everything down), and on hash navigation. */
+(function () {
+  "use strict";
+  var NAV = window.__VERI_NAV__ || [];
+  if (!NAV.length) return;
+
+  var rail = document.querySelector(".rail");
+  var crumb = document.querySelector(".crumb");
+  var trail = crumb && crumb.querySelector(".crumb-trail");
+  if (!rail || !trail) return;
+
+  // one row per anchored entry: its heading, its rail link, its page offset
+  var rows = [];
+  for (var i = 0; i < NAV.length; i++) {
+    var el = document.getElementById(NAV[i].id);
+    if (!el) continue;                     // a nav entry with no heading is a build bug
+    rows.push({ el: el, link: rail.querySelector('a[href="#' + NAV[i].id + '"]'),
+                trail: NAV[i].trail, top: 0 });
+  }
+  if (!rows.length) return;
+
+  var measured = false, current = -2;      // -2 so the first pass always paints
+
+  function measure() {
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].top = rows[i].el.getBoundingClientRect().top + window.scrollY;
+    }
+    measured = true;
+  }
+  function invalidate() { measured = false; schedule(); }
+
+  /* The line that decides "inside": just below the sticky bar, plus a little, so a
+     heading counts as current from the moment it clears the bar rather than when it
+     reaches the top of the viewport. */
+  function line() {
+    return window.scrollY + (crumb ? crumb.offsetHeight : 0) + 26;
+  }
+
+  function pick() {
+    if (!measured) measure();
+    // at the very bottom, the last section wins outright — it may be too short to
+    // ever cross the line on its own, and "nothing selected" there reads as a bug
+    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) {
+      return rows.length - 1;
+    }
+    var y = line(), idx = -1;
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].top <= y) idx = i; else break;
+    }
+    return idx;
+  }
+
+  function seg(text, href, cls) {
+    var node = document.createElement(href ? "a" : "span");
+    if (href) node.setAttribute("href", "#" + href);
+    if (cls) node.className = cls;
+    node.innerHTML = text;               // labels carry entities, never markup
+    return node;
+  }
+
+  function paint(idx) {
+    if (idx === current) return;
+    var prev = rows[current];
+    if (prev && prev.link) {
+      prev.link.classList.remove("on");
+      prev.link.removeAttribute("aria-current");
+    }
+    current = idx;
+
+    while (trail.firstChild) trail.removeChild(trail.firstChild);
+    var row = rows[idx];
+    if (!row) return;                    // above the first heading: just the home crumb
+
+    if (row.link) {
+      row.link.classList.add("on");
+      row.link.setAttribute("aria-current", "true");
+      reveal(row.link);
+    }
+    for (var i = 0; i < row.trail.length; i++) {
+      var t = row.trail[i], last = i === row.trail.length - 1;
+      trail.appendChild(seg("&rsaquo;", null, "sep"));
+      var cls = last ? "here" : "";
+      if (/\.sh$/.test(t.t)) cls += " file";
+      trail.appendChild(seg(t.t, t.h || null, cls.trim() || null));
+    }
+  }
+
+  /* Keep the marked entry inside the rail's own scrollport. Deliberately not
+     scrollIntoView: that walks up and scrolls the window too, which would fight the
+     scroll that triggered it. */
+  function reveal(a) {
+    var r = rail.getBoundingClientRect(), b = a.getBoundingClientRect();
+    if (b.top < r.top + 8) rail.scrollTop -= (r.top + 8 - b.top);
+    else if (b.bottom > r.bottom - 8) rail.scrollTop += (b.bottom - (r.bottom - 8));
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function () { queued = false; paint(pick()); });
+  }
+
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", invalidate);
+  window.addEventListener("hashchange", invalidate);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(invalidate);
+  window.addEventListener("load", invalidate);
+  schedule();
+})();

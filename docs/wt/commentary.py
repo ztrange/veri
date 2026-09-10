@@ -11,7 +11,8 @@ Inside any prose here, {{p-id|display text}} becomes a link to that reference en
 with a hover preview. Unknown ids fail the build.
 """
 
-PAGE_TEMPLATE = '''<meta charset="utf-8">
+PAGE_TEMPLATE = '''<!doctype html>
+<meta charset="utf-8">
 <title>veri, Annotated</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,8 +25,15 @@ PAGE_TEMPLATE = '''<meta charset="utf-8">
 <aside class="rail">{rail}</aside>
 <main>
 
+<!-- Breadcrumb. Static markup so the page still has a heading bar with no JS; app.js
+     fills the trail from window.__VERI_NAV__ as you scroll. -->
+<div class="crumb">
+  <a class="crumb-home" href="#top">veri, Annotated</a>
+  <span class="crumb-trail" aria-live="polite"></span>
+</div>
+
 <div class="wrap">
-<header class="mast">
+<header class="mast" id="top">
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
@@ -72,6 +80,7 @@ PAGE_TEMPLATE = '''<meta charset="utf-8">
 </div>
 
 <script>window.__VERI_TIPS__ = {tips};</script>
+<script>window.__VERI_NAV__ = {nav};</script>
 <script>
 {js}
 </script>
