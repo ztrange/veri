@@ -55,10 +55,26 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 2. **Loop** — drain all *solvable* issues (dependencies closed), one after another.
 3. **Parallel** — several conductors at once (git worktree per issue branch).
 
+## Install
+
+veri is a Claude Code skill, not an application. Install it once, user-level, as a symlink
+to this clone — then `/solve-issue <n>` works from any repo on the machine:
+
+```sh
+ln -s "$(pwd)/.claude/skills/solve-issue" ~/.claude/skills/solve-issue
+```
+
+The skill locates its own scripts from the base directory Claude Code reports when it
+loads, so nothing is copied into a target repo. On the first run against a repo the
+conductor's preflight writes the `.tdd` ignore rule into that repo's `.gitignore`
+(`ensure-run-state-ignored.sh`, idempotent) so leaf logs and prompts never enter history;
+only the per-issue ledger is committed. Preflight also refuses to start unless `gh` and
+the `claude` CLI are both authenticated.
+
 ## Documentation
 
 - [`docs/walkthrough.html`](./docs/walkthrough.html) — **veri, Annotated**: every one of
-  the eleven scripts in full, source beside commentary, ordered by the data flow of one
+  the twelve scripts in full, source beside commentary, ordered by the data flow of one
   cycle. Bash constructs in the commentary carry a hover gloss and link into a reference
   section covering every construct the suite uses. The page is **generated** from the real
   scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
@@ -80,7 +96,8 @@ the ledger, and finish on a draft PR.
 
 Shipped: the walking skeleton (#2), blind verification (#3), supervised leaves (#4),
 retries (#5), loops + ledger (#6), hardened edges (#7), bounded stuck-retry (#12),
-streaming heartbeat (#14) and deterministic bail classification (#18).
+streaming heartbeat (#14), deterministic bail classification (#18) and the run-state
+ignore guard that makes a target repo safe to run in (#27).
 
 Next: rung 2 of the [scope ladder](./CONTEXT.md) — drain every *solvable* issue (its
 dependencies closed) one after another — then rung 3, several conductors in parallel over

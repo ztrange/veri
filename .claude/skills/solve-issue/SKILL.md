@@ -58,8 +58,11 @@ verification.
 
 ## The scripts (this skill's `scripts/` directory)
 
-Let `S=.claude/skills/solve-issue/scripts`. All leaf machinery lives there and is unit-
-tested (`$S/tests/*.test.sh`):
+Let `S=<base directory>/scripts`, where *base directory* is the path the harness printed
+when this skill loaded (`Base directory for this skill: …/solve-issue`). It is the same
+skill whether it lives in the target repo's `.claude/skills/` or is symlinked into
+`~/.claude/skills/` for use from any repo — never assume a repo-relative path. All leaf
+machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
 
 - `$S/supervise.sh <name> <cmd> [args...]` — **the leaf launcher.** Spawns `<cmd>` under a
   heartbeat + hard-timeout watchdog, owns the `.tdd/<name>.log` progress log, and returns
@@ -98,6 +101,11 @@ tested (`$S/tests/*.test.sh`):
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
   non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
+- `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
+  scratch (`.tdd/*.log`, `.rc`, `.prompt`, the blind spec) while keeping the ledger
+  tracked. Idempotent; prints `added` when it wrote the rule, `already present` when it
+  was there. Run once per issue right after branching (step 1) so the first `git add -A`
+  never sweeps leaf logs into history.
 
 ## Inputs
 
@@ -119,7 +127,10 @@ unauthenticated baseline never gets a cycle.
 
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
    `git status --porcelain` is empty. If dirty, stop and ask the user to commit or stash.
-2. **`gh` authenticated.** `gh auth status` succeeds.
+2. **`gh` and `claude` authenticated.** `gh auth status` succeeds, and `claude auth status`
+   reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
+   session each one fails at launch (`supervise.sh` exit 1 before any work), which is
+   neither a verdict nor a hang and so has no bail classification — catch it here.
 3. **Suite is green at baseline.** Determine the test command (see *Detecting the test
    command*) and run it. If already red, stop and report — a cycle must not start on a
    red baseline.
@@ -135,7 +146,12 @@ unauthenticated baseline never gets a cycle.
 3. Derive a slug from the title — lowercase, non-alphanumerics to `-`, collapse and trim
    `-`, cap to ~6 words. Create and switch to the per-issue branch:
    `git switch -c tdd/<n>-<slug>` (off the default branch). If it already exists, switch.
-4. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists on the branch, this
+4. **Ignore run state.** `$S/ensure-run-state-ignored.sh` makes the target's `.gitignore`
+   ignore `.tdd/*` except the ledger. If it prints `added`, commit that as the branch's
+   first commit: `git add .gitignore && git commit -m "chore: ignore veri run state (#<n>)"`.
+   `already present` means nothing to do. Without this, the atomic `git add -A` in Green
+   would commit every leaf log and prompt.
+5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists on the branch, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
    comment naming the next unchecked step, and go straight to the cycle loop (step 3).
    Otherwise continue to step 2 to scope and plan.
@@ -158,8 +174,8 @@ cycle) but do **not** gate on it.
    wording where it maps cleanly to one cycle.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
-   (The ledger is committed — `.gitignore` tracks `.tdd/issue-*.md` while ignoring leaf
-   logs.)
+   (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
+   while ignoring leaf logs.)
 3. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment listing the steps,
    noting that the ledger is the source of truth and each step will be blind-verified.
 
