@@ -21,7 +21,10 @@ fi
 
 # An existing .gitignore need not end in a newline; appending straight onto it would fuse its
 # last rule with `.tdd/*` into one line, destroying both. Terminate that line first.
-if [ -s "$gitignore" ] && [ "$(tail -c 1 "$gitignore")" != "" ]; then
+# `$(...)` strips trailing newlines from what it captures, so a file that already ends in one
+# yields the empty string here: a non-empty last byte is exactly the case that needs the newline.
+# -s guards the substitution — it keeps `tail` off a .gitignore that does not exist yet.
+if [ -s "$gitignore" ] && [ -n "$(tail -c 1 "$gitignore")" ]; then
   echo "" >> "$gitignore"
 fi
 
