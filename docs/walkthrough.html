@@ -252,7 +252,7 @@ html{scroll-behavior:smooth}
 </style>
 
 <div class="shell">
-<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the eleven scripts</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a></nav></aside>
+<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the twelve scripts</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a></nav></aside>
 <main>
 
 <div class="wrap">
@@ -260,13 +260,13 @@ html{scroll-behavior:smooth}
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
-    11 shell scripts, 543 lines, that let a language model run
+    12 shell scripts, 580 lines, that let a language model run
     test-driven development on itself without being trusted to. Every script in full,
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
-    <span><b>11</b> scripts</span>
-    <span><b>543</b> lines, all shown</span>
+    <span><b>12</b> scripts</span>
+    <span><b>580</b> lines, all shown</span>
     <span><b>38</b> reference entries</span>
   </p>
 </header>
@@ -302,7 +302,7 @@ html{scroll-behavior:smooth}
   That line is the entire design philosophy: <strong>the model decides, the scripts
   enforce.</strong> Anything that must be exact and repeatable is pulled out of the fuzzy
   part and into a shell script with a unit test behind it. So the guarantees you can
-  actually rely on all live in the 543 lines this page reproduces in full.
+  actually rely on all live in the 580 lines this page reproduces in full.
 </p>
 <p>One more role, because it appears constantly:</p>
 <ul>
@@ -348,11 +348,13 @@ html{scroll-behavior:smooth}
   </p>
 </div>
 
-<h3 id="map">Map of the eleven scripts</h3>
+<h3 id="map">Map of the twelve scripts</h3>
 <p>
   The scripts form a small dependency tower &mdash; the ones you call are compositions of
   the ones you don't. Read in the order data flows through one cycle, they group into five
-  stages, and this page is organised as those stages:
+  stages, and this page is organised as those stages. One script sits before the cycle
+  altogether &mdash; <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>
+  runs once per issue, at preflight, and is stage&nbsp;0 below:
 </p>
 <div class="flow">
 <svg viewBox="0 0 920 200" role="img" aria-label="Five stages of one veri cycle: read the ledger, run a leaf, verify the claim, record the result, or bail.">
@@ -594,6 +596,96 @@ html{scroll-behavior:smooth}
 </div>
 
 <div class="wide">
+<div class="stage-head" id="s0"><p class="stage-num">Stage <b>0</b> &middot; prepare the target</p><h2>Before the first commit</h2><p class="stage-lede">veri litters the repository it works in: leaf logs, prompts, completion markers, the blind spec. All of it lives under .tdd/, and only one file there — the ledger — belongs in git. One script makes the target repo agree, once, before any cycle can commit.</p></div>
+
+<p>
+  This is the first script the conductor runs that touches the <em>target</em> rather than
+  veri's own machinery, and it exists because of how Green commits: <code>git add -A</code>,
+  so that the ticked ledger and the step's code land in one commit. Without an ignore rule,
+  that same <code>-A</code> would sweep every leaf log and prompt into history on the first
+  step. veri's own <code>.gitignore</code> carried the rule; a fresh repo does not.
+</p>
+<h3 id="ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code> &mdash; the target repo's ignore rule</h3>
+<p>
+  Thirty-seven lines that write three. Most of the script is the two guards around the
+  write &mdash; one so running it twice is a no-op, one so appending to somebody else's
+  <code>.gitignore</code> cannot corrupt their last rule.
+</p>
+<div class="contract"><dl><dt>Usage</dt><dd><code>ensure-run-state-ignored.sh [repo-root]</code> (default: the current directory)</dd><dt>stdout</dt><dd><code>added</code> when it wrote the rule, <code>already present</code> when it did not</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> either way</span> &mdash; a non-zero exit is an I/O failure under <code>set -e</code></dd></dl></div>
+<div class="ann"><div class="ann-head"><span class="fname">ensure-run-state-ignored.sh</span><span class="fmeta">37 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<span class="l"><span class="c"># ensure-run-state-ignored.sh — install veri's run-state rule into a target repo's .gitignore.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># veri writes leaf logs, .rc markers, .prompt files and the blind spec into the target repo's</span></span>
+<span class="l"><span class="c"># .tdd/; only the ledger (.tdd/issue-&lt;n&gt;.md) belongs in history. This writes the three-line,</span></span>
+<span class="l"><span class="c"># order-sensitive rule that makes git agree: ignore .tdd/*, un-ignore the ledger, re-ignore</span></span>
+<span class="l"><span class="c"># the spec (which would otherwise be caught by the ledger's negation).</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Usage:   ensure-run-state-ignored.sh [repo-root]      (default: the current directory)</span></span>
+<span class="l">set -euo pipefail</span></pre></div><div class="ann-note"><p>
+  The header states the rule and why it has three lines, not one. <code>.tdd/*</code> alone
+  would hide the ledger too; <code>!.tdd/issue-*.md</code> brings it back; but that negation
+  also brings back the blind spec (<code>.tdd/issue-7-spec.md</code> matches
+  <code>issue-*.md</code>), so a third line re-ignores it. Git reads the file top to bottom
+  and the <strong>last matching line wins</strong> &mdash; the order is the behaviour.
+</p><p>
+  <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> as everywhere else.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 10"><span class="l"></span>
+<span class="l">root="${1:-.}"</span>
+<span class="l">gitignore="$root/.gitignore"</span></pre></div><div class="ann-note"><p>
+  The repo root is optional, <a class="tt" data-ref="p-default" href="#p-default">${1:-.}</a>, so the conductor can call it bare from
+  the target's working directory. Everything below works on one path, so it gets a name.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 13"><span class="l"></span>
+<span class="l"><span class="c"># The rule's last line is its sentinel: it is written last, so seeing it whole and on its own</span></span>
+<span class="l"><span class="c"># line means the block landed. -F -x keeps the glob literal and forbids a partial-line match.</span></span>
+<span class="l">if [ -f "$gitignore" ] &amp;&amp; grep -qxF '.tdd/issue-*-spec.md' "$gitignore"; then</span>
+<span class="l">  echo "already present"</span>
+<span class="l">  exit 0</span>
+<span class="l">fi</span></pre></div><div class="ann-note"><p>
+  <strong>Idempotence.</strong> The rule's last line doubles as its sentinel: it is written
+  last, so seeing it whole and on its own line means the block landed once already. The
+  <code>grep</code> flags make that check literal (<code>-F</code>: <code>*</code> is a star,
+  not a wildcard) and whole-line (<code>-x</code>: a partial match, or the same text inside
+  a longer rule, does not count). Then say so and stop.
+</p><div class="note"><span class="tag">Known limit, flagged by a refactor leaf</span><p>
+  The sentinel is one line. A <code>.gitignore</code> that carries only that line, or all
+  three in an order git reads differently, reports <code>already present</code>. No test
+  pins that case yet; it is a candidate for its own triangulating issue.
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 20"><span class="l"></span>
+<span class="l"><span class="c"># An existing .gitignore need not end in a newline; appending straight onto it would fuse its</span></span>
+<span class="l"><span class="c"># last rule with `.tdd/*` into one line, destroying both. Terminate that line first.</span></span>
+<span class="l"><span class="c"># `$(...)` strips trailing newlines from what it captures, so a file that already ends in one</span></span>
+<span class="l"><span class="c"># yields the empty string here: a non-empty last byte is exactly the case that needs the newline.</span></span>
+<span class="l"><span class="c"># -s guards the substitution — it keeps `tail` off a .gitignore that does not exist yet.</span></span>
+<span class="l">if [ -s "$gitignore" ] &amp;&amp; [ -n "$(tail -c 1 "$gitignore")" ]; then</span>
+<span class="l">  echo "" &gt;&gt; "$gitignore"</span>
+<span class="l">fi</span></pre></div><div class="ann-note"><p>
+  <strong>Append safety.</strong> A file need not end in a newline, and a naive
+  <code>&gt;&gt;</code> onto one that does not would fuse its last rule with
+  <code>.tdd/*</code> into a single pattern that matches nothing &mdash; silently breaking
+  both. The red test for this step seeded exactly that file, and the failing output showed
+  <code>debug.log</code> and <code>.tdd/develop-red.log</code> both stop being ignored.
+</p><p>
+  The check reads the last byte with <code>tail -c 1</code> inside <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">$( … )</a>, and
+  leans on a property of command substitution: it <em>strips trailing newlines</em> from
+  what it captures. So a file that already ends in a newline yields the empty string, and a
+  non-empty result is precisely the file that needs one. The <code>-s</code> guard keeps
+  <code>tail</code> off a file that does not exist yet.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 29"><span class="l"></span>
+<span class="l">cat &gt;&gt; "$gitignore" &lt;&lt;'RULE'</span>
+<span class="l">.tdd/*</span>
+<span class="l">!.tdd/issue-*.md</span>
+<span class="l">.tdd/issue-*-spec.md</span>
+<span class="l">RULE</span>
+<span class="l"></span>
+<span class="l">echo "added"</span></pre></div><div class="ann-note"><p>
+  The write itself: a <a class="tt" data-ref="p-heredoc" href="#p-heredoc">quoted here-document</a> appended with
+  <a class="tt" data-ref="p-redirect" href="#p-redirect">&gt;&gt;</a>. The quotes on <code>'RULE'</code> switch off expansion, so the
+  <code>*</code> and <code>!</code> reach the file verbatim; and because the same redirect
+  creates the file when it is absent, the "no <code>.gitignore</code> at all" case needs no
+  branch of its own. The final line is the report the conductor keys off: <code>added</code>
+  means there is a change to commit.
+</p></div></div></div>
+
 <div class="stage-head" id="s1"><p class="stage-num">Stage <b>1</b> &middot; read the ledger</p><h2>Where a cycle begins</h2><p class="stage-lede">Before anything runs, the conductor asks one question: what is the next thing to do? The answer comes from a committed markdown checklist, and from the smallest script in the suite.</p></div>
 
 <p>
@@ -648,7 +740,7 @@ html{scroll-behavior:smooth}
 <span class="l"></span>
 <span class="l">re='^[[:space:]]*- \[ \] (.*)$'</span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Ten of the eleven scripts open
+  variables, and let a pipeline fail if any stage does. Eleven of the twelve scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
@@ -2042,7 +2134,7 @@ html{scroll-behavior:smooth}
       <li><code>-o pipefail</code> — a <strong>pipeline fails if any stage fails</strong>.
           By default <code>a | b</code> reports only <code>b</code>'s status, so a crash in
           <code>a</code> vanishes.</li>
-    </ul><p class="seen">10 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
+    </ul><p class="seen">10 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
       Wherever you see this, the exit code is <strong>meaningful information</strong>, not a
       malfunction — the script wants to branch on it.
     </p><p class="seen"><code>run-leaf.sh</code>, <code>verify.sh</code> (twice).</p><p class="used-by"><b>Referenced from</b><a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#verify"><code>verify.sh</code></a></p></div></div></div><div class="primer-group"><h3 id="p-vars">Variables &amp; expansion</h3><div class="cards"><div class="card" id="p-quote"><code class="card-sig">"$var"</code><p class="card-name">Quoting — the one habit that matters most</p><p>
@@ -2057,12 +2149,12 @@ html{scroll-behavior:smooth}
       This is how every tunable in veri works: <code>"${VERI_TIMEOUT:-900}"</code> means
       "whatever the environment says, else 900". That single idiom is what makes the scripts
       testable — a test can set <code>VERI_TIMEOUT=2</code> and not wait fifteen minutes.
-    </p><p class="seen">All tunables; every optional argument.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></div><div class="card" id="p-guard"><code class="card-sig">"${VAR:-}"</code><p class="card-name">The empty-default guard</p><p class="seen"><code>${CLAUDE_BIN:-claude}</code>, <code>${VERIFY_LEAF_ARGS:-}</code>, <code>${GH_REPO:-}</code>.</p><p class="used-by"><b>Referenced from</b><a href="#verify"><code>verify.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-cmdsub"><code class="card-sig">$( … )</code><p class="card-name">Command substitution</p><p>
+    </p><p class="seen">All tunables; every optional argument.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></div><div class="card" id="p-guard"><code class="card-sig">"${VAR:-}"</code><p class="card-name">The empty-default guard</p><p class="seen"><code>${CLAUDE_BIN:-claude}</code>, <code>${VERIFY_LEAF_ARGS:-}</code>, <code>${GH_REPO:-}</code>.</p><p class="used-by"><b>Referenced from</b><a href="#verify"><code>verify.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-cmdsub"><code class="card-sig">$( … )</code><p class="card-name">Command substitution</p><p>
       Two consequences worth holding onto. First, it is a separate process, so it cannot
       modify the caller's variables. Second — and this catches everyone — it
       <strong>strips all trailing newlines</strong> from what it captures. Scripts that need
       the newline back add it explicitly with <a class="ref" href="#p-printf">printf '%s\n'</a>.
-    </p><p class="seen">Everywhere. The backtick form <code>` … `</code> means the same thing but doesn't nest; it is not used here.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-special"><code class="card-sig">$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0</code><p class="card-name">Special parameters</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a></p></div><div class="card" id="p-subst"><code class="card-sig">${v//search/replace}</code><p class="card-name">Substring replacement</p><p>
+    </p><p class="seen">Everywhere. The backtick form <code>` … `</code> means the same thing but doesn't nest; it is not used here.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-special"><code class="card-sig">$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0</code><p class="card-name">Special parameters</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a></p></div><div class="card" id="p-subst"><code class="card-sig">${v//search/replace}</code><p class="card-name">Substring replacement</p><p>
       Crucially it is a <strong>literal</strong> replacement. That is why veri templates
       prompts with this instead of <code>sed</code>: an issue body is arbitrary human text
       full of <code>&amp;</code>, <code>\</code> and <code>/</code>, all of which
@@ -2119,7 +2211,7 @@ html{scroll-behavior:smooth}
       The convention veri holds to throughout: <strong>stdout is data, stderr is
       commentary.</strong> That is what lets a script's output be piped straight into the
       next one while its status messages still reach a human.
-    </p><p class="seen">Every script.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#tick-ledger"><code>tick-ledger.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></div><div class="card" id="p-readloop"><code class="card-sig">while IFS= read -r line || [[ -n "$line" ]]</code><p class="card-name">Reading lines without corrupting them</p><ul>
+    </p><p class="seen">Every script.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#tick-ledger"><code>tick-ledger.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></div><div class="card" id="p-readloop"><code class="card-sig">while IFS= read -r line || [[ -n "$line" ]]</code><p class="card-name">Reading lines without corrupting them</p><ul>
       <li><code>IFS=</code> — empties the field separator for this command, so leading and
           trailing whitespace on the line is <em>not</em> trimmed.</li>
       <li><code>read</code> — reads one line into the variable, returning non-zero at
@@ -2147,7 +2239,7 @@ html{scroll-behavior:smooth}
       <strong>occupies stdin</strong>. A script that needs stdin for real data cannot use one
       to supply a program — which is exactly why <code>extract-result.sh</code> passes its
       Python via <code>-c</code> instead.
-    </p><p class="seen">The test suites; deliberately avoided in <code>extract-result.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#extract-result"><code>extract-result.sh</code></a></p></div><div class="card" id="p-awk"><code class="card-sig">awk 'BEGIN{…} {…} END{…}'</code><p class="card-name">awk, and getting data into it safely</p><p>
+    </p><p class="seen">The test suites; deliberately avoided in <code>extract-result.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#extract-result"><code>extract-result.sh</code></a></p></div><div class="card" id="p-awk"><code class="card-sig">awk 'BEGIN{…} {…} END{…}'</code><p class="card-name">awk, and getting data into it safely</p><p>
       Getting shell values <em>into</em> awk is where scripts go wrong: interpolating them
       into the program text is an injection bug, since the value would be parsed as code. The
       safe route is <a class="ref" href="#p-envprefix">the environment</a>, read back with
@@ -2198,7 +2290,7 @@ html{scroll-behavior:smooth}
   </p>
 </div>
 <p>
-  <code>docs/build-walkthrough.py</code> reads the eleven scripts and emits this page. The
+  <code>docs/build-walkthrough.py</code> reads the twelve scripts and emits this page. The
   source you see is <strong>not a copy</strong> &mdash; it is read from the files at build
   time, so the code half cannot drift. The prose half lives in
   <code>docs/wt/commentary.py</code>, keyed by line range.
@@ -2214,7 +2306,7 @@ html{scroll-behavior:smooth}
 <div class="tbl-wrap">
 <table>
   <thead><tr><th>Script</th><th class="num">Lines</th><th>Stage</th></tr></thead>
-  <tbody><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">114</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">45</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr></tbody>
+  <tbody><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">37</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">114</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">45</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr></tbody>
 </table>
 </div>
 <p>
@@ -2237,7 +2329,7 @@ html{scroll-behavior:smooth}
     <strong>veri, Annotated</strong> &mdash; the complete source of veri's
     <code>/solve-issue</code> conductor, read line by line.
   </p>
-  <p class="mono">11 scripts &middot; 543 lines &middot; generated by docs/build-walkthrough.py</p>
+  <p class="mono">12 scripts &middot; 580 lines &middot; generated by docs/build-walkthrough.py</p>
 </footer>
 </div>
 

@@ -81,7 +81,7 @@ ORIENTATION_NAV = [
     ("what", "What veri actually is"),
     ("division", "The division of labour"),
     ("exitcodes", "The exit-code contract"),
-    ("map", "Map of the eleven scripts"),
+    ("map", "Map of the twelve scripts"),
     ("dataflow", "How the data moves"),
     ("howtoread", "How to read this page"),
 ]
@@ -164,11 +164,13 @@ INTRO_HTML = r'''
   </p>
 </div>
 
-<h3 id="map">Map of the eleven scripts</h3>
+<h3 id="map">Map of the twelve scripts</h3>
 <p>
   The scripts form a small dependency tower &mdash; the ones you call are compositions of
   the ones you don't. Read in the order data flows through one cycle, they group into five
-  stages, and this page is organised as those stages:
+  stages, and this page is organised as those stages. One script sits before the cycle
+  altogether &mdash; <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>
+  runs once per issue, at preflight, and is stage&nbsp;0 below:
 </p>
 <div class="flow">
 <svg viewBox="0 0 920 200" role="img" aria-label="Five stages of one veri cycle: read the ledger, run a leaf, verify the claim, record the result, or bail.">
@@ -409,6 +411,21 @@ INTRO_HTML = r'''
 '''
 
 STAGES = [
+    dict(n=0, id="s0", nav="Prepare the target", kicker="prepare the target",
+         title="Before the first commit",
+         lede="veri litters the repository it works in: leaf logs, prompts, completion "
+              "markers, the blind spec. All of it lives under .tdd/, and only one file "
+              "there — the ledger — belongs in git. One script makes the target repo "
+              "agree, once, before any cycle can commit.",
+         intro=r'''
+<p>
+  This is the first script the conductor runs that touches the <em>target</em> rather than
+  veri's own machinery, and it exists because of how Green commits: <code>git add -A</code>,
+  so that the ticked ledger and the step's code land in one commit. Without an ignore rule,
+  that same <code>-A</code> would sweep every leaf log and prompt into history on the first
+  step. veri's own <code>.gitignore</code> carried the rule; a fresh repo does not.
+</p>'''),
+
     dict(n=1, id="s1", nav="Read the ledger", kicker="read the ledger",
          title="Where a cycle begins",
          lede="Before anything runs, the conductor asks one question: what is the next "
@@ -511,7 +528,7 @@ UPKEEP_HTML = r'''
   </p>
 </div>
 <p>
-  <code>docs/build-walkthrough.py</code> reads the eleven scripts and emits this page. The
+  <code>docs/build-walkthrough.py</code> reads the twelve scripts and emits this page. The
   source you see is <strong>not a copy</strong> &mdash; it is read from the files at build
   time, so the code half cannot drift. The prose half lives in
   <code>docs/wt/commentary.py</code>, keyed by line range.
@@ -559,6 +576,68 @@ def script_table(scripts, totals):
 
 SCRIPTS = []
 
+SCRIPTS += [dict(
+    file="ensure-run-state-ignored.sh", stage=0, id="ensure-run-state-ignored",
+    tagline="the target repo's ignore rule",
+    blurb=r'''<p>
+  Thirty-seven lines that write three. Most of the script is the two guards around the
+  write &mdash; one so running it twice is a no-op, one so appending to somebody else's
+  <code>.gitignore</code> cannot corrupt their last rule.
+</p>''',
+    contract=[
+        ("Usage", "<code>ensure-run-state-ignored.sh [repo-root]</code> (default: the current directory)"),
+        ("stdout", "<code>added</code> when it wrote the rule, <code>already present</code> when it did not"),
+        ("Exit", '<span class="ec ec-0"><b>0</b> either way</span> &mdash; a non-zero exit is an I/O failure under <code>set -e</code>'),
+    ],
+    chunks=[
+        dict(lines=(1, 10), html=r'''<p>
+  The header states the rule and why it has three lines, not one. <code>.tdd/*</code> alone
+  would hide the ledger too; <code>!.tdd/issue-*.md</code> brings it back; but that negation
+  also brings back the blind spec (<code>.tdd/issue-7-spec.md</code> matches
+  <code>issue-*.md</code>), so a third line re-ignores it. Git reads the file top to bottom
+  and the <strong>last matching line wins</strong> &mdash; the order is the behaviour.
+</p><p>
+  {{p-strict|set -euo pipefail}} as everywhere else.
+</p>'''),
+        dict(lines=(11, 13), html=r'''<p>
+  The repo root is optional, {{p-default|${1:-.}}}, so the conductor can call it bare from
+  the target's working directory. Everything below works on one path, so it gets a name.
+</p>'''),
+        dict(lines=(14, 20), html=r'''<p>
+  <strong>Idempotence.</strong> The rule's last line doubles as its sentinel: it is written
+  last, so seeing it whole and on its own line means the block landed once already. The
+  <code>grep</code> flags make that check literal (<code>-F</code>: <code>*</code> is a star,
+  not a wildcard) and whole-line (<code>-x</code>: a partial match, or the same text inside
+  a longer rule, does not count). Then say so and stop.
+</p><div class="note"><span class="tag">Known limit, flagged by a refactor leaf</span><p>
+  The sentinel is one line. A <code>.gitignore</code> that carries only that line, or all
+  three in an order git reads differently, reports <code>already present</code>. No test
+  pins that case yet; it is a candidate for its own triangulating issue.
+</p></div>'''),
+        dict(lines=(21, 29), html=r'''<p>
+  <strong>Append safety.</strong> A file need not end in a newline, and a naive
+  <code>&gt;&gt;</code> onto one that does not would fuse its last rule with
+  <code>.tdd/*</code> into a single pattern that matches nothing &mdash; silently breaking
+  both. The red test for this step seeded exactly that file, and the failing output showed
+  <code>debug.log</code> and <code>.tdd/develop-red.log</code> both stop being ignored.
+</p><p>
+  The check reads the last byte with <code>tail -c 1</code> inside {{p-cmdsub|$( … )}}, and
+  leans on a property of command substitution: it <em>strips trailing newlines</em> from
+  what it captures. So a file that already ends in a newline yields the empty string, and a
+  non-empty result is precisely the file that needs one. The <code>-s</code> guard keeps
+  <code>tail</code> off a file that does not exist yet.
+</p>'''),
+        dict(lines=(30, 37), html=r'''<p>
+  The write itself: a {{p-heredoc|quoted here-document}} appended with
+  {{p-redirect|&gt;&gt;}}. The quotes on <code>'RULE'</code> switch off expansion, so the
+  <code>*</code> and <code>!</code> reach the file verbatim; and because the same redirect
+  creates the file when it is absent, the "no <code>.gitignore</code> at all" case needs no
+  branch of its own. The final line is the report the conductor keys off: <code>added</code>
+  means there is a change to commit.
+</p>'''),
+    ]),
+]
+
 # ── Stage 1 ────────────────────────────────────────────────────────────────────
 SCRIPTS += [dict(
     file="next-unchecked.sh", stage=1, id="next-unchecked",
@@ -588,7 +667,7 @@ SCRIPTS += [dict(
 </p>'''),
         dict(lines=(14, 16), html=r'''<p>
   {{p-strict|set -euo pipefail}} is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Ten of the eleven scripts open
+  variables, and let a pipeline fail if any stage does. Eleven of the twelve scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
