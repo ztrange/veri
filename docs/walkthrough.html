@@ -1,3 +1,4 @@
+<!doctype html>
 <meta charset="utf-8">
 <title>veri, Annotated</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,6 +21,7 @@
   --ec0-wash:#DCEFE4; --ec1-wash:#F7EBD5; --ec2-wash:#F8E1DE; --ec3-wash:#E1E6F3;
   --shadow:0 1px 2px rgba(20,26,33,.06), 0 6px 20px -12px rgba(20,26,33,.22);
   --tip-bg:#1B222B; --tip-ink:#E7ECF3; --tip-rule:#333F4C;
+  --crumb-h:44px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -63,14 +65,40 @@ body{background:var(--paper);color:var(--ink);margin:0;
 .rail h4{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.13em;
   text-transform:uppercase;color:var(--ink-faint);font-weight:500;margin:20px 0 6px;
   padding-bottom:5px;border-bottom:1px solid var(--rule-soft)}
-.rail a{display:block;text-decoration:none;color:var(--ink-soft);
+.rail a{display:block;position:relative;text-decoration:none;color:var(--ink-soft);
   font-family:"Archivo",system-ui,sans-serif;font-size:13.5px;line-height:1.35;
   padding:4px 8px;margin:0 -8px;border-radius:4px}
 .rail a:hover{color:var(--accent);background:var(--accent-wash)}
+/* Where you are. Set by app.js from scroll position; three cues rather than one,
+   because colour alone is the cue that disappears for the colour-blind reader. */
+.rail a.on{color:var(--accent);background:var(--accent-wash)}
+.rail a.on::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:2px;
+  border-radius:2px;background:var(--accent)}
+.rail a.on .stage{color:var(--accent)}
+.rail a.on .mono{font-weight:500}
 .rail a .mono{font-family:"JetBrains Mono",monospace;font-size:12.5px}
 .rail a .stage{font-family:"JetBrains Mono",monospace;color:var(--ink-faint);
   font-size:11px;margin-right:6px}
 main{padding:0 0 120px;min-width:0}
+
+/* ── breadcrumb ── */
+.crumb{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:2px;
+  min-height:var(--crumb-h);padding:0 34px;overflow-x:auto;white-space:nowrap;
+  background:color-mix(in srgb,var(--panel) 88%,transparent);
+  border-bottom:1px solid var(--rule);backdrop-filter:saturate(140%) blur(8px);
+  -webkit-backdrop-filter:saturate(140%) blur(8px);
+  scrollbar-width:none;font-family:"Archivo",system-ui,sans-serif;font-size:12.5px}
+.crumb::-webkit-scrollbar{display:none}
+.crumb a{text-decoration:none;color:var(--ink-soft);padding:3px 6px;border-radius:4px}
+.crumb a:hover{color:var(--accent);background:var(--accent-wash)}
+.crumb .crumb-home{font-weight:600;color:var(--ink);padding-left:0}
+.crumb .crumb-trail{display:flex;align-items:center;gap:2px;min-width:0}
+.crumb .sep{color:var(--ink-faint);font-size:11px;padding:0 1px;user-select:none}
+.crumb .here{color:var(--ink);font-weight:600}
+.crumb .file{font-family:"JetBrains Mono",monospace;font-size:11.5px}
+
+/* Anchors land below the bar rather than under it. */
+[id]{scroll-margin-top:calc(var(--crumb-h) + 14px)}
 .wrap{max-width:770px;margin:0 auto;padding:0 34px}
 .wide{max-width:1460px;margin:0 auto;padding:0 34px}
 
@@ -110,7 +138,8 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
   margin:22px 0 30px;background:var(--panel);box-shadow:var(--shadow)}
 .ann-head{display:flex;justify-content:space-between;align-items:center;gap:14px;
   padding:9px 16px;border-bottom:1px solid var(--rule);background:var(--panel-2);
-  font-family:"JetBrains Mono",monospace;font-size:11.5px;position:sticky;top:0;z-index:3}
+  font-family:"JetBrains Mono",monospace;font-size:11.5px;position:sticky;
+  top:var(--crumb-h);z-index:3}
 .ann-head .fname{color:var(--ink);font-weight:500}
 .ann-head .fmeta{color:var(--ink-faint)}
 .ann-row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
@@ -196,7 +225,7 @@ tr:last-child td{border-bottom:0}
 td.num{font-variant-numeric:tabular-nums}
 .cards{display:grid;gap:13px}
 .card{border:1px solid var(--rule);border-radius:7px;background:var(--panel);
-  padding:15px 18px 16px;scroll-margin-top:18px}
+  padding:15px 18px 16px}
 .card:target{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
 .card-sig{font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:500;
   color:var(--ink);margin:0 0 3px;display:block;word-break:break-word}
@@ -237,6 +266,7 @@ footer .mono{font-size:12.5px;color:var(--ink-faint)}
   .rail{position:static;height:auto;max-height:46vh;border-right:0;
     border-bottom:1px solid var(--rule);padding:20px 24px 24px}
   .wrap,.wide{padding:0 22px}
+  .crumb{padding:0 22px;--crumb-h:38px}
   .mast{padding-top:38px}
   .contract dl{grid-template-columns:1fr}
   .contract dt{border-bottom:0;padding-bottom:3px;background:transparent}
@@ -255,8 +285,15 @@ html{scroll-behavior:smooth}
 <aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the twelve scripts</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a></nav></aside>
 <main>
 
+<!-- Breadcrumb. Static markup so the page still has a heading bar with no JS; app.js
+     fills the trail from window.__VERI_NAV__ as you scroll. -->
+<div class="crumb">
+  <a class="crumb-home" href="#top">veri, Annotated</a>
+  <span class="crumb-trail" aria-live="polite"></span>
+</div>
+
 <div class="wrap">
-<header class="mast">
+<header class="mast" id="top">
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
@@ -2337,6 +2374,7 @@ html{scroll-behavior:smooth}
 </div>
 
 <script>window.__VERI_TIPS__ = {"p-ansic":{"gloss":"Interprets C escapes, so this is a real newline character rather than a backslash and an n.","name":"ANSI-C quoting","sig":"$'\\n'"},"p-arith":{"gloss":"Integer maths with C syntax — variables need no <code>$</code> and comparisons read normally.","name":"Arithmetic evaluation","sig":"(( … ))"},"p-array":{"gloss":"Holds a list of arguments so each stays one argument, even when it contains spaces.","name":"Arrays, and why they exist","sig":"arr=( a b c ) &nbsp;→&nbsp; \"${arr[@]}\""},"p-arrayempty":{"gloss":"Lets an empty array expand to zero arguments instead of aborting under <code>set -u</code> on old bash.","name":"The empty-array guard","sig":"\"${arr[@]+\"${arr[@]}\"}\""},"p-arrayidx":{"gloss":"<code>${!a[@]}</code> the indices · <code>${#a[@]}</code> the length · <code>${a[@]:n}</code> a slice from n.","name":"Indices, length, slice","sig":"\"${!arr[@]}\" &nbsp; ${#arr[@]} &nbsp; \"${arr[@]:n}\""},"p-awk":{"gloss":"Line-oriented text processor. Pass shell values through the environment, never by interpolating into the program.","name":"awk, and getting data into it safely","sig":"awk 'BEGIN{…} {…} END{…}'"},"p-bg":{"gloss":"A subshell run in the background. The script continues immediately — which is what makes watching it possible.","name":"Subshells and background jobs","sig":"( cmd ) &amp; &nbsp;→&nbsp; pid=$!"},"p-case":{"gloss":"Bash's switch. Glob patterns, <code>|</code> for alternatives, <code>*)</code> as the default, no fall-through.","name":"Pattern dispatch","sig":"case \"$x\" in … esac"},"p-cmdsub":{"gloss":"Run a command in a child process and evaluate to its stdout. Strips all trailing newlines.","name":"Command substitution","sig":"$( … )"},"p-default":{"gloss":"Use this value if set and non-empty, otherwise fall back to the default. Never assigns.","name":"Default value","sig":"\"${2:-default}\""},"p-envprefix":{"gloss":"Set a variable for one command only, without leaking it into the rest of the script.","name":"Per-command environment","sig":"VAR=value command"},"p-exec":{"gloss":"Replaces the shell with the new program instead of forking — same PID, same stdin, status passes straight through.","name":"Replacing the process","sig":"exec python3 -c '…'"},"p-func":{"gloss":"Arguments arrive as <code>$1</code>, <code>$2</code>…; it returns an exit status, so data comes back via stdout or a global.","name":"Functions","sig":"name() { …; }"},"p-guard":{"gloss":"Default to nothing, so reading an optional variable doesn't abort under <code>set -u</code>.","name":"The empty-default guard","sig":"\"${VAR:-}\""},"p-heredoc":{"gloss":"Feeds a literal text block in as stdin — which is why it can't be used when stdin carries real data.","name":"Here-documents","sig":"cmd &lt;&lt;'EOF' … EOF"},"p-jobcontrol":{"gloss":"Puts a background job in its own process group, so the whole tree can be signalled at once.","name":"Job control &amp; process groups","sig":"set -m &nbsp;…&nbsp; set +m"},"p-kill":{"gloss":"Sends a signal. A negative PID targets the process group; <code>-0</code> only probes; TERM asks, KILL cannot be refused.","name":"Signals — and the minus sign that matters","sig":"kill -TERM -$pid &nbsp;·&nbsp; kill -0 $pid"},"p-mktemp":{"gloss":"Atomically creates a uniquely-named temp file, avoiding the race and the security hole of a fixed name.","name":"Temporary files","sig":"tmp=\"$(mktemp)\""},"p-noop":{"gloss":"<code>:</code> does nothing and succeeds. <code>: &gt; f</code> truncates a file; <code>while :;</code> loops forever.","name":"The null command","sig":": &nbsp;·&nbsp; : &gt; file &nbsp;·&nbsp; while :;"},"p-pipe":{"gloss":"Pipes connect stdout to stdin; <code>tee</code> copies a stream aside; <code>PIPESTATUS</code> recovers a stage's lost exit code.","name":"Pipes, tee, and recovering a lost status","sig":"a | b &nbsp;·&nbsp; tee file &nbsp;·&nbsp; \"${PIPESTATUS[0]}\""},"p-printf":{"gloss":"Portable and predictable, unlike <code>echo</code> — you control the trailing newline exactly.","name":"printf, and why not echo","sig":"printf '%s\\n' \"$x\""},"p-printfv":{"gloss":"Write printf's output into a variable instead of stdout, preserving trailing newlines.","name":"Printf into a variable","sig":"printf -v name '%s\\n' \"${arr[@]}\""},"p-quote":{"gloss":"Quoting stops the shell splitting the value on whitespace and expanding it as a filename pattern.","name":"Quoting — the one habit that matters most","sig":"\"$var\""},"p-readloop":{"gloss":"The safe line reader: no trimming, no backslash mangling, and it keeps a final unterminated line.","name":"Reading lines without corrupting them","sig":"while IFS= read -r line || [[ -n \"$line\" ]]"},"p-redirect":{"gloss":"Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. <code>&gt;</code> truncates immediately.","name":"Redirection","sig":"&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null"},"p-regex":{"gloss":"Built-in regex match; captures land in <code>BASH_REMATCH</code>. The pattern must be unquoted.","name":"Built-in regular expressions","sig":"[[ \"$s\" =~ regex ]] &nbsp;→&nbsp; BASH_REMATCH"},"p-required":{"gloss":"Use this argument, or print the message and abort. An inline precondition check.","name":"Required-argument assertion","sig":"\"${1:?usage: …}\""},"p-sete":{"gloss":"Turn fail-fast off around one command so you can capture its exit code instead of dying on it.","name":"Temporarily disabling fail-fast","sig":"set +e … rc=$? … set -e"},"p-shebang":{"gloss":"Tells the kernel to run this file with bash, found via PATH rather than a hard-coded location.","name":"Shebang","sig":"#!/usr/bin/env bash"},"p-shortcircuit":{"gloss":"<code>||</code> runs the right side only on failure, <code>&amp;&amp;</code> only on success. Also exempts the left from <code>set -e</code>.","name":"Short-circuit chaining","sig":"cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2"},"p-special":{"gloss":"<code>$?</code> last exit status · <code>$!</code> last background PID · <code>$@</code> all arguments · <code>$#</code> count · <code>$0</code> script path.","name":"Special parameters","sig":"$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0"},"p-strict":{"gloss":"Fail fast: exit on any error, error on unset variables, and let a pipeline fail if any stage does.","name":"Strict mode","sig":"set -euo pipefail"},"p-strict-partial":{"gloss":"Strict mode with <code>-e</code> deliberately left out, so an expected non-zero exit doesn't kill the script.","name":"Strict mode without <code>-e</code>","sig":"set -uo pipefail"},"p-strip":{"gloss":"Cut a matching pattern off one end. <code>#</code> from the front, <code>%</code> from the back; doubled is greedy.","name":"Prefix and suffix stripping","sig":"${v#pat} &nbsp; ${v##pat} &nbsp; ${v%pat} &nbsp; ${v%%pat}"},"p-subst":{"gloss":"Replace every occurrence, literally — no pattern language, so arbitrary text passes through intact.","name":"Substring replacement","sig":"${v//search/replace}"},"p-test":{"gloss":"Bash's conditional expression: file tests, string tests, and numeric comparison.","name":"Conditional expression","sig":"[[ … ]]"},"p-trap":{"gloss":"Runs a command when the script exits, however it exits. Bash's <code>finally</code> block.","name":"Cleanup handlers","sig":"trap 'rm -f \"$tmp\"' EXIT"},"p-wait":{"gloss":"Blocks until a background process finishes and clears its zombie entry. Useless for monitoring, precisely because it blocks.","name":"Reaping a child","sig":"wait \"$pid\""}};</script>
+<script>window.__VERI_NAV__ = [{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the eleven scripts","h":"map"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]}];</script>
 <script>
 /* veri, Annotated — tooltip layer.
    Every {{ref}} in the commentary is emitted as a real <a href="#p-id"> first, so the
@@ -2430,5 +2468,125 @@ html{scroll-behavior:smooth}
   window.addEventListener("hashchange", hide);
   if (document.readyState !== "loading") flash();
   else document.addEventListener("DOMContentLoaded", flash);
+})();
+
+/* veri, Annotated — scrollspy: where am I.
+   Two readouts of one fact. The rail marks the entry you are inside; the sticky
+   breadcrumb at the top of the page names its full path. Both read the same ordered
+   model, window.__VERI_NAV__, which the generator builds from the same list the rail
+   itself is rendered from — so they cannot disagree about section boundaries.
+
+   Positions are measured once and cached, not recomputed per scroll event: this page
+   is ~2300 lines of layout and a getBoundingClientRect() per entry per frame is enough
+   to make scrolling stutter. The cache is dropped on resize, on font load (webfonts
+   land after first paint and move everything down), and on hash navigation. */
+(function () {
+  "use strict";
+  var NAV = window.__VERI_NAV__ || [];
+  if (!NAV.length) return;
+
+  var rail = document.querySelector(".rail");
+  var crumb = document.querySelector(".crumb");
+  var trail = crumb && crumb.querySelector(".crumb-trail");
+  if (!rail || !trail) return;
+
+  // one row per anchored entry: its heading, its rail link, its page offset
+  var rows = [];
+  for (var i = 0; i < NAV.length; i++) {
+    var el = document.getElementById(NAV[i].id);
+    if (!el) continue;                     // a nav entry with no heading is a build bug
+    rows.push({ el: el, link: rail.querySelector('a[href="#' + NAV[i].id + '"]'),
+                trail: NAV[i].trail, top: 0 });
+  }
+  if (!rows.length) return;
+
+  var measured = false, current = -2;      // -2 so the first pass always paints
+
+  function measure() {
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].top = rows[i].el.getBoundingClientRect().top + window.scrollY;
+    }
+    measured = true;
+  }
+  function invalidate() { measured = false; schedule(); }
+
+  /* The line that decides "inside": just below the sticky bar, plus a little, so a
+     heading counts as current from the moment it clears the bar rather than when it
+     reaches the top of the viewport. */
+  function line() {
+    return window.scrollY + (crumb ? crumb.offsetHeight : 0) + 26;
+  }
+
+  function pick() {
+    if (!measured) measure();
+    // at the very bottom, the last section wins outright — it may be too short to
+    // ever cross the line on its own, and "nothing selected" there reads as a bug
+    if (window.innerHeight + window.scrollY >= document.body.scrollHeight - 2) {
+      return rows.length - 1;
+    }
+    var y = line(), idx = -1;
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].top <= y) idx = i; else break;
+    }
+    return idx;
+  }
+
+  function seg(text, href, cls) {
+    var node = document.createElement(href ? "a" : "span");
+    if (href) node.setAttribute("href", "#" + href);
+    if (cls) node.className = cls;
+    node.innerHTML = text;               // labels carry entities, never markup
+    return node;
+  }
+
+  function paint(idx) {
+    if (idx === current) return;
+    var prev = rows[current];
+    if (prev && prev.link) {
+      prev.link.classList.remove("on");
+      prev.link.removeAttribute("aria-current");
+    }
+    current = idx;
+
+    while (trail.firstChild) trail.removeChild(trail.firstChild);
+    var row = rows[idx];
+    if (!row) return;                    // above the first heading: just the home crumb
+
+    if (row.link) {
+      row.link.classList.add("on");
+      row.link.setAttribute("aria-current", "true");
+      reveal(row.link);
+    }
+    for (var i = 0; i < row.trail.length; i++) {
+      var t = row.trail[i], last = i === row.trail.length - 1;
+      trail.appendChild(seg("&rsaquo;", null, "sep"));
+      var cls = last ? "here" : "";
+      if (/\.sh$/.test(t.t)) cls += " file";
+      trail.appendChild(seg(t.t, t.h || null, cls.trim() || null));
+    }
+  }
+
+  /* Keep the marked entry inside the rail's own scrollport. Deliberately not
+     scrollIntoView: that walks up and scrolls the window too, which would fight the
+     scroll that triggered it. */
+  function reveal(a) {
+    var r = rail.getBoundingClientRect(), b = a.getBoundingClientRect();
+    if (b.top < r.top + 8) rail.scrollTop -= (r.top + 8 - b.top);
+    else if (b.bottom > r.bottom - 8) rail.scrollTop += (b.bottom - (r.bottom - 8));
+  }
+
+  var queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(function () { queued = false; paint(pick()); });
+  }
+
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", invalidate);
+  window.addEventListener("hashchange", invalidate);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(invalidate);
+  window.addEventListener("load", invalidate);
+  schedule();
 })();
 </script>

@@ -185,25 +185,68 @@ def render_reference():
 SCRIPT_ID = {s["file"]: s["id"] for s in com.SCRIPTS}
 
 
-def render_rail():
-    out = ['<p class="rail-mark">veri</p><p class="rail-sub">annotated source</p>',
-           '<nav aria-label="Contents"><h4>Orientation</h4>']
+def nav_entries():
+    """The rail's contents as one ordered list, in document order.
+
+    Three things read this: the rail markup, the scrollspy that highlights the entry
+    you are currently inside, and the breadcrumb that names it at the top of the page.
+    Deriving all three from one list is what stops them disagreeing about where a
+    section starts or what it is called.
+
+    "head" entries are the rail's group headings and have no anchor. Every other entry
+    carries `trail`: the breadcrumb path to it, outermost first, as (label, anchor-id)
+    pairs. An empty anchor is a crumb that names a grouping with no heading of its own.
+    """
+    flow = ("The data flow", "")
+    out = [{"kind": "head", "label": "Orientation"}]
     for aid, label in com.ORIENTATION_NAV:
-        out.append('<a href="#%s">%s</a>' % (aid, label))
-    out.append("<h4>The data flow</h4>")
+        out.append({"kind": "item", "id": aid, "label": label,
+                    "trail": [("Orientation", ""), (label, aid)]})
+    out.append({"kind": "head", "label": "The data flow"})
     for st in com.STAGES:
-        out.append('<a href="#%s"><span class="stage">%d</span>%s</a>'
-                   % (st["id"], st["n"], st["nav"]))
+        crumb = ("Stage %d &middot; %s" % (st["n"], st["nav"]), st["id"])
+        out.append({"kind": "stage", "id": st["id"], "label": st["nav"], "n": st["n"],
+                    "trail": [flow, crumb]})
         for s in com.SCRIPTS:
             if s["stage"] == st["n"]:
-                out.append('<a href="#%s"><span class="mono">%s</span></a>'
-                           % (s["id"], s["file"]))
-    out.append("<h4>Full reference</h4>")
-    out.append('<a href="#reference">The bash reference</a>')
+                out.append({"kind": "file", "id": s["id"], "label": s["file"],
+                            "trail": [flow, crumb, (s["file"], s["id"])]})
+    out.append({"kind": "head", "label": "Full reference"})
+    out.append({"kind": "item", "id": "reference", "label": "The bash reference",
+                "trail": [("Full reference", "reference")]})
     for g in primer_mod.PRIMER:
-        out.append('<a href="#%s">%s</a>' % (g["id"], g["name"]))
-    out.append('<h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a></nav>')
+        out.append({"kind": "item", "id": g["id"], "label": g["name"],
+                    "trail": [("Full reference", "reference"), (g["name"], g["id"])]})
+    out.append({"kind": "head", "label": "Upkeep"})
+    out.append({"kind": "item", "id": "keeping-current", "label": "Keeping this current",
+                "trail": [("Upkeep", ""), ("Keeping this current", "keeping-current")]})
+    return out
+
+
+def render_rail(entries):
+    out = ['<p class="rail-mark">veri</p><p class="rail-sub">annotated source</p>',
+           '<nav aria-label="Contents">']
+    for e in entries:
+        if e["kind"] == "head":
+            out.append("<h4>%s</h4>" % e["label"])
+        elif e["kind"] == "stage":
+            out.append('<a href="#%s"><span class="stage">%d</span>%s</a>'
+                       % (e["id"], e["n"], e["label"]))
+        elif e["kind"] == "file":
+            out.append('<a href="#%s"><span class="mono">%s</span></a>'
+                       % (e["id"], e["label"]))
+        else:
+            out.append('<a href="#%s">%s</a>' % (e["id"], e["label"]))
+    out.append("</nav>")
     return "".join(out)
+
+
+def render_nav_json(entries):
+    """The scrollspy/breadcrumb model. Anchored entries only — headings have no id."""
+    import json
+    d = [{"id": e["id"], "trail": [{"t": t, "h": h} for t, h in e["trail"]]}
+         for e in entries if e["kind"] != "head"]
+    return json.dumps(d, ensure_ascii=False, separators=(",", ":"))
 
 
 def render_tips_json():
@@ -230,11 +273,13 @@ def main():
               for s in com.SCRIPTS if (SCRIPTS_DIR / s["file"]).exists()}
     grand = sum(totals.values())
 
+    entries = nav_entries()
     page = com.PAGE_TEMPLATE.format(
         css=(HERE / "wt" / "style.css").read_text().strip(),
         tips=render_tips_json(),
         js=(HERE / "wt" / "app.js").read_text().strip(),
-        rail=render_rail(),
+        rail=render_rail(entries),
+        nav=render_nav_json(entries),
         intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
         stages=stages_html,
         reference=reference_html,

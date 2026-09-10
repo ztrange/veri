@@ -14,6 +14,7 @@
   --ec0-wash:#DCEFE4; --ec1-wash:#F7EBD5; --ec2-wash:#F8E1DE; --ec3-wash:#E1E6F3;
   --shadow:0 1px 2px rgba(20,26,33,.06), 0 6px 20px -12px rgba(20,26,33,.22);
   --tip-bg:#1B222B; --tip-ink:#E7ECF3; --tip-rule:#333F4C;
+  --crumb-h:44px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -57,14 +58,40 @@ body{background:var(--paper);color:var(--ink);margin:0;
 .rail h4{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.13em;
   text-transform:uppercase;color:var(--ink-faint);font-weight:500;margin:20px 0 6px;
   padding-bottom:5px;border-bottom:1px solid var(--rule-soft)}
-.rail a{display:block;text-decoration:none;color:var(--ink-soft);
+.rail a{display:block;position:relative;text-decoration:none;color:var(--ink-soft);
   font-family:"Archivo",system-ui,sans-serif;font-size:13.5px;line-height:1.35;
   padding:4px 8px;margin:0 -8px;border-radius:4px}
 .rail a:hover{color:var(--accent);background:var(--accent-wash)}
+/* Where you are. Set by app.js from scroll position; three cues rather than one,
+   because colour alone is the cue that disappears for the colour-blind reader. */
+.rail a.on{color:var(--accent);background:var(--accent-wash)}
+.rail a.on::before{content:"";position:absolute;left:0;top:3px;bottom:3px;width:2px;
+  border-radius:2px;background:var(--accent)}
+.rail a.on .stage{color:var(--accent)}
+.rail a.on .mono{font-weight:500}
 .rail a .mono{font-family:"JetBrains Mono",monospace;font-size:12.5px}
 .rail a .stage{font-family:"JetBrains Mono",monospace;color:var(--ink-faint);
   font-size:11px;margin-right:6px}
 main{padding:0 0 120px;min-width:0}
+
+/* ── breadcrumb ── */
+.crumb{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:2px;
+  min-height:var(--crumb-h);padding:0 34px;overflow-x:auto;white-space:nowrap;
+  background:color-mix(in srgb,var(--panel) 88%,transparent);
+  border-bottom:1px solid var(--rule);backdrop-filter:saturate(140%) blur(8px);
+  -webkit-backdrop-filter:saturate(140%) blur(8px);
+  scrollbar-width:none;font-family:"Archivo",system-ui,sans-serif;font-size:12.5px}
+.crumb::-webkit-scrollbar{display:none}
+.crumb a{text-decoration:none;color:var(--ink-soft);padding:3px 6px;border-radius:4px}
+.crumb a:hover{color:var(--accent);background:var(--accent-wash)}
+.crumb .crumb-home{font-weight:600;color:var(--ink);padding-left:0}
+.crumb .crumb-trail{display:flex;align-items:center;gap:2px;min-width:0}
+.crumb .sep{color:var(--ink-faint);font-size:11px;padding:0 1px;user-select:none}
+.crumb .here{color:var(--ink);font-weight:600}
+.crumb .file{font-family:"JetBrains Mono",monospace;font-size:11.5px}
+
+/* Anchors land below the bar rather than under it. */
+[id]{scroll-margin-top:calc(var(--crumb-h) + 14px)}
 .wrap{max-width:770px;margin:0 auto;padding:0 34px}
 .wide{max-width:1460px;margin:0 auto;padding:0 34px}
 
@@ -104,7 +131,8 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
   margin:22px 0 30px;background:var(--panel);box-shadow:var(--shadow)}
 .ann-head{display:flex;justify-content:space-between;align-items:center;gap:14px;
   padding:9px 16px;border-bottom:1px solid var(--rule);background:var(--panel-2);
-  font-family:"JetBrains Mono",monospace;font-size:11.5px;position:sticky;top:0;z-index:3}
+  font-family:"JetBrains Mono",monospace;font-size:11.5px;position:sticky;
+  top:var(--crumb-h);z-index:3}
 .ann-head .fname{color:var(--ink);font-weight:500}
 .ann-head .fmeta{color:var(--ink-faint)}
 .ann-row{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
@@ -190,7 +218,7 @@ tr:last-child td{border-bottom:0}
 td.num{font-variant-numeric:tabular-nums}
 .cards{display:grid;gap:13px}
 .card{border:1px solid var(--rule);border-radius:7px;background:var(--panel);
-  padding:15px 18px 16px;scroll-margin-top:18px}
+  padding:15px 18px 16px}
 .card:target{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
 .card-sig{font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:500;
   color:var(--ink);margin:0 0 3px;display:block;word-break:break-word}
@@ -231,6 +259,7 @@ footer .mono{font-size:12.5px;color:var(--ink-faint)}
   .rail{position:static;height:auto;max-height:46vh;border-right:0;
     border-bottom:1px solid var(--rule);padding:20px 24px 24px}
   .wrap,.wide{padding:0 22px}
+  .crumb{padding:0 22px;--crumb-h:38px}
   .mast{padding-top:38px}
   .contract dl{grid-template-columns:1fr}
   .contract dt{border-bottom:0;padding-bottom:3px;background:transparent}
