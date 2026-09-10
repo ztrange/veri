@@ -21,6 +21,8 @@ ENSURE="$HERE/../ensure-run-state-ignored.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
+ok() { pass=$((pass + 1)); }
+no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
 # ignored <repo> <path> — git's verdict on one path, as an exit code we can assert on.
 # 0 = ignored, 1 = not ignored, anything else = git errored (a broken test, not a verdict).
@@ -38,14 +40,8 @@ git init -q "$repo" >/dev/null 2>&1
 ignored "$repo" .tdd/develop-red.log && log_code=0 || log_code=$?
 ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
 
-if [[ "$log_code" == 0 && "$ledger_code" == 1 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - no .gitignore: creates one ignoring .tdd/develop-red.log but not .tdd/issue-7.md"
-  echo "    .tdd/develop-red.log: want check-ignore exit 0 (ignored), got $log_code"
-  echo "    .tdd/issue-7.md:      want check-ignore exit 1 (not ignored), got $ledger_code"
-fi
+{ [[ "$log_code" == 0 ]] && [[ "$ledger_code" == 1 ]]; } \
+  && ok || no "no .gitignore: creates one ignoring .tdd/develop-red.log but not .tdd/issue-7.md (develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored)"
 
 echo "----"
 echo "$pass passed, $fail failed"
