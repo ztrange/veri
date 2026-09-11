@@ -241,6 +241,90 @@ run "$fx"; empty="$out" empty_code="$code"
   && [[ "$empty_code" == 3 && -z "$empty" ]]; } \
   && ok || no "output is one number per line ascending, and no solvable issue means exit 3 and empty stdout (three takeable: exit=$many_code want 0, stdout='$many' want '55\\n56\\n57'; none takeable: exit=$empty_code want 3, stdout='$empty' want empty)"
 
+# 6. The override is an override: with VERI_GH_JSON unset the script must go and get the
+# two JSON documents itself, from `gh issue list` and `gh pr list`, and must put a
+# `--repo owner/name` it was given onto both of those calls — a wrong repo is silently
+# wrong, so the flag reaching gh is the whole of the criterion.
+#
+# Driven against a stub `gh` first on PATH, the same way tick-issue-criterion.test.sh
+# drives its wrapper: the stub appends its own argv to $ARGV_OUT and then prints the
+# fixture the case wants for that subcommand, so the test observes both halves at once —
+# what the script asked gh for, and what it did with the answer. The directory below is
+# only the stub's pantry; the script never learns its path.
+#
+# The fixtures make BOTH calls load-bearing. #60 and #61 are equally takeable — open,
+# labelled, `None.` under `## Blocked by` — and an open PR says `Closes #60`, so stdout is
+# "61" only if the issues came from `gh issue list` AND the PRs from `gh pr list`. A script
+# that skipped the PR call would print "60\n61".
+#
+# Both halves of "when given" are observed, one run each, changing nothing but the flag:
+# without it neither gh call may carry `--repo` (an invented default is as wrong as a
+# dropped flag), with it both must.
+fx="$(fixture gh)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 60,
+    "title": "solvable-issues.sh: list the issues veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 61,
+    "title": "the /solve-issues loop skill",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+cat > "$fx/prs.json" <<'JSON'
+[
+  {
+    "state": "OPEN",
+    "body": "Draft PR opened by a /solve-issue run.\n\nCloses #60\n"
+  }
+]
+JSON
+
+stubdir="$work/bin"
+mkdir -p "$stubdir"
+cat > "$stubdir/gh" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$ARGV_OUT"
+case "$1 $2" in
+  "issue list") cat "$GH_ISSUES" ;;
+  "pr list")    cat "$GH_PRS" ;;
+esac
+STUB
+chmod +x "$stubdir/gh"
+
+# Run the script with VERI_GH_JSON explicitly removed from the environment and the stub
+# first on PATH, leaving stdout in $out, the exit code in $code and one line per gh call in
+# the named log. `env -u` is what guarantees the override is absent rather than merely
+# unset here, since the script's whole behaviour under test hinges on that.
+gh_run() {  # gh_run <argv-log> [script args...]; sets $out and $code
+  local log="$1"; shift
+  : > "$log"
+  out="$(env -u VERI_GH_JSON PATH="$stubdir:$PATH" ARGV_OUT="$log" \
+         GH_ISSUES="$fx/issues.json" GH_PRS="$fx/prs.json" \
+         "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
+}
+
+gh_run "$work/argv-bare"; bare="$out" bare_code="$code"
+bare_argv="$(cat "$work/argv-bare")"
+
+gh_run "$work/argv-repo" --repo owner/name; scoped="$out" scoped_code="$code"
+repo_argv="$(cat "$work/argv-repo")"
+
+{ [[ "$bare_code" == 0 && "$bare" == "61" ]] \
+  && grep -q '^issue list' <<<"$bare_argv" && grep -q '^pr list' <<<"$bare_argv" \
+  && ! grep -q -- '--repo' <<<"$bare_argv" \
+  && [[ "$scoped_code" == 0 && "$scoped" == "61" ]] \
+  && [[ "$(grep -c -- '--repo owner/name' <<<"$repo_argv")" == 2 ]]; } \
+  && ok || no "without VERI_GH_JSON the script reads gh issue list and gh pr list itself, forwarding --repo when given (no flag: exit=$bare_code want 0, stdout='$bare' want '61', gh calls=$(tr '\n' '|' <<<"$bare_argv") want an 'issue list' and a 'pr list', neither with --repo; --repo owner/name: exit=$scoped_code want 0, stdout='$scoped' want '61', gh calls=$(tr '\n' '|' <<<"$repo_argv") want --repo owner/name on both)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
