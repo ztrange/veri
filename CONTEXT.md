@@ -72,10 +72,28 @@ steps map to criteria; the conductor loops until all are covered.
 _Avoid_: requirement, spec (unqualified)
 
 **Issue branch**:
-The per-issue git branch (`tdd/<issue>-slug`) all of an issue's commits land on. On
-completion it is pushed and a draft PR (`Closes #<n>`) is opened for human review. In v2
-each issue branch lives in its own git worktree so parallel conductors don't collide.
+The per-issue git branch (`tdd/<issue>-slug`) all of an issue's commits land on. It lives in
+its own **worktree** at `.tdd/wt/<issue>`, made by `issue-worktree.sh` and cut from the
+default branch, and the whole run happens in there — so the **caller's checkout** is never
+switched onto it and two conductors never collide. On completion the branch is pushed and a
+draft PR (`Closes #<n>`) is opened for human review.
 _Avoid_: feature branch (ok as a gloss)
+
+**Worktree**:
+A linked git working directory — a second checkout sharing the one `.git` object store —
+that an issue branch lives in, at `.tdd/wt/<issue>` inside the target repo. One per issue,
+created (or, idempotently, handed back) by `issue-worktree.sh` and removed by its
+`--remove <n>` once the PR merges; removal refuses a worktree with uncommitted changes. A
+branch already checked out in another worktree is never taken over — another conductor owns
+that run.
+_Avoid_: workspace, sandbox, clone (it is not one — the object store is shared)
+
+**Caller's checkout**:
+The working directory `/solve-issue` was invoked from. The conductor reads the issue and the
+default branch there and then moves into the issue's worktree; it is never switched, never
+committed in, and never left changed by a run. Anything reading that directory — a skill
+symlinked out of it, a dev server serving it — therefore keeps seeing what it saw before.
+_Avoid_: primary clone (ok as a gloss — it usually is that, but need not be), host repo
 
 **Cycle**:
 One Red→Green→Refactor pass over a single plan step. Structure: red (developer writes one

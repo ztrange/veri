@@ -19,7 +19,7 @@ over a stuck agent is a first-class property, not an afterthought.
 ```
 /solve-issue <n>
   ├─ baseline: git repo? suite green? clean tree? gh authed?
-  ├─ branch:   tdd/<n>-slug
+  ├─ worktree: .tdd/wt/<n> on tdd/<n>-slug (your checkout is not switched)
   ├─ scope-and-plan → ledger (.tdd/issue-<n>.md)  +  mirror plan to the issue
   └─ loop over plan steps:
         red            (dev: one failing test)
@@ -53,7 +53,8 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 
 1. **Single issue** — solve one named issue end-to-end.
 2. **Loop** — drain all *solvable* issues (dependencies closed), one after another.
-3. **Parallel** — several conductors at once (git worktree per issue branch).
+3. **Parallel** — several conductors at once (the per-issue worktree, already in place, is
+   what keeps them apart).
 
 ## Install
 
@@ -78,6 +79,16 @@ repo: its first non-empty line is run verbatim as the full suite, ahead of every
 inference. That file is the per-repo escape hatch; without it, a repo veri cannot read is
 asked about rather than guessed at.
 
+The run does not switch your checkout. The issue branch is checked out in a **linked git
+worktree** at `.tdd/wt/<n>` inside the target repo (created by `issue-worktree.sh`, cut
+from the default branch, sharing the one object store), and everything — spec, ledger, leaf
+logs, commits, push, PR — happens in there. The directory you launched from stays on the
+branch it was on, so a skill symlinked out of it or a dev server serving it never silently
+starts seeing the issue branch. The worktree is left in place after the draft PR, because a
+resume lands back in it; once the PR is merged, retire it with
+`skills/solve-issue/scripts/issue-worktree.sh --remove <n>`, which refuses to remove one
+that still holds uncommitted work.
+
 ## Documentation
 
 - [`docs/walkthrough.html`](./docs/walkthrough.html) — **veri, Annotated**: every one of
@@ -87,7 +98,7 @@ asked about rather than guessed at.
   scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
   drift; `make docs-check` verifies the committed page still matches.
 - [`CONTEXT.md`](./CONTEXT.md) — the domain glossary (ubiquitous language) and scope ladder.
-- [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0012, one per resolved
+- [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0013, one per resolved
   design fork.
 
 ## Status
