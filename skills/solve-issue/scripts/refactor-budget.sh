@@ -10,7 +10,10 @@
 # exit 2, with nothing on stdout, so a conductor mirroring stdout cannot mistake it for a
 # real status.
 #
-# Usage:   refactor-budget.sh <count>
+# The count gets the same treatment, for the same reason: a malformed call is not a
+# decision either.
+#
+# Usage:   refactor-budget.sh <count>   # <count> a whole number >= 0
 set -euo pipefail
 
 count="${1:-}"
@@ -18,6 +21,11 @@ budget="${VERI_REFACTOR_BUDGET:-2}"
 
 if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
   echo "refactor-budget: VERI_REFACTOR_BUDGET must be a whole number >= 0: $budget" >&2
+  exit 2
+fi
+
+if [[ ! "$count" =~ ^[0-9]+$ ]]; then
+  echo "refactor-budget: <count> must be a whole number >= 0: $count" >&2
   exit 2
 fi
 
