@@ -38,6 +38,8 @@ scope, however tempting.
    test, and say which case would force the generality.
 5. If the code is already clean under those rules, change nothing and say so. "Nothing
    left to tidy" is a legitimate result, not a failure to find work.
+6. Leave your transform **uncommitted** in the working tree — do not run `git commit`; the
+   conductor commits, because the commit is its atomic tick-and-commit.
 
 ### Report (last lines of your output)
 
