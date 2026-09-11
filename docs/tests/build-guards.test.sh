@@ -425,7 +425,7 @@ accepts "documents the ignore-rule caller contract" 'chore: ignore veri run stat
 #    printed "0 issues", or that dropped the sentence along with the number, is wrong in a
 #    way the reader would see.
 accepts_without_git "no matching history: the built-with-itself claim, minus the figure" \
-  'built with itself' 'class="selfn"'
+  'built with itself' 'class="solved-n"'
 
 echo "----"
 echo "$pass passed, $fail failed"
