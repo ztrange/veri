@@ -2,7 +2,7 @@
 # solvable-issues.sh — print the numbers of the issues veri may take right now, one per
 # line, lowest first.
 #
-# An issue is takeable when it is open and carries the `ready-for-agent` label: the
+# An issue is solvable when it is open and carries the `ready-for-agent` label: the
 # human's explicit opt-in. Nothing is taken because it merely exists.
 #
 # The repository's issues are read as the JSON `gh issue list` emits:
@@ -24,11 +24,11 @@ import json, sys, pathlib
 src = pathlib.Path(sys.argv[1])
 issues = json.loads((src / "issues.json").read_text())
 
-def takeable(issue):
+def solvable(issue):
     if issue.get("state", "").upper() != "OPEN":
         return False
     return any(l.get("name") == "ready-for-agent" for l in issue.get("labels", []))
 
-for number in sorted(i["number"] for i in issues if takeable(i)):
+for number in sorted(i["number"] for i in issues if solvable(i)):
     print(number)
 ' "$VERI_GH_JSON"
