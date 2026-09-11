@@ -243,11 +243,22 @@ else:
     # newest first, in GIT's version order. Plain lexical sort puts v0.9 above v0.10,
     # which would bury the newest release in the middle of the list — the exact bug
     # `git tag --sort=-v:refname` exists to prevent, asserted here on the output.
-    want = [t for t in reversed(real) if t in set(shown)]
-    if shown != want:
+    # Every tag must be LISTED, not merely in the right order among those that are.
+    # The staleness check above usually reaches this case too, since a new tag changes
+    # what a rebuild produces — but it answers "run `make docs`" for every cause alike.
+    # This one names the actual cause, which is the difference between a one-line fix
+    # and a hunt; cutting a tag rebuilds nothing, so it is a cause worth naming. It also
+    # stands on its own wherever the page was built with a different view of the tags
+    # than the checker has.
+    absent = [t for t in real if t not in set(shown)]
+    if absent:
+        bad.append("tags missing from the capability index: %s — cut after the page "
+                   "was last built; run `make docs`" % absent)
+    want = list(reversed(real))
+    if not absent and shown != want:
         bad.append("the index is out of order: %s, expected %s (git version sort — "
                    "lexically v0.9 sorts after v0.10)" % (shown, want))
-    else:
+    elif not absent:
         print("versions: %d tags, index newest-first, %d script badges all resolve"
               % (len(shown), len(badges)))
 
