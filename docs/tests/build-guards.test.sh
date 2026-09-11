@@ -278,6 +278,54 @@ rail_group_lists() {
   fi
 }
 
+# blocks_of <text> <open-marker> <close-marker>
+# Every <open>…<close> block in <text>, one per line, with the newlines inside each block
+# squashed to spaces so one block is one line. Callers that need to ask something of a
+# single figure — rather than of every figure at once — read this line by line.
+blocks_of() {
+  local rest="$1" open="$2" close="$3" block
+  while [[ "$rest" == *"$open"* ]]; do
+    rest="${rest#*"$open"}"             # drop everything up to and including this opener
+    [[ "$rest" == *"$close"* ]] || break   # an unclosed opener has no block to report
+    block="${rest%%"$close"*}"
+    printf '%s\n' "${block//$'\n'/ }"
+    rest="${rest#*"$close"}"            # continue after this block, not inside it
+  done
+}
+
+# figure_between <name> <start> <end> <wants> [mutator...]
+# One figure inside a region must carry every one of <wants>. The region is the
+# region_between cut; a figure is one <pre class="src"> sketch or one inline <svg>, which
+# are the two ways this page draws a diagram (stages 2 and 4 use the first, the orientation
+# figures the second).
+# The ONE-figure part is the whole claim. A stage section also contains the full source of
+# every script in it, so the names of those scripts are all over the region already —
+# asked of the region as a whole, this would be answered by four names sitting in four
+# unrelated listings, which is not a diagram. Only a single block holding all of them is.
+figure_between() {
+  local name="$1" start="$2" end="$3" wants="$4"; shift 4
+  local d code page region block found=""
+  d="$("$SANDBOX")"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  region="$(region_between "$page" "$start" "$end")"
+  while IFS= read -r block; do
+    [[ -n "$block" ]] || continue
+    if [[ -z "$(missing_from "$block" "$wants")" ]]; then found="$block"; break; fi
+  done < <( blocks_of "$region" '<pre class="src"' '</pre>'
+            blocks_of "$region" '<svg' '</svg>' )
+  if [[ "$code" == 0 && -n "$found" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want, between $start and $end, ONE <pre class=\"src\"> or <svg> block"
+    echo "    holding all of: $wants"
+    echo "    got: no single figure with all of them"
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # omits_git — omits(), but against a sandbox that is a real repository.
 # `local` inside a function is visible to everything it then calls — bash scopes locals
 # to the call chain, not to the function body — so omits() sees this SANDBOX, and the
@@ -673,6 +721,23 @@ already present
 test command
 exit 3
 untouched'
+
+# 17. stage 3 is where the blind-verification guarantee is made, and the guarantee is a
+#    comparison: build-verify-prompt.sh is build-develop-prompt.sh with the rationale left
+#    out. The stage's orientation is prose only, and the page's diagrams name the verifier
+#    path — build-verify-prompt.sh → verify.sh → parse-verdict.sh — while its developer-side
+#    mirror appears in no figure at all, so the one comparison the stage exists to make is
+#    the one a reader has to assemble themselves.
+#    So: one figure in stage 3 naming both builders and both ends of the verify path.
+#    Stage-bounded and figure-bounded, because neither bound alone says anything — all four
+#    names already occur inside the stage (they are its own scripts' source), and
+#    build-develop-prompt.sh already appears in a figure elsewhere on the page.
+figure_between "the stage-3 intro diagrams the two prompt builders as mirrors" \
+  'id="s3"' 'id="s4"' \
+'build-develop-prompt.sh
+build-verify-prompt.sh
+verify.sh
+parse-verdict.sh'
 
 echo "----"
 echo "$pass passed, $fail failed"

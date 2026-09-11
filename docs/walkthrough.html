@@ -405,7 +405,7 @@ html{scroll-behavior:smooth}
 </p>
 <p>
   <strong>veri is built with itself.</strong> Every capability on this page was scoped,
-  tested and landed by a veri run against this repository, <span class="solved-n">17</span> issues so far &mdash; the same order,
+  tested and landed by a veri run against this repository, <span class="solved-n">18</span> issues so far &mdash; the same order,
   under the same blind verification, as everything described below. The figure is counted
   out of git when this page is built, not typed into it, so it cannot quietly go stale.
 </p>
@@ -2471,6 +2471,24 @@ html{scroll-behavior:smooth}
   unable to arrive</strong>. Three scripts compose into one verb, and the guarantee lives in
   the shape of the first one's arguments.
 </p>
+<p>
+  The way to see that is to put the two prompt builders side by side. They are mirrors of
+  one another &mdash; the same job done for the two agents &mdash; and where they differ is
+  where the guarantee lives.
+</p>
+<div class="ann"><div class="ann-head"><span class="fname">the two builders</span>
+<span class="fmeta">stage 3</span></div>
+<div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">developer side               verifier side</span>
+<span class="l">build-develop-prompt.sh      build-verify-prompt.sh</span>
+<span class="l">           &#9474;                           &#9474;</span>
+<span class="l">           &#9660;                           &#9660;</span>
+<span class="l">supervise.sh &rarr; run-leaf.sh   verify.sh &rarr; supervise.sh &rarr; parse-verdict.sh</span></pre></div>
+<div class="ann-note"><p>
+  Each builder only writes a prompt; neither launches anything. The developer's prompt goes
+  to a leaf under <code>supervise.sh</code>. The verifier's goes to
+  <code>verify.sh</code>, which supervises its own leaf and hands what comes back to
+  <code>parse-verdict.sh</code>.
+</p></div></div></div>
 <h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.14</b></span></h3>
 <p>
   Look at the usage line below and note what is <strong>absent</strong>. There is a
