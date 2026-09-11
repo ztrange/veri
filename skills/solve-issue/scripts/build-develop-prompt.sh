@@ -31,6 +31,16 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 phase="${1:?usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ...}"
 
+# The phase is checked here, before any other positional is read, because the two questions
+# are answered with different exit codes and the first one asked wins. A `${N:?}` expansion
+# aborts the shell with status 1, so validating the arguments of a phase that does not exist
+# would answer "an argument is missing" (exit 1) to a caller whose real mistake was the
+# phase itself — and a bad phase is a bad-arguments case, which is exit 2 suite-wide.
+case "$phase" in
+  red | green | refactor | revise) ;;
+  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
+esac
+
 # `revise` names the phase it is redoing *before* the three arguments every phase shares,
 # so its spec/step/test-cmd each sit one position later than everyone else's. Take that
 # extra argument off the front; past this point the positions line up again.
@@ -61,7 +71,6 @@ case "$phase" in
   revise)
     reason_file="${5:?missing <reason-file>}"
     ;;
-  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
 esac
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
