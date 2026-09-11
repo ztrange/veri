@@ -1,0 +1,42 @@
+name: Pages
+
+# Publishes docs/walkthrough.html — the generated, annotated walkthrough — at
+# https://ztrange.github.io/veri/ so it can be read without a clone. The page is
+# self-contained (its only external references are Google Fonts), so the artifact
+# is a single index.html; nothing is built here, because `make docs` already ran
+# in the PR that changed the page and CI's docs-check proved the committed copy
+# matches a fresh build. The repo is private; the Pages site is public by choice
+# (the source it quotes is the point of the page), decided once, deliberately.
+on:
+  push:
+    branches: [main]
+    paths: [docs/walkthrough.html]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Stage the page as index.html
+        run: |
+          mkdir -p _site
+          cp docs/walkthrough.html _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
