@@ -12,11 +12,24 @@ set -euo pipefail
 root="${1:-.}"
 gitignore="$root/.gitignore"
 
-# The rule's last line is its sentinel: it is written last, so seeing it whole and on its own
-# line means the block landed. -F -x keeps the glob literal and forbids a partial-line match.
-if [ -f "$gitignore" ] && grep -qxF '.tdd/issue-*-spec.md' "$gitignore"; then
-  echo "already present"
-  exit 0
+# has <line> — is <line> in $gitignore, whole and on its own line? -F keeps the glob literal
+# (no regex), -x forbids a partial-line match, so `x.tdd/*` does not count as `.tdd/*`.
+has() { grep -qxF "$1" "$gitignore"; }
+
+if [ -f "$gitignore" ]; then
+  # "Already present" means the whole rule, never a subset. The last line on its own would ignore
+  # the ledger too, and appending a second `.tdd/*` after it cannot repair that — git reads the
+  # negation that precedes it. So a .gitignore carrying part of the rule is refused rather than
+  # rewritten: exit 2, the "no answer could be obtained" code, fails the conductor's preflight
+  # before a cycle starts committing its scratch.
+  if has '.tdd/*' && has '!.tdd/issue-*.md' && has '.tdd/issue-*-spec.md'; then
+    echo "already present"
+    exit 0
+  fi
+  if has '.tdd/issue-*-spec.md'; then
+    echo "ensure-run-state-ignored: $gitignore carries part of veri's run-state rule, not all of it — fix it by hand" >&2
+    exit 2
+  fi
 fi
 
 # An existing .gitignore need not end in a newline; appending straight onto it would fuse its
