@@ -41,6 +41,15 @@ Both must be installed; if `$S/solvable-issues.sh` is not there, say so and stop
   `${VERI_MAX_ISSUES:-0}`; **0 means no cap**, which is the default, because the solvable
   set is finite and the `ready-for-agent` label is already the human's opt-in. Set it when
   you want a short, watchable run.
+- `VERI_LABEL` — the opt-in label this loop drains, `${VERI_LABEL:-ready-for-agent}`. It is
+  read by `solvable-issues.sh`, so pass it through the environment rather than as an
+  argument. Setting it **moves** the gate, it does not widen it: the pool becomes exactly
+  the issues carrying that name and `ready-for-agent` stops being special, which is the
+  point — **one label per loop** is how two loops on one repository draw from disjoint
+  pools instead of racing for the same issues (say, `ready-for-agent:docs` for one and
+  `ready-for-agent:scripts` for the other). Two loops given the *same* value still collide;
+  that is the human's choice. Set but empty is refused with exit 2 rather than matching
+  every issue.
 
 ## Procedure
 
@@ -61,8 +70,11 @@ $S/solvable-issues.sh [--repo <owner/name>]
 It prints the numbers veri may take right now, one per line, ascending; **exit 0** when
 there is at least one, **exit 3** with empty stdout when there is none.
 
-- **Exit 3:** report `nothing solvable` and stop. Not an error — no issue is open,
-  labelled `ready-for-agent`, unblocked and unclaimed. Nothing was started.
+- **Exit 3:** report `nothing solvable` and stop, **naming the label you drained** —
+  `${VERI_LABEL:-ready-for-agent}`, as in `nothing solvable under ready-for-agent:docs`. A
+  loop that says `no ready-for-agent issue` while it was launched on another label sends
+  the reader to the wrong list. Not an error — no issue is open, carrying that label,
+  unblocked and unclaimed. Nothing was started.
 - **Exit 0:** take the **first** number. Do not keep the rest of the list.
 
 ### 2. Solve one issue
