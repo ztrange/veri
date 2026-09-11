@@ -6,4 +6,4 @@
 - [x] pytest.ini or a [tool.pytest section in pyproject.toml yields pytest -q
 - [x] go.mod yields go test ./... and Cargo.toml yields cargo test
 - [x] a tests/ directory of test_*.py with no other marker yields python3 -m unittest discover -q
-- [ ] a repo matching nothing prints nothing and exits 3
+- [x] a repo matching nothing prints nothing and exits 3
