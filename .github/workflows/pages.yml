@@ -4,13 +4,16 @@ name: Pages
 # https://ztrange.github.io/veri/ so it can be read without a clone. The page is
 # self-contained (its only external references are Google Fonts), so the artifact
 # is a single index.html; nothing is built here, because `make docs` already ran
-# in the PR that changed the page and CI's docs-check proved the committed copy
-# matches a fresh build. The repo is private; the Pages site is public by choice
-# (the source it quotes is the point of the page), decided once, deliberately.
+# in the PR that changed the page. The repo is private; the Pages site is public by
+# choice (the source it quotes is the point of the page), decided once, deliberately.
+#
+# MANUAL ONLY, and disabled in the repo's Actions settings on top of that. It used to
+# deploy on every push to main that touched the page, which with a page that every
+# docs PR regenerates meant a deploy per merge. A deploy is a publishing decision, not a
+# side effect of landing a commit: run it by hand when a version is worth reading —
+# `gh workflow enable pages.yml && gh workflow run pages.yml && gh workflow disable
+# pages.yml`.
 on:
-  push:
-    branches: [main]
-    paths: [docs/walkthrough.html]
   workflow_dispatch:
 
 permissions:
