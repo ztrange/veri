@@ -187,6 +187,32 @@ done
 [[ -z "$misread" ]] \
   && ok || no "go.mod yields go test ./..., Cargo.toml yields cargo test —$misread"
 
+# 7. the last rule before giving up: a repo whose only sign of a suite is a `tests/`
+# directory holding `test_*.py` names `python3 -m unittest discover -q`. This is the
+# stdlib fallback for a python project that committed no runner configuration at all —
+# no pytest.ini, no pyproject.toml, no Makefile — which is why the seeded repo carries
+# the test file and nothing else: any other marker would have been answered by a rule
+# above, and the repo would never reach this one.
+#
+# Unlike every rule before it, the marker is not a file at a known path but a *pattern*
+# inside a directory, so the file is named `test_foo.py` rather than left as an empty
+# `tests/` — `discover` finds cases by that filename pattern, and a `tests/` directory of
+# fixtures or helpers is no claim that a suite lives there. Its contents are irrelevant:
+# the script matches the name and never imports or runs the file.
+#
+# `python3` and not `python`, because `python` is absent on a modern macOS and ambiguous
+# where it exists; `-m unittest discover` because there is no runner script to call; `-q`
+# to match the other rules, the conductor reading the exit status rather than the dots.
+want='python3 -m unittest discover -q'
+repo="$work/unittest-only"
+mkdir -p "$repo/tests"
+printf 'import unittest\n' > "$repo/tests/test_foo.py"
+
+detect "$repo"
+
+matched \
+  && ok || no "a tests/ directory of test_*.py with no other marker yields python3 -m unittest discover -q (exit=$code want 0, stdout='$out' want '$want')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
