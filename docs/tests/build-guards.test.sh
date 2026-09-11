@@ -136,8 +136,9 @@ sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commen
 # it ships in. Rewriting rather than adding is deliberate: the line count does not move,
 # so the coverage guard has nothing to say and the case tests only the version layer.
 rewrite_line_as_feat() {
-  sed -i.bak "$2s|.*|$3|" "$1" && rm -f "$1.bak"
-  git add -A && git commit -qm "$4" && git tag -a "$5" -m "what $5 can do"
+  local file="$1" lineno="$2" text="$3" subject="$4" tag="$5"
+  sed -i.bak "${lineno}s|.*|$text|" "$file" && rm -f "$file.bak"
+  git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
 }
 export -f append_line_to_script sed_commentary rewrite_line_as_feat
 
