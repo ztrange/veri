@@ -204,9 +204,11 @@ INTRO_HTML = r'''
 <p>
   The scripts form a small dependency tower &mdash; the ones you call are compositions of
   the ones you don't. Read in the order data flows through one cycle, they group into five
-  stages, and this page is organised as those stages. One script sits before the cycle
-  altogether &mdash; <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>
-  runs once per issue, at preflight, and is stage&nbsp;0 below:
+  stages, and this page is organised as those stages. Two scripts sit before the cycle
+  altogether, both stage&nbsp;0 below: <a href="#issue-worktree"><code>issue-worktree.sh</code></a>
+  gives the run a checkout of its own, and <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>
+  then makes that checkout's target repo ignore veri's run state &mdash; each runs once per
+  issue, at preflight:
 </p>
 <div class="flow">
 <svg viewBox="0 -12 920 212" role="img" aria-label="Five stages of one veri phase: read the ledger, run a leaf, verify the claim, record the result, or bail.">
@@ -695,11 +697,14 @@ STAGES = [
               "agree, once, before any cycle can commit.",
          intro=r'''
 <p>
-  This is the first script the conductor runs that touches the <em>target</em> rather than
-  veri's own machinery, and it exists because of how Green commits: <code>git add -A</code>,
-  so that the ticked ledger and the step's code land in one commit. Without an ignore rule,
-  that same <code>-A</code> would sweep every leaf log and prompt into history on the first
-  step. veri's own <code>.gitignore</code> carried the rule; a fresh repo does not.
+  Two scripts run here, in order, before any cycle exists &mdash; both touching the
+  <em>target</em> rather than veri's own machinery. The first,
+  <a href="#issue-worktree"><code>issue-worktree.sh</code></a>, gives the run a checkout of
+  its own. The second, <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>,
+  exists because of how Green commits: <code>git add -A</code>, so that the ticked ledger and
+  the step's code land in one commit. Without an ignore rule, that same <code>-A</code> would
+  sweep every leaf log and prompt into history on the first step. veri's own
+  <code>.gitignore</code> carried the rule; a fresh repo does not.
 </p>'''),
 
     dict(n=1, id="s1", nav="Read the ledger", kicker="read the ledger",
@@ -880,6 +885,230 @@ def script_table(scripts, totals):
 
 
 SCRIPTS = []
+
+SCRIPTS += [dict(
+    file="issue-worktree.sh", stage=0, id="issue-worktree",
+    tagline="a checkout of its own",
+    blurb=r'''<p>
+  The conductor used to <code>git switch -c tdd/&lt;n&gt;-&lt;slug&gt;</code> in whatever
+  checkout <code>/solve-issue</code> was invoked from &mdash; often the primary clone a
+  user-level skill link points at &mdash; which drags that checkout off its default branch
+  for the whole run. This script gives the run a <strong>linked worktree</strong> instead: a
+  second working directory that shares the one <code>.git</code> object store with the
+  caller's checkout, so the caller's checkout never moves. Idempotent on create; checks an
+  existing branch out rather than re-cutting it; refuses rather than steals when another
+  conductor already holds the branch.
+</p>''',
+    contract=[
+        ("Usage", "<code>issue-worktree.sh &lt;n&gt; &lt;slug&gt;</code> creates the worktree, or hands back "
+                   "an existing one; <code>issue-worktree.sh --remove &lt;n&gt;</code> takes a clean one back out"),
+        ("stdout", "the worktree's absolute path (create/reuse only &mdash; <code>--remove</code> prints nothing)"),
+        ("stderr", "git's own chatter, plus this script's own refusals"),
+        ("Exit", '<span class="ec ec-0"><b>0</b> created the worktree, handed back an existing one, or removed a clean one</span> '
+                 '<span class="ec ec-2"><b>2</b> no answer could be obtained &mdash; the branch is checked out '
+                 'elsewhere, the worktree asked to be removed is dirty, or no default branch could be found</span>'),
+    ],
+    chunks=[
+        dict(lines=(1, 14), html=r'''<p>
+  A <strong>linked worktree</strong> is a second working directory backed by the same
+  <code>.git</code> object store as an existing checkout &mdash; its own directory, its own
+  <code>HEAD</code>, its own branch checked out, but no second copy of history. This script
+  exists because switching branches <em>in place</em> is the dangerous move here: the
+  caller's checkout is often the primary clone a user-level skill link points at, so anything
+  that reads through that link &mdash; another conductor's run, a dev server &mdash; would
+  silently start seeing the issue branch mid-run. A worktree sidesteps that: the caller's
+  checkout never leaves its default branch, only the new directory this script prints the
+  path to does.
+</p><p>
+  {{p-strict|set -euo pipefail}}, as everywhere else.
+</p>'''),
+        dict(lines=(15, 20), html=r'''<p>
+  {{p-cmdsub|git rev-parse --show-toplevel}} answers with the root of the checkout this
+  script was called <em>from</em>, symlinks resolved &mdash; on macOS a path under
+  <code>/var/&hellip;</code> comes back as <code>/private/var/&hellip;</code>, because
+  <code>/var</code> is itself a symlink there. Resolved is what's wanted: <code>git worktree
+  list</code> reports paths the same way, and the idempotence check further down is a plain
+  string comparison against that report &mdash; two spellings of the same path would make a
+  worktree that already exists look like one that doesn't.
+</p>'''),
+        dict(lines=(21, 26), html=r'''<p>
+  {{p-func|wt_path()}} states the on-disk layout &mdash;
+  <code>.tdd/wt/&lt;n&gt;</code> &mdash; exactly once, because both the create path below and
+  <code>--remove</code> compute it from the same function. Two independent spellings of this
+  path drifting apart would be silent: a remove that computed a different path than create
+  used would find nothing there and no-op, rather than fail loudly. Nesting under
+  <code>.tdd/</code> costs no new ignore rule &mdash;
+  <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a> already
+  ignores everything under it.
+</p>'''),
+        dict(lines=(27, 50), html=r'''<p>
+  <code>--remove</code> is answered <strong>before</strong> the positional <code>&lt;n&gt;
+  &lt;slug&gt;</code> parsing below runs at all &mdash; otherwise that parsing would read the
+  flag itself as the issue number and die on a usage message that names the wrong problem.
+  The issue number is then pulled out with the same {{p-required|required-argument
+  assertion}} used throughout.
+</p><p>
+  <code>git status --porcelain</code> is the clean test: one line per changed file &mdash;
+  staged, unstaged or untracked &mdash; and nothing at all when the tree is clean, so a
+  non-empty answer is the whole condition. It is asked <em>before</em> calling
+  <code>git worktree remove</code>, rather than letting git refuse on its own, and that
+  ordering is what makes a dirty worktree exit <span class="ec ec-2"><b>2</b></span> here
+  instead of whatever git's own removal failure would have been: nothing was actually
+  attempted with git, so this is not a removal that failed &mdash; it is one that must never
+  be attempted, which is exactly the "no answer could be obtained" code, not a process
+  failure's <span class="ec ec-1"><b>1</b></span>.
+</p><div class="note"><span class="tag">No <code>--force</code></span><p>
+  With the tree already confirmed clean, git has nothing left to object to, so
+  <code>--force</code> is never passed. That keeps the safety net live right up to the last
+  moment: a change landing between the <code>status --porcelain</code> check above and the
+  <code>git worktree remove</code> call below still stops the removal, because git re-checks
+  for itself before it will act.
+</p></div>'''),
+        dict(lines=(51, 59), html=r'''<p>
+  The create path's own two {{p-required|required-argument assertions}}: unlike a missing
+  <code>--remove</code> target, a missing <code>&lt;n&gt;</code> or <code>&lt;slug&gt;</code>
+  here dies through bash's own exit status for an unset {{p-required|${1:?&hellip;}}}
+  expansion, not through a code this script chose &mdash; a reminder that "exit 2" is this
+  script's vocabulary for its own deliberate refusals, not a blanket description of
+  everything that can go wrong.
+</p>'''),
+        dict(lines=(60, 70), html=r'''<p>
+  <code>git worktree list --porcelain</code> prints one blank-line-separated block per
+  registered worktree: a <code>worktree &lt;path&gt;</code> line, then <code>HEAD
+  &lt;sha&gt;</code>, then <code>branch &lt;ref&gt;</code> (absent when that worktree is
+  detached). It is captured into <code>registry</code> once and asked twice below, rather
+  than re-run or piped into each reader: under {{p-strict|pipefail}}, feeding it through a
+  pipe would let the <em>reader's</em> early exit deliver git a SIGPIPE and turn that into the
+  pipeline's reported failure, when nothing here has actually gone wrong.
+</p><p>
+  Each question below feeds the captured text back in with {{p-redirect|&lt;&lt;&lt;}}, a
+  <strong>here-string</strong>: it hands one string to a command as its stdin with no pipe
+  and no subshell, which matters for <code>checkout_holder</code> below &mdash; a loop on the
+  left of a pipe runs in a subshell and any variable it sets vanishes when the pipe closes; a
+  loop reading a here-string runs in the current shell and its variables live on.
+</p>'''),
+        dict(lines=(71, 81), html=r'''<p>
+  Idempotence, checked first: a second call for the same issue &mdash; a resume, or the
+  conductor re-entering step&nbsp;1 &mdash; answers with the path it already made instead of
+  dying on <code>git worktree add</code>'s "already exists". <code>grep -qxF</code> asks the
+  registry for that exact <code>worktree &lt;path&gt;</code> line, whole (<code>-x</code>) and
+  literal (<code>-F</code>: no regex, so a <code>.</code> in the path is a dot, not "any
+  character"), silently (<code>-q</code>). Asking git rather than <code>[[ -d $path ]]</code>
+  matters: a leftover directory git no longer knows about is not a worktree this script can
+  hand back, and must fall through to the add at the bottom instead.
+</p><div class="note"><span class="tag">Why this check runs before the next one</span><p>
+  This is the reuse case, and it is checked <em>before</em> the never-steal refusal just
+  below &mdash; deliberately. On a resume, the branch this run wants <em>is</em> checked out,
+  in the very worktree this call is about to hand back. If the order were reversed,
+  <code>checkout_holder</code> would find that worktree holding the branch and refuse a run's
+  own resume as if a stranger owned it. Idempotence has to win the race against the refusal
+  it would otherwise trip.
+</p></div>'''),
+        dict(lines=(82, 103), html=r'''<p>
+  {{p-func|checkout_holder()}} answers a question <code>grep</code> alone cannot: not
+  <em>whether</em> a branch appears in the registry, but <em>which worktree's block</em> it
+  appears in &mdash; the <code>branch</code> line that names it is several lines below the
+  <code>worktree</code> line that names the path, in a different block for every other
+  worktree in between. So it walks the registry itself, remembering the most recent
+  <code>worktree</code> line as it goes and answering with that remembered path the moment a
+  <code>branch</code> line matches.
+</p><p>
+  {{p-readloop|read -r key value}} differs from the safe line reader used elsewhere in one
+  detail: two variables, not one, so the split lands on the <em>first</em> run of whitespace
+  &mdash; <code>key</code> gets one word, <code>value</code> gets everything left on the
+  line, which is what lets a worktree path containing a space survive intact. The
+  {{p-case|case "$key" in &hellip; esac}} dispatch is the whole body: <code>worktree</code>
+  updates <code>seen</code>, <code>branch</code> compares against the one asked about.
+</p><p>
+  The script's own header comment on lines 89&ndash;93 already walks through why the trailing
+  <code>return 0</code> is load-bearing under {{p-strict|set -e}} — read it there; it is the
+  kind of detail worth getting from the source once rather than paraphrased twice.
+</p>'''),
+        dict(lines=(104, 112), html=r'''<p>
+  The never-steal rule. If the branch is already checked out somewhere &mdash; found by the
+  walk above &mdash; another conductor owns that run right now, so this refuses rather than
+  waiting, retrying, or picking a different branch name on its own: two conductors racing to
+  drive the same issue is exactly the collision a linked worktree per run exists to prevent,
+  and silently working around the collision would just move it somewhere harder to see. Exit
+  <span class="ec ec-2"><b>2</b></span> again &mdash; nothing is wrong with the branch or the
+  issue, but no answer this call can give is safe to act on &mdash; and the message names the
+  path, because that is the one thing that tells a human which run to go look at.
+</p>'''),
+        dict(lines=(113, 119), html=r'''<p>
+  {{p-func|branch_exists()}} factors out what used to be an inline <code>git show-ref
+  --verify --quiet refs/heads/&lt;name&gt;</code> call, because the settled script asks that
+  same question twice over &mdash; once below, of the issue branch itself, and once per
+  candidate inside <code>default_branch</code> further down. Keeping the
+  <code>refs/heads/</code> prefix, the part that makes <code>--verify</code> match a branch
+  rather than any ref at all, in exactly one spelling is the point: a typo there used to be
+  able to break only one of the two call sites silently. The function has no explicit
+  <code>return</code> &mdash; <code>--quiet</code> suppresses the sha <code>show-ref</code>
+  would otherwise print, and its bare exit status (0 exists, non-zero doesn't) is already the
+  answer wanted.
+</p>'''),
+        dict(lines=(120, 142), html=r'''<p>
+  {{p-func|default_branch()}} answers "what branch should this issue's branch be cut from",
+  and it is asked at all because the header comment above it states the trap directly: cutting
+  from <code>HEAD</code> would inherit whatever the caller's checkout happened to be sitting
+  on, which is the exact collision this whole script exists to prevent.
+</p><p>
+  <code>git symbolic-ref --quiet --short refs/remotes/origin/HEAD</code> reads git's own
+  record of the default branch, written when a remote is added or cloned
+  (<code>git remote set-head origin -a</code>, or a plain <code>git clone</code>). It comes
+  back as <code>origin/main</code>; <code>--short</code> already strips the leading
+  <code>refs/remotes/</code>, so {{p-strip|${head#origin/}}} only needs to peel off the
+  remaining <code>origin/</code> literal. <code>--quiet</code> turns "no such ref" into a
+  plain non-zero exit rather than a printed error, which is what lets
+  <code>if head=&hellip;; then</code> use it as a question.
+</p><p>
+  No remote, or a throwaway <code>git init</code>, means no such ref, so the fallback walks
+  <code>main</code> and <code>master</code> in turn, asking each through
+  <code>branch_exists()</code> above rather than its own <code>show-ref</code> call &mdash;
+  the same question this function asks of the issue branch, now asked of these two as well.
+</p>'''),
+        dict(lines=(143, 167), html=r'''<p>
+  One <code>git worktree add</code>, in one of two shapes, and a single print of the path
+  afterwards regardless of which shape ran &mdash; earlier versions of this script ended each
+  shape with its own <code>printf</code>, two copies of the one line that matters.
+</p><p>
+  A branch that already exists &mdash; the issue branch, checked with the same
+  <code>branch_exists()</code> used above &mdash; is
+  <strong>checked out, not re-cut</strong>. Two situations put an existing branch in this
+  position: a resume, where a previous run's worktree was taken out with
+  <code>--remove</code> but its branch was left standing, and a branch fetched back from the
+  remote after the worktree that made it is gone. <code>git worktree add -b</code> refuses
+  outright once the ref already exists, and re-cutting it from the default branch regardless
+  would silently abandon whatever that branch already carries. Naming the branch as
+  <code>add</code>'s second argument, with no <code>-b</code>, is how git says "check this
+  existing branch out here" instead of "make a new one".
+</p><p>
+  That this is safe rests on an ordering already fixed above: the never-steal check ran
+  first and found nobody holding this branch. Checking it out here cannot be stealing it from
+  a live conductor, because stealing was already ruled out before this line runs &mdash; it
+  can only be resuming a run whose worktree is gone.
+</p><p>
+  Otherwise the branch is new, so the <code>else</code> falls back to the original shape:
+  exit <span class="ec ec-2"><b>2</b></span> if no default branch could be named at all &mdash;
+  a repo where that fails is plumbing broken before any TDD cycle starts, not a step that
+  legitimately came up empty, so this refuses to guess rather than picking <code>main</code>
+  blind &mdash; then <code>git worktree add -q -b "$branch" "$path" "$base"</code> creates the
+  branch at <code>$base</code> and checks it out in one move. In both branches <code>-q</code>
+  keeps git's "Preparing worktree" chatter out of the way, and {{p-redirect|&gt;&amp;2}} sends
+  anything it still prints to stderr.
+</p><div class="note"><span class="tag">Past this script's own vocabulary</span><p>
+  <code>git worktree add</code> can still fail on its own &mdash; a race that creates or
+  removes the branch between the checks above and this call, say &mdash; and
+  {{p-strict|set -e}} would then end the script with <em>git's</em> exit status, not a 2 this
+  script chose. The three exit&nbsp;2s in this script (the dirty <code>--remove</code>, the
+  stolen checkout, the unnamed default branch) are its own deliberate refusals; anything git
+  itself rejects surfaces as whatever git returns for it.
+</p></div>'''),
+        dict(lines=(168, 169), html=r'''<p>
+  Stdout past this point belongs to exactly one thing regardless of which branch above ran:
+  the path, printed last, for the caller to <code>cd</code> into.
+</p>'''),
+    ]),
+]
 
 SCRIPTS += [dict(
     file="ensure-run-state-ignored.sh", stage=0, id="ensure-run-state-ignored",
