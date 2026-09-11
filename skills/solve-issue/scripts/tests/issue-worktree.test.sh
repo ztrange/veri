@@ -26,6 +26,16 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 # whatever user.name/user.email the machine running it happens to carry (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
+# new_repo <path> — a throwaway repo at <path>, on `main`, carrying one commit. Both halves
+# matter: `git worktree add` refuses a repo with no commit to check out, and -b main names the
+# default branch explicitly rather than inheriting whatever init.defaultBranch the machine
+# running the suite is configured with.
+new_repo() {
+  mkdir -p "$1"
+  git init -q -b main "$1" >/dev/null 2>&1
+  git_q "$1" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+}
+
 # 1. a fresh call creates the worktree on a new branch cut from the DEFAULT branch, and
 # prints its path.
 #
@@ -34,9 +44,7 @@ git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email
 # and the bug this script exists to prevent is exactly a conductor acting on the checkout's
 # current branch. So the new branch's tip must equal main's tip, not side's.
 repo="$work/fresh"
-mkdir -p "$repo"
-git init -q -b main "$repo" >/dev/null 2>&1
-git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+new_repo "$repo"
 main_tip="$(git_q "$repo" rev-parse main)"
 git_q "$repo" switch -q -c side >/dev/null 2>&1
 git_q "$repo" commit -q --allow-empty -m "work on side" >/dev/null 2>&1
@@ -65,9 +73,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 # add, so snapshotting both around the second call catches a stray worktree or a `tdd/9-...`
 # duplicate that a directory check would miss.
 repo="$work/again"
-mkdir -p "$repo"
-git init -q -b main "$repo" >/dev/null 2>&1
-git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+new_repo "$repo"
 repo_real="$(cd "$repo" && pwd -P)"
 want="$repo_real/.tdd/wt/9"
 
