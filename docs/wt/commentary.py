@@ -126,7 +126,7 @@ ORIENTATION_NAV = [
 # itself (gitmeta.solved_by_itself). It is an aside, not a clause the sentence needs: when
 # the count is None the placeholder expands to nothing at all and the claim reads the same
 # — which is what the build has to do in a tree with no git, or none of that history.
-SOLVED_COUNT_HTML = ', <span class="selfn">%d</span> issues so far'
+SOLVED_COUNT_HTML = ', <span class="solved-n">%d</span> issues so far'
 
 INTRO_HTML = r'''
 <h2 id="what">What veri actually is</h2>
