@@ -17,8 +17,12 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SOLVABLE="$HERE/../solvable-issues.sh"
 # The repository root, four levels above `tests` — past `scripts`, `solve-issue` and
-# `skills`. Only the documentation case reads it, but it belongs beside the other path
-# anchors: here the `..` are checkable against the `HERE` they climb from.
+# `skills`. Only the cases that read a committed file reach for it — the documentation cases,
+# and the one asserting the generated walkthrough still quotes this script as it stands — but
+# it belongs beside the other path anchors: here the `..` are checkable against the `HERE`
+# they climb from. Those cases are described rather than numbered on purpose: a comment that
+# cites a case by number is wrong the moment one is inserted above it, which is the drift
+# #91's own issue text catalogues in docs/tests/build-guards.test.sh.
 REPO_ROOT="$(cd "$HERE/../../../.." && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
