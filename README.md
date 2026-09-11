@@ -62,7 +62,8 @@ veri is a Claude Code skill, not an application. Install it once, user-level, as
 to this clone — then `/solve-issue <n>` works from any repo on the machine:
 
 ```sh
-ln -s "$(pwd)/skills/solve-issue" ~/.claude/skills/solve-issue
+ln -s "$(pwd)/skills/solve-issue"  ~/.claude/skills/solve-issue
+ln -s "$(pwd)/skills/solve-issues" ~/.claude/skills/solve-issues
 ```
 
 The skill locates its own scripts from the base directory Claude Code reports when it
@@ -88,6 +89,19 @@ starts seeing the issue branch. The worktree is left in place after the draft PR
 resume lands back in it; once the PR is merged, retire it with
 `skills/solve-issue/scripts/issue-worktree.sh --remove <n>`, which refuses to remove one
 that still holds uncommitted work.
+
+`/solve-issues` (rung 2) drains the backlog instead of one named issue: it asks
+`solvable-issues.sh` which issues veri may take, runs the `/solve-issue` conductor on the
+first, then **asks again** — a finished issue's draft PR now `Closes` it, and closing its
+dependencies may have freed others, so the set is recomputed every iteration rather than
+walked from a stale list. An issue is taken only if it is open, carries the
+**`ready-for-agent`** label — the human's explicit opt-in, since nothing is taken because
+it merely exists — every issue under its **`## Blocked by`** heading is closed, and no open
+PR already says `Closes #<n>` for it. The first bail stops the loop unless you pass
+`--continue-on-bail`, `VERI_MAX_ISSUES` caps an invocation (default: no cap), and the loop
+adds no failure mode of its own — every outcome is a `/solve-issue` outcome, and the
+committed ledgers make an interrupted run resumable by invoking `/solve-issues` again.
+Both skills must be installed: the loop finds the conductor's scripts as its sibling.
 
 ## Documentation
 

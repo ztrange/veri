@@ -149,6 +149,14 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do* code — when no
   marker it trusts matched, which is your cue to ask the user. First match wins, and the
   repo's `.veri/test-command` beats every inference (see *Detecting the test command*).
+- `$S/solvable-issues.sh [--repo <owner/name>]` — the **selection layer**: prints the
+  numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
+  issue under their `## Blocked by` heading closed, and not already claimed by an open PR
+  saying `Closes #<n>` — one per line, ascending. **Exit 0** when it printed at least one,
+  **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
+  `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
+  `gh`, which is what makes it testable with no network. The conductor does not call this —
+  it is rung 2's, driven by the `/solve-issues` loop skill.
 
 ## Inputs
 

@@ -124,11 +124,26 @@ ledger tick atomic, narrated as `📌 Already satisfied`; Green and Refactor are
 _Avoid_: characterization test (ok as a gloss), skip, no-op step
 
 **Dependency marker**:
-A reference in a GitHub issue declaring that it depends on another issue. An issue is
-**solvable** only once its dependencies are closed. The dependency graph is the
-eligibility signal for automated issue selection in later rungs (preferred over a
-hand-applied label).
+A reference to another issue under a GitHub issue's `## Blocked by` heading, declaring
+that it depends on that issue. An issue is unblocked once every issue named there is
+closed; a section reading `None.` names none. The dependency graph is the **ordering**
+signal for automated issue selection — what may go next — while the `ready-for-agent`
+label is the **eligibility** signal, the human's explicit opt-in.
 _Avoid_: blocker (ok as a gloss), prerequisite
+
+**Solvable**:
+The property that makes an issue veri's to take right now: it is open, carries
+`ready-for-agent`, every issue under its `## Blocked by` heading is closed, and no open
+pull request already says `Closes #<n>` for it (such a PR means a run is in flight, or one
+bailed and left the branch behind). All four hold at once or the issue is not solvable.
+_Avoid_: eligible, ready, available, unblocked (that is only one of the four)
+
+**Selection layer**:
+The part of veri that decides *which* issue is next, and the only part that changes per
+rung of the scope ladder. Everything below it — conductor, leaves, supervisor, blind
+verification, ledger — is identical at every rung. At rung 2 it is `solvable-issues.sh`,
+which prints the solvable numbers ascending (exit 3 when there are none).
+_Avoid_: scheduler, picker, queue
 
 ## Scope ladder
 
@@ -137,7 +152,9 @@ selection changes per rung; everything below the selection layer stays the same:
 
 1. **Single issue** — the human names the one issue to solve (`/solve-issue <number>`). XP:
    point it at exactly one, no automated selection yet.
-2. **Loop** — run the single-issue conductor across all *solvable* issues (dependencies
-   closed), one after another.
+2. **Loop** — `/solve-issues` runs the single-issue conductor across the *solvable* issues,
+   one after another, recomputing the solvable set after every issue rather than walking a
+   list captured once. The first bail stops the loop unless told otherwise. It adds no
+   failure mode of its own: every outcome is one of rung 1's.
 3. **Parallel** — run several issue-conductors at once over the solvable set, respecting
    the dependency graph, solving issues concurrently.
