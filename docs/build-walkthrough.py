@@ -406,6 +406,7 @@ def main():
             "{{TABLE}}", com.script_table(com.SCRIPTS, totals)),
         n_scripts=len(com.SCRIPTS),
         total_lines=grand,
+        n_entries=len(PRIMER_BY_ID),
     )
 
     leftover = REF_LEFTOVER.findall(re.sub(r"<script>.*?</script>", "", page, flags=re.S))
