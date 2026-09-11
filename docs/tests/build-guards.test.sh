@@ -319,14 +319,16 @@ figure_holding() {
   done < <( figures_in "$text" )
 }
 
-# figure_between <name> <start> <end> <wants> [mutator...]
+# figure_between <name> <start> <end> <wants>
 # One figure inside a region must carry every one of <wants>. The region is the
 # region_between cut; the figure is figure_holding's.
+# No [mutator...] tail, unlike omits() and friends: a figure case asks what the page the
+# repository actually builds contains, so there is nothing to mutate. Add the tail when a
+# case needs one, rather than carrying an argument no caller can reach.
 figure_between() {
-  local name="$1" start="$2" end="$3" wants="$4"; shift 4
+  local name="$1" start="$2" end="$3" wants="$4"
   local d code page region found
   d="$("$SANDBOX")"
-  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   region="$(region_between "$page" "$start" "$end")"
   found="$(figure_holding "$region" "$wants")"
