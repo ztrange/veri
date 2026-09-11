@@ -328,7 +328,7 @@ PRIMER = [{'id': 'p-header',
  {'id': 'p-text',
   'name': 'Text &amp; I/O',
   'items': [{'id': 'p-redirect',
-             'sig': '&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null',
+             'sig': '&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; &lt;&lt;&lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null',
              'name': 'Redirection',
              'body': '<ul>\n'
                      '      <li><code>&gt; file</code> — send stdout to the file, '
@@ -339,6 +339,13 @@ PRIMER = [{'id': 'p-header',
                      'read.</li>\n'
                      '      <li><code>&gt;&gt; file</code> — append instead.</li>\n'
                      '      <li><code>&lt; file</code> — feed the file in as stdin.</li>\n'
+                     '      <li><code>&lt;&lt;&lt; "$str"</code> — a <strong>here-string</strong>: '
+                     'hand a variable to a command as its\n'
+                     '          stdin, with no pipe and no temp file. Unlike a pipe, the command '
+                     'on the left of a\n'
+                     '          here-string is not a separate process, so a loop reading one can '
+                     'set variables the\n'
+                     '          rest of the script still sees afterwards.</li>\n'
                      '      <li><code>2&gt;&amp;1</code> — "make stream 2 go wherever stream 1 '
                      'currently goes". The\n'
                      '          <code>&amp;</code> means "this is a stream number, not a '
@@ -358,7 +365,8 @@ PRIMER = [{'id': 'p-header',
                      '    </p>',
              'seen': 'Every script.',
              'gloss': 'Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. '
-                      '<code>&gt;</code> truncates immediately.'},
+                      '<code>&gt;</code> truncates immediately; <code>&lt;&lt;&lt;</code> feeds '
+                      'a variable in as stdin without a pipe.'},
             {'id': 'p-readloop',
              'sig': 'while IFS= read -r line || [[ -n "$line" ]]',
              'name': 'Reading lines without corrupting them',
