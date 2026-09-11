@@ -58,6 +58,36 @@ else
   echo "FAIL - $name (want exit 3, got $code)"
 fi
 
+# 3. a budget that is not a whole number ≥ 0 is a system failure, not a decision: the
+#    script fails closed like classify-bail.sh does on an unrecognised cause — exit 2
+#    ("no answer could be obtained"), a diagnostic on stderr, and nothing on stdout, so a
+#    conductor mirroring stdout cannot mistake a misconfigured run for a real status.
+#    Non-numeric and negative are the two ways to get it wrong, one criterion, so they are
+#    one case; `problems` says which value broke.
+name="a non-numeric or negative VERI_REFACTOR_BUDGET exits 2 with a diagnostic on stderr and no status on stdout"
+problems=()
+for bad in two -1; do
+  # Separate the two streams into their own files: the case is about which stream carries
+  # what, so they must not be merged.
+  out="$(mktemp)" err="$(mktemp)"
+  VERI_REFACTOR_BUDGET="$bad" "$BUDGET" 0 >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("VERI_REFACTOR_BUDGET=$bad: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("VERI_REFACTOR_BUDGET=$bad: want no status on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ -s "$err" ]] ||
+    problems+=("VERI_REFACTOR_BUDGET=$bad: want a diagnostic on stderr, got nothing")
+  rm -f "$out" "$err"
+done
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  printf '    %s\n' "${problems[@]}"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

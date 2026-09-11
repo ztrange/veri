@@ -5,11 +5,21 @@
 # exit 0 while <count> is below VERI_REFACTOR_BUDGET (default 2), exit 3 once the budget
 # is spent. A one-line status goes to stdout either way, so the conductor can mirror it.
 #
+# A budget that is not a whole number >= 0 is a misconfigured run, not a decision: fail
+# closed like classify-bail.sh does on an unrecognised cause — a diagnostic on stderr and
+# exit 2, with nothing on stdout, so a conductor mirroring stdout cannot mistake it for a
+# real status.
+#
 # Usage:   refactor-budget.sh <count>
 set -euo pipefail
 
 count="${1:-}"
 budget="${VERI_REFACTOR_BUDGET:-2}"
+
+if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
+  echo "refactor-budget: VERI_REFACTOR_BUDGET must be a whole number >= 0: $budget" >&2
+  exit 2
+fi
 
 if [[ "$count" -lt "$budget" ]]; then
   echo "refactor $count/$budget — another transform may run"
