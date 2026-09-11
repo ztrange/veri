@@ -178,6 +178,69 @@ run "$fx"
 { [[ "$code" == 0 ]] && [[ "$out" == "54" ]]; } \
   && ok || no "issue an open PR already Closes is not listed (exit=$code want 0, stdout='$out' want '54')"
 
+# 5. The shape of the output itself, observed at both ends of the range it can take. With
+# three takeable issues fed in deliberately out of order (57, 55, 56), stdout is exactly
+# "55\n56\n57": ascending, one number per line — separators other than a newline, or the
+# input's own order, both show up as a mismatch against that single string. With nothing
+# takeable — #58 is labelled but blocked by #59, which is open and unlabelled, so neither
+# qualifies — there is no list to print, and the caller learns that from the exit code
+# rather than from having to notice empty output: exit 3, veri's "nothing to do" (not an
+# error), and stdout empty.
+fx="$(fixture ordering)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 57,
+    "title": "the /solve-issues loop skill",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 55,
+    "title": "solvable-issues.sh: list the issues veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 56,
+    "title": "classify-bail.sh: label the bail a human reads",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+run "$fx"; many="$out" many_code="$code"
+
+fx="$(fixture none)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 58,
+    "title": "the /solve-issues loop skill",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\n#59\n"
+  },
+  {
+    "number": 59,
+    "title": "an idea nobody has vetted for veri yet",
+    "labels": [],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+run "$fx"; empty="$out" empty_code="$code"
+
+{ [[ "$many_code" == 0 && "$many" == $'55\n56\n57' ]] \
+  && [[ "$empty_code" == 3 && -z "$empty" ]]; } \
+  && ok || no "output is one number per line ascending, and no solvable issue means exit 3 and empty stdout (three takeable: exit=$many_code want 0, stdout='$many' want '55\\n56\\n57'; none takeable: exit=$empty_code want 3, stdout='$empty' want empty)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

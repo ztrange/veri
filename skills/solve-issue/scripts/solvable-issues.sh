@@ -22,6 +22,7 @@
 # interpreter extract-result.sh and the docs generator already require.
 #
 # Usage:   VERI_GH_JSON=<dir> solvable-issues.sh
+# Exit:    0 one or more numbers printed; 3 nothing to do — no issue is takeable
 set -euo pipefail
 
 exec python3 -c '
@@ -60,6 +61,12 @@ def solvable(issue):
         return False
     return all(n not in open_issues for n in blockers(issue.get("body", "")))
 
-for number in sorted(i["number"] for i in issues if solvable(i)):
+numbers = sorted(i["number"] for i in issues if solvable(i))
+for number in numbers:
     print(number)
+
+# Nothing takeable is not an error: it is veri exit code 3, "nothing to do". The caller
+# learns it from the code rather than from having to notice that stdout was empty.
+if not numbers:
+    sys.exit(3)
 ' "$VERI_GH_JSON"
