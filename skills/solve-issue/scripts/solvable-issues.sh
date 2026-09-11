@@ -38,6 +38,18 @@ if [[ "${1:-}" == "--repo" ]]; then
   repo_args=(--repo "${2:?usage: solvable-issues.sh [--repo owner/name]}")
 fi
 
+# VERI_LABEL set to the empty string is a misconfigured run, not a choice — a launcher
+# writing `VERI_LABEL="$some_unset_var"` is how it gets there — so refuse before anything is
+# fetched rather than guess which label was meant. `${VERI_LABEL-x}` yields the value when the
+# variable is set and the literal `x` when it is not, so it is empty in exactly the set-but-
+# empty case and the unset that means "use the default" falls straight through. Fail closed
+# like refactor-budget.sh does on a malformed budget: a diagnostic on stderr, exit 2 — no
+# answer could be obtained — and nothing on stdout for a caller to mistake for a pool.
+if [[ -z "${VERI_LABEL-x}" ]]; then
+  echo "solvable-issues: VERI_LABEL is set but empty: name a label or leave it unset" >&2
+  exit 2
+fi
+
 # One document, from whichever of the two sources is in force. Both the override and the
 # `--repo` scoping are decided here rather than around the pair of fetches, so each document
 # is named exactly once — beside the gh call that produces it and the fixture that stands in
