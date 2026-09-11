@@ -91,6 +91,9 @@ def hunks(root, rel, tags, since):
     A non-behaviour commit hides what it sat on rather than inheriting its tag: blame
     answers who touched the line LAST, so reaching back past a `refactor:` for the
     `feat:` underneath it would be guessing.
+
+    `since` is None for a file no tag contains yet, and there is no floor to rank hunks
+    against without it — so that answers {} here rather than at every call site.
     """
     if since not in tags:
         return {}
@@ -177,7 +180,7 @@ def read(root, script_rel_paths):
         marks[name] = {
             "since": since,
             "changed": _first_tag_containing(root, changed[0], tags) if changed else None,
-            "hunks": hunks(root, rel, tags, since) if since else {},
+            "hunks": hunks(root, rel, tags, since),
         }
 
     # "is there work past the last tag" — a boolean, deliberately not a count, so the
