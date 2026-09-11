@@ -13,24 +13,42 @@
 # The repository's issues and pull requests are read as the JSON `gh` emits:
 #   gh issue list --json number,title,labels,body,state
 #   gh pr list    --json body,state
-# but the shell-out itself is not done here yet — VERI_GH_JSON names a directory holding
-# `issues.json` and `prs.json` fixtures with those exact shapes, which is what makes this
-# testable with no network.
+# VERI_GH_JSON overrides both calls at once: it names a directory holding `issues.json` and
+# `prs.json` fixtures with those exact shapes, which is what makes this testable with no
+# network. Selection itself never learns which of the two it got — the documents are read
+# here and handed on as text.
 #
 # jq is NOT a dependency of any script in this suite — `grep -n jq scripts/*.sh` returns
 # this note and nothing else — so the JSON is read with python3's json module, the same
 # interpreter extract-result.sh and the docs generator already require.
 #
-# Usage:   VERI_GH_JSON=<dir> solvable-issues.sh
+# Usage:   solvable-issues.sh [--repo owner/name]
+#          VERI_GH_JSON=<dir> solvable-issues.sh
 # Exit:    0 one or more numbers printed; 3 nothing to do — no issue is takeable
 set -euo pipefail
 
-exec python3 -c '
-import json, re, sys, pathlib
+# `--repo owner/name` is forwarded to gh verbatim and nothing is invented in its absence:
+# a wrong repository is silently wrong, so gh's own default (the repo of the working
+# directory) is the only sane fallback. The `[@]+` expansion is what keeps an empty array
+# from becoming an empty argument under `set -u`.
+repo_args=()
+if [[ "${1:-}" == "--repo" ]]; then
+  repo_args=(--repo "${2:?usage: solvable-issues.sh [--repo owner/name]}")
+fi
 
-src = pathlib.Path(sys.argv[1])
-issues = json.loads((src / "issues.json").read_text())
-prs = json.loads((src / "prs.json").read_text())
+if [[ -n "${VERI_GH_JSON:-}" ]]; then
+  issues_json="$(cat "$VERI_GH_JSON/issues.json")"
+  prs_json="$(cat "$VERI_GH_JSON/prs.json")"
+else
+  issues_json="$(gh issue list "${repo_args[@]+"${repo_args[@]}"}" --json number,title,labels,body,state)"
+  prs_json="$(gh pr list "${repo_args[@]+"${repo_args[@]}"}" --json body,state)"
+fi
+
+exec python3 -c '
+import json, re, sys
+
+issues = json.loads(sys.argv[1])
+prs = json.loads(sys.argv[2])
 
 # Openness is the whole of what a state is read for, and it is read the same way on both
 # kinds of record: `gh` writes an issue state as OPEN/CLOSED and a PR state as
@@ -76,4 +94,4 @@ for number in numbers:
 # learns it from the code rather than from having to notice that stdout was empty.
 if not numbers:
     sys.exit(3)
-' "$VERI_GH_JSON"
+' "$issues_json" "$prs_json"
