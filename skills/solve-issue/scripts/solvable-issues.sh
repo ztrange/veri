@@ -39,17 +39,25 @@ if [[ "${1:-}" == "--repo" ]]; then
   repo_args=(--repo "${2:?usage: solvable-issues.sh [--repo owner/name]}")
 fi
 
-# VERI_LABEL set to the empty string is a misconfigured run, not a choice — a launcher
-# writing `VERI_LABEL="$some_unset_var"` is how it gets there — so refuse before anything is
-# fetched rather than guess which label was meant. `${VERI_LABEL-x}` yields the value when the
-# variable is set and the literal `x` when it is not, so it is empty in exactly the set-but-
-# empty case and the unset that means "use the default" falls straight through. Fail closed
-# like refactor-budget.sh does on a malformed budget: a diagnostic on stderr, exit 2 — no
-# answer could be obtained — and nothing on stdout for a caller to mistake for a pool.
+# The opt-in label, read the way every other tunable in this suite is read. Setting it moves
+# the gate rather than widening it: the pool becomes exactly the issues carrying that name,
+# and `ready-for-agent` stops being special. That is what lets two loops on one repository
+# drain two disjoint pools instead of racing for the same issues.
+#
+# Set but EMPTY is a misconfigured run, not a choice — a launcher writing
+# `VERI_LABEL="$some_unset_var"` is how it gets there — so refuse before anything is fetched
+# rather than guess which label was meant. The two expansions below differ by one character
+# and that difference is the whole of it: `${VERI_LABEL-x}` yields the value when the variable
+# is set and the literal `x` when it is not, so it is empty in exactly the set-but-empty case,
+# whereas the `${VERI_LABEL:-…}` that supplies the default cannot tell empty from unset and
+# would quietly take one for the other. Fail closed like refactor-budget.sh does on a
+# malformed budget: a diagnostic on stderr, exit 2 — no answer could be obtained — and
+# nothing on stdout for a caller to mistake for a pool.
 if [[ -z "${VERI_LABEL-x}" ]]; then
   echo "solvable-issues: VERI_LABEL is set but empty: name a label or leave it unset" >&2
   exit 2
 fi
+label="${VERI_LABEL:-ready-for-agent}"
 
 # One document, from whichever of the two sources is in force. Both the override and the
 # `--repo` scoping are decided here rather than around the pair of fetches, so each document
@@ -66,12 +74,6 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
 
 issues_json="$(gh_json issues.json issue list --json number,title,labels,body,state)"
 prs_json="$(gh_json prs.json pr list --json body,state)"
-
-# The opt-in label, read the way every other tunable in this suite is read. Setting it moves
-# the gate rather than widening it: the pool becomes exactly the issues carrying that name,
-# and `ready-for-agent` stops being special. That is what lets two loops on one repository
-# drain two disjoint pools instead of racing for the same issues.
-label="${VERI_LABEL:-ready-for-agent}"
 
 exec python3 -c '
 import json, re, sys
