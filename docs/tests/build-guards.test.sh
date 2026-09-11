@@ -486,9 +486,8 @@ diagrams_stage0() { diagrams_in_slice "$1" 'id="s0"' '<h3 id=' 'the first script
 # its scripts is the reference section — `id="reference"` — and that is the only landmark
 # that closes it. Both landmarks occur once each in the page, as `id=`: the rail's links to
 # the same two places are `href="#s5"` and `href="#reference"`, which this does not match.
-# The wider slice costs the assertion nothing, because the claim is about ONE block naming
-# every string: the closest any script listing in the stage comes is refactor-budget.sh's
-# own source, which has neither VERI_STUCK_RETRIES nor REVISE_BUDGET anywhere in it.
+# Why that wider slice is safe is a question about the names a case asks for, not about the
+# slice, so each case below answers it for its own names.
 diagrams_stage5() { diagrams_in_slice "$1" 'id="s5"' 'id="reference"' 'the reference section' "$2"; }
 
 # --- helpers used as mutators (run with cwd = the sandbox) ---------------------
@@ -805,6 +804,10 @@ no rationale'
 #    shape, and prose reciting it is how a reader ends up believing two of the three are
 #    the same thing. So the three variables and the two scripts that enforce the ends must
 #    appear in one diagram block, in either of the page's existing idioms.
+#    The slice reaches to the reference section, so it holds the stage's script listings as
+#    well as its intro — which costs this case nothing, because the claim is about ONE block
+#    naming every string: the closest any listing in the stage comes is refactor-budget.sh's
+#    own source, which has neither VERI_STUCK_RETRIES nor REVISE_BUDGET anywhere in it.
 diagrams_stage5 "the stage-5 intro draws the three budgets on three axes" \
 'VERI_STUCK_RETRIES
 REVISE_BUDGET
