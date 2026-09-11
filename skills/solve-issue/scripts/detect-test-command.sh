@@ -13,10 +13,16 @@ set -euo pipefail
 
 root="${1:-.}"
 
+# Every rule below ends the same way, because precedence is first-match-wins: print the
+# command it decided on, and stop — a rule that answered leaves nothing for the rest to do.
+# Naming that ending once keeps each rule to the question it asks, the `if` saying which
+# marker was found and `answer` saying what the marker means.
+answer() { printf '%s\n' "$1"; exit 0; }
+
 # 1. The override file. Its first non-empty line is the command, verbatim: `IFS=` keeps
 # read from stripping leading and trailing whitespace, -r keeps it from eating
-# backslashes, and printf '%s\n' re-emits exactly those bytes — the whole point of the
-# escape hatch is that what the repo wrote is what the leaf runs.
+# backslashes, and `answer` re-emits exactly those bytes — the whole point of the escape
+# hatch is that what the repo wrote is what the leaf runs.
 #
 # `|| [ -n "$line" ]` is load-bearing: read exits non-zero at end of file, which is also
 # what it does after handing back a final line that had no trailing newline. Without the
@@ -25,8 +31,7 @@ override="$root/.veri/test-command"
 if [ -f "$override" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     if [ -n "$line" ]; then
-      printf '%s\n' "$line"
-      exit 0
+      answer "$line"
     fi
   done < "$override"
 fi
@@ -45,13 +50,12 @@ fi
 pkg="$root/package.json"
 if [ -f "$pkg" ] && tr -d '[:space:]' < "$pkg" | grep -q '"scripts":{[^}]*"test":'; then
   if [ -f "$root/pnpm-lock.yaml" ]; then
-    printf 'pnpm test\n'
+    answer 'pnpm test'
   elif [ -f "$root/yarn.lock" ]; then
-    printf 'yarn test\n'
+    answer 'yarn test'
   else
-    printf 'npm test\n'
+    answer 'npm test'
   fi
-  exit 0
 fi
 
 # 3. A Makefile declaring a `test:` target names `make test`, and it does so before the
@@ -65,8 +69,7 @@ fi
 # cannot be mistaken for the target itself.
 mk="$root/Makefile"
 if [ -f "$mk" ] && grep -qE '^test[[:space:]]*:' "$mk"; then
-  printf 'make test\n'
-  exit 0
+  answer 'make test'
 fi
 
 # 4. A repo that declares pytest configuration names `pytest -q` — `-q` because the
@@ -83,8 +86,7 @@ fi
 # answer rather than a failure `set -e` would abort on.
 if [ -f "$root/pytest.ini" ] \
   || { [ -f "$root/pyproject.toml" ] && grep -qE '^\[tool\.pytest' "$root/pyproject.toml"; }; then
-  printf 'pytest -q\n'
-  exit 0
+  answer 'pytest -q'
 fi
 
 # 5 and 6. The two compiled stacks each name their toolchain's own runner. Both markers are
@@ -96,13 +98,11 @@ fi
 # only the root package and quietly skips the rest of the suite. `cargo test` already walks
 # the whole crate, so it needs no argument.
 if [ -f "$root/go.mod" ]; then
-  printf 'go test ./...\n'
-  exit 0
+  answer 'go test ./...'
 fi
 
 if [ -f "$root/Cargo.toml" ]; then
-  printf 'cargo test\n'
-  exit 0
+  answer 'cargo test'
 fi
 
 # Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the
