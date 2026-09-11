@@ -944,7 +944,7 @@ STAGES = [
 <span class="fmeta">stage 5</span></div>
 <div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; recompute, every time &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;</span>
 <span class="l">&#9660;                                                             &#9474;</span>
-<span class="l">solvable-issues.sh   takeable = open &middot; ready-for-agent        &#9474;</span>
+<span class="l">solvable-issues.sh   solvable = open &middot; ready-for-agent        &#9474;</span>
 <span class="l">&#9474;                                    &middot; unblocked &middot; unclaimed  &#9474;</span>
 <span class="l">&#9660;   [n&hellip;] lowest first, or exit 3 &mdash; none left, stop            &#9474;</span>
 <span class="l">/solve-issue &lt;n&gt; &#9472;&#9472;&#9488;                                          &#9474;</span>
