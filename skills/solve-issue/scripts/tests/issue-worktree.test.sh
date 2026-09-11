@@ -129,6 +129,45 @@ $before
 --- after
 $after" ))"
 
+# 4. --remove <n> takes the worktree back out again — but only when there is nothing in it to
+# lose. Both halves are the same criterion (a removal that cannot tell the two apart is either
+# useless or destructive), so they are asserted together.
+#
+# Clean half: git's registry must no longer list the path, and the directory must be gone.
+# Only the `worktree <path>` line is asserted absent, not the whole snapshot — whether the
+# branch is also deleted is not something this step decides.
+#
+# Dirty half: the worktree carries a staged, uncommitted file, which is a change a human would
+# lose. Refusing means exit 2 and leaving everything — registry and directory — exactly as it
+# was. The file is staged rather than merely written so it is an uncommitted change under any
+# reading of the word.
+repo="$work/remove-clean"
+new_repo "$repo"
+want="$(wt_path "$repo" 13)"
+(cd "$repo" && "$WT" 13 done-with-this >/dev/null 2>&1)
+
+(cd "$repo" && "$WT" --remove 13 >/dev/null 2>&1) && clean_code=0 || clean_code=$?
+clean_after="$(registry "$repo")"
+
+repo="$work/remove-dirty"
+new_repo "$repo"
+dirty="$(wt_path "$repo" 14)"
+(cd "$repo" && "$WT" 14 still-working >/dev/null 2>&1)
+printf 'work in progress\n' > "$dirty/notes.txt"
+git_q "$dirty" add notes.txt >/dev/null 2>&1
+dirty_before="$(registry "$repo")"
+
+(cd "$repo" && "$WT" --remove 14 >/dev/null 2>&1) && dirty_code=0 || dirty_code=$?
+dirty_after="$(registry "$repo")"
+
+{ [[ "$clean_code" == 0 ]] && [[ "$clean_after" != *"worktree $want"* ]] && [[ ! -e "$want" ]] \
+  && [[ "$dirty_code" == 2 ]] && [[ -e "$dirty/notes.txt" ]] && [[ "$dirty_after" == "$dirty_before" ]]; } \
+  && ok || no "--remove: removes a clean worktree and refuses one with uncommitted changes with exit 2 (clean: exit=$clean_code want 0, '$want' $( [[ -e "$want" ]] && echo "still on disk" || echo "gone, good" ), still in git's registry: $( [[ "$clean_after" == *"worktree $want"* ]] && echo yes || echo no ); dirty: exit=$dirty_code want 2, notes.txt $( [[ -e "$dirty/notes.txt" ]] && echo "survived, good" || echo "was destroyed" ), git's worktree+branch registry $( [[ "$dirty_after" == "$dirty_before" ]] && echo unchanged || echo "changed:
+--- before
+$dirty_before
+--- after
+$dirty_after" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

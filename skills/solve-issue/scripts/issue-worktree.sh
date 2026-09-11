@@ -9,8 +9,39 @@
 # and leave the caller's checkout exactly where it was.
 #
 # Usage:   issue-worktree.sh <n> <slug>
+#          issue-worktree.sh --remove <n>
 # Output:  the worktree's absolute path on stdout, exit 0.
 set -euo pipefail
+
+# --show-toplevel is the root of the checkout we were called from, with symlinks resolved
+# (on macOS a /var/... path comes back as /private/var/...). Resolved is what we want: git
+# reports worktree paths that way too, so the path we print matches what `git worktree list`
+# will say about it.
+root="$(git rev-parse --show-toplevel)"
+
+# --remove <n> takes the worktree back out again, once its branch is merged or a human says so.
+# It is answered here, before the positional <n> <slug> parsing below, because that parsing
+# would otherwise read the flag itself as the issue number.
+if [[ "${1:-}" == "--remove" ]]; then
+  n="${2:?usage: issue-worktree.sh --remove <n>}"
+  path="$root/.tdd/wt/$n"
+
+  # Never destroy work. `git status --porcelain` prints one line per change — staged, unstaged
+  # or untracked — and nothing at all when the tree is clean, so a non-empty answer is the
+  # whole test. Asking before removing rather than letting `git worktree remove` refuse for us
+  # is what makes this exit 2, "no answer could be obtained", instead of git's own 1: a
+  # worktree with changes in it is not a removal that failed, it is one we must not attempt.
+  if [[ -n "$(git -C "$path" status --porcelain)" ]]; then
+    echo "issue-worktree: $path has uncommitted changes — refusing to remove it" >&2
+    exit 2
+  fi
+
+  # No --force: with the tree clean git has nothing to object to, and leaving the safety net
+  # in place means a change that lands between the check above and here still stops us.
+  # >&2 keeps any chatter off stdout.
+  git worktree remove "$path" >&2
+  exit 0
+fi
 
 # ${1:?msg} — expand $1, but if it is unset or empty, die with msg on stderr instead of
 # silently building a branch called `tdd/-`. The first argument carries the whole usage line
@@ -18,11 +49,6 @@ set -euo pipefail
 n="${1:?usage: issue-worktree.sh <n> <slug>}"
 slug="${2:?missing <slug>}"
 
-# --show-toplevel is the root of the checkout we were called from, with symlinks resolved
-# (on macOS a /var/... path comes back as /private/var/...). Resolved is what we want: git
-# reports worktree paths that way too, so the path we print matches what `git worktree list`
-# will say about it.
-root="$(git rev-parse --show-toplevel)"
 branch="tdd/$n-$slug"
 path="$root/.tdd/wt/$n"
 
