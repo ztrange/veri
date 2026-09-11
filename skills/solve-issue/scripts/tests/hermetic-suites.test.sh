@@ -31,10 +31,9 @@ report() {
   fi
 }
 
-# 1. supervise-retry.test.sh pins supervise.sh's DEFAULT retry budget, so an ambient
-#    VERI_STUCK_RETRIES=0 — the value an unattended outer supervisor exports — must not
-#    reach the supervisor it launches. Run the whole suite as a child with the variable
-#    set to 0 and require the same verdict it gives with the variable unset.
+# 1. The contract above, probed by running the whole suite as a child process: the leak is
+#    in how supervise-retry.test.sh spawns the supervisor, so only a real run of it walks
+#    that path — there is nothing to assert in-process.
 name="supervise-retry.test.sh: ambient VERI_STUCK_RETRIES=0 still gives 1 passed, 0 failed"
 problems=()
 out="$(VERI_STUCK_RETRIES=0 "$HERE/supervise-retry.test.sh" 2>/dev/null)" && code=0 || code=$?
