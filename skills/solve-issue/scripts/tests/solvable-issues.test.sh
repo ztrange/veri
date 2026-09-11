@@ -447,6 +447,53 @@ label_run "$fx" VERI_LABEL=ready-for-agent:docs; under_docs="$out" docs_code="$c
   && [[ "$docs_code" == 0 && "$under_docs" == "66" ]]; } \
   && ok || no "an issue carrying both labels is listed under either VERI_LABEL value (VERI_LABEL unset: exit=$default_code want 0, stdout='$under_default' want '66'; VERI_LABEL=ready-for-agent:docs: exit=$docs_code want 0, stdout='$under_docs' want '66')"
 
+# 10. VERI_LABEL set to the EMPTY STRING is not a label, and the script refuses rather than
+# guessing which one was meant: exit 2 — veri's "no answer could be obtained", the system
+# failure rather than the clean negative — a diagnostic on stderr, and nothing on stdout, the
+# same fail-closed shape refactor-budget.sh gives a malformed VERI_REFACTOR_BUDGET. This is
+# the one misconfiguration that must never fall through to a default or to "any label": an
+# empty match would hand the loop every open issue, which is precisely what the opt-in exists
+# to prevent, and a `VERI_LABEL="$some_unset_var"` in a launcher is how it gets there.
+#
+# The two issues fed in are what tells the failure modes apart in the message. #67 carries
+# `ready-for-agent` and #68 carries `ready-for-agent:docs`; both are otherwise maximally
+# takeable (open, `None.` under `## Blocked by`, the fixture helper's empty `prs.json`). So a
+# script that quietly fell back to the default — `${VERI_LABEL:-ready-for-agent}` treats empty
+# and unset alike — prints "67" and exits 0, while one that read the empty value as "any
+# label" prints "67\n68" and exits 0. Both are visible against exit 2 with stdout empty.
+#
+# The two streams go to separate files rather than through the `label_run` helper, which drops
+# stderr: which stream carries what IS the criterion here, so they must not be merged, and
+# stdout's emptiness is asserted as well as stderr's content.
+fx="$(fixture empty-label)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 67,
+    "title": "solvable-issues.sh: take the opt-in label from VERI_LABEL",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA label parameter with ready-for-agent as the default.\n\n## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 68,
+    "title": "walkthrough: draw rung 2",
+    "labels": [{"name": "ready-for-agent:docs"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+refused_out="$work/empty-label.out" refused_err="$work/empty-label.err"
+env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" \
+  && refused_code=0 || refused_code=$?
+
+{ [[ "$refused_code" == 2 ]] \
+  && [[ ! -s "$refused_out" ]] \
+  && [[ -s "$refused_err" ]]; } \
+  && ok || no "VERI_LABEL set to the empty string is refused with exit 2 and a diagnostic on stderr, never treated as any label (exit=$refused_code want 2, stdout='$(tr '\n' '|' < "$refused_out")' want empty, stderr='$(tr '\n' ' ' < "$refused_err")' want a diagnostic)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
