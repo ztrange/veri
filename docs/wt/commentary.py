@@ -44,7 +44,7 @@ PAGE_TEMPLATE = '''<!doctype html>
   <p class="meta">
     {version}<span><b>{n_scripts}</b> scripts</span>
     <span><b>{total_lines}</b> lines, all shown</span>
-    <span><b>38</b> reference entries</span>
+    <span><b>{n_entries}</b> reference entries</span>
   </p>
 </header>
 {capabilities}

@@ -35,7 +35,7 @@ PRIMER = [{'id': 'p-header',
                      'status, so a crash in\n'
                      '          <code>a</code> vanishes.</li>\n'
                      '    </ul>',
-             'seen': '10 of 11 scripts. Read it as "make bash behave like a normal language".',
+             'seen': '12 of 13 scripts. Read it as "make bash behave like a normal language".',
              'gloss': 'Fail fast: exit on any error, error on unset variables, and let a pipeline '
                       'fail if any stage does.'},
             {'id': 'p-strict-partial',

@@ -62,6 +62,12 @@ Two traps, both already cost something once:
 - **`git tag --sort=-v:refname`, never plain `sort`** — lexically `v0.9` outranks `v0.10`.
 - **Backfilling needs `GIT_COMMITTER_DATE`** — an annotated tag's date is the *tagger's*,
   so retro-cut tags otherwise all claim to have shipped today.
+- **A regen commit built at the tag isn't the fixpoint.** `unreleased` is `HEAD !=
+  latest tag's commit` (`docs/wt/gitmeta.py:128`), so a commit made there says "not
+  unreleased" and then falsifies itself — `docs-check` goes red again (#52, #53).
+  Recipe: `make docs && git commit`, then `make docs && git commit --amend --no-edit`
+  — the amend runs one commit past the tag, so the page already says Unreleased and
+  stays byte-stable until the next tag. The post-tag hook prints its reminder either way.
 
 ## Invariants worth not breaking
 
