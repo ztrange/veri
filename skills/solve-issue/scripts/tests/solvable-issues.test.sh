@@ -365,6 +365,44 @@ out="$(env -u VERI_LABEL VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 
 { [[ "$code" == 0 ]] && [[ "$out" == "62" ]]; } \
   && ok || no "with VERI_LABEL unset the opt-in label is exactly ready-for-agent (exit=$code want 0, stdout='$out' want '62')"
 
+# 8. VERI_LABEL set to another name MOVES the gate rather than widening it: the pool becomes
+# exactly the issues carrying that label, and the default stops being special. The two issues
+# fed in are the two halves of that, one each. #64 carries only `ready-for-agent` — the label
+# the script hardcodes today — and must NOT be listed; #65 carries `ready-for-agent:docs`, the
+# value the variable is set to, and must be. Nothing else separates them: both are open, both
+# read `None.` under `## Blocked by`, and `prs.json` is the fixture helper's empty list, so the
+# label is the only thing deciding either way.
+#
+# The pair is what makes both halves load-bearing at once. An implementation that ignored
+# VERI_LABEL prints "64"; one that read it but kept the default as a second accepted label
+# prints "64\n65"; one that treated the variable as "any label" prints "64\n65" too. Only a
+# script matching the exact name it was given prints "65" alone — and since #64 sorts above
+# #65, every one of those misses shows up as a different string rather than a reorder.
+fx="$(fixture other-label)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 64,
+    "title": "solvable-issues.sh: take the opt-in label from VERI_LABEL",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA label parameter with ready-for-agent as the default.\n\n## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 65,
+    "title": "walkthrough: draw rung 2",
+    "labels": [{"name": "ready-for-agent:docs"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+out="$(VERI_LABEL=ready-for-agent:docs VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "65" ]]; } \
+  && ok || no "with VERI_LABEL set to another label only issues carrying that label are listed (exit=$code want 0, stdout='$out' want '65')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
