@@ -32,6 +32,11 @@ pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+# Which sandbox the assertion helpers below build in. Most cases want the default —
+# a bare tree with no .git — so the version layer stays out of the way; the cases that
+# exercise it flip this to sandbox_git for the length of one call.
+SANDBOX=sandbox
+
 # sandbox — a fresh copy of everything the build reads, printed on stdout
 sandbox() {
   local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
@@ -43,6 +48,29 @@ sandbox() {
   printf '%s' "$d"
 }
 
+# sandbox_git — the same copy, but a real repository, so `git blame`, `git tag` and the
+# rest of the version layer have something to answer with.
+#
+# The whole tree lands as ONE feat: commit tagged v0.1, which is deliberately the
+# poorest history that still turns the version layer on: every script was added by a
+# behaviour commit, and every script shipped in the first and only version. A mutator
+# can commit more on top before the build runs.
+#
+# Identity and signing are set on the repo rather than inherited, so the case does not
+# depend on — or write to — whatever ~/.gitconfig this machine has.
+sandbox_git() {
+  local d; d="$(sandbox)"
+  git -C "$d" -c init.defaultBranch=main init -q
+  git -C "$d" config user.email veri@example.invalid
+  git -C "$d" config user.name  veri
+  git -C "$d" config commit.gpgsign false
+  git -C "$d" config tag.gpgsign false
+  git -C "$d" add -A
+  git -C "$d" commit -qm 'feat: the walkthrough and the scripts it quotes (#1)'
+  git -C "$d" tag -a v0.1 -m 'the first version'
+  printf '%s' "$d"
+}
+
 build() {  # build <dir> -> stdout=page, stderr=problems; returns the build's exit code
   ( cd "$1" && python3 docs/build-walkthrough.py --stdout 2>"$1/err.txt" )
 }
@@ -51,7 +79,7 @@ build() {  # build <dir> -> stdout=page, stderr=problems; returns the build's ex
 # The mutator runs inside the sandbox dir; the build must then FAIL and say why.
 refuses() {
   local name="$1" want="$2"; shift 2
-  local d code err; d="$(sandbox)"
+  local d code err; d="$("$SANDBOX")"
   ( cd "$d" && "$@" )
   build "$d" >/dev/null && code=0 || code=$?
   err="$(cat "$d/err.txt" 2>/dev/null)"
@@ -69,7 +97,7 @@ refuses() {
 # accepts <name> <expected-substring-in-page> [mutator...]
 accepts() {
   local name="$1" want="$2"; shift 2
-  local d code page; d="$(sandbox)"
+  local d code page; d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   if [[ "$code" == 0 && "$page" == *"$want"* ]]; then
@@ -86,7 +114,7 @@ accepts() {
 # The negative form of accepts: the build must succeed AND not contain this.
 omits() {
   local name="$1" unwanted="$2"; shift 2
-  local d code page; d="$(sandbox)"
+  local d code page; d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   if [[ "$code" == 0 && "$page" != *"$unwanted"* ]]; then
@@ -158,6 +186,24 @@ accepts "shebang is not styled as a comment" '<span class="l">#!/usr/bin/env bas
 omits "no git: no capability index"     '<ol class="vers">'
 omits "no git: no per-script badge"     'class="vbadge"'
 omits "no git: no orphan rail group"    '<h4>Capabilities</h4>'
+
+# 11. per-hunk version tags. The <b>vX.Y</b> badge dates a file as a whole; a hunk tag
+#    dates a RANGE OF LINES inside the listing, so the reader can see which lines a later
+#    version touched without diffing. A hunk is tagged only when the commit that last
+#    touched it is a behaviour commit AND shipped in a version later than the file's own
+#    `since`. Below that bar there is nothing to point at, and the listing stays plain.
+#
+#    These run in sandbox_git() rather than sandbox(), because git blame needs a history.
+#    `local` inside a function is visible to everything it then calls — bash scopes
+#    locals to the call chain, not to the function body — so omits() sees this SANDBOX,
+#    and the global is back in place the moment omits_git returns.
+omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
+
+#    The floor case: a script whose whole history is the feat: commit that added it, in
+#    the one version that exists. Nothing has changed since it shipped, so no line in it
+#    has anything to be tagged with. Tagging here would mean tagging every line of every
+#    script with v0.1 — the badge already says that, once, in the header.
+omits_git "one tag, only the original feat:: no hunk tag" 'class="l hunk"'
 
 echo "----"
 echo "$pass passed, $fail failed"
