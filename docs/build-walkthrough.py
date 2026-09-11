@@ -393,6 +393,10 @@ def main():
               for s in com.SCRIPTS if (SCRIPTS_DIR / s["file"]).exists()}
     grand = sum(totals.values())
 
+    # The issues-solved-by-itself aside, or nothing at all when the tree cannot count
+    # them (SELF_SOLVED is None) — the claim around it reads the same either way.
+    self_count = com.SELF_COUNT_HTML % SELF_SOLVED if SELF_SOLVED else ""
+
     entries = nav_entries(META)
     page = com.PAGE_TEMPLATE.format(
         css=(HERE / "wt" / "style.css").read_text().strip(),
@@ -401,8 +405,7 @@ def main():
         rail=render_rail(entries),
         nav=render_nav_json(entries),
         intro=(refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand))
-               .replace("{{SELF}}", com.SELF_COUNT_HTML % SELF_SOLVED
-                                    if SELF_SOLVED else "")),
+               .replace("{{SELF}}", self_count)),
         stages=stages_html,
         reference=reference_html,
         capabilities=(com.CAPABILITIES_HTML.replace("{{ROWS}}", render_versions(META))
