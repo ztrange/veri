@@ -61,7 +61,7 @@ veri is a Claude Code skill, not an application. Install it once, user-level, as
 to this clone — then `/solve-issue <n>` works from any repo on the machine:
 
 ```sh
-ln -s "$(pwd)/.claude/skills/solve-issue" ~/.claude/skills/solve-issue
+ln -s "$(pwd)/skills/solve-issue" ~/.claude/skills/solve-issue
 ```
 
 The skill locates its own scripts from the base directory Claude Code reports when it
@@ -86,7 +86,7 @@ the `claude` CLI are both authenticated.
 ## Status
 
 Rung 1 of the scope ladder — **single issue, end to end** — is complete. The
-`/solve-issue` conductor (`.claude/skills/solve-issue/`) decomposes an issue into a
+`/solve-issue` conductor (`skills/solve-issue/`) decomposes an issue into a
 committed ledger and loops it through Red → Green → Refactor, writing no code itself:
 every phase is a short-lived `claude -p` leaf launched through the supervisor, and every
 phase is confirmed by a blind independent verifier that runs the test itself. A `REJECT`

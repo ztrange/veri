@@ -11,7 +11,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-S="$(cd "$HERE/.." && pwd)/.claude/skills/solve-issue/scripts"
+S="$(cd "$HERE/.." && pwd)/skills/solve-issue/scripts"
 
 fail=0
 

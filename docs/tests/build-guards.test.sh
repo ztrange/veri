@@ -35,10 +35,10 @@ trap 'rm -rf "$WORK"' EXIT
 # sandbox — a fresh copy of everything the build reads, printed on stdout
 sandbox() {
   local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
-  mkdir -p "$d/docs" "$d/.claude/skills/solve-issue"
+  mkdir -p "$d/docs" "$d/skills/solve-issue"
   cp "$ROOT/docs/build-walkthrough.py" "$d/docs/"
   cp -R "$ROOT/docs/wt" "$d/docs/wt"
-  cp -R "$ROOT/.claude/skills/solve-issue/scripts" "$d/.claude/skills/solve-issue/scripts"
+  cp -R "$ROOT/skills/solve-issue/scripts" "$d/skills/solve-issue/scripts"
   rm -rf "$d/docs/wt/__pycache__"
   printf '%s' "$d"
 }
@@ -93,12 +93,12 @@ accepts "emits script source verbatim" 'echo $? &gt; "$rcfile"'
 
 # 2. coverage guard — a script grows a line the commentary does not claim
 refuses "a longer script fails coverage" "file has" \
-  bash -c 'append_line_to_script .claude/skills/solve-issue/scripts/classify-bail.sh'
+  bash -c 'append_line_to_script skills/solve-issue/scripts/classify-bail.sh'
 
 # 3. coverage guard — a script loses a line
 refuses "a shorter script fails coverage" "file has" \
-  bash -c 'sed -i.bak "$(wc -l < .claude/skills/solve-issue/scripts/classify-bail.sh)d" \
-           .claude/skills/solve-issue/scripts/classify-bail.sh'
+  bash -c 'sed -i.bak "$(wc -l < skills/solve-issue/scripts/classify-bail.sh)d" \
+           skills/solve-issue/scripts/classify-bail.sh'
 
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \

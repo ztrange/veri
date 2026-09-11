@@ -42,7 +42,7 @@ runs against a real GitHub repo with push access. Use a throwaway repo:
    user-level, as a symlink to the veri clone (the README's *Install* section), or for a
    one-off symlink it into the target's own `.claude/skills/`:
    ```sh
-   mkdir -p .claude/skills && ln -s <veri-repo>/.claude/skills/solve-issue .claude/skills/solve-issue
+   mkdir -p .claude/skills && ln -s <veri-repo>/skills/solve-issue .claude/skills/solve-issue
    ```
    The conductor's preflight then writes the `.tdd` ignore rule into the target's
    `.gitignore` on the first run (`ensure-run-state-ignored.sh`), so leaf logs never land
