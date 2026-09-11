@@ -13,9 +13,10 @@
 set -euo pipefail
 
 # ${1:?msg} — expand $1, but if it is unset or empty, die with msg on stderr instead of
-# silently building a branch called `tdd/-`.
+# silently building a branch called `tdd/-`. The first argument carries the whole usage line
+# and the rest just name themselves, which is how every other script here does it.
 n="${1:?usage: issue-worktree.sh <n> <slug>}"
-slug="${2:?usage: issue-worktree.sh <n> <slug>}"
+slug="${2:?missing <slug>}"
 
 # --show-toplevel is the root of the checkout we were called from, with symlinks resolved
 # (on macOS a /var/... path comes back as /private/var/...). Resolved is what we want: git
