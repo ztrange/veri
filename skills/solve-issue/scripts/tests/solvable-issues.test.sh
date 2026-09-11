@@ -23,9 +23,9 @@ ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
 # A fixture directory for one case, printed so the caller can capture it. Both halves of
-# the override's contract are seeded here: the directory itself, and the `prs.json` every
-# case so far shares — no case yet involves an open PR — which leaves each case below
-# writing only the one file it actually varies, its `issues.json`.
+# the override's contract are seeded here: the directory itself, and an empty `prs.json` —
+# the no-PR default — so a case writes only the files it actually varies. Most vary just
+# `issues.json`; a case that turns on an open PR overwrites `prs.json` too.
 fixture() {  # fixture <name> -> path
   local dir="$work/$1"
   mkdir -p "$dir"
@@ -53,7 +53,6 @@ cat > "$fx/issues.json" <<'JSON'
   }
 ]
 JSON
-printf '[]\n' > "$fx/prs.json"
 
 out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 
