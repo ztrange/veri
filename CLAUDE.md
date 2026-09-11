@@ -1,7 +1,7 @@
 # veri — working notes for agents
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
-product is `.claude/skills/solve-issue/`: a procedure in English (`SKILL.md`) that Claude
+product is `skills/solve-issue/`: a procedure in English (`SKILL.md`) that Claude
 follows, plus eleven bash scripts it calls. Read `CONTEXT.md` for the glossary — the terms
 there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
 
@@ -62,8 +62,8 @@ which `classify-bail.sh` turns into the label a human reads. Never collapse them
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`.claude/skills/solve-issue/scripts/tests/` — twelve files for eleven scripts
-(`supervise.sh` has a second suite for its retry axis). All twelve keep `pass`/`fail`
+`skills/solve-issue/scripts/tests/` — thirteen files for twelve scripts
+(`supervise.sh` has a second suite for its retry axis). All thirteen keep `pass`/`fail`
 counters, print `FAIL - <name>` with a diff, and end with a count. Match that style
 rather than introducing a framework.
 
