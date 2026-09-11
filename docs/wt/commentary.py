@@ -1383,8 +1383,8 @@ SCRIPTS += [dict(
   to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
   at all.
 </p></div>'''),
-        dict(lines=(74, 90), html=r'''<p>
-  <strong>Rule 4: pytest configuration.</strong> Two files, asked about differently on
+        dict(lines=(74, 93), html=r'''<p>
+  <strong>Rule 4: pytest configuration.</strong> Three files, asked about differently on
   purpose. <code>pytest.ini</code> exists only to configure pytest, so the filename alone is
   the whole claim &mdash; the file may well be empty. <code>pyproject.toml</code> makes no
   such claim; it is packaging metadata for any python project, so this looks
@@ -1393,12 +1393,14 @@ SCRIPTS += [dict(
   <code>grep -qE '^\[tool\.pytest'</code>. <code>\[</code> escapes the bracket that would
   otherwise open a character class, <code>\.</code> keeps the dot literal instead of matching
   any character, and the pattern is a prefix match on purpose because real repos write
-  <code>[tool.pytest.ini_options]</code>.
+  <code>[tool.pytest.ini_options]</code>. <code>setup.cfg</code> is packaging metadata too,
+  so it is read the same way, for the header pytest documents for <em>that</em> file:
+  <code>[tool:pytest]</code>, spelled with a colon rather than pyproject.toml's dot.
 </p><p>
   <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
   the exit status, not the dots, so quiet output is what a leaf should actually see.
 </p>'''),
-        dict(lines=(91, 106), html=r'''<p>
+        dict(lines=(94, 109), html=r'''<p>
   <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
   runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
   <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
@@ -1409,7 +1411,7 @@ SCRIPTS += [dict(
   the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
   whole crate.
 </p>'''),
-        dict(lines=(107, 123), html=r'''<p>
+        dict(lines=(110, 126), html=r'''<p>
   <strong>Rule 7, the last before giving up:</strong> a python repo that committed no runner
   configuration at all still has a suite if <code>tests/</code> holds files named
   <code>test_*.py</code>, and the stdlib can run them with nothing installed &mdash;
@@ -1424,7 +1426,7 @@ SCRIPTS += [dict(
   for. The loop answers on the first real match and simply falls through when there was none,
   with no need for the <code>nullglob</code> shell option.
 </p>'''),
-        dict(lines=(124, 127), html=r'''<p>
+        dict(lines=(127, 130), html=r'''<p>
   Nothing decided: say nothing, and let <span class="ec ec-3"><b>3</b></span> &mdash;
   &ldquo;nothing to do&rdquo;, not an error &mdash; send the question to the human, the same
   code <a href="#next-unchecked"><code>next-unchecked.sh</code></a> uses when the ledger has
