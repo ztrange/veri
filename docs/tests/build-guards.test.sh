@@ -71,6 +71,19 @@ sandbox_git() {
   printf '%s' "$d"
 }
 
+# sandbox_check — sandbox_git plus the two files only the CHECKER reads: itself, and the
+# SKILL.md whose revise budget its TDD-figure phase is checked against. The build needs
+# neither, which is why sandbox() does not copy them.
+#
+# They land untracked, after the commit: `git blame` is only ever asked about the scripts,
+# so committing them would buy nothing but a second commit in every history.
+sandbox_check() {
+  local d; d="$(sandbox_git)"
+  cp "$ROOT/docs/check-walkthrough.py" "$d/docs/"
+  cp "$ROOT/skills/solve-issue/SKILL.md" "$d/skills/solve-issue/"
+  printf '%s' "$d"
+}
+
 build() {  # build <dir> -> stdout=page, stderr=problems; returns the build's exit code
   ( cd "$1" && python3 docs/build-walkthrough.py --stdout 2>"$1/err.txt" )
 }
@@ -161,6 +174,31 @@ tags_git() {
     echo "    want $n hunk-tagged line(s), including: $wants"
     echo "    got  $got hunk-tagged line(s), missing: ${missing:-none}"
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# checks_git <name> <mutator...>
+# Every other assertion here reads the page build-walkthrough.py produced. This one hands
+# that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
+# same properties from the files on disk — so the two have to agree about what the markup
+# is. A page the build is happy to emit and the checker calls drift is a broken pipeline
+# even though each half passes its own tests, and `make docs-check` runs both halves.
+# The page is written to disk rather than --stdout, because that is the file the checker
+# opens. Failure prints the tail of the combined output: the checker's FAIL lines come
+# last, and a build that died instead leaves its traceback in the same place.
+checks_git() {
+  local name="$1"; shift
+  local d code out; d="$(sandbox_check)"
+  ( cd "$d" && "$@" )
+  out="$( cd "$d" && python3 docs/build-walkthrough.py >/dev/null 2>&1 \
+                  && python3 docs/check-walkthrough.py 2>&1 )" && code=0 || code=$?
+  if [[ "$code" == 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want: check-walkthrough.py passes on the page the build just wrote"
+    printf '%s\n' "$out" | sed 's/^/    | /' | tail -6
   fi
 }
 
@@ -312,6 +350,24 @@ tags_git "a refactor: on top of a feat: leaves the line untagged" 1 \
            rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#2)" v0.2'
+
+# 12. and the other half of the pipeline has to read that tag as source. The listings
+#    claim to be the real scripts, and check-walkthrough.py is what re-checks the claim
+#    against the files — it pulls each line back out of the page by its `<span class="l">`
+#    wrapper. A hunk tag changes that wrapper on exactly one line per hunk, and the extra
+#    attributes are decoration ON the line, not content IN it: the same bytes are still
+#    inside. So the checker must recognise the tagged wrapper and compare the line like
+#    any other, rather than skip it and report the chunk as drift — otherwise `make
+#    docs-check` goes red the moment a hunk gets tagged, and the two halves of the docs
+#    pipeline disagree about the markup they share.
+#    Asserted through the exit code of the whole checker, which is what `make docs-check`
+#    actually branches on. It passes in this sandbox today for every other reason it
+#    checks — the page is freshly built, the tags are real, SKILL.md is the real one — so
+#    the verbatim comparison is the only thing left for it to fail on.
+checks_git "the checker reads a hunk-tagged line as source, not drift" \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+           "# rewritten by the v0.2 commit" \
+           "feat: rewrite one line of classify-bail.sh (#2)" v0.2'
 
 echo "----"
 echo "$pass passed, $fail failed"
