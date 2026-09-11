@@ -106,7 +106,7 @@ Both skills must be installed: the loop finds the conductor's scripts as its sib
 ## Documentation
 
 - [`docs/walkthrough.html`](./docs/walkthrough.html) — **veri, Annotated**: every one of
-  the fourteen scripts in full, source beside commentary, ordered by the data flow of one
+  the conductor's scripts in full, source beside commentary, ordered by the data flow of one
   cycle. Bash constructs in the commentary carry a hover gloss and link into a reference
   section covering every construct the suite uses. The page is **generated** from the real
   scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
