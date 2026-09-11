@@ -54,6 +54,64 @@ def _first_tag_containing(root, sha, order):
     return None
 
 
+def _subject_prose(subject):
+    """A commit subject as prose: no `feat:`/`fix(scope):` prefix, no `(#N)` reference."""
+    return ISSUE.sub("", BEHAVIOUR.sub("", subject)).strip()
+
+
+def _blame_lines(out):
+    """(sha, subject) for each line of `git blame --line-porcelain` output, in file order.
+
+    Every record is a header line — `<sha> <orig> <final> [<n>]` — then key/value
+    fields, then the source line itself prefixed with a tab. --line-porcelain (rather
+    than --porcelain) repeats the fields for every line, so each record is complete on
+    its own and no state has to be carried between commits.
+    """
+    sha = subject = None
+    for line in out.splitlines():
+        if line.startswith("\t"):            # the source line closes the record
+            yield sha, subject or ""
+            sha = subject = None
+        elif sha is None:
+            sha = line.split(" ", 1)[0]
+        elif line.startswith("summary "):
+            subject = line[len("summary "):]
+    if sha is not None:                      # a final line whose tab _git() stripped
+        yield sha, subject or ""
+
+
+def hunks(root, rel, tags, since):
+    """{line number: (tag, description)} for the FIRST line of each tagged hunk.
+
+    A hunk is a run of consecutive lines whose last-touching commit is the same one. It
+    earns a tag only when that commit changed a capability and shipped in a version
+    later than the file's own `since` — a hunk from the version the file arrived in says
+    nothing the header badge has not already said, once.
+
+    A non-behaviour commit hides what it sat on rather than inheriting its tag: blame
+    answers who touched the line LAST, so reaching back past a `refactor:` for the
+    `feat:` underneath it would be guessing.
+    """
+    if since not in tags:
+        return {}
+    out = _git(root, "blame", "--line-porcelain", "HEAD", "--", rel)
+    if out is None:
+        return {}
+    floor = tags.index(since)
+    marks, prev = {}, None
+    for lineno, (sha, subject) in enumerate(_blame_lines(out), start=1):
+        if sha == prev:
+            continue                         # same commit as the line above: same hunk
+        prev = sha
+        if not BEHAVIOUR.match(subject):
+            continue
+        tag = _first_tag_containing(root, sha, tags)
+        if tag is None or tags.index(tag) <= floor:
+            continue
+        marks[lineno] = (tag, _subject_prose(subject))
+    return marks
+
+
 def origin_url(root):
     """The repo's https URL, for linking issue numbers — or None if it cannot be read.
 
@@ -115,9 +173,11 @@ def read(root, script_rel_paths):
                       "--", rel) or "").splitlines()
         hist = (_git(root, "log", "--follow", "--format=%H\t%s", "--", rel) or "").splitlines()
         changed = [l.split("\t", 1)[0] for l in hist if BEHAVIOUR.match(l.split("\t", 1)[1])]
+        since = _first_tag_containing(root, added[-1], tags) if added else None
         marks[name] = {
-            "since": _first_tag_containing(root, added[-1], tags) if added else None,
+            "since": since,
             "changed": _first_tag_containing(root, changed[0], tags) if changed else None,
+            "hunks": hunks(root, rel, tags, since) if since else {},
         }
 
     # "is there work past the last tag" — a boolean, deliberately not a count, so the

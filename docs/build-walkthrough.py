@@ -98,15 +98,21 @@ def refs(text, origin=None):
     return "".join(out)
 
 
-def code_block(lines, start, origin="?"):
+def code_block(lines, start, origin="?", hunk_marks=None):
     """Render source lines verbatim, with four token classes for readability.
 
     Verbatim is the load-bearing word. Every line is asserted to survive the lexer
     byte for byte before it is emitted, so a lexer bug stops the build instead of
     shipping a listing that no longer matches the file it claims to quote.
+
+    hunk_marks — {line number: (tag, description)} from gitmeta — names the first line
+    of each range a later version touched. It only ever changes the wrapper <span>, so
+    the verbatim check above still sees the whole line: the version layer cannot alter
+    a listing, only annotate it.
     """
     out = []
-    for ln, toks in zip(lines, bashlex.highlight(lines)):
+    hunk_marks = hunk_marks or {}
+    for i, (ln, toks) in enumerate(zip(lines, bashlex.highlight(lines))):
         if "".join(t for _, t in toks) != ln:
             _problems.append("%s: highlighting altered a line, which must never happen\n"
                              "      file: %r\n      lexer: %r"
@@ -115,7 +121,11 @@ def code_block(lines, start, origin="?"):
         for cls, text in toks:
             esc = html.escape(text, quote=False)
             parts.append('<span class="%s">%s</span>' % (cls, esc) if cls else esc)
-        out.append('<span class="l">%s</span>' % "".join(parts))
+        mark = hunk_marks.get(start + i)
+        opening = ('<span class="l hunk" data-tag="%s" title="%s">'
+                   % (html.escape(mark[0]), html.escape(mark[1]))) if mark \
+            else '<span class="l">'
+        out.append("%s%s</span>" % (opening, "".join(parts)))
     return ('<pre class="src" style="counter-reset: ln %d">%s</pre>'
             % (start - 1, "\n".join(out)))
 
@@ -142,6 +152,8 @@ def render_script(spec):
     if cursor != total + 1:
         _problems.append("%s: chunks cover %d lines, file has %d" % (fname, cursor - 1, total))
 
+    hunk_marks = (META["marks"].get(fname) or {}).get("hunks") or {} if META else {}
+
     rows = []
     for ch in spec["chunks"]:
         a, b = ch["lines"]
@@ -151,7 +163,7 @@ def render_script(spec):
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
             '<div class="ann-note%s">%s</div>'
-            "</div>" % (code_block(src[a - 1:b], a, fname), cls, note))
+            "</div>" % (code_block(src[a - 1:b], a, fname, hunk_marks), cls, note))
 
     contract = ""
     if spec.get("contract"):
