@@ -1,0 +1,47 @@
+name: CI
+
+# Every PR and every push to main runs the same local gates veri asks of the repos
+# it works on — dogfooding: a red baseline here would be exactly what the conductor
+# refuses to start against (see Makefile's `test` target comment). #34 landed with
+# docs-check red because the only gate at the time was local; this workflow is the
+# fix, cited on the commit that adds it.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gates:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    name: gates (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # docs/wt/gitmeta.py computes the capability index from `git tag` and the
+          # commit range between consecutive tags, and check-walkthrough.py's own
+          # tag listing must match it — a shallow, tagless checkout answers both
+          # with "no tags", which is a silently wrong answer here, not a missing
+          # one, so make docs-check would fail (or worse, pass against the wrong
+          # thing) on a default (depth-1, no-tags) checkout.
+          fetch-depth: 0
+          fetch-tags: true
+
+      # ubuntu-latest and macos-latest between them cover the two bash dialects
+      # the scripts under skills/solve-issue/scripts/ promise to run on: macOS
+      # ships bash 3.2, and Linux's GNU coreutils/sed/grep drift from BSD's in the
+      # other direction. Neither runner needs anything installed beyond its
+      # defaults: python3 and bash are preinstalled on both, and nothing here
+      # shells out to jq or gh — the scripts deliberately avoid jq (see
+      # docs/wt/commentary.py) and the test suites stub the model via CLAUDE_BIN.
+      - name: make test
+        run: make test
+
+      - name: make docs-check
+        run: make docs-check
+
+      - name: docs/tests/build-guards.test.sh
+        run: docs/tests/build-guards.test.sh
