@@ -2042,13 +2042,11 @@ SCRIPTS += [dict(
   provable no-op where it does not (macOS's bash 3.2), via the same
   {{p-redirect|2&gt;/dev/null}} {{p-shortcircuit|&#124;&#124;}} <code>true</code> pattern.
 </p>'''),
-        dict(lines=(32, 54), html=r'''<p>
-  Line 32 takes <code>phase</code> with a {{p-required|required-argument assertion}} &mdash;
-  the one argument every invocation shares, read before anything else can happen.
-</p><p>
-  Lines 45&ndash;54 then settle both of the remaining argument questions &mdash; is that
-  phase one of the four, and did the caller pass enough arguments for it &mdash; and they do
-  it <em>here</em>, before a single other positional is touched.
+        dict(lines=(32, 62), html=r'''<p>
+  Three refusals, in the only order that answers the right question: a call with no arguments
+  at all (lines 36&ndash;39), a phase outside the four (line 58), and a known phase short of
+  the arguments that phase needs (lines 60&ndash;62). All three are settled <em>here</em>,
+  before a single positional past <code>$1</code> is touched.
 </p>
 <div class="note"><span class="tag">Why the order of these checks is the whole point</span><p>
   A {{p-required|required-argument assertion}} aborts the shell with status <b>1</b>. That
@@ -2064,23 +2062,32 @@ SCRIPTS += [dict(
 </p><p>
   Hoisting the {{p-case|case}} above the argument-binding lines settles both by
   construction: a phase outside <code>red|green|refactor|revise</code> never reaches an
-  argument check at all, and a phase short of arguments is turned away on line 52 before any
+  argument check at all, and a phase short of arguments is turned away on line 60 before any
   {{p-required|required-argument assertion}} below gets the chance to fire.
+</p></div>
+<div class="note"><span class="tag">The emptiest bad-arguments case is the one bash answers first</span><p>
+  <code>phase="$1"</code> on line 40 could have been written
+  <code>${1:?usage&hellip;}</code>, and that is exactly the trap: a caller who passed nothing
+  at all would then be told so with status <b>1</b> &mdash; the code reserved for a leaf that
+  ran and came back negative &mdash; when no call was made at all. So the count is taken
+  explicitly first: {{p-arith|(( $# &gt;= 1 ))}} {{p-shortcircuit|&#124;&#124;}} a grouped
+  usage line on stderr and <span class="ec ec-2"><b>2</b></span>, after which line 40 can
+  read <code>$1</code> plainly, knowing it is there.
 </p></div>
 <div class="note"><span class="tag">One case, because the arms are the same four words</span><p>
   Whitelisting the phase and counting its arguments ask the same question of the same four
   words, so they are asked once. Naming each phase's arity is what gives the whitelist
   something to do beyond existing &mdash; <code>red) want=4 ;;</code> both admits the phase
-  and says what it costs &mdash; while <code>*)</code> on line 50 still means "not one of
+  and says what it costs &mdash; while <code>*)</code> on line 58 still means "not one of
   ours".
 </p><p>
   The counts read one higher than the usage lines because nothing has been shifted off yet:
   <code>$#</code> still includes the phase word itself, and for <code>revise</code> the
-  phase it is redoing. Line 52's {{p-arith|(( $# &gt;= want ))}} is a <em>lower</em> bound
+  phase it is redoing. Line 60's {{p-arith|(( $# &gt;= want ))}} is a <em>lower</em> bound
   rather than an equality &mdash; trailing arguments nobody reads are the caller's business,
   not a refusal.
 </p></div>'''),
-        dict(lines=(55, 72), html=r'''<div class="note"><span class="tag">The phase that shifts its own arguments</span><p>
+        dict(lines=(63, 80), html=r'''<div class="note"><span class="tag">The phase that shifts its own arguments</span><p>
   <code>revise</code> is not a fifth step alongside red/green/refactor &mdash; it is any of
   those three, redone after a rejection, and it says which one by naming it as an extra
   leading argument: <code>revise &lt;phase&gt; &lt;spec-file&gt; &hellip;</code>. Left in
@@ -2090,15 +2097,15 @@ SCRIPTS += [dict(
   <code>revised_phase=""</code> hoists the empty default a line <em>before</em> the
   <code>if</code> that might fill it, so a non-<code>revise</code> phase leaves the variable
   defined-but-empty rather than unset &mdash; required reading under
-  {{p-strict|set -u}}, which aborts on an unset reference. Line 66 reads the phase being
-  redone with the same {{p-required|required-argument assertion}} as line 32; line 71's
+  {{p-strict|set -u}}, which aborts on an unset reference. Line 74 reads the phase being
+  redone with a {{p-required|required-argument assertion}}; line 79's
   <code>shift</code> <strong>discards argument 1 and renumbers the rest</strong>, so
   <code>$2</code>, <code>$3</code>, <code>$4</code>&hellip; line up exactly the way they do
   for red, green and refactor. Past this point the four phases are indistinguishable to the
   rest of the script.
 </p></div>
 <div class="note"><span class="tag">Two phase names, two separate checks</span><p>
-  Lines 67&ndash;70 are the {{p-case|case}} from line 45 again, applied to the <em>second</em>
+  Lines 75&ndash;78 are the {{p-case|case}} from line 53 again, applied to the <em>second</em>
   phase name &mdash; and it earns its place for the same reason the first one does. This word
   is substituted into the prompt as the phase the leaf is being told it is redoing, so an
   unchecked one reaches the leaf as an instruction to redo something that does not exist:
@@ -2110,16 +2117,16 @@ SCRIPTS += [dict(
   <code>prompts/develop-revise-revise.md</code>, so a revise of a revise names a template
   that was never written.
 </p></div>'''),
-        dict(lines=(73, 77), html=r'''<p>
+        dict(lines=(81, 84), html=r'''<p>
   <code>spec_file</code>, <code>step</code> and <code>test_cmd</code> &mdash; the three
   positions every phase shares &mdash; are bound here with the same
   {{p-required|required-argument assertion}} used throughout. Because <code>revise</code>
   already shifted its extra argument off, this reads <code>$2</code>, <code>$3</code>,
   <code>$4</code> the same way whichever phase is running.
 </p>'''),
-        dict(lines=(78, 82), html=r'''<p>
+        dict(lines=(85, 90), html=r'''<p>
   The comment states the design directly: each phase takes its own extra positionals past
-  the three every phase shares, and only the branch below names them. Line 82 hoists all
+  the three every phase shares, and only the branch below names them. Line 90 hoists all
   four possible extras &mdash; <code>test_path</code>, <code>target</code>,
   <code>touched</code>, <code>reason_file</code> &mdash; to an empty default
   <em>above</em> the {{p-case|case}} that follows: four ordinary assignments on one line,
@@ -2131,25 +2138,25 @@ SCRIPTS += [dict(
   sets, say, <code>touched</code> needs no empty-string branch of its own to make that true.
   Declaring all four before the <code>case</code> is what lets <code>red</code> &mdash; the
   phase that writes the test and so has nothing yet to name &mdash; get away with an empty
-  branch body: <code>red) ;;</code> on line 84 does nothing because there is nothing left
+  branch body: <code>red) ;;</code> on line 92 does nothing because there is nothing left
   for it to do.
 </p></div>'''),
-        dict(lines=(83, 95), html=r'''<p>
+        dict(lines=(91, 103), html=r'''<p>
   The {{p-case|case}} itself &mdash; the second one to switch on <code>$phase</code>, and
   the one that does the work the first could not. Three of the four phases fill in exactly
   the extra positionals their usage line promised &mdash; <code>green</code> takes two more,
-  <code>test_path</code> and <code>target</code> (lines 86&ndash;87), <code>refactor</code>
-  one (line 90), <code>revise</code> one (line 93) &mdash; each still a
+  <code>test_path</code> and <code>target</code> (lines 94&ndash;95), <code>refactor</code>
+  one (line 98), <code>revise</code> one (line 101) &mdash; each still a
   {{p-required|required-argument assertion}}, so a missing extra fails exactly where the
   caller went wrong rather than surfacing later as a blank in the prompt.
 </p><p>
   There is no <code>*)</code> arm here, and its absence is deliberate. An unknown phase has
-  already been turned away up on line 50; a default arm repeating that diagnostic could
+  already been turned away up on line 58; a default arm repeating that diagnostic could
   never run, and dead code that looks like a live guard is worse than no guard &mdash; it
   invites the next reader to assume this is where unknown phases are caught, and to weaken
-  line 50 accordingly.
+  line 58 accordingly.
 </p>'''),
-        dict(lines=(96, 103), html=r'''<p>
+        dict(lines=(104, 111), html=r'''<p>
   <code>HERE</code> locates the script's own directory exactly as
   <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> does, via
   {{p-cmdsub|$(cd … &amp;&amp; pwd)}}, so the <code>prompts/</code> siblings resolve
@@ -2157,7 +2164,7 @@ SCRIPTS += [dict(
   template for the phase running; <code>_develop-shared.md</code> is the preamble every
   phase pulls in.
 </p>
-<div class="note"><span class="tag">The one line worth reading twice: 100</span><p>
+<div class="note"><span class="tag">The one line worth reading twice: 108</span><p>
   <code>for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file"; do</code> checks
   four candidate files for readability &mdash; but <code>$reason_file</code> is empty on
   every phase except <code>revise</code>. {{p-test|[[ -n "$f" ]]}}
@@ -2165,21 +2172,21 @@ SCRIPTS += [dict(
   skip straight to the next candidate rather than asking whether an empty path is readable,
   which would fail for the wrong reason on every phase that has no reason file at all.
 </p></div><p>
-  Line 102 is the readability check itself, the same shape as
+  Line 110 is the readability check itself, the same shape as
   <code>build-verify-prompt.sh</code>'s: {{p-test|[[ -r "$f" ]]}}
   {{p-shortcircuit|&#124;&#124;}} a grouped diagnostic-and-exit, so a missing template or an
   unreadable spec is caught before any file is read, never mid-assembly.
 </p>'''),
-        dict(lines=(104, 109), html=r'''<p>
+        dict(lines=(112, 117), html=r'''<p>
   Three {{p-cmdsub|$(cat …)}} reads turn the templates and the spec into strings, exactly as
   in <code>build-verify-prompt.sh</code> &mdash; and, as there, this is the only "copy" that
   happens; nothing below writes back to any of these files.
 </p><p>
-  <code>reason=""</code> is the same hoisted-empty-default idiom as line 82, for the same
+  <code>reason=""</code> is the same hoisted-empty-default idiom as line 90, for the same
   reason: <code>reason_file</code> is empty on every phase but <code>revise</code>, so line
-  109 only overwrites it when {{p-test|[[ -n "$reason_file" ]]}} says there is a file to read.
+  117 only overwrites it when {{p-test|[[ -n "$reason_file" ]]}} says there is a file to read.
 </p>'''),
-        dict(lines=(110, 122), html=r'''<p>
+        dict(lines=(118, 130), html=r'''<p>
   The comment names the trap directly: <strong>&amp;, \, / and {} in the spec or the step
   text must survive verbatim</strong>, and a search-and-replace tool built for patterns
   &mdash; <code>sed</code> &mdash; would corrupt exactly those characters. An issue's spec or
@@ -2197,15 +2204,15 @@ SCRIPTS += [dict(
   and the rest; it is not part of a pattern language, because there is none.
 </p>
 <div class="note"><span class="tag">Where the hoisted empty defaults pay off</span><p>
-  Lines 118&ndash;121 substitute <code>$test_path</code>, <code>$target</code>,
+  Lines 126&ndash;129 substitute <code>$test_path</code>, <code>$target</code>,
   <code>$touched</code> and <code>$revised_phase</code> unconditionally, on every phase, and
   three of those four are empty on any given run. That is the payoff of hoisting the
-  defaults above the <code>case</code> back on line 82: an unused placeholder like
+  defaults above the <code>case</code> back on line 90: an unused placeholder like
   <code>{{TEST_PATH}}</code> on a <code>refactor</code> run simply disappears from the
   template, because the string it is replaced with is empty &mdash; no phase-specific branch
   needed here either.
 </p></div>'''),
-        dict(lines=(123, 124), html=r'''<p>
+        dict(lines=(131, 132), html=r'''<p>
   The same closing line as <code>build-verify-prompt.sh</code>:
   {{p-printf|printf '%s\n'}} puts back the trailing newline that
   {{p-cmdsub|command substitution}} stripped on the way in, so the prompt file
