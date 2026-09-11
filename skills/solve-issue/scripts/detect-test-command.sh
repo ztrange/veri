@@ -9,7 +9,7 @@
 # has already answered the question, so nothing downstream gets to second-guess it.
 #
 # Usage:   detect-test-command.sh [repo-root]      (default: the current directory)
-set -uo pipefail
+set -euo pipefail
 
 root="${1:-.}"
 
