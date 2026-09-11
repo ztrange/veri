@@ -556,6 +556,86 @@ PY
   fi
 }
 
+# undimmed_git <name> <mutator...>
+# The page has a resting state — no version chosen, nothing in storage — and this is the
+# assertion that it stays plain in it: today's page with the marks on it, every hunk at
+# full strength. Dimming is what since-mode turns ON for the hunks a reader has already
+# seen; a stylesheet that fades hunks by default and un-fades the chosen ones renders the
+# resting page wrong for every reader who never picks a version.
+#
+# Read from the built page, both halves of it, because "dimmed at rest" is a claim about
+# the stylesheet AND the markup together: a rule only fades a hunk if its selector matches
+# the page as it ships. So the markup — stylesheet and scripts cut out, so their text
+# cannot answer for it — yields the class tokens and attribute names the page actually
+# carries, and a rule is LIVE when every class and attribute it names is among them. That
+# is one test for two failures: a rule keyed on nothing (`.l.hunk{opacity:.45}`) is live
+# because the page carries `.hunk`, and a rule properly keyed on a since-mode state is live
+# too if the build ever shipped the page already in that state. `:not(...)` is dropped
+# before the tokens are read, since a class named there is one the selector matches for the
+# ABSENCE of — `.l.hunk:not(.lit)` matches everything at rest, and counting `lit` as
+# required would read it as gated.
+# Dimming is opacity below 1 or any filter, which are the two properties that fade an
+# element without changing what it says; an unparseable opacity counts as dimming rather
+# than being waved through. Hunk-naming selectors only, and not the whole stylesheet,
+# because the page has honest reasons to rest something at zero opacity — `.tip` is a
+# tooltip that is not showing.
+undimmed_git() {
+  local name="$1"; shift
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  got="$( cd "$d" && python3 - page.html 2>&1 <<'PY'
+import re, sys
+page = open(sys.argv[1]).read()
+m = re.search(r"<style>(.*?)</style>", page, re.S)
+if not m:
+    sys.exit("the page carries no inlined stylesheet")
+css = re.sub(r"/\*.*?\*/", "", m.group(1), flags=re.S)
+
+markup = re.sub(r"<(style|script)\b.*?</\1>", "", page, flags=re.S)
+carried = set(re.findall(r"([A-Za-z_][\w-]*)=", markup))
+for value in re.findall(r'class="([^"]*)"', markup):
+    carried.update(value.split())
+
+def dims(prop, value):
+    if prop == "opacity":
+        try:
+            return float(value) < 1
+        except ValueError:
+            return True
+    return prop == "filter" and value != "none"
+
+def live(selector):
+    """Does this selector match the page as it ships — every class and attribute carried?"""
+    selector = re.sub(r":not\([^()]*\)", "", selector)
+    return all(t in carried for t in re.findall(r"[.\[]([A-Za-z_][\w-]*)", selector))
+
+# Innermost blocks only, as in hunk_css: a selector cannot contain a brace, so an @media
+# prelude never matches and the rules nested inside it are read with their own selectors.
+for selector, block in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+    selector = " ".join(selector.split())
+    if "hunk" not in selector or not live(selector):
+        continue
+    for declaration in block.split(";"):
+        prop, sep, value = declaration.partition(":")
+        prop, value = " ".join(prop.split()), " ".join(value.split())
+        if sep and dims(prop, value):
+            print("%s | %s | %s" % (selector, prop, value))
+PY
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && -z "$got" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, stylesheet read exit $read_code)"
+    echo "    want no rule that fades a hunk on the page as it ships"
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # checks_git <name> <mutator...>
 # Every other assertion here reads the page build-walkthrough.py produced. This one hands
 # that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
@@ -1089,6 +1169,21 @@ tags_git "the mark covers the whole run, and the chip lands once" 1 \
   '<span class="l hunk" data-tag="v0.2" title="rewrite lines 3 and 4 of classify-bail.sh">'\
 '<span class="c"># rewritten by the v0.2 commit</span></span>
 <span class="l hunk cont"><span class="c"># rewritten by the v0.2 commit</span></span>' \
+  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
+
+# 20. and a reader who has chosen nothing is owed the page unchanged. Since-mode dims the
+#     hunks a reader has already seen, which gives the stylesheet two ways to spell the
+#     same look and only one of them is right: fade nothing until a version is picked, or
+#     fade everything and un-fade what since-mode lights. The second renders the resting
+#     page — no hash, nothing in storage, which is how every first visit arrives — as a
+#     wall of greyed-out code, and it passes case 19 unharmed, because a chip and a rule
+#     are still there underneath the fade.
+#     Built over the same two-line hunk case 19 uses, so the page genuinely carries the
+#     marks the assertion is about: a build with no hunk in it would have nothing to find
+#     dimmed and would pass on an empty page.
+undimmed_git "nothing chosen: the marks ship undimmed" \
   bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
