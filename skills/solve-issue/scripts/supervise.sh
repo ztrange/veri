@@ -39,10 +39,26 @@ mkdir -p .tdd
 log=".tdd/$name.log"
 rcfile=".tdd/$name.rc"
 
-mtime_of() {  # seconds-since-epoch of $1's last modification, portable across BSD/GNU
-  stat -f %m "$1" 2>/dev/null || stat -c %Y "$1" 2>/dev/null || echo 0
-}
 now() { date +%s; }
+
+# Seconds-since-epoch of $1's last modification — the heartbeat sensor. There is no portable
+# `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two
+# must be tried one at a time, into a variable, with the answer validated — NOT chained with
+# `||` inside one `$( )`. On GNU, `-f` is not a format flag at all; it means --file-system,
+# so `stat -f %m FILE` reads `%m` as a second *filename* and prints a `  File: "…"` block to
+# stdout for the real one before exiting non-zero. Chained, that block joins the fallback's
+# digits in the same substitution and reaches the caller's `$(( ))`, where `set -u` kills the
+# supervisor on the unset word `File`. Assigning each attempt separately overwrites instead
+# of appending, and the digit test rejects anything that is not a plain count of seconds.
+mtime_of() {
+  local m
+  m="$(stat -c %Y "$1" 2>/dev/null)" || m="$(stat -f %m "$1" 2>/dev/null)" || m=""
+  # No readable mtime (neither spelling, or the log vanished) → report "just touched". The
+  # heartbeat then never fires and the hard timeout, which needs only `date`, still bounds
+  # the leaf. The opposite default (0) would read as decades of silence and kill every leaf.
+  case "$m" in ''|*[!0-9]*) m="$(now)" ;; esac
+  printf '%s\n' "$m"
+}
 
 kill_tree() {
   kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
