@@ -312,6 +312,7 @@ INTRO_HTML = r'''
   <rect x="30" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
   <text x="180" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 1</text>
   <text x="180" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Red &mdash; one failing test</text>
+  <line x1="180" y1="156" x2="180" y2="174" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
 
   <rect x="50" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
   <circle cx="50" cy="213" r="10" fill="var(--accent)"/>
@@ -347,6 +348,7 @@ INTRO_HTML = r'''
   <rect x="390" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
   <text x="540" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 2</text>
   <text x="540" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Green &mdash; minimum code that passes</text>
+  <line x1="540" y1="156" x2="540" y2="174" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
 
   <rect x="410" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
   <circle cx="410" cy="213" r="10" fill="var(--accent)"/>
@@ -390,6 +392,7 @@ INTRO_HTML = r'''
   <rect x="750" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
   <text x="900" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 3</text>
   <text x="900" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Refactor &mdash; tidy until settled</text>
+  <line x1="900" y1="156" x2="900" y2="174" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
 
   <rect x="770" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
   <circle cx="770" cy="213" r="10" fill="var(--accent)"/>
