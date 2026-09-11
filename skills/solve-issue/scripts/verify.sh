@@ -11,7 +11,7 @@
 #
 # Usage:
 #   verify.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]
-#     phase = red | green | refactor
+#     phase = red | green | refactor | pin
 #
 # stdout: the verifier's reason (mirror it to the issue thread).
 # exit:   0 PASS · 1 REJECT · 2 malformed verdict or build error.
