@@ -80,7 +80,7 @@ the `claude` CLI are both authenticated.
   scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
   drift; `make docs-check` verifies the committed page still matches.
 - [`CONTEXT.md`](./CONTEXT.md) — the domain glossary (ubiquitous language) and scope ladder.
-- [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0011, one per resolved
+- [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0012, one per resolved
   design fork.
 
 ## Status
@@ -96,8 +96,9 @@ the ledger, and finish on a draft PR.
 
 Shipped: the walking skeleton (#2), blind verification (#3), supervised leaves (#4),
 retries (#5), loops + ledger (#6), hardened edges (#7), bounded stuck-retry (#12),
-streaming heartbeat (#14), deterministic bail classification (#18) and the run-state
-ignore guard that makes a target repo safe to run in (#27).
+streaming heartbeat (#14), deterministic bail classification (#18), the run-state
+ignore guard that makes a target repo safe to run in (#27) and the *already satisfied*
+step outcome — a blind verify-pin instead of a doomed red (#31).
 
 Next: rung 2 of the [scope ladder](./CONTEXT.md) — drain every *solvable* issue (its
 dependencies closed) one after another — then rung 3, several conductors in parallel over
