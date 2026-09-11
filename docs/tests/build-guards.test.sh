@@ -145,11 +145,34 @@ omits() {
   fi
 }
 
+# accepts_without <name> <expected-substring> <substring-that-must-NOT-appear> [mutator...]
+# accepts() and omits() in one breath, for a claim whose two halves are only worth
+# anything together. A figure computed from git has to degrade to prose with no number in
+# it, and either half alone is satisfied by the wrong page: a build that dropped the
+# sentence entirely passes the "no number" half, and one that carried a hand-typed number
+# in the prose passes the "sentence is there" half.
+accepts_without() {
+  local name="$1" want="$2" unwanted="$3"; shift 3
+  local d code page; d="$("$SANDBOX")"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  if [[ "$code" == 0 && "$page" == *"$want"* && "$page" != *"$unwanted"* ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want a successful build containing:  $want"
+    echo "    and NOT containing:                  $unwanted"
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # omits_git — omits(), but against a sandbox that is a real repository.
 # `local` inside a function is visible to everything it then calls — bash scopes locals
 # to the call chain, not to the function body — so omits() sees this SANDBOX, and the
 # global is back in place the moment omits_git returns.
 omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
+accepts_without_git() { local SANDBOX=sandbox_git; accepts_without "$@"; }
 
 # tags_git <name> <n-hunk-tags> <expected-spans> <mutator...>
 # accepts() and omits() each ask one yes/no question of the whole page, and a hunk tag
@@ -389,6 +412,20 @@ omits "no mislabeled preflight timing" 'runs once per issue, at preflight'
 #    means there is nothing to commit. Pinned on the commit message itself, because that is
 #    the half a reader would otherwise go and grep the procedure for.
 accepts "documents the ignore-rule caller contract" 'chore: ignore veri run state'
+
+# 13. "built with itself" claims a number — how many issues veri has solved by being run
+#    on its own repository — and a number in prose goes stale the moment it is typed. So it
+#    is counted at build time from git, the same rule the rest of the version layer follows:
+#    one `plan: scope #<n>` commit is one issue veri scoped and solved for itself.
+#
+#    Which makes the degraded case the one worth pinning. sandbox_git is a real repository
+#    whose entire history is the one `feat:` commit that landed the tree — git answers, and
+#    answers zero. The claim itself is still true and must still be on the page; only the
+#    figure has nothing behind it, so only the figure goes. A build that crashed, or that
+#    printed "0 issues", or that dropped the sentence along with the number, is wrong in a
+#    way the reader would see.
+accepts_without_git "no matching history: the built-with-itself claim, minus the figure" \
+  'built with itself' 'class="selfn"'
 
 echo "----"
 echo "$pass passed, $fail failed"

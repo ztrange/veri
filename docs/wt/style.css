@@ -238,6 +238,8 @@ th{font-family:"Archivo",system-ui,sans-serif;font-size:11px;letter-spacing:.1em
 td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
 tr:last-child td{border-bottom:0}
 td.num{font-variant-numeric:tabular-nums}
+/* the issues-solved-by-itself figure: computed from git, so it reads as a number */
+.selfn{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
 .cards{display:grid;gap:13px}
 .card{border:1px solid var(--rule);border-radius:7px;background:var(--panel);
   padding:15px 18px 16px}

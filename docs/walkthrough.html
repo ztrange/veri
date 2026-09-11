@@ -245,6 +245,8 @@ th{font-family:"Archivo",system-ui,sans-serif;font-size:11px;letter-spacing:.1em
 td{padding:10px 14px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
 tr:last-child td{border-bottom:0}
 td.num{font-variant-numeric:tabular-nums}
+/* the issues-solved-by-itself figure: computed from git, so it reads as a number */
+.selfn{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
 .cards{display:grid;gap:13px}
 .card{border:1px solid var(--rule);border-radius:7px;background:var(--panel);
   padding:15px 18px 16px}
@@ -393,6 +395,12 @@ html{scroll-behavior:smooth}
   you a draft pull request. The name comes from the part that makes it unusual:
   <strong>every test is checked by a second, independent agent that never sees the
   author's reasoning</strong> and must run the test itself to form an opinion.
+</p>
+<p>
+  It is also <strong>built with itself</strong>: every capability on this page was scoped,
+  tested and landed by running veri on veri&rsquo;s own repository, <span class="selfn">12</span> issues so far &mdash; the same
+  Red &rarr; Green &rarr; Refactor order, under the same blind verification, that the rest
+  of this page describes.
 </p>
 <p>It is not an application. It is a <em>skill</em> &mdash; a directory that Claude Code
   loads &mdash; and it is made of exactly two kinds of thing.</p>

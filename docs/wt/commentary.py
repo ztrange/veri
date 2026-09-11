@@ -122,6 +122,12 @@ ORIENTATION_NAV = [
     ("howtoread", "How to read this page"),
 ]
 
+# What {{SELF}} becomes in INTRO_HTML when git can count the issues veri has solved for
+# itself (gitmeta.solved_by_itself). It is an aside, not a clause the sentence needs: when
+# the count is None the placeholder expands to nothing at all and the claim reads the same
+# — which is what the build has to do in a tree with no git, or none of that history.
+SELF_COUNT_HTML = ', <span class="selfn">%d</span> issues so far'
+
 INTRO_HTML = r'''
 <h2 id="what">What veri actually is</h2>
 <p>
@@ -130,6 +136,12 @@ INTRO_HTML = r'''
   you a draft pull request. The name comes from the part that makes it unusual:
   <strong>every test is checked by a second, independent agent that never sees the
   author's reasoning</strong> and must run the test itself to form an opinion.
+</p>
+<p>
+  It is also <strong>built with itself</strong>: every capability on this page was scoped,
+  tested and landed by running veri on veri&rsquo;s own repository{{SELF}} &mdash; the same
+  Red &rarr; Green &rarr; Refactor order, under the same blind verification, that the rest
+  of this page describes.
 </p>
 <p>It is not an application. It is a <em>skill</em> &mdash; a directory that Claude Code
   loads &mdash; and it is made of exactly two kinds of thing.</p>

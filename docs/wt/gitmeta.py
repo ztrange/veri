@@ -7,9 +7,11 @@ message, and which sections it touched is computed from the commits in its range
 Two rules keep the generated page DETERMINISTIC, which `make docs-check` requires —
 it regenerates and demands a byte-identical result:
 
-  * no commit shas and no commit counts ever reach the page. Both change on every
-    commit, which would turn docs-check red after each one until someone re-ran
-    `make docs` — a treadmill, not a guard.
+  * no commit shas, and no count of commits as such, ever reaches the page. Both
+    change on every commit, which would turn docs-check red after each one until
+    someone re-ran `make docs` — a treadmill, not a guard. solved_by_itself() counts
+    a specific commit — one issue veri scoped for itself — so it moves once per
+    issue, on the same rhythm as a tag, not once per commit.
   * dates are absolute (the tag's own date, retro-dated at creation). A relative
     date baked into HTML would make docs-check fail by the calendar with no code
     change at all.
@@ -25,6 +27,12 @@ import subprocess
 # one, so only these two types count a commit as having changed what veri can do.
 BEHAVIOUR = re.compile(r"^(feat|fix)(\(.*\))?:")
 ISSUE = re.compile(r"\(#(\d+)\)")
+
+# One issue veri solved by being run on its own repository. The conductor's first act on
+# an issue is to commit the plan ledger under exactly this subject (SKILL.md step 2.2),
+# and it does it once per issue — so counting these commits counts the issues, without
+# needing the run's own bookkeeping to have survived anywhere.
+SELF_SCOPE = re.compile(r"^plan: scope #\d+")
 
 
 def _git(root, *args):
@@ -126,6 +134,24 @@ def origin_url(root):
         return None
     m = re.match(r"(?:git@github\.com:|https://github\.com/)(.+?)(?:\.git)?$", url)
     return "https://github.com/" + m.group(1) if m else None
+
+
+def solved_by_itself(root):
+    """How many issues veri has solved by being run on its own repository — or None.
+
+    One `plan: scope #<n>` commit reachable from HEAD is one issue veri scoped, tested
+    and landed for itself, so the page can state the figure instead of carrying a number
+    somebody typed and nobody re-counts.
+
+    None — not 0 — is the answer for a tree that cannot say: no git, no commits, or a
+    history with none of those commits in it, which is what a fork, a tarball or a
+    shallow checkout looks like. The claim is prose and stays on the page either way;
+    only the figure goes, because "0 issues" would be a worse answer than none.
+    """
+    out = _git(root, "log", "--format=%s", "HEAD")
+    if out is None:
+        return None
+    return sum(1 for s in out.splitlines() if SELF_SCOPE.match(s)) or None
 
 
 def read(root, script_rel_paths):
