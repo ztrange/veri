@@ -247,6 +247,41 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && [[ "$tip" == "$master_tip" ]]; } \
   && ok || no "no remote and only a local master: cuts tdd/23-local-master from master (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/23-local-master', tip='$tip' want master's $master_tip not side's $side_tip)"
 
+# 8. no remote and no branch by either fallback name — the script cannot name a base to cut from,
+# so it must refuse rather than guess. Exit 2, "no answer could be obtained": a repo whose default
+# branch is unnameable is plumbing broken before any TDD cycle starts, not a step that failed.
+#
+# The seed renames `main` to `trunk`, so neither `main` nor `master` exists and there is no remote
+# to supply an origin/HEAD either — every arm of the lookup comes back empty. Cases 6 and 7 pin the
+# two arms that can answer; this one pins what happens when none can.
+#
+# Four things are asserted together because they are one criterion — a refusal that still printed a
+# path, or still cut a branch, would be worse than a crash. stdout must be empty (the caller parses
+# that line as a worktree path and would `cd` into whatever it said), stderr must carry a diagnostic
+# naming the default branch as the thing that could not be determined (distinguishing this refusal
+# from case 3's "already checked out elsewhere"), and git's own registry() snapshot must be
+# byte-identical either side of the call.
+repo="$work/no-default"
+new_repo "$repo"
+git_q "$repo" branch -m main trunk >/dev/null 2>&1
+before="$(registry "$repo")"
+
+# stdout is captured and stderr diverted to a file, so both streams can be asserted on from the one
+# run — case 3's `2>&1 >/dev/null` trick keeps only stderr, and here stdout's emptiness is half the
+# criterion.
+errfile="$work/no-default.err"
+out="$(cd "$repo" && "$WT" 25 no-default 2>"$errfile")" && code=0 || code=$?
+err="$(cat "$errfile")"
+after="$(registry "$repo")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ "$err" == *"default branch"* ]] \
+  && [[ "$after" == "$before" ]]; } \
+  && ok || no "no remote and no main or master: exits 2 with a diagnostic on stderr, nothing on stdout, and nothing created (exit=$code want 2, stdout='$out' want empty, stderr='$err' want it to name the 'default branch', git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo "changed:
+--- before
+$before
+--- after
+$after" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
