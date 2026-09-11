@@ -16,6 +16,10 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SOLVABLE="$HERE/../solvable-issues.sh"
+# The repository root, four levels above `tests` — past `scripts`, `solve-issue` and
+# `skills`. Only the documentation case reads it, but it belongs beside the other path
+# anchors: here the `..` are checkable against the `HERE` they climb from.
+REPO_ROOT="$(cd "$HERE/../../../.." && pwd)"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
@@ -511,11 +515,10 @@ env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" 
 # accepts spaces or hyphens between the four words that carry the claim, and the variable is
 # matched literally because `VERI_LABEL` is the string a reader greps for. Every miss is named
 # in the failure message, file by file, so one run says which document is short of what.
-docs_root="$(cd "$HERE/../../../.." && pwd)"
 docs_missing=""
 for doc in skills/solve-issues/SKILL.md README.md CONTEXT.md; do
-  grep -q 'VERI_LABEL' "$docs_root/$doc" || docs_missing="$docs_missing $doc:VERI_LABEL"
-  grep -qiE 'one[ -]label[ -]per[ -]loop' "$docs_root/$doc" \
+  grep -q 'VERI_LABEL' "$REPO_ROOT/$doc" || docs_missing="$docs_missing $doc:VERI_LABEL"
+  grep -qiE 'one[ -]label[ -]per[ -]loop' "$REPO_ROOT/$doc" \
     || docs_missing="$docs_missing $doc:one-label-per-loop"
 done
 
