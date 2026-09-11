@@ -369,6 +369,14 @@ checks_git "the checker reads a hunk-tagged line as source, not drift" \
            "# rewritten by the v0.2 commit" \
            "feat: rewrite one line of classify-bail.sh (#2)" v0.2'
 
+# 11. the stage-0 intro must not mislabel when ensure-run-state-ignored.sh runs.
+#    "Preflight" is SKILL.md step 0 — the baseline checks that happen before any branch
+#    exists (SKILL.md "0. Preflight"). This script runs in step 1.4, after the per-issue
+#    branch is already cut, and the two phases fail differently: a preflight bail has no
+#    branch and no commits to revert, a step-1.4 failure already has both. Naming the
+#    wrong one sends a reader looking in the wrong half of the procedure.
+omits "no mislabeled preflight timing" 'runs once per issue, at preflight'
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
