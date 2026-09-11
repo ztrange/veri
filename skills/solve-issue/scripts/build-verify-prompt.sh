@@ -8,7 +8,7 @@
 #
 # Usage:
 #   build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]
-#     phase = red | green | refactor
+#     phase = red | green | refactor | pin
 #
 # Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown
 # phase or a missing template/spec file.
@@ -20,8 +20,8 @@ test_path="${3:?missing <test-path>}"
 target="${4:-the target test}"
 
 case "$phase" in
-  red|green|refactor) ;;
-  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor)" >&2; exit 2 ;;
+  red|green|refactor|pin) ;;
+  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin)" >&2; exit 2 ;;
 esac
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
