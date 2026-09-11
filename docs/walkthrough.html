@@ -469,9 +469,9 @@ html{scroll-behavior:smooth}
   the ones you don't. Read in the order data flows through one cycle, they group into five
   stages, and this page is organised as those stages. Two scripts sit before the cycle
   altogether, both stage&nbsp;0 below: <a href="#issue-worktree"><code>issue-worktree.sh</code></a>
-  gives the run a checkout of its own, and <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>
-  then makes that checkout's target repo ignore veri's run state &mdash; each runs once per
-  issue, at preflight:
+  gives the run a checkout of its own in step&nbsp;1.2, and <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>
+  follows in step&nbsp;1.4, right after branching &mdash; neither runs at preflight (step 0),
+  which has no branch or worktree yet:
 </p>
 <div class="flow">
 <svg viewBox="0 -12 920 212" role="img" aria-label="Five stages of one veri phase: read the ledger, run a leaf, verify the claim, record the result, or bail.">
