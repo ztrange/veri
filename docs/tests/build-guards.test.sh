@@ -167,6 +167,46 @@ accepts_without() {
   fi
 }
 
+# opens_with <name> <wants> [mutator...]
+# Every assertion above asks its question of the whole page, which is no use for a claim
+# about where something sits. This one cuts the page down to the slice the build puts
+# between the masthead and "What veri actually is" — `</header>` to `<h2 id="what"`, with
+# the capability index empty in a bare sandbox — and asks only of that.
+# The slice is what makes the case mean anything: every string it looks for also occurs
+# elsewhere on the page. The rail links to #s2 and #supervise, and the "built with itself"
+# sentence already lives inside the intro, below. Asked of the whole page, this case would
+# be green today.
+# <wants> is ONE argument holding one required substring per line, for the same reason
+# tags_git takes its spans that way: the claim is that all of them are in that one slice.
+# A page missing either landmark has no slice at all, and fails rather than falling back
+# to matching against everything.
+opens_with() {
+  local name="$1" wants="$2"; shift 2
+  local d code page region want missing=""
+  local mast='</header>' what='<h2 id="what"'
+  d="$("$SANDBOX")"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  region=""
+  if [[ "$page" == *"$mast"*"$what"* ]]; then
+    region="${page#*"$mast"}"          # drop the rail, the crumb and the masthead
+    region="${region%%"$what"*}"       # keep what precedes the old opening section
+  fi
+  while IFS= read -r want; do
+    [[ "$region" == *"$want"* ]] || missing="$missing$want"$'\n'
+  done <<< "$wants"
+  if [[ "$code" == 0 && -z "$missing" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want, between the masthead and <h2 id=\"what\">, all of: $wants"
+    echo "    missing:"
+    printf '%s' "$missing" | sed 's/^/      /'
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # omits_git — omits(), but against a sandbox that is a real repository.
 # `local` inside a function is visible to everything it then calls — bash scopes locals
 # to the call chain, not to the function body — so omits() sees this SANDBOX, and the
@@ -426,6 +466,36 @@ accepts "documents the ignore-rule caller contract" 'chore: ignore veri run stat
 #    way the reader would see.
 accepts_without_git "no matching history: the built-with-itself claim, minus the figure" \
   'built with itself' 'class="solved-n"'
+
+# 14. the page opens by making its case, and only then starts explaining. "What veri
+#    actually is" describes the design to a reader who has already decided to read; someone
+#    who lands here cold is owed the argument first, in a section of its own before it.
+#    An argument on a page like this is only worth as much as what it can point at, so each
+#    of the four claims is pinned together with the anchor that substantiates it — a reader
+#    who does not believe "blind" is one click from build-verify-prompt.sh's own section:
+#
+#      strict TDD, not vibe coding  -> the leaf loop, stage 2       (#s2)
+#      built with itself            -> (no fixed anchor: see below)
+#      blind verification           -> build-verify-prompt.sh       (#build-verify-prompt)
+#      observability                -> supervise.sh, classify-bail.sh
+#
+#    Observability has no keyword of its own here because its two anchors are the claim:
+#    the heartbeat that bounds a hang and the classifier that labels it. "Built with
+#    itself" is the reverse — words but no pinned anchor, because the section that
+#    substantiates it is the capability index, which exists only when git does (case 10),
+#    and demanding a fixed anchor for it would quietly demand a repository too.
+#
+#    Built in the bare sandbox for that same reason: the pitch is prose about the design,
+#    so it must be on the page a tarball builds, with or without a version layer.
+opens_with "a pitch section opens the page, every claim linked to what shows it" \
+'<h2
+TDD
+built with itself
+blind
+href="#s2"
+href="#build-verify-prompt"
+href="#supervise"
+href="#classify-bail"'
 
 echo "----"
 echo "$pass passed, $fail failed"

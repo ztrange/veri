@@ -48,6 +48,7 @@ PAGE_TEMPLATE = '''<!doctype html>
   </p>
 </header>
 {capabilities}
+{pitch}
 {intro}
 </div>
 
@@ -122,11 +123,57 @@ ORIENTATION_NAV = [
     ("howtoread", "How to read this page"),
 ]
 
-# What {{SOLVED}} becomes in INTRO_HTML when git can count the issues veri has solved for
+# What {{SOLVED}} becomes in PITCH_HTML when git can count the issues veri has solved for
 # itself (gitmeta.solved_by_itself). It is an aside, not a clause the sentence needs: when
 # the count is None the placeholder expands to nothing at all and the claim reads the same
 # — which is what the build has to do in a tree with no git, or none of that history.
 SOLVED_COUNT_HTML = ', <span class="solved-n">%d</span> issues so far'
+
+# The first thing on the page after the masthead and the capability index: the argument,
+# before the explanation. INTRO_HTML below describes the design to a reader who has
+# already decided to read; someone arriving cold is owed the case for spending the time.
+#
+# Every claim here links to the part of this page that substantiates it. That is the only
+# rule the section has: no adjective it cannot hand over to a script, a stage or a number.
+PITCH_HTML = r'''
+<h2 id="why">Why this exists</h2>
+<p>
+  Ask an agent for a feature and you get the code, then tests written to agree with the code
+  it just wrote &mdash; green on the first run, because they were derived from the
+  implementation rather than from what the implementation was supposed to do. veri exists to
+  take that order away from the model. Four claims, each one linked to the part of this page
+  that shows it.
+</p>
+<p>
+  <strong>Strict TDD, not vibe coding.</strong> Work happens in steps, and every step runs
+  Red &rarr; Green &rarr; Refactor in that order: one short-lived <strong>leaf</strong> per
+  phase, each exiting when its phase is done. No phase can be skipped or reordered, because
+  what the next step is comes from the committed ledger rather than from the model that would
+  rather move on. <a href="#s2">Stage 2</a> is that loop, three scripts deep.
+</p>
+<p>
+  <strong>veri is built with itself.</strong> Every capability on this page was scoped,
+  tested and landed by a veri run against this repository{{SOLVED}} &mdash; the same order,
+  under the same blind verification, as everything described below. The figure is counted
+  out of git when this page is built, not typed into it, so it cannot quietly go stale.
+</p>
+<p>
+  <strong>Verification is blind by construction.</strong> Whether a test is a real test is
+  decided by a second agent, and it is handed only the phase, the spec and the path to the
+  test. <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> has no
+  parameter for the developer&rsquo;s rationale &mdash; there is no argument to put it in, so
+  there is nothing for it to leak through.
+</p>
+<p>
+  <strong>You can watch it, and a hang is an outcome.</strong> Every phase is narrated to
+  the issue thread as it happens, and progress lives in a committed ledger, so a run that
+  dies is resumed by reading the repository rather than reconstructed from a transcript.
+  A leaf that goes quiet is not waited on indefinitely:
+  <a href="#supervise"><code>supervise.sh</code></a> watches a heartbeat and kills what
+  stops writing, and <a href="#classify-bail"><code>classify-bail.sh</code></a> turns the
+  result into a labelled failure &mdash; the methodology said no, or the plumbing broke.
+</p>
+'''
 
 INTRO_HTML = r'''
 <h2 id="what">What veri actually is</h2>
@@ -136,12 +183,6 @@ INTRO_HTML = r'''
   you a draft pull request. The name comes from the part that makes it unusual:
   <strong>every test is checked by a second, independent agent that never sees the
   author's reasoning</strong> and must run the test itself to form an opinion.
-</p>
-<p>
-  It is also <strong>built with itself</strong>: every capability on this page was scoped,
-  tested and landed by running veri on veri&rsquo;s own repository{{SOLVED}} &mdash; the same
-  Red &rarr; Green &rarr; Refactor order, under the same blind verification, that the rest
-  of this page describes.
 </p>
 <p>It is not an application. It is a <em>skill</em> &mdash; a directory that Claude Code
   loads &mdash; and it is made of exactly two kinds of thing.</p>

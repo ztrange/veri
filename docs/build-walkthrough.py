@@ -404,8 +404,8 @@ def main():
         js=(HERE / "wt" / "app.js").read_text().strip(),
         rail=render_rail(entries),
         nav=render_nav_json(entries),
-        intro=(refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand))
-               .replace("{{SOLVED}}", solved_count)),
+        pitch=refs(com.PITCH_HTML).replace("{{SOLVED}}", solved_count),
+        intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
         stages=stages_html,
         reference=reference_html,
         capabilities=(com.CAPABILITIES_HTML.replace("{{ROWS}}", render_versions(META))
