@@ -73,19 +73,22 @@ if [ -f "$mk" ] && grep -qE '^test[[:space:]]*:' "$mk"; then
 fi
 
 # 4. A repo that declares pytest configuration names `pytest -q` — `-q` because the
-# conductor reads the exit status, not the dots. Two spellings are one rule, and they are
+# conductor reads the exit status, not the dots. Three spellings are one rule, and they are
 # asked differently on purpose. `pytest.ini` exists only to configure pytest, so the
 # filename alone is the whole claim and the file may well be empty. `pyproject.toml` makes
 # no such claim — it is packaging metadata for any python project — so this looks inside
 # it for the section that does: `[tool.pytest`, anchored to the start of a line so a
 # mention in prose or in another table's value cannot answer for it, and matched as a
-# prefix because real repos write `[tool.pytest.ini_options]`.
+# prefix because real repos write `[tool.pytest.ini_options]`. `setup.cfg` is packaging
+# metadata too, so it is asked the same way, for the header pytest documents for that file:
+# `[tool:pytest]`, spelled with a colon rather than the dot pyproject.toml uses.
 #
 # `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the
 # dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an
 # answer rather than a failure `set -e` would abort on.
 if [ -f "$root/pytest.ini" ] \
-  || { [ -f "$root/pyproject.toml" ] && grep -qE '^\[tool\.pytest' "$root/pyproject.toml"; }; then
+  || { [ -f "$root/pyproject.toml" ] && grep -qE '^\[tool\.pytest' "$root/pyproject.toml"; } \
+  || { [ -f "$root/setup.cfg" ] && grep -qE '^\[tool:pytest\]' "$root/setup.cfg"; }; then
   answer 'pytest -q'
 fi
 

@@ -159,6 +159,31 @@ done
 [[ -z "$misread" ]] \
   && ok || no "pytest.ini, or pyproject.toml with a [tool.pytest section, yields pytest -q —$misread"
 
+# 4b. the third spelling pytest itself documents, and the one rule 4 does not yet know: a
+# `setup.cfg` carrying a `[tool:pytest]` section. A repo configured that way and carrying no
+# other marker gets no answer today — exit 3, nothing on stdout — so the question goes to the
+# human for a repo that already answered it.
+#
+# It is asked the way `pyproject.toml` is, not the way `pytest.ini` is: a bare `setup.cfg` is
+# packaging metadata any python project may carry, so the filename alone is no claim about the
+# test runner and the section header has to be found inside the file. The colon spelling is
+# pytest's own for this file — `[tool:pytest]`, not the `[tool.pytest]` of pyproject.toml — and
+# a second line is seeded under it so the header is not also the last byte of the file.
+#
+# The repo carries nothing else on purpose: any other marker would be answered by a rule above
+# or below, and `pytest -q` on stdout would then say nothing about setup.cfg having been read.
+# Nothing here needs pytest or python installed — the script reads the file and never runs the
+# command it prints.
+want='pytest -q'
+repo="$work/py-setupcfg"
+mkdir -p "$repo"
+printf '[tool:pytest]\naddopts = -ra\n' > "$repo/setup.cfg"
+
+detect "$repo"
+
+matched \
+  && ok || no "setup.cfg with a [tool:pytest] section yields pytest -q (exit=$code want 0, stdout='$out' want '$want')"
+
 # 5. the two compiled stacks each name their toolchain's own runner: a `go.mod` yields
 # `go test ./...`, a `Cargo.toml` yields `cargo test`. One case, two seeded repos, the same
 # shape as the node runners and the two pytest spellings — two markers answering with two
