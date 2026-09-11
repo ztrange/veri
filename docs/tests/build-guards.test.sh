@@ -434,14 +434,15 @@ names_all() {
 # can match a whole block with one string test.
 # The awk reads to the end rather than `exit`ing at the closing landmark: exiting mid-page
 # leaves the printf feeding a closed pipe, and the SIGPIPE write error lands in the suite's
-# output as if a case had broken.
+# output as if a case had broken. Reading on is why `past_slice` exists — once the slice has
+# closed, a later line matching <open-re> must not reopen it.
 diagram_blocks() {
   awk -v open_re="$1" -v close_re="$2" '
-    $0 ~ open_re && !done                  { sl = 1 }
-    sl && $0 ~ close_re                    { sl = 0; done = 1 }
-    sl && /<pre class="src"|<svg/          { blk = ""; inblk = 1 }
-    sl && inblk                            { blk = blk " " $0 }
-    sl && inblk && /<\/pre>|<\/svg>/       { print blk; inblk = 0 }
+    $0 ~ open_re && !past_slice                 { in_slice = 1 }
+    in_slice && $0 ~ close_re                   { in_slice = 0; past_slice = 1 }
+    in_slice && /<pre class="src"|<svg/         { blk = ""; in_block = 1 }
+    in_slice && in_block                        { blk = blk " " $0 }
+    in_slice && in_block && /<\/pre>|<\/svg>/   { print blk; in_block = 0 }
   '
 }
 
