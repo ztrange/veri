@@ -303,24 +303,33 @@ figures_in() {
   blocks_of "$1" '<svg' '</svg>'
 }
 
+# figure_holding <text> <wants>
+# The first figure in <text> that contains every substring in <wants> — one per line —
+# printed on stdout. Nothing printed means no single figure holds all of them.
+# The ONE-figure part is the whole claim, which is why it is a query of its own rather
+# than a loop inside the assertion. A stage section also contains the full source of every
+# script in it, so the names of those scripts are all over the region already — asked of
+# the region as a whole, this would be answered by four names sitting in four unrelated
+# listings, which is not a diagram. Only a single block holding all of them is.
+figure_holding() {
+  local text="$1" wants="$2" block
+  while IFS= read -r block; do
+    [[ -n "$block" ]] || continue
+    if [[ -z "$(missing_from "$block" "$wants")" ]]; then printf '%s' "$block"; return 0; fi
+  done < <( figures_in "$text" )
+}
+
 # figure_between <name> <start> <end> <wants> [mutator...]
 # One figure inside a region must carry every one of <wants>. The region is the
-# region_between cut; the figures are figures_in's.
-# The ONE-figure part is the whole claim. A stage section also contains the full source of
-# every script in it, so the names of those scripts are all over the region already —
-# asked of the region as a whole, this would be answered by four names sitting in four
-# unrelated listings, which is not a diagram. Only a single block holding all of them is.
+# region_between cut; the figure is figure_holding's.
 figure_between() {
   local name="$1" start="$2" end="$3" wants="$4"; shift 4
-  local d code page region block found=""
+  local d code page region found
   d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   region="$(region_between "$page" "$start" "$end")"
-  while IFS= read -r block; do
-    [[ -n "$block" ]] || continue
-    if [[ -z "$(missing_from "$block" "$wants")" ]]; then found="$block"; break; fi
-  done < <( figures_in "$region" )
+  found="$(figure_holding "$region" "$wants")"
   if [[ "$code" == 0 && -n "$found" ]]; then
     pass=$((pass + 1))
   else
