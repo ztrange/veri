@@ -844,7 +844,25 @@ STAGES = [
   rationale. veri does something stronger: it makes the rationale <strong>structurally
   unable to arrive</strong>. Three scripts compose into one verb, and the guarantee lives in
   the shape of the first one's arguments.
-</p>'''),
+</p>
+<p>
+  The way to see that is to put the two prompt builders side by side. They are mirrors of
+  one another &mdash; the same job done for the two agents &mdash; and where they differ is
+  where the guarantee lives.
+</p>
+<div class="ann"><div class="ann-head"><span class="fname">the two builders</span>
+<span class="fmeta">stage 3</span></div>
+<div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">developer side               verifier side</span>
+<span class="l">build-develop-prompt.sh      build-verify-prompt.sh</span>
+<span class="l">           &#9474;                           &#9474;</span>
+<span class="l">           &#9660;                           &#9660;</span>
+<span class="l">supervise.sh &rarr; run-leaf.sh   verify.sh &rarr; supervise.sh &rarr; parse-verdict.sh</span></pre></div>
+<div class="ann-note"><p>
+  Each builder only writes a prompt; neither launches anything. The developer's prompt goes
+  to a leaf under <code>supervise.sh</code>. The verifier's goes to
+  <code>verify.sh</code>, which supervises its own leaf and hands what comes back to
+  <code>parse-verdict.sh</code>.
+</p></div></div></div>'''),
 
     dict(n=4, id="s4", nav="Record the result", kicker="record the result",
          title="One transform, two destinations",
