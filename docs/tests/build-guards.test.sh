@@ -93,6 +93,17 @@ build() {  # build <dir> -> stdout=page, stderr=problems; returns the build's ex
   ( cd "$1" && python3 docs/build-walkthrough.py --stdout 2>"$1/err.txt" )
 }
 
+# hunk_spans <page> -> how many hunk marks that built page carries
+# Two assertions count them for different reasons — tags_git, to claim the page tagged
+# exactly the runs it should and no others; hunk_map_git, to claim the inverted map holds
+# an entry for every one of them — so the count is one named thing rather than the same
+# pipeline written twice.
+# Occurrences, not matching lines: grep -o then wc -l, since nothing guarantees two tags
+# could not share one output line.
+hunk_spans() {
+  printf '%s' "$1" | grep -o 'class="l hunk"' | wc -l | tr -d ' '
+}
+
 # refuses <name> <expected-substring-in-stderr> <mutator...>
 # The mutator runs inside the sandbox dir; the build must then FAIL and say why.
 refuses() {
@@ -368,14 +379,12 @@ accepts_without_git() { local SANDBOX=sandbox_git; accepts_without "$@"; }
 # <expected-spans> is ONE argument holding one expected span per line, because a case
 # with two tags has to claim both at once: found separately they could still be the same
 # line tagged twice, or one span overwritten by the other.
-# Occurrences, not matching lines: grep -o then wc -l, since nothing guarantees two tags
-# could not share one output line.
 tags_git() {
   local name="$1" n="$2" wants="$3"; shift 3
   local d code page got want missing=""; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
-  got="$(printf '%s' "$page" | grep -o 'class="l hunk"' | wc -l | tr -d ' ')"
+  got="$(hunk_spans "$page")"
   while IFS= read -r want; do
     [[ "$page" == *"$want"* ]] || missing="$want"
   done <<< "$wants"
@@ -454,7 +463,7 @@ hunk_map_git() {
   local d code read_code page spans got entries; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
-  spans="$(printf '%s' "$page" | grep -o 'class="l hunk"' | wc -l | tr -d ' ')"
+  spans="$(hunk_spans "$page")"
   printf '%s' "$page" > "$d/page.html"
   got="$( cd "$d" && python3 - page.html 2>&1 <<'PY'
 import json, re, sys
