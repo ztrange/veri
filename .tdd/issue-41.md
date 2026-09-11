@@ -5,3 +5,4 @@
 - [x] an issue without the ready-for-agent label is never listed, whatever its blockers
 - [ ] an issue that an open PR already Closes is not listed
 - [ ] output is one number per line ascending, and no solvable issue means exit 3 and empty stdout
+- [ ] without VERI_GH_JSON the script reads gh issue list and gh pr list itself, forwarding --repo when given
