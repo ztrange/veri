@@ -27,7 +27,9 @@ import json, re, sys, pathlib
 src = pathlib.Path(sys.argv[1])
 issues = json.loads((src / "issues.json").read_text())
 
-state = {i["number"]: i.get("state", "").upper() for i in issues}
+# Openness is the whole of what a state is read for — an issue must be open to be taken,
+# and a blocker must not be — so it is normalised once, here, into a set of numbers.
+open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPEN"}
 
 def blockers(body):
     """The issue numbers named under the `## Blocked by` heading, up to the next heading.
@@ -36,11 +38,11 @@ def blockers(body):
     return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
 
 def solvable(issue):
-    if issue.get("state", "").upper() != "OPEN":
+    if issue["number"] not in open_issues:
         return False
     if not any(l.get("name") == "ready-for-agent" for l in issue.get("labels", [])):
         return False
-    return all(state.get(n) != "OPEN" for n in blockers(issue.get("body", "")))
+    return all(n not in open_issues for n in blockers(issue.get("body", "")))
 
 for number in sorted(i["number"] for i in issues if solvable(i)):
     print(number)
