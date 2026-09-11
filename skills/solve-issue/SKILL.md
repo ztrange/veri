@@ -120,6 +120,10 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   tracked. Idempotent; prints `added` when it wrote the rule, `already present` when it
   was there. Run once per issue right after branching (step 1) so the first `git add -A`
   never sweeps leaf logs into history.
+- `$S/detect-test-command.sh [repo-root]` — print the one command that runs the **target
+  repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do* code — when no
+  marker it trusts matched, which is your cue to ask the user. First match wins, and the
+  repo's `.veri/test-command` beats every inference (see *Detecting the test command*).
 
 ## Inputs
 
@@ -145,9 +149,9 @@ unauthenticated baseline never gets a cycle.
    reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
    session each one fails at launch (`supervise.sh` exit 1 before any work), which is
    neither a verdict nor a hang and so has no bail classification — catch it here.
-3. **Suite is green at baseline.** Determine the test command (see *Detecting the test
-   command*) and run it. If already red, stop and report — a cycle must not start on a
-   red baseline.
+3. **Suite is green at baseline.** Get the test command from `$S/detect-test-command.sh`
+   (see *Detecting the test command*) and run it. If already red, stop and report — a
+   cycle must not start on a red baseline.
 4. **Default branch.** Capture it for the PR base:
    `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 
@@ -480,17 +484,18 @@ git history agree on exactly what is done — so resume never repeats or skips a
 
 ## Detecting the test command
 
-Pick the first that applies, and prefer running only what is fast and complete:
+Do not pick it by hand. Run `$S/detect-test-command.sh <repo-root>` once, from the target
+repo's root: it prints the one full-suite command on stdout and exits 0. On **exit 3** it
+prints nothing — no marker it trusts matched — so **ask the user** for the command rather
+than guessing.
 
-- `package.json` with a `test` script → `npm test` (or `pnpm`/`yarn` if their lockfile is
-  present).
-- `pytest.ini` / `pyproject.toml` / `tests/` with pytest available → `pytest -q`.
-- A `Makefile` with a `test` target → `make test`.
-- Python stdlib only → `python3 -m unittest discover -q`.
+That stdout is `<test-cmd>` everywhere it is needed: the baseline run in preflight (step
+0.3) and the `<test-cmd>` argument of every `$S/build-develop-prompt.sh` call, so every
+leaf runs the same suite.
 
-If you cannot confidently determine the test command, **ask the user** rather than
-guessing. Pass it as the `<test-cmd>` argument to `$S/build-develop-prompt.sh` in every
-phase, so every leaf runs the same suite.
+When the inference guesses wrong for a particular repo, the fix is that repo's, not this
+skill's: a human writes `.veri/test-command` there, and its first non-empty line is used
+verbatim ahead of every other rule. That file is the per-repo escape hatch.
 
 ## Guardrails
 

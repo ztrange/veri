@@ -71,10 +71,17 @@ conductor's preflight writes the `.tdd` ignore rule into that repo's `.gitignore
 only the per-issue ledger is committed. Preflight also refuses to start unless `gh` and
 the `claude` CLI are both authenticated.
 
+Preflight infers the target repo's full-suite test command from what the repo committed —
+a `package.json` test script, a `Makefile` `test` target, pytest config, `go.mod`,
+`Cargo.toml`. When that inference is wrong, put a `.veri/test-command` file in the target
+repo: its first non-empty line is run verbatim as the full suite, ahead of every
+inference. That file is the per-repo escape hatch; without it, a repo veri cannot read is
+asked about rather than guessed at.
+
 ## Documentation
 
 - [`docs/walkthrough.html`](./docs/walkthrough.html) — **veri, Annotated**: every one of
-  the twelve scripts in full, source beside commentary, ordered by the data flow of one
+  the fourteen scripts in full, source beside commentary, ordered by the data flow of one
   cycle. Bash constructs in the commentary carry a hover gloss and link into a reference
   section covering every construct the suite uses. The page is **generated** from the real
   scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
