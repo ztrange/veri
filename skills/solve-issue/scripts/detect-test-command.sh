@@ -54,6 +54,21 @@ if [ -f "$pkg" ] && tr -d '[:space:]' < "$pkg" | grep -q '"scripts":{[^}]*"test"
   exit 0
 fi
 
+# 3. A Makefile declaring a `test:` target names `make test`, and it does so before the
+# python markers are ever looked at. That ordering is deliberate and differs from the one
+# SKILL.md used to describe: a repo that wrote a `test` target chose it — very often
+# precisely to wrap `pytest` with whatever else the suite needs — so the target answers,
+# and pytest.ini is left to speak for repos that wrote no target at all.
+#
+# `^test[[:space:]]*:` anchors the match to a rule at the start of a line, allowing the
+# `test :` spelling make also accepts; `.PHONY: test` does not start with `test`, so it
+# cannot be mistaken for the target itself.
+mk="$root/Makefile"
+if [ -f "$mk" ] && grep -qE '^test[[:space:]]*:' "$mk"; then
+  printf 'make test\n'
+  exit 0
+fi
+
 # Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the
 # question to the human.
 exit 3
