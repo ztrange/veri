@@ -31,6 +31,29 @@ if [ -f "$override" ]; then
   done < "$override"
 fi
 
+# 2. A package.json that declares a test script names the node runner. Which runner is a
+# separate question, answered by the lockfile the repo committed beside it: a lockfile is
+# the repo saying which package manager actually installs here, so `pnpm test` / `yarn
+# test` rather than an `npm test` that would resolve a different dependency tree.
+#
+# `tr -d '[:space:]'` flattens the file to one line with no whitespace, so the pattern can
+# be written as if package.json were minified — formatting stops mattering. `[^}]*` then
+# pins the "test": key to inside the "scripts" object, so a dependency or a config section
+# that happens to be called "test" cannot answer for it. Both are inside an `if`
+# condition, where grep's exit 1 for "no match" is an answer rather than a failure `set
+# -e` would abort on.
+pkg="$root/package.json"
+if [ -f "$pkg" ] && tr -d '[:space:]' < "$pkg" | grep -q '"scripts":{[^}]*"test":'; then
+  if [ -f "$root/pnpm-lock.yaml" ]; then
+    printf 'pnpm test\n'
+  elif [ -f "$root/yarn.lock" ]; then
+    printf 'yarn test\n'
+  else
+    printf 'npm test\n'
+  fi
+  exit 0
+fi
+
 # Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the
 # question to the human.
 exit 3
