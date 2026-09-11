@@ -26,7 +26,9 @@ test:
 # 0.3), so prose lagging behind code must not block a TDD cycle on this repo.
 # `docs-check` answers one question — is the docs pipeline sound and current? — in two
 # phases: the guards still fire (docs/tests/build-guards.test.sh breaks the build on
-# purpose and asserts it refuses), then the committed page still matches a fresh build.
+# purpose and asserts it refuses), then the committed page still matches a fresh build
+# AND still agrees with the two files it describes but is not generated from (the
+# phases build-verify-prompt.sh accepts, SKILL.md's revise budget).
 # A guard nobody has watched fail is decoration, which is why the tests run first.
 .PHONY: docs docs-check docs-test
 docs:

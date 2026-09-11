@@ -91,6 +91,7 @@ ORIENTATION_NAV = [
     ("division", "The division of labour"),
     ("exitcodes", "The exit-code contract"),
     ("map", "Map of the twelve scripts"),
+    ("tddloop", "Where the TDD loop lives"),
     ("dataflow", "How the data moves"),
     ("howtoread", "How to read this page"),
 ]
@@ -182,7 +183,7 @@ INTRO_HTML = r'''
   runs once per issue, at preflight, and is stage&nbsp;0 below:
 </p>
 <div class="flow">
-<svg viewBox="0 0 920 200" role="img" aria-label="Five stages of one veri cycle: read the ledger, run a leaf, verify the claim, record the result, or bail.">
+<svg viewBox="0 -12 920 212" role="img" aria-label="Five stages of one veri phase: read the ledger, run a leaf, verify the claim, record the result, or bail.">
   <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/></marker></defs>
   <g><rect x="6" y="34" width="148" height="62" rx="6" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/>
@@ -215,19 +216,239 @@ INTRO_HTML = r'''
     <text x="770" y="54" font-size="10" fill="var(--ec2)" letter-spacing="1.4">STAGE 5</text>
     <text x="770" y="76" font-size="13" fill="var(--ink)" font-weight="500">Or bail</text>
     <text x="770" y="122" font-size="10.5" fill="var(--ink-soft)">classify-bail.sh</text></g>
-  <path d="M 644 96 L 644 178 L 80 178 L 80 102" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <path d="M 456 34 L 456 18 L 268 18 L 268 30" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="362" y="12" font-size="10" fill="var(--ink-faint)" text-anchor="middle">&times;3 &mdash; once per phase: Red, Green, Refactor</text>
+  <path d="M 576 96 L 576 178 L 140 178 L 140 102" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
   <text x="330" y="192" font-size="10" fill="var(--ink-faint)">loop to the next unchecked step</text>
 </svg>
 </div>
 <p>
-  Stages 1 to 4 are the happy path of one step. Stage 5 is the exceptional exit, reachable
-  from any of the others. When stage 4 completes, the conductor loops back to stage 1 for
-  the next unchecked step &mdash; that loop turns one cycle into a whole issue.
+  Stages 1 to 4 are the happy path; stage 5 is the exceptional exit, reachable from any of
+  the others. But read the two dashed arrows before moving on, because the strip is easy to
+  misread: it is one <strong>phase</strong>, not one step. Stages 2 and 3 &mdash; run a leaf,
+  verify the claim &mdash; repeat for each of Red, Green and Refactor before a step is done,
+  and only then does the conductor loop back to stage 1 for the next unchecked step. The
+  next section draws that.
 </p>
+
+<h3 id="tddloop">Where the TDD loop lives</h3>
+<p>
+  Nothing in that map mentions Red, Green or Refactor &mdash; and no script does either.
+  The methodology belongs to the conductor, written out in <code>SKILL.md</code> as English.
+  What the scripts underneath it see is the same three beats every time: <strong>a developer
+  leaf writes something, a blind verifier judges it, and one integer decides what happens
+  next.</strong> Which phase it is changes only the prompt and the rubric.
+</p>
+<p>
+  Which means the five stages are not one <em>step</em>. They are one <strong>phase</strong>.
+  A step is that pipeline run three times over, and the loop you are looking for is the
+  column-to-column arrow:
+</p>
+
+<figure class="dataflow">
+<div class="scroller">
+<svg viewBox="0 0 1080 770" role="img" aria-label="One ledger step as three phases. next-unchecked.sh runs once per step and hands the step to phase 1, Red; each phase is the same two stages, a developer leaf launched through supervise.sh and a blind verifier run by verify.sh, ending in parse-verdict.sh. A PASS carries the work to the next phase; a REJECT loops back to a fresh developer leaf for at most two attempts; an unobtainable verdict goes to classify-bail.sh. Green's PASS ticks the ledger and commits it with the code; Refactor loops transforms inside itself and is verified once on the settled result, after which the issue's criterion is ticked and the whole step repeats for the next unchecked line. When no step is left, next-unchecked.sh exits 3 and the branch is pushed as a draft pull request.">
+  <defs>
+    <marker id="tl-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
+    </marker>
+    <marker id="tl-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec0)"/>
+    </marker>
+    <marker id="tl-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec1)"/>
+    </marker>
+    <marker id="tl-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec2)"/>
+    </marker>
+    <marker id="tl-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec3)"/>
+    </marker>
+  </defs>
+
+  <!-- ── stage 1: once per step, not once per phase ─────────────────────────── -->
+  <rect x="30" y="28" width="300" height="52" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <circle cx="30" cy="54" r="10" fill="var(--accent)"/>
+  <text x="30" y="58" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">1</text>
+  <text x="180" y="50" font-size="12.5" fill="var(--ink)" text-anchor="middle">next-unchecked.sh</text>
+  <text x="180" y="66" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">once per step, not per phase</text>
+
+  <line x1="330" y1="54" x2="742" y2="54" stroke="var(--ec3)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#tl-n)"/>
+  <text x="536" y="46" font-size="10" fill="var(--ec3)" text-anchor="middle">exit 3 &mdash; no step left</text>
+
+  <rect x="750" y="28" width="300" height="52" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <text x="900" y="50" font-size="12.5" fill="var(--ink)" text-anchor="middle">push &rarr; draft PR</text>
+  <text x="900" y="66" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">never merged &mdash; that stays a human act</text>
+
+  <line x1="180" y1="80" x2="180" y2="106" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <!-- ── phase 1 · Red ──────────────────────────────────────────────────────── -->
+  <rect x="30" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="180" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 1</text>
+  <text x="180" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Red &mdash; one failing test</text>
+
+  <rect x="50" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="50" cy="213" r="10" fill="var(--accent)"/>
+  <text x="50" y="217" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">2</text>
+  <text x="180" y="201" font-size="12" fill="var(--ink)" text-anchor="middle">supervise.sh &rarr; developer leaf</text>
+  <text x="180" y="219" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">writes exactly one failing test</text>
+  <text x="180" y="234" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">and no production code at all</text>
+  <line x1="180" y1="248" x2="180" y2="274" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="50" y="278" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="50" cy="313" r="10" fill="var(--accent)"/>
+  <text x="50" y="317" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="180" y="301" font-size="12" fill="var(--ink)" text-anchor="middle">verify.sh &rarr; blind verifier</text>
+  <text x="180" y="319" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">runs the test itself: does it fail,</text>
+  <text x="180" y="334" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">and does it pin the spec?</text>
+  <line x1="180" y1="348" x2="180" y2="374" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="50" y="378" width="260" height="48" rx="5" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.3"/>
+  <text x="180" y="397" font-size="11.5" fill="var(--ink)" text-anchor="middle">parse-verdict.sh</text>
+  <text x="180" y="413" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">0 &middot; 1 &middot; 2</text>
+
+  <polyline points="50,402 30,402 30,213 44,213" fill="none" stroke="var(--ec1)" stroke-width="1.4" marker-end="url(#tl-r)"/>
+  <text x="41" y="308" font-size="9" fill="var(--ec1)" text-anchor="middle" transform="rotate(-90 41 308)">REJECT</text>
+
+  <polyline points="310,402 360,402 360,131 386,131" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="350" y="280" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 350 280)">PASS</text>
+
+  <line x1="180" y1="426" x2="180" y2="586" stroke="var(--ec2)" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#tl-b)"/>
+  <text x="196" y="470" font-size="9.5" fill="var(--ec2)" text-anchor="start">exit 2 &mdash; no answer at all:</text>
+  <text x="196" y="485" font-size="9.5" fill="var(--ec2)" text-anchor="start">a hung leaf, an unreadable verdict</text>
+
+  <!-- ── phase 2 · Green ────────────────────────────────────────────────────── -->
+  <rect x="390" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="540" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 2</text>
+  <text x="540" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Green &mdash; minimum code that passes</text>
+
+  <rect x="410" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="410" cy="213" r="10" fill="var(--accent)"/>
+  <text x="410" y="217" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">2</text>
+  <text x="540" y="201" font-size="12" fill="var(--ink)" text-anchor="middle">supervise.sh &rarr; developer leaf</text>
+  <text x="540" y="219" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the least code that turns it green</text>
+  <text x="540" y="234" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">no case the test does not demand</text>
+  <line x1="540" y1="248" x2="540" y2="274" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="410" y="278" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="410" cy="313" r="10" fill="var(--accent)"/>
+  <text x="410" y="317" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="540" y="301" font-size="12" fill="var(--ink)" text-anchor="middle">verify.sh &rarr; blind verifier</text>
+  <text x="540" y="319" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">runs the whole suite itself: green,</text>
+  <text x="540" y="334" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">and no more than the test asked for</text>
+  <line x1="540" y1="348" x2="540" y2="374" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="410" y="378" width="260" height="48" rx="5" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.3"/>
+  <text x="540" y="397" font-size="11.5" fill="var(--ink)" text-anchor="middle">parse-verdict.sh</text>
+  <text x="540" y="413" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">0 &middot; 1 &middot; 2</text>
+
+  <polyline points="410,402 390,402 390,213 404,213" fill="none" stroke="var(--ec1)" stroke-width="1.4" marker-end="url(#tl-r)"/>
+  <text x="401" y="308" font-size="9" fill="var(--ec1)" text-anchor="middle" transform="rotate(-90 401 308)">REJECT</text>
+
+  <line x1="540" y1="426" x2="540" y2="442" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="552" y="440" font-size="9.5" fill="var(--ec0)" text-anchor="start">PASS</text>
+
+  <rect x="410" y="446" width="260" height="56" rx="5" fill="var(--panel)" stroke="var(--ec0)" stroke-width="1.5"/>
+  <circle cx="410" cy="474" r="10" fill="var(--accent)"/>
+  <text x="410" y="478" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">4</text>
+  <text x="540" y="469" font-size="11.5" fill="var(--ink)" text-anchor="middle">tick-ledger.sh &rarr; git commit</text>
+  <text x="540" y="485" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the code and its tick, one commit</text>
+
+  <text x="540" y="528" font-size="9.5" fill="var(--ec1)" text-anchor="middle">exit 1 &mdash; a fresh leaf, told the reason</text>
+  <text x="540" y="543" font-size="9.5" fill="var(--ec1)" text-anchor="middle">&le; 2 attempts in any phase, then bail</text>
+
+  <polyline points="670,474 720,474 720,131 746,131" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="710" y="300" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 710 300)">ticked, then tidied</text>
+
+  <!-- ── phase 3 · Refactor ─────────────────────────────────────────────────── -->
+  <rect x="750" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="900" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 3</text>
+  <text x="900" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Refactor &mdash; tidy until settled</text>
+
+  <rect x="770" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="770" cy="213" r="10" fill="var(--accent)"/>
+  <text x="770" y="217" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">2</text>
+  <text x="900" y="201" font-size="12" fill="var(--ink)" text-anchor="middle">supervise.sh &rarr; developer leaf</text>
+  <text x="900" y="219" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">one behaviour-preserving transform</text>
+  <text x="900" y="234" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">suite green, or the change reverted</text>
+  <polyline points="1030,196 1048,196 1048,230 1034,230" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+  <text x="1062" y="213" font-size="9" fill="var(--ink-faint)" text-anchor="middle" transform="rotate(-90 1062 213)">until none remain</text>
+  <line x1="900" y1="248" x2="900" y2="274" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="770" y="278" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="770" cy="313" r="10" fill="var(--accent)"/>
+  <text x="770" y="317" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="900" y="301" font-size="12" fill="var(--ink)" text-anchor="middle">verify.sh &rarr; blind verifier</text>
+  <text x="900" y="319" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">once, on the settled result: still</text>
+  <text x="900" y="334" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">green, and nothing smuggled in</text>
+  <line x1="900" y1="348" x2="900" y2="374" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="770" y="378" width="260" height="48" rx="5" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.3"/>
+  <text x="900" y="397" font-size="11.5" fill="var(--ink)" text-anchor="middle">parse-verdict.sh</text>
+  <text x="900" y="413" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">0 &middot; 1 &middot; 2</text>
+
+  <polyline points="770,402 750,402 750,213 764,213" fill="none" stroke="var(--ec1)" stroke-width="1.4" marker-end="url(#tl-r)"/>
+  <text x="761" y="308" font-size="9" fill="var(--ec1)" text-anchor="middle" transform="rotate(-90 761 308)">REJECT</text>
+
+  <text x="900" y="458" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the only phase that loops inside itself</text>
+  <text x="900" y="473" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">one verdict, not one per transform</text>
+
+  <polyline points="1030,402 1060,402 1060,570 900,570 900,586" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="1053" y="490" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 1053 490)">PASS</text>
+
+  <!-- ── the two ways a step ends ───────────────────────────────────────────── -->
+  <rect x="30" y="592" width="300" height="56" rx="5" fill="var(--panel)" stroke="var(--ec2)" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <circle cx="30" cy="620" r="10" fill="var(--accent)"/>
+  <text x="30" y="624" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">5</text>
+  <text x="180" y="615" font-size="11.5" fill="var(--ink)" text-anchor="middle">classify-bail.sh</text>
+  <text x="180" y="631" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">system failure | process failure</text>
+  <text x="180" y="668" font-size="9.5" fill="var(--ec1)" text-anchor="middle">a spent revise budget lands here too</text>
+
+  <rect x="750" y="592" width="300" height="56" rx="5" fill="var(--panel)" stroke="var(--ec0)" stroke-width="1.5"/>
+  <circle cx="750" cy="620" r="10" fill="var(--accent)"/>
+  <text x="750" y="624" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">4</text>
+  <text x="900" y="615" font-size="11.5" fill="var(--ink)" text-anchor="middle">tick-issue-criterion.sh</text>
+  <text x="900" y="631" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the mirror &mdash; the step is done</text>
+
+  <polyline points="900,648 900,730 16,730 16,16 180,16 180,24" fill="none" stroke="var(--ec0)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#tl-p)"/>
+  <text x="500" y="744" font-size="10" fill="var(--ec0)" text-anchor="middle">the next unchecked step &mdash; back to stage 1, and three phases again</text>
+</svg>
+</div>
+<figcaption>
+  One ledger step, start to finish. Each column is the <b>same machinery</b> &mdash; stages 2
+  and 3 &mdash; carrying a different prompt and a different rubric. Colour here means exit
+  code, never phase: Red and Green are TDD&rsquo;s names, so the phases are drawn in the
+  neutral accent to keep the two vocabularies apart.
+</figcaption>
+</figure>
+
+<p>Four things that only become visible once the loop is drawn:</p>
+<ul>
+  <li><strong>Three phases, three blind verdicts, one step.</strong> Stage 1 runs once per
+      step; stages 2 and 3 run once per phase &mdash; more, when a phase is revised. The
+      verifier is a fresh agent every time, so nothing it approved earlier carries over.</li>
+  <li><strong>The ledger ticks at Green, not at the end.</strong> The moment the
+      implementation is blind-approved, the tick and the code go into
+      <em>one</em> commit &mdash; so git history and the checklist cannot disagree even if
+      the run dies during Refactor.</li>
+  <li><strong>Refactor is the asymmetric one.</strong> It loops transforms <em>inside</em> the
+      phase, committing each, and takes a single verdict on the settled result. Verifying
+      each transform separately would multiply the cost of the expensive half without
+      changing what the suite already proves &mdash; the suite is the objective gate
+      throughout, and the verdict only asks whether the result is up to standard.</li>
+  <li><strong>None of this is in a script.</strong> No file under <code>scripts/</code>
+      knows there are three phases, what order they come in, or that Refactor loops. Phase
+      is a string the conductor passes down &mdash;
+      <code>verify.sh red&hellip;</code>, <code>green&hellip;</code>,
+      <code>refactor&hellip;</code> &mdash; which is exactly the split the
+      <a href="#division">division of labour</a> promised: the model decides, the scripts
+      enforce.</li>
+</ul>
 
 <h3 id="dataflow">How the data moves</h3>
 <p>
-  The map above says which scripts exist. This says what actually travels between them
+  The last two sections say which scripts exist and in what order they repeat. This says
+  what actually travels between them
   &mdash; because in veri the interesting content is not the calls, it is
   <strong>what crosses each boundary</strong>: a file on disk, a line of stdout, or a
   single exit code that chooses the next branch.
@@ -235,7 +456,7 @@ INTRO_HTML = r'''
 
 <figure class="dataflow">
 <div class="scroller">
-<svg viewBox="0 0 1080 840" role="img" aria-label="One veri cycle as a data flow: the committed ledger feeds next-unchecked.sh, whose printed step becomes a prompt; every leaf is launched through supervise.sh, which watches a log file's modification time as a heartbeat and an rc file for completion; the verifier's prompt is built from the spec and test path alone; parse-verdict.sh turns the leaf's stdout into exit code 0, 1 or 2, which selects between committing the step, revising it, or bailing.">
+<svg viewBox="0 0 1080 840" role="img" aria-label="One phase of one veri cycle as a data flow: the committed ledger feeds next-unchecked.sh, whose printed step becomes a prompt; every leaf is launched through supervise.sh, which watches a log file's modification time as a heartbeat and an rc file for completion; the verifier's prompt is built from the spec and test path alone; parse-verdict.sh turns the leaf's stdout into exit code 0, 1 or 2, which selects between committing the step, revising it, or bailing.">
   <defs>
     <marker id="df-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
@@ -371,7 +592,7 @@ INTRO_HTML = r'''
 
   <!-- loop back to the ledger -->
   <polyline points="176,794 176,816 28,816 28,125 246,125" fill="none" stroke="var(--ec0)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#df-p)"/>
-  <text x="18" y="452" font-size="10" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 18 452)">loop &mdash; the next unchecked step</text>
+  <text x="18" y="452" font-size="10" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 18 452)">loop &mdash; the next phase, then the next step</text>
 
   <!-- revise returns to a fresh prompt -->
   <polyline points="400,794 400,812 1036,812 1036,209 554,209" fill="none" stroke="var(--ec1)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#df-r)"/>
@@ -379,8 +600,9 @@ INTRO_HTML = r'''
 </svg>
 </div>
 <figcaption>
-  One step&rsquo;s journey. Solid lines carry data; dashed lines are the two ways a cycle
-  repeats. The three coloured branches at the bottom are the whole control flow of veri
+  One <a href="#tddloop">phase</a>&rsquo;s journey &mdash; Red, Green or Refactor, because
+  the phase changes the prompt and the rubric, never the shape. Solid lines carry data;
+  dashed lines are the two ways a cycle repeats. The three coloured branches at the bottom are the whole control flow of veri
   &mdash; <b>everything downstream of a step turns on one integer</b>.
 </figcaption>
 </figure>

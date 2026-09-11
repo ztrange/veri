@@ -11,7 +11,7 @@ there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely ev
 |---|---|
 | `make test` | The shell unit suites. **This is also the command veri detects when run against its own repo**, so it must stay green — a red baseline makes the conductor refuse to start. |
 | `make docs` | Regenerate `docs/walkthrough.html` from the scripts. |
-| `make docs-check` | Two phases: the docs build guards still fire, then the committed page still matches a fresh build. |
+| `make docs-check` | Two phases: the docs build guards still fire, then the committed page still matches a fresh build — and still agrees with the phases `build-verify-prompt.sh` accepts and the revise budget `SKILL.md` sets. |
 
 `docs-check` is deliberately **not** part of `test`, for the reason in the row above:
 documentation drifting behind code must never block a TDD run.
