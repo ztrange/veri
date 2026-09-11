@@ -128,6 +128,33 @@ cmp -s "$want" "$repo/.gitignore" && same=0 || same=$?
 { [[ "$same" == 0 ]] && [[ "$code" == 0 ]] && [[ "$out" == *"added"* ]]; } \
   && ok || no "newline-terminated .gitignore: appends the block with no blank line before it and reports added (cmp=$same want 0 identical to node_modules/ + the three rule lines, exit=$code want 0, stdout='$out' want it to contain 'added')"
 
+# 7. the caller's checkout — the primary clone the conductor was invoked from — stays clean while
+# the run's worktree sits under .tdd/ (issue #72). The rule the script writes into the worktree's
+# .gitignore is committed on the issue branch, so the primary checkout, still on `main`, never sees
+# it and keeps reporting `?? .tdd/`; the next preflight then refuses to start. The assertion is on
+# `git status --porcelain` in the primary checkout, because that is the command preflight runs.
+#
+# The seed reproduces the conductor's own step 1.4 in order: a repo with one commit and no
+# .gitignore, a worktree at .tdd/wt/1 on its own branch, the script, then the commit of what it
+# wrote — on the worktree's branch only, exactly as the conductor does it.
+git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
+
+repo="$work/caller"
+mkdir -p "$repo"
+git init -q -b main "$repo" >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+git_q "$repo" worktree add "$repo/.tdd/wt/1" -b tdd/1 >/dev/null 2>&1
+
+"$ENSURE" "$repo/.tdd/wt/1" >/dev/null 2>&1
+git_q "$repo/.tdd/wt/1" add .gitignore >/dev/null 2>&1
+git_q "$repo/.tdd/wt/1" commit -q -m "chore: ignore veri run state (#1)" >/dev/null 2>&1
+
+caller_status="$(git -C "$repo" status --porcelain 2>&1)"
+[[ -d "$repo/.tdd/wt/1" ]] && wt_there=0 || wt_there=1
+
+{ [[ -z "$caller_status" ]] && [[ "$wt_there" == 0 ]]; } \
+  && ok || no "caller's checkout: git status --porcelain is empty while the worktree at .tdd/wt/1 exists (status='$caller_status' want empty, worktree-present=$wt_there want 0)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
