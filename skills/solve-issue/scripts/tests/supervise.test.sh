@@ -54,9 +54,12 @@ L
 chmod +x "$stub"/leaf-*
 
 # sup <name> <heartbeat> <timeout> <leaf> -> sets $out / $code (runs in $work)
+# VERI_STUCK_RETRIES=0 is pinned, not inherited: every case here is about a single attempt,
+# so the caller's environment must not be able to add retries (extra killed-stuck attempts
+# would change both the stderr transcript and the suite's wall time).
 sup() {
   local name="$1" hb="$2" to="$3" leaf="$4"
-  out="$( cd "$work" && env VERI_HEARTBEAT="$hb" VERI_TIMEOUT="$to" VERI_POLL=0.2 \
+  out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$hb" VERI_TIMEOUT="$to" VERI_POLL=0.2 \
             "$SUP" "$name" "$stub/$leaf" 2>"$work/err" )"
   code=$?
 }
@@ -96,6 +99,18 @@ grep -qiE 'success|ok' "$work/err" && ok || no "emits a status line (err=$(cat "
 # 7. a killed leaf does not leave the stub's child (sleep) running (clean kill)
 sup hang 1 30 leaf-hang
 if pgrep -f "$stub/leaf-hang" >/dev/null 2>&1; then no "killed leaf left a process behind"; else ok; fi
+
+# 8. how many attempts a hung leaf gets is fixed by this suite, not by the shell that ran
+#    `make test`: with VERI_STUCK_RETRIES=3 ambient in the environment, sup() must still run
+#    the leaf exactly once — one killed-stuck status line on stderr and no `retry N/M` line.
+#    Kept last because it unsets the variable afterwards.
+export VERI_STUCK_RETRIES=3
+sup hang 1 30 leaf-hang
+unset VERI_STUCK_RETRIES
+stuck="$(grep -c 'supervise\[hang\]: killed-stuck' "$work/err")"
+retried="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
+{ [[ "$code" == 2 ]] && [[ "$stuck" -eq 1 ]] && [[ "$retried" -eq 0 ]]; } && ok \
+  || no "ambient VERI_STUCK_RETRIES=3 → hung leaf still runs exactly once (code=$code, killed-stuck lines=$stuck, retry lines=$retried)"
 
 echo "----"
 echo "$pass passed, $fail failed"
