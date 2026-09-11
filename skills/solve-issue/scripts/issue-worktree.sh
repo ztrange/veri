@@ -26,6 +26,22 @@ root="$(git rev-parse --show-toplevel)"
 branch="tdd/$n-$slug"
 path="$root/.tdd/wt/$n"
 
+# Idempotent: a second call for the same issue — a resume, or a conductor re-entering step 1 —
+# answers with the path it already made instead of dying on `git worktree add`'s "already
+# exists". The question is put to git's own registry: `worktree list --porcelain` prints one
+# `worktree <absolute-path>` line per registered worktree, and grep -x -F asks for that exact
+# line, whole and literal (-F: no regex, so a `.` in the path is a dot). Asking git rather than
+# `[[ -d $path ]]` matters — a leftover directory git no longer knows about is not a worktree
+# we can hand back, and it must fall through to the add below.
+#
+# <<< is a here-string: it feeds that one string to grep as its stdin. Not a `|` pipeline,
+# deliberately — `set -o pipefail` above would let git's exit code, including the SIGPIPE it
+# takes when grep -q stops reading early, decide the answer instead of grep's.
+if grep -qxF "worktree $path" <<<"$(git worktree list --porcelain)"; then
+  printf '%s\n' "$path"
+  exit 0
+fi
+
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
 # exists to prevent.
