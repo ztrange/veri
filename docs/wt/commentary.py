@@ -932,6 +932,34 @@ STAGES = [
   The third axis does not end in a bail at all. <code>refactor-budget.sh</code> returning
   <span class="ec ec-3"><b>3</b></span> says <em>stop tidying</em>, not <em>stop</em>: the
   run carries straight on to verifying the refactor it already has.
+</p></div></div></div>
+<p>
+  One script in this stage is not called by the conductor at all.
+  <a href="#solvable-issues"><code>solvable-issues.sh</code></a> sits a rung
+  <em>above</em> it: it is what <code>/solve-issues</code> runs to decide which issue to
+  hand to <code>/solve-issue</code> next, and the reason a bail matters beyond the run it
+  ends.
+</p>
+<div class="ann"><div class="ann-head"><span class="fname">the rung above the conductor</span>
+<span class="fmeta">stage 5</span></div>
+<div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472; recompute, every time &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;</span>
+<span class="l">&#9660;                                                             &#9474;</span>
+<span class="l">solvable-issues.sh   takeable = open &middot; ready-for-agent        &#9474;</span>
+<span class="l">&#9474;                                    &middot; unblocked &middot; unclaimed  &#9474;</span>
+<span class="l">&#9660;   [n&hellip;] lowest first, or exit 3 &mdash; none left, stop            &#9474;</span>
+<span class="l">/solve-issue &lt;n&gt; &#9472;&#9472;&#9488;                                          &#9474;</span>
+<span class="l">                   &#9500;&#9472; a draft PR &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</span>
+<span class="l">                   &#9492;&#9472; a bail  &rarr;  stop at the first bail</span></pre></div>
+<div class="ann-note"><p>
+  The four conditions are one conjunction, and <code>ready-for-agent</code> is the only one
+  a human sets: nothing is taken because it merely exists. <em>Unclaimed</em> means no open
+  pull request already says <code>Closes #&lt;n&gt;</code> &mdash; either a run is in flight
+  on that issue or one bailed and left the branch behind, and neither is veri's to take.
+</p><p>
+  The list is recomputed after every run rather than worked as computed: solving one issue
+  can unblock another, and a draft PR claims the one just finished. The run stops at the
+  first bail, because the thing that bailed is the thing a human now has to read &mdash;
+  and grinding through the rest of the list would bury it.
 </p></div></div></div>'''),
 ]
 
