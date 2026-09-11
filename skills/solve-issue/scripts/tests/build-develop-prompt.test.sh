@@ -22,6 +22,13 @@
 #   tidy-up — carrying the rule that bounds it further (no generality no test demands), and
 #   requiring the `RESULT:` / `FLAGS:` footer the conductor branches on.
 #
+# Contract under test, revise phase:
+#   build-develop-prompt.sh revise <phase> <spec-file> <step-text> <test-cmd> <reason-file>
+#   exits 0 and prints a prompt carrying the verifier's rejection reason verbatim — the
+#   fresh leaf never saw the rejected attempt, so the reason text is the whole of what it
+#   has to address — and offering `IMPOSSIBLE`, the outcome that lets it say the step
+#   cannot be met rather than fake a pass.
+#
 # Run: scripts/tests/build-develop-prompt.test.sh
 set -uo pipefail
 
@@ -73,6 +80,17 @@ refactor="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched
   && grep -q 'RESULT:' <<<"$refactor" \
   && grep -q 'FLAGS:' <<<"$refactor" \
   && ok || no "develop-refactor carries the touched-files list + the no-untested-generality rule and the RESULT:/FLAGS: footer (exit $code)"
+
+# 4. the revise prompt carries the verifier's rejection reason verbatim and offers the
+#    IMPOSSIBLE outcome
+cat > "$work/reason.md" <<'REASON'
+REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\chars.
+REASON
+revise="$("$BUILD" revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] \
+  && [[ "$revise" == *"REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."* ]] \
+  && [[ "$revise" == *'IMPOSSIBLE'* ]] \
+  && ok || no "develop-revise carries the rejection reason verbatim and the IMPOSSIBLE outcome (exit $code)"
 
 echo "----"
 echo "$pass passed, $fail failed"
