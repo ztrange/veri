@@ -14,7 +14,7 @@ PRIMER = [{'id': 'p-header',
              'sig': '#!/usr/bin/env bash',
              'name': 'Shebang',
              'body': '',
-             'seen': 'All 11 scripts, line 1.',
+             'seen': 'All 13 scripts, line 1.',
              'gloss': 'Tells the kernel to run this file with bash, found via PATH rather than a '
                       'hard-coded location.'},
             {'id': 'p-strict',
