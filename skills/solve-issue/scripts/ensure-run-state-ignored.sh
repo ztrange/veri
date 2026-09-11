@@ -20,22 +20,31 @@ ignore_all='.tdd/*'         # sweep every run artefact under .tdd/ out of git's 
 keep_ledger='!.tdd/issue-*.md'   # except the ledger, the one file that belongs in history
 drop_spec='.tdd/issue-*-spec.md' # but not the blind spec, which that negation would drag back in
 
-# has <line> — is <line> in $gitignore, whole and on its own line? -F keeps the glob literal
-# (no regex), -x forbids a partial-line match, so `x.tdd/*` does not count as `.tdd/*`.
-has() { grep -qxF "$1" "$gitignore"; }
+# where <line> — the number of the first line of $gitignore that IS <line>, whole and on its own,
+# or the empty string when absent. -F keeps the glob literal (no regex), -x forbids a partial-line
+# match so `x.tdd/*` does not count as `.tdd/*`, -n prefixes each hit with `<lineno>:` — `head -1`
+# takes the first hit and `cut` keeps the number, which is what the ordering check below compares.
+# `|| true` is load-bearing under `pipefail`: absent the line, grep exits 1 and the whole pipeline
+# inherits it, which `set -e` would turn into the script dying instead of reporting "not there".
+where() { grep -nxF "$1" "$gitignore" | head -1 | cut -d: -f1 || true; }
 
 if [ -f "$gitignore" ]; then
-  # "Already present" means the whole rule, never a subset. The last line on its own would ignore
-  # the ledger too, and appending a second `.tdd/*` after it cannot repair that — git reads the
-  # negation that precedes it. So a .gitignore carrying part of the rule is refused rather than
-  # rewritten: exit 2, the "no answer could be obtained" code, fails the conductor's preflight
-  # before a cycle starts committing its scratch.
-  if has "$ignore_all" && has "$keep_ledger" && has "$drop_spec"; then
+  # "Already present" means the whole rule, in git's reading order, never a subset and never the
+  # same three lines shuffled: with the negation last, `!.tdd/issue-*.md` un-ignores the spec the
+  # line above just re-ignored, so every line is there and the rule is not. Appending cannot repair
+  # either case — git reads a second `.tdd/*` after the negation that precedes it — so both are
+  # refused rather than rewritten: exit 2, the "no answer could be obtained" code, fails the
+  # conductor's preflight before a cycle starts committing its scratch.
+  at_all="$(where "$ignore_all")"
+  at_ledger="$(where "$keep_ledger")"
+  at_spec="$(where "$drop_spec")"
+  if [ -n "$at_all" ] && [ -n "$at_ledger" ] && [ -n "$at_spec" ] \
+    && [ "$at_all" -lt "$at_ledger" ] && [ "$at_ledger" -lt "$at_spec" ]; then
     echo "already present"
     exit 0
   fi
-  if has "$drop_spec"; then
-    echo "ensure-run-state-ignored: $gitignore carries part of veri's run-state rule, not all of it — fix it by hand" >&2
+  if [ -n "$at_spec" ]; then
+    echo "ensure-run-state-ignored: $gitignore carries veri's run-state rule only in part, or with its lines out of order — fix it by hand" >&2
     exit 2
   fi
 fi
