@@ -123,6 +123,16 @@ refuses "missing template" "$work/no-prompts/build-develop-prompt.sh" red "$work
 [[ -z "$refusal_bad" ]] \
   && ok || no "an unknown phase or a missing template/spec/reason file exits 2 with a diagnostic and prints no prompt (${refusal_bad#; })"
 
+# 6. that refusal does not depend on the later positionals being supplied: a bad phase on
+#    its own is still a bad-arguments case, which is exit 2. The shell's own `${N:?}` abort
+#    exits 1, so a missing-argument check reached first would answer the wrong question.
+bare_err="$work/bare-unknown-phase.err"
+bare_out="$("$BUILD" bogus 2>"$bare_err")"; code=$?
+[[ "$code" -eq 2 ]] \
+  && [[ -z "$bare_out" ]] \
+  && grep -q 'bogus' "$bare_err" \
+  && ok || no "an unknown phase with no further arguments exits 2, names the phase on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$bare_err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
