@@ -132,6 +132,6 @@ streaming heartbeat (#14), deterministic bail classification (#18), the run-stat
 ignore guard that makes a target repo safe to run in (#27) and the *already satisfied*
 step outcome — a blind verify-pin instead of a doomed red (#31).
 
-Next: rung 2 of the [scope ladder](./CONTEXT.md) — drain every *solvable* issue (its
-dependencies closed) one after another — then rung 3, several conductors in parallel over
-git worktrees. Demo materials live in [`fixtures/`](./fixtures).
+Rung 2 of the [scope ladder](./CONTEXT.md) is `/solve-issues` (#41): drain every
+*solvable* issue one after another. Next: rung 3, several conductors in parallel, each in
+its own worktree (#43 laid the ground). Demo materials live in [`fixtures/`](./fixtures).
