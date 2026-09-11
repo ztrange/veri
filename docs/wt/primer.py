@@ -14,7 +14,7 @@ PRIMER = [{'id': 'p-header',
              'sig': '#!/usr/bin/env bash',
              'name': 'Shebang',
              'body': '',
-             'seen': 'All 13 scripts, line 1.',
+             'seen': 'All 14 scripts, line 1.',
              'gloss': 'Tells the kernel to run this file with bash, found via PATH rather than a '
                       'hard-coded location.'},
             {'id': 'p-strict',
@@ -387,6 +387,39 @@ PRIMER = [{'id': 'p-header',
              'seen': '<code>parse-verdict.sh</code>, <code>next-unchecked.sh</code>.',
              'gloss': 'The safe line reader: no trimming, no backslash mangling, and it keeps a '
                       'final unterminated line.'},
+            {'id': 'p-glob',
+             'sig': 'for f in dir/*.ext; do [ -f "$f" ]',
+             'name': 'Globbing, and matching nothing',
+             'body': '<ul>\n'
+                     '      <li>Unquoted, a pattern like <code>dir/*.ext</code> is\n'
+                     '          <strong>expanded by the shell itself</strong> before the loop ever '
+                     'runs &mdash;\n'
+                     '          one word per matching file.</li>\n'
+                     '      <li>When nothing matches, bash\'s default behaviour is not to drop the '
+                     'word: the\n'
+                     '          pattern is left as <strong>its own literal text</strong>, spelled '
+                     'exactly as\n'
+                     '          written, and handed to the loop as if it had matched.</li>\n'
+                     '      <li><code>[ -f "$f" ]</code> turns that literal-text case into false '
+                     'the same way\n'
+                     '          it would for any other non-existent file, so the loop body only '
+                     'ever runs on\n'
+                     '          a real match.</li>\n'
+                     '    </ul>\n'
+                     '    <p>\n'
+                     '      The alternative is <code>shopt -s nullglob</code>, which makes a '
+                     'non-matching\n'
+                     '      pattern expand to <em>zero</em> words instead of one literal one, so '
+                     'the loop\n'
+                     '      runs zero times on its own and needs no <code>[ -f ]</code> guard. '
+                     'Either shape\n'
+                     '      works; this script picks the one that needs no global shell-option '
+                     'change.\n'
+                     '    </p>',
+             'seen': '<code>detect-test-command.sh</code> &mdash; the only loop in the suite over '
+                     'a filename pattern rather than a fixed path.',
+             'gloss': 'Unquoted, a glob expands to one word per matching file &mdash; or, with '
+                      'nothing to match, to its own literal text as a single word.'},
             {'id': 'p-printf',
              'sig': 'printf \'%s\\n\' "$x"',
              'name': 'printf, and why not echo',

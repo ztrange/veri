@@ -336,7 +336,7 @@ html{scroll-behavior:smooth}
 </style>
 
 <div class="shell">
-<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Capabilities</h4><a href="#capabilities">What veri gained, and when</a><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the thirteen scripts</a><a href="#tddloop">Where the TDD loop lives</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#build-develop-prompt"><span class="mono">build-develop-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a><a href="#how-versions-work">Where the versions come from</a></nav></aside>
+<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Capabilities</h4><a href="#capabilities">What veri gained, and when</a><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the fourteen scripts</a><a href="#tddloop">Where the TDD loop lives</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#detect-test-command"><span class="mono">detect-test-command.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#build-develop-prompt"><span class="mono">build-develop-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a><a href="#how-versions-work">Where the versions come from</a></nav></aside>
 <main>
 
 <!-- Breadcrumb. Static markup so the page still has a heading bar with no JS; app.js
@@ -351,13 +351,13 @@ html{scroll-behavior:smooth}
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
-    13 shell scripts, 729 lines, that let a language model run
+    14 shell scripts, 856 lines, that let a language model run
     test-driven development on itself without being trusted to. Every script in full,
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
-    <span><b>v0.14</b> latest version</span><span><b>13</b> scripts</span>
-    <span><b>729</b> lines, all shown</span>
+    <span><b>v0.14</b> latest version</span><span><b>14</b> scripts</span>
+    <span><b>856</b> lines, all shown</span>
     <span><b>38</b> reference entries</span>
   </p>
 </header>
@@ -417,7 +417,7 @@ html{scroll-behavior:smooth}
   That line is the entire design philosophy: <strong>the model decides, the scripts
   enforce.</strong> Anything that must be exact and repeatable is pulled out of the fuzzy
   part and into a shell script with a unit test behind it. So the guarantees you can
-  actually rely on all live in the 729 lines this page reproduces in full.
+  actually rely on all live in the 856 lines this page reproduces in full.
 </p>
 <p>One more role, because it appears constantly:</p>
 <ul>
@@ -463,7 +463,7 @@ html{scroll-behavior:smooth}
   </p>
 </div>
 
-<h3 id="map">Map of the thirteen scripts</h3>
+<h3 id="map">Map of the fourteen scripts</h3>
 <p>
   The scripts form a small dependency tower &mdash; the ones you call are compositions of
   the ones you don't. Read in the order data flows through one cycle, they group into five
@@ -1094,6 +1094,248 @@ html{scroll-behavior:smooth}
   change to commit.
 </p></div></div></div>
 
+<h3 id="detect-test-command"><code>detect-test-command.sh</code> &mdash; the one command that runs the suite<span class="vbadge new">unreleased</span></h3>
+<p>
+  Preflight's other half: before step 0.3 can prove the target's suite is green at baseline,
+  something first has to decide what &ldquo;run the suite&rdquo; even means for that repo.
+  Seven rules, first-match-wins, ending either in a printed command or in
+  <span class="ec ec-3"><b>3</b></span> &mdash; nothing decided, ask the human.
+</p>
+<div class="contract"><dl><dt>Usage</dt><dd><code>detect-test-command.sh [repo-root]</code> (default: the current directory)</dd><dt>stdout</dt><dd>the one command that runs the target repo's full suite, and nothing else</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> a rule matched &mdash; the command is on stdout</span> <span class="ec ec-3"><b>3</b> no rule matched &mdash; nothing to do, ask the human</span></dd></dl></div>
+<div class="ann"><div class="ann-head"><span class="fname">detect-test-command.sh</span><span class="fmeta">127 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<span class="l"><span class="c"># detect-test-command.sh — print the one command that runs the full suite of a repo.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Prints the command on stdout and exits 0; prints nothing and exits 3 when it cannot</span></span>
+<span class="l"><span class="c"># decide, which is the conductor's cue to ask the human.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Precedence is first-match-wins, and the override below is the first rule on purpose:</span></span>
+<span class="l"><span class="c"># whatever a later inference would have guessed, a repo that wrote .veri/test-command</span></span>
+<span class="l"><span class="c"># has already answered the question, so nothing downstream gets to second-guess it.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Usage:   detect-test-command.sh [repo-root]      (default: the current directory)</span></span>
+<span class="l"><span class="k">set</span> -euo pipefail</span></pre></div><div class="ann-note"><p>
+  The header states the contract before any rule runs: print the command on stdout and exit
+  <span class="ec ec-0"><b>0</b></span>, or print nothing and exit
+  <span class="ec ec-3"><b>3</b></span> &mdash; the <a href="#exitcodes">&ldquo;nothing to
+  do&rdquo; code</a>, not a failure, and the conductor's cue to ask a human rather than guess.
+</p><p>
+  It also names the shape every rule below shares before the code does:
+  <strong>precedence is first-match-wins.</strong> The override rule goes first on purpose
+  &mdash; whatever a later rule would have inferred, a repo that already wrote
+  <code>.veri/test-command</code> has answered the question itself, and nothing downstream
+  gets to second-guess it.
+</p><p>
+  <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a>, as everywhere else.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 12"><span class="l"></span>
+<span class="l">root=<span class="s">"</span><span class="v">${1:-.}</span><span class="s">"</span></span>
+<span class="l"></span>
+<span class="l"><span class="c"># Every rule below ends the same way, because precedence is first-match-wins: print the</span></span>
+<span class="l"><span class="c"># command it decided on, and stop — a rule that answered leaves nothing for the rest to do.</span></span>
+<span class="l"><span class="c"># Naming that ending once keeps each rule to the question it asks, the `if` saying which</span></span>
+<span class="l"><span class="c"># marker was found and `answer` saying what the marker means.</span></span>
+<span class="l">answer() { printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$1</span><span class="s">"</span>; <span class="k">exit</span> 0; }</span></pre></div><div class="ann-note"><p>
+  The repo root is optional, <a class="tt" data-ref="p-default" href="#p-default">${1:-.}</a>, so the conductor can call this bare from
+  the target's own working directory.
+</p><p>
+  <a class="tt" data-ref="p-func" href="#p-func">answer()</a> names the ending every rule shares: print the decided command and exit
+  0, immediately. Naming it once keeps each rule below to just the question it asks &mdash;
+  the <code>if</code> says which marker was found, <code>answer</code> says what the marker
+  means &mdash; and it is the reason a rule that matched never falls through to the next one.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 20"><span class="l"></span>
+<span class="l"><span class="c"># 1. The override file. Its first non-empty line is the command, verbatim: `IFS=` keeps</span></span>
+<span class="l"><span class="c"># read from stripping leading and trailing whitespace, -r keeps it from eating</span></span>
+<span class="l"><span class="c"># backslashes, and `answer` re-emits exactly those bytes — the whole point of the escape</span></span>
+<span class="l"><span class="c"># hatch is that what the repo wrote is what the leaf runs.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `|| [ -n "$line" ]` is load-bearing: read exits non-zero at end of file, which is also</span></span>
+<span class="l"><span class="c"># what it does after handing back a final line that had no trailing newline. Without the</span></span>
+<span class="l"><span class="c"># second test that last line would be read and then discarded.</span></span>
+<span class="l">override=<span class="s">"</span><span class="v">$root</span><span class="s">/.veri/test-command"</span></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$override</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">  <span class="k">while</span> IFS= read -r line || [ -n <span class="s">"</span><span class="v">$line</span><span class="s">"</span> ]; <span class="k">do</span></span>
+<span class="l">    <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$line</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">      answer <span class="s">"</span><span class="v">$line</span><span class="s">"</span></span>
+<span class="l">    <span class="k">fi</span></span>
+<span class="l">  <span class="k">done</span> &lt; <span class="s">"</span><span class="v">$override</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rule 1: the override file.</strong> If <code>.veri/test-command</code> exists, its
+  first non-empty line is the command, read back verbatim.
+</p><p>
+  <a class="tt" data-ref="p-readloop" href="#p-readloop">while IFS= read -r line || [ -n "$line" ]</a>. Three things are load-bearing
+  together, not separately: <code>IFS=</code> stops <code>read</code> from trimming leading
+  and trailing whitespace off the line, so a command that legitimately starts or ends with a
+  space survives; <code>-r</code> stops it from treating a backslash as an escape, so a
+  Windows-style path or a regex in the command is not silently mangled; and
+  <code>|| [ -n "$line" ]</code> covers the file's last line when it has no trailing newline
+  &mdash; <code>read</code> still fills <code>line</code> with it but returns non-zero as it
+  would at a genuine end-of-file, and without this clause that last line would be read and
+  then thrown away.
+</p><p>
+  The inner <code>if [ -n "$line" ]</code> skips blank lines, so a file that opens with an
+  empty line still yields its first real one; <code>answer</code> then re-emits those exact
+  bytes &mdash; the whole point of the escape hatch is that what the repo wrote is what the
+  leaf runs.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 36"><span class="l"><span class="k">fi</span></span>
+<span class="l"></span>
+<span class="l"><span class="c"># 2. A package.json that declares a test script names the node runner. Which runner is a</span></span>
+<span class="l"><span class="c"># separate question, answered by the lockfile the repo committed beside it: a lockfile is</span></span>
+<span class="l"><span class="c"># the repo saying which package manager actually installs here, so `pnpm test` / `yarn</span></span>
+<span class="l"><span class="c"># test` rather than an `npm test` that would resolve a different dependency tree.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `tr -d '[:space:]'` flattens the file to one line with no whitespace, so the pattern can</span></span>
+<span class="l"><span class="c"># be written as if package.json were minified — formatting stops mattering. `[^}]*` then</span></span>
+<span class="l"><span class="c"># pins the "test": key to inside the "scripts" object, so a dependency or a config section</span></span>
+<span class="l"><span class="c"># that happens to be called "test" cannot answer for it. Both are inside an `if`</span></span>
+<span class="l"><span class="c"># condition, where grep's exit 1 for "no match" is an answer rather than a failure `set</span></span>
+<span class="l"><span class="c"># -e` would abort on.</span></span>
+<span class="l">pkg=<span class="s">"</span><span class="v">$root</span><span class="s">/package.json"</span></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$pkg</span><span class="s">"</span> ] &amp;&amp; tr -d <span class="s">'[:space:]'</span> &lt; <span class="s">"</span><span class="v">$pkg</span><span class="s">"</span> | grep -q <span class="s">'"scripts":{[^}]*"test":'</span>; <span class="k">then</span></span>
+<span class="l">  <span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pnpm-lock.yaml"</span> ]; <span class="k">then</span></span>
+<span class="l">    answer <span class="s">'pnpm test'</span></span>
+<span class="l">  <span class="k">elif</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/yarn.lock"</span> ]; <span class="k">then</span></span>
+<span class="l">    answer <span class="s">'yarn test'</span></span>
+<span class="l">  <span class="k">else</span></span>
+<span class="l">    answer <span class="s">'npm test'</span></span>
+<span class="l">  <span class="k">fi</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rule 2: <code>package.json</code>.</strong> A declared <code>test</code> script
+  names the node runner; which runner is a separate question, answered by the lockfile
+  committed beside it &mdash; a lockfile is the repo saying which package manager actually
+  installs here, so <code>pnpm test</code> / <code>yarn test</code> rather than an
+  <code>npm test</code> that would resolve a different dependency tree.
+</p><p>
+  <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">tr -d '[:space:]' &lt; "$pkg"</a> flattens the file to one line with no whitespace
+  at all, so the pattern that follows can be written as if <code>package.json</code> were
+  minified &mdash; real-world formatting stops mattering. <code>[^}]*</code> then pins the
+  <code>"test":</code> key to <strong>inside the <code>"scripts"</code> object</strong>, so a
+  dependency or a config section that happens to be named <code>test</code> cannot answer for
+  it.
+</p><p>
+  Both commands sit inside an <code>if</code> condition, where <code>grep -q</code>'s exit 1
+  for &ldquo;no match&rdquo; is an answer rather than a failure <a class="tt" data-ref="p-strict" href="#p-strict">set -e</a> would
+  abort on &mdash; a command in <code>if</code>/<code>&amp;&amp;</code>/<code>||</code>
+  position is exempt from strict mode by construction, which is what lets this rule ask its
+  question instead of dying when the answer is no.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 59"><span class="l"></span>
+<span class="l"><span class="c"># 3. A Makefile declaring a `test:` target names `make test`, and it does so before the</span></span>
+<span class="l"><span class="c"># python markers are ever looked at. That ordering is deliberate and differs from the one</span></span>
+<span class="l"><span class="c"># SKILL.md used to describe: a repo that wrote a `test` target chose it — very often</span></span>
+<span class="l"><span class="c"># precisely to wrap `pytest` with whatever else the suite needs — so the target answers,</span></span>
+<span class="l"><span class="c"># and pytest.ini is left to speak for repos that wrote no target at all.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `^test[[:space:]]*:` anchors the match to a rule at the start of a line, allowing the</span></span>
+<span class="l"><span class="c"># `test :` spelling make also accepts; `.PHONY: test` does not start with `test`, so it</span></span>
+<span class="l"><span class="c"># cannot be mistaken for the target itself.</span></span>
+<span class="l">mk=<span class="s">"</span><span class="v">$root</span><span class="s">/Makefile"</span></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$mk</span><span class="s">"</span> ] &amp;&amp; grep -qE <span class="s">'^test[[:space:]]*:'</span> <span class="s">"</span><span class="v">$mk</span><span class="s">"</span>; <span class="k">then</span></span>
+<span class="l">  answer <span class="s">'make test'</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rule 3: the Makefile.</strong> A <code>test:</code> target names <code>make
+  test</code>. <code>grep -qE '^test[[:space:]]*:'</code> anchors the match to the
+  <em>start</em> of a line, so a <code>test :</code> spelling still matches while
+  <code>.PHONY: test</code> &mdash; which does not itself start with <code>test</code> &mdash;
+  cannot be mistaken for the target.
+</p><div class="note"><span class="tag">Reordered on purpose</span><p>
+  This rule runs <strong>before</strong> the python markers below it, and the script's own
+  comment records that the ordering used to be described the other way round. A repo that
+  wrote a <code>test</code> target chose it &mdash; often precisely to wrap
+  <code>pytest</code> with whatever else the suite needs beyond it &mdash; so the target gets
+  to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
+  at all.
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 73"><span class="l"></span>
+<span class="l"><span class="c"># 4. A repo that declares pytest configuration names `pytest -q` — `-q` because the</span></span>
+<span class="l"><span class="c"># conductor reads the exit status, not the dots. Two spellings are one rule, and they are</span></span>
+<span class="l"><span class="c"># asked differently on purpose. `pytest.ini` exists only to configure pytest, so the</span></span>
+<span class="l"><span class="c"># filename alone is the whole claim and the file may well be empty. `pyproject.toml` makes</span></span>
+<span class="l"><span class="c"># no such claim — it is packaging metadata for any python project — so this looks inside</span></span>
+<span class="l"><span class="c"># it for the section that does: `[tool.pytest`, anchored to the start of a line so a</span></span>
+<span class="l"><span class="c"># mention in prose or in another table's value cannot answer for it, and matched as a</span></span>
+<span class="l"><span class="c"># prefix because real repos write `[tool.pytest.ini_options]`.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the</span></span>
+<span class="l"><span class="c"># dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an</span></span>
+<span class="l"><span class="c"># answer rather than a failure `set -e` would abort on.</span></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pytest.ini"</span> ] \</span>
+<span class="l">  || { [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pyproject.toml"</span> ] &amp;&amp; grep -qE <span class="s">'^\[tool\.pytest'</span> <span class="s">"</span><span class="v">$root</span><span class="s">/pyproject.toml"</span>; }; <span class="k">then</span></span>
+<span class="l">  answer <span class="s">'pytest -q'</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rule 4: pytest configuration.</strong> Two files, asked about differently on
+  purpose. <code>pytest.ini</code> exists only to configure pytest, so the filename alone is
+  the whole claim &mdash; the file may well be empty. <code>pyproject.toml</code> makes no
+  such claim; it is packaging metadata for any python project, so this looks
+  <em>inside</em> it for the section that does, anchored to the start of a line so a mention
+  in prose or another table's value cannot answer for it:
+  <code>grep -qE '^\[tool\.pytest'</code>. <code>\[</code> escapes the bracket that would
+  otherwise open a character class, <code>\.</code> keeps the dot literal instead of matching
+  any character, and the pattern is a prefix match on purpose because real repos write
+  <code>[tool.pytest.ini_options]</code>.
+</p><p>
+  <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
+  the exit status, not the dots, so quiet output is what a leaf should actually see.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 90"><span class="l"></span>
+<span class="l"><span class="c"># 5 and 6. The two compiled stacks each name their toolchain's own runner. Both markers are</span></span>
+<span class="l"><span class="c"># the manifest their toolchain requires at the repo root, and neither filename belongs to</span></span>
+<span class="l"><span class="c"># any other kind of project, so — unlike pyproject.toml above — the name alone is the whole</span></span>
+<span class="l"><span class="c"># claim and nothing inside the file needs reading.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `./...` is go's own spelling for "every package beneath here"; without it `go test` runs</span></span>
+<span class="l"><span class="c"># only the root package and quietly skips the rest of the suite. `cargo test` already walks</span></span>
+<span class="l"><span class="c"># the whole crate, so it needs no argument.</span></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/go.mod"</span> ]; <span class="k">then</span></span>
+<span class="l">  answer <span class="s">'go test ./...'</span></span>
+<span class="l"><span class="k">fi</span></span>
+<span class="l"></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/Cargo.toml"</span> ]; <span class="k">then</span></span>
+<span class="l">  answer <span class="s">'cargo test'</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
+  runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
+  <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
+  whole claim and nothing inside either file needs reading.
+</p><p>
+  <code>./...</code> is go's own spelling for &ldquo;every package beneath here&rdquo;;
+  without it, <code>go test</code> runs only the root package and quietly skips the rest of
+  the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
+  whole crate.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 106"><span class="l"></span>
+<span class="l"><span class="c"># 7. The last rule before giving up: a python repo that committed no runner configuration at</span></span>
+<span class="l"><span class="c"># all still has a suite if `tests/` holds files named `test_*.py`, and the stdlib runs them</span></span>
+<span class="l"><span class="c"># without anything installed — `python3` because a modern macOS has no `python`, `-m unittest</span></span>
+<span class="l"><span class="c"># discover` because there is no runner script to call, `-q` for the same reason as pytest's.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Unlike every rule above, the marker is a pattern rather than a file at a known path, so the</span></span>
+<span class="l"><span class="c"># question is asked by letting the shell expand the pattern and testing what came back. A glob</span></span>
+<span class="l"><span class="c"># that matches nothing is left as its own literal text by default, and `[ -f ]` is false for</span></span>
+<span class="l"><span class="c"># that non-existent filename — so the loop answers on the first real match and falls through</span></span>
+<span class="l"><span class="c"># when there was none, with no need for the `nullglob` that bash 3.2 would handle differently.</span></span>
+<span class="l"><span class="c"># Only the pattern is unquoted: "$root" stays quoted so a path with spaces still resolves.</span></span>
+<span class="l"><span class="k">for</span> f <span class="k">in</span> <span class="s">"</span><span class="v">$root</span><span class="s">"</span>/tests/test_*.py; <span class="k">do</span></span>
+<span class="l">  <span class="k">if</span> [ -f <span class="s">"</span><span class="v">$f</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">    answer <span class="s">'python3 -m unittest discover -q'</span></span>
+<span class="l">  <span class="k">fi</span></span>
+<span class="l"><span class="k">done</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rule 7, the last before giving up:</strong> a python repo that committed no runner
+  configuration at all still has a suite if <code>tests/</code> holds files named
+  <code>test_*.py</code>, and the stdlib can run them with nothing installed &mdash;
+  <code>python3</code> because a modern macOS ships no bare <code>python</code>, <code>-m
+  unittest discover</code> because there is no runner script to call.
+</p><p>
+  Unlike every marker above, this one is a pattern rather than a file at a known path, so the
+  question is asked by <a class="tt" data-ref="p-glob" href="#p-glob">letting the shell expand the pattern</a> and testing what came
+  back. Only the pattern half of the path is left unquoted &mdash; <code>"$root"</code> stays
+  quoted so a root containing spaces still resolves &mdash; and a glob that matches nothing
+  is left as its own literal, non-existent filename, which <code>[ -f "$f" ]</code> is false
+  for. The loop answers on the first real match and simply falls through when there was none,
+  with no need for the <code>nullglob</code> shell option.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 123"><span class="l"></span>
+<span class="l"><span class="c"># Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the</span></span>
+<span class="l"><span class="c"># question to the human.</span></span>
+<span class="l"><span class="k">exit</span> 3</span></pre></div><div class="ann-note"><p>
+  Nothing decided: say nothing, and let <span class="ec ec-3"><b>3</b></span> &mdash;
+  &ldquo;nothing to do&rdquo;, not an error &mdash; send the question to the human, the same
+  code <a href="#next-unchecked"><code>next-unchecked.sh</code></a> uses when the ledger has
+  no unticked step left.
+</p></div></div></div>
+
 <div class="stage-head" id="s1"><p class="stage-num">Stage <b>1</b> &middot; read the ledger</p><h2>Where a cycle begins</h2><p class="stage-lede">Before anything runs, the conductor asks one question: what is the next thing to do? The answer comes from a committed markdown checklist, and from the smallest script in the suite.</p></div>
 
 <p>
@@ -1148,7 +1390,7 @@ html{scroll-behavior:smooth}
 <span class="l"></span>
 <span class="l">re=<span class="s">'^[[:space:]]*- \[ \] (.*)$'</span></span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Twelve of the thirteen scripts open
+  variables, and let a pipeline fail if any stage does. Thirteen of the fourteen scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
@@ -2869,7 +3111,7 @@ html{scroll-behavior:smooth}
     entry links back to the scripts that use it.
   </p>
 </div>
-<div class="primer-group"><h3 id="p-header">Header &amp; safety</h3><div class="cards"><div class="card" id="p-shebang"><code class="card-sig">#!/usr/bin/env bash</code><p class="card-name">Shebang</p><p class="seen">All 13 scripts, line 1.</p><p class="used-by"><b>Referenced from</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a></p></div><div class="card" id="p-strict"><code class="card-sig">set -euo pipefail</code><p class="card-name">Strict mode</p><ul>
+<div class="primer-group"><h3 id="p-header">Header &amp; safety</h3><div class="cards"><div class="card" id="p-shebang"><code class="card-sig">#!/usr/bin/env bash</code><p class="card-name">Shebang</p><p class="seen">All 14 scripts, line 1.</p><p class="used-by"><b>Referenced from</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a></p></div><div class="card" id="p-strict"><code class="card-sig">set -euo pipefail</code><p class="card-name">Strict mode</p><ul>
       <li><code>-e</code> — <strong>exit immediately</strong> if any command returns
           non-zero. Fail fast instead of continuing on corrupt state.</li>
       <li><code>-u</code> — <strong>error on an unset variable</strong> instead of quietly
@@ -2878,7 +3120,7 @@ html{scroll-behavior:smooth}
       <li><code>-o pipefail</code> — a <strong>pipeline fails if any stage fails</strong>.
           By default <code>a | b</code> reports only <code>b</code>'s status, so a crash in
           <code>a</code> vanishes.</li>
-    </ul><p class="seen">10 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
+    </ul><p class="seen">10 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#detect-test-command"><code>detect-test-command.sh</code></a>, <a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
       Wherever you see this, the exit code is <strong>meaningful information</strong>, not a
       malfunction — the script wants to branch on it.
     </p><p class="seen"><code>run-leaf.sh</code>, <code>verify.sh</code> (twice).</p><p class="used-by"><b>Referenced from</b><a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#verify"><code>verify.sh</code></a></p></div><div class="card" id="p-shopt"><code class="card-sig">shopt -u patsub_replacement 2&gt;/dev/null || true</code><p class="card-name">A shell option, disabled portably</p><p>
@@ -2897,12 +3139,12 @@ html{scroll-behavior:smooth}
       This is how every tunable in veri works: <code>"${VERI_TIMEOUT:-900}"</code> means
       "whatever the environment says, else 900". That single idiom is what makes the scripts
       testable — a test can set <code>VERI_TIMEOUT=2</code> and not wait fifteen minutes.
-    </p><p class="seen">All tunables; every optional argument.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></div><div class="card" id="p-guard"><code class="card-sig">"${VAR:-}"</code><p class="card-name">The empty-default guard</p><p class="seen"><code>${CLAUDE_BIN:-claude}</code>, <code>${VERIFY_LEAF_ARGS:-}</code>, <code>${GH_REPO:-}</code>.</p><p class="used-by"><b>Referenced from</b><a href="#verify"><code>verify.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-cmdsub"><code class="card-sig">$( … )</code><p class="card-name">Command substitution</p><p>
+    </p><p class="seen">All tunables; every optional argument.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#detect-test-command"><code>detect-test-command.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></div><div class="card" id="p-guard"><code class="card-sig">"${VAR:-}"</code><p class="card-name">The empty-default guard</p><p class="seen"><code>${CLAUDE_BIN:-claude}</code>, <code>${VERIFY_LEAF_ARGS:-}</code>, <code>${GH_REPO:-}</code>.</p><p class="used-by"><b>Referenced from</b><a href="#verify"><code>verify.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-cmdsub"><code class="card-sig">$( … )</code><p class="card-name">Command substitution</p><p>
       Two consequences worth holding onto. First, it is a separate process, so it cannot
       modify the caller's variables. Second — and this catches everyone — it
       <strong>strips all trailing newlines</strong> from what it captures. Scripts that need
       the newline back add it explicitly with <a class="ref" href="#p-printf">printf '%s\n'</a>.
-    </p><p class="seen">Everywhere. The backtick form <code>` … `</code> means the same thing but doesn't nest; it is not used here.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-special"><code class="card-sig">$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0</code><p class="card-name">Special parameters</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a></p></div><div class="card" id="p-subst"><code class="card-sig">${v//search/replace}</code><p class="card-name">Substring replacement</p><p>
+    </p><p class="seen">Everywhere. The backtick form <code>` … `</code> means the same thing but doesn't nest; it is not used here.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#detect-test-command"><code>detect-test-command.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-special"><code class="card-sig">$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0</code><p class="card-name">Special parameters</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#run-leaf"><code>run-leaf.sh</code></a></p></div><div class="card" id="p-subst"><code class="card-sig">${v//search/replace}</code><p class="card-name">Substring replacement</p><p>
       Crucially it is a <strong>literal</strong> replacement. That is why veri templates
       prompts with this instead of <code>sed</code>: an issue body is arbitrary human text
       full of <code>&amp;</code>, <code>\</code> and <code>/</code>, all of which
@@ -2973,7 +3215,23 @@ html{scroll-behavior:smooth}
     <p>
       The naive alternatives — <code>for line in $(cat f)</code> — split on spaces rather
       than newlines and glob-expand the results. They are simply broken.
-    </p><p class="seen"><code>parse-verdict.sh</code>, <code>next-unchecked.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a></p></div><div class="card" id="p-printf"><code class="card-sig">printf '%s\n' "$x"</code><p class="card-name">printf, and why not echo</p><p>
+    </p><p class="seen"><code>parse-verdict.sh</code>, <code>next-unchecked.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#detect-test-command"><code>detect-test-command.sh</code></a>, <a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a></p></div><div class="card" id="p-glob"><code class="card-sig">for f in dir/*.ext; do [ -f "$f" ]</code><p class="card-name">Globbing, and matching nothing</p><ul>
+      <li>Unquoted, a pattern like <code>dir/*.ext</code> is
+          <strong>expanded by the shell itself</strong> before the loop ever runs &mdash;
+          one word per matching file.</li>
+      <li>When nothing matches, bash's default behaviour is not to drop the word: the
+          pattern is left as <strong>its own literal text</strong>, spelled exactly as
+          written, and handed to the loop as if it had matched.</li>
+      <li><code>[ -f "$f" ]</code> turns that literal-text case into false the same way
+          it would for any other non-existent file, so the loop body only ever runs on
+          a real match.</li>
+    </ul>
+    <p>
+      The alternative is <code>shopt -s nullglob</code>, which makes a non-matching
+      pattern expand to <em>zero</em> words instead of one literal one, so the loop
+      runs zero times on its own and needs no <code>[ -f ]</code> guard. Either shape
+      works; this script picks the one that needs no global shell-option change.
+    </p><p class="seen"><code>detect-test-command.sh</code> &mdash; the only loop in the suite over a filename pattern rather than a fixed path.</p><p class="used-by"><b>Referenced from</b><a href="#detect-test-command"><code>detect-test-command.sh</code></a></p></div><div class="card" id="p-printf"><code class="card-sig">printf '%s\n' "$x"</code><p class="card-name">printf, and why not echo</p><p>
       That control is used deliberately: <code>printf '%s\n'</code> restores the newline
       that <a class="ref" href="#p-cmdsub">$( … )</a> stripped, while <code>printf '%s'</code>
       writes a value with no trailing newline at all.
@@ -2998,7 +3256,7 @@ html{scroll-behavior:smooth}
       <code>supervise.sh</code> uses that deliberately: its <code>attempt_once</code>
       function sets <code>status</code> and <code>reason</code> for the main loop to read,
       which is how it returns four values from something that can only return an integer.
-    </p><p class="seen"><code>supervise.sh</code>, <code>parse-verdict.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-bg"><code class="card-sig">( cmd ) &amp; &nbsp;→&nbsp; pid=$!</code><p class="card-name">Subshells and background jobs</p><p>
+    </p><p class="seen"><code>supervise.sh</code>, <code>parse-verdict.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#detect-test-command"><code>detect-test-command.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-bg"><code class="card-sig">( cmd ) &amp; &nbsp;→&nbsp; pid=$!</code><p class="card-name">Subshells and background jobs</p><p>
       That non-waiting is the whole basis of supervision. You cannot watch a process you are
       blocked on. <code>$!</code> then gives you its PID so you can watch and, if necessary,
       kill it.
@@ -3038,7 +3296,7 @@ html{scroll-behavior:smooth}
   </p>
 </div>
 <p>
-  <code>docs/build-walkthrough.py</code> reads the thirteen scripts and emits this page. The
+  <code>docs/build-walkthrough.py</code> reads the fourteen scripts and emits this page. The
   source you see is <strong>not a copy</strong> &mdash; it is read from the files at build
   time, so the code half cannot drift. The prose half lives in
   <code>docs/wt/commentary.py</code>, keyed by line range.
@@ -3054,7 +3312,7 @@ html{scroll-behavior:smooth}
 <div class="tbl-wrap">
 <table>
   <thead><tr><th>Script</th><th class="num">Lines</th><th>Stage</th></tr></thead>
-  <tbody><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">94</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr></tbody>
+  <tbody><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">127</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">94</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr></tbody>
 </table>
 </div>
 <p>
@@ -3106,15 +3364,15 @@ html{scroll-behavior:smooth}
     <strong>veri, Annotated</strong> &mdash; the complete source of veri's
     <code>/solve-issue</code> conductor, read line by line.
   </p>
-  <p class="mono">13 scripts &middot; 729 lines &middot; generated by docs/build-walkthrough.py</p>
+  <p class="mono">14 scripts &middot; 856 lines &middot; generated by docs/build-walkthrough.py</p>
 </footer>
 </div>
 
 </main>
 </div>
 
-<script>window.__VERI_TIPS__ = {"p-ansic":{"gloss":"Interprets C escapes, so this is a real newline character rather than a backslash and an n.","name":"ANSI-C quoting","sig":"$'\\n'"},"p-arith":{"gloss":"Integer maths with C syntax — variables need no <code>$</code> and comparisons read normally.","name":"Arithmetic evaluation","sig":"(( … ))"},"p-array":{"gloss":"Holds a list of arguments so each stays one argument, even when it contains spaces.","name":"Arrays, and why they exist","sig":"arr=( a b c ) &nbsp;→&nbsp; \"${arr[@]}\""},"p-arrayempty":{"gloss":"Lets an empty array expand to zero arguments instead of aborting under <code>set -u</code> on old bash.","name":"The empty-array guard","sig":"\"${arr[@]+\"${arr[@]}\"}\""},"p-arrayidx":{"gloss":"<code>${!a[@]}</code> the indices · <code>${#a[@]}</code> the length · <code>${a[@]:n}</code> a slice from n.","name":"Indices, length, slice","sig":"\"${!arr[@]}\" &nbsp; ${#arr[@]} &nbsp; \"${arr[@]:n}\""},"p-awk":{"gloss":"Line-oriented text processor. Pass shell values through the environment, never by interpolating into the program.","name":"awk, and getting data into it safely","sig":"awk 'BEGIN{…} {…} END{…}'"},"p-bg":{"gloss":"A subshell run in the background. The script continues immediately — which is what makes watching it possible.","name":"Subshells and background jobs","sig":"( cmd ) &amp; &nbsp;→&nbsp; pid=$!"},"p-case":{"gloss":"Bash's switch. Glob patterns, <code>|</code> for alternatives, <code>*)</code> as the default, no fall-through.","name":"Pattern dispatch","sig":"case \"$x\" in … esac"},"p-cmdsub":{"gloss":"Run a command in a child process and evaluate to its stdout. Strips all trailing newlines.","name":"Command substitution","sig":"$( … )"},"p-default":{"gloss":"Use this value if set and non-empty, otherwise fall back to the default. Never assigns.","name":"Default value","sig":"\"${2:-default}\""},"p-envprefix":{"gloss":"Set a variable for one command only, without leaking it into the rest of the script.","name":"Per-command environment","sig":"VAR=value command"},"p-exec":{"gloss":"Replaces the shell with the new program instead of forking — same PID, same stdin, status passes straight through.","name":"Replacing the process","sig":"exec python3 -c '…'"},"p-func":{"gloss":"Arguments arrive as <code>$1</code>, <code>$2</code>…; it returns an exit status, so data comes back via stdout or a global.","name":"Functions","sig":"name() { …; }"},"p-guard":{"gloss":"Default to nothing, so reading an optional variable doesn't abort under <code>set -u</code>.","name":"The empty-default guard","sig":"\"${VAR:-}\""},"p-heredoc":{"gloss":"Feeds a literal text block in as stdin — which is why it can't be used when stdin carries real data.","name":"Here-documents","sig":"cmd &lt;&lt;'EOF' … EOF"},"p-jobcontrol":{"gloss":"Puts a background job in its own process group, so the whole tree can be signalled at once.","name":"Job control &amp; process groups","sig":"set -m &nbsp;…&nbsp; set +m"},"p-kill":{"gloss":"Sends a signal. A negative PID targets the process group; <code>-0</code> only probes; TERM asks, KILL cannot be refused.","name":"Signals — and the minus sign that matters","sig":"kill -TERM -$pid &nbsp;·&nbsp; kill -0 $pid"},"p-mktemp":{"gloss":"Atomically creates a uniquely-named temp file, avoiding the race and the security hole of a fixed name.","name":"Temporary files","sig":"tmp=\"$(mktemp)\""},"p-noop":{"gloss":"<code>:</code> does nothing and succeeds. <code>: &gt; f</code> truncates a file; <code>while :;</code> loops forever.","name":"The null command","sig":": &nbsp;·&nbsp; : &gt; file &nbsp;·&nbsp; while :;"},"p-pipe":{"gloss":"Pipes connect stdout to stdin; <code>tee</code> copies a stream aside; <code>PIPESTATUS</code> recovers a stage's lost exit code.","name":"Pipes, tee, and recovering a lost status","sig":"a | b &nbsp;·&nbsp; tee file &nbsp;·&nbsp; \"${PIPESTATUS[0]}\""},"p-printf":{"gloss":"Portable and predictable, unlike <code>echo</code> — you control the trailing newline exactly.","name":"printf, and why not echo","sig":"printf '%s\\n' \"$x\""},"p-printfv":{"gloss":"Write printf's output into a variable instead of stdout, preserving trailing newlines.","name":"Printf into a variable","sig":"printf -v name '%s\\n' \"${arr[@]}\""},"p-quote":{"gloss":"Quoting stops the shell splitting the value on whitespace and expanding it as a filename pattern.","name":"Quoting — the one habit that matters most","sig":"\"$var\""},"p-readloop":{"gloss":"The safe line reader: no trimming, no backslash mangling, and it keeps a final unterminated line.","name":"Reading lines without corrupting them","sig":"while IFS= read -r line || [[ -n \"$line\" ]]"},"p-redirect":{"gloss":"Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. <code>&gt;</code> truncates immediately.","name":"Redirection","sig":"&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null"},"p-regex":{"gloss":"Built-in regex match; captures land in <code>BASH_REMATCH</code>. The pattern must be unquoted.","name":"Built-in regular expressions","sig":"[[ \"$s\" =~ regex ]] &nbsp;→&nbsp; BASH_REMATCH"},"p-required":{"gloss":"Use this argument, or print the message and abort. An inline precondition check.","name":"Required-argument assertion","sig":"\"${1:?usage: …}\""},"p-sete":{"gloss":"Turn fail-fast off around one command so you can capture its exit code instead of dying on it.","name":"Temporarily disabling fail-fast","sig":"set +e … rc=$? … set -e"},"p-shebang":{"gloss":"Tells the kernel to run this file with bash, found via PATH rather than a hard-coded location.","name":"Shebang","sig":"#!/usr/bin/env bash"},"p-shopt":{"gloss":"Turns one named shell behaviour on or off. Here: disable bash 5.2&rsquo;s <code>&amp;</code>-means-the-match default in <code>${v//a/b}</code>, portably no-op&rsquo;d on bash 3.2 where the option does not exist.","name":"A shell option, disabled portably","sig":"shopt -u patsub_replacement 2&gt;/dev/null || true"},"p-shortcircuit":{"gloss":"<code>||</code> runs the right side only on failure, <code>&amp;&amp;</code> only on success. Also exempts the left from <code>set -e</code>.","name":"Short-circuit chaining","sig":"cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2"},"p-special":{"gloss":"<code>$?</code> last exit status · <code>$!</code> last background PID · <code>$@</code> all arguments · <code>$#</code> count · <code>$0</code> script path.","name":"Special parameters","sig":"$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0"},"p-strict":{"gloss":"Fail fast: exit on any error, error on unset variables, and let a pipeline fail if any stage does.","name":"Strict mode","sig":"set -euo pipefail"},"p-strict-partial":{"gloss":"Strict mode with <code>-e</code> deliberately left out, so an expected non-zero exit doesn't kill the script.","name":"Strict mode without <code>-e</code>","sig":"set -uo pipefail"},"p-strip":{"gloss":"Cut a matching pattern off one end. <code>#</code> from the front, <code>%</code> from the back; doubled is greedy.","name":"Prefix and suffix stripping","sig":"${v#pat} &nbsp; ${v##pat} &nbsp; ${v%pat} &nbsp; ${v%%pat}"},"p-subst":{"gloss":"Replace every occurrence, literally — no pattern language, so arbitrary text passes through intact.","name":"Substring replacement","sig":"${v//search/replace}"},"p-test":{"gloss":"Bash's conditional expression: file tests, string tests, and numeric comparison.","name":"Conditional expression","sig":"[[ … ]]"},"p-trap":{"gloss":"Runs a command when the script exits, however it exits. Bash's <code>finally</code> block.","name":"Cleanup handlers","sig":"trap 'rm -f \"$tmp\"' EXIT"},"p-wait":{"gloss":"Blocks until a background process finishes and clears its zombie entry. Useless for monitoring, precisely because it blocks.","name":"Reaping a child","sig":"wait \"$pid\""}};</script>
-<script>window.__VERI_NAV__ = [{"id":"capabilities","trail":[{"t":"Capabilities","h":"capabilities"}]},{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the thirteen scripts","h":"map"}]},{"id":"tddloop","trail":[{"t":"Orientation","h":""},{"t":"Where the TDD loop lives","h":"tddloop"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s0","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"}]},{"id":"ensure-run-state-ignored","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"ensure-run-state-ignored.sh","h":"ensure-run-state-ignored"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"build-develop-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-develop-prompt.sh","h":"build-develop-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]},{"id":"how-versions-work","trail":[{"t":"Upkeep","h":""},{"t":"Where the versions come from","h":"how-versions-work"}]}];</script>
+<script>window.__VERI_TIPS__ = {"p-ansic":{"gloss":"Interprets C escapes, so this is a real newline character rather than a backslash and an n.","name":"ANSI-C quoting","sig":"$'\\n'"},"p-arith":{"gloss":"Integer maths with C syntax — variables need no <code>$</code> and comparisons read normally.","name":"Arithmetic evaluation","sig":"(( … ))"},"p-array":{"gloss":"Holds a list of arguments so each stays one argument, even when it contains spaces.","name":"Arrays, and why they exist","sig":"arr=( a b c ) &nbsp;→&nbsp; \"${arr[@]}\""},"p-arrayempty":{"gloss":"Lets an empty array expand to zero arguments instead of aborting under <code>set -u</code> on old bash.","name":"The empty-array guard","sig":"\"${arr[@]+\"${arr[@]}\"}\""},"p-arrayidx":{"gloss":"<code>${!a[@]}</code> the indices · <code>${#a[@]}</code> the length · <code>${a[@]:n}</code> a slice from n.","name":"Indices, length, slice","sig":"\"${!arr[@]}\" &nbsp; ${#arr[@]} &nbsp; \"${arr[@]:n}\""},"p-awk":{"gloss":"Line-oriented text processor. Pass shell values through the environment, never by interpolating into the program.","name":"awk, and getting data into it safely","sig":"awk 'BEGIN{…} {…} END{…}'"},"p-bg":{"gloss":"A subshell run in the background. The script continues immediately — which is what makes watching it possible.","name":"Subshells and background jobs","sig":"( cmd ) &amp; &nbsp;→&nbsp; pid=$!"},"p-case":{"gloss":"Bash's switch. Glob patterns, <code>|</code> for alternatives, <code>*)</code> as the default, no fall-through.","name":"Pattern dispatch","sig":"case \"$x\" in … esac"},"p-cmdsub":{"gloss":"Run a command in a child process and evaluate to its stdout. Strips all trailing newlines.","name":"Command substitution","sig":"$( … )"},"p-default":{"gloss":"Use this value if set and non-empty, otherwise fall back to the default. Never assigns.","name":"Default value","sig":"\"${2:-default}\""},"p-envprefix":{"gloss":"Set a variable for one command only, without leaking it into the rest of the script.","name":"Per-command environment","sig":"VAR=value command"},"p-exec":{"gloss":"Replaces the shell with the new program instead of forking — same PID, same stdin, status passes straight through.","name":"Replacing the process","sig":"exec python3 -c '…'"},"p-func":{"gloss":"Arguments arrive as <code>$1</code>, <code>$2</code>…; it returns an exit status, so data comes back via stdout or a global.","name":"Functions","sig":"name() { …; }"},"p-glob":{"gloss":"Unquoted, a glob expands to one word per matching file &mdash; or, with nothing to match, to its own literal text as a single word.","name":"Globbing, and matching nothing","sig":"for f in dir/*.ext; do [ -f \"$f\" ]"},"p-guard":{"gloss":"Default to nothing, so reading an optional variable doesn't abort under <code>set -u</code>.","name":"The empty-default guard","sig":"\"${VAR:-}\""},"p-heredoc":{"gloss":"Feeds a literal text block in as stdin — which is why it can't be used when stdin carries real data.","name":"Here-documents","sig":"cmd &lt;&lt;'EOF' … EOF"},"p-jobcontrol":{"gloss":"Puts a background job in its own process group, so the whole tree can be signalled at once.","name":"Job control &amp; process groups","sig":"set -m &nbsp;…&nbsp; set +m"},"p-kill":{"gloss":"Sends a signal. A negative PID targets the process group; <code>-0</code> only probes; TERM asks, KILL cannot be refused.","name":"Signals — and the minus sign that matters","sig":"kill -TERM -$pid &nbsp;·&nbsp; kill -0 $pid"},"p-mktemp":{"gloss":"Atomically creates a uniquely-named temp file, avoiding the race and the security hole of a fixed name.","name":"Temporary files","sig":"tmp=\"$(mktemp)\""},"p-noop":{"gloss":"<code>:</code> does nothing and succeeds. <code>: &gt; f</code> truncates a file; <code>while :;</code> loops forever.","name":"The null command","sig":": &nbsp;·&nbsp; : &gt; file &nbsp;·&nbsp; while :;"},"p-pipe":{"gloss":"Pipes connect stdout to stdin; <code>tee</code> copies a stream aside; <code>PIPESTATUS</code> recovers a stage's lost exit code.","name":"Pipes, tee, and recovering a lost status","sig":"a | b &nbsp;·&nbsp; tee file &nbsp;·&nbsp; \"${PIPESTATUS[0]}\""},"p-printf":{"gloss":"Portable and predictable, unlike <code>echo</code> — you control the trailing newline exactly.","name":"printf, and why not echo","sig":"printf '%s\\n' \"$x\""},"p-printfv":{"gloss":"Write printf's output into a variable instead of stdout, preserving trailing newlines.","name":"Printf into a variable","sig":"printf -v name '%s\\n' \"${arr[@]}\""},"p-quote":{"gloss":"Quoting stops the shell splitting the value on whitespace and expanding it as a filename pattern.","name":"Quoting — the one habit that matters most","sig":"\"$var\""},"p-readloop":{"gloss":"The safe line reader: no trimming, no backslash mangling, and it keeps a final unterminated line.","name":"Reading lines without corrupting them","sig":"while IFS= read -r line || [[ -n \"$line\" ]]"},"p-redirect":{"gloss":"Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. <code>&gt;</code> truncates immediately.","name":"Redirection","sig":"&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null"},"p-regex":{"gloss":"Built-in regex match; captures land in <code>BASH_REMATCH</code>. The pattern must be unquoted.","name":"Built-in regular expressions","sig":"[[ \"$s\" =~ regex ]] &nbsp;→&nbsp; BASH_REMATCH"},"p-required":{"gloss":"Use this argument, or print the message and abort. An inline precondition check.","name":"Required-argument assertion","sig":"\"${1:?usage: …}\""},"p-sete":{"gloss":"Turn fail-fast off around one command so you can capture its exit code instead of dying on it.","name":"Temporarily disabling fail-fast","sig":"set +e … rc=$? … set -e"},"p-shebang":{"gloss":"Tells the kernel to run this file with bash, found via PATH rather than a hard-coded location.","name":"Shebang","sig":"#!/usr/bin/env bash"},"p-shopt":{"gloss":"Turns one named shell behaviour on or off. Here: disable bash 5.2&rsquo;s <code>&amp;</code>-means-the-match default in <code>${v//a/b}</code>, portably no-op&rsquo;d on bash 3.2 where the option does not exist.","name":"A shell option, disabled portably","sig":"shopt -u patsub_replacement 2&gt;/dev/null || true"},"p-shortcircuit":{"gloss":"<code>||</code> runs the right side only on failure, <code>&amp;&amp;</code> only on success. Also exempts the left from <code>set -e</code>.","name":"Short-circuit chaining","sig":"cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2"},"p-special":{"gloss":"<code>$?</code> last exit status · <code>$!</code> last background PID · <code>$@</code> all arguments · <code>$#</code> count · <code>$0</code> script path.","name":"Special parameters","sig":"$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0"},"p-strict":{"gloss":"Fail fast: exit on any error, error on unset variables, and let a pipeline fail if any stage does.","name":"Strict mode","sig":"set -euo pipefail"},"p-strict-partial":{"gloss":"Strict mode with <code>-e</code> deliberately left out, so an expected non-zero exit doesn't kill the script.","name":"Strict mode without <code>-e</code>","sig":"set -uo pipefail"},"p-strip":{"gloss":"Cut a matching pattern off one end. <code>#</code> from the front, <code>%</code> from the back; doubled is greedy.","name":"Prefix and suffix stripping","sig":"${v#pat} &nbsp; ${v##pat} &nbsp; ${v%pat} &nbsp; ${v%%pat}"},"p-subst":{"gloss":"Replace every occurrence, literally — no pattern language, so arbitrary text passes through intact.","name":"Substring replacement","sig":"${v//search/replace}"},"p-test":{"gloss":"Bash's conditional expression: file tests, string tests, and numeric comparison.","name":"Conditional expression","sig":"[[ … ]]"},"p-trap":{"gloss":"Runs a command when the script exits, however it exits. Bash's <code>finally</code> block.","name":"Cleanup handlers","sig":"trap 'rm -f \"$tmp\"' EXIT"},"p-wait":{"gloss":"Blocks until a background process finishes and clears its zombie entry. Useless for monitoring, precisely because it blocks.","name":"Reaping a child","sig":"wait \"$pid\""}};</script>
+<script>window.__VERI_NAV__ = [{"id":"capabilities","trail":[{"t":"Capabilities","h":"capabilities"}]},{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the fourteen scripts","h":"map"}]},{"id":"tddloop","trail":[{"t":"Orientation","h":""},{"t":"Where the TDD loop lives","h":"tddloop"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s0","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"}]},{"id":"ensure-run-state-ignored","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"ensure-run-state-ignored.sh","h":"ensure-run-state-ignored"}]},{"id":"detect-test-command","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"detect-test-command.sh","h":"detect-test-command"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"build-develop-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-develop-prompt.sh","h":"build-develop-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]},{"id":"how-versions-work","trail":[{"t":"Upkeep","h":""},{"t":"Where the versions come from","h":"how-versions-work"}]}];</script>
 <script>
 /* veri, Annotated — tooltip layer.
    Every {{ref}} in the commentary is emitted as a real <a href="#p-id"> first, so the
