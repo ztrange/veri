@@ -498,6 +498,64 @@ PY
   fi
 }
 
+# hunk_css <name> <wants>
+# Every other assertion here reads the page's markup. This one reads the stylesheet the
+# build inlines into that same page, because a mark nothing styles is not a mark: the
+# `<span class="l hunk" data-tag="vX.Y">` wrapper shipped with nothing matching it, so the
+# only trace a reader got was the browser's native tooltip on hover.
+#
+# The stylesheet is reduced to one line per declaration that belongs to a selector naming
+# `hunk` — `<selector> | <property> | <value>`, whitespace collapsed — and <wants> holds
+# one extended regex per line, each of which must match at least one of those lines.
+# Regexes rather than substrings because none of what this pins is a spelling: which
+# pseudo-element carries the chip, the rule's width and colour, and how the declarations
+# are laid out are all free, and pinning any of them would pin the implementation instead
+# of what a reader sees.
+# Dropping the declarations of rules that do NOT name hunk is what stops the case passing
+# on the `pre.src .l::before` line-number rule that is already there, and on the word
+# "chunks" in a comment.
+hunk_css() {
+  local name="$1" wants="$2"; shift 2
+  local d code read_code page got want missing=""; d="$("$SANDBOX")"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  got="$( cd "$d" && python3 - page.html 2>&1 <<'PY'
+import re, sys
+page = open(sys.argv[1]).read()
+m = re.search(r"<style>(.*?)</style>", page, re.S)
+if not m:
+    sys.exit("the page carries no inlined stylesheet")
+css = re.sub(r"/\*.*?\*/", "", m.group(1), flags=re.S)
+# Innermost blocks only: a selector cannot contain a brace, so an @media prelude never
+# matches and the rules nested inside it are read with their own selectors.
+for selector, block in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+    selector = " ".join(selector.split())
+    if "hunk" not in selector:
+        continue
+    for declaration in block.split(";"):
+        prop, sep, value = declaration.partition(":")
+        if sep:
+            print("%s | %s | %s" % (selector, " ".join(prop.split()), " ".join(value.split())))
+PY
+  )" && read_code=0 || read_code=$?
+  while IFS= read -r want; do
+    printf '%s\n' "$got" | grep -Eq "$want" || missing+="$want"$'\n'
+  done <<< "$wants"
+  if [[ "$code" == 0 && "$read_code" == 0 && -z "$missing" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, stylesheet read exit $read_code)"
+    echo "    want a .hunk declaration matching each of: $wants"
+    echo "    matched by nothing:"
+    [[ -n "$missing" ]] && printf '%s' "$missing" | sed 's/^/      /'
+    echo "    the .hunk declarations the page carries:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # checks_git <name> <mutator...>
 # Every other assertion here reads the page build-walkthrough.py produced. This one hands
 # that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
@@ -996,6 +1054,44 @@ v0.3 classify-bail.sh 6-6 rewrite line 6 of classify-bail.sh' \
            rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 6 \
              "# rewritten by the v0.3 commit" \
              "fix: rewrite line 6 of classify-bail.sh (#3)" v0.3'
+
+# 19. and the mark has to be something a reader can see. Cases 11 and 17-18 settled where a
+#     hunk is and what it owns; all of that shipped as markup nobody styled, so scrolling
+#     past a run of lines a later capability rewrote looked exactly like scrolling past one
+#     it never touched. Two declarations turn the wrapper into a mark:
+#
+#       a chip carrying the tag  -> content drawn from attr(data-tag), on a pseudo-element
+#       a rule down the left     -> a left border on the hunk
+#
+#     The chip's text has to come from the attribute, not from anything the stylesheet
+#     spells out: there is one rule for every hunk on the page and they carry different
+#     tags, so a hand-written "v0.14" would be one version's chip on all of them. And it
+#     has to be generated content, because the markup holds no element for a chip to be —
+#     `content` on the line itself renders nothing.
+#     Both halves in one case: a chip with no rule marks where a run starts and says
+#     nothing about how far it goes, and a rule with no chip says a run changed without
+#     saying in which version. Faintness is the one thing here not pinned — it is a colour
+#     choice, and no assertion this suite can make would tell a faint rule from a loud one.
+hunk_css "the stylesheet makes a hunk visible: a tag chip and a left rule" \
+'::(before|after).* \| content \| .*attr\(data-tag\)
+\| border-(left|inline-start)'
+
+#     And the rule has to reach the END of the run, which is a claim about the markup: a
+#     border is drawn per line, and CSS can ask "is this line in a hunk" but not "and are
+#     the next four", so a class on the first line alone rules one line of a nine-line run
+#     and leaves the rest looking untouched. Lines 3 and 4 rewritten by one feat: commit
+#     are one hunk with two lines in it, so both have to be marked — the first carrying
+#     the tag the chip is drawn from, the second carrying the class and no second chip.
+#     The count of 1 is what says the second line did not become a hunk of its own: a
+#     `<span class="l hunk" data-tag=…>` on both would rule the run correctly and stamp a
+#     duplicate chip halfway down it, and would double every entry the inverted map owes.
+tags_git "the mark covers the whole run, and the chip lands once" 1 \
+  '<span class="l hunk" data-tag="v0.2" title="rewrite lines 3 and 4 of classify-bail.sh">'\
+'<span class="c"># rewritten by the v0.2 commit</span></span>
+<span class="l hunk cont"><span class="c"># rewritten by the v0.2 commit</span></span>' \
+  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
 
 echo "----"
 echo "$pass passed, $fail failed"

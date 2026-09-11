@@ -162,14 +162,33 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
 .ann-note.quiet{color:var(--ink-faint);font-style:italic;font-size:14px}
 pre.src{margin:0;font-family:"JetBrains Mono",monospace;font-size:12.4px;
   line-height:1.72;color:var(--code-ink);tab-size:2}
-/* Hanging indent: the line number sits in a 4.4em gutter and the code hangs to its
+/* Hanging indent: the line number sits in a 6.5em gutter and the code hangs to its
    right, so a long line WRAPS under itself instead of hiding behind a scrollbar.
    Median source line here is 26 chars but header comments reach 100, and 42 of the
-   76 chunks overflowed a side-by-side column at typical viewport widths. */
-pre.src .l{display:block;padding:0 16px 0 4.4em;text-indent:-4.4em;white-space:pre-wrap;overflow-wrap:break-word}
+   76 chunks overflowed a side-by-side column at typical viewport widths.
+   The gutter is wider than the number needs because a hunk's chip shares it: the
+   number is right-aligned against the code and the chip takes the slack on the left.
+   The transparent border is the hunk rule's slot — held open on every line so that
+   colouring it below moves nothing sideways. */
+pre.src .l{display:block;padding:0 16px 0 6.5em;text-indent:-6.5em;white-space:pre-wrap;
+  overflow-wrap:break-word;border-left:2px solid transparent}
 pre.src .l::before{counter-increment:ln;content:counter(ln);display:inline-block;
-  width:3.3em;padding-right:1.1em;text-align:right;color:var(--code-faint);
+  width:5.4em;padding-right:1.1em;text-align:right;color:var(--code-faint);
   font-size:11.5px;user-select:none;text-indent:0}
+/* A hunk is a run of lines a later capability rewrote, and every line of the run carries
+   the class — so the rule runs the hunk's whole extent, not just past its first line, and
+   a reader scrolling through the middle of a nine-line run still sees it marked. The
+   border slot above is held open on every line, so the colour here costs no reflow.
+   The chip says in which version, and belongs once per hunk: it hangs off [data-tag],
+   which the markup puts on the first line of a run and nowhere else. Its text is
+   attr(data-tag) and never a literal — one rule serves every hunk on the page and they
+   carry different tags. The title the markup already holds is the description, which the
+   browser shows on hover. */
+pre.src .l.hunk{position:relative;border-left-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+pre.src .l.hunk[data-tag]::after{content:attr(data-tag);position:absolute;left:.45em;top:.28em;
+  font-size:9.5px;line-height:1.35;letter-spacing:.02em;color:var(--accent);
+  background:var(--accent-wash);border-radius:3px;padding:0 4px;
+  text-indent:0;user-select:none}
 /* Four classes, deliberately not more. The prose column carries the explanation;
    the listing only needs enough colour to separate text from code at a glance.
    Every one clears 4.5:1 on its own background in both themes — they are content,
