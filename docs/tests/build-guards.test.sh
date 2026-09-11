@@ -20,7 +20,7 @@
 # A guard that has never been seen to fire is decoration, so every case below breaks the
 # thing on purpose and asserts the build refuses.
 #
-# The last two cases guard something else: not how the build behaves, but the prose it
+# Cases 11 and 12 guard something else: not how the build behaves, but the prose it
 # carries — a sentence in docs/wt/commentary.py that was wrong once and must not come back,
 # and one that has to be there. There is no build behaviour to break on purpose in either,
 # so neither has a mutator; they just assert on the page the tree produces as it stands.
@@ -387,8 +387,7 @@ omits "no mislabeled preflight timing" 'runs once per issue, at preflight'
 #    conductor does with that answer without leaving the page for SKILL.md. "added" means
 #    the rule becomes the branch's first commit, under one exact message; "already present"
 #    means there is nothing to commit. Pinned on the commit message itself, because that is
-#    the half a reader would otherwise go and grep the procedure for. No mutator, same as
-#    case 11: this asserts on the prose the tree carries, not on a build behaviour.
+#    the half a reader would otherwise go and grep the procedure for.
 accepts "documents the ignore-rule caller contract" 'chore: ignore veri run state'
 
 echo "----"
