@@ -82,6 +82,23 @@ accepts() {
   fi
 }
 
+# omits <name> <substring-that-must-NOT-appear> [mutator...]
+# The negative form of accepts: the build must succeed AND not contain this.
+omits() {
+  local name="$1" unwanted="$2"; shift 2
+  local d code page; d="$(sandbox)"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  if [[ "$code" == 0 && "$page" != *"$unwanted"* ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want a successful build with NO: $unwanted"
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # --- helpers used as mutators (run with cwd = the sandbox) ---------------------
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
 sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak; }
@@ -117,6 +134,17 @@ accepts "nested-brace display expands intact" \
 
 # 7. every reference in the page resolves to an entry that exists on the page
 accepts "tooltip data is emitted for the refs used" 'window.__VERI_TIPS__ = {'
+
+# 8. the version layer is OPTIONAL. sandbox() copies docs/ and skills/ into a bare
+#    temp dir with no .git in it, which is also what a tarball or a shallow checkout
+#    looks like. The build must still succeed there and simply omit the capability
+#    index — never crash on the missing git, and never emit a half-built index. The
+#    three assertions are: it builds, there is no index, and there is no rail group
+#    pointing at an index that is not there (which the scrollspy would drop and
+#    check-walkthrough.py would report as a build bug).
+omits "no git: no capability index"     '<ol class="vers">'
+omits "no git: no per-script badge"     'class="vbadge"'
+omits "no git: no orphan rail group"    '<h4>Capabilities</h4>'
 
 echo "----"
 echo "$pass passed, $fail failed"

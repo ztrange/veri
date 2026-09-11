@@ -46,6 +46,21 @@ The gap between `1` and `2` is the load-bearing one: it is the difference betwee
 **process** failure (the methodology spoke) and a **system** failure (the plumbing broke),
 which `classify-bail.sh` turns into the label a human reads. Never collapse them.
 
+## Versions are tags, and nothing else
+
+A version is an annotated git tag `vN.M` whose **message is the capability**, in the issue's
+own words. There is no `VERSION` file, no changelog, and nothing to keep in sync: the
+walkthrough's capability index is computed from the tags and the `feat:`/`fix:` commits in
+each tag's range. One merged issue is one capability is one minor bump; documentation, test
+and refactor PRs get no tag, because a version means what veri can *do* changed.
+
+The tag is cut when a PR lands (the `merge` skill does it), not in a separate release step.
+Two traps, both already cost something once:
+
+- **`git tag --sort=-v:refname`, never plain `sort`** — lexically `v0.9` outranks `v0.10`.
+- **Backfilling needs `GIT_COMMITTER_DATE`** — an annotated tag's date is the *tagger's*,
+  so retro-cut tags otherwise all claim to have shipped today.
+
 ## Invariants worth not breaking
 
 - **Every leaf is launched through `supervise.sh`** — never `run-leaf.sh` or `claude`

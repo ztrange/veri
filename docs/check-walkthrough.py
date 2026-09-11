@@ -11,6 +11,8 @@ On top of that it verifies the properties the page claims:
   * every in-page link resolves to an id that exists
   * every tooltip reference has a matching reference entry, and vice versa
   * tags balance
+  * the capability index still lists exactly the repo's tags, newest first in git's
+    version order — and has not silently vanished in a tree that does have tags
   * the TDD-loop figure still agrees with the two files it describes — the phases
     build-verify-prompt.sh accepts, and SKILL.md's revise budget. That figure is the
     one part of the page not generated from the scripts, so it is the one part that
@@ -211,6 +213,43 @@ else:
                    "defaults to %s" % (sorted(claimed), budget.group(1)))
     else:
         print("revise budget: the page and SKILL.md both say %s" % budget.group(1))
+
+# 6 ── the capability index vs the tags it claims to list ───────────────────────
+# The index is generated from annotated tags, so the failure worth guarding is not
+# "someone edited it" — it is the version layer silently vanishing (a git that could
+# not be read leaves a page with no index and no error) or coming out mis-ordered.
+real = subprocess.run(["git", "-C", str(ROOT), "tag", "--sort=v:refname"],
+                      capture_output=True, text=True)
+real = [t for t in real.stdout.split() if re.fullmatch(r"v\d+\.\d+", t)] if real.returncode == 0 else []
+shown = re.findall(r'<span class="vtag">(v[\d.]+)</span>', prose)
+badges = set(re.findall(r'<span class="vbadge">since <b>(v[\d.]+)</b>', prose))
+badges |= set(re.findall(r'&middot; changed <b>(v[\d.]+)</b>', prose))
+
+if not real:
+    print("versions: this tree has no tags — version layer correctly absent"
+          if not shown else "")
+    if shown:
+        bad.append("the page lists versions %s but this tree has no tags" % shown)
+elif not shown:
+    bad.append("this tree has %d version tags but the page lists none — the build "
+               "could not read git, and said nothing" % len(real))
+else:
+    if set(shown) - set(real):
+        bad.append("the index lists versions that are not tags: %s"
+                   % sorted(set(shown) - set(real)))
+    if badges - set(real):
+        bad.append("script badges name versions that are not tags: %s"
+                   % sorted(badges - set(real)))
+    # newest first, in GIT's version order. Plain lexical sort puts v0.9 above v0.10,
+    # which would bury the newest release in the middle of the list — the exact bug
+    # `git tag --sort=-v:refname` exists to prevent, asserted here on the output.
+    want = [t for t in reversed(real) if t in set(shown)]
+    if shown != want:
+        bad.append("the index is out of order: %s, expected %s (git version sort — "
+                   "lexically v0.9 sorts after v0.10)" % (shown, want))
+    else:
+        print("versions: %d tags, index newest-first, %d script badges all resolve"
+              % (len(shown), len(badges)))
 
 for tag in ("div", "span", "pre", "p", "table", "svg"):
     o = len(re.findall(r"<%s[ >]" % tag, doc)); c = len(re.findall(r"</%s>" % tag, doc))
