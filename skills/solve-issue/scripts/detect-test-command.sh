@@ -69,6 +69,24 @@ if [ -f "$mk" ] && grep -qE '^test[[:space:]]*:' "$mk"; then
   exit 0
 fi
 
+# 4. A repo that declares pytest configuration names `pytest -q` — `-q` because the
+# conductor reads the exit status, not the dots. Two spellings are one rule, and they are
+# asked differently on purpose. `pytest.ini` exists only to configure pytest, so the
+# filename alone is the whole claim and the file may well be empty. `pyproject.toml` makes
+# no such claim — it is packaging metadata for any python project — so this looks inside
+# it for the section that does: `[tool.pytest`, anchored to the start of a line so a
+# mention in prose or in another table's value cannot answer for it, and matched as a
+# prefix because real repos write `[tool.pytest.ini_options]`.
+#
+# `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the
+# dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an
+# answer rather than a failure `set -e` would abort on.
+if [ -f "$root/pytest.ini" ] \
+  || { [ -f "$root/pyproject.toml" ] && grep -qE '^\[tool\.pytest' "$root/pyproject.toml"; }; then
+  printf 'pytest -q\n'
+  exit 0
+fi
+
 # Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the
 # question to the human.
 exit 3

@@ -112,6 +112,41 @@ detect "$repo"
 { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
   && ok || no "Makefile with a test: target beats pytest.ini (exit=$code want 0, stdout='$out' want '$want')"
 
+# 4. a python repo that declares pytest configuration names `pytest -q`. Two spellings are
+# one rule — a bare `pytest.ini`, or a `pyproject.toml` carrying a `[tool.pytest` section —
+# so they are two seeded repos inside one case, the same way the three node runners are.
+# Either spelling is a repo saying "pytest runs here", and `-q` because the conductor reads
+# the exit status, not the dots.
+#
+# The `pytest.ini` repo seeds an empty file on purpose: the rule keys on the filename, and a
+# repo whose pytest settings all live in command-line flags or tox still commits the empty
+# marker. The `pyproject.toml` repo needs the section header and nothing else, because
+# pyproject.toml alone means only "this is a python project" — packaging metadata is no
+# claim about the test runner — so it is the `[tool.pytest` section that has to be found
+# inside the file. `ini_options` is the suffix real repos write, and including it checks the
+# rule matches the prefix rather than demanding the whole bare header.
+#
+# Neither repo needs pytest or python installed: the script reads these two files and never
+# runs the command it prints.
+want='pytest -q'
+misread=""
+for marker in pytest.ini pyproject.toml; do
+  repo="$work/py-$marker"
+  mkdir -p "$repo"
+  case "$marker" in
+    pytest.ini)     : > "$repo/pytest.ini" ;;
+    pyproject.toml) printf '[tool.pytest.ini_options]\naddopts = "-ra"\n' > "$repo/pyproject.toml" ;;
+  esac
+
+  detect "$repo"
+
+  { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
+    || misread="$misread ($marker: exit=$code want 0, stdout='$out' want '$want')"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "pytest.ini, or pyproject.toml with a [tool.pytest section, yields pytest -q —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
