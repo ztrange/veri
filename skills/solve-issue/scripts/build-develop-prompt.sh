@@ -41,6 +41,23 @@ case "$phase" in
   *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
 esac
 
+# A missing positional is a bad-arguments case too, and bad arguments are exit 2 suite-wide.
+# Left to the shell it would not be: the `${N:?}` expansions below abort with status 1, the
+# code reserved for a real answer — a leaf that ran and failed — so a caller who simply
+# forgot an argument would be reported as one whose call was made and came back negative.
+# Counting what the phase needs up front answers that first, and the `:?` expansions below
+# never get the chance to fire. The count includes the phase word itself, and for `revise`
+# the phase it is redoing, since neither has been shifted off yet.
+case "$phase" in
+  red) want=4 ;;
+  green) want=6 ;;
+  refactor) want=5 ;;
+  revise) want=6 ;;
+esac
+(( $# >= want )) || {
+  echo "build-develop-prompt: $phase needs $want arguments, got $#" >&2; exit 2
+}
+
 # `revise` names the phase it is redoing *before* the three arguments every phase shares,
 # so its spec/step/test-cmd each sit one position later than everyone else's. Take that
 # extra argument off the front; past this point the positions line up again.
