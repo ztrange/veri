@@ -3010,24 +3010,28 @@ SCRIPTS += [dict(
 </p>''',
     contract=[
         ("Usage", "<code>solvable-issues.sh [--repo owner/name]</code>"),
-        ("Env", "<code>VERI_GH_JSON=&lt;dir&gt;</code> reads <code>issues.json</code> / "
-                "<code>prs.json</code> from that directory instead of calling <code>gh</code>"),
+        ("Env", "<code>VERI_LABEL=&lt;name&gt;</code> is the opt-in label to select on, "
+                "default <code>ready-for-agent</code>; <code>VERI_GH_JSON=&lt;dir&gt;</code> "
+                "reads <code>issues.json</code> / <code>prs.json</code> from that directory "
+                "instead of calling <code>gh</code>"),
         ("stdout", "One issue number per line, lowest first"),
         ("Exit", '<span class="ec ec-0"><b>0</b> one or more numbers printed</span> '
+                 '<span class="ec ec-2"><b>2</b> <code>VERI_LABEL</code> set but empty</span> '
                  '<span class="ec ec-3"><b>3</b> nothing is takeable</span>'),
         ("Calls", "<code>gh issue list</code>, <code>gh pr list</code> (unless "
                   "<code>VERI_GH_JSON</code> is set), then <code>python3</code>"),
     ],
     chunks=[
-        dict(lines=(1, 28), html=r'''<p>
+        dict(lines=(1, 31), html=r'''<p>
   The header defines <strong>solvable</strong> before a line of code runs, and it is a
   conjunction of four conditions, not one: the issue is <strong>open</strong>; it carries
-  the <code>ready-for-agent</code> <strong>label</strong>; every issue named under its
+  the <strong>opt-in label</strong> &mdash; <code>ready-for-agent</code>, or whatever name
+  <code>VERI_LABEL</code> gives instead; every issue named under its
   <code>## Blocked by</code> heading is <strong>closed</strong>; and no open pull request
   already <strong>claims</strong> it with <code>Closes #&lt;n&gt;</code>.
 </p>
 <div class="note"><span class="tag">Why a label, and <code>## Blocked by</code> is not one</span><p>
-  The label is the opt-in gate: a human has to add <code>ready-for-agent</code> before an
+  The label is the opt-in gate: a human has to add it before an
   issue is takeable at all, so existing of the issue is never enough on its own &mdash;
   nothing is taken just because it was filed. <code>## Blocked by</code>, by contrast, is
   pure <strong>ordering</strong> between issues that are already both opted in: it says
@@ -3045,7 +3049,7 @@ SCRIPTS += [dict(
 </p><p>
   {{p-strict|set -euo pipefail}} closes the header, as in every other script here.
 </p>'''),
-        dict(lines=(29, 37), html=r'''<p>
+        dict(lines=(32, 40), html=r'''<p>
   <code>--repo</code> is <strong>forwarded verbatim and nothing is invented in its
   absence</strong>: get it wrong and <code>gh</code> fails loudly against the wrong
   repository, which is safer than a guess that succeeds against the wrong one silently.
@@ -3060,7 +3064,36 @@ SCRIPTS += [dict(
   {{p-strict|set -u}} an empty array is exactly the case a naive
   <code>"${repo_args[@]}"</code> gets wrong.
 </p>'''),
-        dict(lines=(38, 50), html=r'''<p>
+        dict(lines=(41, 60), html=r'''<p>
+  The opt-in label is a <strong>parameter</strong>, read as {{p-default|"${VERI_LABEL:-ready-for-agent}"}}
+  the way every tunable in this suite is read. Setting it <em>moves</em> the gate rather
+  than widening it: the pool becomes exactly the issues carrying that name, and
+  <code>ready-for-agent</code> stops being special. That is the whole point &mdash; two
+  loops running against one repository can be given two labels and drain two disjoint
+  pools, instead of both computing the same list and racing for the same issues.
+</p>
+<div class="note"><span class="tag">Set but empty is not "any label"</span><p>
+  A launcher writing <code>VERI_LABEL="$some_unset_var"</code> gets here with the variable
+  set to the empty string. Treated as a default that would be the ordinary
+  <code>ready-for-agent</code> run; treated as a label it would match nothing; treated as
+  "no filter" it would take <em>every open issue</em> &mdash; the one outcome an opt-in
+  gate exists to prevent. So it is refused outright, before anything is fetched.
+</p><p>
+  Telling empty from unset is what the two expansions here are for, and they differ by one
+  character. {{p-default|"${VERI_LABEL-x}"}} &mdash; no colon &mdash; substitutes the
+  literal <code>x</code> only when the variable is <strong>unset</strong>, so it yields the
+  value otherwise and is empty in exactly the set-but-empty case;
+  {{p-default|"${VERI_LABEL:-ready-for-agent}"}} &mdash; with the colon &mdash; substitutes
+  when the variable is unset <em>or</em> empty, and so cannot tell the two apart. The guard
+  uses the first, the default uses the second, and they sit together because the difference
+  between them is the behaviour.
+</p></div><p>
+  The refusal fails closed the way <a href="#refactor-budget"><code>refactor-budget.sh</code></a>
+  does on a malformed budget: a diagnostic on stderr with {{p-redirect|&gt;&amp;2}}, then
+  <a href="#exitcodes">exit code 2</a> &mdash; no answer could be obtained, the plumbing is
+  wrong &mdash; and nothing on stdout for a caller to mistake for a pool.
+</p>'''),
+        dict(lines=(61, 73), html=r'''<p>
   {{p-func|gh_json()}} is the one place that decides, for each document, override-or-gh
   &mdash; called as <code>gh_json &lt;fixture-file&gt; &lt;gh args…&gt;</code> and
   producing that document on stdout either way. The comment above it says why this is
@@ -3080,25 +3113,27 @@ SCRIPTS += [dict(
   called with no extra arguments at all, rather than the script dying on its own empty
   array.
 </p>'''),
-        dict(lines=(51, 53), html=r'''<p>
+        dict(lines=(74, 76), html=r'''<p>
   The two documents, fetched through the one function above:
   {{p-cmdsub|issues_json="$(gh_json …)"}} and <code>prs_json</code> the same way. Neither
   call learns which source it got &mdash; a fixture file or a live <code>gh</code>
   response reach this point as the identical shape of text.
 </p>'''),
-        dict(lines=(54, 59), html=r'''<p>
+        dict(lines=(77, 83), html=r'''<p>
   {{p-exec|exec python3 -c '…'}} hands the rest of the script to Python outright, the same
   move <a href="#extract-result"><code>extract-result.sh</code></a> makes and for a
   related reason: the JSON is on the command line here, not on stdin, so there is no
   stdin conflict to dodge &mdash; <code>exec</code> is used instead to avoid leaving a
   bash frame on the stack for no purpose once Python has everything it needs.
 </p><p>
-  <code>issues_json</code> and <code>prs_json</code> arrive as <code>sys.argv[1]</code>
-  and <code>sys.argv[2]</code> (the single-quoted program passes them positionally at
-  the very end of the chunk after this one), and <code>json.loads</code> turns each back
-  into Python data.
+  <code>issues_json</code>, <code>prs_json</code> and the resolved <code>label</code>
+  arrive as <code>sys.argv[1]</code>, <code>[2]</code> and <code>[3]</code> (the
+  single-quoted program passes them positionally at the very end of the chunk after this
+  one), and <code>json.loads</code> turns the first two back into Python data. The label
+  crosses the language boundary as an argument rather than being read from the environment
+  again on the Python side, so the empty-string refusal above cannot be bypassed here.
 </p>'''),
-        dict(lines=(60, 69), html=r'''<p>
+        dict(lines=(84, 93), html=r'''<p>
   <code>is_open()</code> is read the same way for both record kinds: <code>gh</code>
   writes an issue's state as <code>OPEN</code>/<code>CLOSED</code> and a PR's as
   <code>OPEN</code>/<code>CLOSED</code>/<code>MERGED</code>, and only the first of either
@@ -3106,7 +3141,7 @@ SCRIPTS += [dict(
   the open issue numbers, normalised once into a set so every later membership test
   (<code>in open_issues</code>) is O(1) instead of a scan.
 </p>'''),
-        dict(lines=(70, 79), html=r'''<p>
+        dict(lines=(94, 103), html=r'''<p>
   <code>claimed</code> is the second set comprehension: every issue number an
   <em>open</em> pull request already claims with <code>Closes #&lt;n&gt;</code>, read out
   with <code>re.findall</code>. Only open PRs count &mdash; once one merges or closes,
@@ -3114,7 +3149,7 @@ SCRIPTS += [dict(
   it. The nested <code>for</code> clauses read outside-in: for each open PR, for each
   <code>Closes #&lt;n&gt;</code> found in its body.
 </p>'''),
-        dict(lines=(80, 85), html=r'''<p>
+        dict(lines=(104, 109), html=r'''<p>
   <code>blockers()</code> pulls the issue numbers out of one issue's
   <code>## Blocked by</code> section. <code>re.search(r"^## Blocked by$(.*?)(?=^## |\Z)",
   body, re.M | re.S)</code> is doing two jobs at once: <code>re.M</code> makes
@@ -3128,7 +3163,7 @@ SCRIPTS += [dict(
   <code>None.</code>, or no such section at all, yields no <code>#&lt;n&gt;</code>
   matches either way, which is exactly "no blockers".
 </p>'''),
-        dict(lines=(86, 95), html=r'''<p>
+        dict(lines=(110, 119), html=r'''<p>
   <code>solvable()</code> names its four conditions as four local variables &mdash;
   <code>still_open</code>, <code>opted_in</code>, <code>unclaimed</code>,
   <code>unblocked</code> &mdash; and returns their conjunction, rather than the more
@@ -3141,15 +3176,15 @@ SCRIPTS += [dict(
   <code>all(n not in open_issues for n in blockers(...))</code> is true both when there
   are no blockers and when every named blocker is already closed.
 </p>'''),
-        dict(lines=(96, 105), html=r'''<p>
+        dict(lines=(120, 129), html=r'''<p>
   The numbers, sorted, one per line. <code>sys.exit(3)</code> when none qualify is not an
   afterthought: it is the same <a href="#exitcodes">exit code 3</a> as everywhere else in
   veri, "nothing to do" rather than an error, so a caller looping over this script's
   output can tell an empty, well-formed result from a script that actually broke.
 </p><p>
-  The trailing <code>' "$issues_json" "$prs_json"</code> closes the single-quoted Python
-  program and supplies the two arguments <code>sys.argv[1]</code> and
-  <code>sys.argv[2]</code> read back in the chunk before last.
+  The trailing <code>' "$issues_json" "$prs_json" "$label"</code> closes the single-quoted
+  Python program and supplies the three arguments <code>sys.argv[1]</code>,
+  <code>[2]</code> and <code>[3]</code> read back at the top of the Python program.
 </p>'''),
     ]),
 ]
