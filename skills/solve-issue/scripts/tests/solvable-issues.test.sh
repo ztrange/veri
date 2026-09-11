@@ -412,6 +412,41 @@ label_run "$fx" VERI_LABEL=ready-for-agent:docs
 { [[ "$code" == 0 ]] && [[ "$out" == "65" ]]; } \
   && ok || no "with VERI_LABEL set to another label only issues carrying that label are listed (exit=$code want 0, stdout='$out' want '65')"
 
+# 9. Cases 7 and 8 pin the two pools apart; this one pins the overlap between them. An issue
+# carrying BOTH `ready-for-agent` and `ready-for-agent:docs` belongs to both pools at once —
+# it is the shared work, the issue either loop may take — so it is listed under either value
+# of VERI_LABEL. That is one criterion observed twice: the same single-issue fixture is run
+# twice, changing nothing but the variable, and #66 must come back both times.
+#
+# Nothing else can account for either answer: #66 is the only issue fed in, it is open, it
+# reads `None.` under `## Blocked by`, and `prs.json` is the fixture helper's empty list. So
+# stdout is "66" exactly when the label matched and empty (with exit 3) when it did not.
+#
+# Feeding one issue two labels is what makes the case bite whichever way an implementation
+# cuts corners: a script testing only the FIRST entry of `labels[]` answers one of the two
+# runs and misses the other, whichever order the fixture lists them in, and a script that
+# stopped at the first label it recognised would do the same.
+fx="$(fixture both-labels)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 66,
+    "title": "walkthrough: draw rung 2's selection layer",
+    "labels": [{"name": "ready-for-agent"}, {"name": "ready-for-agent:docs"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA panel for solvable-issues.sh.\n\n## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+label_run "$fx" -u VERI_LABEL; under_default="$out" default_code="$code"
+
+label_run "$fx" VERI_LABEL=ready-for-agent:docs; under_docs="$out" docs_code="$code"
+
+{ [[ "$default_code" == 0 && "$under_default" == "66" ]] \
+  && [[ "$docs_code" == 0 && "$under_docs" == "66" ]]; } \
+  && ok || no "an issue carrying both labels is listed under either VERI_LABEL value (VERI_LABEL unset: exit=$default_code want 0, stdout='$under_default' want '66'; VERI_LABEL=ready-for-agent:docs: exit=$docs_code want 0, stdout='$under_docs' want '66')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
