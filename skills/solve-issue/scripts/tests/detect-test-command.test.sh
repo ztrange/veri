@@ -154,6 +154,39 @@ done
 [[ -z "$misread" ]] \
   && ok || no "pytest.ini, or pyproject.toml with a [tool.pytest section, yields pytest -q —$misread"
 
+# 5. the two compiled stacks each name their toolchain's own runner: a `go.mod` yields
+# `go test ./...`, a `Cargo.toml` yields `cargo test`. One case, two seeded repos, the same
+# shape as the node runners and the two pytest spellings — two markers answering with two
+# different commands is still one rule, "the manifest file names the stack's test runner".
+#
+# Both markers are the manifest at the repo root that its toolchain requires, so the
+# filename alone is the whole claim and an empty file is enough to make it — unlike
+# pyproject.toml above, neither name belongs to any other kind of project. `./...` is go's
+# own spelling for "every package beneath here", without which `go test` would run only the
+# root package and quietly skip the rest of the suite; `cargo test` already walks the whole
+# crate, so it needs no argument.
+#
+# Neither repo needs go or rust installed: the script reads the two filenames and never
+# runs the command it prints.
+misread=""
+for marker in go.mod Cargo.toml; do
+  case "$marker" in
+    go.mod)     want='go test ./...' ;;
+    Cargo.toml) want='cargo test' ;;
+  esac
+  repo="$work/compiled-$marker"
+  mkdir -p "$repo"
+  : > "$repo/$marker"
+
+  detect "$repo"
+
+  matched \
+    || misread="$misread ($marker: exit=$code want 0, stdout='$out' want '$want')"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "go.mod yields go test ./..., Cargo.toml yields cargo test —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

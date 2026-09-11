@@ -87,6 +87,24 @@ if [ -f "$root/pytest.ini" ] \
   exit 0
 fi
 
+# 5 and 6. The two compiled stacks each name their toolchain's own runner. Both markers are
+# the manifest their toolchain requires at the repo root, and neither filename belongs to
+# any other kind of project, so — unlike pyproject.toml above — the name alone is the whole
+# claim and nothing inside the file needs reading.
+#
+# `./...` is go's own spelling for "every package beneath here"; without it `go test` runs
+# only the root package and quietly skips the rest of the suite. `cargo test` already walks
+# the whole crate, so it needs no argument.
+if [ -f "$root/go.mod" ]; then
+  printf 'go test ./...\n'
+  exit 0
+fi
+
+if [ -f "$root/Cargo.toml" ]; then
+  printf 'cargo test\n'
+  exit 0
+fi
+
 # Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the
 # question to the human.
 exit 3
