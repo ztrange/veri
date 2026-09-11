@@ -92,6 +92,28 @@
   else document.addEventListener("DOMContentLoaded", flash);
 })();
 
+/* veri, Annotated — since-mode: which hunks are news to me.
+   A reader who last read the page at some version wants the runs of lines tagged after
+   it lit and the rest dimmed. This is the decision itself, kept apart from whatever
+   paints it: given a hunk's tag and the version the reader last read, is that hunk
+   news?
+
+   The order is window.__VERI_ORDER__, the build's tag list in git's version sort — never
+   a comparison of the tag strings, which put v0.10 before v0.9 and would hide the newest
+   capability from exactly the reader who asked to see it. A hunk tagged X is not later
+   than X: the reader has already seen it. */
+(function () {
+  "use strict";
+  var ORDER = window.__VERI_ORDER__ || [];
+
+  function lit(tag, since) {
+    var i = ORDER.indexOf(tag), j = ORDER.indexOf(since);
+    return i >= 0 && j >= 0 && i > j;
+  }
+
+  window.__VERI_SINCE__ = { lit: lit };
+})();
+
 /* veri, Annotated — scrollspy: where am I.
    Two readouts of one fact. The rail marks the entry you are inside; the sticky
    breadcrumb at the top of the page names its full path. Both read the same ordered
