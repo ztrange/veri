@@ -16,6 +16,12 @@
 #   and its case name — and forbidding any edit to it, the rule that keeps "make it green"
 #   from degenerating into "weaken the test".
 #
+# Contract under test, refactor phase:
+#   build-develop-prompt.sh refactor <spec-file> <step-text> <test-cmd> <touched-files>
+#   exits 0 and prints a prompt naming the files this cycle touched — the bounds of the
+#   tidy-up — carrying the rule that bounds it further (no generality no test demands), and
+#   requiring the `RESULT:` / `FLAGS:` footer the conductor branches on.
+#
 # Run: scripts/tests/build-develop-prompt.test.sh
 set -uo pipefail
 
@@ -56,6 +62,17 @@ green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$
   && [[ "$green" == *"$target"* ]] \
   && grep -qiE "(do not|don't|never) (modify|change|edit|touch|weaken).{0,40}test|test.{0,40}(must not|may not) be (modified|changed|edited|touched)" <<<"$green" \
   && ok || no "develop-green names the test path + target test and forbids modifying the test (exit $code)"
+
+# 3. the refactor prompt names the files the cycle touched, carries the rule that bounds
+#    the tidy-up (no generality no test demands) and requires the RESULT:/FLAGS: footer
+touched='scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh'
+refactor="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] \
+  && [[ "$refactor" == *"$touched"* ]] \
+  && grep -qiE '(no|not|never|without)[^.]{0,80}(generality|generali[sz]ation|abstraction)' <<<"$refactor" \
+  && grep -q 'RESULT:' <<<"$refactor" \
+  && grep -q 'FLAGS:' <<<"$refactor" \
+  && ok || no "develop-refactor carries the touched-files list + the no-untested-generality rule and the RESULT:/FLAGS: footer (exit $code)"
 
 echo "----"
 echo "$pass passed, $fail failed"
