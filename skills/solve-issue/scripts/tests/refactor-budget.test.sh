@@ -18,6 +18,20 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BUDGET="$HERE/../refactor-budget.sh"
 pass=0 fail=0
 
+# report <name> — close a case whose probes collected into the `problems` array: an empty
+# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
+# so the output says which probe broke rather than just that the case did.
+report() {
+  local name="$1"
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    printf '    %s\n' "${problems[@]}"
+  fi
+}
+
 # 1. with the default budget — VERI_REFACTOR_BUDGET unset, so the script's own default
 #    of 2 applies — counts 0 and 1 mean "another transform may run" (exit 0) and count 2
 #    means "budget spent" (exit 3). Every answer prints a one-line status.
@@ -37,14 +51,7 @@ for probe in "0 0" "1 0" "2 3"; do
   [[ -n "$out" && "$out" != *$'\n'* ]] ||
     problems+=("count $count: want a one-line status on stdout, got: $(printf '%q' "$out")")
 done
-
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  printf '    %s\n' "${problems[@]}"
-fi
+report "$name"
 
 # 2. a budget of 0 switches the refactor loop off entirely: even before any transform has
 #    run — count 0 — the budget is already spent, so the very first ask gets exit 3 and no
@@ -79,14 +86,7 @@ for bad in two -1; do
     problems+=("VERI_REFACTOR_BUDGET=$bad: want a diagnostic on stderr, got nothing")
   rm -f "$out" "$err"
 done
-
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  printf '    %s\n' "${problems[@]}"
-fi
+report "$name"
 
 echo "----"
 echo "$pass passed, $fail failed"
