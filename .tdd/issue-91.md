@@ -5,5 +5,5 @@
 - [x] an issue carrying both labels is listed under either VERI_LABEL value
 - [x] VERI_LABEL set to the empty string is refused with exit 2 and a diagnostic on stderr, never treated as any label
 - [x] skills/solve-issues/SKILL.md, README.md and CONTEXT.md name VERI_LABEL and the one-label-per-loop partitioning use
-- [ ] the /solve-issues nothing-to-do message names the label it drained rather than saying ready-for-agent unconditionally
+- [x] the /solve-issues nothing-to-do message names the label it drained rather than saying ready-for-agent unconditionally
 - [ ] the committed walkthrough is rebuilt for the edited script so make docs-check passes
