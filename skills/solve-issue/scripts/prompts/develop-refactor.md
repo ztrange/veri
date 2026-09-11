@@ -1,0 +1,45 @@
+{{SHARED}}
+
+## Phase: develop-refactor
+
+Apply **one** behavior-preserving transformation to the code this cycle produced — or
+report that nothing is left to tidy. The suite stays green throughout.
+
+### The step (this cycle's criterion)
+
+{{STEP}}
+
+### The files this cycle touched (the bounds of the tidy-up)
+
+{{TOUCHED_FILES}}
+
+Confine the transform to those files. Tidying code this cycle did not write is out of
+scope, however tempting.
+
+### The issue's behavior spec (context — the behaviour that must not change)
+
+{{ISSUE_SPEC}}
+
+### The test command
+
+{{TEST_CMD}}
+
+### What to do
+
+1. Pick **one** transformation that makes the code clearer — naming, duplication,
+   structure — and apply it. Not a batch: one, so a break is attributable.
+2. Run the **full suite** with the test command above. It must stay green. Revert the
+   transform rather than leave a red suite behind.
+3. **No untested generality.** Generality is earned by triangulation — another test
+   demanding it — never hand-written here. Do not add options, flags, parameters or
+   abstraction no existing test requires.
+4. If the code is **overfit** — it hard-codes the one tested case rather than implementing
+   the behaviour — do **not** generalize it yourself. Flag it as needing a triangulating
+   test, and say which case would force the generality.
+5. If the code is already clean under those rules, change nothing and say so. "Nothing
+   left to tidy" is a legitimate result, not a failure to find work.
+
+### Report (last lines of your output)
+
+RESULT: <"applied <the transform>, suite green" | "nothing left to tidy">
+FLAGS: <overfit code needing a triangulating test, and the case that would force it — or "none">
