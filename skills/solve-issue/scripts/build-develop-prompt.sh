@@ -37,7 +37,7 @@ phase="${1:?usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec
 # would answer "an argument is missing" (exit 1) to a caller whose real mistake was the
 # phase itself — and a bad phase is a bad-arguments case, which is exit 2 suite-wide.
 case "$phase" in
-  red | green | refactor | revise) ;;
+  red|green|refactor|revise) ;;
   *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
 esac
 
@@ -53,7 +53,7 @@ revised_phase=""
 if [[ "$phase" == "revise" ]]; then
   revised_phase="${2:?missing <phase> being revised}"
   case "$revised_phase" in
-    red | green | refactor) ;;
+    red|green|refactor) ;;
     *) echo "build-develop-prompt: unknown phase to revise '$revised_phase' (want red|green|refactor)" >&2; exit 2 ;;
   esac
   shift
