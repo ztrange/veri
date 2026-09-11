@@ -754,7 +754,7 @@ STAGES = [
               "agree, once, before any cycle can commit.",
          intro=r'''
 <p>
-  Two scripts run here, in order, before any cycle exists &mdash; both touching the
+  Three scripts run here, in order, before any cycle exists &mdash; all of them touching the
   <em>target</em> rather than veri's own machinery. The first,
   <a href="#issue-worktree"><code>issue-worktree.sh</code></a>, gives the run a checkout of
   its own. The second, <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>,
@@ -762,7 +762,28 @@ STAGES = [
   the step's code land in one commit. Without an ignore rule, that same <code>-A</code> would
   sweep every leaf log and prompt into history on the first step. veri's own
   <code>.gitignore</code> carried the rule; a fresh repo does not.
-</p>'''),
+</p>
+<div class="ann"><div class="ann-head"><span class="fname">the setup</span>
+<span class="fmeta">stage 0</span></div>
+<div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">caller's checkout                         .tdd/wt/&lt;n&gt;  branch tdd/&lt;n&gt;-&lt;slug&gt;</span>
+<span class="l">  (stays on main)                             &#9650;</span>
+<span class="l">        &#9474;                                     &#9474;</span>
+<span class="l">        &#9474;  1. issue-worktree.sh &lt;n&gt; &lt;slug&gt; &#9472;&#9472;&#9472;&#9496;  prints the path</span>
+<span class="l">        &#9474;</span>
+<span class="l">        &#9474;     then, in that worktree:</span>
+<span class="l">        &#9474;  2. ensure-run-state-ignored.sh  &rarr;  added, or already present</span>
+<span class="l">        &#9474;  3. detect-test-command.sh       &rarr;  a test command, or exit 3 (ask)</span>
+<span class="l">        &#9660;</span>
+<span class="l">   untouched: no branch switched, nothing written</span></pre></div>
+<div class="ann-note"><p>
+  The left column is the reason the stage exists: the checkout <code>/solve-issue</code> was
+  invoked from never changes branch, so anything symlinked or served out of it keeps seeing
+  what it saw. Everything after step 1 happens in the new worktree.
+</p><p>
+  Steps 2 and 3 each have two answers and neither is a failure &mdash; the ignore rule was
+  added or was already there; a test command was found, or none was, and
+  <code>exit 3</code> sends the conductor to ask a human rather than guessing one.
+</p></div></div></div>'''),
 
     dict(n=1, id="s1", nav="Read the ledger", kicker="read the ledger",
          title="Where a cycle begins",

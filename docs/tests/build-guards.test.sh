@@ -341,6 +341,51 @@ checks_git() {
   fi
 }
 
+# diagrams_stage0 <name> <names-one-per-line>
+# accepts() asks its question of the whole page; this one is about one slice of it — the
+# stage-0 intro, from the stage-0 heading to the first script it annotates. Every stage-0
+# script name is already on the page many times over: in the rail, in the intro's own
+# prose, in its own listing. So a whole-page match, or even a whole-slice one, would be
+# green before anything is drawn. This cuts the page to that intro, reduces the intro to
+# the diagram blocks inside it — a <pre class="src"> sketch or an inline <svg>, the two
+# idioms the page already uses — and demands ONE block that names every one of <names>.
+# One block, not the slice: names scattered through the prose around a diagram are prose.
+# The awk reads to the end rather than `exit`ing at the first script heading: exiting mid-
+# page leaves the printf feeding a closed pipe, and the SIGPIPE write error lands in the
+# suite's output as if a case had broken.
+# <names> is one argument holding one name per line, for the same reason tags_git takes
+# its spans that way: the claim is about all of them appearing together.
+diagrams_stage0() {
+  local name="$1" wants="$2"
+  local d code page blocks blk want missing found="" n=0; d="$("$SANDBOX")"
+  page="$(build "$d")" && code=0 || code=$?
+  blocks="$(printf '%s\n' "$page" | awk '
+    /id="s0"/ && !done               { s0 = 1 }
+    s0 && /<h3 id=/                  { s0 = 0; done = 1 }
+    s0 && /<pre class="src"|<svg/    { blk = ""; inblk = 1 }
+    s0 && inblk                      { blk = blk " " $0 }
+    s0 && inblk && /<\/pre>|<\/svg>/ { print blk; inblk = 0 }
+  ')"
+  while IFS= read -r blk; do
+    [[ -n "$blk" ]] || continue
+    n=$((n + 1))
+    missing=""
+    while IFS= read -r want; do
+      [[ "$blk" == *"$want"* ]] || missing="$want"
+    done <<< "$wants"
+    [[ -z "$missing" ]] && found="yes"
+  done <<< "$blocks"
+  if [[ "$code" == 0 && -n "$found" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want one diagram between id=\"s0\" and the first script, naming: $wants"
+    echo "    got  $n diagram block(s) in the stage-0 intro, none naming all three"
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # --- helpers used as mutators (run with cwd = the sandbox) ---------------------
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
 sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak; }
@@ -589,6 +634,15 @@ rail_group_lists "the pitch is a top-level rail entry, beside the other sections
   '<h4>Orientation</h4>' \
 '<a href="#why">Why this exists</a>
 <a href="#what">What veri actually is</a>'
+# 13. stage 0 runs three scripts in a fixed order, and the whole point of the stage is a
+#    shape — the run moves into a linked worktree while the caller's checkout stays put.
+#    Prose can list the three; only a picture shows the order and the branch that does not
+#    move. Every other stage that has a shape draws it (stages 2 and 4 in box-drawing, the
+#    orientation figures in SVG), so stage 0 must too, in either idiom.
+diagrams_stage0 "the stage-0 intro draws its three scripts" \
+  'issue-worktree.sh
+ensure-run-state-ignored.sh
+detect-test-command.sh'
 
 echo "----"
 echo "$pass passed, $fail failed"
