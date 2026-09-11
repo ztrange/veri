@@ -31,15 +31,20 @@ common_dir="$(git -C "$root" rev-parse --git-common-dir)"
 case "$common_dir" in /*) ;; *) common_dir="$root/$common_dir" ;; esac
 exclude="$common_dir/info/exclude"
 
-# terminate <file> — give <file> a final newline if its last byte is not one, so appending onto it
-# cannot fuse its last rule with `.tdd/*` into a single line and destroy both. `$(...)` strips
-# trailing newlines from what it captures, so a file already ending in one yields the empty string
-# here: a non-empty last byte is exactly the case that needs the newline. -s keeps `tail` off a
-# file that does not exist yet.
-terminate() {
+# append_rule <file> — put the three lines at the end of <file>, in git's reading order. Both
+# destinations need exactly this, so it is written once: two copies of the append could drift into
+# disagreeing about the newline guard, and only one of the two files would then survive it.
+#
+# The guard: give <file> a final newline if its last byte is not one, so the append cannot fuse its
+# last rule with `.tdd/*` into a single line and destroy both. `$(...)` strips trailing newlines
+# from what it captures, so a file already ending in one yields the empty string here: a non-empty
+# last byte is exactly the case that needs the newline. -s keeps `tail` off a file that does not
+# exist yet.
+append_rule() {
   if [ -s "$1" ] && [ -n "$(tail -c 1 "$1")" ]; then
     echo "" >> "$1"
   fi
+  printf '%s\n' "$ignore_all" "$keep_ledger" "$drop_spec" >> "$1"
 }
 
 # where <line> — the number of the first line of $gitignore that IS <line>, whole and on its own,
@@ -76,15 +81,13 @@ fi
 # ignore .tdd/. The refusal above comes first, so a .gitignore we will not touch leaves this file
 # untouched too.
 mkdir -p "$(dirname "$exclude")"
-terminate "$exclude"
-printf '%s\n' "$ignore_all" "$keep_ledger" "$drop_spec" >> "$exclude"
+append_rule "$exclude"
 
 if [ "$gitignore_has_rule" = yes ]; then
   echo "already present"
   exit 0
 fi
 
-terminate "$gitignore"
-printf '%s\n' "$ignore_all" "$keep_ledger" "$drop_spec" >> "$gitignore"
+append_rule "$gitignore"
 
 echo "added"
