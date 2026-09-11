@@ -88,6 +88,27 @@ def _blame_lines(out):
         yield sha, subject or ""
 
 
+def _runs(blame):
+    """(first line, last line, sha, subject) for each run of lines one commit last touched.
+
+    The grouping half of hunks() below, kept apart from the tagging half because the two
+    read differently: this one knows nothing about versions, only that consecutive lines
+    blaming the same commit are one run.
+
+    A run's end is only known once a different sha has answered for the line below it, so
+    a run is yielded as the next one opens — and the last one when the lines run out.
+    """
+    first = last = sha = subject = None
+    for lineno, (line_sha, line_subject) in enumerate(blame, start=1):
+        if line_sha != sha:
+            if sha is not None:
+                yield first, last, sha, subject
+            first, sha, subject = lineno, line_sha, line_subject
+        last = lineno
+    if sha is not None:
+        yield first, last, sha, subject
+
+
 def hunks(root, rel, tags, since):
     """{first line: (tag, description, last line)} for each tagged hunk.
 
@@ -113,19 +134,8 @@ def hunks(root, rel, tags, since):
     if out is None:
         return {}
     floor = tags.index(since)
-    # First the runs, whatever commit they belong to: a run's end is only known once a
-    # different sha has answered for the line below it, so it cannot be decided while
-    # looking at the line the run starts on.
-    runs, prev = [], None
-    for lineno, (sha, subject) in enumerate(_blame_lines(out), start=1):
-        if sha == prev:
-            runs[-1][1] = lineno             # same commit as the line above: same hunk
-            continue
-        prev = sha
-        runs.append([lineno, lineno, sha, subject])
-
     marks = {}
-    for first, last, sha, subject in runs:
+    for first, last, sha, subject in _runs(_blame_lines(out)):
         if not BEHAVIOUR.match(subject):
             continue
         tag = _first_tag_containing(root, sha, tags)
