@@ -339,7 +339,7 @@ html{scroll-behavior:smooth}
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
-    <span><b>v0.10</b> latest version</span><span><b>12</b> scripts</span>
+    <span><b>v0.11</b> latest version</span><span><b>12</b> scripts</span>
     <span><b>580</b> lines, all shown</span>
     <span><b>38</b> reference entries</span>
   </p>
@@ -361,7 +361,7 @@ html{scroll-behavior:smooth}
   Only <code>feat:</code> and <code>fix:</code> commits count: documentation, tests and
   refactors change this page without changing what veri can do.
 </p>
-<ol class="vers"><li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span><span class="ver-d">on main, past v0.10</span></p><p class="ver-t">Work has landed since the last version. If it had changed a capability it would have been tagged, so this is documentation, tests or tidying &mdash; or a tag nobody cut.</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.10</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/25">#25</a> <a href="https://github.com/ztrange/veri/issues/27">#27</a></span></p><p class="ver-t">target repo ignores veri run state before the first commit</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.9</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/7">#7</a></span></p><p class="ver-t">hardened edges: baseline, classified bail, completion polish</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.8</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/18">#18</a></span></p><p class="ver-t">classify a bail as system vs process, deterministically</p><p class="ver-s"><b>Read</b><a href="#classify-bail"><code>classify-bail.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.7</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/6">#6</a></span></p><p class="ver-t">loops + ledger: multi-criterion issues, resumable</p><p class="ver-s"><b>Read</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a> &middot; <a href="#tick-ledger"><code>tick-ledger.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.6</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/14">#14</a></span></p><p class="ver-t">effective leaf heartbeat via streaming output</p><p class="ver-s"><b>Read</b><a href="#extract-result"><code>extract-result.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.5</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/5">#5</a></span></p><p class="ver-t">bounded revise loop on REJECT - veri self-corrects</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.4</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/12">#12</a></span></p><p class="ver-t">supervisor retries a killed-stuck leaf up to a bounded budget</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.3</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/4">#4</a></span></p><p class="ver-t">supervised leaves: heartbeat + timeout make veri unstuckable</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.2</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/3">#3</a></span></p><p class="ver-t">blind independent verification of red, green and refactor</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#parse-verdict"><code>parse-verdict.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a> &middot; <a href="#verify"><code>verify.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.1</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/2">#2</a></span></p><p class="ver-t">walking skeleton: solve one issue via R-G-R, narrated to the issue</p><p class="ver-s"><b>Read</b><a href="#tick-criterion"><code>tick-criterion.sh</code></a> &middot; <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></li></ol>
+<ol class="vers"><li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span><span class="ver-d">on main, past v0.11</span></p><p class="ver-t">Work has landed since the last version. If it had changed a capability it would have been tagged, so this is documentation, tests or tidying &mdash; or a tag nobody cut.</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.11</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/31">#31</a></span></p><p class="ver-t">an already-satisfied criterion is pinned by a blind mutation check, not bailed</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.10</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/25">#25</a> <a href="https://github.com/ztrange/veri/issues/27">#27</a></span></p><p class="ver-t">target repo ignores veri run state before the first commit</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.9</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/7">#7</a></span></p><p class="ver-t">hardened edges: baseline, classified bail, completion polish</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.8</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/18">#18</a></span></p><p class="ver-t">classify a bail as system vs process, deterministically</p><p class="ver-s"><b>Read</b><a href="#classify-bail"><code>classify-bail.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.7</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/6">#6</a></span></p><p class="ver-t">loops + ledger: multi-criterion issues, resumable</p><p class="ver-s"><b>Read</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a> &middot; <a href="#tick-ledger"><code>tick-ledger.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.6</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/14">#14</a></span></p><p class="ver-t">effective leaf heartbeat via streaming output</p><p class="ver-s"><b>Read</b><a href="#extract-result"><code>extract-result.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.5</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/5">#5</a></span></p><p class="ver-t">bounded revise loop on REJECT - veri self-corrects</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.4</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/12">#12</a></span></p><p class="ver-t">supervisor retries a killed-stuck leaf up to a bounded budget</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.3</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/4">#4</a></span></p><p class="ver-t">supervised leaves: heartbeat + timeout make veri unstuckable</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.2</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/3">#3</a></span></p><p class="ver-t">blind independent verification of red, green and refactor</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#parse-verdict"><code>parse-verdict.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a> &middot; <a href="#verify"><code>verify.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.1</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/2">#2</a></span></p><p class="ver-t">walking skeleton: solve one issue via R-G-R, narrated to the issue</p><p class="ver-s"><b>Read</b><a href="#tick-criterion"><code>tick-criterion.sh</code></a> &middot; <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></li></ol>
 <p class="vers-foot">
   A version that changed <em>no</em> script is not an error. The conductor is
   <code>SKILL.md</code> &mdash; English prose, not code &mdash; and capabilities that live
@@ -519,7 +519,7 @@ html{scroll-behavior:smooth}
 
 <figure class="dataflow">
 <div class="scroller">
-<svg viewBox="0 0 1080 770" role="img" aria-label="One ledger step as three phases. next-unchecked.sh runs once per step and hands the step to phase 1, Red; each phase is the same two stages, a developer leaf launched through supervise.sh and a blind verifier run by verify.sh, ending in parse-verdict.sh. A PASS carries the work to the next phase; a REJECT loops back to a fresh developer leaf for at most two attempts; an unobtainable verdict goes to classify-bail.sh. Green's PASS ticks the ledger and commits it with the code; Refactor loops transforms inside itself and is verified once on the settled result, after which the issue's criterion is ticked and the whole step repeats for the next unchecked line. When no step is left, next-unchecked.sh exits 3 and the branch is pushed as a draft pull request.">
+<svg viewBox="0 0 1080 770" role="img" aria-label="One ledger step as three phases. next-unchecked.sh runs once per step and hands the step to phase 1, Red; each phase is the same two stages, a developer leaf launched through supervise.sh and a blind verifier run by verify.sh, ending in parse-verdict.sh. A PASS carries the work to the next phase; a REJECT loops back to a fresh developer leaf for at most two attempts; an unobtainable verdict goes to classify-bail.sh. Green's PASS ticks the ledger and commits it with the code; Refactor loops transforms inside itself and is verified once on the settled result, after which the issue's criterion is ticked and the whole step repeats for the next unchecked line. A step whose criterion earlier work already satisfies leaves Red sideways instead: verify.sh pin judges the test that already passes, and on a PASS the test alone is committed and the step is done, with no Green and no Refactor. When no step is left, next-unchecked.sh exits 3 and the branch is pushed as a draft pull request.">
   <defs>
     <marker id="tl-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
@@ -668,6 +668,18 @@ html{scroll-behavior:smooth}
   <polyline points="1030,402 1060,402 1060,570 900,570 900,586" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
   <text x="1053" y="490" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 1053 490)">PASS</text>
 
+  <!-- ── the pin: a side-exit off Red, not a fourth phase ────────────────────── -->
+  <polyline points="310,414 398,414 398,638 404,638" fill="none" stroke="var(--ec0)" stroke-width="1.4" marker-end="url(#tl-p)"/>
+  <text x="410" y="550" font-size="9" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 410 550)">already satisfied</text>
+
+  <rect x="410" y="600" width="320" height="76" rx="5" fill="var(--panel)" stroke="var(--ec0)" stroke-width="1.5"/>
+  <text x="570" y="619" font-size="12.5" fill="var(--ink)" text-anchor="middle">Pin &mdash; a verified regression pin</text>
+  <text x="570" y="637" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the Red leaf&rsquo;s honest test passes unmodified, so</text>
+  <text x="570" y="652" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">stage 3 runs verify.sh pin: it must fail under a</text>
+  <text x="570" y="667" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">behaviour-removing mutation, applied then reverted</text>
+  <text x="570" y="693" font-size="9.5" fill="var(--ec0)" text-anchor="middle">the test alone is committed &mdash; no Green, no Refactor</text>
+  <line x1="730" y1="638" x2="744" y2="638" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+
   <!-- ── the two ways a step ends ───────────────────────────────────────────── -->
   <rect x="30" y="592" width="300" height="56" rx="5" fill="var(--panel)" stroke="var(--ec2)" stroke-width="1.5" stroke-dasharray="5 3"/>
   <circle cx="30" cy="620" r="10" fill="var(--accent)"/>
@@ -690,7 +702,9 @@ html{scroll-behavior:smooth}
   One ledger step, start to finish. Each column is the <b>same machinery</b> &mdash; stages 2
   and 3 &mdash; carrying a different prompt and a different rubric. Colour here means exit
   code, never phase: Red and Green are TDD&rsquo;s names, so the phases are drawn in the
-  neutral accent to keep the two vocabularies apart.
+  neutral accent to keep the two vocabularies apart. The pin hanging off Red is not a
+  fourth column: it is the side-exit a step takes when earlier work already satisfied
+  its criterion, and it ends the step where Refactor would have.
 </figcaption>
 </figure>
 
@@ -698,7 +712,9 @@ html{scroll-behavior:smooth}
 <ul>
   <li><strong>Three phases, three blind verdicts, one step.</strong> Stage 1 runs once per
       step; stages 2 and 3 run once per phase &mdash; more, when a phase is revised. The
-      verifier is a fresh agent every time, so nothing it approved earlier carries over.</li>
+      verifier is a fresh agent every time, so nothing it approved earlier carries over.
+      A step that was already satisfied takes one verdict, not three: the pin is an exit
+      from Red, not a fourth phase.</li>
   <li><strong>The ledger ticks at Green, not at the end.</strong> The moment the
       implementation is blind-approved, the tick and the code go into
       <em>one</em> commit &mdash; so git history and the checklist cannot disagree even if
@@ -712,7 +728,7 @@ html{scroll-behavior:smooth}
       knows there are three phases, what order they come in, or that Refactor loops. Phase
       is a string the conductor passes down &mdash;
       <code>verify.sh red&hellip;</code>, <code>green&hellip;</code>,
-      <code>refactor&hellip;</code> &mdash; which is exactly the split the
+      <code>refactor&hellip;</code>, <code>pin&hellip;</code> &mdash; which is exactly the split the
       <a href="#division">division of labour</a> promised: the model decides, the scripts
       enforce.</li>
 </ul>
@@ -1642,7 +1658,7 @@ html{scroll-behavior:smooth}
   unable to arrive</strong>. Three scripts compose into one verb, and the guarantee lives in
   the shape of the first one's arguments.
 </p>
-<h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b></span></h3>
+<h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.11</b></span></h3>
 <p>
   Look at the usage line below and note what is <strong>absent</strong>. There is a
   parameter for the phase, one for the issue's behaviour spec, one for the test path, one
