@@ -390,6 +390,43 @@ tags_git() {
   fi
 }
 
+# hunks_git <name> <expected-report> <mutator...>
+# Every other version-layer assertion here reads the built page, which can only ever show
+# a hunk's FIRST line: the wrapper <span> sits on that one line and nothing in the markup
+# says where the run ends. An extent is a fact about the PAIR of lines a hunk runs
+# between, so this one asks gitmeta itself, in the same sandbox_git repository the
+# page-level cases build in.
+# The report is one line per hunk — `<first>-<last> <tag>`, lowest line first — and the
+# whole of it is compared, not searched: a hunk the implementation invented, or one it
+# dropped, is as wrong as an extent that ends on the wrong line.
+# Read back through gitmeta.read() rather than by calling hunks() with a hand-written tag
+# list and `since`, because those two arguments are exactly what the build works out for
+# itself; supplying them would let the case pass against a tree the real build reads
+# differently.
+hunks_git() {
+  local name="$1" want="$2"; shift 2
+  local d code got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  got="$( cd "$d" && python3 - 2>&1 <<'PY'
+import sys
+sys.path.insert(0, "docs/wt")
+import gitmeta
+meta = gitmeta.read(".", {"classify-bail.sh": "skills/solve-issue/scripts/classify-bail.sh"})
+for first, (tag, description, last) in sorted(meta["marks"]["classify-bail.sh"]["hunks"].items()):
+    print("%d-%d %s" % (first, last, tag))
+PY
+  )" && code=0 || code=$?
+  if [[ "$code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want the hunks of classify-bail.sh to report: $want"
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -6
+  fi
+}
+
 # checks_git <name> <mutator...>
 # Every other assertion here reads the page build-walkthrough.py produced. This one hands
 # that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
@@ -514,7 +551,19 @@ rewrite_line_as_refactor() {
   sed -i.bak "${lineno}s|.*|$text|" "$file" && rm -f "$file.bak"
   git add -A && git commit -qm "$subject"
 }
+
+# rewrite_hunk_as_feat <file> <first> <last> <text> <subject> <tag>
+# rewrite_line_as_feat over a RANGE of lines, landed as ONE commit — so blame answers the
+# same commit for all of them and they are therefore one hunk, which is what a hunk needs
+# in order to have an extent worth reporting. Rewriting rather than adding, for the same
+# reason as the single-line helper: the line count does not move.
+rewrite_hunk_as_feat() {
+  local file="$1" first="$2" last="$3" text="$4" subject="$5" tag="$6"
+  sed -i.bak "${first},${last}s|.*|$text|" "$file" && rm -f "$file.bak"
+  git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
+}
 export -f append_line_to_script sed_commentary rewrite_line_as_feat rewrite_line_as_refactor
+export -f rewrite_hunk_as_feat
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
@@ -839,6 +888,21 @@ ready-for-agent
 unblocked
 unclaimed
 first bail'
+
+# 17. a hunk has two ends. Case 11 pinned which LINE a later version's tag lands on; the
+#    tag is only half of what a hunk is. A hunk is a run of consecutive lines with one
+#    last-touching commit, and everything a reader would want to do with it — rule a
+#    margin down its side, link to it as `classify-bail.sh L3–4` — needs the line the run
+#    ENDS on as well as the line it starts on. So gitmeta reports the extent, not just the
+#    head of it.
+#    Two adjacent lines rewritten by one feat: commit, with the rest of the file still on
+#    the v0.1 commit that added it: exactly one hunk, running 3 to 4. An implementation
+#    that reported only the first line has nothing to say here, and one that ran the hunk
+#    past line 4 into the untouched v0.1 lines below would report the wrong end.
+hunks_git "a hunk reports the last line of its run, not only the first" '3-4 v0.2' \
+  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
 
 echo "----"
 echo "$pass passed, $fail failed"

@@ -1,6 +1,6 @@
 # Plan for #70 — Walkthrough: "since vX" reading mode
 
-- [ ] `gitmeta.py`'s `hunks()` returns each hunk's last line as well as its first, so a hunk has an extent
+- [x] `gitmeta.py`'s `hunks()` returns each hunk's last line as well as its first, so a hunk has an extent
 - [ ] the build emits an inverted map `window.__VERI_HUNKS__` (tag to script, first line, last line, description) with one entry per `.hunk` span, and `docs/tests/build-guards.test.sh` guards that the counts agree
 - [ ] `docs/wt/style.css` styles `.l.hunk` with a gutter chip carrying the tag text and a faint left rule spanning the hunk's extent
 - [ ] with no version chosen and nothing stored, the page renders as it does today plus the visible marks, with no dimming
