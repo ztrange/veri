@@ -179,6 +179,18 @@ region_between() {
   printf '%s' "${region%%"$end"*}"  # and everything from the end landmark on
 }
 
+# missing_from <text> <wants>
+# Of the substrings in <wants> — one per line — the ones <text> does not contain, printed
+# one per line. Nothing printed means every one of them is there.
+# All of them, not the first: a report that named one missing string at a time would send
+# you round the build again for the next.
+missing_from() {
+  local text="$1" want
+  while IFS= read -r want; do
+    [[ "$text" == *"$want"* ]] || printf '%s\n' "$want"
+  done <<< "$2"
+}
+
 # opens_with <name> <wants> [mutator...]
 # Every assertion above asks its question of the whole page, which is no use for a claim
 # about where something sits. This one cuts the page down to the slice the build puts
@@ -192,15 +204,13 @@ region_between() {
 # tags_git takes its spans that way: the claim is that all of them are in that one slice.
 opens_with() {
   local name="$1" wants="$2"; shift 2
-  local d code page region want missing=""
+  local d code page region missing
   d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   # after the rail, the crumb and the masthead; before the old opening section
   region="$(region_between "$page" '</header>' '<h2 id="what"')"
-  while IFS= read -r want; do
-    [[ "$region" == *"$want"* ]] || missing="$missing$want"$'\n'
-  done <<< "$wants"
+  missing="$(missing_from "$region" "$wants")"
   if [[ "$code" == 0 && -z "$missing" ]]; then
     pass=$((pass + 1))
   else
@@ -208,7 +218,7 @@ opens_with() {
     echo "FAIL - $name (exit $code)"
     echo "    want, between the masthead and <h2 id=\"what\">, all of: $wants"
     echo "    missing:"
-    printf '%s' "$missing" | sed 's/^/      /'
+    [[ -n "$missing" ]] && printf '%s\n' "$missing" | sed 's/^/      /'
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
   fi
 }
