@@ -78,6 +78,31 @@ done
 [[ -z "$misread" ]] \
   && ok || no "package.json scripts.test: bare → npm test, pnpm-lock.yaml → pnpm test, yarn.lock → yarn test —$misread"
 
+# 3. a Makefile declaring a `test:` target names `make test` — and it does so even when the
+# repo also carries a pytest marker, which is the half of this case worth seeding. The two
+# markers together are the only way to observe the precedence: on a Makefile-only repo,
+# `make test` on stdout says nothing about ordering, because no other rule was in the running.
+#
+# This is the reordering the issue calls for. Today's SKILL.md tries npm, pytest, make,
+# unittest, so this repo would answer `pytest -q`; a repo that wrote a `test` target chose
+# it deliberately — very often precisely to wrap the pytest invocation with whatever else
+# the suite needs — so the target wins and pytest.ini is left to answer for repos that
+# wrote no target at all.
+#
+# The pytest marker is a bare pytest.ini: an empty file is enough, since rule 4 keys on the
+# file existing, not on anything inside it. No Makefile, no pytest and no python are needed
+# to run this — the script reads the two filenames and never executes what it prints.
+want='make test'
+repo="$work/make-over-pytest"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+: > "$repo/pytest.ini"
+
+out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
+  && ok || no "Makefile with a test: target beats pytest.ini (exit=$code want 0, stdout='$out' want '$want')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
