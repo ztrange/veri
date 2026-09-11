@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
-# Tests for scripts/build-develop-prompt.sh — the developer-side mirror of
-# build-verify-prompt.sh. Where the verifier builder is defined by what it CANNOT carry
-# (no rationale parameter, so blindness is structural), this one is defined by what it
-# MUST carry: the conductor supplies only variables, and every run of a phase sends the
-# same instructions. That is what removes the run-to-run variance of a prompt improvised
-# from prose each cycle.
+# Tests for scripts/build-develop-prompt.sh — see that script's header for why the
+# developer's prompt is a versioned template rather than prose improvised each cycle.
+# These tests hold it to the half of that bargain a test can observe: what the assembled
+# prompt must carry.
 #
 # Contract under test, red phase:
 #   build-develop-prompt.sh red <spec-file> <step-text> <test-cmd>
