@@ -4,4 +4,4 @@
 - [x] build-develop-prompt.sh green builds a prompt carrying the test path and target test and the do-not-modify-the-test instruction
 - [x] build-develop-prompt.sh refactor builds a prompt carrying the touched-files list and the no-untested-generality rule, with the RESULT/FLAGS footer
 - [x] build-develop-prompt.sh revise builds a prompt carrying the rejection reason verbatim and the IMPOSSIBLE outcome
-- [ ] an unknown phase or a missing template, spec or reason file exits 2 with a diagnostic and prints no prompt
+- [x] an unknown phase or a missing template, spec or reason file exits 2 with a diagnostic and prints no prompt
