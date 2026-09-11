@@ -80,6 +80,21 @@ code=$?
 { [[ "$code" == 2 ]] && [[ "$out" == *'killed-stuck'* ]]; } && ok \
   || no "hung verifier leaf → killed-stuck exit 2 (code=$code)"
 
+# 7. the `pin` phase (the "already satisfied" outcome, #31) speaks the same three exit
+#    codes as red/green/refactor — 0 PASS, 1 REJECT, 2 no verdict — so the conductor can
+#    branch on a verify-pin result with exactly the code it already uses for verify-red.
+verify 'VERDICT: PASS
+REASON: The test passes now and fails under the mutation I applied.' pin
+pin_pass_code=$code pin_pass_out="$out"
+verify 'VERDICT: REJECT
+REASON: The test still passes with the behavior removed.' pin
+pin_reject_code=$code
+verify 'the pin verifier rambled and never rendered a verdict' pin
+pin_none_code=$code
+{ [[ "$pin_pass_code" == 0 ]] && [[ "$pin_pass_out" == *'fails under the mutation'* ]] \
+  && [[ "$pin_reject_code" == 1 ]] && [[ "$pin_none_code" == 2 ]]; } && ok \
+  || no "pin phase exit codes: PASS→0 REJECT→1 no verdict→2 (got $pin_pass_code/$pin_reject_code/$pin_none_code)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
