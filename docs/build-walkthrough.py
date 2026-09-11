@@ -286,6 +286,11 @@ SCRIPT_ID = {s["file"]: s["id"] for s in com.SCRIPTS}
 META = gitmeta.read(ROOT, {s["file"]: str((SCRIPTS_DIR / s["file"]).relative_to(ROOT))
                            for s in com.SCRIPTS})
 ORIGIN = gitmeta.origin_url(ROOT)
+# How many issues veri has solved by being run on itself. None in a tree that cannot
+# count them — read separately from META because it is a property of the history, not of
+# the tags: an untagged repo still knows the number, and the claim it lands in is prose
+# that belongs on the page either way.
+SELF_SOLVED = gitmeta.solved_by_itself(ROOT)
 
 
 def nav_entries(meta=None):
@@ -395,7 +400,9 @@ def main():
         js=(HERE / "wt" / "app.js").read_text().strip(),
         rail=render_rail(entries),
         nav=render_nav_json(entries),
-        intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
+        intro=(refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand))
+               .replace("{{SELF}}", com.SELF_COUNT_HTML % SELF_SOLVED
+                                    if SELF_SOLVED else "")),
         stages=stages_html,
         reference=reference_html,
         capabilities=(com.CAPABILITIES_HTML.replace("{{ROWS}}", render_versions(META))
