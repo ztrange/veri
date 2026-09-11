@@ -16,6 +16,7 @@
      Comments carry the reasoning in these scripts, so they stay above 4.5:1. */
   --code-bg:#EFF3F7; --code-ink:#16202B; --code-rule:#D8E0E9;
   --code-faint:#6B7889; --code-cmt:#516070;
+  --code-kw:#6B3FB8; --code-str:#0F6F69; --code-var:#8A5A1E;
   --ec0:#17794A; --ec1:#A96A05; --ec2:#BF3B2C; --ec3:#43578A;
   --ec0-wash:#DCEFE4; --ec1-wash:#F7EBD5; --ec2-wash:#F8E1DE; --ec3-wash:#E1E6F3;
   --shadow:0 1px 2px rgba(20,26,33,.06), 0 6px 20px -12px rgba(20,26,33,.22);
@@ -30,6 +31,7 @@
     --accent:#85A3FF; --accent-ink:#0E1319; --accent-wash:#1A2540;
     --code-bg:#0A0F15; --code-ink:#DDE4EC; --code-rule:#232C36;
     --code-faint:#66737F; --code-cmt:#7E8E9F;
+    --code-kw:#C4A2F5; --code-str:#6FD6C6; --code-var:#E0BC85;
     --ec0:#4FC98C; --ec1:#E2A445; --ec2:#F2796B; --ec3:#93A6DA;
     --ec0-wash:#10281D; --ec1-wash:#2B2113; --ec2-wash:#2E1917; --ec3-wash:#171E2E;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px -12px rgba(0,0,0,.7);
@@ -43,6 +45,7 @@
   --accent:#85A3FF; --accent-ink:#0E1319; --accent-wash:#1A2540;
   --code-bg:#0A0F15; --code-ink:#DDE4EC; --code-rule:#232C36;
   --code-faint:#66737F; --code-cmt:#7E8E9F;
+  --code-kw:#C4A2F5; --code-str:#6FD6C6; --code-var:#E0BC85;
   --ec0:#4FC98C; --ec1:#E2A445; --ec2:#F2796B; --ec3:#93A6DA;
   --ec0-wash:#10281D; --ec1-wash:#2B2113; --ec2-wash:#2E1917; --ec3-wash:#171E2E;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 6px 20px -12px rgba(0,0,0,.7);
@@ -167,7 +170,15 @@ pre.src .l{display:block;padding:0 16px 0 4.4em;text-indent:-4.4em;white-space:p
 pre.src .l::before{counter-increment:ln;content:counter(ln);display:inline-block;
   width:3.3em;padding-right:1.1em;text-align:right;color:var(--code-faint);
   font-size:11.5px;user-select:none;text-indent:0}
+/* Four classes, deliberately not more. The prose column carries the explanation;
+   the listing only needs enough colour to separate text from code at a glance.
+   Every one clears 4.5:1 on its own background in both themes — they are content,
+   not decoration — and all sit below the plain code ink in prominence, so the
+   default stays the thing you read first. */
 pre.src .c{color:var(--code-cmt);font-style:italic}
+pre.src .k{color:var(--code-kw)}
+pre.src .s{color:var(--code-str)}
+pre.src .v{color:var(--code-var)}
 
 /* ── tooltip refs ── */
 a.tt{font-family:"JetBrains Mono",monospace;font-size:.855em;background:var(--accent-wash);

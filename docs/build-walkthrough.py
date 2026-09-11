@@ -33,6 +33,7 @@ OUT = HERE / "walkthrough.html"
 sys.path.insert(0, str(HERE / "wt"))
 import primer as primer_mod          # noqa: E402
 import commentary as com             # noqa: E402
+import bashlex                       # noqa: E402
 import gitmeta                       # noqa: E402
 
 # A reference is {{p-id|display}}. Display text is nearly always bash, which is full
@@ -97,15 +98,24 @@ def refs(text, origin=None):
     return "".join(out)
 
 
-def code_block(lines, start):
-    """Render source lines verbatim; full-line comments get the muted style."""
+def code_block(lines, start, origin="?"):
+    """Render source lines verbatim, with four token classes for readability.
+
+    Verbatim is the load-bearing word. Every line is asserted to survive the lexer
+    byte for byte before it is emitted, so a lexer bug stops the build instead of
+    shipping a listing that no longer matches the file it claims to quote.
+    """
     out = []
-    for ln in lines:
-        esc = html.escape(ln, quote=False)
-        stripped = ln.lstrip()
-        if stripped.startswith("#") and not stripped.startswith("#!"):
-            esc = '<span class="c">%s</span>' % esc
-        out.append('<span class="l">%s</span>' % esc)
+    for ln, toks in zip(lines, bashlex.highlight(lines)):
+        if "".join(t for _, t in toks) != ln:
+            _problems.append("%s: highlighting altered a line, which must never happen\n"
+                             "      file: %r\n      lexer: %r"
+                             % (origin, ln, "".join(t for _, t in toks)))
+        parts = []
+        for cls, text in toks:
+            esc = html.escape(text, quote=False)
+            parts.append('<span class="%s">%s</span>' % (cls, esc) if cls else esc)
+        out.append('<span class="l">%s</span>' % "".join(parts))
     return ('<pre class="src" style="counter-reset: ln %d">%s</pre>'
             % (start - 1, "\n".join(out)))
 
@@ -141,7 +151,7 @@ def render_script(spec):
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
             '<div class="ann-note%s">%s</div>'
-            "</div>" % (code_block(src[a - 1:b], a), cls, note))
+            "</div>" % (code_block(src[a - 1:b], a, fname), cls, note))
 
     contract = ""
     if spec.get("contract"):
