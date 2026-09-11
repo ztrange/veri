@@ -169,14 +169,33 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
 .ann-note.quiet{color:var(--ink-faint);font-style:italic;font-size:14px}
 pre.src{margin:0;font-family:"JetBrains Mono",monospace;font-size:12.4px;
   line-height:1.72;color:var(--code-ink);tab-size:2}
-/* Hanging indent: the line number sits in a 4.4em gutter and the code hangs to its
+/* Hanging indent: the line number sits in a 6.5em gutter and the code hangs to its
    right, so a long line WRAPS under itself instead of hiding behind a scrollbar.
    Median source line here is 26 chars but header comments reach 100, and 42 of the
-   76 chunks overflowed a side-by-side column at typical viewport widths. */
-pre.src .l{display:block;padding:0 16px 0 4.4em;text-indent:-4.4em;white-space:pre-wrap;overflow-wrap:break-word}
+   76 chunks overflowed a side-by-side column at typical viewport widths.
+   The gutter is wider than the number needs because a hunk's chip shares it: the
+   number is right-aligned against the code and the chip takes the slack on the left.
+   The transparent border is the hunk rule's slot — held open on every line so that
+   colouring it below moves nothing sideways. */
+pre.src .l{display:block;padding:0 16px 0 6.5em;text-indent:-6.5em;white-space:pre-wrap;
+  overflow-wrap:break-word;border-left:2px solid transparent}
 pre.src .l::before{counter-increment:ln;content:counter(ln);display:inline-block;
-  width:3.3em;padding-right:1.1em;text-align:right;color:var(--code-faint);
+  width:5.4em;padding-right:1.1em;text-align:right;color:var(--code-faint);
   font-size:11.5px;user-select:none;text-indent:0}
+/* A hunk is a run of lines a later capability rewrote, and every line of the run carries
+   the class — so the rule runs the hunk's whole extent, not just past its first line, and
+   a reader scrolling through the middle of a nine-line run still sees it marked. The
+   border slot above is held open on every line, so the colour here costs no reflow.
+   The chip says in which version, and belongs once per hunk: it hangs off [data-tag],
+   which the markup puts on the first line of a run and nowhere else. Its text is
+   attr(data-tag) and never a literal — one rule serves every hunk on the page and they
+   carry different tags. The title the markup already holds is the description, which the
+   browser shows on hover. */
+pre.src .l.hunk{position:relative;border-left-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+pre.src .l.hunk[data-tag]::after{content:attr(data-tag);position:absolute;left:.45em;top:.28em;
+  font-size:9.5px;line-height:1.35;letter-spacing:.02em;color:var(--accent);
+  background:var(--accent-wash);border-radius:3px;padding:0 4px;
+  text-indent:0;user-select:none}
 /* Four classes, deliberately not more. The prose column carries the explanation;
    the listing only needs enough colour to separate text from code at a glance.
    Every one clears 4.5:1 on its own background in both themes — they are content,
@@ -1448,15 +1467,15 @@ html{scroll-behavior:smooth}
   would otherwise drag along with it.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 26"><span class="l"></span>
 <span class="l hunk" data-tag="v0.24" title="write veri&#x27;s run-state rule into the shared info/exclude too"><span class="c"># The same rule has to reach a second file. The .gitignore above is committed on the issue branch,</span></span>
-<span class="l"><span class="c"># so the checkout the conductor was invoked from — still on the default branch — never sees it and</span></span>
-<span class="l"><span class="c"># keeps reporting the worktree under .tdd/ as untracked, which the next run's preflight refuses to</span></span>
-<span class="l"><span class="c"># start on. `info/exclude` under the *common* git dir is read by every worktree of the repo and is</span></span>
-<span class="l"><span class="c"># never committed, so it needs no branch and no PR; --git-common-dir is what resolves a linked</span></span>
-<span class="l"><span class="c"># worktree's own gitdir back to the primary's, and answers relative to $root when it answers</span></span>
-<span class="l"><span class="c"># relatively at all.</span></span>
-<span class="l">common_dir=<span class="s">"$(git -C "</span><span class="v">$root</span><span class="s">" rev-parse --git-common-dir)"</span></span>
-<span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$common_dir</span><span class="s">"</span> <span class="k">in</span> /*) ;; *) common_dir=<span class="s">"</span><span class="v">$root</span><span class="s">/</span><span class="v">$common_dir</span><span class="s">"</span> ;; <span class="k">esac</span></span>
-<span class="l">exclude=<span class="s">"</span><span class="v">$common_dir</span><span class="s">/info/exclude"</span></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont"><span class="c"># so the checkout the conductor was invoked from — still on the default branch — never sees it and</span></span>
+<span class="l hunk cont"><span class="c"># keeps reporting the worktree under .tdd/ as untracked, which the next run's preflight refuses to</span></span>
+<span class="l hunk cont"><span class="c"># start on. `info/exclude` under the *common* git dir is read by every worktree of the repo and is</span></span>
+<span class="l hunk cont"><span class="c"># never committed, so it needs no branch and no PR; --git-common-dir is what resolves a linked</span></span>
+<span class="l hunk cont"><span class="c"># worktree's own gitdir back to the primary's, and answers relative to $root when it answers</span></span>
+<span class="l hunk cont"><span class="c"># relatively at all.</span></span>
+<span class="l hunk cont">common_dir=<span class="s">"$(git -C "</span><span class="v">$root</span><span class="s">" rev-parse --git-common-dir)"</span></span>
+<span class="l hunk cont"><span class="k">case</span> <span class="s">"</span><span class="v">$common_dir</span><span class="s">"</span> <span class="k">in</span> /*) ;; *) common_dir=<span class="s">"</span><span class="v">$root</span><span class="s">/</span><span class="v">$common_dir</span><span class="s">"</span> ;; <span class="k">esac</span></span>
+<span class="l hunk cont">exclude=<span class="s">"</span><span class="v">$common_dir</span><span class="s">/info/exclude"</span></span></pre></div><div class="ann-note"><p>
   <strong>The second destination, and the bug that put it here.</strong> The
   <code>.gitignore</code> above is committed <em>on the issue branch</em>. The checkout
   <code>/solve-issue</code> was invoked from stays on the default branch for the whole run, so
@@ -1480,7 +1499,7 @@ html{scroll-behavior:smooth}
   unless the answer already starts with <code>/</code> &mdash; <code>/*</code> is a glob
   pattern here, not a path, and matching it is how you ask "is this absolute?" without
   spawning anything.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 37"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 37"><span class="l hunk cont"></span>
 <span class="l"><span class="c"># append_rule &lt;file&gt; — put the three lines at the end of &lt;file&gt;, in git's reading order, having</span></span>
 <span class="l"><span class="c"># first made &lt;file&gt; appendable at all. Both destinations need exactly this, so it is written once:</span></span>
 <span class="l"><span class="c"># two copies of the append could drift into disagreeing about the newline guard, and only one of the</span></span>
@@ -1496,8 +1515,8 @@ html{scroll-behavior:smooth}
 <span class="l">append_rule() {</span>
 <span class="l">  mkdir -p <span class="s">"$(dirname "</span><span class="v">$1</span><span class="s">")"</span></span>
 <span class="l hunk" data-tag="v0.24" title="write veri&#x27;s run-state rule into the shared info/exclude too">  <span class="k">if</span> [ -s <span class="s">"</span><span class="v">$1</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"$(tail -c 1 "</span><span class="v">$1</span><span class="s">")"</span> ]; <span class="k">then</span></span>
-<span class="l">    echo <span class="s">""</span> &gt;&gt; <span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
-<span class="l">  <span class="k">fi</span></span>
+<span class="l hunk cont">    echo <span class="s">""</span> &gt;&gt; <span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
+<span class="l hunk cont">  <span class="k">fi</span></span>
 <span class="l">  printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$ignore_all</span><span class="s">"</span> <span class="s">"</span><span class="v">$keep_ledger</span><span class="s">"</span> <span class="s">"</span><span class="v">$drop_spec</span><span class="s">"</span> &gt;&gt; <span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
 <span class="l hunk" data-tag="v0.24" title="write veri&#x27;s run-state rule into the shared info/exclude too">}</span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-func" href="#p-func">append_rule()</a> is the write, extracted because two destinations now need exactly
@@ -1524,13 +1543,13 @@ html{scroll-behavior:smooth}
   <a class="tt" data-ref="p-printf" href="#p-printf">printf '%s\n'</a> over the three named variables, one argument per line. Because
   <code>&gt;&gt;</code> creates the file when it is absent, "no <code>.gitignore</code> at
   all" and "no exclude file at all" need no branch of their own.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 57"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 57"><span class="l hunk cont"></span>
 <span class="l hunk" data-tag="v0.24" title="skip the exclude append when the rule is already there"><span class="c"># where &lt;line&gt; &lt;file&gt; — the number of the first line of &lt;file&gt; that IS &lt;line&gt;, whole and on its own,</span></span>
 <span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh checks the rule&#x27;s order — a shuffled block is refused, not reported present"><span class="c"># or the empty string when absent. -F keeps the glob literal (no regex), -x forbids a partial-line</span></span>
-<span class="l"><span class="c"># match so `x.tdd/*` does not count as `.tdd/*`, -n prefixes each hit with `&lt;lineno&gt;:` — `head -1`</span></span>
-<span class="l"><span class="c"># takes the first hit and `cut` keeps the number, which is what the ordering check below compares.</span></span>
-<span class="l"><span class="c"># `|| true` is load-bearing under `pipefail`: absent the line, grep exits 1 and the whole pipeline</span></span>
-<span class="l"><span class="c"># inherits it, which `set -e` would turn into the script dying instead of reporting "not there".</span></span>
+<span class="l hunk cont"><span class="c"># match so `x.tdd/*` does not count as `.tdd/*`, -n prefixes each hit with `&lt;lineno&gt;:` — `head -1`</span></span>
+<span class="l hunk cont"><span class="c"># takes the first hit and `cut` keeps the number, which is what the ordering check below compares.</span></span>
+<span class="l hunk cont"><span class="c"># `|| true` is load-bearing under `pipefail`: absent the line, grep exits 1 and the whole pipeline</span></span>
+<span class="l hunk cont"><span class="c"># inherits it, which `set -e` would turn into the script dying instead of reporting "not there".</span></span>
 <span class="l hunk" data-tag="v0.24" title="skip the exclude append when the rule is already there">where() { grep -nxF <span class="s">"</span><span class="v">$1</span><span class="s">"</span> <span class="s">"</span><span class="v">$2</span><span class="s">"</span> | head -1 | cut -d: -f1 || true; }</span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-func" href="#p-func">where()</a> takes a line <em>and a file</em> &mdash; both destinations are asked the
   same questions &mdash; and returns not <em>whether</em> the line is in it but
@@ -1547,34 +1566,34 @@ html{scroll-behavior:smooth}
   instead of reporting "not there" as an empty string.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 65"><span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh refuses a partial rule (sentinel alone) with exit 2 instead of reporting it present"></span>
 <span class="l hunk" data-tag="v0.24" title="skip the exclude append when the rule is already there"><span class="c"># has_rule &lt;file&gt; — true when &lt;file&gt; already carries the whole rule, in git's reading order; false</span></span>
-<span class="l"><span class="c"># when it carries none of it. Never true for a subset and never for the same three lines shuffled:</span></span>
-<span class="l"><span class="c"># with the negation last, `!.tdd/issue-*.md` un-ignores the spec the line above just re-ignored, so</span></span>
-<span class="l"><span class="c"># every line is there and the rule is not. Appending cannot repair either case — git reads a second</span></span>
-<span class="l"><span class="c"># `.tdd/*` after the negation that precedes it — so both are refused rather than rewritten: exit 2,</span></span>
-<span class="l"><span class="c"># the "no answer could be obtained" code, fails the conductor's preflight before a cycle starts</span></span>
-<span class="l"><span class="c"># committing its scratch. (`exit` inside a function that is not a subshell ends the script, which is</span></span>
-<span class="l"><span class="c"># what this wants: there is nothing to report once the file is un-appendable.)</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># Both destinations are asked this, and it is asked before either is written: appending blind is</span></span>
-<span class="l"><span class="c"># what makes a resumed run — the conductor re-runs step 1.4 — double the block in info/exclude,</span></span>
-<span class="l"><span class="c"># which nothing commits and nothing reads back, so the duplicate would sit in the caller's ignore</span></span>
-<span class="l"><span class="c"># rules forever, three more lines per run.</span></span>
-<span class="l">has_rule() {</span>
-<span class="l">  <span class="k">local</span> file=<span class="s">"</span><span class="v">$1</span><span class="s">"</span> at_all at_ledger at_spec</span>
-<span class="l">  [ -f <span class="s">"</span><span class="v">$file</span><span class="s">"</span> ] || <span class="k">return</span> 1</span>
-<span class="l">  at_all=<span class="s">"$(where "</span><span class="v">$ignore_all</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
-<span class="l">  at_ledger=<span class="s">"$(where "</span><span class="v">$keep_ledger</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
-<span class="l">  at_spec=<span class="s">"$(where "</span><span class="v">$drop_spec</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
+<span class="l hunk cont"><span class="c"># when it carries none of it. Never true for a subset and never for the same three lines shuffled:</span></span>
+<span class="l hunk cont"><span class="c"># with the negation last, `!.tdd/issue-*.md` un-ignores the spec the line above just re-ignored, so</span></span>
+<span class="l hunk cont"><span class="c"># every line is there and the rule is not. Appending cannot repair either case — git reads a second</span></span>
+<span class="l hunk cont"><span class="c"># `.tdd/*` after the negation that precedes it — so both are refused rather than rewritten: exit 2,</span></span>
+<span class="l hunk cont"><span class="c"># the "no answer could be obtained" code, fails the conductor's preflight before a cycle starts</span></span>
+<span class="l hunk cont"><span class="c"># committing its scratch. (`exit` inside a function that is not a subshell ends the script, which is</span></span>
+<span class="l hunk cont"><span class="c"># what this wants: there is nothing to report once the file is un-appendable.)</span></span>
+<span class="l hunk cont"><span class="c">#</span></span>
+<span class="l hunk cont"><span class="c"># Both destinations are asked this, and it is asked before either is written: appending blind is</span></span>
+<span class="l hunk cont"><span class="c"># what makes a resumed run — the conductor re-runs step 1.4 — double the block in info/exclude,</span></span>
+<span class="l hunk cont"><span class="c"># which nothing commits and nothing reads back, so the duplicate would sit in the caller's ignore</span></span>
+<span class="l hunk cont"><span class="c"># rules forever, three more lines per run.</span></span>
+<span class="l hunk cont">has_rule() {</span>
+<span class="l hunk cont">  <span class="k">local</span> file=<span class="s">"</span><span class="v">$1</span><span class="s">"</span> at_all at_ledger at_spec</span>
+<span class="l hunk cont">  [ -f <span class="s">"</span><span class="v">$file</span><span class="s">"</span> ] || <span class="k">return</span> 1</span>
+<span class="l hunk cont">  at_all=<span class="s">"$(where "</span><span class="v">$ignore_all</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
+<span class="l hunk cont">  at_ledger=<span class="s">"$(where "</span><span class="v">$keep_ledger</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
+<span class="l hunk cont">  at_spec=<span class="s">"$(where "</span><span class="v">$drop_spec</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
 <span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh checks the rule&#x27;s order — a shuffled block is refused, not reported present">  <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$at_all</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ] \</span>
-<span class="l">    &amp;&amp; [ <span class="s">"</span><span class="v">$at_all</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> ] &amp;&amp; [ <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l hunk cont">    &amp;&amp; [ <span class="s">"</span><span class="v">$at_all</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> ] &amp;&amp; [ <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
 <span class="l hunk" data-tag="v0.24" title="skip the exclude append when the rule is already there">    <span class="k">return</span> 0</span>
-<span class="l">  <span class="k">fi</span></span>
-<span class="l">  <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
-<span class="l">    echo <span class="s">"ensure-run-state-ignored: </span><span class="v">$file</span><span class="s"> carries veri's run-state rule only in part, or with its lines out of order — fix it by hand"</span> &gt;&amp;2</span>
+<span class="l hunk cont">  <span class="k">fi</span></span>
+<span class="l hunk cont">  <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l hunk cont">    echo <span class="s">"ensure-run-state-ignored: </span><span class="v">$file</span><span class="s"> carries veri's run-state rule only in part, or with its lines out of order — fix it by hand"</span> &gt;&amp;2</span>
 <span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh refuses a partial rule (sentinel alone) with exit 2 instead of reporting it present">    <span class="k">exit</span> 2</span>
-<span class="l">  <span class="k">fi</span></span>
+<span class="l hunk cont">  <span class="k">fi</span></span>
 <span class="l hunk" data-tag="v0.24" title="skip the exclude append when the rule is already there">  <span class="k">return</span> 1</span>
-<span class="l">}</span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont">}</span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-func" href="#p-func">has_rule()</a> is the standard, and it is stricter than "all three lines exist":
   <strong>already present means the whole rule, in git's reading order, never a subset and
   never the same three lines shuffled.</strong> With the negation last,
@@ -1598,7 +1617,7 @@ html{scroll-behavior:smooth}
   step&nbsp;1.4 on a resumed run; nothing commits <code>info/exclude</code> and nothing reads
   it back, so an append made blind would sit in the caller's ignore rules forever, three more
   lines every run.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 95"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 95"><span class="l hunk cont"></span>
 <span class="l"><span class="c"># The word the conductor keys off, decided here rather than at the echo below: the .gitignore has to</span></span>
 <span class="l"><span class="c"># be *asked* first, so that a partial or misordered one aborts before anything is written, but it is</span></span>
 <span class="l"><span class="c"># *appended* last, after the exclude file. Holding the answer as the word it will print keeps those</span></span>
@@ -1620,12 +1639,12 @@ html{scroll-behavior:smooth}
   sentinel whose spelling would have to stay in step with two separate echo sites.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 105"><span class="l"></span>
 <span class="l hunk" data-tag="v0.24" title="write veri&#x27;s run-state rule into the shared info/exclude too"><span class="c"># The exclude file is written whatever the .gitignore turned out to be: a repo that already carries</span></span>
-<span class="l"><span class="c"># the rule in history (veri's own, #27) still has a caller's checkout that has never been told to</span></span>
+<span class="l hunk cont"><span class="c"># the rule in history (veri's own, #27) still has a caller's checkout that has never been told to</span></span>
 <span class="l hunk" data-tag="v0.24" title="skip the exclude append when the rule is already there"><span class="c"># ignore .tdd/. The .gitignore's refusal comes first, so a .gitignore we will not touch leaves this</span></span>
-<span class="l"><span class="c"># file untouched too.</span></span>
-<span class="l"><span class="k">if</span> ! has_rule <span class="s">"</span><span class="v">$exclude</span><span class="s">"</span>; <span class="k">then</span></span>
-<span class="l">  append_rule <span class="s">"</span><span class="v">$exclude</span><span class="s">"</span></span>
-<span class="l"><span class="k">fi</span></span>
+<span class="l hunk cont"><span class="c"># file untouched too.</span></span>
+<span class="l hunk cont"><span class="k">if</span> ! has_rule <span class="s">"</span><span class="v">$exclude</span><span class="s">"</span>; <span class="k">then</span></span>
+<span class="l hunk cont">  append_rule <span class="s">"</span><span class="v">$exclude</span><span class="s">"</span></span>
+<span class="l hunk cont"><span class="k">fi</span></span>
 <span class="l hunk" data-tag="v0.24" title="write veri&#x27;s run-state rule into the shared info/exclude too"></span>
 <span class="l"><span class="k">if</span> [ <span class="s">"</span><span class="v">$verdict</span><span class="s">"</span> = added ]; <span class="k">then</span></span>
 <span class="l">  append_rule <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span></span>
@@ -1807,8 +1826,8 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># it for the section that does: `[tool.pytest`, anchored to the start of a line so a</span></span>
 <span class="l"><span class="c"># mention in prose or in another table's value cannot answer for it, and matched as a</span></span>
 <span class="l hunk" data-tag="v0.22" title="recognise a setup.cfg [tool:pytest] section as a pytest repo"><span class="c"># prefix because real repos write `[tool.pytest.ini_options]`. `setup.cfg` is packaging</span></span>
-<span class="l"><span class="c"># metadata too, so it is asked the same way, for the header pytest documents for that file:</span></span>
-<span class="l"><span class="c"># `[tool:pytest]`, spelled with a colon rather than the dot pyproject.toml uses.</span></span>
+<span class="l hunk cont"><span class="c"># metadata too, so it is asked the same way, for the header pytest documents for that file:</span></span>
+<span class="l hunk cont"><span class="c"># `[tool:pytest]`, spelled with a colon rather than the dot pyproject.toml uses.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the</span></span>
 <span class="l"><span class="c"># dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an</span></span>
@@ -2071,12 +2090,12 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Status: exit 0 success · 1 leaf-failure · 2 killed-stuck. A one-line status (with the</span></span>
 <span class="l hunk" data-tag="v0.25" title="supervise.sh records its own final code in .tdd/&lt;name&gt;.exit"><span class="c"># kill cause) is written to stderr, and the same code is recorded in the completion file</span></span>
-<span class="l"><span class="c"># `.tdd/&lt;name&gt;.exit` on every path — so a leaf launched detached can be waited on by</span></span>
-<span class="l"><span class="c"># polling that file instead of by reading this script's stdout.</span></span>
+<span class="l hunk cont"><span class="c"># `.tdd/&lt;name&gt;.exit` on every path — so a leaf launched detached can be waited on by</span></span>
+<span class="l hunk cont"><span class="c"># polling that file instead of by reading this script's stdout.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l hunk" data-tag="v0.26" title="raise the VERI_HEARTBEAT default from 45s to 180s"><span class="c"># Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap</span></span>
 <span class="l hunk" data-tag="v0.4" title="supervise.sh retries a killed-stuck leaf up to a bounded budget"><span class="c"># secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra</span></span>
-<span class="l"><span class="c"># attempts after the first when a leaf is killed-stuck (default 1).</span></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont"><span class="c"># attempts after the first when a leaf is killed-stuck (default 1).</span></span></pre></div><div class="ann-note"><p>
   A twenty-six-line header, and worth reading as design documentation rather than
   preamble. It states the invariant the whole system depends on: <strong>"every leaf is
   launched through here, never directly"</strong>. Stuck-detection policy exists in exactly
@@ -2129,23 +2148,23 @@ html{scroll-behavior:smooth}
   first, so reading top to bottom you never meet a forward reference.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 45"><span class="l"></span>
 <span class="l hunk" data-tag="v0.14" title="supervise.sh reads a file&#x27;s mtime portably — GNU stat -f is filesystem status, not mtime"><span class="c"># Seconds-since-epoch of $1's last modification — the heartbeat sensor. There is no portable</span></span>
-<span class="l"><span class="c"># `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two</span></span>
-<span class="l"><span class="c"># must be tried one at a time, into a variable, with the answer validated — NOT chained with</span></span>
-<span class="l"><span class="c"># `||` inside one `$( )`. On GNU, `-f` is not a format flag at all; it means --file-system,</span></span>
-<span class="l"><span class="c"># so `stat -f %m FILE` reads `%m` as a second *filename* and prints a `  File: "…"` block to</span></span>
-<span class="l"><span class="c"># stdout for the real one before exiting non-zero. Chained, that block joins the fallback's</span></span>
-<span class="l"><span class="c"># digits in the same substitution and reaches the caller's `$(( ))`, where `set -u` kills the</span></span>
-<span class="l"><span class="c"># supervisor on the unset word `File`. Assigning each attempt separately overwrites instead</span></span>
-<span class="l"><span class="c"># of appending, and the digit test rejects anything that is not a plain count of seconds.</span></span>
-<span class="l">mtime_of() {</span>
-<span class="l">  <span class="k">local</span> m</span>
-<span class="l">  m=<span class="s">"$(stat -c %Y "</span><span class="v">$1</span><span class="s">" 2&gt;/dev/null)"</span> || m=<span class="s">"$(stat -f %m "</span><span class="v">$1</span><span class="s">" 2&gt;/dev/null)"</span> || m=<span class="s">""</span></span>
-<span class="l">  <span class="c"># No readable mtime (neither spelling, or the log vanished) → report "just touched". The</span></span>
-<span class="l">  <span class="c"># heartbeat then never fires and the hard timeout, which needs only `date`, still bounds</span></span>
-<span class="l">  <span class="c"># the leaf. The opposite default (0) would read as decades of silence and kill every leaf.</span></span>
-<span class="l">  <span class="k">case</span> <span class="s">"</span><span class="v">$m</span><span class="s">"</span> <span class="k">in</span> <span class="s">''</span>|*[!0-9]*) m=<span class="s">"$(now)"</span> ;; <span class="k">esac</span></span>
-<span class="l">  printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$m</span><span class="s">"</span></span>
-<span class="l">}</span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont"><span class="c"># `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two</span></span>
+<span class="l hunk cont"><span class="c"># must be tried one at a time, into a variable, with the answer validated — NOT chained with</span></span>
+<span class="l hunk cont"><span class="c"># `||` inside one `$( )`. On GNU, `-f` is not a format flag at all; it means --file-system,</span></span>
+<span class="l hunk cont"><span class="c"># so `stat -f %m FILE` reads `%m` as a second *filename* and prints a `  File: "…"` block to</span></span>
+<span class="l hunk cont"><span class="c"># stdout for the real one before exiting non-zero. Chained, that block joins the fallback's</span></span>
+<span class="l hunk cont"><span class="c"># digits in the same substitution and reaches the caller's `$(( ))`, where `set -u` kills the</span></span>
+<span class="l hunk cont"><span class="c"># supervisor on the unset word `File`. Assigning each attempt separately overwrites instead</span></span>
+<span class="l hunk cont"><span class="c"># of appending, and the digit test rejects anything that is not a plain count of seconds.</span></span>
+<span class="l hunk cont">mtime_of() {</span>
+<span class="l hunk cont">  <span class="k">local</span> m</span>
+<span class="l hunk cont">  m=<span class="s">"$(stat -c %Y "</span><span class="v">$1</span><span class="s">" 2&gt;/dev/null)"</span> || m=<span class="s">"$(stat -f %m "</span><span class="v">$1</span><span class="s">" 2&gt;/dev/null)"</span> || m=<span class="s">""</span></span>
+<span class="l hunk cont">  <span class="c"># No readable mtime (neither spelling, or the log vanished) → report "just touched". The</span></span>
+<span class="l hunk cont">  <span class="c"># heartbeat then never fires and the hard timeout, which needs only `date`, still bounds</span></span>
+<span class="l hunk cont">  <span class="c"># the leaf. The opposite default (0) would read as decades of silence and kill every leaf.</span></span>
+<span class="l hunk cont">  <span class="k">case</span> <span class="s">"</span><span class="v">$m</span><span class="s">"</span> <span class="k">in</span> <span class="s">''</span>|*[!0-9]*) m=<span class="s">"$(now)"</span> ;; <span class="k">esac</span></span>
+<span class="l hunk cont">  printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$m</span><span class="s">"</span></span>
+<span class="l hunk cont">}</span></pre></div><div class="ann-note"><p>
   <code>mtime_of</code> is the heartbeat sensor: seconds since the log was last written to.
   There is no portable spelling of "ask the filesystem for a file's mtime" &mdash;
   GNU/coreutils is <code>stat -c %Y</code>, BSD/macOS is <code>stat -f %m</code> &mdash; so
@@ -2189,7 +2208,7 @@ html{scroll-behavior:smooth}
 <p>
   Found on this project's first <code>ubuntu-latest</code> CI run: <code>make test</code>
   had passed on macOS for years, then hung for ten minutes the first time it ran on Linux.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 64"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 64"><span class="l hunk cont"></span>
 <span class="l">kill_tree() {</span>
 <span class="l">  kill -TERM -<span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null || kill -TERM <span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null</span>
 <span class="l">  <span class="c"># brief grace, then make sure it is gone</span></span>
@@ -2214,9 +2233,9 @@ html{scroll-behavior:smooth}
   never used". The loop runs five times; that is all it is for.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 71"><span class="l"></span>
 <span class="l hunk" data-tag="v0.4" title="supervise.sh retries a killed-stuck leaf up to a bounded budget"><span class="c"># Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets status/reason/rc.</span></span>
-<span class="l">attempt_once() {</span>
-<span class="l">  : &gt; <span class="s">"</span><span class="v">$log</span><span class="s">"</span></span>
-<span class="l">  rm -f <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont">attempt_once() {</span>
+<span class="l hunk cont">  : &gt; <span class="s">"</span><span class="v">$log</span><span class="s">"</span></span>
+<span class="l hunk cont">  rm -f <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-func" href="#p-func">attempt_once</a> runs the leaf exactly once and watches it. Its result comes back
   through global variables rather than a return value, because a bash function can only
   return an integer &mdash; the comment on line 70 says so explicitly.
@@ -2226,14 +2245,14 @@ html{scroll-behavior:smooth}
   nothing. <code>rm -f</code> removes any stale rc file. Both matter because this function
   can be called again on a retry, and stale state would make the new attempt look instantly
   finished.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 76"><span class="l"></span>
-<span class="l">  <span class="c"># Launch the leaf in its own process group (job-control monitor mode) so we can kill the</span></span>
-<span class="l">  <span class="c"># whole tree — including any grandchild like `sleep` — in one signal. A trailing rc file</span></span>
-<span class="l">  <span class="c"># marks natural completion without blocking the watch loop on `wait`.</span></span>
-<span class="l">  <span class="k">set</span> -m</span>
-<span class="l">  ( <span class="s">"</span><span class="v">$@</span><span class="s">"</span> &gt;<span class="s">"</span><span class="v">$log</span><span class="s">"</span> 2&gt;&amp;1; echo <span class="v">$?</span> &gt; <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span> ) &amp;</span>
-<span class="l">  pid=<span class="v">$!</span></span>
-<span class="l">  <span class="k">set</span> +m</span></pre></div><div class="ann-note"><p>The densest moment in veri. Line 79, left to right:</p>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 76"><span class="l hunk cont"></span>
+<span class="l hunk cont">  <span class="c"># Launch the leaf in its own process group (job-control monitor mode) so we can kill the</span></span>
+<span class="l hunk cont">  <span class="c"># whole tree — including any grandchild like `sleep` — in one signal. A trailing rc file</span></span>
+<span class="l hunk cont">  <span class="c"># marks natural completion without blocking the watch loop on `wait`.</span></span>
+<span class="l hunk cont">  <span class="k">set</span> -m</span>
+<span class="l hunk cont">  ( <span class="s">"</span><span class="v">$@</span><span class="s">"</span> &gt;<span class="s">"</span><span class="v">$log</span><span class="s">"</span> 2&gt;&amp;1; echo <span class="v">$?</span> &gt; <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span> ) &amp;</span>
+<span class="l hunk cont">  pid=<span class="v">$!</span></span>
+<span class="l hunk cont">  <span class="k">set</span> +m</span></pre></div><div class="ann-note"><p>The densest moment in veri. Line 79, left to right:</p>
 <ul>
   <li><a class="tt" data-ref="p-bg" href="#p-bg">( … ) &amp;</a> &mdash; a subshell, run in the background. The background part is
       the entire point: the script does not wait, so it can go on to watch. <strong>You
@@ -2264,20 +2283,20 @@ html{scroll-behavior:smooth}
   a non-blocking completion signal built out of nothing but a file &mdash; and it cleanly
   separates <em>the leaf chose to exit</em> from <em>we killed it</em>, because a killed
   leaf never reaches the <code>echo</code>.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 84"><span class="l"></span>
-<span class="l">  t0=<span class="s">"$(now)"</span></span>
-<span class="l">  status=<span class="s">""</span> reason=<span class="s">""</span> rc=0</span>
-<span class="l"></span></pre></div><div class="ann-note"><p>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 84"><span class="l hunk cont"></span>
+<span class="l hunk cont">  t0=<span class="s">"$(now)"</span></span>
+<span class="l hunk cont">  status=<span class="s">""</span> reason=<span class="s">""</span> rc=0</span>
+<span class="l hunk cont"></span></pre></div><div class="ann-note"><p>
   <code>t0</code> is the start time, for the hard timeout. The three variables on line 84
   are what <code>attempt_once</code> "returns": <code>status</code> becomes one of
   <code>success</code>, <code>failure</code> or <code>killed-stuck</code>, and
   <code>reason</code> carries the kill cause for the human-facing status line.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 88"><span class="l">  <span class="k">while</span> :; <span class="k">do</span></span>
-<span class="l">    <span class="k">if</span> [[ -f <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span> ]]; <span class="k">then</span></span>
-<span class="l">      rc=<span class="s">"$(cat "</span><span class="v">$rcfile</span><span class="s">" 2&gt;/dev/null || echo 1)"</span></span>
-<span class="l">      <span class="k">if</span> [[ <span class="s">"</span><span class="v">$rc</span><span class="s">"</span> == <span class="s">"0"</span> ]]; <span class="k">then</span> status=<span class="s">"success"</span>; <span class="k">else</span> status=<span class="s">"failure"</span>; <span class="k">fi</span></span>
-<span class="l">      <span class="k">break</span></span>
-<span class="l">    <span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 88"><span class="l hunk cont">  <span class="k">while</span> :; <span class="k">do</span></span>
+<span class="l hunk cont">    <span class="k">if</span> [[ -f <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span> ]]; <span class="k">then</span></span>
+<span class="l hunk cont">      rc=<span class="s">"$(cat "</span><span class="v">$rcfile</span><span class="s">" 2&gt;/dev/null || echo 1)"</span></span>
+<span class="l hunk cont">      <span class="k">if</span> [[ <span class="s">"</span><span class="v">$rc</span><span class="s">"</span> == <span class="s">"0"</span> ]]; <span class="k">then</span> status=<span class="s">"success"</span>; <span class="k">else</span> status=<span class="s">"failure"</span>; <span class="k">fi</span></span>
+<span class="l hunk cont">      <span class="k">break</span></span>
+<span class="l hunk cont">    <span class="k">fi</span></span></pre></div><div class="ann-note"><p>
   An <a class="tt" data-ref="p-noop" href="#p-noop">infinite loop</a> checking three conditions each second, in priority order,
   breaking on the first that holds. <strong>Condition one: did it finish on its own?</strong>
 </p><p>
@@ -2288,10 +2307,10 @@ html{scroll-behavior:smooth}
   Note what this preserves. A leaf that <em>chose</em> to exit non-zero becomes
   <span class="ec ec-1"><b>1</b></span>, a real answer. Only a leaf we had to kill becomes
   <span class="ec ec-2"><b>2</b></span>.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 94"><span class="l">    t=<span class="s">"$(now)"</span></span>
-<span class="l">    <span class="k">if</span> (( t - t0 &gt;= timeout )); <span class="k">then</span></span>
-<span class="l">      status=<span class="s">"killed-stuck"</span>; reason=<span class="s">"hard timeout </span><span class="v">${timeout}</span><span class="s">s exceeded"</span>; kill_tree; <span class="k">break</span></span>
-<span class="l">    <span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 94"><span class="l hunk cont">    t=<span class="s">"$(now)"</span></span>
+<span class="l hunk cont">    <span class="k">if</span> (( t - t0 &gt;= timeout )); <span class="k">then</span></span>
+<span class="l hunk cont">      status=<span class="s">"killed-stuck"</span>; reason=<span class="s">"hard timeout </span><span class="v">${timeout}</span><span class="s">s exceeded"</span>; kill_tree; <span class="k">break</span></span>
+<span class="l hunk cont">    <span class="k">fi</span></span></pre></div><div class="ann-note"><p>
   <strong>Condition two: has the hard cap blown?</strong> <a class="tt" data-ref="p-arith" href="#p-arith">(( … ))</a> gives real
   integer maths where variables need no <code>$</code>, so
   <code>t - t0 &gt;= timeout</code> reads like any other language.
@@ -2299,16 +2318,16 @@ html{scroll-behavior:smooth}
   This is total elapsed time, regardless of how busy the leaf has been. A leaf can be
   cheerfully producing output and still be going nowhere; that is what this catches and the
   heartbeat cannot.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 98"><span class="l">    silence=$(( t - $(mtime_of <span class="s">"</span><span class="v">$log</span><span class="s">"</span>) ))</span>
-<span class="l">    <span class="c"># Strict '&gt;' so the whole-second clock's ±1s over-read at a second boundary (see the</span></span>
-<span class="l">    <span class="c"># slow-leaf note in supervise.test.sh) can't spuriously kill an active/just-relaunched</span></span>
-<span class="l">    <span class="c"># leaf; a genuine hang keeps climbing past the window and is still killed.</span></span>
-<span class="l">    <span class="k">if</span> (( silence &gt; heartbeat )); <span class="k">then</span></span>
-<span class="l">      status=<span class="s">"killed-stuck"</span>; reason=<span class="s">"no heartbeat for </span><span class="v">${silence}</span><span class="s">s (window </span><span class="v">${heartbeat}</span><span class="s">s)"</span></span>
-<span class="l">      kill_tree; <span class="k">break</span></span>
-<span class="l">    <span class="k">fi</span></span>
-<span class="l">    sleep <span class="s">"</span><span class="v">$poll</span><span class="s">"</span></span>
-<span class="l">  <span class="k">done</span></span></pre></div><div class="ann-note"><p>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 98"><span class="l hunk cont">    silence=$(( t - $(mtime_of <span class="s">"</span><span class="v">$log</span><span class="s">"</span>) ))</span>
+<span class="l hunk cont">    <span class="c"># Strict '&gt;' so the whole-second clock's ±1s over-read at a second boundary (see the</span></span>
+<span class="l hunk cont">    <span class="c"># slow-leaf note in supervise.test.sh) can't spuriously kill an active/just-relaunched</span></span>
+<span class="l hunk cont">    <span class="c"># leaf; a genuine hang keeps climbing past the window and is still killed.</span></span>
+<span class="l hunk cont">    <span class="k">if</span> (( silence &gt; heartbeat )); <span class="k">then</span></span>
+<span class="l hunk cont">      status=<span class="s">"killed-stuck"</span>; reason=<span class="s">"no heartbeat for </span><span class="v">${silence}</span><span class="s">s (window </span><span class="v">${heartbeat}</span><span class="s">s)"</span></span>
+<span class="l hunk cont">      kill_tree; <span class="k">break</span></span>
+<span class="l hunk cont">    <span class="k">fi</span></span>
+<span class="l hunk cont">    sleep <span class="s">"</span><span class="v">$poll</span><span class="s">"</span></span>
+<span class="l hunk cont">  <span class="k">done</span></span></pre></div><div class="ann-note"><p>
   <strong>Condition three: has it gone quiet?</strong> <code>silence</code> is now minus the
   log's last-modified time &mdash; note <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">$( … )</a> nested <em>inside</em> the
   arithmetic, which is allowed and evaluates first. Exceed the window and the leaf is
@@ -2325,23 +2344,23 @@ html{scroll-behavior:smooth}
   genuine hang keeps climbing and still trips. This is the kind of bug that only appears
   under real timing on someone else's machine &mdash; and there is a test pinning it.
 </p></div>
-<p>Line 104 is the poll interval: nothing tripped, so nap and check again.</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 108"><span class="l"></span>
-<span class="l">  wait <span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null || true</span>
-<span class="l">}</span></pre></div><div class="ann-note"><p>
+<p>Line 104 is the poll interval: nothing tripped, so nap and check again.</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 108"><span class="l hunk cont"></span>
+<span class="l hunk cont">  wait <span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null || true</span>
+<span class="l hunk cont">}</span></pre></div><div class="ann-note"><p>
   By now the leaf is finished or killed, so <a class="tt" data-ref="p-wait" href="#p-wait">wait</a> no longer blocks meaningfully;
   it clears the zombie entry from the process table. The <code>|| true</code> is the standard
   <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">swallow-the-error</a> idiom &mdash; the process may already have been
   reaped, and failing here would be noise.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 111"><span class="l"></span>
-<span class="l"><span class="c"># First attempt plus up to $retries extra attempts. A normal result (success/failure)</span></span>
-<span class="l"><span class="c"># short-circuits; only killed-stuck is retried.</span></span>
-<span class="l">tries=0</span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 111"><span class="l hunk cont"></span>
+<span class="l hunk cont"><span class="c"># First attempt plus up to $retries extra attempts. A normal result (success/failure)</span></span>
+<span class="l hunk cont"><span class="c"># short-circuits; only killed-stuck is retried.</span></span>
+<span class="l hunk cont">tries=0</span>
 <span class="l"><span class="k">while</span> :; <span class="k">do</span></span>
 <span class="l hunk" data-tag="v0.4" title="supervise.sh retries a killed-stuck leaf up to a bounded budget">  attempt_once <span class="s">"</span><span class="v">$@</span><span class="s">"</span></span>
-<span class="l">  [[ <span class="s">"</span><span class="v">$status</span><span class="s">"</span> == <span class="s">"killed-stuck"</span> ]] || <span class="k">break</span></span>
-<span class="l">  (( tries &gt;= retries )) &amp;&amp; <span class="k">break</span></span>
-<span class="l">  tries=$(( tries + 1 ))</span>
-<span class="l">  echo <span class="s">"supervise[</span><span class="v">$name</span><span class="s">]: retry </span><span class="v">$tries</span><span class="s">/</span><span class="v">$retries</span><span class="s"> after killed-stuck"</span> &gt;&amp;2</span>
+<span class="l hunk cont">  [[ <span class="s">"</span><span class="v">$status</span><span class="s">"</span> == <span class="s">"killed-stuck"</span> ]] || <span class="k">break</span></span>
+<span class="l hunk cont">  (( tries &gt;= retries )) &amp;&amp; <span class="k">break</span></span>
+<span class="l hunk cont">  tries=$(( tries + 1 ))</span>
+<span class="l hunk cont">  echo <span class="s">"supervise[</span><span class="v">$name</span><span class="s">]: retry </span><span class="v">$tries</span><span class="s">/</span><span class="v">$retries</span><span class="s"> after killed-stuck"</span> &gt;&amp;2</span>
 <span class="l"><span class="k">done</span></span></pre></div><div class="ann-note"><p>
   <strong>Line 115 carries the whole retry policy.</strong> Read it as: if the status is
   <em>not</em> killed-stuck, break.
@@ -2391,10 +2410,10 @@ html{scroll-behavior:smooth}
   That split is what lets a caller write <code>out="$(supervise.sh …)"</code> and get clean
   leaf output with none of the supervisor's own chatter mixed in &mdash; which is exactly
   what <a href="#verify"><code>verify.sh</code></a> does in stage 3.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 133"><span class="l"><span class="c"># killed-stuck (where the leaf's subshell never gets to write `.tdd/&lt;name&gt;.rc` at all).</span></span>
-<span class="l"><span class="c"># A leaf launched detached is waited on by polling this, so it must carry the 0/1/2 of the</span></span>
-<span class="l"><span class="c"># exit-code contract rather than the leaf's raw code that `.rc` records.</span></span>
-<span class="l">printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$ec</span><span class="s">"</span> &gt; <span class="s">"</span><span class="v">$exitfile</span><span class="s">"</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 133"><span class="l hunk cont"><span class="c"># killed-stuck (where the leaf's subshell never gets to write `.tdd/&lt;name&gt;.rc` at all).</span></span>
+<span class="l hunk cont"><span class="c"># A leaf launched detached is waited on by polling this, so it must carry the 0/1/2 of the</span></span>
+<span class="l hunk cont"><span class="c"># exit-code contract rather than the leaf's raw code that `.rc` records.</span></span>
+<span class="l hunk cont">printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$ec</span><span class="s">"</span> &gt; <span class="s">"</span><span class="v">$exitfile</span><span class="s">"</span></span>
 <span class="l"><span class="k">exit</span> <span class="s">"</span><span class="v">$ec</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   The <strong>completion file</strong>, and the last thing written before the exit. It holds
   <em>this script's</em> code &mdash; the 0/1/2 of veri's contract &mdash; not the leaf's raw
@@ -2430,13 +2449,13 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># inner invocation; it is NOT launched directly — the supervisor (supervise.sh) is the</span></span>
 <span class="l"><span class="c"># single launch choke point (ADR-0002) and owns the `.tdd/&lt;name&gt;.log` progress log by</span></span>
 <span class="l hunk" data-tag="v0.6" title="stream-json leaves make the supervisor heartbeat effective"><span class="c"># capturing this script's stdout/stderr.</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># Leaves run in `--output-format stream-json` so the leaf emits events *continuously* as</span></span>
-<span class="l"><span class="c"># it works: that streamed output is what gives the supervisor a real heartbeat (text mode</span></span>
-<span class="l"><span class="c"># stays silent until the very end, so a working leaf is indistinguishable from a hung one).</span></span>
-<span class="l"><span class="c"># The raw stream is emitted to stdout (captured as the progress log), then the clean final</span></span>
-<span class="l"><span class="c"># result text is appended via extract-result.sh so parse-verdict.sh reads a parseable</span></span>
-<span class="l"><span class="c"># verdict at the tail.</span></span>
+<span class="l hunk cont"><span class="c">#</span></span>
+<span class="l hunk cont"><span class="c"># Leaves run in `--output-format stream-json` so the leaf emits events *continuously* as</span></span>
+<span class="l hunk cont"><span class="c"># it works: that streamed output is what gives the supervisor a real heartbeat (text mode</span></span>
+<span class="l hunk cont"><span class="c"># stays silent until the very end, so a working leaf is indistinguishable from a hung one).</span></span>
+<span class="l hunk cont"><span class="c"># The raw stream is emitted to stdout (captured as the progress log), then the clean final</span></span>
+<span class="l hunk cont"><span class="c"># result text is appended via extract-result.sh so parse-verdict.sh reads a parseable</span></span>
+<span class="l hunk cont"><span class="c"># verdict at the tail.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Usage:</span></span>
 <span class="l"><span class="c">#   run-leaf.sh &lt;prompt-file&gt; [claude args...]</span></span>
@@ -2458,7 +2477,7 @@ html{scroll-behavior:smooth}
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 23"><span class="l"><span class="k">set</span> -euo pipefail</span>
 <span class="l"></span>
 <span class="l hunk" data-tag="v0.6" title="stream-json leaves make the supervisor heartbeat effective">HERE=<span class="s">"$(cd "</span>$(dirname <span class="s">"</span><span class="v">$0</span><span class="s">"</span>)<span class="s">" &amp;&amp; pwd)"</span></span>
-<span class="l"></span>
+<span class="l hunk cont"></span>
 <span class="l">prompt_src=<span class="s">"</span><span class="v">${1:?usage: run-leaf.sh &lt;prompt-file|-&gt; [claude args...]}</span><span class="s">"</span></span>
 <span class="l"><span class="k">shift</span></span></pre></div><div class="ann-note"><p>
   Line 26 is an idiom worth memorising:
@@ -2482,21 +2501,21 @@ html{scroll-behavior:smooth}
   a prompt straight in.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 35"><span class="l"></span>
 <span class="l hunk" data-tag="v0.6" title="stream-json leaves make the supervisor heartbeat effective">stream_tmp=<span class="s">"$(mktemp)"</span></span>
-<span class="l"><span class="k">trap</span> <span class="s">'rm -f "$stream_tmp"'</span> EXIT</span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont"><span class="k">trap</span> <span class="s">'rm -f "$stream_tmp"'</span> EXIT</span></pre></div><div class="ann-note"><p>
   The <a class="tt" data-ref="p-mktemp" href="#p-mktemp">mktemp</a> + <a class="tt" data-ref="p-trap" href="#p-trap">trap</a> pair: a uniquely-named scratch file, and a
   guarantee it is deleted however the script ends &mdash; normal exit, error, or
   interruption.
 </p><p>
   A fixed name like <code>/tmp/stream.json</code> would be both a race condition between
   concurrent runs and a security hole. This is the correct form and it is two lines.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 38"><span class="l"></span>
-<span class="l"><span class="c"># Stream the leaf's events to stdout (the supervisor captures this — every event is a</span></span>
-<span class="l"><span class="c"># heartbeat) while teeing them aside for result extraction. set +e so pipefail can't abort</span></span>
-<span class="l"><span class="c"># before we read the leaf's real exit status from PIPESTATUS.</span></span>
-<span class="l"><span class="k">set</span> +e</span>
-<span class="l"><span class="s">"</span><span class="v">${CLAUDE_BIN:-claude}</span><span class="s">"</span> -p <span class="s">"</span><span class="v">$prompt</span><span class="s">"</span> --output-format stream-json --verbose <span class="s">"</span><span class="v">$@</span><span class="s">"</span> | tee <span class="s">"</span><span class="v">$stream_tmp</span><span class="s">"</span></span>
-<span class="l">rc=<span class="s">"</span><span class="v">${PIPESTATUS[0]}</span><span class="s">"</span></span>
-<span class="l"><span class="k">set</span> -e</span></pre></div><div class="ann-note"><p>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 38"><span class="l hunk cont"></span>
+<span class="l hunk cont"><span class="c"># Stream the leaf's events to stdout (the supervisor captures this — every event is a</span></span>
+<span class="l hunk cont"><span class="c"># heartbeat) while teeing them aside for result extraction. set +e so pipefail can't abort</span></span>
+<span class="l hunk cont"><span class="c"># before we read the leaf's real exit status from PIPESTATUS.</span></span>
+<span class="l hunk cont"><span class="k">set</span> +e</span>
+<span class="l hunk cont"><span class="s">"</span><span class="v">${CLAUDE_BIN:-claude}</span><span class="s">"</span> -p <span class="s">"</span><span class="v">$prompt</span><span class="s">"</span> --output-format stream-json --verbose <span class="s">"</span><span class="v">$@</span><span class="s">"</span> | tee <span class="s">"</span><span class="v">$stream_tmp</span><span class="s">"</span></span>
+<span class="l hunk cont">rc=<span class="s">"</span><span class="v">${PIPESTATUS[0]}</span><span class="s">"</span></span>
+<span class="l hunk cont"><span class="k">set</span> -e</span></pre></div><div class="ann-note"><p>
   Line 44 is where this script's design and the supervisor's meet. The
   <a class="tt" data-ref="p-pipe" href="#p-pipe">pipeline</a> sends the event stream through <code>tee</code>, which writes it to
   the temp file <em>and</em> passes it on to stdout &mdash; where the supervisor captures it
@@ -2516,12 +2535,12 @@ html{scroll-behavior:smooth}
   supervisor's 180-second silence window would fire on every healthy leaf. Streaming is why
   the heartbeat default can be so much shorter than the 900-second timeout &mdash; the two
   clocks measure genuinely different things only because output is continuous.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 46"><span class="l"></span>
-<span class="l"><span class="c"># Append the clean final result text so the captured output ends with a parseable verdict.</span></span>
-<span class="l">printf <span class="s">'\n'</span></span>
-<span class="l"><span class="s">"</span><span class="v">$HERE</span><span class="s">/extract-result.sh"</span> &lt; <span class="s">"</span><span class="v">$stream_tmp</span><span class="s">"</span></span>
-<span class="l"></span>
-<span class="l"><span class="k">exit</span> <span class="s">"</span><span class="v">$rc</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 46"><span class="l hunk cont"></span>
+<span class="l hunk cont"><span class="c"># Append the clean final result text so the captured output ends with a parseable verdict.</span></span>
+<span class="l hunk cont">printf <span class="s">'\n'</span></span>
+<span class="l hunk cont"><span class="s">"</span><span class="v">$HERE</span><span class="s">/extract-result.sh"</span> &lt; <span class="s">"</span><span class="v">$stream_tmp</span><span class="s">"</span></span>
+<span class="l hunk cont"></span>
+<span class="l hunk cont"><span class="k">exit</span> <span class="s">"</span><span class="v">$rc</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   The bare <code>printf '\n'</code> guarantees the appended result starts on a fresh line
   even if the stream ended mid-line. Line 50 then appends the clean final answer, so the
   captured output <em>ends</em> with something
@@ -2814,17 +2833,17 @@ html{scroll-behavior:smooth}
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 14"><span class="l"><span class="k">set</span> -euo pipefail</span>
 <span class="l"></span>
 <span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside</span></span>
-<span class="l"><span class="c"># ${var//pattern/replacement}, an unescaped &amp; in the *replacement* now expands to the text</span></span>
-<span class="l"><span class="c"># the pattern just matched, the way sed's &amp; does. A spec reading "Frob &amp; Nitz" would then</span></span>
-<span class="l"><span class="c"># reach the verifier as "Frob {{ISSUE_SPEC}} Nitz" — silently, with no error anywhere.</span></span>
-<span class="l"><span class="c"># Turning the option off restores the older meaning the substitutions below are written</span></span>
-<span class="l"><span class="c"># for: the replacement is literal text, so every value is carried through verbatim. This</span></span>
-<span class="l"><span class="c"># has to be a runtime guard rather than a fixed assumption because the same scripts run on</span></span>
-<span class="l"><span class="c"># macOS's bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown</span></span>
-<span class="l"><span class="c"># option fails; there is nothing to disable there, so discarding that failure makes the</span></span>
-<span class="l"><span class="c"># line a no-op on 3.2 while it does the real work on 5.2+.</span></span>
-<span class="l">shopt -u patsub_replacement 2&gt;/dev/null || true</span>
-<span class="l"></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont"><span class="c"># ${var//pattern/replacement}, an unescaped &amp; in the *replacement* now expands to the text</span></span>
+<span class="l hunk cont"><span class="c"># the pattern just matched, the way sed's &amp; does. A spec reading "Frob &amp; Nitz" would then</span></span>
+<span class="l hunk cont"><span class="c"># reach the verifier as "Frob {{ISSUE_SPEC}} Nitz" — silently, with no error anywhere.</span></span>
+<span class="l hunk cont"><span class="c"># Turning the option off restores the older meaning the substitutions below are written</span></span>
+<span class="l hunk cont"><span class="c"># for: the replacement is literal text, so every value is carried through verbatim. This</span></span>
+<span class="l hunk cont"><span class="c"># has to be a runtime guard rather than a fixed assumption because the same scripts run on</span></span>
+<span class="l hunk cont"><span class="c"># macOS's bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown</span></span>
+<span class="l hunk cont"><span class="c"># option fails; there is nothing to disable there, so discarding that failure makes the</span></span>
+<span class="l hunk cont"><span class="c"># line a no-op on 3.2 while it does the real work on 5.2+.</span></span>
+<span class="l hunk cont">shopt -u patsub_replacement 2&gt;/dev/null || true</span>
+<span class="l hunk cont"></span></pre></div><div class="ann-note"><p>
   Line 15 is the familiar <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a>. Lines 17&ndash;27 are new: a
   guarded <a class="tt" data-ref="p-shopt" href="#p-shopt">shopt -u patsub_replacement 2&gt;/dev/null &#124;&#124; true</a>, placed
   right next to strict mode because it belongs to the same category &mdash; a guarantee the
@@ -2857,7 +2876,7 @@ html{scroll-behavior:smooth}
   when no specific test id was given.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 33"><span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
 <span class="l hunk" data-tag="v0.11" title="build-verify-prompt.sh pin — blind verifier prompt for an already-satisfied criterion">  red|green|refactor|pin) ;;</span>
-<span class="l">  *) echo <span class="s">"build-verify-prompt: unknown phase '</span><span class="v">$phase</span><span class="s">' (want red|green|refactor|pin)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
+<span class="l hunk cont">  *) echo <span class="s">"build-verify-prompt: unknown phase '</span><span class="v">$phase</span><span class="s">' (want red|green|refactor|pin)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
 <span class="l"><span class="k">esac</span></span>
 <span class="l"></span></pre></div><div class="ann-note"><p>
   A <a class="tt" data-ref="p-case" href="#p-case">case</a> whose only valid branch does nothing:
@@ -2898,8 +2917,8 @@ html{scroll-behavior:smooth}
   Note that <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">command substitution</a> strips trailing newlines here, which is why
   the last line of the script has to put one back.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 49"><span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># Literal substitution via bash parameter expansion — no sed, and with the</span></span>
-<span class="l"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec are carried</span></span>
-<span class="l"><span class="c"># through verbatim.</span></span>
+<span class="l hunk cont"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec are carried</span></span>
+<span class="l hunk cont"><span class="c"># through verbatim.</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${tpl//\{\{SHARED\}\}/$shared}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{ISSUE_SPEC\}\}/$spec}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{TEST_PATH\}\}/$test_path}</span><span class="s">"</span></span>
@@ -2987,17 +3006,17 @@ html{scroll-behavior:smooth}
   contract every script in this stage opens with.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 18"><span class="l"></span>
 <span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside</span></span>
-<span class="l"><span class="c"># ${var//pattern/replacement}, an unescaped &amp; in the *replacement* now expands to the text</span></span>
-<span class="l"><span class="c"># the pattern just matched, the way sed's &amp; does. A step reading "Frob &amp; Nitz" would then</span></span>
-<span class="l"><span class="c"># reach the leaf as "Frob {{STEP}} Nitz" — silently, with no error anywhere. Turning the</span></span>
-<span class="l"><span class="c"># option off restores the older meaning the substitutions below are written for: the</span></span>
-<span class="l"><span class="c"># replacement is literal text, so every value is carried through verbatim. This has to be</span></span>
-<span class="l"><span class="c"># a runtime guard rather than a fixed assumption because the same scripts run on macOS's</span></span>
-<span class="l"><span class="c"># bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown option</span></span>
-<span class="l"><span class="c"># fails; there is nothing to disable there, so discarding that failure makes the line a</span></span>
-<span class="l"><span class="c"># no-op on 3.2 while it does the real work on 5.2+.</span></span>
-<span class="l">shopt -u patsub_replacement 2&gt;/dev/null || true</span>
-<span class="l"></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont"><span class="c"># ${var//pattern/replacement}, an unescaped &amp; in the *replacement* now expands to the text</span></span>
+<span class="l hunk cont"><span class="c"># the pattern just matched, the way sed's &amp; does. A step reading "Frob &amp; Nitz" would then</span></span>
+<span class="l hunk cont"><span class="c"># reach the leaf as "Frob {{STEP}} Nitz" — silently, with no error anywhere. Turning the</span></span>
+<span class="l hunk cont"><span class="c"># option off restores the older meaning the substitutions below are written for: the</span></span>
+<span class="l hunk cont"><span class="c"># replacement is literal text, so every value is carried through verbatim. This has to be</span></span>
+<span class="l hunk cont"><span class="c"># a runtime guard rather than a fixed assumption because the same scripts run on macOS's</span></span>
+<span class="l hunk cont"><span class="c"># bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown option</span></span>
+<span class="l hunk cont"><span class="c"># fails; there is nothing to disable there, so discarding that failure makes the line a</span></span>
+<span class="l hunk cont"><span class="c"># no-op on 3.2 while it does the real work on 5.2+.</span></span>
+<span class="l hunk cont">shopt -u patsub_replacement 2&gt;/dev/null || true</span>
+<span class="l hunk cont"></span></pre></div><div class="ann-note"><p>
   Blank, then a guarded <a class="tt" data-ref="p-shopt" href="#p-shopt">shopt -u patsub_replacement 2&gt;/dev/null &#124;&#124;
   true</a> (lines 20&ndash;30), the mirror of
   <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>'s own guard, added
@@ -3011,14 +3030,14 @@ html{scroll-behavior:smooth}
   provable no-op where it does not (macOS's bash 3.2), via the same
   <a class="tt" data-ref="p-redirect" href="#p-redirect">2&gt;/dev/null</a> <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> <code>true</code> pattern.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 31"><span class="l hunk" data-tag="v0.20" title="refuse a zero-argument call with exit 2 instead of the shell&#x27;s 1"><span class="c"># The phase word is read with an explicit count rather than `${1:?usage...}` for the same</span></span>
-<span class="l"><span class="c"># reason every other refusal below avoids `:?`: that expansion aborts the shell with status</span></span>
-<span class="l"><span class="c"># 1, and a caller who passed nothing at all made no call whose result could be a negative</span></span>
-<span class="l"><span class="c"># answer. It is the emptiest bad-arguments case there is, and bad arguments are exit 2.</span></span>
-<span class="l">(( <span class="v">$#</span> &gt;= 1 )) || {</span>
+<span class="l hunk cont"><span class="c"># reason every other refusal below avoids `:?`: that expansion aborts the shell with status</span></span>
+<span class="l hunk cont"><span class="c"># 1, and a caller who passed nothing at all made no call whose result could be a negative</span></span>
+<span class="l hunk cont"><span class="c"># answer. It is the emptiest bad-arguments case there is, and bad arguments are exit 2.</span></span>
+<span class="l hunk cont">(( <span class="v">$#</span> &gt;= 1 )) || {</span>
 <span class="l">  echo <span class="s">"build-develop-prompt: usage: red|green|refactor|revise &lt;issue-spec-file&gt; &lt;step-text&gt; &lt;test-cmd&gt; ..."</span> &gt;&amp;2</span>
 <span class="l hunk" data-tag="v0.20" title="refuse a zero-argument call with exit 2 instead of the shell&#x27;s 1">  <span class="k">exit</span> 2</span>
-<span class="l">}</span>
-<span class="l">phase=<span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
+<span class="l hunk cont">}</span>
+<span class="l hunk cont">phase=<span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
 <span class="l"></span>
 <span class="l"><span class="c"># Both argument questions — is the phase one we have, and did the caller pass enough for it</span></span>
 <span class="l"><span class="c"># — are settled here, before any other positional is read, because they are answered with</span></span>
@@ -3031,16 +3050,16 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># phase's arity gives the whitelist something to do beyond existing, and `*)` beneath them</span></span>
 <span class="l"><span class="c"># still means "not one of ours". The counts include the phase word itself, and for `revise`</span></span>
 <span class="l hunk" data-tag="v0.20" title="count each phase&#x27;s arity up front so a missing positional exits 2, not 1"><span class="c"># the phase it is redoing, since neither has been shifted off yet.</span></span>
-<span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
-<span class="l">  red) want=4 ;;</span>
-<span class="l">  green) want=6 ;;</span>
-<span class="l">  refactor) want=5 ;;</span>
-<span class="l">  revise) want=6 ;;</span>
+<span class="l hunk cont"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
+<span class="l hunk cont">  red) want=4 ;;</span>
+<span class="l hunk cont">  green) want=6 ;;</span>
+<span class="l hunk cont">  refactor) want=5 ;;</span>
+<span class="l hunk cont">  revise) want=6 ;;</span>
 <span class="l">  *) echo <span class="s">"build-develop-prompt: unknown phase '</span><span class="v">$phase</span><span class="s">' (want red|green|refactor|revise)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
 <span class="l hunk" data-tag="v0.20" title="count each phase&#x27;s arity up front so a missing positional exits 2, not 1"><span class="k">esac</span></span>
-<span class="l">(( <span class="v">$#</span> &gt;= want )) || {</span>
-<span class="l">  echo <span class="s">"build-develop-prompt: </span><span class="v">$phase</span><span class="s"> needs </span><span class="v">$want</span><span class="s"> arguments, got </span><span class="v">$#</span><span class="s">"</span> &gt;&amp;2; <span class="k">exit</span> 2</span>
-<span class="l">}</span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont">(( <span class="v">$#</span> &gt;= want )) || {</span>
+<span class="l hunk cont">  echo <span class="s">"build-develop-prompt: </span><span class="v">$phase</span><span class="s"> needs </span><span class="v">$want</span><span class="s"> arguments, got </span><span class="v">$#</span><span class="s">"</span> &gt;&amp;2; <span class="k">exit</span> 2</span>
+<span class="l hunk cont">}</span></pre></div><div class="ann-note"><p>
   Three refusals, in the only order that answers the right question: a call with no arguments
   at all (lines 36&ndash;39), a phase outside the four (line 58), and a known phase short of
   the arguments that phase needs (lines 60&ndash;62). All three are settled <em>here</em>,
@@ -3084,22 +3103,22 @@ html{scroll-behavior:smooth}
   phase it is redoing. Line 60's <a class="tt" data-ref="p-arith" href="#p-arith">(( $# &gt;= want ))</a> is a <em>lower</em> bound
   rather than an equality &mdash; trailing arguments nobody reads are the caller's business,
   not a refusal.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 62"><span class="l"></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 62"><span class="l hunk cont"></span>
 <span class="l"><span class="c"># `revise` names the phase it is redoing *before* the three arguments every phase shares,</span></span>
 <span class="l"><span class="c"># so its spec/step/test-cmd each sit one position later than everyone else's. Take that</span></span>
 <span class="l"><span class="c"># extra argument off the front; past this point the positions line up again.</span></span>
 <span class="l hunk" data-tag="v0.20" title="validate the phase revise is redoing, refusing an unknown one with exit 2"><span class="c">#</span></span>
-<span class="l"><span class="c"># That second phase name gets the same check the first one got, and for the same reason:</span></span>
-<span class="l"><span class="c"># it is interpolated into the prompt as the phase the leaf is redoing, so an unchecked</span></span>
-<span class="l"><span class="c"># word would reach the leaf as an instruction to redo a phase that does not exist. `revise`</span></span>
-<span class="l"><span class="c"># is not among the four here — a revise of a revise has no template behind it.</span></span>
+<span class="l hunk cont"><span class="c"># That second phase name gets the same check the first one got, and for the same reason:</span></span>
+<span class="l hunk cont"><span class="c"># it is interpolated into the prompt as the phase the leaf is redoing, so an unchecked</span></span>
+<span class="l hunk cont"><span class="c"># word would reach the leaf as an instruction to redo a phase that does not exist. `revise`</span></span>
+<span class="l hunk cont"><span class="c"># is not among the four here — a revise of a revise has no template behind it.</span></span>
 <span class="l">revised_phase=<span class="s">""</span></span>
 <span class="l"><span class="k">if</span> [[ <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> == <span class="s">"revise"</span> ]]; <span class="k">then</span></span>
 <span class="l">  revised_phase=<span class="s">"</span><span class="v">${2:?missing &lt;phase&gt; being revised}</span><span class="s">"</span></span>
 <span class="l hunk" data-tag="v0.20" title="validate the phase revise is redoing, refusing an unknown one with exit 2">  <span class="k">case</span> <span class="s">"</span><span class="v">$revised_phase</span><span class="s">"</span> <span class="k">in</span></span>
 <span class="l">    red|green|refactor) ;;</span>
 <span class="l hunk" data-tag="v0.20" title="validate the phase revise is redoing, refusing an unknown one with exit 2">    *) echo <span class="s">"build-develop-prompt: unknown phase to revise '</span><span class="v">$revised_phase</span><span class="s">' (want red|green|refactor)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
-<span class="l">  <span class="k">esac</span></span>
+<span class="l hunk cont">  <span class="k">esac</span></span>
 <span class="l">  <span class="k">shift</span></span>
 <span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><div class="note"><span class="tag">The phase that shifts its own arguments</span><p>
   <code>revise</code> is not a fifth step alongside red/green/refactor &mdash; it is any of
@@ -3228,8 +3247,8 @@ html{scroll-behavior:smooth}
   117 only overwrites it when <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$reason_file" ]]</a> says there is a file to read.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 117"><span class="l"></span>
 <span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># Literal substitution via bash parameter expansion — no sed, and with the</span></span>
-<span class="l"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec or the step text</span></span>
-<span class="l"><span class="c"># are carried through verbatim.</span></span>
+<span class="l hunk cont"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec or the step text</span></span>
+<span class="l hunk cont"><span class="c"># are carried through verbatim.</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${tpl//\{\{SHARED\}\}/$shared}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{ISSUE_SPEC\}\}/$spec}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{STEP\}\}/$step}</span><span class="s">"</span></span>
@@ -4024,9 +4043,9 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># real status.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l hunk" data-tag="v0.21" title="validate refactor-budget.sh&#x27;s count argument and fail closed with exit 2"><span class="c"># The count gets the same treatment, for the same reason: a malformed call is not a</span></span>
-<span class="l"><span class="c"># decision either.</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># Usage:   refactor-budget.sh &lt;count&gt;   # &lt;count&gt; a whole number &gt;= 0</span></span>
+<span class="l hunk cont"><span class="c"># decision either.</span></span>
+<span class="l hunk cont"><span class="c">#</span></span>
+<span class="l hunk cont"><span class="c"># Usage:   refactor-budget.sh &lt;count&gt;   # &lt;count&gt; a whole number &gt;= 0</span></span>
 <span class="l"><span class="k">set</span> -euo pipefail</span></pre></div><div class="ann-note"><p>
   The refactor loop applies one behavior-preserving transform per leaf, in sequence, and
   used to stop on the leaf's own word: it kept going until one reported &ldquo;nothing left
@@ -4070,10 +4089,10 @@ html{scroll-behavior:smooth}
   stdout &mdash; a misconfigured run is a system failure, not a status the conductor should
   ever mistake for one.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 26"><span class="l hunk" data-tag="v0.21" title="validate refactor-budget.sh&#x27;s count argument and fail closed with exit 2"><span class="k">if</span> [[ ! <span class="s">"</span><span class="v">$count</span><span class="s">"</span> =~ ^[0-9]+$ ]]; <span class="k">then</span></span>
-<span class="l">  echo <span class="s">"refactor-budget: &lt;count&gt; must be a whole number &gt;= 0: </span><span class="v">$count</span><span class="s">"</span> &gt;&amp;2</span>
-<span class="l">  <span class="k">exit</span> 2</span>
-<span class="l"><span class="k">fi</span></span>
-<span class="l"></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont">  echo <span class="s">"refactor-budget: &lt;count&gt; must be a whole number &gt;= 0: </span><span class="v">$count</span><span class="s">"</span> &gt;&amp;2</span>
+<span class="l hunk cont">  <span class="k">exit</span> 2</span>
+<span class="l hunk cont"><span class="k">fi</span></span>
+<span class="l hunk cont"></span></pre></div><div class="ann-note"><p>
   The count is the script's one positional, and until issue&nbsp;#64 it was the one input
   that went unchecked &mdash; straight into the comparison below. Each bad shape produced a
   different wrong answer rather than a refusal: <code>abc</code> was read as a variable name
@@ -4208,9 +4227,9 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># malformed budget: a diagnostic on stderr, exit 2 — no answer could be obtained — and</span></span>
 <span class="l"><span class="c"># nothing on stdout for a caller to mistake for a pool.</span></span>
 <span class="l hunk" data-tag="v0.23" title="refuse an empty VERI_LABEL with exit 2"><span class="k">if</span> [[ -z <span class="s">"</span><span class="v">${VERI_LABEL-x}</span><span class="s">"</span> ]]; <span class="k">then</span></span>
-<span class="l">  echo <span class="s">"solvable-issues: VERI_LABEL is set but empty: name a label or leave it unset"</span> &gt;&amp;2</span>
-<span class="l">  <span class="k">exit</span> 2</span>
-<span class="l"><span class="k">fi</span></span>
+<span class="l hunk cont">  echo <span class="s">"solvable-issues: VERI_LABEL is set but empty: name a label or leave it unset"</span> &gt;&amp;2</span>
+<span class="l hunk cont">  <span class="k">exit</span> 2</span>
+<span class="l hunk cont"><span class="k">fi</span></span>
 <span class="l">label=<span class="s">"</span><span class="v">${VERI_LABEL:-ready-for-agent}</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   The opt-in label is a <strong>parameter</strong>, read as <a class="tt" data-ref="p-default" href="#p-default">"${VERI_LABEL:-ready-for-agent}"</a>
   the way every tunable in this suite is read. Setting it <em>moves</em> the gate rather

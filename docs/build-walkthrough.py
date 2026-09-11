@@ -98,16 +98,38 @@ def refs(text, origin=None):
     return "".join(out)
 
 
-def _line_open(mark):
+def _hunk_runs(marks):
+    """{line number: (mark, does it start the hunk)} for every line INSIDE a hunk.
+
+    hunk_marks() keys a hunk by the line it starts on and carries the line it ends on
+    inside the value. A listing is rendered one line at a time and needs the question the
+    other way round — "is this line in a hunk, and is it the first of it?" — so the run is
+    expanded once per script here rather than searched per line.
+    """
+    runs = {}
+    for first, mark in marks.items():
+        for lineno in range(first, mark[2] + 1):
+            runs[lineno] = (mark, lineno == first)
+    return runs
+
+
+def _line_open(mark, starts):
     """The opening `<span>` for one source line of a listing.
 
-    `mark` is the `(tag, description, last line)` of a hunk that STARTS on this line, or
-    None for every other line — which is most of them, hence the plain form first. The
-    hunk's last line is not in the markup: this span opens on one line and closes on the
-    same one, so where the run ends is the caller's business, not this element's.
+    `mark` is the `(tag, description, last line)` of the hunk this line is inside, or None
+    for every other line — which is most of them, hence the plain form first.
+
+    Every line of the run carries the `hunk` class, because the left rule the stylesheet
+    draws down a hunk's side is a border on each line: CSS can say "this line is in a
+    hunk" and cannot say "and the next four are too", so a class on the first line alone
+    would rule one line of a nine-line run. `starts` is what keeps the tag and the
+    description on the first line only, so the chip drawn from them lands once per hunk
+    instead of once per line; `cont` marks the rest of the run as the continuation it is.
     """
     if not mark:
         return '<span class="l">'
+    if not starts:
+        return '<span class="l hunk cont">'
     tag, description, _last = mark
     return ('<span class="l hunk" data-tag="%s" title="%s">'
             % (html.escape(tag), html.escape(description)))
@@ -122,12 +144,12 @@ def code_block(lines, start, origin="?", marks=None):
 
     marks — {first line: (tag, description, last line)} from hunk_marks() below — is keyed
     by the first line of each range a later version touched. It only ever changes the
-    wrapper <span> of that one line, so
+    wrapper <span> of the lines in that range, so
     the verbatim check above still sees the whole line: the version layer cannot alter
     a listing, only annotate it.
     """
     out = []
-    marks = marks or {}
+    runs = _hunk_runs(marks or {})
     for lineno, (ln, toks) in enumerate(zip(lines, bashlex.highlight(lines)), start=start):
         if "".join(t for _, t in toks) != ln:
             _problems.append("%s: highlighting altered a line, which must never happen\n"
@@ -138,7 +160,7 @@ def code_block(lines, start, origin="?", marks=None):
             esc = html.escape(text, quote=False)
             parts.append('<span class="%s">%s</span>' % (cls, esc) if cls else esc)
         out.append("%s%s</span>"
-                   % (_line_open(marks.get(lineno)), "".join(parts)))
+                   % (_line_open(*runs.get(lineno, (None, False))), "".join(parts)))
     return ('<pre class="src" style="counter-reset: ln %d">%s</pre>'
             % (start - 1, "\n".join(out)))
 
