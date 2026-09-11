@@ -122,6 +122,18 @@ count_probe "count -1" -1
 count_probe "no argument"
 report "$name"
 
+# 5. a decimal count is the fourth way to get the positional wrong, and the one that fails
+#    most quietly: `1.5` is not an integer, so `[[ 1.5 -lt 2 ]]` cannot evaluate it — bash
+#    prints its own arithmetic syntax error and the comparison comes back false, which
+#    reads as "budget spent" (exit 3) with a status line on stdout. Exit 3 means "nothing
+#    to do", a real answer, so the conductor would stop the refactor loop on a malformed
+#    call instead of bailing. Same fail-closed answer as the other bad shapes: exit 2, a
+#    diagnostic on stderr, nothing on stdout.
+name="a decimal count exits 2 with a diagnostic on stderr and no status on stdout"
+problems=()
+count_probe "count 1.5" 1.5
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
