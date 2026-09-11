@@ -223,6 +223,33 @@ opens_with() {
   fi
 }
 
+# rail_lists <name> <wants> [mutator...]
+# opens_with for the other half of a section's existence: a heading the rail does not
+# link to is a section nobody navigating the page can reach. Same cut, different region —
+# `<aside class="rail">` to `</aside>`, which is the whole of the navigation and nothing
+# else. The slice matters here for the same reason it does above: every anchor in the rail
+# also appears as an `id=` on the heading it points at, so asked of the whole page this
+# would pass on a section that was never added to the nav at all.
+rail_lists() {
+  local name="$1" wants="$2"; shift 2
+  local d code page region missing
+  d="$("$SANDBOX")"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  region="$(region_between "$page" '<aside class="rail">' '</aside>')"
+  missing="$(missing_from "$region" "$wants")"
+  if [[ "$code" == 0 && -z "$missing" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want, inside the rail, all of: $wants"
+    echo "    missing:"
+    [[ -n "$missing" ]] && printf '%s\n' "$missing" | sed 's/^/      /'
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # omits_git — omits(), but against a sandbox that is a real repository.
 # `local` inside a function is visible to everything it then calls — bash scopes locals
 # to the call chain, not to the function body — so omits() sees this SANDBOX, and the
@@ -512,6 +539,14 @@ href="#s2"
 href="#build-verify-prompt"
 href="#supervise"
 href="#classify-bail"'
+
+# 15. and the section is reachable. Case 14 proves the pitch is on the page, which is only
+#    half of it: the rail is how anyone navigates this page, and a section the rail does not
+#    list is one you find by scrolling past it. All three renderings of the navigation — the
+#    rail, the scrollspy model in window.__VERI_NAV__ and the breadcrumb — come from
+#    nav_entries(), and docs/check-walkthrough.py refuses a page where the rail's anchors and
+#    the scrollspy's ids are not the same set, so pinning the rail link pins all three.
+rail_lists "the pitch section is listed in the rail" '<a href="#why">Why this exists</a>'
 
 echo "----"
 echo "$pass passed, $fail failed"

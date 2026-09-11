@@ -114,6 +114,10 @@ CAPABILITIES_HTML = r'''
 '''
 
 ORIENTATION_NAV = [
+    # The pitch (PITCH_HTML, below) leads this list because it leads the page: the rail,
+    # the scrollspy and the breadcrumb all read nav_entries() in document order, so an
+    # entry out of order here highlights the wrong row as you scroll past it.
+    ("why", "Why this exists"),
     ("what", "What veri actually is"),
     ("division", "The division of labour"),
     ("exitcodes", "The exit-code contract"),
