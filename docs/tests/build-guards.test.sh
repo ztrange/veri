@@ -293,11 +293,19 @@ blocks_of() {
   done
 }
 
+# figures_in <text>
+# Every figure in <text>, one per line, in blocks_of's one-block-per-line form. A figure is
+# one <pre class="src"> sketch or one inline <svg>: those are the two ways this page draws a
+# diagram (stages 2 and 4 use the first, the orientation figures the second), and this is
+# the one place that says so.
+figures_in() {
+  blocks_of "$1" '<pre class="src"' '</pre>'
+  blocks_of "$1" '<svg' '</svg>'
+}
+
 # figure_between <name> <start> <end> <wants> [mutator...]
 # One figure inside a region must carry every one of <wants>. The region is the
-# region_between cut; a figure is one <pre class="src"> sketch or one inline <svg>, which
-# are the two ways this page draws a diagram (stages 2 and 4 use the first, the orientation
-# figures the second).
+# region_between cut; the figures are figures_in's.
 # The ONE-figure part is the whole claim. A stage section also contains the full source of
 # every script in it, so the names of those scripts are all over the region already —
 # asked of the region as a whole, this would be answered by four names sitting in four
@@ -312,8 +320,7 @@ figure_between() {
   while IFS= read -r block; do
     [[ -n "$block" ]] || continue
     if [[ -z "$(missing_from "$block" "$wants")" ]]; then found="$block"; break; fi
-  done < <( blocks_of "$region" '<pre class="src"' '</pre>'
-            blocks_of "$region" '<svg' '</svg>' )
+  done < <( figures_in "$region" )
   if [[ "$code" == 0 && -n "$found" ]]; then
     pass=$((pass + 1))
   else
