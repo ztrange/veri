@@ -748,7 +748,7 @@ test command
 exit 3
 untouched'
 
-# 17. stage 3 is where the blind-verification guarantee is made, and the guarantee is a
+# 19. stage 3 is where the blind-verification guarantee is made, and the guarantee is a
 #    comparison: build-verify-prompt.sh is build-develop-prompt.sh with the rationale left
 #    out. The stage's orientation is prose only, and the page's diagrams name the verifier
 #    path — build-verify-prompt.sh → verify.sh → parse-verdict.sh — while its developer-side
@@ -764,7 +764,7 @@ build-verify-prompt.sh
 verify.sh
 parse-verdict.sh'
 
-# 18. and the mirror is only worth drawing where it breaks. Case 17 pins the four names in
+# 20. and the mirror is only worth drawing where it breaks. Case 17 pins the four names in
 #    one figure, which a reader can already get from two arrows; what makes the pair a
 #    guarantee rather than a symmetry is the one place the two argument lists disagree.
 #    Both builders take the same three phases and then part ways — the developer gets
