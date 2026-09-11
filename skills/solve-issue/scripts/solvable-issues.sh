@@ -26,7 +26,8 @@
 # Usage:   solvable-issues.sh [--repo owner/name]
 #          VERI_GH_JSON=<dir> solvable-issues.sh
 #          VERI_LABEL=<name>  solvable-issues.sh
-# Exit:    0 one or more numbers printed; 3 nothing to do — no issue is takeable
+# Exit:    0 one or more numbers printed; 2 no answer could be obtained — VERI_LABEL is set
+#          but empty; 3 nothing to do — no issue is takeable
 set -euo pipefail
 
 # `--repo owner/name` is forwarded to gh verbatim and nothing is invented in its absence:
