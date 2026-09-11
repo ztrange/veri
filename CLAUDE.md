@@ -10,7 +10,7 @@ there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely ev
 | | |
 |---|---|
 | `make test` | The shell unit suites. **This is also the command veri detects when run against its own repo**, so it must stay green — a red baseline makes the conductor refuse to start. |
-| `make docs` | Regenerate `docs/walkthrough.html` from the scripts. |
+| `make docs` | Regenerate `docs/walkthrough.html` from the scripts. The committed page is what `.github/workflows/pages.yml` publishes to <https://ztrange.github.io/veri/> when it lands on `main` — the site is public although the repo is private, a deliberate choice recorded in that workflow's header. |
 | `make install-hooks` | Installs the `reference-transaction` hook that says so when a version tag arrives the built page does not list. Run once per clone; `.git/hooks` is shared, so it covers every worktree. Refuses rather than clobbering a hook it does not recognise. |
 | `make docs-check` | Two phases: the docs build guards still fire, then the committed page still matches a fresh build — and still agrees with the phases `build-verify-prompt.sh` accepts and the revise budget `SKILL.md` sets. |
 

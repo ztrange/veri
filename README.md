@@ -110,7 +110,9 @@ Both skills must be installed: the loop finds the conductor's scripts as its sib
   cycle. Bash constructs in the commentary carry a hover gloss and link into a reference
   section covering every construct the suite uses. The page is **generated** from the real
   scripts by `docs/build-walkthrough.py` (`make docs`), so the source it shows cannot
-  drift; `make docs-check` verifies the committed page still matches.
+  drift; `make docs-check` verifies the committed page still matches. Published at
+  <https://ztrange.github.io/veri/> by `.github/workflows/pages.yml` on every push to
+  `main` that touches the page.
 - [`CONTEXT.md`](./CONTEXT.md) — the domain glossary (ubiquitous language) and scope ladder.
 - [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0013, one per resolved
   design fork.
