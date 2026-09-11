@@ -36,6 +36,12 @@ new_repo() {
   git_q "$1" commit -q --allow-empty -m "initial" >/dev/null 2>&1
 }
 
+# wt_path <repo> <n> — the path the script under test is expected to print for issue <n>.
+# macOS puts mktemp dirs behind the /var -> /private/var symlink and git reports the resolved
+# path, so resolve ours too (`pwd -P`, P for physical) or the comparison fails on a correct
+# script.
+wt_path() { printf '%s\n' "$(cd "$1" && pwd -P)/.tdd/wt/$2"; }
+
 # 1. a fresh call creates the worktree on a new branch cut from the DEFAULT branch, and
 # prints its path.
 #
@@ -49,10 +55,7 @@ main_tip="$(git_q "$repo" rev-parse main)"
 git_q "$repo" switch -q -c side >/dev/null 2>&1
 git_q "$repo" commit -q --allow-empty -m "work on side" >/dev/null 2>&1
 side_tip="$(git_q "$repo" rev-parse side)"
-# macOS puts mktemp dirs behind the /var -> /private/var symlink, and git reports the
-# resolved path — so resolve ours too, or the printed-path comparison fails on a correct script.
-repo_real="$(cd "$repo" && pwd -P)"
-want="$repo_real/.tdd/wt/7"
+want="$(wt_path "$repo" 7)"
 
 out="$(cd "$repo" && "$WT" 7 add-worktree 2>/dev/null)" && code=0 || code=$?
 
@@ -74,8 +77,7 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 # duplicate that a directory check would miss.
 repo="$work/again"
 new_repo "$repo"
-repo_real="$(cd "$repo" && pwd -P)"
-want="$repo_real/.tdd/wt/9"
+want="$(wt_path "$repo" 9)"
 
 first="$(cd "$repo" && "$WT" 9 resume-me 2>/dev/null)" && first_code=0 || first_code=$?
 before="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
