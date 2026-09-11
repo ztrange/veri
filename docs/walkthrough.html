@@ -2553,7 +2553,7 @@ html{scroll-behavior:smooth}
   than repeating it.
 </p></div></div></div>
 
-<h3 id="build-develop-prompt"><code>build-develop-prompt.sh</code> &mdash; the same instructions, every run<span class="vbadge">since <b>v0.13</b> &middot; changed <b>v0.14</b></span></h3>
+<h3 id="build-develop-prompt"><code>build-develop-prompt.sh</code> &mdash; the same instructions, every run<span class="vbadge">since <b>v0.13</b></span></h3>
 <p>
   Read this one as <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>'s
   mirror, and its opposite in emphasis. That script is defined by the parameter it refuses
@@ -2744,7 +2744,7 @@ html{scroll-behavior:smooth}
 <span class="l">shared_file=<span class="s">"</span><span class="v">$HERE</span><span class="s">/prompts/_develop-shared.md"</span></span>
 <span class="l"><span class="k">for</span> f <span class="k">in</span> <span class="s">"</span><span class="v">$tpl_file</span><span class="s">"</span> <span class="s">"</span><span class="v">$shared_file</span><span class="s">"</span> <span class="s">"</span><span class="v">$spec_file</span><span class="s">"</span> <span class="s">"</span><span class="v">$reason_file</span><span class="s">"</span>; <span class="k">do</span></span>
 <span class="l">  [[ -n <span class="s">"</span><span class="v">$f</span><span class="s">"</span> ]] || <span class="k">continue</span>  <span class="c"># only revise has a reason file; every other phase leaves it empty</span></span>
-<span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement">  [[ -r <span class="s">"</span><span class="v">$f</span><span class="s">"</span> ]] || { echo <span class="s">"build-develop-prompt: cannot read '</span><span class="v">$f</span><span class="s">'"</span> &gt;&amp;2; <span class="k">exit</span> 2; }</span>
+<span class="l">  [[ -r <span class="s">"</span><span class="v">$f</span><span class="s">"</span> ]] || { echo <span class="s">"build-develop-prompt: cannot read '</span><span class="v">$f</span><span class="s">'"</span> &gt;&amp;2; <span class="k">exit</span> 2; }</span>
 <span class="l"><span class="k">done</span></span></pre></div><div class="ann-note"><p>
   <code>HERE</code> locates the script's own directory exactly as
   <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> does, via
@@ -2779,7 +2779,7 @@ html{scroll-behavior:smooth}
   reason: <code>reason_file</code> is empty on every phase but <code>revise</code>, so line
   88 only overwrites it when <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$reason_file" ]]</a> says there is a file to read.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 88"><span class="l"></span>
-<span class="l"><span class="c"># Literal substitution via bash parameter expansion — no sed, and with the</span></span>
+<span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># Literal substitution via bash parameter expansion — no sed, and with the</span></span>
 <span class="l"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec or the step text</span></span>
 <span class="l"><span class="c"># are carried through verbatim.</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${tpl//\{\{SHARED\}\}/$shared}</span><span class="s">"</span></span>
