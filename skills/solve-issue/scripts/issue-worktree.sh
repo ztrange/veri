@@ -111,6 +111,13 @@ if [[ -n "$holder" ]]; then
   exit 2
 fi
 
+# branch_exists <name> — does this repo already carry a local branch called <name>? Asked twice
+# below, of two different things: the issue branch (a resume), and each candidate default branch.
+# `show-ref --verify` wants the full refname and answers only through its exit code (--quiet
+# suppresses the printed sha): 0 when the branch exists, non-zero when it does not. Naming it
+# once keeps the refs/heads/ prefix — the part that makes --verify work at all — in one place.
+branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
+
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
 # exists to prevent.
@@ -126,9 +133,7 @@ default_branch() {
     return 0
   fi
   for b in main master; do
-    # show-ref --verify wants the full refname and answers only through its exit code (--quiet
-    # suppresses the printed sha): 0 when the local branch exists, non-zero when it does not.
-    if git show-ref --verify --quiet "refs/heads/$b"; then
+    if branch_exists "$b"; then
       printf '%s\n' "$b"
       return 0
     fi
@@ -145,7 +150,7 @@ default_branch() {
 # abandon whatever the previous run committed on it. Naming the branch as `add`'s second
 # argument (no -b) is how git says "check this existing branch out here". The holder check above
 # already established no other worktree has it, so taking it steals nothing.
-if git show-ref --verify --quiet "refs/heads/$branch"; then
+if branch_exists "$branch"; then
   git worktree add -q "$path" "$branch" >&2
 else
   # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
