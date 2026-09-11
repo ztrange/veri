@@ -658,6 +658,22 @@ diagrams_stage0 "the stage-0 intro draws its three scripts" \
 ensure-run-state-ignored.sh
 detect-test-command.sh'
 
+# 14. and that diagram has to draw the branches, not just the names. Each of the two
+#    scripts that run inside the worktree answers in one of two ways and neither way is a
+#    failure: the ignore rule was added or was already present, a test command was found
+#    or none was and `exit 3` sends the conductor to ask. A picture that draws one arrow
+#    out of each teaches the other answer as an error. The third fact is the left column:
+#    the caller's checkout, untouched — ADR-0013's point (docs/adr/0013-issue-branch-in-
+#    its-own-worktree.md) and the reason the stage exists at all, since anything symlinked
+#    or served out of that checkout keeps seeing what it saw. Demanded of one diagram
+#    block for the same reason as case 13: these words are in the intro's prose already.
+diagrams_stage0 "the stage-0 diagram draws both outcomes and the untouched caller" \
+  'added
+already present
+test command
+exit 3
+untouched'
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
