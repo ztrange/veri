@@ -536,6 +536,26 @@ done
 [[ -z "$docs_missing" ]] \
   && ok || no "the three documents name VERI_LABEL and the one-label-per-loop partitioning use (missing:$docs_missing)"
 
+# 12. Exit 3 is this script's "nothing to do", and what the loop says when it gets one has to
+# name the pool it actually drained: a run launched on `ready-for-agent:docs` that reports `no
+# ready-for-agent issue` sends the reader to a list that was never consulted, where issues are
+# waiting and none of them explains the silence. So `/solve-issues`'s own instruction for exit
+# 3 must name the label — `${VERI_LABEL:-ready-for-agent}` — rather than spelling the default
+# unconditionally, which is what it did while the label was hardcoded.
+#
+# The claim is read out of the exit-3 bullet alone, not the whole document: case 11 already
+# passes on `VERI_LABEL` appearing ANYWHERE in SKILL.md, and it appears in the Inputs section,
+# so a file-wide grep here would be green against a bullet that still said `ready-for-agent`
+# and pin nothing. The awk slice runs from the `- **Exit 3:**` line to the `- **Exit 0:**` that
+# ends it, and the case asserts the slice is non-empty before asserting what is in it — an
+# empty slice means the headings moved and the claim was never checked, which must read as a
+# failure rather than as a pass.
+skill="$REPO_ROOT/skills/solve-issues/SKILL.md"
+exit3="$(awk '/^- \*\*Exit 3:/{keep = 1} /^- \*\*Exit 0:/{keep = 0} keep' "$skill")"
+
+{ [[ -n "$exit3" ]] && grep -q 'VERI_LABEL' <<<"$exit3"; } \
+  && ok || no "the exit-3 instruction in skills/solve-issues/SKILL.md names the label it drained (bullet='$(tr '\n' ' ' <<<"$exit3")' want a non-empty slice naming VERI_LABEL)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
