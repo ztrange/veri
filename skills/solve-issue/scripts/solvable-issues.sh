@@ -11,9 +11,9 @@
 # an `issues.json` fixture with that exact shape, which is what makes this testable with
 # no network.
 #
-# jq is NOT a dependency of any script in this suite (`grep -n jq scripts/*.sh` finds
-# nothing), so the JSON is read with python3's json module — the same interpreter
-# extract-result.sh and the docs generator already require.
+# jq is NOT a dependency of any script in this suite — `grep -n jq scripts/*.sh` returns
+# this note and nothing else — so the JSON is read with python3's json module, the same
+# interpreter extract-result.sh and the docs generator already require.
 #
 # Usage:   VERI_GH_JSON=<dir> solvable-issues.sh
 set -euo pipefail
