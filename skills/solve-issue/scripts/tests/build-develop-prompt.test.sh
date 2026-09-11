@@ -29,6 +29,12 @@
 #   has to address — and offering `IMPOSSIBLE`, the outcome that lets it say the step
 #   cannot be met rather than fake a pass.
 #
+# Contract under test, refusals:
+#   an unknown phase, or a missing template, spec or reason file, exits 2 with a diagnostic
+#   and prints no prompt — the verifier builder's contract. Exit 2 is veri's "no answer
+#   could be obtained", and a half-assembled prompt on stdout would read to the conductor
+#   as a whole one.
+#
 # Run: scripts/tests/build-develop-prompt.test.sh
 set -uo pipefail
 
@@ -91,6 +97,31 @@ revise="$("$BUILD" revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/re
   && [[ "$revise" == *"REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."* ]] \
   && [[ "$revise" == *'IMPOSSIBLE'* ]] \
   && ok || no "develop-revise carries the rejection reason verbatim and the IMPOSSIBLE outcome (exit $code)"
+
+# 5. every way of not having what it takes to build a prompt is refused identically:
+#    exit 2, a diagnostic on stderr, nothing on stdout. The missing-template case runs a
+#    copy of the script from a directory with no prompts/ beside it — the template path is
+#    derived from the phase name, so an unreadable template is not otherwise reachable.
+mkdir -p "$work/no-prompts"
+cp "$BUILD" "$work/no-prompts/build-develop-prompt.sh"
+
+refusal_bad=""
+refuses() {  # <label> <script> <args...> — records why, if this was not a clean refusal
+  local label="$1" bin="$2"; shift 2
+  local out code err="$work/err.txt"
+  out="$("$bin" "$@" 2>"$err")"; code=$?
+  [[ "$code" -eq 2 ]] || refusal_bad="$refusal_bad; $label exited $code, want 2"
+  [[ -z "$out" ]] || refusal_bad="$refusal_bad; $label printed a prompt"
+  [[ -s "$err" ]] || refusal_bad="$refusal_bad; $label gave no diagnostic"
+}
+
+refuses "unknown phase"    "$BUILD" bogus "$work/spec.md" "$step_text" "$test_cmd"
+refuses "missing spec"     "$BUILD" red "$work/absent.md" "$step_text" "$test_cmd"
+refuses "missing reason"   "$BUILD" revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/absent.md"
+refuses "missing template" "$work/no-prompts/build-develop-prompt.sh" red "$work/spec.md" "$step_text" "$test_cmd"
+
+[[ -z "$refusal_bad" ]] \
+  && ok || no "an unknown phase or a missing template/spec/reason file exits 2 with a diagnostic and prints no prompt (${refusal_bad#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"
