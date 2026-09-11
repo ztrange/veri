@@ -2478,16 +2478,25 @@ html{scroll-behavior:smooth}
 </p>
 <div class="ann"><div class="ann-head"><span class="fname">the two builders</span>
 <span class="fmeta">stage 3</span></div>
-<div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">developer side               verifier side</span>
-<span class="l">build-develop-prompt.sh      build-verify-prompt.sh</span>
-<span class="l">           &#9474;                           &#9474;</span>
-<span class="l">           &#9660;                           &#9660;</span>
-<span class="l">supervise.sh &rarr; run-leaf.sh   verify.sh &rarr; supervise.sh &rarr; parse-verdict.sh</span></pre></div>
+<div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">developer side                      verifier side</span>
+<span class="l">build-develop-prompt.sh             build-verify-prompt.sh</span>
+<span class="l">  red | green | refactor | revise     red | green | refactor | pin</span>
+<span class="l">  + spec  + step  + test-cmd          + spec  + test-path  [+ target]</span>
+<span class="l">  [+ test-path/target] [+ reason]     no rationale parameter &mdash; cannot leak</span>
+<span class="l">          &#9474;                                     &#9474;</span>
+<span class="l">          &#9660;                                     &#9660;</span>
+<span class="l">supervise.sh &rarr; run-leaf.sh          verify.sh &rarr; supervise.sh &rarr; parse-verdict.sh</span></pre></div>
 <div class="ann-note"><p>
   Each builder only writes a prompt; neither launches anything. The developer's prompt goes
   to a leaf under <code>supervise.sh</code>. The verifier's goes to
   <code>verify.sh</code>, which supervises its own leaf and hands what comes back to
   <code>parse-verdict.sh</code>.
+</p><p>
+  Three of the four phases are the same word on both sides. Where they part is the whole
+  guarantee: the developer gets <code>revise</code>, the only phase that exists because a
+  leaf can be sent back, and the verifier gets <code>pin</code> instead. And the verifier's
+  argument list simply has no slot for the developer's rationale, so no instruction is
+  needed to keep it out.
 </p></div></div></div>
 <h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.14</b></span></h3>
 <p>

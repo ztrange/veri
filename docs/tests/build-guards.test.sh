@@ -755,6 +755,23 @@ build-verify-prompt.sh
 verify.sh
 parse-verdict.sh'
 
+# 18. and the mirror is only worth drawing where it breaks. Case 17 pins the four names in
+#    one figure, which a reader can already get from two arrows; what makes the pair a
+#    guarantee rather than a symmetry is the one place the two argument lists disagree.
+#    Both builders take the same three phases and then part ways — the developer gets
+#    `revise`, because it is the only side that can be sent back; the verifier gets `pin`,
+#    and nowhere in its arguments is there a slot for the developer's rationale.
+#    So: the same figure lists each builder's four phases as a run, and says "no rationale"
+#    in words. The phase runs are wanted contiguous, because scattered the five words are
+#    just vocabulary — "lists the four phases" is a claim about them appearing together.
+#    What substring matching cannot ask is *where* "no rationale" sits; holding it in the
+#    figure that carries the verifier's own phase run is as close as this idiom gets.
+figure_between "the stage-3 diagram lists both phase sets and says the verifier gets no rationale" \
+  'id="s3"' 'id="s4"' \
+'red | green | refactor | revise
+red | green | refactor | pin
+no rationale'
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
