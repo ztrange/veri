@@ -4795,8 +4795,8 @@ html{scroll-behavior:smooth}
   var ORDER = window.__VERI_ORDER__ || [];
 
   function lit(tag, since) {
-    var i = ORDER.indexOf(tag), j = ORDER.indexOf(since);
-    return i >= 0 && j >= 0 && i > j;
+    var hunkRank = ORDER.indexOf(tag), readRank = ORDER.indexOf(since);
+    return hunkRank >= 0 && readRank >= 0 && hunkRank > readRank;
   }
 
   window.__VERI_SINCE__ = { lit: lit };
