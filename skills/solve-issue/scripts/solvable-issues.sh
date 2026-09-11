@@ -52,11 +52,18 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
 issues_json="$(gh_json issues.json issue list --json number,title,labels,body,state)"
 prs_json="$(gh_json prs.json pr list --json body,state)"
 
+# The opt-in label, read the way every other tunable in this suite is read. Setting it moves
+# the gate rather than widening it: the pool becomes exactly the issues carrying that name,
+# and `ready-for-agent` stops being special. That is what lets two loops on one repository
+# drain two disjoint pools instead of racing for the same issues.
+label="${VERI_LABEL:-ready-for-agent}"
+
 exec python3 -c '
 import json, re, sys
 
 issues = json.loads(sys.argv[1])
 prs = json.loads(sys.argv[2])
+label = sys.argv[3]
 
 # Openness is the whole of what a state is read for, and it is read the same way on both
 # kinds of record: `gh` writes an issue state as OPEN/CLOSED and a PR state as
@@ -89,7 +96,7 @@ def solvable(issue):
     here rather than run as early returns so the function reads as the definition it is."""
     number = issue["number"]
     still_open = number in open_issues
-    opted_in = any(l.get("name") == "ready-for-agent" for l in issue.get("labels", []))
+    opted_in = any(l.get("name") == label for l in issue.get("labels", []))
     unclaimed = number not in claimed
     unblocked = all(n not in open_issues for n in blockers(issue.get("body", "")))
     return still_open and opted_in and unclaimed and unblocked
@@ -102,4 +109,4 @@ for number in numbers:
 # learns it from the code rather than from having to notice that stdout was empty.
 if not numbers:
     sys.exit(3)
-' "$issues_json" "$prs_json"
+' "$issues_json" "$prs_json" "$label"
