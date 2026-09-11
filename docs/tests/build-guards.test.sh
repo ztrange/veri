@@ -250,6 +250,34 @@ rail_lists() {
   fi
 }
 
+# rail_group_lists <name> <group-heading> <wants> [mutator...]
+# rail_lists narrowed one level further: not "somewhere in the rail" but "inside this one
+# rail group, with its peers". The rail is flat markup — an <h4> opens a group and the
+# next <h4> ends it — so a group is the region between its heading and the following
+# <h4>, which is the cut region_between already makes.
+# What the narrower region buys is the half of the claim rail_lists cannot see: a link
+# that was given a group of its own, or filed under the reference entries, is still
+# somewhere in the rail. Only the group says it is a top-level section like the others.
+rail_group_lists() {
+  local name="$1" head="$2" wants="$3"; shift 3
+  local d code page region missing
+  d="$("$SANDBOX")"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  region="$(region_between "$page" "$head" '<h4>')"
+  missing="$(missing_from "$region" "$wants")"
+  if [[ "$code" == 0 && -z "$missing" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want, inside the rail group $head, all of: $wants"
+    echo "    missing:"
+    [[ -n "$missing" ]] && printf '%s\n' "$missing" | sed 's/^/      /'
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # omits_git — omits(), but against a sandbox that is a real repository.
 # `local` inside a function is visible to everything it then calls — bash scopes locals
 # to the call chain, not to the function body — so omits() sees this SANDBOX, and the
@@ -547,6 +575,20 @@ href="#classify-bail"'
 #    nav_entries(), and docs/check-walkthrough.py refuses a page where the rail's anchors and
 #    the scrollspy's ids are not the same set, so pinning the rail link pins all three.
 rail_lists "the pitch section is listed in the rail" '<a href="#why">Why this exists</a>'
+
+# 16. and listed as one of THEM. Case 15 asks whether the rail mentions the pitch at all;
+#    this asks where. The rail's Orientation group is the page's top-level sections, and the
+#    pitch is one — not an appendix, not a heading with a group to itself. So the assertion
+#    is the pitch's link and an existing section's link inside that one group, which is what
+#    "alongside" means in markup this flat: same <h4>, same plain <a> form the other
+#    top-level entries get (a "file" or "stage" entry would carry a <span> the want would
+#    not match). Both wants together, because either alone is the wrong claim — the pitch
+#    on its own could be the group's only member, and "What veri actually is" on its own is
+#    just where it already was.
+rail_group_lists "the pitch is a top-level rail entry, beside the other sections" \
+  '<h4>Orientation</h4>' \
+'<a href="#why">Why this exists</a>
+<a href="#what">What veri actually is</a>'
 
 echo "----"
 echo "$pass passed, $fail failed"
