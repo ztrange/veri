@@ -58,6 +58,20 @@ grep -qiE 'standard|convention|typing|robust' <<<"$refactor" \
 "$BUILD" bogus "$work/spec.md" "$testpath" >/dev/null 2>&1; code=$?
 [[ "$code" -ne 0 ]] && ok || no "unknown phase exits non-zero (got $code)"
 
+# 9. verify-pin: for a criterion the code already satisfies there is nothing to make fail,
+#    so the blind verifier judges the test as a regression pin instead — same two inputs
+#    (spec + test path), and the three checks that a passing test is worth committing:
+#    it passes now, it fails under a mutation that removes the behavior, it is
+#    behavior-level rather than trivial.
+pin="$("$BUILD" pin "$work/spec.md" "$testpath" test_slugify_lowercases)"; code=$?
+[[ "$code" -eq 0 ]] \
+  && [[ "$pin" == *'slugify("Hello & World/Foo")'* ]] \
+  && [[ "$pin" == *"$testpath"* ]] \
+  && grep -qiE 'pass(es)? (now|today|already|against|on the (current|unmodified))' <<<"$pin" \
+  && grep -qi 'mutation' <<<"$pin" \
+  && grep -qiE 'behaviou?r-level|trivial' <<<"$pin" \
+  && ok || no "verify-pin carries spec + test path and the three pin checks (exit $code)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
