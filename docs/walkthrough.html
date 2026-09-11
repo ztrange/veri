@@ -15,8 +15,14 @@
   --ink:#141A21; --ink-soft:#4C5866; --ink-faint:#7C8894;
   --rule:#D2D9E1; --rule-soft:#E3E8ED;
   --accent:#2348C8; --accent-ink:#FFFFFF; --accent-wash:#E5EAFA;
-  --code-bg:#151B23; --code-ink:#DDE4EC; --code-rule:#29323D;
-  --code-faint:#6C7A8B; --code-cmt:#8C9DB0;
+  /* The listing is a light surface in light mode. It used to be the dark palette
+     dropped into a light page: #151B23 beside a #FFFFFF note column is 17.3:1
+     between two halves of one card. These mirror the dark theme's own hierarchy,
+     measured, not picked — surface step from the card 1.12:1 (dark 1.13), code ink
+     14.8:1 (dark 15.0), comments 5.8:1 (dark 5.7), line numbers 4.0:1 (dark 4.0).
+     Comments carry the reasoning in these scripts, so they stay above 4.5:1. */
+  --code-bg:#EFF3F7; --code-ink:#16202B; --code-rule:#D8E0E9;
+  --code-faint:#6B7889; --code-cmt:#516070;
   --ec0:#17794A; --ec1:#A96A05; --ec2:#BF3B2C; --ec3:#43578A;
   --ec0-wash:#DCEFE4; --ec1-wash:#F7EBD5; --ec2-wash:#F8E1DE; --ec3-wash:#E1E6F3;
   --shadow:0 1px 2px rgba(20,26,33,.06), 0 6px 20px -12px rgba(20,26,33,.22);
