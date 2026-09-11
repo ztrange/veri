@@ -54,22 +54,29 @@ out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
 # Nothing here needs node installed: the script reads files, it never runs the command it
 # prints. `out=$(...) && code=0 || code=$?` is the sibling idiom for capturing stdout and a
 # non-zero exit together — command substitution alone would abort the assignment's status.
+#
+# The runner name is the whole of what varies — it names the repo, the lockfile to seed and,
+# with ` test` appended, the expected stdout — so the loop mentions each one once and the
+# three sub-checks stay one case: `misread` collects whichever runners answered wrong, and
+# only a run that collected nothing passes.
+misread=""
 for runner in npm pnpm yarn; do
   repo="$work/node-$runner"
   mkdir -p "$repo"
   printf '{"scripts":{"test":"jest"}}\n' > "$repo/package.json"
+  case "$runner" in
+    pnpm) printf 'lockfileVersion: 9.0\n' > "$repo/pnpm-lock.yaml" ;;
+    yarn) printf '# yarn lockfile v1\n' > "$repo/yarn.lock" ;;
+  esac
+
+  out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
+
+  { [[ "$code" == 0 ]] && [[ "$out" == "$runner test" ]]; } \
+    || misread="$misread ($runner: exit=$code want 0, stdout='$out' want '$runner test')"
 done
-printf 'lockfileVersion: 9.0\n' > "$work/node-pnpm/pnpm-lock.yaml"
-printf '# yarn lockfile v1\n' > "$work/node-yarn/yarn.lock"
 
-npm_out="$("$DETECT" "$work/node-npm" 2>/dev/null)" && npm_code=0 || npm_code=$?
-pnpm_out="$("$DETECT" "$work/node-pnpm" 2>/dev/null)" && pnpm_code=0 || pnpm_code=$?
-yarn_out="$("$DETECT" "$work/node-yarn" 2>/dev/null)" && yarn_code=0 || yarn_code=$?
-
-{ [[ "$npm_code" == 0 ]]  && [[ "$npm_out"  == "npm test" ]] \
-  && [[ "$pnpm_code" == 0 ]] && [[ "$pnpm_out" == "pnpm test" ]] \
-  && [[ "$yarn_code" == 0 ]] && [[ "$yarn_out" == "yarn test" ]]; } \
-  && ok || no "package.json scripts.test: bare → npm test, pnpm-lock.yaml → pnpm test, yarn.lock → yarn test (bare exit=$npm_code stdout='$npm_out', pnpm exit=$pnpm_code stdout='$pnpm_out', yarn exit=$yarn_code stdout='$yarn_out')"
+[[ -z "$misread" ]] \
+  && ok || no "package.json scripts.test: bare → npm test, pnpm-lock.yaml → pnpm test, yarn.lock → yarn test —$misread"
 
 echo "----"
 echo "$pass passed, $fail failed"
