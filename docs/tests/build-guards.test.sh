@@ -352,31 +352,38 @@ names_all() {
   done <<< "$2"
 }
 
-# diagrams_stage0 <name> <names-one-per-line>
-# accepts() asks its question of the whole page; this one is about one slice of it — the
-# stage-0 intro, from the stage-0 heading to the first script it annotates. Every stage-0
-# script name is already on the page many times over: in the rail, in the intro's own
-# prose, in its own listing. So a whole-page match, or even a whole-slice one, would be
-# green before anything is drawn. This cuts the page to that intro, reduces the intro to
-# the diagram blocks inside it — a <pre class="src"> sketch or an inline <svg>, the two
-# idioms the page already uses — and demands ONE block that names every one of <names>.
-# One block, not the slice: names scattered through the prose around a diagram are prose.
+# stage0_diagram_blocks — page on stdin, one diagram block per line on stdout.
+# The slice is the stage-0 intro: from the stage-0 heading to the first script it
+# annotates. Inside it, a diagram is a <pre class="src"> sketch or an inline <svg> — the
+# two idioms the page already uses — and each one comes back flattened onto a single line,
+# so a caller can match a whole block with one string test.
 # The awk reads to the end rather than `exit`ing at the first script heading: exiting mid-
 # page leaves the printf feeding a closed pipe, and the SIGPIPE write error lands in the
 # suite's output as if a case had broken.
+stage0_diagram_blocks() {
+  awk '
+    /id="s0"/ && !done               { s0 = 1 }
+    s0 && /<h3 id=/                  { s0 = 0; done = 1 }
+    s0 && /<pre class="src"|<svg/    { blk = ""; inblk = 1 }
+    s0 && inblk                      { blk = blk " " $0 }
+    s0 && inblk && /<\/pre>|<\/svg>/ { print blk; inblk = 0 }
+  '
+}
+
+# diagrams_stage0 <name> <names-one-per-line>
+# accepts() asks its question of the whole page; this one is about one slice of it. Every
+# stage-0 script name is already on the page many times over: in the rail, in the intro's
+# own prose, in its own listing. So a whole-page match, or even a whole-slice one, would be
+# green before anything is drawn. This demands ONE of the stage-0 intro's diagram blocks
+# name every one of <names> — one block, not the slice, because names scattered through
+# the prose around a diagram are prose.
 # <names> is one argument holding one name per line, for the same reason tags_git takes
 # its spans that way: the claim is about all of them appearing together.
 diagrams_stage0() {
   local name="$1" wants="$2"
   local d code page blocks blk found="" n=0; d="$("$SANDBOX")"
   page="$(build "$d")" && code=0 || code=$?
-  blocks="$(printf '%s\n' "$page" | awk '
-    /id="s0"/ && !done               { s0 = 1 }
-    s0 && /<h3 id=/                  { s0 = 0; done = 1 }
-    s0 && /<pre class="src"|<svg/    { blk = ""; inblk = 1 }
-    s0 && inblk                      { blk = blk " " $0 }
-    s0 && inblk && /<\/pre>|<\/svg>/ { print blk; inblk = 0 }
-  ')"
+  blocks="$(printf '%s\n' "$page" | stage0_diagram_blocks)"
   while IFS= read -r blk; do
     [[ -n "$blk" ]] || continue
     n=$((n + 1))
