@@ -12,6 +12,14 @@ set -euo pipefail
 root="${1:-.}"
 gitignore="$root/.gitignore"
 
+# The rule, one line per variable, in the order git needs to read them. Named once because the
+# presence check below and the append at the end must agree on the exact text: two spellings of
+# `.tdd/issue-*-spec.md` could drift apart, and the script would then append a rule it had just
+# failed to recognise.
+ignore_all='.tdd/*'         # sweep every run artefact under .tdd/ out of git's sight
+keep_ledger='!.tdd/issue-*.md'   # except the ledger, the one file that belongs in history
+drop_spec='.tdd/issue-*-spec.md' # but not the blind spec, which that negation would drag back in
+
 # has <line> — is <line> in $gitignore, whole and on its own line? -F keeps the glob literal
 # (no regex), -x forbids a partial-line match, so `x.tdd/*` does not count as `.tdd/*`.
 has() { grep -qxF "$1" "$gitignore"; }
@@ -22,11 +30,11 @@ if [ -f "$gitignore" ]; then
   # negation that precedes it. So a .gitignore carrying part of the rule is refused rather than
   # rewritten: exit 2, the "no answer could be obtained" code, fails the conductor's preflight
   # before a cycle starts committing its scratch.
-  if has '.tdd/*' && has '!.tdd/issue-*.md' && has '.tdd/issue-*-spec.md'; then
+  if has "$ignore_all" && has "$keep_ledger" && has "$drop_spec"; then
     echo "already present"
     exit 0
   fi
-  if has '.tdd/issue-*-spec.md'; then
+  if has "$drop_spec"; then
     echo "ensure-run-state-ignored: $gitignore carries part of veri's run-state rule, not all of it — fix it by hand" >&2
     exit 2
   fi
@@ -41,10 +49,6 @@ if [ -s "$gitignore" ] && [ -n "$(tail -c 1 "$gitignore")" ]; then
   echo "" >> "$gitignore"
 fi
 
-cat >> "$gitignore" <<'RULE'
-.tdd/*
-!.tdd/issue-*.md
-.tdd/issue-*-spec.md
-RULE
+printf '%s\n' "$ignore_all" "$keep_ledger" "$drop_spec" >> "$gitignore"
 
 echo "added"
