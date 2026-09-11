@@ -81,6 +81,17 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   *via* `supervise.sh`, not on its own.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
+- `$S/build-develop-prompt.sh <phase> …` — assemble a **developer** leaf's prompt from a
+  versioned template: `red <spec-file> <step-text> <test-cmd>`, `green <spec-file>
+  <step-text> <test-cmd> <test-path> <target>`, `refactor <spec-file> <step-text>
+  <test-cmd> <touched-files>`, `revise <phase> <spec-file> <step-text> <test-cmd>
+  <reason-file>`. Prints the prompt on stdout; **exit 2** with a diagnostic and **no
+  stdout** on an unknown phase or a missing template, spec or reason file — never a partial
+  prompt. The mirror of `build-verify-prompt.sh` and its opposite in emphasis: the verifier
+  builder is defined by what it **cannot** carry (no rationale parameter, so blindness is
+  structural), this one by what it **must** carry — the same instructions on every run of a
+  phase, with only the variables changing. **Build every developer prompt with it**; a
+  phase's instructions live in its template, not in prose you improvise per cycle.
 - `$S/build-verify-prompt.sh <red|green|refactor|pin> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
 - `$S/verify.sh <red|green|refactor|pin> <spec-file> <test-path> [target]` — the **verify
@@ -105,7 +116,7 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
   non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
-  scratch (`.tdd/*.log`, `.rc`, `.prompt`, the blind spec) while keeping the ledger
+  scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Idempotent; prints `added` when it wrote the rule, `already present` when it
   was there. Run once per issue right after branching (step 1) so the first `git add -A`
   never sweeps leaf logs into history.
@@ -203,35 +214,41 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
-1. **Develop.** Compose a developer-leaf prompt that instructs it to write **exactly one**
-   failing test pinning **STEP's criterion** to **observable external behavior** (not internals),
-   with **no production code**, and to run it and confirm it fails for the right reason.
-   Include in the prompt: the issue's behavior spec, the test command, and the target test
-   file/name. **Require the leaf to end its report with the line
-   `AGAINST_UNMODIFIED: FAILS | PASSES`** — whether the test fails against the *unmodified*
-   code. A criterion earlier work already satisfies cannot yield a failing test, and that
-   fact has to reach you as data: in #30's step 3 it did not, and a faithful test spent two
-   verify-red `REJECT`s and two revise leaves reporting IMPOSSIBLE before the run bailed and
-   the revert discarded it. Write the prompt to `.tdd/develop-red.prompt`, then launch the
-   leaf **through the supervisor**:
+1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
+   write **exactly one** failing test pinning the criterion to **observable external
+   behavior**, with **no production code**, and to run it against the unmodified code — and
+   launch the leaf **through the supervisor**:
    ```
+   $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' > .tdd/develop-red.prompt
    $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions
    ```
+   You supply only those variables; the instructions are the template's, identical every
+   run. The leaf's report ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
+   `AGAINST_UNMODIFIED: FAILS | PASSES`, `FAIL_OUTPUT:` — so take the **test path** and
+   **target test id** from the first two and read the third for the next sub-step.
+   `AGAINST_UNMODIFIED` exists because a criterion earlier work already satisfies cannot
+   yield a failing test, and that fact has to reach you as data: in #30's step 3 it did not,
+   and a faithful test spent two verify-red `REJECT`s and two revise leaves reporting
+   IMPOSSIBLE before the run bailed and the revert discarded it.
    If `supervise.sh` exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
-   cleanly (see *Bailing on a killed-stuck leaf*); do not retry. Otherwise the leaf wrote
-   the test to disk — note the **test path** and **target test id** it used.
+   cleanly (see *Bailing*); do not retry.
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line. On **`FAILS`**, run
-   the red verifier against the on-disk test and spec:
+   the red verifier against the on-disk test and spec, **redirecting its stdout (the
+   reason) to a file** — the revise step takes the reason as a *path*, not as text you
+   retype:
    ```
-   $S/verify.sh red .tdd/issue-<n>-spec.md <test-path> <target-test-id>
+   $S/verify.sh red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason
    ```
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
    instead and continue at *Already satisfied — the pin*:
    ```
-   $S/verify.sh pin .tdd/issue-<n>-spec.md <test-path> <target-test-id>
+   $S/verify.sh pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason
    ```
-   Either way, capture its **stdout (the reason)** and its **exit code**.
+   Either way, note its **exit code**, and read the reason back out of
+   `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
+   wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
+   overwrites it — the newest objection is the only one a revise leaf should answer.
 3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment with the test and
    the failing output, followed by a `### 🔎 verify-red — PASS|REJECT` comment carrying the
    verifier's reason.
@@ -244,15 +261,19 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
 
 #### Green — minimum implementation (developer leaf), then verify-green (blind)
 
-1. **Develop.** Compose a developer-leaf prompt to write the **minimum** production code
-   that makes the failing test pass — no generality, options, or cases the test does not
-   demand — and to run the **full suite** and confirm green. Include the spec, the test
-   command, and the target test. Write to `.tdd/develop-green.prompt` and launch **through
-   the supervisor** (exit **2** → **bail**):
+1. **Develop.** Build the prompt from the `green` template — the **minimum** production
+   code, no generality the test does not demand, the **test itself untouched**, full suite
+   green — and launch **through the supervisor** (exit **2** → **bail**):
    ```
+   $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <test-path> '<target-test-id>' > .tdd/develop-green.prompt
    $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions
    ```
-2. **Verify (blind).** `$S/verify.sh green .tdd/issue-<n>-spec.md <test-path> <target-test-id>`.
+   The test path and target test id are the ones Red's report gave you. The leaf's report
+   ends with `IMPL_PATH:` (the production files it created or changed) and
+   `SUITE: GREEN | RED` plus the suite's final summary line; both go into the narration
+   below.
+2. **Verify (blind).**
+   `$S/verify.sh green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason`.
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
@@ -272,19 +293,30 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
 
 1. **Loop the transforms.** Repeatedly launch a developer leaf that applies **one**
    behavior-preserving transformation (naming, duplication, clarity) and runs the **full
-   suite**, keeping it green (revert any change that breaks it). Each leaf returns either
-   "applied <transform>, suite green" or "nothing left to tidy". Keep going until a leaf
-   reports **nothing remains** (or you've made the codebase genuinely clean). Crucial rule:
-   **no untested generality** — generality comes only from **triangulation**. If the code
-   is **overfit** (e.g. hard-codes the one tested case), the leaf must **flag it as needing
-   a triangulating test**, *not* hand-generalize it. Write each prompt to
-   `.tdd/develop-refactor.prompt` and launch **through the supervisor** (exit **2** → **bail**):
+   suite**, keeping it green. Build each prompt from the `refactor` template and launch
+   **through the supervisor** (exit **2** → **bail**):
    ```
+   touched="$(git diff --name-only HEAD~1 HEAD | paste -sd, -)"
+   $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions
    ```
-   Commit a transform only if it changed something:
+   `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
+   comma-separated line. Compute it **once**, right after the step's atomic green commit —
+   `git diff --name-only HEAD~1 HEAD` is exactly that commit's files at that moment — adding
+   anything still uncommitted (`git diff --name-only HEAD`) if an earlier iteration left
+   work on disk. Reuse the same list for every iteration: a transform's own commit moves
+   `HEAD`, but it does not widen what this cycle is allowed to touch.
+   The template owns the rules — one transform per leaf so a break is attributable, revert
+   rather than leave a red suite, **no untested generality** (it comes only from
+   **triangulation**), and code that is **overfit** (e.g. hard-codes the one tested case)
+   **flagged as needing a triangulating test**, never hand-generalized. Each leaf's report
+   ends with `RESULT:` (`applied <transform>, suite green` or `nothing left to tidy`) and
+   `FLAGS:` (overfit code and the case that would force the generality, or `none`). Keep
+   going until a leaf reports **nothing left to tidy**, carrying its flags into the
+   narration. Commit a transform only if it changed something:
    `git add -A && git commit -m "refactor: <what> (#<n>)"`.
-2. **Verify (blind, once) on the settled result.** `$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path>`
+2. **Verify (blind, once) on the settled result.**
+   `$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path> > .tdd/verify-refactor.reason`
    — one verdict on the final state (suite still green, code up to standard, no smuggled
    generality).
 3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
@@ -338,13 +370,16 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   (`$S/tick-issue-criterion.sh <n> '<substring>'`). The step is **done** — **no Green and
   no Refactor**, since there is no new production code to write or to tidy. Loop back to
   the top of **step 3** for the next unchecked ledger step.
-- **REJECT (exit 1):** enter the **revise loop** for the red phase — see *Revising on a
-  REJECT*. The rejection reason is the carry-forward signal that tells the fresh leaf which
-  way to go: either the pin is weak (trivial, over-coupled, or it survives the mutation) or
-  a genuinely failing test exists after all. Re-verify with the phase the revise leaf's own
-  `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES`, `red` on `FAILS`. On a recovered
-  `PASS` from `pin`, do the tick-and-commit above; from `red`, continue to Green. On
-  budget-exhausted, **bail** as a **process** failure.
+- **REJECT (exit 1):** enter the **revise loop** for the **red** phase — see *Revising on a
+  REJECT* — building the prompt as `revise red … .tdd/verify-pin.reason`: the phase argument
+  is the *developer* phase being redone, while the reason file is named for the *verifier*
+  that rejected, here `pin`. The rejection reason is the carry-forward signal that tells the
+  fresh leaf which way to go: either the pin is weak (trivial, over-coupled, or it survives
+  the mutation) or a genuinely failing test exists after all. Re-verify with the phase the
+  revise leaf's own `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES`, `red` on `FAILS`.
+  (That line's third value, `N/A`, cannot arise here: a revise of red always touches a
+  test.) On a recovered `PASS` from `pin`, do the tick-and-commit above; from `red`,
+  continue to Green. On budget-exhausted, **bail** as a **process** failure.
 - **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
   see *Bailing*.
 
@@ -359,16 +394,24 @@ For attempt `k = 1 … REVISE_BUDGET`:
 
 1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
    the verifier's **rejection reason verbatim**.
-2. **Fresh developer leaf.** Compose a revise prompt that includes the issue spec, the
-   **current test and/or code on disk**, and the **rejection reason**, instructing a brand-
-   new leaf to address *that specific objection* — rewrite the test (red), fix the
-   implementation (green), or redo the tidy-up (refactor) — without drifting beyond what the
-   criterion and the reason require. Write it to `.tdd/revise-<phase>-<k>.prompt` and launch
+2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
+   phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure):
    ```
+   $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/revise-<phase>-<k>.prompt
    $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions
    ```
-3. **Re-verify (blind, same phase).** `$S/verify.sh <phase> .tdd/issue-<n>-spec.md <test-path> [target]`.
+   The reason travels as a **file**, not as prose you paste in — that is why the verify step
+   redirected it. The template tells the leaf it is fresh, that the reason is the whole of
+   what it has to work from, that the work is on disk, and that it must answer *that
+   objection only*. Its report ends with `OUTCOME: REWRITTEN | IMPOSSIBLE` and
+   `AGAINST_UNMODIFIED: FAILS | PASSES | N/A` — `N/A` whenever the leaf touched no test,
+   which is every revise of green or refactor. `IMPOSSIBLE` is a legitimate answer, not a
+   crash: the leaf says the objection cannot be met as stated. It still spends attempt `k` —
+   re-verify below and let the blind verdict, not the leaf's own account, decide.
+3. **Re-verify (blind, same phase).**
+   `$S/verify.sh <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason`
+   — overwriting the reason file, so attempt `k+1` carries the newest objection.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
      with the reason, and resume the cycle from where that phase's PASS would continue.
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
@@ -408,8 +451,9 @@ To bail:
 3. **Push the branch** so completed steps and the leaf logs are recoverable:
    `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
 4. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
-   carries the last reason (rejection reason or kill cause), and points at the progress log
-   (`.tdd/<phase>.log` or `.tdd/revise-<phase>-*.log`) for forensics.
+   carries the last reason (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the
+   kill cause otherwise), and points at the progress log (`.tdd/<phase>.log` or
+   `.tdd/revise-<phase>-*.log`) for forensics.
 5. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
    failing step (see *Resume*).
 6. Report to the user: the phase, the **classification** (system vs process), the reason,
@@ -445,7 +489,8 @@ Pick the first that applies, and prefer running only what is fast and complete:
 - Python stdlib only → `python3 -m unittest discover -q`.
 
 If you cannot confidently determine the test command, **ask the user** rather than
-guessing. Pass it into every developer-leaf prompt so the leaves run the same suite.
+guessing. Pass it as the `<test-cmd>` argument to `$S/build-develop-prompt.sh` in every
+phase, so every leaf runs the same suite.
 
 ## Guardrails
 
@@ -454,6 +499,10 @@ guessing. Pass it into every developer-leaf prompt so the leaves run the same su
   the verifier**.
 - **Every leaf is launched through `supervise.sh`** — never `run-leaf.sh` or `claude`
   directly. The supervisor is the one place stuck-detection lives.
+- **Every developer prompt is built by `$S/build-develop-prompt.sh`** — never composed from
+  prose. A phase's instructions live in its template, so every run of that phase sends the
+  same ones and only the variables differ; and the report lines you branch on are the
+  template's own footer, not something you asked for this time.
 - One failing test, then minimum code, then the refactor loop — in that order, per step.
   Never production code before its failing test.
 - **A test that passes against unmodified code is never sent to verify-red**; it is either
