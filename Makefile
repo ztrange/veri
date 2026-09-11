@@ -30,7 +30,7 @@ test:
 # AND still agrees with the two files it describes but is not generated from (the
 # phases build-verify-prompt.sh accepts, SKILL.md's revise budget).
 # A guard nobody has watched fail is decoration, which is why the tests run first.
-.PHONY: docs docs-check docs-test install-hooks
+.PHONY: docs docs-check docs-test docs-fresh merge-gates install-hooks
 docs:
 	@python3 docs/build-walkthrough.py
 
@@ -56,6 +56,21 @@ install-hooks:
 
 docs-test:
 	@docs/tests/build-guards.test.sh
+	@docs/tests/merge-gates.test.sh
 
-docs-check: docs-test
+# The freshness half of docs-check on its own: rebuild once, compare to the committed
+# page (~20 s). Split out because merge-gates owes it far more often than the guards.
+docs-fresh:
 	@python3 docs/check-walkthrough.py
+
+docs-check: docs-test docs-fresh
+
+# The docs gates left CI on 2026-09-11 (the guards made every job ~4x longer on billed
+# runners), and a push hook would run them on pushes that touched nothing the page reads.
+# This is the replacement: run once at merge time, in the PR's worktree on the rebased
+# tip, it diffs the branch against origin/main and runs only the gates the changed files
+# warrant — nothing for a README PR, docs-fresh for a script change, both for a change
+# to the build pipeline. docs/merge-gates.sh has the rules and the exit codes;
+# VERI_GATES=all forces both, VERI_GATES_BASE picks another base.
+merge-gates:
+	@docs/merge-gates.sh
