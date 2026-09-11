@@ -34,7 +34,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # 1, and a caller who passed nothing at all made no call whose result could be a negative
 # answer. It is the emptiest bad-arguments case there is, and bad arguments are exit 2.
 (( $# >= 1 )) || {
-  echo "usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ..." >&2
+  echo "build-develop-prompt: usage: red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ..." >&2
   exit 2
 }
 phase="$1"

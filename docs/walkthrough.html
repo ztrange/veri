@@ -2631,7 +2631,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># 1, and a caller who passed nothing at all made no call whose result could be a negative</span></span>
 <span class="l"><span class="c"># answer. It is the emptiest bad-arguments case there is, and bad arguments are exit 2.</span></span>
 <span class="l">(( <span class="v">$#</span> &gt;= 1 )) || {</span>
-<span class="l">  echo <span class="s">"usage: build-develop-prompt.sh red|green|refactor|revise &lt;issue-spec-file&gt; &lt;step-text&gt; &lt;test-cmd&gt; ..."</span> &gt;&amp;2</span>
+<span class="l">  echo <span class="s">"build-develop-prompt: usage: red|green|refactor|revise &lt;issue-spec-file&gt; &lt;step-text&gt; &lt;test-cmd&gt; ..."</span> &gt;&amp;2</span>
 <span class="l">  <span class="k">exit</span> 2</span>
 <span class="l">}</span>
 <span class="l">phase=<span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
