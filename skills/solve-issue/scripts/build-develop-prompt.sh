@@ -29,7 +29,15 @@ set -euo pipefail
 # no-op on 3.2 while it does the real work on 5.2+.
 shopt -u patsub_replacement 2>/dev/null || true
 
-phase="${1:?usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ...}"
+# The phase word is read with an explicit count rather than `${1:?usage...}` for the same
+# reason every other refusal below avoids `:?`: that expansion aborts the shell with status
+# 1, and a caller who passed nothing at all made no call whose result could be a negative
+# answer. It is the emptiest bad-arguments case there is, and bad arguments are exit 2.
+(( $# >= 1 )) || {
+  echo "usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ..." >&2
+  exit 2
+}
+phase="$1"
 
 # Both argument questions — is the phase one we have, and did the caller pass enough for it
 # — are settled here, before any other positional is read, because they are answered with

@@ -144,6 +144,17 @@ bare_out="$("$BUILD" bogus 2>"$bare_err")"; code=$?
   && grep -q 'bogus' "$bare_err" \
   && ok || no "an unknown phase with no further arguments exits 2, names the phase on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$bare_err"))"
 
+# 7. called with nothing at all — the emptiest bad-arguments case there is, and the one the
+#    shell answers soonest: `${1:?usage...}` aborts with status 1 before any check of ours
+#    runs. A caller who passed no phase made no call the conductor can read as a negative
+#    answer, so this is exit 2 like every other refusal.
+none_err="$work/no-args.err"
+none_out="$("$BUILD" 2>"$none_err")"; code=$?
+[[ "$code" -eq 2 ]] \
+  && [[ -z "$none_out" ]] \
+  && [[ -s "$none_err" ]] \
+  && ok || no "no arguments at all exits 2 with a usage diagnostic on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$none_err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
