@@ -111,20 +111,20 @@ def _line_open(mark):
             % (html.escape(tag), html.escape(description)))
 
 
-def code_block(lines, start, origin="?", hunk_marks=None):
+def code_block(lines, start, origin="?", marks=None):
     """Render source lines verbatim, with four token classes for readability.
 
     Verbatim is the load-bearing word. Every line is asserted to survive the lexer
     byte for byte before it is emitted, so a lexer bug stops the build instead of
     shipping a listing that no longer matches the file it claims to quote.
 
-    hunk_marks — {line number: (tag, description)} from gitmeta — names the first line
+    marks — {line number: (tag, description)} from hunk_marks() below — names the first line
     of each range a later version touched. It only ever changes the wrapper <span>, so
     the verbatim check above still sees the whole line: the version layer cannot alter
     a listing, only annotate it.
     """
     out = []
-    hunk_marks = hunk_marks or {}
+    marks = marks or {}
     for i, (ln, toks) in enumerate(zip(lines, bashlex.highlight(lines))):
         if "".join(t for _, t in toks) != ln:
             _problems.append("%s: highlighting altered a line, which must never happen\n"
@@ -135,7 +135,7 @@ def code_block(lines, start, origin="?", hunk_marks=None):
             esc = html.escape(text, quote=False)
             parts.append('<span class="%s">%s</span>' % (cls, esc) if cls else esc)
         out.append("%s%s</span>"
-                   % (_line_open(hunk_marks.get(start + i)), "".join(parts)))
+                   % (_line_open(marks.get(start + i)), "".join(parts)))
     return ('<pre class="src" style="counter-reset: ln %d">%s</pre>'
             % (start - 1, "\n".join(out)))
 
