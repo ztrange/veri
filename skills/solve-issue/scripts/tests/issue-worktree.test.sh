@@ -195,6 +195,32 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && [[ "$tip" == "$branch_tip" ]]; } \
   && ok || no "existing branch, no worktree: checks the branch out into .tdd/wt/17 instead of failing on -b (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/17-resume', tip='$tip' want the existing branch's $branch_tip not main's $main_tip)"
 
+# 6. the default branch comes from origin/HEAD when there is a remote — including when it is
+# named neither `main` nor `master`.
+#
+# Every other case here runs against a `git init` repo with no remote, so only the local
+# main/master fallback is ever exercised and "reads origin/HEAD" and "guessed `main`" are the
+# same answer. The seed closes that gap: an upstream whose only branch is `trunk`, cloned, so
+# the clone carries no local `main` or `master` at all — the fallback has nothing to answer
+# with, and a script that ignored origin/HEAD could only fail. origin/HEAD is pointed at
+# origin/trunk explicitly rather than trusted to whatever `git clone` inferred, so the case
+# pins the ref the script reads and not a clone-time side effect.
+upstream="$work/upstream-trunk"
+new_repo "$upstream"
+git_q "$upstream" branch -m main trunk >/dev/null 2>&1
+clone="$work/clone-trunk"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+git_q "$clone" symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/trunk >/dev/null 2>&1
+trunk_tip="$(git_q "$clone" rev-parse refs/remotes/origin/trunk)"
+want="$(wt_path "$clone" 21)"
+
+out="$(cd "$clone" && "$WT" 21 remote-default 2>/dev/null)" && code=0 || code=$?
+
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$tip" == "$trunk_tip" ]]; } \
+  && ok || no "origin/HEAD names a default branch that is neither main nor master: cuts the new worktree from it (exit=$code want 0, tip='$tip' want origin/trunk's $trunk_tip)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
