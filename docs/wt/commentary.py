@@ -1111,52 +1111,86 @@ SCRIPTS += [dict(
   about to serve as the heartbeat sensor, and an <strong>rc file</strong>, about to serve as
   the completion signal. Neither is obvious yet; both are the crux of what follows.
 </p>'''),
-        dict(lines=(41, 45), html=r'''<p>
-  <code>mtime_of</code> is the heartbeat sensor. It asks the filesystem when a file was last
-  modified, in seconds since the epoch. The {{p-shortcircuit|&#124;&#124; chain}} exists
-  because there is no portable <code>stat</code>: macOS and BSD spell it <code>-f %m</code>,
-  Linux and GNU spell it <code>-c %Y</code>. Try one, fall back, fall back again to
-  <code>0</code>. Each failed attempt's complaint is swallowed with
-  {{p-redirect|2&gt;/dev/null}}.
+        dict(lines=(41, 42), html=r'''<p>
+  <code>now()</code> moved up here, ahead of <code>mtime_of</code>, because
+  <code>mtime_of</code>'s own fallback now calls it &mdash; the simpler helper is defined
+  first, so reading top to bottom you never meet a forward reference.
+</p>'''),
+        dict(lines=(43, 61), html=r'''<p>
+  <code>mtime_of</code> is the heartbeat sensor: seconds since the log was last written to.
+  There is no portable spelling of "ask the filesystem for a file's mtime" &mdash;
+  GNU/coreutils is <code>stat -c %Y</code>, BSD/macOS is <code>stat -f %m</code> &mdash; so
+  both have to be tried. The nine-line comment above the function is here because the
+  previous version of this idea &mdash; the two attempts chained with
+  {{p-shortcircuit|&#124;&#124;}} inside one {{p-cmdsub|$( … )}}, falling back to a bare
+  <code>0</code> &mdash; shipped for years and then broke the instant it met a real Linux
+  runner.
 </p>
-<div class="note"><span class="tag">The idea worth stealing</span><p>
-  The heartbeat is <strong>not a signal the leaf sends</strong>. There is no protocol, no
-  keepalive, no cooperation from the leaf at all. It is the modification time of the log
-  file &mdash; which the operating system updates for free, every time the leaf writes a
-  byte. "Is it alive?" becomes "was this file touched recently?", which costs one
-  <code>stat</code> per second and works on <em>any</em> program, whether or not it knows it
-  is being watched.
-</p></div>'''),
-        dict(lines=(46, 52), html=r'''<p>Three ideas packed into four lines, all covered by the {{p-kill|signals entry}}:</p>
+<div class="note gotcha"><span class="tag">What one $( ) with || inside it can hide</span><p>
+  On GNU coreutils, <code>-f</code> is not a format flag at all &mdash; it means
+  <code>--file-system</code>. <code>stat -f %m FILE</code> reads <code>%m</code> as a
+  second <em>filename</em>, finds only <code>FILE</code>, and prints a filesystem block for
+  it &mdash; a line starting <code>File: "…"</code> and more &mdash; to stdout, then exits
+  non-zero because <code>%m</code> itself does not exist. On BSD/macOS, where
+  <code>-f</code> really is the format flag, that same command just prints the mtime and the
+  chain never reaches its second link &mdash; which is why four years of macOS-only runs
+  never saw this.
+</p><p>
+  Chained inside one command substitution, the failed attempt's block and the fallback's
+  digits land in the <strong>same</strong> string. The caller does
+  <code>$(( t - $(mtime_of "$log") ))</code>; bash's arithmetic expansion treats every
+  bareword in that string as a variable to look up, and the first one it meets is
+  <code>File</code> &mdash; unset, and fatal under this script's
+  {{p-strict-partial|set -u}}. The supervisor dies before it can choose any of its own exit
+  codes.
+</p></div>
+<p>
+  The fix tries each spelling <strong>separately, into a {{p-func|local}} variable</strong>:
+  a plain assignment <em>overwrites</em> <code>m</code> where <code>||</code> inside a
+  shared <code>$( )</code> would have <em>appended</em> to it. GNU is tried first because
+  BSD's <code>stat</code> rejects <code>-c</code> at option parsing and writes nothing, so
+  the fallback direction that matters stays clean. Then a {{p-case|case}} glob,
+  <code>''|*[!0-9]*)</code>, validates the result: empty, or containing any character that
+  is not a digit, and it is rejected &mdash; whatever a third platform's <code>stat</code>
+  decides to print, not just this one. An unreadable mtime now falls back to
+  <code>now()</code> rather than <code>0</code>: zero reads as five decades of silence and
+  would kill the leaf on its very first poll, where "just touched" only degrades supervision
+  to the hard timeout alone.
+</p>
+<p>
+  Found on this project's first <code>ubuntu-latest</code> CI run: <code>make test</code>
+  had passed on macOS for years, then hung for ten minutes the first time it ran on Linux.
+</p>'''),
+        dict(lines=(62, 68), html=r'''<p>Three ideas packed into four lines, all covered by the {{p-kill|signals entry}}:</p>
 <ul>
-  <li><strong>The minus sign on line 48.</strong> <code>-"$pid"</code> &mdash; a negative PID
+  <li><strong>The minus sign on line 64.</strong> <code>-"$pid"</code> &mdash; a negative PID
       &mdash; signals the whole <em>process group</em>. This matters because
       <code>claude</code> spawns children: a test runner, a compiler. Signalling only the
       parent orphans those, and they keep running and keep consuming the machine.</li>
-  <li><strong>The poll on line 50.</strong> <code>kill -0</code> sends nothing at all; it
+  <li><strong>The poll on line 66.</strong> <code>kill -0</code> sends nothing at all; it
       only tests whether the process still exists. Five times, check if it is gone &mdash;
       <code>return 0</code> the moment it is &mdash; otherwise wait 100&nbsp;ms. A grace
       period of at most half a second.</li>
   <li><strong>The escalation.</strong> <code>-TERM</code> first, which a program can catch
-      and handle cleanly. Only if it is still alive does line 51 send <code>-KILL</code>,
+      and handle cleanly. Only if it is still alive does line 67 send <code>-KILL</code>,
       which cannot be caught. Politeness first, force second.</li>
 </ul>
 <p>
   The loop variable is named <code>_</code> &mdash; a convention meaning "this value is
   never used". The loop runs five times; that is all it is for.
 </p>'''),
-        dict(lines=(53, 57), html=r'''<p>
+        dict(lines=(69, 73), html=r'''<p>
   {{p-func|attempt_once}} runs the leaf exactly once and watches it. Its result comes back
   through global variables rather than a return value, because a bash function can only
-  return an integer &mdash; the comment on line 54 says so explicitly.
+  return an integer &mdash; the comment on line 70 says so explicitly.
 </p><p>
-  Lines 56&ndash;57 reset state. {{p-noop|: &gt; "$log"}} truncates the log to empty &mdash;
+  Lines 72&ndash;73 reset state. {{p-noop|: &gt; "$log"}} truncates the log to empty &mdash;
   all the work is done by the redirection, and <code>:</code> is a placeholder that does
   nothing. <code>rm -f</code> removes any stale rc file. Both matter because this function
   can be called again on a retry, and stale state would make the new attempt look instantly
   finished.
 </p>'''),
-        dict(lines=(58, 65), html=r'''<p>The densest moment in veri. Line 63, left to right:</p>
+        dict(lines=(74, 81), html=r'''<p>The densest moment in veri. Line 79, left to right:</p>
 <ul>
   <li>{{p-bg|( … ) &amp;}} &mdash; a subshell, run in the background. The background part is
       the entire point: the script does not wait, so it can go on to watch. <strong>You
@@ -1172,7 +1206,7 @@ SCRIPTS += [dict(
       writes that number into a small file.</li>
 </ul>
 <p>
-  Line 62's {{p-jobcontrol|set -m}} turns on job control just for the launch, placing the
+  Line 78's {{p-jobcontrol|set -m}} turns on job control just for the launch, placing the
   background job in <strong>its own process group</strong>. Without it the leaf would share
   the supervisor's group and <code>kill_tree</code> would signal the supervisor itself. Off
   again two lines later &mdash; on for exactly one statement.
@@ -1188,13 +1222,13 @@ SCRIPTS += [dict(
   separates <em>the leaf chose to exit</em> from <em>we killed it</em>, because a killed
   leaf never reaches the <code>echo</code>.
 </p></div>'''),
-        dict(lines=(66, 69), html=r'''<p>
-  <code>t0</code> is the start time, for the hard timeout. The three variables on line 68
+        dict(lines=(82, 85), html=r'''<p>
+  <code>t0</code> is the start time, for the hard timeout. The three variables on line 84
   are what <code>attempt_once</code> "returns": <code>status</code> becomes one of
   <code>success</code>, <code>failure</code> or <code>killed-stuck</code>, and
   <code>reason</code> carries the kill cause for the human-facing status line.
 </p>'''),
-        dict(lines=(70, 75), html=r'''<p>
+        dict(lines=(86, 91), html=r'''<p>
   An {{p-noop|infinite loop}} checking three conditions each second, in priority order,
   breaking on the first that holds. <strong>Condition one: did it finish on its own?</strong>
 </p><p>
@@ -1206,7 +1240,7 @@ SCRIPTS += [dict(
   <span class="ec ec-1"><b>1</b></span>, a real answer. Only a leaf we had to kill becomes
   <span class="ec ec-2"><b>2</b></span>.
 </p>'''),
-        dict(lines=(76, 79), html=r'''<p>
+        dict(lines=(92, 95), html=r'''<p>
   <strong>Condition two: has the hard cap blown?</strong> {{p-arith|(( … ))}} gives real
   integer maths where variables need no <code>$</code>, so
   <code>t - t0 &gt;= timeout</code> reads like any other language.
@@ -1215,14 +1249,14 @@ SCRIPTS += [dict(
   cheerfully producing output and still be going nowhere; that is what this catches and the
   heartbeat cannot.
 </p>'''),
-        dict(lines=(80, 89), html=r'''<p>
+        dict(lines=(96, 105), html=r'''<p>
   <strong>Condition three: has it gone quiet?</strong> <code>silence</code> is now minus the
   log's last-modified time &mdash; note {{p-cmdsub|$( … )}} nested <em>inside</em> the
   arithmetic, which is allowed and evaluates first. Exceed the window and the leaf is
   killed.
 </p>
 <div class="note gotcha"><span class="tag">A one-character decision with a three-line comment</span><p>
-  Line 84 tests <code>silence &gt; heartbeat</code> &mdash; strictly greater, not
+  Line 100 tests <code>silence &gt; heartbeat</code> &mdash; strictly greater, not
   <code>&gt;=</code>. <code>date +%s</code> has only whole-second resolution, so at a second
   boundary the subtraction can read about one second high. With <code>&gt;=</code>, a
   perfectly healthy leaf that had just been relaunched could be measured at exactly the
@@ -1232,15 +1266,15 @@ SCRIPTS += [dict(
   genuine hang keeps climbing and still trips. This is the kind of bug that only appears
   under real timing on someone else's machine &mdash; and there is a test pinning it.
 </p></div>
-<p>Line 88 is the poll interval: nothing tripped, so nap and check again.</p>'''),
-        dict(lines=(90, 92), html=r'''<p>
+<p>Line 104 is the poll interval: nothing tripped, so nap and check again.</p>'''),
+        dict(lines=(106, 108), html=r'''<p>
   By now the leaf is finished or killed, so {{p-wait|wait}} no longer blocks meaningfully;
   it clears the zombie entry from the process table. The <code>|| true</code> is the standard
   {{p-shortcircuit|swallow-the-error}} idiom &mdash; the process may already have been
   reaped, and failing here would be noise.
 </p>'''),
-        dict(lines=(93, 103), html=r'''<p>
-  <strong>Line 99 carries the whole retry policy.</strong> Read it as: if the status is
+        dict(lines=(109, 119), html=r'''<p>
+  <strong>Line 115 carries the whole retry policy.</strong> Read it as: if the status is
   <em>not</em> killed-stuck, break.
 </p><p>
   A leaf that succeeded, or that cleanly failed, has given a real answer &mdash; and real
@@ -1248,7 +1282,7 @@ SCRIPTS += [dict(
   same failure while pretending it might not. Only a hang, which may be transient, is worth
   another go.
 </p><p>
-  Line 101 increments with <code>tries=$(( tries + 1 ))</code> rather than
+  Line 117 increments with <code>tries=$(( tries + 1 ))</code> rather than
   <code>(( tries++ ))</code>, which &mdash; as the {{p-arith|arithmetic entry}} explains
   &mdash; would return a false status on the first increment and, under
   <code>set -e</code>, kill the script.
@@ -1263,7 +1297,7 @@ SCRIPTS += [dict(
   spent liveness budget is a <strong>system</strong> failure, a spent verdict budget a
   <strong>process</strong> failure.
 </p></div>'''),
-        dict(lines=(104, 110), html=r'''<p>
+        dict(lines=(120, 126), html=r'''<p>
   The {{p-case|case}} maps the status string to veri's exit codes. Note the defensive
   <code>*)</code> branch: any state that was not foreseen is treated as
   <span class="ec ec-2"><b>2</b> broken</span>, never as success.
@@ -1272,7 +1306,7 @@ SCRIPTS += [dict(
   <a href="#classify-bail"><code>classify-bail.sh</code></a>. When you do not know what
   happened, the safe assumption is that something went wrong.
 </p>'''),
-        dict(lines=(111, 114), html=r'''<p>
+        dict(lines=(127, 130), html=r'''<p>
   The last three lines execute the stdout/stderr contract exactly. The status line &mdash;
   including <code>${reason:+ — $reason}</code>, which appends the separator <em>only if</em>
   a reason exists &mdash; goes to {{p-redirect|stderr}}. The leaf's entire captured output
