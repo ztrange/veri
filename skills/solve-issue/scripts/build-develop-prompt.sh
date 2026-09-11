@@ -31,28 +31,23 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 phase="${1:?usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ...}"
 
-# The phase is checked here, before any other positional is read, because the two questions
-# are answered with different exit codes and the first one asked wins. A `${N:?}` expansion
-# aborts the shell with status 1, so validating the arguments of a phase that does not exist
-# would answer "an argument is missing" (exit 1) to a caller whose real mistake was the
-# phase itself — and a bad phase is a bad-arguments case, which is exit 2 suite-wide.
-case "$phase" in
-  red|green|refactor|revise) ;;
-  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
-esac
-
-# A missing positional is a bad-arguments case too, and bad arguments are exit 2 suite-wide.
-# Left to the shell it would not be: the `${N:?}` expansions below abort with status 1, the
-# code reserved for a real answer — a leaf that ran and failed — so a caller who simply
-# forgot an argument would be reported as one whose call was made and came back negative.
-# Counting what the phase needs up front answers that first, and the `:?` expansions below
-# never get the chance to fire. The count includes the phase word itself, and for `revise`
+# Both argument questions — is the phase one we have, and did the caller pass enough for it
+# — are settled here, before any other positional is read, because they are answered with
+# different exit codes and the first one asked wins. A `${N:?}` expansion aborts the shell
+# with status 1, the code reserved for a real answer, so letting those fire first would
+# report a caller who mistyped the phase or forgot an argument as one whose call was made
+# and came back negative. Both are bad-arguments cases, which is exit 2 suite-wide.
+#
+# One `case` answers both because the arms are the same four words either way: naming each
+# phase's arity gives the whitelist something to do beyond existing, and `*)` beneath them
+# still means "not one of ours". The counts include the phase word itself, and for `revise`
 # the phase it is redoing, since neither has been shifted off yet.
 case "$phase" in
   red) want=4 ;;
   green) want=6 ;;
   refactor) want=5 ;;
   revise) want=6 ;;
+  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
 esac
 (( $# >= want )) || {
   echo "build-develop-prompt: $phase needs $want arguments, got $#" >&2; exit 2
