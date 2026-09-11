@@ -2,8 +2,11 @@
 # solvable-issues.sh — print the numbers of the issues veri may take right now, one per
 # line, lowest first.
 #
-# An issue is solvable when it is open and carries the `ready-for-agent` label: the
-# human's explicit opt-in. Nothing is taken because it merely exists.
+# An issue is solvable when it is open, carries the `ready-for-agent` label (the human's
+# explicit opt-in — nothing is taken because it merely exists), and every issue it names
+# under its `## Blocked by` heading is closed. A body whose section reads `None.` names no
+# issue at all, so the test for "unblocked" is the absence of a `#<n>` reference under that
+# heading rather than the literal word.
 #
 # The repository's issues are read as the JSON `gh issue list` emits:
 #   gh issue list --json number,title,labels,body,state
@@ -19,15 +22,25 @@
 set -euo pipefail
 
 exec python3 -c '
-import json, sys, pathlib
+import json, re, sys, pathlib
 
 src = pathlib.Path(sys.argv[1])
 issues = json.loads((src / "issues.json").read_text())
 
+state = {i["number"]: i.get("state", "").upper() for i in issues}
+
+def blockers(body):
+    """The issue numbers named under the `## Blocked by` heading, up to the next heading.
+    A section reading `None.` names none, and so does a body with no such section."""
+    section = re.search(r"^## Blocked by$(.*?)(?=^## |\Z)", body, re.M | re.S)
+    return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
+
 def solvable(issue):
     if issue.get("state", "").upper() != "OPEN":
         return False
-    return any(l.get("name") == "ready-for-agent" for l in issue.get("labels", []))
+    if not any(l.get("name") == "ready-for-agent" for l in issue.get("labels", [])):
+        return False
+    return all(state.get(n) != "OPEN" for n in blockers(issue.get("body", "")))
 
 for number in sorted(i["number"] for i in issues if solvable(i)):
     print(number)
