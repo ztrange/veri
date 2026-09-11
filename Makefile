@@ -30,9 +30,29 @@ test:
 # AND still agrees with the two files it describes but is not generated from (the
 # phases build-verify-prompt.sh accepts, SKILL.md's revise budget).
 # A guard nobody has watched fail is decoration, which is why the tests run first.
-.PHONY: docs docs-check docs-test
+.PHONY: docs docs-check docs-test install-hooks
 docs:
 	@python3 docs/build-walkthrough.py
+
+# The capability index is built from `git tag`, which makes a tag the one input to
+# the page that can change without a commit — so nothing rebuilds when it does, and
+# docs-check goes red until someone notices. This hook is the notice. It is a git
+# hook rather than a step in any skill because a tag cut by hand, by another agent,
+# or in another worktree is the same problem; .git/hooks is shared by every worktree,
+# so one install covers all of them.
+#
+# Refuses rather than clobbering a reference-transaction hook it does not recognise —
+# the guardrail hooks use the same name, and silently replacing one would remove a
+# protection to install a convenience.
+install-hooks:
+	@h="$$(git rev-parse --git-common-dir)/hooks/reference-transaction"; \
+	if [ -e "$$h" ] && ! grep -q veri-docs-lag-notice "$$h"; then \
+	  echo "refusing: $$h already exists and is not veri's."; \
+	  echo "          Merge the two by hand, then re-run."; exit 1; \
+	fi; \
+	mkdir -p "$$(dirname "$$h")"; \
+	cp docs/hooks/reference-transaction "$$h" && chmod 755 "$$h"; \
+	echo "installed $$h"
 
 docs-test:
 	@docs/tests/build-guards.test.sh
