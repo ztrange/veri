@@ -125,30 +125,34 @@ detect "$repo"
 matched \
   && ok || no "Makefile with a test: target beats pytest.ini (exit=$code want 0, stdout='$out' want '$want')"
 
-# 4. a python repo that declares pytest configuration names `pytest -q`. Two spellings are
-# one rule — a bare `pytest.ini`, or a `pyproject.toml` carrying a `[tool.pytest` section —
-# so they are two seeded repos inside one case, the same way the three node runners are.
-# Either spelling is a repo saying "pytest runs here", and `-q` because the conductor reads
-# the exit status, not the dots.
+# 4. a python repo that declares pytest configuration names `pytest -q`. The three spellings
+# pytest documents are one rule — a bare `pytest.ini`, a `pyproject.toml` carrying a
+# `[tool.pytest` section, or a `setup.cfg` carrying a `[tool:pytest]` one — so they are three
+# seeded repos inside one case, the same way the three node runners are. Each spelling is a
+# repo saying "pytest runs here", and `-q` because the conductor reads the exit status, not
+# the dots.
 #
 # The `pytest.ini` repo seeds an empty file on purpose: the rule keys on the filename, and a
 # repo whose pytest settings all live in command-line flags or tox still commits the empty
-# marker. The `pyproject.toml` repo needs the section header and nothing else, because
-# pyproject.toml alone means only "this is a python project" — packaging metadata is no
-# claim about the test runner — so it is the `[tool.pytest` section that has to be found
-# inside the file. `ini_options` is the suffix real repos write, and including it checks the
-# rule matches the prefix rather than demanding the whole bare header.
+# marker. The other two need the section header and nothing else, because neither filename is
+# a claim about the test runner on its own — both are packaging metadata any python project
+# may carry — so the header has to be found inside the file. Each carries a second line under
+# it, so the header is not also the last byte of the file. `ini_options` is the suffix real
+# pyproject.toml repos write, and including it checks the rule matches the prefix rather than
+# demanding the whole bare header; setup.cfg's header is pytest's own colon spelling for that
+# file, `[tool:pytest]`, not the dot pyproject.toml uses.
 #
-# Neither repo needs pytest or python installed: the script reads these two files and never
+# No repo here needs pytest or python installed: the script reads these three files and never
 # runs the command it prints.
 want='pytest -q'
 misread=""
-for marker in pytest.ini pyproject.toml; do
+for marker in pytest.ini pyproject.toml setup.cfg; do
   repo="$work/py-$marker"
   mkdir -p "$repo"
   case "$marker" in
     pytest.ini)     : > "$repo/pytest.ini" ;;
     pyproject.toml) printf '[tool.pytest.ini_options]\naddopts = "-ra"\n' > "$repo/pyproject.toml" ;;
+    setup.cfg)      printf '[tool:pytest]\naddopts = -ra\n' > "$repo/setup.cfg" ;;
   esac
 
   detect "$repo"
@@ -157,32 +161,7 @@ for marker in pytest.ini pyproject.toml; do
 done
 
 [[ -z "$misread" ]] \
-  && ok || no "pytest.ini, or pyproject.toml with a [tool.pytest section, yields pytest -q —$misread"
-
-# 4b. the third spelling pytest itself documents, and the one rule 4 does not yet know: a
-# `setup.cfg` carrying a `[tool:pytest]` section. A repo configured that way and carrying no
-# other marker gets no answer today — exit 3, nothing on stdout — so the question goes to the
-# human for a repo that already answered it.
-#
-# It is asked the way `pyproject.toml` is, not the way `pytest.ini` is: a bare `setup.cfg` is
-# packaging metadata any python project may carry, so the filename alone is no claim about the
-# test runner and the section header has to be found inside the file. The colon spelling is
-# pytest's own for this file — `[tool:pytest]`, not the `[tool.pytest]` of pyproject.toml — and
-# a second line is seeded under it so the header is not also the last byte of the file.
-#
-# The repo carries nothing else on purpose: any other marker would be answered by a rule above
-# or below, and `pytest -q` on stdout would then say nothing about setup.cfg having been read.
-# Nothing here needs pytest or python installed — the script reads the file and never runs the
-# command it prints.
-want='pytest -q'
-repo="$work/py-setupcfg"
-mkdir -p "$repo"
-printf '[tool:pytest]\naddopts = -ra\n' > "$repo/setup.cfg"
-
-detect "$repo"
-
-matched \
-  && ok || no "setup.cfg with a [tool:pytest] section yields pytest -q (exit=$code want 0, stdout='$out' want '$want')"
+  && ok || no "pytest.ini, or pyproject.toml with a [tool.pytest section, or setup.cfg with a [tool:pytest] one, yields pytest -q —$misread"
 
 # 5. the two compiled stacks each name their toolchain's own runner: a `go.mod` yields
 # `go test ./...`, a `Cargo.toml` yields `cargo test`. One case, two seeded repos, the same
