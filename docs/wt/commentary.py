@@ -882,14 +882,17 @@ SCRIPTS += [dict(
     file="ensure-run-state-ignored.sh", stage=0, id="ensure-run-state-ignored",
     tagline="the target repo's ignore rule",
     blurb=r'''<p>
-  Thirty-seven lines that write three. Most of the script is the two guards around the
-  write &mdash; one so running it twice is a no-op, one so appending to somebody else's
-  <code>.gitignore</code> cannot corrupt their last rule.
+  Sixty-three lines that write three. It used to trust a single line, seen once, to mean the
+  whole block had already landed. It now checks all three lines <strong>and their reading
+  order</strong>, and a <code>.gitignore</code> that carries the rule only in part, or the
+  right three lines shuffled, is refused rather than patched or waved through.
 </p>''',
     contract=[
         ("Usage", "<code>ensure-run-state-ignored.sh [repo-root]</code> (default: the current directory)"),
-        ("stdout", "<code>added</code> when it wrote the rule, <code>already present</code> when it did not"),
-        ("Exit", '<span class="ec ec-0"><b>0</b> either way</span> &mdash; a non-zero exit is an I/O failure under <code>set -e</code>'),
+        ("stdout", "<code>added</code> when it wrote the rule, <code>already present</code> when it was already there in full and in order"),
+        ("stderr", "the fix-it-by-hand message when an existing <code>.gitignore</code> carries the rule only in part, or out of order"),
+        ("Exit", '<span class="ec ec-0"><b>0</b> wrote the rule, or found it already there, whole and in order</span> '
+                 '<span class="ec ec-2"><b>2</b> the existing rule is partial or misordered</span>'),
     ],
     chunks=[
         dict(lines=(1, 10), html=r'''<p>
@@ -897,7 +900,8 @@ SCRIPTS += [dict(
   would hide the ledger too; <code>!.tdd/issue-*.md</code> brings it back; but that negation
   also brings back the blind spec (<code>.tdd/issue-7-spec.md</code> matches
   <code>issue-*.md</code>), so a third line re-ignores it. Git reads the file top to bottom
-  and the <strong>last matching line wins</strong> &mdash; the order is the behaviour.
+  and the <strong>last matching line wins</strong> &mdash; the order is the behaviour, which
+  is why the script below checks it rather than just the lines' presence.
 </p><p>
   {{p-strict|set -euo pipefail}} as everywhere else.
 </p>'''),
@@ -905,18 +909,48 @@ SCRIPTS += [dict(
   The repo root is optional, {{p-default|${1:-.}}}, so the conductor can call it bare from
   the target's working directory. Everything below works on one path, so it gets a name.
 </p>'''),
-        dict(lines=(14, 20), html=r'''<p>
-  <strong>Idempotence.</strong> The rule's last line doubles as its sentinel: it is written
-  last, so seeing it whole and on its own line means the block landed once already. The
-  <code>grep</code> flags make that check literal (<code>-F</code>: <code>*</code> is a star,
-  not a wildcard) and whole-line (<code>-x</code>: a partial match, or the same text inside
-  a longer rule, does not count). Then say so and stop.
-</p><div class="note"><span class="tag">Known limit, flagged by a refactor leaf</span><p>
-  The sentinel is one line. A <code>.gitignore</code> that carries only that line, or all
-  three in an order git reads differently, reports <code>already present</code>. No test
-  pins that case yet; it is a candidate for its own triangulating issue.
+        dict(lines=(14, 21), html=r'''<p>
+  The three lines of the rule, named once. The header comment above says why: the presence
+  check further down and the append at the bottom both need the exact same text for each
+  line, and two spellings of <code>drop_spec</code> drifting apart would make the script
+  append a rule it had just failed to recognise as already there. Each variable carries its
+  own trailing comment &mdash; <code>ignore_all</code> sweeps everything under
+  <code>.tdd/</code> out of sight, <code>keep_ledger</code> carves the one file that belongs
+  in history back out, <code>drop_spec</code> takes back the one file that carve-out would
+  otherwise drag along with it.
+</p>'''),
+        dict(lines=(22, 29), html=r'''<p>
+  {{p-func|where()}} replaces what used to be a plain <code>has()</code> boolean: it returns
+  not <em>whether</em> a line is in <code>$gitignore</code> but <strong>which line number</strong>
+  it first appears on, so the order of the three lines becomes something the script can
+  compare. <code>-n</code> on <code>grep</code> prefixes each hit with
+  <code>&lt;lineno&gt;:</code>; <code>head -1</code> takes the first match and <code>cut</code>
+  keeps the number in front of the colon.
+</p><p>
+  {{p-shortcircuit|&#124;&#124; true}} at the end is load-bearing under
+  {{p-strict|pipefail}}: when the line is absent, <code>grep</code> exits 1 and the pipeline
+  would inherit that failure, which <code>set -e</code> would turn into the script dying
+  instead of reporting "not there" as an empty string.
+</p>'''),
+        dict(lines=(30, 50), html=r'''<p>
+  The comment states the standard this branch enforces, and it is stricter than "all three
+  lines exist": <strong>"already present" means the whole rule, in git's reading order,
+  never a subset and never the same three lines shuffled.</strong> With the negation last,
+  <code>!.tdd/issue-*.md</code> un-ignores the spec the line above it just re-ignored, so
+  every line can be present while the rule itself is not. Lines 38&ndash;40 capture where
+  each line falls with <code>where()</code>; lines 41&ndash;42 require all three to exist
+  <em>and</em> to fall in ascending order before declaring victory.
+</p><div class="note"><span class="tag">Resolved: refused, not repaired</span><p>
+  Anything short of that &mdash; one line missing, or the three lines out of order &mdash;
+  used to be invisible to the old sentinel-only check. It no longer is, and the fix is not to
+  patch it up: appending a fourth line cannot mend either failure, because git only ever
+  reads a rule top to bottom and a second <code>.tdd/*</code> appended after an existing
+  negation cannot retroactively change what precedes it. So the script refuses instead,
+  with <span class="ec ec-2"><b>2</b></span> &mdash; the "no answer could be obtained" code
+  &mdash; which fails the conductor's preflight loudly, before a cycle starts committing
+  scratch state into a target repo that was never actually protected.
 </p></div>'''),
-        dict(lines=(21, 29), html=r'''<p>
+        dict(lines=(51, 59), html=r'''<p>
   <strong>Append safety.</strong> A file need not end in a newline, and a naive
   <code>&gt;&gt;</code> onto one that does not would fuse its last rule with
   <code>.tdd/*</code> into a single pattern that matches nothing &mdash; silently breaking
@@ -929,13 +963,12 @@ SCRIPTS += [dict(
   non-empty result is precisely the file that needs one. The <code>-s</code> guard keeps
   <code>tail</code> off a file that does not exist yet.
 </p>'''),
-        dict(lines=(30, 37), html=r'''<p>
-  The write itself: a {{p-heredoc|quoted here-document}} appended with
-  {{p-redirect|&gt;&gt;}}. The quotes on <code>'RULE'</code> switch off expansion, so the
-  <code>*</code> and <code>!</code> reach the file verbatim; and because the same redirect
-  creates the file when it is absent, the "no <code>.gitignore</code> at all" case needs no
-  branch of its own. The final line is the report the conductor keys off: <code>added</code>
-  means there is a change to commit.
+        dict(lines=(60, 63), html=r'''<p>
+  The write itself: {{p-printf|printf '%s\n'}} over the three named variables, one argument
+  per line, appended with {{p-redirect|&gt;&gt;}}. Because the same redirect creates the file
+  when it is absent, the "no <code>.gitignore</code> at all" case needs no branch of its own.
+  The final line is the report the conductor keys off: <code>added</code> means there is a
+  change to commit.
 </p>'''),
     ]),
 ]
