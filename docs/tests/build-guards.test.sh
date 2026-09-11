@@ -133,27 +133,33 @@ omits() {
 # global is back in place the moment omits_git returns.
 omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
 
-# tags_git <name> <n-hunk-tags> <expected-span> <mutator...>
+# tags_git <name> <n-hunk-tags> <expected-spans> <mutator...>
 # accepts() and omits() each ask one yes/no question of the whole page, and a hunk tag
 # needs two asked together: "this line carries v0.2" is only half the claim, because an
 # implementation that tagged every line would satisfy it and defeat the point — the tag
 # is worth reading only if it says where to look. So tags_git asserts the page contains
-# <expected-span> AND carries exactly <n> hunk tags in total.
+# every one of <expected-spans> AND carries exactly <n> hunk tags in total.
+# <expected-spans> is ONE argument holding one expected span per line, because a case
+# with two tags has to claim both at once: found separately they could still be the same
+# line tagged twice, or one span overwritten by the other.
 # Occurrences, not matching lines: grep -o then wc -l, since nothing guarantees two tags
 # could not share one output line.
 tags_git() {
-  local name="$1" n="$2" want="$3"; shift 3
-  local d code page got; d="$(sandbox_git)"
+  local name="$1" n="$2" wants="$3"; shift 3
+  local d code page got want missing=""; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   got="$(printf '%s' "$page" | grep -o 'class="l hunk"' | wc -l | tr -d ' ')"
-  if [[ "$code" == 0 && "$page" == *"$want"* && "$got" == "$n" ]]; then
+  while IFS= read -r want; do
+    [[ "$page" == *"$want"* ]] || missing="$want"
+  done <<< "$wants"
+  if [[ "$code" == 0 && -z "$missing" && "$got" == "$n" ]]; then
     pass=$((pass + 1))
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
-    echo "    want $n hunk-tagged line(s), one of them: $want"
-    echo "    got  $got hunk-tagged line(s)"
+    echo "    want $n hunk-tagged line(s), including: $wants"
+    echo "    got  $got hunk-tagged line(s), missing: ${missing:-none}"
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
   fi
 }
@@ -254,6 +260,23 @@ tags_git "a later feat: commit tags its line, and only its line" 1 \
   bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
            "# rewritten by the v0.2 commit" \
            "feat: rewrite one line of classify-bail.sh (#2)" v0.2'
+
+#    Two versions later touched the same file, on lines 3 and 5, with line 4 still on the
+#    original v0.1 commit between them. Blame groups consecutive lines by their LAST
+#    toucher, so this is the case that proves the grouping does not run the two together:
+#    each line has to carry its own version and its own commit's words, and the count has
+#    to stay at 2 — a merged hunk would drop to 1, and a whole-file tag would run higher.
+tags_git "two later commits tag their own lines separately" 2 \
+  '<span class="l hunk" data-tag="v0.2" title="rewrite line 3 of classify-bail.sh">'\
+'<span class="c"># rewritten by the v0.2 commit</span></span>
+<span class="l hunk" data-tag="v0.3" title="rewrite line 5 of classify-bail.sh">'\
+'<span class="c"># rewritten by the v0.3 commit</span></span>' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.3 commit" \
+             "fix: rewrite line 5 of classify-bail.sh (#3)" v0.3'
 
 echo "----"
 echo "$pass passed, $fail failed"
