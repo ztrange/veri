@@ -10,6 +10,12 @@
 #   verbatim, plus the `AGAINST_UNMODIFIED` report line — the protocol token the conductor
 #   greps for to route a passing red test to verify-pin (SKILL.md, Red step).
 #
+# Contract under test, green phase:
+#   build-develop-prompt.sh green <spec-file> <step-text> <test-cmd> <test-path> <target>
+#   exits 0 and prints a prompt naming the test the implementation must satisfy — its path
+#   and its case name — and forbidding any edit to it, the rule that keeps "make it green"
+#   from degenerating into "weaken the test".
+#
 # Run: scripts/tests/build-develop-prompt.test.sh
 set -uo pipefail
 
@@ -39,6 +45,17 @@ red="$("$BUILD" red "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code
   && [[ "$red" == *"$test_cmd"* ]] \
   && [[ "$red" == *'AGAINST_UNMODIFIED'* ]] \
   && ok || no "develop-red carries spec + step + test command verbatim and the AGAINST_UNMODIFIED report line (exit $code)"
+
+# 2. the green prompt names the test it must satisfy — path and case name — and forbids
+#    editing it
+test_path='tests/zorblat/test_frob & nitz.sh'
+target='qwixtle seeds a newline-terminated block'
+green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] \
+  && [[ "$green" == *"$test_path"* ]] \
+  && [[ "$green" == *"$target"* ]] \
+  && grep -qiE "(do not|don't|never) (modify|change|edit|touch|weaken).{0,40}test|test.{0,40}(must not|may not) be (modified|changed|edited|touched)" <<<"$green" \
+  && ok || no "develop-green names the test path + target test and forbids modifying the test (exit $code)"
 
 echo "----"
 echo "$pass passed, $fail failed"
