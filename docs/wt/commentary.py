@@ -1377,12 +1377,19 @@ SCRIPTS += [dict(
   when no specific test id was given.
 </p>'''),
         dict(lines=(22, 26), html=r'''<p>
-  A {{p-case|case}} whose only valid branch does nothing: <code>red|green|refactor) ;;</code>
-  means "these three are fine, carry on". Everything else falls to <code>*)</code> and exits
-  <span class="ec ec-2"><b>2</b></span>.
+  A {{p-case|case}} whose only valid branch does nothing:
+  <code>red|green|refactor|pin) ;;</code> means "these four are fine, carry on". Everything
+  else falls to <code>*)</code> and exits <span class="ec ec-2"><b>2</b></span>.
 </p><p>
   Fail fast on a typo rather than build a prompt from a template that does not exist. Note
   the code: a bad argument is <em>broken</em>, not a legitimate negative answer.
+</p><p>
+  <code>pin</code> is the fourth phase, and it is not a step of the Red&ndash;Green&ndash;
+  Refactor cycle: it is what runs instead of Red when a developer leaf's test already
+  passes against the unmodified code. The blind verifier confirms the test is a genuine
+  regression pin &mdash; passing now, failing under a mutation it applies and reverts
+  itself &mdash; and on PASS the cycle skips straight to committing, with no Green or
+  Refactor to follow.
 </p>'''),
         dict(lines=(27, 33), html=r'''<p>
   <code>HERE</code> locates the script's own directory so it can find its
@@ -1424,10 +1431,11 @@ SCRIPTS += [dict(
   string.
 </p></div>
 <p>
-  The <code>{{SHARED}}</code> token is why there are four template files for three phases:
+  The <code>{{SHARED}}</code> token is why there are five template files for four phases:
   <code>prompts/_shared.md</code> holds the preamble common to all verifications &mdash;
   <em>you are blind, run the test yourself, end with these exact two lines</em> &mdash; and
-  each phase template pulls it in rather than repeating it.
+  each phase template, including <code>prompts/verify-pin.md</code>, pulls it in rather
+  than repeating it.
 </p>'''),
     ]),
 

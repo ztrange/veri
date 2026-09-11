@@ -1614,7 +1614,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Usage:</span></span>
 <span class="l"><span class="c">#   build-verify-prompt.sh &lt;phase&gt; &lt;issue-spec-file&gt; &lt;test-path&gt; [&lt;target-test-id&gt;]</span></span>
-<span class="l"><span class="c">#     phase = red | green | refactor</span></span>
+<span class="l"><span class="c">#     phase = red | green | refactor | pin</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown</span></span>
 <span class="l"><span class="c"># phase or a missing template/spec file.</span></span></pre></div><div class="ann-note"><p>
@@ -1636,16 +1636,23 @@ html{scroll-behavior:smooth}
   fallback, <code>"the target test"</code>, so the assembled prompt still reads as English
   when no specific test id was given.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 21"><span class="l">case "$phase" in</span>
-<span class="l">  red|green|refactor) ;;</span>
-<span class="l">  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor)" &gt;&amp;2; exit 2 ;;</span>
+<span class="l">  red|green|refactor|pin) ;;</span>
+<span class="l">  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin)" &gt;&amp;2; exit 2 ;;</span>
 <span class="l">esac</span>
 <span class="l"></span></pre></div><div class="ann-note"><p>
-  A <a class="tt" data-ref="p-case" href="#p-case">case</a> whose only valid branch does nothing: <code>red|green|refactor) ;;</code>
-  means "these three are fine, carry on". Everything else falls to <code>*)</code> and exits
-  <span class="ec ec-2"><b>2</b></span>.
+  A <a class="tt" data-ref="p-case" href="#p-case">case</a> whose only valid branch does nothing:
+  <code>red|green|refactor|pin) ;;</code> means "these four are fine, carry on". Everything
+  else falls to <code>*)</code> and exits <span class="ec ec-2"><b>2</b></span>.
 </p><p>
   Fail fast on a typo rather than build a prompt from a template that does not exist. Note
   the code: a bad argument is <em>broken</em>, not a legitimate negative answer.
+</p><p>
+  <code>pin</code> is the fourth phase, and it is not a step of the Red&ndash;Green&ndash;
+  Refactor cycle: it is what runs instead of Red when a developer leaf's test already
+  passes against the unmodified code. The blind verifier confirms the test is a genuine
+  regression pin &mdash; passing now, failing under a mutation it applies and reverts
+  itself &mdash; and on PASS the cycle skips straight to committing, with no Green or
+  Refactor to follow.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 26"><span class="l">HERE="$(cd "$(dirname "$0")" &amp;&amp; pwd)"</span>
 <span class="l">tpl_file="$HERE/prompts/verify-$phase.md"</span>
 <span class="l">shared_file="$HERE/prompts/_shared.md"</span>
@@ -1700,10 +1707,11 @@ html{scroll-behavior:smooth}
   string.
 </p></div>
 <p>
-  The <code>{{SHARED}}</code> token is why there are four template files for three phases:
+  The <code>{{SHARED}}</code> token is why there are five template files for four phases:
   <code>prompts/_shared.md</code> holds the preamble common to all verifications &mdash;
   <em>you are blind, run the test yourself, end with these exact two lines</em> &mdash; and
-  each phase template pulls it in rather than repeating it.
+  each phase template, including <code>prompts/verify-pin.md</code>, pulls it in rather
+  than repeating it.
 </p></div></div></div>
 
 <h3 id="verify"><code>verify.sh</code> &mdash; the verify verb</h3>
@@ -1725,7 +1733,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Usage:</span></span>
 <span class="l"><span class="c">#   verify.sh &lt;phase&gt; &lt;issue-spec-file&gt; &lt;test-path&gt; [&lt;target-test-id&gt;]</span></span>
-<span class="l"><span class="c">#     phase = red | green | refactor</span></span>
+<span class="l"><span class="c">#     phase = red | green | refactor | pin</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># stdout: the verifier's reason (mirror it to the issue thread).</span></span>
 <span class="l"><span class="c"># exit:   0 PASS · 1 REJECT · 2 malformed verdict or build error.</span></span>
