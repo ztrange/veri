@@ -11,6 +11,10 @@ On top of that it verifies the properties the page claims:
   * every in-page link resolves to an id that exists
   * every tooltip reference has a matching reference entry, and vice versa
   * tags balance
+  * the TDD-loop figure still agrees with the two files it describes — the phases
+    build-verify-prompt.sh accepts, and SKILL.md's revise budget. That figure is the
+    one part of the page not generated from the scripts, so it is the one part that
+    can go stale without `make docs` noticing.
 
 Run via `make docs-check`. Deliberately NOT part of `make test`: veri refuses to start a
 cycle on a red baseline, and prose drifting behind code should not block a TDD run.
@@ -156,6 +160,57 @@ if ann_head and "position:sticky" in ann_head.group(1).replace(" ", ""):
 spy = doc[doc.rfind("__VERI_NAV__"):]
 if "requestAnimationFrame" in spy and "setTimeout" not in spy:
     bad.append("scrollspy schedules on requestAnimationFrame with no timer fallback")
+
+# 5 ── the TDD-loop figure vs the two files it describes ────────────────────────
+# Everything else on this page is generated FROM the scripts, so it cannot drift.
+# This one figure is the exception: it names the three phases, their order, and the
+# revise budget — and no script emits any of that, by design (no file under
+# scripts/ knows a phase exists; phase is a string the conductor passes down). So
+# the figure is the only part of the page that can go stale without `make docs`
+# noticing. These two checks close that hole against the authorities:
+#   * the accepted phases, from build-verify-prompt.sh's own case arm — executable,
+#     not prose, and the thing that would actually reject a renamed phase
+#   * the revise budget, from SKILL.md, which owns it
+# Both fail closed: if the pattern can no longer be located the guard says so
+# rather than passing silently.
+SKILL = SCRIPTS_DIR.parent / "SKILL.md"   # relative, so only SCRIPTS_DIR moves
+# scoped to the section, or the search runs on into the NEXT figure and reports a
+# missing figure as a phase mismatch instead
+sect = re.search(r'<h3 id="tddloop">(.*?)(?=<h3 |\Z)', prose, re.S)
+fig = re.search(r'<figure class="dataflow">.*?</figure>', sect.group(1), re.S) if sect else None
+if not fig:
+    bad.append("the TDD-loop figure is gone from the page (no #tddloop section, or no "
+               "figure inside it)")
+else:
+    fig = fig.group(0)
+    arm = re.search(r'^case "\$phase" in\n\s*([a-z|]+)\)',
+                    (SCRIPTS_DIR / "build-verify-prompt.sh").read_text(), re.M)
+    if not arm:
+        bad.append("cannot find the phase case arm in build-verify-prompt.sh — the "
+                   "TDD-loop figure's phase names can no longer be checked")
+    else:
+        phases = arm.group(1).split("|")
+        drawn = re.findall(r">([A-Z][a-z]+) &mdash; ", fig)
+        if [d.lower() for d in drawn] != phases:
+            bad.append("the TDD-loop figure draws phases %s; build-verify-prompt.sh "
+                       "accepts %s" % (drawn, phases))
+        else:
+            print("TDD loop: %d phases, in the order build-verify-prompt.sh accepts"
+                  % len(phases))
+
+    budget = re.search(r"`REVISE_BUDGET`[^.]*?\*\*default (\d+)\*\*", SKILL.read_text())
+    claimed = set(re.findall(r"&le; (\d+) attempts", prose))
+    if not budget:
+        bad.append("cannot find REVISE_BUDGET's default in SKILL.md — the page's "
+                   "'&le; N attempts' claims can no longer be checked")
+    elif not claimed:
+        bad.append("no '&le; N attempts' claim left on the page to check against "
+                   "SKILL.md's REVISE_BUDGET")
+    elif claimed != {budget.group(1)}:
+        bad.append("the page claims a revise budget of %s; SKILL.md's REVISE_BUDGET "
+                   "defaults to %s" % (sorted(claimed), budget.group(1)))
+    else:
+        print("revise budget: the page and SKILL.md both say %s" % budget.group(1))
 
 for tag in ("div", "span", "pre", "p", "table", "svg"):
     o = len(re.findall(r"<%s[ >]" % tag, doc)); c = len(re.findall(r"</%s>" % tag, doc))

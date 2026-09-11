@@ -288,7 +288,7 @@ html{scroll-behavior:smooth}
 </style>
 
 <div class="shell">
-<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the twelve scripts</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a></nav></aside>
+<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the twelve scripts</a><a href="#tddloop">Where the TDD loop lives</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a></nav></aside>
 <main>
 
 <!-- Breadcrumb. Static markup so the page still has a heading bar with no JS; app.js
@@ -400,7 +400,7 @@ html{scroll-behavior:smooth}
   runs once per issue, at preflight, and is stage&nbsp;0 below:
 </p>
 <div class="flow">
-<svg viewBox="0 0 920 200" role="img" aria-label="Five stages of one veri cycle: read the ledger, run a leaf, verify the claim, record the result, or bail.">
+<svg viewBox="0 -12 920 212" role="img" aria-label="Five stages of one veri phase: read the ledger, run a leaf, verify the claim, record the result, or bail.">
   <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
     <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/></marker></defs>
   <g><rect x="6" y="34" width="148" height="62" rx="6" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.5"/>
@@ -433,19 +433,239 @@ html{scroll-behavior:smooth}
     <text x="770" y="54" font-size="10" fill="var(--ec2)" letter-spacing="1.4">STAGE 5</text>
     <text x="770" y="76" font-size="13" fill="var(--ink)" font-weight="500">Or bail</text>
     <text x="770" y="122" font-size="10.5" fill="var(--ink-soft)">classify-bail.sh</text></g>
-  <path d="M 644 96 L 644 178 L 80 178 L 80 102" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <path d="M 456 34 L 456 18 L 268 18 L 268 30" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
+  <text x="362" y="12" font-size="10" fill="var(--ink-faint)" text-anchor="middle">&times;3 &mdash; once per phase: Red, Green, Refactor</text>
+  <path d="M 576 96 L 576 178 L 140 178 L 140 102" fill="none" stroke="var(--ink-faint)" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ar)"/>
   <text x="330" y="192" font-size="10" fill="var(--ink-faint)">loop to the next unchecked step</text>
 </svg>
 </div>
 <p>
-  Stages 1 to 4 are the happy path of one step. Stage 5 is the exceptional exit, reachable
-  from any of the others. When stage 4 completes, the conductor loops back to stage 1 for
-  the next unchecked step &mdash; that loop turns one cycle into a whole issue.
+  Stages 1 to 4 are the happy path; stage 5 is the exceptional exit, reachable from any of
+  the others. But read the two dashed arrows before moving on, because the strip is easy to
+  misread: it is one <strong>phase</strong>, not one step. Stages 2 and 3 &mdash; run a leaf,
+  verify the claim &mdash; repeat for each of Red, Green and Refactor before a step is done,
+  and only then does the conductor loop back to stage 1 for the next unchecked step. The
+  next section draws that.
 </p>
+
+<h3 id="tddloop">Where the TDD loop lives</h3>
+<p>
+  Nothing in that map mentions Red, Green or Refactor &mdash; and no script does either.
+  The methodology belongs to the conductor, written out in <code>SKILL.md</code> as English.
+  What the scripts underneath it see is the same three beats every time: <strong>a developer
+  leaf writes something, a blind verifier judges it, and one integer decides what happens
+  next.</strong> Which phase it is changes only the prompt and the rubric.
+</p>
+<p>
+  Which means the five stages are not one <em>step</em>. They are one <strong>phase</strong>.
+  A step is that pipeline run three times over, and the loop you are looking for is the
+  column-to-column arrow:
+</p>
+
+<figure class="dataflow">
+<div class="scroller">
+<svg viewBox="0 0 1080 770" role="img" aria-label="One ledger step as three phases. next-unchecked.sh runs once per step and hands the step to phase 1, Red; each phase is the same two stages, a developer leaf launched through supervise.sh and a blind verifier run by verify.sh, ending in parse-verdict.sh. A PASS carries the work to the next phase; a REJECT loops back to a fresh developer leaf for at most two attempts; an unobtainable verdict goes to classify-bail.sh. Green's PASS ticks the ledger and commits it with the code; Refactor loops transforms inside itself and is verified once on the settled result, after which the issue's criterion is ticked and the whole step repeats for the next unchecked line. When no step is left, next-unchecked.sh exits 3 and the branch is pushed as a draft pull request.">
+  <defs>
+    <marker id="tl-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
+    </marker>
+    <marker id="tl-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec0)"/>
+    </marker>
+    <marker id="tl-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec1)"/>
+    </marker>
+    <marker id="tl-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec2)"/>
+    </marker>
+    <marker id="tl-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ec3)"/>
+    </marker>
+  </defs>
+
+  <!-- ── stage 1: once per step, not once per phase ─────────────────────────── -->
+  <rect x="30" y="28" width="300" height="52" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <circle cx="30" cy="54" r="10" fill="var(--accent)"/>
+  <text x="30" y="58" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">1</text>
+  <text x="180" y="50" font-size="12.5" fill="var(--ink)" text-anchor="middle">next-unchecked.sh</text>
+  <text x="180" y="66" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">once per step, not per phase</text>
+
+  <line x1="330" y1="54" x2="742" y2="54" stroke="var(--ec3)" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#tl-n)"/>
+  <text x="536" y="46" font-size="10" fill="var(--ec3)" text-anchor="middle">exit 3 &mdash; no step left</text>
+
+  <rect x="750" y="28" width="300" height="52" rx="5" fill="var(--panel)" stroke="var(--ink-soft)" stroke-width="1.4"/>
+  <text x="900" y="50" font-size="12.5" fill="var(--ink)" text-anchor="middle">push &rarr; draft PR</text>
+  <text x="900" y="66" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">never merged &mdash; that stays a human act</text>
+
+  <line x1="180" y1="80" x2="180" y2="106" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <!-- ── phase 1 · Red ──────────────────────────────────────────────────────── -->
+  <rect x="30" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="180" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 1</text>
+  <text x="180" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Red &mdash; one failing test</text>
+
+  <rect x="50" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="50" cy="213" r="10" fill="var(--accent)"/>
+  <text x="50" y="217" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">2</text>
+  <text x="180" y="201" font-size="12" fill="var(--ink)" text-anchor="middle">supervise.sh &rarr; developer leaf</text>
+  <text x="180" y="219" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">writes exactly one failing test</text>
+  <text x="180" y="234" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">and no production code at all</text>
+  <line x1="180" y1="248" x2="180" y2="274" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="50" y="278" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="50" cy="313" r="10" fill="var(--accent)"/>
+  <text x="50" y="317" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="180" y="301" font-size="12" fill="var(--ink)" text-anchor="middle">verify.sh &rarr; blind verifier</text>
+  <text x="180" y="319" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">runs the test itself: does it fail,</text>
+  <text x="180" y="334" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">and does it pin the spec?</text>
+  <line x1="180" y1="348" x2="180" y2="374" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="50" y="378" width="260" height="48" rx="5" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.3"/>
+  <text x="180" y="397" font-size="11.5" fill="var(--ink)" text-anchor="middle">parse-verdict.sh</text>
+  <text x="180" y="413" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">0 &middot; 1 &middot; 2</text>
+
+  <polyline points="50,402 30,402 30,213 44,213" fill="none" stroke="var(--ec1)" stroke-width="1.4" marker-end="url(#tl-r)"/>
+  <text x="41" y="308" font-size="9" fill="var(--ec1)" text-anchor="middle" transform="rotate(-90 41 308)">REJECT</text>
+
+  <polyline points="310,402 360,402 360,131 386,131" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="350" y="280" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 350 280)">PASS</text>
+
+  <line x1="180" y1="426" x2="180" y2="586" stroke="var(--ec2)" stroke-width="1.4" stroke-dasharray="5 3" marker-end="url(#tl-b)"/>
+  <text x="196" y="470" font-size="9.5" fill="var(--ec2)" text-anchor="start">exit 2 &mdash; no answer at all:</text>
+  <text x="196" y="485" font-size="9.5" fill="var(--ec2)" text-anchor="start">a hung leaf, an unreadable verdict</text>
+
+  <!-- ── phase 2 · Green ────────────────────────────────────────────────────── -->
+  <rect x="390" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="540" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 2</text>
+  <text x="540" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Green &mdash; minimum code that passes</text>
+
+  <rect x="410" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="410" cy="213" r="10" fill="var(--accent)"/>
+  <text x="410" y="217" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">2</text>
+  <text x="540" y="201" font-size="12" fill="var(--ink)" text-anchor="middle">supervise.sh &rarr; developer leaf</text>
+  <text x="540" y="219" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the least code that turns it green</text>
+  <text x="540" y="234" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">no case the test does not demand</text>
+  <line x1="540" y1="248" x2="540" y2="274" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="410" y="278" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="410" cy="313" r="10" fill="var(--accent)"/>
+  <text x="410" y="317" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="540" y="301" font-size="12" fill="var(--ink)" text-anchor="middle">verify.sh &rarr; blind verifier</text>
+  <text x="540" y="319" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">runs the whole suite itself: green,</text>
+  <text x="540" y="334" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">and no more than the test asked for</text>
+  <line x1="540" y1="348" x2="540" y2="374" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="410" y="378" width="260" height="48" rx="5" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.3"/>
+  <text x="540" y="397" font-size="11.5" fill="var(--ink)" text-anchor="middle">parse-verdict.sh</text>
+  <text x="540" y="413" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">0 &middot; 1 &middot; 2</text>
+
+  <polyline points="410,402 390,402 390,213 404,213" fill="none" stroke="var(--ec1)" stroke-width="1.4" marker-end="url(#tl-r)"/>
+  <text x="401" y="308" font-size="9" fill="var(--ec1)" text-anchor="middle" transform="rotate(-90 401 308)">REJECT</text>
+
+  <line x1="540" y1="426" x2="540" y2="442" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="552" y="440" font-size="9.5" fill="var(--ec0)" text-anchor="start">PASS</text>
+
+  <rect x="410" y="446" width="260" height="56" rx="5" fill="var(--panel)" stroke="var(--ec0)" stroke-width="1.5"/>
+  <circle cx="410" cy="474" r="10" fill="var(--accent)"/>
+  <text x="410" y="478" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">4</text>
+  <text x="540" y="469" font-size="11.5" fill="var(--ink)" text-anchor="middle">tick-ledger.sh &rarr; git commit</text>
+  <text x="540" y="485" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the code and its tick, one commit</text>
+
+  <text x="540" y="528" font-size="9.5" fill="var(--ec1)" text-anchor="middle">exit 1 &mdash; a fresh leaf, told the reason</text>
+  <text x="540" y="543" font-size="9.5" fill="var(--ec1)" text-anchor="middle">&le; 2 attempts in any phase, then bail</text>
+
+  <polyline points="670,474 720,474 720,131 746,131" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="710" y="300" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 710 300)">ticked, then tidied</text>
+
+  <!-- ── phase 3 · Refactor ─────────────────────────────────────────────────── -->
+  <rect x="750" y="110" width="300" height="42" rx="6" fill="var(--accent-wash)" stroke="var(--accent)" stroke-width="1.4"/>
+  <text x="900" y="127" font-size="9.5" fill="var(--accent)" text-anchor="middle" letter-spacing="1.4">PHASE 3</text>
+  <text x="900" y="144" font-size="13" fill="var(--ink)" text-anchor="middle">Refactor &mdash; tidy until settled</text>
+
+  <rect x="770" y="178" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="770" cy="213" r="10" fill="var(--accent)"/>
+  <text x="770" y="217" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">2</text>
+  <text x="900" y="201" font-size="12" fill="var(--ink)" text-anchor="middle">supervise.sh &rarr; developer leaf</text>
+  <text x="900" y="219" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">one behaviour-preserving transform</text>
+  <text x="900" y="234" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">suite green, or the change reverted</text>
+  <polyline points="1030,196 1048,196 1048,230 1034,230" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+  <text x="1062" y="213" font-size="9" fill="var(--ink-faint)" text-anchor="middle" transform="rotate(-90 1062 213)">until none remain</text>
+  <line x1="900" y1="248" x2="900" y2="274" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="770" y="278" width="260" height="70" rx="5" fill="var(--panel)" stroke="var(--ink)" stroke-width="1.6"/>
+  <circle cx="770" cy="313" r="10" fill="var(--accent)"/>
+  <text x="770" y="317" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">3</text>
+  <text x="900" y="301" font-size="12" fill="var(--ink)" text-anchor="middle">verify.sh &rarr; blind verifier</text>
+  <text x="900" y="319" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">once, on the settled result: still</text>
+  <text x="900" y="334" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">green, and nothing smuggled in</text>
+  <line x1="900" y1="348" x2="900" y2="374" stroke="var(--ink-faint)" stroke-width="1.3" marker-end="url(#tl-a)"/>
+
+  <rect x="770" y="378" width="260" height="48" rx="5" fill="var(--panel-2)" stroke="var(--ink-soft)" stroke-width="1.3"/>
+  <text x="900" y="397" font-size="11.5" fill="var(--ink)" text-anchor="middle">parse-verdict.sh</text>
+  <text x="900" y="413" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">0 &middot; 1 &middot; 2</text>
+
+  <polyline points="770,402 750,402 750,213 764,213" fill="none" stroke="var(--ec1)" stroke-width="1.4" marker-end="url(#tl-r)"/>
+  <text x="761" y="308" font-size="9" fill="var(--ec1)" text-anchor="middle" transform="rotate(-90 761 308)">REJECT</text>
+
+  <text x="900" y="458" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the only phase that loops inside itself</text>
+  <text x="900" y="473" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">one verdict, not one per transform</text>
+
+  <polyline points="1030,402 1060,402 1060,570 900,570 900,586" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+  <text x="1053" y="490" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 1053 490)">PASS</text>
+
+  <!-- ── the two ways a step ends ───────────────────────────────────────────── -->
+  <rect x="30" y="592" width="300" height="56" rx="5" fill="var(--panel)" stroke="var(--ec2)" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <circle cx="30" cy="620" r="10" fill="var(--accent)"/>
+  <text x="30" y="624" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">5</text>
+  <text x="180" y="615" font-size="11.5" fill="var(--ink)" text-anchor="middle">classify-bail.sh</text>
+  <text x="180" y="631" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">system failure | process failure</text>
+  <text x="180" y="668" font-size="9.5" fill="var(--ec1)" text-anchor="middle">a spent revise budget lands here too</text>
+
+  <rect x="750" y="592" width="300" height="56" rx="5" fill="var(--panel)" stroke="var(--ec0)" stroke-width="1.5"/>
+  <circle cx="750" cy="620" r="10" fill="var(--accent)"/>
+  <text x="750" y="624" font-size="10.5" font-weight="700" fill="var(--accent-ink)" text-anchor="middle">4</text>
+  <text x="900" y="615" font-size="11.5" fill="var(--ink)" text-anchor="middle">tick-issue-criterion.sh</text>
+  <text x="900" y="631" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the mirror &mdash; the step is done</text>
+
+  <polyline points="900,648 900,730 16,730 16,16 180,16 180,24" fill="none" stroke="var(--ec0)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#tl-p)"/>
+  <text x="500" y="744" font-size="10" fill="var(--ec0)" text-anchor="middle">the next unchecked step &mdash; back to stage 1, and three phases again</text>
+</svg>
+</div>
+<figcaption>
+  One ledger step, start to finish. Each column is the <b>same machinery</b> &mdash; stages 2
+  and 3 &mdash; carrying a different prompt and a different rubric. Colour here means exit
+  code, never phase: Red and Green are TDD&rsquo;s names, so the phases are drawn in the
+  neutral accent to keep the two vocabularies apart.
+</figcaption>
+</figure>
+
+<p>Four things that only become visible once the loop is drawn:</p>
+<ul>
+  <li><strong>Three phases, three blind verdicts, one step.</strong> Stage 1 runs once per
+      step; stages 2 and 3 run once per phase &mdash; more, when a phase is revised. The
+      verifier is a fresh agent every time, so nothing it approved earlier carries over.</li>
+  <li><strong>The ledger ticks at Green, not at the end.</strong> The moment the
+      implementation is blind-approved, the tick and the code go into
+      <em>one</em> commit &mdash; so git history and the checklist cannot disagree even if
+      the run dies during Refactor.</li>
+  <li><strong>Refactor is the asymmetric one.</strong> It loops transforms <em>inside</em> the
+      phase, committing each, and takes a single verdict on the settled result. Verifying
+      each transform separately would multiply the cost of the expensive half without
+      changing what the suite already proves &mdash; the suite is the objective gate
+      throughout, and the verdict only asks whether the result is up to standard.</li>
+  <li><strong>None of this is in a script.</strong> No file under <code>scripts/</code>
+      knows there are three phases, what order they come in, or that Refactor loops. Phase
+      is a string the conductor passes down &mdash;
+      <code>verify.sh red&hellip;</code>, <code>green&hellip;</code>,
+      <code>refactor&hellip;</code> &mdash; which is exactly the split the
+      <a href="#division">division of labour</a> promised: the model decides, the scripts
+      enforce.</li>
+</ul>
 
 <h3 id="dataflow">How the data moves</h3>
 <p>
-  The map above says which scripts exist. This says what actually travels between them
+  The last two sections say which scripts exist and in what order they repeat. This says
+  what actually travels between them
   &mdash; because in veri the interesting content is not the calls, it is
   <strong>what crosses each boundary</strong>: a file on disk, a line of stdout, or a
   single exit code that chooses the next branch.
@@ -453,7 +673,7 @@ html{scroll-behavior:smooth}
 
 <figure class="dataflow">
 <div class="scroller">
-<svg viewBox="0 0 1080 840" role="img" aria-label="One veri cycle as a data flow: the committed ledger feeds next-unchecked.sh, whose printed step becomes a prompt; every leaf is launched through supervise.sh, which watches a log file's modification time as a heartbeat and an rc file for completion; the verifier's prompt is built from the spec and test path alone; parse-verdict.sh turns the leaf's stdout into exit code 0, 1 or 2, which selects between committing the step, revising it, or bailing.">
+<svg viewBox="0 0 1080 840" role="img" aria-label="One phase of one veri cycle as a data flow: the committed ledger feeds next-unchecked.sh, whose printed step becomes a prompt; every leaf is launched through supervise.sh, which watches a log file's modification time as a heartbeat and an rc file for completion; the verifier's prompt is built from the spec and test path alone; parse-verdict.sh turns the leaf's stdout into exit code 0, 1 or 2, which selects between committing the step, revising it, or bailing.">
   <defs>
     <marker id="df-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
@@ -589,7 +809,7 @@ html{scroll-behavior:smooth}
 
   <!-- loop back to the ledger -->
   <polyline points="176,794 176,816 28,816 28,125 246,125" fill="none" stroke="var(--ec0)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#df-p)"/>
-  <text x="18" y="452" font-size="10" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 18 452)">loop &mdash; the next unchecked step</text>
+  <text x="18" y="452" font-size="10" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 18 452)">loop &mdash; the next phase, then the next step</text>
 
   <!-- revise returns to a fresh prompt -->
   <polyline points="400,794 400,812 1036,812 1036,209 554,209" fill="none" stroke="var(--ec1)" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#df-r)"/>
@@ -597,8 +817,9 @@ html{scroll-behavior:smooth}
 </svg>
 </div>
 <figcaption>
-  One step&rsquo;s journey. Solid lines carry data; dashed lines are the two ways a cycle
-  repeats. The three coloured branches at the bottom are the whole control flow of veri
+  One <a href="#tddloop">phase</a>&rsquo;s journey &mdash; Red, Green or Refactor, because
+  the phase changes the prompt and the rubric, never the shape. Solid lines carry data;
+  dashed lines are the two ways a cycle repeats. The three coloured branches at the bottom are the whole control flow of veri
   &mdash; <b>everything downstream of a step turns on one integer</b>.
 </figcaption>
 </figure>
@@ -2380,7 +2601,7 @@ html{scroll-behavior:smooth}
 </div>
 
 <script>window.__VERI_TIPS__ = {"p-ansic":{"gloss":"Interprets C escapes, so this is a real newline character rather than a backslash and an n.","name":"ANSI-C quoting","sig":"$'\\n'"},"p-arith":{"gloss":"Integer maths with C syntax — variables need no <code>$</code> and comparisons read normally.","name":"Arithmetic evaluation","sig":"(( … ))"},"p-array":{"gloss":"Holds a list of arguments so each stays one argument, even when it contains spaces.","name":"Arrays, and why they exist","sig":"arr=( a b c ) &nbsp;→&nbsp; \"${arr[@]}\""},"p-arrayempty":{"gloss":"Lets an empty array expand to zero arguments instead of aborting under <code>set -u</code> on old bash.","name":"The empty-array guard","sig":"\"${arr[@]+\"${arr[@]}\"}\""},"p-arrayidx":{"gloss":"<code>${!a[@]}</code> the indices · <code>${#a[@]}</code> the length · <code>${a[@]:n}</code> a slice from n.","name":"Indices, length, slice","sig":"\"${!arr[@]}\" &nbsp; ${#arr[@]} &nbsp; \"${arr[@]:n}\""},"p-awk":{"gloss":"Line-oriented text processor. Pass shell values through the environment, never by interpolating into the program.","name":"awk, and getting data into it safely","sig":"awk 'BEGIN{…} {…} END{…}'"},"p-bg":{"gloss":"A subshell run in the background. The script continues immediately — which is what makes watching it possible.","name":"Subshells and background jobs","sig":"( cmd ) &amp; &nbsp;→&nbsp; pid=$!"},"p-case":{"gloss":"Bash's switch. Glob patterns, <code>|</code> for alternatives, <code>*)</code> as the default, no fall-through.","name":"Pattern dispatch","sig":"case \"$x\" in … esac"},"p-cmdsub":{"gloss":"Run a command in a child process and evaluate to its stdout. Strips all trailing newlines.","name":"Command substitution","sig":"$( … )"},"p-default":{"gloss":"Use this value if set and non-empty, otherwise fall back to the default. Never assigns.","name":"Default value","sig":"\"${2:-default}\""},"p-envprefix":{"gloss":"Set a variable for one command only, without leaking it into the rest of the script.","name":"Per-command environment","sig":"VAR=value command"},"p-exec":{"gloss":"Replaces the shell with the new program instead of forking — same PID, same stdin, status passes straight through.","name":"Replacing the process","sig":"exec python3 -c '…'"},"p-func":{"gloss":"Arguments arrive as <code>$1</code>, <code>$2</code>…; it returns an exit status, so data comes back via stdout or a global.","name":"Functions","sig":"name() { …; }"},"p-guard":{"gloss":"Default to nothing, so reading an optional variable doesn't abort under <code>set -u</code>.","name":"The empty-default guard","sig":"\"${VAR:-}\""},"p-heredoc":{"gloss":"Feeds a literal text block in as stdin — which is why it can't be used when stdin carries real data.","name":"Here-documents","sig":"cmd &lt;&lt;'EOF' … EOF"},"p-jobcontrol":{"gloss":"Puts a background job in its own process group, so the whole tree can be signalled at once.","name":"Job control &amp; process groups","sig":"set -m &nbsp;…&nbsp; set +m"},"p-kill":{"gloss":"Sends a signal. A negative PID targets the process group; <code>-0</code> only probes; TERM asks, KILL cannot be refused.","name":"Signals — and the minus sign that matters","sig":"kill -TERM -$pid &nbsp;·&nbsp; kill -0 $pid"},"p-mktemp":{"gloss":"Atomically creates a uniquely-named temp file, avoiding the race and the security hole of a fixed name.","name":"Temporary files","sig":"tmp=\"$(mktemp)\""},"p-noop":{"gloss":"<code>:</code> does nothing and succeeds. <code>: &gt; f</code> truncates a file; <code>while :;</code> loops forever.","name":"The null command","sig":": &nbsp;·&nbsp; : &gt; file &nbsp;·&nbsp; while :;"},"p-pipe":{"gloss":"Pipes connect stdout to stdin; <code>tee</code> copies a stream aside; <code>PIPESTATUS</code> recovers a stage's lost exit code.","name":"Pipes, tee, and recovering a lost status","sig":"a | b &nbsp;·&nbsp; tee file &nbsp;·&nbsp; \"${PIPESTATUS[0]}\""},"p-printf":{"gloss":"Portable and predictable, unlike <code>echo</code> — you control the trailing newline exactly.","name":"printf, and why not echo","sig":"printf '%s\\n' \"$x\""},"p-printfv":{"gloss":"Write printf's output into a variable instead of stdout, preserving trailing newlines.","name":"Printf into a variable","sig":"printf -v name '%s\\n' \"${arr[@]}\""},"p-quote":{"gloss":"Quoting stops the shell splitting the value on whitespace and expanding it as a filename pattern.","name":"Quoting — the one habit that matters most","sig":"\"$var\""},"p-readloop":{"gloss":"The safe line reader: no trimming, no backslash mangling, and it keeps a final unterminated line.","name":"Reading lines without corrupting them","sig":"while IFS= read -r line || [[ -n \"$line\" ]]"},"p-redirect":{"gloss":"Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. <code>&gt;</code> truncates immediately.","name":"Redirection","sig":"&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null"},"p-regex":{"gloss":"Built-in regex match; captures land in <code>BASH_REMATCH</code>. The pattern must be unquoted.","name":"Built-in regular expressions","sig":"[[ \"$s\" =~ regex ]] &nbsp;→&nbsp; BASH_REMATCH"},"p-required":{"gloss":"Use this argument, or print the message and abort. An inline precondition check.","name":"Required-argument assertion","sig":"\"${1:?usage: …}\""},"p-sete":{"gloss":"Turn fail-fast off around one command so you can capture its exit code instead of dying on it.","name":"Temporarily disabling fail-fast","sig":"set +e … rc=$? … set -e"},"p-shebang":{"gloss":"Tells the kernel to run this file with bash, found via PATH rather than a hard-coded location.","name":"Shebang","sig":"#!/usr/bin/env bash"},"p-shortcircuit":{"gloss":"<code>||</code> runs the right side only on failure, <code>&amp;&amp;</code> only on success. Also exempts the left from <code>set -e</code>.","name":"Short-circuit chaining","sig":"cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2"},"p-special":{"gloss":"<code>$?</code> last exit status · <code>$!</code> last background PID · <code>$@</code> all arguments · <code>$#</code> count · <code>$0</code> script path.","name":"Special parameters","sig":"$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0"},"p-strict":{"gloss":"Fail fast: exit on any error, error on unset variables, and let a pipeline fail if any stage does.","name":"Strict mode","sig":"set -euo pipefail"},"p-strict-partial":{"gloss":"Strict mode with <code>-e</code> deliberately left out, so an expected non-zero exit doesn't kill the script.","name":"Strict mode without <code>-e</code>","sig":"set -uo pipefail"},"p-strip":{"gloss":"Cut a matching pattern off one end. <code>#</code> from the front, <code>%</code> from the back; doubled is greedy.","name":"Prefix and suffix stripping","sig":"${v#pat} &nbsp; ${v##pat} &nbsp; ${v%pat} &nbsp; ${v%%pat}"},"p-subst":{"gloss":"Replace every occurrence, literally — no pattern language, so arbitrary text passes through intact.","name":"Substring replacement","sig":"${v//search/replace}"},"p-test":{"gloss":"Bash's conditional expression: file tests, string tests, and numeric comparison.","name":"Conditional expression","sig":"[[ … ]]"},"p-trap":{"gloss":"Runs a command when the script exits, however it exits. Bash's <code>finally</code> block.","name":"Cleanup handlers","sig":"trap 'rm -f \"$tmp\"' EXIT"},"p-wait":{"gloss":"Blocks until a background process finishes and clears its zombie entry. Useless for monitoring, precisely because it blocks.","name":"Reaping a child","sig":"wait \"$pid\""}};</script>
-<script>window.__VERI_NAV__ = [{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the twelve scripts","h":"map"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s0","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"}]},{"id":"ensure-run-state-ignored","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"ensure-run-state-ignored.sh","h":"ensure-run-state-ignored"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]}];</script>
+<script>window.__VERI_NAV__ = [{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the twelve scripts","h":"map"}]},{"id":"tddloop","trail":[{"t":"Orientation","h":""},{"t":"Where the TDD loop lives","h":"tddloop"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s0","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"}]},{"id":"ensure-run-state-ignored","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"ensure-run-state-ignored.sh","h":"ensure-run-state-ignored"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]}];</script>
 <script>
 /* veri, Annotated — tooltip layer.
    Every {{ref}} in the commentary is emitted as a real <a href="#p-id"> first, so the
