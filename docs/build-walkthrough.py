@@ -417,6 +417,25 @@ def render_hunks_json(meta):
     return json.dumps(d, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def render_order_json(meta):
+    """Every tag, oldest first, in git's version sort — the page's only version order.
+
+    "Later than X" has to be decided in the browser, and the two orders disagree exactly
+    where it matters: v0.10 sorts BEFORE v0.9 as text and AFTER it as a version, so a
+    client comparing the strings it was handed hides the newest capability from the
+    reader who asked for it. `window.__VERI_HUNKS__` is no help — its keys are a JSON
+    object's, which is to say lexical. gitmeta already sorted the tags with
+    `--sort=v:refname`; this hands that order to the client as a list, where "later"
+    is just a higher index.
+
+    [] in a tree with no version layer, so the client reads an empty list rather than
+    checking whether there is one.
+    """
+    import json
+    tags = [v["tag"] for v in meta["versions"]] if meta else []
+    return json.dumps(tags, ensure_ascii=False, separators=(",", ":"))
+
+
 def render_tips_json():
     import json
     d = {i["id"]: {"sig": i["sig"], "name": i["name"], "gloss": i["gloss"]}
@@ -453,6 +472,7 @@ def main():
         rail=render_rail(entries),
         nav=render_nav_json(entries),
         hunks=render_hunks_json(META),
+        order=render_order_json(META),
         pitch=refs(com.PITCH_HTML).replace("{{SOLVED}}", solved_count),
         intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
         stages=stages_html,

@@ -28,6 +28,11 @@
 # Each case runs against a disposable copy of the tree, so the real repo is never
 # mutated even if a case aborts.
 #
+# One case reaches past python3 for node: since-mode is a decision the page's own JS
+# makes, and nothing in the markup records it. See since_git. node is a dependency of
+# reading the page back, never of building or shipping it, and the case fails rather than
+# skips when it is absent.
+#
 # Run: docs/tests/build-guards.test.sh
 set -uo pipefail
 
@@ -636,6 +641,133 @@ PY
   fi
 }
 
+# since_git <name> <chosen-version> <expected-report> <mutator...>
+# Every other assertion here reads what the build emitted. This one runs it: choosing a
+# version is something a reader does in a browser, and no amount of reading the markup
+# says which hunks that choice lights.
+#
+# So the page's own <script> blocks are evaluated outside a browser, in the order the
+# document lists them, against a DOM that answers every query with nothing — the tooltip
+# and scrollspy layers bail at load, exactly as they do on a page whose markup they
+# cannot find, and the version decision is what is left to ask. node is what evaluates
+# them; it is not a new dependency for the product, only for reading the page's JS back,
+# and the case fails loudly rather than skipping if it is absent.
+#
+# What it asks is `window.__VERI_SINCE__.lit(tag, since)` — truthy when a hunk tagged
+# `tag` is lit for a reader who last read at `since`. The decision has to be reachable
+# without a browser for the same reason `window.__VERI_HUNKS__` exists: the page is the
+# only place it lives, and dimming a run of lines is a class this harness cannot see.
+# The CSS half — what lit and dimmed look like — is cases 19 and 20.
+#
+# The report is one line per hunk the page carries — `<tag> <script> <first>-<last>
+# lit|dim` — and the whole of it is compared, because both halves of the claim are in it:
+# a hunk the choice should light and one it should leave dimmed are the same assertion
+# read from either end. Lines sort as text, which is why the report reads v0.10, v0.2,
+# v0.9: the ORDER of the report is not what is under test, the verdict on each line is.
+# Entries are read in either spelling the map may use, as hunk_map_git does.
+since_git() {
+  local name="$1" since="$2" want="$3"; shift 3
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  got="$( cd "$d" && node - page.html "$since" 2>&1 <<'JS'
+var fs = require("fs");
+var page = fs.readFileSync(process.argv[2], "utf8");
+var since = process.argv[3];
+
+/* A stand-in for one element: every method a page script might reach for, answering
+   with nothing of its own. Written out rather than proxied so a call the stub does not
+   cover fails as a named TypeError. */
+function element() {
+  return {
+    className: "", style: {}, dataset: {}, children: [], firstChild: null, value: "",
+    scrollTop: 0, offsetWidth: 0, offsetHeight: 0,
+    classList: { add: function () {}, remove: function () {}, toggle: function () {},
+                 contains: function () { return false; } },
+    getAttribute: function () { return null; }, setAttribute: function () {},
+    removeAttribute: function () {}, hasAttribute: function () { return false; },
+    appendChild: function () {}, removeChild: function () {}, insertBefore: function () {},
+    addEventListener: function () {}, removeEventListener: function () {},
+    querySelector: function () { return element(); },
+    querySelectorAll: function () { return []; },
+    closest: function () { return null; }, matches: function () { return false; },
+    contains: function () { return false; },
+    scrollIntoView: function () {}, focus: function () {},
+    getBoundingClientRect: function () {
+      return { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0 };
+    }
+  };
+}
+
+globalThis.window = globalThis;             // so `window.__VERI_X__ = …` is a global
+globalThis.addEventListener = function () {};
+globalThis.removeEventListener = function () {};
+globalThis.requestAnimationFrame = function () { return 0; };
+globalThis.cancelAnimationFrame = function () {};
+globalThis.scrollX = 0; globalThis.scrollY = 0;
+globalThis.innerWidth = 1200; globalThis.innerHeight = 800;
+globalThis.location = { hash: "", href: "", search: "" };
+globalThis.navigator = { userAgent: "node" };
+globalThis.localStorage = { getItem: function () { return null; },
+                            setItem: function () {}, removeItem: function () {} };
+globalThis.getComputedStyle = function () { return {}; };
+globalThis.matchMedia = function () {
+  return { matches: false, addEventListener: function () {}, addListener: function () {} };
+};
+globalThis.document = element();
+document.readyState = "complete";
+document.documentElement = element();
+document.body = element();
+document.createElement = function () { return element(); };
+document.getElementById = function () { return null; };
+document.querySelector = function () { return element(); };
+
+var blocks = page.match(/<script>[\s\S]*?<\/script>/g) || [];
+for (var i = 0; i < blocks.length; i++) {
+  (0, eval)(blocks[i].slice("<script>".length, -"</script>".length));
+}
+
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.lit !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.lit(tag, since)");
+  process.exit(1);
+}
+
+var hunks = window.__VERI_HUNKS__ || {};
+/* (script, first, last) of one entry, in either spelling the map may use.
+   No apostrophe anywhere in this heredoc, deliberately: bash 3.2 scans for the closing
+   paren of the enclosing $( ) THROUGH a heredoc body, so a lone one here opens a quote
+   the parser never closes and the whole suite dies with "unexpected EOF". */
+function fields(entry) {
+  return Array.isArray(entry) ? entry.slice(0, 3)
+                              : [entry.script, entry.first, entry.last];
+}
+var rows = [];
+Object.keys(hunks).forEach(function (tag) {
+  hunks[tag].forEach(function (entry) {
+    var f = fields(entry);
+    rows.push([tag, f[0], f[1] + "-" + f[2],
+               mode.lit(tag, since) ? "lit" : "dim"].join(" "));
+  });
+});
+rows.sort();
+console.log(rows.join("\n"));
+JS
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, since-mode read exit $read_code)"
+    echo "    want, for a reader who last read at $since:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # checks_git <name> <mutator...>
 # Every other assertion here reads the page build-walkthrough.py produced. This one hands
 # that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
@@ -1187,6 +1319,39 @@ undimmed_git "nothing chosen: the marks ship undimmed" \
   bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
+
+# 21. and a reader who HAS chosen one is owed the other state. Case 20 pinned the resting
+#     page; this is what choosing v0.9 does to it — light the hunks that landed after the
+#     reader last read, leave the ones they have already seen dimmed.
+#
+#     Three hunks on three tags, and each is in the case for a distinct reason:
+#
+#       v0.2  earlier than the choice   -> dim: the reader read it long ago
+#       v0.9  the choice itself         -> dim: v0.9 is what they last read, not news
+#       v0.10 later than the choice     -> lit: this is the answer they came for
+#
+#     And v0.9 against v0.10 is the case the whole criterion turns on, because those two
+#     tags order one way as versions and the other way as text: `v0.10` > `v0.9` in git's
+#     version sort and `v0.10` < `v0.9` as strings. An implementation that compares the
+#     tags it is handed — the obvious thing to write, and the map's own keys arrive in
+#     exactly that lexical order — dims v0.10 and hides the newest capability from the one
+#     reader who asked to see it. The version order the build already computed is the only
+#     thing that gets this right, so the case is built on tags that make the two disagree
+#     rather than on v0.2/v0.3, which agree and would leave the bug green.
+since_git "choosing a version lights every hunk tagged later than it and dims the rest" \
+  v0.9 \
+  'v0.10 classify-bail.sh 7-7 lit
+v0.2 classify-bail.sh 3-3 dim
+v0.9 classify-bail.sh 5-5 dim' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.9 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#3)" v0.9
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 7 \
+             "# rewritten by the v0.10 commit" \
+             "fix: rewrite line 7 of classify-bail.sh (#4)" v0.10'
 
 echo "----"
 echo "$pass passed, $fail failed"
