@@ -134,6 +134,31 @@ problems=()
 count_probe "count 1.5" 1.5
 report "$name"
 
+# 6. the other side of cases 4 and 5: a guard that refuses bad counts must still let the
+#    good ones through untouched. 0, 1 and 2 are the whole of the default budget's range —
+#    below, below, spent — and each keeps the answer it gave before the guard existed:
+#    exit 0, 0, 3, one line on stdout and, because a valid call is not a diagnosable one,
+#    nothing at all on stderr. That last probe is what case 1 cannot see: it sends stderr
+#    to /dev/null, so a guard that fired its diagnostic and carried on would pass there and
+#    fail here. Three counts, one criterion, so one case; `problems` says which broke.
+name="valid counts 0, 1 and 2 keep their answers — exit 0, 0, 3, one line on stdout, nothing on stderr"
+problems=()
+for probe in "0 0" "1 0" "2 3"; do
+  count="${probe% *}" exp_code="${probe#* }"
+  # Separate streams into their own files: the case is about which stream carries what.
+  out="$(mktemp)" err="$(mktemp)"
+  env -u VERI_REFACTOR_BUDGET "$BUDGET" "$count" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == "$exp_code" ]] ||
+    problems+=("count $count: want exit $exp_code, got $code")
+  # One line: exactly one newline in the file, and something before it.
+  [[ "$(wc -l <"$out")" -eq 1 && -s "$out" ]] ||
+    problems+=("count $count: want a one-line status on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ ! -s "$err" ]] ||
+    problems+=("count $count: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  rm -f "$out" "$err"
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
