@@ -116,7 +116,7 @@ ORIENTATION_NAV = [
     ("what", "What veri actually is"),
     ("division", "The division of labour"),
     ("exitcodes", "The exit-code contract"),
-    ("map", "Map of the fourteen scripts"),
+    ("map", "Map of the fifteen scripts"),
     ("tddloop", "Where the TDD loop lives"),
     ("dataflow", "How the data moves"),
     ("howtoread", "How to read this page"),
@@ -200,7 +200,7 @@ INTRO_HTML = r'''
   </p>
 </div>
 
-<h3 id="map">Map of the fourteen scripts</h3>
+<h3 id="map">Map of the fifteen scripts</h3>
 <p>
   The scripts form a small dependency tower &mdash; the ones you call are compositions of
   the ones you don't. Read in the order data flows through one cycle, they group into five
@@ -804,7 +804,7 @@ UPKEEP_HTML = r'''
   </p>
 </div>
 <p>
-  <code>docs/build-walkthrough.py</code> reads the fourteen scripts and emits this page. The
+  <code>docs/build-walkthrough.py</code> reads the fifteen scripts and emits this page. The
   source you see is <strong>not a copy</strong> &mdash; it is read from the files at build
   time, so the code half cannot drift. The prose half lives in
   <code>docs/wt/commentary.py</code>, keyed by line range.
@@ -1147,7 +1147,7 @@ SCRIPTS += [dict(
 </p>'''),
         dict(lines=(14, 16), html=r'''<p>
   {{p-strict|set -euo pipefail}} is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Thirteen of the fourteen scripts open
+  variables, and let a pipeline fail if any stage does. Fourteen of the fifteen scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
