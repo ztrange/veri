@@ -125,7 +125,7 @@ def code_block(lines, start, origin="?", marks=None):
     """
     out = []
     marks = marks or {}
-    for i, (ln, toks) in enumerate(zip(lines, bashlex.highlight(lines))):
+    for lineno, (ln, toks) in enumerate(zip(lines, bashlex.highlight(lines)), start=start):
         if "".join(t for _, t in toks) != ln:
             _problems.append("%s: highlighting altered a line, which must never happen\n"
                              "      file: %r\n      lexer: %r"
@@ -135,7 +135,7 @@ def code_block(lines, start, origin="?", marks=None):
             esc = html.escape(text, quote=False)
             parts.append('<span class="%s">%s</span>' % (cls, esc) if cls else esc)
         out.append("%s%s</span>"
-                   % (_line_open(marks.get(start + i)), "".join(parts)))
+                   % (_line_open(marks.get(lineno)), "".join(parts)))
     return ('<pre class="src" style="counter-reset: ln %d">%s</pre>'
             % (start - 1, "\n".join(out)))
 
