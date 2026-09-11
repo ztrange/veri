@@ -82,6 +82,23 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
   && [[ "$code" == 0 ]] && [[ "$out" == *"added"* ]]; } \
   && ok || no "unrelated .gitignore: keeps every existing line and reports added (node_modules/x=$modules_code want 0 still ignored, debug.log=$debuglog_code want 0 still ignored, develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored, exit=$code want 0, stdout='$out' want it to contain 'added')"
 
+# 4. a repo whose .gitignore carries ONLY the rule's last line — a partial block, not the rule.
+# Appending to it cannot repair it (`.tdd/*` after the spec re-ignore reads differently), so the
+# script must refuse: non-zero exit, a diagnostic on stderr, and the file untouched byte for byte.
+repo="$work/partial"
+new_repo "$repo"
+printf '.tdd/issue-*-spec.md\n' > "$repo/.gitignore"
+before="$work/partial.gitignore.before"
+cp "$repo/.gitignore" "$before"
+
+err="$work/partial.stderr"
+"$ENSURE" "$repo" >/dev/null 2>"$err" && code=0 || code=$?
+cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
+[[ -s "$err" ]] && diag=0 || diag=1
+
+{ [[ "$code" != 0 ]] && [[ "$diag" == 0 ]] && [[ "$same" == 0 ]]; } \
+  && ok || no "partial rule (only .tdd/issue-*-spec.md): refuses with a diagnostic and touches nothing (exit=$code want non-zero, stderr-non-empty=$diag want 0, cmp=$same want 0 identical)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
