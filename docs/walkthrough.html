@@ -351,13 +351,13 @@ html{scroll-behavior:smooth}
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
-    13 shell scripts, 687 lines, that let a language model run
+    13 shell scripts, 729 lines, that let a language model run
     test-driven development on itself without being trusted to. Every script in full,
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
-    <span><b>v0.13</b> latest version</span><span><b>13</b> scripts</span>
-    <span><b>687</b> lines, all shown</span>
+    <span><b>v0.14</b> latest version</span><span><b>13</b> scripts</span>
+    <span><b>729</b> lines, all shown</span>
     <span><b>38</b> reference entries</span>
   </p>
 </header>
@@ -378,7 +378,7 @@ html{scroll-behavior:smooth}
   Only <code>feat:</code> and <code>fix:</code> commits count: documentation, tests and
   refactors change this page without changing what veri can do.
 </p>
-<ol class="vers"><li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span><span class="ver-d">on main, past v0.13</span></p><p class="ver-t">Work has landed since the last version. If it had changed a capability it would have been tagged, so this is documentation, tests or tidying &mdash; or a tag nobody cut.</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.13</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/38">#38</a></span></p><p class="ver-t">developer-leaf prompts are versioned templates: build-develop-prompt.sh assembles red, green, refactor and revise from prompts/develop-*.md, the conductor supplies only the variables</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.12</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/30">#30</a></span></p><p class="ver-t">a partial or mis-ordered run-state rule is refused, never reported present</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.11</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/31">#31</a></span></p><p class="ver-t">an already-satisfied criterion is pinned by a blind mutation check, not bailed</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.10</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/25">#25</a> <a href="https://github.com/ztrange/veri/issues/27">#27</a></span></p><p class="ver-t">target repo ignores veri run state before the first commit</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.9</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/7">#7</a></span></p><p class="ver-t">hardened edges: baseline, classified bail, completion polish</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.8</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/18">#18</a></span></p><p class="ver-t">classify a bail as system vs process, deterministically</p><p class="ver-s"><b>Read</b><a href="#classify-bail"><code>classify-bail.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.7</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/6">#6</a></span></p><p class="ver-t">loops + ledger: multi-criterion issues, resumable</p><p class="ver-s"><b>Read</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a> &middot; <a href="#tick-ledger"><code>tick-ledger.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.6</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/14">#14</a></span></p><p class="ver-t">effective leaf heartbeat via streaming output</p><p class="ver-s"><b>Read</b><a href="#extract-result"><code>extract-result.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.5</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/5">#5</a></span></p><p class="ver-t">bounded revise loop on REJECT - veri self-corrects</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.4</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/12">#12</a></span></p><p class="ver-t">supervisor retries a killed-stuck leaf up to a bounded budget</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.3</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/4">#4</a></span></p><p class="ver-t">supervised leaves: heartbeat + timeout make veri unstuckable</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.2</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/3">#3</a></span></p><p class="ver-t">blind independent verification of red, green and refactor</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#parse-verdict"><code>parse-verdict.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a> &middot; <a href="#verify"><code>verify.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.1</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/2">#2</a></span></p><p class="ver-t">walking skeleton: solve one issue via R-G-R, narrated to the issue</p><p class="ver-s"><b>Read</b><a href="#tick-criterion"><code>tick-criterion.sh</code></a> &middot; <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></li></ol>
+<ol class="vers"><li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span><span class="ver-d">on main, past v0.14</span></p><p class="ver-t">Work has landed since the last version. If it had changed a capability it would have been tagged, so this is documentation, tests or tidying &mdash; or a tag nobody cut.</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.14</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/44">#44</a></span></p><p class="ver-t">veri runs on Linux as well as macOS: CI gates every PR on ubuntu and macos, the supervisor reads mtimes portably, and the prompt builders carry &amp; and \ verbatim under bash 5.2</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a> &middot; <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.13</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/38">#38</a></span></p><p class="ver-t">developer-leaf prompts are versioned templates: build-develop-prompt.sh assembles red, green, refactor and revise from prompts/develop-*.md, the conductor supplies only the variables</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.12</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/30">#30</a></span></p><p class="ver-t">a partial or mis-ordered run-state rule is refused, never reported present</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.11</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/31">#31</a></span></p><p class="ver-t">an already-satisfied criterion is pinned by a blind mutation check, not bailed</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.10</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/25">#25</a> <a href="https://github.com/ztrange/veri/issues/27">#27</a></span></p><p class="ver-t">target repo ignores veri run state before the first commit</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.9</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/7">#7</a></span></p><p class="ver-t">hardened edges: baseline, classified bail, completion polish</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.8</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/18">#18</a></span></p><p class="ver-t">classify a bail as system vs process, deterministically</p><p class="ver-s"><b>Read</b><a href="#classify-bail"><code>classify-bail.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.7</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/6">#6</a></span></p><p class="ver-t">loops + ledger: multi-criterion issues, resumable</p><p class="ver-s"><b>Read</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a> &middot; <a href="#tick-ledger"><code>tick-ledger.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.6</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/14">#14</a></span></p><p class="ver-t">effective leaf heartbeat via streaming output</p><p class="ver-s"><b>Read</b><a href="#extract-result"><code>extract-result.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.5</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/5">#5</a></span></p><p class="ver-t">bounded revise loop on REJECT - veri self-corrects</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.4</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/12">#12</a></span></p><p class="ver-t">supervisor retries a killed-stuck leaf up to a bounded budget</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.3</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/4">#4</a></span></p><p class="ver-t">supervised leaves: heartbeat + timeout make veri unstuckable</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.2</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/3">#3</a></span></p><p class="ver-t">blind independent verification of red, green and refactor</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#parse-verdict"><code>parse-verdict.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a> &middot; <a href="#verify"><code>verify.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.1</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/2">#2</a></span></p><p class="ver-t">walking skeleton: solve one issue via R-G-R, narrated to the issue</p><p class="ver-s"><b>Read</b><a href="#tick-criterion"><code>tick-criterion.sh</code></a> &middot; <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></li></ol>
 <p class="vers-foot">
   A version that changed <em>no</em> script is not an error. The conductor is
   <code>SKILL.md</code> &mdash; English prose, not code &mdash; and capabilities that live
@@ -417,7 +417,7 @@ html{scroll-behavior:smooth}
   That line is the entire design philosophy: <strong>the model decides, the scripts
   enforce.</strong> Anything that must be exact and repeatable is pulled out of the fuzzy
   part and into a shell script with a unit test behind it. So the guarantees you can
-  actually rely on all live in the 687 lines this page reproduces in full.
+  actually rely on all live in the 729 lines this page reproduces in full.
 </p>
 <p>One more role, because it appears constantly:</p>
 <ul>
@@ -1207,7 +1207,7 @@ html{scroll-behavior:smooth}
   streams so the supervisor has something to watch; streaming buries the answer in JSON, so
   <code>extract-result.sh</code> digs it back out.
 </p></div></div></div>
-<h3 id="supervise"><code>supervise.sh</code> &mdash; the watchdog<span class="vbadge">since <b>v0.3</b> &middot; changed <b>v0.4</b></span></h3>
+<h3 id="supervise"><code>supervise.sh</code> &mdash; the watchdog<span class="vbadge">since <b>v0.3</b> &middot; changed <b>v0.14</b></span></h3>
 <p>
   The heart of veri, and the most systems-heavy script in it. The problem: you are about to
   start a process that will run for minutes doing real work, and you must distinguish
@@ -1224,7 +1224,7 @@ html{scroll-behavior:smooth}
 </ul>
 <p>Everything else is machinery to run those two clocks against a live process.</p>
 <div class="contract"><dl><dt>Usage</dt><dd><code>supervise.sh &lt;name&gt; &lt;cmd&gt; [args…]</code></dd><dt>stdout</dt><dd>The leaf's entire captured output</dd><dt>stderr</dt><dd>One status line, with the kill cause if any</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> success</span> <span class="ec ec-1"><b>1</b> leaf failed</span> <span class="ec ec-2"><b>2</b> killed-stuck</span></dd><dt>Tunables</dt><dd><code>VERI_HEARTBEAT</code> 45s &middot; <code>VERI_TIMEOUT</code> 900s &middot; <code>VERI_POLL</code> 1s &middot; <code>VERI_STUCK_RETRIES</code> 1</dd></dl></div>
-<div class="ann"><div class="ann-head"><span class="fname">supervise.sh</span><span class="fmeta">114 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<div class="ann"><div class="ann-head"><span class="fname">supervise.sh</span><span class="fmeta">130 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
 <span class="l"><span class="c"># supervise.sh — launch one leaf under a heartbeat + hard-timeout watchdog.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># This is the one choke point where stuck-detection policy lives (ADR-0002): every leaf is</span></span>
@@ -1293,25 +1293,73 @@ html{scroll-behavior:smooth}
   about to serve as the heartbeat sensor, and an <strong>rc file</strong>, about to serve as
   the completion signal. Neither is obvious yet; both are the crux of what follows.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 40"><span class="l"></span>
-<span class="l">mtime_of() {  <span class="c"># seconds-since-epoch of $1's last modification, portable across BSD/GNU</span></span>
-<span class="l">  stat -f %m <span class="s">"</span><span class="v">$1</span><span class="s">"</span> 2&gt;/dev/null || stat -c %Y <span class="s">"</span><span class="v">$1</span><span class="s">"</span> 2&gt;/dev/null || echo 0</span>
-<span class="l">}</span>
 <span class="l">now() { date +%s; }</span></pre></div><div class="ann-note"><p>
-  <code>mtime_of</code> is the heartbeat sensor. It asks the filesystem when a file was last
-  modified, in seconds since the epoch. The <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124; chain</a> exists
-  because there is no portable <code>stat</code>: macOS and BSD spell it <code>-f %m</code>,
-  Linux and GNU spell it <code>-c %Y</code>. Try one, fall back, fall back again to
-  <code>0</code>. Each failed attempt's complaint is swallowed with
-  <a class="tt" data-ref="p-redirect" href="#p-redirect">2&gt;/dev/null</a>.
+  <code>now()</code> moved up here, ahead of <code>mtime_of</code>, because
+  <code>mtime_of</code>'s own fallback now calls it &mdash; the simpler helper is defined
+  first, so reading top to bottom you never meet a forward reference.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 42"><span class="l"></span>
+<span class="l hunk" data-tag="v0.14" title="supervise.sh reads a file&#x27;s mtime portably — GNU stat -f is filesystem status, not mtime"><span class="c"># Seconds-since-epoch of $1's last modification — the heartbeat sensor. There is no portable</span></span>
+<span class="l"><span class="c"># `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two</span></span>
+<span class="l"><span class="c"># must be tried one at a time, into a variable, with the answer validated — NOT chained with</span></span>
+<span class="l"><span class="c"># `||` inside one `$( )`. On GNU, `-f` is not a format flag at all; it means --file-system,</span></span>
+<span class="l"><span class="c"># so `stat -f %m FILE` reads `%m` as a second *filename* and prints a `  File: "…"` block to</span></span>
+<span class="l"><span class="c"># stdout for the real one before exiting non-zero. Chained, that block joins the fallback's</span></span>
+<span class="l"><span class="c"># digits in the same substitution and reaches the caller's `$(( ))`, where `set -u` kills the</span></span>
+<span class="l"><span class="c"># supervisor on the unset word `File`. Assigning each attempt separately overwrites instead</span></span>
+<span class="l"><span class="c"># of appending, and the digit test rejects anything that is not a plain count of seconds.</span></span>
+<span class="l">mtime_of() {</span>
+<span class="l">  <span class="k">local</span> m</span>
+<span class="l">  m=<span class="s">"$(stat -c %Y "</span><span class="v">$1</span><span class="s">" 2&gt;/dev/null)"</span> || m=<span class="s">"$(stat -f %m "</span><span class="v">$1</span><span class="s">" 2&gt;/dev/null)"</span> || m=<span class="s">""</span></span>
+<span class="l">  <span class="c"># No readable mtime (neither spelling, or the log vanished) → report "just touched". The</span></span>
+<span class="l">  <span class="c"># heartbeat then never fires and the hard timeout, which needs only `date`, still bounds</span></span>
+<span class="l">  <span class="c"># the leaf. The opposite default (0) would read as decades of silence and kill every leaf.</span></span>
+<span class="l">  <span class="k">case</span> <span class="s">"</span><span class="v">$m</span><span class="s">"</span> <span class="k">in</span> <span class="s">''</span>|*[!0-9]*) m=<span class="s">"$(now)"</span> ;; <span class="k">esac</span></span>
+<span class="l">  printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$m</span><span class="s">"</span></span>
+<span class="l">}</span></pre></div><div class="ann-note"><p>
+  <code>mtime_of</code> is the heartbeat sensor: seconds since the log was last written to.
+  There is no portable spelling of "ask the filesystem for a file's mtime" &mdash;
+  GNU/coreutils is <code>stat -c %Y</code>, BSD/macOS is <code>stat -f %m</code> &mdash; so
+  both have to be tried. The nine-line comment above the function is here because the
+  previous version of this idea &mdash; the two attempts chained with
+  <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> inside one <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">$( … )</a>, falling back to a bare
+  <code>0</code> &mdash; shipped for years and then broke the instant it met a real Linux
+  runner.
 </p>
-<div class="note"><span class="tag">The idea worth stealing</span><p>
-  The heartbeat is <strong>not a signal the leaf sends</strong>. There is no protocol, no
-  keepalive, no cooperation from the leaf at all. It is the modification time of the log
-  file &mdash; which the operating system updates for free, every time the leaf writes a
-  byte. "Is it alive?" becomes "was this file touched recently?", which costs one
-  <code>stat</code> per second and works on <em>any</em> program, whether or not it knows it
-  is being watched.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 45"><span class="l"></span>
+<div class="note gotcha"><span class="tag">What one $( ) with || inside it can hide</span><p>
+  On GNU coreutils, <code>-f</code> is not a format flag at all &mdash; it means
+  <code>--file-system</code>. <code>stat -f %m FILE</code> reads <code>%m</code> as a
+  second <em>filename</em>, finds only <code>FILE</code>, and prints a filesystem block for
+  it &mdash; a line starting <code>File: "…"</code> and more &mdash; to stdout, then exits
+  non-zero because <code>%m</code> itself does not exist. On BSD/macOS, where
+  <code>-f</code> really is the format flag, that same command just prints the mtime and the
+  chain never reaches its second link &mdash; which is why four years of macOS-only runs
+  never saw this.
+</p><p>
+  Chained inside one command substitution, the failed attempt's block and the fallback's
+  digits land in the <strong>same</strong> string. The caller does
+  <code>$(( t - $(mtime_of "$log") ))</code>; bash's arithmetic expansion treats every
+  bareword in that string as a variable to look up, and the first one it meets is
+  <code>File</code> &mdash; unset, and fatal under this script's
+  <a class="tt" data-ref="p-strict-partial" href="#p-strict-partial">set -u</a>. The supervisor dies before it can choose any of its own exit
+  codes.
+</p></div>
+<p>
+  The fix tries each spelling <strong>separately, into a <a class="tt" data-ref="p-func" href="#p-func">local</a> variable</strong>:
+  a plain assignment <em>overwrites</em> <code>m</code> where <code>||</code> inside a
+  shared <code>$( )</code> would have <em>appended</em> to it. GNU is tried first because
+  BSD's <code>stat</code> rejects <code>-c</code> at option parsing and writes nothing, so
+  the fallback direction that matters stays clean. Then a <a class="tt" data-ref="p-case" href="#p-case">case</a> glob,
+  <code>''|*[!0-9]*)</code>, validates the result: empty, or containing any character that
+  is not a digit, and it is rejected &mdash; whatever a third platform's <code>stat</code>
+  decides to print, not just this one. An unreadable mtime now falls back to
+  <code>now()</code> rather than <code>0</code>: zero reads as five decades of silence and
+  would kill the leaf on its very first poll, where "just touched" only degrades supervision
+  to the hard timeout alone.
+</p>
+<p>
+  Found on this project's first <code>ubuntu-latest</code> CI run: <code>make test</code>
+  had passed on macOS for years, then hung for ten minutes the first time it ran on Linux.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 61"><span class="l"></span>
 <span class="l">kill_tree() {</span>
 <span class="l">  kill -TERM -<span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null || kill -TERM <span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null</span>
 <span class="l">  <span class="c"># brief grace, then make sure it is gone</span></span>
@@ -1319,43 +1367,43 @@ html{scroll-behavior:smooth}
 <span class="l">  kill -KILL -<span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null || kill -KILL <span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null</span>
 <span class="l">}</span></pre></div><div class="ann-note"><p>Three ideas packed into four lines, all covered by the <a class="tt" data-ref="p-kill" href="#p-kill">signals entry</a>:</p>
 <ul>
-  <li><strong>The minus sign on line 48.</strong> <code>-"$pid"</code> &mdash; a negative PID
+  <li><strong>The minus sign on line 64.</strong> <code>-"$pid"</code> &mdash; a negative PID
       &mdash; signals the whole <em>process group</em>. This matters because
       <code>claude</code> spawns children: a test runner, a compiler. Signalling only the
       parent orphans those, and they keep running and keep consuming the machine.</li>
-  <li><strong>The poll on line 50.</strong> <code>kill -0</code> sends nothing at all; it
+  <li><strong>The poll on line 66.</strong> <code>kill -0</code> sends nothing at all; it
       only tests whether the process still exists. Five times, check if it is gone &mdash;
       <code>return 0</code> the moment it is &mdash; otherwise wait 100&nbsp;ms. A grace
       period of at most half a second.</li>
   <li><strong>The escalation.</strong> <code>-TERM</code> first, which a program can catch
-      and handle cleanly. Only if it is still alive does line 51 send <code>-KILL</code>,
+      and handle cleanly. Only if it is still alive does line 67 send <code>-KILL</code>,
       which cannot be caught. Politeness first, force second.</li>
 </ul>
 <p>
   The loop variable is named <code>_</code> &mdash; a convention meaning "this value is
   never used". The loop runs five times; that is all it is for.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 52"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 68"><span class="l"></span>
 <span class="l hunk" data-tag="v0.4" title="supervise.sh retries a killed-stuck leaf up to a bounded budget"><span class="c"># Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets status/reason/rc.</span></span>
 <span class="l">attempt_once() {</span>
 <span class="l">  : &gt; <span class="s">"</span><span class="v">$log</span><span class="s">"</span></span>
 <span class="l">  rm -f <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-func" href="#p-func">attempt_once</a> runs the leaf exactly once and watches it. Its result comes back
   through global variables rather than a return value, because a bash function can only
-  return an integer &mdash; the comment on line 54 says so explicitly.
+  return an integer &mdash; the comment on line 70 says so explicitly.
 </p><p>
-  Lines 56&ndash;57 reset state. <a class="tt" data-ref="p-noop" href="#p-noop">: &gt; "$log"</a> truncates the log to empty &mdash;
+  Lines 72&ndash;73 reset state. <a class="tt" data-ref="p-noop" href="#p-noop">: &gt; "$log"</a> truncates the log to empty &mdash;
   all the work is done by the redirection, and <code>:</code> is a placeholder that does
   nothing. <code>rm -f</code> removes any stale rc file. Both matter because this function
   can be called again on a retry, and stale state would make the new attempt look instantly
   finished.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 57"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 73"><span class="l"></span>
 <span class="l">  <span class="c"># Launch the leaf in its own process group (job-control monitor mode) so we can kill the</span></span>
 <span class="l">  <span class="c"># whole tree — including any grandchild like `sleep` — in one signal. A trailing rc file</span></span>
 <span class="l">  <span class="c"># marks natural completion without blocking the watch loop on `wait`.</span></span>
 <span class="l">  <span class="k">set</span> -m</span>
 <span class="l">  ( <span class="s">"</span><span class="v">$@</span><span class="s">"</span> &gt;<span class="s">"</span><span class="v">$log</span><span class="s">"</span> 2&gt;&amp;1; echo <span class="v">$?</span> &gt; <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span> ) &amp;</span>
 <span class="l">  pid=<span class="v">$!</span></span>
-<span class="l">  <span class="k">set</span> +m</span></pre></div><div class="ann-note"><p>The densest moment in veri. Line 63, left to right:</p>
+<span class="l">  <span class="k">set</span> +m</span></pre></div><div class="ann-note"><p>The densest moment in veri. Line 79, left to right:</p>
 <ul>
   <li><a class="tt" data-ref="p-bg" href="#p-bg">( … ) &amp;</a> &mdash; a subshell, run in the background. The background part is
       the entire point: the script does not wait, so it can go on to watch. <strong>You
@@ -1371,7 +1419,7 @@ html{scroll-behavior:smooth}
       writes that number into a small file.</li>
 </ul>
 <p>
-  Line 62's <a class="tt" data-ref="p-jobcontrol" href="#p-jobcontrol">set -m</a> turns on job control just for the launch, placing the
+  Line 78's <a class="tt" data-ref="p-jobcontrol" href="#p-jobcontrol">set -m</a> turns on job control just for the launch, placing the
   background job in <strong>its own process group</strong>. Without it the leaf would share
   the supervisor's group and <code>kill_tree</code> would signal the supervisor itself. Off
   again two lines later &mdash; on for exactly one statement.
@@ -1386,15 +1434,15 @@ html{scroll-behavior:smooth}
   a non-blocking completion signal built out of nothing but a file &mdash; and it cleanly
   separates <em>the leaf chose to exit</em> from <em>we killed it</em>, because a killed
   leaf never reaches the <code>echo</code>.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 65"><span class="l"></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 81"><span class="l"></span>
 <span class="l">  t0=<span class="s">"$(now)"</span></span>
 <span class="l">  status=<span class="s">""</span> reason=<span class="s">""</span> rc=0</span>
 <span class="l"></span></pre></div><div class="ann-note"><p>
-  <code>t0</code> is the start time, for the hard timeout. The three variables on line 68
+  <code>t0</code> is the start time, for the hard timeout. The three variables on line 84
   are what <code>attempt_once</code> "returns": <code>status</code> becomes one of
   <code>success</code>, <code>failure</code> or <code>killed-stuck</code>, and
   <code>reason</code> carries the kill cause for the human-facing status line.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 69"><span class="l">  <span class="k">while</span> :; <span class="k">do</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 85"><span class="l">  <span class="k">while</span> :; <span class="k">do</span></span>
 <span class="l">    <span class="k">if</span> [[ -f <span class="s">"</span><span class="v">$rcfile</span><span class="s">"</span> ]]; <span class="k">then</span></span>
 <span class="l">      rc=<span class="s">"$(cat "</span><span class="v">$rcfile</span><span class="s">" 2&gt;/dev/null || echo 1)"</span></span>
 <span class="l">      <span class="k">if</span> [[ <span class="s">"</span><span class="v">$rc</span><span class="s">"</span> == <span class="s">"0"</span> ]]; <span class="k">then</span> status=<span class="s">"success"</span>; <span class="k">else</span> status=<span class="s">"failure"</span>; <span class="k">fi</span></span>
@@ -1410,7 +1458,7 @@ html{scroll-behavior:smooth}
   Note what this preserves. A leaf that <em>chose</em> to exit non-zero becomes
   <span class="ec ec-1"><b>1</b></span>, a real answer. Only a leaf we had to kill becomes
   <span class="ec ec-2"><b>2</b></span>.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 75"><span class="l">    t=<span class="s">"$(now)"</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 91"><span class="l">    t=<span class="s">"$(now)"</span></span>
 <span class="l">    <span class="k">if</span> (( t - t0 &gt;= timeout )); <span class="k">then</span></span>
 <span class="l">      status=<span class="s">"killed-stuck"</span>; reason=<span class="s">"hard timeout </span><span class="v">${timeout}</span><span class="s">s exceeded"</span>; kill_tree; <span class="k">break</span></span>
 <span class="l">    <span class="k">fi</span></span></pre></div><div class="ann-note"><p>
@@ -1421,7 +1469,7 @@ html{scroll-behavior:smooth}
   This is total elapsed time, regardless of how busy the leaf has been. A leaf can be
   cheerfully producing output and still be going nowhere; that is what this catches and the
   heartbeat cannot.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 79"><span class="l">    silence=$(( t - $(mtime_of <span class="s">"</span><span class="v">$log</span><span class="s">"</span>) ))</span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 95"><span class="l">    silence=$(( t - $(mtime_of <span class="s">"</span><span class="v">$log</span><span class="s">"</span>) ))</span>
 <span class="l">    <span class="c"># Strict '&gt;' so the whole-second clock's ±1s over-read at a second boundary (see the</span></span>
 <span class="l">    <span class="c"># slow-leaf note in supervise.test.sh) can't spuriously kill an active/just-relaunched</span></span>
 <span class="l">    <span class="c"># leaf; a genuine hang keeps climbing past the window and is still killed.</span></span>
@@ -1437,7 +1485,7 @@ html{scroll-behavior:smooth}
   killed.
 </p>
 <div class="note gotcha"><span class="tag">A one-character decision with a three-line comment</span><p>
-  Line 84 tests <code>silence &gt; heartbeat</code> &mdash; strictly greater, not
+  Line 100 tests <code>silence &gt; heartbeat</code> &mdash; strictly greater, not
   <code>&gt;=</code>. <code>date +%s</code> has only whole-second resolution, so at a second
   boundary the subtraction can read about one second high. With <code>&gt;=</code>, a
   perfectly healthy leaf that had just been relaunched could be measured at exactly the
@@ -1447,14 +1495,14 @@ html{scroll-behavior:smooth}
   genuine hang keeps climbing and still trips. This is the kind of bug that only appears
   under real timing on someone else's machine &mdash; and there is a test pinning it.
 </p></div>
-<p>Line 88 is the poll interval: nothing tripped, so nap and check again.</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 89"><span class="l"></span>
+<p>Line 104 is the poll interval: nothing tripped, so nap and check again.</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 105"><span class="l"></span>
 <span class="l">  wait <span class="s">"</span><span class="v">$pid</span><span class="s">"</span> 2&gt;/dev/null || true</span>
 <span class="l">}</span></pre></div><div class="ann-note"><p>
   By now the leaf is finished or killed, so <a class="tt" data-ref="p-wait" href="#p-wait">wait</a> no longer blocks meaningfully;
   it clears the zombie entry from the process table. The <code>|| true</code> is the standard
   <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">swallow-the-error</a> idiom &mdash; the process may already have been
   reaped, and failing here would be noise.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 92"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 108"><span class="l"></span>
 <span class="l"><span class="c"># First attempt plus up to $retries extra attempts. A normal result (success/failure)</span></span>
 <span class="l"><span class="c"># short-circuits; only killed-stuck is retried.</span></span>
 <span class="l">tries=0</span>
@@ -1465,7 +1513,7 @@ html{scroll-behavior:smooth}
 <span class="l">  tries=$(( tries + 1 ))</span>
 <span class="l">  echo <span class="s">"supervise[</span><span class="v">$name</span><span class="s">]: retry </span><span class="v">$tries</span><span class="s">/</span><span class="v">$retries</span><span class="s"> after killed-stuck"</span> &gt;&amp;2</span>
 <span class="l"><span class="k">done</span></span></pre></div><div class="ann-note"><p>
-  <strong>Line 99 carries the whole retry policy.</strong> Read it as: if the status is
+  <strong>Line 115 carries the whole retry policy.</strong> Read it as: if the status is
   <em>not</em> killed-stuck, break.
 </p><p>
   A leaf that succeeded, or that cleanly failed, has given a real answer &mdash; and real
@@ -1473,7 +1521,7 @@ html{scroll-behavior:smooth}
   same failure while pretending it might not. Only a hang, which may be transient, is worth
   another go.
 </p><p>
-  Line 101 increments with <code>tries=$(( tries + 1 ))</code> rather than
+  Line 117 increments with <code>tries=$(( tries + 1 ))</code> rather than
   <code>(( tries++ ))</code>, which &mdash; as the <a class="tt" data-ref="p-arith" href="#p-arith">arithmetic entry</a> explains
   &mdash; would return a false status on the first increment and, under
   <code>set -e</code>, kill the script.
@@ -1487,7 +1535,7 @@ html{scroll-behavior:smooth}
   wall; retrying a hang is reasonable. And they classify differently when spent &mdash; a
   spent liveness budget is a <strong>system</strong> failure, a spent verdict budget a
   <strong>process</strong> failure.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 103"><span class="l"></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 119"><span class="l"></span>
 <span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$status</span><span class="s">"</span> <span class="k">in</span></span>
 <span class="l">  success)      ec=0 ;;</span>
 <span class="l">  failure)      ec=1 ;;</span>
@@ -1501,7 +1549,7 @@ html{scroll-behavior:smooth}
   That is <strong>failing closed</strong>, and it recurs in
   <a href="#classify-bail"><code>classify-bail.sh</code></a>. When you do not know what
   happened, the safe assumption is that something went wrong.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 110"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 126"><span class="l"></span>
 <span class="l">echo <span class="s">"supervise[</span><span class="v">$name</span><span class="s">]: </span><span class="v">$status${reason:+ — $reason}</span><span class="s">"</span> &gt;&amp;2</span>
 <span class="l">cat <span class="s">"</span><span class="v">$log</span><span class="s">"</span></span>
 <span class="l"><span class="k">exit</span> <span class="s">"</span><span class="v">$ec</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
@@ -1731,7 +1779,7 @@ html{scroll-behavior:smooth}
   unable to arrive</strong>. Three scripts compose into one verb, and the guarantee lives in
   the shape of the first one's arguments.
 </p>
-<h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.11</b></span></h3>
+<h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.14</b></span></h3>
 <p>
   Look at the usage line below and note what is <strong>absent</strong>. There is a
   parameter for the phase, one for the issue's behaviour spec, one for the test path, one
@@ -1748,7 +1796,7 @@ html{scroll-behavior:smooth}
   reviewable act.
 </p></div>
 <div class="contract"><dl><dt>Usage</dt><dd><code>build-verify-prompt.sh &lt;phase&gt; &lt;spec-file&gt; &lt;test-path&gt; [target]</code></dd><dt>stdout</dt><dd>The assembled prompt</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b></span> <span class="ec ec-2"><b>2</b> unknown phase / unreadable file</span></dd></dl></div>
-<div class="ann"><div class="ann-head"><span class="fname">build-verify-prompt.sh</span><span class="fmeta">45 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<div class="ann"><div class="ann-head"><span class="fname">build-verify-prompt.sh</span><span class="fmeta">58 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
 <span class="l"><span class="c"># build-verify-prompt.sh — assemble a BLIND verifier leaf's prompt for one cycle phase.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># The verifier is blind by construction (ADR-0003): this builder's only inputs are the</span></span>
@@ -1771,7 +1819,41 @@ html{scroll-behavior:smooth}
   signature has not grown, the rationale cannot have leaked.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 14"><span class="l"><span class="k">set</span> -euo pipefail</span>
 <span class="l"></span>
-<span class="l">phase=<span class="s">"</span><span class="v">${1:?usage: build-verify-prompt.sh &lt;phase&gt; &lt;issue-spec-file&gt; &lt;test-path&gt; [&lt;target-test-id&gt;]}</span><span class="s">"</span></span>
+<span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside</span></span>
+<span class="l"><span class="c"># ${var//pattern/replacement}, an unescaped &amp; in the *replacement* now expands to the text</span></span>
+<span class="l"><span class="c"># the pattern just matched, the way sed's &amp; does. A spec reading "Frob &amp; Nitz" would then</span></span>
+<span class="l"><span class="c"># reach the verifier as "Frob {{ISSUE_SPEC}} Nitz" — silently, with no error anywhere.</span></span>
+<span class="l"><span class="c"># Turning the option off restores the older meaning the substitutions below are written</span></span>
+<span class="l"><span class="c"># for: the replacement is literal text, so every value is carried through verbatim. This</span></span>
+<span class="l"><span class="c"># has to be a runtime guard rather than a fixed assumption because the same scripts run on</span></span>
+<span class="l"><span class="c"># macOS's bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown</span></span>
+<span class="l"><span class="c"># option fails; there is nothing to disable there, so discarding that failure makes the</span></span>
+<span class="l"><span class="c"># line a no-op on 3.2 while it does the real work on 5.2+.</span></span>
+<span class="l">shopt -u patsub_replacement 2&gt;/dev/null || true</span>
+<span class="l"></span></pre></div><div class="ann-note"><p>
+  Line 15 is the familiar <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a>. Lines 17&ndash;27 are new: a
+  guarded <a class="tt" data-ref="p-shopt" href="#p-shopt">shopt -u patsub_replacement 2&gt;/dev/null &#124;&#124; true</a>, placed
+  right next to strict mode because it belongs to the same category &mdash; a guarantee the
+  rest of the script leans on without restating.
+</p><p>
+  bash 5.2 turned the <code>patsub_replacement</code> option on by default: inside
+  <a class="tt" data-ref="p-subst" href="#p-subst">${var//pattern/replacement}</a>, an unescaped <code>&amp;</code> in the
+  <em>replacement</em> now expands to whatever the pattern matched, the way <code>sed</code>'s
+  <code>&amp;</code> does. The four substitutions near the end of this file exist specifically
+  to avoid that kind of pattern-engine surprise; left unguarded on 5.2, a spec reading
+  <code>"Frob &amp; Nitz"</code> would reach the verifier as
+  <code>"Frob {{ISSUE_SPEC}} Nitz"</code> &mdash; no error, no bad exit code, just a silently
+  corrupted prompt.
+</p>
+<div class="note gotcha"><span class="tag">Invisible on macOS, caught by CI</span><p>
+  macOS ships bash 3.2, which predates <code>patsub_replacement</code> by two decades, so
+  <code>shopt -u patsub_replacement</code> fails there &mdash; there is nothing to turn off.
+  <a class="tt" data-ref="p-redirect" href="#p-redirect">2&gt;/dev/null</a> discards that failure and the trailing
+  <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> <code>true</code> makes the whole line do nothing on 3.2,
+  while it does real work on 5.2+. The repo's first <code>ubuntu-latest</code> CI run, on
+  bash 5.2, is what turned this up: every developer machine had been on 3.2 and green
+  regardless.
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 28"><span class="l">phase=<span class="s">"</span><span class="v">${1:?usage: build-verify-prompt.sh &lt;phase&gt; &lt;issue-spec-file&gt; &lt;test-path&gt; [&lt;target-test-id&gt;]}</span><span class="s">"</span></span>
 <span class="l">spec_file=<span class="s">"</span><span class="v">${2:?missing &lt;issue-spec-file&gt;}</span><span class="s">"</span></span>
 <span class="l">test_path=<span class="s">"</span><span class="v">${3:?missing &lt;test-path&gt;}</span><span class="s">"</span></span>
 <span class="l">target=<span class="s">"</span><span class="v">${4:-the target test}</span><span class="s">"</span></span>
@@ -1779,7 +1861,7 @@ html{scroll-behavior:smooth}
   Three <a class="tt" data-ref="p-required" href="#p-required">required arguments</a> and one <a class="tt" data-ref="p-default" href="#p-default">optional</a> with a readable
   fallback, <code>"the target test"</code>, so the assembled prompt still reads as English
   when no specific test id was given.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 21"><span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 33"><span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
 <span class="l hunk" data-tag="v0.11" title="build-verify-prompt.sh pin — blind verifier prompt for an already-satisfied criterion">  red|green|refactor|pin) ;;</span>
 <span class="l">  *) echo <span class="s">"build-verify-prompt: unknown phase '</span><span class="v">$phase</span><span class="s">' (want red|green|refactor|pin)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
 <span class="l"><span class="k">esac</span></span>
@@ -1797,7 +1879,7 @@ html{scroll-behavior:smooth}
   regression pin &mdash; passing now, failing under a mutation it applies and reverts
   itself &mdash; and on PASS the cycle skips straight to committing, with no Green or
   Refactor to follow.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 26"><span class="l">HERE=<span class="s">"$(cd "</span>$(dirname <span class="s">"</span><span class="v">$0</span><span class="s">"</span>)<span class="s">" &amp;&amp; pwd)"</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 38"><span class="l">HERE=<span class="s">"$(cd "</span>$(dirname <span class="s">"</span><span class="v">$0</span><span class="s">"</span>)<span class="s">" &amp;&amp; pwd)"</span></span>
 <span class="l">tpl_file=<span class="s">"</span><span class="v">$HERE</span><span class="s">/prompts/verify-</span><span class="v">$phase</span><span class="s">.md"</span></span>
 <span class="l">shared_file=<span class="s">"</span><span class="v">$HERE</span><span class="s">/prompts/_shared.md"</span></span>
 <span class="l"><span class="k">for</span> f <span class="k">in</span> <span class="s">"</span><span class="v">$tpl_file</span><span class="s">"</span> <span class="s">"</span><span class="v">$shared_file</span><span class="s">"</span> <span class="s">"</span><span class="v">$spec_file</span><span class="s">"</span>; <span class="k">do</span></span>
@@ -1808,10 +1890,10 @@ html{scroll-behavior:smooth}
   <code>prompts/</code> siblings. The templates are ordinary files on disk, one per phase
   plus a shared preamble.
 </p><p>
-  Lines 30&ndash;32 check all three inputs are readable <em>before</em> reading any of them.
+  Lines 42&ndash;44 check all three inputs are readable <em>before</em> reading any of them.
   The <code>{ …; }</code> braces group two commands so the
   <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> applies to both. Again <span class="ec ec-2"><b>2</b></span>.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 33"><span class="l">tpl=<span class="s">"$(cat "</span><span class="v">$tpl_file</span><span class="s">")"</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 45"><span class="l">tpl=<span class="s">"$(cat "</span><span class="v">$tpl_file</span><span class="s">")"</span></span>
 <span class="l">shared=<span class="s">"$(cat "</span><span class="v">$shared_file</span><span class="s">")"</span></span>
 <span class="l">spec=<span class="s">"$(cat "</span><span class="v">$spec_file</span><span class="s">")"</span></span>
 <span class="l"></span></pre></div><div class="ann-note"><p>
@@ -1821,8 +1903,9 @@ html{scroll-behavior:smooth}
 </p><p>
   Note that <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">command substitution</a> strips trailing newlines here, which is why
   the last line of the script has to put one back.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 37"><span class="l"><span class="c"># Literal substitution via bash parameter expansion — no sed, so &amp;, \, / and {} in the</span></span>
-<span class="l"><span class="c"># spec are carried through verbatim.</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 49"><span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># Literal substitution via bash parameter expansion — no sed, and with the</span></span>
+<span class="l"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec are carried</span></span>
+<span class="l"><span class="c"># through verbatim.</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${tpl//\{\{SHARED\}\}/$shared}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{ISSUE_SPEC\}\}/$spec}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{TEST_PATH\}\}/$test_path}</span><span class="s">"</span></span>
@@ -1838,17 +1921,19 @@ html{scroll-behavior:smooth}
   original, which is why no file is at risk here.
 </p>
 <div class="note gotcha"><span class="tag">Why not sed</span><p>
-  The comment on line 38 flags a real trap. <code>sed 's/{{SPEC}}/'"$spec"'/'</code> is the
-  reflexive way to do this and it is wrong: <code>sed</code> is a <em>pattern engine</em>, so
-  <code>&amp;</code> in the replacement expands to the whole match, <code>\1</code> to a
-  capture group, and a <code>/</code> anywhere in the value ends the command. An issue body
-  is arbitrary human text &mdash; file paths, URLs, shell snippets &mdash; and will contain
-  all three.
+  The comment on lines 50&ndash;52 flags two traps, not one. <code>sed
+  's/{{SPEC}}/'"$spec"'/'</code> is the reflexive way to do this and it is wrong:
+  <code>sed</code> is a <em>pattern engine</em>, so <code>&amp;</code> in the replacement
+  expands to the whole match, <code>\1</code> to a capture group, and a <code>/</code>
+  anywhere in the value ends the command. An issue body is arbitrary human text &mdash; file
+  paths, URLs, shell snippets &mdash; and will contain all three.
 </p><p>
   Bash's <code>${v//a/b}</code> is a <strong>literal</strong> replacement with no pattern
-  language in the replacement half, so the spec arrives verbatim. The general lesson: reach
-  for <code>sed</code> when you want a pattern, and parameter expansion when you want a
-  string.
+  language in the replacement half &mdash; <em>with the <a class="tt" data-ref="p-shopt" href="#p-shopt">patsub_replacement guard</a>
+  above holding</em>. Without it, bash 5.2 alone reintroduces exactly the <code>&amp;</code>
+  hazard <code>sed</code> was rejected for; the guard is what makes "no sed" still mean
+  "verbatim" on every bash this runs under. The general lesson: reach for <code>sed</code>
+  when you want a pattern, and guarded parameter expansion when you want a string.
 </p></div>
 <p>
   The <code>{{SHARED}}</code> token is why there are five template files for four phases:
@@ -1858,7 +1943,7 @@ html{scroll-behavior:smooth}
   than repeating it.
 </p></div></div></div>
 
-<h3 id="build-develop-prompt"><code>build-develop-prompt.sh</code> &mdash; the same instructions, every run<span class="vbadge">since <b>v0.13</b></span></h3>
+<h3 id="build-develop-prompt"><code>build-develop-prompt.sh</code> &mdash; the same instructions, every run<span class="vbadge">since <b>v0.13</b> &middot; changed <b>v0.14</b></span></h3>
 <p>
   Read this one as <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>'s
   mirror, and its opposite in emphasis. That script is defined by the parameter it refuses
@@ -1876,7 +1961,7 @@ html{scroll-behavior:smooth}
   change the words once, in one file, and every future run of that phase gets exactly them.
 </p></div>
 <div class="contract"><dl><dt>Usage</dt><dd><code>build-develop-prompt.sh red|green|refactor &lt;spec-file&gt; &lt;step&gt; &lt;test-cmd&gt; [extra&hellip;]</code></dd><dt>Usage (revise)</dt><dd><code>build-develop-prompt.sh revise &lt;phase&gt; &lt;spec-file&gt; &lt;step&gt; &lt;test-cmd&gt; &lt;reason-file&gt;</code></dd><dt>stdout</dt><dd>The assembled prompt</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b></span> <span class="ec ec-2"><b>2</b> unknown phase / unreadable file</span></dd></dl></div>
-<div class="ann"><div class="ann-head"><span class="fname">build-develop-prompt.sh</span><span class="fmeta">81 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<div class="ann"><div class="ann-head"><span class="fname">build-develop-prompt.sh</span><span class="fmeta">94 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
 <span class="l"><span class="c"># build-develop-prompt.sh — assemble a DEVELOPER leaf's prompt for one cycle phase.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># The mirror of build-verify-prompt.sh, and its opposite in emphasis: the verifier builder</span></span>
@@ -1907,7 +1992,31 @@ html{scroll-behavior:smooth}
   Line 18 is the familiar <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> &mdash; the same three-part
   contract every script in this stage opens with.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 18"><span class="l"></span>
-<span class="l">phase=<span class="s">"</span><span class="v">${1:?usage: build-develop-prompt.sh red|green|refactor|revise &lt;issue-spec-file&gt; &lt;step-text&gt; &lt;test-cmd&gt; ...}</span><span class="s">"</span></span>
+<span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside</span></span>
+<span class="l"><span class="c"># ${var//pattern/replacement}, an unescaped &amp; in the *replacement* now expands to the text</span></span>
+<span class="l"><span class="c"># the pattern just matched, the way sed's &amp; does. A step reading "Frob &amp; Nitz" would then</span></span>
+<span class="l"><span class="c"># reach the leaf as "Frob {{STEP}} Nitz" — silently, with no error anywhere. Turning the</span></span>
+<span class="l"><span class="c"># option off restores the older meaning the substitutions below are written for: the</span></span>
+<span class="l"><span class="c"># replacement is literal text, so every value is carried through verbatim. This has to be</span></span>
+<span class="l"><span class="c"># a runtime guard rather than a fixed assumption because the same scripts run on macOS's</span></span>
+<span class="l"><span class="c"># bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown option</span></span>
+<span class="l"><span class="c"># fails; there is nothing to disable there, so discarding that failure makes the line a</span></span>
+<span class="l"><span class="c"># no-op on 3.2 while it does the real work on 5.2+.</span></span>
+<span class="l">shopt -u patsub_replacement 2&gt;/dev/null || true</span>
+<span class="l"></span></pre></div><div class="ann-note"><p>
+  Blank, then a guarded <a class="tt" data-ref="p-shopt" href="#p-shopt">shopt -u patsub_replacement 2&gt;/dev/null &#124;&#124;
+  true</a> (lines 20&ndash;30), the mirror of
+  <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>'s own guard, added
+  by the same fix and for the same reason: read the full explanation there.
+</p><p>
+  Short version: bash 5.2 made <code>&amp;</code> in the replacement of
+  <a class="tt" data-ref="p-subst" href="#p-subst">${var//pattern/replacement}</a> expand to the matched text, sed-style. Every
+  <code>out="${out//…/…}"</code> line near the bottom of this file depends on that
+  <em>not</em> happening, since a step's text or an issue spec can carry a literal
+  <code>&amp;</code>. This line disables the option where it exists (bash 5.2+) and is a
+  provable no-op where it does not (macOS's bash 3.2), via the same
+  <a class="tt" data-ref="p-redirect" href="#p-redirect">2&gt;/dev/null</a> <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> <code>true</code> pattern.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 31"><span class="l">phase=<span class="s">"</span><span class="v">${1:?usage: build-develop-prompt.sh red|green|refactor|revise &lt;issue-spec-file&gt; &lt;step-text&gt; &lt;test-cmd&gt; ...}</span><span class="s">"</span></span>
 <span class="l"></span>
 <span class="l"><span class="c"># `revise` names the phase it is redoing *before* the three arguments every phase shares,</span></span>
 <span class="l"><span class="c"># so its spec/step/test-cmd each sit one position later than everyone else's. Take that</span></span>
@@ -1917,7 +2026,7 @@ html{scroll-behavior:smooth}
 <span class="l">  revised_phase=<span class="s">"</span><span class="v">${2:?missing &lt;phase&gt; being revised}</span><span class="s">"</span></span>
 <span class="l">  <span class="k">shift</span></span>
 <span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
-  Line 20 takes <code>phase</code> with a <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> &mdash;
+  Line 32 takes <code>phase</code> with a <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> &mdash;
   the one argument every invocation shares, read before anything else can happen.
 </p>
 <div class="note"><span class="tag">The phase that shifts its own arguments</span><p>
@@ -1930,13 +2039,13 @@ html{scroll-behavior:smooth}
   <code>revised_phase=""</code> hoists the empty default a line <em>before</em> the
   <code>if</code> that might fill it, so a non-<code>revise</code> phase leaves the variable
   defined-but-empty rather than unset &mdash; required reading under
-  <a class="tt" data-ref="p-strict" href="#p-strict">set -u</a>, which aborts on an unset reference. Line 27 reads the phase being
-  redone with the same <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> as line 20; line 28's
+  <a class="tt" data-ref="p-strict" href="#p-strict">set -u</a>, which aborts on an unset reference. Line 39 reads the phase being
+  redone with the same <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> as line 32; line 40's
   <code>shift</code> <strong>discards argument 1 and renumbers the rest</strong>, so
   <code>$2</code>, <code>$3</code>, <code>$4</code>&hellip; line up exactly the way they do
   for red, green and refactor. Past this point the four phases are indistinguishable to the
   rest of the script.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 29"><span class="l"></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 41"><span class="l"></span>
 <span class="l">spec_file=<span class="s">"</span><span class="v">${2:?missing &lt;issue-spec-file&gt;}</span><span class="s">"</span></span>
 <span class="l">step=<span class="s">"</span><span class="v">${3:?missing &lt;step-text&gt;}</span><span class="s">"</span></span>
 <span class="l">test_cmd=<span class="s">"</span><span class="v">${4:?missing &lt;test-cmd&gt;}</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
@@ -1945,14 +2054,14 @@ html{scroll-behavior:smooth}
   <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> used throughout. Because <code>revise</code>
   already shifted its extra argument off, this reads <code>$2</code>, <code>$3</code>,
   <code>$4</code> the same way whichever phase is running.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 33"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 45"><span class="l"></span>
 <span class="l"><span class="c"># Each phase takes its own extra positionals past the three every phase shares, and below</span></span>
 <span class="l"><span class="c"># each branch names only those. Everything else stays empty, and an empty variable's</span></span>
 <span class="l"><span class="c"># placeholder expands to nothing — which is why red, the phase that writes the test and so</span></span>
 <span class="l"><span class="c"># has nothing yet to name, needs no branch body at all.</span></span>
 <span class="l">test_path=<span class="s">""</span> target=<span class="s">""</span> touched=<span class="s">""</span> reason_file=<span class="s">""</span></span></pre></div><div class="ann-note"><p>
   The comment states the design directly: each phase takes its own extra positionals past
-  the three every phase shares, and only the branch below names them. Line 39 hoists all
+  the three every phase shares, and only the branch below names them. Line 51 hoists all
   four possible extras &mdash; <code>test_path</code>, <code>target</code>,
   <code>touched</code>, <code>reason_file</code> &mdash; to an empty default
   <em>above</em> the <a class="tt" data-ref="p-case" href="#p-case">case</a> that follows: four ordinary assignments on one line,
@@ -1964,9 +2073,9 @@ html{scroll-behavior:smooth}
   sets, say, <code>touched</code> needs no empty-string branch of its own to make that true.
   Declaring all four before the <code>case</code> is what lets <code>red</code> &mdash; the
   phase that writes the test and so has nothing yet to name &mdash; get away with an empty
-  branch body: <code>red) ;;</code> on line 41 does nothing because there is nothing left
+  branch body: <code>red) ;;</code> on line 53 does nothing because there is nothing left
   for it to do.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 39"><span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 51"><span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
 <span class="l">  red) ;;</span>
 <span class="l">  green)</span>
 <span class="l">    test_path=<span class="s">"</span><span class="v">${5:?missing &lt;test-path&gt;}</span><span class="s">"</span></span>
@@ -1982,17 +2091,17 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="k">esac</span></span></pre></div><div class="ann-note"><p>
   The <a class="tt" data-ref="p-case" href="#p-case">case</a> itself. Three of the four phases fill in exactly the extra positionals
   their usage line promised &mdash; <code>green</code> takes two more,
-  <code>test_path</code> and <code>target</code> (lines 43&ndash;44), <code>refactor</code>
-  one (line 47), <code>revise</code> one (line 50) &mdash; each still a
+  <code>test_path</code> and <code>target</code> (lines 55&ndash;56), <code>refactor</code>
+  one (line 59), <code>revise</code> one (line 62) &mdash; each still a
   <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a>, so a missing extra fails exactly where the
   caller went wrong rather than surfacing later as a blank in the prompt.
 </p><p>
-  <code>*)</code> on line 52 is the same defensive default seen in
+  <code>*)</code> on line 64 is the same defensive default seen in
   <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>: a phase name
   outside the four is a broken caller, not a legitimate answer, so it prints a diagnostic
   and exits <span class="ec ec-2"><b>2</b></span> rather than building a prompt from a
   template that does not exist.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 53"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 65"><span class="l"></span>
 <span class="l">HERE=<span class="s">"$(cd "</span>$(dirname <span class="s">"</span><span class="v">$0</span><span class="s">"</span>)<span class="s">" &amp;&amp; pwd)"</span></span>
 <span class="l">tpl_file=<span class="s">"</span><span class="v">$HERE</span><span class="s">/prompts/develop-</span><span class="v">$phase</span><span class="s">.md"</span></span>
 <span class="l">shared_file=<span class="s">"</span><span class="v">$HERE</span><span class="s">/prompts/_develop-shared.md"</span></span>
@@ -2007,7 +2116,7 @@ html{scroll-behavior:smooth}
   template for the phase running; <code>_develop-shared.md</code> is the preamble every
   phase pulls in.
 </p>
-<div class="note"><span class="tag">The one line worth reading twice: 59</span><p>
+<div class="note"><span class="tag">The one line worth reading twice: 71</span><p>
   <code>for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file"; do</code> checks
   four candidate files for readability &mdash; but <code>$reason_file</code> is empty on
   every phase except <code>revise</code>. <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$f" ]]</a>
@@ -2015,11 +2124,11 @@ html{scroll-behavior:smooth}
   skip straight to the next candidate rather than asking whether an empty path is readable,
   which would fail for the wrong reason on every phase that has no reason file at all.
 </p></div><p>
-  Line 60 is the readability check itself, the same shape as
+  Line 72 is the readability check itself, the same shape as
   <code>build-verify-prompt.sh</code>'s: <a class="tt" data-ref="p-test" href="#p-test">[[ -r "$f" ]]</a>
   <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> a grouped diagnostic-and-exit, so a missing template or an
   unreadable spec is caught before any file is read, never mid-assembly.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 61"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 73"><span class="l"></span>
 <span class="l">tpl=<span class="s">"$(cat "</span><span class="v">$tpl_file</span><span class="s">")"</span></span>
 <span class="l">shared=<span class="s">"$(cat "</span><span class="v">$shared_file</span><span class="s">")"</span></span>
 <span class="l">spec=<span class="s">"$(cat "</span><span class="v">$spec_file</span><span class="s">")"</span></span>
@@ -2029,12 +2138,13 @@ html{scroll-behavior:smooth}
   in <code>build-verify-prompt.sh</code> &mdash; and, as there, this is the only "copy" that
   happens; nothing below writes back to any of these files.
 </p><p>
-  <code>reason=""</code> is the same hoisted-empty-default idiom as line 39, for the same
+  <code>reason=""</code> is the same hoisted-empty-default idiom as line 51, for the same
   reason: <code>reason_file</code> is empty on every phase but <code>revise</code>, so line
-  67 only overwrites it when <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$reason_file" ]]</a> says there is a file to read.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 67"><span class="l"></span>
-<span class="l"><span class="c"># Literal substitution via bash parameter expansion — no sed, so &amp;, \, / and {} in the</span></span>
-<span class="l"><span class="c"># spec or the step text are carried through verbatim.</span></span>
+  79 only overwrites it when <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$reason_file" ]]</a> says there is a file to read.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 79"><span class="l"></span>
+<span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># Literal substitution via bash parameter expansion — no sed, and with the</span></span>
+<span class="l"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec or the step text</span></span>
+<span class="l"><span class="c"># are carried through verbatim.</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${tpl//\{\{SHARED\}\}/$shared}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{ISSUE_SPEC\}\}/$spec}</span><span class="s">"</span></span>
 <span class="l">out=<span class="s">"</span><span class="v">${out//\{\{STEP\}\}/$step}</span><span class="s">"</span></span>
@@ -2049,8 +2159,10 @@ html{scroll-behavior:smooth}
   &mdash; <code>sed</code> &mdash; would corrupt exactly those characters. An issue's spec or
   a rejection reason is arbitrary human prose: file paths with slashes, code with
   backslashes, an <code>&amp;</code> in a URL. <a class="tt" data-ref="p-subst" href="#p-subst">${var//pattern/replacement}</a> is a
-  <strong>literal</strong> replacement with no pattern language on either side, so none of
-  that is at risk.
+  <strong>literal</strong> replacement with no pattern language on either side &mdash;
+  <em>with the <a class="tt" data-ref="p-shopt" href="#p-shopt">patsub_replacement guard</a> above holding</em>. Without that guard,
+  bash 5.2 alone would expand a bare <code>&amp;</code> to the match, which is exactly the
+  <code>sed</code> hazard this design was chosen to avoid.
 </p><p>
   Nine calls where <code>build-verify-prompt.sh</code> needed four, because this template
   has nine placeholders to a verify template's four &mdash; one call per token, each
@@ -2059,14 +2171,14 @@ html{scroll-behavior:smooth}
   and the rest; it is not part of a pattern language, because there is none.
 </p>
 <div class="note"><span class="tag">Where the hoisted empty defaults pay off</span><p>
-  Lines 75&ndash;78 substitute <code>$test_path</code>, <code>$target</code>,
+  Lines 88&ndash;91 substitute <code>$test_path</code>, <code>$target</code>,
   <code>$touched</code> and <code>$revised_phase</code> unconditionally, on every phase, and
   three of those four are empty on any given run. That is the payoff of hoisting the
-  defaults above the <code>case</code> back on line 39: an unused placeholder like
+  defaults above the <code>case</code> back on line 51: an unused placeholder like
   <code>{{TEST_PATH}}</code> on a <code>refactor</code> run simply disappears from the
   template, because the string it is replaced with is empty &mdash; no phase-specific branch
   needed here either.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 79"><span class="l"></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 92"><span class="l"></span>
 <span class="l">printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$out</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   The same closing line as <code>build-verify-prompt.sh</code>:
   <a class="tt" data-ref="p-printf" href="#p-printf">printf '%s\n'</a> puts back the trailing newline that
@@ -2766,10 +2878,14 @@ html{scroll-behavior:smooth}
       <li><code>-o pipefail</code> — a <strong>pipeline fails if any stage fails</strong>.
           By default <code>a | b</code> reports only <code>b</code>'s status, so a crash in
           <code>a</code> vanishes.</li>
-    </ul><p class="seen">10 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
+    </ul><p class="seen">10 of 11 scripts. Read it as "make bash behave like a normal language".</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#next-unchecked"><code>next-unchecked.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#verify"><code>verify.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-strict-partial"><code class="card-sig">set -uo pipefail</code><p class="card-name">Strict mode without <code>-e</code></p><p class="seen"><code>supervise.sh</code> only, and that omission is the point of it.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-sete"><code class="card-sig">set +e … rc=$? … set -e</code><p class="card-name">Temporarily disabling fail-fast</p><p>
       Wherever you see this, the exit code is <strong>meaningful information</strong>, not a
       malfunction — the script wants to branch on it.
-    </p><p class="seen"><code>run-leaf.sh</code>, <code>verify.sh</code> (twice).</p><p class="used-by"><b>Referenced from</b><a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#verify"><code>verify.sh</code></a></p></div></div></div><div class="primer-group"><h3 id="p-vars">Variables &amp; expansion</h3><div class="cards"><div class="card" id="p-quote"><code class="card-sig">"$var"</code><p class="card-name">Quoting — the one habit that matters most</p><p>
+    </p><p class="seen"><code>run-leaf.sh</code>, <code>verify.sh</code> (twice).</p><p class="used-by"><b>Referenced from</b><a href="#run-leaf"><code>run-leaf.sh</code></a>, <a href="#verify"><code>verify.sh</code></a></p></div><div class="card" id="p-shopt"><code class="card-sig">shopt -u patsub_replacement 2&gt;/dev/null || true</code><p class="card-name">A shell option, disabled portably</p><p>
+      <code>shopt</code> flips a named shell behaviour on or off &mdash; finer-grained switches than <a class="ref" href="#p-strict">set -o</a> covers. bash 5.2 added <code>patsub_replacement</code> and turned it ON by default: inside <a class="ref" href="#p-subst">${var//pattern/replacement}</a>, an unescaped <code>&amp;</code> in the <em>replacement</em> now expands to whatever the pattern just matched, the way <code>sed</code>&rsquo;s <code>&amp;</code> does. A value carrying a literal <code>&amp;</code> is then rewritten silently &mdash; no error, no bad exit code.
+    </p><p>
+      <code>shopt -u patsub_replacement</code> turns that back off, restoring the older purely-literal meaning every <code>${v//a/b}</code> below it relies on. macOS ships bash 3.2, which predates the option entirely: there <code>shopt -u patsub_replacement</code> fails because the name is unknown, so <a class="ref" href="#p-redirect">2&gt;/dev/null</a> discards the complaint and the trailing <a class="ref" href="#p-shortcircuit">||</a> <code>true</code> makes the whole line a no-op &mdash; real work on 5.2+, harmless everywhere older.
+    </p><p class="seen"><code>build-develop-prompt.sh</code> and <code>build-verify-prompt.sh</code>, right after <code>set -euo pipefail</code>, guarding every <code>${var//pattern/repl}</code> substitution below it.</p><p class="used-by"><b>Referenced from</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></div></div></div><div class="primer-group"><h3 id="p-vars">Variables &amp; expansion</h3><div class="cards"><div class="card" id="p-quote"><code class="card-sig">"$var"</code><p class="card-name">Quoting — the one habit that matters most</p><p>
       Wrapping it in double quotes suppresses both, making the variable behave like a single
       value the way it would in any other language. Practically every variable reference in
       these scripts is quoted, and the few that aren't are marked with a comment explaining
@@ -2843,7 +2959,7 @@ html{scroll-behavior:smooth}
       The convention veri holds to throughout: <strong>stdout is data, stderr is
       commentary.</strong> That is what lets a script's output be piped straight into the
       next one while its status messages still reach a human.
-    </p><p class="seen">Every script.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#tick-ledger"><code>tick-ledger.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></div><div class="card" id="p-readloop"><code class="card-sig">while IFS= read -r line || [[ -n "$line" ]]</code><p class="card-name">Reading lines without corrupting them</p><ul>
+    </p><p class="seen">Every script.</p><p class="used-by"><b>Referenced from</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#tick-ledger"><code>tick-ledger.sh</code></a>, <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></div><div class="card" id="p-readloop"><code class="card-sig">while IFS= read -r line || [[ -n "$line" ]]</code><p class="card-name">Reading lines without corrupting them</p><ul>
       <li><code>IFS=</code> — empties the field separator for this command, so leading and
           trailing whitespace on the line is <em>not</em> trimmed.</li>
       <li><code>read</code> — reads one line into the variable, returning non-zero at
@@ -2938,7 +3054,7 @@ html{scroll-behavior:smooth}
 <div class="tbl-wrap">
 <table>
   <thead><tr><th>Script</th><th class="num">Lines</th><th>Stage</th></tr></thead>
-  <tbody><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">114</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">45</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">81</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr></tbody>
+  <tbody><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">94</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr></tbody>
 </table>
 </div>
 <p>
@@ -2990,14 +3106,14 @@ html{scroll-behavior:smooth}
     <strong>veri, Annotated</strong> &mdash; the complete source of veri's
     <code>/solve-issue</code> conductor, read line by line.
   </p>
-  <p class="mono">13 scripts &middot; 687 lines &middot; generated by docs/build-walkthrough.py</p>
+  <p class="mono">13 scripts &middot; 729 lines &middot; generated by docs/build-walkthrough.py</p>
 </footer>
 </div>
 
 </main>
 </div>
 
-<script>window.__VERI_TIPS__ = {"p-ansic":{"gloss":"Interprets C escapes, so this is a real newline character rather than a backslash and an n.","name":"ANSI-C quoting","sig":"$'\\n'"},"p-arith":{"gloss":"Integer maths with C syntax — variables need no <code>$</code> and comparisons read normally.","name":"Arithmetic evaluation","sig":"(( … ))"},"p-array":{"gloss":"Holds a list of arguments so each stays one argument, even when it contains spaces.","name":"Arrays, and why they exist","sig":"arr=( a b c ) &nbsp;→&nbsp; \"${arr[@]}\""},"p-arrayempty":{"gloss":"Lets an empty array expand to zero arguments instead of aborting under <code>set -u</code> on old bash.","name":"The empty-array guard","sig":"\"${arr[@]+\"${arr[@]}\"}\""},"p-arrayidx":{"gloss":"<code>${!a[@]}</code> the indices · <code>${#a[@]}</code> the length · <code>${a[@]:n}</code> a slice from n.","name":"Indices, length, slice","sig":"\"${!arr[@]}\" &nbsp; ${#arr[@]} &nbsp; \"${arr[@]:n}\""},"p-awk":{"gloss":"Line-oriented text processor. Pass shell values through the environment, never by interpolating into the program.","name":"awk, and getting data into it safely","sig":"awk 'BEGIN{…} {…} END{…}'"},"p-bg":{"gloss":"A subshell run in the background. The script continues immediately — which is what makes watching it possible.","name":"Subshells and background jobs","sig":"( cmd ) &amp; &nbsp;→&nbsp; pid=$!"},"p-case":{"gloss":"Bash's switch. Glob patterns, <code>|</code> for alternatives, <code>*)</code> as the default, no fall-through.","name":"Pattern dispatch","sig":"case \"$x\" in … esac"},"p-cmdsub":{"gloss":"Run a command in a child process and evaluate to its stdout. Strips all trailing newlines.","name":"Command substitution","sig":"$( … )"},"p-default":{"gloss":"Use this value if set and non-empty, otherwise fall back to the default. Never assigns.","name":"Default value","sig":"\"${2:-default}\""},"p-envprefix":{"gloss":"Set a variable for one command only, without leaking it into the rest of the script.","name":"Per-command environment","sig":"VAR=value command"},"p-exec":{"gloss":"Replaces the shell with the new program instead of forking — same PID, same stdin, status passes straight through.","name":"Replacing the process","sig":"exec python3 -c '…'"},"p-func":{"gloss":"Arguments arrive as <code>$1</code>, <code>$2</code>…; it returns an exit status, so data comes back via stdout or a global.","name":"Functions","sig":"name() { …; }"},"p-guard":{"gloss":"Default to nothing, so reading an optional variable doesn't abort under <code>set -u</code>.","name":"The empty-default guard","sig":"\"${VAR:-}\""},"p-heredoc":{"gloss":"Feeds a literal text block in as stdin — which is why it can't be used when stdin carries real data.","name":"Here-documents","sig":"cmd &lt;&lt;'EOF' … EOF"},"p-jobcontrol":{"gloss":"Puts a background job in its own process group, so the whole tree can be signalled at once.","name":"Job control &amp; process groups","sig":"set -m &nbsp;…&nbsp; set +m"},"p-kill":{"gloss":"Sends a signal. A negative PID targets the process group; <code>-0</code> only probes; TERM asks, KILL cannot be refused.","name":"Signals — and the minus sign that matters","sig":"kill -TERM -$pid &nbsp;·&nbsp; kill -0 $pid"},"p-mktemp":{"gloss":"Atomically creates a uniquely-named temp file, avoiding the race and the security hole of a fixed name.","name":"Temporary files","sig":"tmp=\"$(mktemp)\""},"p-noop":{"gloss":"<code>:</code> does nothing and succeeds. <code>: &gt; f</code> truncates a file; <code>while :;</code> loops forever.","name":"The null command","sig":": &nbsp;·&nbsp; : &gt; file &nbsp;·&nbsp; while :;"},"p-pipe":{"gloss":"Pipes connect stdout to stdin; <code>tee</code> copies a stream aside; <code>PIPESTATUS</code> recovers a stage's lost exit code.","name":"Pipes, tee, and recovering a lost status","sig":"a | b &nbsp;·&nbsp; tee file &nbsp;·&nbsp; \"${PIPESTATUS[0]}\""},"p-printf":{"gloss":"Portable and predictable, unlike <code>echo</code> — you control the trailing newline exactly.","name":"printf, and why not echo","sig":"printf '%s\\n' \"$x\""},"p-printfv":{"gloss":"Write printf's output into a variable instead of stdout, preserving trailing newlines.","name":"Printf into a variable","sig":"printf -v name '%s\\n' \"${arr[@]}\""},"p-quote":{"gloss":"Quoting stops the shell splitting the value on whitespace and expanding it as a filename pattern.","name":"Quoting — the one habit that matters most","sig":"\"$var\""},"p-readloop":{"gloss":"The safe line reader: no trimming, no backslash mangling, and it keeps a final unterminated line.","name":"Reading lines without corrupting them","sig":"while IFS= read -r line || [[ -n \"$line\" ]]"},"p-redirect":{"gloss":"Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. <code>&gt;</code> truncates immediately.","name":"Redirection","sig":"&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null"},"p-regex":{"gloss":"Built-in regex match; captures land in <code>BASH_REMATCH</code>. The pattern must be unquoted.","name":"Built-in regular expressions","sig":"[[ \"$s\" =~ regex ]] &nbsp;→&nbsp; BASH_REMATCH"},"p-required":{"gloss":"Use this argument, or print the message and abort. An inline precondition check.","name":"Required-argument assertion","sig":"\"${1:?usage: …}\""},"p-sete":{"gloss":"Turn fail-fast off around one command so you can capture its exit code instead of dying on it.","name":"Temporarily disabling fail-fast","sig":"set +e … rc=$? … set -e"},"p-shebang":{"gloss":"Tells the kernel to run this file with bash, found via PATH rather than a hard-coded location.","name":"Shebang","sig":"#!/usr/bin/env bash"},"p-shortcircuit":{"gloss":"<code>||</code> runs the right side only on failure, <code>&amp;&amp;</code> only on success. Also exempts the left from <code>set -e</code>.","name":"Short-circuit chaining","sig":"cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2"},"p-special":{"gloss":"<code>$?</code> last exit status · <code>$!</code> last background PID · <code>$@</code> all arguments · <code>$#</code> count · <code>$0</code> script path.","name":"Special parameters","sig":"$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0"},"p-strict":{"gloss":"Fail fast: exit on any error, error on unset variables, and let a pipeline fail if any stage does.","name":"Strict mode","sig":"set -euo pipefail"},"p-strict-partial":{"gloss":"Strict mode with <code>-e</code> deliberately left out, so an expected non-zero exit doesn't kill the script.","name":"Strict mode without <code>-e</code>","sig":"set -uo pipefail"},"p-strip":{"gloss":"Cut a matching pattern off one end. <code>#</code> from the front, <code>%</code> from the back; doubled is greedy.","name":"Prefix and suffix stripping","sig":"${v#pat} &nbsp; ${v##pat} &nbsp; ${v%pat} &nbsp; ${v%%pat}"},"p-subst":{"gloss":"Replace every occurrence, literally — no pattern language, so arbitrary text passes through intact.","name":"Substring replacement","sig":"${v//search/replace}"},"p-test":{"gloss":"Bash's conditional expression: file tests, string tests, and numeric comparison.","name":"Conditional expression","sig":"[[ … ]]"},"p-trap":{"gloss":"Runs a command when the script exits, however it exits. Bash's <code>finally</code> block.","name":"Cleanup handlers","sig":"trap 'rm -f \"$tmp\"' EXIT"},"p-wait":{"gloss":"Blocks until a background process finishes and clears its zombie entry. Useless for monitoring, precisely because it blocks.","name":"Reaping a child","sig":"wait \"$pid\""}};</script>
+<script>window.__VERI_TIPS__ = {"p-ansic":{"gloss":"Interprets C escapes, so this is a real newline character rather than a backslash and an n.","name":"ANSI-C quoting","sig":"$'\\n'"},"p-arith":{"gloss":"Integer maths with C syntax — variables need no <code>$</code> and comparisons read normally.","name":"Arithmetic evaluation","sig":"(( … ))"},"p-array":{"gloss":"Holds a list of arguments so each stays one argument, even when it contains spaces.","name":"Arrays, and why they exist","sig":"arr=( a b c ) &nbsp;→&nbsp; \"${arr[@]}\""},"p-arrayempty":{"gloss":"Lets an empty array expand to zero arguments instead of aborting under <code>set -u</code> on old bash.","name":"The empty-array guard","sig":"\"${arr[@]+\"${arr[@]}\"}\""},"p-arrayidx":{"gloss":"<code>${!a[@]}</code> the indices · <code>${#a[@]}</code> the length · <code>${a[@]:n}</code> a slice from n.","name":"Indices, length, slice","sig":"\"${!arr[@]}\" &nbsp; ${#arr[@]} &nbsp; \"${arr[@]:n}\""},"p-awk":{"gloss":"Line-oriented text processor. Pass shell values through the environment, never by interpolating into the program.","name":"awk, and getting data into it safely","sig":"awk 'BEGIN{…} {…} END{…}'"},"p-bg":{"gloss":"A subshell run in the background. The script continues immediately — which is what makes watching it possible.","name":"Subshells and background jobs","sig":"( cmd ) &amp; &nbsp;→&nbsp; pid=$!"},"p-case":{"gloss":"Bash's switch. Glob patterns, <code>|</code> for alternatives, <code>*)</code> as the default, no fall-through.","name":"Pattern dispatch","sig":"case \"$x\" in … esac"},"p-cmdsub":{"gloss":"Run a command in a child process and evaluate to its stdout. Strips all trailing newlines.","name":"Command substitution","sig":"$( … )"},"p-default":{"gloss":"Use this value if set and non-empty, otherwise fall back to the default. Never assigns.","name":"Default value","sig":"\"${2:-default}\""},"p-envprefix":{"gloss":"Set a variable for one command only, without leaking it into the rest of the script.","name":"Per-command environment","sig":"VAR=value command"},"p-exec":{"gloss":"Replaces the shell with the new program instead of forking — same PID, same stdin, status passes straight through.","name":"Replacing the process","sig":"exec python3 -c '…'"},"p-func":{"gloss":"Arguments arrive as <code>$1</code>, <code>$2</code>…; it returns an exit status, so data comes back via stdout or a global.","name":"Functions","sig":"name() { …; }"},"p-guard":{"gloss":"Default to nothing, so reading an optional variable doesn't abort under <code>set -u</code>.","name":"The empty-default guard","sig":"\"${VAR:-}\""},"p-heredoc":{"gloss":"Feeds a literal text block in as stdin — which is why it can't be used when stdin carries real data.","name":"Here-documents","sig":"cmd &lt;&lt;'EOF' … EOF"},"p-jobcontrol":{"gloss":"Puts a background job in its own process group, so the whole tree can be signalled at once.","name":"Job control &amp; process groups","sig":"set -m &nbsp;…&nbsp; set +m"},"p-kill":{"gloss":"Sends a signal. A negative PID targets the process group; <code>-0</code> only probes; TERM asks, KILL cannot be refused.","name":"Signals — and the minus sign that matters","sig":"kill -TERM -$pid &nbsp;·&nbsp; kill -0 $pid"},"p-mktemp":{"gloss":"Atomically creates a uniquely-named temp file, avoiding the race and the security hole of a fixed name.","name":"Temporary files","sig":"tmp=\"$(mktemp)\""},"p-noop":{"gloss":"<code>:</code> does nothing and succeeds. <code>: &gt; f</code> truncates a file; <code>while :;</code> loops forever.","name":"The null command","sig":": &nbsp;·&nbsp; : &gt; file &nbsp;·&nbsp; while :;"},"p-pipe":{"gloss":"Pipes connect stdout to stdin; <code>tee</code> copies a stream aside; <code>PIPESTATUS</code> recovers a stage's lost exit code.","name":"Pipes, tee, and recovering a lost status","sig":"a | b &nbsp;·&nbsp; tee file &nbsp;·&nbsp; \"${PIPESTATUS[0]}\""},"p-printf":{"gloss":"Portable and predictable, unlike <code>echo</code> — you control the trailing newline exactly.","name":"printf, and why not echo","sig":"printf '%s\\n' \"$x\""},"p-printfv":{"gloss":"Write printf's output into a variable instead of stdout, preserving trailing newlines.","name":"Printf into a variable","sig":"printf -v name '%s\\n' \"${arr[@]}\""},"p-quote":{"gloss":"Quoting stops the shell splitting the value on whitespace and expanding it as a filename pattern.","name":"Quoting — the one habit that matters most","sig":"\"$var\""},"p-readloop":{"gloss":"The safe line reader: no trimming, no backslash mangling, and it keeps a final unterminated line.","name":"Reading lines without corrupting them","sig":"while IFS= read -r line || [[ -n \"$line\" ]]"},"p-redirect":{"gloss":"Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. <code>&gt;</code> truncates immediately.","name":"Redirection","sig":"&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null"},"p-regex":{"gloss":"Built-in regex match; captures land in <code>BASH_REMATCH</code>. The pattern must be unquoted.","name":"Built-in regular expressions","sig":"[[ \"$s\" =~ regex ]] &nbsp;→&nbsp; BASH_REMATCH"},"p-required":{"gloss":"Use this argument, or print the message and abort. An inline precondition check.","name":"Required-argument assertion","sig":"\"${1:?usage: …}\""},"p-sete":{"gloss":"Turn fail-fast off around one command so you can capture its exit code instead of dying on it.","name":"Temporarily disabling fail-fast","sig":"set +e … rc=$? … set -e"},"p-shebang":{"gloss":"Tells the kernel to run this file with bash, found via PATH rather than a hard-coded location.","name":"Shebang","sig":"#!/usr/bin/env bash"},"p-shopt":{"gloss":"Turns one named shell behaviour on or off. Here: disable bash 5.2&rsquo;s <code>&amp;</code>-means-the-match default in <code>${v//a/b}</code>, portably no-op&rsquo;d on bash 3.2 where the option does not exist.","name":"A shell option, disabled portably","sig":"shopt -u patsub_replacement 2&gt;/dev/null || true"},"p-shortcircuit":{"gloss":"<code>||</code> runs the right side only on failure, <code>&amp;&amp;</code> only on success. Also exempts the left from <code>set -e</code>.","name":"Short-circuit chaining","sig":"cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2"},"p-special":{"gloss":"<code>$?</code> last exit status · <code>$!</code> last background PID · <code>$@</code> all arguments · <code>$#</code> count · <code>$0</code> script path.","name":"Special parameters","sig":"$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0"},"p-strict":{"gloss":"Fail fast: exit on any error, error on unset variables, and let a pipeline fail if any stage does.","name":"Strict mode","sig":"set -euo pipefail"},"p-strict-partial":{"gloss":"Strict mode with <code>-e</code> deliberately left out, so an expected non-zero exit doesn't kill the script.","name":"Strict mode without <code>-e</code>","sig":"set -uo pipefail"},"p-strip":{"gloss":"Cut a matching pattern off one end. <code>#</code> from the front, <code>%</code> from the back; doubled is greedy.","name":"Prefix and suffix stripping","sig":"${v#pat} &nbsp; ${v##pat} &nbsp; ${v%pat} &nbsp; ${v%%pat}"},"p-subst":{"gloss":"Replace every occurrence, literally — no pattern language, so arbitrary text passes through intact.","name":"Substring replacement","sig":"${v//search/replace}"},"p-test":{"gloss":"Bash's conditional expression: file tests, string tests, and numeric comparison.","name":"Conditional expression","sig":"[[ … ]]"},"p-trap":{"gloss":"Runs a command when the script exits, however it exits. Bash's <code>finally</code> block.","name":"Cleanup handlers","sig":"trap 'rm -f \"$tmp\"' EXIT"},"p-wait":{"gloss":"Blocks until a background process finishes and clears its zombie entry. Useless for monitoring, precisely because it blocks.","name":"Reaping a child","sig":"wait \"$pid\""}};</script>
 <script>window.__VERI_NAV__ = [{"id":"capabilities","trail":[{"t":"Capabilities","h":"capabilities"}]},{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the thirteen scripts","h":"map"}]},{"id":"tddloop","trail":[{"t":"Orientation","h":""},{"t":"Where the TDD loop lives","h":"tddloop"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s0","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"}]},{"id":"ensure-run-state-ignored","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"ensure-run-state-ignored.sh","h":"ensure-run-state-ignored"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"build-develop-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-develop-prompt.sh","h":"build-develop-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]},{"id":"how-versions-work","trail":[{"t":"Upkeep","h":""},{"t":"Where the versions come from","h":"how-versions-work"}]}];</script>
 <script>
 /* veri, Annotated — tooltip layer.
