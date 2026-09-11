@@ -44,9 +44,18 @@ esac
 # `revise` names the phase it is redoing *before* the three arguments every phase shares,
 # so its spec/step/test-cmd each sit one position later than everyone else's. Take that
 # extra argument off the front; past this point the positions line up again.
+#
+# That second phase name gets the same check the first one got, and for the same reason:
+# it is interpolated into the prompt as the phase the leaf is redoing, so an unchecked
+# word would reach the leaf as an instruction to redo a phase that does not exist. `revise`
+# is not among the four here — a revise of a revise has no template behind it.
 revised_phase=""
 if [[ "$phase" == "revise" ]]; then
   revised_phase="${2:?missing <phase> being revised}"
+  case "$revised_phase" in
+    red | green | refactor) ;;
+    *) echo "build-develop-prompt: unknown phase to revise '$revised_phase' (want red|green|refactor)" >&2; exit 2 ;;
+  esac
   shift
 fi
 

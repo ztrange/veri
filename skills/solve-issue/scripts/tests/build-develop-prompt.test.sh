@@ -133,6 +133,17 @@ bare_out="$("$BUILD" bogus 2>"$bare_err")"; code=$?
   && grep -q 'bogus' "$bare_err" \
   && ok || no "an unknown phase with no further arguments exits 2, names the phase on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$bare_err"))"
 
+# 7. `revise` names a second phase — the one being redone — and it gets the same check the
+#    first one gets. Otherwise any word is accepted and interpolated into the prompt, and
+#    the leaf is told it is redoing a phase that does not exist. The reason file below is
+#    real, so the only thing wrong with this call is the phase.
+revise_err="$work/revise-unknown-phase.err"
+revise_out="$("$BUILD" revise bogus "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>"$revise_err")"; code=$?
+[[ "$code" -eq 2 ]] \
+  && [[ -z "$revise_out" ]] \
+  && [[ -s "$revise_err" ]] \
+  && ok || no "revise with an unknown phase to redo exits 2 with a diagnostic on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$revise_err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
