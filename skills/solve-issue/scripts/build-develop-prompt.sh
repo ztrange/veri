@@ -17,6 +17,18 @@
 # phase or a missing template/spec file — never a partial prompt.
 set -euo pipefail
 
+# bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside
+# ${var//pattern/replacement}, an unescaped & in the *replacement* now expands to the text
+# the pattern just matched, the way sed's & does. A step reading "Frob & Nitz" would then
+# reach the leaf as "Frob {{STEP}} Nitz" — silently, with no error anywhere. Turning the
+# option off restores the older meaning the substitutions below are written for: the
+# replacement is literal text, so every value is carried through verbatim. This has to be
+# a runtime guard rather than a fixed assumption because the same scripts run on macOS's
+# bash 3.2, where `patsub_replacement` does not exist and `shopt -u` on an unknown option
+# fails; there is nothing to disable there, so discarding that failure makes the line a
+# no-op on 3.2 while it does the real work on 5.2+.
+shopt -u patsub_replacement 2>/dev/null || true
+
 phase="${1:?usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ...}"
 
 # `revise` names the phase it is redoing *before* the three arguments every phase shares,
@@ -66,8 +78,9 @@ spec="$(cat "$spec_file")"
 reason=""
 if [[ -n "$reason_file" ]]; then reason="$(cat "$reason_file")"; fi
 
-# Literal substitution via bash parameter expansion — no sed, so &, \, / and {} in the
-# spec or the step text are carried through verbatim.
+# Literal substitution via bash parameter expansion — no sed, and with the
+# patsub_replacement guard above holding, so &, \, / and {} in the spec or the step text
+# are carried through verbatim.
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{STEP\}\}/$step}"
