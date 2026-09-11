@@ -127,6 +127,37 @@ omits() {
   fi
 }
 
+# omits_git — omits(), but against a sandbox that is a real repository.
+# `local` inside a function is visible to everything it then calls — bash scopes locals
+# to the call chain, not to the function body — so omits() sees this SANDBOX, and the
+# global is back in place the moment omits_git returns.
+omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
+
+# tags_git <name> <n-hunk-tags> <expected-span> <mutator...>
+# accepts() and omits() each ask one yes/no question of the whole page, and a hunk tag
+# needs two asked together: "this line carries v0.2" is only half the claim, because an
+# implementation that tagged every line would satisfy it and defeat the point — the tag
+# is worth reading only if it says where to look. So tags_git asserts the page contains
+# <expected-span> AND carries exactly <n> hunk tags in total.
+# Occurrences, not matching lines: grep -o then wc -l, since nothing guarantees two tags
+# could not share one output line.
+tags_git() {
+  local name="$1" n="$2" want="$3"; shift 3
+  local d code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  got="$(printf '%s' "$page" | grep -o 'class="l hunk"' | wc -l | tr -d ' ')"
+  if [[ "$code" == 0 && "$page" == *"$want"* && "$got" == "$n" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want $n hunk-tagged line(s), one of them: $want"
+    echo "    got  $got hunk-tagged line(s)"
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # --- helpers used as mutators (run with cwd = the sandbox) ---------------------
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
 sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak; }
@@ -203,37 +234,9 @@ omits "no git: no orphan rail group"    '<h4>Capabilities</h4>'
 #    touched it is a behaviour commit AND shipped in a version later than the file's own
 #    `since`. Below that bar there is nothing to point at, and the listing stays plain.
 #
-#    These run in sandbox_git() rather than sandbox(), because git blame needs a history.
-#    `local` inside a function is visible to everything it then calls — bash scopes
-#    locals to the call chain, not to the function body — so omits() sees this SANDBOX,
-#    and the global is back in place the moment omits_git returns.
-omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
-
-#    accepts() and omits() each ask one yes/no question of the whole page, and a hunk tag
-#    needs two asked together: "this line carries v0.2" is only half the claim, because an
-#    implementation that tagged every line would satisfy it and defeat the point — the tag
-#    is worth reading only if it says where to look. So tags_git asserts the page contains
-#    <expected-span> AND carries exactly <n> hunk tags in total.
-#    Occurrences, not matching lines: grep -o then wc -l, since nothing guarantees two tags
-#    could not share one output line.
-# tags_git <name> <n-hunk-tags> <expected-span> <mutator...>
-tags_git() {
-  local name="$1" n="$2" want="$3"; shift 3
-  local d code page got; d="$(sandbox_git)"
-  ( cd "$d" && "$@" )
-  page="$(build "$d")" && code=0 || code=$?
-  got="$(printf '%s' "$page" | grep -o 'class="l hunk"' | wc -l | tr -d ' ')"
-  if [[ "$code" == 0 && "$page" == *"$want"* && "$got" == "$n" ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name (exit $code)"
-    echo "    want $n hunk-tagged line(s), one of them: $want"
-    echo "    got  $got hunk-tagged line(s)"
-    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
-  fi
-}
-
+#    These assert through omits_git and tags_git rather than omits and accepts, because
+#    git blame needs a history: both build in sandbox_git().
+#
 #    The floor case: a script whose whole history is the feat: commit that added it, in
 #    the one version that exists. Nothing has changed since it shipped, so no line in it
 #    has anything to be tagged with. Tagging here would mean tagging every line of every
