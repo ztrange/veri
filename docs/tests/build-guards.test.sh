@@ -474,6 +474,54 @@ diagrams_stage0() {
   fi
 }
 
+# stage5_diagram_blocks — page on stdin, one diagram block per line on stdout.
+# stage0_diagram_blocks for the last stage, and it cannot borrow that one's closing
+# landmark. Stage 0's intro is followed by the scripts it annotates, so "up to the first
+# <h3 id=" cuts the intro exactly; stage 5 is the final stage, so what follows its scripts
+# is the reference section — `id="reference"` — and that is the only landmark that closes
+# it. Both landmarks occur once each in the page, as `id=`: the rail's links to the same
+# two places are `href="#s5"` and `href="#reference"`, which this does not match.
+# The wider slice costs the assertion below nothing, because the claim is about ONE block
+# naming every string: the closest any script listing in the stage comes is
+# refactor-budget.sh's own source, which has neither VERI_STUCK_RETRIES nor REVISE_BUDGET
+# anywhere in it.
+stage5_diagram_blocks() {
+  awk '
+    /id="s5"/ && !done                { s5 = 1 }
+    s5 && /id="reference"/            { s5 = 0; done = 1 }
+    s5 && /<pre class="src"|<svg/     { blk = ""; inblk = 1 }
+    s5 && inblk                       { blk = blk " " $0 }
+    s5 && inblk && /<\/pre>|<\/svg>/  { print blk; inblk = 0 }
+  '
+}
+
+# diagrams_stage5 <name> <names-one-per-line>
+# diagrams_stage0 asked of stage 5's slice, and for the same reason: every one of these
+# names is already loose in the stage — in the rail, in the prose, in the listings of the
+# scripts themselves — so a whole-page or whole-slice match would be green before anything
+# is drawn. The demand is that ONE diagram block carries all of them together, because
+# names scattered through the prose around a picture are prose, not a picture.
+diagrams_stage5() {
+  local name="$1" wants="$2"
+  local d code page blocks blk found="" n=0; d="$("$SANDBOX")"
+  page="$(build "$d")" && code=0 || code=$?
+  blocks="$(printf '%s\n' "$page" | stage5_diagram_blocks)"
+  while IFS= read -r blk; do
+    [[ -n "$blk" ]] || continue
+    n=$((n + 1))
+    names_all "$blk" "$wants" && found="yes"
+  done <<< "$blocks"
+  if [[ "$code" == 0 && -n "$found" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want one diagram between id=\"s5\" and the reference section, naming: $wants"
+    echo "    got  $n diagram block(s) in that slice, none naming all of them"
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # --- helpers used as mutators (run with cwd = the sandbox) ---------------------
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
 sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak; }
@@ -779,6 +827,21 @@ stage3_figure "the stage-3 diagram lists both phase sets and says the verifier g
 'red | green | refactor | revise
 red | green | refactor | pin
 no rationale'
+# 19. stage 5's intro has to draw the three budgets. CLAUDE.md's invariant is that
+#    VERI_STUCK_RETRIES, REVISE_BUDGET and VERI_REFACTOR_BUDGET are three axes and never
+#    one knob — liveness, verdict and cost — and the thing that makes the invariant legible
+#    is that each axis ends somewhere different: killed-stuck through classify-bail.sh into
+#    a system bail, revise-exhausted through the same script into a process one, budget
+#    spent through refactor-budget.sh into an exit 3 that is not a bail at all. That is a
+#    shape, and prose reciting it is how a reader ends up believing two of the three are
+#    the same thing. So the three variables and the two scripts that enforce the ends must
+#    appear in one diagram block, in either of the page's existing idioms.
+diagrams_stage5 "the stage-5 intro draws the three budgets on three axes" \
+'VERI_STUCK_RETRIES
+REVISE_BUDGET
+VERI_REFACTOR_BUDGET
+refactor-budget.sh
+classify-bail.sh'
 
 echo "----"
 echo "$pass passed, $fail failed"

@@ -901,7 +901,38 @@ STAGES = [
          lede="Not every run finishes. When veri gives up, the one thing that determines "
               "what a human does next is why — and that answer is too important to be "
               "improvised each time.",
-         intro=""),
+         intro=r'''
+<p>
+  Three separate things can run out during a step, and veri counts each of them on its own
+  knob. They are not three sizes of the same budget: one is about
+  <strong>liveness</strong> &mdash; the leaf never answered at all; one is about the
+  <strong>verdict</strong> &mdash; it answered, and the blind verifier rejected it; one is
+  about <strong>cost</strong> &mdash; how many transforms one step's tidying is worth. What
+  makes that separation legible is where each axis ends:
+</p>
+<div class="ann"><div class="ann-head"><span class="fname">three budgets, three axes</span>
+<span class="fmeta">stage 5</span></div>
+<div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">liveness                     verdict                      cost</span>
+<span class="l">the leaf never answered      it answered, was rejected    one step's tidying, priced</span>
+<span class="l">VERI_STUCK_RETRIES     (1)   REVISE_BUDGET          (2)   VERI_REFACTOR_BUDGET   (2)</span>
+<span class="l">supervise.sh                 the conductor's revise loop  refactor-budget.sh</span>
+<span class="l">        &#9474;                            &#9474;                            &#9474;</span>
+<span class="l">        &#9660; spent                      &#9660; spent                      &#9660; spent</span>
+<span class="l">classify-bail.sh             classify-bail.sh             exit 3</span>
+<span class="l">  killed-stuck                 revise-exhausted             not a bail at all</span>
+<span class="l">        &#9474;                            &#9474;                            &#9474;</span>
+<span class="l">        &#9660;                            &#9660;                            &#9660;</span>
+<span class="l">system: the plumbing broke   process: the method spoke    verify-refactor: carry on</span></pre></div>
+<div class="ann-note"><p>
+  The bottom row is why one knob over any two of these would be a bug rather than a
+  simplification. A spent liveness budget means veri could not get an answer; a spent
+  verdict budget means it got one and the method said no. Collapsing them would report a
+  hung subprocess as a failure of the code under test.
+</p><p>
+  The third axis does not end in a bail at all. <code>refactor-budget.sh</code> returning
+  <span class="ec ec-3"><b>3</b></span> says <em>stop tidying</em>, not <em>stop</em>: the
+  run carries straight on to verifying the refactor it already has.
+</p></div></div></div>'''),
 ]
 
 UPKEEP_HTML = r'''
