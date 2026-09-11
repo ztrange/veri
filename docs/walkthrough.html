@@ -353,13 +353,13 @@ html{scroll-behavior:smooth}
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
-    17 shell scripts, 1208 lines, that let a language model run
+    17 shell scripts, 1216 lines, that let a language model run
     test-driven development on itself without being trusted to. Every script in full,
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
     <span><b>v0.21</b> latest version</span><span><b>17</b> scripts</span>
-    <span><b>1208</b> lines, all shown</span>
+    <span><b>1216</b> lines, all shown</span>
     <span><b>40</b> reference entries</span>
   </p>
 </header>
@@ -458,7 +458,7 @@ html{scroll-behavior:smooth}
   That line is the entire design philosophy: <strong>the model decides, the scripts
   enforce.</strong> Anything that must be exact and repeatable is pulled out of the fuzzy
   part and into a shell script with a unit test behind it. So the guarantees you can
-  actually rely on all live in the 1208 lines this page reproduces in full.
+  actually rely on all live in the 1216 lines this page reproduces in full.
 </p>
 <p>One more role, because it appears constantly:</p>
 <ul>
@@ -1532,7 +1532,7 @@ html{scroll-behavior:smooth}
   <span class="ec ec-3"><b>3</b></span> &mdash; nothing decided, ask the human.
 </p>
 <div class="contract"><dl><dt>Usage</dt><dd><code>detect-test-command.sh [repo-root]</code> (default: the current directory)</dd><dt>stdout</dt><dd>the one command that runs the target repo's full suite, and nothing else</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> a rule matched &mdash; the command is on stdout</span> <span class="ec ec-3"><b>3</b> no rule matched &mdash; nothing to do, ask the human</span></dd></dl></div>
-<div class="ann"><div class="ann-head"><span class="fname">detect-test-command.sh</span><span class="fmeta">130 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<div class="ann"><div class="ann-head"><span class="fname">detect-test-command.sh</span><span class="fmeta">138 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
 <span class="l"><span class="c"># detect-test-command.sh — print the one command that runs the full suite of a repo.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Prints the command on stdout and exits 0; prints nothing and exits 3 when it cannot</span></span>
@@ -1686,9 +1686,17 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the</span></span>
 <span class="l"><span class="c"># dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an</span></span>
 <span class="l"><span class="c"># answer rather than a failure `set -e` would abort on.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># The two look-inside spellings ask the identical question of different files, so it is named</span></span>
+<span class="l"><span class="c"># once: `declares &lt;file&gt; &lt;pattern&gt;` is true when the file is there and a line in it matches.</span></span>
+<span class="l"><span class="c"># Naming it also drops what the inline spelling needed and this does not — the path repeated</span></span>
+<span class="l"><span class="c"># twice per clause, and the `{ ...; }` braces that kept `&amp;&amp;` from binding tighter than the</span></span>
+<span class="l"><span class="c"># `||` separating the three markers.</span></span>
+<span class="l">declares() { [ -f <span class="s">"</span><span class="v">$1</span><span class="s">"</span> ] &amp;&amp; grep -qE <span class="s">"</span><span class="v">$2</span><span class="s">"</span> <span class="s">"</span><span class="v">$1</span><span class="s">"</span>; }</span>
+<span class="l"></span>
 <span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pytest.ini"</span> ] \</span>
-<span class="l">  || { [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pyproject.toml"</span> ] &amp;&amp; grep -qE <span class="s">'^\[tool\.pytest'</span> <span class="s">"</span><span class="v">$root</span><span class="s">/pyproject.toml"</span>; } \</span>
-<span class="l">  || { [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/setup.cfg"</span> ] &amp;&amp; grep -qE <span class="s">'^\[tool:pytest\]'</span> <span class="s">"</span><span class="v">$root</span><span class="s">/setup.cfg"</span>; }; <span class="k">then</span></span>
+<span class="l">  || declares <span class="s">"</span><span class="v">$root</span><span class="s">/pyproject.toml"</span> <span class="s">'^\[tool\.pytest'</span> \</span>
+<span class="l">  || declares <span class="s">"</span><span class="v">$root</span><span class="s">/setup.cfg"</span> <span class="s">'^\[tool:pytest\]'</span>; <span class="k">then</span></span>
 <span class="l">  answer <span class="s">'pytest -q'</span></span>
 <span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
   <strong>Rule 4: pytest configuration.</strong> Three files, asked about differently on
@@ -1704,9 +1712,16 @@ html{scroll-behavior:smooth}
   so it is read the same way, for the header pytest documents for <em>that</em> file:
   <code>[tool:pytest]</code>, spelled with a colon rather than pyproject.toml's dot.
 </p><p>
+  Those last two ask the identical question of different files, so it is named once:
+  <a class="tt" data-ref="p-func" href="#p-func">declares()</a> is true when the file is there and a line in it matches the pattern.
+  The name earns itself twice over &mdash; the inline spelling had to repeat each path within
+  its own clause, and had to wrap each clause in <code>{ ...; }</code> so that
+  <code>&amp;&amp;</code> did not bind tighter than the <code>||</code> separating the three
+  markers.
+</p><p>
   <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
   the exit status, not the dots, so quiet output is what a leaf should actually see.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 93"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 101"><span class="l"></span>
 <span class="l"><span class="c"># 5 and 6. The two compiled stacks each name their toolchain's own runner. Both markers are</span></span>
 <span class="l"><span class="c"># the manifest their toolchain requires at the repo root, and neither filename belongs to</span></span>
 <span class="l"><span class="c"># any other kind of project, so — unlike pyproject.toml above — the name alone is the whole</span></span>
@@ -1731,7 +1746,7 @@ html{scroll-behavior:smooth}
   without it, <code>go test</code> runs only the root package and quietly skips the rest of
   the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
   whole crate.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 109"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 117"><span class="l"></span>
 <span class="l"><span class="c"># 7. The last rule before giving up: a python repo that committed no runner configuration at</span></span>
 <span class="l"><span class="c"># all still has a suite if `tests/` holds files named `test_*.py`, and the stdlib runs them</span></span>
 <span class="l"><span class="c"># without anything installed — `python3` because a modern macOS has no `python`, `-m unittest</span></span>
@@ -1761,7 +1776,7 @@ html{scroll-behavior:smooth}
   is left as its own literal, non-existent filename, which <code>[ -f "$f" ]</code> is false
   for. The loop answers on the first real match and simply falls through when there was none,
   with no need for the <code>nullglob</code> shell option.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 126"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 134"><span class="l"></span>
 <span class="l"><span class="c"># Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the</span></span>
 <span class="l"><span class="c"># question to the human.</span></span>
 <span class="l"><span class="k">exit</span> 3</span></pre></div><div class="ann-note"><p>
@@ -4173,7 +4188,7 @@ html{scroll-behavior:smooth}
 <div class="tbl-wrap">
 <table>
   <thead><tr><th>Script</th><th class="num">Lines</th><th>Stage</th></tr></thead>
-  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">130</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">132</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">37</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">105</td><td>5 &middot; or bail</td></tr></tbody>
+  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">138</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">132</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">37</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">105</td><td>5 &middot; or bail</td></tr></tbody>
 </table>
 </div>
 <p>
@@ -4225,7 +4240,7 @@ html{scroll-behavior:smooth}
     <strong>veri, Annotated</strong> &mdash; the complete source of veri's
     <code>/solve-issue</code> conductor, read line by line.
   </p>
-  <p class="mono">17 scripts &middot; 1208 lines &middot; generated by docs/build-walkthrough.py</p>
+  <p class="mono">17 scripts &middot; 1216 lines &middot; generated by docs/build-walkthrough.py</p>
 </footer>
 </div>
 
