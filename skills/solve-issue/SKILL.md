@@ -70,8 +70,9 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   (hung past the heartbeat window or over the hard timeout, **after** its stuck-retry
   budget). A one-line status goes to stderr. Tunables: `VERI_HEARTBEAT` (silence window s,
   default 45), `VERI_TIMEOUT` (hard cap s, default 900), `VERI_STUCK_RETRIES` (extra
-  attempts after a killed-stuck, default 1 — the **liveness** axis, independent of the
-  conductor's verdict-axis `REVISE_BUDGET`). Because leaves **stream** (below), the default
+  attempts after a killed-stuck, default 1 — the **liveness** axis, independent of both the
+  conductor's verdict-axis `REVISE_BUDGET` and its cost-axis `VERI_REFACTOR_BUDGET`).
+  Because leaves **stream** (below), the default
   `VERI_HEARTBEAT` is a real silence window — a working leaf keeps it fresh, a genuinely
   hung one trips it — so just use the defaults; no need to pin heartbeat to the timeout.
   **Every leaf is launched through this — never call `run-leaf.sh` or `claude` directly.**
@@ -115,6 +116,18 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
   non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
+- `$S/refactor-budget.sh <count>` — **bound the refactor loop**, so a step costs the same on
+  every run. Given the number of transforms applied so far this step, it decides whether
+  another one may run: **exit 0** = still under budget (launch the next transform leaf),
+  **exit 3** = budget spent (stop the loop, go to verify-refactor), **exit 2** =
+  `VERI_REFACTOR_BUDGET` is not a whole number ≥ 0 — a misconfigured run, with a diagnostic
+  on stderr and **nothing on stdout**, fail-closed the way `classify-bail.sh` is on an
+  unrecognised cause. A one-line status goes to stdout on 0 and 3 alike (`refactor 2/2 —
+  budget spent`), so your narration can mirror it. `VERI_REFACTOR_BUDGET` (default 2) is a
+  **third** tunable on a **third axis**: `VERI_STUCK_RETRIES` is liveness (the leaf never
+  answered), `REVISE_BUDGET` is verdict (it answered and was rejected), this one is **cost
+  per step** — how much tidying one step is worth, decided once for the run instead of by
+  your judgement mid-loop.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Idempotent; prints `added` when it wrote the rule, `already present` when it
@@ -154,6 +167,12 @@ unauthenticated baseline never gets a cycle.
    cycle must not start on a red baseline.
 4. **Default branch.** Capture it for the PR base:
    `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
+5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. **Exit 2** means
+   `VERI_REFACTOR_BUDGET` is not a whole number ≥ 0 — stop and report its stderr diagnostic
+   verbatim. A budget that cannot be read is a poisoned baseline like a red suite, not a
+   decision, and catching it here is what lets the refactor loop treat exit 2 as impossible.
+   Exit 0 and exit 3 both mean it parses (3 only says the budget is 0 — a run with the
+   refactor loop switched off), so continue.
 
 ### 1. Read the issue, capture the spec, and branch (or resume)
 
@@ -297,9 +316,13 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
 
 1. **Loop the transforms.** Repeatedly launch a developer leaf that applies **one**
    behavior-preserving transformation (naming, duplication, clarity) and runs the **full
-   suite**, keeping it green. Build each prompt from the `refactor` template and launch
-   **through the supervisor** (exit **2** → **bail**):
+   suite**, keeping it green. **Ask the budget before each leaf**: `<count>` is how many
+   transforms this step has applied so far — start at **0**, and count only leaves that
+   reported `RESULT: applied …`, never one that reported `nothing left to tidy`. Build each
+   prompt from the `refactor` template and launch **through the supervisor** (exit **2** →
+   **bail**):
    ```
+   $S/refactor-budget.sh <count>   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ stop, go to 2
    touched="$(git diff --name-only HEAD~1 HEAD | paste -sd, -)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions
@@ -315,9 +338,15 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    **triangulation**), and code that is **overfit** (e.g. hard-codes the one tested case)
    **flagged as needing a triangulating test**, never hand-generalized. Each leaf's report
    ends with `RESULT:` (`applied <transform>, suite green` or `nothing left to tidy`) and
-   `FLAGS:` (overfit code and the case that would force the generality, or `none`). Keep
-   going until a leaf reports **nothing left to tidy**, carrying its flags into the
-   narration. Commit a transform only if it changed something:
+   `FLAGS:` (overfit code and the case that would force the generality, or `none`). The loop
+   has **two** stop conditions, and either ends it: a leaf reports **nothing left to tidy**,
+   or `refactor-budget.sh` exits **3** (the budget is spent). Carry the flags of every leaf
+   into the narration, then go to sub-step 2. Exit **2 cannot occur here** — preflight ran
+   the script once, so a `VERI_REFACTOR_BUDGET` that does not parse stopped the run before
+   any branch existed. The budget exists because a refactor leaf asked for one transform
+   almost always finds one, each smaller than the last: without it the conductor ends the
+   loop by judgement, which is the ad-hoc decision veri exists to remove. The leaf leaves its
+   transform **uncommitted**; you commit it, and only if it changed something:
    `git add -A && git commit -m "refactor: <what> (#<n>)"`.
 2. **Verify (blind, once) on the settled result.**
    `$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path> > .tdd/verify-refactor.reason`
@@ -325,6 +354,10 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    generality).
 3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
+   Say **how many transforms ran** and **which stop condition ended the loop** — a leaf's
+   `nothing left to tidy`, or the budget — mirroring `refactor-budget.sh`'s own status line
+   (`refactor 2/2 — budget spent`), so a reader can tell a step that was tidy from a step
+   that ran out of budget.
    - **PASS:** the step's cycle is complete — **mirror to the issue**: post a `### ✅ Step
      done` comment, and tick the matching acceptance criterion in the **issue body**
      (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Then loop back to
@@ -426,8 +459,9 @@ failure** (the methodology could not satisfy the blind verifier within budget), 
 the **last rejection reason**.
 
 `REVISE_BUDGET` (verdict axis) is **independent** of the supervisor's `VERI_STUCK_RETRIES`
-(liveness axis): the first governs a leaf that finished with a bad verdict, the second a
-leaf that never produced one. A `REJECT` is veri working as designed — the blind verifier
+(liveness axis) and of `VERI_REFACTOR_BUDGET` (cost axis): the first governs a leaf that
+finished with a bad verdict, the second a leaf that never produced one, the third how many
+transforms one step's tidying is worth. A `REJECT` is veri working as designed — the blind verifier
 refusing to rubber-stamp — so the bounded revise is a *correction*, never an excuse to keep
 hammering past the budget.
 

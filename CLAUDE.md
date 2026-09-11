@@ -73,8 +73,13 @@ Two traps, both already cost something once:
   rationale, so it cannot leak. Adding one would silently end the guarantee.
 - **The committed ledger is the source of truth** for which steps are done, ticked
   atomically with each step's green commit. The GitHub issue only mirrors it.
-- Two retry budgets, deliberately separate: `VERI_STUCK_RETRIES` (liveness — the leaf
-  never answered) and `REVISE_BUDGET` (verdict — it answered and was rejected).
+- **Three budgets on three axes, never merged**: `VERI_STUCK_RETRIES` (liveness — the leaf
+  never answered), `REVISE_BUDGET` (verdict — it answered and was rejected) and
+  `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's tidying is worth, since a
+  refactor leaf asked for one always finds one). One knob over any two of them would trade
+  a plumbing failure against a methodology one, or against how much a step is allowed to
+  cost. A bad `VERI_REFACTOR_BUDGET` is caught in preflight, not mid-loop, which is why
+  the refactor loop can treat `refactor-budget.sh` exit 2 as impossible.
 - **A tag is the one input to the page that changes without a commit.** The capability
   index is built from `git tag`, so cutting one leaves `docs/walkthrough.html` behind
   and `make docs-check` red until someone runs `make docs`. That window is deliberate —
