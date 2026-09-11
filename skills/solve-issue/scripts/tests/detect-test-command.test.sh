@@ -39,6 +39,13 @@ detect() {  # detect <repo-root> -> runs the script, sets $out/$code
 # `matched && ok` says what it is checking, where the raw conjunction only said how.
 matched() { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; }
 
+# note <label> -> appends one parenthesised note to $misread, saying which of a case's
+# seeded repos answered wrong and what it answered instead. Three cases below seed several
+# repos each and still report as one case, so each has to carry the label along with both
+# halves of the mismatch; naming the wording once keeps those three notes identical, which
+# is what makes them readable side by side when a case fails on more than one repo.
+note() { misread="$misread ($1: exit=$code want 0, stdout='$out' want '$want')"; }
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
@@ -87,8 +94,7 @@ for runner in npm pnpm yarn; do
 
   detect "$repo"
 
-  matched \
-    || misread="$misread ($runner: exit=$code want 0, stdout='$out' want '$want')"
+  matched || note "$runner"
 done
 
 [[ -z "$misread" ]] \
@@ -147,8 +153,7 @@ for marker in pytest.ini pyproject.toml; do
 
   detect "$repo"
 
-  matched \
-    || misread="$misread ($marker: exit=$code want 0, stdout='$out' want '$want')"
+  matched || note "$marker"
 done
 
 [[ -z "$misread" ]] \
@@ -180,8 +185,7 @@ for marker in go.mod Cargo.toml; do
 
   detect "$repo"
 
-  matched \
-    || misread="$misread ($marker: exit=$code want 0, stdout='$out' want '$want')"
+  matched || note "$marker"
 done
 
 [[ -z "$misread" ]] \
