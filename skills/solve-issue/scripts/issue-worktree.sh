@@ -80,26 +80,32 @@ if grep -qxF "worktree $path" <<<"$registry"; then
   exit 0
 fi
 
-# Never steal a checkout. If the branch is already checked out somewhere else, another
-# conductor owns that run, so refuse with exit 2 — "no answer could be obtained" — and name the
-# path, because it is the only thing that tells a human which run to go and look at.
-#
-# Walk the registry line by line, remember the path of the block we are inside, and answer with
-# it when a branch line names ours.
+# checkout_holder <branch> — the path of the worktree that has <branch> checked out, or nothing
+# at all when no worktree does. Walks the registry line by line, remembering the path of the
+# block it is inside, and answers with it when a branch line names the one asked about.
 #
 # `read -r key value` splits each line on whitespace into the first word and *all* the rest, so
 # a path containing spaces still arrives whole in $value; -r stops backslashes being eaten.
-# Feeding the loop with <<< rather than a `|` also keeps it in this shell — a pipeline would run
-# it in a subshell and throw $holder away at the end.
-holder=""
-seen=""
-while read -r key value; do
-  case "$key" in
-    worktree) seen="$value" ;;
-    branch) if [[ "$value" == "refs/heads/$branch" ]]; then holder="$seen"; break; fi ;;
-  esac
-done <<<"$registry"
+# `local` keeps the walk's bookkeeping out of the rest of the script. The closing `return 0`
+# pins the no-match answer to success: a while loop exits with the status of the last command
+# its *body* ran (not the `read` that ended it), which here is an unmatched `if` and so happens
+# to be 0 already — but it would be 1 if that line were ever reworked into a bare `[[ ]]`, and
+# `set -e` would then kill the script on the ordinary "nobody holds this branch" case.
+checkout_holder() {
+  local key value seen=""
+  while read -r key value; do
+    case "$key" in
+      worktree) seen="$value" ;;
+      branch) if [[ "$value" == "refs/heads/$1" ]]; then printf '%s\n' "$seen"; return 0; fi ;;
+    esac
+  done <<<"$registry"
+  return 0
+}
 
+# Never steal a checkout. If the branch is already checked out somewhere else, another
+# conductor owns that run, so refuse with exit 2 — "no answer could be obtained" — and name the
+# path, because it is the only thing that tells a human which run to go and look at.
+holder="$(checkout_holder "$branch")"
 if [[ -n "$holder" ]]; then
   echo "issue-worktree: branch $branch is already checked out in $holder — another conductor owns it" >&2
   exit 2
