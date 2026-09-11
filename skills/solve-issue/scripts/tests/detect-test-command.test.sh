@@ -163,6 +163,30 @@ done
 [[ -z "$misread" ]] \
   && ok || no "pytest.ini, or pyproject.toml with a [tool.pytest section, or setup.cfg with a [tool:pytest] one, yields pytest -q —$misread"
 
+# 4b. the other half of rule 4's setup.cfg spelling: a `setup.cfg` with no `[tool:pytest]`
+# section is not a pytest marker, so the repo prints nothing and exits 3. The case above
+# says the header is found; this one says the *filename* is not what answers. A rule that
+# keyed on `setup.cfg` existing — the way it legitimately keys on `pytest.ini` existing —
+# passes case 4 and fails here, and that is the confusion worth catching: setup.cfg is
+# packaging metadata any python project may carry, whatever runs its suite.
+#
+# `[metadata]` is what such a repo really holds, and it is seeded with a key under it so
+# the file is not merely a bare header. Nothing else is seeded: any other marker would be
+# answered by another rule and the repo would never reach rule 4's verdict at all.
+#
+# Both halves are the opposite of `matched`'s — empty stdout, and 3 rather than 0 — so this
+# asserts them directly, the same way case 8 does. 3 is "nothing to do", not an error: it
+# is the conductor's cue to ask the human, which is the right outcome for a repo that never
+# said pytest runs here.
+repo="$work/setupcfg-no-pytest"
+mkdir -p "$repo"
+printf '[metadata]\nname = demo\n' > "$repo/setup.cfg"
+
+detect "$repo"
+
+[[ "$code" == 3 ]] && [[ -z "$out" ]] \
+  && ok || no "a setup.cfg with no [tool:pytest] section prints nothing and exits 3 (exit=$code want 3, stdout='$out' want '')"
+
 # 5. the two compiled stacks each name their toolchain's own runner: a `go.mod` yields
 # `go test ./...`, a `Cargo.toml` yields `cargo test`. One case, two seeded repos, the same
 # shape as the node runners and the two pytest spellings — two markers answering with two
