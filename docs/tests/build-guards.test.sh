@@ -167,6 +167,18 @@ accepts_without() {
   fi
 }
 
+# region_between <text> <start> <end>
+# The slice of <text> that lies strictly between the first <start> and the first <end>
+# after it, printed on stdout. Missing either landmark prints nothing: a caller asking
+# "is it in this region" of a text that has no such region must get no, never a fallback
+# to matching against the whole thing.
+region_between() {
+  local text="$1" start="$2" end="$3" region
+  [[ "$text" == *"$start"*"$end"* ]] || return 0
+  region="${text#*"$start"}"        # drop everything up to and including the start landmark
+  printf '%s' "${region%%"$end"*}"  # and everything from the end landmark on
+}
+
 # opens_with <name> <wants> [mutator...]
 # Every assertion above asks its question of the whole page, which is no use for a claim
 # about where something sits. This one cuts the page down to the slice the build puts
@@ -178,20 +190,14 @@ accepts_without() {
 # be green today.
 # <wants> is ONE argument holding one required substring per line, for the same reason
 # tags_git takes its spans that way: the claim is that all of them are in that one slice.
-# A page missing either landmark has no slice at all, and fails rather than falling back
-# to matching against everything.
 opens_with() {
   local name="$1" wants="$2"; shift 2
   local d code page region want missing=""
-  local mast='</header>' what='<h2 id="what"'
   d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
-  region=""
-  if [[ "$page" == *"$mast"*"$what"* ]]; then
-    region="${page#*"$mast"}"          # drop the rail, the crumb and the masthead
-    region="${region%%"$what"*}"       # keep what precedes the old opening section
-  fi
+  # after the rail, the crumb and the masthead; before the old opening section
+  region="$(region_between "$page" '</header>' '<h2 id="what"')"
   while IFS= read -r want; do
     [[ "$region" == *"$want"* ]] || missing="$missing$want"$'\n'
   done <<< "$wants"
