@@ -33,6 +33,12 @@ detect() {  # detect <repo-root> -> runs the script, sets $out/$code
   code=$?
 }
 
+# matched -> true when the last detect() answered the contract: exit 0 and $want on
+# stdout. Every case asserts those same two halves against those same two variables, so
+# the pair is spelled out once here instead of at each call site — and a case that reads
+# `matched && ok` says what it is checking, where the raw conjunction only said how.
+matched() { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; }
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
@@ -51,7 +57,7 @@ printf 'test:\n\techo hi\n' > "$repo/Makefile"
 
 detect "$repo"
 
-{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
+matched \
   && ok || no ".veri/test-command beats package.json and Makefile, printed verbatim (exit=$code want 0, stdout='$out' want '$want')"
 
 # 2. a package.json carrying a scripts.test entry names the node runner, and which runner is
@@ -70,6 +76,7 @@ detect "$repo"
 # only a run that collected nothing passes.
 misread=""
 for runner in npm pnpm yarn; do
+  want="$runner test"
   repo="$work/node-$runner"
   mkdir -p "$repo"
   printf '{"scripts":{"test":"jest"}}\n' > "$repo/package.json"
@@ -80,8 +87,8 @@ for runner in npm pnpm yarn; do
 
   detect "$repo"
 
-  { [[ "$code" == 0 ]] && [[ "$out" == "$runner test" ]]; } \
-    || misread="$misread ($runner: exit=$code want 0, stdout='$out' want '$runner test')"
+  matched \
+    || misread="$misread ($runner: exit=$code want 0, stdout='$out' want '$want')"
 done
 
 [[ -z "$misread" ]] \
@@ -109,7 +116,7 @@ printf 'test:\n\techo hi\n' > "$repo/Makefile"
 
 detect "$repo"
 
-{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
+matched \
   && ok || no "Makefile with a test: target beats pytest.ini (exit=$code want 0, stdout='$out' want '$want')"
 
 # 4. a python repo that declares pytest configuration names `pytest -q`. Two spellings are
@@ -140,7 +147,7 @@ for marker in pytest.ini pyproject.toml; do
 
   detect "$repo"
 
-  { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
+  matched \
     || misread="$misread ($marker: exit=$code want 0, stdout='$out' want '$want')"
 done
 
