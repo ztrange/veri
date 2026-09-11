@@ -29,16 +29,20 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 # target → `make test`), so a stdout of the override line can only mean the override was
 # consulted first, not that inference happened to agree. The command itself is one no
 # rule could ever infer — flags and all — so any normalising or re-quoting shows up.
+#
+# One name for the command, used to seed the file and to check stdout: "verbatim" is the
+# claim, so the bytes written in and the bytes expected out must be the same bytes.
+want='bin/run-suite --all --strict'
 repo="$work/override"
 mkdir -p "$repo/.veri"
-printf 'bin/run-suite --all --strict\n' > "$repo/.veri/test-command"
+printf '%s\n' "$want" > "$repo/.veri/test-command"
 printf '{"scripts":{"test":"jest"}}\n' > "$repo/package.json"
 printf 'test:\n\techo hi\n' > "$repo/Makefile"
 
 out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
 
-{ [[ "$code" == 0 ]] && [[ "$out" == "bin/run-suite --all --strict" ]]; } \
-  && ok || no ".veri/test-command beats package.json and Makefile, printed verbatim (exit=$code want 0, stdout='$out' want 'bin/run-suite --all --strict')"
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
+  && ok || no ".veri/test-command beats package.json and Makefile, printed verbatim (exit=$code want 0, stdout='$out' want '$want')"
 
 echo "----"
 echo "$pass passed, $fail failed"
