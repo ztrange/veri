@@ -32,9 +32,15 @@ src = pathlib.Path(sys.argv[1])
 issues = json.loads((src / "issues.json").read_text())
 prs = json.loads((src / "prs.json").read_text())
 
-# Openness is the whole of what a state is read for — an issue must be open to be taken,
-# and a blocker must not be — so it is normalised once, here, into a set of numbers.
-open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPEN"}
+# Openness is the whole of what a state is read for, and it is read the same way on both
+# kinds of record: `gh` writes an issue state as OPEN/CLOSED and a PR state as
+# OPEN/CLOSED/MERGED, and only the first of either is open.
+def is_open(record):
+    return record.get("state", "").upper() == "OPEN"
+
+# An issue must be open to be taken and a blocker must not be, so the open issues are
+# normalised once, here, into a set of numbers.
+open_issues = {i["number"] for i in issues if is_open(i)}
 
 # The issues an open PR has already claimed, by the `Closes #<n>` GitHub reads to link the
 # two. Only open PRs claim anything: once one is merged or closed the issue is either done
@@ -42,7 +48,7 @@ open_issues = {i["number"] for i in issues if i.get("state", "").upper() == "OPE
 claimed = {
     int(n)
     for pr in prs
-    if pr.get("state", "").upper() == "OPEN"
+    if is_open(pr)
     for n in re.findall(r"\bCloses #(\d+)", pr.get("body") or "")
 }
 
@@ -56,11 +62,11 @@ def solvable(issue):
     """The four conditions the spec names, all of which must hold at once. They are named
     here rather than run as early returns so the function reads as the definition it is."""
     number = issue["number"]
-    is_open = number in open_issues
+    still_open = number in open_issues
     opted_in = any(l.get("name") == "ready-for-agent" for l in issue.get("labels", []))
     unclaimed = number not in claimed
     unblocked = all(n not in open_issues for n in blockers(issue.get("body", "")))
-    return is_open and opted_in and unclaimed and unblocked
+    return still_open and opted_in and unclaimed and unblocked
 
 numbers = sorted(i["number"] for i in issues if solvable(i))
 for number in numbers:
