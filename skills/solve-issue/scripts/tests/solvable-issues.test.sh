@@ -22,6 +22,17 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
+# A fixture directory for one case, printed so the caller can capture it. Both halves of
+# the override's contract are seeded here: the directory itself, and the `prs.json` every
+# case so far shares — no case yet involves an open PR — which leaves each case below
+# writing only the one file it actually varies, its `issues.json`.
+fixture() {  # fixture <name> -> path
+  local dir="$work/$1"
+  mkdir -p "$dir"
+  printf '[]\n' > "$dir/prs.json"
+  echo "$dir"
+}
+
 # 1. The base case, and the one the VERI_GH_JSON override exists to make testable: a single
 # open issue, carrying the ready-for-agent opt-in label, naming no blocker, with no open PR
 # claiming it. Nothing stands between veri and a run on it, so it is listed on its own line.
@@ -30,8 +41,7 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 # write the section (#41's own `## Blocked by` reads `None.`), so what makes an issue
 # unblocked is the ABSENCE of a `#<n>` reference under the heading, not the literal string
 # `None`. Asserting against the real format keeps the parser honest about veri's own repo.
-fx="$work/unblocked"
-mkdir -p "$fx"
+fx="$(fixture unblocked)"
 cat > "$fx/issues.json" <<'JSON'
 [
   {
@@ -56,8 +66,7 @@ out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 # and must not be listed — #49 itself still is, since it carries the label and names no
 # blocker of its own. Close #49 and #50 becomes takeable; #49 drops out because a closed
 # issue is never solvable, so the same fixture pair yields "49" then "50".
-fx="$work/blocked"
-mkdir -p "$fx"
+fx="$(fixture blocked)"
 issues() {  # issues <state-of-49>
   cat <<JSON
 [
@@ -78,7 +87,6 @@ issues() {  # issues <state-of-49>
 ]
 JSON
 }
-printf '[]\n' > "$fx/prs.json"
 
 issues OPEN > "$fx/issues.json"
 while_open="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && open_code=0 || open_code=$?
