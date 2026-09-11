@@ -160,8 +160,9 @@ def code_block(lines, start, origin="?", marks=None):
         for cls, text in toks:
             esc = html.escape(text, quote=False)
             parts.append('<span class="%s">%s</span>' % (cls, esc) if cls else esc)
+        mark, starts = runs.get(lineno, (None, False))
         out.append("%s%s</span>"
-                   % (_line_open(*runs.get(lineno, (None, False))), "".join(parts)))
+                   % (_line_open(mark, starts), "".join(parts)))
     return ('<pre class="src" style="counter-reset: ln %d">%s</pre>'
             % (start - 1, "\n".join(out)))
 
