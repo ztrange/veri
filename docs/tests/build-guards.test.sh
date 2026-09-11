@@ -531,14 +531,25 @@ diagrams_stage5() { diagrams_in_slice "$1" 'id="s5"' 'id="reference"' 'the refer
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
 sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak; }
 
-# rewrite_line_as_feat <file> <line-no> <text> <subject> <tag>
-# Rewrite ONE line of a script in place, then land it as its own commit and cut the tag
-# it ships in. Rewriting rather than adding is deliberate: the line count does not move,
-# so the coverage guard has nothing to say and the case tests only the version layer.
-rewrite_line_as_feat() {
-  local file="$1" lineno="$2" text="$3" subject="$4" tag="$5"
-  sed -i.bak "${lineno}s|.*|$text|" "$file" && rm -f "$file.bak"
+# rewrite_hunk_as_feat <file> <first> <last> <text> <subject> <tag>
+# Rewrite a RANGE of lines of a script in place, then land the whole range as ONE commit
+# and cut the tag it ships in — one commit, so blame answers the same sha for every line
+# in it and they are therefore one hunk, which is what a hunk needs in order to have an
+# extent worth reporting. Rewriting rather than adding is deliberate: the line count does
+# not move, so the coverage guard has nothing to say and the case tests only the version
+# layer.
+rewrite_hunk_as_feat() {
+  local file="$1" first="$2" last="$3" text="$4" subject="$5" tag="$6"
+  sed -i.bak "${first},${last}s|.*|$text|" "$file" && rm -f "$file.bak"
   git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
+}
+
+# rewrite_line_as_feat <file> <line-no> <text> <subject> <tag>
+# The one-line hunk: the range above with both ends on the same line. Most cases here
+# want exactly that, and naming the line once rather than twice keeps them readable.
+rewrite_line_as_feat() {
+  local file="$1" lineno="$2"; shift 2
+  rewrite_hunk_as_feat "$file" "$lineno" "$lineno" "$@"
 }
 
 # rewrite_line_as_refactor <file> <line-no> <text> <subject>
@@ -551,19 +562,8 @@ rewrite_line_as_refactor() {
   sed -i.bak "${lineno}s|.*|$text|" "$file" && rm -f "$file.bak"
   git add -A && git commit -qm "$subject"
 }
-
-# rewrite_hunk_as_feat <file> <first> <last> <text> <subject> <tag>
-# rewrite_line_as_feat over a RANGE of lines, landed as ONE commit — so blame answers the
-# same commit for all of them and they are therefore one hunk, which is what a hunk needs
-# in order to have an extent worth reporting. Rewriting rather than adding, for the same
-# reason as the single-line helper: the line count does not move.
-rewrite_hunk_as_feat() {
-  local file="$1" first="$2" last="$3" text="$4" subject="$5" tag="$6"
-  sed -i.bak "${first},${last}s|.*|$text|" "$file" && rm -f "$file.bak"
-  git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
-}
-export -f append_line_to_script sed_commentary rewrite_line_as_feat rewrite_line_as_refactor
-export -f rewrite_hunk_as_feat
+export -f append_line_to_script sed_commentary rewrite_line_as_refactor
+export -f rewrite_hunk_as_feat rewrite_line_as_feat
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
