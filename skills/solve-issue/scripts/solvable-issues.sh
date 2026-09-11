@@ -36,20 +36,21 @@ if [[ "${1:-}" == "--repo" ]]; then
   repo_args=(--repo "${2:?usage: solvable-issues.sh [--repo owner/name]}")
 fi
 
-# Both documents are asked of gh the same way — the same optional `--repo` scoping, the same
-# JSON on stdout — so the scoping is applied in one place rather than spelled out at each
-# call site, which is also the only place that awkward expansion has to be understood.
-gh_json() {  # gh_json issue list --json number,… -> that document on stdout
-  gh "$@" "${repo_args[@]+"${repo_args[@]}"}"
+# One document, from whichever of the two sources is in force. Both the override and the
+# `--repo` scoping are decided here rather than around the pair of fetches, so each document
+# is named exactly once — beside the gh call that produces it and the fixture that stands in
+# for it — and this stays the only place that awkward `[@]+` expansion has to be understood.
+gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
+  local fixture="$1"; shift
+  if [[ -n "${VERI_GH_JSON:-}" ]]; then
+    cat "$VERI_GH_JSON/$fixture"
+  else
+    gh "$@" "${repo_args[@]+"${repo_args[@]}"}"
+  fi
 }
 
-if [[ -n "${VERI_GH_JSON:-}" ]]; then
-  issues_json="$(cat "$VERI_GH_JSON/issues.json")"
-  prs_json="$(cat "$VERI_GH_JSON/prs.json")"
-else
-  issues_json="$(gh_json issue list --json number,title,labels,body,state)"
-  prs_json="$(gh_json pr list --json body,state)"
-fi
+issues_json="$(gh_json issues.json issue list --json number,title,labels,body,state)"
+prs_json="$(gh_json prs.json pr list --json body,state)"
 
 exec python3 -c '
 import json, re, sys
