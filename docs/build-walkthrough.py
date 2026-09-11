@@ -290,7 +290,7 @@ ORIGIN = gitmeta.origin_url(ROOT)
 # count them — read separately from META because it is a property of the history, not of
 # the tags: an untagged repo still knows the number, and the claim it lands in is prose
 # that belongs on the page either way.
-SELF_SOLVED = gitmeta.solved_by_itself(ROOT)
+SOLVED_BY_ITSELF = gitmeta.solved_by_itself(ROOT)
 
 
 def nav_entries(meta=None):
@@ -394,8 +394,8 @@ def main():
     grand = sum(totals.values())
 
     # The issues-solved-by-itself aside, or nothing at all when the tree cannot count
-    # them (SELF_SOLVED is None) — the claim around it reads the same either way.
-    self_count = com.SELF_COUNT_HTML % SELF_SOLVED if SELF_SOLVED else ""
+    # them (SOLVED_BY_ITSELF is None) — the claim around it reads the same either way.
+    solved_count = com.SOLVED_COUNT_HTML % SOLVED_BY_ITSELF if SOLVED_BY_ITSELF else ""
 
     entries = nav_entries(META)
     page = com.PAGE_TEMPLATE.format(
@@ -405,7 +405,7 @@ def main():
         rail=render_rail(entries),
         nav=render_nav_json(entries),
         intro=(refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand))
-               .replace("{{SELF}}", self_count)),
+               .replace("{{SOLVED}}", solved_count)),
         stages=stages_html,
         reference=reference_html,
         capabilities=(com.CAPABILITIES_HTML.replace("{{ROWS}}", render_versions(META))
