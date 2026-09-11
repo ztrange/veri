@@ -2798,21 +2798,23 @@ SCRIPTS += [dict(
     file="refactor-budget.sh", stage=5, id="refactor-budget",
     tagline="the refactor loop's stopping rule",
     blurb=r'''<p>
-  Nine lines of logic under a thirteen-line comment &mdash;
+  Seventeen lines of logic under a sixteen-line header &mdash;
   <a href="#classify-bail"><code>classify-bail.sh</code></a>'s closest sibling: one small
-  decision, the same fail-closed shape on a bad input, and a status line the conductor
-  reads instead of composing one in its own voice.
+  decision, the same fail-closed shape on a bad input &mdash; whether the bad input is the
+  budget or the count &mdash; and a status line the conductor reads instead of composing
+  one in its own voice.
 </p>''',
     contract=[
-        ("Usage", "<code>refactor-budget.sh &lt;count&gt;</code>"),
+        ("Usage", "<code>refactor-budget.sh &lt;count&gt;</code>, "
+                  "<code>&lt;count&gt;</code> a whole number &ge; 0"),
         ("stdout", "one status line either way, e.g. "
                    "<code>refactor 1/2 &mdash; another transform may run</code>"),
         ("Exit", '<span class="ec ec-0"><b>0</b> below budget, another transform may run</span> '
                  '<span class="ec ec-3"><b>3</b> budget spent</span> '
-                 '<span class="ec ec-2"><b>2</b> misconfigured budget</span>'),
+                 '<span class="ec ec-2"><b>2</b> misconfigured budget or malformed count</span>'),
     ],
     chunks=[
-        dict(lines=(1, 14), html=r'''<p>
+        dict(lines=(1, 17), html=r'''<p>
   The refactor loop applies one behavior-preserving transform per leaf, in sequence, and
   used to stop on the leaf's own word: it kept going until one reported &ldquo;nothing left
   to tidy&rdquo;. That is a judgement call made by the same leaf whose work is being judged
@@ -2820,20 +2822,23 @@ SCRIPTS += [dict(
   script gives the loop a count the conductor can check instead, so a step costs the same
   whether the model feels done after one transform or eight.
 </p><p>
-  {{p-strict|set -euo pipefail}} on line 14, same as everywhere else.
+  {{p-strict|set -euo pipefail}} on line 17, same as everywhere else.
 </p>'''),
-        dict(lines=(15, 18), html=r'''<p>
+        dict(lines=(18, 21), html=r'''<p>
   <code>count="${1:-}"</code> reuses {{p-guard|the empty-default guard}} rather than
   requiring the argument outright, so a missing one does not abort under
   {{p-strict|set -u}} &mdash; the same courtesy
   <a href="#classify-bail"><code>classify-bail.sh</code></a> gives its own single argument.
+  It does not <em>accept</em> the missing argument: it lets it reach the guard below as the
+  empty string, where it is refused deliberately rather than by an abort whose exit code
+  would be the wrong one.
 </p><p>
   <code>budget="${VERI_REFACTOR_BUDGET:-2}"</code> is {{p-default|the tunable-with-default
   idiom}} every tunable in veri uses: read the environment, else fall back to a literal.
   It is what lets a test pin <code>VERI_REFACTOR_BUDGET=0</code> &mdash; the &ldquo;loop is
   off&rdquo; case &mdash; without touching the script.
 </p>'''),
-        dict(lines=(19, 23), html=r'''<p>
+        dict(lines=(22, 26), html=r'''<p>
   {{p-regex|The regex guard}} runs <strong>before</strong> the budget is used for anything
   else, and that order is the point. Handing a non-number to <code>[[ … -lt … ]]</code> is
   not a false answer &mdash; it is a bash error, integer expression expected &mdash; and a
@@ -2847,9 +2852,22 @@ SCRIPTS += [dict(
   stdout &mdash; a misconfigured run is a system failure, not a status the conductor should
   ever mistake for one.
 </p>'''),
-        dict(lines=(24, 29), html=r'''<p>
+        dict(lines=(27, 31), html=r'''<p>
+  The count is the script's one positional, and until issue&nbsp;#64 it was the one input
+  that went unchecked &mdash; straight into the comparison below. Each bad shape produced a
+  different wrong answer rather than a refusal: <code>abc</code> was read as a variable name
+  and {{p-strict|set -u}} aborted with <span class="ec ec-1"><b>1</b></span>, the code
+  reserved for a clean negative; <code>-1</code> and a missing argument both answered
+  &ldquo;another transform may run&rdquo; with a garbage status line on stdout.
+</p><p>
+  So the count gets the guard the budget already had, in the same shape and for the same
+  reason. The two checks stay separate statements with their own message because they name
+  different things to fix &mdash; a misconfigured environment against a malformed call
+  &mdash; and the diagnostic is the only place a human learns which.
+</p>'''),
+        dict(lines=(32, 37), html=r'''<p>
   The comparison itself is {{p-test|a plain <code>[[ -lt ]]</code>}}, safe now that the
-  guard above has ruled out anything that isn't a whole number. Either branch prints one
+  guards above have ruled out anything that isn't a whole number. Either branch prints one
   line to stdout &mdash; the status the header promises, and the line the conductor mirrors
   into its own narration rather than composing one itself.
 </p><p>
@@ -2857,8 +2875,8 @@ SCRIPTS += [dict(
   <span class="ec ec-0"><b>0</b></span> to keep the loop going, and
   <span class="ec ec-3"><b>3</b></span> &mdash; &ldquo;nothing to do&rdquo;, not an error
   &mdash; once the budget is spent. There is no verdict to reject here, so
-  <span class="ec ec-1"><b>1</b></span> never appears; the misconfigured-budget case above
-  is a <span class="ec ec-2"><b>2</b></span> instead, a different kind of failure entirely
+  <span class="ec ec-1"><b>1</b></span> never appears; the two refusals above are a
+  <span class="ec ec-2"><b>2</b></span> instead, a different kind of failure entirely
   &mdash; the plumbing broke, rather than the loop simply running out.
 </p>'''),
     ]),

@@ -88,6 +88,40 @@ for bad in two -1; do
 done
 report "$name"
 
+# 4. the count — the script's one positional — gets the same fail-closed treatment as the
+#    budget does in case 3: `abc` is not a number, `-1` is below zero and a missing
+#    argument is no number at all, so none of the three is a decision the script can
+#    make. Each is exit 2, a diagnostic on stderr and nothing on stdout, so a conductor
+#    mirroring stdout cannot mistake a malformed call for a real status. Three ways to
+#    get one argument wrong, one criterion, so they are one case; `problems` says which
+#    call broke.
+#
+#    `count_probe <label> [args...]` runs the script with exactly the arguments it is
+#    given and collects its problems. A function rather than an argv array because the
+#    "no argument" probe needs an argument list of length zero, and under `set -u` bash
+#    3.2 rejects "${arr[@]}" on an empty array while accepting "$@" with no positionals.
+count_probe() {
+  local label="$1"; shift
+  # Separate streams into their own files: the case is about which stream carries what.
+  local out err code
+  out="$(mktemp)" err="$(mktemp)"
+  env -u VERI_REFACTOR_BUDGET "$BUDGET" "$@" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("$label: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("$label: want no status on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ -s "$err" ]] ||
+    problems+=("$label: want a diagnostic on stderr, got nothing")
+  rm -f "$out" "$err"
+}
+
+name="a non-numeric, negative or missing count exits 2 with a diagnostic on stderr and no status on stdout"
+problems=()
+count_probe "count abc" abc
+count_probe "count -1" -1
+count_probe "no argument"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

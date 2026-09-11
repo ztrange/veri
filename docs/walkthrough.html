@@ -353,13 +353,13 @@ html{scroll-behavior:smooth}
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
-    17 shell scripts, 1197 lines, that let a language model run
+    17 shell scripts, 1205 lines, that let a language model run
     test-driven development on itself without being trusted to. Every script in full,
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
     <span><b>v0.20</b> latest version</span><span><b>17</b> scripts</span>
-    <span><b>1197</b> lines, all shown</span>
+    <span><b>1205</b> lines, all shown</span>
     <span><b>40</b> reference entries</span>
   </p>
 </header>
@@ -405,7 +405,7 @@ html{scroll-behavior:smooth}
 </p>
 <p>
   <strong>veri is built with itself.</strong> Every capability on this page was scoped,
-  tested and landed by a veri run against this repository, <span class="solved-n">13</span> issues so far &mdash; the same order,
+  tested and landed by a veri run against this repository, <span class="solved-n">14</span> issues so far &mdash; the same order,
   under the same blind verification, as everything described below. The figure is counted
   out of git when this page is built, not typed into it, so it cannot quietly go stale.
 </p>
@@ -458,7 +458,7 @@ html{scroll-behavior:smooth}
   That line is the entire design philosophy: <strong>the model decides, the scripts
   enforce.</strong> Anything that must be exact and repeatable is pulled out of the fuzzy
   part and into a shell script with a unit test behind it. So the guarantees you can
-  actually rely on all live in the 1197 lines this page reproduces in full.
+  actually rely on all live in the 1205 lines this page reproduces in full.
 </p>
 <p>One more role, because it appears constantly:</p>
 <ul>
@@ -3602,13 +3602,14 @@ html{scroll-behavior:smooth}
 
 <h3 id="refactor-budget"><code>refactor-budget.sh</code> &mdash; the refactor loop's stopping rule<span class="vbadge">since <b>v0.17</b></span></h3>
 <p>
-  Nine lines of logic under a thirteen-line comment &mdash;
+  Seventeen lines of logic under a sixteen-line header &mdash;
   <a href="#classify-bail"><code>classify-bail.sh</code></a>'s closest sibling: one small
-  decision, the same fail-closed shape on a bad input, and a status line the conductor
-  reads instead of composing one in its own voice.
+  decision, the same fail-closed shape on a bad input &mdash; whether the bad input is the
+  budget or the count &mdash; and a status line the conductor reads instead of composing
+  one in its own voice.
 </p>
-<div class="contract"><dl><dt>Usage</dt><dd><code>refactor-budget.sh &lt;count&gt;</code></dd><dt>stdout</dt><dd>one status line either way, e.g. <code>refactor 1/2 &mdash; another transform may run</code></dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> below budget, another transform may run</span> <span class="ec ec-3"><b>3</b> budget spent</span> <span class="ec ec-2"><b>2</b> misconfigured budget</span></dd></dl></div>
-<div class="ann"><div class="ann-head"><span class="fname">refactor-budget.sh</span><span class="fmeta">29 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<div class="contract"><dl><dt>Usage</dt><dd><code>refactor-budget.sh &lt;count&gt;</code>, <code>&lt;count&gt;</code> a whole number &ge; 0</dd><dt>stdout</dt><dd>one status line either way, e.g. <code>refactor 1/2 &mdash; another transform may run</code></dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> below budget, another transform may run</span> <span class="ec ec-3"><b>3</b> budget spent</span> <span class="ec ec-2"><b>2</b> misconfigured budget or malformed count</span></dd></dl></div>
+<div class="ann"><div class="ann-head"><span class="fname">refactor-budget.sh</span><span class="fmeta">37 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
 <span class="l"><span class="c"># refactor-budget.sh — bound the refactor loop, so a step costs the same on every run.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Given the number of transforms done so far as $1, say whether another one may run:</span></span>
@@ -3620,7 +3621,10 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># exit 2, with nothing on stdout, so a conductor mirroring stdout cannot mistake it for a</span></span>
 <span class="l"><span class="c"># real status.</span></span>
 <span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># Usage:   refactor-budget.sh &lt;count&gt;</span></span>
+<span class="l"><span class="c"># The count gets the same treatment, for the same reason: a malformed call is not a</span></span>
+<span class="l"><span class="c"># decision either.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Usage:   refactor-budget.sh &lt;count&gt;   # &lt;count&gt; a whole number &gt;= 0</span></span>
 <span class="l"><span class="k">set</span> -euo pipefail</span></pre></div><div class="ann-note"><p>
   The refactor loop applies one behavior-preserving transform per leaf, in sequence, and
   used to stop on the leaf's own word: it kept going until one reported &ldquo;nothing left
@@ -3629,8 +3633,8 @@ html{scroll-behavior:smooth}
   script gives the loop a count the conductor can check instead, so a step costs the same
   whether the model feels done after one transform or eight.
 </p><p>
-  <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> on line 14, same as everywhere else.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 14"><span class="l"></span>
+  <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> on line 17, same as everywhere else.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 17"><span class="l"></span>
 <span class="l">count=<span class="s">"</span><span class="v">${1:-}</span><span class="s">"</span></span>
 <span class="l">budget=<span class="s">"</span><span class="v">${VERI_REFACTOR_BUDGET:-2}</span><span class="s">"</span></span>
 <span class="l"></span></pre></div><div class="ann-note"><p>
@@ -3638,12 +3642,15 @@ html{scroll-behavior:smooth}
   requiring the argument outright, so a missing one does not abort under
   <a class="tt" data-ref="p-strict" href="#p-strict">set -u</a> &mdash; the same courtesy
   <a href="#classify-bail"><code>classify-bail.sh</code></a> gives its own single argument.
+  It does not <em>accept</em> the missing argument: it lets it reach the guard below as the
+  empty string, where it is refused deliberately rather than by an abort whose exit code
+  would be the wrong one.
 </p><p>
   <code>budget="${VERI_REFACTOR_BUDGET:-2}"</code> is <a class="tt" data-ref="p-default" href="#p-default">the tunable-with-default
   idiom</a> every tunable in veri uses: read the environment, else fall back to a literal.
   It is what lets a test pin <code>VERI_REFACTOR_BUDGET=0</code> &mdash; the &ldquo;loop is
   off&rdquo; case &mdash; without touching the script.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 18"><span class="l"><span class="k">if</span> [[ ! <span class="s">"</span><span class="v">$budget</span><span class="s">"</span> =~ ^[0-9]+$ ]]; <span class="k">then</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 21"><span class="l"><span class="k">if</span> [[ ! <span class="s">"</span><span class="v">$budget</span><span class="s">"</span> =~ ^[0-9]+$ ]]; <span class="k">then</span></span>
 <span class="l">  echo <span class="s">"refactor-budget: VERI_REFACTOR_BUDGET must be a whole number &gt;= 0: </span><span class="v">$budget</span><span class="s">"</span> &gt;&amp;2</span>
 <span class="l">  <span class="k">exit</span> 2</span>
 <span class="l"><span class="k">fi</span></span>
@@ -3660,14 +3667,30 @@ html{scroll-behavior:smooth}
   diagnostic on stderr, <span class="ec ec-2"><b>2</b></span>, and nothing at all on
   stdout &mdash; a misconfigured run is a system failure, not a status the conductor should
   ever mistake for one.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 23"><span class="l"><span class="k">if</span> [[ <span class="s">"</span><span class="v">$count</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$budget</span><span class="s">"</span> ]]; <span class="k">then</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 26"><span class="l"><span class="k">if</span> [[ ! <span class="s">"</span><span class="v">$count</span><span class="s">"</span> =~ ^[0-9]+$ ]]; <span class="k">then</span></span>
+<span class="l">  echo <span class="s">"refactor-budget: &lt;count&gt; must be a whole number &gt;= 0: </span><span class="v">$count</span><span class="s">"</span> &gt;&amp;2</span>
+<span class="l">  <span class="k">exit</span> 2</span>
+<span class="l"><span class="k">fi</span></span>
+<span class="l"></span></pre></div><div class="ann-note"><p>
+  The count is the script's one positional, and until issue&nbsp;#64 it was the one input
+  that went unchecked &mdash; straight into the comparison below. Each bad shape produced a
+  different wrong answer rather than a refusal: <code>abc</code> was read as a variable name
+  and <a class="tt" data-ref="p-strict" href="#p-strict">set -u</a> aborted with <span class="ec ec-1"><b>1</b></span>, the code
+  reserved for a clean negative; <code>-1</code> and a missing argument both answered
+  &ldquo;another transform may run&rdquo; with a garbage status line on stdout.
+</p><p>
+  So the count gets the guard the budget already had, in the same shape and for the same
+  reason. The two checks stay separate statements with their own message because they name
+  different things to fix &mdash; a misconfigured environment against a malformed call
+  &mdash; and the diagnostic is the only place a human learns which.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 31"><span class="l"><span class="k">if</span> [[ <span class="s">"</span><span class="v">$count</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$budget</span><span class="s">"</span> ]]; <span class="k">then</span></span>
 <span class="l">  echo <span class="s">"refactor </span><span class="v">$count</span><span class="s">/</span><span class="v">$budget</span><span class="s"> — another transform may run"</span></span>
 <span class="l"><span class="k">else</span></span>
 <span class="l">  echo <span class="s">"refactor </span><span class="v">$count</span><span class="s">/</span><span class="v">$budget</span><span class="s"> — budget spent"</span></span>
 <span class="l">  <span class="k">exit</span> 3</span>
 <span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
   The comparison itself is <a class="tt" data-ref="p-test" href="#p-test">a plain <code>[[ -lt ]]</code></a>, safe now that the
-  guard above has ruled out anything that isn't a whole number. Either branch prints one
+  guards above have ruled out anything that isn't a whole number. Either branch prints one
   line to stdout &mdash; the status the header promises, and the line the conductor mirrors
   into its own narration rather than composing one itself.
 </p><p>
@@ -3675,8 +3698,8 @@ html{scroll-behavior:smooth}
   <span class="ec ec-0"><b>0</b></span> to keep the loop going, and
   <span class="ec ec-3"><b>3</b></span> &mdash; &ldquo;nothing to do&rdquo;, not an error
   &mdash; once the budget is spent. There is no verdict to reject here, so
-  <span class="ec ec-1"><b>1</b></span> never appears; the misconfigured-budget case above
-  is a <span class="ec ec-2"><b>2</b></span> instead, a different kind of failure entirely
+  <span class="ec ec-1"><b>1</b></span> never appears; the two refusals above are a
+  <span class="ec ec-2"><b>2</b></span> instead, a different kind of failure entirely
   &mdash; the plumbing broke, rather than the loop simply running out.
 </p></div></div></div>
 
@@ -4124,7 +4147,7 @@ html{scroll-behavior:smooth}
 <div class="tbl-wrap">
 <table>
   <thead><tr><th>Script</th><th class="num">Lines</th><th>Stage</th></tr></thead>
-  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">127</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">132</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">29</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">105</td><td>5 &middot; or bail</td></tr></tbody>
+  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">127</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">132</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">37</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">105</td><td>5 &middot; or bail</td></tr></tbody>
 </table>
 </div>
 <p>
@@ -4176,7 +4199,7 @@ html{scroll-behavior:smooth}
     <strong>veri, Annotated</strong> &mdash; the complete source of veri's
     <code>/solve-issue</code> conductor, read line by line.
   </p>
-  <p class="mono">17 scripts &middot; 1197 lines &middot; generated by docs/build-walkthrough.py</p>
+  <p class="mono">17 scripts &middot; 1205 lines &middot; generated by docs/build-walkthrough.py</p>
 </footer>
 </div>
 
