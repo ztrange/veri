@@ -42,11 +42,12 @@ PAGE_TEMPLATE = '''<!doctype html>
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
-    <span><b>{n_scripts}</b> scripts</span>
+    {version}<span><b>{n_scripts}</b> scripts</span>
     <span><b>{total_lines}</b> lines, all shown</span>
     <span><b>38</b> reference entries</span>
   </p>
 </header>
+{capabilities}
 {intro}
 </div>
 
@@ -84,6 +85,31 @@ PAGE_TEMPLATE = '''<!doctype html>
 <script>
 {js}
 </script>
+'''
+
+CAPABILITIES_HTML = r'''
+<div class="stage-head" id="capabilities">
+  <p class="stage-num">Capabilities</p>
+  <h2>What veri gained, and when</h2>
+  <p class="stage-lede">
+    Every version is one merged issue &mdash; one capability &mdash; and names the sections
+    of this page it changed. Scan down to a version you remember; everything above it is
+    what you have not read yet.
+  </p>
+</div>
+<p>
+  This list is not maintained. A version is an <strong>annotated git tag</strong>, its name
+  is the tag&rsquo;s own message, and the sections under it are computed from the commits in
+  its range &mdash; so it cannot claim a capability that did not ship, or miss one that did.
+  Only <code>feat:</code> and <code>fix:</code> commits count: documentation, tests and
+  refactors change this page without changing what veri can do.
+</p>
+<ol class="vers">{{ROWS}}</ol>
+<p class="vers-foot">
+  A version that changed <em>no</em> script is not an error. The conductor is
+  <code>SKILL.md</code> &mdash; English prose, not code &mdash; and capabilities that live
+  there have no listing on this page to point at.
+</p>
 '''
 
 ORIENTATION_NAV = [
@@ -784,6 +810,35 @@ UPKEEP_HTML = r'''
   a buffer and diffs it against the committed file &mdash; it fails both when a script has
   moved on without the prose and when someone hand-edits the generated HTML.
 </p>
+<h3 id="how-versions-work">Where the versions come from</h3>
+<p>
+  The <a href="#capabilities">capability index</a> is not a changelog anyone maintains. A
+  version <em>is</em> an annotated git tag: the tag&rsquo;s message is the capability&rsquo;s
+  name, its date is the tag&rsquo;s own date, and the scripts listed under it are computed
+  from the <code>feat:</code> and <code>fix:</code> commits in its range. Nothing is
+  declared twice, so nothing can disagree.
+</p>
+<p>
+  Cutting one is not a separate chore &mdash; it happens when a pull request lands, because
+  that is the only moment that knows both that a capability shipped and what it was. Three
+  things about the layer are worth knowing:
+</p>
+<ul>
+  <li><strong>It is optional.</strong> Built from a tree with no git &mdash; a tarball, a
+      shallow checkout, the copied sandbox the doc tests build in &mdash; the page comes out
+      without an index and without the per-script badges, rather than failing. The absence
+      is the signal that git was unreadable, and <code>make docs-check</code> says so
+      loudly when the tree does have tags.</li>
+  <li><strong>No shas, no counts.</strong> Neither ever reaches the page. Both change on
+      every commit, and <code>docs-check</code> demands a byte-identical rebuild &mdash; so
+      embedding either would turn the check red after every commit until someone re-ran
+      <code>make docs</code>. &ldquo;Unreleased&rdquo; is a yes-or-no for the same reason.</li>
+  <li><strong>Version sort, not alphabetical.</strong> <code>v0.9</code> sorts
+      <em>after</em> <code>v0.10</code> lexically, which would bury the newest release in
+      the middle of the list. The build reads tags with git&rsquo;s own
+      <code>-v:refname</code> ordering, and the checker re-derives the expected order and
+      compares.</li>
+</ul>
 <p>
   Two invariants are worth re-reading on any change, since most of this page rests on them:
   that the <a href="#exitcodes">four exit codes</a> still mean the same four things

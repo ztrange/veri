@@ -1,0 +1,128 @@
+"""gitmeta.py — what the walkthrough knows about veri's version history.
+
+Everything here is read from git at build time, so the capability index cannot drift
+from what actually shipped: a version is an annotated tag, its name is the tag's
+message, and which sections it touched is computed from the commits in its range.
+
+Two rules keep the generated page DETERMINISTIC, which `make docs-check` requires —
+it regenerates and demands a byte-identical result:
+
+  * no commit shas and no commit counts ever reach the page. Both change on every
+    commit, which would turn docs-check red after each one until someone re-ran
+    `make docs` — a treadmill, not a guard.
+  * dates are absolute (the tag's own date, retro-dated at creation). A relative
+    date baked into HTML would make docs-check fail by the calendar with no code
+    change at all.
+
+Everything degrades to None when git is unavailable or the repo carries no tags:
+docs/tests/build-guards.test.sh builds from a copied tree with no .git in it, and
+that build must still succeed — just without the version layer.
+"""
+import re
+import subprocess
+
+# A version is a capability. Documentation, tests, refactors and chores do not get
+# one, so only these two types count a commit as having changed what veri can do.
+BEHAVIOUR = re.compile(r"^(feat|fix)(\(.*\))?:")
+ISSUE = re.compile(r"\(#(\d+)\)")
+
+
+def _git(root, *args):
+    """stdout of a git command, or None if git or the repo is not there."""
+    try:
+        p = subprocess.run(("git", "-C", str(root)) + args,
+                           capture_output=True, text=True)
+    except (OSError, ValueError):
+        return None
+    return p.stdout.strip() if p.returncode == 0 else None
+
+
+def _first_tag_containing(root, sha, order):
+    """The earliest version that contains this commit — i.e. the one it shipped in.
+
+    `git tag --contains` answers in whatever order it likes, so rank against the
+    caller's ordered tag list rather than trusting the output. Returns None for a
+    commit no tag contains, which is the honest answer: it has not shipped yet.
+    """
+    out = _git(root, "tag", "--contains", sha)
+    if not out:
+        return None
+    have = {t for t in out.splitlines() if t}
+    for t in order:                      # order is oldest-first
+        if t in have:
+            return t
+    return None
+
+
+def origin_url(root):
+    """The repo's https URL, for linking issue numbers — or None if it cannot be read.
+
+    Both remote forms reduce to the same page; anything else returns None and the
+    issue numbers render as plain text rather than as links that go nowhere.
+    """
+    url = _git(root, "remote", "get-url", "origin")
+    if not url:
+        return None
+    m = re.match(r"(?:git@github\.com:|https://github\.com/)(.+?)(?:\.git)?$", url)
+    return "https://github.com/" + m.group(1) if m else None
+
+
+def read(root, script_rel_paths):
+    """The version history, or None when this tree cannot answer.
+
+    script_rel_paths maps a script's filename to its path relative to the repo root.
+    """
+    if _git(root, "rev-parse", "--git-dir") is None:
+        return None
+    # -v:refname is git's version sort. Plain sort makes v0.9 outrank v0.10, which
+    # would put the newest release in the middle of the index.
+    out = _git(root, "tag", "--sort=v:refname")
+    tags = [t for t in (out or "").splitlines() if re.fullmatch(r"v\d+\.\d+", t)]
+    if not tags:
+        return None                      # a repo that does not version this way
+
+    versions = []
+    for i, tag in enumerate(tags):
+        rng = tag if i == 0 else "%s..%s" % (tags[i - 1], tag)
+        log = (_git(root, "log", "--format=%H\t%s", rng) or "").splitlines()
+        issues, touched = [], set()
+        for line in log:
+            sha, subject = line.split("\t", 1)
+            m = ISSUE.search(subject)
+            if m and m.group(1) not in issues:
+                issues.append(m.group(1))
+            if not BEHAVIOUR.match(subject):
+                continue
+            for path in (_git(root, "show", "--name-only", "--format=", sha) or "").splitlines():
+                name = path.rsplit("/", 1)[-1]
+                if name in script_rel_paths:
+                    touched.add(name)
+        versions.append({
+            "tag": tag,
+            "date": _git(root, "for-each-ref", "--format=%(creatordate:short)",
+                         "refs/tags/" + tag) or "",
+            "title": _git(root, "for-each-ref", "--format=%(contents:subject)",
+                          "refs/tags/" + tag) or "",
+            "issues": sorted(issues, key=int),
+            "scripts": sorted(touched),
+        })
+
+    marks = {}
+    for name, rel in script_rel_paths.items():
+        # --follow, or the move out of .claude/skills truncates every history to it.
+        # One path at a time: --follow refuses more.
+        added = (_git(root, "log", "--diff-filter=A", "--follow", "--format=%H",
+                      "--", rel) or "").splitlines()
+        hist = (_git(root, "log", "--follow", "--format=%H\t%s", "--", rel) or "").splitlines()
+        changed = [l.split("\t", 1)[0] for l in hist if BEHAVIOUR.match(l.split("\t", 1)[1])]
+        marks[name] = {
+            "since": _first_tag_containing(root, added[-1], tags) if added else None,
+            "changed": _first_tag_containing(root, changed[0], tags) if changed else None,
+        }
+
+    # "is there work past the last tag" — a boolean, deliberately not a count, so the
+    # page changes state once at a tag boundary instead of on every commit.
+    head = _git(root, "rev-list", "-1", "HEAD")
+    tip = _git(root, "rev-list", "-1", tags[-1] + "^{commit}")
+    return {"versions": versions, "marks": marks, "latest": tags[-1],
+            "unreleased": bool(head and tip and head != tip)}

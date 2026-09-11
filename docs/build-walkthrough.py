@@ -33,6 +33,7 @@ OUT = HERE / "walkthrough.html"
 sys.path.insert(0, str(HERE / "wt"))
 import primer as primer_mod          # noqa: E402
 import commentary as com             # noqa: E402
+import gitmeta                       # noqa: E402
 
 # A reference is {{p-id|display}}. Display text is nearly always bash, which is full
 # of braces ("${VAR:-default}"), so a regex with a lazy or negated-class body either
@@ -149,15 +150,67 @@ def render_script(spec):
         contract = '<div class="contract"><dl>%s</dl></div>' % items
 
     return (
-        '<h3 id="%s"><code>%s</code>%s</h3>\n%s\n%s\n'
+        '<h3 id="%s"><code>%s</code>%s%s</h3>\n%s\n%s\n'
         '<div class="ann">'
         '<div class="ann-head"><span class="fname">%s</span>'
         '<span class="fmeta">%d lines &middot; complete source</span></div>'
         "%s</div>\n%s"
         % (spec["id"], fname,
            (" &mdash; " + spec["tagline"]) if spec.get("tagline") else "",
+           version_badge(META, fname),
            refs(spec.get("blurb", ""), fname), contract,
            fname, total, "".join(rows), refs(spec.get("after", ""), fname)))
+
+
+def render_versions(meta):
+    """The capability index: one row per version, newest first.
+
+    Deliberately carries no sha and no commit count — see gitmeta's docstring; both
+    would change on every commit and make `make docs-check` fail until someone re-ran
+    `make docs`.
+    """
+    rows = []
+    if meta["unreleased"]:
+        rows.append(
+            '<li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span>'
+            '<span class="ver-d">on main, past %s</span></p>'
+            '<p class="ver-t">Work has landed since the last version. If it had changed a '
+            'capability it would have been tagged, so this is documentation, tests or '
+            'tidying &mdash; or a tag nobody cut.</p></li>' % html.escape(meta["latest"]))
+    for v in reversed(meta["versions"]):
+        if v["scripts"]:
+            reads = " &middot; ".join(
+                '<a href="#%s"><code>%s</code></a>' % (SCRIPT_ID[f], f)
+                for f in v["scripts"] if f in SCRIPT_ID)
+            what = '<p class="ver-s"><b>Read</b>%s</p>' % reads
+        else:
+            what = ('<p class="ver-s conductor">Conductor only &mdash; no script on this '
+                    'page changed</p>')
+        issues = ""
+        if v["issues"]:
+            issues = '<span class="ver-i">%s</span>' % " ".join(
+                ('<a href="%s/issues/%s">#%s</a>' % (ORIGIN, n, n)) if ORIGIN else "#" + n
+                for n in v["issues"])
+        rows.append(
+            '<li class="ver"><p class="ver-h"><span class="vtag">%s</span>'
+            '<span class="ver-d">%s</span>%s</p><p class="ver-t">%s</p>%s</li>'
+            % (html.escape(v["tag"]), html.escape(v["date"]), issues,
+               html.escape(v["title"]), what))
+    return "".join(rows)
+
+
+def version_badge(meta, fname):
+    """`since v0.2 · changed v0.6` for one script, or "" when there is no version layer."""
+    if not meta:
+        return ""
+    m = meta["marks"].get(fname) or {}
+    since, changed = m.get("since"), m.get("changed")
+    if not since:
+        return '<span class="vbadge new">unreleased</span>'
+    if changed and changed != since:
+        return ('<span class="vbadge">since <b>%s</b> &middot; changed <b>%s</b></span>'
+                % (html.escape(since), html.escape(changed)))
+    return '<span class="vbadge">since <b>%s</b></span>' % html.escape(since)
 
 
 def render_reference():
@@ -184,8 +237,14 @@ def render_reference():
 
 SCRIPT_ID = {s["file"]: s["id"] for s in com.SCRIPTS}
 
+# The version layer, read once. None in a tree with no git or no tags — which is the
+# case docs/tests/build-guards.test.sh builds in, and that build must still succeed.
+META = gitmeta.read(ROOT, {s["file"]: str((SCRIPTS_DIR / s["file"]).relative_to(ROOT))
+                           for s in com.SCRIPTS})
+ORIGIN = gitmeta.origin_url(ROOT)
 
-def nav_entries():
+
+def nav_entries(meta=None):
     """The rail's contents as one ordered list, in document order.
 
     Three things read this: the rail markup, the scrollspy that highlights the entry
@@ -198,7 +257,14 @@ def nav_entries():
     pairs. An empty anchor is a crumb that names a grouping with no heading of its own.
     """
     flow = ("The data flow", "")
-    out = [{"kind": "head", "label": "Orientation"}]
+    out = []
+    # only when git supplied one — an entry whose heading is not on the page would be
+    # dropped by the scrollspy and caught by check-walkthrough.py as a build bug
+    if meta:
+        out.append({"kind": "head", "label": "Capabilities"})
+        out.append({"kind": "item", "id": "capabilities", "label": "What veri gained, and when",
+                    "trail": [("Capabilities", "capabilities")]})
+    out.append({"kind": "head", "label": "Orientation"})
     for aid, label in com.ORIENTATION_NAV:
         out.append({"kind": "item", "id": aid, "label": label,
                     "trail": [("Orientation", ""), (label, aid)]})
@@ -220,6 +286,11 @@ def nav_entries():
     out.append({"kind": "head", "label": "Upkeep"})
     out.append({"kind": "item", "id": "keeping-current", "label": "Keeping this current",
                 "trail": [("Upkeep", ""), ("Keeping this current", "keeping-current")]})
+    if meta:
+        out.append({"kind": "item", "id": "how-versions-work",
+                    "label": "Where the versions come from",
+                    "trail": [("Upkeep", ""), ("Where the versions come from",
+                                               "how-versions-work")]})
     return out
 
 
@@ -273,7 +344,7 @@ def main():
               for s in com.SCRIPTS if (SCRIPTS_DIR / s["file"]).exists()}
     grand = sum(totals.values())
 
-    entries = nav_entries()
+    entries = nav_entries(META)
     page = com.PAGE_TEMPLATE.format(
         css=(HERE / "wt" / "style.css").read_text().strip(),
         tips=render_tips_json(),
@@ -283,6 +354,10 @@ def main():
         intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
         stages=stages_html,
         reference=reference_html,
+        capabilities=(com.CAPABILITIES_HTML.replace("{{ROWS}}", render_versions(META))
+                      if META else ""),
+        version=('<span><b>%s</b> latest version</span>' % html.escape(META["latest"]))
+                if META else "",
         upkeep=refs(com.UPKEEP_HTML).replace(
             "{{TABLE}}", com.script_table(com.SCRIPTS, totals)),
         n_scripts=len(com.SCRIPTS),

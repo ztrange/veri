@@ -285,10 +285,41 @@ footer .mono{font-size:12.5px;color:var(--ink-faint)}
 }
 html{scroll-behavior:smooth}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+/* ── the capability index ──────────────────────────────────────────────────────
+   One row per version, newest first. The version chip is the thing the eye lands
+   on while scanning for "the one I remember", so it gets the monospace weight and
+   the accent; everything else on the row is subordinate to it. */
+.vers{list-style:none;margin:22px 0 16px;padding:0;border-top:1px solid var(--rule)}
+.ver{border-bottom:1px solid var(--rule-soft);padding:14px 0 13px}
+.ver-h{display:flex;align-items:baseline;gap:10px;margin:0 0 5px;flex-wrap:wrap}
+.vtag{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;
+  color:var(--accent);background:var(--accent-wash);border-radius:4px;padding:2px 8px}
+.ver-d{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-faint)}
+.ver-i{margin-left:auto;font-family:"JetBrains Mono",monospace;font-size:11.5px}
+.ver-i a{color:var(--ink-faint);text-decoration:none}
+.ver-i a:hover{color:var(--accent);text-decoration:underline}
+.ver-t{margin:0 0 5px;font-size:16px;color:var(--ink)}
+.ver-s{margin:0;font-size:13.5px;color:var(--ink-soft)}
+.ver-s b{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-faint);font-weight:500;margin-right:8px}
+.ver-s.conductor{color:var(--ink-faint);font-style:italic}
+/* Unreleased is a state, not a version: dashed, and the chip drops the accent so it
+   cannot be mistaken for something you can pin a capability to. */
+.ver.unreleased{border-left:2px dashed var(--ink-faint);padding-left:12px}
+.ver.unreleased .vtag{color:var(--ink-soft);background:var(--panel-2)}
+.vers-foot{font-size:14px;color:var(--ink-faint);margin-top:14px}
+
+/* The reciprocal mark: which version a script arrived in, on its own heading. */
+.vbadge{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:400;
+  color:var(--ink-faint);background:var(--panel-2);border-radius:4px;padding:3px 8px;
+  margin-left:10px;white-space:nowrap;vertical-align:middle}
+.vbadge b{color:var(--accent);font-weight:600}
+.vbadge.new{color:var(--ec1)}
 </style>
 
 <div class="shell">
-<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the twelve scripts</a><a href="#tddloop">Where the TDD loop lives</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a></nav></aside>
+<aside class="rail"><p class="rail-mark">veri</p><p class="rail-sub">annotated source</p><nav aria-label="Contents"><h4>Capabilities</h4><a href="#capabilities">What veri gained, and when</a><h4>Orientation</h4><a href="#what">What veri actually is</a><a href="#division">The division of labour</a><a href="#exitcodes">The exit-code contract</a><a href="#map">Map of the twelve scripts</a><a href="#tddloop">Where the TDD loop lives</a><a href="#dataflow">How the data moves</a><a href="#howtoread">How to read this page</a><h4>The data flow</h4><a href="#s0"><span class="stage">0</span>Prepare the target</a><a href="#ensure-run-state-ignored"><span class="mono">ensure-run-state-ignored.sh</span></a><a href="#s1"><span class="stage">1</span>Read the ledger</a><a href="#next-unchecked"><span class="mono">next-unchecked.sh</span></a><a href="#s2"><span class="stage">2</span>Run a leaf</a><a href="#supervise"><span class="mono">supervise.sh</span></a><a href="#run-leaf"><span class="mono">run-leaf.sh</span></a><a href="#extract-result"><span class="mono">extract-result.sh</span></a><a href="#s3"><span class="stage">3</span>Verify the claim</a><a href="#build-verify-prompt"><span class="mono">build-verify-prompt.sh</span></a><a href="#verify"><span class="mono">verify.sh</span></a><a href="#parse-verdict"><span class="mono">parse-verdict.sh</span></a><a href="#s4"><span class="stage">4</span>Record the result</a><a href="#tick-criterion"><span class="mono">tick-criterion.sh</span></a><a href="#tick-ledger"><span class="mono">tick-ledger.sh</span></a><a href="#tick-issue-criterion"><span class="mono">tick-issue-criterion.sh</span></a><a href="#s5"><span class="stage">5</span>Or bail</a><a href="#classify-bail"><span class="mono">classify-bail.sh</span></a><h4>Full reference</h4><a href="#reference">The bash reference</a><a href="#p-header">Header &amp; safety</a><a href="#p-vars">Variables &amp; expansion</a><a href="#p-tests">Tests &amp; arithmetic</a><a href="#p-arrays">Arrays</a><a href="#p-text">Text &amp; I/O</a><a href="#p-proc">Processes &amp; signals</a><h4>Upkeep</h4><a href="#keeping-current">Keeping this current</a><a href="#how-versions-work">Where the versions come from</a></nav></aside>
 <main>
 
 <!-- Breadcrumb. Static markup so the page still has a heading bar with no JS; app.js
@@ -308,11 +339,35 @@ html{scroll-behavior:smooth}
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
-    <span><b>12</b> scripts</span>
+    <span><b>v0.10</b> latest version</span><span><b>12</b> scripts</span>
     <span><b>580</b> lines, all shown</span>
     <span><b>38</b> reference entries</span>
   </p>
 </header>
+
+<div class="stage-head" id="capabilities">
+  <p class="stage-num">Capabilities</p>
+  <h2>What veri gained, and when</h2>
+  <p class="stage-lede">
+    Every version is one merged issue &mdash; one capability &mdash; and names the sections
+    of this page it changed. Scan down to a version you remember; everything above it is
+    what you have not read yet.
+  </p>
+</div>
+<p>
+  This list is not maintained. A version is an <strong>annotated git tag</strong>, its name
+  is the tag&rsquo;s own message, and the sections under it are computed from the commits in
+  its range &mdash; so it cannot claim a capability that did not ship, or miss one that did.
+  Only <code>feat:</code> and <code>fix:</code> commits count: documentation, tests and
+  refactors change this page without changing what veri can do.
+</p>
+<ol class="vers"><li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span><span class="ver-d">on main, past v0.10</span></p><p class="ver-t">Work has landed since the last version. If it had changed a capability it would have been tagged, so this is documentation, tests or tidying &mdash; or a tag nobody cut.</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.10</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/25">#25</a> <a href="https://github.com/ztrange/veri/issues/27">#27</a></span></p><p class="ver-t">target repo ignores veri run state before the first commit</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.9</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/7">#7</a></span></p><p class="ver-t">hardened edges: baseline, classified bail, completion polish</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.8</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/18">#18</a></span></p><p class="ver-t">classify a bail as system vs process, deterministically</p><p class="ver-s"><b>Read</b><a href="#classify-bail"><code>classify-bail.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.7</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/6">#6</a></span></p><p class="ver-t">loops + ledger: multi-criterion issues, resumable</p><p class="ver-s"><b>Read</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a> &middot; <a href="#tick-ledger"><code>tick-ledger.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.6</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/14">#14</a></span></p><p class="ver-t">effective leaf heartbeat via streaming output</p><p class="ver-s"><b>Read</b><a href="#extract-result"><code>extract-result.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.5</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/5">#5</a></span></p><p class="ver-t">bounded revise loop on REJECT - veri self-corrects</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.4</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/12">#12</a></span></p><p class="ver-t">supervisor retries a killed-stuck leaf up to a bounded budget</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.3</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/4">#4</a></span></p><p class="ver-t">supervised leaves: heartbeat + timeout make veri unstuckable</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.2</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/3">#3</a></span></p><p class="ver-t">blind independent verification of red, green and refactor</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#parse-verdict"><code>parse-verdict.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a> &middot; <a href="#verify"><code>verify.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.1</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/2">#2</a></span></p><p class="ver-t">walking skeleton: solve one issue via R-G-R, narrated to the issue</p><p class="ver-s"><b>Read</b><a href="#tick-criterion"><code>tick-criterion.sh</code></a> &middot; <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></li></ol>
+<p class="vers-foot">
+  A version that changed <em>no</em> script is not an error. The conductor is
+  <code>SKILL.md</code> &mdash; English prose, not code &mdash; and capabilities that live
+  there have no listing on this page to point at.
+</p>
+
 
 <h2 id="what">What veri actually is</h2>
 <p>
@@ -869,7 +924,7 @@ html{scroll-behavior:smooth}
   that same <code>-A</code> would sweep every leaf log and prompt into history on the first
   step. veri's own <code>.gitignore</code> carried the rule; a fresh repo does not.
 </p>
-<h3 id="ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code> &mdash; the target repo's ignore rule</h3>
+<h3 id="ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code> &mdash; the target repo's ignore rule<span class="vbadge">since <b>v0.10</b></span></h3>
 <p>
   Thirty-seven lines that write three. Most of the script is the two guards around the
   write &mdash; one so running it twice is a no-op, one so appending to somebody else's
@@ -972,7 +1027,7 @@ html{scroll-behavior:smooth}
   That is what makes a run resumable: if veri dies halfway, re-running it reads this file
   and continues from the first unticked line.
 </p></div></div></div>
-<h3 id="next-unchecked"><code>next-unchecked.sh</code> &mdash; the loop driver</h3>
+<h3 id="next-unchecked"><code>next-unchecked.sh</code> &mdash; the loop driver<span class="vbadge">since <b>v0.7</b></span></h3>
 <p>
   The whole script is twelve lines of logic under a thirteen-line comment. It answers one
   question &mdash; what is the next unchecked step? &mdash; and its answer is what the
@@ -1063,7 +1118,7 @@ html{scroll-behavior:smooth}
   streams so the supervisor has something to watch; streaming buries the answer in JSON, so
   <code>extract-result.sh</code> digs it back out.
 </p></div></div></div>
-<h3 id="supervise"><code>supervise.sh</code> &mdash; the watchdog</h3>
+<h3 id="supervise"><code>supervise.sh</code> &mdash; the watchdog<span class="vbadge">since <b>v0.3</b> &middot; changed <b>v0.4</b></span></h3>
 <p>
   The heart of veri, and the most systems-heavy script in it. The problem: you are about to
   start a process that will run for minutes doing real work, and you must distinguish
@@ -1371,7 +1426,7 @@ html{scroll-behavior:smooth}
   what <a href="#verify"><code>verify.sh</code></a> does in stage 3.
 </p></div></div></div>
 
-<h3 id="run-leaf"><code>run-leaf.sh</code> &mdash; the inner invocation</h3>
+<h3 id="run-leaf"><code>run-leaf.sh</code> &mdash; the inner invocation<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.6</b></span></h3>
 <p>
   One level down. This is what actually starts a <code>claude -p</code> process. It is never
   called directly by the conductor &mdash; always through the supervisor, so that
@@ -1487,7 +1542,7 @@ html{scroll-behavior:smooth}
   <code>PIPESTATUS</code>. The supervisor is judging the leaf, not this wrapper.
 </p></div></div></div>
 
-<h3 id="extract-result"><code>extract-result.sh</code> &mdash; recovering the answer</h3>
+<h3 id="extract-result"><code>extract-result.sh</code> &mdash; recovering the answer<span class="vbadge">since <b>v0.6</b></span></h3>
 <p>
   Streaming solved the heartbeat problem and created a new one: the log is now hundreds of
   lines of JSON machinery, and somewhere in it is the leaf's actual answer. This recovers
@@ -1587,7 +1642,7 @@ html{scroll-behavior:smooth}
   unable to arrive</strong>. Three scripts compose into one verb, and the guarantee lives in
   the shape of the first one's arguments.
 </p>
-<h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction</h3>
+<h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b></span></h3>
 <p>
   Look at the usage line below and note what is <strong>absent</strong>. There is a
   parameter for the phase, one for the issue's behaviour spec, one for the test path, one
@@ -1714,7 +1769,7 @@ html{scroll-behavior:smooth}
   than repeating it.
 </p></div></div></div>
 
-<h3 id="verify"><code>verify.sh</code> &mdash; the verify verb</h3>
+<h3 id="verify"><code>verify.sh</code> &mdash; the verify verb<span class="vbadge">since <b>v0.2</b></span></h3>
 <p>
   The composition. This is the single call the conductor makes, and the only place the three
   verification units are wired together &mdash; so verification can never be improvised.
@@ -1867,7 +1922,7 @@ html{scroll-behavior:smooth}
   suite uses.
 </p></div></div></div>
 
-<h3 id="parse-verdict"><code>parse-verdict.sh</code> &mdash; reading a verdict out of prose</h3>
+<h3 id="parse-verdict"><code>parse-verdict.sh</code> &mdash; reading a verdict out of prose<span class="vbadge">since <b>v0.2</b></span></h3>
 <p>
   The verifier was told to end with two exact lines. It is a language model, so it will also
   reason for three paragraphs first, may use the word <em>verdict</em> mid-thought, and may
@@ -2092,7 +2147,7 @@ html{scroll-behavior:smooth}
   byte-for-byte alone. Writing that logic twice would guarantee they eventually diverge, so
   it is written once and wrapped twice.
 </p></div></div></div>
-<h3 id="tick-criterion"><code>tick-criterion.sh</code> &mdash; the transform</h3>
+<h3 id="tick-criterion"><code>tick-criterion.sh</code> &mdash; the transform<span class="vbadge">since <b>v0.1</b></span></h3>
 <p>
   The shared core of stage 4: flip the first unchecked checkbox whose text contains a
   matcher, and pass every other line through untouched. It reads stdin and writes stdout, so
@@ -2170,7 +2225,7 @@ html{scroll-behavior:smooth}
   caller decide.
 </p></div></div></div>
 
-<h3 id="tick-ledger"><code>tick-ledger.sh</code> &mdash; the local wrapper</h3>
+<h3 id="tick-ledger"><code>tick-ledger.sh</code> &mdash; the local wrapper<span class="vbadge">since <b>v0.7</b></span></h3>
 <p>
   Eighteen lines, of which two do anything &mdash; but their <em>order</em> is load-bearing.
 </p>
@@ -2225,7 +2280,7 @@ html{scroll-behavior:smooth}
   and one that only reads it.
 </p></div></div></div>
 
-<h3 id="tick-issue-criterion"><code>tick-issue-criterion.sh</code> &mdash; the remote wrapper</h3>
+<h3 id="tick-issue-criterion"><code>tick-issue-criterion.sh</code> &mdash; the remote wrapper<span class="vbadge">since <b>v0.1</b></span></h3>
 <p>
   The same three moves as <code>tick-ledger.sh</code> &mdash; read, transform, write back
   &mdash; with a network on both ends instead of a file.
@@ -2312,7 +2367,7 @@ html{scroll-behavior:smooth}
 
 <div class="stage-head" id="s5"><p class="stage-num">Stage <b>5</b> &middot; or bail</p><h2>Stopping in a way someone can act on</h2><p class="stage-lede">Not every run finishes. When veri gives up, the one thing that determines what a human does next is why — and that answer is too important to be improvised each time.</p></div>
 
-<h3 id="classify-bail"><code>classify-bail.sh</code> &mdash; system or process</h3>
+<h3 id="classify-bail"><code>classify-bail.sh</code> &mdash; system or process<span class="vbadge">since <b>v0.8</b></span></h3>
 <p>
   Twenty-three lines and a single <a class="tt" data-ref="p-case" href="#p-case">case</a>. Mechanically it is a lookup table; the
   interesting question is why it exists at all when the conductor could just decide.
@@ -2587,6 +2642,35 @@ html{scroll-behavior:smooth}
   a buffer and diffs it against the committed file &mdash; it fails both when a script has
   moved on without the prose and when someone hand-edits the generated HTML.
 </p>
+<h3 id="how-versions-work">Where the versions come from</h3>
+<p>
+  The <a href="#capabilities">capability index</a> is not a changelog anyone maintains. A
+  version <em>is</em> an annotated git tag: the tag&rsquo;s message is the capability&rsquo;s
+  name, its date is the tag&rsquo;s own date, and the scripts listed under it are computed
+  from the <code>feat:</code> and <code>fix:</code> commits in its range. Nothing is
+  declared twice, so nothing can disagree.
+</p>
+<p>
+  Cutting one is not a separate chore &mdash; it happens when a pull request lands, because
+  that is the only moment that knows both that a capability shipped and what it was. Three
+  things about the layer are worth knowing:
+</p>
+<ul>
+  <li><strong>It is optional.</strong> Built from a tree with no git &mdash; a tarball, a
+      shallow checkout, the copied sandbox the doc tests build in &mdash; the page comes out
+      without an index and without the per-script badges, rather than failing. The absence
+      is the signal that git was unreadable, and <code>make docs-check</code> says so
+      loudly when the tree does have tags.</li>
+  <li><strong>No shas, no counts.</strong> Neither ever reaches the page. Both change on
+      every commit, and <code>docs-check</code> demands a byte-identical rebuild &mdash; so
+      embedding either would turn the check red after every commit until someone re-ran
+      <code>make docs</code>. &ldquo;Unreleased&rdquo; is a yes-or-no for the same reason.</li>
+  <li><strong>Version sort, not alphabetical.</strong> <code>v0.9</code> sorts
+      <em>after</em> <code>v0.10</code> lexically, which would bury the newest release in
+      the middle of the list. The build reads tags with git&rsquo;s own
+      <code>-v:refname</code> ordering, and the checker re-derives the expected order and
+      compares.</li>
+</ul>
 <p>
   Two invariants are worth re-reading on any change, since most of this page rests on them:
   that the <a href="#exitcodes">four exit codes</a> still mean the same four things
@@ -2609,7 +2693,7 @@ html{scroll-behavior:smooth}
 </div>
 
 <script>window.__VERI_TIPS__ = {"p-ansic":{"gloss":"Interprets C escapes, so this is a real newline character rather than a backslash and an n.","name":"ANSI-C quoting","sig":"$'\\n'"},"p-arith":{"gloss":"Integer maths with C syntax — variables need no <code>$</code> and comparisons read normally.","name":"Arithmetic evaluation","sig":"(( … ))"},"p-array":{"gloss":"Holds a list of arguments so each stays one argument, even when it contains spaces.","name":"Arrays, and why they exist","sig":"arr=( a b c ) &nbsp;→&nbsp; \"${arr[@]}\""},"p-arrayempty":{"gloss":"Lets an empty array expand to zero arguments instead of aborting under <code>set -u</code> on old bash.","name":"The empty-array guard","sig":"\"${arr[@]+\"${arr[@]}\"}\""},"p-arrayidx":{"gloss":"<code>${!a[@]}</code> the indices · <code>${#a[@]}</code> the length · <code>${a[@]:n}</code> a slice from n.","name":"Indices, length, slice","sig":"\"${!arr[@]}\" &nbsp; ${#arr[@]} &nbsp; \"${arr[@]:n}\""},"p-awk":{"gloss":"Line-oriented text processor. Pass shell values through the environment, never by interpolating into the program.","name":"awk, and getting data into it safely","sig":"awk 'BEGIN{…} {…} END{…}'"},"p-bg":{"gloss":"A subshell run in the background. The script continues immediately — which is what makes watching it possible.","name":"Subshells and background jobs","sig":"( cmd ) &amp; &nbsp;→&nbsp; pid=$!"},"p-case":{"gloss":"Bash's switch. Glob patterns, <code>|</code> for alternatives, <code>*)</code> as the default, no fall-through.","name":"Pattern dispatch","sig":"case \"$x\" in … esac"},"p-cmdsub":{"gloss":"Run a command in a child process and evaluate to its stdout. Strips all trailing newlines.","name":"Command substitution","sig":"$( … )"},"p-default":{"gloss":"Use this value if set and non-empty, otherwise fall back to the default. Never assigns.","name":"Default value","sig":"\"${2:-default}\""},"p-envprefix":{"gloss":"Set a variable for one command only, without leaking it into the rest of the script.","name":"Per-command environment","sig":"VAR=value command"},"p-exec":{"gloss":"Replaces the shell with the new program instead of forking — same PID, same stdin, status passes straight through.","name":"Replacing the process","sig":"exec python3 -c '…'"},"p-func":{"gloss":"Arguments arrive as <code>$1</code>, <code>$2</code>…; it returns an exit status, so data comes back via stdout or a global.","name":"Functions","sig":"name() { …; }"},"p-guard":{"gloss":"Default to nothing, so reading an optional variable doesn't abort under <code>set -u</code>.","name":"The empty-default guard","sig":"\"${VAR:-}\""},"p-heredoc":{"gloss":"Feeds a literal text block in as stdin — which is why it can't be used when stdin carries real data.","name":"Here-documents","sig":"cmd &lt;&lt;'EOF' … EOF"},"p-jobcontrol":{"gloss":"Puts a background job in its own process group, so the whole tree can be signalled at once.","name":"Job control &amp; process groups","sig":"set -m &nbsp;…&nbsp; set +m"},"p-kill":{"gloss":"Sends a signal. A negative PID targets the process group; <code>-0</code> only probes; TERM asks, KILL cannot be refused.","name":"Signals — and the minus sign that matters","sig":"kill -TERM -$pid &nbsp;·&nbsp; kill -0 $pid"},"p-mktemp":{"gloss":"Atomically creates a uniquely-named temp file, avoiding the race and the security hole of a fixed name.","name":"Temporary files","sig":"tmp=\"$(mktemp)\""},"p-noop":{"gloss":"<code>:</code> does nothing and succeeds. <code>: &gt; f</code> truncates a file; <code>while :;</code> loops forever.","name":"The null command","sig":": &nbsp;·&nbsp; : &gt; file &nbsp;·&nbsp; while :;"},"p-pipe":{"gloss":"Pipes connect stdout to stdin; <code>tee</code> copies a stream aside; <code>PIPESTATUS</code> recovers a stage's lost exit code.","name":"Pipes, tee, and recovering a lost status","sig":"a | b &nbsp;·&nbsp; tee file &nbsp;·&nbsp; \"${PIPESTATUS[0]}\""},"p-printf":{"gloss":"Portable and predictable, unlike <code>echo</code> — you control the trailing newline exactly.","name":"printf, and why not echo","sig":"printf '%s\\n' \"$x\""},"p-printfv":{"gloss":"Write printf's output into a variable instead of stdout, preserving trailing newlines.","name":"Printf into a variable","sig":"printf -v name '%s\\n' \"${arr[@]}\""},"p-quote":{"gloss":"Quoting stops the shell splitting the value on whitespace and expanding it as a filename pattern.","name":"Quoting — the one habit that matters most","sig":"\"$var\""},"p-readloop":{"gloss":"The safe line reader: no trimming, no backslash mangling, and it keeps a final unterminated line.","name":"Reading lines without corrupting them","sig":"while IFS= read -r line || [[ -n \"$line\" ]]"},"p-redirect":{"gloss":"Rewires the three standard streams: 0 stdin, 1 stdout, 2 stderr. <code>&gt;</code> truncates immediately.","name":"Redirection","sig":"&gt; &nbsp; &gt;&gt; &nbsp; &lt; &nbsp; 2&gt;&amp;1 &nbsp; 2&gt;/dev/null"},"p-regex":{"gloss":"Built-in regex match; captures land in <code>BASH_REMATCH</code>. The pattern must be unquoted.","name":"Built-in regular expressions","sig":"[[ \"$s\" =~ regex ]] &nbsp;→&nbsp; BASH_REMATCH"},"p-required":{"gloss":"Use this argument, or print the message and abort. An inline precondition check.","name":"Required-argument assertion","sig":"\"${1:?usage: …}\""},"p-sete":{"gloss":"Turn fail-fast off around one command so you can capture its exit code instead of dying on it.","name":"Temporarily disabling fail-fast","sig":"set +e … rc=$? … set -e"},"p-shebang":{"gloss":"Tells the kernel to run this file with bash, found via PATH rather than a hard-coded location.","name":"Shebang","sig":"#!/usr/bin/env bash"},"p-shortcircuit":{"gloss":"<code>||</code> runs the right side only on failure, <code>&amp;&amp;</code> only on success. Also exempts the left from <code>set -e</code>.","name":"Short-circuit chaining","sig":"cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2"},"p-special":{"gloss":"<code>$?</code> last exit status · <code>$!</code> last background PID · <code>$@</code> all arguments · <code>$#</code> count · <code>$0</code> script path.","name":"Special parameters","sig":"$? &nbsp; $! &nbsp; $@ &nbsp; $# &nbsp; $0"},"p-strict":{"gloss":"Fail fast: exit on any error, error on unset variables, and let a pipeline fail if any stage does.","name":"Strict mode","sig":"set -euo pipefail"},"p-strict-partial":{"gloss":"Strict mode with <code>-e</code> deliberately left out, so an expected non-zero exit doesn't kill the script.","name":"Strict mode without <code>-e</code>","sig":"set -uo pipefail"},"p-strip":{"gloss":"Cut a matching pattern off one end. <code>#</code> from the front, <code>%</code> from the back; doubled is greedy.","name":"Prefix and suffix stripping","sig":"${v#pat} &nbsp; ${v##pat} &nbsp; ${v%pat} &nbsp; ${v%%pat}"},"p-subst":{"gloss":"Replace every occurrence, literally — no pattern language, so arbitrary text passes through intact.","name":"Substring replacement","sig":"${v//search/replace}"},"p-test":{"gloss":"Bash's conditional expression: file tests, string tests, and numeric comparison.","name":"Conditional expression","sig":"[[ … ]]"},"p-trap":{"gloss":"Runs a command when the script exits, however it exits. Bash's <code>finally</code> block.","name":"Cleanup handlers","sig":"trap 'rm -f \"$tmp\"' EXIT"},"p-wait":{"gloss":"Blocks until a background process finishes and clears its zombie entry. Useless for monitoring, precisely because it blocks.","name":"Reaping a child","sig":"wait \"$pid\""}};</script>
-<script>window.__VERI_NAV__ = [{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the twelve scripts","h":"map"}]},{"id":"tddloop","trail":[{"t":"Orientation","h":""},{"t":"Where the TDD loop lives","h":"tddloop"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s0","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"}]},{"id":"ensure-run-state-ignored","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"ensure-run-state-ignored.sh","h":"ensure-run-state-ignored"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]}];</script>
+<script>window.__VERI_NAV__ = [{"id":"capabilities","trail":[{"t":"Capabilities","h":"capabilities"}]},{"id":"what","trail":[{"t":"Orientation","h":""},{"t":"What veri actually is","h":"what"}]},{"id":"division","trail":[{"t":"Orientation","h":""},{"t":"The division of labour","h":"division"}]},{"id":"exitcodes","trail":[{"t":"Orientation","h":""},{"t":"The exit-code contract","h":"exitcodes"}]},{"id":"map","trail":[{"t":"Orientation","h":""},{"t":"Map of the twelve scripts","h":"map"}]},{"id":"tddloop","trail":[{"t":"Orientation","h":""},{"t":"Where the TDD loop lives","h":"tddloop"}]},{"id":"dataflow","trail":[{"t":"Orientation","h":""},{"t":"How the data moves","h":"dataflow"}]},{"id":"howtoread","trail":[{"t":"Orientation","h":""},{"t":"How to read this page","h":"howtoread"}]},{"id":"s0","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"}]},{"id":"ensure-run-state-ignored","trail":[{"t":"The data flow","h":""},{"t":"Stage 0 &middot; Prepare the target","h":"s0"},{"t":"ensure-run-state-ignored.sh","h":"ensure-run-state-ignored"}]},{"id":"s1","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"}]},{"id":"next-unchecked","trail":[{"t":"The data flow","h":""},{"t":"Stage 1 &middot; Read the ledger","h":"s1"},{"t":"next-unchecked.sh","h":"next-unchecked"}]},{"id":"s2","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"}]},{"id":"supervise","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"supervise.sh","h":"supervise"}]},{"id":"run-leaf","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"run-leaf.sh","h":"run-leaf"}]},{"id":"extract-result","trail":[{"t":"The data flow","h":""},{"t":"Stage 2 &middot; Run a leaf","h":"s2"},{"t":"extract-result.sh","h":"extract-result"}]},{"id":"s3","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"}]},{"id":"build-verify-prompt","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"build-verify-prompt.sh","h":"build-verify-prompt"}]},{"id":"verify","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"verify.sh","h":"verify"}]},{"id":"parse-verdict","trail":[{"t":"The data flow","h":""},{"t":"Stage 3 &middot; Verify the claim","h":"s3"},{"t":"parse-verdict.sh","h":"parse-verdict"}]},{"id":"s4","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"}]},{"id":"tick-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-criterion.sh","h":"tick-criterion"}]},{"id":"tick-ledger","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-ledger.sh","h":"tick-ledger"}]},{"id":"tick-issue-criterion","trail":[{"t":"The data flow","h":""},{"t":"Stage 4 &middot; Record the result","h":"s4"},{"t":"tick-issue-criterion.sh","h":"tick-issue-criterion"}]},{"id":"s5","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"}]},{"id":"classify-bail","trail":[{"t":"The data flow","h":""},{"t":"Stage 5 &middot; Or bail","h":"s5"},{"t":"classify-bail.sh","h":"classify-bail"}]},{"id":"reference","trail":[{"t":"Full reference","h":"reference"}]},{"id":"p-header","trail":[{"t":"Full reference","h":"reference"},{"t":"Header &amp; safety","h":"p-header"}]},{"id":"p-vars","trail":[{"t":"Full reference","h":"reference"},{"t":"Variables &amp; expansion","h":"p-vars"}]},{"id":"p-tests","trail":[{"t":"Full reference","h":"reference"},{"t":"Tests &amp; arithmetic","h":"p-tests"}]},{"id":"p-arrays","trail":[{"t":"Full reference","h":"reference"},{"t":"Arrays","h":"p-arrays"}]},{"id":"p-text","trail":[{"t":"Full reference","h":"reference"},{"t":"Text &amp; I/O","h":"p-text"}]},{"id":"p-proc","trail":[{"t":"Full reference","h":"reference"},{"t":"Processes &amp; signals","h":"p-proc"}]},{"id":"keeping-current","trail":[{"t":"Upkeep","h":""},{"t":"Keeping this current","h":"keeping-current"}]},{"id":"how-versions-work","trail":[{"t":"Upkeep","h":""},{"t":"Where the versions come from","h":"how-versions-work"}]}];</script>
 <script>
 /* veri, Annotated — tooltip layer.
    Every {{ref}} in the commentary is emitted as a real <a href="#p-id"> first, so the
