@@ -351,13 +351,13 @@ html{scroll-behavior:smooth}
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
-    17 shell scripts, 1177 lines, that let a language model run
+    17 shell scripts, 1189 lines, that let a language model run
     test-driven development on itself without being trusted to. Every script in full,
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
     <span><b>v0.19</b> latest version</span><span><b>17</b> scripts</span>
-    <span><b>1177</b> lines, all shown</span>
+    <span><b>1189</b> lines, all shown</span>
     <span><b>40</b> reference entries</span>
   </p>
 </header>
@@ -417,7 +417,7 @@ html{scroll-behavior:smooth}
   That line is the entire design philosophy: <strong>the model decides, the scripts
   enforce.</strong> Anything that must be exact and repeatable is pulled out of the fuzzy
   part and into a shell script with a unit test behind it. So the guarantees you can
-  actually rely on all live in the 1177 lines this page reproduces in full.
+  actually rely on all live in the 1189 lines this page reproduces in full.
 </p>
 <p>One more role, because it appears constantly:</p>
 <ul>
@@ -2571,7 +2571,7 @@ html{scroll-behavior:smooth}
   change the words once, in one file, and every future run of that phase gets exactly them.
 </p></div>
 <div class="contract"><dl><dt>Usage</dt><dd><code>build-develop-prompt.sh red|green|refactor &lt;spec-file&gt; &lt;step&gt; &lt;test-cmd&gt; [extra&hellip;]</code></dd><dt>Usage (revise)</dt><dd><code>build-develop-prompt.sh revise &lt;phase&gt; &lt;spec-file&gt; &lt;step&gt; &lt;test-cmd&gt; &lt;reason-file&gt;</code></dd><dt>stdout</dt><dd>The assembled prompt</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b></span> <span class="ec ec-2"><b>2</b> unknown phase / unreadable file</span></dd></dl></div>
-<div class="ann"><div class="ann-head"><span class="fname">build-develop-prompt.sh</span><span class="fmeta">112 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<div class="ann"><div class="ann-head"><span class="fname">build-develop-prompt.sh</span><span class="fmeta">124 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
 <span class="l"><span class="c"># build-develop-prompt.sh — assemble a DEVELOPER leaf's prompt for one cycle phase.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># The mirror of build-verify-prompt.sh, and its opposite in emphasis: the verifier builder</span></span>
@@ -2628,36 +2628,64 @@ html{scroll-behavior:smooth}
   <a class="tt" data-ref="p-redirect" href="#p-redirect">2&gt;/dev/null</a> <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> <code>true</code> pattern.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 31"><span class="l">phase=<span class="s">"</span><span class="v">${1:?usage: build-develop-prompt.sh red|green|refactor|revise &lt;issue-spec-file&gt; &lt;step-text&gt; &lt;test-cmd&gt; ...}</span><span class="s">"</span></span>
 <span class="l"></span>
-<span class="l"><span class="c"># The phase is checked here, before any other positional is read, because the two questions</span></span>
-<span class="l"><span class="c"># are answered with different exit codes and the first one asked wins. A `${N:?}` expansion</span></span>
-<span class="l"><span class="c"># aborts the shell with status 1, so validating the arguments of a phase that does not exist</span></span>
-<span class="l"><span class="c"># would answer "an argument is missing" (exit 1) to a caller whose real mistake was the</span></span>
-<span class="l"><span class="c"># phase itself — and a bad phase is a bad-arguments case, which is exit 2 suite-wide.</span></span>
+<span class="l"><span class="c"># Both argument questions — is the phase one we have, and did the caller pass enough for it</span></span>
+<span class="l"><span class="c"># — are settled here, before any other positional is read, because they are answered with</span></span>
+<span class="l"><span class="c"># different exit codes and the first one asked wins. A `${N:?}` expansion aborts the shell</span></span>
+<span class="l"><span class="c"># with status 1, the code reserved for a real answer, so letting those fire first would</span></span>
+<span class="l"><span class="c"># report a caller who mistyped the phase or forgot an argument as one whose call was made</span></span>
+<span class="l"><span class="c"># and came back negative. Both are bad-arguments cases, which is exit 2 suite-wide.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># One `case` answers both because the arms are the same four words either way: naming each</span></span>
+<span class="l"><span class="c"># phase's arity gives the whitelist something to do beyond existing, and `*)` beneath them</span></span>
+<span class="l"><span class="c"># still means "not one of ours". The counts include the phase word itself, and for `revise`</span></span>
+<span class="l"><span class="c"># the phase it is redoing, since neither has been shifted off yet.</span></span>
 <span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
-<span class="l">  red|green|refactor|revise) ;;</span>
+<span class="l">  red) want=4 ;;</span>
+<span class="l">  green) want=6 ;;</span>
+<span class="l">  refactor) want=5 ;;</span>
+<span class="l">  revise) want=6 ;;</span>
 <span class="l">  *) echo <span class="s">"build-develop-prompt: unknown phase '</span><span class="v">$phase</span><span class="s">' (want red|green|refactor|revise)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
-<span class="l"><span class="k">esac</span></span></pre></div><div class="ann-note"><p>
+<span class="l"><span class="k">esac</span></span>
+<span class="l">(( <span class="v">$#</span> &gt;= want )) || {</span>
+<span class="l">  echo <span class="s">"build-develop-prompt: </span><span class="v">$phase</span><span class="s"> needs </span><span class="v">$want</span><span class="s"> arguments, got </span><span class="v">$#</span><span class="s">"</span> &gt;&amp;2; <span class="k">exit</span> 2</span>
+<span class="l">}</span></pre></div><div class="ann-note"><p>
   Line 32 takes <code>phase</code> with a <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> &mdash;
   the one argument every invocation shares, read before anything else can happen.
 </p><p>
-  Lines 39&ndash;42 then settle whether that phase is one of the four, and they do it
-  <em>here</em>, before a single other positional is touched.
+  Lines 45&ndash;54 then settle both of the remaining argument questions &mdash; is that
+  phase one of the four, and did the caller pass enough arguments for it &mdash; and they do
+  it <em>here</em>, before a single other positional is touched.
 </p>
-<div class="note"><span class="tag">Why the order of these two checks is the whole point</span><p>
+<div class="note"><span class="tag">Why the order of these checks is the whole point</span><p>
   A <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> aborts the shell with status <b>1</b>. That
   number is bash's, not this suite's, and it is not configurable. Every other refusal in
   veri answers a bad-arguments case with <span class="ec ec-2"><b>2</b></span>. So whichever
   check runs first decides which question the caller gets answered &mdash; and with the
   phase validated <em>below</em> the <code>spec_file</code> line, as it once was,
   <code>build-develop-prompt.sh bogus</code> complained about a missing spec file and exited
-  1, when the caller's actual mistake was the word <code>bogus</code>.
+  1, when the caller's actual mistake was the word <code>bogus</code>. A bare
+  <code>build-develop-prompt.sh red</code> &mdash; a real phase, simply short of arguments
+  &mdash; leaked the same 1, the code this suite reserves for a leaf that ran and came back
+  negative.
 </p><p>
-  Hoisting the <a class="tt" data-ref="p-case" href="#p-case">case</a> above the argument-binding lines settles it by construction:
-  a phase outside <code>red|green|refactor|revise</code> never reaches an argument check at
-  all. The four-way arm on line 40 does <em>nothing</em> &mdash;
-  <code>red|green|refactor|revise) ;;</code> is a pure whitelist, there so that
-  <code>*)</code> beneath it can mean "not one of ours".
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 42"><span class="l"></span>
+  Hoisting the <a class="tt" data-ref="p-case" href="#p-case">case</a> above the argument-binding lines settles both by
+  construction: a phase outside <code>red|green|refactor|revise</code> never reaches an
+  argument check at all, and a phase short of arguments is turned away on line 52 before any
+  <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> below gets the chance to fire.
+</p></div>
+<div class="note"><span class="tag">One case, because the arms are the same four words</span><p>
+  Whitelisting the phase and counting its arguments ask the same question of the same four
+  words, so they are asked once. Naming each phase's arity is what gives the whitelist
+  something to do beyond existing &mdash; <code>red) want=4 ;;</code> both admits the phase
+  and says what it costs &mdash; while <code>*)</code> on line 50 still means "not one of
+  ours".
+</p><p>
+  The counts read one higher than the usage lines because nothing has been shifted off yet:
+  <code>$#</code> still includes the phase word itself, and for <code>revise</code> the
+  phase it is redoing. Line 52's <a class="tt" data-ref="p-arith" href="#p-arith">(( $# &gt;= want ))</a> is a <em>lower</em> bound
+  rather than an equality &mdash; trailing arguments nobody reads are the caller's business,
+  not a refusal.
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 54"><span class="l"></span>
 <span class="l"><span class="c"># `revise` names the phase it is redoing *before* the three arguments every phase shares,</span></span>
 <span class="l"><span class="c"># so its spec/step/test-cmd each sit one position later than everyone else's. Take that</span></span>
 <span class="l"><span class="c"># extra argument off the front; past this point the positions line up again.</span></span>
@@ -2684,42 +2712,42 @@ html{scroll-behavior:smooth}
   <code>revised_phase=""</code> hoists the empty default a line <em>before</em> the
   <code>if</code> that might fill it, so a non-<code>revise</code> phase leaves the variable
   defined-but-empty rather than unset &mdash; required reading under
-  <a class="tt" data-ref="p-strict" href="#p-strict">set -u</a>, which aborts on an unset reference. Line 54 reads the phase being
-  redone with the same <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> as line 32; line 59's
+  <a class="tt" data-ref="p-strict" href="#p-strict">set -u</a>, which aborts on an unset reference. Line 66 reads the phase being
+  redone with the same <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> as line 32; line 71's
   <code>shift</code> <strong>discards argument 1 and renumbers the rest</strong>, so
   <code>$2</code>, <code>$3</code>, <code>$4</code>&hellip; line up exactly the way they do
   for red, green and refactor. Past this point the four phases are indistinguishable to the
   rest of the script.
 </p></div>
-<div class="note"><span class="tag">Two phase names, two identical checks</span><p>
-  Lines 55&ndash;58 are the <a class="tt" data-ref="p-case" href="#p-case">case</a> from line 39 again, applied to the <em>second</em>
+<div class="note"><span class="tag">Two phase names, two separate checks</span><p>
+  Lines 67&ndash;70 are the <a class="tt" data-ref="p-case" href="#p-case">case</a> from line 45 again, applied to the <em>second</em>
   phase name &mdash; and it earns its place for the same reason the first one does. This word
   is substituted into the prompt as the phase the leaf is being told it is redoing, so an
   unchecked one reaches the leaf as an instruction to redo something that does not exist:
   <code>revise bogus &hellip;</code> once printed a whole prompt headed "redoing bogus", and
   exited <span class="ec ec-0"><b>0</b></span> while doing it.
 </p><p>
-  The whitelist here is <code>red|green|refactor</code> &mdash; three words, not the four of
-  line 40. <code>revise</code> is absent deliberately: there is no
+  The whitelist here is <code>red|green|refactor</code> &mdash; three words, not the four
+  above. <code>revise</code> is absent deliberately: there is no
   <code>prompts/develop-revise-revise.md</code>, so a revise of a revise names a template
   that was never written.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 60"><span class="l"></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 72"><span class="l"></span>
 <span class="l">spec_file=<span class="s">"</span><span class="v">${2:?missing &lt;issue-spec-file&gt;}</span><span class="s">"</span></span>
 <span class="l">step=<span class="s">"</span><span class="v">${3:?missing &lt;step-text&gt;}</span><span class="s">"</span></span>
-<span class="l">test_cmd=<span class="s">"</span><span class="v">${4:?missing &lt;test-cmd&gt;}</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
+<span class="l">test_cmd=<span class="s">"</span><span class="v">${4:?missing &lt;test-cmd&gt;}</span><span class="s">"</span></span>
+<span class="l"></span></pre></div><div class="ann-note"><p>
   <code>spec_file</code>, <code>step</code> and <code>test_cmd</code> &mdash; the three
   positions every phase shares &mdash; are bound here with the same
   <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> used throughout. Because <code>revise</code>
   already shifted its extra argument off, this reads <code>$2</code>, <code>$3</code>,
   <code>$4</code> the same way whichever phase is running.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 64"><span class="l"></span>
-<span class="l"><span class="c"># Each phase takes its own extra positionals past the three every phase shares, and below</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 77"><span class="l"><span class="c"># Each phase takes its own extra positionals past the three every phase shares, and below</span></span>
 <span class="l"><span class="c"># each branch names only those. Everything else stays empty, and an empty variable's</span></span>
 <span class="l"><span class="c"># placeholder expands to nothing — which is why red, the phase that writes the test and so</span></span>
 <span class="l"><span class="c"># has nothing yet to name, needs no branch body at all.</span></span>
 <span class="l">test_path=<span class="s">""</span> target=<span class="s">""</span> touched=<span class="s">""</span> reason_file=<span class="s">""</span></span></pre></div><div class="ann-note"><p>
   The comment states the design directly: each phase takes its own extra positionals past
-  the three every phase shares, and only the branch below names them. Line 70 hoists all
+  the three every phase shares, and only the branch below names them. Line 82 hoists all
   four possible extras &mdash; <code>test_path</code>, <code>target</code>,
   <code>touched</code>, <code>reason_file</code> &mdash; to an empty default
   <em>above</em> the <a class="tt" data-ref="p-case" href="#p-case">case</a> that follows: four ordinary assignments on one line,
@@ -2731,9 +2759,9 @@ html{scroll-behavior:smooth}
   sets, say, <code>touched</code> needs no empty-string branch of its own to make that true.
   Declaring all four before the <code>case</code> is what lets <code>red</code> &mdash; the
   phase that writes the test and so has nothing yet to name &mdash; get away with an empty
-  branch body: <code>red) ;;</code> on line 72 does nothing because there is nothing left
+  branch body: <code>red) ;;</code> on line 84 does nothing because there is nothing left
   for it to do.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 70"><span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 82"><span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
 <span class="l">  red) ;;</span>
 <span class="l">  green)</span>
 <span class="l">    test_path=<span class="s">"</span><span class="v">${5:?missing &lt;test-path&gt;}</span><span class="s">"</span></span>
@@ -2749,18 +2777,17 @@ html{scroll-behavior:smooth}
   The <a class="tt" data-ref="p-case" href="#p-case">case</a> itself &mdash; the second one to switch on <code>$phase</code>, and
   the one that does the work the first could not. Three of the four phases fill in exactly
   the extra positionals their usage line promised &mdash; <code>green</code> takes two more,
-  <code>test_path</code> and <code>target</code> (lines 74&ndash;75), <code>refactor</code>
-  one (line 78), <code>revise</code> one (line 81) &mdash; each still a
+  <code>test_path</code> and <code>target</code> (lines 86&ndash;87), <code>refactor</code>
+  one (line 90), <code>revise</code> one (line 93) &mdash; each still a
   <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a>, so a missing extra fails exactly where the
   caller went wrong rather than surfacing later as a blank in the prompt.
 </p><p>
-  There is no <code>*)</code> arm here, and its absence is the deliberate half of the
-  refusal split across the two <code>case</code> statements. An unknown phase has already
-  been turned away up on line 41; a default arm repeating that diagnostic could never run,
-  and dead code that looks like a live guard is worse than no guard &mdash; it invites the
-  next reader to assume this is where unknown phases are caught, and to weaken line 41
-  accordingly.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 83"><span class="l"></span>
+  There is no <code>*)</code> arm here, and its absence is deliberate. An unknown phase has
+  already been turned away up on line 50; a default arm repeating that diagnostic could
+  never run, and dead code that looks like a live guard is worse than no guard &mdash; it
+  invites the next reader to assume this is where unknown phases are caught, and to weaken
+  line 50 accordingly.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 95"><span class="l"></span>
 <span class="l">HERE=<span class="s">"$(cd "</span>$(dirname <span class="s">"</span><span class="v">$0</span><span class="s">"</span>)<span class="s">" &amp;&amp; pwd)"</span></span>
 <span class="l">tpl_file=<span class="s">"</span><span class="v">$HERE</span><span class="s">/prompts/develop-</span><span class="v">$phase</span><span class="s">.md"</span></span>
 <span class="l">shared_file=<span class="s">"</span><span class="v">$HERE</span><span class="s">/prompts/_develop-shared.md"</span></span>
@@ -2775,7 +2802,7 @@ html{scroll-behavior:smooth}
   template for the phase running; <code>_develop-shared.md</code> is the preamble every
   phase pulls in.
 </p>
-<div class="note"><span class="tag">The one line worth reading twice: 89</span><p>
+<div class="note"><span class="tag">The one line worth reading twice: 100</span><p>
   <code>for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file"; do</code> checks
   four candidate files for readability &mdash; but <code>$reason_file</code> is empty on
   every phase except <code>revise</code>. <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$f" ]]</a>
@@ -2783,11 +2810,11 @@ html{scroll-behavior:smooth}
   skip straight to the next candidate rather than asking whether an empty path is readable,
   which would fail for the wrong reason on every phase that has no reason file at all.
 </p></div><p>
-  Line 90 is the readability check itself, the same shape as
+  Line 102 is the readability check itself, the same shape as
   <code>build-verify-prompt.sh</code>'s: <a class="tt" data-ref="p-test" href="#p-test">[[ -r "$f" ]]</a>
   <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124;</a> a grouped diagnostic-and-exit, so a missing template or an
   unreadable spec is caught before any file is read, never mid-assembly.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 91"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 103"><span class="l"></span>
 <span class="l">tpl=<span class="s">"$(cat "</span><span class="v">$tpl_file</span><span class="s">")"</span></span>
 <span class="l">shared=<span class="s">"$(cat "</span><span class="v">$shared_file</span><span class="s">")"</span></span>
 <span class="l">spec=<span class="s">"$(cat "</span><span class="v">$spec_file</span><span class="s">")"</span></span>
@@ -2797,10 +2824,10 @@ html{scroll-behavior:smooth}
   in <code>build-verify-prompt.sh</code> &mdash; and, as there, this is the only "copy" that
   happens; nothing below writes back to any of these files.
 </p><p>
-  <code>reason=""</code> is the same hoisted-empty-default idiom as line 70, for the same
+  <code>reason=""</code> is the same hoisted-empty-default idiom as line 82, for the same
   reason: <code>reason_file</code> is empty on every phase but <code>revise</code>, so line
-  97 only overwrites it when <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$reason_file" ]]</a> says there is a file to read.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 97"><span class="l"></span>
+  109 only overwrites it when <a class="tt" data-ref="p-test" href="#p-test">[[ -n "$reason_file" ]]</a> says there is a file to read.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 109"><span class="l"></span>
 <span class="l hunk" data-tag="v0.14" title="prompt builders keep &amp; and \ verbatim under bash 5.2&#x27;s patsub_replacement"><span class="c"># Literal substitution via bash parameter expansion — no sed, and with the</span></span>
 <span class="l"><span class="c"># patsub_replacement guard above holding, so &amp;, \, / and {} in the spec or the step text</span></span>
 <span class="l"><span class="c"># are carried through verbatim.</span></span>
@@ -2830,14 +2857,14 @@ html{scroll-behavior:smooth}
   and the rest; it is not part of a pattern language, because there is none.
 </p>
 <div class="note"><span class="tag">Where the hoisted empty defaults pay off</span><p>
-  Lines 106&ndash;109 substitute <code>$test_path</code>, <code>$target</code>,
+  Lines 118&ndash;121 substitute <code>$test_path</code>, <code>$target</code>,
   <code>$touched</code> and <code>$revised_phase</code> unconditionally, on every phase, and
   three of those four are empty on any given run. That is the payoff of hoisting the
-  defaults above the <code>case</code> back on line 70: an unused placeholder like
+  defaults above the <code>case</code> back on line 82: an unused placeholder like
   <code>{{TEST_PATH}}</code> on a <code>refactor</code> run simply disappears from the
   template, because the string it is replaced with is empty &mdash; no phase-specific branch
   needed here either.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 110"><span class="l"></span>
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 122"><span class="l"></span>
 <span class="l">printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$out</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   The same closing line as <code>build-verify-prompt.sh</code>:
   <a class="tt" data-ref="p-printf" href="#p-printf">printf '%s\n'</a> puts back the trailing newline that
@@ -3896,7 +3923,7 @@ html{scroll-behavior:smooth}
       <code>if</code>, but <code>(( count++ ))</code> as a bare statement under
       <a class="ref" href="#p-strict">set -e</a> will kill your script when the count is zero.
       veri sidesteps it entirely with <code>x=$(( x + 1 ))</code>.
-    </p><p class="seen"><code>supervise.sh</code> — both clocks and the retry counter.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a></p></div><div class="card" id="p-case"><code class="card-sig">case "$x" in … esac</code><p class="card-name">Pattern dispatch</p><p class="seen"><code>classify-bail.sh</code> is essentially nothing else; also the status→exit-code mapping in <code>supervise.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#issue-worktree"><code>issue-worktree.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-shortcircuit"><code class="card-sig">cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2</code><p class="card-name">Short-circuit chaining</p><p>
+    </p><p class="seen"><code>supervise.sh</code> — both clocks and the retry counter.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></div><div class="card" id="p-case"><code class="card-sig">case "$x" in … esac</code><p class="card-name">Pattern dispatch</p><p class="seen"><code>classify-bail.sh</code> is essentially nothing else; also the status→exit-code mapping in <code>supervise.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#issue-worktree"><code>issue-worktree.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-shortcircuit"><code class="card-sig">cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2</code><p class="card-name">Short-circuit chaining</p><p>
       A second, subtler use: a command on the left of <code>||</code> is exempt from
       <a class="ref" href="#p-strict">set -e</a>, because its failure is being handled. That
       is why <code>cmd || true</code> is the idiom for "let this one fail harmlessly".
@@ -4041,7 +4068,7 @@ html{scroll-behavior:smooth}
 <div class="tbl-wrap">
 <table>
   <thead><tr><th>Script</th><th class="num">Lines</th><th>Stage</th></tr></thead>
-  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">127</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">112</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">29</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">105</td><td>5 &middot; or bail</td></tr></tbody>
+  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">127</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">124</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">29</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">105</td><td>5 &middot; or bail</td></tr></tbody>
 </table>
 </div>
 <p>
@@ -4093,7 +4120,7 @@ html{scroll-behavior:smooth}
     <strong>veri, Annotated</strong> &mdash; the complete source of veri's
     <code>/solve-issue</code> conductor, read line by line.
   </p>
-  <p class="mono">17 scripts &middot; 1177 lines &middot; generated by docs/build-walkthrough.py</p>
+  <p class="mono">17 scripts &middot; 1189 lines &middot; generated by docs/build-walkthrough.py</p>
 </footer>
 </div>
 
