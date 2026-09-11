@@ -1201,6 +1201,15 @@ SCRIPTS += [dict(
   when it is absent, the "no <code>.gitignore</code> at all" case needs no branch of its own.
   The final line is the report the conductor keys off: <code>added</code> means there is a
   change to commit.
+</p><p>
+  <strong>And the conductor's half of that contract</strong>, so you need not go to
+  <code>SKILL.md</code> for it: on <code>added</code> it commits the edited
+  <code>.gitignore</code> immediately, as the branch's <em>first</em> commit, under one exact
+  message &mdash;
+  <code>git add .gitignore &amp;&amp; git commit -m "chore: ignore veri run state (#&lt;n&gt;)"</code>.
+  On <code>already present</code> there is nothing to commit and it moves straight on. Either
+  way the rule is in history before the first cycle's <code>git add -A</code> runs, which is
+  the whole point of doing this in step&nbsp;1.4 rather than later.
 </p>'''),
     ]),
 ]

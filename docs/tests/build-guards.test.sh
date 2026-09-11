@@ -20,10 +20,10 @@
 # A guard that has never been seen to fire is decoration, so every case below breaks the
 # thing on purpose and asserts the build refuses.
 #
-# The last case guards something else: not how the build behaves, but the prose it carries
-# — a sentence in docs/wt/commentary.py that was wrong once and must not come back. There is
-# no build behaviour to break on purpose there, so it has no mutator; it just asserts on the
-# page the tree produces as it stands.
+# The last two cases guard something else: not how the build behaves, but the prose it
+# carries — a sentence in docs/wt/commentary.py that was wrong once and must not come back,
+# and one that has to be there. There is no build behaviour to break on purpose in either,
+# so neither has a mutator; they just assert on the page the tree produces as it stands.
 #
 # Each case runs against a disposable copy of the tree, so the real repo is never
 # mutated even if a case aborts.
@@ -381,6 +381,15 @@ checks_git "the checker reads a hunk-tagged line as source, not drift" \
 #    branch and no commits to revert, a step-1.4 failure already has both. Naming the
 #    wrong one sends a reader looking in the wrong half of the procedure.
 omits "no mislabeled preflight timing" 'runs once per issue, at preflight'
+
+# 12. and stage 0 must close the loop on the script's stdout contract: a reader who has
+#    just learned that it prints "added" or "already present" needs to know what the
+#    conductor does with that answer without leaving the page for SKILL.md. "added" means
+#    the rule becomes the branch's first commit, under one exact message; "already present"
+#    means there is nothing to commit. Pinned on the commit message itself, because that is
+#    the half a reader would otherwise go and grep the procedure for. No mutator, same as
+#    case 11: this asserts on the prose the tree carries, not on a build behaviour.
+accepts "documents the ignore-rule caller contract" 'chore: ignore veri run state'
 
 echo "----"
 echo "$pass passed, $fail failed"
