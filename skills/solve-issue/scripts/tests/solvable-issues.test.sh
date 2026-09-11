@@ -130,6 +130,47 @@ out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 { [[ "$code" == 0 ]] && [[ "$out" == "52" ]]; } \
   && ok || no "issue without the ready-for-agent label is never listed (exit=$code want 0, stdout='$out' want '52')"
 
+# 4. An open PR that says `Closes #53` owns #53 — a run is already in flight on it, or one
+# bailed and left the branch behind — so #53 is not veri's to take however takeable the
+# issue itself looks. It is fed in at its most takeable: open, labelled, `None.` under
+# `## Blocked by`, so the ONLY thing withholding it is the PR. This is the first case whose
+# `prs.json` is not the empty list the fixture helper seeds, so it is overwritten below.
+# #54 is the control, unclaimed and labelled: it keeps stdout non-empty and the exit 0,
+# isolating this case from the empty-result criterion, and it sorts above #53 so an
+# implementation ignoring PRs shows up as "53\n54" rather than a reorder.
+fx="$(fixture claimed)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 53,
+    "title": "solvable-issues.sh: list the issues veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA script that prints the numbers veri may take.\n\n## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 54,
+    "title": "the /solve-issues loop skill",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+cat > "$fx/prs.json" <<'JSON'
+[
+  {
+    "state": "OPEN",
+    "body": "Draft PR opened by a /solve-issue run.\n\nCloses #53\n"
+  }
+]
+JSON
+
+out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "54" ]]; } \
+  && ok || no "issue an open PR already Closes is not listed (exit=$code want 0, stdout='$out' want '54')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
