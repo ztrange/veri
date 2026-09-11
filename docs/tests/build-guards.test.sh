@@ -238,12 +238,15 @@ accepts "shebang is not styled as a comment" '<span class="l">#!/usr/bin/env bas
 #    temp dir with no .git in it, which is also what a tarball or a shallow checkout
 #    looks like. The build must still succeed there and simply omit the capability
 #    index — never crash on the missing git, and never emit a half-built index. The
-#    three assertions are: it builds, there is no index, and there is no rail group
-#    pointing at an index that is not there (which the scrollspy would drop and
-#    check-walkthrough.py would report as a build bug).
+#    assertions are: it builds, there is no index, there is no rail group pointing at
+#    an index that is not there (which the scrollspy would drop and
+#    check-walkthrough.py would report as a build bug), and no line of any listing is
+#    hunk-tagged — `git blame` has nothing to answer with here either, so the source
+#    half of the page is as plain as the rest of the version layer is absent.
 omits "no git: no capability index"     '<ol class="vers">'
 omits "no git: no per-script badge"     'class="vbadge"'
 omits "no git: no orphan rail group"    '<h4>Capabilities</h4>'
+omits "no git: no hunk tag"             'class="l hunk"'
 
 # 11. per-hunk version tags. The <b>vX.Y</b> badge dates a file as a whole; a hunk tag
 #    dates a RANGE OF LINES inside the listing, so the reader can see which lines a later
