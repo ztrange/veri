@@ -426,38 +426,39 @@ names_all() {
   done <<< "$2"
 }
 
-# stage0_diagram_blocks — page on stdin, one diagram block per line on stdout.
-# The slice is the stage-0 intro: from the stage-0 heading to the first script it
-# annotates. Inside it, a diagram is a <pre class="src"> sketch or an inline <svg> — the
-# two idioms the page already uses — and each one comes back flattened onto a single line,
-# so a caller can match a whole block with one string test.
-# The awk reads to the end rather than `exit`ing at the first script heading: exiting mid-
-# page leaves the printf feeding a closed pipe, and the SIGPIPE write error lands in the
-# suite's output as if a case had broken.
-stage0_diagram_blocks() {
-  awk '
-    /id="s0"/ && !done               { s0 = 1 }
-    s0 && /<h3 id=/                  { s0 = 0; done = 1 }
-    s0 && /<pre class="src"|<svg/    { blk = ""; inblk = 1 }
-    s0 && inblk                      { blk = blk " " $0 }
-    s0 && inblk && /<\/pre>|<\/svg>/ { print blk; inblk = 0 }
+# diagram_blocks <open-re> <close-re> — page on stdin, one diagram block per line on
+# stdout. The slice runs from the line matching <open-re> to the line matching <close-re>:
+# a stage's intro, bounded by its own heading and by whatever landmark follows it. Inside
+# the slice, a diagram is a <pre class="src"> sketch or an inline <svg> — the two idioms
+# the page already uses — and each one comes back flattened onto a single line, so a caller
+# can match a whole block with one string test.
+# The awk reads to the end rather than `exit`ing at the closing landmark: exiting mid-page
+# leaves the printf feeding a closed pipe, and the SIGPIPE write error lands in the suite's
+# output as if a case had broken.
+diagram_blocks() {
+  awk -v open_re="$1" -v close_re="$2" '
+    $0 ~ open_re && !done                  { sl = 1 }
+    sl && $0 ~ close_re                    { sl = 0; done = 1 }
+    sl && /<pre class="src"|<svg/          { blk = ""; inblk = 1 }
+    sl && inblk                            { blk = blk " " $0 }
+    sl && inblk && /<\/pre>|<\/svg>/       { print blk; inblk = 0 }
   '
 }
 
-# diagrams_stage0 <name> <names-one-per-line>
+# diagrams_in_slice <name> <open-re> <close-re> <what-closes-it> <names-one-per-line>
 # accepts() asks its question of the whole page; this one is about one slice of it. Every
-# stage-0 script name is already on the page many times over: in the rail, in the intro's
-# own prose, in its own listing. So a whole-page match, or even a whole-slice one, would be
-# green before anything is drawn. This demands ONE of the stage-0 intro's diagram blocks
+# script name a stage draws is already on the page many times over: in the rail, in the
+# intro's own prose, in its own listing. So a whole-page match, or even a whole-slice one,
+# would be green before anything is drawn. This demands ONE of the slice's diagram blocks
 # name every one of <names> — one block, not the slice, because names scattered through
 # the prose around a diagram are prose.
 # <names> is one argument holding one name per line, for the same reason tags_git takes
 # its spans that way: the claim is about all of them appearing together.
-diagrams_stage0() {
-  local name="$1" wants="$2"
+diagrams_in_slice() {
+  local name="$1" open_re="$2" close_re="$3" ends_at="$4" wants="$5"
   local d code page blocks blk found="" n=0; d="$("$SANDBOX")"
   page="$(build "$d")" && code=0 || code=$?
-  blocks="$(printf '%s\n' "$page" | stage0_diagram_blocks)"
+  blocks="$(printf '%s\n' "$page" | diagram_blocks "$open_re" "$close_re")"
   while IFS= read -r blk; do
     [[ -n "$blk" ]] || continue
     n=$((n + 1))
@@ -468,59 +469,26 @@ diagrams_stage0() {
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
-    echo "    want one diagram between id=\"s0\" and the first script, naming: $wants"
-    echo "    got  $n diagram block(s) in the stage-0 intro, none naming all of them"
-    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
-  fi
-}
-
-# stage5_diagram_blocks — page on stdin, one diagram block per line on stdout.
-# stage0_diagram_blocks for the last stage, and it cannot borrow that one's closing
-# landmark. Stage 0's intro is followed by the scripts it annotates, so "up to the first
-# <h3 id=" cuts the intro exactly; stage 5 is the final stage, so what follows its scripts
-# is the reference section — `id="reference"` — and that is the only landmark that closes
-# it. Both landmarks occur once each in the page, as `id=`: the rail's links to the same
-# two places are `href="#s5"` and `href="#reference"`, which this does not match.
-# The wider slice costs the assertion below nothing, because the claim is about ONE block
-# naming every string: the closest any script listing in the stage comes is
-# refactor-budget.sh's own source, which has neither VERI_STUCK_RETRIES nor REVISE_BUDGET
-# anywhere in it.
-stage5_diagram_blocks() {
-  awk '
-    /id="s5"/ && !done                { s5 = 1 }
-    s5 && /id="reference"/            { s5 = 0; done = 1 }
-    s5 && /<pre class="src"|<svg/     { blk = ""; inblk = 1 }
-    s5 && inblk                       { blk = blk " " $0 }
-    s5 && inblk && /<\/pre>|<\/svg>/  { print blk; inblk = 0 }
-  '
-}
-
-# diagrams_stage5 <name> <names-one-per-line>
-# diagrams_stage0 asked of stage 5's slice, and for the same reason: every one of these
-# names is already loose in the stage — in the rail, in the prose, in the listings of the
-# scripts themselves — so a whole-page or whole-slice match would be green before anything
-# is drawn. The demand is that ONE diagram block carries all of them together, because
-# names scattered through the prose around a picture are prose, not a picture.
-diagrams_stage5() {
-  local name="$1" wants="$2"
-  local d code page blocks blk found="" n=0; d="$("$SANDBOX")"
-  page="$(build "$d")" && code=0 || code=$?
-  blocks="$(printf '%s\n' "$page" | stage5_diagram_blocks)"
-  while IFS= read -r blk; do
-    [[ -n "$blk" ]] || continue
-    n=$((n + 1))
-    names_all "$blk" "$wants" && found="yes"
-  done <<< "$blocks"
-  if [[ "$code" == 0 && -n "$found" ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name (exit $code)"
-    echo "    want one diagram between id=\"s5\" and the reference section, naming: $wants"
+    echo "    want one diagram between $open_re and $ends_at, naming: $wants"
     echo "    got  $n diagram block(s) in that slice, none naming all of them"
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
   fi
 }
+
+# diagrams_stage0 <name> <names-one-per-line>
+# Stage 0's intro is followed by the scripts it annotates, so "up to the first <h3 id="
+# cuts the intro exactly.
+diagrams_stage0() { diagrams_in_slice "$1" 'id="s0"' '<h3 id=' 'the first script' "$2"; }
+
+# diagrams_stage5 <name> <names-one-per-line>
+# Stage 5 cannot borrow stage 0's closing landmark: it is the final stage, so what follows
+# its scripts is the reference section — `id="reference"` — and that is the only landmark
+# that closes it. Both landmarks occur once each in the page, as `id=`: the rail's links to
+# the same two places are `href="#s5"` and `href="#reference"`, which this does not match.
+# The wider slice costs the assertion nothing, because the claim is about ONE block naming
+# every string: the closest any script listing in the stage comes is refactor-budget.sh's
+# own source, which has neither VERI_STUCK_RETRIES nor REVISE_BUDGET anywhere in it.
+diagrams_stage5() { diagrams_in_slice "$1" 'id="s5"' 'id="reference"' 'the reference section' "$2"; }
 
 # --- helpers used as mutators (run with cwd = the sandbox) ---------------------
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
