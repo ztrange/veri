@@ -138,6 +138,17 @@ bare_out="$("$BUILD" bogus 2>"$bare_err")"; code=$?
   && grep -q 'bogus' "$bare_err" \
   && ok || no "an unknown phase with no further arguments exits 2, names the phase on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$bare_err"))"
 
+# 7. a known phase with its later positionals missing is a bad-arguments case too, and so
+#    exits 2 like every other refusal. Left to itself the shell answers this one: a `${N:?}`
+#    expansion aborts with status 1, which reads to the conductor as a leaf that ran and
+#    failed rather than a call it could not make sense of.
+short_err="$work/short-red.err"
+short_out="$("$BUILD" red "$work/spec.md" 2>"$short_err")"; code=$?
+[[ "$code" -eq 2 ]] \
+  && [[ -z "$short_out" ]] \
+  && [[ -s "$short_err" ]] \
+  && ok || no "a known phase missing its later positionals exits 2 with a diagnostic and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$short_err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
