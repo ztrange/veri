@@ -26,18 +26,24 @@ root="$(git rev-parse --show-toplevel)"
 branch="tdd/$n-$slug"
 path="$root/.tdd/wt/$n"
 
+# git's own registry of worktrees — asked once here, questioned twice below. `worktree list
+# --porcelain` prints one block per registered worktree, blank-line separated: a
+# `worktree <absolute-path>` line first, then `HEAD <sha>`, then `branch <full-ref>` (absent
+# when that worktree is detached).
+#
+# Captured into a variable rather than piped into each reader: `set -o pipefail` above would
+# let git's exit code — including the SIGPIPE it takes when a reader stops early — decide the
+# answer instead of the reader's. Each question below feeds it back in with <<<, a here-string,
+# which hands one string to a command as its stdin without a pipeline.
+registry="$(git worktree list --porcelain)"
+
 # Idempotent: a second call for the same issue — a resume, or a conductor re-entering step 1 —
 # answers with the path it already made instead of dying on `git worktree add`'s "already
-# exists". The question is put to git's own registry: `worktree list --porcelain` prints one
-# `worktree <absolute-path>` line per registered worktree, and grep -x -F asks for that exact
-# line, whole and literal (-F: no regex, so a `.` in the path is a dot). Asking git rather than
-# `[[ -d $path ]]` matters — a leftover directory git no longer knows about is not a worktree
-# we can hand back, and it must fall through to the add below.
-#
-# <<< is a here-string: it feeds that one string to grep as its stdin. Not a `|` pipeline,
-# deliberately — `set -o pipefail` above would let git's exit code, including the SIGPIPE it
-# takes when grep -q stops reading early, decide the answer instead of grep's.
-if grep -qxF "worktree $path" <<<"$(git worktree list --porcelain)"; then
+# exists". grep -x -F asks the registry for that exact `worktree <path>` line, whole and
+# literal (-F: no regex, so a `.` in the path is a dot). Asking git rather than `[[ -d $path ]]`
+# matters — a leftover directory git no longer knows about is not a worktree we can hand back,
+# and it must fall through to the add below.
+if grep -qxF "worktree $path" <<<"$registry"; then
   printf '%s\n' "$path"
   exit 0
 fi
@@ -46,15 +52,13 @@ fi
 # conductor owns that run, so refuse with exit 2 — "no answer could be obtained" — and name the
 # path, because it is the only thing that tells a human which run to go and look at.
 #
-# `worktree list --porcelain` prints one block per worktree, blank-line separated: a
-# `worktree <absolute-path>` line first, then `HEAD <sha>`, then `branch <full-ref>` (absent
-# when that worktree is detached). So walk it line by line, remember the path of the block we
-# are inside, and answer with it when a branch line names ours.
+# Walk the registry line by line, remember the path of the block we are inside, and answer with
+# it when a branch line names ours.
 #
 # `read -r key value` splits each line on whitespace into the first word and *all* the rest, so
 # a path containing spaces still arrives whole in $value; -r stops backslashes being eaten.
-# The here-string (<<<) feeds git's output in without a pipeline, which keeps the loop in this
-# shell — a `|` would run it in a subshell and throw $holder away at the end.
+# Feeding the loop with <<< rather than a `|` also keeps it in this shell — a pipeline would run
+# it in a subshell and throw $holder away at the end.
 holder=""
 seen=""
 while read -r key value; do
@@ -62,7 +66,7 @@ while read -r key value; do
     worktree) seen="$value" ;;
     branch) if [[ "$value" == "refs/heads/$branch" ]]; then holder="$seen"; break; fi ;;
   esac
-done <<<"$(git worktree list --porcelain)"
+done <<<"$registry"
 
 if [[ -n "$holder" ]]; then
   echo "issue-worktree: branch $branch is already checked out in $holder — another conductor owns it" >&2
