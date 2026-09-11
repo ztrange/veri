@@ -105,6 +105,23 @@ if [ -f "$root/Cargo.toml" ]; then
   answer 'cargo test'
 fi
 
+# 7. The last rule before giving up: a python repo that committed no runner configuration at
+# all still has a suite if `tests/` holds files named `test_*.py`, and the stdlib runs them
+# without anything installed — `python3` because a modern macOS has no `python`, `-m unittest
+# discover` because there is no runner script to call, `-q` for the same reason as pytest's.
+#
+# Unlike every rule above, the marker is a pattern rather than a file at a known path, so the
+# question is asked by letting the shell expand the pattern and testing what came back. A glob
+# that matches nothing is left as its own literal text by default, and `[ -f ]` is false for
+# that non-existent filename — so the loop answers on the first real match and falls through
+# when there was none, with no need for the `nullglob` that bash 3.2 would handle differently.
+# Only the pattern is unquoted: "$root" stays quoted so a path with spaces still resolves.
+for f in "$root"/tests/test_*.py; do
+  if [ -f "$f" ]; then
+    answer 'python3 -m unittest discover -q'
+  fi
+done
+
 # Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the
 # question to the human.
 exit 3
