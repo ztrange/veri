@@ -515,11 +515,22 @@ env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" 
 # accepts spaces or hyphens between the four words that carry the claim, and the variable is
 # matched literally because `VERI_LABEL` is the string a reader greps for. Every miss is named
 # in the failure message, file by file, so one run says which document is short of what.
+#
+# One document, one claim: record a miss tagged `<doc>:<tag>` unless the document matches.
+# The helper lives here rather than beside `run` and `label_run` at the top because only this
+# case has documents to read, and the grep arguments stay at the call site, where the
+# difference between a literal name and a loosely-matched sentence is the point. What it
+# collapses is the accumulator: `$docs_missing $doc:` is spelled once, so the two claims
+# cannot drift into reporting misses in two shapes.
+doc_claims() {  # doc_claims <doc> <tag> <grep argument…>
+  local doc="$1" tag="$2"; shift 2
+  grep -q "$@" "$REPO_ROOT/$doc" || docs_missing="$docs_missing $doc:$tag"
+}
+
 docs_missing=""
 for doc in skills/solve-issues/SKILL.md README.md CONTEXT.md; do
-  grep -q 'VERI_LABEL' "$REPO_ROOT/$doc" || docs_missing="$docs_missing $doc:VERI_LABEL"
-  grep -qiE 'one[ -]label[ -]per[ -]loop' "$REPO_ROOT/$doc" \
-    || docs_missing="$docs_missing $doc:one-label-per-loop"
+  doc_claims "$doc" VERI_LABEL -e 'VERI_LABEL'
+  doc_claims "$doc" one-label-per-loop -iE -e 'one[ -]label[ -]per[ -]loop'
 done
 
 [[ -z "$docs_missing" ]] \
