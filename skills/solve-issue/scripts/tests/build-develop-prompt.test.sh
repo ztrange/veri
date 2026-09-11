@@ -30,10 +30,10 @@
 #   cannot be met rather than fake a pass.
 #
 # Contract under test, refusals:
-#   an unknown phase, or a missing template, spec or reason file, exits 2 with a diagnostic
-#   and prints no prompt — the verifier builder's contract. Exit 2 is veri's "no answer
-#   could be obtained", and a half-assembled prompt on stdout would read to the conductor
-#   as a whole one.
+#   an unknown phase, a missing positional, or a missing template, spec or reason file, exits
+#   2 with a diagnostic and prints no prompt — the verifier builder's contract. Exit 2 is
+#   veri's "no answer could be obtained", and a half-assembled prompt on stdout would read
+#   to the conductor as a whole one.
 #
 # Run: scripts/tests/build-develop-prompt.test.sh
 set -uo pipefail
@@ -124,9 +124,15 @@ refuses "missing template"        "$work/no-prompts/build-develop-prompt.sh" red
 # leaf is told it is redoing a phase that does not exist. Every other argument below is
 # real, so the only thing wrong with this call is that phase.
 refuses "unknown phase to revise" "$BUILD" revise bogus "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+# A known phase short of its later positionals is a bad-arguments case too, so it is refused
+# the same way. Left to itself the shell would answer this one differently: a `${N:?}`
+# expansion aborts with status 1, which reads to the conductor as a leaf that ran and failed
+# rather than a call it could not make sense of. `red` needs a step and a test command past
+# the spec file, and neither is here.
+refuses "missing positionals"     "$BUILD" red "$work/spec.md"
 
 [[ -z "$refusal_bad" ]] \
-  && ok || no "an unknown phase or a missing template/spec/reason file exits 2 with a diagnostic and prints no prompt (${refusal_bad#; })"
+  && ok || no "an unknown phase, a missing positional or a missing template/spec/reason file exits 2 with a diagnostic and prints no prompt (${refusal_bad#; })"
 
 # 6. that refusal does not depend on the later positionals being supplied: a bad phase on
 #    its own is still a bad-arguments case, which is exit 2. The shell's own `${N:?}` abort
@@ -137,17 +143,6 @@ bare_out="$("$BUILD" bogus 2>"$bare_err")"; code=$?
   && [[ -z "$bare_out" ]] \
   && grep -q 'bogus' "$bare_err" \
   && ok || no "an unknown phase with no further arguments exits 2, names the phase on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$bare_err"))"
-
-# 7. a known phase with its later positionals missing is a bad-arguments case too, and so
-#    exits 2 like every other refusal. Left to itself the shell answers this one: a `${N:?}`
-#    expansion aborts with status 1, which reads to the conductor as a leaf that ran and
-#    failed rather than a call it could not make sense of.
-short_err="$work/short-red.err"
-short_out="$("$BUILD" red "$work/spec.md" 2>"$short_err")"; code=$?
-[[ "$code" -eq 2 ]] \
-  && [[ -z "$short_out" ]] \
-  && [[ -s "$short_err" ]] \
-  && ok || no "a known phase missing its later positionals exits 2 with a diagnostic and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$short_err"))"
 
 echo "----"
 echo "$pass passed, $fail failed"
