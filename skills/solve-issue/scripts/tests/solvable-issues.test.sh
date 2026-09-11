@@ -50,6 +50,46 @@ out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 { [[ "$code" == 0 ]] && [[ "$out" == "41" ]]; } \
   && ok || no "open ready-for-agent issue with no blockers is listed (exit=$code want 0, stdout='$out' want '41')"
 
+# 2. A blocker gates the issue, and only while it is open. Both halves are the same
+# criterion observed twice, so they are one case: the same two issues are fed in twice,
+# changing nothing but #49's state. While #49 is OPEN, #50 names it under `## Blocked by`
+# and must not be listed — #49 itself still is, since it carries the label and names no
+# blocker of its own. Close #49 and #50 becomes takeable; #49 drops out because a closed
+# issue is never solvable, so the same fixture pair yields "49" then "50".
+fx="$work/blocked"
+mkdir -p "$fx"
+issues() {  # issues <state-of-49>
+  cat <<JSON
+[
+  {
+    "number": 50,
+    "title": "the /solve-issues loop skill",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA loop over solvable-issues.sh.\n\n## Blocked by\n\n#49\n"
+  },
+  {
+    "number": 49,
+    "title": "solvable-issues.sh: list the issues veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "$1",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+}
+printf '[]\n' > "$fx/prs.json"
+
+issues OPEN > "$fx/issues.json"
+while_open="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && open_code=0 || open_code=$?
+
+issues CLOSED > "$fx/issues.json"
+once_closed="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && closed_code=0 || closed_code=$?
+
+{ [[ "$open_code" == 0 && "$while_open" == "49" ]] \
+  && [[ "$closed_code" == 0 && "$once_closed" == "50" ]]; } \
+  && ok || no "issue blocked by an open issue is withheld until that issue closes (blocker open: exit=$open_code want 0, stdout='$while_open' want '49'; blocker closed: exit=$closed_code want 0, stdout='$once_closed' want '50')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
