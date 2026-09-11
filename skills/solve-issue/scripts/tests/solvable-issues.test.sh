@@ -33,6 +33,14 @@ fixture() {  # fixture <name> -> path
   echo "$dir"
 }
 
+# Run the script against one fixture directory, leaving its stdout in $out and its exit code
+# in $code — the pair every case below asserts on. Neither is `local`, deliberately: the
+# assertion lives at the call site, which is where the expected values belong. stderr is
+# dropped; no case asserts on it.
+run() {  # run <fixture-dir>; sets $out and $code
+  out="$(VERI_GH_JSON="$1" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+}
+
 # 1. The base case, and the one the VERI_GH_JSON override exists to make testable: a single
 # open issue, carrying the ready-for-agent opt-in label, naming no blocker, with no open PR
 # claiming it. Nothing stands between veri and a run on it, so it is listed on its own line.
@@ -54,7 +62,7 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+run "$fx"
 
 { [[ "$code" == 0 ]] && [[ "$out" == "41" ]]; } \
   && ok || no "open ready-for-agent issue with no blockers is listed (exit=$code want 0, stdout='$out' want '41')"
@@ -88,10 +96,10 @@ JSON
 }
 
 issues OPEN > "$fx/issues.json"
-while_open="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && open_code=0 || open_code=$?
+run "$fx"; while_open="$out" open_code="$code"
 
 issues CLOSED > "$fx/issues.json"
-once_closed="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && closed_code=0 || closed_code=$?
+run "$fx"; once_closed="$out" closed_code="$code"
 
 { [[ "$open_code" == 0 && "$while_open" == "49" ]] \
   && [[ "$closed_code" == 0 && "$once_closed" == "50" ]]; } \
@@ -124,7 +132,7 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+run "$fx"
 
 { [[ "$code" == 0 ]] && [[ "$out" == "52" ]]; } \
   && ok || no "issue without the ready-for-agent label is never listed (exit=$code want 0, stdout='$out' want '52')"
@@ -165,7 +173,7 @@ cat > "$fx/prs.json" <<'JSON'
 ]
 JSON
 
-out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+run "$fx"
 
 { [[ "$code" == 0 ]] && [[ "$out" == "54" ]]; } \
   && ok || no "issue an open PR already Closes is not listed (exit=$code want 0, stdout='$out' want '54')"
