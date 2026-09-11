@@ -2,13 +2,14 @@
 # solvable-issues.sh — print the numbers of the issues veri may take right now, one per
 # line, lowest first.
 #
-# An issue is solvable when it is open, carries the `ready-for-agent` label (the human's
-# explicit opt-in — nothing is taken because it merely exists), every issue it names
-# under its `## Blocked by` heading is closed, and no open pull request already says
-# `Closes #<n>` for it — such a PR means a run is in flight on that issue, or one bailed
-# and left the branch behind, and either way the issue is not veri's to take. A body whose
-# `## Blocked by` section reads `None.` names no issue at all, so the test for "unblocked"
-# is the absence of a `#<n>` reference under that heading rather than the literal word.
+# An issue is solvable when it is open, carries the opt-in label (`ready-for-agent`, or the
+# name `VERI_LABEL` gives instead — the human's explicit opt-in, since nothing is taken
+# because it merely exists), every issue it names under its `## Blocked by` heading is
+# closed, and no open pull request already says `Closes #<n>` for it — such a PR means a run
+# is in flight on that issue, or one bailed and left the branch behind, and either way the
+# issue is not veri's to take. A body whose `## Blocked by` section reads `None.` names no
+# issue at all, so the test for "unblocked" is the absence of a `#<n>` reference under that
+# heading rather than the literal word.
 #
 # The repository's issues and pull requests are read as the JSON `gh` emits:
 #   gh issue list --json number,title,labels,body,state
@@ -24,6 +25,7 @@
 #
 # Usage:   solvable-issues.sh [--repo owner/name]
 #          VERI_GH_JSON=<dir> solvable-issues.sh
+#          VERI_LABEL=<name>  solvable-issues.sh
 # Exit:    0 one or more numbers printed; 3 nothing to do — no issue is takeable
 set -euo pipefail
 
