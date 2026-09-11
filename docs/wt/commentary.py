@@ -2444,3 +2444,73 @@ SCRIPTS += [dict(
 </p></div>'''),
     ]),
 ]
+
+SCRIPTS += [dict(
+    file="refactor-budget.sh", stage=5, id="refactor-budget",
+    tagline="the refactor loop's stopping rule",
+    blurb=r'''<p>
+  Nine lines of logic under a thirteen-line comment &mdash;
+  <a href="#classify-bail"><code>classify-bail.sh</code></a>'s closest sibling: one small
+  decision, the same fail-closed shape on a bad input, and a status line the conductor
+  reads instead of composing one in its own voice.
+</p>''',
+    contract=[
+        ("Usage", "<code>refactor-budget.sh &lt;count&gt;</code>"),
+        ("stdout", "one status line either way, e.g. "
+                   "<code>refactor 1/2 &mdash; another transform may run</code>"),
+        ("Exit", '<span class="ec ec-0"><b>0</b> below budget, another transform may run</span> '
+                 '<span class="ec ec-3"><b>3</b> budget spent</span> '
+                 '<span class="ec ec-2"><b>2</b> misconfigured budget</span>'),
+    ],
+    chunks=[
+        dict(lines=(1, 14), html=r'''<p>
+  The refactor loop applies one behavior-preserving transform per leaf, in sequence, and
+  used to stop on the leaf's own word: it kept going until one reported &ldquo;nothing left
+  to tidy&rdquo;. That is a judgement call made by the same leaf whose work is being judged
+  &mdash; exactly the kind of ad-hoc decision veri exists to remove (issue&nbsp;#42). This
+  script gives the loop a count the conductor can check instead, so a step costs the same
+  whether the model feels done after one transform or eight.
+</p><p>
+  {{p-strict|set -euo pipefail}} on line 14, same as everywhere else.
+</p>'''),
+        dict(lines=(15, 18), html=r'''<p>
+  <code>count="${1:-}"</code> reuses {{p-guard|the empty-default guard}} rather than
+  requiring the argument outright, so a missing one does not abort under
+  {{p-strict|set -u}} &mdash; the same courtesy
+  <a href="#classify-bail"><code>classify-bail.sh</code></a> gives its own single argument.
+</p><p>
+  <code>budget="${VERI_REFACTOR_BUDGET:-2}"</code> is {{p-default|the tunable-with-default
+  idiom}} every tunable in veri uses: read the environment, else fall back to a literal.
+  It is what lets a test pin <code>VERI_REFACTOR_BUDGET=0</code> &mdash; the &ldquo;loop is
+  off&rdquo; case &mdash; without touching the script.
+</p>'''),
+        dict(lines=(19, 23), html=r'''<p>
+  {{p-regex|The regex guard}} runs <strong>before</strong> the budget is used for anything
+  else, and that order is the point. Handing a non-number to <code>[[ … -lt … ]]</code> is
+  not a false answer &mdash; it is a bash error, integer expression expected &mdash; and a
+  negative number would pass that same comparison silently, quietly spending the budget on
+  every call from the first one. Neither is a decision this script is willing to make by
+  accident, so it checks the shape first and refuses anything else.
+</p><p>
+  The refusal is deliberately the same shape as
+  <a href="#classify-bail"><code>classify-bail.sh</code></a>'s unrecognised cause: a
+  diagnostic on stderr, <span class="ec ec-2"><b>2</b></span>, and nothing at all on
+  stdout &mdash; a misconfigured run is a system failure, not a status the conductor should
+  ever mistake for one.
+</p>'''),
+        dict(lines=(24, 29), html=r'''<p>
+  The comparison itself is {{p-test|a plain <code>[[ -lt ]]</code>}}, safe now that the
+  guard above has ruled out anything that isn't a whole number. Either branch prints one
+  line to stdout &mdash; the status the header promises, and the line the conductor mirrors
+  into its own narration rather than composing one itself.
+</p><p>
+  Of the repo's four exit codes this script only ever needs two of the three non-PASS ones:
+  <span class="ec ec-0"><b>0</b></span> to keep the loop going, and
+  <span class="ec ec-3"><b>3</b></span> &mdash; &ldquo;nothing to do&rdquo;, not an error
+  &mdash; once the budget is spent. There is no verdict to reject here, so
+  <span class="ec ec-1"><b>1</b></span> never appears; the misconfigured-budget case above
+  is a <span class="ec ec-2"><b>2</b></span> instead, a different kind of failure entirely
+  &mdash; the plumbing broke, rather than the loop simply running out.
+</p>'''),
+    ]),
+]
