@@ -22,6 +22,7 @@ documentation drifting behind code must never block a TDD run.
 fail, and your edit is lost on the next `make docs`. To change that page:
 
 - prose, per-script commentary → `docs/wt/commentary.py` (chunks keyed by line range)
+- how the source is coloured → `docs/wt/bashlex.py` (four token classes, no more)
 - the bash reference entries → `docs/wt/primer.py`
 - styling / the tooltip layer → `docs/wt/style.css`, `docs/wt/app.js`
 - then `make docs`

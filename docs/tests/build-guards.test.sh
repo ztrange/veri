@@ -135,7 +135,20 @@ accepts "nested-brace display expands intact" \
 # 7. every reference in the page resolves to an entry that exists on the page
 accepts "tooltip data is emitted for the refs used" 'window.__VERI_TIPS__ = {'
 
-# 8. the version layer is OPTIONAL. sandbox() copies docs/ and skills/ into a bare
+# 8. the highlighting must never alter a line. The listings claim to be the real
+#    source, and check-walkthrough.py re-checks that against the files — but by then
+#    the page is written. This guard is the earlier one: build-walkthrough.py asserts
+#    every line survives the lexer byte for byte and refuses to emit a page otherwise.
+#    Broken here by making one token drop its leading character, which is what an
+#    off-by-one in the lexer actually looks like.
+refuses "lossy highlighting is refused" "highlighting altered a line" \
+  bash -c 'sed -i.bak "s/out.append((\"v\", m.group(0)))/out.append((\"v\", m.group(0)[1:]))/" \
+           docs/wt/bashlex.py && rm -f docs/wt/bashlex.py.bak'
+
+# 9. and the shebang is code, not a comment — the one line the kernel reads
+accepts "shebang is not styled as a comment" '<span class="l">#!/usr/bin/env bash</span>'
+
+# 10. the version layer is OPTIONAL. sandbox() copies docs/ and skills/ into a bare
 #    temp dir with no .git in it, which is also what a tarball or a shallow checkout
 #    looks like. The build must still succeed there and simply omit the capability
 #    index — never crash on the missing git, and never emit a half-built index. The
