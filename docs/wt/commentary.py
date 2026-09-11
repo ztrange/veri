@@ -2061,7 +2061,7 @@ SCRIPTS += [dict(
   Hoisting the {{p-case|case}} above the argument-binding lines settles it by construction:
   a phase outside <code>red|green|refactor|revise</code> never reaches an argument check at
   all. The four-way arm on line 40 does <em>nothing</em> &mdash;
-  <code>red | green | refactor | revise) ;;</code> is a pure whitelist, there so that
+  <code>red|green|refactor|revise) ;;</code> is a pure whitelist, there so that
   <code>*)</code> beneath it can mean "not one of ours".
 </p></div>'''),
         dict(lines=(43, 60), html=r'''<div class="note"><span class="tag">The phase that shifts its own arguments</span><p>

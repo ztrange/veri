@@ -2634,7 +2634,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># would answer "an argument is missing" (exit 1) to a caller whose real mistake was the</span></span>
 <span class="l"><span class="c"># phase itself — and a bad phase is a bad-arguments case, which is exit 2 suite-wide.</span></span>
 <span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> <span class="k">in</span></span>
-<span class="l">  red | green | refactor | revise) ;;</span>
+<span class="l">  red|green|refactor|revise) ;;</span>
 <span class="l">  *) echo <span class="s">"build-develop-prompt: unknown phase '</span><span class="v">$phase</span><span class="s">' (want red|green|refactor|revise)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
 <span class="l"><span class="k">esac</span></span></pre></div><div class="ann-note"><p>
   Line 32 takes <code>phase</code> with a <a class="tt" data-ref="p-required" href="#p-required">required-argument assertion</a> &mdash;
@@ -2655,7 +2655,7 @@ html{scroll-behavior:smooth}
   Hoisting the <a class="tt" data-ref="p-case" href="#p-case">case</a> above the argument-binding lines settles it by construction:
   a phase outside <code>red|green|refactor|revise</code> never reaches an argument check at
   all. The four-way arm on line 40 does <em>nothing</em> &mdash;
-  <code>red | green | refactor | revise) ;;</code> is a pure whitelist, there so that
+  <code>red|green|refactor|revise) ;;</code> is a pure whitelist, there so that
   <code>*)</code> beneath it can mean "not one of ours".
 </p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 42"><span class="l"></span>
 <span class="l"><span class="c"># `revise` names the phase it is redoing *before* the three arguments every phase shares,</span></span>
@@ -2670,7 +2670,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="k">if</span> [[ <span class="s">"</span><span class="v">$phase</span><span class="s">"</span> == <span class="s">"revise"</span> ]]; <span class="k">then</span></span>
 <span class="l">  revised_phase=<span class="s">"</span><span class="v">${2:?missing &lt;phase&gt; being revised}</span><span class="s">"</span></span>
 <span class="l">  <span class="k">case</span> <span class="s">"</span><span class="v">$revised_phase</span><span class="s">"</span> <span class="k">in</span></span>
-<span class="l">    red | green | refactor) ;;</span>
+<span class="l">    red|green|refactor) ;;</span>
 <span class="l">    *) echo <span class="s">"build-develop-prompt: unknown phase to revise '</span><span class="v">$revised_phase</span><span class="s">' (want red|green|refactor)"</span> &gt;&amp;2; <span class="k">exit</span> 2 ;;</span>
 <span class="l">  <span class="k">esac</span></span>
 <span class="l">  <span class="k">shift</span></span>
