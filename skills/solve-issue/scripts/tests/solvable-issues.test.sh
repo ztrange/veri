@@ -325,6 +325,46 @@ repo_argv="$(cat "$work/argv-repo")"
   && [[ "$(grep -c -- '--repo owner/name' <<<"$repo_argv")" == 2 ]]; } \
   && ok || no "without VERI_GH_JSON the script reads gh issue list and gh pr list itself, forwarding --repo when given (no flag: exit=$bare_code want 0, stdout='$bare' want '61', gh calls=$(tr '\n' '|' <<<"$bare_argv") want an 'issue list' and a 'pr list', neither with --repo; --repo owner/name: exit=$scoped_code want 0, stdout='$scoped' want '61', gh calls=$(tr '\n' '|' <<<"$repo_argv") want --repo owner/name on both)"
 
+# 7. `ready-for-agent` is the DEFAULT, not merely what the script happens to say: with
+# VERI_LABEL absent from the environment the opt-in gate is exactly the one cases 1-3 pin.
+# This is the criterion that keeps a loop launched with no VERI_LABEL draining the pool it
+# has always drained, so the two issues fed in straddle the default from the side a
+# parameterised implementation is most likely to get wrong. #62 carries `ready-for-agent`
+# and must be listed; #63 carries `ready-for-agent:docs` and must NOT be, because the match
+# is on the exact label name — a default that matched a prefix, a substring, or any label at
+# all would take #63 too, and since it sorts below #62 that shows up as "62\n63" rather than
+# a reorder. Both are otherwise maximally takeable (open, `None.` under `## Blocked by`, no
+# open PR), so the label is the only thing separating them.
+#
+# `env -u` rather than the plain `run` helper above: the criterion is the variable being
+# UNSET, and a suite that merely never sets it would pass by accident in a shell that had
+# VERI_LABEL exported for some other reason. Case 6's `gh_run` unsets VERI_GH_JSON the same
+# way and for the same reason.
+fx="$(fixture default-label)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 62,
+    "title": "solvable-issues.sh: take the opt-in label from VERI_LABEL",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA label parameter with ready-for-agent as the default.\n\n## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 63,
+    "title": "walkthrough: draw rung 2",
+    "labels": [{"name": "ready-for-agent:docs"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+out="$(env -u VERI_LABEL VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "62" ]]; } \
+  && ok || no "with VERI_LABEL unset the opt-in label is exactly ready-for-agent (exit=$code want 0, stdout='$out' want '62')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
