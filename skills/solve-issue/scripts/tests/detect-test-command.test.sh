@@ -23,6 +23,16 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
+# detect <repo-root> -> sets $out to stdout and $code to the exit status. Every case needs
+# both halves of the contract — what was printed *and* which of 0 / 3 was returned — and
+# capturing them together is fiddly enough to be worth naming once: command substitution
+# would otherwise leave $? describing the assignment, so `code=$?` has to come from the
+# line immediately after it. stderr is dropped because no case asserts on it.
+detect() {  # detect <repo-root> -> runs the script, sets $out/$code
+  out="$("$DETECT" "$1" 2>/dev/null)"
+  code=$?
+}
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
@@ -39,7 +49,7 @@ printf '%s\n' "$want" > "$repo/.veri/test-command"
 printf '{"scripts":{"test":"jest"}}\n' > "$repo/package.json"
 printf 'test:\n\techo hi\n' > "$repo/Makefile"
 
-out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
+detect "$repo"
 
 { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
   && ok || no ".veri/test-command beats package.json and Makefile, printed verbatim (exit=$code want 0, stdout='$out' want '$want')"
@@ -52,8 +62,7 @@ out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
 # other two, which is exactly the confusion worth catching.
 #
 # Nothing here needs node installed: the script reads files, it never runs the command it
-# prints. `out=$(...) && code=0 || code=$?` is the sibling idiom for capturing stdout and a
-# non-zero exit together — command substitution alone would abort the assignment's status.
+# prints.
 #
 # The runner name is the whole of what varies — it names the repo, the lockfile to seed and,
 # with ` test` appended, the expected stdout — so the loop mentions each one once and the
@@ -69,7 +78,7 @@ for runner in npm pnpm yarn; do
     yarn) printf '# yarn lockfile v1\n' > "$repo/yarn.lock" ;;
   esac
 
-  out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
+  detect "$repo"
 
   { [[ "$code" == 0 ]] && [[ "$out" == "$runner test" ]]; } \
     || misread="$misread ($runner: exit=$code want 0, stdout='$out' want '$runner test')"
@@ -98,7 +107,7 @@ mkdir -p "$repo"
 printf 'test:\n\techo hi\n' > "$repo/Makefile"
 : > "$repo/pytest.ini"
 
-out="$("$DETECT" "$repo" 2>/dev/null)" && code=0 || code=$?
+detect "$repo"
 
 { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; } \
   && ok || no "Makefile with a test: target beats pytest.ini (exit=$code want 0, stdout='$out' want '$want')"
