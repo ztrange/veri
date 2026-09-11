@@ -111,6 +111,23 @@ refuses partial 'only .tdd/issue-*-spec.md' '.tdd/issue-*-spec.md'
 # script must not mistake "all three lines somewhere" for "the block, in order".
 refuses misordered 'negation last' '.tdd/*' '.tdd/issue-*-spec.md' '!.tdd/issue-*.md'
 
+# 6. the newline guard's other branch: a seed that ALREADY ends in a newline must not gain a blank
+# line before the block. Case 3 pins the newline-less seed via git; this one has to assert exact
+# bytes, because a stray empty line changes nothing git would report — `check-ignore` answers the
+# same either way — and would only show up as noise in someone's .gitignore. So build the file we
+# expect with printf and compare with cmp.
+repo="$work/trailing-newline"
+new_repo "$repo"
+printf 'node_modules/\n' > "$repo/.gitignore"
+want="$work/trailing-newline.want"
+printf 'node_modules/\n.tdd/*\n!.tdd/issue-*.md\n.tdd/issue-*-spec.md\n' > "$want"
+
+out="$("$ENSURE" "$repo" 2>/dev/null)" && code=0 || code=$?
+cmp -s "$want" "$repo/.gitignore" && same=0 || same=$?
+
+{ [[ "$same" == 0 ]] && [[ "$code" == 0 ]] && [[ "$out" == *"added"* ]]; } \
+  && ok || no "newline-terminated .gitignore: appends the block with no blank line before it and reports added (cmp=$same want 0 identical to node_modules/ + the three rule lines, exit=$code want 0, stdout='$out' want it to contain 'added')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
