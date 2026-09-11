@@ -21,18 +21,18 @@ spec_file="${2:?missing <issue-spec-file>}"
 step="${3:?missing <step-text>}"
 test_cmd="${4:?missing <test-cmd>}"
 
-# Each phase takes its own extra positionals past the three every phase shares. Red has
-# none — it is the phase that writes the test, so there is nothing yet to name. Variables
-# a phase does not take stay empty, and their placeholders expand to nothing.
+# Each phase takes its own extra positionals past the three every phase shares, and below
+# each branch names only those. Everything else stays empty, and an empty variable's
+# placeholder expands to nothing — which is why red, the phase that writes the test and so
+# has nothing yet to name, needs no branch body at all.
+test_path="" target="" touched=""
 case "$phase" in
-  red) test_path="" target="" touched="" ;;
+  red) ;;
   green)
     test_path="${5:?missing <test-path>}"
     target="${6:?missing <target-test>}"
-    touched=""
     ;;
   refactor)
-    test_path="" target=""
     touched="${5:?missing <touched-files>}"
     ;;
   *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor)" >&2; exit 2 ;;
