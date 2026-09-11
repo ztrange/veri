@@ -41,6 +41,15 @@ run() {  # run <fixture-dir>; sets $out and $code
   out="$(VERI_GH_JSON="$1" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 }
 
+# The same run, for the cases whose criterion is what VERI_LABEL says. The settings are handed
+# to `env` verbatim — `-u VERI_LABEL` to guarantee the variable is ABSENT rather than merely
+# unset by this shell, `VERI_LABEL=<name>` to give it a value — so the one thing separating
+# those cases stays at the call site, where it is the point, and only the invocation is shared.
+label_run() {  # label_run <fixture-dir> <env setting…>; sets $out and $code
+  local fixture="$1"; shift
+  out="$(env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+}
+
 # 1. The base case, and the one the VERI_GH_JSON override exists to make testable: a single
 # open issue, carrying the ready-for-agent opt-in label, naming no blocker, with no open PR
 # claiming it. Nothing stands between veri and a run on it, so it is listed on its own line.
@@ -336,10 +345,10 @@ repo_argv="$(cat "$work/argv-repo")"
 # a reorder. Both are otherwise maximally takeable (open, `None.` under `## Blocked by`, no
 # open PR), so the label is the only thing separating them.
 #
-# `env -u` rather than the plain `run` helper above: the criterion is the variable being
-# UNSET, and a suite that merely never sets it would pass by accident in a shell that had
-# VERI_LABEL exported for some other reason. Case 6's `gh_run` unsets VERI_GH_JSON the same
-# way and for the same reason.
+# `label_run "$fx" -u VERI_LABEL` rather than the plain `run` helper above: the criterion is
+# the variable being UNSET, and a suite that merely never sets it would pass by accident in a
+# shell that had VERI_LABEL exported for some other reason. Case 6's `gh_run` unsets
+# VERI_GH_JSON the same way and for the same reason.
 fx="$(fixture default-label)"
 cat > "$fx/issues.json" <<'JSON'
 [
@@ -360,7 +369,7 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-out="$(env -u VERI_LABEL VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+label_run "$fx" -u VERI_LABEL
 
 { [[ "$code" == 0 ]] && [[ "$out" == "62" ]]; } \
   && ok || no "with VERI_LABEL unset the opt-in label is exactly ready-for-agent (exit=$code want 0, stdout='$out' want '62')"
@@ -398,7 +407,7 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-out="$(VERI_LABEL=ready-for-agent:docs VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+label_run "$fx" VERI_LABEL=ready-for-agent:docs
 
 { [[ "$code" == 0 ]] && [[ "$out" == "65" ]]; } \
   && ok || no "with VERI_LABEL set to another label only issues carrying that label are listed (exit=$code want 0, stdout='$out' want '65')"
