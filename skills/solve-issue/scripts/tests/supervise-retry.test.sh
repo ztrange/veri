@@ -40,9 +40,9 @@ L
 chmod +x "$stub"/leaf-*
 
 # Drive it through the supervisor with a tight heartbeat window and the DEFAULT retry
-# budget (VERI_STUCK_RETRIES is intentionally NOT set — the default of 1 must suffice).
-# `env -u` clears it for the child: this suite asserts the script's default, so a value
-# exported by the shell that ran `make test` must not be able to change the answer.
+# budget: `env -u VERI_STUCK_RETRIES` clears the variable for the child, so the default of
+# 1 must suffice and a value exported by the shell that ran `make test` cannot change the
+# answer.
 out="$( cd "$work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.2 \
           "$SUP" flaky "$stub/leaf-flaky" 2>"$work/err" )"
 code=$?
