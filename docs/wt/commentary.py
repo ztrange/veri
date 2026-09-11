@@ -116,7 +116,7 @@ ORIENTATION_NAV = [
     ("what", "What veri actually is"),
     ("division", "The division of labour"),
     ("exitcodes", "The exit-code contract"),
-    ("map", "Map of the sixteen scripts"),
+    ("map", "Map of the seventeen scripts"),
     ("tddloop", "Where the TDD loop lives"),
     ("dataflow", "How the data moves"),
     ("howtoread", "How to read this page"),
@@ -200,7 +200,7 @@ INTRO_HTML = r'''
   </p>
 </div>
 
-<h3 id="map">Map of the sixteen scripts</h3>
+<h3 id="map">Map of the seventeen scripts</h3>
 <p>
   The scripts form a small dependency tower &mdash; the ones you call are compositions of
   the ones you don't. Read in the order data flows through one cycle, they group into five
@@ -809,7 +809,7 @@ UPKEEP_HTML = r'''
   </p>
 </div>
 <p>
-  <code>docs/build-walkthrough.py</code> reads the sixteen scripts and emits this page. The
+  <code>docs/build-walkthrough.py</code> reads the seventeen scripts and emits this page. The
   source you see is <strong>not a copy</strong> &mdash; it is read from the files at build
   time, so the code half cannot drift. The prose half lives in
   <code>docs/wt/commentary.py</code>, keyed by line range.
@@ -1376,7 +1376,7 @@ SCRIPTS += [dict(
 </p>'''),
         dict(lines=(14, 16), html=r'''<p>
   {{p-strict|set -euo pipefail}} is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Fifteen of the sixteen scripts open
+  variables, and let a pipeline fail if any stage does. Sixteen of the seventeen scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
@@ -2740,6 +2740,162 @@ SCRIPTS += [dict(
   <span class="ec ec-1"><b>1</b></span> never appears; the misconfigured-budget case above
   is a <span class="ec ec-2"><b>2</b></span> instead, a different kind of failure entirely
   &mdash; the plumbing broke, rather than the loop simply running out.
+</p>'''),
+    ]),
+]
+
+SCRIPTS += [dict(
+    file="solvable-issues.sh", stage=5, id="solvable-issues",
+    tagline="the selection gate",
+    blurb=r'''<p>
+  Every script before this one assumes the issue is already chosen. This is what rung 2
+  of the <a href="https://github.com/ztrange/veri/blob/main/CONTEXT.md">scope
+  ladder</a> — running the conductor across every solvable issue instead of one named on
+  the command line — needs first: the list of issue numbers it is actually allowed to
+  take right now.
+</p>''',
+    contract=[
+        ("Usage", "<code>solvable-issues.sh [--repo owner/name]</code>"),
+        ("Env", "<code>VERI_GH_JSON=&lt;dir&gt;</code> reads <code>issues.json</code> / "
+                "<code>prs.json</code> from that directory instead of calling <code>gh</code>"),
+        ("stdout", "One issue number per line, lowest first"),
+        ("Exit", '<span class="ec ec-0"><b>0</b> one or more numbers printed</span> '
+                 '<span class="ec ec-3"><b>3</b> nothing is takeable</span>'),
+        ("Calls", "<code>gh issue list</code>, <code>gh pr list</code> (unless "
+                  "<code>VERI_GH_JSON</code> is set), then <code>python3</code>"),
+    ],
+    chunks=[
+        dict(lines=(1, 28), html=r'''<p>
+  The header defines <strong>solvable</strong> before a line of code runs, and it is a
+  conjunction of four conditions, not one: the issue is <strong>open</strong>; it carries
+  the <code>ready-for-agent</code> <strong>label</strong>; every issue named under its
+  <code>## Blocked by</code> heading is <strong>closed</strong>; and no open pull request
+  already <strong>claims</strong> it with <code>Closes #&lt;n&gt;</code>.
+</p>
+<div class="note"><span class="tag">Why a label, and <code>## Blocked by</code> is not one</span><p>
+  The label is the opt-in gate: a human has to add <code>ready-for-agent</code> before an
+  issue is takeable at all, so existing of the issue is never enough on its own &mdash;
+  nothing is taken just because it was filed. <code>## Blocked by</code>, by contrast, is
+  pure <strong>ordering</strong> between issues that are already both opted in: it says
+  nothing about whether either one should run, only which must finish first. One is
+  permission; the other is sequencing, and the two questions don't collapse into each
+  other.
+</p></div><p>
+  The last two paragraphs are about the two data sources: <code>VERI_GH_JSON</code> makes
+  this testable with no network, the same injection idea as
+  <a href="#run-leaf"><code>CLAUDE_BIN</code></a> in <code>run-leaf.sh</code> &mdash; a
+  seam that swaps a real external command for a fixture, so the tests never touch
+  <code>gh</code> or the network. And the note that <code>jq</code> is not a dependency
+  anywhere in the suite is why what follows reads the JSON with <code>python3</code>
+  instead.
+</p><p>
+  {{p-strict|set -euo pipefail}} closes the header, as in every other script here.
+</p>'''),
+        dict(lines=(29, 37), html=r'''<p>
+  <code>--repo</code> is <strong>forwarded verbatim and nothing is invented in its
+  absence</strong>: get it wrong and <code>gh</code> fails loudly against the wrong
+  repository, which is safer than a guess that succeeds against the wrong one silently.
+  {{p-guard|"${1:-}"}} reads the first argument without aborting under
+  {{p-strict|set -u}} when there is none, and when it is <code>--repo</code> the second
+  argument is required with {{p-required|"${2:?usage: …}"}} &mdash; a missing repository
+  name after <code>--repo</code> is a usage error, not a silent fallback.
+</p><p>
+  <code>repo_args</code> starts empty and is filled only inside the branch that saw
+  <code>--repo</code>. The comment previews the expansion the next chunk needs: this
+  array is legitimately allowed to stay empty, and under
+  {{p-strict|set -u}} an empty array is exactly the case a naive
+  <code>"${repo_args[@]}"</code> gets wrong.
+</p>'''),
+        dict(lines=(38, 50), html=r'''<p>
+  {{p-func|gh_json()}} is the one place that decides, for each document, override-or-gh
+  &mdash; called as <code>gh_json &lt;fixture-file&gt; &lt;gh args…&gt;</code> and
+  producing that document on stdout either way. The comment above it says why this is
+  one function rather than a branch duplicated around each of the two calls below: each
+  document is named exactly once, beside both the <code>gh</code> call that produces it
+  and the fixture that stands in for it, so the two can never drift apart.
+</p><p>
+  {{p-test|-n "${VERI_GH_JSON:-}"}} is the switch: with the variable set, <code>cat</code>
+  reads <code>$VERI_GH_JSON/$fixture</code> instead of touching the network at all;
+  otherwise <code>gh "$@"</code> runs for real, with <code>repo_args</code> appended.
+</p><p>
+  {{p-arrayempty|"${repo_args[@]+"${repo_args[@]}"}"}} is the line the header comment
+  called out: on bash 3.2 (macOS's shipped bash) under {{p-strict|set -u}}, a plain
+  <code>"${repo_args[@]}"</code> on an <em>empty</em> array is an unset-variable error, not
+  zero arguments. The <code>[@]+</code> form reads "if the array is set, expand it;
+  otherwise expand to nothing" &mdash; so no <code>--repo</code> means <code>gh</code> is
+  called with no extra arguments at all, rather than the script dying on its own empty
+  array.
+</p>'''),
+        dict(lines=(51, 53), html=r'''<p>
+  The two documents, fetched through the one function above:
+  {{p-cmdsub|issues_json="$(gh_json …)"}} and <code>prs_json</code> the same way. Neither
+  call learns which source it got &mdash; a fixture file or a live <code>gh</code>
+  response reach this point as the identical shape of text.
+</p>'''),
+        dict(lines=(54, 59), html=r'''<p>
+  {{p-exec|exec python3 -c '…'}} hands the rest of the script to Python outright, the same
+  move <a href="#extract-result"><code>extract-result.sh</code></a> makes and for a
+  related reason: the JSON is on the command line here, not on stdin, so there is no
+  stdin conflict to dodge &mdash; <code>exec</code> is used instead to avoid leaving a
+  bash frame on the stack for no purpose once Python has everything it needs.
+</p><p>
+  <code>issues_json</code> and <code>prs_json</code> arrive as <code>sys.argv[1]</code>
+  and <code>sys.argv[2]</code> (the single-quoted program passes them positionally at
+  the very end of the chunk after this one), and <code>json.loads</code> turns each back
+  into Python data.
+</p>'''),
+        dict(lines=(60, 69), html=r'''<p>
+  <code>is_open()</code> is read the same way for both record kinds: <code>gh</code>
+  writes an issue's state as <code>OPEN</code>/<code>CLOSED</code> and a PR's as
+  <code>OPEN</code>/<code>CLOSED</code>/<code>MERGED</code>, and only the first of either
+  counts. <code>open_issues</code> is a Python <strong>set comprehension</strong> &mdash;
+  the open issue numbers, normalised once into a set so every later membership test
+  (<code>in open_issues</code>) is O(1) instead of a scan.
+</p>'''),
+        dict(lines=(70, 79), html=r'''<p>
+  <code>claimed</code> is the second set comprehension: every issue number an
+  <em>open</em> pull request already claims with <code>Closes #&lt;n&gt;</code>, read out
+  with <code>re.findall</code>. Only open PRs count &mdash; once one merges or closes,
+  the issue it named is either done or free again, so a closed PR's claim expires with
+  it. The nested <code>for</code> clauses read outside-in: for each open PR, for each
+  <code>Closes #&lt;n&gt;</code> found in its body.
+</p>'''),
+        dict(lines=(80, 85), html=r'''<p>
+  <code>blockers()</code> pulls the issue numbers out of one issue's
+  <code>## Blocked by</code> section. <code>re.search(r"^## Blocked by$(.*?)(?=^## |\Z)",
+  body, re.M | re.S)</code> is doing two jobs at once: <code>re.M</code> makes
+  <code>^</code>/<code>$</code> match at line boundaries rather than only at the start
+  and end of the whole string, so the heading itself can be matched on its own line, and
+  <code>re.S</code> makes <code>.</code> match newlines too, so the lazy
+  <code>(.*?)</code> can span the multi-line body of the section. The lookahead
+  <code>(?=^## |\Z)</code> stops that capture at the next heading, or at the end of the
+  body if there isn't one &mdash; without consuming it, so a second call against the same
+  body could find the next section too. A <code>## Blocked by</code> section reading
+  <code>None.</code>, or no such section at all, yields no <code>#&lt;n&gt;</code>
+  matches either way, which is exactly "no blockers".
+</p>'''),
+        dict(lines=(86, 95), html=r'''<p>
+  <code>solvable()</code> names its four conditions as four local variables &mdash;
+  <code>still_open</code>, <code>opted_in</code>, <code>unclaimed</code>,
+  <code>unblocked</code> &mdash; and returns their conjunction, rather than the more
+  common style of four early <code>return False</code> lines. The docstring says why:
+  written this way, the function's body reads as the definition of "solvable" restated in
+  code, one name per condition in the header comment, instead of a sequence of exits whose
+  meaning is only in the order they happen to run.
+</p><p>
+  <code>unblocked</code> is the one condition that calls back into the graph:
+  <code>all(n not in open_issues for n in blockers(...))</code> is true both when there
+  are no blockers and when every named blocker is already closed.
+</p>'''),
+        dict(lines=(96, 105), html=r'''<p>
+  The numbers, sorted, one per line. <code>sys.exit(3)</code> when none qualify is not an
+  afterthought: it is the same <a href="#exitcodes">exit code 3</a> as everywhere else in
+  veri, "nothing to do" rather than an error, so a caller looping over this script's
+  output can tell an empty, well-formed result from a script that actually broke.
+</p><p>
+  The trailing <code>' "$issues_json" "$prs_json"</code> closes the single-quoted Python
+  program and supplies the two arguments <code>sys.argv[1]</code> and
+  <code>sys.argv[2]</code> read back in the chunk before last.
 </p>'''),
     ]),
 ]
