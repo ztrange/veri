@@ -68,13 +68,16 @@ code=$?
 [[ "$code" -ne 0 ]] && ok || no "unknown phase exits non-zero (code=$code)"
 
 # 6. a hung verifier leaf is killed by the supervisor → no verdict → exit 2, so the
-#    conductor never proceeds on a verification it could not obtain
+#    conductor never proceeds on a verification it could not obtain.
+#    VERI_STUCK_RETRIES=0 is pinned, not inherited: both hung-leaf cases here are about a
+#    single attempt, so the caller's environment must not be able to add retries (each extra
+#    attempt waits out the heartbeat window again, changing the suite's wall time).
 cat > "$stubdir/claude-hang" <<'STUB'
 #!/usr/bin/env bash
 echo "thinking..."; sleep 60
 STUB
 chmod +x "$stubdir/claude-hang"
-out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
           "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>/dev/null )"
 code=$?
 { [[ "$code" == 2 ]] && [[ "$out" == *'killed-stuck'* ]]; } && ok \
@@ -94,6 +97,21 @@ pin_none_code=$code
 { [[ "$pin_pass_code" == 0 ]] && [[ "$pin_pass_out" == *'fails under the mutation'* ]] \
   && [[ "$pin_reject_code" == 1 ]] && [[ "$pin_none_code" == 2 ]]; } && ok \
   || no "pin phase exit codes: PASS→0 REJECT→1 no verdict→2 (got $pin_pass_code/$pin_reject_code/$pin_none_code)"
+
+# 8. how many attempts a hung verifier leaf gets is fixed by this suite, not by the shell
+#    that ran `make test`: with VERI_STUCK_RETRIES=3 exported in the environment, the
+#    hung-leaf launch must still run the leaf exactly once — one killed-stuck status line
+#    on stderr and no `retry N/M` line — so both the verdict and the suite's wall time are
+#    the suite's own answer. The export is scoped to the command substitution's subshell,
+#    so no other case sees it; the `env` list overrides it the way case 6 does.
+out="$( cd "$work" && export VERI_STUCK_RETRIES=3 &&
+        env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+          "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>"$work/err" )"
+code=$?
+stuck_lines="$(grep -c 'supervise\[verify-red\]: killed-stuck' "$work/err")"
+retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
+{ [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
+  || no "ambient VERI_STUCK_RETRIES=3 → hung verifier leaf still runs exactly once (code=$code, killed-stuck lines=$stuck_lines, retry lines=$retry_lines)"
 
 echo "----"
 echo "$pass passed, $fail failed"
