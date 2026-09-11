@@ -82,40 +82,34 @@ ignored "$repo" .tdd/issue-7.md && ledger_code=0 || ledger_code=$?
   && [[ "$code" == 0 ]] && [[ "$out" == *"added"* ]]; } \
   && ok || no "unrelated .gitignore: keeps every existing line and reports added (node_modules/x=$modules_code want 0 still ignored, debug.log=$debuglog_code want 0 still ignored, develop-red.log=$log_code want 0 ignored, issue-7.md=$ledger_code want 1 not ignored, exit=$code want 0, stdout='$out' want it to contain 'added')"
 
+# refuses <slug> <why> <gitignore-line>... — seed a repo with exactly those .gitignore lines and
+# assert the refusal in full: non-zero exit, a diagnostic on stderr, and the file left byte for
+# byte as it was. Both un-appendable .gitignores below fail the same three ways, so the assertion
+# is written once; <slug> names the scratch repo and <why> says what is wrong with that seed.
+refuses() {
+  local slug="$1" why="$2"; shift 2
+  local repo="$work/$slug" before="$work/$slug.before" err="$work/$slug.stderr" code same diag
+  new_repo "$repo"
+  printf '%s\n' "$@" > "$repo/.gitignore"
+  cp "$repo/.gitignore" "$before"
+
+  "$ENSURE" "$repo" >/dev/null 2>"$err" && code=0 || code=$?
+  cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
+  [[ -s "$err" ]] && diag=0 || diag=1
+
+  { [[ "$code" != 0 ]] && [[ "$diag" == 0 ]] && [[ "$same" == 0 ]]; } \
+    && ok || no "$slug rule ($why): refuses with a diagnostic and touches nothing (exit=$code want non-zero, stderr-non-empty=$diag want 0, cmp=$same want 0 identical)"
+}
+
 # 4. a repo whose .gitignore carries ONLY the rule's last line — a partial block, not the rule.
-# Appending to it cannot repair it (`.tdd/*` after the spec re-ignore reads differently), so the
-# script must refuse: non-zero exit, a diagnostic on stderr, and the file untouched byte for byte.
-repo="$work/partial"
-new_repo "$repo"
-printf '.tdd/issue-*-spec.md\n' > "$repo/.gitignore"
-before="$work/partial.gitignore.before"
-cp "$repo/.gitignore" "$before"
-
-err="$work/partial.stderr"
-"$ENSURE" "$repo" >/dev/null 2>"$err" && code=0 || code=$?
-cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
-[[ -s "$err" ]] && diag=0 || diag=1
-
-{ [[ "$code" != 0 ]] && [[ "$diag" == 0 ]] && [[ "$same" == 0 ]]; } \
-  && ok || no "partial rule (only .tdd/issue-*-spec.md): refuses with a diagnostic and touches nothing (exit=$code want non-zero, stderr-non-empty=$diag want 0, cmp=$same want 0 identical)"
+# Appending to it cannot repair it (`.tdd/*` after the spec re-ignore reads differently).
+refuses partial 'only .tdd/issue-*-spec.md' '.tdd/issue-*-spec.md'
 
 # 5. a repo whose .gitignore carries all three lines but in an order git reads differently:
 # the negation last, so `!.tdd/issue-*.md` un-ignores the spec the line above just re-ignored.
 # Every line is present, yet the rule is not — so this is the same refusal as case 4, and the
 # script must not mistake "all three lines somewhere" for "the block, in order".
-repo="$work/misordered"
-new_repo "$repo"
-printf '.tdd/*\n.tdd/issue-*-spec.md\n!.tdd/issue-*.md\n' > "$repo/.gitignore"
-before="$work/misordered.gitignore.before"
-cp "$repo/.gitignore" "$before"
-
-err="$work/misordered.stderr"
-"$ENSURE" "$repo" >/dev/null 2>"$err" && code=0 || code=$?
-cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
-[[ -s "$err" ]] && diag=0 || diag=1
-
-{ [[ "$code" != 0 ]] && [[ "$diag" == 0 ]] && [[ "$same" == 0 ]]; } \
-  && ok || no "misordered rule (negation last): refuses with a diagnostic and touches nothing (exit=$code want non-zero, stderr-non-empty=$diag want 0, cmp=$same want 0 identical)"
+refuses misordered 'negation last' '.tdd/*' '.tdd/issue-*-spec.md' '!.tdd/issue-*.md'
 
 echo "----"
 echo "$pass passed, $fail failed"
