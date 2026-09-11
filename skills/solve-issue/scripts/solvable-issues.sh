@@ -53,13 +53,14 @@ def blockers(body):
     return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
 
 def solvable(issue):
-    if issue["number"] not in open_issues:
-        return False
-    if not any(l.get("name") == "ready-for-agent" for l in issue.get("labels", [])):
-        return False
-    if issue["number"] in claimed:
-        return False
-    return all(n not in open_issues for n in blockers(issue.get("body", "")))
+    """The four conditions the spec names, all of which must hold at once. They are named
+    here rather than run as early returns so the function reads as the definition it is."""
+    number = issue["number"]
+    is_open = number in open_issues
+    opted_in = any(l.get("name") == "ready-for-agent" for l in issue.get("labels", []))
+    unclaimed = number not in claimed
+    unblocked = all(n not in open_issues for n in blockers(issue.get("body", "")))
+    return is_open and opted_in and unclaimed and unblocked
 
 numbers = sorted(i["number"] for i in issues if solvable(i))
 for number in numbers:
