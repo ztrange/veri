@@ -187,6 +187,39 @@ detect "$repo"
 [[ "$code" == 3 ]] && [[ -z "$out" ]] \
   && ok || no "a setup.cfg with no [tool:pytest] section prints nothing and exits 3 (exit=$code want 3, stdout='$out' want '')"
 
+# 4c. the setup.cfg spelling sits where the rest of rule 4 sits, and the only way to observe
+# that is to seed it against a neighbour on each side. Case 4 says a lone setup.cfg answers
+# `pytest -q`; a lone repo says nothing about ordering, because no other rule was in the
+# running. So: one repo pairs it with the rule above (a Makefile `test:` target, which must
+# still win) and one pairs it with the rule below (a `go.mod`, which must still lose). Two
+# seeded repos, one case, the same shape as the node runners and the three pytest spellings —
+# "the new spelling changed no precedence" is a single claim about a single position.
+#
+# This is the half a fix can quietly get wrong: recognising setup.cfg in a rule of its own,
+# placed before make or after go, passes case 4 and fails here. Both repos carry the header
+# inside setup.cfg rather than the bare filename, since that is what case 4b established is
+# required to make the claim at all.
+#
+# No Makefile, no go and no pytest are needed to run this: the script reads these filenames
+# and the one header, and never executes the command it prints.
+misread=""
+for other in Makefile go.mod; do
+  repo="$work/setupcfg-vs-$other"
+  mkdir -p "$repo"
+  printf '[tool:pytest]\naddopts = -ra\n' > "$repo/setup.cfg"
+  case "$other" in
+    Makefile) printf 'test:\n\techo hi\n' > "$repo/Makefile" ; want='make test' ;;
+    go.mod)   : > "$repo/go.mod"                             ; want='pytest -q' ;;
+  esac
+
+  detect "$repo"
+
+  matched || note "$other"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "a [tool:pytest] setup.cfg loses to a Makefile test: target and beats go.mod —$misread"
+
 # 5. the two compiled stacks each name their toolchain's own runner: a `go.mod` yields
 # `go test ./...`, a `Cargo.toml` yields `cargo test`. One case, two seeded repos, the same
 # shape as the node runners and the two pytest spellings — two markers answering with two
