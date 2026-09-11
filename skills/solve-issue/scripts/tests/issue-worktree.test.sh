@@ -168,6 +168,33 @@ $dirty_before
 --- after
 $dirty_after" ))"
 
+# 5. the branch exists already but no worktree holds it — a resume after the last run's worktree
+# was removed, or a branch pushed earlier and fetched back. Check it out instead of failing on
+# `-b`, which git refuses once the ref is there.
+#
+# The seed puts a commit on tdd/17-resume and then leaves it behind on `main`, so the branch
+# exists, is ahead of main, and nobody has it checked out. That gap is the whole assertion: a
+# worktree whose tip is the branch's own commit proves the existing branch was checked out,
+# while one sitting at main's tip would mean the branch was cut afresh and the resumed work
+# silently dropped.
+repo="$work/existing-branch"
+new_repo "$repo"
+main_tip="$(git_q "$repo" rev-parse main)"
+git_q "$repo" switch -q -c tdd/17-resume >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "work from the previous run" >/dev/null 2>&1
+branch_tip="$(git_q "$repo" rev-parse tdd/17-resume)"
+git_q "$repo" switch -q main >/dev/null 2>&1
+want="$(wt_path "$repo" 17)"
+
+out="$(cd "$repo" && "$WT" 17 resume 2>/dev/null)" && code=0 || code=$?
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$branch" == "tdd/17-resume" ]] \
+  && [[ "$tip" == "$branch_tip" ]]; } \
+  && ok || no "existing branch, no worktree: checks the branch out into .tdd/wt/17 instead of failing on -b (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/17-resume', tip='$tip' want the existing branch's $branch_tip not main's $main_tip)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
