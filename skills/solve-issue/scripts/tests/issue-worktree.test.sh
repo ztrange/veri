@@ -221,6 +221,32 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 { [[ "$code" == 0 ]] && [[ "$tip" == "$trunk_tip" ]]; } \
   && ok || no "origin/HEAD names a default branch that is neither main nor master: cuts the new worktree from it (exit=$code want 0, tip='$tip' want origin/trunk's $trunk_tip)"
 
+# 7. no remote at all and the only branch is `master` — the local fallback's second name, which
+# every other case here leaves unexercised because new_repo seeds `main`.
+#
+# The seed renames `main` to `master` (so the first name the fallback tries is genuinely absent,
+# and a script that only knew `main` could only fail with exit 2) and then leaves the checkout on
+# a `side` branch one commit ahead. That last part is the same guard as case 1: with the checkout
+# sitting on `master` itself, "cut from master" and "cut from whatever HEAD was" would be the
+# same tip and the assertion would prove nothing.
+repo="$work/local-master"
+new_repo "$repo"
+git_q "$repo" branch -m main master >/dev/null 2>&1
+master_tip="$(git_q "$repo" rev-parse master)"
+git_q "$repo" switch -q -c side >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "work on side" >/dev/null 2>&1
+side_tip="$(git_q "$repo" rev-parse side)"
+want="$(wt_path "$repo" 23)"
+
+out="$(cd "$repo" && "$WT" 23 local-master 2>/dev/null)" && code=0 || code=$?
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$branch" == "tdd/23-local-master" ]] \
+  && [[ "$tip" == "$master_tip" ]]; } \
+  && ok || no "no remote and only a local master: cuts tdd/23-local-master from master (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/23-local-master', tip='$tip' want master's $master_tip not side's $side_tip)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
