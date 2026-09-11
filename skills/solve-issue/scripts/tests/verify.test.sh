@@ -68,18 +68,25 @@ code=$?
 [[ "$code" -ne 0 ]] && ok || no "unknown phase exits non-zero (code=$code)"
 
 # 6. a hung verifier leaf is killed by the supervisor → no verdict → exit 2, so the
-#    conductor never proceeds on a verification it could not obtain.
-#    VERI_STUCK_RETRIES=0 is pinned, not inherited: both hung-leaf cases here are about a
-#    single attempt, so the caller's environment must not be able to add retries (each extra
-#    attempt waits out the heartbeat window again, changing the suite's wall time).
+#    conductor never proceeds on a verification it could not obtain
 cat > "$stubdir/claude-hang" <<'STUB'
 #!/usr/bin/env bash
 echo "thinking..."; sleep 60
 STUB
 chmod +x "$stubdir/claude-hang"
-out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
-          "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>/dev/null )"
-code=$?
+
+# hung_leaf -> sets $out / $code, stderr in $work/err (runs in $work)
+# VERI_STUCK_RETRIES=0 is pinned, not inherited: both hung-leaf cases here are about a
+# single attempt, so the caller's environment must not be able to add retries (each extra
+# attempt waits out the heartbeat window again, changing the suite's wall time).
+hung_leaf() {
+  out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
+            VERI_HEARTBEAT=1 VERI_POLL=0.2 "$VERIFY" red "$work/spec.md" \
+            tests/test_slugify.py test_lowercases 2>"$work/err" )"
+  code=$?
+}
+
+hung_leaf
 { [[ "$code" == 2 ]] && [[ "$out" == *'killed-stuck'* ]]; } && ok \
   || no "hung verifier leaf → killed-stuck exit 2 (code=$code)"
 
@@ -102,12 +109,9 @@ pin_none_code=$code
 #    that ran `make test`: with VERI_STUCK_RETRIES=3 exported in the environment, the
 #    hung-leaf launch must still run the leaf exactly once — one killed-stuck status line
 #    on stderr and no `retry N/M` line — so both the verdict and the suite's wall time are
-#    the suite's own answer. The export is scoped to the command substitution's subshell,
-#    so no other case sees it; the `env` list overrides it the way case 6 does.
-out="$( cd "$work" && export VERI_STUCK_RETRIES=3 &&
-        env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
-          "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>"$work/err" )"
-code=$?
+#    the suite's own answer. The assignment prefix puts the variable in hung_leaf()'s
+#    environment for this call only, so no other case sees it; its `env` list overrides it.
+VERI_STUCK_RETRIES=3 hung_leaf
 stuck_lines="$(grep -c 'supervise\[verify-red\]: killed-stuck' "$work/err")"
 retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
 { [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
