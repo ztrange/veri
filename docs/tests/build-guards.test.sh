@@ -341,6 +341,17 @@ checks_git() {
   fi
 }
 
+# names_all <text> <names-one-per-line> — true when every one of <names> appears in <text>.
+# The claim a diagram has to satisfy, on its own so the assertion below reads as one line:
+# a block either names them all or it does not. Not shared with tags_git's near-identical
+# loop, which cannot return early — its failure message has to say WHICH span it missed.
+names_all() {
+  local hay="$1" want
+  while IFS= read -r want; do
+    [[ "$hay" == *"$want"* ]] || return 1
+  done <<< "$2"
+}
+
 # diagrams_stage0 <name> <names-one-per-line>
 # accepts() asks its question of the whole page; this one is about one slice of it — the
 # stage-0 intro, from the stage-0 heading to the first script it annotates. Every stage-0
@@ -357,7 +368,7 @@ checks_git() {
 # its spans that way: the claim is about all of them appearing together.
 diagrams_stage0() {
   local name="$1" wants="$2"
-  local d code page blocks blk want missing found="" n=0; d="$("$SANDBOX")"
+  local d code page blocks blk found="" n=0; d="$("$SANDBOX")"
   page="$(build "$d")" && code=0 || code=$?
   blocks="$(printf '%s\n' "$page" | awk '
     /id="s0"/ && !done               { s0 = 1 }
@@ -369,11 +380,7 @@ diagrams_stage0() {
   while IFS= read -r blk; do
     [[ -n "$blk" ]] || continue
     n=$((n + 1))
-    missing=""
-    while IFS= read -r want; do
-      [[ "$blk" == *"$want"* ]] || missing="$want"
-    done <<< "$wants"
-    [[ -z "$missing" ]] && found="yes"
+    names_all "$blk" "$wants" && found="yes"
   done <<< "$blocks"
   if [[ "$code" == 0 && -n "$found" ]]; then
     pass=$((pass + 1))
@@ -381,7 +388,7 @@ diagrams_stage0() {
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
     echo "    want one diagram between id=\"s0\" and the first script, naming: $wants"
-    echo "    got  $n diagram block(s) in the stage-0 intro, none naming all three"
+    echo "    got  $n diagram block(s) in the stage-0 intro, none naming all of them"
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
   fi
 }
