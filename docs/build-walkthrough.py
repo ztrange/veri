@@ -98,6 +98,19 @@ def refs(text, origin=None):
     return "".join(out)
 
 
+def _line_open(mark):
+    """The opening `<span>` for one source line of a listing.
+
+    `mark` is the `(tag, description)` of a hunk that STARTS on this line, or None for
+    every other line — which is most of them, hence the plain form first.
+    """
+    if not mark:
+        return '<span class="l">'
+    tag, description = mark
+    return ('<span class="l hunk" data-tag="%s" title="%s">'
+            % (html.escape(tag), html.escape(description)))
+
+
 def code_block(lines, start, origin="?", hunk_marks=None):
     """Render source lines verbatim, with four token classes for readability.
 
@@ -121,11 +134,8 @@ def code_block(lines, start, origin="?", hunk_marks=None):
         for cls, text in toks:
             esc = html.escape(text, quote=False)
             parts.append('<span class="%s">%s</span>' % (cls, esc) if cls else esc)
-        mark = hunk_marks.get(start + i)
-        opening = ('<span class="l hunk" data-tag="%s" title="%s">'
-                   % (html.escape(mark[0]), html.escape(mark[1]))) if mark \
-            else '<span class="l">'
-        out.append("%s%s</span>" % (opening, "".join(parts)))
+        out.append("%s%s</span>"
+                   % (_line_open(hunk_marks.get(start + i)), "".join(parts)))
     return ('<pre class="src" style="counter-reset: ln %d">%s</pre>'
             % (start - 1, "\n".join(out)))
 
