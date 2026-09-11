@@ -19,12 +19,18 @@ set -euo pipefail
 # will say about it.
 root="$(git rev-parse --show-toplevel)"
 
+# wt_path <n> — where issue <n>'s worktree lives. The layout is stated once, here, because both
+# halves of this script need it and a create that answered with a different path than the remove
+# went looking for would be a silent no-op. `.tdd/` is already git-ignored, so nesting a worktree
+# under it needs no new ignore rule.
+wt_path() { printf '%s\n' "$root/.tdd/wt/$1"; }
+
 # --remove <n> takes the worktree back out again, once its branch is merged or a human says so.
 # It is answered here, before the positional <n> <slug> parsing below, because that parsing
 # would otherwise read the flag itself as the issue number.
 if [[ "${1:-}" == "--remove" ]]; then
   n="${2:?usage: issue-worktree.sh --remove <n>}"
-  path="$root/.tdd/wt/$n"
+  path="$(wt_path "$n")"
 
   # Never destroy work. `git status --porcelain` prints one line per change — staged, unstaged
   # or untracked — and nothing at all when the tree is clean, so a non-empty answer is the
@@ -50,7 +56,7 @@ n="${1:?usage: issue-worktree.sh <n> <slug>}"
 slug="${2:?missing <slug>}"
 
 branch="tdd/$n-$slug"
-path="$root/.tdd/wt/$n"
+path="$(wt_path "$n")"
 
 # git's own registry of worktrees — asked once here, questioned twice below. `worktree list
 # --porcelain` prints one block per registered worktree, blank-line separated: a
