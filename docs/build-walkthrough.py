@@ -108,7 +108,8 @@ def _hunk_runs(marks):
     """
     runs = {}
     for first, mark in marks.items():
-        for lineno in range(first, mark[2] + 1):
+        _tag, _description, last = mark
+        for lineno in range(first, last + 1):
             runs[lineno] = (mark, lineno == first)
     return runs
 
