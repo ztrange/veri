@@ -86,9 +86,17 @@ fi
 # `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the
 # dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an
 # answer rather than a failure `set -e` would abort on.
+#
+# The two look-inside spellings ask the identical question of different files, so it is named
+# once: `declares <file> <pattern>` is true when the file is there and a line in it matches.
+# Naming it also drops what the inline spelling needed and this does not — the path repeated
+# twice per clause, and the `{ ...; }` braces that kept `&&` from binding tighter than the
+# `||` separating the three markers.
+declares() { [ -f "$1" ] && grep -qE "$2" "$1"; }
+
 if [ -f "$root/pytest.ini" ] \
-  || { [ -f "$root/pyproject.toml" ] && grep -qE '^\[tool\.pytest' "$root/pyproject.toml"; } \
-  || { [ -f "$root/setup.cfg" ] && grep -qE '^\[tool:pytest\]' "$root/setup.cfg"; }; then
+  || declares "$root/pyproject.toml" '^\[tool\.pytest' \
+  || declares "$root/setup.cfg" '^\[tool:pytest\]'; then
   answer 'pytest -q'
 fi
 
