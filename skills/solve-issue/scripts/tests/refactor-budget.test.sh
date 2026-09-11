@@ -9,6 +9,7 @@
 #                                 (default 2), exit 3 once the budget is spent;
 #                                 a one-line status on stdout either way, so the
 #                                 conductor can mirror it (`refactor 2/2 — budget spent`).
+#   VERI_REFACTOR_BUDGET=0      → exit 3 at count 0: the refactor loop is switched off.
 #
 # Run: scripts/tests/refactor-budget.test.sh
 set -uo pipefail
@@ -43,6 +44,18 @@ else
   fail=$((fail + 1))
   echo "FAIL - $name"
   printf '    %s\n' "${problems[@]}"
+fi
+
+# 2. a budget of 0 switches the refactor loop off entirely: even before any transform has
+#    run — count 0 — the budget is already spent, so the very first ask gets exit 3 and no
+#    leaf ever launches. The one-line status is case 1's business; this case pins the exit.
+name="VERI_REFACTOR_BUDGET=0: count 0 exits 3, so the refactor loop never runs"
+VERI_REFACTOR_BUDGET=0 "$BUDGET" 0 >/dev/null 2>&1 && code=0 || code=$?
+if [[ "$code" == 3 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name (want exit 3, got $code)"
 fi
 
 echo "----"
