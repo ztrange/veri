@@ -372,6 +372,27 @@ def render_nav_json(entries):
     return json.dumps(d, ensure_ascii=False, separators=(",", ":"))
 
 
+def render_hunks_json(meta):
+    """The hunk marks inverted: `{tag: [[script, first, last, description], …]}`.
+
+    hunk_marks() answers "which hunk starts on this line of this script", which is the
+    direction the listings need and the only one the markup can express: the tagged
+    <span> opens on a run's first line and carries neither the script it is in nor the
+    line it ends on. A reader asking the other question — "what did v0.14 touch?" —
+    cannot get there by scraping the page, so the build emits the inversion it already
+    has in hand, one entry per mark and therefore one per `.hunk` span.
+
+    {} in a tree with no version layer, for the same reason hunk_marks() returns {}: the
+    client reads an empty map rather than checking whether there is one.
+    """
+    import json
+    d = {}
+    for s in com.SCRIPTS:
+        for first, (tag, description, last) in sorted(hunk_marks(meta, s["file"]).items()):
+            d.setdefault(tag, []).append([s["file"], first, last, description])
+    return json.dumps(d, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
 def render_tips_json():
     import json
     d = {i["id"]: {"sig": i["sig"], "name": i["name"], "gloss": i["gloss"]}
@@ -407,6 +428,7 @@ def main():
         js=(HERE / "wt" / "app.js").read_text().strip(),
         rail=render_rail(entries),
         nav=render_nav_json(entries),
+        hunks=render_hunks_json(META),
         pitch=refs(com.PITCH_HTML).replace("{{SOLVED}}", solved_count),
         intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
         stages=stages_html,

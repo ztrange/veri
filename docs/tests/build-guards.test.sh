@@ -427,6 +427,66 @@ PY
   fi
 }
 
+# hunk_map_git <name> <expected-report> <mutator...>
+# The page's markup can say "this line starts a v0.2 hunk" and nothing more: the wrapper
+# <span> carries the tag and the description, but it is keyed by line and it stops where
+# it started. A reader asking "what did v0.2 touch?" needs the other direction — tag to
+# the hunks it owns, each with the script it is in and both ends of its run — which is why
+# the build emits an inverted map as `window.__VERI_HUNKS__`.
+#
+# Two claims, and neither is worth anything alone. The map has to CONTAIN the right
+# entries, so the whole report is compared rather than searched, exactly as hunks_git
+# does: an entry the build invented, or one it dropped, is as wrong as a bad extent. And
+# the map has to be COMPLETE — one entry per `.hunk` span on the page — so the entry count
+# is checked against the span count the page itself carries. Without that second half a
+# map holding one correct entry out of five passes, and since-mode silently loses the
+# other four; without the first, a map of five entries full of nonsense passes.
+#
+# The report is one line per entry — `<tag> <script> <first>-<last> <description>`, tags
+# in order and lowest line first within a tag — and it is read out of the BUILT PAGE, not
+# out of gitmeta: the claim is about what ships to the browser, which is the only place
+# app.js can read it from.
+# An entry is accepted either as a 4-element array in the order the map is specified in
+# (script, first line, last line, description) or as an object keyed by those same words,
+# because which of the two a build emits is a spelling choice and not a behaviour.
+hunk_map_git() {
+  local name="$1" want="$2"; shift 2
+  local d code read_code page spans got entries; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  spans="$(printf '%s' "$page" | grep -o 'class="l hunk"' | wc -l | tr -d ' ')"
+  printf '%s' "$page" > "$d/page.html"
+  got="$( cd "$d" && python3 - page.html 2>&1 <<'PY'
+import json, re, sys
+page = open(sys.argv[1]).read()
+m = re.search(r"window\.__VERI_HUNKS__\s*=\s*(.+?);?\s*</script>", page, re.S)
+if not m:
+    sys.exit("the page carries no window.__VERI_HUNKS__")
+inverted = json.loads(m.group(1))
+KEYS = ("script", "first", "last", "description")
+rows = []
+for tag, entries in inverted.items():
+    for e in entries:
+        f = [e.get(k) for k in KEYS] if isinstance(e, dict) else list(e)[:4]
+        rows.append((tag, f[0], f[1], f[2], f[3]))
+for tag, script, first, last, description in sorted(rows, key=lambda r: (r[0], r[1], r[2])):
+    print("%s %s %s-%s %s" % (tag, script, first, last, description))
+PY
+  )" && read_code=0 || read_code=$?
+  entries="$(printf '%s' "$got" | grep -c . | tr -d ' ')"
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" && "$entries" == "$spans" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, map read exit $read_code)"
+    echo "    want window.__VERI_HUNKS__ to report, one entry per hunk span ($spans):"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got $entries entr(y|ies):"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -6
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # checks_git <name> <mutator...>
 # Every other assertion here reads the page build-walkthrough.py produced. This one hands
 # that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
@@ -903,6 +963,28 @@ hunks_git "a hunk reports the last line of its run, not only the first" '3-4 v0.
   bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
+
+# 18. the same hunks, read the other way round. Case 17 asked gitmeta what a hunk's extent
+#    is; this one asks the PAGE what each version touched. The listings answer by line —
+#    a tagged <span> where a run starts — and there is no way to walk that back to "v0.3
+#    changed these two places" without scraping the markup, so the build emits the
+#    inversion itself as `window.__VERI_HUNKS__`, tag to the script, extent and
+#    description of every hunk that version owns.
+#    Two versions on one file, with an untouched v0.1 line between them: lines 3 and 4
+#    rewritten together by a feat: in v0.2 — one hunk with two ends — and line 6 by a fix:
+#    in v0.3. So the map has to hold two entries under two different tags, spell the
+#    first one's run as 3–4 rather than 3–3 or 3–6, and carry each commit's own words. The
+#    count check in the helper is what stops a map that lists v0.2 and forgets v0.3: the
+#    page carries two hunk spans, so the map must carry two entries.
+hunk_map_git "the page carries an inverted map, one entry per hunk span" \
+  'v0.2 classify-bail.sh 3-4 rewrite lines 3 and 4 of classify-bail.sh
+v0.3 classify-bail.sh 6-6 rewrite line 6 of classify-bail.sh' \
+  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 6 \
+             "# rewritten by the v0.3 commit" \
+             "fix: rewrite line 6 of classify-bail.sh (#3)" v0.3'
 
 echo "----"
 echo "$pass passed, $fail failed"
