@@ -342,6 +342,14 @@ figure_between() {
   fi
 }
 
+# stage3_figure <name> <wants>
+# figure_between, bounded to stage 3's section. A stage is flat markup — the section opens
+# at its own anchor and the next stage's anchor ends it — so "inside stage 3" is the region
+# between id="s3" and id="s4", and this says that once instead of at every case that needs
+# it. Spelled out at the call sites the pair reads as two arbitrary strings; named here it
+# reads as the claim it encodes, and the two ids stay in one place if the anchors ever move.
+stage3_figure() { figure_between "$1" 'id="s3"' 'id="s4"' "$2"; }
+
 # omits_git — omits(), but against a sandbox that is a real repository.
 # `local` inside a function is visible to everything it then calls — bash scopes locals
 # to the call chain, not to the function body — so omits() sees this SANDBOX, and the
@@ -748,8 +756,7 @@ untouched'
 #    Stage-bounded and figure-bounded, because neither bound alone says anything — all four
 #    names already occur inside the stage (they are its own scripts' source), and
 #    build-develop-prompt.sh already appears in a figure elsewhere on the page.
-figure_between "the stage-3 intro diagrams the two prompt builders as mirrors" \
-  'id="s3"' 'id="s4"' \
+stage3_figure "the stage-3 intro diagrams the two prompt builders as mirrors" \
 'build-develop-prompt.sh
 build-verify-prompt.sh
 verify.sh
@@ -766,8 +773,7 @@ parse-verdict.sh'
 #    just vocabulary — "lists the four phases" is a claim about them appearing together.
 #    What substring matching cannot ask is *where* "no rationale" sits; holding it in the
 #    figure that carries the verifier's own phase run is as close as this idiom gets.
-figure_between "the stage-3 diagram lists both phase sets and says the verifier gets no rationale" \
-  'id="s3"' 'id="s4"' \
+stage3_figure "the stage-3 diagram lists both phase sets and says the verifier gets no rationale" \
 'red | green | refactor | revise
 red | green | refactor | pin
 no rationale'
