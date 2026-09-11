@@ -97,7 +97,10 @@ dependencies may have freed others, so the set is recomputed every iteration rat
 walked from a stale list. An issue is taken only if it is open, carries the
 **`ready-for-agent`** label — the human's explicit opt-in, since nothing is taken because
 it merely exists — every issue under its **`## Blocked by`** heading is closed, and no open
-PR already says `Closes #<n>` for it. The first bail stops the loop unless you pass
+PR already says `Closes #<n>` for it. The label is configurable: `VERI_LABEL` names it
+(default `ready-for-agent`), and the intended use is partitioning — **one label per loop**,
+so two loops running against the same repository drain disjoint pools instead of racing for
+the same issues. The first bail stops the loop unless you pass
 `--continue-on-bail`, `VERI_MAX_ISSUES` caps an invocation (default: no cap), and the loop
 adds no failure mode of its own — every outcome is a `/solve-issue` outcome, and the
 committed ledgers make an interrupted run resumable by invoking `/solve-issues` again.

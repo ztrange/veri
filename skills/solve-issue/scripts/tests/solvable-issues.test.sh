@@ -494,6 +494,34 @@ env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" 
   && [[ -s "$refused_err" ]]; } \
   && ok || no "VERI_LABEL set to the empty string is refused with exit 2 and a diagnostic on stderr, never treated as any label (exit=$refused_code want 2, stdout='$(tr '\n' '|' < "$refused_out")' want empty, stderr='$(tr '\n' ' ' < "$refused_err")' want a diagnostic)"
 
+# 11. A knob nobody is told about is not a parameter, it is a secret, so the three documents a
+# human reads before launching a loop must carry it: `/solve-issues`'s own procedure
+# (`skills/solve-issues/SKILL.md`, which is where `--repo` and `VERI_MAX_ISSUES` are already
+# written down), the README's rung-2 paragraph, and CONTEXT.md, where *solvable* and the
+# eligibility signal are defined. Each must name the variable AND say what it is for — one
+# label per loop, so two loops on one repo draw from different pools. The variable name alone
+# would leave a reader knowing a label can be changed and not why anyone would.
+#
+# This case lives in this suite rather than docs/tests/build-guards.test.sh because it is the
+# contract of `solvable-issues.sh` that is being documented, and because `make docs-check` is
+# deliberately not part of `make test` (Makefile, "Neither is part of `test` on purpose") — a
+# documentation case parked there would not run in the suite this change is verified against.
+#
+# The wording is matched loosely on purpose: the exact sentence is the writer's, so the regex
+# accepts spaces or hyphens between the four words that carry the claim, and the variable is
+# matched literally because `VERI_LABEL` is the string a reader greps for. Every miss is named
+# in the failure message, file by file, so one run says which document is short of what.
+docs_root="$(cd "$HERE/../../../.." && pwd)"
+docs_missing=""
+for doc in skills/solve-issues/SKILL.md README.md CONTEXT.md; do
+  grep -q 'VERI_LABEL' "$docs_root/$doc" || docs_missing="$docs_missing $doc:VERI_LABEL"
+  grep -qiE 'one[ -]label[ -]per[ -]loop' "$docs_root/$doc" \
+    || docs_missing="$docs_missing $doc:one-label-per-loop"
+done
+
+[[ -z "$docs_missing" ]] \
+  && ok || no "the three documents name VERI_LABEL and the one-label-per-loop partitioning use (missing:$docs_missing)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

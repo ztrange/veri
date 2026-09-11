@@ -132,10 +132,15 @@ label is the **eligibility** signal, the human's explicit opt-in.
 _Avoid_: blocker (ok as a gloss), prerequisite
 
 **Solvable**:
-The property that makes an issue veri's to take right now: it is open, carries
-`ready-for-agent`, every issue under its `## Blocked by` heading is closed, and no open
-pull request already says `Closes #<n>` for it (such a PR means a run is in flight, or one
-bailed and left the branch behind). All four hold at once or the issue is not solvable.
+The property that makes an issue veri's to take right now: it is open, carries the opt-in
+label, every issue under its `## Blocked by` heading is closed, and no open pull request
+already says `Closes #<n>` for it (such a PR means a run is in flight, or one bailed and
+left the branch behind). All four hold at once or the issue is not solvable. Solvable is
+therefore relative to *one* label: `VERI_LABEL` names it and `ready-for-agent` is only the
+default, so the same issue can be solvable for one loop and invisible to another. That is
+the intended use — **one label per loop** when more than one loop runs against a repository,
+partitioning the backlog into disjoint pools rather than having both take the lowest number
+off one list.
 _Avoid_: eligible, ready, available, unblocked (that is only one of the four)
 
 **Selection layer**:
