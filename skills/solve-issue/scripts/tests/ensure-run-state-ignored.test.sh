@@ -99,6 +99,24 @@ cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
 { [[ "$code" != 0 ]] && [[ "$diag" == 0 ]] && [[ "$same" == 0 ]]; } \
   && ok || no "partial rule (only .tdd/issue-*-spec.md): refuses with a diagnostic and touches nothing (exit=$code want non-zero, stderr-non-empty=$diag want 0, cmp=$same want 0 identical)"
 
+# 5. a repo whose .gitignore carries all three lines but in an order git reads differently:
+# the negation last, so `!.tdd/issue-*.md` un-ignores the spec the line above just re-ignored.
+# Every line is present, yet the rule is not — so this is the same refusal as case 4, and the
+# script must not mistake "all three lines somewhere" for "the block, in order".
+repo="$work/misordered"
+new_repo "$repo"
+printf '.tdd/*\n.tdd/issue-*-spec.md\n!.tdd/issue-*.md\n' > "$repo/.gitignore"
+before="$work/misordered.gitignore.before"
+cp "$repo/.gitignore" "$before"
+
+err="$work/misordered.stderr"
+"$ENSURE" "$repo" >/dev/null 2>"$err" && code=0 || code=$?
+cmp -s "$before" "$repo/.gitignore" && same=0 || same=$?
+[[ -s "$err" ]] && diag=0 || diag=1
+
+{ [[ "$code" != 0 ]] && [[ "$diag" == 0 ]] && [[ "$same" == 0 ]]; } \
+  && ok || no "misordered rule (negation last): refuses with a diagnostic and touches nothing (exit=$code want non-zero, stderr-non-empty=$diag want 0, cmp=$same want 0 identical)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
