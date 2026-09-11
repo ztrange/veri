@@ -116,7 +116,7 @@ ORIENTATION_NAV = [
     ("what", "What veri actually is"),
     ("division", "The division of labour"),
     ("exitcodes", "The exit-code contract"),
-    ("map", "Map of the thirteen scripts"),
+    ("map", "Map of the fourteen scripts"),
     ("tddloop", "Where the TDD loop lives"),
     ("dataflow", "How the data moves"),
     ("howtoread", "How to read this page"),
@@ -200,7 +200,7 @@ INTRO_HTML = r'''
   </p>
 </div>
 
-<h3 id="map">Map of the thirteen scripts</h3>
+<h3 id="map">Map of the fourteen scripts</h3>
 <p>
   The scripts form a small dependency tower &mdash; the ones you call are compositions of
   the ones you don't. Read in the order data flows through one cycle, they group into five
@@ -804,7 +804,7 @@ UPKEEP_HTML = r'''
   </p>
 </div>
 <p>
-  <code>docs/build-walkthrough.py</code> reads the thirteen scripts and emits this page. The
+  <code>docs/build-walkthrough.py</code> reads the fourteen scripts and emits this page. The
   source you see is <strong>not a copy</strong> &mdash; it is read from the files at build
   time, so the code half cannot drift. The prose half lives in
   <code>docs/wt/commentary.py</code>, keyed by line range.
@@ -976,6 +976,148 @@ SCRIPTS += [dict(
     ]),
 ]
 
+SCRIPTS += [dict(
+    file="detect-test-command.sh", stage=0, id="detect-test-command",
+    tagline="the one command that runs the suite",
+    blurb=r'''<p>
+  Preflight's other half: before step 0.3 can prove the target's suite is green at baseline,
+  something first has to decide what &ldquo;run the suite&rdquo; even means for that repo.
+  Seven rules, first-match-wins, ending either in a printed command or in
+  <span class="ec ec-3"><b>3</b></span> &mdash; nothing decided, ask the human.
+</p>''',
+    contract=[
+        ("Usage", "<code>detect-test-command.sh [repo-root]</code> (default: the current directory)"),
+        ("stdout", "the one command that runs the target repo's full suite, and nothing else"),
+        ("Exit", '<span class="ec ec-0"><b>0</b> a rule matched &mdash; the command is on stdout</span> '
+                 '<span class="ec ec-3"><b>3</b> no rule matched &mdash; nothing to do, ask the human</span>'),
+    ],
+    chunks=[
+        dict(lines=(1, 12), html=r'''<p>
+  The header states the contract before any rule runs: print the command on stdout and exit
+  <span class="ec ec-0"><b>0</b></span>, or print nothing and exit
+  <span class="ec ec-3"><b>3</b></span> &mdash; the <a href="#exitcodes">&ldquo;nothing to
+  do&rdquo; code</a>, not a failure, and the conductor's cue to ask a human rather than guess.
+</p><p>
+  It also names the shape every rule below shares before the code does:
+  <strong>precedence is first-match-wins.</strong> The override rule goes first on purpose
+  &mdash; whatever a later rule would have inferred, a repo that already wrote
+  <code>.veri/test-command</code> has answered the question itself, and nothing downstream
+  gets to second-guess it.
+</p><p>
+  {{p-strict|set -euo pipefail}}, as everywhere else.
+</p>'''),
+        dict(lines=(13, 20), html=r'''<p>
+  The repo root is optional, {{p-default|${1:-.}}}, so the conductor can call this bare from
+  the target's own working directory.
+</p><p>
+  {{p-func|answer()}} names the ending every rule shares: print the decided command and exit
+  0, immediately. Naming it once keeps each rule below to just the question it asks &mdash;
+  the <code>if</code> says which marker was found, <code>answer</code> says what the marker
+  means &mdash; and it is the reason a rule that matched never falls through to the next one.
+</p>'''),
+        dict(lines=(21, 36), html=r'''<p>
+  <strong>Rule 1: the override file.</strong> If <code>.veri/test-command</code> exists, its
+  first non-empty line is the command, read back verbatim.
+</p><p>
+  {{p-readloop|while IFS= read -r line || [ -n "$line" ]}}. Three things are load-bearing
+  together, not separately: <code>IFS=</code> stops <code>read</code> from trimming leading
+  and trailing whitespace off the line, so a command that legitimately starts or ends with a
+  space survives; <code>-r</code> stops it from treating a backslash as an escape, so a
+  Windows-style path or a regex in the command is not silently mangled; and
+  <code>|| [ -n "$line" ]</code> covers the file's last line when it has no trailing newline
+  &mdash; <code>read</code> still fills <code>line</code> with it but returns non-zero as it
+  would at a genuine end-of-file, and without this clause that last line would be read and
+  then thrown away.
+</p><p>
+  The inner <code>if [ -n "$line" ]</code> skips blank lines, so a file that opens with an
+  empty line still yields its first real one; <code>answer</code> then re-emits those exact
+  bytes &mdash; the whole point of the escape hatch is that what the repo wrote is what the
+  leaf runs.
+</p>'''),
+        dict(lines=(37, 59), html=r'''<p>
+  <strong>Rule 2: <code>package.json</code>.</strong> A declared <code>test</code> script
+  names the node runner; which runner is a separate question, answered by the lockfile
+  committed beside it &mdash; a lockfile is the repo saying which package manager actually
+  installs here, so <code>pnpm test</code> / <code>yarn test</code> rather than an
+  <code>npm test</code> that would resolve a different dependency tree.
+</p><p>
+  {{p-cmdsub|tr -d '[:space:]' &lt; "$pkg"}} flattens the file to one line with no whitespace
+  at all, so the pattern that follows can be written as if <code>package.json</code> were
+  minified &mdash; real-world formatting stops mattering. <code>[^}]*</code> then pins the
+  <code>"test":</code> key to <strong>inside the <code>"scripts"</code> object</strong>, so a
+  dependency or a config section that happens to be named <code>test</code> cannot answer for
+  it.
+</p><p>
+  Both commands sit inside an <code>if</code> condition, where <code>grep -q</code>'s exit 1
+  for &ldquo;no match&rdquo; is an answer rather than a failure {{p-strict|set -e}} would
+  abort on &mdash; a command in <code>if</code>/<code>&amp;&amp;</code>/<code>||</code>
+  position is exempt from strict mode by construction, which is what lets this rule ask its
+  question instead of dying when the answer is no.
+</p>'''),
+        dict(lines=(60, 73), html=r'''<p>
+  <strong>Rule 3: the Makefile.</strong> A <code>test:</code> target names <code>make
+  test</code>. <code>grep -qE '^test[[:space:]]*:'</code> anchors the match to the
+  <em>start</em> of a line, so a <code>test :</code> spelling still matches while
+  <code>.PHONY: test</code> &mdash; which does not itself start with <code>test</code> &mdash;
+  cannot be mistaken for the target.
+</p><div class="note"><span class="tag">Reordered on purpose</span><p>
+  This rule runs <strong>before</strong> the python markers below it, and the script's own
+  comment records that the ordering used to be described the other way round. A repo that
+  wrote a <code>test</code> target chose it &mdash; often precisely to wrap
+  <code>pytest</code> with whatever else the suite needs beyond it &mdash; so the target gets
+  to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
+  at all.
+</p></div>'''),
+        dict(lines=(74, 90), html=r'''<p>
+  <strong>Rule 4: pytest configuration.</strong> Two files, asked about differently on
+  purpose. <code>pytest.ini</code> exists only to configure pytest, so the filename alone is
+  the whole claim &mdash; the file may well be empty. <code>pyproject.toml</code> makes no
+  such claim; it is packaging metadata for any python project, so this looks
+  <em>inside</em> it for the section that does, anchored to the start of a line so a mention
+  in prose or another table's value cannot answer for it:
+  <code>grep -qE '^\[tool\.pytest'</code>. <code>\[</code> escapes the bracket that would
+  otherwise open a character class, <code>\.</code> keeps the dot literal instead of matching
+  any character, and the pattern is a prefix match on purpose because real repos write
+  <code>[tool.pytest.ini_options]</code>.
+</p><p>
+  <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
+  the exit status, not the dots, so quiet output is what a leaf should actually see.
+</p>'''),
+        dict(lines=(91, 106), html=r'''<p>
+  <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
+  runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
+  <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
+  whole claim and nothing inside either file needs reading.
+</p><p>
+  <code>./...</code> is go's own spelling for &ldquo;every package beneath here&rdquo;;
+  without it, <code>go test</code> runs only the root package and quietly skips the rest of
+  the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
+  whole crate.
+</p>'''),
+        dict(lines=(107, 123), html=r'''<p>
+  <strong>Rule 7, the last before giving up:</strong> a python repo that committed no runner
+  configuration at all still has a suite if <code>tests/</code> holds files named
+  <code>test_*.py</code>, and the stdlib can run them with nothing installed &mdash;
+  <code>python3</code> because a modern macOS ships no bare <code>python</code>, <code>-m
+  unittest discover</code> because there is no runner script to call.
+</p><p>
+  Unlike every marker above, this one is a pattern rather than a file at a known path, so the
+  question is asked by {{p-glob|letting the shell expand the pattern}} and testing what came
+  back. Only the pattern half of the path is left unquoted &mdash; <code>"$root"</code> stays
+  quoted so a root containing spaces still resolves &mdash; and a glob that matches nothing
+  is left as its own literal, non-existent filename, which <code>[ -f "$f" ]</code> is false
+  for. The loop answers on the first real match and simply falls through when there was none,
+  with no need for the <code>nullglob</code> shell option.
+</p>'''),
+        dict(lines=(124, 127), html=r'''<p>
+  Nothing decided: say nothing, and let <span class="ec ec-3"><b>3</b></span> &mdash;
+  &ldquo;nothing to do&rdquo;, not an error &mdash; send the question to the human, the same
+  code <a href="#next-unchecked"><code>next-unchecked.sh</code></a> uses when the ledger has
+  no unticked step left.
+</p>'''),
+    ]),
+]
+
 # ── Stage 1 ────────────────────────────────────────────────────────────────────
 SCRIPTS += [dict(
     file="next-unchecked.sh", stage=1, id="next-unchecked",
@@ -1005,7 +1147,7 @@ SCRIPTS += [dict(
 </p>'''),
         dict(lines=(14, 16), html=r'''<p>
   {{p-strict|set -euo pipefail}} is the strict-mode header: exit on error, error on unset
-  variables, and let a pipeline fail if any stage does. Twelve of the thirteen scripts open
+  variables, and let a pipeline fail if any stage does. Thirteen of the fourteen scripts open
   this way.
 </p><p>
   The regex is stored in a variable because of a bash quirk: the pattern on the right of
