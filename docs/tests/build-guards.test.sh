@@ -795,7 +795,7 @@ stage3_figure "the stage-3 diagram lists both phase sets and says the verifier g
 'red | green | refactor | revise
 red | green | refactor | pin
 no rationale'
-# 19. stage 5's intro has to draw the three budgets. CLAUDE.md's invariant is that
+# 21. stage 5's intro has to draw the three budgets. CLAUDE.md's invariant is that
 #    VERI_STUCK_RETRIES, REVISE_BUDGET and VERI_REFACTOR_BUDGET are three axes and never
 #    one knob — liveness, verdict and cost — and the thing that makes the invariant legible
 #    is that each axis ends somewhere different: killed-stuck through classify-bail.sh into
@@ -815,7 +815,7 @@ VERI_REFACTOR_BUDGET
 refactor-budget.sh
 classify-bail.sh'
 
-# 20. stage 5's intro also has to draw the rung above the conductor. solvable-issues.sh is
+# 22. stage 5's intro also has to draw the rung above the conductor. solvable-issues.sh is
 #    the one script in the stage nothing in the conductor calls: it is what `/solve-issues`
 #    runs to pick the next issue — open, `ready-for-agent`, unblocked, unclaimed — before
 #    handing it to `/solve-issue <n>` and recomputing, and it stops on the first bail rather
@@ -828,7 +828,7 @@ classify-bail.sh'
 #    set without `/solve-issue` and `first bail` — neither of which appears anywhere in
 #    solvable-issues.sh, which never names its caller — would be green against a page with
 #    no new diagram at all.
-#    What this cannot see is separateness: case 19's names and these do not overlap, so one
+#    What this cannot see is separateness: case 21's names and these do not overlap, so one
 #    combined figure would satisfy both cases. That the two are drawn as two figures is a
 #    judgement about the drawing, not a claim a name test can make.
 diagrams_stage5 "the stage-5 intro draws the rung above the conductor" \
