@@ -61,9 +61,14 @@ import primer as primer_mod       # noqa: E402
 
 blocks = re.findall(r'<pre class="src" style="counter-reset: ln (\d+)">(.*?)</pre>', doc, re.S)
 by_start = {}
+# The first line of a version-tagged hunk wraps in `<span class="l hunk" data-tag=…
+# title=…>` instead of the plain `<span class="l">`. Those attributes are decoration ON
+# the line, not content IN it — the same bytes are still inside — so both forms are read
+# as source here. Skipping the tagged form would drop a real line from the comparison and
+# report the whole chunk as drift the moment a hunk gets tagged.
 for ctr, body in blocks:
     lines = [html.unescape(re.sub(r"</?span[^>]*>", "", m.group(1)))
-             for m in re.finditer(r'<span class="l">(.*?)</span>(?=\n|$)', body)]
+             for m in re.finditer(r'<span class="l(?: hunk)?"[^>]*>(.*?)</span>(?=\n|$)', body)]
     by_start.setdefault(int(ctr) + 1, []).append(lines)
 
 covered = 0
