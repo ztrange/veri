@@ -452,7 +452,8 @@ PY
 # other four; without the first, a map of five entries full of nonsense passes.
 #
 # The report is one line per entry — `<tag> <script> <first>-<last> <description>`, tags
-# in order and lowest line first within a tag — and it is read out of the BUILT PAGE, not
+# in order and lowest line first within a tag, which is plain tuple order because no two
+# entries can share a (tag, script, first line) — and it is read out of the BUILT PAGE, not
 # out of gitmeta: the claim is about what ships to the browser, which is the only place
 # app.js can read it from.
 # An entry is accepted either as a 4-element array in the order the map is specified in
@@ -473,12 +474,13 @@ if not m:
     sys.exit("the page carries no window.__VERI_HUNKS__")
 inverted = json.loads(m.group(1))
 KEYS = ("script", "first", "last", "description")
-rows = []
-for tag, entries in inverted.items():
-    for e in entries:
-        f = [e.get(k) for k in KEYS] if isinstance(e, dict) else list(e)[:4]
-        rows.append((tag, f[0], f[1], f[2], f[3]))
-for tag, script, first, last, description in sorted(rows, key=lambda r: (r[0], r[1], r[2])):
+
+def fields(entry):
+    """One entry's (script, first, last, description), in either spelling the map may use."""
+    return [entry.get(k) for k in KEYS] if isinstance(entry, dict) else list(entry)[:4]
+
+rows = sorted((tag, *fields(e)) for tag, entries in inverted.items() for e in entries)
+for tag, script, first, last, description in rows:
     print("%s %s %s-%s %s" % (tag, script, first, last, description))
 PY
   )" && read_code=0 || read_code=$?
