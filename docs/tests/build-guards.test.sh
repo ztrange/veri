@@ -130,7 +130,16 @@ omits() {
 # --- helpers used as mutators (run with cwd = the sandbox) ---------------------
 append_line_to_script() { printf '\n# a line the commentary does not cover\n' >> "$1"; }
 sed_commentary() { sed -i.bak "$1" docs/wt/commentary.py && rm -f docs/wt/commentary.py.bak; }
-export -f append_line_to_script sed_commentary
+
+# rewrite_line_as_feat <file> <line-no> <text> <subject> <tag>
+# Rewrite ONE line of a script in place, then land it as its own commit and cut the tag
+# it ships in. Rewriting rather than adding is deliberate: the line count does not move,
+# so the coverage guard has nothing to say and the case tests only the version layer.
+rewrite_line_as_feat() {
+  sed -i.bak "$2s|.*|$3|" "$1" && rm -f "$1.bak"
+  git add -A && git commit -qm "$4" && git tag -a "$5" -m "what $5 can do"
+}
+export -f append_line_to_script sed_commentary rewrite_line_as_feat
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
@@ -199,11 +208,48 @@ omits "no git: no orphan rail group"    '<h4>Capabilities</h4>'
 #    and the global is back in place the moment omits_git returns.
 omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
 
+#    accepts() and omits() each ask one yes/no question of the whole page, and a hunk tag
+#    needs two asked together: "this line carries v0.2" is only half the claim, because an
+#    implementation that tagged every line would satisfy it and defeat the point — the tag
+#    is worth reading only if it says where to look. So tags_git asserts the page contains
+#    <expected-span> AND carries exactly <n> hunk tags in total.
+#    Occurrences, not matching lines: grep -o then wc -l, since nothing guarantees two tags
+#    could not share one output line.
+# tags_git <name> <n-hunk-tags> <expected-span> <mutator...>
+tags_git() {
+  local name="$1" n="$2" want="$3"; shift 3
+  local d code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  got="$(printf '%s' "$page" | grep -o 'class="l hunk"' | wc -l | tr -d ' ')"
+  if [[ "$code" == 0 && "$page" == *"$want"* && "$got" == "$n" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want $n hunk-tagged line(s), one of them: $want"
+    echo "    got  $got hunk-tagged line(s)"
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 #    The floor case: a script whose whole history is the feat: commit that added it, in
 #    the one version that exists. Nothing has changed since it shipped, so no line in it
 #    has anything to be tagged with. Tagging here would mean tagging every line of every
 #    script with v0.1 — the badge already says that, once, in the header.
 omits_git "one tag, only the original feat:: no hunk tag" 'class="l hunk"'
+
+#    And the case the feature exists for: one line of classify-bail.sh is rewritten by a
+#    feat: commit that ships in v0.2, a version later than the file's own `since` of v0.1.
+#    That one line carries the tag and the commit's own words — subject minus the `feat:`
+#    prefix and minus the `(#2)` issue reference, the same text the badges and the
+#    capability index are built from — and, by the count, no other line in the page does.
+tags_git "a later feat: commit tags its line, and only its line" 1 \
+  '<span class="l hunk" data-tag="v0.2" title="rewrite one line of classify-bail.sh">'\
+'<span class="c"># rewritten by the v0.2 commit</span></span>' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+           "# rewritten by the v0.2 commit" \
+           "feat: rewrite one line of classify-bail.sh (#2)" v0.2'
 
 echo "----"
 echo "$pass passed, $fail failed"
