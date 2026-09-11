@@ -11,12 +11,23 @@
 #   build-develop-prompt.sh red      <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh green    <issue-spec-file> <step-text> <test-cmd> <test-path> <target>
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
+#   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #
 # Prints the assembled prompt on stdout (feed it to supervise.sh). Exit 2 on an unknown
 # phase or a missing template/spec file — never a partial prompt.
 set -euo pipefail
 
-phase="${1:?usage: build-develop-prompt.sh red|green|refactor <issue-spec-file> <step-text> <test-cmd> ...}"
+phase="${1:?usage: build-develop-prompt.sh red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ...}"
+
+# `revise` names the phase it is redoing *before* the three arguments every phase shares,
+# so its spec/step/test-cmd each sit one position later than everyone else's. Take that
+# extra argument off the front; past this point the positions line up again.
+revised_phase=""
+if [[ "$phase" == "revise" ]]; then
+  revised_phase="${2:?missing <phase> being revised}"
+  shift
+fi
+
 spec_file="${2:?missing <issue-spec-file>}"
 step="${3:?missing <step-text>}"
 test_cmd="${4:?missing <test-cmd>}"
@@ -25,7 +36,7 @@ test_cmd="${4:?missing <test-cmd>}"
 # each branch names only those. Everything else stays empty, and an empty variable's
 # placeholder expands to nothing — which is why red, the phase that writes the test and so
 # has nothing yet to name, needs no branch body at all.
-test_path="" target="" touched=""
+test_path="" target="" touched="" reason_file=""
 case "$phase" in
   red) ;;
   green)
@@ -35,19 +46,25 @@ case "$phase" in
   refactor)
     touched="${5:?missing <touched-files>}"
     ;;
-  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor)" >&2; exit 2 ;;
+  revise)
+    reason_file="${5:?missing <reason-file>}"
+    ;;
+  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
 esac
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/develop-$phase.md"
 shared_file="$HERE/prompts/_develop-shared.md"
-for f in "$tpl_file" "$shared_file" "$spec_file"; do
+for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file"; do
+  [[ -n "$f" ]] || continue  # only revise has a reason file; every other phase leaves it empty
   [[ -r "$f" ]] || { echo "build-develop-prompt: cannot read '$f'" >&2; exit 2; }
 done
 
 tpl="$(cat "$tpl_file")"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
+reason=""
+if [[ -n "$reason_file" ]]; then reason="$(cat "$reason_file")"; fi
 
 # Literal substitution via bash parameter expansion — no sed, so &, \, / and {} in the
 # spec or the step text are carried through verbatim.
@@ -58,5 +75,7 @@ out="${out//\{\{TEST_CMD\}\}/$test_cmd}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{TOUCHED_FILES\}\}/$touched}"
+out="${out//\{\{REVISE_PHASE\}\}/$revised_phase}"
+out="${out//\{\{REJECTION_REASON\}\}/$reason}"
 
 printf '%s\n' "$out"

@@ -1,0 +1,41 @@
+{{SHARED}}
+
+## Phase: develop-revise (redoing {{REVISE_PHASE}})
+
+A previous attempt at this step was **rejected** by the blind verifier. You are a fresh
+leaf: you never saw that attempt or its reasoning, so the rejection reason below is the
+whole of what you have to work from. The work it left is on disk — read it, then fix
+exactly what the reason objects to.
+
+### The step (this cycle's criterion)
+
+{{STEP}}
+
+### The verifier's rejection reason (address exactly this)
+
+{{REJECTION_REASON}}
+
+### The issue's behavior spec (context — the criterion above is what is in scope)
+
+{{ISSUE_SPEC}}
+
+### The test command
+
+{{TEST_CMD}}
+
+### What to do
+
+1. Read what this step left on disk and rewrite it to answer that objection — and only
+   that objection. Do not drift beyond what the criterion and the reason require: a fix
+   that also changes something the verifier did not object to gives it new grounds to
+   reject.
+2. Run the test command and confirm the result the phase you are redoing calls for.
+3. If the objection **cannot** be met — the criterion is already satisfied by existing
+   code, or the reason asks for something the step cannot deliver — report `IMPOSSIBLE`
+   and say why. That is a legitimate outcome and the pipeline acts on it. Do not fake a
+   pass, weaken a test, or invent work to look productive.
+
+### Report (last lines of your output)
+
+OUTCOME: REWRITTEN | IMPOSSIBLE — <what you changed, or why the step cannot be met as stated>
+AGAINST_UNMODIFIED: FAILS | PASSES | N/A — <does the test fail against the unmodified production code; N/A if you did not touch a test>
