@@ -217,6 +217,35 @@ detect "$repo"
 matched \
   && ok || no "a tests/ directory of test_*.py with no other marker yields python3 -m unittest discover -q (exit=$code want 0, stdout='$out' want '$want')"
 
+# 8. the fall-through: a repo that matches no rule at all prints nothing and exits 3. This
+# is the one case that asserts the *other* half of the contract, so it cannot use
+# `matched` — that helper spells out the answering half, exit 0 with $want on stdout, and
+# here both halves are the opposite: empty stdout, and 3 rather than 0. 3 is "nothing to
+# do", not an error, and the conductor branches on it by asking the human, so a script
+# that failed with 1 or 2 here would be read as broken plumbing instead of an honest
+# "I cannot tell".
+#
+# The seeded repo is not an empty directory on purpose. An empty one would pass against a
+# script that had no rules at all, so it says nothing about the rules having been asked and
+# having declined; a repo with real content and no marker does. Both files are near misses,
+# each one a thing a rule could plausibly have keyed on and must not: `README.md` mentions
+# the word test in prose, and `src/main.c` is source under a directory named for source —
+# neither is a runner configuration, and neither is `tests/test_*.py`.
+#
+# Nothing is printed because stdout is what the conductor captures as the command: a
+# diagnostic written there would be run as if it were one, which is why the script keeps
+# any explanation on stderr and the case checks stdout is empty rather than merely not the
+# command.
+repo="$work/no-markers"
+mkdir -p "$repo/src"
+printf '# demo\n\nRun the test suite however you like.\n' > "$repo/README.md"
+printf 'int main(void) { return 0; }\n' > "$repo/src/main.c"
+
+detect "$repo"
+
+[[ "$code" == 3 ]] && [[ -z "$out" ]] \
+  && ok || no "a repo matching nothing prints nothing and exits 3 (exit=$code want 3, stdout='$out' want '')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
