@@ -273,7 +273,7 @@ INTRO_HTML = r'''
 
 <figure class="dataflow">
 <div class="scroller">
-<svg viewBox="0 0 1080 770" role="img" aria-label="One ledger step as three phases. next-unchecked.sh runs once per step and hands the step to phase 1, Red; each phase is the same two stages, a developer leaf launched through supervise.sh and a blind verifier run by verify.sh, ending in parse-verdict.sh. A PASS carries the work to the next phase; a REJECT loops back to a fresh developer leaf for at most two attempts; an unobtainable verdict goes to classify-bail.sh. Green's PASS ticks the ledger and commits it with the code; Refactor loops transforms inside itself and is verified once on the settled result, after which the issue's criterion is ticked and the whole step repeats for the next unchecked line. When no step is left, next-unchecked.sh exits 3 and the branch is pushed as a draft pull request.">
+<svg viewBox="0 0 1080 770" role="img" aria-label="One ledger step as three phases. next-unchecked.sh runs once per step and hands the step to phase 1, Red; each phase is the same two stages, a developer leaf launched through supervise.sh and a blind verifier run by verify.sh, ending in parse-verdict.sh. A PASS carries the work to the next phase; a REJECT loops back to a fresh developer leaf for at most two attempts; an unobtainable verdict goes to classify-bail.sh. Green's PASS ticks the ledger and commits it with the code; Refactor loops transforms inside itself and is verified once on the settled result, after which the issue's criterion is ticked and the whole step repeats for the next unchecked line. A step whose criterion earlier work already satisfies leaves Red sideways instead: verify.sh pin judges the test that already passes, and on a PASS the test alone is committed and the step is done, with no Green and no Refactor. When no step is left, next-unchecked.sh exits 3 and the branch is pushed as a draft pull request.">
   <defs>
     <marker id="tl-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-faint)"/>
@@ -422,6 +422,18 @@ INTRO_HTML = r'''
   <polyline points="1030,402 1060,402 1060,570 900,570 900,586" fill="none" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
   <text x="1053" y="490" font-size="9.5" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 1053 490)">PASS</text>
 
+  <!-- ── the pin: a side-exit off Red, not a fourth phase ────────────────────── -->
+  <polyline points="310,414 398,414 398,638 404,638" fill="none" stroke="var(--ec0)" stroke-width="1.4" marker-end="url(#tl-p)"/>
+  <text x="410" y="550" font-size="9" fill="var(--ec0)" text-anchor="middle" transform="rotate(-90 410 550)">already satisfied</text>
+
+  <rect x="410" y="600" width="320" height="76" rx="5" fill="var(--panel)" stroke="var(--ec0)" stroke-width="1.5"/>
+  <text x="570" y="619" font-size="12.5" fill="var(--ink)" text-anchor="middle">Pin &mdash; a verified regression pin</text>
+  <text x="570" y="637" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">the Red leaf&rsquo;s honest test passes unmodified, so</text>
+  <text x="570" y="652" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">stage 3 runs verify.sh pin: it must fail under a</text>
+  <text x="570" y="667" font-size="9.5" fill="var(--ink-faint)" text-anchor="middle">behaviour-removing mutation, applied then reverted</text>
+  <text x="570" y="693" font-size="9.5" fill="var(--ec0)" text-anchor="middle">the test alone is committed &mdash; no Green, no Refactor</text>
+  <line x1="730" y1="638" x2="744" y2="638" stroke="var(--ec0)" stroke-width="1.5" marker-end="url(#tl-p)"/>
+
   <!-- ── the two ways a step ends ───────────────────────────────────────────── -->
   <rect x="30" y="592" width="300" height="56" rx="5" fill="var(--panel)" stroke="var(--ec2)" stroke-width="1.5" stroke-dasharray="5 3"/>
   <circle cx="30" cy="620" r="10" fill="var(--accent)"/>
@@ -444,7 +456,9 @@ INTRO_HTML = r'''
   One ledger step, start to finish. Each column is the <b>same machinery</b> &mdash; stages 2
   and 3 &mdash; carrying a different prompt and a different rubric. Colour here means exit
   code, never phase: Red and Green are TDD&rsquo;s names, so the phases are drawn in the
-  neutral accent to keep the two vocabularies apart.
+  neutral accent to keep the two vocabularies apart. The pin hanging off Red is not a
+  fourth column: it is the side-exit a step takes when earlier work already satisfied
+  its criterion, and it ends the step where Refactor would have.
 </figcaption>
 </figure>
 
@@ -452,7 +466,9 @@ INTRO_HTML = r'''
 <ul>
   <li><strong>Three phases, three blind verdicts, one step.</strong> Stage 1 runs once per
       step; stages 2 and 3 run once per phase &mdash; more, when a phase is revised. The
-      verifier is a fresh agent every time, so nothing it approved earlier carries over.</li>
+      verifier is a fresh agent every time, so nothing it approved earlier carries over.
+      A step that was already satisfied takes one verdict, not three: the pin is an exit
+      from Red, not a fourth phase.</li>
   <li><strong>The ledger ticks at Green, not at the end.</strong> The moment the
       implementation is blind-approved, the tick and the code go into
       <em>one</em> commit &mdash; so git history and the checklist cannot disagree even if
@@ -466,7 +482,7 @@ INTRO_HTML = r'''
       knows there are three phases, what order they come in, or that Refactor loops. Phase
       is a string the conductor passes down &mdash;
       <code>verify.sh red&hellip;</code>, <code>green&hellip;</code>,
-      <code>refactor&hellip;</code> &mdash; which is exactly the split the
+      <code>refactor&hellip;</code>, <code>pin&hellip;</code> &mdash; which is exactly the split the
       <a href="#division">division of labour</a> promised: the model decides, the scripts
       enforce.</li>
 </ul>
