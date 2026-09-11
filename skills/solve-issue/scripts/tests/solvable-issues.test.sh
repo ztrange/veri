@@ -98,6 +98,38 @@ once_closed="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && closed_code=0 || 
   && [[ "$closed_code" == 0 && "$once_closed" == "50" ]]; } \
   && ok || no "issue blocked by an open issue is withheld until that issue closes (blocker open: exit=$open_code want 0, stdout='$while_open' want '49'; blocker closed: exit=$closed_code want 0, stdout='$once_closed' want '50')"
 
+# 3. The label is an opt-in gate, not a hint: without `ready-for-agent` an issue is never
+# listed, however takeable it otherwise looks. #51 is fed in with the most favourable
+# blocker state there is — `None.`, nothing standing in its way — so the ONLY thing
+# withholding it is the missing label; an implementation that dropped that check would
+# list it, and it sorts below #52 so the miss shows up as "51\n52" rather than a reorder.
+# #52 is the labelled control: it keeps stdout non-empty and the exit 0, which is what
+# isolates this case from the empty-result criterion (no solvable issue → exit 3).
+fx="$(fixture unlabelled)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 51,
+    "title": "an idea nobody has vetted for veri yet",
+    "labels": [],
+    "state": "OPEN",
+    "body": "## What to build\n\nSomething, eventually.\n\n## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 52,
+    "title": "the /solve-issues loop skill",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+out="$(VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "52" ]]; } \
+  && ok || no "issue without the ready-for-agent label is never listed (exit=$code want 0, stdout='$out' want '52')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
