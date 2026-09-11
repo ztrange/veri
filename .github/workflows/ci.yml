@@ -17,21 +17,19 @@ on:
 
 jobs:
   gates:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    name: gates (${{ matrix.os }})
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      # ubuntu-latest and macos-latest between them cover the two bash dialects
-      # the scripts under skills/solve-issue/scripts/ promise to run on: macOS
-      # ships bash 3.2, and Linux's GNU coreutils/sed/grep drift from BSD's in the
-      # other direction. Neither runner needs anything installed beyond its
-      # defaults: python3 and bash are preinstalled on both, and nothing here
-      # shells out to jq or gh — the scripts deliberately avoid jq (see
+      # Linux only. The scripts under skills/solve-issue/scripts/ promise to run on
+      # both bash dialects — macOS ships bash 3.2 with BSD sed/grep/stat, Linux bash
+      # 5.x with GNU coreutils — and this runner covers the Linux half. The macOS
+      # half is covered by development happening on a Mac: every `make test` a leaf
+      # runs before a commit runs under bash 3.2 there. A macos-latest runner used to
+      # sit beside this one; it re-checked the environment the code was just tested
+      # on, at ten times the per-minute price of Linux, and was ~94% of the billed
+      # minutes on 2026-09-11. Nothing here needs installing: python3 and bash are
+      # preinstalled, and nothing shells out to jq or gh — the scripts avoid jq (see
       # docs/wt/commentary.py) and the test suites stub the model via CLAUDE_BIN.
       - name: make test
         run: make test

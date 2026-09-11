@@ -17,7 +17,9 @@ there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely ev
 `docs-check` is deliberately **not** part of `test`, for the reason in the row above:
 documentation drifting behind code must never block a TDD run. Since 2026-09-11 it is not
 in CI either: its thirty sandboxed page builds made every job ~4× longer on both runners.
-Run it locally before merging a PR that touches `docs/`; CI runs `make test` only.
+Run it locally before merging a PR that touches `docs/`; CI runs `make test` only, on
+Linux only — the bash 3.2 / BSD-tools half of the portability promise is covered by the
+development machine being a Mac, not by a runner (macOS minutes bill at 10× Linux).
 
 ## The one trap
 
