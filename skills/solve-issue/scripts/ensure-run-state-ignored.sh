@@ -20,6 +20,28 @@ ignore_all='.tdd/*'         # sweep every run artefact under .tdd/ out of git's 
 keep_ledger='!.tdd/issue-*.md'   # except the ledger, the one file that belongs in history
 drop_spec='.tdd/issue-*-spec.md' # but not the blind spec, which that negation would drag back in
 
+# The same rule has to reach a second file. The .gitignore above is committed on the issue branch,
+# so the checkout the conductor was invoked from — still on the default branch — never sees it and
+# keeps reporting the worktree under .tdd/ as untracked, which the next run's preflight refuses to
+# start on. `info/exclude` under the *common* git dir is read by every worktree of the repo and is
+# never committed, so it needs no branch and no PR; --git-common-dir is what resolves a linked
+# worktree's own gitdir back to the primary's, and answers relative to $root when it answers
+# relatively at all.
+common_dir="$(git -C "$root" rev-parse --git-common-dir)"
+case "$common_dir" in /*) ;; *) common_dir="$root/$common_dir" ;; esac
+exclude="$common_dir/info/exclude"
+
+# terminate <file> — give <file> a final newline if its last byte is not one, so appending onto it
+# cannot fuse its last rule with `.tdd/*` into a single line and destroy both. `$(...)` strips
+# trailing newlines from what it captures, so a file already ending in one yields the empty string
+# here: a non-empty last byte is exactly the case that needs the newline. -s keeps `tail` off a
+# file that does not exist yet.
+terminate() {
+  if [ -s "$1" ] && [ -n "$(tail -c 1 "$1")" ]; then
+    echo "" >> "$1"
+  fi
+}
+
 # where <line> — the number of the first line of $gitignore that IS <line>, whole and on its own,
 # or the empty string when absent. -F keeps the glob literal (no regex), -x forbids a partial-line
 # match so `x.tdd/*` does not count as `.tdd/*`, -n prefixes each hit with `<lineno>:` — `head -1`
@@ -27,6 +49,8 @@ drop_spec='.tdd/issue-*-spec.md' # but not the blind spec, which that negation w
 # `|| true` is load-bearing under `pipefail`: absent the line, grep exits 1 and the whole pipeline
 # inherits it, which `set -e` would turn into the script dying instead of reporting "not there".
 where() { grep -nxF "$1" "$gitignore" | head -1 | cut -d: -f1 || true; }
+
+gitignore_has_rule=no
 
 if [ -f "$gitignore" ]; then
   # "Already present" means the whole rule, in git's reading order, never a subset and never the
@@ -40,24 +64,27 @@ if [ -f "$gitignore" ]; then
   at_spec="$(where "$drop_spec")"
   if [ -n "$at_all" ] && [ -n "$at_ledger" ] && [ -n "$at_spec" ] \
     && [ "$at_all" -lt "$at_ledger" ] && [ "$at_ledger" -lt "$at_spec" ]; then
-    echo "already present"
-    exit 0
-  fi
-  if [ -n "$at_spec" ]; then
+    gitignore_has_rule=yes
+  elif [ -n "$at_spec" ]; then
     echo "ensure-run-state-ignored: $gitignore carries veri's run-state rule only in part, or with its lines out of order — fix it by hand" >&2
     exit 2
   fi
 fi
 
-# An existing .gitignore need not end in a newline; appending straight onto it would fuse its
-# last rule with `.tdd/*` into one line, destroying both. Terminate that line first.
-# `$(...)` strips trailing newlines from what it captures, so a file that already ends in one
-# yields the empty string here: a non-empty last byte is exactly the case that needs the newline.
-# -s guards the substitution — it keeps `tail` off a .gitignore that does not exist yet.
-if [ -s "$gitignore" ] && [ -n "$(tail -c 1 "$gitignore")" ]; then
-  echo "" >> "$gitignore"
+# The exclude file is written whatever the .gitignore turned out to be: a repo that already carries
+# the rule in history (veri's own, #27) still has a caller's checkout that has never been told to
+# ignore .tdd/. The refusal above comes first, so a .gitignore we will not touch leaves this file
+# untouched too.
+mkdir -p "$(dirname "$exclude")"
+terminate "$exclude"
+printf '%s\n' "$ignore_all" "$keep_ledger" "$drop_spec" >> "$exclude"
+
+if [ "$gitignore_has_rule" = yes ]; then
+  echo "already present"
+  exit 0
 fi
 
+terminate "$gitignore"
 printf '%s\n' "$ignore_all" "$keep_ledger" "$drop_spec" >> "$gitignore"
 
 echo "added"
