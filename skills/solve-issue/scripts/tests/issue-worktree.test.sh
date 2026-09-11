@@ -42,6 +42,15 @@ new_repo() {
 # script.
 wt_path() { printf '%s\n' "$(cd "$1" && pwd -P)/.tdd/wt/$2"; }
 
+# registry <repo> — everything the script under test is able to add to a repo: git's own list
+# of registered worktrees, plus every branch ref. Snapshotting this either side of a call is
+# how the "creates nothing new" and "touches nothing" assertions are made; a filesystem check
+# would miss a stray `tdd/<n>-...` branch, and would be fooled by a plain `mkdir`.
+registry() {
+  git -C "$1" worktree list --porcelain 2>/dev/null
+  git -C "$1" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null
+}
+
 # 1. a fresh call creates the worktree on a new branch cut from the DEFAULT branch, and
 # prints its path.
 #
@@ -71,19 +80,17 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 # 2. a second call for the same issue is a no-op that still answers: same path, exit 0, and
 # nothing new created.
 #
-# "Creates nothing new" is asserted from git's own registry rather than from the filesystem:
-# `worktree list --porcelain` plus every branch ref is the full set of things this script can
-# add, so snapshotting both around the second call catches a stray worktree or a `tdd/9-...`
-# duplicate that a directory check would miss.
+# "Creates nothing new" is asserted from git's own registry() rather than from the filesystem,
+# so a stray worktree or a duplicate `tdd/9-...` branch would show up as a changed snapshot.
 repo="$work/again"
 new_repo "$repo"
 want="$(wt_path "$repo" 9)"
 
 first="$(cd "$repo" && "$WT" 9 resume-me 2>/dev/null)" && first_code=0 || first_code=$?
-before="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+before="$(registry "$repo")"
 
 second="$(cd "$repo" && "$WT" 9 resume-me 2>/dev/null)" && second_code=0 || second_code=$?
-after="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+after="$(registry "$repo")"
 
 { [[ "$first_code" == 0 ]] && [[ "$second_code" == 0 ]] && [[ "$second" == "$want" ]] \
   && [[ "$second" == "$first" ]] && [[ "$after" == "$before" ]]; } \
@@ -100,19 +107,19 @@ $after" ))"
 # second conductor's checkout looks like from here. The diagnostic has to carry that path
 # because it is the only thing that tells a human which run to go and look at, so the
 # assertion is on the path appearing in stderr, not merely on some message being printed.
-# "Touches nothing" is the same registry snapshot as case 2, plus the absence of the
+# "Touches nothing" is the same registry() snapshot as case 2, plus the absence of the
 # directory the script would otherwise have created.
 repo="$work/taken"
 new_repo "$repo"
 other="$(cd "$work" && pwd -P)/taken-elsewhere"
 git_q "$repo" worktree add -q -b tdd/11-collide "$other" main >/dev/null 2>&1
 mine="$(wt_path "$repo" 11)"
-before="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+before="$(registry "$repo")"
 
 # 2>&1 >/dev/null, in that order: stderr is pointed at where stdout currently goes (the
 # capture), then stdout is sent to /dev/null. So $err holds the diagnostic alone.
 err="$(cd "$repo" && "$WT" 11 collide 2>&1 >/dev/null)" && code=0 || code=$?
-after="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+after="$(registry "$repo")"
 
 { [[ "$code" == 2 ]] && [[ "$err" == *"$other"* ]] && [[ ! -e "$mine" ]] \
   && [[ "$after" == "$before" ]]; } \
