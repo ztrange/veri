@@ -101,8 +101,10 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/solve-issue/scripts/tests/` — eighteen files for seventeen scripts
-(`supervise.sh` has a second suite for its retry axis). All eighteen keep `pass`/`fail`
+`skills/solve-issue/scripts/tests/` — nineteen files for seventeen scripts
+(`supervise.sh` has a second suite for its retry axis, and `hermetic-suites.test.sh`
+belongs to no single script: it is a cross-suite test that pins the suites' independence
+from ambient `VERI_*` tunables). All nineteen keep `pass`/`fail`
 counters, print `FAIL - <name>` with a diff, and end with a count. Match that style
 rather than introducing a framework.
 
