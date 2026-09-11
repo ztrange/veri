@@ -1199,8 +1199,7 @@ SCRIPTS += [dict(
   The write itself: {{p-printf|printf '%s\n'}} over the three named variables, one argument
   per line, appended with {{p-redirect|&gt;&gt;}}. Because the same redirect creates the file
   when it is absent, the "no <code>.gitignore</code> at all" case needs no branch of its own.
-  The final line is the report the conductor keys off: <code>added</code> means there is a
-  change to commit.
+  The final line is the report the conductor keys off.
 </p><p>
   <strong>And the conductor's half of that contract</strong>, so you need not go to
   <code>SKILL.md</code> for it: on <code>added</code> it commits the edited
