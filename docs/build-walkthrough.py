@@ -162,7 +162,7 @@ def render_script(spec):
     if cursor != total + 1:
         _problems.append("%s: chunks cover %d lines, file has %d" % (fname, cursor - 1, total))
 
-    hunk_marks = (META["marks"].get(fname) or {}).get("hunks") or {} if META else {}
+    marks = hunk_marks(META, fname)
 
     rows = []
     for ch in spec["chunks"]:
@@ -173,7 +173,7 @@ def render_script(spec):
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
             '<div class="ann-note%s">%s</div>'
-            "</div>" % (code_block(src[a - 1:b], a, fname, hunk_marks), cls, note))
+            "</div>" % (code_block(src[a - 1:b], a, fname, marks), cls, note))
 
     contract = ""
     if spec.get("contract"):
@@ -243,6 +243,18 @@ def version_badge(meta, fname):
         return ('<span class="vbadge">since <b>%s</b> &middot; changed <b>%s</b></span>'
                 % (html.escape(since), html.escape(changed)))
     return '<span class="vbadge">since <b>%s</b></span>' % html.escape(since)
+
+
+def hunk_marks(meta, fname):
+    """One script's `{line number: (tag, description)}`, or {} when there is no version layer.
+
+    The sibling of version_badge above: both read one script's slice of gitmeta's marks,
+    and both answer for a tree that has no version layer at all rather than making every
+    caller re-check — the page renders with the annotation missing, not with a traceback.
+    """
+    if not meta:
+        return {}
+    return (meta["marks"].get(fname) or {}).get("hunks") or {}
 
 
 def render_reference():
