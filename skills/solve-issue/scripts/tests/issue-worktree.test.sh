@@ -93,6 +93,35 @@ $before
 --- after
 $after" ))"
 
+# 3. the branch is already checked out somewhere else — another conductor owns it. Refuse:
+# exit 2, say where it is, and leave the repo exactly as it was.
+#
+# The seed is a worktree at a path of our own choosing holding tdd/11-taken, which is what a
+# second conductor's checkout looks like from here. The diagnostic has to carry that path
+# because it is the only thing that tells a human which run to go and look at, so the
+# assertion is on the path appearing in stderr, not merely on some message being printed.
+# "Touches nothing" is the same registry snapshot as case 2, plus the absence of the
+# directory the script would otherwise have created.
+repo="$work/taken"
+new_repo "$repo"
+other="$(cd "$work" && pwd -P)/taken-elsewhere"
+git_q "$repo" worktree add -q -b tdd/11-collide "$other" main >/dev/null 2>&1
+mine="$(wt_path "$repo" 11)"
+before="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+
+# 2>&1 >/dev/null, in that order: stderr is pointed at where stdout currently goes (the
+# capture), then stdout is sent to /dev/null. So $err holds the diagnostic alone.
+err="$(cd "$repo" && "$WT" 11 collide 2>&1 >/dev/null)" && code=0 || code=$?
+after="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+
+{ [[ "$code" == 2 ]] && [[ "$err" == *"$other"* ]] && [[ ! -e "$mine" ]] \
+  && [[ "$after" == "$before" ]]; } \
+  && ok || no "branch checked out elsewhere: exits 2 naming that worktree and touches nothing (exit=$code want 2, stderr='$err' want it to name '$other', '$mine' $( [[ -e "$mine" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo "changed:
+--- before
+$before
+--- after
+$after" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

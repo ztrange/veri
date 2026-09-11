@@ -42,6 +42,33 @@ if grep -qxF "worktree $path" <<<"$(git worktree list --porcelain)"; then
   exit 0
 fi
 
+# Never steal a checkout. If the branch is already checked out somewhere else, another
+# conductor owns that run, so refuse with exit 2 — "no answer could be obtained" — and name the
+# path, because it is the only thing that tells a human which run to go and look at.
+#
+# `worktree list --porcelain` prints one block per worktree, blank-line separated: a
+# `worktree <absolute-path>` line first, then `HEAD <sha>`, then `branch <full-ref>` (absent
+# when that worktree is detached). So walk it line by line, remember the path of the block we
+# are inside, and answer with it when a branch line names ours.
+#
+# `read -r key value` splits each line on whitespace into the first word and *all* the rest, so
+# a path containing spaces still arrives whole in $value; -r stops backslashes being eaten.
+# The here-string (<<<) feeds git's output in without a pipeline, which keeps the loop in this
+# shell — a `|` would run it in a subshell and throw $holder away at the end.
+holder=""
+seen=""
+while read -r key value; do
+  case "$key" in
+    worktree) seen="$value" ;;
+    branch) if [[ "$value" == "refs/heads/$branch" ]]; then holder="$seen"; break; fi ;;
+  esac
+done <<<"$(git worktree list --porcelain)"
+
+if [[ -n "$holder" ]]; then
+  echo "issue-worktree: branch $branch is already checked out in $holder — another conductor owns it" >&2
+  exit 2
+fi
+
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
 # exists to prevent.
