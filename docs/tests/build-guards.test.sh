@@ -648,7 +648,7 @@ rail_group_lists "the pitch is a top-level rail entry, beside the other sections
   '<h4>Orientation</h4>' \
 '<a href="#why">Why this exists</a>
 <a href="#what">What veri actually is</a>'
-# 13. stage 0 runs three scripts in a fixed order, and the whole point of the stage is a
+# 17. stage 0 runs three scripts in a fixed order, and the whole point of the stage is a
 #    shape — the run moves into a linked worktree while the caller's checkout stays put.
 #    Prose can list the three; only a picture shows the order and the branch that does not
 #    move. Every other stage that has a shape draws it (stages 2 and 4 in box-drawing, the
@@ -658,7 +658,7 @@ diagrams_stage0 "the stage-0 intro draws its three scripts" \
 ensure-run-state-ignored.sh
 detect-test-command.sh'
 
-# 14. and that diagram has to draw the branches, not just the names. Each of the two
+# 18. and that diagram has to draw the branches, not just the names. Each of the two
 #    scripts that run inside the worktree answers in one of two ways and neither way is a
 #    failure: the ignore rule was added or was already present, a test command was found
 #    or none was and `exit 3` sends the conductor to ask. A picture that draws one arrow
