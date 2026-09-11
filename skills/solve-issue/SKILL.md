@@ -81,12 +81,15 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   *via* `supervise.sh`, not on its own.
 - `$S/extract-result.sh` — pulls the final result text out of a leaf's stream-json (used
   by `run-leaf.sh`; passes plain text through unchanged).
-- `$S/build-verify-prompt.sh <red|green|refactor> <spec-file> <test-path> [target]` —
+- `$S/build-verify-prompt.sh <red|green|refactor|pin> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
-- `$S/verify.sh <red|green|refactor> <spec-file> <test-path> [target]` — the **verify
+- `$S/verify.sh <red|green|refactor|pin> <spec-file> <test-path> [target]` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
-  REJECT, 2 = malformed or killed-stuck**.
+  REJECT, 2 = malformed or killed-stuck**. The `pin` phase is the *already satisfied*
+  check: the verifier confirms the test passes now, **fails** under a behaviour-removing
+  mutation it applies and then reverts itself, and is behaviour-level — the same trivial
+  / over-coupled / too-complex bar as `red`.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
 - `$S/tick-criterion.sh '<substring>'` — the pure text transform both tick wrappers
@@ -204,21 +207,34 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    failing test pinning **STEP's criterion** to **observable external behavior** (not internals),
    with **no production code**, and to run it and confirm it fails for the right reason.
    Include in the prompt: the issue's behavior spec, the test command, and the target test
-   file/name. Write it to `.tdd/develop-red.prompt`, then launch the leaf **through the
-   supervisor**:
+   file/name. **Require the leaf to end its report with the line
+   `AGAINST_UNMODIFIED: FAILS | PASSES`** — whether the test fails against the *unmodified*
+   code. A criterion earlier work already satisfies cannot yield a failing test, and that
+   fact has to reach you as data: in #30's step 3 it did not, and a faithful test spent two
+   verify-red `REJECT`s and two revise leaves reporting IMPOSSIBLE before the run bailed and
+   the revert discarded it. Write the prompt to `.tdd/develop-red.prompt`, then launch the
+   leaf **through the supervisor**:
    ```
    $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions
    ```
    If `supervise.sh` exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly (see *Bailing on a killed-stuck leaf*); do not retry. Otherwise the leaf wrote
    the test to disk — note the **test path** and **target test id** it used.
-2. **Verify (blind).** Run the verifier against the on-disk test and spec:
+2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line. On **`FAILS`**, run
+   the red verifier against the on-disk test and spec:
    ```
    $S/verify.sh red .tdd/issue-<n>-spec.md <test-path> <target-test-id>
    ```
-   Capture its **stdout (the reason)** and its **exit code**.
-3. **Narrate + branch.** Post a `### 🔴 Red` comment with the test and the failing output,
-   followed by a `### 🔎 verify-red — PASS|REJECT` comment carrying the verifier's reason.
+   On **`PASSES`** the criterion is **already satisfied** — never send that test to
+   verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
+   instead and continue at *Already satisfied — the pin*:
+   ```
+   $S/verify.sh pin .tdd/issue-<n>-spec.md <test-path> <target-test-id>
+   ```
+   Either way, capture its **stdout (the reason)** and its **exit code**.
+3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment with the test and
+   the failing output, followed by a `### 🔎 verify-red — PASS|REJECT` comment carrying the
+   verifier's reason.
    - **PASS (exit 0):** continue to Green.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. It
      returns either PASS (continue to Green) or budget-exhausted (**bail**, process failure).
@@ -299,6 +315,38 @@ must be green and all work committed before this step.
 4. Post a final `### ✅ Done — <pr-url>` comment.
 
 Report back to the user with the branch name and the PR URL.
+
+## Already satisfied — the pin
+
+A step whose criterion **earlier work already satisfies** has no failing test to write: the
+honest test passes against the unmodified code. That is an **outcome** of the step, not a
+failure of it — the behaviour exists and what it wants is a **regression pin**. You reach
+this section from Red when the developer leaf reported `AGAINST_UNMODIFIED: PASSES` and you
+ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
+`### 🔴 Red` / `### 🔎 verify-red` pair:
+
+- **PASS (exit 0) — commit the test as the pin, ticking the ledger atomically.** Same
+  tick-and-commit shape as Green, but the commit carries the **test alone** and the `test:`
+  type, because no production code was written (the verifier reverted its own mutation, so
+  the tree holds only the new test and the ticked ledger):
+  ```
+  $S/tick-ledger.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
+  git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
+  ```
+  Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
+  verifier's reason, and tick the matching acceptance criterion in the **issue body**
+  (`$S/tick-issue-criterion.sh <n> '<substring>'`). The step is **done** — **no Green and
+  no Refactor**, since there is no new production code to write or to tidy. Loop back to
+  the top of **step 3** for the next unchecked ledger step.
+- **REJECT (exit 1):** enter the **revise loop** for the red phase — see *Revising on a
+  REJECT*. The rejection reason is the carry-forward signal that tells the fresh leaf which
+  way to go: either the pin is weak (trivial, over-coupled, or it survives the mutation) or
+  a genuinely failing test exists after all. Re-verify with the phase the revise leaf's own
+  `AGAINST_UNMODIFIED` line selects — `pin` on `PASSES`, `red` on `FAILS`. On a recovered
+  `PASS` from `pin`, do the tick-and-commit above; from `red`, continue to Green. On
+  budget-exhausted, **bail** as a **process** failure.
+- **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
+  see *Bailing*.
 
 ## Revising on a REJECT
 
@@ -408,6 +456,8 @@ guessing. Pass it into every developer-leaf prompt so the leaves run the same su
   directly. The supervisor is the one place stuck-detection lives.
 - One failing test, then minimum code, then the refactor loop — in that order, per step.
   Never production code before its failing test.
+- **A test that passes against unmodified code is never sent to verify-red**; it is either
+  a blind-verified pin or a bail — never a Green.
 - **The committed ledger is the source of truth.** Loop the cycle over its steps until none
   remain; check each step off **atomically with its green commit**; the issue thread only
   **mirrors** the ledger. Never hand-edit the ledger — use `tick-ledger.sh`.

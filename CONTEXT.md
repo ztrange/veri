@@ -96,6 +96,15 @@ commits, pushes the branch, posts a diagnostic comment that classifies the cause
 opens no PR. Re-running resumes from the ledger.
 _Avoid_: abort, fail (unqualified)
 
+**Pin**:
+A step outcome for a criterion that earlier work already satisfies: the developer leaf's
+honest test passes against the unmodified code. Instead of verify-red (which can only
+reject a passing test) the conductor runs **verify-pin**, a blind check that the test
+passes now, *fails* under a behaviour-removing mutation the verifier applies and reverts
+itself, and is behaviour-level. On `PASS` the test lands as a `test:` commit with the
+ledger tick atomic, narrated as `📌 Already satisfied`; Green and Refactor are skipped.
+_Avoid_: characterization test (ok as a gloss), skip, no-op step
+
 **Dependency marker**:
 A reference in a GitHub issue declaring that it depends on another issue. An issue is
 **solvable** only once its dependencies are closed. The dependency graph is the
