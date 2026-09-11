@@ -20,6 +20,10 @@
 # A guard that has never been seen to fire is decoration, so every case below breaks the
 # thing on purpose and asserts the build refuses.
 #
+# The last case is the one exception, and a different kind of guard: a content assertion
+# against an unmutated build. It has no mutator because what it pins is the prose itself
+# — a sentence in docs/wt/commentary.py that was wrong once and must not come back.
+#
 # Each case runs against a disposable copy of the tree, so the real repo is never
 # mutated even if a case aborts.
 #
