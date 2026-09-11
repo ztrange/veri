@@ -111,18 +111,6 @@ if [[ -n "$holder" ]]; then
   exit 2
 fi
 
-# A branch that already exists — a resume after the last run's worktree was removed, or one
-# fetched back from the remote — gets checked out, not cut again. `git worktree add -b` refuses
-# outright once the ref is there, and re-cutting it from the default branch would silently
-# abandon whatever the previous run committed on it. Naming the branch as `add`'s second
-# argument (no -b) is how git says "check this existing branch out here". The holder check above
-# already established no other worktree has it, so taking it steals nothing.
-if git show-ref --verify --quiet "refs/heads/$branch"; then
-  git worktree add -q "$path" "$branch" >&2
-  printf '%s\n' "$path"
-  exit 0
-fi
-
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
 # exists to prevent.
@@ -148,16 +136,29 @@ default_branch() {
   return 1
 }
 
-# Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
-# cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
-base="$(default_branch)" || {
-  echo "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)" >&2
-  exit 2
-}
+# One `git worktree add`, in one of two shapes, and a single print of the path afterwards —
+# whichever shape ran, the caller parses the same line.
+#
+# A branch that already exists — a resume after the last run's worktree was removed, or one
+# fetched back from the remote — gets checked out, not cut again. `git worktree add -b` refuses
+# outright once the ref is there, and re-cutting it from the default branch would silently
+# abandon whatever the previous run committed on it. Naming the branch as `add`'s second
+# argument (no -b) is how git says "check this existing branch out here". The holder check above
+# already established no other worktree has it, so taking it steals nothing.
+if git show-ref --verify --quiet "refs/heads/$branch"; then
+  git worktree add -q "$path" "$branch" >&2
+else
+  # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
+  # cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
+  base="$(default_branch)" || {
+    echo "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)" >&2
+    exit 2
+  }
 
-# -b creates the branch at <base> and checks it out in the new worktree in one move; -q keeps
-# git's "Preparing worktree" chatter out of the way, and >&2 sends anything it still prints to
-# stderr, because stdout here belongs to the one line the caller parses: the path.
-git worktree add -q -b "$branch" "$path" "$base" >&2
+  # -b creates the branch at <base> and checks it out in the new worktree in one move; -q keeps
+  # git's "Preparing worktree" chatter out of the way, and >&2 sends anything it still prints to
+  # stderr, because stdout here belongs to the one line the caller parses: the path.
+  git worktree add -q -b "$branch" "$path" "$base" >&2
+fi
 
 printf '%s\n' "$path"
