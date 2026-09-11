@@ -177,7 +177,18 @@ rewrite_line_as_feat() {
   sed -i.bak "${lineno}s|.*|$text|" "$file" && rm -f "$file.bak"
   git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
 }
-export -f append_line_to_script sed_commentary rewrite_line_as_feat
+
+# rewrite_line_as_refactor <file> <line-no> <text> <subject>
+# The same rewrite, landed as a NON-behaviour commit — and deliberately with no tag of
+# its own, because a refactor does not change what veri can do, so veri's own convention
+# never cuts one for it. It ships in whatever version is tagged next, which is the point:
+# the commit ends up inside a later version's range and its line must still stay plain.
+rewrite_line_as_refactor() {
+  local file="$1" lineno="$2" text="$3" subject="$4"
+  sed -i.bak "${lineno}s|.*|$text|" "$file" && rm -f "$file.bak"
+  git add -A && git commit -qm "$subject"
+}
+export -f append_line_to_script sed_commentary rewrite_line_as_feat rewrite_line_as_refactor
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
@@ -277,6 +288,27 @@ tags_git "two later commits tag their own lines separately" 2 \
            rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
              "# rewritten by the v0.3 commit" \
              "fix: rewrite line 5 of classify-bail.sh (#3)" v0.3'
+
+#    Blame answers who touched a line LAST, and that is the whole answer: a `refactor:`
+#    commit sitting on top of the `feat:` that introduced the line hides it, rather than
+#    passing its tag down. Reaching back past the refactor for the feat: underneath would
+#    be a guess about which of the two the reader wants dated.
+#    The refactor is untagged but lands BEFORE v0.2 is cut, so v0.2 contains it — without
+#    that, `_first_tag_containing` would return None and the line would go untagged for
+#    the wrong reason, leaving the case green against an implementation that never looked
+#    at the commit type at all. Line 5's tag and the count of 1 are what say line 3 was
+#    passed over: the page has exactly one hunk tag and it is not on the refactored line,
+#    which is asserted directly by demanding line 3's plain `<span class="l">` form.
+tags_git "a refactor: on top of a feat: leaves the line untagged" 1 \
+  '<span class="l hunk" data-tag="v0.2" title="rewrite line 5 of classify-bail.sh">'\
+'<span class="c"># rewritten by the v0.2 commit</span></span>
+<span class="l"><span class="c"># reworded by the refactor commit</span></span>' \
+  bash -c 'rewrite_line_as_refactor skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# reworded by the refactor commit" \
+             "refactor: reword line 3 of classify-bail.sh (#2)"
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#2)" v0.2'
 
 echo "----"
 echo "$pass passed, $fail failed"
