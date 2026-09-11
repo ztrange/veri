@@ -57,6 +57,34 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && [[ "$branch" == "tdd/7-add-worktree" ]] && [[ "$tip" == "$main_tip" ]]; } \
   && ok || no "fresh call: creates a worktree at .tdd/wt/7 on new branch tdd/7-add-worktree off the default branch and prints its path (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', branch='$branch' want 'tdd/7-add-worktree', tip='$tip' want main's $main_tip not side's $side_tip)"
 
+# 2. a second call for the same issue is a no-op that still answers: same path, exit 0, and
+# nothing new created.
+#
+# "Creates nothing new" is asserted from git's own registry rather than from the filesystem:
+# `worktree list --porcelain` plus every branch ref is the full set of things this script can
+# add, so snapshotting both around the second call catches a stray worktree or a `tdd/9-...`
+# duplicate that a directory check would miss.
+repo="$work/again"
+mkdir -p "$repo"
+git init -q -b main "$repo" >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+repo_real="$(cd "$repo" && pwd -P)"
+want="$repo_real/.tdd/wt/9"
+
+first="$(cd "$repo" && "$WT" 9 resume-me 2>/dev/null)" && first_code=0 || first_code=$?
+before="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+
+second="$(cd "$repo" && "$WT" 9 resume-me 2>/dev/null)" && second_code=0 || second_code=$?
+after="$(git -C "$repo" worktree list --porcelain 2>/dev/null; git -C "$repo" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null)"
+
+{ [[ "$first_code" == 0 ]] && [[ "$second_code" == 0 ]] && [[ "$second" == "$want" ]] \
+  && [[ "$second" == "$first" ]] && [[ "$after" == "$before" ]]; } \
+  && ok || no "second call: prints the same path, exits 0 and creates nothing new (first exit=$first_code want 0 stdout='$first', second exit=$second_code want 0 stdout='$second' want '$want', git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo "changed:
+--- before
+$before
+--- after
+$after" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
