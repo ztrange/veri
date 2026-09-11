@@ -37,6 +37,23 @@ verify() {  # verify <fake-out-text> <phase> -> runs in $work, sets $out/$code
   code=$?
 }
 
+# the second stub never finishes, so the supervisor's stuck-detection is what ends the run
+cat > "$stubdir/claude-hang" <<'STUB'
+#!/usr/bin/env bash
+echo "thinking..."; sleep 60
+STUB
+chmod +x "$stubdir/claude-hang"
+
+hung_leaf() {  # hung_leaf -> runs in $work, sets $out/$code, stderr in $work/err
+  # VERI_STUCK_RETRIES=0 is pinned, not inherited: both hung-leaf cases here are about a
+  # single attempt, so the caller's environment must not be able to add retries (each extra
+  # attempt waits out the heartbeat window again, changing the suite's wall time).
+  out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
+            VERI_HEARTBEAT=1 VERI_POLL=0.2 "$VERIFY" red "$work/spec.md" \
+            tests/test_slugify.py test_lowercases 2>"$work/err" )"
+  code=$?
+}
+
 # 1. a PASS verdict from the leaf → verify.sh exits 0 and surfaces the reason
 verify 'I ran it.
 VERDICT: PASS
@@ -69,23 +86,6 @@ code=$?
 
 # 6. a hung verifier leaf is killed by the supervisor → no verdict → exit 2, so the
 #    conductor never proceeds on a verification it could not obtain
-cat > "$stubdir/claude-hang" <<'STUB'
-#!/usr/bin/env bash
-echo "thinking..."; sleep 60
-STUB
-chmod +x "$stubdir/claude-hang"
-
-# hung_leaf -> sets $out / $code, stderr in $work/err (runs in $work)
-# VERI_STUCK_RETRIES=0 is pinned, not inherited: both hung-leaf cases here are about a
-# single attempt, so the caller's environment must not be able to add retries (each extra
-# attempt waits out the heartbeat window again, changing the suite's wall time).
-hung_leaf() {
-  out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
-            VERI_HEARTBEAT=1 VERI_POLL=0.2 "$VERIFY" red "$work/spec.md" \
-            tests/test_slugify.py test_lowercases 2>"$work/err" )"
-  code=$?
-}
-
 hung_leaf
 { [[ "$code" == 2 ]] && [[ "$out" == *'killed-stuck'* ]]; } && ok \
   || no "hung verifier leaf → killed-stuck exit 2 (code=$code)"
