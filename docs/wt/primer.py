@@ -55,7 +55,34 @@ PRIMER = [{'id': 'p-header',
                      '    </p>',
              'seen': '<code>run-leaf.sh</code>, <code>verify.sh</code> (twice).',
              'gloss': 'Turn fail-fast off around one command so you can capture its exit code '
-                      'instead of dying on it.'}]},
+                      'instead of dying on it.'},
+            {'id': 'p-shopt',
+             'sig': 'shopt -u patsub_replacement 2&gt;/dev/null || true',
+             'name': 'A shell option, disabled portably',
+             'body': '<p>\n'
+                     '      <code>shopt</code> flips a named shell behaviour on or off &mdash; finer-grained '
+                     'switches than <a class="ref" href="#p-strict">set -o</a> covers. bash 5.2 added '
+                     '<code>patsub_replacement</code> and turned it ON by default: inside '
+                     '<a class="ref" href="#p-subst">${var//pattern/replacement}</a>, an unescaped '
+                     '<code>&amp;</code> in the <em>replacement</em> now expands to whatever the pattern just '
+                     'matched, the way <code>sed</code>&rsquo;s <code>&amp;</code> does. A value carrying a '
+                     'literal <code>&amp;</code> is then rewritten silently &mdash; no error, no bad exit '
+                     'code.\n'
+                     '    </p><p>\n'
+                     '      <code>shopt -u patsub_replacement</code> turns that back off, restoring the older '
+                     'purely-literal meaning every <code>${v//a/b}</code> below it relies on. macOS ships bash '
+                     '3.2, which predates the option entirely: there <code>shopt -u patsub_replacement</code> '
+                     'fails because the name is unknown, so '
+                     '<a class="ref" href="#p-redirect">2&gt;/dev/null</a> discards the complaint and the '
+                     'trailing <a class="ref" href="#p-shortcircuit">||</a> <code>true</code> makes the whole '
+                     'line a no-op &mdash; real work on 5.2+, harmless everywhere older.\n'
+                     '    </p>',
+             'seen': '<code>build-develop-prompt.sh</code> and <code>build-verify-prompt.sh</code>, right '
+                     'after <code>set -euo pipefail</code>, guarding every <code>${var//pattern/repl}</code> '
+                     'substitution below it.',
+             'gloss': 'Turns one named shell behaviour on or off. Here: disable bash 5.2&rsquo;s '
+                      '<code>&amp;</code>-means-the-match default in <code>${v//a/b}</code>, portably '
+                      'no-op&rsquo;d on bash 3.2 where the option does not exist.'}]},
  {'id': 'p-vars',
   'name': 'Variables &amp; expansion',
   'items': [{'id': 'p-quote',

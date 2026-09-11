@@ -1512,12 +1512,36 @@ SCRIPTS += [dict(
   This is the file to check first if you ever doubt the verification is honest. If the
   signature has not grown, the rationale cannot have leaked.
 </p>'''),
-        dict(lines=(15, 21), html=r'''<p>
+        dict(lines=(15, 28), html=r'''<p>
+  Line 15 is the familiar {{p-strict|set -euo pipefail}}. Lines 17&ndash;27 are new: a
+  guarded {{p-shopt|shopt -u patsub_replacement 2&gt;/dev/null &#124;&#124; true}}, placed
+  right next to strict mode because it belongs to the same category &mdash; a guarantee the
+  rest of the script leans on without restating.
+</p><p>
+  bash 5.2 turned the <code>patsub_replacement</code> option on by default: inside
+  {{p-subst|${var//pattern/replacement}}}, an unescaped <code>&amp;</code> in the
+  <em>replacement</em> now expands to whatever the pattern matched, the way <code>sed</code>'s
+  <code>&amp;</code> does. The four substitutions near the end of this file exist specifically
+  to avoid that kind of pattern-engine surprise; left unguarded on 5.2, a spec reading
+  <code>"Frob &amp; Nitz"</code> would reach the verifier as
+  <code>"Frob {{ISSUE_SPEC}} Nitz"</code> &mdash; no error, no bad exit code, just a silently
+  corrupted prompt.
+</p>
+<div class="note gotcha"><span class="tag">Invisible on macOS, caught by CI</span><p>
+  macOS ships bash 3.2, which predates <code>patsub_replacement</code> by two decades, so
+  <code>shopt -u patsub_replacement</code> fails there &mdash; there is nothing to turn off.
+  {{p-redirect|2&gt;/dev/null}} discards that failure and the trailing
+  {{p-shortcircuit|&#124;&#124;}} <code>true</code> makes the whole line do nothing on 3.2,
+  while it does real work on 5.2+. The repo's first <code>ubuntu-latest</code> CI run, on
+  bash 5.2, is what turned this up: every developer machine had been on 3.2 and green
+  regardless.
+</p></div>'''),
+        dict(lines=(29, 33), html=r'''<p>
   Three {{p-required|required arguments}} and one {{p-default|optional}} with a readable
   fallback, <code>"the target test"</code>, so the assembled prompt still reads as English
   when no specific test id was given.
 </p>'''),
-        dict(lines=(22, 26), html=r'''<p>
+        dict(lines=(34, 38), html=r'''<p>
   A {{p-case|case}} whose only valid branch does nothing:
   <code>red|green|refactor|pin) ;;</code> means "these four are fine, carry on". Everything
   else falls to <code>*)</code> and exits <span class="ec ec-2"><b>2</b></span>.
@@ -1532,16 +1556,16 @@ SCRIPTS += [dict(
   itself &mdash; and on PASS the cycle skips straight to committing, with no Green or
   Refactor to follow.
 </p>'''),
-        dict(lines=(27, 33), html=r'''<p>
+        dict(lines=(39, 45), html=r'''<p>
   <code>HERE</code> locates the script's own directory so it can find its
   <code>prompts/</code> siblings. The templates are ordinary files on disk, one per phase
   plus a shared preamble.
 </p><p>
-  Lines 30&ndash;32 check all three inputs are readable <em>before</em> reading any of them.
+  Lines 42&ndash;44 check all three inputs are readable <em>before</em> reading any of them.
   The <code>{ …; }</code> braces group two commands so the
   {{p-shortcircuit|&#124;&#124;}} applies to both. Again <span class="ec ec-2"><b>2</b></span>.
 </p>'''),
-        dict(lines=(34, 37), html=r'''<p>
+        dict(lines=(46, 49), html=r'''<p>
   Three {{p-cmdsub|$(cat …)}} reads. This is the moment the template stops being a file and
   becomes a string in memory &mdash; and it is the only "copy" that happens. Nothing below
   writes to these files; the template is read, never modified.
@@ -1549,7 +1573,7 @@ SCRIPTS += [dict(
   Note that {{p-cmdsub|command substitution}} strips trailing newlines here, which is why
   the last line of the script has to put one back.
 </p>'''),
-        dict(lines=(38, 45), html=r'''<p>
+        dict(lines=(50, 58), html=r'''<p>
   The entire templating engine: {{p-subst|${tpl//search/replace}}} four times, filling
   <code>{{SHARED}}</code>, <code>{{ISSUE_SPEC}}</code>, <code>{{TEST_PATH}}</code> and
   <code>{{TARGET_TEST}}</code>. The <code>\{\{</code> is only escaping the literal braces.
@@ -1559,17 +1583,19 @@ SCRIPTS += [dict(
   original, which is why no file is at risk here.
 </p>
 <div class="note gotcha"><span class="tag">Why not sed</span><p>
-  The comment on line 38 flags a real trap. <code>sed 's/{{SPEC}}/'"$spec"'/'</code> is the
-  reflexive way to do this and it is wrong: <code>sed</code> is a <em>pattern engine</em>, so
-  <code>&amp;</code> in the replacement expands to the whole match, <code>\1</code> to a
-  capture group, and a <code>/</code> anywhere in the value ends the command. An issue body
-  is arbitrary human text &mdash; file paths, URLs, shell snippets &mdash; and will contain
-  all three.
+  The comment on lines 50&ndash;52 flags two traps, not one. <code>sed
+  's/{{SPEC}}/'"$spec"'/'</code> is the reflexive way to do this and it is wrong:
+  <code>sed</code> is a <em>pattern engine</em>, so <code>&amp;</code> in the replacement
+  expands to the whole match, <code>\1</code> to a capture group, and a <code>/</code>
+  anywhere in the value ends the command. An issue body is arbitrary human text &mdash; file
+  paths, URLs, shell snippets &mdash; and will contain all three.
 </p><p>
   Bash's <code>${v//a/b}</code> is a <strong>literal</strong> replacement with no pattern
-  language in the replacement half, so the spec arrives verbatim. The general lesson: reach
-  for <code>sed</code> when you want a pattern, and parameter expansion when you want a
-  string.
+  language in the replacement half &mdash; <em>with the {{p-shopt|patsub_replacement guard}}
+  above holding</em>. Without it, bash 5.2 alone reintroduces exactly the <code>&amp;</code>
+  hazard <code>sed</code> was rejected for; the guard is what makes "no sed" still mean
+  "verbatim" on every bash this runs under. The general lesson: reach for <code>sed</code>
+  when you want a pattern, and guarded parameter expansion when you want a string.
 </p></div>
 <p>
   The <code>{{SHARED}}</code> token is why there are five template files for four phases:
@@ -1623,8 +1649,22 @@ SCRIPTS += [dict(
   Line 18 is the familiar {{p-strict|set -euo pipefail}} &mdash; the same three-part
   contract every script in this stage opens with.
 </p>'''),
-        dict(lines=(19, 29), html=r'''<p>
-  Line 20 takes <code>phase</code> with a {{p-required|required-argument assertion}} &mdash;
+        dict(lines=(19, 31), html=r'''<p>
+  Blank, then a guarded {{p-shopt|shopt -u patsub_replacement 2&gt;/dev/null &#124;&#124;
+  true}} (lines 20&ndash;30), the mirror of
+  <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>'s own guard, added
+  by the same fix and for the same reason: read the full explanation there.
+</p><p>
+  Short version: bash 5.2 made <code>&amp;</code> in the replacement of
+  {{p-subst|${var//pattern/replacement}}} expand to the matched text, sed-style. Every
+  <code>out="${out//…/…}"</code> line near the bottom of this file depends on that
+  <em>not</em> happening, since a step's text or an issue spec can carry a literal
+  <code>&amp;</code>. This line disables the option where it exists (bash 5.2+) and is a
+  provable no-op where it does not (macOS's bash 3.2), via the same
+  {{p-redirect|2&gt;/dev/null}} {{p-shortcircuit|&#124;&#124;}} <code>true</code> pattern.
+</p>'''),
+        dict(lines=(32, 41), html=r'''<p>
+  Line 32 takes <code>phase</code> with a {{p-required|required-argument assertion}} &mdash;
   the one argument every invocation shares, read before anything else can happen.
 </p>
 <div class="note"><span class="tag">The phase that shifts its own arguments</span><p>
@@ -1637,23 +1677,23 @@ SCRIPTS += [dict(
   <code>revised_phase=""</code> hoists the empty default a line <em>before</em> the
   <code>if</code> that might fill it, so a non-<code>revise</code> phase leaves the variable
   defined-but-empty rather than unset &mdash; required reading under
-  {{p-strict|set -u}}, which aborts on an unset reference. Line 27 reads the phase being
-  redone with the same {{p-required|required-argument assertion}} as line 20; line 28's
+  {{p-strict|set -u}}, which aborts on an unset reference. Line 39 reads the phase being
+  redone with the same {{p-required|required-argument assertion}} as line 32; line 40's
   <code>shift</code> <strong>discards argument 1 and renumbers the rest</strong>, so
   <code>$2</code>, <code>$3</code>, <code>$4</code>&hellip; line up exactly the way they do
   for red, green and refactor. Past this point the four phases are indistinguishable to the
   rest of the script.
 </p></div>'''),
-        dict(lines=(30, 33), html=r'''<p>
+        dict(lines=(42, 45), html=r'''<p>
   <code>spec_file</code>, <code>step</code> and <code>test_cmd</code> &mdash; the three
   positions every phase shares &mdash; are bound here with the same
   {{p-required|required-argument assertion}} used throughout. Because <code>revise</code>
   already shifted its extra argument off, this reads <code>$2</code>, <code>$3</code>,
   <code>$4</code> the same way whichever phase is running.
 </p>'''),
-        dict(lines=(34, 39), html=r'''<p>
+        dict(lines=(46, 51), html=r'''<p>
   The comment states the design directly: each phase takes its own extra positionals past
-  the three every phase shares, and only the branch below names them. Line 39 hoists all
+  the three every phase shares, and only the branch below names them. Line 51 hoists all
   four possible extras &mdash; <code>test_path</code>, <code>target</code>,
   <code>touched</code>, <code>reason_file</code> &mdash; to an empty default
   <em>above</em> the {{p-case|case}} that follows: four ordinary assignments on one line,
@@ -1665,24 +1705,24 @@ SCRIPTS += [dict(
   sets, say, <code>touched</code> needs no empty-string branch of its own to make that true.
   Declaring all four before the <code>case</code> is what lets <code>red</code> &mdash; the
   phase that writes the test and so has nothing yet to name &mdash; get away with an empty
-  branch body: <code>red) ;;</code> on line 41 does nothing because there is nothing left
+  branch body: <code>red) ;;</code> on line 53 does nothing because there is nothing left
   for it to do.
 </p></div>'''),
-        dict(lines=(40, 53), html=r'''<p>
+        dict(lines=(52, 65), html=r'''<p>
   The {{p-case|case}} itself. Three of the four phases fill in exactly the extra positionals
   their usage line promised &mdash; <code>green</code> takes two more,
-  <code>test_path</code> and <code>target</code> (lines 43&ndash;44), <code>refactor</code>
-  one (line 47), <code>revise</code> one (line 50) &mdash; each still a
+  <code>test_path</code> and <code>target</code> (lines 55&ndash;56), <code>refactor</code>
+  one (line 59), <code>revise</code> one (line 62) &mdash; each still a
   {{p-required|required-argument assertion}}, so a missing extra fails exactly where the
   caller went wrong rather than surfacing later as a blank in the prompt.
 </p><p>
-  <code>*)</code> on line 52 is the same defensive default seen in
+  <code>*)</code> on line 64 is the same defensive default seen in
   <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>: a phase name
   outside the four is a broken caller, not a legitimate answer, so it prints a diagnostic
   and exits <span class="ec ec-2"><b>2</b></span> rather than building a prompt from a
   template that does not exist.
 </p>'''),
-        dict(lines=(54, 61), html=r'''<p>
+        dict(lines=(66, 73), html=r'''<p>
   <code>HERE</code> locates the script's own directory exactly as
   <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> does, via
   {{p-cmdsub|$(cd … &amp;&amp; pwd)}}, so the <code>prompts/</code> siblings resolve
@@ -1690,7 +1730,7 @@ SCRIPTS += [dict(
   template for the phase running; <code>_develop-shared.md</code> is the preamble every
   phase pulls in.
 </p>
-<div class="note"><span class="tag">The one line worth reading twice: 59</span><p>
+<div class="note"><span class="tag">The one line worth reading twice: 71</span><p>
   <code>for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file"; do</code> checks
   four candidate files for readability &mdash; but <code>$reason_file</code> is empty on
   every phase except <code>revise</code>. {{p-test|[[ -n "$f" ]]}}
@@ -1698,28 +1738,30 @@ SCRIPTS += [dict(
   skip straight to the next candidate rather than asking whether an empty path is readable,
   which would fail for the wrong reason on every phase that has no reason file at all.
 </p></div><p>
-  Line 60 is the readability check itself, the same shape as
+  Line 72 is the readability check itself, the same shape as
   <code>build-verify-prompt.sh</code>'s: {{p-test|[[ -r "$f" ]]}}
   {{p-shortcircuit|&#124;&#124;}} a grouped diagnostic-and-exit, so a missing template or an
   unreadable spec is caught before any file is read, never mid-assembly.
 </p>'''),
-        dict(lines=(62, 67), html=r'''<p>
+        dict(lines=(74, 79), html=r'''<p>
   Three {{p-cmdsub|$(cat …)}} reads turn the templates and the spec into strings, exactly as
   in <code>build-verify-prompt.sh</code> &mdash; and, as there, this is the only "copy" that
   happens; nothing below writes back to any of these files.
 </p><p>
-  <code>reason=""</code> is the same hoisted-empty-default idiom as line 39, for the same
+  <code>reason=""</code> is the same hoisted-empty-default idiom as line 51, for the same
   reason: <code>reason_file</code> is empty on every phase but <code>revise</code>, so line
-  67 only overwrites it when {{p-test|[[ -n "$reason_file" ]]}} says there is a file to read.
+  79 only overwrites it when {{p-test|[[ -n "$reason_file" ]]}} says there is a file to read.
 </p>'''),
-        dict(lines=(68, 79), html=r'''<p>
+        dict(lines=(80, 92), html=r'''<p>
   The comment names the trap directly: <strong>&amp;, \, / and {} in the spec or the step
   text must survive verbatim</strong>, and a search-and-replace tool built for patterns
   &mdash; <code>sed</code> &mdash; would corrupt exactly those characters. An issue's spec or
   a rejection reason is arbitrary human prose: file paths with slashes, code with
   backslashes, an <code>&amp;</code> in a URL. {{p-subst|${var//pattern/replacement}}} is a
-  <strong>literal</strong> replacement with no pattern language on either side, so none of
-  that is at risk.
+  <strong>literal</strong> replacement with no pattern language on either side &mdash;
+  <em>with the {{p-shopt|patsub_replacement guard}} above holding</em>. Without that guard,
+  bash 5.2 alone would expand a bare <code>&amp;</code> to the match, which is exactly the
+  <code>sed</code> hazard this design was chosen to avoid.
 </p><p>
   Nine calls where <code>build-verify-prompt.sh</code> needed four, because this template
   has nine placeholders to a verify template's four &mdash; one call per token, each
@@ -1728,15 +1770,15 @@ SCRIPTS += [dict(
   and the rest; it is not part of a pattern language, because there is none.
 </p>
 <div class="note"><span class="tag">Where the hoisted empty defaults pay off</span><p>
-  Lines 75&ndash;78 substitute <code>$test_path</code>, <code>$target</code>,
+  Lines 88&ndash;91 substitute <code>$test_path</code>, <code>$target</code>,
   <code>$touched</code> and <code>$revised_phase</code> unconditionally, on every phase, and
   three of those four are empty on any given run. That is the payoff of hoisting the
-  defaults above the <code>case</code> back on line 39: an unused placeholder like
+  defaults above the <code>case</code> back on line 51: an unused placeholder like
   <code>{{TEST_PATH}}</code> on a <code>refactor</code> run simply disappears from the
   template, because the string it is replaced with is empty &mdash; no phase-specific branch
   needed here either.
 </p></div>'''),
-        dict(lines=(80, 81), html=r'''<p>
+        dict(lines=(93, 94), html=r'''<p>
   The same closing line as <code>build-verify-prompt.sh</code>:
   {{p-printf|printf '%s\n'}} puts back the trailing newline that
   {{p-cmdsub|command substitution}} stripped on the way in, so the prompt file
