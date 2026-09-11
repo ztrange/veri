@@ -106,10 +106,10 @@ if pgrep -f "$stub/leaf-hang" >/dev/null 2>&1; then no "killed leaf left a proce
 #    The assignment prefix puts the variable in sup()'s environment for this call only, so
 #    no later case sees it.
 VERI_STUCK_RETRIES=3 sup hang 1 30 leaf-hang
-stuck="$(grep -c 'supervise\[hang\]: killed-stuck' "$work/err")"
-retried="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
-{ [[ "$code" == 2 ]] && [[ "$stuck" -eq 1 ]] && [[ "$retried" -eq 0 ]]; } && ok \
-  || no "ambient VERI_STUCK_RETRIES=3 → hung leaf still runs exactly once (code=$code, killed-stuck lines=$stuck, retry lines=$retried)"
+stuck_lines="$(grep -c 'supervise\[hang\]: killed-stuck' "$work/err")"
+retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
+{ [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
+  || no "ambient VERI_STUCK_RETRIES=3 → hung leaf still runs exactly once (code=$code, killed-stuck lines=$stuck_lines, retry lines=$retry_lines)"
 
 echo "----"
 echo "$pass passed, $fail failed"
