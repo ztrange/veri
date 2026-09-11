@@ -131,8 +131,20 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Idempotent; prints `added` when it wrote the rule, `already present` when it
-  was there. Run once per issue right after branching (step 1) so the first `git add -A`
-  never sweeps leaf logs into history.
+  was there. Run once per issue right after entering the worktree (step 1) so the first
+  `git add -A` never sweeps leaf logs into history.
+- `$S/issue-worktree.sh <n> <slug>` — the **linked worktree the issue branch lives in**.
+  Creates (or hands back) `<repo-root>/.tdd/wt/<n>` on branch `tdd/<n>-<slug>`, cut from the
+  **default** branch (`origin/HEAD`, else a local `main`/`master`) and never from the
+  caller's `HEAD`, and prints the worktree's **absolute path on stdout** — the only thing on
+  stdout; git's chatter goes to stderr, so the path is safe to capture. **Idempotent**: a
+  second call for the same issue prints the same path and creates nothing, which is what
+  makes a resume land in the worktree the first run made. **Exit 0** = the path. **Exit 2** =
+  no answer could be obtained — either the branch is **already checked out in another
+  worktree** (it names that path and touches nothing: **never steal a checkout**, another
+  conductor owns that run) or the default branch cannot be named. `$S/issue-worktree.sh
+  --remove <n>` removes the worktree once the PR has landed, and **refuses** (exit 2) one
+  holding uncommitted changes.
 - `$S/detect-test-command.sh [repo-root]` — print the one command that runs the **target
   repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do* code — when no
   marker it trusts matched, which is your cue to ask the user. First match wins, and the
@@ -158,6 +170,10 @@ unauthenticated baseline never gets a cycle.
 
 1. **Git repo & clean tree.** `git rev-parse --is-inside-work-tree` succeeds and
    `git status --porcelain` is empty. If dirty, stop and ask the user to commit or stash.
+   The run no longer commits in this checkout — step 1.2 moves into a worktree that is clean
+   by construction — but the check **stays**: the conductor still reads the issue and the
+   default branch from here, and a dirty caller's checkout means something else is mid-work
+   in it.
 2. **`gh` and `claude` authenticated.** `gh auth status` succeeds, and `claude auth status`
    reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
    session each one fails at launch (`supervise.sh` exit 1 before any work), which is
@@ -174,24 +190,43 @@ unauthenticated baseline never gets a cycle.
    Exit 0 and exit 3 both mean it parses (3 only says the budget is 0 — a run with the
    refactor loop switched off), so continue.
 
-### 1. Read the issue, capture the spec, and branch (or resume)
+### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
 1. Read the issue: `gh issue view <n> --json number,title,body,url`.
-2. **Write the behavior spec to a file** the verifier leaves will read:
+2. **Derive the slug and enter the issue's worktree.** Slug from the title — lowercase,
+   non-alphanumerics to `-`, collapse and trim `-`, cap to ~6 words. Then let the script
+   make (or hand back) the worktree the issue branch lives in, and move into it:
+   ```
+   wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
+   ```
+   **Every later step of the run happens inside that worktree**: the blind spec
+   (`.tdd/issue-<n>-spec.md`), the ledger (`.tdd/issue-<n>.md`), every leaf log and prompt,
+   every commit, the push and the PR. All the `.tdd/…` paths below are **relative to the
+   worktree**, so once you have `cd`'d there they read exactly as written — do not prefix
+   them with the caller's path.
+   The **caller's checkout is left exactly as it was**, still on whatever branch it was on:
+   it is never switched and never committed in. That is the point — a skill symlinked out of
+   it or a dev server serving it must not silently start seeing the issue branch (ADR-0013).
+   **Exit 2 is a preflight-class stop**: either the branch is already checked out in another
+   worktree (another conductor owns that run — never steal it) or the default branch cannot
+   be named. Report the script's diagnostic verbatim and **do not start** — no branch of your
+   own, no cycle, nothing to revert.
+3. **Write the behavior spec to a file** the verifier leaves will read — inside the worktree,
+   which you are now in:
    `mkdir -p .tdd && gh issue view <n> --json body -q .body > .tdd/issue-<n>-spec.md`.
    (The verifier is blind; this on-disk spec — never your narration — is what it sees.)
-3. Derive a slug from the title — lowercase, non-alphanumerics to `-`, collapse and trim
-   `-`, cap to ~6 words. Create and switch to the per-issue branch:
-   `git switch -c tdd/<n>-<slug>` (off the default branch). If it already exists, switch.
 4. **Ignore run state.** `$S/ensure-run-state-ignored.sh` makes the target's `.gitignore`
    ignore `.tdd/*` except the ledger. If it prints `added`, commit that as the branch's
    first commit: `git add .gitignore && git commit -m "chore: ignore veri run state (#<n>)"`.
    `already present` means nothing to do. Without this, the atomic `git add -A` in Green
-   would commit every leaf log and prompt.
-5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists on the branch, this
+   would commit every leaf log and prompt. The worktree itself lives at `.tdd/wt/<n>`, under
+   the same ignored `.tdd/`, so it never shows up as untracked work either.
+5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists in the worktree, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
    comment naming the next unchecked step, and go straight to the cycle loop (step 3).
-   Otherwise continue to step 2 to scope and plan.
+   Otherwise continue to step 2 to scope and plan. This check needs no special casing for a
+   re-run: `issue-worktree.sh` is **idempotent**, so a second invocation puts you back in the
+   same worktree the first run built, with its committed ledger already on disk.
 
 ### 2. Scope & plan → the ledger
 
@@ -218,8 +253,9 @@ cycle) but do **not** gate on it.
 
 ### 2b. Start comment
 
-Post a short comment announcing veri has started, naming the branch and the number of plan
-steps, and noting each phase will be blind-verified: `gh issue comment <n> --body "..."`.
+Post a short comment announcing veri has started, naming the branch (and the worktree it is
+running in) and the number of plan steps, and noting each phase will be blind-verified:
+`gh issue comment <n> --body "..."`.
 
 ### 3. The cycle loop
 
@@ -369,9 +405,11 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
 ### 4. Draft PR
 
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off. The full suite
-must be green and all work committed before this step.
+must be green and all work committed before this step. Like every step since 1.2, this one
+runs **from inside the worktree** — both commands below are issued there, so they see the
+issue branch and its commits without any switching.
 
-1. Push the branch: `git push -u origin tdd/<n>-<slug>`.
+1. Push the branch, from the worktree: `git push -u origin tdd/<n>-<slug>`.
 2. Open a **draft** PR linked to the issue; the body must contain `Closes #<n>`:
    ```
    gh pr create --draft --base <default-branch> \
@@ -383,7 +421,14 @@ must be green and all work committed before this step.
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
 4. Post a final `### ✅ Done — <pr-url>` comment.
 
-Report back to the user with the branch name and the PR URL.
+**The worktree stays.** Do not remove it here: it holds the run's leaf logs and is where a
+resume would land if the PR comes back for more work. It is removed once the PR is **merged**
+— by the `merge` skill's cleanup, or by the human — with
+`$S/issue-worktree.sh --remove <n>`, which refuses (exit 2) if anything in it is still
+uncommitted rather than destroying it.
+
+Report back to the user with the branch name, the worktree path, and the PR URL — and say
+that their own checkout was not switched.
 
 ## Already satisfied — the pin
 
@@ -486,8 +531,9 @@ To bail:
 2. **Classify deterministically.** `classification="$($S/classify-bail.sh <cause>)"`
    (`<cause>` is one of the tokens above). This keeps the label consistent rather than
    ad-hoc; an unknown token makes it exit non-zero — pick the right token.
-3. **Push the branch** so completed steps and the leaf logs are recoverable:
-   `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
+3. **Push the branch** so completed steps and the leaf logs are recoverable, from inside the
+   worktree (where you already are): `git push -u origin tdd/<n>-<slug>` (best-effort; note
+   if it fails).
 4. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
    carries the last reason (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the
    kill cause otherwise), and points at the progress log (`.tdd/<phase>.log` or
@@ -495,7 +541,8 @@ To bail:
 5. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
    failing step (see *Resume*).
 6. Report to the user: the phase, the **classification** (system vs process), the reason,
-   and the branch name.
+   the branch name, and the **worktree path** — the logs named above are inside it, and it
+   is where a re-run will resume. Leave it in place; only a merged PR retires it.
 
 ## Resume
 
@@ -503,8 +550,11 @@ The committed ledger makes a run **resumable**: re-running `/solve-issue <n>` pi
 where a previous run stopped (a bail, an interruption, or a human pause), without redoing
 finished steps.
 
-On re-run, after re-creating/switching to the branch (step 1), the **resume check** finds
-an existing `.tdd/issue-<n>.md`. When it does:
+On re-run, step 1.2 calls `issue-worktree.sh` again; because it is **idempotent** it prints
+the same `.tdd/wt/<n>` path and creates nothing, so the `cd` puts you back in the very
+worktree the previous run committed in — the branch is already checked out there, and there
+is nothing to re-create or switch. The **resume check** then finds an existing
+`.tdd/issue-<n>.md`. When it does:
 
 1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
@@ -538,6 +588,11 @@ verbatim ahead of every other rule. That file is the per-repo escape hatch.
   the verifier**.
 - **Every leaf is launched through `supervise.sh`** — never `run-leaf.sh` or `claude`
   directly. The supervisor is the one place stuck-detection lives.
+- **The run lives in its own worktree, made by `$S/issue-worktree.sh`** — never `git switch`
+  or `git checkout` the caller's checkout onto the issue branch. Enter the worktree once in
+  step 1.2 and stay there for the whole run; and never take over a branch another worktree
+  already has checked out (the script's exit 2 is that refusal — honour it, do not work
+  around it).
 - **Every developer prompt is built by `$S/build-develop-prompt.sh`** — never composed from
   prose. A phase's instructions live in its template, so every run of that phase sends the
   same ones and only the variables differ; and the report lines you branch on are the
