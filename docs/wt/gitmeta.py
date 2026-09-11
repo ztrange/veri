@@ -89,10 +89,14 @@ def _blame_lines(out):
 
 
 def hunks(root, rel, tags, since):
-    """{line number: (tag, description)} for the FIRST line of each tagged hunk.
+    """{first line: (tag, description, last line)} for each tagged hunk.
 
-    A hunk is a run of consecutive lines whose last-touching commit is the same one. It
-    earns a tag only when that commit changed a capability and shipped in a version
+    A hunk is a run of consecutive lines whose last-touching commit is the same one, so
+    it has two ends: the key is the line it starts on, and the last element of the value
+    is the line it ends on. A reader ruling a margin down its side, or linking to it as
+    `classify-bail.sh L3–4`, needs both.
+
+    It earns a tag only when that commit changed a capability and shipped in a version
     later than the file's own `since` — a hunk from the version the file arrived in says
     nothing the header badge has not already said, once.
 
@@ -109,17 +113,25 @@ def hunks(root, rel, tags, since):
     if out is None:
         return {}
     floor = tags.index(since)
-    marks, prev = {}, None
+    # First the runs, whatever commit they belong to: a run's end is only known once a
+    # different sha has answered for the line below it, so it cannot be decided while
+    # looking at the line the run starts on.
+    runs, prev = [], None
     for lineno, (sha, subject) in enumerate(_blame_lines(out), start=1):
         if sha == prev:
-            continue                         # same commit as the line above: same hunk
+            runs[-1][1] = lineno             # same commit as the line above: same hunk
+            continue
         prev = sha
+        runs.append([lineno, lineno, sha, subject])
+
+    marks = {}
+    for first, last, sha, subject in runs:
         if not BEHAVIOUR.match(subject):
             continue
         tag = _first_tag_containing(root, sha, tags)
         if tag is None or tags.index(tag) <= floor:
             continue
-        marks[lineno] = (tag, _subject_prose(subject))
+        marks[first] = (tag, _subject_prose(subject), last)
     return marks
 
 

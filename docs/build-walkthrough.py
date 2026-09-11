@@ -101,12 +101,14 @@ def refs(text, origin=None):
 def _line_open(mark):
     """The opening `<span>` for one source line of a listing.
 
-    `mark` is the `(tag, description)` of a hunk that STARTS on this line, or None for
-    every other line — which is most of them, hence the plain form first.
+    `mark` is the `(tag, description, last line)` of a hunk that STARTS on this line, or
+    None for every other line — which is most of them, hence the plain form first. The
+    hunk's last line is not in the markup: this span opens on one line and closes on the
+    same one, so where the run ends is the caller's business, not this element's.
     """
     if not mark:
         return '<span class="l">'
-    tag, description = mark
+    tag, description, _last = mark
     return ('<span class="l hunk" data-tag="%s" title="%s">'
             % (html.escape(tag), html.escape(description)))
 
@@ -118,8 +120,9 @@ def code_block(lines, start, origin="?", marks=None):
     byte for byte before it is emitted, so a lexer bug stops the build instead of
     shipping a listing that no longer matches the file it claims to quote.
 
-    marks — {line number: (tag, description)} from hunk_marks() below — names the first line
-    of each range a later version touched. It only ever changes the wrapper <span>, so
+    marks — {first line: (tag, description, last line)} from hunk_marks() below — is keyed
+    by the first line of each range a later version touched. It only ever changes the
+    wrapper <span> of that one line, so
     the verbatim check above still sees the whole line: the version layer cannot alter
     a listing, only annotate it.
     """
