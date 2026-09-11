@@ -242,6 +242,14 @@ Decompose the issue into a **plan**: a checklist of small steps, each one cycle'
 aligned to an acceptance criterion. Surface sizing (note if a step looks too big to be one
 cycle) but do **not** gate on it.
 
+**Plan from the whole issue, not only its criteria.** `## Acceptance criteria` is the
+primary alignment, but read `## What to build` (and any notes) as a second source and look
+for gaps: a behaviour the prose asks for that no criterion covers still gets a step. Phrase
+that step as a testable criterion of your own and add it to the ledger (it goes into the
+plan comment with the rest) rather than dropping it silently. A behaviour left unplanned
+surfaces mid-run as a plan amendment — a late extra step, or a verifier's remark — as it
+did in #43's step 5 and #41's step 6, instead of at scoping time.
+
 1. Write the plan as a checkbox list to the **ledger** `.tdd/issue-<n>.md`, e.g.:
    ```
    # Plan for #<n> — <issue title>
