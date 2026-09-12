@@ -212,9 +212,9 @@ OK_CASES=('brace-heavy display expands intact' 'nested-brace display expands int
 name="every passing case prints one 'ok - <name> (<n>s)' line, in order"
 problems=()
 run_filtered "$OK_FILTER"
+exits_clean "$OK_FILTER"
 got_oks="$(printf '%s\n' "$report_text" | sed -n 's/^ok - \(.*\) ([0-9][0-9]*s)$/\1/p')"
 want_oks="$(printf '%s\n' "${OK_CASES[@]}")"
-exits_clean "$OK_FILTER"
 [[ "$got_oks" == "$want_oks" ]] ||
   problems+=("want one 'ok - <name> (<n>s)' line per passing case, in order: $(printf '%s' "$want_oks" | tr '\n' '/'); got: $(printf '%s' "$got_oks" | tr '\n' '/')")
 in_time ok-line
