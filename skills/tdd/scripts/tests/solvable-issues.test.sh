@@ -506,6 +506,12 @@ env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" 
   && [[ -s "$refused_err" ]]; } \
   && ok || no "VERI_LABEL set to the empty string is refused with exit 2 and a diagnostic on stderr, never treated as any label (exit=$refused_code want 2, stdout='$(tr '\n' '|' < "$refused_out")' want empty, stderr='$(tr '\n' ' ' < "$refused_err")' want a diagnostic)"
 
+# The document that carries the loop procedure, relative to $REPO_ROOT. Both of the two cases
+# below read it — case 11 for the knob it must document, case 12 for one bullet of it — so it
+# is spelled once here rather than in each: since #105 the loop is a section of the `/tdd`
+# skill, and a move like that one should have a single line to edit in this suite.
+skill_doc="skills/tdd/SKILL.md"
+
 # 11. A knob nobody is told about is not a parameter, it is a secret, so the three documents a
 # human reads before launching a loop must carry it: the loop's own procedure
 # (`skills/tdd/SKILL.md`, which is where `--repo` and `VERI_MAX_ISSUES` are already
@@ -536,7 +542,7 @@ doc_claims() {  # doc_claims <doc> <tag> <grep argument…>
 }
 
 docs_missing=""
-for doc in skills/tdd/SKILL.md README.md CONTEXT.md; do
+for doc in "$skill_doc" README.md CONTEXT.md; do
   doc_claims "$doc" VERI_LABEL -e 'VERI_LABEL'
   doc_claims "$doc" one-label-per-loop -iE -e 'one[ -]label[ -]per[ -]loop'
 done
@@ -558,7 +564,6 @@ done
 # ends it, and the case asserts the slice is non-empty before asserting what is in it — an
 # empty slice means the headings moved and the claim was never checked, which must read as a
 # failure rather than as a pass.
-skill_doc="skills/tdd/SKILL.md"
 skill="$REPO_ROOT/$skill_doc"
 exit3="$(awk '/^- \*\*Exit 3:/{keep = 1} /^- \*\*Exit 0:/{keep = 0} keep' "$skill")"
 
