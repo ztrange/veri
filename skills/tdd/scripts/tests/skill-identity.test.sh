@@ -27,6 +27,10 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 # so there is one place to edit if the skill is ever renamed again.
 skill_dir="skills/tdd"
 want_name="tdd"
+# The frontmatter's file, named in the same terms as the directory: both paths in this suite
+# are relative to $ROOT, and $ROOT is applied where they are used. Mixing the two bases — one
+# variable relative, one already absolute — is what made the probes below read inconsistently.
+skill_md="$skill_dir/SKILL.md"
 
 pass=0 fail=0
 
@@ -51,17 +55,16 @@ name="the skill ships at $skill_dir/ and its frontmatter reads name: $want_name"
 problems=()
 [[ -d "$ROOT/$skill_dir" ]] ||
   problems+=("want a directory at $skill_dir, found none")
-skill="$ROOT/$skill_dir/SKILL.md"
-if [[ -f "$skill" ]]; then
+if [[ -f "$ROOT/$skill_md" ]]; then
   # sub() edits $0 and returns how many replacements it made, so it doubles as the
   # "this line is the name field" test; print then emits what is left, the value.
   got="$(awk 'NR == 1 && $0 == "---" { inside = 1; next }
               inside && $0 == "---" { exit }
-              inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$skill")"
+              inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$ROOT/$skill_md")"
   [[ "$got" == "$want_name" ]] ||
-    problems+=("$skill_dir/SKILL.md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
+    problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
 else
-  problems+=("want a SKILL.md at $skill_dir, found none")
+  problems+=("want a SKILL.md at $skill_md, found none")
 fi
 report "$name"
 
