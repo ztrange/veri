@@ -127,7 +127,8 @@
   function index(since) {
     var rows = [];
     for (var i = ORDER.length - 1; i >= 0; i--) {
-      if (lit(ORDER[i], since)) rows.push({ tag: ORDER[i], hunks: HUNKS[ORDER[i]] || [] });
+      var tag = ORDER[i];
+      if (lit(tag, since)) rows.push({ tag: tag, hunks: HUNKS[tag] || [] });
     }
     return rows;
   }
