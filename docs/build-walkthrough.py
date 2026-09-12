@@ -253,6 +253,7 @@ def render_script(spec):
     # `h3[data-since]` is how the stepper asks for these, and an empty attribute would offer
     # it every script on the page as a stop tagged with nothing.
     since = script_since(META, fname)
+    since_attr = (' data-since="%s"' % html.escape(since)) if since else ""
     return (
         '<h3 id="%s"%s><code>%s</code>%s%s</h3>\n%s\n%s\n'
         '<div class="ann">'
@@ -260,7 +261,7 @@ def render_script(spec):
         '<span class="fmeta">%d lines &middot; complete source</span></div>'
         "%s</div>\n%s"
         % (spec["id"],
-           (' data-since="%s"' % html.escape(since)) if since else "",
+           since_attr,
            fname,
            (" &mdash; " + spec["tagline"]) if spec.get("tagline") else "",
            version_badge(META, fname),
