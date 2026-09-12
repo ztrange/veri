@@ -713,9 +713,24 @@ for (var i = 0; i < blocks.length; i++) {
 JS
 }
 
+# map_entry — how one entry of window.__VERI_HUNKS__ is read, printed on stdout: its
+# (script, first, last), in either spelling the map may use, because which of the two a
+# build emits is a spelling choice and not a behaviour, exactly as hunk_map_git has it.
+# Shipped with the stub rather than written into each question, so two questions asked of
+# the same map cannot come to disagree about what an entry is.
+map_entry() {
+  cat <<'JS'
+function fields(entry) {
+  return Array.isArray(entry) ? entry.slice(0, 3)
+                              : [entry.script, entry.first, entry.last];
+}
+JS
+}
+
 # ask_page <dir> <page> [args...]
 # Ask the page a question its markup cannot answer: run <dir>/question.js — which the
-# calling assertion has just written — against <page>, under the stub above, with node.
+# calling assertion has just written — against <page>, under the stub above and the entry
+# reader beside it, with node.
 # The question reads its own arguments from process.argv[3] on and prints the report its
 # case compares; stdout and stderr both come back, and the exit code is node's, so a
 # question that cannot find what it asks for says so and fails the case.
@@ -723,7 +738,7 @@ JS
 # and a case fails rather than skips when it is absent.
 ask_page() {
   local d="$1" page="$2"; shift 2
-  { dom_stub; cat "$d/question.js"; } > "$d/ask.js"
+  { dom_stub; map_entry; cat "$d/question.js"; } > "$d/ask.js"
   ( cd "$d" && node ask.js "$page" "$@" 2>&1 )
 }
 
@@ -763,11 +778,6 @@ if (!mode || typeof mode.lit !== "function") {
 }
 
 var hunks = window.__VERI_HUNKS__ || {};
-/* (script, first, last) of one entry, in either spelling the map may use. */
-function fields(entry) {
-  return Array.isArray(entry) ? entry.slice(0, 3)
-                              : [entry.script, entry.first, entry.last];
-}
 var rows = [];
 Object.keys(hunks).forEach(function (tag) {
   hunks[tag].forEach(function (entry) {
@@ -833,14 +843,10 @@ if (!mode || typeof mode.index !== "function") {
   process.exit(1);
 }
 
-/* A row as (tag, hunks), and one of its hunks as (script, first, last), in either
-   spelling either may be written in. */
+/* A row as (tag, hunks), in either spelling it may be written in. Its hunks are entries
+   of the map, so fields() beside the stub reads them. */
 function tagOf(row) { return Array.isArray(row) ? row[0] : row.tag; }
 function hunksOf(row) { return (Array.isArray(row) ? row[1] : row.hunks) || []; }
-function fields(entry) {
-  return Array.isArray(entry) ? entry.slice(0, 3)
-                              : [entry.script, entry.first, entry.last];
-}
 
 var rows = (mode.index(since) || []).map(function (row) {
   var links = hunksOf(row).map(fields);
