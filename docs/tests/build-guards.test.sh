@@ -60,10 +60,10 @@ SANDBOX=sandbox
 # sandbox — a fresh copy of everything the build reads, printed on stdout
 sandbox() {
   local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
-  mkdir -p "$d/docs" "$d/skills/solve-issue"
+  mkdir -p "$d/docs" "$d/skills/tdd"
   cp "$ROOT/docs/build-walkthrough.py" "$d/docs/"
   cp -R "$ROOT/docs/wt" "$d/docs/wt"
-  cp -R "$ROOT/skills/solve-issue/scripts" "$d/skills/solve-issue/scripts"
+  cp -R "$ROOT/skills/tdd/scripts" "$d/skills/tdd/scripts"
   rm -rf "$d/docs/wt/__pycache__"
   printf '%s' "$d"
 }
@@ -100,7 +100,7 @@ sandbox_git() {
 sandbox_check() {
   local d; d="$(sandbox_git)"
   cp "$ROOT/docs/check-walkthrough.py" "$d/docs/"
-  cp "$ROOT/skills/solve-issue/SKILL.md" "$d/skills/solve-issue/"
+  cp "$ROOT/skills/tdd/SKILL.md" "$d/skills/tdd/"
   printf '%s' "$d"
 }
 
@@ -1519,12 +1519,12 @@ accepts "emits script source verbatim" 'echo $? &gt; "$rcfile"'
 
 # 2. coverage guard — a script grows a line the commentary does not claim
 refuses "a longer script fails coverage" "file has" \
-  bash -c 'append_line_to_script skills/solve-issue/scripts/classify-bail.sh'
+  bash -c 'append_line_to_script skills/tdd/scripts/classify-bail.sh'
 
 # 3. coverage guard — a script loses a line
 refuses "a shorter script fails coverage" "file has" \
-  bash -c 'sed -i.bak "$(wc -l < skills/solve-issue/scripts/classify-bail.sh)d" \
-           skills/solve-issue/scripts/classify-bail.sh'
+  bash -c 'sed -i.bak "$(wc -l < skills/tdd/scripts/classify-bail.sh)d" \
+           skills/tdd/scripts/classify-bail.sh'
 
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
@@ -1594,7 +1594,7 @@ omits_git "one tag, only the original feat:: no hunk tag" 'class="l hunk"'
 tags_git "a later feat: commit tags its line, and only its line" 1 \
   '<span class="l hunk" data-tag="v0.2" title="rewrite one line of classify-bail.sh">'\
 '<span class="c"># rewritten by the v0.2 commit</span></span>' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat skills/tdd/scripts/classify-bail.sh 3 \
            "# rewritten by the v0.2 commit" \
            "feat: rewrite one line of classify-bail.sh (#2)" v0.2'
 
@@ -1608,10 +1608,10 @@ tags_git "two later commits tag their own lines separately" 2 \
 '<span class="c"># rewritten by the v0.2 commit</span></span>
 <span class="l hunk" data-tag="v0.3" title="rewrite line 5 of classify-bail.sh">'\
 '<span class="c"># rewritten by the v0.3 commit</span></span>' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat skills/tdd/scripts/classify-bail.sh 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat skills/tdd/scripts/classify-bail.sh 5 \
              "# rewritten by the v0.3 commit" \
              "fix: rewrite line 5 of classify-bail.sh (#3)" v0.3'
 
@@ -1629,10 +1629,10 @@ tags_git "a refactor: on top of a feat: leaves the line untagged" 1 \
   '<span class="l hunk" data-tag="v0.2" title="rewrite line 5 of classify-bail.sh">'\
 '<span class="c"># rewritten by the v0.2 commit</span></span>
 <span class="l"><span class="c"># reworded by the refactor commit</span></span>' \
-  bash -c 'rewrite_line_as_refactor skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_refactor skills/tdd/scripts/classify-bail.sh 3 \
              "# reworded by the refactor commit" \
              "refactor: reword line 3 of classify-bail.sh (#2)"
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat skills/tdd/scripts/classify-bail.sh 5 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#2)" v0.2'
 
@@ -1650,7 +1650,7 @@ tags_git "a refactor: on top of a feat: leaves the line untagged" 1 \
 #    checks — the page is freshly built, the tags are real, SKILL.md is the real one — so
 #    the verbatim comparison is the only thing left for it to fail on.
 checks_git "the checker reads a hunk-tagged line as source, not drift" \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat skills/tdd/scripts/classify-bail.sh 3 \
            "# rewritten by the v0.2 commit" \
            "feat: rewrite one line of classify-bail.sh (#2)" v0.2'
 

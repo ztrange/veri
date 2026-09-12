@@ -87,7 +87,7 @@ logs, commits, push, PR — happens in there. The directory you launched from st
 branch it was on, so a skill symlinked out of it or a dev server serving it never silently
 starts seeing the issue branch. The worktree is left in place after the draft PR, because a
 resume lands back in it; once the PR is merged, retire it with
-`skills/solve-issue/scripts/issue-worktree.sh --remove <n>`, which refuses to remove one
+`skills/tdd/scripts/issue-worktree.sh --remove <n>`, which refuses to remove one
 that still holds uncommitted work.
 
 `/solve-issues` (rung 2) drains the backlog instead of one named issue: it asks
