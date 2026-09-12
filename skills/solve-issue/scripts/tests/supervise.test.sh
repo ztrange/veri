@@ -130,6 +130,61 @@ estuck="$(recorded_code exit-stuck 1 30 leaf-hang)"
 { [[ "$eok" == 0 ]] && [[ "$efail" == 1 ]] && [[ "$estuck" == 2 ]]; } && ok \
   || no ".tdd/<name>.exit records the supervisor's own final code, killed-stuck included (success=$eok want 0, failure=$efail want 1, killed-stuck=$estuck want 2)"
 
+# 10. the default supervise.sh encodes and the prose that states it must not drift apart.
+#     `VERI_HEARTBEAT`'s default is a number written down in five places: once as code
+#     (`heartbeat="${VERI_HEARTBEAT:-N}"`) and four times as prose — the script's own
+#     `Tunables (env)` header, SKILL.md's launcher entry, and two spots in
+#     docs/wt/commentary.py (supervise.sh's contract table, and the note that explains why
+#     the silence window can be so much shorter than the hard timeout). Changing the
+#     constant alone leaves four sentences confidently stating the old figure, and nothing
+#     in the repo notices: the walkthrough is generated from the scripts, so `make docs`
+#     happily rebuilds a page whose hand-written commentary contradicts the source it sits
+#     next to. This is the same guarantee `make docs-check` already gives the revise budget
+#     ("the page and SKILL.md both say N", docs/check-walkthrough.py) applied to this one.
+#
+#     The case lives here rather than under `docs/tests/` for the reason wait-leaf.test.sh
+#     case 4 gives: `make docs-check` is deliberately not part of `make test` (Makefile,
+#     "Neither is part of `test` on purpose"), so a case parked there would not run in the
+#     suite this script's own behaviour is verified against.
+#
+#     Each site is located by a regex that ends at the figure it asks about, and a site
+#     whose pattern can no longer be found reports `<none>` — a rewording that moves a
+#     statement out of the check's sight is drift too, and must fail rather than pass
+#     silently. One statement is knowingly out of reach: commentary.py spells the figure
+#     out in words once ("a hang trips in two seconds instead of forty-five"), which no
+#     regex here can compare against a number.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+encoded="$(grep -oE 'VERI_HEARTBEAT:-[0-9]+' "$SUP" | head -1 | grep -oE '[0-9]+')"
+
+# stated <file> <extended-regex> — the figure the first match of <regex> states, or
+# '<none>' / '<no-file>' when there is nothing to read. Newlines are squashed to spaces
+# first, because this prose wraps at ~90 columns and a statement split across two lines is
+# still one statement; the figure is the LAST run of digits in the match, which is why
+# every regex below stops at it.
+stated() {
+  local hit
+  [[ -f "$1" ]] || { echo '<no-file>'; return; }
+  hit="$(tr '\n' ' ' < "$1" | grep -oE "$2" | head -1)"
+  [[ -n "$hit" ]] || { echo '<none>'; return; }
+  printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
+}
+
+prose_misses=""
+[[ -n "$encoded" ]] || prose_misses=" supervise.sh:no-VERI_HEARTBEAT-default-found"
+while IFS='|' read -r where file regex; do
+  [[ -n "$where" ]] || continue
+  got="$(stated "$ROOT/$file" "$regex")"
+  [[ "$got" == "$encoded" ]] || prose_misses="$prose_misses $where:says-$got"
+done <<'SITES'
+supervise.sh-header|skills/solve-issue/scripts/supervise.sh|VERI_HEARTBEAT silence window secs \(default [0-9]+
+SKILL.md-tunables|skills/solve-issue/SKILL.md|VERI_HEARTBEAT.{0,3}\(silence window s, +default [0-9]+
+commentary.py-contract|docs/wt/commentary.py|VERI_HEARTBEAT</code> [0-9]+s
+commentary.py-streaming-note|docs/wt/commentary.py|[0-9]+-second silence window
+SITES
+
+[[ -z "$prose_misses" ]] && ok \
+  || no "the heartbeat default encoded in supervise.sh and every prose statement of it agree (encoded=${encoded:-<none>}, drift:$prose_misses)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
