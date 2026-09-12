@@ -90,9 +90,14 @@ has_rule() {
   return 1
 }
 
-gitignore_has_rule=no
+# The word the conductor keys off, decided here rather than at the echo below: the .gitignore has to
+# be *asked* first, so that a partial or misordered one aborts before anything is written, but it is
+# *appended* last, after the exclude file. Holding the answer as the word it will print keeps those
+# two moments from needing a sentinel whose spelling has to stay in step with two echo sites.
 if has_rule "$gitignore"; then
-  gitignore_has_rule=yes
+  verdict="already present"
+else
+  verdict="added"
 fi
 
 # The exclude file is written whatever the .gitignore turned out to be: a repo that already carries
@@ -104,11 +109,8 @@ if ! has_rule "$exclude"; then
   append_rule "$exclude"
 fi
 
-if [ "$gitignore_has_rule" = yes ]; then
-  echo "already present"
-  exit 0
+if [ "$verdict" = added ]; then
+  append_rule "$gitignore"
 fi
 
-append_rule "$gitignore"
-
-echo "added"
+echo "$verdict"
