@@ -130,9 +130,13 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   your judgement mid-loop.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
-  tracked. Idempotent; prints `added` when it wrote the rule, `already present` when it
-  was there. Run once per issue right after entering the worktree (step 1) so the first
-  `git add -A` never sweeps leaf logs into history.
+  tracked. Writes the rule to **both** the worktree's `.gitignore` (committed, so the first
+  `git add -A` never sweeps leaf logs into history) and the shared
+  `$(git rev-parse --git-common-dir)/info/exclude` (never committed, read by every worktree,
+  so the caller's checkout — still on the default branch — stops reporting `.tdd/` as
+  untracked). Idempotent in both files; the word on stdout reports the `.gitignore` only,
+  `added` when it wrote the rule there, `already present` when it was there — the exclude
+  file is ensured either way. Run once per issue right after entering the worktree (step 1).
 - `$S/issue-worktree.sh <n> <slug>` — the **linked worktree the issue branch lives in**.
   Creates (or hands back) `<repo-root>/.tdd/wt/<n>` on branch `tdd/<n>-<slug>`, cut from the
   **default** branch (`origin/HEAD`, else a local `main`/`master`) and never from the
@@ -223,12 +227,21 @@ unauthenticated baseline never gets a cycle.
    which you are now in:
    `mkdir -p .tdd && gh issue view <n> --json body -q .body > .tdd/issue-<n>-spec.md`.
    (The verifier is blind; this on-disk spec — never your narration — is what it sees.)
-4. **Ignore run state.** `$S/ensure-run-state-ignored.sh` makes the target's `.gitignore`
-   ignore `.tdd/*` except the ledger. If it prints `added`, commit that as the branch's
-   first commit: `git add .gitignore && git commit -m "chore: ignore veri run state (#<n>)"`.
-   `already present` means nothing to do. Without this, the atomic `git add -A` in Green
-   would commit every leaf log and prompt. The worktree itself lives at `.tdd/wt/<n>`, under
-   the same ignored `.tdd/`, so it never shows up as untracked work either.
+4. **Ignore run state.** `$S/ensure-run-state-ignored.sh` writes the same rule — ignore
+   `.tdd/*` except the ledger — into **two** files, and needs both. Into the worktree's
+   `.gitignore`, which is committed: if the script prints `added`, commit it as the branch's
+   first commit, `git add .gitignore && git commit -m "chore: ignore veri run state (#<n>)"`;
+   `already present` means that file already carried the rule, so there is nothing to commit.
+   Without it, the atomic `git add -A` in Green would commit every leaf log and prompt, and
+   the merged repo would be unsafe for the next `git add -A` too. And into
+   `$(git rev-parse --git-common-dir)/info/exclude`, which the script ensures on every run
+   whichever word it printed — a file git never commits and every worktree of the repo reads.
+   That second write is what keeps `.tdd/wt/<n>` out of the **caller's** `git status`: the
+   caller's checkout stays on the default branch for the whole run, so it never sees the
+   `.gitignore` commit above, which lives only on the issue branch. Because `info/exclude`
+   needs no branch and no commit, it is in force in the caller's checkout immediately — and
+   preflight step 1, which refuses to start on a dirty caller's checkout, passes for the next
+   `/solve-issue` without waiting for this one's PR to merge.
 5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists in the worktree, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
    comment naming the next unchecked step, and go straight to the cycle loop (step 3).
