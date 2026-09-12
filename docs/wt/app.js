@@ -126,13 +126,13 @@
      A whole-script stop sits at line 0 — before every line of the listing, and so before
      every hunk inside it, which is the order the reader needs: the script is news to them
      in its entirety, and a run of lines within it is a detail of that. */
-  function file(stop) { return typeof stop === "string" ? stop : stop[0]; }
-  function line(stop) { return typeof stop === "string" ? 0 : stop[1]; }
+  function stopFile(stop) { return typeof stop === "string" ? stop : stop[0]; }
+  function stopLine(stop) { return typeof stop === "string" ? 0 : stop[1]; }
   function rank(stop) {
-    var r = PAGE_RANK[file(stop)];
+    var r = PAGE_RANK[stopFile(stop)];
     return r === undefined ? Infinity : r;
   }
-  function byPageOrder(a, b) { return rank(a) - rank(b) || line(a) - line(b); }
+  function byPageOrder(a, b) { return rank(a) - rank(b) || stopLine(a) - stopLine(b); }
 
   function lit(tag, since) {
     var hunkRank = ORDER.indexOf(tag), readRank = ORDER.indexOf(since);
