@@ -26,10 +26,13 @@ fi
 # today's fixed default, which a quick suite keeps — and the comparison and the value
 # printed when it wins must never drift apart.
 floor=900
-derived=$((baseline * 6))
+# `scaled`, not `derived`: the derived timeout is whichever of the two wins, so naming the
+# 6 × half after the whole answer made the else branch read as printing something other
+# than a derived timeout. The pair the comparison is between is floor and scaled baseline.
+scaled=$((baseline * 6))
 
-if [[ "$derived" -gt "$floor" ]]; then
-  echo "$derived"
+if [[ "$scaled" -gt "$floor" ]]; then
+  echo "$scaled"
 else
   echo "$floor"
 fi
