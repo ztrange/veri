@@ -14,6 +14,9 @@
 #   under the skill's old home — the build and test plumbing follows the skill when it moves.
 #   Each old name still has a SKILL.md, declaring that old name and forwarding $ARGUMENTS
 #   to /tdd, so a session already invoked on the old command keeps working.
+#   The skill's Inputs section resolves that forwarded argument three ways — an integer is
+#   the single-issue procedure, any other word is a scope, nothing at all is the scope
+#   `plain` — with the loop it now dispatches to living in the same document.
 #
 # Run: scripts/tests/skill-identity.test.sh
 set -uo pipefail
@@ -279,6 +282,79 @@ while IFS= read -r f; do
   where="$(cd "$ROOT" && git grep -nE -e "$cmd_re" -- "$f" | head -1 | cut -c1-100)"
   problems+=("$f still names an old command: $where")
 done <<< "$swept"
+report "$name"
+
+# inputs_bullets <skill-md> — the `## Inputs` section of a SKILL.md, one line per bullet and
+# lowercased. Two transformations, each for a reason the case below depends on. The section
+# is cut out first because the words this case looks for all occur again further down, in the
+# loop the move folded in, so a file-wide read would answer "yes" for a section that still
+# said only "the issue number". Then each bullet — a `- ` in column one, running to the next
+# such line or to a blank one — is joined onto one line, because a claim wants to ask whether
+# ONE bullet carries both what the user types and where it sends them. Case is folded away
+# last: the sentences are the writer's, and `Integer` must answer for `integer`.
+inputs_bullets() {
+  awk '/^## Inputs$/ { inside = 1; next }
+       inside && /^## / { exit }
+       !inside { next }
+       /^- / { if (rec != "") print rec; rec = $0; next }
+       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+       rec != "" { rec = rec " " $0 }
+       END { if (rec != "") print rec }' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+# some_bullet <regex>… — true when a single line of the global `bullets` matches every
+# <regex>. Each claim below is a pair — the argument, and the procedure it selects — and a
+# pair split across two bullets is not a dispatch: it is two sentences that happen to share
+# a word. `continue 2` leaves the regex loop and takes the next bullet, so a bullet matching
+# some but not all of the pair is simply not the one.
+some_bullet() {
+  local line re
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return 0
+  done <<< "$bullets"
+  return 1
+}
+
+# 6. What the one command does with its argument. The move left a single skill where there
+#    were two, so the question that used to be "which command did the user type" is now "what
+#    does this one's argument say", and the answer is a three-way resolution: an integer is
+#    the single-issue procedure, any other word is a scope to drain, and no argument at all
+#    is the scope `plain`. It is stated in prose because prose is the whole of a SKILL.md —
+#    the session reads this section before it does anything else, so an Inputs section that
+#    still admits only an issue number is a `/tdd docs` that stops and asks for one.
+#
+#    The two structural halves of the same criterion ride along, and neither is covered
+#    elsewhere: the scope branch must have somewhere to send the reader, so the loop has to
+#    be a section of THIS document; and the path the loop used to reach its sibling skill's
+#    scripts must be gone, since a skill with no sibling cannot resolve it. Case 2 cannot
+#    see that path — it sweeps for the `skills/`-led spelling, which the `../` one does not
+#    contain — so it is asked here, of the one file that ever spelled it.
+name="$skill_md resolves its argument: an integer is one issue, any other word a scope, bare is plain"
+problems=()
+bullets="$(inputs_bullets "$ROOT/$skill_md")"
+if [[ -z "$bullets" ]]; then
+  # Fail closed: no bullets means the section was renamed or emptied and not one claim below
+  # was tested, which must not read as three passes.
+  problems+=("$skill_md has no bullets under '## Inputs' — how the argument resolves could not be read")
+else
+  some_bullet 'integer' 'single|one issue|procedure' ||
+    problems+=("$skill_md Inputs: no bullet sends an integer argument to the single-issue procedure")
+  some_bullet 'scope' 'drain|loop' ||
+    problems+=("$skill_md Inputs: no bullet reads a non-integer argument as a scope to drain")
+  some_bullet 'plain' 'bare|no argument|without an argument|omit|default|empty' ||
+    problems+=("$skill_md Inputs: no bullet makes a bare invocation the scope plain")
+fi
+grep -qE '^#+ .*[Ll]oop' "$ROOT/$skill_md" ||
+  problems+=("$skill_md has no loop section, so a scope argument resolves to nothing")
+# The sibling path assembled rather than written out, as in case 2: the probe greps this
+# skill's own document for the string, and spelling it here would make the suite's subject
+# and its first offender the same file.
+sibling_scripts="../$(basename "$old_skill_dir")/scripts"
+grep -qF "$sibling_scripts" "$ROOT/$skill_md" &&
+  problems+=("$skill_md still locates its scripts at $sibling_scripts, a sibling that is no longer there")
 report "$name"
 
 echo "----"
