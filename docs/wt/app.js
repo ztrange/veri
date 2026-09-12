@@ -261,6 +261,79 @@
                             since: chosen, choose: choose, markRead: markRead };
 })();
 
+/* veri, Annotated — since-mode: stepping the walk.
+   The layer above knows which hunks a reader's choice lights and in what order they come;
+   this is what moves the reader along them. Lit runs are a handful of short passages
+   scattered through two thousand lines of listing, so without a stepper the reader is back
+   to scrolling past every chip on the way — which is the whole point of the mode.
+
+   Four things step the one walk: `n` and `p`, and a pair of buttons in the crumb bar.
+   The keys are for the reader already reading; the buttons are for the one who does not
+   know there are keys, and the bar is where they belong because it is the only chrome that
+   stays on screen through two thousand lines.
+
+   The stops are the mark ELEMENTS in document order, not walk()'s entries: the press has
+   to end at a place in the page, and the DOM is the only thing that knows where a run of
+   lines sits. Which of them are stops is still lit()'s answer, read off the `data-tag`
+   the build put on each run's first line, so the walk and the dimming can never disagree
+   about what a choice lights.
+
+   Nothing is built when no version is chosen. A reader who has not asked what changed has
+   nothing to step, and buttons that step nothing are worse than absent — so the resting
+   page keeps exactly the bar it has always had. Since-mode is entered at load, from the
+   hash or the store, which is why deciding this once at load is the whole of it. */
+(function () {
+  "use strict";
+  var mode = window.__VERI_SINCE__;
+  var crumb = document.querySelector(".crumb");
+  if (!mode || !crumb) return;
+
+  var since = mode.since();
+  if (!since) return;                    // the resting page: no walk, and no buttons for one
+
+  var stops = [], marks = document.querySelectorAll("pre.src .l.hunk[data-tag]");
+  for (var i = 0; i < marks.length; i++) {
+    if (mode.lit(marks[i].getAttribute("data-tag"), since)) stops.push(marks[i]);
+  }
+  if (!stops.length) return;             // nothing has landed since: nothing to walk
+
+  /* Where the reader is in the walk. -1 is "not started": n takes them to the first stop,
+     and p has nowhere above to go. Both ends hold rather than wrapping — a walk that
+     rejoins itself sends a reader who pressed n once too often back to the top of the page
+     with no way to tell that from having landed on the next capability. */
+  var at = -1;
+
+  function step(delta) {
+    var to = at + delta;
+    if (to < 0 || to >= stops.length) return;
+    at = to;
+    stops[at].scrollIntoView({ block: "center" });
+  }
+
+  function stepper(word, glyph, delta) {
+    var b = document.createElement("button");
+    b.className = "crumb-step";
+    b.setAttribute("type", "button");
+    b.setAttribute("aria-label", word + " change since " + since);
+    b.setAttribute("title", word + " change since " + since);
+    b.innerHTML = glyph;                 // the label a sighted reader reads is the arrow
+    b.addEventListener("click", function () { step(delta); });
+    return b;
+  }
+
+  crumb.appendChild(stepper("previous", "&uarr;", -1));
+  crumb.appendChild(stepper("next", "&darr;", 1));
+
+  document.addEventListener("keydown", function (e) {
+    // a held modifier makes it the browser's shortcut, not ours: ⌘N opens a window
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "n") step(1);
+    else if (e.key === "p") step(-1);
+    else return;
+    e.preventDefault();
+  });
+})();
+
 /* veri, Annotated — scrollspy: where am I.
    Two readouts of one fact. The rail marks the entry you are inside; the sticky
    breadcrumb at the top of the page names its full path. Both read the same ordered

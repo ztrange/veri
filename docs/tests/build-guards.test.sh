@@ -772,6 +772,111 @@ document.createElement = function () { return element(); };
 document.getElementById = function () { return null; };
 document.querySelector = function () { return element(); };
 
+/* VERI_ASK_WIRED — the browser with a DOM in it, for the one question that has to press
+   a key and click a button rather than call a function.
+   Everything above answers every query with nothing, which is exactly what the other
+   questions want: the layers bail at load and the one under test is what is left. A
+   question about the WIRING has nothing left to ask that way — a keydown listener
+   registered against a no-op addEventListener is dropped, and a button appended to an
+   element that forgets its children is gone the moment it is made. So for this question,
+   and only for it, three things are real:
+
+     listeners  are remembered, so the question can fire the event the reader would
+     elements   remember their children, their attributes and their handlers
+     the marks  are parsed back out of the page's OWN markup, every attribute carried
+
+   That last one is what keeps the stub from lying: a mark answers what the page shipped
+   and nothing this harness invented, so an implementation that reads an attribute the
+   build does not emit finds nothing here either.
+
+   Scrolling is observed as scrollIntoView on the mark, which is the one route that says
+   WHICH stop the reader was taken to: a window.scrollTo of a measured offset says only
+   "somewhere" to a stub whose every rectangle is zero. */
+if (process.env.VERI_ASK_WIRED) {
+  var listeners = {};
+  var on = function (type, fn) { (listeners[type] = listeners[type] || []).push(fn); };
+  globalThis.addEventListener = on;
+  globalThis.__fire = function (type, event) {
+    (listeners[type] || []).slice().forEach(function (fn) { fn(event); });
+  };
+
+  /* One element that remembers: element() above with the methods that drop what they are
+     given replaced by ones that keep it. Still written out rather than proxied, for the
+     reason element() is — a call neither covers fails as a named TypeError. */
+  var node = function (tag) {
+    var el = element();
+    el.tagName = String(tag).toUpperCase();
+    el.attrs = {};
+    el.handlers = {};
+    el.children = [];
+    el.setAttribute = function (k, v) { el.attrs[k] = String(v); };
+    el.getAttribute = function (k) {
+      return Object.prototype.hasOwnProperty.call(el.attrs, k) ? el.attrs[k] : null;
+    };
+    el.hasAttribute = function (k) { return el.getAttribute(k) !== null; };
+    el.removeAttribute = function (k) { delete el.attrs[k]; };
+    el.appendChild = function (c) { el.children.push(c); return c; };
+    el.insertBefore = function (c) { el.children.unshift(c); return c; };
+    el.removeChild = function (c) {
+      var at = el.children.indexOf(c);
+      if (at >= 0) el.children.splice(at, 1);
+      return c;
+    };
+    el.addEventListener = function (type, fn) {
+      (el.handlers[type] = el.handlers[type] || []).push(fn);
+    };
+    el.scrollIntoView = function () { globalThis.__scrolled = el; };
+    return el;
+  };
+
+  /* The hunk marks the page ships, in document order, each carrying the attributes its
+     own <span> carries. `class="l hunk"` matches the first line of a run only: a
+     continuation line is `class="l hunk cont"`, and the closing quote is what tells them
+     apart — the same distinction hunk_spans counts by. */
+  var marks = [];
+  var head = /<span class="l hunk"([^>]*)>/g, hit;
+  while ((hit = head.exec(page)) !== null) {
+    var mark = node("span");
+    mark.className = "l hunk";
+    mark.setAttribute("class", "l hunk");
+    var attr = /([\w-]+)="([^"]*)"/g, pair;
+    while ((pair = attr.exec(hit[1])) !== null) {
+      mark.setAttribute(pair[1], pair[2]);
+      if (pair[1].indexOf("data-") === 0) mark.dataset[pair[1].slice(5)] = pair[2];
+    }
+    mark.classList.contains = function (c) { return c === "l" || c === "hunk"; };
+    mark.matches = function (sel) { return sel.indexOf("hunk") >= 0; };
+    mark.position = marks.length + 1;    // where it sits among the marks, top of page first
+    marks.push(mark);
+  }
+
+  var crumb = node("div");
+  crumb.className = "crumb";
+  crumb.setAttribute("class", "crumb");
+
+  document.createElement = function (tag) { return node(tag); };
+  /* The crumb bar is the one element a question needs to be the SAME object every time it
+     is asked for — the page puts its buttons there and the question reads them back out.
+     Everything else still answers with a fresh nothing, as above, so a layer that queries
+     for something this stub does not model gets what it got before rather than a null it
+     would crash on. */
+  document.querySelector = function (sel) {
+    return /crumb(?!-)/.test(sel) ? crumb : element();
+  };
+  document.querySelectorAll = function (sel) {
+    return sel.indexOf("hunk") >= 0 ? marks.slice() : [];
+  };
+  document.getElementById = function (id) {
+    for (var i = 0; i < marks.length; i++) {
+      if (marks[i].getAttribute("id") === id) return marks[i];
+    }
+    return null;
+  };
+  document.addEventListener = on;
+  document.body = node("body");
+  document.documentElement = node("html");
+}
+
 var blocks = page.match(/<script>[\s\S]*?<\/script>/g) || [];
 for (var i = 0; i < blocks.length; i++) {
   (0, eval)(blocks[i].slice("<script>".length, -"</script>".length));
@@ -1123,6 +1228,126 @@ JS
     printf '%s\n' "$want" | sed 's/^/      /'
     echo "    got:"
     printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# wiring_git <name> <chosen-version> <expected-report> <mutator...>
+# walk_git pins the sequence the reader is stepped through; this pins the stepping. The
+# two are deliberately separate assertions of separate things: a walk in the right order
+# that no key and no button moves is a list nobody can use, and it passes walk_git
+# untouched, because a function returning the right array is the whole of what that case
+# can see.
+#
+# So this one runs the page under the wired DOM — see VERI_ASK_WIRED in the stub — and
+# does what a reader does: presses `n`, presses it again, clicks the next button, presses
+# `p`, clicks the previous button. After each one it reads which hunk mark the page
+# scrolled to.
+#
+# Two loads, because the criterion has two halves and the second is about the page a
+# reader who has chosen NOTHING gets:
+#
+#   at rest    no hash, nothing stored -> the crumb bar carries no walk buttons at all
+#   since-mode opened at `#since=vX`   -> both buttons, and all four steppers walking
+#
+# Buttons a reader cannot reach are not buttons, so they are found by the name a reader
+# calls them by — the text they carry, or the label a screen reader is given — and not by
+# class or by position in the bar. Absent at rest means absent: a button rendered disabled,
+# or hidden by a class, is still in the crumb bar of a page that has nothing to walk.
+#
+# The report is one line for the buttons of each load and one per press —
+# `<press> #<the mark's place in the page, top first> <its tag>` — and the whole of it is
+# compared, order included, because every claim in the criterion is a line of it: that the
+# keys move, that the buttons move the same walk, that `p` goes back up the page, and that
+# a press lands on a stop rather than somewhere. `-` is a press that scrolled nothing.
+wiring_git() {
+  local name="$1" since="$2" want="$3"; shift 3
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var label = process.argv[3], presses = process.argv.slice(4);
+
+if (typeof globalThis.__fire !== "function") {
+  console.error("the page was asked about its wiring without the wired DOM");
+  process.exit(1);
+}
+
+/* What a reader would call this button: what it says, or what it tells a screen reader
+   it says. Which of the two an implementation uses is a spelling choice; having neither
+   is a button nobody can name. */
+function named(el) {
+  return [el.textContent, el.innerHTML,
+          el.getAttribute("aria-label"), el.getAttribute("title")]
+    .filter(function (part) { return part; }).join(" ").toLowerCase();
+}
+
+/* Every clickable thing the page put in the crumb bar, however deep it nested them: a
+   pair of buttons inside a wrapper is the same two buttons to the reader. */
+function clickables(el, found) {
+  (el.children || []).forEach(function (child) {
+    if (child.handlers && child.handlers.click) found.push(child);
+    clickables(child, found);
+  });
+  return found;
+}
+
+var inBar = clickables(document.querySelector(".crumb"), []);
+function button(word) {
+  for (var i = 0; i < inBar.length; i++) {
+    if (named(inBar[i]).indexOf(word) >= 0) return inBar[i];
+  }
+  return null;
+}
+var next = button("next"), previous = button("prev");
+
+console.log(label + " buttons " +
+            ([next ? "next" : "", previous ? "previous" : ""]
+               .filter(function (b) { return b; }).join(" ") || "none"));
+
+function press(key) {
+  globalThis.__fire("keydown", {
+    type: "keydown", key: key, target: document.body,
+    altKey: false, ctrlKey: false, metaKey: false, shiftKey: false,
+    preventDefault: function () {}, stopPropagation: function () {}
+  });
+}
+function click(btn) {
+  var event = { type: "click", target: btn,
+                preventDefault: function () {}, stopPropagation: function () {} };
+  (btn.handlers.click || []).forEach(function (handler) { handler(event); });
+}
+
+presses.forEach(function (what) {
+  globalThis.__scrolled = null;
+  if (what === "n" || what === "p") press(what);
+  else {
+    var btn = what === "next" ? next : previous;
+    if (!btn) { console.log(what + " no such button"); return; }
+    click(btn);
+  }
+  var at = globalThis.__scrolled;
+  console.log(what + " " +
+              (at && at.position ? "#" + at.position + " " + at.getAttribute("data-tag")
+                                 : "-"));
+});
+JS
+  got="$(
+    export VERI_ASK_WIRED=1
+    ask_page "$d" page.html "at rest" &&
+      { export VERI_ASK_HASH="#since=$since"
+        ask_page "$d" page.html "since $since" n n next p previous; }
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, wiring read exit $read_code)"
+    echo "    want, for a reader who last read at $since stepping the walk:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -10
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
   fi
 }
@@ -1893,6 +2118,55 @@ blocked -' \
 index_says "the index says since-mode answers capabilities, not bytes" \
 'capabilities changed
 bytes'
+
+# 27. and the walk has to be something the reader can actually take. Case 23 pinned the
+#     sequence and stopped there, on the honest ground that a key binding and a button are
+#     DOM wiring; this is that wiring, asked of a page running in a DOM it can be pressed
+#     and clicked in. An implementation that computes the right stops and never scrolls
+#     anywhere is green on case 23 and useless on the page.
+#
+#     Case 23's fixture, for its reasons — the two scripts whose page order and whose names
+#     disagree, two hunks inside one of them, and a v0.2 hunk that is never a stop — with
+#     the stepping laid over it. A reader who last read at v0.2 and presses n twice, clicks
+#     next, then presses p and clicks previous walks:
+#
+#       n         #1 v0.5  supervise.sh 8    — n from the top lands on the FIRST stop
+#       n         #2 v0.4  supervise.sh 20
+#       next      #4 v0.3  classify-bail.sh 5 — the button continues the walk n was on
+#       p         #2 v0.4  back up the page
+#       previous  #1 v0.5
+#
+#     The two buttons are pressed AFTER the two keys, which is what says all four step one
+#     walk rather than four each keeping their own place in it: a next button with a cursor
+#     of its own answers #1 where this wants #4, and a previous button with one answers the
+#     last stop where this wants #2. Mark #3 is the v0.2 hunk and never appears, from either
+#     direction — a walk that stops there is walking the reader back through the code they
+#     have just said they already read.
+#     And the first line is the other half of the criterion: a reader who has chosen no
+#     version has nothing to walk, so the crumb bar has no walk buttons in it. Two buttons
+#     that do nothing are worse than none — they are a control that says the page offers
+#     something it does not.
+wiring_git "n, p and the crumb-bar buttons take the reader to the stop" \
+  v0.2 \
+  'at rest buttons none
+since v0.2 buttons next previous
+n #1 v0.5
+n #2 v0.4
+next #4 v0.3
+p #2 v0.4
+previous #1 v0.5' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.3 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#3)" v0.3
+           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 20 \
+             "# rewritten by the v0.4 commit" \
+             "fix: rewrite line 20 of supervise.sh (#4)" v0.4
+           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
+             "# rewritten by the v0.5 commit" \
+             "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
 
 echo "----"
 echo "$pass passed, $fail failed"
