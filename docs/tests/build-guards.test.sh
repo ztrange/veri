@@ -515,7 +515,7 @@ def answer(marks, first, last):
             return marks[key]
     return None
 
-meta = gitmeta.read(".", {"classify-bail.sh": "skills/solve-issue/scripts/classify-bail.sh"})
+meta = gitmeta.read(".", {"classify-bail.sh": "skills/tdd/scripts/classify-bail.sh"})
 tags = [v["tag"] for v in meta["versions"]]
 marks = gitmeta.prose_marks(".", "docs/wt/commentary.py", tags, SPANS)
 for first, last in SPANS:
@@ -2481,14 +2481,14 @@ previous #1 v0.3' \
              "$(prose_line "deliberately left out")" \
              "  This paragraph was reworded by the v0.2 commit." \
              "feat: reword the L29-34 paragraph of supervise.sh (#2)" v0.2
-           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
              "# rewritten by the v0.3 commit" \
              "feat: rewrite line 8 of supervise.sh (#3)" v0.3
            rewrite_line_as_feat docs/wt/commentary.py \
              "$(prose_line "A twenty-six-line header")" \
              "  This paragraph was reworded by the v0.4 commit." \
              "feat: reword the L1-28 paragraph of supervise.sh (#4)" v0.4
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+           rewrite_line_as_feat skills/tdd/scripts/classify-bail.sh 3 \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#5)" v0.5'
 
