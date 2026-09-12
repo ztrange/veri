@@ -286,22 +286,27 @@ while IFS= read -r f; do
 done <<< "$swept"
 report "$name"
 
-# inputs_bullets <skill-md> — the `## Inputs` section of a SKILL.md, one line per bullet and
-# lowercased. Two transformations, each for a reason the case below depends on. The section
-# is cut out first because the words this case looks for all occur again further down, in the
+# fold_bullets — markdown on stdin, one line per bullet and lowercased. A bullet is a `- ` in
+# column one plus the indented lines continuing it, up to the next such line or a blank one;
+# joining it onto one line is what lets a claim ask whether ONE bullet carries both halves of
+# its pair, rather than two sentences that happen to share a word. Case is folded away last:
+# the sentences are the writer's, and `Integer` must answer for `integer`. Both readers below
+# want exactly this and differ only in what they feed it, so it is written once here.
+fold_bullets() {
+  awk '/^- / { if (rec != "") print rec; rec = $0; next }
+       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+       rec != "" { rec = rec " " $0 }
+       END { if (rec != "") print rec }' | tr '[:upper:]' '[:lower:]'
+}
+
+# inputs_bullets <skill-md> — the bullets of the `## Inputs` section alone. The section is cut
+# out first because the words the case below looks for all occur again further down, in the
 # loop the move folded in, so a file-wide read would answer "yes" for a section that still
-# said only "the issue number". Then each bullet — a `- ` in column one, running to the next
-# such line or to a blank one — is joined onto one line, because a claim wants to ask whether
-# ONE bullet carries both what the user types and where it sends them. Case is folded away
-# last: the sentences are the writer's, and `Integer` must answer for `integer`.
+# said only "the issue number".
 inputs_bullets() {
   awk '/^## Inputs$/ { inside = 1; next }
        inside && /^## / { exit }
-       !inside { next }
-       /^- / { if (rec != "") print rec; rec = $0; next }
-       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
-       rec != "" { rec = rec " " $0 }
-       END { if (rec != "") print rec }' "$1" | tr '[:upper:]' '[:lower:]'
+       inside' "$1" | fold_bullets
 }
 
 # claim <what one bullet must say> <regex>… — assert that a single line of the global
@@ -367,19 +372,12 @@ grep -qF "$sibling_scripts" "$ROOT/$skill_md" &&
   problems+=("$skill_md still locates its scripts at $sibling_scripts, a sibling that is no longer there")
 report "$name"
 
-# md_bullets <skill-md> — every bullet in the document, one per line and lowercased, a
-# bullet being a `- ` in column one plus the indented lines continuing it up to the next
-# such line or a blank one. Case 6 reads only the `## Inputs` section because the words it
-# looks for recur further down; case 7 reads the whole document on purpose — its criterion
-# is that the document derive the label from the scope, not that it say so under one
-# heading, and each of its claims pairs the scope with the label spelling, so no unrelated
-# bullet can answer for one.
-md_bullets() {
-  awk '/^- / { if (rec != "") print rec; rec = $0; next }
-       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
-       rec != "" { rec = rec " " $0 }
-       END { if (rec != "") print rec }' "$1" | tr '[:upper:]' '[:lower:]'
-}
+# md_bullets <skill-md> — every bullet in the document, with no section cut first. Case 6
+# reads only the `## Inputs` section because the words it looks for recur further down; case 7
+# reads the whole document on purpose — its criterion is that the document derive the label
+# from the scope, not that it say so under one heading, and each of its claims pairs the scope
+# with the label spelling, so no unrelated bullet can answer for one.
+md_bullets() { fold_bullets < "$1"; }
 
 # 7. Which label a scope selects on. Case 6 pins that a non-integer argument is a scope; a
 #    scope is only a pool once the document says which label names it, and the mapping is
