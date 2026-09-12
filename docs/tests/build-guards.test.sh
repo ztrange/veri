@@ -1189,10 +1189,36 @@ function fields(entry) {
 JS
 }
 
+# key_press — how a question presses a key, printed on stdout. Shipped with the stub for
+# the reason map_entry is: two questions that both press `n` must not come to disagree
+# about what a press is, and they would, since the event a page's keydown listener reads
+# is a dozen fields long and only some of them matter.
+# wired() is the precondition a pressing question states for itself — firing an event needs
+# the DOM that remembers listeners, VERI_ASK_WIRED in the stub above — said before the
+# question asks anything, rather than arriving as a TypeError halfway through its report.
+key_press() {
+  cat <<'JS'
+function wired() {
+  if (typeof globalThis.__fire !== "function") {
+    console.error("the page was asked about its wiring without the wired DOM");
+    process.exit(1);
+  }
+}
+
+function press(key) {
+  globalThis.__fire("keydown", {
+    type: "keydown", key: key, target: document.body,
+    altKey: false, ctrlKey: false, metaKey: false, shiftKey: false,
+    preventDefault: function () {}, stopPropagation: function () {}
+  });
+}
+JS
+}
+
 # ask_page <dir> <page> [args...]
 # Ask the page a question its markup cannot answer: run <dir>/question.js — which the
 # calling assertion has just written — against <page>, under the stub above and the entry
-# reader beside it, with node.
+# reader and the keypress beside it, with node.
 # The question reads its own arguments from process.argv[3] on and prints the report its
 # case compares; stdout and stderr both come back, and the exit code is node's, so a
 # question that cannot find what it asks for says so and fails the case.
@@ -1200,7 +1226,7 @@ JS
 # and a case fails rather than skips when it is absent.
 ask_page() {
   local d="$1" page="$2"; shift 2
-  { dom_stub; map_entry; cat "$d/question.js"; } > "$d/ask.js"
+  { dom_stub; map_entry; key_press; cat "$d/question.js"; } > "$d/ask.js"
   ( cd "$d" && node ask.js "$page" "$@" 2>&1 )
 }
 
@@ -1643,10 +1669,7 @@ wiring_git() {
   cat > "$d/question.js" <<'JS'
 var label = process.argv[3], presses = process.argv.slice(4);
 
-if (typeof globalThis.__fire !== "function") {
-  console.error("the page was asked about its wiring without the wired DOM");
-  process.exit(1);
-}
+wired();
 
 /* What a reader would call this button: what it says, or what it tells a screen reader
    it says. Which of the two an implementation uses is a spelling choice; having neither
@@ -1680,13 +1703,6 @@ console.log(label + " buttons " +
             ([next ? "next" : "", previous ? "previous" : ""]
                .filter(function (b) { return b; }).join(" ") || "none"));
 
-function press(key) {
-  globalThis.__fire("keydown", {
-    type: "keydown", key: key, target: document.body,
-    altKey: false, ctrlKey: false, metaKey: false, shiftKey: false,
-    preventDefault: function () {}, stopPropagation: function () {}
-  });
-}
 function click(btn) {
   var event = { type: "click", target: btn,
                 preventDefault: function () {}, stopPropagation: function () {} };
@@ -1762,18 +1778,7 @@ header_wiring_git() {
   cat > "$d/question.js" <<'JS'
 var label = process.argv[3], presses = process.argv.slice(4);
 
-if (typeof globalThis.__fire !== "function") {
-  console.error("the page was asked about its wiring without the wired DOM");
-  process.exit(1);
-}
-
-function press(key) {
-  globalThis.__fire("keydown", {
-    type: "keydown", key: key, target: document.body,
-    altKey: false, ctrlKey: false, metaKey: false, shiftKey: false,
-    preventDefault: function () {}, stopPropagation: function () {}
-  });
-}
+wired();
 
 /* Where a press landed, in the page's own terms: the script whose listing or whose header
    the element sits in — which the stub read off the markup around it — and then which of
