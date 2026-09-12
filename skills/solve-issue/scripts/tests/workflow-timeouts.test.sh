@@ -21,6 +21,10 @@
 #   observably takes, and says why its number is larger than the gates job's — it waits on
 #   GitHub's Pages service rather than on local deterministic work.
 #
+#   And, across every workflow file rather than those two jobs by name: every job declares
+#   a job-level `timeout-minutes` at all. That is the half of the contract a job added
+#   later can break.
+#
 # Run: scripts/tests/workflow-timeouts.test.sh
 set -uo pipefail
 
@@ -77,6 +81,22 @@ job_block() {
     $0 == key { inside = 1; next }
     inside && /^  [^ ]/ { exit }
     inside { print }
+  ' "$1"
+}
+
+# job_names <file> -> every job key that file defines, one per line.
+# Only the keys under the top-level `jobs:` mapping count: indent 2 is also where
+# `permissions:` and `concurrency:` put their own keys, so scanning the whole file for
+# indent-2 keys would report `group` and `contents` as jobs. The block runs from `jobs:`
+# to the next line that starts at column 0, the way job_block runs to the next indent-2
+# line. This is what lets a case sweep the jobs that exist rather than name them.
+job_names() {
+  awk '
+    /^jobs:[[:space:]]*$/ { inside = 1; next }
+    inside && /^[^[:space:]]/ { exit }
+    inside && /^  [A-Za-z0-9_.-]+:[[:space:]]*$/ {
+      sub(/:[[:space:]]*$/, ""); sub(/^  /, ""); print
+    }
   ' "$1"
 }
 
@@ -159,6 +179,34 @@ if timeout_comment "$PAGES_YML" deploy 10; then
   probe "comment does not say why its budget is larger than the gates job's" \
     '(gates|local|deterministic)' '(larger|longer|bigger|generous|more than)'
 fi
+report "$name"
+
+# 3. The two cases above pin the two jobs that exist today, by name. This one is for the
+#    job that does not exist yet: it enumerates every job in every workflow file and asks
+#    only that each declares a job-level timeout-minutes, whatever the number and whatever
+#    the comment. A job added later without one inherits the same 6-hour ceiling, and the
+#    named cases would stay green the whole time it did.
+#    The sweep also has to fail when it reads nothing — no workflow files, or a file whose
+#    jobs it could not enumerate — because a sweep that found no jobs would otherwise
+#    report "every job declares one" as a pass.
+name="every job in every .github/workflows file declares a job-level timeout-minutes"
+problems=()
+
+wf_seen=0
+for wf in "$ROOT"/.github/workflows/*.yml "$ROOT"/.github/workflows/*.yaml; do
+  [[ -f "$wf" ]] || continue
+  wf_seen=$((wf_seen + 1))
+  jobs_seen=0
+  while IFS= read -r job; do
+    [[ -n "$job" ]] || continue
+    jobs_seen=$((jobs_seen + 1))
+    job_block "$wf" "$job" | grep -qE '^    timeout-minutes:[ ]*[0-9]+' \
+      || problems+=("${wf##*/}: job '$job' declares no job-level timeout-minutes")
+  done < <(job_names "$wf")
+  [[ "$jobs_seen" -gt 0 ]] || problems+=("${wf##*/}: no jobs found — the sweep read nothing")
+done
+[[ "$wf_seen" -gt 0 ]] || problems+=("no workflow files found under .github/workflows/")
+
 report "$name"
 
 echo "----"
