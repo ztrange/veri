@@ -1474,36 +1474,66 @@ SCRIPTS += [dict(
   <span class="ec ec-3"><b>3</b></span> &mdash; nothing decided, ask the human.
 </p>''',
     contract=[
-        ("Usage", "<code>detect-test-command.sh [repo-root]</code> (default: the current directory)"),
+        ("Usage", "<code>detect-test-command.sh [--issue &lt;body-file&gt;] [repo-root]</code> (repo-root defaults to the current directory)"),
         ("stdout", "the one command that runs the target repo's full suite, and nothing else"),
         ("Exit", '<span class="ec ec-0"><b>0</b> a rule matched &mdash; the command is on stdout</span> '
                  '<span class="ec ec-3"><b>3</b> no rule matched &mdash; nothing to do, ask the human</span>'),
     ],
     chunks=[
-        dict(lines=(1, 12), html=r'''<p>
+        dict(lines=(1, 14), html=r'''<p>
   The header states the contract before any rule runs: print the command on stdout and exit
   <span class="ec ec-0"><b>0</b></span>, or print nothing and exit
   <span class="ec ec-3"><b>3</b></span> &mdash; the <a href="#exitcodes">&ldquo;nothing to
   do&rdquo; code</a>, not a failure, and the conductor's cue to ask a human rather than guess.
 </p><p>
   It also names the shape every rule below shares before the code does:
-  <strong>precedence is first-match-wins.</strong> The override rule goes first on purpose
-  &mdash; whatever a later rule would have inferred, a repo that already wrote
-  <code>.veri/test-command</code> has answered the question itself, and nothing downstream
-  gets to second-guess it.
+  <strong>precedence is first-match-wins.</strong> The two overrides go first on purpose
+  &mdash; whatever a later rule would have inferred, an issue that named its test command,
+  or a repo that already wrote <code>.veri/test-command</code>, has answered the question in
+  words, and nothing downstream gets to second-guess it. Which of the two answers first is
+  argued where rule 0 sits.
 </p><p>
   {{p-strict|set -euo pipefail}}, as everywhere else.
 </p>'''),
-        dict(lines=(13, 20), html=r'''<p>
-  The repo root is optional, {{p-default|${1:-.}}}, so the conductor can call this bare from
-  the target's own working directory.
+        dict(lines=(15, 26), html=r'''<p>
+  <code>--issue &lt;body-file&gt;</code> is optional and, when given, comes first. The
+  conductor has already saved the issue body to a file (issue&nbsp;#120), so what is passed is
+  a path, never the text. <code>shift 2</code> drops both words, so the repo root is read from
+  <code>$1</code> either way; {{p-default|${1:-}}} on the test keeps <code>set -u</code> from
+  aborting on an absent first argument, and the empty <code>issue=""</code> default is what
+  the rule below checks when the flag was never given.
 </p><p>
+  The repo root is optional too, {{p-default|${1:-.}}}, so the conductor can call this bare
+  from the target's own working directory.
+</p>'''),
+        dict(lines=(27, 32), html=r'''<p>
   {{p-func|answer()}} names the ending every rule shares: print the decided command and exit
   0, immediately. Naming it once keeps each rule below to just the question it asks &mdash;
   the <code>if</code> says which marker was found, <code>answer</code> says what the marker
   means &mdash; and it is the reason a rule that matched never falls through to the next one.
 </p>'''),
-        dict(lines=(21, 36), html=r'''<p>
+        dict(lines=(33, 71), html=r'''<p>
+  <strong>Rule 0: the issue's own line</strong>, ahead of even the override file.
+  <code>.veri/test-command</code> is the repo's answer for every run; a <code>Test
+  command:</code> line in the issue body is this run's, and the narrower claim wins &mdash; a
+  docs issue says so in its own words and the leaves obey that instead of the repo-wide suite.
+</p><p>
+  {{p-func|trimmed()}} prints its argument with leading spaces and tabs removed. Bash 3.2 has
+  no trim of its own, so it drops one blank at a time: {{p-strip|${s# }}} removes one leading
+  space, its twin one leading tab, and the loop runs until neither changes the string &mdash;
+  which is when the first real character has been reached.
+</p><p>
+  The rule itself runs only when the flag was given and names a file that exists. The same
+  {{p-readloop|while IFS= read -r line || [ -n "$line" ]}} as rule 1 walks the body, and
+  {{p-case|case "$line" in 'Test command:'*)}} matches a line that starts with the marker.
+  {{p-strip|${line#Test command:}}} drops the marker, <code>trimmed</code> drops the
+  whitespace that separated it from the command, and what is left is answered verbatim. The
+  first matching line answers, so a body that mentions the command again lower down &mdash; in
+  a note, a quotation, a later section &mdash; cannot overrule the one that stated it; and a
+  line with nothing after the marker names no command, so it is skipped rather than answered
+  with an empty string.
+</p>'''),
+        dict(lines=(72, 87), html=r'''<p>
   <strong>Rule 1: the override file.</strong> If <code>.veri/test-command</code> exists, its
   first non-empty line is the command, read back verbatim.
 </p><p>
@@ -1522,7 +1552,7 @@ SCRIPTS += [dict(
   bytes &mdash; the whole point of the escape hatch is that what the repo wrote is what the
   leaf runs.
 </p>'''),
-        dict(lines=(37, 59), html=r'''<p>
+        dict(lines=(88, 110), html=r'''<p>
   <strong>Rule 2: <code>package.json</code>.</strong> A declared <code>test</code> script
   names the node runner; which runner is a separate question, answered by the lockfile
   committed beside it &mdash; a lockfile is the repo saying which package manager actually
@@ -1542,7 +1572,7 @@ SCRIPTS += [dict(
   position is exempt from strict mode by construction, which is what lets this rule ask its
   question instead of dying when the answer is no.
 </p>'''),
-        dict(lines=(60, 73), html=r'''<p>
+        dict(lines=(111, 124), html=r'''<p>
   <strong>Rule 3: the Makefile.</strong> A <code>test:</code> target names <code>make
   test</code>. <code>grep -qE '^test[[:space:]]*:'</code> anchors the match to the
   <em>start</em> of a line, so a <code>test :</code> spelling still matches while
@@ -1556,7 +1586,7 @@ SCRIPTS += [dict(
   to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
   at all.
 </p></div>'''),
-        dict(lines=(74, 101), html=r'''<p>
+        dict(lines=(125, 152), html=r'''<p>
   <strong>Rule 4: pytest configuration.</strong> Three files, asked about differently on
   purpose. <code>pytest.ini</code> exists only to configure pytest, so the filename alone is
   the whole claim &mdash; the file may well be empty. <code>pyproject.toml</code> makes no
@@ -1580,7 +1610,7 @@ SCRIPTS += [dict(
   <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
   the exit status, not the dots, so quiet output is what a leaf should actually see.
 </p>'''),
-        dict(lines=(102, 117), html=r'''<p>
+        dict(lines=(153, 168), html=r'''<p>
   <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
   runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
   <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
@@ -1591,7 +1621,7 @@ SCRIPTS += [dict(
   the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
   whole crate.
 </p>'''),
-        dict(lines=(118, 134), html=r'''<p>
+        dict(lines=(169, 185), html=r'''<p>
   <strong>Rule 7, the last before giving up:</strong> a python repo that committed no runner
   configuration at all still has a suite if <code>tests/</code> holds files named
   <code>test_*.py</code>, and the stdlib can run them with nothing installed &mdash;
@@ -1606,7 +1636,7 @@ SCRIPTS += [dict(
   for. The loop answers on the first real match and simply falls through when there was none,
   with no need for the <code>nullglob</code> shell option.
 </p>'''),
-        dict(lines=(135, 138), html=r'''<p>
+        dict(lines=(186, 189), html=r'''<p>
   Nothing decided: say nothing, and let <span class="ec ec-3"><b>3</b></span> &mdash;
   &ldquo;nothing to do&rdquo;, not an error &mdash; send the question to the human, the same
   code <a href="#next-unchecked"><code>next-unchecked.sh</code></a> uses when the ledger has
