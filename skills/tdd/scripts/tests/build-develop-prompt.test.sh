@@ -20,7 +20,9 @@
 #   build-develop-prompt.sh refactor <spec-file> <step-text> <test-cmd> <touched-files>
 #   exits 0 and prints a prompt naming the files this cycle touched — the bounds of the
 #   tidy-up — carrying the rule that bounds it further (no generality no test demands), and
-#   requiring the `RESULT:` / `FLAGS:` footer the conductor branches on.
+#   requiring the `RESULT:` / `FLAGS:` / `CANDIDATES:` footer: the first two the conductor
+#   branches on, the third the backlog it lists when the loop was stopped by the budget
+#   rather than by a leaf finding nothing left.
 #
 # Contract under test, revise phase:
 #   build-develop-prompt.sh revise <phase> <spec-file> <step-text> <test-cmd> <reason-file>
