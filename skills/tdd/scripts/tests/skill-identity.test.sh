@@ -17,6 +17,8 @@
 #   The skill's Inputs section resolves that forwarded argument three ways — an integer is
 #   the single-issue procedure, any other word is a scope, nothing at all is the scope
 #   `plain` — with the loop it now dispatches to living in the same document.
+#   A scope's selection label is `ready-for-agent` for the scope `plain` and
+#   `ready-for-agent:<scope>` for any other, with `VERI_LABEL` still overriding it.
 #
 # Run: scripts/tests/skill-identity.test.sh
 set -uo pipefail
@@ -359,6 +361,69 @@ grep -qE '^#+ .*[Ll]oop' "$ROOT/$skill_md" ||
 sibling_scripts="../$(basename "$old_skill_dir")/scripts"
 grep -qF "$sibling_scripts" "$ROOT/$skill_md" &&
   problems+=("$skill_md still locates its scripts at $sibling_scripts, a sibling that is no longer there")
+report "$name"
+
+# md_bullets <skill-md> — every bullet in the document, one per line and lowercased, a
+# bullet being a `- ` in column one plus the indented lines continuing it up to the next
+# such line or a blank one. Case 6 reads only the `## Inputs` section because the words it
+# looks for recur further down; case 7 reads the whole document on purpose — its criterion
+# is that the document derive the label from the scope, not that it say so under one
+# heading, and each of its claims pairs the scope with the label spelling, so no unrelated
+# bullet can answer for one.
+md_bullets() {
+  awk '/^- / { if (rec != "") print rec; rec = $0; next }
+       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+       rec != "" { rec = rec " " $0 }
+       END { if (rec != "") print rec }' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+# states <what one bullet must say> <regex>… — assert that a single line of the global
+# `bullets` matches every <regex>, recording a problem naming <what> if none does. Same
+# shape and the same `continue 2` as `claim` above: a pair split across two bullets is not
+# a derivation, it is two sentences sharing a word.
+states() {
+  local what="$1" line re
+  shift
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return 0
+  done <<< "$bullets"
+  problems+=("$skill_md: no bullet $what")
+}
+
+# 7. Which label a scope selects on. Case 6 pins that a non-integer argument is a scope; a
+#    scope is only a pool once the document says which label names it, and the mapping is
+#    not the identity: the scope `plain` selects on the bare `ready-for-agent` label —
+#    every issue opted in today carries that, so the default invocation must keep draining
+#    it — while any other scope selects on `ready-for-agent:<scope>`, which is the
+#    namespacing that lets `/tdd docs` and `/tdd scripts` draw from disjoint pools.
+#    `VERI_LABEL` stays what it was, an override of whatever the scope derived, because a
+#    launcher naming a pool that no scope word spells must still be able to.
+#
+#    Stated in prose and read here as prose, like case 6: `solvable-issues.sh` takes the
+#    label from the environment and knows nothing of scopes, so the derivation exists only
+#    in what this document tells the session to set. A document that names the scope and
+#    the label in different breaths leaves the session to guess the colon.
+name="$skill_md derives a scope's label: ready-for-agent for plain, ready-for-agent:<scope> otherwise, VERI_LABEL overriding"
+problems=()
+bullets="$(md_bullets "$ROOT/$skill_md")"
+if [[ -z "$bullets" ]]; then
+  # Fail closed, as case 6 does: no bullets means the document's shape changed and not one
+  # claim below was tested, which must not read as three passes.
+  problems+=("$skill_md has no bullets at all — how a scope's label is derived could not be read")
+else
+  # `plain` bounded by non-alphanumerics so `explain` and `plain text` cannot answer for the
+  # scope's name; the other two are distinctive enough as substrings, the colon in
+  # `ready-for-agent:` being the whole of what claim two is about.
+  states 'gives the scope plain the bare ready-for-agent label' \
+    '(^|[^[:alnum:]])plain([^[:alnum:]]|$)' 'ready-for-agent'
+  states 'gives any other scope the label ready-for-agent:<scope>' \
+    'scope' 'ready-for-agent:'
+  states 'keeps VERI_LABEL as the override of the derived label' \
+    'veri_label' 'overrid|precedence|wins'
+fi
 report "$name"
 
 echo "----"
