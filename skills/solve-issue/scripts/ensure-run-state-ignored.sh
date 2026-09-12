@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# ensure-run-state-ignored.sh — install veri's run-state rule into a target repo's .gitignore.
+# ensure-run-state-ignored.sh — install veri's run-state rule into a target repo's ignore files.
 #
 # veri writes leaf logs, .rc markers, .prompt files and the blind spec into the target repo's
 # .tdd/; only the ledger (.tdd/issue-<n>.md) belongs in history. This writes the three-line,
 # order-sensitive rule that makes git agree: ignore .tdd/*, un-ignore the ledger, re-ignore
 # the spec (which would otherwise be caught by the ledger's negation).
+#
+# The rule goes into two files and needs both: the worktree's .gitignore, which is committed and
+# so keeps the merged repo safe from a later `git add -A`, and the shared info/exclude, which is
+# never committed and so keeps the caller's checkout clean while the run is in progress. Why
+# neither is sufficient alone is at each one's block below.
 #
 # Usage:   ensure-run-state-ignored.sh [repo-root]      (default: the current directory)
 set -euo pipefail
@@ -13,7 +18,7 @@ root="${1:-.}"
 gitignore="$root/.gitignore"
 
 # The rule, one line per variable, in the order git needs to read them. Named once because the
-# presence check below and the append at the end must agree on the exact text: two spellings of
+# presence check below and `append_rule` must agree on the exact text: two spellings of
 # `.tdd/issue-*-spec.md` could drift apart, and the script would then append a rule it had just
 # failed to recognise.
 ignore_all='.tdd/*'         # sweep every run artefact under .tdd/ out of git's sight
