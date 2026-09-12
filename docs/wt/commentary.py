@@ -816,10 +816,10 @@ STAGES = [
          title="Launching something you do not trust",
          lede="The conductor needs a developer leaf to write a failing test. That leaf is "
               "an LLM subprocess that might take five minutes, might finish in ten seconds, "
-              "and might hang forever. Three scripts turn that into a bounded, observable "
+              "and might hang forever. Four scripts turn that into a bounded, observable "
               "operation.",
          intro=r'''
-<p>These three nest inside one another, outermost first &mdash; and the outermost is the
+<p>Three of them nest inside one another, outermost first &mdash; and the outermost is the
   only one the conductor is ever allowed to call:</p>
 <div class="ann"><div class="ann-head"><span class="fname">the nesting</span>
 <span class="fmeta">stage 2</span></div>
@@ -830,7 +830,13 @@ STAGES = [
   Each layer solves exactly one problem the layer below created. <code>run-leaf.sh</code>
   streams so the supervisor has something to watch; streaming buries the answer in JSON, so
   <code>extract-result.sh</code> digs it back out.
-</p></div></div></div>'''),
+</p></div></div></div>
+<p>
+  The fourth, <a href="#wait-leaf"><code>wait-leaf.sh</code></a>, sits outside the nest rather
+  than inside it. The conductor cannot hold a foreground call open for as long as a leaf may
+  run, so it launches the supervisor <strong>detached</strong> and then waits with this, in
+  instalments, until a code comes back.
+</p>'''),
 
     dict(n=3, id="s3", nav="Verify the claim", kicker="verify the claim",
          title="The part veri is named after",
@@ -1704,7 +1710,7 @@ SCRIPTS += [dict(
                      "&middot; <code>VERI_POLL</code> 1s &middot; <code>VERI_STUCK_RETRIES</code> 1"),
     ],
     chunks=[
-        dict(lines=(1, 26), html=r'''<p>
+        dict(lines=(1, 28), html=r'''<p>
   A twenty-six-line header, and worth reading as design documentation rather than
   preamble. It states the invariant the whole system depends on: <strong>"every leaf is
   launched through here, never directly"</strong>. Stuck-detection policy exists in exactly
@@ -1714,7 +1720,7 @@ SCRIPTS += [dict(
   it still cannot recover it is reported as <code>killed-stuck</code>, which the conductor
   turns into a clean bail.
 </p>'''),
-        dict(lines=(27, 32), html=r'''<p>
+        dict(lines=(29, 34), html=r'''<p>
   Line 27 is {{p-strict-partial|set -uo pipefail}} &mdash; strict mode with <code>-e</code>
   deliberately left out, and the <strong>only script in veri that does this</strong>.
 </p><p>
@@ -1729,21 +1735,23 @@ SCRIPTS += [dict(
   do this" &mdash; and exits <span class="ec ec-2"><b>2</b></span>, because a bad invocation
   is a broken caller, not a failed leaf.
 </p>'''),
-        dict(lines=(33, 40), html=r'''<p>
+        dict(lines=(35, 43), html=r'''<p>
   The four tunables, each a {{p-default|${VAR:-default}}}: environment wins, otherwise the
   default. That one idiom is what makes the script testable &mdash; a test sets
   <code>VERI_HEARTBEAT=2</code> and a hang trips in two seconds instead of forty-five.
 </p><p>
-  Lines 39&ndash;40 derive two filenames from <code>&lt;name&gt;</code>: a <strong>log</strong>,
-  about to serve as the heartbeat sensor, and an <strong>rc file</strong>, about to serve as
-  the completion signal. Neither is obvious yet; both are the crux of what follows.
+  Lines 41&ndash;43 derive three filenames from <code>&lt;name&gt;</code>: a
+  <strong>log</strong>, about to serve as the heartbeat sensor; an <strong>rc file</strong>,
+  about to serve as the <em>internal</em> completion signal; and an <strong>exit file</strong>,
+  the one this script leaves behind for whoever is waiting outside it. None is obvious yet;
+  all three are the crux of what follows.
 </p>'''),
-        dict(lines=(41, 42), html=r'''<p>
+        dict(lines=(44, 45), html=r'''<p>
   <code>now()</code> moved up here, ahead of <code>mtime_of</code>, because
   <code>mtime_of</code>'s own fallback now calls it &mdash; the simpler helper is defined
   first, so reading top to bottom you never meet a forward reference.
 </p>'''),
-        dict(lines=(43, 61), html=r'''<p>
+        dict(lines=(46, 64), html=r'''<p>
   <code>mtime_of</code> is the heartbeat sensor: seconds since the log was last written to.
   There is no portable spelling of "ask the filesystem for a file's mtime" &mdash;
   GNU/coreutils is <code>stat -c %Y</code>, BSD/macOS is <code>stat -f %m</code> &mdash; so
@@ -1788,7 +1796,7 @@ SCRIPTS += [dict(
   Found on this project's first <code>ubuntu-latest</code> CI run: <code>make test</code>
   had passed on macOS for years, then hung for ten minutes the first time it ran on Linux.
 </p>'''),
-        dict(lines=(62, 68), html=r'''<p>Three ideas packed into four lines, all covered by the {{p-kill|signals entry}}:</p>
+        dict(lines=(65, 71), html=r'''<p>Three ideas packed into four lines, all covered by the {{p-kill|signals entry}}:</p>
 <ul>
   <li><strong>The minus sign on line 64.</strong> <code>-"$pid"</code> &mdash; a negative PID
       &mdash; signals the whole <em>process group</em>. This matters because
@@ -1806,7 +1814,7 @@ SCRIPTS += [dict(
   The loop variable is named <code>_</code> &mdash; a convention meaning "this value is
   never used". The loop runs five times; that is all it is for.
 </p>'''),
-        dict(lines=(69, 73), html=r'''<p>
+        dict(lines=(72, 76), html=r'''<p>
   {{p-func|attempt_once}} runs the leaf exactly once and watches it. Its result comes back
   through global variables rather than a return value, because a bash function can only
   return an integer &mdash; the comment on line 70 says so explicitly.
@@ -1817,7 +1825,7 @@ SCRIPTS += [dict(
   can be called again on a retry, and stale state would make the new attempt look instantly
   finished.
 </p>'''),
-        dict(lines=(74, 81), html=r'''<p>The densest moment in veri. Line 79, left to right:</p>
+        dict(lines=(77, 84), html=r'''<p>The densest moment in veri. Line 79, left to right:</p>
 <ul>
   <li>{{p-bg|( … ) &amp;}} &mdash; a subshell, run in the background. The background part is
       the entire point: the script does not wait, so it can go on to watch. <strong>You
@@ -1849,13 +1857,13 @@ SCRIPTS += [dict(
   separates <em>the leaf chose to exit</em> from <em>we killed it</em>, because a killed
   leaf never reaches the <code>echo</code>.
 </p></div>'''),
-        dict(lines=(82, 85), html=r'''<p>
+        dict(lines=(85, 88), html=r'''<p>
   <code>t0</code> is the start time, for the hard timeout. The three variables on line 84
   are what <code>attempt_once</code> "returns": <code>status</code> becomes one of
   <code>success</code>, <code>failure</code> or <code>killed-stuck</code>, and
   <code>reason</code> carries the kill cause for the human-facing status line.
 </p>'''),
-        dict(lines=(86, 91), html=r'''<p>
+        dict(lines=(89, 94), html=r'''<p>
   An {{p-noop|infinite loop}} checking three conditions each second, in priority order,
   breaking on the first that holds. <strong>Condition one: did it finish on its own?</strong>
 </p><p>
@@ -1867,7 +1875,7 @@ SCRIPTS += [dict(
   <span class="ec ec-1"><b>1</b></span>, a real answer. Only a leaf we had to kill becomes
   <span class="ec ec-2"><b>2</b></span>.
 </p>'''),
-        dict(lines=(92, 95), html=r'''<p>
+        dict(lines=(95, 98), html=r'''<p>
   <strong>Condition two: has the hard cap blown?</strong> {{p-arith|(( … ))}} gives real
   integer maths where variables need no <code>$</code>, so
   <code>t - t0 &gt;= timeout</code> reads like any other language.
@@ -1876,7 +1884,7 @@ SCRIPTS += [dict(
   cheerfully producing output and still be going nowhere; that is what this catches and the
   heartbeat cannot.
 </p>'''),
-        dict(lines=(96, 105), html=r'''<p>
+        dict(lines=(99, 108), html=r'''<p>
   <strong>Condition three: has it gone quiet?</strong> <code>silence</code> is now minus the
   log's last-modified time &mdash; note {{p-cmdsub|$( … )}} nested <em>inside</em> the
   arithmetic, which is allowed and evaluates first. Exceed the window and the leaf is
@@ -1894,13 +1902,13 @@ SCRIPTS += [dict(
   under real timing on someone else's machine &mdash; and there is a test pinning it.
 </p></div>
 <p>Line 104 is the poll interval: nothing tripped, so nap and check again.</p>'''),
-        dict(lines=(106, 108), html=r'''<p>
+        dict(lines=(109, 111), html=r'''<p>
   By now the leaf is finished or killed, so {{p-wait|wait}} no longer blocks meaningfully;
   it clears the zombie entry from the process table. The <code>|| true</code> is the standard
   {{p-shortcircuit|swallow-the-error}} idiom &mdash; the process may already have been
   reaped, and failing here would be noise.
 </p>'''),
-        dict(lines=(109, 119), html=r'''<p>
+        dict(lines=(112, 122), html=r'''<p>
   <strong>Line 115 carries the whole retry policy.</strong> Read it as: if the status is
   <em>not</em> killed-stuck, break.
 </p><p>
@@ -1924,7 +1932,7 @@ SCRIPTS += [dict(
   spent liveness budget is a <strong>system</strong> failure, a spent verdict budget a
   <strong>process</strong> failure.
 </p></div>'''),
-        dict(lines=(120, 126), html=r'''<p>
+        dict(lines=(123, 129), html=r'''<p>
   The {{p-case|case}} maps the status string to veri's exit codes. Note the defensive
   <code>*)</code> branch: any state that was not foreseen is treated as
   <span class="ec ec-2"><b>2</b> broken</span>, never as success.
@@ -1933,8 +1941,8 @@ SCRIPTS += [dict(
   <a href="#classify-bail"><code>classify-bail.sh</code></a>. When you do not know what
   happened, the safe assumption is that something went wrong.
 </p>'''),
-        dict(lines=(127, 130), html=r'''<p>
-  The last three lines execute the stdout/stderr contract exactly. The status line &mdash;
+        dict(lines=(130, 133), html=r'''<p>
+  These lines execute the stdout/stderr contract exactly. The status line &mdash;
   including <code>${reason:+ — $reason}</code>, which appends the separator <em>only if</em>
   a reason exists &mdash; goes to {{p-redirect|stderr}}. The leaf's entire captured output
   goes to <strong>stdout</strong>. The exit code carries the verdict.
@@ -1942,6 +1950,25 @@ SCRIPTS += [dict(
   That split is what lets a caller write <code>out="$(supervise.sh …)"</code> and get clean
   leaf output with none of the supervisor's own chatter mixed in &mdash; which is exactly
   what <a href="#verify"><code>verify.sh</code></a> does in stage 3.
+</p>'''),
+        dict(lines=(134, 138), html=r'''<p>
+  The <strong>completion file</strong>, and the last thing written before the exit. It holds
+  <em>this script's</em> code &mdash; the 0/1/2 of veri's contract &mdash; not the leaf's raw
+  one, which is what <code>.tdd/&lt;name&gt;.rc</code> a few lines up carries. The two are
+  different answers to different questions, and conflating them would be a real bug: a leaf
+  that exits 3 is a <span class="ec ec-1"><b>1</b></span> here, and a
+  <span class="ec ec-2"><b>2</b> killed-stuck</span> leaf never reaches its own
+  <code>echo $? &gt; "$rcfile"</code> at all, so the rc file for it is simply never written.
+</p><p>
+  Why write a status a caller could read from the exit code anyway: because the caller may
+  not be waiting for this process. A conductor running in <strong>print mode</strong> cannot
+  hold a fifteen-minute foreground call open, so it launches this script
+  <strong>detached</strong> and then polls with
+  <a href="#wait-leaf"><code>wait-leaf.sh</code></a>, which has no process to wait on and only
+  this file to read. The write is deliberately placed <em>after</em>
+  <code>cat "$log"</code>: a detached launch redirects that stdout into a file of its own, so
+  a waiter that saw the exit file appear first could go read a capture that is still being
+  written.
 </p>'''),
     ]),
 ]
@@ -2099,6 +2126,97 @@ SCRIPTS += [dict(
 <p>
   Line 34 normalises the trailing newline, so whatever is appended to the log ends cleanly
   whether or not the model's answer did.
+</p>'''),
+    ]),
+]
+
+SCRIPTS += [dict(
+    file="wait-leaf.sh", stage=2, id="wait-leaf",
+    tagline="the other half of a detached launch",
+    blurb=r'''<p>
+  The three scripts above nest inside one another. This one sits <em>outside</em> all of
+  them, and exists because of a constraint that has nothing to do with leaves: the conductor
+  is itself a Claude Code session, and a single foreground shell call in one of those is
+  capped at <strong>ten minutes</strong>. A leaf gets <code>VERI_TIMEOUT</code> &mdash;
+  fifteen &mdash; and a killed-stuck one is relaunched, so one
+  <a href="#supervise"><code>supervise.sh</code></a> call can outlast the cap twice over.
+</p><p>
+  The obvious way out is to launch the leaf in the background and be told when it finishes.
+  That works interactively and <strong>silently fails unattended</strong>: run the conductor
+  as <code>claude -p "/solve-issue &lt;n&gt;"</code> and no such notification ever arrives, so
+  the turn ends, the process exits, and the leaf keeps working for nobody. That is issue #86,
+  and it cost run #70 its red phase.
+</p><p>
+  So the launch and the wait are split. The leaf is started <strong>detached</strong>
+  (<code>nohup … &amp;</code>), and this script does the waiting, in the foreground, in
+  bounded instalments: it polls the completion file the supervisor leaves behind and reports
+  the code in it, or says <span class="ec ec-3"><b>3</b></span> &mdash; <em>not yet, ask
+  again</em> &mdash; before the cap can bite.
+</p>''',
+    contract=[
+        ("Usage", "<code>wait-leaf.sh &lt;name&gt; [max-seconds]</code>"),
+        ("stdout", "Nothing &mdash; the answer is the exit code"),
+        ("Exit", '<span class="ec ec-0"><b>0</b></span> '
+                 '<span class="ec ec-1"><b>1</b></span> '
+                 '<span class="ec ec-2"><b>2</b></span> as the supervisor recorded them '
+                 '&middot; <span class="ec ec-3"><b>3</b> still running, call again</span>'),
+        ("Reads", "<code>.tdd/&lt;name&gt;.exit</code>, written by "
+                  "<code>supervise.sh</code>"),
+        ("Tunables", "<code>VERI_POLL</code> 1s &middot; budget argument, default 540s"),
+    ],
+    chunks=[
+        dict(lines=(1, 19), html=r'''<p>
+  The header states the contract the rest of veri depends on, and one word in it carries the
+  design: <strong>polling</strong>. This script does not wait on a process &mdash; it cannot,
+  the detached leaf is not its child &mdash; it watches a file appear. Everything below is
+  that one idea, made safe.
+</p><p>
+  Line 19 is {{p-strict-partial|set -uo pipefail}}, the same <code>-e</code>-less strict mode
+  <a href="#supervise"><code>supervise.sh</code></a> uses, and for a related reason: a
+  non-zero result here is an <em>answer</em> to report, not an accident to die on.
+</p>'''),
+        dict(lines=(20, 26), html=r'''<p>
+  Six lines that fix the whole run. Line 21 takes the leaf's name as a
+  {{p-required|required argument}}; line 22's {{p-default|${2:-540}}} is the budget, nine
+  minutes, chosen to sit inside Claude Code's ten-minute cap with room to spare rather than
+  to bound the leaf &mdash; the leaf is already bounded, by the supervisor's own clocks.
+</p><p>
+  Line 26 computes a <strong>deadline</strong>, not a duration: <code>$(date +%s) + max</code>
+  inside an {{p-arith|arithmetic expansion}}, evaluated once, up front. Comparing a clock
+  reading against a fixed instant is immune to how long each poll actually took; counting
+  iterations and multiplying by the interval is not.
+</p>'''),
+        dict(lines=(27, 38), html=r'''<p>
+  <code>recorded_code</code> answers one question &mdash; <em>is there a status to report
+  yet?</em> &mdash; and answers it by failing rather than by printing, which is what lets the
+  loop below be two lines. It is a {{p-func|function}} with a
+  {{p-func|local}} variable, so nothing it does leaks outward.
+</p>
+<div class="note gotcha"><span class="tag">A file exists before it has contents</span><p>
+  <code>[[ -f "$exitfile" ]]</code> is not enough. Creating a file and writing to it are two
+  separate operations, and a poll that lands between them reads back an
+  <strong>empty string</strong>. Empty is not a status &mdash; but it is also not obviously
+  wrong, and a waiter that accepted it would hand the conductor a blank where an exit code
+  belongs.
+</p><p>
+  So line 36 tests what was read against a {{p-regex|regular expression}}: digits, nothing
+  else. An empty read fails it, a half-written line fails it, and the caller simply polls
+  again. Only a plain number ends the wait.
+</p></div>'''),
+        dict(lines=(39, 46), html=r'''<p>
+  The loop, and it is deliberately shaped as two guard clauses rather than a condition. Line
+  41 uses {{p-shortcircuit|&amp;&amp;}} on the helper's own status: if a code was recorded,
+  exit with it &mdash; <code>exit "$ec"</code> makes this script's status <em>be</em> the
+  supervisor's, so the conductor branches on 0/1/2 exactly as it would have done reading the
+  launcher directly. Line 42 gives up when the deadline passes.
+</p><p>
+  Which leaves the last line, and the one decision in this file worth arguing about. Falling
+  out of the loop means <strong>no answer</strong> &mdash; and a script that ends without
+  failing normally exits <span class="ec ec-0"><b>0</b></span>. Here that would be a lie of
+  exactly the kind veri is built to prevent: it would tell the conductor the leaf succeeded
+  when in truth nothing was ever heard from it. Hence the explicit
+  <span class="ec ec-3"><b>3</b></span>, veri's <em>nothing to report</em> code, on both ways
+  of getting here &mdash; a leaf still working, and a leaf that never ran at all.
 </p>'''),
     ]),
 ]
