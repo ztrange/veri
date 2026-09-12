@@ -11,4 +11,4 @@
 - [x] the "mark read up to vX" button persists the choice in `localStorage` and the next load opens in since-mode; a browser that blocks storage still renders the plain page
 - [x] one sentence next to the control says since-mode answers which capabilities changed, not which bytes changed
 - [x] pressing `n` or `p`, or clicking the next/previous buttons the crumb bar carries, scrolls the reader to the next or previous stop of the since-mode walk, and the buttons are absent from the crumb bar when no version is chosen
-- [ ] `make docs` regenerates the page, and `make docs-check` and `make docs-test` pass
+- [x] `make docs` regenerates the page, and `make docs-check` and `make docs-test` pass

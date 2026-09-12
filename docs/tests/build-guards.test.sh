@@ -26,7 +26,9 @@
 # so neither has a mutator; they just assert on the page the tree produces as it stands.
 #
 # Each case runs against a disposable copy of the tree, so the real repo is never
-# mutated even if a case aborts.
+# mutated even if a case aborts. The last case is the one exception, and only in what it
+# reads: it asks whether THIS repository's committed page is the page this tree builds.
+# It writes nothing either.
 #
 # Two cases reach past python3 for node: since-mode is a decision the page's own JS makes,
 # and nothing in the markup records it. See ask_page, which both go through. node is a
@@ -2167,6 +2169,54 @@ previous #1 v0.5' \
            rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
+
+# page_is_current <name>
+# The one assertion that asks about THIS repository instead of a sandbox. Every case above
+# builds a disposable copy and judges what came out, which says the generator is sound and
+# says nothing about the file a reader actually opens: docs/walkthrough.html is committed
+# output, and it falls behind on its own — a line added to a script, a paragraph of
+# commentary, a tag cut in another worktree — with nothing in `make test` to notice.
+#
+# So the claim is the generator's own fixpoint: build the page again from the tree as it
+# stands, and the committed bytes are already it. That is what `make docs` regenerating the
+# page leaves behind, and it is the one thing the criterion can be observed as.
+#
+# check-walkthrough.py asks this same question as its first phase, so `make docs-check`
+# answers it too and the overlap is deliberate. `make docs-test` is the command the page's
+# own issues are developed against, and alone it attests only that the guards still fire —
+# a suite fully green over a page nobody rebuilt.
+#
+# --stdout, never a rebuild in place: an assertion must not write the file it is judging,
+# and a case that did would be green on its second run however stale the commit was.
+# cmp on the bytes rather than $(...) on both sides, which would strip the trailing
+# newlines it is supposed to be comparing.
+page_is_current() {
+  local name="$1" built="$WORK/current.html" err="$WORK/current.err" code committed
+  committed="$ROOT/docs/walkthrough.html"
+  ( cd "$ROOT" && python3 docs/build-walkthrough.py --stdout >"$built" 2>"$err" ) && code=0 || code=$?
+  if [[ "$code" == 0 ]] && cmp -s "$built" "$committed"; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want: docs/walkthrough.html is what this tree builds — run \`make docs\` and commit it"
+    if [[ "$code" == 0 ]]; then
+      echo "    got:  built $(wc -c <"$built" | tr -d ' ') bytes / committed $(wc -c <"$committed" | tr -d ' ')"
+      diff "$committed" "$built" | sed 's/^/    | /' | head -8
+    else
+      sed 's/^/    | /' "$err" | head -6
+    fi
+  fi
+}
+
+# 28. and none of it reaches a reader until the page is rebuilt and the rebuild is
+#     committed. Everything since-mode needs lives in docs/wt/app.js and docs/wt/style.css,
+#     which the build inlines — so the sources can carry the whole reading mode while
+#     docs/walkthrough.html, the only file GitHub Pages publishes, still serves the page
+#     from before it. Nothing in `make test` sees that, because docs-check is kept out of
+#     it on purpose: prose lagging behind code must never bail a TDD run. This case is
+#     what makes the lag visible from `make docs-test`.
+page_is_current "the committed page is the one this tree builds"
 
 echo "----"
 echo "$pass passed, $fail failed"

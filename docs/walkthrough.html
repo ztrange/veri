@@ -105,6 +105,16 @@ main{padding:0 0 120px;min-width:0}
 .crumb .sep{color:var(--ink-faint);font-size:11px;padding:0 1px;user-select:none}
 .crumb .here{color:var(--ink);font-weight:600}
 .crumb .file{font-family:"JetBrains Mono",monospace;font-size:11.5px}
+/* The since-mode walk's two steppers, appended by app.js only when a version is chosen —
+   the resting bar has neither. They sit at the far right, away from the trail that grows
+   leftwards as the reader descends: margin-left:auto on the first one takes the slack, so
+   the pair stays put however long the current path is. */
+.crumb .crumb-step{margin-left:6px;padding:2px 7px;border:1px solid var(--rule);
+  border-radius:4px;background:transparent;color:var(--ink-soft);cursor:pointer;
+  font:inherit;font-size:12px;line-height:1.4}
+.crumb .crumb-step:first-of-type{margin-left:auto}
+.crumb .crumb-step:hover{color:var(--accent);border-color:var(--accent);
+  background:var(--accent-wash)}
 
 /* Anchors land below the bar rather than under it. */
 [id]{scroll-margin-top:calc(var(--crumb-h) + 14px)}
@@ -4951,6 +4961,97 @@ html{scroll-behavior:smooth}
 
   window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk,
                             since: chosen, choose: choose, markRead: markRead };
+})();
+
+/* veri, Annotated — since-mode: stepping the walk.
+   The layer above knows which hunks a reader's choice lights and in what order they come;
+   this is what moves the reader along them. Lit runs are a handful of short passages
+   scattered through two thousand lines of listing, so without a stepper the reader is back
+   to scrolling past every chip on the way — which is the whole point of the mode.
+
+   Four things step the one walk: `n` and `p`, and a pair of buttons in the crumb bar.
+   The keys are for the reader already reading; the buttons are for the one who does not
+   know there are keys, and the bar is where they belong because it is the only chrome that
+   stays on screen through two thousand lines.
+
+   The stops are the mark ELEMENTS in document order, not walk()'s entries: the press has
+   to end at a place in the page, and the DOM is the only thing that knows where a run of
+   lines sits. Which of them are stops is still lit()'s answer, read off the `data-tag`
+   the build put on each run's first line, so the walk and the dimming can never disagree
+   about what a choice lights.
+
+   Nothing is built when no version is chosen. A reader who has not asked what changed has
+   nothing to step, and buttons that step nothing are worse than absent — so the resting
+   page keeps exactly the bar it has always had. Since-mode is entered at load, from the
+   hash or the store, which is why deciding this once at load is the whole of it. */
+(function () {
+  "use strict";
+  var mode = window.__VERI_SINCE__;
+  var crumb = document.querySelector(".crumb");
+  if (!mode || !crumb) return;
+
+  var since = mode.since();
+  if (!since) return;                    // the resting page: no walk, and no buttons for one
+
+  var stops = [], marks = document.querySelectorAll("pre.src .l.hunk[data-tag]");
+  for (var i = 0; i < marks.length; i++) {
+    if (mode.lit(marks[i].getAttribute("data-tag"), since)) stops.push(marks[i]);
+  }
+  if (!stops.length) return;             // nothing has landed since: nothing to walk
+
+  /* Where the reader is in the walk. -1 is "not started": n takes them to the first stop,
+     and p has nowhere above to go. Both ends hold rather than wrapping — a walk that
+     rejoins itself sends a reader who pressed n once too often back to the top of the page
+     with no way to tell that from having landed on the next capability. */
+  var at = -1;
+
+  function step(delta) {
+    var to = at + delta;
+    if (to < 0 || to >= stops.length) return;
+    at = to;
+    stops[at].scrollIntoView({ block: "center" });
+  }
+
+  /* The two directions of the one walk, each spelled once and whole: the key that steps
+     it, the word the button is called by, the arrow it shows, and which way along the
+     stops it moves. Written out at the call sites instead — an argument list here and an
+     arm of the keydown there — `n` moving forwards and the button called "next" moving
+     forwards are two facts that merely agree, and an edit to one of them leaves a page
+     whose key and whose button walk opposite ways. In page order, which is also the order
+     the buttons are appended in: up the page first, then down it. */
+  var DIRECTIONS = [
+    { key: "p", word: "previous", glyph: "&uarr;", delta: -1 },
+    { key: "n", word: "next",     glyph: "&darr;", delta: 1 }
+  ];
+
+  function stepper(dir) {
+    /* What the button is called, spelled once and given to both places a browser looks
+       for a name: the accessibility tree and the native tooltip. Written out twice they
+       are two strings that happen to agree, and an edit to one of them leaves a screen
+       reader announcing a button the hover calls something else. */
+    var name = dir.word + " change since " + since;
+    var b = document.createElement("button");
+    b.className = "crumb-step";
+    b.setAttribute("type", "button");
+    b.setAttribute("aria-label", name);
+    b.setAttribute("title", name);
+    b.innerHTML = dir.glyph;             // the label a sighted reader reads is the arrow
+    b.addEventListener("click", function () { step(dir.delta); });
+    return b;
+  }
+
+  DIRECTIONS.forEach(function (dir) { crumb.appendChild(stepper(dir)); });
+
+  document.addEventListener("keydown", function (e) {
+    // a held modifier makes it the browser's shortcut, not ours: ⌘N opens a window
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    for (var d = 0; d < DIRECTIONS.length; d++) {
+      if (e.key !== DIRECTIONS[d].key) continue;
+      step(DIRECTIONS[d].delta);
+      e.preventDefault();                // a key we handled is not also the browser's
+      return;
+    }
+  });
 })();
 
 /* veri, Annotated — scrollspy: where am I.
