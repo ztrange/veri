@@ -311,11 +311,16 @@
   }
 
   function stepper(word, glyph, delta) {
+    /* What the button is called, spelled once and given to both places a browser looks
+       for a name: the accessibility tree and the native tooltip. Written out twice they
+       are two strings that happen to agree, and an edit to one of them leaves a screen
+       reader announcing a button the hover calls something else. */
+    var name = word + " change since " + since;
     var b = document.createElement("button");
     b.className = "crumb-step";
     b.setAttribute("type", "button");
-    b.setAttribute("aria-label", word + " change since " + since);
-    b.setAttribute("title", word + " change since " + since);
+    b.setAttribute("aria-label", name);
+    b.setAttribute("title", name);
     b.innerHTML = glyph;                 // the label a sighted reader reads is the arrow
     b.addEventListener("click", function () { step(delta); });
     return b;
