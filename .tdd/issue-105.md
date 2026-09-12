@@ -1,6 +1,6 @@
 # Plan for #105 — Rename the skill to /tdd: /tdd <n> solves one issue, /tdd [<scope>] drains a scope
 
-- [ ] the skill directory is skills/tdd/ and its frontmatter reads name: tdd
+- [x] the skill directory is skills/tdd/ and its frontmatter reads name: tdd
 - [ ] every path constant in the build and test plumbing spells skills/tdd, so make test is green on the new path with no skills/solve-issue/scripts reference left outside the two stubs
 - [ ] make docs-check is green on the new path, the walkthrough regenerated from skills/tdd/scripts
 - [ ] skills/solve-issue/SKILL.md and skills/solve-issues/SKILL.md remain as stubs whose body forwards the same arguments to /tdd

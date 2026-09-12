@@ -6,7 +6,7 @@
 # green when this target exits 0.
 
 .PHONY: test
-TESTS := $(sort $(wildcard skills/solve-issue/scripts/tests/*.test.sh))
+TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 
 test:
 	@fail=0; \

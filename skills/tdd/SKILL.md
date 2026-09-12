@@ -1,5 +1,5 @@
 ---
-name: solve-issue
+name: tdd
 description: >-
   Drive one GitHub issue end-to-end under TDD: scope it into a committed plan ledger, then
   loop Red → Green → Refactor cycles — each blind-verified by an independent agent — until
