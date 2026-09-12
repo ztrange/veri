@@ -176,7 +176,9 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
 
 ## Launching a leaf — detach, then wait in the foreground
 
-Every leaf launch below has the same three-part shape, and each phase spells it out in full:
+Every leaf launch below has the same three-part shape — clear the completion file, launch
+detached, wait in the foreground — and each phase spells it out in full. A **developer
+leaf** (red, green, refactor, revise) is launched straight through the supervisor:
 
 ```
 rm -f .tdd/<name>.exit
@@ -193,6 +195,21 @@ running and you have only spent the wait's budget: **call `wait-leaf.sh` again**
 times as it takes. Only a 0, 1 or 2 is an answer. Read the leaf's report from
 `.tdd/<name>.out` — the captured stdout — instead of from the launcher's stdout, which the
 detached call no longer hands you.
+
+A **verifier** (`verify.sh`, which goes through the supervisor too) takes the same shape
+with one wrinkle: the code that matters is the verifier's **verdict**, not the supervisor's
+status, so the detached shell records that verdict in a completion file of its own —
+
+```
+rm -f .tdd/verdict-<phase>.exit
+nohup bash -c "$S/verify.sh <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err; echo \$? > .tdd/verdict-<phase>.exit" > /dev/null 2>&1 &
+$S/wait-leaf.sh verdict-<phase>
+```
+
+— named `verdict-<phase>`, never `verify-<phase>`, which the verifier leaf's own supervisor
+already owns. `wait-leaf.sh` then returns **the verdict**: 0 PASS, 1 REJECT, 2 malformed or
+killed-stuck. The reason is read back from `.tdd/verify-<phase>.reason`, the file the revise
+step takes as a path.
 
 **Never launch a leaf in a background Bash call and then wait for its notification.** The
 conductor often runs as a print-mode session (`claude -p "/solve-issue <n>"` — the only way
@@ -371,12 +388,8 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    nohup bash -c "$S/verify.sh red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err; echo \$? > .tdd/verdict-red.exit" > /dev/null 2>&1 &
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    ```
-   The verifier goes through the supervisor too, so it is launched detached and waited on
-   exactly like a developer leaf — with one wrinkle: the code that matters is `verify.sh`'s
-   **verdict**, not the supervisor's status, so the detached shell records that verdict in a
-   completion file of its own (`verdict-red`, never `verify-red`, which the verifier leaf's
-   own supervisor already owns). `wait-leaf.sh` then returns **the verdict**: 0 PASS, 1
-   REJECT, 2 malformed or killed-stuck.
+   That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —
+   0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
    instead and continue at *Already satisfied — the pin*:
@@ -414,8 +427,7 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
    narration below.
-2. **Verify (blind)** — same detached launch and foreground wait as verify-red, and the
-   wait's code is again the verdict:
+2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
    ```
    rm -f .tdd/verdict-green.exit
    nohup bash -c "$S/verify.sh green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err; echo \$? > .tdd/verdict-green.exit" > /dev/null 2>&1 &
