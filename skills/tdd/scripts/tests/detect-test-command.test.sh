@@ -3,10 +3,11 @@
 # full suite of the repo at [repo-root] on stdout and exits 0; prints nothing and exits 3
 # when it cannot decide (the conductor then asks the human).
 #
-# Contract under test (issue #39):
-#   detect-test-command.sh [repo-root]   (default: the current directory)
-#   precedence, first match wins: .veri/test-command override, npm/pnpm/yarn, make,
-#   pytest, go, cargo, unittest — otherwise exit 3.
+# Contract under test (issues #39, #120):
+#   detect-test-command.sh [--issue <body-file>] [repo-root]   (root default: .)
+#   precedence, first match wins: the issue body's own `Test command:` line,
+#   .veri/test-command override, npm/pnpm/yarn, make, pytest, go, cargo, unittest —
+#   otherwise exit 3.
 #
 # Each case seeds a throwaway `mktemp -d` repo with only the marker files it is about:
 # the script inspects files, it never runs the command, so no toolchain is needed.
@@ -23,13 +24,16 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
-# detect <repo-root> -> sets $out to stdout and $code to the exit status. Every case needs
+# detect <args...> -> sets $out to stdout and $code to the exit status. Every case needs
 # both halves of the contract — what was printed *and* which of 0 / 3 was returned — and
 # capturing them together is fiddly enough to be worth naming once: command substitution
 # would otherwise leave $? describing the assignment, so `code=$?` has to come from the
 # line immediately after it. stderr is dropped because no case asserts on it.
-detect() {  # detect <repo-root> -> runs the script, sets $out/$code
-  out="$("$DETECT" "$1" 2>/dev/null)"
+#
+# The whole argument list is forwarded rather than a single repo root, because the script
+# is called two ways: with the root alone, and with `--issue <body-file>` before it.
+detect() {  # detect <args...> -> runs the script, sets $out/$code
+  out="$("$DETECT" "$@" 2>/dev/null)"
   code=$?
 }
 
@@ -45,6 +49,37 @@ matched() { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]]; }
 # halves of the mismatch; naming the wording once keeps those three notes identical, which
 # is what makes them readable side by side when a case fails on more than one repo.
 note() { misread="$misread ($1: exit=$code want 0, stdout='$out' want '$want')"; }
+
+# 0. an issue that names its own test command outranks everything, the override file
+# included. `--issue <body-file>` hands the script the issue body the conductor has already
+# read, and the first line of it matching `Test command:` is the answer, printed verbatim.
+#
+# The seeded repo arms every rule below it: a `.veri/test-command`, which until now beat
+# every inference; a package.json with a test script; a Makefile with a test target. So an
+# answer of the issue's command can only mean the body was consulted ahead of all three —
+# on a repo with no markers, any of them could have been what answered instead.
+#
+# Two `Test command:` lines are seeded because the claim is about the *first*: a body that
+# names the command again further down — in a note, a quotation, a later section — must not
+# have the last mention win. The line that must answer carries flags no rule could ever
+# infer, so any normalising or re-quoting of it shows up in stdout.
+#
+# The body is a file rather than the issue text on stdin because that is what the conductor
+# has: it saves the issue body to `.tdd/issue-<n>.md` in preflight, and every leaf is
+# launched with that path.
+want='bin/docs-suite --only docs --strict'
+repo="$work/issue-command"
+body="$work/issue-command-body.md"
+mkdir -p "$repo/.veri"
+printf '%s\n' 'bin/run-suite --all --strict' > "$repo/.veri/test-command"
+printf '{"scripts":{"test":"jest"}}\n' > "$repo/package.json"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '## Notes\n\nTest command: %s\n\nTest command: make other-test\n' "$want" > "$body"
+
+detect --issue "$body" "$repo"
+
+matched \
+  && ok || no "--issue: the body's first Test command: line beats .veri/test-command and every inference, printed verbatim (exit=$code want 0, stdout='$out' want '$want')"
 
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would

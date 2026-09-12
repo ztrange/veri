@@ -8,8 +8,19 @@
 # whatever a later inference would have guessed, a repo that wrote .veri/test-command
 # has already answered the question, so nothing downstream gets to second-guess it.
 #
-# Usage:   detect-test-command.sh [repo-root]      (default: the current directory)
+# Usage:   detect-test-command.sh [--issue <body-file>] [repo-root]
+#          (repo-root defaults to the current directory)
 set -euo pipefail
+
+# `--issue <body-file>` is optional and, when given, comes first — the conductor has
+# already saved the issue body to a file, so what is passed is a path, never the text.
+# `shift 2` drops both words so the repo root is read from $1 either way, and the empty
+# default keeps `set -u` from aborting on the unset variable when the flag is absent.
+issue=""
+if [ "${1:-}" = "--issue" ]; then
+  issue="${2:-}"
+  shift 2
+fi
 
 root="${1:-.}"
 
@@ -18,6 +29,34 @@ root="${1:-.}"
 # Naming that ending once keeps each rule to the question it asks, the `if` saying which
 # marker was found and `answer` saying what the marker means.
 answer() { printf '%s\n' "$1"; exit 0; }
+
+# 0. The issue's own line, ahead of even the override file. `.veri/test-command` is the
+# repo's answer for every run; a `Test command:` line in the issue body is this run's, and
+# the narrower claim wins — a docs issue says so in its own words and the leaves obey that
+# instead of the repo-wide suite.
+#
+# The first matching line answers, so a body that mentions the command again lower down —
+# in a note, a quotation, a later section — cannot overrule the one that stated it. What
+# follows the marker is printed verbatim but for the whitespace separating the two: the
+# `#` expansion drops the marker, and the loop drops spaces and tabs one at a time until
+# the first real character, since bash 3.2 has no trim of its own. A line with nothing
+# after the marker names no command, so it is skipped rather than answered with "".
+if [ -n "$issue" ] && [ -f "$issue" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      'Test command:'*)
+        cmd="${line#Test command:}"
+        while [ "${cmd# }" != "$cmd" ] || [ "${cmd#	}" != "$cmd" ]; do
+          cmd="${cmd# }"
+          cmd="${cmd#	}"
+        done
+        if [ -n "$cmd" ]; then
+          answer "$cmd"
+        fi
+        ;;
+    esac
+  done < "$issue"
+fi
 
 # 1. The override file. Its first non-empty line is the command, verbatim: `IFS=` keeps
 # read from stripping leading and trailing whitespace, -r keeps it from eating
