@@ -198,11 +198,11 @@ report "$name"
 # 8. the default refactor-budget.sh encodes and the prose that states it must not drift
 #    apart. Case 7 asks the running script what its default is; this case asks whether the
 #    sentences about it still say the same number. `VERI_REFACTOR_BUDGET`'s default is
-#    written down in four places: once as code (`budget="${VERI_REFACTOR_BUDGET:-N}"`) and
-#    three times as prose — the script's own header, SKILL.md's Refactor entry, and two
+#    written down in five places: once as code (`budget="${VERI_REFACTOR_BUDGET:-N}"`) and
+#    four times as prose — the script's own header, SKILL.md's Refactor entry, and two
 #    spots in docs/wt/commentary.py (the stage-5 three-budgets diagram, which lists each
 #    axis with its default, and refactor-budget.sh's own commentary, which quotes the
-#    assignment line verbatim). Changing the constant alone leaves three sentences
+#    assignment line verbatim). Changing the constant alone leaves four sentences
 #    confidently stating the old figure and nothing in the repo notices: the walkthrough is
 #    generated from the scripts, so `make docs` happily rebuilds a page whose hand-written
 #    commentary contradicts the source it sits next to.
