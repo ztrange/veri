@@ -413,6 +413,63 @@ else
 fi
 report "$name"
 
+# 8. The generated page caught up with the rename. `make docs-check`'s first question is
+#    whether rebuilding docs/walkthrough.html reproduces the committed bytes, and today it
+#    does not: the page still quotes issue-worktree.sh's comment as it read before the
+#    rename, and the old commentary around it, so that gate is red for a cause this branch
+#    created — this suite may not even write the string it is about. Running
+#    `make docs` and committing the result is what closes it, and a page that no longer
+#    names either old command is the observable fact that says it was done.
+#
+#    Case 5 skips this file with a note that its rebuild is a separate, later change. This
+#    is that change, so the exemption expires here — and the two cases stay distinct on
+#    purpose: case 5's subject is the SOURCE a human edits (docs/wt/commentary.py, the
+#    scripts), which it has already swept clean, and this one's is the ARTEFACT. That
+#    ordering is what makes this case readable: with every source clean, a page still
+#    carrying the old command can only be a page nobody rebuilt.
+#
+#    What it deliberately does NOT do is regenerate the page and diff it. That is
+#    `docs-fresh` — ~20 s of page build — and the Makefile keeps it out of `make test` on
+#    purpose: the page also encodes git tags, blame and a commit count, so a byte diff here
+#    would turn this repository's baseline red the moment anyone cut a tag in another
+#    worktree, and veri refuses to start a cycle on a red baseline. This case reads the
+#    committed bytes only, and is immune to all three.
+#
+#    The capability index is cut out first, for the reason .tdd/ is exempt from case 5: it
+#    is generated from annotated tag messages, which quote each issue's own words as they
+#    were written — v0.19 and v0.23 both say the old plural — and a tag's message is
+#    history, not documentation that can be brought up to date. Cutting it fails closed: a
+#    page carrying no index at all is reported rather than swept, since such a page would
+#    come up clean for the wrong reason.
+name="$generated_page names no old command outside the capability index"
+problems=()
+page="$ROOT/$generated_page"
+index_open='<ol class="vers">'
+if [[ ! -f "$page" ]]; then
+  problems+=("want the generated page at $generated_page, found none")
+elif ! grep -qF "$index_open" "$page"; then
+  problems+=("$generated_page carries no capability index ($index_open) — built without its version layer, so this sweep would pass for the wrong reason")
+else
+  # The index, open line through close line inclusive, dropped. `next` inside the cutting
+  # block is what excludes the closing line too, rather than letting it fall through.
+  body="$(awk -v open="$index_open" '
+    index($0, open) { cutting = 1 }
+    cutting { if (index($0, "</ol>")) cutting = 0; next }
+    { print }' "$page")"
+  # Same pattern case 5 sweeps the sources with: the COMMAND, not the path, so the page may
+  # go on naming skills/solve-issue/SKILL.md while telling a reader to invoke it is a fail.
+  offences="$(grep -cE "$cmd_re" <<< "$body")"
+  if [[ "$offences" -gt 0 ]]; then
+    # This page's lines run to thousands of characters, so quote the neighbourhood of the
+    # first offence; the head of its line usually does not contain it. The alternation is
+    # taken from $old_cmds rather than written out, as everywhere else in this suite, so
+    # the file sweeping for these strings still does not contain them.
+    where="$(grep -oE ".{0,40}(${old_cmds[0]}|${old_cmds[1]}).{0,40}" <<< "$body" | head -1)"
+    problems+=("$generated_page still names an old command on $offences line(s) — run make docs; first: …${where}…")
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
