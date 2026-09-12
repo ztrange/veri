@@ -81,6 +81,69 @@ detect --issue "$body" "$repo"
 matched \
   && ok || no "--issue: the body's first Test command: line beats .veri/test-command and every inference, printed verbatim (exit=$code want 0, stdout='$out' want '$want')"
 
+# 0b. the other half of rule 0: when the issue names no command, the rule steps aside and the
+# answer is exactly the one veri gave before `--issue` existed. Case 0 says the line wins when
+# it is there; this says nothing else moved when it is not — which is the half a fix can
+# quietly get wrong, by answering "" for a silent body, or by exiting 3 once the body has been
+# read, or by consuming the `--issue <file>` words and then reading the repo root out of the
+# wrong argument.
+#
+# Three seeded repos, one case, because "today's precedence, unchanged" is a single claim and
+# the only way to observe it is at each of its three outcomes: the override file still wins
+# (a `.veri/test-command` with a package.json armed beside it), an inference still fires where
+# there is no override (a Makefile `test:` target over a pytest.ini), and a repo with no marker
+# at all still prints nothing and exits 3. A rule 0 that swallowed the answer would pass on
+# one of the three and fail on the others.
+#
+# Each repo is asked twice, once per spelling the step names — `--issue <body-file>` with a
+# body that carries no `Test command:` line, and no `--issue` at all — so the label in
+# `misread` carries the argument form as well as the repo. The bare form is the pre-`--issue`
+# baseline the `--issue` form must equal, and having both side by side is what makes a
+# divergence between them legible.
+#
+# The body mentions a command only in prose. That is the near miss worth seeding: a rule that
+# looked for the *command* anywhere in the body rather than for a line opening with the marker
+# would answer `make docs-test` here, on an issue that never asked for it.
+#
+# `note` is not reused: it spells `want 0` into its wording, and the third repo's want is exit
+# 3 with empty stdout. `matched` is likewise the answering half only, so both halves are
+# asserted here against a per-repo `wantcode`, the way cases 4b and 8 assert theirs directly.
+misread=""
+body="$work/silent-body.md"
+printf '## Notes\n\nNo line here names the run command; `make docs-test` appears in prose only.\n' > "$body"
+
+for shape in override inference none; do
+  repo="$work/silent-$shape"
+  case "$shape" in
+    override)
+      mkdir -p "$repo/.veri"
+      printf '%s\n' 'bin/run-suite --all --strict' > "$repo/.veri/test-command"
+      printf '{"scripts":{"test":"jest"}}\n' > "$repo/package.json"
+      want='bin/run-suite --all --strict' ; wantcode=0 ;;
+    inference)
+      mkdir -p "$repo"
+      printf 'test:\n\techo hi\n' > "$repo/Makefile"
+      : > "$repo/pytest.ini"
+      want='make test' ; wantcode=0 ;;
+    none)
+      mkdir -p "$repo/src"
+      printf '# demo\n\nRun the test suite however you like.\n' > "$repo/README.md"
+      printf 'int main(void) { return 0; }\n' > "$repo/src/main.c"
+      want='' ; wantcode=3 ;;
+  esac
+
+  detect --issue "$body" "$repo"
+  [[ "$code" == "$wantcode" ]] && [[ "$out" == "$want" ]] \
+    || misread="$misread ($shape, --issue: exit=$code want $wantcode, stdout='$out' want '$want')"
+
+  detect "$repo"
+  [[ "$code" == "$wantcode" ]] && [[ "$out" == "$want" ]] \
+    || misread="$misread ($shape, no --issue: exit=$code want $wantcode, stdout='$out' want '$want')"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "a body with no Test command: line, and no --issue at all, both leave today's precedence untouched: override file, then inferences, exit 3 —$misread"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
