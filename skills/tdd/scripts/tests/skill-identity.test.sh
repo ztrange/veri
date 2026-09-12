@@ -12,6 +12,8 @@
 #   skills/tdd/ is a directory, and skills/tdd/SKILL.md's frontmatter reads `name: tdd`.
 #   No tracked file outside the two forwarding stubs still names the scripts directory
 #   under the skill's old home — the build and test plumbing follows the skill when it moves.
+#   Each old name still has a SKILL.md, declaring that old name and forwarding $ARGUMENTS
+#   to /tdd, so a session already invoked on the old command keeps working.
 #
 # Run: scripts/tests/skill-identity.test.sh
 set -uo pipefail
@@ -169,6 +171,60 @@ if [[ -f "$ROOT/$commentary" ]]; then
 else
   problems+=("want the page's commentary at $commentary, found none")
 fi
+report "$name"
+
+# frontmatter_name <file> — the value of the first `name:` inside the leading `---` block,
+# empty if the block or the field is missing. Same scan as case 1's: sub() edits $0 and
+# returns how many replacements it made, so it doubles as the "this line is the name field"
+# test, and the exit at the closing `---` stops prose below from answering for it.
+frontmatter_name() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next }
+       inside && $0 == "---" { exit }
+       inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
+}
+
+# skill_body <file> — everything after the frontmatter block: the instruction a session
+# actually reads. The frontmatter is excluded on purpose, because a stub's `description:`
+# goes on describing the old command, and it must not be able to answer for the body.
+skill_body() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next }
+       inside && $0 == "---" { inside = 0; body = 1; next }
+       body { print }' "$1"
+}
+
+# 4. What the move leaves behind. Deleting the old names would strand any session already
+#    invoked on one mid-run, so both keep a SKILL.md — a stub that does the one thing a
+#    stub does: send the session on with the arguments it was given. That is three
+#    observable facts per file, and all three are needed. The file has to be there at all;
+#    its frontmatter has to still declare the OLD name, since that field is the command
+#    Claude Code resolves `/solve-issue` by, and a stub renamed to `tdd` would answer to
+#    nothing; and the body has to name both `/tdd` and `$ARGUMENTS` — the destination, and
+#    the harness's own spelling for "the arguments this invocation carried", used that way
+#    by every SKILL.md in this repo. A body naming only `/tdd` documents a rename; one that
+#    forwards is what keeps the old command working.
+name='both old-name SKILL.md stubs forward $ARGUMENTS to /tdd'
+problems=()
+for stub in "${stubs[@]}"; do
+  # The command a stub answers to is its own directory's name — derived, not written out
+  # again, so the `stubs` list above stays the one place the two old names are spelled.
+  old_name="$(basename "$(dirname "$stub")")"
+  if [[ ! -f "$ROOT/$stub" ]]; then
+    problems+=("want a stub at $stub, found none")
+    continue
+  fi
+  got="$(frontmatter_name "$ROOT/$stub")"
+  [[ "$got" == "$old_name" ]] ||
+    problems+=("$stub frontmatter: want name '$old_name', got $(printf '%q' "$got")")
+  body="$(skill_body "$ROOT/$stub")"
+  case "$body" in
+    */tdd*) ;;
+    *) problems+=("$stub body never names /tdd, so it forwards nowhere") ;;
+  esac
+  case "$body" in
+    *'$ARGUMENTS'*) ;;
+    *) problems+=("$stub body never names \$ARGUMENTS, so it forwards no arguments") ;;
+  esac
+done
 report "$name"
 
 echo "----"
