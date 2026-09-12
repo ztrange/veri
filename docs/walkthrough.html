@@ -4810,20 +4810,31 @@ html{scroll-behavior:smooth}
     return readRank >= 0 && hunkRank > readRank;
   }
 
+  /* The capabilities that choice lights, newest first — the one place that asks which
+     versions came after the reader's, so the index and the walk below can never disagree
+     about which they are.
+
+     Read out of ORDER, never out of window.__VERI_HUNKS__: the map is keyed by the tags
+     that own a hunk, so a capability that changed nothing this page quotes is absent from
+     it, and walking the map would tell the reader a version they have not read does not
+     exist. Its keys are a JSON object's besides, which is to say lexical — v0.10 before
+     v0.9. */
+  function litTags(since) {
+    var tags = [];
+    for (var i = ORDER.length - 1; i >= 0; i--) {
+      if (lit(ORDER[i], since)) tags.push(ORDER[i]);
+    }
+    return tags;
+  }
+
   /* The capability index for that same reader: the versions after the one they last
      read, newest first, each carrying the hunks it touched so the row says WHERE it
-     changed something and not only that it did.
-
-     The rows come from ORDER and the map is read into them, never the other way round:
-     window.__VERI_HUNKS__ is keyed by the tags that own a hunk, so a capability that
-     changed nothing this page quotes is absent from it, and walking the map would tell
-     the reader a version they have not read does not exist. Such a row is a row with an
-     empty list. */
+     changed something and not only that it did. A version that touched nothing the page
+     quotes is a row with an empty list. */
   function index(since) {
-    var rows = [];
-    for (var i = ORDER.length - 1; i >= 0; i--) {
-      var tag = ORDER[i];
-      if (lit(tag, since)) rows.push({ tag: tag, hunks: HUNKS[tag] || [] });
+    var rows = [], tags = litTags(since);
+    for (var i = 0; i < tags.length; i++) {
+      rows.push({ tag: tags[i], hunks: HUNKS[tags[i]] || [] });
     }
     return rows;
   }
@@ -4832,19 +4843,18 @@ html{scroll-behavior:smooth}
      bar — step through, so that next always moves the reader down the page and previous
      always back up it.
 
-     The sort is what makes it a walk. window.__VERI_HUNKS__ is keyed by tag, so reading
-     it out as it comes hands back the hunks grouped by capability and the capabilities
-     in the order JSON happened to write the keys — newest capability first within a
-     script, and the scripts interleaved. A reader pressing n through that is thrown up
-     and down two thousand lines of listing. Page order is the order the page lists its
-     scripts, lowest line first inside one: PAGE_RANK for the script, the hunk's first
-     line for the tie. Never the script's name, which puts classify-bail.sh before
-     supervise.sh as text and after it on the page. */
+     The sort is what makes it a walk. The hunks arrive grouped by capability, newest
+     capability first — the index's order, which is not the page's: one script's runs are
+     scattered across several groups and the scripts interleaved, so a reader pressing n
+     through them is thrown up and down two thousand lines of listing. Page order is the
+     order the page lists its scripts, lowest line first inside one: PAGE_RANK for the
+     script, the hunk's first line for the tie. Never the script's name, which puts
+     classify-bail.sh before supervise.sh as text and after it on the page. */
   function walk(since) {
-    var stops = [];
-    Object.keys(HUNKS).forEach(function (tag) {
-      if (lit(tag, since)) stops = stops.concat(HUNKS[tag]);
-    });
+    var stops = [], tags = litTags(since);
+    for (var i = 0; i < tags.length; i++) {
+      stops = stops.concat(HUNKS[tags[i]] || []);
+    }
     // An entry is [script, first, last, description]. A script the nav does not carry
     // has no place on the page, so it sorts last rather than poisoning the comparison
     // with a NaN.
