@@ -6,5 +6,5 @@
 - [x] skills/solve-issue/SKILL.md and skills/solve-issues/SKILL.md remain as stubs whose body forwards the same arguments to /tdd
 - [x] no file outside those two stubs mentions /solve-issue or /solve-issues except to describe the stubs
 - [x] skills/tdd/SKILL.md resolves its argument — an integer is the single-issue procedure, any other word is a scope, bare /tdd is /tdd plain — with the loop procedure folded in and no ../solve-issue/scripts sibling coupling left
-- [ ] the scope's selection label is ready-for-agent for scope plain and ready-for-agent:<scope> otherwise, with VERI_LABEL still overriding it
+- [x] the scope's selection label is ready-for-agent for scope plain and ready-for-agent:<scope> otherwise, with VERI_LABEL still overriding it
 - [ ] the committed docs/walkthrough.html matches a fresh build, so make docs-check is green end to end
