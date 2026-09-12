@@ -48,7 +48,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-pass=0 fail=0
+pass=0 fail=0 ran=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -70,9 +70,14 @@ trap 'rm -rf "$WORK"' EXIT
 # `set -u` safety is in the read, not in `[[ ]]` short-circuiting past an unset `$ONLY`
 # before it can be expanded. It stays quoted in the pattern: a filter is a substring to
 # find, never a glob to match, so `*` in it means an asterisk.
+#
+# It also counts what it let through, because this is the one place that knows: a filter
+# that matches nothing otherwise ends the suite green over a run that asserted nothing, so
+# `ran` is what the tail below turns into exit 3.
 selected() {
   local filter="${ONLY:-}"
-  [[ -z "$filter" || "$1" == *"$filter"* ]]
+  [[ -z "$filter" || "$1" == *"$filter"* ]] || return 1
+  ran=$((ran + 1))
 }
 
 # Which sandbox the assertion helpers below build in. Most cases want the default —
@@ -2350,6 +2355,19 @@ page_is_current() {
 #     it on purpose: prose lagging behind code must never bail a TDD run. This case is
 #     what makes the lag visible from `make docs-test`.
 page_is_current "the committed page is the one this tree builds"
+
+# A filter that matched nothing is the typo path, and the one place a silent green is
+# actively dangerous: every case skipped, nothing asserted, and `[[ $fail -eq 0 ]]` exits 0
+# — so a leaf that mistyped its ONLY reads "the guards pass" off a run that guarded
+# nothing. Exit 3 instead, the code every veri script uses for nothing to do (CLAUDE.md:
+# exit codes are the API), and name the filter so the typo is visible in the message.
+#
+# Before the count line, not after it: a run that asserted nothing has no count to report,
+# and printing "0 passed" would be the same false reassurance in another shape.
+if [[ "$ran" -eq 0 ]]; then
+  echo "no case matches ONLY='${ONLY:-}' — nothing to do"
+  exit 3
+fi
 
 echo "----"
 echo "$pass passed, $fail failed"
