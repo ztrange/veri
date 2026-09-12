@@ -133,10 +133,12 @@ if need_section '### 0. Preflight' 'where the baseline reads its test command co
   if [[ -z "$detect_at" ]]; then
     problems+=("$skill_md preflight never names detect-test-command.sh, so the baseline runs a command from nowhere")
   else
-    case "$(line_at "$detect_at")" in
-      *--issue*) ;;
-      *) problems+=("$skill_md:$detect_at detects the test command without --issue, so the issue's own line cannot answer: $(line_at "$detect_at")") ;;
-    esac
+    # The offending line, read once and named, so the test and the message it quotes are
+    # provably the same string — and so this probe reads like its two siblings below
+    # rather than as a `case` whose matching arm does nothing.
+    detect_line="$(line_at "$detect_at")"
+    [[ "$detect_line" == *--issue* ]] ||
+      problems+=("$skill_md:$detect_at detects the test command without --issue, so the issue's own line cannot answer: $detect_line")
   fi
   if [[ -z "$body_at" ]]; then
     problems+=("$skill_md preflight never reads the issue body (no gh issue view), so there is no body file to pass as --issue")
