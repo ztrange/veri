@@ -6,9 +6,9 @@
 #
 # Contract under test (issue #42):
 #   refactor-budget.sh <count>  → exit 0 while <count> is below VERI_REFACTOR_BUDGET
-#                                 (default 2), exit 3 once the budget is spent;
+#                                 (default 5, issue #106), exit 3 once the budget is spent;
 #                                 a one-line status on stdout either way, so the
-#                                 conductor can mirror it (`refactor 2/2 — budget spent`).
+#                                 conductor can mirror it (`refactor 5/5 — budget spent`).
 #   VERI_REFACTOR_BUDGET=0      → exit 3 at count 0: the refactor loop is switched off.
 #
 # Run: scripts/tests/refactor-budget.test.sh
@@ -33,13 +33,13 @@ report() {
 }
 
 # 1. with the default budget — VERI_REFACTOR_BUDGET unset, so the script's own default
-#    of 2 applies — counts 0 and 1 mean "another transform may run" (exit 0) and count 2
+#    of 5 applies — counts 0 and 4 mean "another transform may run" (exit 0) and count 5
 #    means "budget spent" (exit 3). Every answer prints a one-line status.
 #    The three probes are one criterion, so they are reported as one case; `problems`
 #    collects what went wrong in each so the FAIL line says which count broke.
-name="default budget: counts 0 and 1 exit 0, count 2 exits 3, each with a one-line status"
+name="default budget: counts 0 and 4 exit 0, count 5 exits 3, each with a one-line status"
 problems=()
-for probe in "0 0" "1 0" "2 3"; do
+for probe in "0 0" "4 0" "5 3"; do
   count="${probe% *}" exp_code="${probe#* }"
   # env -u clears the variable for the child only, so the test never depends on — nor
   # disturbs — whatever the surrounding run has set.
@@ -123,7 +123,7 @@ count_probe "no argument"
 report "$name"
 
 # 5. a decimal count is the fourth way to get the positional wrong, and the one that fails
-#    most quietly: `1.5` is not an integer, so `[[ 1.5 -lt 2 ]]` cannot evaluate it — bash
+#    most quietly: `1.5` is not an integer, so `[[ 1.5 -lt 5 ]]` cannot evaluate it — bash
 #    prints its own arithmetic syntax error and the comparison comes back false, which
 #    reads as "budget spent" (exit 3) with a status line on stdout. Exit 3 means "nothing
 #    to do", a real answer, so the conductor would stop the refactor loop on a malformed
@@ -135,15 +135,15 @@ count_probe "count 1.5" 1.5
 report "$name"
 
 # 6. the other side of cases 4 and 5: a guard that refuses bad counts must still let the
-#    good ones through untouched. 0, 1 and 2 are the whole of the default budget's range —
-#    below, below, spent — and each keeps the answer it gave before the guard existed:
+#    good ones through untouched. 0, 4 and 5 span the default budget's range — first,
+#    last-below, spent — and each keeps the answer it gave before the guard existed:
 #    exit 0, 0, 3, one line on stdout and, because a valid call is not a diagnosable one,
 #    nothing at all on stderr. That last probe is what case 1 cannot see: it sends stderr
 #    to /dev/null, so a guard that fired its diagnostic and carried on would pass there and
 #    fail here. Three counts, one criterion, so one case; `problems` says which broke.
-name="valid counts 0, 1 and 2 keep their answers — exit 0, 0, 3, one line on stdout, nothing on stderr"
+name="valid counts 0, 4 and 5 keep their answers — exit 0, 0, 3, one line on stdout, nothing on stderr"
 problems=()
-for probe in "0 0" "1 0" "2 3"; do
+for probe in "0 0" "4 0" "5 3"; do
   count="${probe% *}" exp_code="${probe#* }"
   # Separate streams into their own files: the case is about which stream carries what.
   out="$(mktemp)" err="$(mktemp)"
@@ -156,6 +156,36 @@ for probe in "0 0" "1 0" "2 3"; do
   [[ ! -s "$err" ]] ||
     problems+=("count $count: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
   rm -f "$out" "$err"
+done
+report "$name"
+
+# 7. the default budget is 5, not 2 (issue #106). Two transforms was low enough that most
+#    steps stopped by budget rather than by "nothing left to tidy", which made the loop read
+#    as running once; five gives a step room to actually run dry. One criterion with three
+#    faces, so one case: with VERI_REFACTOR_BUDGET unset the boundary sits between 4 and 5
+#    (count 4 exits 0, count 5 exits 3); an explicit value still overrides the default
+#    rather than being clamped by it (VERI_REFACTOR_BUDGET=3 makes count 3 spent); and the
+#    status line names the budget actually in force — `refactor 4/5`, not a stale `/2` —
+#    because that line is what the conductor mirrors into the issue thread.
+#    `problems` says which probe broke.
+name="the default budget is 5: unset, count 4 exits 0 and count 5 exits 3, an explicit value still overrides, and the status line names the budget in force"
+problems=()
+# Each probe: <env value, or `-` for unset> <count> <expected exit> <expected status prefix>
+for probe in "- 4 0 refactor 4/5" "- 5 3 refactor 5/5" "3 3 3 refactor 3/3"; do
+  set -- $probe
+  budget_env="$1" count="$2" exp_code="$3" exp_status="$4 $5"
+  label="VERI_REFACTOR_BUDGET=$budget_env count $count"
+  if [[ "$budget_env" == "-" ]]; then
+    # env -u clears the variable for the child only, so the probe sees the script's own
+    # default and nothing the surrounding run has set.
+    out="$(env -u VERI_REFACTOR_BUDGET "$BUDGET" "$count" 2>/dev/null)" && code=0 || code=$?
+  else
+    out="$(VERI_REFACTOR_BUDGET="$budget_env" "$BUDGET" "$count" 2>/dev/null)" && code=0 || code=$?
+  fi
+  [[ "$code" == "$exp_code" ]] ||
+    problems+=("$label: want exit $exp_code, got $code")
+  [[ "$out" == "$exp_status "* ]] ||
+    problems+=("$label: want a status starting '$exp_status ', got: $(printf '%q' "$out")")
 done
 report "$name"
 
