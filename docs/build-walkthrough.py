@@ -299,14 +299,19 @@ def chunk_marks(meta):
     if not meta:
         return {}
     tags = [v["tag"] for v in meta["versions"]]
-    spans = [(s["file"], ch["span"]) for s in com.SCRIPTS for ch in s["chunks"]]
-    dated = gitmeta.prose_marks(ROOT, COMMENTARY_REL, tags, [sp for _f, sp in spans])
+    dated = gitmeta.prose_marks(
+        ROOT, COMMENTARY_REL, tags,
+        [ch["span"] for s in com.SCRIPTS for ch in s["chunks"]])
     marks = {}
-    for fname, span in spans:
-        tag = dated.get(span)
-        since = (meta["marks"].get(fname) or {}).get("since")
-        if tag and since in tags and tags.index(tag) > tags.index(since):
-            marks[(fname, span)] = tag
+    for s in com.SCRIPTS:
+        since = (meta["marks"].get(s["file"]) or {}).get("since")
+        if since not in tags:                   # a script no tag contains has no floor
+            continue
+        floor = tags.index(since)
+        for ch in s["chunks"]:
+            tag = dated.get(ch["span"])
+            if tag and tags.index(tag) > floor:
+                marks[(s["file"], ch["span"])] = tag
     return marks
 
 
