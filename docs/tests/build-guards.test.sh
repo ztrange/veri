@@ -941,6 +941,20 @@ if (process.env.VERI_ASK_WIRED) {
     return el;
   };
 
+  /* The two ways a page asks about an element's classes, answered off the `class` the
+     markup actually carried: `classList.contains` for one token, `matches` for a selector
+     naming any of them. A function of its own rather than the four lines written into the
+     loop below, because each element needs its OWN `tokens` — a `var` in a loop body is
+     one binding the whole loop shares, so every mark would end up answering with the last
+     mark's classes, and the walk would read every element on the page as prose. */
+  var classedAs = function (el, classes) {
+    var tokens = classes.split(/\s+/);
+    el.className = classes;
+    el.classList.contains = function (c) { return tokens.indexOf(c) >= 0; };
+    el.matches = function (sel) { return tokens.some(function (t) { return sel.indexOf(t) >= 0; }); };
+    return el;
+  };
+
   /* Every version mark the page ships, in document order, each carrying the attributes
      its own element carries: a source hunk's first line and a commentary chunk's chip
      alike. Both are found by `data-tag`, which is the page's one word for "this element
@@ -961,12 +975,7 @@ if (process.env.VERI_ASK_WIRED) {
       mark.setAttribute(pair[1], pair[2]);
       if (pair[1].indexOf("data-") === 0) mark.dataset[pair[1].slice(5)] = pair[2];
     }
-    mark.className = mark.getAttribute("class") || "";
-    (function (el) {
-      var tokens = el.className.split(/\s+/);
-      el.classList.contains = function (c) { return tokens.indexOf(c) >= 0; };
-      el.matches = function (sel) { return tokens.some(function (t) { return sel.indexOf(t) >= 0; }); };
-    })(mark);
+    classedAs(mark, mark.getAttribute("class") || "");
     mark.position = marks.length + 1;    // where it sits among the marks, top of page first
     marks.push(mark);
   }
