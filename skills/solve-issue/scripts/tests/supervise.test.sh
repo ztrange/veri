@@ -154,13 +154,12 @@ estuck="$(recorded_code exit-stuck 1 30 leaf-hang)"
 #     out in words once ("a hang trips in two seconds instead of forty-five"), which no
 #     regex here can compare against a number.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
-encoded="$(grep -oE 'VERI_HEARTBEAT:-[0-9]+' "$SUP" | head -1 | grep -oE '[0-9]+')"
 
 # stated <file> <extended-regex> — the figure the first match of <regex> states, or
 # '<none>' / '<no-file>' when there is nothing to read. Newlines are squashed to spaces
-# first, because this prose wraps at ~90 columns and a statement split across two lines is
-# still one statement; the figure is the LAST run of digits in the match, which is why
-# every regex below stops at it.
+# first, because the prose below wraps at ~90 columns and a statement split across two
+# lines is still one statement; the figure is the LAST run of digits in the match, which is
+# why every regex here stops at it.
 stated() {
   local hit
   [[ -f "$1" ]] || { echo '<no-file>'; return; }
@@ -169,8 +168,12 @@ stated() {
   printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
 }
 
+# The code site, read through that same helper: `heartbeat="${VERI_HEARTBEAT:-N}"` states
+# the figure as much as the four sentences do, and it is the one the others must match.
+encoded="$(stated "$SUP" 'VERI_HEARTBEAT:-[0-9]+')"
+
 prose_misses=""
-[[ -n "$encoded" ]] || prose_misses=" supervise.sh:no-VERI_HEARTBEAT-default-found"
+[[ "$encoded" =~ ^[0-9]+$ ]] || prose_misses=" supervise.sh:no-VERI_HEARTBEAT-default-found"
 while IFS='|' read -r where file regex; do
   [[ -n "$where" ]] || continue
   got="$(stated "$ROOT/$file" "$regex")"
@@ -183,7 +186,7 @@ commentary.py-streaming-note|docs/wt/commentary.py|[0-9]+-second silence window
 SITES
 
 [[ -z "$prose_misses" ]] && ok \
-  || no "the heartbeat default encoded in supervise.sh and every prose statement of it agree (encoded=${encoded:-<none>}, drift:$prose_misses)"
+  || no "the heartbeat default encoded in supervise.sh and every prose statement of it agree (encoded=$encoded, drift:$prose_misses)"
 
 # 11. the silence window a leaf actually gets when VERI_HEARTBEAT is unset is 180s, and an
 #     explicit VERI_HEARTBEAT still wins over it. Case 10 compares numbers written down in
