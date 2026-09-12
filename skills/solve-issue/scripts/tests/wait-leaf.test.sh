@@ -48,6 +48,15 @@ waited() {
   wait
 }
 
+# promptly <result> <want-code> — true when a `waited` result reads "<want-code> <secs>" and
+# the wait took no longer than the writer's delay plus slack, i.e. it returned when the file
+# landed instead of sitting out the budget. Splitting that pair apart is the same two
+# parameter expansions in every arm, so it is named once here rather than spelled out thrice.
+promptly() {
+  local rc="${1%% *}" secs="${1#* }" want="$2"
+  [[ "$rc" == "$want" ]] && [[ "$secs" =~ ^[0-9]+$ ]] && [[ "$secs" -le 10 ]]
+}
+
 # 1. the recorded supervisor code, returned as soon as the file lands. Three arms, one per
 #    status in the contract, because "the recorded code" means the file's contents and not
 #    a fixed answer that happens to match one of them — a script that always exited 0 would
@@ -55,14 +64,9 @@ waited() {
 w_ok="$(waited    late-ok    0)"
 w_fail="$(waited  late-fail  1)"
 w_stuck="$(waited late-stuck 2)"
-prompt=1
-for r in "$w_ok" "$w_fail" "$w_stuck"; do
-  [[ "${r#* }" =~ ^[0-9]+$ ]] && [[ "${r#* }" -le 10 ]] || prompt=0
-done
-{ [[ "${w_ok%% *}"    == 0 ]] &&
-  [[ "${w_fail%% *}"  == 1 ]] &&
-  [[ "${w_stuck%% *}" == 2 ]] &&
-  [[ "$prompt" == 1 ]]; } && ok \
+{ promptly "$w_ok"    0 &&
+  promptly "$w_fail"  1 &&
+  promptly "$w_stuck" 2; } && ok \
   || no "exits with the code recorded a couple of seconds into the wait, as soon as it lands (got '<code> <secs>': success=$w_ok want '0 <=10', failure=$w_fail want '1 <=10', killed-stuck=$w_stuck want '2 <=10')"
 
 echo "----"
