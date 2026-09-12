@@ -238,9 +238,9 @@ stated() {
 # states the figure as much as the three sentences do, and it is the one the others must
 # match. The script's header mentions the tunable earlier in the file, but says `(default
 # N)` rather than `:-N`, so this pattern's first match is the assignment itself.
-name="the default budget encoded in refactor-budget.sh and every prose statement of it agree"
 encoded="$(stated "$BUDGET" 'VERI_REFACTOR_BUDGET:-[0-9]+')"
 
+name="the default budget encoded in refactor-budget.sh and every prose statement of it agree"
 problems=()
 [[ "$encoded" =~ ^[0-9]+$ ]] ||
   problems+=("refactor-budget.sh: no VERI_REFACTOR_BUDGET default found, got: $encoded")
