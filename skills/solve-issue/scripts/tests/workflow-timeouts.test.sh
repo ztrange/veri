@@ -16,12 +16,18 @@
 #   job observably takes and the ~230 s it took while the docs gates ran in CI, and says
 #   the budget assumes those gates stay out of CI.
 #
+#   .github/workflows/pages.yml, the `deploy` job: `timeout-minutes: 10` at job level, and
+#   the comment beside it names the same 6-hour ceiling, cites the 11–23 s the job
+#   observably takes, and says why its number is larger than the gates job's — it waits on
+#   GitHub's Pages service rather than on local deterministic work.
+#
 # Run: scripts/tests/workflow-timeouts.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 CI_YML="$ROOT/.github/workflows/ci.yml"
+PAGES_YML="$ROOT/.github/workflows/pages.yml"
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -113,6 +119,49 @@ else
     '(2[0-9][0-9][ -]?s|3\.8[ -]?min)'
   probe "comment does not say the budget assumes the docs gates stay out of CI" \
     'docs' '(out of ci|outside ci|not in ci|stay out|stays out)'
+fi
+report "$name"
+
+# 2. The same shape for the other workflow: the `deploy` job in pages.yml caps at 10, and
+#    its comment has to carry the three facts that make 10 the right number rather than a
+#    copy of the gates job's 3 — the ceiling it protects against, the duration it leaves
+#    headroom over, and why this job's budget is the larger one.
+name="pages.yml deploy: timeout-minutes 10, with a comment citing the 6-hour ceiling, 11-23 s, and why it is larger than gates"
+problems=()
+
+block=()
+while IFS= read -r line; do block+=("$line"); done < <(job_block "$PAGES_YML" deploy)
+n="${#block[@]}"
+
+timeout_re='^    timeout-minutes:[ ]*10[ ]*(#.*)?$'
+idx=-1
+i=0
+while [[ "$i" -lt "$n" ]]; do
+  if [[ "${block[$i]}" =~ $timeout_re ]]; then idx="$i"; break; fi
+  i=$((i + 1))
+done
+
+if [[ "$n" -eq 0 ]]; then
+  problems+=("no deploy job found in $PAGES_YML")
+elif [[ "$idx" -lt 0 ]]; then
+  problems+=("deploy job declares no job-level 'timeout-minutes: 10'")
+else
+  ctx="${block[$idx]}"
+  j=$((idx - 1))
+  while [[ "$j" -ge 0 ]] && [[ "${block[$j]}" =~ ^[[:space:]]*# ]]; do
+    ctx="${block[$j]}"$'\n'"$ctx"
+    j=$((j - 1))
+  done
+  lc="$(printf '%s' "$ctx" | tr 'A-Z' 'a-z')"
+
+  probe "comment beside the timeout does not name the 6-hour default ceiling" \
+    '(6[ -]?h|six[ -]?hour)'
+  probe "comment does not cite the 11-23 s the job observably takes" \
+    '(^|[^0-9])11([^0-9]|$)' '23[ -]?s'
+  probe "comment does not say the job waits on GitHub's Pages service" \
+    '(wait|waits|waiting)' 'pages'
+  probe "comment does not say why its budget is larger than the gates job's" \
+    '(gates|local|deterministic)' '(larger|longer|bigger|generous|more than)'
 fi
 report "$name"
 
