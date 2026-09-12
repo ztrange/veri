@@ -524,8 +524,9 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    rather than leave a red suite, **no untested generality** (it comes only from
    **triangulation**), and code that is **overfit** (e.g. hard-codes the one tested case)
    **flagged as needing a triangulating test**, never hand-generalized. Each leaf's report
-   ends with `RESULT:` (`applied <transform>, suite green` or `nothing left to tidy`) and
-   `FLAGS:` (overfit code and the case that would force the generality, or `none`). The loop
+   ends with `RESULT:` (`applied <transform>, suite green` or `nothing left to tidy`),
+   `FLAGS:` (overfit code and the case that would force the generality, or `none`) and one
+   `CANDIDATES:` line per transform it still sees left in those files (or `none`). The loop
    has **two** stop conditions, and either ends it: a leaf reports **nothing left to tidy**,
    or `refactor-budget.sh` exits **3** (the budget is spent). Carry the flags of every leaf
    into the narration, then go to sub-step 2. Exit **2 cannot occur here** — preflight ran
@@ -548,7 +549,10 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    Say **how many transforms ran** and **which stop condition ended the loop** — a leaf's
    `nothing left to tidy`, or the budget — mirroring `refactor-budget.sh`'s own status line
    (`refactor 2/2 — budget spent`), so a reader can tell a step that was tidy from a step
-   that ran out of budget.
+   that ran out of budget. A step that ran dry says **nothing left to tidy**; a step the
+   budget stopped says **how many candidates** the last leaf left and **lists** them, one
+   per line, taken verbatim from its `CANDIDATES:` lines — a count with no items is not a
+   backlog, and the backlog is the whole point of recording what the budget dropped.
    - **PASS:** the step's cycle is complete — **mirror to the issue**: post a `### ✅ Step
      done` comment, and tick the matching acceptance criterion in the **issue body**
      (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Then loop back to
