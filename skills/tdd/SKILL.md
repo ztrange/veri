@@ -134,8 +134,8 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   **exit 3** = budget spent (stop the loop, go to verify-refactor), **exit 2** =
   `VERI_REFACTOR_BUDGET` is not a whole number ≥ 0 — a misconfigured run, with a diagnostic
   on stderr and **nothing on stdout**, fail-closed the way `classify-bail.sh` is on an
-  unrecognised cause. A one-line status goes to stdout on 0 and 3 alike (`refactor 2/2 —
-  budget spent`), so your narration can mirror it. `VERI_REFACTOR_BUDGET` (default 2) is a
+  unrecognised cause. A one-line status goes to stdout on 0 and 3 alike (`refactor 5/5 —
+  budget spent`), so your narration can mirror it. `VERI_REFACTOR_BUDGET` (default 5) is a
   **third** tunable on a **third axis**: `VERI_STUCK_RETRIES` is liveness (the leaf never
   answered), `REVISE_BUDGET` is verdict (it answered and was rejected), this one is **cost
   per step** — how much tidying one step is worth, decided once for the run instead of by
