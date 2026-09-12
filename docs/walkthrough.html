@@ -4793,6 +4793,7 @@ html{scroll-behavior:smooth}
 (function () {
   "use strict";
   var ORDER = window.__VERI_ORDER__ || [];
+  var HUNKS = window.__VERI_HUNKS__ || {};
 
   function lit(tag, since) {
     var hunkRank = ORDER.indexOf(tag), readRank = ORDER.indexOf(since);
@@ -4802,7 +4803,24 @@ html{scroll-behavior:smooth}
     return readRank >= 0 && hunkRank > readRank;
   }
 
-  window.__VERI_SINCE__ = { lit: lit };
+  /* The capability index for that same reader: the versions after the one they last
+     read, newest first, each carrying the hunks it touched so the row says WHERE it
+     changed something and not only that it did.
+
+     The rows come from ORDER and the map is read into them, never the other way round:
+     window.__VERI_HUNKS__ is keyed by the tags that own a hunk, so a capability that
+     changed nothing this page quotes is absent from it, and walking the map would tell
+     the reader a version they have not read does not exist. Such a row is a row with an
+     empty list. */
+  function index(since) {
+    var rows = [];
+    for (var i = ORDER.length - 1; i >= 0; i--) {
+      if (lit(ORDER[i], since)) rows.push({ tag: ORDER[i], hunks: HUNKS[ORDER[i]] || [] });
+    }
+    return rows;
+  }
+
+  window.__VERI_SINCE__ = { lit: lit, index: index };
 })();
 
 /* veri, Annotated — scrollspy: where am I.
