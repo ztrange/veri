@@ -19,7 +19,11 @@
 # The pin lives here, under `make test`, rather than inside the suite it is about: `make
 # test` is the command veri's own preflight detects and the only docs-or-otherwise gate CI
 # runs (docs-check left CI on 2026-09-11), so a filter pinned here is defended on every
-# push. It costs `make test` one sandboxed page build, ~4 s.
+# push. It costs `make test` ~18 s: three sandboxed page builds for the filter and ok-line
+# cases (~4 s), and one whole run of docs/tests/merge-gates.test.sh (~14 s) for the case
+# that asks whether `make docs-test` still fails the way it did before the filter existed.
+# That suite has no filter of its own, so the last case pays for all eleven of its cases;
+# the alternative is not observing the claim at all.
 #
 # Run: scripts/tests/docs-guard-filter.test.sh
 set -uo pipefail
@@ -32,9 +36,10 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 # The case this asks for by name, and what the suite must then report. A fixture, not a
-# claim about that case: any single case would do, and this is the cheapest — one sandbox
-# and one build, no git history. Named once here so a rename over in build-guards.test.sh
-# has one place to be followed.
+# claim about that case: it is the cheapest one — one sandbox and one build, no git history
+# — and case 4 below reuses it, so it also has to be a case that expects the build to
+# SUCCEED, which is what lets a broken build turn it red. Named once here so a rename over
+# in build-guards.test.sh has one place to be followed.
 # 'baseline builds' and not 'builds': the last case of that suite is "the committed page is
 # the one this tree builds", so the shorter substring would match two cases and this would
 # be asserting something else.
@@ -218,6 +223,67 @@ want_oks="$(printf '%s\n' "${OK_CASES[@]}")"
 [[ "$got_oks" == "$want_oks" ]] ||
   problems+=("want one 'ok - <name> (<n>s)' line per passing case, in order: $(printf '%s' "$want_oks" | tr '\n' '/'); got: $(printf '%s' "$got_oks" | tr '\n' '/')")
 in_time ok-line
+report "$name"
+
+# 4. and none of #119 is allowed to have cost `make docs-test` its exit code, which is the
+#    whole of what a human, a merge gate and CI read off that target. Both halves of the
+#    work above sit on the path to it: `selected` returns 0 for a skipped case, so a suite
+#    that let a case through and never ran it counts nothing; `passed` moves the pass
+#    counter; and the `ran`/exit-3 tail now returns before `[[ $fail -eq 0 ]]` is ever
+#    reached. Any of those going wrong ends in the same place — a suite that prints its
+#    FAIL lines and exits 0 — and from the Makefile that is indistinguishable from green.
+#
+#    So this runs the real target, through make, over a tree where a case genuinely fails.
+#    The sabotage is build-guards' own case-2 mutator — one line appended to
+#    skills/tdd/scripts/classify-bail.sh that the commentary does not claim — applied to
+#    the ROOT that suite copies its sandboxes from, so the coverage guard refuses the build
+#    that ONLY_CASE expects to succeed. A copy and not this tree: the failure has to be
+#    real, and this tree has to stay green. Filtered to the one case, so the whole probe
+#    costs one refused build.
+#
+#    A non-zero make is not on its own the claim, and this is worth spelling out because
+#    the loose version of this case passes over a suite whose exit status has been broken
+#    outright: make stops at the first recipe line that fails, so when build-guards exits 0
+#    over a FAIL it simply runs on to merge-gates.test.sh, which is failing too in a tree
+#    whose page will not build — and make comes back non-zero having been told nothing by
+#    the case that was supposed to report. So the exit status the Makefile actually consumes
+#    is pinned where it is produced: the guard suite itself, run directly over the same
+#    sabotaged tree, has to come back 1 — a clean negative, the leaf ran and failed — and
+#    not 2 or 3, which in this repo mean no answer was obtained and nothing was there to do
+#    (CLAUDE.md: exit codes are the API). The `FAIL - <name>` line beside it says the
+#    failure reported is that case's and not a filter that matched nothing, and the make
+#    run then says the target still passes that status on.
+#
+#    The step's other half is merge-gates.test.sh, the second suite `make docs-test` runs.
+#    It is downstream of every edit to the guard suite without looking like it — `repo()`
+#    copies docs/tests wholesale into each sandbox repository it builds, and one of its
+#    its cases asserts on what a change to the guard suite owes a merge. Its exit code is
+#    the claim, and the count line beside it: eleven cases that all passed and zero cases
+#    run both end `[[ $fail -eq 0 ]]` and exit 0, so a green count with a non-zero pass
+#    figure is what separates them. Run with ONLY cleared, because that suite has no filter
+#    today and an ambient ONLY must not be what decides whether it ran anything.
+name="a failing case still makes 'make docs-test' exit non-zero, and merge-gates.test.sh still passes"
+problems=()
+sab="$WORK/sabotaged"
+mkdir -p "$sab/docs" "$sab/skills/tdd"
+cp "$ROOT/Makefile" "$sab/"
+cp "$ROOT/docs/build-walkthrough.py" "$sab/docs/"
+cp -R "$ROOT/docs/wt" "$sab/docs/wt"
+rm -rf "$sab/docs/wt/__pycache__"
+cp -R "$ROOT/docs/tests" "$sab/docs/tests"
+cp -R "$ROOT/skills/tdd/scripts" "$sab/skills/tdd/scripts"
+printf '\n# a line the commentary does not cover\n' >> "$sab/skills/tdd/scripts/classify-bail.sh"
+sab_out="$(ONLY="$ONLY_CASE" "$sab/docs/tests/build-guards.test.sh" 2>&1)" && sab_code=0 || sab_code=$?
+[[ "$sab_code" == 1 ]] ||
+  problems+=("want exit 1 — a clean negative — from ONLY='$ONLY_CASE' build-guards.test.sh over a tree where that case fails; got $sab_code: $(printf '%s' "$sab_out" | tail -2 | tr '\n' '/')")
+[[ "$sab_out" == *"FAIL - $ONLY_CASE"* ]] ||
+  problems+=("want a 'FAIL - $ONLY_CASE' line — the failure reported has to be that case's; got: $(printf '%s' "$sab_out" | tail -3 | tr '\n' '/')")
+make_out="$(ONLY="$ONLY_CASE" make -C "$sab" docs-test 2>&1)" && make_code=0 || make_code=$?
+[[ "$make_code" != 0 ]] ||
+  problems+=("want a non-zero exit from ONLY='$ONLY_CASE' make docs-test over a tree where that case fails; got 0: $(printf '%s' "$make_out" | tail -2 | tr '\n' '/')")
+mg_out="$(ONLY= "$ROOT/docs/tests/merge-gates.test.sh" 2>&1)" && mg_code=0 || mg_code=$?
+{ [[ "$mg_code" == 0 ]] && printf '%s\n' "$mg_out" | grep -Eq '[1-9][0-9]* passed, 0 failed'; } ||
+  problems+=("want exit 0 and a green count over cases that ran from $ROOT/docs/tests/merge-gates.test.sh; got $mg_code: $(printf '%s' "$mg_out" | tail -3 | tr '\n' '/')")
 report "$name"
 
 echo "----"
