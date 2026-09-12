@@ -22,10 +22,14 @@ if [[ ! "$baseline" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
+# The floor is named once rather than written into both branches: it is one decision —
+# today's fixed default, which a quick suite keeps — and the comparison and the value
+# printed when it wins must never drift apart.
+floor=900
 derived=$((baseline * 6))
 
-if [[ "$derived" -gt 900 ]]; then
+if [[ "$derived" -gt "$floor" ]]; then
   echo "$derived"
 else
-  echo 900
+  echo "$floor"
 fi
