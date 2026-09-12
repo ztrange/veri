@@ -38,6 +38,20 @@ report() {
   fi
 }
 
+# probe <message> <regex>... — one fact the comment under test has to carry, written as the
+# regexes that would show it is there: all of them have to match, and `message` names the
+# fact once if any does not. Reads `$lc` and appends to `$problems`, the way report() reads
+# `$problems` — the subject of every probe in this suite is the same lowercased comment.
+# Each regex accepts any wording that carries the fact, so a case pins what the comment
+# says and not how it is phrased.
+probe() {
+  local msg="$1"; shift
+  local re
+  for re in "$@"; do
+    [[ "$lc" =~ $re ]] || { problems+=("$msg"); return; }
+  done
+}
+
 # job_block <file> <job> -> the lines that belong to one job's mapping, on stdout.
 # A job key sits at indent 2 under `jobs:` and everything of its own is indented further,
 # so the block runs from the line after `  <job>:` to the next line that starts at indent
@@ -91,24 +105,14 @@ else
   done
   lc="$(printf '%s' "$ctx" | tr 'A-Z' 'a-z')"
 
-  # Each probe accepts any wording that carries the fact, so the case pins what the
-  # comment says and not how it is phrased.
-  ceiling_re='(6[ -]?h|six[ -]?hour)'
-  [[ "$lc" =~ $ceiling_re ]] ||
-    problems+=("comment beside the timeout does not name the 6-hour default ceiling")
-
-  observed_re='(^|[^0-9])(3[0-9]|4[0-9])[ -]?s'
-  [[ "$lc" =~ $observed_re ]] ||
-    problems+=("comment does not cite the ~40 s the job observably takes")
-
-  docs_era_re='(2[0-9][0-9][ -]?s|3\.8[ -]?min)'
-  [[ "$lc" =~ $docs_era_re ]] ||
-    problems+=("comment does not cite the ~230 s the job took when the docs gates ran in CI")
-
-  out_of_ci_re='(out of ci|outside ci|not in ci|stay out|stays out)'
-  if ! [[ "$lc" == *docs* && "$lc" =~ $out_of_ci_re ]]; then
-    problems+=("comment does not say the budget assumes the docs gates stay out of CI")
-  fi
+  probe "comment beside the timeout does not name the 6-hour default ceiling" \
+    '(6[ -]?h|six[ -]?hour)'
+  probe "comment does not cite the ~40 s the job observably takes" \
+    '(^|[^0-9])(3[0-9]|4[0-9])[ -]?s'
+  probe "comment does not cite the ~230 s the job took when the docs gates ran in CI" \
+    '(2[0-9][0-9][ -]?s|3\.8[ -]?min)'
+  probe "comment does not say the budget assumes the docs gates stay out of CI" \
+    'docs' '(out of ci|outside ci|not in ci|stay out|stays out)'
 fi
 report "$name"
 
