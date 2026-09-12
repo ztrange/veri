@@ -106,7 +106,10 @@ CAPABILITIES_HTML = r'''
   is the tag&rsquo;s own message, and the sections under it are computed from the commits in
   its range &mdash; so it cannot claim a capability that did not ship, or miss one that did.
   Only <code>feat:</code> and <code>fix:</code> commits count: documentation, tests and
-  refactors change this page without changing what veri can do.
+  refactors change this page without changing what veri can do. Choosing a version here
+  therefore answers which capabilities changed since you last read the page, not which
+  bytes changed: a line rewritten in the meantime by a <code>refactor:</code> or a
+  <code>test:</code> commit stays dim, exactly like a line nobody has touched at all.
 </p>
 <ol class="vers">{{ROWS}}</ol>
 <p class="vers-foot">
