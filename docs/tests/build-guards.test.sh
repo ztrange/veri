@@ -705,8 +705,29 @@ globalThis.history = {
   pushState: function (state, title, url) { history.replaceState(state, title, url); }
 };
 globalThis.navigator = { userAgent: "node" };
-globalThis.localStorage = { getItem: function () { return null; },
-                            setItem: function () {}, removeItem: function () {} };
+/* The browser's durable store. VERI_ASK_STORE names a JSON file that survives the node
+   process, which is how one case asks what a SECOND load of the same page finds: the run
+   that writes and the run that reads are separate processes for the same reason a reload
+   is — nothing of the first is left in the second except what was stored.
+   VERI_ASK_STORE_BLOCKED is the browser that refuses, and it refuses the way one does:
+   every read and every write throws, rather than the store quietly answering nothing.
+   Unset — no file, nothing stored, nothing refused — is what every other question asks
+   about, and answers exactly as the inert stub this replaced did. */
+globalThis.localStorage = (function () {
+  var file = process.env.VERI_ASK_STORE || "";
+  var blocked = !!process.env.VERI_ASK_STORE_BLOCKED;
+  var data = file && fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+  function refuse() { throw new Error("this browser blocks storage"); }
+  function save() { if (file) fs.writeFileSync(file, JSON.stringify(data)); }
+  return {
+    getItem: function (k) {
+      if (blocked) refuse();
+      return Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null;
+    },
+    setItem: function (k, v) { if (blocked) refuse(); data[k] = String(v); save(); },
+    removeItem: function (k) { if (blocked) refuse(); delete data[k]; save(); }
+  };
+})();
 globalThis.getComputedStyle = function () { return {}; };
 globalThis.matchMedia = function () {
   return { matches: false, addEventListener: function () {}, addListener: function () {} };
@@ -996,6 +1017,77 @@ JS
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, URL round-trip read exit $read_code)"
     echo "    want, for a page opened at ${opened:--} whose reader then chooses $pick:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# store_git <name> <expected-report> <mutator...>
+# hash_git asks whether the choice survives a link being pasted. This asks whether it
+# survives the reader doing nothing at all: closing the tab and coming back to the same
+# bookmark they have always used, with no `#since=` on it. That is what the "mark read up
+# to vX" button is for — one press says "I have read everything up to the newest version",
+# and every visit after it opens on what has landed since, without the reader carrying a
+# URL around.
+#
+# So the page is loaded THREE times, in three separate node processes, because a reload is
+# precisely a process that keeps nothing but what was stored:
+#
+#   first load  nothing stored      -> the plain page, and the reader presses the button
+#   next load   whatever that left  -> since-mode, at the newest version the page knows
+#   blocked     the same store, but every read and write throws -> the plain page again
+#
+# The store is passed between the first two through the file VERI_ASK_STORE names, never
+# by reading a key this harness picked: WHAT the page writes and under what name is its
+# business, and a case that reads the key back would fail a page that changed the spelling
+# of its own private storage while still restoring the mode perfectly. The only question
+# is what the next load comes up in, which is `window.__VERI_SINCE__.since()` — the same
+# reading hash_git takes, because "opens in since-mode" means one thing however the mode
+# was reached. `.markRead()` is the button, asked directly for the reason walk_git records
+# about `n` and `p`: the button is DOM wiring this harness has no DOM to click.
+#
+# The report is one line per load — `<which load> <the version it came up in, or `-`>`.
+# All three are needed and none of them is spare. Without the first, a page whose since()
+# always answers the newest version passes: the second line cannot tell a restored choice
+# from a hardcoded one. Without the second, nothing has been persisted. Without the third,
+# a page that reads storage unguarded passes, and it is exactly the reader whose browser
+# refuses — private windows, cookies off, a locked-down corporate profile — who gets a
+# blank page instead of the walkthrough. That last load fails the case if node exits
+# non-zero, which is this harness's whole vocabulary for "the page did not come up".
+store_git() {
+  local name="$1" want="$2"; shift 2
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var label = process.argv[3], press = process.argv[4] === "mark";
+
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.since !== "function" || typeof mode.markRead !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.since() / .markRead()");
+  process.exit(1);
+}
+
+/* What this load came up in, read before anything touches it: the page scripts have just
+   run against whatever the store held, which is the whole of what the visit inherited. */
+console.log(label + " " + (mode.since() || "-"));
+if (press) mode.markRead();
+JS
+  got="$(
+    export VERI_ASK_STORE="$d/store.json"
+    ask_page "$d" page.html "first load" mark &&
+      ask_page "$d" page.html "next load" &&
+      { export VERI_ASK_STORE_BLOCKED=1; ask_page "$d" page.html "blocked" mark; }
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, three-load read exit $read_code)"
+    echo "    want, across a press of the button and two loads after it:"
     printf '%s\n' "$want" | sed 's/^/      /'
     echo "    got:"
     printf '%s\n' "$got" | sed 's/^/      /' | head -8
@@ -1720,6 +1812,37 @@ hash since=v0.9' \
            rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
              "# rewritten by the v0.9 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#3)" v0.9'
+
+# 25. and the reader who never pastes a URL anywhere has to be able to come back too.
+#     Case 24 is the choice living in the address; this is the choice living in the
+#     browser, which is the one place a reader who just reopens their bookmark will find
+#     it. One press of "mark read up to vX" and every later visit opens on what has landed
+#     since — no hash to keep, nothing to set up again.
+#
+#     v0.10 is the newest version here and v0.9 is not, which is the lexical trap the
+#     capability index and the dimming both already walk into from the other end: sorted as
+#     text, `v0.9` is the last tag and a button that marks the reader up to it tells them,
+#     for ever after, that the newest capability is one they have not read. The version the
+#     button stores is the one git's version sort puts last, so the second load has to come
+#     up in v0.10.
+#
+#     The third load is the browser that says no. Storage is not a given — a private
+#     window, cookies off, a profile locked down by someone else's policy — and on those
+#     browsers every read throws. The walkthrough is a page of prose and code that needs
+#     none of it, so what a refusal costs the reader is since-mode, not the page: they get
+#     what a reader who never pressed the button gets. An unguarded read costs them the
+#     whole document instead, and the store here holds v0.10 by then, so the only way this
+#     load reports `-` is by asking and surviving the answer.
+store_git "the button is remembered by the browser, and a browser that refuses still comes up plain" \
+  'first load -
+next load v0.10
+blocked -' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.9 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.9
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.10 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#3)" v0.10'
 
 echo "----"
 echo "$pass passed, $fail failed"
