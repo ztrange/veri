@@ -76,6 +76,18 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   `VERI_HEARTBEAT` is a real silence window — a working leaf keeps it fresh, a genuinely
   hung one trips it — so just use the defaults; no need to pin heartbeat to the timeout.
   **Every leaf is launched through this — never call `run-leaf.sh` or `claude` directly.**
+  It records its own final code in the completion file `.tdd/<name>.exit` on **every** path,
+  killed-stuck included — that is what makes a detached launch waitable. And because a
+  killed-stuck leaf is relaunched (`VERI_STUCK_RETRIES`), one call can take **more than one**
+  `VERI_TIMEOUT` of wall time, which is why the wait below loops rather than naming one long
+  timeout.
+- `$S/wait-leaf.sh <name> [max-seconds]` — **the foreground half of a detached launch.**
+  Blocks polling for that completion file and exits with the code recorded in it as soon as
+  it lands (0 / 1 / 2, the launcher's own contract), or **exit 3** — nothing to report yet —
+  once `max-seconds` pass with no completion file. The default is 540 s, comfortably inside
+  Claude Code's 10-minute cap on a single foreground Bash call. On a **3, call it again**:
+  the leaf is still running. A 3 with no leaf running means no result was ever recorded —
+  never success.
 - `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation. Runs
   `claude -p --output-format stream-json` so the leaf **streams events as it works** (that
   is the supervisor's heartbeat), then appends the clean final result. You always run it
@@ -161,6 +173,34 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
   `gh`, which is what makes it testable with no network. The conductor does not call this —
   it is rung 2's, driven by the `/solve-issues` loop skill.
+
+## Launching a leaf — detach, then wait in the foreground
+
+Every leaf launch below has the same three-part shape, and each phase spells it out in full:
+
+```
+rm -f .tdd/<name>.exit
+nohup $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err &
+$S/wait-leaf.sh <name>
+```
+
+The `rm -f` first, because the completion file is named for the **phase**, not the cycle: a
+`.tdd/develop-red.exit` left by the previous step's red leaf would end the next wait
+instantly, with the previous cycle's code. Then the launch, **detached** — `nohup` and a
+trailing `&`, so the call returns at once. Then `wait-leaf.sh` in the **foreground**, which
+blocks until the leaf finishes and exits with its code. On **exit 3** the leaf is still
+running and you have only spent the wait's budget: **call `wait-leaf.sh` again**, as many
+times as it takes. Only a 0, 1 or 2 is an answer. Read the leaf's report from
+`.tdd/<name>.out` — the captured stdout — instead of from the launcher's stdout, which the
+detached call no longer hands you.
+
+**Never launch a leaf in a background Bash call and then wait for its notification.** The
+conductor often runs as a print-mode session (`claude -p "/solve-issue <n>"` — the only way
+to run it unattended), and in print mode that notification never arrives: the turn ends, the
+`claude -p` process exits, and the leaf is orphaned. The supervisor keeps running it under
+`.tdd/`, but nothing will ever read its result, tick the ledger or narrate the outcome (this
+is how #70 was lost). The detach-then-wait shape behaves identically interactively and
+unattended, so it is the only one this procedure uses.
 
 ## Inputs
 
@@ -308,32 +348,44 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    launch the leaf **through the supervisor**:
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' > .tdd/develop-red.prompt
-   $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions
+   rm -f .tdd/develop-red.exit
+   nohup $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err &
+   $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
    ```
    You supply only those variables; the instructions are the template's, identical every
-   run. The leaf's report ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
+   run. The leaf's report is in `.tdd/develop-red.out`, and ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
    `AGAINST_UNMODIFIED: FAILS | PASSES`, `FAIL_OUTPUT:` — so take the **test path** and
    **target test id** from the first two and read the third for the next sub-step.
    `AGAINST_UNMODIFIED` exists because a criterion earlier work already satisfies cannot
    yield a failing test, and that fact has to reach you as data: in #30's step 3 it did not,
    and a faithful test spent two verify-red `REJECT`s and two revise leaves reporting
    IMPOSSIBLE before the run bailed and the revert discarded it.
-   If `supervise.sh` exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
+   If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly (see *Bailing*); do not retry.
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line. On **`FAILS`**, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
    reason) to a file** — the revise step takes the reason as a *path*, not as text you
    retype:
    ```
-   $S/verify.sh red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason
+   rm -f .tdd/verdict-red.exit
+   nohup bash -c "$S/verify.sh red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err; echo \$? > .tdd/verdict-red.exit" > /dev/null 2>&1 &
+   $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    ```
+   The verifier goes through the supervisor too, so it is launched detached and waited on
+   exactly like a developer leaf — with one wrinkle: the code that matters is `verify.sh`'s
+   **verdict**, not the supervisor's status, so the detached shell records that verdict in a
+   completion file of its own (`verdict-red`, never `verify-red`, which the verifier leaf's
+   own supervisor already owns). `wait-leaf.sh` then returns **the verdict**: 0 PASS, 1
+   REJECT, 2 malformed or killed-stuck.
    On **`PASSES`** the criterion is **already satisfied** — never send that test to
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
    instead and continue at *Already satisfied — the pin*:
    ```
-   $S/verify.sh pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason
+   rm -f .tdd/verdict-pin.exit
+   nohup bash -c "$S/verify.sh pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err; echo \$? > .tdd/verdict-pin.exit" > /dev/null 2>&1 &
+   $S/wait-leaf.sh verdict-pin     # foreground; on exit 3 call it again
    ```
-   Either way, note its **exit code**, and read the reason back out of
+   Either way, note the **wait's exit code** — the verdict — and read the reason back out of
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
    overwrites it — the newest objection is the only one a revise leaf should answer.
@@ -354,14 +406,21 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    green — and launch **through the supervisor** (exit **2** → **bail**):
    ```
    $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <test-path> '<target-test-id>' > .tdd/develop-green.prompt
-   $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions
+   rm -f .tdd/develop-green.exit
+   nohup $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err &
+   $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
    ```
-   The test path and target test id are the ones Red's report gave you. The leaf's report
-   ends with `IMPL_PATH:` (the production files it created or changed) and
-   `SUITE: GREEN | RED` plus the suite's final summary line; both go into the narration
-   below.
-2. **Verify (blind).**
-   `$S/verify.sh green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason`.
+   The test path and target test id are the ones Red's report gave you. The leaf's report is
+   in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
+   or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
+   narration below.
+2. **Verify (blind)** — same detached launch and foreground wait as verify-red, and the
+   wait's code is again the verdict:
+   ```
+   rm -f .tdd/verdict-green.exit
+   nohup bash -c "$S/verify.sh green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err; echo \$? > .tdd/verdict-green.exit" > /dev/null 2>&1 &
+   $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
+   ```
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
@@ -390,8 +449,13 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    $S/refactor-budget.sh <count>   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ stop, go to 2
    touched="$(git diff --name-only HEAD~1 HEAD | paste -sd, -)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
-   $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions
+   rm -f .tdd/develop-refactor.exit
+   nohup $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err &
+   $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
    ```
+   The `rm -f` matters most here: every iteration of this loop reuses the name
+   `develop-refactor`, so a completion file left by the previous transform would end the
+   next wait before the next leaf had done anything.
    `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
    comma-separated line. Compute it **once**, right after the step's atomic green commit —
    `git diff --name-only HEAD~1 HEAD` is exactly that commit's files at that moment — adding
@@ -414,7 +478,11 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    transform **uncommitted**; you commit it, and only if it changed something:
    `git add -A && git commit -m "refactor: <what> (#<n>)"`.
 2. **Verify (blind, once) on the settled result.**
-   `$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path> > .tdd/verify-refactor.reason`
+   ```
+   rm -f .tdd/verdict-refactor.exit
+   nohup bash -c "$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err; echo \$? > .tdd/verdict-refactor.exit" > /dev/null 2>&1 &
+   $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
+   ```
    — one verdict on the final state (suite still green, code up to standard, no smuggled
    generality).
 3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
@@ -510,7 +578,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
    **through the supervisor** (exit **2 → bail**, system failure):
    ```
    $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/revise-<phase>-<k>.prompt
-   $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions
+   rm -f .tdd/revise-<phase>-<k>.exit
+   nohup $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err &
+   $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
    ```
    The reason travels as a **file**, not as prose you paste in — that is why the verify step
    redirected it. The template tells the leaf it is fresh, that the reason is the whole of
@@ -521,8 +591,14 @@ For attempt `k = 1 … REVISE_BUDGET`:
    crash: the leaf says the objection cannot be met as stated. It still spends attempt `k` —
    re-verify below and let the blind verdict, not the leaf's own account, decide.
 3. **Re-verify (blind, same phase).**
-   `$S/verify.sh <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason`
-   — overwriting the reason file, so attempt `k+1` carries the newest objection.
+   ```
+   rm -f .tdd/verdict-<phase>.exit
+   nohup bash -c "$S/verify.sh <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err; echo \$? > .tdd/verdict-<phase>.exit" > /dev/null 2>&1 &
+   $S/wait-leaf.sh verdict-<phase>      # foreground; on exit 3 call it again
+   ```
+   — overwriting the reason file, so attempt `k+1` carries the newest objection. Both `rm
+   -f`s matter in this loop: every attempt re-verifies the **same** phase, so the previous
+   attempt's completion files would otherwise be read as this one's answer.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
      with the reason, and resume the cycle from where that phase's PASS would continue.
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.

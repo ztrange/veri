@@ -118,6 +118,61 @@ rc_bare=$?
 [[ "$rc_bare" == 3 ]] && ok \
   || no "exits 3, never 0, when there is no completion file and no leaf running (got $rc_bare, want 3)"
 
+# 4. The script is only half the fix. A conductor that still ends its turn with a leaf sitting
+#    in a background Bash call orphans it whatever this script does, and SKILL.md — the
+#    procedure the conductor actually follows — said nothing about waiting at all when #86 was
+#    written (`grep -niE 'background|notification|wait' skills/solve-issue/SKILL.md` matched
+#    nothing), so foreground-or-background was a fresh guess at every launch and the wrong
+#    guess is fatal in print mode. The document therefore carries this criterion: every leaf
+#    launch in it is detached and followed by a foreground wait, and it says in so many words
+#    why the background-call-plus-notification shape is the one that kills an unattended run.
+#
+#    The case lives in this suite rather than under `docs/tests/` because what is being written
+#    down is this script's own contract, and because `make docs-check` is deliberately not part
+#    of `make test` (Makefile, "Neither is part of `test` on purpose") — a documentation case
+#    parked there would not run in the suite this change is verified against.
+#
+#    A launch site is found by what it is rather than by where it sits: a line naming one of
+#    the two launchers — `$S/supervise.sh`, or `$S/verify.sh`, which goes through the
+#    supervisor too — AND carrying a `.tdd/` path, i.e. a real invocation with real arguments.
+#    That leaves out the Commands-reference bullets and the prose back-references, which name a
+#    launcher and no path, and it survives the fix itself: prefixing `nohup` changes neither
+#    half of the test. The count is asserted before its members, as in solvable-issues case 12:
+#    five phases launch leaves (red, green, refactor, revise, verify), so an enumeration
+#    finding fewer than five has stopped matching the document and must read as a failure
+#    rather than pass with nothing left to check.
+#
+#    *Detached* is `nohup` plus a trailing `&`. The `&` is anchored at the end of the line
+#    instead of matched anywhere on it, so the `&` inside a `2>&1` cannot stand in for the one
+#    that actually backgrounds the call. The wait is looked for on the launch line and the six
+#    after it — the same fenced block, in practice — rather than anywhere in the file, because
+#    one mention of `wait-leaf.sh` in the Commands reference must not satisfy nine launches.
+#
+#    The warning is read as a paragraph (`awk RS=""`) naming all three of *background*,
+#    *notification* and *print mode*, because prose here wraps at ~90 columns and a
+#    line-by-line grep would miss a sentence split across two lines. Three file-wide greps
+#    would be the other failure: those terms scattered over three sections are not a warning.
+SKILL="$HERE/../../SKILL.md"
+launches=0 launch_misses=""
+while IFS= read -r hit; do
+  launches=$(( launches + 1 ))
+  n="${hit%%:*}" text="${hit#*:}"
+  { grep -q 'nohup' <<<"$text" && grep -qE '&[^0-9]*$' <<<"$text"; } \
+    || launch_misses="$launch_misses line$n:not-detached"
+  sed -n "${n},$(( n + 6 ))p" "$SKILL" | grep -q 'wait-leaf\.sh' \
+    || launch_misses="$launch_misses line$n:no-foreground-wait"
+done < <(grep -n -e '\$S/supervise\.sh' -e '\$S/verify\.sh' "$SKILL" | grep '\.tdd/')
+
+warning="$(awk 'BEGIN { RS = "" }
+  tolower($0) ~ /background/ && tolower($0) ~ /notification/ &&
+  tolower($0) ~ /print[ -]mode/ { print; exit }' "$SKILL")"
+
+[[ "$launches" -ge 5 ]] || launch_misses="$launch_misses enumeration:only-$launches-launch-sites"
+[[ -n "$warning" ]] || launch_misses="$launch_misses warning:no-paragraph-naming-background-notification-print-mode"
+
+[[ -z "$launch_misses" ]] && ok \
+  || no "SKILL.md launches every leaf detached and waits for it with wait-leaf.sh in the foreground, and warns that a background call awaiting a notification never completes in print mode (launch sites=$launches, missing:$launch_misses)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
