@@ -1,7 +1,7 @@
 # veri demo project
 
 A minimal, zero-dependency Python project used to demo the veri walking skeleton
-(`/solve-issue`). It starts with **no implementation** and a single trivial passing
+(`/tdd`). It starts with **no implementation** and a single trivial passing
 test, so the baseline suite is green.
 
 - Test command: `python3 -m unittest discover -q` (run from this directory).

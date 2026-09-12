@@ -4,7 +4,7 @@
 # Creates one GitHub issue with several acceptance criteria that triangulate toward a
 # general `slugify` — each criterion is one cycle's worth, so the conductor plans a
 # multi-step ledger and loops the cycles until all are covered. Pair it with
-# fixtures/demo-project/ as the target codebase, then run `/solve-issue <n>`.
+# fixtures/demo-project/ as the target codebase, then run `/tdd <n>`.
 #
 # Usage:
 #   fixtures/seed-demo-multi-issue.sh            # seed on the current repo's origin
@@ -38,7 +38,7 @@ single criterion should be satisfiable by hard-coding — later criteria force g
 ## Notes
 
 This is the seeded **multi-criterion** fixture for demoing the veri loops + ledger rung.
-Run `/solve-issue <this-issue-number>` against the `fixtures/demo-project/` codebase and
+Run `/tdd <this-issue-number>` against the `fixtures/demo-project/` codebase and
 watch: a committed plan ledger (`.tdd/issue-<n>.md`), one Red→Green→Refactor cycle per
 criterion, each step checked off atomically with its green commit, and generality emerging
 through triangulation rather than hand-written code.

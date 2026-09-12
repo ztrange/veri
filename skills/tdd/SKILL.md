@@ -5,10 +5,10 @@ description: >-
   loop Red → Green → Refactor cycles — each blind-verified by an independent agent — until
   every acceptance criterion is covered, narrating each phase to the issue thread and
   leaving the result on a draft PR. Resumable from the ledger. Invoke as
-  `/solve-issue <number>`. Use when the user names one GitHub issue to solve under TDD.
+  `/tdd <number>`. Use when the user names one GitHub issue to solve under TDD.
 ---
 
-# solve-issue — the veri conductor
+# tdd — the veri conductor
 
 You are the **conductor**. You drive exactly one GitHub issue end-to-end, looping a Red →
 Green → Refactor cycle over every step of its plan, but you **write no code yourself**.
@@ -31,7 +31,7 @@ and the supervisor's **stuck-retry**, all still in force):
 - **The cycle loop.** The conductor loops Red → Green → Refactor over the ledger's steps
   until every criterion is covered, checking each step off in the ledger **atomically with
   its green commit** so git and ledger never diverge.
-- **Resume.** Re-running `/solve-issue <n>` reads the ledger and continues from the first
+- **Resume.** Re-running `/tdd <n>` reads the ledger and continues from the first
   unchecked step.
 
 Hardened edges (#7) have since landed too, and are described below: the preflight
@@ -59,7 +59,7 @@ verification.
 ## The scripts (this skill's `scripts/` directory)
 
 Let `S=<base directory>/scripts`, where *base directory* is the path the harness printed
-when this skill loaded (`Base directory for this skill: …/solve-issue`). It is the same
+when this skill loaded (`Base directory for this skill: …/tdd`). It is the same
 skill whether it lives in the target repo's `.claude/skills/` or is symlinked into
 `~/.claude/skills/` for use from any repo — never assume a repo-relative path. All leaf
 machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
@@ -172,7 +172,7 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   **exit 3** with empty stdout when none is takeable (nothing to do, not an error).
   `VERI_GH_JSON=<dir>` reads `issues.json` / `prs.json` fixtures instead of shelling out to
   `gh`, which is what makes it testable with no network. The conductor does not call this —
-  it is rung 2's, driven by the `/solve-issues` loop skill.
+  it is rung 2's, driven by the loop branch of this skill.
 
 ## Launching a leaf — detach, then wait in the foreground
 
@@ -212,7 +212,7 @@ killed-stuck. The reason is read back from `.tdd/verify-<phase>.reason`, the fil
 step takes as a path.
 
 **Never launch a leaf in a background Bash call and then wait for its notification.** The
-conductor often runs as a print-mode session (`claude -p "/solve-issue <n>"` — the only way
+conductor often runs as a print-mode session (`claude -p "/tdd <n>"` — the only way
 to run it unattended), and in print mode that notification never arrives: the turn ends, the
 `claude -p` process exits, and the leaf is orphaned. The supervisor keeps running it under
 `.tdd/`, but nothing will ever read its result, tick the ledger or narrate the outcome (this
@@ -298,7 +298,7 @@ unauthenticated baseline never gets a cycle.
    `.gitignore` commit above, which lives only on the issue branch. Because `info/exclude`
    needs no branch and no commit, it is in force in the caller's checkout immediately — and
    preflight step 1, which refuses to start on a dirty caller's checkout, passes for the next
-   `/solve-issue` without waiting for this one's PR to merge.
+   `/tdd` without waiting for this one's PR to merge.
 5. **Resume check.** If `.tdd/issue-<n>.md` (the ledger) already exists in the worktree, this
    is a **resume**: skip step 2 (the plan is already written), post a `### ▶️ Resuming`
    comment naming the next unchecked step, and go straight to the cycle loop (step 3).
@@ -663,7 +663,7 @@ To bail:
 
 ## Resume
 
-The committed ledger makes a run **resumable**: re-running `/solve-issue <n>` picks up
+The committed ledger makes a run **resumable**: re-running `/tdd <n>` picks up
 where a previous run stopped (a bail, an interruption, or a human pause), without redoing
 finished steps.
 

@@ -1822,16 +1822,16 @@ refactor-budget.sh
 classify-bail.sh'
 
 # 22. stage 5's intro also has to draw the rung above the conductor. solvable-issues.sh is
-#    the one script in the stage nothing in the conductor calls: it is what `/solve-issues`
-#    runs to pick the next issue — open, `ready-for-agent`, unblocked, unclaimed — before
-#    handing it to `/solve-issue <n>` and recomputing, and it stops on the first bail rather
+#    the one script in the stage nothing in the conductor calls: it is what a scope run of
+#    `/tdd` uses to pick the next issue — open, `ready-for-agent`, unblocked, unclaimed —
+#    before handing it to `/tdd <n>` and recomputing, and it stops on the first bail rather
 #    than working the list it computed once. So the loop is the picture: the four conditions
 #    that select an issue, the conductor invocation they feed, and the rule that ends the
 #    run. Demanded of one block for the usual reason — every one of these words is in the
 #    intro's prose and in the script's own listing already.
 #    Two of those strings are what keep this honest. The script's header comment names
 #    itself and three of the four conditions in a single `<pre class="src">` block, so a
-#    set without `/solve-issue` and `first bail` — neither of which appears anywhere in
+#    set without `/tdd` and `first bail` — neither of which appears anywhere in
 #    solvable-issues.sh, which never names its caller — would be green against a page with
 #    no new diagram at all.
 #    What this cannot see is separateness: case 21's names and these do not overlap, so one
@@ -1839,7 +1839,7 @@ classify-bail.sh'
 #    judgement about the drawing, not a claim a name test can make.
 diagrams_stage5 "the stage-5 intro draws the rung above the conductor" \
 'solvable-issues.sh
-/solve-issue
+/tdd
 open
 ready-for-agent
 unblocked

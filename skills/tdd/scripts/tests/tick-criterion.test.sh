@@ -54,9 +54,9 @@ check "empty matcher ticks first" 0 "" "$body" "## Acceptance criteria
 check "no match exits 3" 3 "nonexistent criterion" "$body" "$body"
 
 # 5. matcher treated literally (backticks, slashes, angle brackets, brackets)
-lit='- [ ] `/solve-issue <n>` creates branch `tdd/<n>-slug`
+lit='- [ ] `/tdd <n>` creates branch `tdd/<n>-slug`
 - [ ] other'
-check "literal special chars" 0 '`/solve-issue <n>`' "$lit" '- [x] `/solve-issue <n>` creates branch `tdd/<n>-slug`
+check "literal special chars" 0 '`/tdd <n>`' "$lit" '- [x] `/tdd <n>` creates branch `tdd/<n>-slug`
 - [ ] other'
 
 # 6. an already-checked box with matching text is skipped; a later unchecked one is ticked

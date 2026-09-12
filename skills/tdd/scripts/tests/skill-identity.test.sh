@@ -193,8 +193,8 @@ skill_body() {
 #    invoked on one mid-run, so both keep a SKILL.md — a stub that does the one thing a
 #    stub does: send the session on with the arguments it was given. That is three
 #    observable facts per file, and all three are needed. The file has to be there at all;
-#    its frontmatter has to still declare the OLD name, since that field is the command
-#    Claude Code resolves `/solve-issue` by, and a stub renamed to `tdd` would answer to
+#    its frontmatter has to still declare the OLD name, since that field is what Claude Code
+#    resolves the old command by, and a stub renamed to `tdd` would answer to
 #    nothing; and the body has to name both `/tdd` and `$ARGUMENTS` — the destination, and
 #    the harness's own spelling for "the arguments this invocation carried", used that way
 #    by every SKILL.md in this repo. A body naming only `/tdd` documents a rename; one that
@@ -222,6 +222,55 @@ for stub in "${stubs[@]}"; do
     *) problems+=("$stub body never names \$ARGUMENTS, so it forwards no arguments") ;;
   esac
 done
+report "$name"
+
+# The two old commands as a user types them: a slash, then the old skill's own directory
+# name. Derived from `stubs` rather than written out for the reason case 2 gives about the
+# old scripts directory — a file that spells the string it sweeps for is its own first
+# offender, and the comments above are careful not to spell either of these either.
+old_cmds=()
+for stub in "${stubs[@]}"; do
+  old_cmds+=("/$(basename "$(dirname "$stub")")")
+done
+
+# The one file that names the old commands without being a source of them: docs/walkthrough.html
+# is generated, never hand-edited ("Never edit it by hand" — CLAUDE.md), and its prose comes
+# from docs/wt/commentary.py, which this sweep does cover. Rewording the commentary is what
+# fixes the page; `make docs` is what carries the wording into it, and that rebuild is a
+# separate change from the rewrite. So the subject here is the source, not the artefact.
+generated_page="docs/walkthrough.html"
+
+# 5. The prose followed the skill too. Same shape as case 2, for the same reason: stated as
+#    an absence swept for across the whole repository rather than a list of files someone
+#    has to remember to extend, so a stale instruction in a file this test never heard of
+#    still counts. What it looks for is the COMMAND and not the path — a slash-led old name
+#    whose slash does not continue a path — so that naming a stub's file, which the prose
+#    describing the stubs has to do, stays legal, while telling a reader to invoke a command
+#    that no longer resolves to a procedure does not.
+name="no tracked file outside the two stubs names ${old_cmds[0]} or ${old_cmds[1]}"
+problems=()
+# The leading group is the "not part of a path" test: start of line, or a character that
+# cannot be the tail of a path component. It is what keeps `skills/solve-issue/SKILL.md`
+# out of this case and in case 2's, and both old names in the alternation because the
+# plural is a command in its own right, not an inflection of the singular.
+cmd_re="(^|[^[:alnum:]_/.-])(${old_cmds[0]}|${old_cmds[1]})"
+# Same exit-code discipline as case 2: 1 is "no matches", which is the pass, and 2+ is a
+# broken probe, which must not read as one.
+hits="$(cd "$ROOT" && git grep --files-with-matches -E -e "$cmd_re")" &&
+  code=0 || code=$?
+if [[ "$code" -le 1 ]]; then
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    exempt "$f" && continue
+    [[ "$f" == "$generated_page" ]] && continue
+    # Quote the first offending line, trimmed: the case is about a file set, but the fix is
+    # always a line, and finding it again by hand is the tedious half.
+    where="$(cd "$ROOT" && git grep -nE -e "$cmd_re" -- "$f" | head -1 | cut -c1-100)"
+    problems+=("$f still names an old command: $where")
+  done <<< "$hits"
+else
+  problems+=("git grep failed with exit $code")
+fi
 report "$name"
 
 echo "----"
