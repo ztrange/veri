@@ -4956,11 +4956,28 @@ html{scroll-behavior:smooth}
   /* The capability index for that same reader: the versions after the one they last
      read, newest first, each carrying the hunks it touched so the row says WHERE it
      changed something and not only that it did. A version that touched nothing the page
-     quotes is a row with an empty list. */
+     quotes is a row with an empty list.
+
+     The hunks are not the whole of a row, for the reason they are not the whole of a
+     walk: a version whose contribution was a new script owns no hunk anywhere, since the
+     build drops every run at or below a file's own `since`, so the map leaves the index
+     telling the reader that a version which added a whole file to this page touched
+     nothing they can go and look at. window.__VERI_SINCE_OF__ fills exactly that row —
+     the script goes in the row for its own `since` and in no other, so a version that
+     later rewrote a line of it carries that hunk and not the script again.
+
+     Entries land in page order, which is the order render_hunks_json already emits the
+     hunks in: byPageOrder sits a whole-script entry at line 0, so a script arrives ahead
+     of any run of its own lines rather than wherever the concat put it. */
   function index(since) {
     var rows = [], tags = litTags(since);
     for (var i = 0; i < tags.length; i++) {
-      rows.push({ tag: tags[i], hunks: HUNKS[tags[i]] || [] });
+      var tag = tags[i];
+      var arrived = Object.keys(SINCE_OF).filter(function (f) {
+        return SINCE_OF[f] === tag;
+      });
+      rows.push({ tag: tag,
+                  hunks: (HUNKS[tag] || []).concat(arrived).sort(byPageOrder) });
     }
     return rows;
   }
