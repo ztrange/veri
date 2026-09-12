@@ -1249,10 +1249,24 @@ function runOrWhole(entry, word) {
 JS
 }
 
+# index_row — how one row of window.__VERI_SINCE__.index(since) is read, printed on stdout:
+# the version it is for and the entries under it, in either spelling a build may write a row
+# in, because a pair and a record carry the same two facts and which one the page hands over
+# is not a behaviour. Shipped with the stub for the reason map_entry is, and about the other
+# half of the same map: two questions asked of the same index must not come to disagree
+# about what a row is, and a question that reads `row[0]` where the page ships `row.tag`
+# reports every version as `undefined` rather than failing.
+index_row() {
+  cat <<'JS'
+function tagOf(row) { return Array.isArray(row) ? row[0] : row.tag; }
+function entriesOf(row) { return (Array.isArray(row) ? row[1] : row.hunks) || []; }
+JS
+}
+
 # ask_page <dir> <page> [args...]
 # Ask the page a question its markup cannot answer: run <dir>/question.js — which the
 # calling assertion has just written — against <page>, under the stub above and the entry
-# reader, the keypress and the whole-script lookup beside it, with node.
+# reader, the keypress, the whole-script lookup and the row reader beside it, with node.
 # The question reads its own arguments from process.argv[3] on and prints the report its
 # case compares; stdout and stderr both come back, and the exit code is node's, so a
 # question that cannot find what it asks for says so and fails the case.
@@ -1260,7 +1274,8 @@ JS
 # and a case fails rather than skips when it is absent.
 ask_page() {
   local d="$1" page="$2"; shift 2
-  { dom_stub; map_entry; key_press; whole_script; cat "$d/question.js"; } > "$d/ask.js"
+  { dom_stub; map_entry; key_press; whole_script; index_row
+    cat "$d/question.js"; } > "$d/ask.js"
   ( cd "$d" && node ask.js "$page" "$@" 2>&1 )
 }
 
@@ -1367,13 +1382,11 @@ if (!mode || typeof mode.index !== "function") {
   process.exit(1);
 }
 
-/* A row as (tag, hunks), in either spelling it may be written in. Its hunks are entries
-   of the map, so fields() beside the stub reads them. */
-function tagOf(row) { return Array.isArray(row) ? row[0] : row.tag; }
-function hunksOf(row) { return (Array.isArray(row) ? row[1] : row.hunks) || []; }
-
+/* A row is its tag and its entries, in either spelling it may be written in: index_row()
+   beside the stub is that reader, spelt once for both questions that make it. Its entries
+   here are all hunks, entries of the map, so fields() beside the stub reads them. */
 var rows = (mode.index(since) || []).map(function (row) {
-  var links = hunksOf(row).map(fields);
+  var links = entriesOf(row).map(fields);
   links.sort(function (a, b) {
     return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1];
   });
@@ -1870,11 +1883,10 @@ if (!mode || typeof mode.index !== "function") {
   process.exit(1);
 }
 
-/* A row as (tag, entries), in either spelling it may be written in, as index_git has it. */
-function tagOf(row) { return Array.isArray(row) ? row[0] : row.tag; }
-function entriesOf(row) { return (Array.isArray(row) ? row[1] : row.hunks) || []; }
+/* A row is its tag and its entries, in either spelling it may be written in: index_row()
+   beside the stub is that reader, the same one index_git makes.
 
-/* An entry the hunk map holds a run for is a hunk, and one it does not is the script
+   An entry the hunk map holds a run for is a hunk, and one it does not is the script
    itself: runOrWhole() beside the stub is that lookup, the same one new_script_git makes
    of a stop, and only the word for a whole script differs. */
 var rows = [];
