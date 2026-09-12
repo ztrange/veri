@@ -187,7 +187,27 @@
     return stops.sort(byPageOrder);
   }
 
-  window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk };
+  /* The version this page is in, and a reader choosing one — since-mode's only durable
+     state. Kept in a variable it would die with the tab: nothing to bookmark, nothing to
+     paste to whoever asked what changed, and a reader who comes back sets it up again. The
+     address bar is the one place a browser hands back on the next load, so that is where
+     it lives, as `#since=vX`; choose() writes it there and since() reads the same place,
+     which is the whole of why reloading that URL comes up in the mode.
+
+     Read live rather than captured at load, so the address and the mode are one fact
+     instead of a copy that can lag it. The leading `#` is a delimiter the browser puts
+     back on the getter whatever was assigned, not part of the choice, and a hash that is
+     not a `since=` — a link to a script's own section — names no version: both fall out
+     of the match. Which tag a reader may name is lit()'s business, not this one's. */
+  function since() {
+    var m = /^#?since=(.+)$/.exec(location.hash || "");
+    return m ? m[1] : "";
+  }
+
+  function choose(tag) { location.hash = "since=" + tag; }
+
+  window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk,
+                            since: since, choose: choose };
 })();
 
 /* veri, Annotated — scrollspy: where am I.

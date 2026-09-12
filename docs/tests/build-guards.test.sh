@@ -690,7 +690,20 @@ globalThis.requestAnimationFrame = function () { return 0; };
 globalThis.cancelAnimationFrame = function () {};
 globalThis.scrollX = 0; globalThis.scrollY = 0;
 globalThis.innerWidth = 1200; globalThis.innerHeight = 800;
-globalThis.location = { hash: "", href: "", search: "" };
+/* The URL the page is opened at. VERI_ASK_HASH is how a case says "reloaded at this
+   address": the page scripts are evaluated at the bottom of this stub, so whatever a case
+   puts here is what they read at load, which is the whole of what a reload is. Unset — the
+   resting page, no hash — is what every other question asks about.
+   history is the other way a page can write the URL, and it writes the same place: a page
+   that replaces the address rather than assigning location.hash has still put the choice
+   where the next load will find it, and which of the two it uses is not behaviour. */
+globalThis.location = { hash: process.env.VERI_ASK_HASH || "", href: "", search: "" };
+globalThis.history = {
+  replaceState: function (state, title, url) {
+    location.hash = String(url).replace(/^[^#]*/, "");
+  },
+  pushState: function (state, title, url) { history.replaceState(state, title, url); }
+};
 globalThis.navigator = { userAgent: "node" };
 globalThis.localStorage = { getItem: function () { return null; },
                             setItem: function () {}, removeItem: function () {} };
@@ -922,6 +935,67 @@ JS
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, walk read exit $read_code)"
     echo "    want the stops n and p walk, for a reader who last read at $since:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# hash_git <name> <hash-the-page-is-opened-at> <version-then-chosen> <expected-report> <mutator...>
+# since_git, index_git and walk_git all hand the page a version and ask what it does with
+# it. This asks where that version comes from and where it goes: the URL. A reader who
+# has lit the hunks they care about has nothing to send anyone and nothing to come back
+# to — the choice lives in a variable that dies with the tab — unless the address bar
+# carries it, which is the one piece of state a browser hands back on the next load.
+#
+# So this is the only assertion here that cares what the page was OPENED at. The hash goes
+# into the environment rather than the question, because the question runs AFTER the page
+# scripts and a reload is something they have to see at load: see VERI_ASK_HASH in the
+# stub. The export is scoped to the command substitution, so no later case inherits it.
+#
+# What it asks is the pair that makes the round trip: `window.__VERI_SINCE__.since()`, the
+# version the page came up in, and `.choose(tag)`, the reader picking one. Both have to be
+# reachable without a browser for the reason walk_git records about `n` and `p` — the
+# <select> that fires choose() and the chip that reads since() are DOM wiring this harness
+# has no DOM to drive.
+#
+# The report is two lines — `opened <tag>` and `hash <what the URL carries>`, or `-` for
+# neither — and both halves are needed: a hash nothing writes is never reloaded, and one
+# nothing reads restores nothing. The leading `#` is stripped, because a browser puts it
+# back on the getter whatever the page assigned and it is a delimiter, not the choice.
+hash_git() {
+  local name="$1" opened="$2" pick="$3" want="$4"; shift 4
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var pick = process.argv[3];
+
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.since !== "function" || typeof mode.choose !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.since() / .choose(tag)");
+  process.exit(1);
+}
+
+/* Read before anything is touched: the page scripts have just run against a location
+   carrying the hash this case was opened at, which is what a reload of that URL is. Then
+   the other direction — a reader chooses, and the address has to follow. */
+var opened = mode.since();
+mode.choose(pick);
+
+console.log("opened " + (opened || "-"));
+console.log("hash " + (location.hash ? location.hash.replace(/^#/, "") : "-"));
+JS
+  got="$( export VERI_ASK_HASH="$opened"; ask_page "$d" page.html "$pick" )" \
+    && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, URL round-trip read exit $read_code)"
+    echo "    want, for a page opened at ${opened:--} whose reader then chooses $pick:"
     printf '%s\n' "$want" | sed 's/^/      /'
     echo "    got:"
     printf '%s\n' "$got" | sed 's/^/      /' | head -8
@@ -1621,6 +1695,31 @@ classify-bail.sh 5-5' \
            rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
+
+# 24. and the choice has to survive the tab being closed. Cases 21-23 are all about what a
+#     chosen version does while the reader sits there; this is the choice getting into the
+#     URL and back out of it, which is what makes since-mode something a reader can bookmark
+#     or paste to someone else rather than a state they have to set up again every visit.
+#     One round trip, both directions, because neither half is worth anything alone: a hash
+#     nothing writes is never reloaded, and a hash nothing reads restores nothing.
+#
+#     The page is opened at `#since=v0.2` and its reader then chooses v0.9 — two different
+#     versions on purpose. With one version the case passes against a `choose` that does
+#     nothing at all: the address would still read what the page was opened at, and the
+#     assertion could not tell a written hash from an untouched one.
+#     Both tags are real versions in this fixture, so a `since()` that checks the hash names
+#     a version the build knows is as green as one that does not — this case is about the
+#     address carrying the choice, not about what an unknown tag should do.
+hash_git "the URL carries the choice, and a page opened at that URL is in since-mode" \
+  '#since=v0.2' v0.9 \
+  'opened v0.2
+hash since=v0.9' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.9 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#3)" v0.9'
 
 echo "----"
 echo "$pass passed, $fail failed"
