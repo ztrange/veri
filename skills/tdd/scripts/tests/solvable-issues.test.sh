@@ -100,7 +100,7 @@ issues() {  # issues <state-of-49>
 [
   {
     "number": 50,
-    "title": "the /solve-issues loop skill",
+    "title": "the /tdd loop skill",
     "labels": [{"name": "ready-for-agent"}],
     "state": "OPEN",
     "body": "## What to build\n\nA loop over solvable-issues.sh.\n\n## Blocked by\n\n#49\n"
@@ -145,7 +145,7 @@ cat > "$fx/issues.json" <<'JSON'
   },
   {
     "number": 52,
-    "title": "the /solve-issues loop skill",
+    "title": "the /tdd loop skill",
     "labels": [{"name": "ready-for-agent"}],
     "state": "OPEN",
     "body": "## Blocked by\n\nNone.\n"
@@ -178,7 +178,7 @@ cat > "$fx/issues.json" <<'JSON'
   },
   {
     "number": 54,
-    "title": "the /solve-issues loop skill",
+    "title": "the /tdd loop skill",
     "labels": [{"name": "ready-for-agent"}],
     "state": "OPEN",
     "body": "## Blocked by\n\nNone.\n"
@@ -189,7 +189,7 @@ cat > "$fx/prs.json" <<'JSON'
 [
   {
     "state": "OPEN",
-    "body": "Draft PR opened by a /solve-issue run.\n\nCloses #53\n"
+    "body": "Draft PR opened by a /tdd run.\n\nCloses #53\n"
   }
 ]
 JSON
@@ -212,7 +212,7 @@ cat > "$fx/issues.json" <<'JSON'
 [
   {
     "number": 57,
-    "title": "the /solve-issues loop skill",
+    "title": "the /tdd loop skill",
     "labels": [{"name": "ready-for-agent"}],
     "state": "OPEN",
     "body": "## Blocked by\n\nNone.\n"
@@ -241,7 +241,7 @@ cat > "$fx/issues.json" <<'JSON'
 [
   {
     "number": 58,
-    "title": "the /solve-issues loop skill",
+    "title": "the /tdd loop skill",
     "labels": [{"name": "ready-for-agent"}],
     "state": "OPEN",
     "body": "## Blocked by\n\n#59\n"
@@ -293,7 +293,7 @@ cat > "$fx/issues.json" <<'JSON'
   },
   {
     "number": 61,
-    "title": "the /solve-issues loop skill",
+    "title": "the /tdd loop skill",
     "labels": [{"name": "ready-for-agent"}],
     "state": "OPEN",
     "body": "## Blocked by\n\nNone.\n"
@@ -304,7 +304,7 @@ cat > "$fx/prs.json" <<'JSON'
 [
   {
     "state": "OPEN",
-    "body": "Draft PR opened by a /solve-issue run.\n\nCloses #60\n"
+    "body": "Draft PR opened by a /tdd run.\n\nCloses #60\n"
   }
 ]
 JSON

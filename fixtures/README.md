@@ -1,6 +1,6 @@
 # veri fixtures
 
-Materials to demo `/solve-issue` end-to-end — on a seeded single-criterion issue and on
+Materials to demo `/tdd` end-to-end — on a seeded single-criterion issue and on
 a multi-criterion one that exercises the ledger loop, the revise loop and a classified
 bail — and to demo the blind verifier in isolation.
 
@@ -38,11 +38,11 @@ runs against a real GitHub repo with push access. Use a throwaway repo:
    git init && git add -A && git commit -m "chore: seed demo project"
    gh repo create veri-demo --private --source=. --push
    ```
-   Make the `solve-issue` skill invocable there. Nothing is copied: install it once,
+   Make the `tdd` skill invocable there. Nothing is copied: install it once,
    user-level, as a symlink to the veri clone (the README's *Install* section), or for a
    one-off symlink it into the target's own `.claude/skills/`:
    ```sh
-   mkdir -p .claude/skills && ln -s <veri-repo>/skills/solve-issue .claude/skills/solve-issue
+   mkdir -p .claude/skills && ln -s <veri-repo>/skills/tdd .claude/skills/tdd
    ```
    The conductor's preflight then writes the `.tdd` ignore rule into the target's
    `.gitignore` on the first run (`ensure-run-state-ignored.sh`), so leaf logs never land
@@ -55,7 +55,7 @@ runs against a real GitHub repo with push access. Use a throwaway repo:
 
 3. **Run the conductor** from a Claude Code session in `/tmp/veri-demo`:
    ```
-   /solve-issue <n>
+   /tdd <n>
    ```
 
 ## What you should observe

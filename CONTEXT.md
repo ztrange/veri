@@ -89,7 +89,7 @@ that run.
 _Avoid_: workspace, sandbox, clone (it is not one — the object store is shared)
 
 **Caller's checkout**:
-The working directory `/solve-issue` was invoked from. The conductor reads the issue and the
+The working directory `/tdd` was invoked from. The conductor reads the issue and the
 default branch there and then moves into the issue's worktree; it is never switched, never
 committed in, and never left changed by a run. Anything reading that directory — a skill
 symlinked out of it, a dev server serving it — therefore keeps seeing what it saw before.

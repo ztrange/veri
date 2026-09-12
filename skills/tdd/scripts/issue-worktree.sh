@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # issue-worktree.sh — the linked git worktree an issue branch lives in.
 #
-# The conductor used to `git switch -c tdd/<n>-<slug>` in whatever checkout /solve-issue was
+# The conductor used to `git switch -c tdd/<n>-<slug>` in whatever checkout /tdd was
 # invoked from, which drags that checkout off the default branch for the whole run: anything
 # symlinked or served out of it (a user-level skill link, a dev server) silently starts seeing
 # the issue branch. This creates a *linked worktree* instead — a second working directory that

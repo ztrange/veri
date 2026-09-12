@@ -5,7 +5,7 @@ being idempotent, hands back — a **linked git worktree** at `<repo-root>/.tdd/
 `tdd/<n>-<slug>` checked out in it, cut from the **default** branch rather than from the
 caller's `HEAD`, and prints its absolute path; the conductor `cd`s there and the whole run
 happens inside it — the blind spec, the ledger, the leaf logs, every commit, the push and
-the PR. The checkout `/solve-issue` was invoked from is left exactly as it was. If the
+the PR. The checkout `/tdd` was invoked from is left exactly as it was. If the
 branch is already checked out in another worktree the script exits **2** naming that path
 and touches nothing: **never steal a checkout**, because another conductor owns that run.
 `--remove <n>` retires the worktree once the PR has merged, and refuses (exit 2) one

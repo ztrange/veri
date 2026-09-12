@@ -3,7 +3,7 @@
 #
 # Creates one GitHub issue, with exactly one acceptance criterion, on the repo you
 # run it against. Pair it with fixtures/demo-project/ as the target codebase, then
-# run `/solve-issue <n>` against the printed issue number.
+# run `/tdd <n>` against the printed issue number.
 #
 # Usage:
 #   fixtures/seed-demo-issue.sh            # seed on the current repo's origin
@@ -36,7 +36,7 @@ single hyphen, and strip leading/trailing hyphens. For example,
 ## Notes
 
 This is a seeded single-criterion fixture for demoing the veri walking skeleton.
-Run `/solve-issue <this-issue-number>` against the `fixtures/demo-project/` codebase.
+Run `/tdd <this-issue-number>` against the `fixtures/demo-project/` codebase.
 EOF
 )
 

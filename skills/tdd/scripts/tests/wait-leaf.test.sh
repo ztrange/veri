@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tests for scripts/wait-leaf.sh — the foreground half of a detached leaf launch (#86).
 #
-# A print-mode conductor (`claude -p "/solve-issue <n>"`) never receives background-task
+# A print-mode conductor (`claude -p "/tdd <n>"`) never receives background-task
 # notifications, so a turn that ends with a supervised leaf still running orphans it. The
 # fix splits launch from wait: `supervise.sh` is launched detached and records its own
 # final code in a completion file, and this script blocks in the foreground until that
@@ -128,7 +128,7 @@ rc_bare=$?
 # 4. The script is only half the fix. A conductor that still ends its turn with a leaf sitting
 #    in a background Bash call orphans it whatever this script does, and SKILL.md — the
 #    procedure the conductor actually follows — said nothing about waiting at all when #86 was
-#    written (`grep -niE 'background|notification|wait' skills/solve-issue/SKILL.md` matched
+#    written (`grep -niE 'background|notification|wait' skills/tdd/SKILL.md` matched
 #    nothing), so foreground-or-background was a fresh guess at every launch and the wrong
 #    guess is fatal in print mode. The document therefore carries this criterion: every leaf
 #    launch in it is detached and followed by a foreground wait, and it says in so many words

@@ -11,13 +11,13 @@ because it never sees the work's justification.
 
 ## How it works
 
-A **conductor** (`/solve-issue <number>`) drives one issue end-to-end. It owns no coding
+A **conductor** (`/tdd <number>`) drives one issue end-to-end. It owns no coding
 itself — it launches short-lived `claude -p` **leaves** through a **supervisor** that
 watches each leaf's heartbeat and kills/retries/escalates anything that hangs. Control
 over a stuck agent is a first-class property, not an afterthought.
 
 ```
-/solve-issue <n>
+/tdd <n>
   ├─ baseline: git repo? suite green? clean tree? gh authed?
   ├─ worktree: .tdd/wt/<n> on tdd/<n>-slug (your checkout is not switched)
   ├─ scope-and-plan → ledger (.tdd/issue-<n>.md)  +  mirror plan to the issue
@@ -59,9 +59,11 @@ veri grows in three rungs, each wrapping the previous — never a rewrite:
 ## Install
 
 veri is a Claude Code skill, not an application. Install it once, user-level, as a symlink
-to this clone — then `/solve-issue <n>` works from any repo on the machine:
+to this clone — then `/tdd <n>` works from any repo on the machine:
 
 ```sh
+ln -s "$(pwd)/skills/tdd" ~/.claude/skills/tdd
+# optional — the old names, kept as stubs that forward to /tdd
 ln -s "$(pwd)/skills/solve-issue"  ~/.claude/skills/solve-issue
 ln -s "$(pwd)/skills/solve-issues" ~/.claude/skills/solve-issues
 ```
@@ -90,21 +92,22 @@ resume lands back in it; once the PR is merged, retire it with
 `skills/tdd/scripts/issue-worktree.sh --remove <n>`, which refuses to remove one
 that still holds uncommitted work.
 
-`/solve-issues` (rung 2) drains the backlog instead of one named issue: it asks
-`solvable-issues.sh` which issues veri may take, runs the `/solve-issue` conductor on the
+`/tdd <scope>` (rung 2) drains a backlog instead of one named issue — any argument that is
+not an integer names a **scope**, and bare `/tdd` means the `plain` one: it asks
+`solvable-issues.sh` which issues veri may take, runs the conductor on the
 first, then **asks again** — a finished issue's draft PR now `Closes` it, and closing its
 dependencies may have freed others, so the set is recomputed every iteration rather than
 walked from a stale list. An issue is taken only if it is open, carries the
 **`ready-for-agent`** label — the human's explicit opt-in, since nothing is taken because
 it merely exists — every issue under its **`## Blocked by`** heading is closed, and no open
-PR already says `Closes #<n>` for it. The label is configurable: `VERI_LABEL` names it
-(default `ready-for-agent`), and the intended use is partitioning — **one label per loop**,
+PR already says `Closes #<n>` for it. The scope picks that label: `plain` is the bare
+`ready-for-agent`, any other scope is `ready-for-agent:<scope>`, and `VERI_LABEL` still
+overrides it outright. The intended use is partitioning — **one label per loop**,
 so two loops running against the same repository drain disjoint pools instead of racing for
 the same issues. The first bail stops the loop unless you pass
 `--continue-on-bail`, `VERI_MAX_ISSUES` caps an invocation (default: no cap), and the loop
-adds no failure mode of its own — every outcome is a `/solve-issue` outcome, and the
-committed ledgers make an interrupted run resumable by invoking `/solve-issues` again.
-Both skills must be installed: the loop finds the conductor's scripts as its sibling.
+adds no failure mode of its own — every outcome is a single-issue outcome, and the
+committed ledgers make an interrupted run resumable by invoking `/tdd <scope>` again.
 
 ## Documentation
 
@@ -123,7 +126,7 @@ Both skills must be installed: the loop finds the conductor's scripts as its sib
 ## Status
 
 Rung 1 of the scope ladder — **single issue, end to end** — is complete. The
-`/solve-issue` conductor (`skills/solve-issue/`) decomposes an issue into a
+`/tdd` conductor (`skills/tdd/`) decomposes an issue into a
 committed ledger and loops it through Red → Green → Refactor, writing no code itself:
 every phase is a short-lived `claude -p` leaf launched through the supervisor, and every
 phase is confirmed by a blind independent verifier that runs the test itself. A `REJECT`
@@ -137,6 +140,6 @@ streaming heartbeat (#14), deterministic bail classification (#18), the run-stat
 ignore guard that makes a target repo safe to run in (#27) and the *already satisfied*
 step outcome — a blind verify-pin instead of a doomed red (#31).
 
-Rung 2 of the [scope ladder](./CONTEXT.md) is `/solve-issues` (#41): drain every
+Rung 2 of the [scope ladder](./CONTEXT.md) is `/tdd <scope>` (#41): drain every
 *solvable* issue one after another. Next: rung 3, several conductors in parallel, each in
 its own worktree (#43 laid the ground). Demo materials live in [`fixtures/`](./fixtures).
