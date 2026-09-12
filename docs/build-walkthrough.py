@@ -417,6 +417,21 @@ def render_hunks_json(meta):
     return json.dumps(d, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def render_scripts_json(entries):
+    """The scripts in the order the page lists them — page order, as a list.
+
+    Since-mode walks the lit hunks in the order a reader scrolls past them, and nothing
+    the client already has says what that order is: the hunk map is keyed by tag, and a
+    script's name is no guide, since classify-bail.sh sorts before supervise.sh as text
+    and comes after it on the page. This is nav_entries()' "file" entries, which is the
+    same ordered list the listings themselves are rendered from — so the walk cannot
+    disagree with the page about which script comes first.
+    """
+    import json
+    files = [e["label"] for e in entries if e["kind"] == "file"]
+    return json.dumps(files, ensure_ascii=False, separators=(",", ":"))
+
+
 def render_order_json(meta):
     """Every tag, oldest first, in git's version sort — the page's only version order.
 
@@ -472,6 +487,7 @@ def main():
         rail=render_rail(entries),
         nav=render_nav_json(entries),
         hunks=render_hunks_json(META),
+        scripts=render_scripts_json(entries),
         order=render_order_json(META),
         pitch=refs(com.PITCH_HTML).replace("{{SOLVED}}", solved_count),
         intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),

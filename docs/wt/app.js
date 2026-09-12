@@ -107,6 +107,12 @@
   var ORDER = window.__VERI_ORDER__ || [];
   var HUNKS = window.__VERI_HUNKS__ || {};
 
+  /* Where each script sits on the page, by file name. window.__VERI_SCRIPTS__ is the
+     build's list of the scripts in document order, taken from the same entries the
+     listings and the rail are rendered from, so it cannot disagree with them. */
+  var PAGE_RANK = {};
+  (window.__VERI_SCRIPTS__ || []).forEach(function (file, i) { PAGE_RANK[file] = i; });
+
   function lit(tag, since) {
     var hunkRank = ORDER.indexOf(tag), readRank = ORDER.indexOf(since);
     // -1 is what indexOf answers for a tag the order does not carry, and it ranks below
@@ -133,7 +139,35 @@
     return rows;
   }
 
-  window.__VERI_SINCE__ = { lit: lit, index: index };
+  /* The lit hunks in page order: the stops n and p — and the two buttons in the crumb
+     bar — step through, so that next always moves the reader down the page and previous
+     always back up it.
+
+     The sort is what makes it a walk. window.__VERI_HUNKS__ is keyed by tag, so reading
+     it out as it comes hands back the hunks grouped by capability and the capabilities
+     in the order JSON happened to write the keys — newest capability first within a
+     script, and the scripts interleaved. A reader pressing n through that is thrown up
+     and down two thousand lines of listing. Page order is the order the page lists its
+     scripts, lowest line first inside one: PAGE_RANK for the script, the hunk's first
+     line for the tie. Never the script's name, which puts classify-bail.sh before
+     supervise.sh as text and after it on the page. */
+  function walk(since) {
+    var stops = [];
+    Object.keys(HUNKS).forEach(function (tag) {
+      if (lit(tag, since)) stops = stops.concat(HUNKS[tag]);
+    });
+    // An entry is [script, first, last, description]. A script the nav does not carry
+    // has no place on the page, so it sorts last rather than poisoning the comparison
+    // with a NaN.
+    function rank(entry) {
+      var r = PAGE_RANK[entry[0]];
+      return r === undefined ? Infinity : r;
+    }
+    stops.sort(function (a, b) { return rank(a) - rank(b) || a[1] - b[1]; });
+    return stops;
+  }
+
+  window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk };
 })();
 
 /* veri, Annotated — scrollspy: where am I.
