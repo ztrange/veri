@@ -175,13 +175,16 @@ for probe in "- 4 0 refactor 4/5" "- 5 3 refactor 5/5" "3 3 3 refactor 3/3"; do
   set -- $probe
   budget_env="$1" count="$2" exp_code="$3" exp_status="$4 $5"
   label="VERI_REFACTOR_BUDGET=$budget_env count $count"
+  # The two kinds of probe differ only in how the child's environment is set up, so branch
+  # on that alone and leave one copy of the call itself: `-u VAR` clears the variable for
+  # the child only — the probe then sees the script's own default and nothing the
+  # surrounding run has set — while `VAR=value` sets it for that child just as narrowly.
   if [[ "$budget_env" == "-" ]]; then
-    # env -u clears the variable for the child only, so the probe sees the script's own
-    # default and nothing the surrounding run has set.
-    out="$(env -u VERI_REFACTOR_BUDGET "$BUDGET" "$count" 2>/dev/null)" && code=0 || code=$?
+    env_prefix=(-u VERI_REFACTOR_BUDGET)
   else
-    out="$(VERI_REFACTOR_BUDGET="$budget_env" "$BUDGET" "$count" 2>/dev/null)" && code=0 || code=$?
+    env_prefix=(VERI_REFACTOR_BUDGET="$budget_env")
   fi
+  out="$(env "${env_prefix[@]}" "$BUDGET" "$count" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == "$exp_code" ]] ||
     problems+=("$label: want exit $exp_code, got $code")
   [[ "$out" == "$exp_status "* ]] ||
