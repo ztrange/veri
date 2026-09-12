@@ -85,6 +85,7 @@ PAGE_TEMPLATE = '''<!doctype html>
 <script>window.__VERI_NAV__ = {nav};</script>
 <script>window.__VERI_HUNKS__ = {hunks};</script>
 <script>window.__VERI_SCRIPTS__ = {scripts};</script>
+<script>window.__VERI_SINCE_OF__ = {since_of};</script>
 <script>window.__VERI_ORDER__ = {order};</script>
 <script>
 {js}

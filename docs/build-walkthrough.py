@@ -468,6 +468,34 @@ def render_scripts_json(entries):
     return json.dumps(files, ensure_ascii=False, separators=(",", ":"))
 
 
+def render_since_json(meta, entries):
+    """Each listed script's `since` — the version it arrived in — keyed by file name.
+
+    The hunk map cannot answer this. hunks() drops every run at or below a file's own
+    `since`, because the header badge already says the script is new, so a script that
+    arrived whole in v0.18 has no hunk anywhere in it — and a client holding only the map
+    reads that as "nothing changed here", which is what walks a reader at v0.10 straight
+    past it. The badge is prose; this is the same fact in a form the client can rank a
+    script by, against the tag order render_order_json emits.
+
+    Keyed off nav_entries()' "file" entries for the same reason render_scripts_json is:
+    one answer per script the page actually lists, from the list the listings are
+    rendered from.
+
+    {} in a tree with no version layer, matching the hunk map and the tag order: the
+    client reads an empty map rather than checking whether there is one.
+    """
+    import json
+    d = {}
+    if meta:
+        for e in entries:
+            if e["kind"] == "file":
+                since = (meta["marks"].get(e["label"]) or {}).get("since")
+                if since:
+                    d[e["label"]] = since
+    return json.dumps(d, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
 def render_order_json(meta):
     """Every tag, oldest first, in git's version sort — the page's only version order.
 
@@ -524,6 +552,7 @@ def main():
         nav=render_nav_json(entries),
         hunks=render_hunks_json(META),
         scripts=render_scripts_json(entries),
+        since_of=render_since_json(META, entries),
         order=render_order_json(META),
         pitch=refs(com.PITCH_HTML).replace("{{SOLVED}}", solved_count),
         intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
