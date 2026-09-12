@@ -73,19 +73,27 @@ kill_tree() {
   kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
 }
 
-# run_filtered <only> <out> — run the guard suite with ONLY=<only>, its output into <out>,
-# under a deadline; prints "<exit code> <elapsed seconds>".
+# run_filtered <only> — run the guard suite with ONLY=<only> under a deadline, and set the
+# three things a case then asks about: `code`, its exit status; `elapsed`, the seconds it
+# took; and `report_text`, everything it printed. Publishing them as variables is the same
+# protocol `report` already uses for `problems` — the caller reads them where it stands.
 #
-# The deadline is the whole point of running it this way rather than with $(...): the
-# failure this case exists to catch is a suite that ignores ONLY and builds everything, and
-# unbounded that failure costs 140 s every time `make test` runs while the filter is still
-# missing. Killed at the ceiling it costs 30 s and reports a non-zero exit, which is a
-# truthful red either way.
+# It owns its scratch file rather than being handed one: where the output is parked is
+# nobody's business but this function's, and a caller that passes a path and then has to
+# remember to read that same path back is two halves that can get out of step. One path
+# reused across calls is enough — the redirect truncates it, and each caller reads it before
+# the next run overwrites it.
+#
+# The deadline is the whole point of running the suite as a background job rather than
+# inline: the failure this case exists to catch is a suite that ignores ONLY and builds
+# everything, and unbounded that failure costs 140 s every time `make test` runs while the
+# filter is still missing. Killed at the ceiling it costs 30 s and reports a non-zero exit,
+# which is a truthful red either way.
 #
 # Launched in its own process group (job-control monitor mode, as supervise.sh does) so the
 # deadline reaches the python build the suite is inside and not just the shell wrapping it.
 run_filtered() {
-  local only="$1" out="$2" pid code start elapsed
+  local only="$1" pid start out="$WORK/run.txt"
   set -m
   ONLY="$only" "$SUITE" >"$out" 2>&1 &
   pid=$!
@@ -100,7 +108,7 @@ run_filtered() {
   done
   wait "$pid" && code=0 || code=$?
   elapsed=$((SECONDS - start))
-  printf '%s %s\n' "$code" "$elapsed"
+  report_text="$(cat "$out" 2>/dev/null)"
 }
 
 # 1. The contract above, and all three of its halves in one case, because no two of them
@@ -111,9 +119,7 @@ run_filtered() {
 #    no other, and skipped the twenty-seven builds it did not need.
 name="ONLY='$ONLY_CASE' runs that one case of build-guards.test.sh and nothing else, in seconds"
 problems=()
-out="$WORK/filtered.txt"
-read -r code elapsed <<< "$(run_filtered "$ONLY_CASE" "$out")"
-report_text="$(cat "$out" 2>/dev/null)"
+run_filtered "$ONLY_CASE"
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from ONLY='$ONLY_CASE' $SUITE, got $code after ${elapsed}s")
 [[ "$report_text" == *"$ONLY_COUNT"* ]] ||
@@ -139,9 +145,7 @@ report "$name"
 NO_MATCH='no-such-case-zzz'
 name="ONLY='$NO_MATCH' matches no case: exit 3, says so, and runs nothing"
 problems=()
-out="$WORK/nomatch.txt"
-read -r code elapsed <<< "$(run_filtered "$NO_MATCH" "$out")"
-report_text="$(cat "$out" 2>/dev/null)"
+run_filtered "$NO_MATCH"
 lowered="$(printf '%s' "$report_text" | tr 'A-Z' 'a-z')"
 [[ "$code" == 3 ]] ||
   problems+=("want exit 3 — nothing to do — from ONLY='$NO_MATCH' $SUITE, got $code after ${elapsed}s")
