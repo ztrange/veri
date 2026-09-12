@@ -4,9 +4,10 @@
 # Prints the command on stdout and exits 0; prints nothing and exits 3 when it cannot
 # decide, which is the conductor's cue to ask the human.
 #
-# Precedence is first-match-wins, and the override below is the first rule on purpose:
-# whatever a later inference would have guessed, a repo that wrote .veri/test-command
-# has already answered the question, so nothing downstream gets to second-guess it.
+# Precedence is first-match-wins, and the two overrides below are the first rules on
+# purpose: an issue that named its test command, or a repo that wrote .veri/test-command,
+# has already answered the question in words, so no later inference gets to second-guess
+# it. Which of the two answers first is argued where rule 0 sits.
 #
 # Usage:   detect-test-command.sh [--issue <body-file>] [repo-root]
 #          (repo-root defaults to the current directory)
