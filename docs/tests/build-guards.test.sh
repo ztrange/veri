@@ -52,6 +52,23 @@ pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
+# selected <case name> — true when this run was asked for this case.
+#
+# Every case below builds its own disposable tree and its own page, twenty-eight of them,
+# which is why the whole suite costs ~140 s and why a leaf developing a docs issue paid
+# that for the one case it was actually working on: the target test and the full suite
+# were the same command (issue #119). `ONLY=<substring>` names the cases to run — the
+# match is a substring of the case name, not the whole of it, so a run can ask for a case
+# by the fragment that is quick to type.
+#
+# The guard sits at the top of every assertion, before it reaches for a sandbox, because
+# the sandbox and the build ARE the cost: a case that is skipped copies no tree, starts no
+# python and asks git nothing. It returns 0 — a skipped case is neither a pass nor a
+# failure, and must not move either counter.
+selected() {
+  [[ -z "${ONLY:-}" || "$1" == *"$ONLY"* ]]
+}
+
 # Which sandbox the assertion helpers below build in. Most cases want the default —
 # a bare tree with no .git — so the version layer stays out of the way; the cases that
 # exercise it flip this to sandbox_git for the length of one call.
@@ -122,6 +139,7 @@ hunk_spans() {
 # refuses <name> <expected-substring-in-stderr> <mutator...>
 # The mutator runs inside the sandbox dir; the build must then FAIL and say why.
 refuses() {
+  selected "$1" || return 0
   local name="$1" want="$2"; shift 2
   local d code err; d="$("$SANDBOX")"
   ( cd "$d" && "$@" )
@@ -140,6 +158,7 @@ refuses() {
 
 # accepts <name> <expected-substring-in-page> [mutator...]
 accepts() {
+  selected "$1" || return 0
   local name="$1" want="$2"; shift 2
   local d code page; d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
@@ -157,6 +176,7 @@ accepts() {
 # omits <name> <substring-that-must-NOT-appear> [mutator...]
 # The negative form of accepts: the build must succeed AND not contain this.
 omits() {
+  selected "$1" || return 0
   local name="$1" unwanted="$2"; shift 2
   local d code page; d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
@@ -178,6 +198,7 @@ omits() {
 # sentence entirely passes the "no number" half, and one that carried a hand-typed number
 # in the prose passes the "sentence is there" half.
 accepts_without() {
+  selected "$1" || return 0
   local name="$1" want="$2" unwanted="$3"; shift 3
   local d code page; d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
@@ -229,6 +250,7 @@ missing_from() {
 # <wants> is ONE argument holding one required substring per line, for the same reason
 # tags_git takes its spans that way: the claim is that all of them are in that one slice.
 opens_with() {
+  selected "$1" || return 0
   local name="$1" wants="$2"; shift 2
   local d code page region missing
   d="$("$SANDBOX")"
@@ -257,6 +279,7 @@ opens_with() {
 # also appears as an `id=` on the heading it points at, so asked of the whole page this
 # would pass on a section that was never added to the nav at all.
 rail_lists() {
+  selected "$1" || return 0
   local name="$1" wants="$2"; shift 2
   local d code page region missing
   d="$("$SANDBOX")"
@@ -285,6 +308,7 @@ rail_lists() {
 # that was given a group of its own, or filed under the reference entries, is still
 # somewhere in the rail. Only the group says it is a top-level section like the others.
 rail_group_lists() {
+  selected "$1" || return 0
   local name="$1" head="$2" wants="$3"; shift 3
   local d code page region missing
   d="$("$SANDBOX")"
@@ -352,6 +376,7 @@ figure_holding() {
 # repository actually builds contains, so there is nothing to mutate. Add the tail when a
 # case needs one, rather than carrying an argument no caller can reach.
 figure_between() {
+  selected "$1" || return 0
   local name="$1" start="$2" end="$3" wants="$4"
   local d code page region found
   d="$("$SANDBOX")"
@@ -399,6 +424,7 @@ accepts_without_git() { local SANDBOX=sandbox_git; accepts_without "$@"; }
 # emits from `commentary.py` whatever the repository looks like, so there is nothing to
 # change in the sandbox first. The parameter goes back the day a case needs one.
 index_says() {
+  selected "$1" || return 0
   local name="$1" wants="$2"
   local d code page region missing
   d="$(sandbox_git)"
@@ -427,6 +453,7 @@ index_says() {
 # with two tags has to claim both at once: found separately they could still be the same
 # line tagged twice, or one span overwritten by the other.
 tags_git() {
+  selected "$1" || return 0
   local name="$1" n="$2" wants="$3"; shift 3
   local d code page got want missing=""; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -460,6 +487,7 @@ tags_git() {
 # itself; supplying them would let the case pass against a tree the real build reads
 # differently.
 hunks_git() {
+  selected "$1" || return 0
   local name="$1" want="$2"; shift 2
   local d code got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -507,6 +535,7 @@ PY
 # (script, first line, last line, description) or as an object keyed by those same words,
 # because which of the two a build emits is a spelling choice and not a behaviour.
 hunk_map_git() {
+  selected "$1" || return 0
   local name="$1" want="$2"; shift 2
   local d code read_code page spans got entries; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -562,6 +591,7 @@ PY
 # on the `pre.src .l::before` line-number rule that is already there, and on the word
 # "chunks" in a comment.
 hunk_css() {
+  selected "$1" || return 0
   local name="$1" wants="$2"; shift 2
   local d code read_code page got want missing=""; d="$("$SANDBOX")"
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
@@ -627,6 +657,7 @@ PY
 # because the page has honest reasons to rest something at zero opacity — `.tip` is a
 # tooltip that is not showing.
 undimmed_git() {
+  selected "$1" || return 0
   local name="$1"; shift
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -936,6 +967,7 @@ ask_page() {
 # v0.9: the ORDER of the report is not what is under test, the verdict on each line is.
 # Entries are read in either spelling the map may use, as hunk_map_git does.
 since_git() {
+  selected "$1" || return 0
   local name="$1" since="$2" want="$3"; shift 3
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1002,6 +1034,7 @@ JS
 # is not what is under test. The links within a row sort by script and then by line, so
 # they read in page order.
 index_git() {
+  selected "$1" || return 0
   local name="$1" since="$2" want="$3"; shift 3
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1066,6 +1099,7 @@ JS
 # reports here, it is NOT sorted before it is compared: the order IS the assertion.
 # Entries are read in either spelling the map may use, as hunk_map_git has it.
 walk_git() {
+  selected "$1" || return 0
   local name="$1" since="$2" want="$3"; shift 3
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1125,6 +1159,7 @@ JS
 # nothing reads restores nothing. The leading `#` is stripped, because a browser puts it
 # back on the getter whatever the page assigned and it is a delimiter, not the choice.
 hash_git() {
+  selected "$1" || return 0
   local name="$1" opened="$2" pick="$3" want="$4"; shift 4
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1196,6 +1231,7 @@ JS
 # blank page instead of the walkthrough. That last load fails the case if node exits
 # non-zero, which is this harness's whole vocabulary for "the page did not come up".
 store_git() {
+  selected "$1" || return 0
   local name="$1" want="$2"; shift 2
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1263,6 +1299,7 @@ JS
 # keys move, that the buttons move the same walk, that `p` goes back up the page, and that
 # a press lands on a stop rather than somewhere. `-` is a press that scrolled nothing.
 wiring_git() {
+  selected "$1" || return 0
   local name="$1" since="$2" want="$3"; shift 3
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1364,6 +1401,7 @@ JS
 # opens. Failure prints the tail of the combined output: the checker's FAIL lines come
 # last, and a build that died instead leaves its traceback in the same place.
 checks_git() {
+  selected "$1" || return 0
   local name="$1"; shift
   local d code out; d="$(sandbox_check)"
   ( cd "$d" && "$@" )
@@ -1420,6 +1458,7 @@ diagram_blocks() {
 # <names> is one argument holding one name per line, for the same reason tags_git takes
 # its spans that way: the claim is about all of them appearing together.
 diagrams_in_slice() {
+  selected "$1" || return 0
   local name="$1" open_re="$2" close_re="$3" ends_at="$4" wants="$5"
   local d code page blocks blk found="" n=0; d="$("$SANDBOX")"
   page="$(build "$d")" && code=0 || code=$?
@@ -1901,6 +1940,7 @@ v0.3 classify-bail.sh 6-6 rewrite line 6 of classify-bail.sh' \
 # here. The budget's own two git questions are asked AFTER the build, through the
 # unwrapped function, so they are not counted against it.
 git_budget_git() {
+  selected "$1" || return 0
   local name="$1"; shift
   local d code got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -2277,6 +2317,7 @@ bytes() { wc -c <"$1" | tr -d ' '; }
 # cmp on the bytes rather than $(...) on both sides, which would strip the trailing
 # newlines it is supposed to be comparing.
 page_is_current() {
+  selected "$1" || return 0
   local name="$1" committed="$ROOT/docs/walkthrough.html" code
   local built="$WORK/current.html" err="$WORK/current.err"
   ( cd "$ROOT" && python3 docs/build-walkthrough.py --stdout >"$built" 2>"$err" ) && code=0 || code=$?
