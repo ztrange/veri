@@ -102,24 +102,37 @@ exempt() {
   return 1
 }
 
+# sweep <git-grep-flag> <pattern> — the tracked files matching <pattern>, one per line, in the
+# global `swept`. Tracked, via `git grep`, because the repository's content is what ships.
+# Both absence cases below want the same thing and neither should re-derive it: run the grep,
+# and tell "found nothing" apart from "the probe itself broke". git grep exits 1 for no
+# matches, which is the pass those cases are after, and 2+ for a real failure — collapsing
+# the two would turn a broken probe into a silent green. So 1 comes back from here as an
+# empty list and a zero return, while 2+ comes back as that same non-zero, for the caller to
+# turn into a problem. `swept` is a newline-joined string rather than an array because a
+# caller reads it with `while read`, and an empty array under `set -u` is an error on the
+# bash 3.2 this repo still targets.
+swept=""
+sweep() {
+  local code
+  swept="$(cd "$ROOT" && git grep --files-with-matches "$1" -e "$2")" && code=0 || code=$?
+  if [[ "$code" -gt 1 ]]; then
+    swept=""
+    return "$code"
+  fi
+  return 0
+}
+
 # 2. The plumbing moved with the skill. Stated as the absence it has to produce rather than
 #    as a list of files to check, so a path constant hiding somewhere this test never heard
-#    of still counts: no tracked file names the old scripts directory except the exempt
-#    ones. Tracked, via `git grep`, because the repository's content is what ships.
+#    of still counts: no tracked file names the old scripts directory except the exempt ones.
 name="no tracked file outside the two stubs still names $old_scripts_dir"
 problems=()
-# git grep exits 1 for "no matches", which is the pass here, and 2+ for a real failure —
-# collapsing the two would turn a broken probe into a silent green.
-hits="$(cd "$ROOT" && git grep --files-with-matches --fixed-strings -e "$old_scripts_dir")" &&
-  code=0 || code=$?
-if [[ "$code" -le 1 ]]; then
-  while IFS= read -r f; do
-    [[ -n "$f" ]] || continue
-    exempt "$f" || problems+=("$f still names $old_scripts_dir")
-  done <<< "$hits"
-else
-  problems+=("git grep failed with exit $code")
-fi
+sweep --fixed-strings "$old_scripts_dir" || problems+=("git grep failed with exit $?")
+while IFS= read -r f; do
+  [[ -n "$f" ]] || continue
+  exempt "$f" || problems+=("$f still names $old_scripts_dir")
+done <<< "$swept"
 report "$name"
 
 # 3. Where the generated page comes from. `make docs-check` builds docs/walkthrough.html
@@ -254,23 +267,16 @@ problems=()
 # out of this case and in case 2's, and both old names in the alternation because the
 # plural is a command in its own right, not an inflection of the singular.
 cmd_re="(^|[^[:alnum:]_/.-])(${old_cmds[0]}|${old_cmds[1]})"
-# Same exit-code discipline as case 2: 1 is "no matches", which is the pass, and 2+ is a
-# broken probe, which must not read as one.
-hits="$(cd "$ROOT" && git grep --files-with-matches -E -e "$cmd_re")" &&
-  code=0 || code=$?
-if [[ "$code" -le 1 ]]; then
-  while IFS= read -r f; do
-    [[ -n "$f" ]] || continue
-    exempt "$f" && continue
-    [[ "$f" == "$generated_page" ]] && continue
-    # Quote the first offending line, trimmed: the case is about a file set, but the fix is
-    # always a line, and finding it again by hand is the tedious half.
-    where="$(cd "$ROOT" && git grep -nE -e "$cmd_re" -- "$f" | head -1 | cut -c1-100)"
-    problems+=("$f still names an old command: $where")
-  done <<< "$hits"
-else
-  problems+=("git grep failed with exit $code")
-fi
+sweep -E "$cmd_re" || problems+=("git grep failed with exit $?")
+while IFS= read -r f; do
+  [[ -n "$f" ]] || continue
+  exempt "$f" && continue
+  [[ "$f" == "$generated_page" ]] && continue
+  # Quote the first offending line, trimmed: the case is about a file set, but the fix is
+  # always a line, and finding it again by hand is the tedious half.
+  where="$(cd "$ROOT" && git grep -nE -e "$cmd_re" -- "$f" | head -1 | cut -c1-100)"
+  problems+=("$f still names an old command: $where")
+done <<< "$swept"
 report "$name"
 
 echo "----"
