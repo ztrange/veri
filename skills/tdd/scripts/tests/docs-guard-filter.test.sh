@@ -127,6 +127,22 @@ in_time() {
     problems+=("want a $1 run back inside ${LIMIT}s, got ${elapsed}s — it built cases nothing asked for")
 }
 
+# exits_clean <the filter that was asked for> — the exit-status probe the two matching-run
+# cases open on, appended to `problems` when the suite came back non-zero.
+#
+# Written once for the same reason in_time is: both cases name a filter whose every matching
+# case passes in this tree, so for both a non-zero exit is the guard suite failing and not
+# the claim under test. Spelled out per case it read as two probes with that consequence
+# reworded, which invites the next case to reword it again.
+#
+# Case 2 is not a caller. It wants exit 3, and that code is the whole of what it claims
+# rather than a condition it shares — a filter matching nothing is the one run where coming
+# back 0 is the failure.
+exits_clean() {
+  [[ "$code" == 0 ]] ||
+    problems+=("want exit 0 from ONLY='$1' $SUITE — the cases it names pass in this tree; got $code after ${elapsed}s")
+}
+
 # 1. The contract above, and all three of its halves in one case, because no two of them
 #    are worth anything apart. A suite that ignores ONLY and runs everything is green on
 #    "exited 0"; one that runs the matching case and then the rest of them is green on
@@ -136,8 +152,7 @@ in_time() {
 name="ONLY='$ONLY_CASE' runs that one case of build-guards.test.sh and nothing else, in seconds"
 problems=()
 run_filtered "$ONLY_CASE"
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from ONLY='$ONLY_CASE' $SUITE, got $code after ${elapsed}s")
+exits_clean "$ONLY_CASE"
 [[ "$report_text" == *"$ONLY_COUNT"* ]] ||
   problems+=("want '$ONLY_COUNT' in its output — the matching case and no other; got: $(printf '%s' "$report_text" | tail -3 | tr '\n' '/')")
 in_time filtered
@@ -182,8 +197,10 @@ report "$name"
 #    whatever order it finishes, is green on any one-case run. 'expands intact' is the
 #    cheapest pair that shares a substring — two `accepts` cases, a bare sandbox and a page
 #    each, no git history — and their names are listed here in the order build-guards.test.sh
-#    invokes them (docs/tests/build-guards.test.sh:1598 then :1600), which is the order the
-#    output has to be in.
+#    invokes them: the two cases of its case 6, the expansion-guard regression, brace-heavy
+#    first and nested-brace second. That is the order the output has to be in. Named rather
+#    than cited by line, because a line number in build-guards.test.sh is stale the next time
+#    anything is inserted above it.
 #
 #    The probe reads the ok lines back through a sed that only matches the full shape,
 #    `ok - ` then the name then a parenthesised whole-number seconds, and compares the names
@@ -197,8 +214,7 @@ problems=()
 run_filtered "$OK_FILTER"
 got_oks="$(printf '%s\n' "$report_text" | sed -n 's/^ok - \(.*\) ([0-9][0-9]*s)$/\1/p')"
 want_oks="$(printf '%s\n' "${OK_CASES[@]}")"
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from ONLY='$OK_FILTER' $SUITE — both cases pass in this tree; got $code after ${elapsed}s")
+exits_clean "$OK_FILTER"
 [[ "$got_oks" == "$want_oks" ]] ||
   problems+=("want one 'ok - <name> (<n>s)' line per passing case, in order: $(printf '%s' "$want_oks" | tr '\n' '/'); got: $(printf '%s' "$got_oks" | tr '\n' '/')")
 in_time ok-line
