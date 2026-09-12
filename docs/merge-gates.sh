@@ -4,9 +4,9 @@
 # rebased tip: `make merge-gates`.
 #
 # WHY NOT CI, WHY NOT A PUSH HOOK: the walkthrough's guards (docs/tests/build-guards.test.sh)
-# rebuild the page thirty-odd times and take ~140 s; even the freshness check
-# (docs/check-walkthrough.py) rebuilds it once, ~20 s, because `make docs` shells out to
-# git blame per script for the hunk marks. On a runner billed by the minute that was the
+# rebuild the page thirty-odd times and take minutes; even the freshness check
+# (docs/check-walkthrough.py) rebuilds it once — ~20 s when this was decided, ~2 s since
+# gitmeta.py asks git once per tag instead of once per commit. On a billed runner it was the
 # bulk of the bill; on a pre-push hook it fires on pushes that touched nothing the page
 # reads. The merge is the one moment the check is owed, and it is owed exactly to the
 # extent the branch changed an input. So: diff against the base, decide, run.
@@ -71,8 +71,8 @@ if [ $run_test -eq 0 ] && [ $run_fresh -eq 0 ]; then
   echo "merge-gates: nothing to run — no page input changed against $base"
   exit 0
 fi
-[ $run_test  -eq 1 ] && echo "merge-gates: docs-test  (build guards, ~140 s) — $why_test"
-[ $run_fresh -eq 1 ] && echo "merge-gates: docs-fresh (rebuild + compare, ~20 s) — $why_fresh"
+[ $run_test  -eq 1 ] && echo "merge-gates: docs-test  (build guards, ~2 min) — $why_test"
+[ $run_fresh -eq 1 ] && echo "merge-gates: docs-fresh (rebuild + compare, ~2 s) — $why_fresh"
 [ "$plan" = 1 ] && exit 0
 
 rc=0

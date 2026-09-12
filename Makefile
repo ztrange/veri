@@ -59,7 +59,7 @@ docs-test:
 	@docs/tests/merge-gates.test.sh
 
 # The freshness half of docs-check on its own: rebuild once, compare to the committed
-# page (~20 s). Split out because merge-gates owes it far more often than the guards.
+# page (~2 s). Split out because merge-gates owes it far more often than the guards.
 docs-fresh:
 	@python3 docs/check-walkthrough.py
 

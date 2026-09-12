@@ -2,7 +2,7 @@
 # Unit tests for docs/merge-gates.sh — the merge-time decision about which docs gates a
 # branch owes. Zero-dependency plain-shell asserts, same idiom as the other suites.
 #
-# The gates themselves are slow (the guards ~140 s, the freshness check ~20 s), so every
+# The gates themselves are slow (the guards ~2 min, the freshness check ~2 s), so every
 # decision case runs with VERI_GATES_PLAN=1, which prints what would run and runs nothing:
 # the thing under test here is the decision, and the decision is a function of the
 # diff. One case at the end lets a gate actually run, against a hand-edited page, so the
@@ -116,7 +116,7 @@ if [[ "$code" == 2 && "$out" == *"does not resolve"* ]]; then pass=$((pass + 1))
   fail=$((fail + 1)); echo "FAIL - unresolvable base is exit 2 (exit $code)"; echo "$out" | sed 's/^/    | /'; fi
 
 # 10. the failure path, for real: a hand-edited page makes docs-fresh fail, merge-gates
-#     exits 1 and prints the regen fix. This one rebuilds the page (~20 s).
+#     exits 1 and prints the regen fix. This one rebuilds the page (~2 s).
 d="$(repo)"
 ( cd "$d" && printf '\n<!-- hand edit -->\n' >> docs/walkthrough.html && git add -A && git commit -qm 'hand edit' )
 out="$(cd "$d" && VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?

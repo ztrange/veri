@@ -12,7 +12,7 @@ there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely ev
 | `make test` | The shell unit suites. **This is also the command veri detects when run against its own repo**, so it must stay green — a red baseline makes the conductor refuse to start. |
 | `make docs` | Regenerate `docs/walkthrough.html` from the scripts. The committed page is what `.github/workflows/pages.yml` publishes to <https://ztrange.github.io/veri/> — **by hand only** (`gh workflow enable pages.yml && gh workflow run pages.yml && gh workflow disable pages.yml`); the workflow is disabled in the repo so a merge never deploys. The site is public although the repo is private, a deliberate choice recorded in that workflow's header. |
 | `make install-hooks` | Installs the `reference-transaction` hook that says so when a version tag arrives the built page does not list. Run once per clone; `.git/hooks` is shared, so it covers every worktree. Refuses rather than clobbering a hook it does not recognise. |
-| `make merge-gates` | **Run before merging any PR**, in its worktree on the rebased tip. Diffs the branch against `origin/main` and runs only the docs gates the changed files warrant: nothing for a README change, `docs-fresh` (~20 s) for a script or `SKILL.md` change, the guards too (~140 s) for a change under `docs/wt/`, `build-walkthrough.py` or `docs/tests/`. Exit 1 names the failing gate and, for a stale page, the fix. `VERI_GATES=all` forces both. |
+| `make merge-gates` | **Run before merging any PR**, in its worktree on the rebased tip. Diffs the branch against `origin/main` and runs only the docs gates the changed files warrant: nothing for a README change, `docs-fresh` (~2 s) for a script or `SKILL.md` change, the guards too (~2 min) for a change under `docs/wt/`, `build-walkthrough.py` or `docs/tests/`. Exit 1 names the failing gate and, for a stale page, the fix. `VERI_GATES=all` forces both. |
 | `make docs-fresh` | Rebuild once and compare to the committed page — the half of `docs-check` that a merge usually owes. |
 | `make docs-check` | Two phases: the docs build guards still fire, then the committed page still matches a fresh build — and still agrees with the phases `build-verify-prompt.sh` accepts and the revise budget `SKILL.md` sets. |
 
@@ -92,6 +92,11 @@ Two traps, both already cost something once:
   a plumbing failure against a methodology one, or against how much a step is allowed to
   cost. A bad `VERI_REFACTOR_BUDGET` is caught in preflight, not mid-loop, which is why
   the refactor loop can treat `refactor-budget.sh` exit 2 as impossible.
+- **A walkthrough build asks git once per script, once per tag, and eight times besides.**
+  `docs/tests/build-guards.test.sh` pins that as a budget. Every question is a process
+  (~30 ms), so a question asked per commit or per blamed line — `tag --contains`, `show
+  --name-only` — is what made a build 16 s and `make docs-test` the cost of every leaf
+  on a docs issue. Ask it of the table `gitmeta._shipped()` already built instead.
 - **A tag is the one input to the page that changes without a commit.** The capability
   index is built from `git tag`, so cutting one leaves `docs/walkthrough.html` behind
   and `make docs-check` red until someone runs `make docs`. That window is deliberate —
