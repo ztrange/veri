@@ -165,14 +165,12 @@ none_out="$("$BUILD" 2>"$none_err")"; code=$?
 #    conductor greps for it — the candidates go **one per line**, so N of them can be
 #    counted and listed rather than parsed out of a sentence, and the line says `none` when
 #    the leaf sees nothing left, which is what distinguishes a clean stop from a truncated
-#    one. `problems` says which face broke.
-touched_left='scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh'
-cand="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched_left" 2>/dev/null)"; code=$?
+#    one. `problems` says which face broke. The prompt it reads is case 3's: same phase,
+#    same arguments, so there is one invocation and case 3 owns the exit-0 check on it.
 problems=""
-[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
-grep -qE '^CANDIDATES:' <<<"$cand" || problems="$problems; no CANDIDATES: report line"
-grep -qiE 'one[^.]{0,20}per line' <<<"$cand" || problems="$problems; does not ask for one candidate per line"
-grep -qiE '^CANDIDATES:.*none' <<<"$cand" || problems="$problems; the CANDIDATES: line does not offer none"
+grep -qE '^CANDIDATES:' <<<"$refactor" || problems="$problems; no CANDIDATES: report line"
+grep -qiE 'one[^.]{0,20}per line' <<<"$refactor" || problems="$problems; does not ask for one candidate per line"
+grep -qiE '^CANDIDATES:.*none' <<<"$refactor" || problems="$problems; the CANDIDATES: line does not offer none"
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor requires a CANDIDATES: report line — the candidates still seen, one per line, or none (${problems#; })"
 
