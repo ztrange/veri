@@ -1044,6 +1044,56 @@ if (process.env.VERI_ASK_WIRED) {
     return el;
   };
 
+  /* Does this element answer that selector? The stub holds a flat list and no tree, so
+     only the LAST compound of a selector is read — `pre.src .l.hunk[data-tag]` asks for
+     the `.l.hunk` carrying a `data-tag`, and the ancestors it names are context this
+     harness cannot check. A selector LIST is any one of its parts, which is how a single
+     query can ask for the hunk marks and the script headers at once. Only the exact
+     `[attr]` and `[attr="value"]` forms are modelled; a page reaching for `~=` or `^=`
+     here would find nothing rather than everything. */
+  var selects = function (el, sel) {
+    return String(sel).split(",").some(function (part) {
+      var compound = part.trim().split(/[\s>+~]+/).pop();
+      if (!compound) return false;
+      var tag = /^[A-Za-z][\w-]*/.exec(compound);
+      if (tag && el.tagName !== tag[0].toUpperCase()) return false;
+      var ok = true;
+      (compound.match(/\.[\w-]+/g) || []).forEach(function (c) {
+        if (!el.classList.contains(c.slice(1))) ok = false;
+      });
+      (compound.match(/#[\w-]+/g) || []).forEach(function (i) {
+        if (el.getAttribute("id") !== i.slice(1)) ok = false;
+      });
+      (compound.match(/\[[^\]]+\]/g) || []).forEach(function (a) {
+        var want = /^\[([\w-]+)(?:=["']?([^"'\]]*)["']?)?\]$/.exec(a);
+        var got = want && el.getAttribute(want[1]);
+        if (!want || got === null || got === undefined) { ok = false; return; }
+        if (want[2] !== undefined && got !== want[2]) ok = false;
+      });
+      return ok;
+    });
+  };
+
+  /* One element parsed back out of the page's own markup: its tag, every attribute the
+     open tag carries, and the offset it sits at, which is what puts it in document order
+     beside the rest. Nothing is invented here — an implementation that reads an attribute
+     the build does not emit finds nothing, which is the whole reason the marks are parsed
+     rather than handed over. */
+  var parsed = function (tag, attrs, at) {
+    var el = node(tag);
+    el.at = at;
+    var attr = /([\w-]+)="([^"]*)"/g, pair;
+    while ((pair = attr.exec(attrs)) !== null) {
+      el.setAttribute(pair[1], pair[2]);
+      if (pair[1].indexOf("data-") === 0) el.dataset[pair[1].slice(5)] = pair[2];
+    }
+    el.className = el.getAttribute("class") || "";
+    var classes = " " + el.className + " ";
+    el.classList.contains = function (c) { return classes.indexOf(" " + c + " ") >= 0; };
+    el.matches = function (sel) { return selects(el, sel); };
+    return el;
+  };
+
   /* The hunk marks the page ships, in document order, each carrying the attributes its
      own <span> carries. `class="l hunk"` matches the first line of a run only: a
      continuation line is `class="l hunk cont"`, and the closing quote is what tells them
@@ -1051,19 +1101,45 @@ if (process.env.VERI_ASK_WIRED) {
   var marks = [];
   var head = /<span class="l hunk"([^>]*)>/g, hit;
   while ((hit = head.exec(page)) !== null) {
-    var mark = node("span");
-    mark.className = "l hunk";
-    mark.setAttribute("class", "l hunk");
-    var attr = /([\w-]+)="([^"]*)"/g, pair;
-    while ((pair = attr.exec(hit[1])) !== null) {
-      mark.setAttribute(pair[1], pair[2]);
-      if (pair[1].indexOf("data-") === 0) mark.dataset[pair[1].slice(5)] = pair[2];
-    }
-    mark.classList.contains = function (c) { return c === "l" || c === "hunk"; };
-    mark.matches = function (sel) { return sel.indexOf("hunk") >= 0; };
+    var mark = parsed("span", 'class="l hunk"' + hit[1], hit.index);
+    mark.kind = "hunk";
     mark.position = marks.length + 1;    // where it sits among the marks, top of page first
     marks.push(mark);
   }
+
+  /* The script headers, and every element inside one. A stop that is a whole script has to
+     be a place in the page the same way a hunk is, and the header is that place — but
+     WHICH element of it carries the mark is a spelling choice the page makes: the <h3>
+     itself, the version badge inside it, a span of its own. So all of them are parsed and
+     the query decides, exactly as it does among the listings.
+     A script's header is an <h3> naming the file in a <code>: the six prose headings and
+     the reference groups are <h3> too, and no listing belongs to any of them. That name is
+     remembered by every element of the header, and by every hunk mark below it down to the
+     next header, so a question can say WHICH script a press landed in without reading the
+     markup a second time. */
+  var heads = [];
+  var headings = /<h3([^>]*)>([\s\S]*?)<\/h3>/g, heading;
+  while ((heading = headings.exec(page)) !== null) {
+    var names = /<code>([\w.-]+\.sh)<\/code>/.exec(heading[2]);
+    if (!names) continue;
+    var opens = /<([A-Za-z][\w-]*)((?:\s[^>]*)?)>/g, open;
+    while ((open = opens.exec(heading[0])) !== null) {
+      var part = parsed(open[1], open[2], heading.index + open.index);
+      part.kind = "header";
+      part.script = names[1];
+      heads.push(part);
+    }
+  }
+
+  /* The two kinds in one list, in the order the page prints them — which is the order a
+     browser's querySelectorAll answers in, and the order a walk built from one query
+     stands on. */
+  var ordered = marks.concat(heads).sort(function (a, b) { return a.at - b.at; });
+  var listing = "";
+  ordered.forEach(function (el) {
+    if (el.kind === "header") listing = el.script;
+    else el.script = listing;
+  });
 
   var crumb = node("div");
   crumb.className = "crumb";
@@ -1079,7 +1155,7 @@ if (process.env.VERI_ASK_WIRED) {
     return /crumb(?!-)/.test(sel) ? crumb : element();
   };
   document.querySelectorAll = function (sel) {
-    return sel.indexOf("hunk") >= 0 ? marks.slice() : [];
+    return ordered.filter(function (el) { return selects(el, sel); });
   };
   document.getElementById = function (id) {
     for (var i = 0; i < marks.length; i++) {
@@ -1643,6 +1719,90 @@ JS
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, wiring read exit $read_code)"
     echo "    want, for a reader who last read at $since stepping the walk:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -10
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# header_wiring_git <name> <version-the-reader-read> <the-script-own-since> <expected-report> <mutator...>
+# new_script_git pins the sequence a new script belongs in; this pins the page landing the
+# reader on it. The two are the same split wiring_git and walk_git already are, and it is
+# load-bearing here for a reason it was not there: a walk whose entries are file names is
+# not a walk anyone can take until something in the MARKUP answers to a file name. The
+# hunks had marks already — the build has emitted `<span class="l hunk" data-tag=…>` since
+# the version layer landed — and a script that arrived whole has nothing of the kind, so an
+# implementation can compute a perfect sequence, be green on new_script_git, and step the
+# reader straight past the script because the stepper collects hunk marks and finds none.
+#
+# So the page runs in the wired DOM — see VERI_ASK_WIRED in the stub — and the reader
+# presses `n`. `n` alone, where wiring_git presses both keys and clicks both buttons: that
+# case pins that all four step ONE walk, and what is new here is what that walk's stops are
+# made of. `p` is pressed once at the end because the header has to be a stop from both
+# directions — a reader who steps past it must be able to come back to it.
+#
+# One page, opened twice, as new_script_git opens it twice and for the same reason: the
+# criterion is one sentence read from either end. A reader whose version is EARLIER than
+# the script's `since` is taken to its header; one whose version IS that `since` is taken to
+# the hunk inside it and never to the header, because they have read the script already.
+#
+# The report is one line per press — `<version opened at> <key> <where it landed>` — and
+# where is the script the element belongs to plus what it is: the tag for a hunk mark, the
+# word `header` for an element of a script's header, which is how new_script_git's report
+# spells the same distinction. `-` is a press that scrolled nothing. The whole report is
+# compared, order included: the order IS the claim, since a header ranked anywhere but
+# before its own hunks is a reader sent to the middle of a file they have never seen.
+header_wiring_git() {
+  local name="$1" before="$2" after="$3" want="$4"; shift 4
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var label = process.argv[3], presses = process.argv.slice(4);
+
+if (typeof globalThis.__fire !== "function") {
+  console.error("the page was asked about its wiring without the wired DOM");
+  process.exit(1);
+}
+
+function press(key) {
+  globalThis.__fire("keydown", {
+    type: "keydown", key: key, target: document.body,
+    altKey: false, ctrlKey: false, metaKey: false, shiftKey: false,
+    preventDefault: function () {}, stopPropagation: function () {}
+  });
+}
+
+/* Where a press landed, in the page's own terms: the script whose listing or whose header
+   the element sits in — which the stub read off the markup around it — and then which of
+   the two it is. A hunk names the tag it carries, because that is what tells one run of
+   lines from another; a header has only the script to name, and says so. */
+function where(el) {
+  if (!el) return "-";
+  return el.script + " " + (el.kind === "header" ? "header" : el.getAttribute("data-tag"));
+}
+
+presses.forEach(function (key) {
+  globalThis.__scrolled = null;
+  press(key);
+  console.log(label + " " + key + " " + where(globalThis.__scrolled));
+});
+JS
+  got="$(
+    export VERI_ASK_WIRED=1
+    { export VERI_ASK_HASH="#since=$before"
+      ask_page "$d" page.html "$before" n n n p; } &&
+      { export VERI_ASK_HASH="#since=$after"
+        ask_page "$d" page.html "$after" n n; }
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, wiring read exit $read_code)"
+    echo "    want, for a reader stepping the page opened at $before, then at $after:"
     printf '%s\n' "$want" | sed 's/^/      /'
     echo "    got:"
     printf '%s\n' "$got" | sed 's/^/      /' | head -10
@@ -2696,6 +2856,55 @@ v0.2 classify-bail.sh 5-5
 v0.3 supervise.sh 8-8
 v0.3 arrived-whole.sh 2-2
 v0.3 classify-bail.sh 5-5' \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           add_script_as_feat arrived-whole.sh arrived-whole 2 \
+             "feat: a script that arrives whole (#3)" v0.3
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
+             "# rewritten by the v0.4 commit" \
+             "feat: rewrite line 8 of supervise.sh (#4)" v0.4
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
+             "# rewritten by the v0.5 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#5)" v0.5
+           rewrite_line_as_feat skills/tdd/scripts/arrived-whole.sh 2 \
+             "# rewritten by the v0.6 commit" \
+             "feat: rewrite line 2 of arrived-whole.sh (#6)" v0.6'
+
+# 30. and the reader has to land there. Case 29 pins the sequence and stops at the sequence,
+#     which is exactly where case 23 stopped before case 27 pressed a key: a walk nothing
+#     steps is a list nobody can use. It matters more here than it did there, because the
+#     stepper collects MARKS — `<span class="l hunk" data-tag=…>`, the spans the version
+#     layer has emitted since it landed — and a script that arrived whole has no such span
+#     anywhere in it. So an implementation can return case 29's sequence exactly, be green
+#     on it, and walk the reader straight past the script, because the file name it returned
+#     names nothing in the markup to scroll to.
+#
+#     Case 29's fixture, for its reasons — arrived-whole.sh ships in v0.3 between
+#     supervise.sh and classify-bail.sh on the page, and is rewritten in v0.6 — with the
+#     pressing laid over it. A reader who opens the page at v0.2 presses n three times and
+#     then p:
+#
+#       n  supervise.sh v0.4        — the first stop, a hunk in a script they have read
+#       n  arrived-whole.sh header  — the script itself, before anything inside it
+#       n  arrived-whole.sh v0.6    — and only then the run of lines within it
+#       p  arrived-whole.sh header  — back up the page to it, which says it is a stop from
+#                                     both directions rather than a place n falls through
+#
+#     The second load is the same page opened at v0.3, the version the script arrived in:
+#     the second press lands on the hunk, never on the header, because a reader who has read
+#     the script is owed what changed in it and nothing more. Both loads together are the
+#     whole criterion — a header that is always a stop is as wrong as one that never is —
+#     and the rest of the walk being identical in both is what says the header is the only
+#     thing that moved.
+header_wiring_git "n and p land the reader on a new script's header, before its first hunk" \
+  v0.2 v0.3 \
+  'v0.2 n supervise.sh v0.4
+v0.2 n arrived-whole.sh header
+v0.2 n arrived-whole.sh v0.6
+v0.2 p arrived-whole.sh header
+v0.3 n supervise.sh v0.4
+v0.3 n arrived-whole.sh v0.6' \
   bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2

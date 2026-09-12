@@ -1066,7 +1066,7 @@ html{scroll-behavior:smooth}
   added or was already there; a test command was found, or none was, and
   <code>exit 3</code> sends the conductor to ask a human rather than guessing one.
 </p></div></div></div>
-<h3 id="issue-worktree"><code>issue-worktree.sh</code> &mdash; a checkout of its own<span class="vbadge">since <b>v0.18</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="issue-worktree" data-since="v0.18"><code>issue-worktree.sh</code> &mdash; a checkout of its own<span class="vbadge">since <b>v0.18</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The conductor used to <code>git switch -c tdd/&lt;n&gt;-&lt;slug&gt;</code> in whatever
   checkout <code>/tdd</code> was invoked from &mdash; often the primary clone a
@@ -1421,7 +1421,7 @@ html{scroll-behavior:smooth}
   the path, printed last, for the caller to <code>cd</code> into.
 </p></div></div></div>
 
-<h3 id="ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code> &mdash; the target repo's ignore rule<span class="vbadge">since <b>v0.10</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="ensure-run-state-ignored" data-since="v0.10"><code>ensure-run-state-ignored.sh</code> &mdash; the target repo's ignore rule<span class="vbadge">since <b>v0.10</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   A hundred and nineteen lines that write three &mdash; into <strong>two files</strong>, and it
   needs both. The worktree's <code>.gitignore</code> is committed, so it is what keeps the
@@ -1690,7 +1690,7 @@ html{scroll-behavior:smooth}
   <em>next</em> run's preflight find it clean.
 </p></div></div></div>
 
-<h3 id="detect-test-command"><code>detect-test-command.sh</code> &mdash; the one command that runs the suite<span class="vbadge">since <b>v0.16</b> &middot; changed <b>v0.31</b></span></h3>
+<h3 id="detect-test-command" data-since="v0.16"><code>detect-test-command.sh</code> &mdash; the one command that runs the suite<span class="vbadge">since <b>v0.16</b> &middot; changed <b>v0.31</b></span></h3>
 <p>
   Preflight's other half: before step 0.3 can prove the target's suite is green at baseline,
   something first has to decide what &ldquo;run the suite&rdquo; even means for that repo.
@@ -2051,7 +2051,7 @@ html{scroll-behavior:smooth}
   That is what makes a run resumable: if veri dies halfway, re-running it reads this file
   and continues from the first unticked line.
 </p></div></div></div>
-<h3 id="next-unchecked"><code>next-unchecked.sh</code> &mdash; the loop driver<span class="vbadge">since <b>v0.7</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="next-unchecked" data-since="v0.7"><code>next-unchecked.sh</code> &mdash; the loop driver<span class="vbadge">since <b>v0.7</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The whole script is twelve lines of logic under a thirteen-line comment. It answers one
   question &mdash; what is the next unchecked step? &mdash; and its answer is what the
@@ -2148,7 +2148,7 @@ html{scroll-behavior:smooth}
   run, so it launches the supervisor <strong>detached</strong> and then waits with this, in
   instalments, until a code comes back.
 </p>
-<h3 id="supervise"><code>supervise.sh</code> &mdash; the watchdog<span class="vbadge">since <b>v0.3</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="supervise" data-since="v0.3"><code>supervise.sh</code> &mdash; the watchdog<span class="vbadge">since <b>v0.3</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The heart of veri, and the most systems-heavy script in it. The problem: you are about to
   start a process that will run for minutes doing real work, and you must distinguish
@@ -2531,7 +2531,7 @@ html{scroll-behavior:smooth}
   written.
 </p></div></div></div>
 
-<h3 id="run-leaf"><code>run-leaf.sh</code> &mdash; the inner invocation<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="run-leaf" data-since="v0.2"><code>run-leaf.sh</code> &mdash; the inner invocation<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   One level down. This is what actually starts a <code>claude -p</code> process. It is never
   called directly by the conductor &mdash; always through the supervisor, so that
@@ -2647,7 +2647,7 @@ html{scroll-behavior:smooth}
   <code>PIPESTATUS</code>. The supervisor is judging the leaf, not this wrapper.
 </p></div></div></div>
 
-<h3 id="extract-result"><code>extract-result.sh</code> &mdash; recovering the answer<span class="vbadge">since <b>v0.6</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="extract-result" data-since="v0.6"><code>extract-result.sh</code> &mdash; recovering the answer<span class="vbadge">since <b>v0.6</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   Streaming solved the heartbeat problem and created a new one: the log is now hundreds of
   lines of JSON machinery, and somewhere in it is the leaf's actual answer. This recovers
@@ -2739,7 +2739,7 @@ html{scroll-behavior:smooth}
   whether or not the model's answer did.
 </p></div></div></div>
 
-<h3 id="wait-leaf"><code>wait-leaf.sh</code> &mdash; the other half of a detached launch<span class="vbadge">since <b>v0.25</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="wait-leaf" data-since="v0.25"><code>wait-leaf.sh</code> &mdash; the other half of a detached launch<span class="vbadge">since <b>v0.25</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The three scripts above nest inside one another. This one sits <em>outside</em> all of
   them, and exists because of a constraint that has nothing to do with leaves: the conductor
@@ -2889,7 +2889,7 @@ html{scroll-behavior:smooth}
   argument list simply has no slot for the developer's rationale, so no instruction is
   needed to keep it out.
 </p></div></div></div>
-<h3 id="build-verify-prompt"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="build-verify-prompt" data-since="v0.2"><code>build-verify-prompt.sh</code> &mdash; blindness by construction<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   Look at the usage line below and note what is <strong>absent</strong>. There is a
   parameter for the phase, one for the issue's behaviour spec, one for the test path, one
@@ -3053,7 +3053,7 @@ html{scroll-behavior:smooth}
   than repeating it.
 </p></div></div></div>
 
-<h3 id="build-develop-prompt"><code>build-develop-prompt.sh</code> &mdash; the same instructions, every run<span class="vbadge">since <b>v0.13</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="build-develop-prompt" data-since="v0.13"><code>build-develop-prompt.sh</code> &mdash; the same instructions, every run<span class="vbadge">since <b>v0.13</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   Read this one as <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>'s
   mirror, and its opposite in emphasis. That script is defined by the parameter it refuses
@@ -3387,7 +3387,7 @@ html{scroll-behavior:smooth}
   <code>supervise.sh</code> eventually writes ends cleanly.
 </p></div></div></div>
 
-<h3 id="verify"><code>verify.sh</code> &mdash; the verify verb<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="verify" data-since="v0.2"><code>verify.sh</code> &mdash; the verify verb<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The composition. This is the single call the conductor makes, and the only place the three
   verification units are wired together &mdash; so verification can never be improvised.
@@ -3540,7 +3540,7 @@ html{scroll-behavior:smooth}
   suite uses.
 </p></div></div></div>
 
-<h3 id="parse-verdict"><code>parse-verdict.sh</code> &mdash; reading a verdict out of prose<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="parse-verdict" data-since="v0.2"><code>parse-verdict.sh</code> &mdash; reading a verdict out of prose<span class="vbadge">since <b>v0.2</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The verifier was told to end with two exact lines. It is a language model, so it will also
   reason for three paragraphs first, may use the word <em>verdict</em> mid-thought, and may
@@ -3765,7 +3765,7 @@ html{scroll-behavior:smooth}
   byte-for-byte alone. Writing that logic twice would guarantee they eventually diverge, so
   it is written once and wrapped twice.
 </p></div></div></div>
-<h3 id="tick-criterion"><code>tick-criterion.sh</code> &mdash; the transform<span class="vbadge">since <b>v0.1</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="tick-criterion" data-since="v0.1"><code>tick-criterion.sh</code> &mdash; the transform<span class="vbadge">since <b>v0.1</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The shared core of stage 4: flip the first unchecked checkbox whose text contains a
   matcher, and pass every other line through untouched. It reads stdin and writes stdout, so
@@ -3843,7 +3843,7 @@ html{scroll-behavior:smooth}
   caller decide.
 </p></div></div></div>
 
-<h3 id="tick-ledger"><code>tick-ledger.sh</code> &mdash; the local wrapper<span class="vbadge">since <b>v0.7</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="tick-ledger" data-since="v0.7"><code>tick-ledger.sh</code> &mdash; the local wrapper<span class="vbadge">since <b>v0.7</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   Eighteen lines, of which two do anything &mdash; but their <em>order</em> is load-bearing.
 </p>
@@ -3898,7 +3898,7 @@ html{scroll-behavior:smooth}
   and one that only reads it.
 </p></div></div></div>
 
-<h3 id="tick-issue-criterion"><code>tick-issue-criterion.sh</code> &mdash; the remote wrapper<span class="vbadge">since <b>v0.1</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="tick-issue-criterion" data-since="v0.1"><code>tick-issue-criterion.sh</code> &mdash; the remote wrapper<span class="vbadge">since <b>v0.1</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   The same three moves as <code>tick-ledger.sh</code> &mdash; read, transform, write back
   &mdash; with a network on both ends instead of a file.
@@ -4044,7 +4044,7 @@ html{scroll-behavior:smooth}
   first bail, because the thing that bailed is the thing a human now has to read &mdash;
   and grinding through the rest of the list would bury it.
 </p></div></div></div>
-<h3 id="classify-bail"><code>classify-bail.sh</code> &mdash; system or process<span class="vbadge">since <b>v0.8</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="classify-bail" data-since="v0.8"><code>classify-bail.sh</code> &mdash; system or process<span class="vbadge">since <b>v0.8</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   Twenty-three lines and a single <a class="tt" data-ref="p-case" href="#p-case">case</a>. Mechanically it is a lookup table; the
   interesting question is why it exists at all when the conductor could just decide.
@@ -4118,7 +4118,7 @@ html{scroll-behavior:smooth}
   as broken, never as fine.
 </p></div></div></div></div>
 
-<h3 id="refactor-budget"><code>refactor-budget.sh</code> &mdash; the refactor loop's stopping rule<span class="vbadge">since <b>v0.17</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="refactor-budget" data-since="v0.17"><code>refactor-budget.sh</code> &mdash; the refactor loop's stopping rule<span class="vbadge">since <b>v0.17</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   Seventeen lines of logic under a sixteen-line header &mdash;
   <a href="#classify-bail"><code>classify-bail.sh</code></a>'s closest sibling: one small
@@ -4221,7 +4221,7 @@ html{scroll-behavior:smooth}
   &mdash; the plumbing broke, rather than the loop simply running out.
 </p></div></div></div>
 
-<h3 id="solvable-issues"><code>solvable-issues.sh</code> &mdash; the selection gate<span class="vbadge">since <b>v0.19</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="solvable-issues" data-since="v0.19"><code>solvable-issues.sh</code> &mdash; the selection gate<span class="vbadge">since <b>v0.19</b> &middot; changed <b>v0.28</b></span></h3>
 <p>
   Every script before this one assumes the issue is already chosen. This is what rung 2
   of the <a href="https://github.com/ztrange/veri/blob/main/CONTEXT.md">scope
@@ -5089,9 +5089,10 @@ html{scroll-behavior:smooth}
 
    The stops are the mark ELEMENTS in document order, not walk()'s entries: the press has
    to end at a place in the page, and the DOM is the only thing that knows where a run of
-   lines sits. Which of them are stops is still lit()'s answer, read off the `data-tag`
-   the build put on each run's first line, so the walk and the dimming can never disagree
-   about what a choice lights.
+   lines sits, or where a script begins. Which of them are stops is still lit()'s answer,
+   read off the version the build wrote beside each mark — `data-tag` on a run's first
+   line, `data-since` on a script's header — so the walk and the dimming can never
+   disagree about what a choice lights.
 
    Nothing is built when no version is chosen. A reader who has not asked what changed has
    nothing to step, and buttons that step nothing are worse than absent — so the resting
@@ -5106,9 +5107,20 @@ html{scroll-behavior:smooth}
   var since = mode.since();
   if (!since) return;                    // the resting page: no walk, and no buttons for one
 
-  var stops = [], marks = document.querySelectorAll("pre.src .l.hunk[data-tag]");
+  /* The two kinds of stop, asked for in one query so the browser answers in document
+     order — which is the order the walk is in, and the only order that puts a script's
+     header before the runs of lines inside it. Two queries concatenated would put every
+     header after every hunk, and a reader pressing n would be shown the middle of a file
+     they have never seen before they were shown the file.
+     A hunk's version is the `data-tag` on the first line of the run; a script's is the
+     `data-since` the build puts on its header, and a script with no version to rank
+     carries no such attribute, so the selector never offers it. Which of the two an
+     element carries is what it is — nothing carries both. */
+  var stops = [], marks = document.querySelectorAll(
+    "pre.src .l.hunk[data-tag], h3[data-since]");
   for (var i = 0; i < marks.length; i++) {
-    if (mode.lit(marks[i].getAttribute("data-tag"), since)) stops.push(marks[i]);
+    var tag = marks[i].getAttribute("data-tag") || marks[i].getAttribute("data-since");
+    if (mode.lit(tag, since)) stops.push(marks[i]);
   }
   if (!stops.length) return;             // nothing has landed since: nothing to walk
 
