@@ -23,14 +23,18 @@
 set -euo pipefail
 
 baseline="${1:-}"
-timeout="${VERI_TIMEOUT:-}"
+# `override`, not `timeout`: both branches print a timeout, so the name has to say which of
+# the two this one is. It is the value VERI_TIMEOUT arrived with — checked and printed back
+# as the answer, never mixed with the floor and scaled baseline the other branch derives
+# from — which is what keeps the liveness axis the operator's to set.
+override="${VERI_TIMEOUT:-}"
 
-if [[ -n "$timeout" ]]; then
-  if [[ ! "$timeout" =~ ^[0-9]+$ ]] || [[ "$timeout" -lt 1 ]]; then
-    echo "leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: $timeout" >&2
+if [[ -n "$override" ]]; then
+  if [[ ! "$override" =~ ^[0-9]+$ ]] || [[ "$override" -lt 1 ]]; then
+    echo "leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: $override" >&2
     exit 2
   fi
-  echo "$timeout"
+  echo "$override"
   exit 0
 fi
 
