@@ -383,7 +383,7 @@ stage3_figure() { figure_between "$1" 'id="s3"' 'id="s4"' "$2"; }
 omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
 accepts_without_git() { local SANDBOX=sandbox_git; accepts_without "$@"; }
 
-# index_says <name> <wants> [mutator...]
+# index_says <name> <wants>
 # opens_with's question, asked of the capability index: the slice the build puts between
 # `<div class="stage-head" id="capabilities">` and the pitch's first heading, which is the
 # whole of that section and nothing else. That section is where the reader chooses a
@@ -393,11 +393,13 @@ accepts_without_git() { local SANDBOX=sandbox_git; accepts_without "$@"; }
 # Built in sandbox_git, because the index is the one section that exists only when git does
 # (case 10). In a bare sandbox the region is the empty string, which would make this a
 # question about nothing.
+# No mutator tail, unlike its three siblings above: what it asks about is prose the build
+# emits from `commentary.py` whatever the repository looks like, so there is nothing to
+# change in the sandbox first. The parameter goes back the day a case needs one.
 index_says() {
-  local name="$1" wants="$2"; shift 2
+  local name="$1" wants="$2"
   local d code page region missing
   d="$(sandbox_git)"
-  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   region="$(region_between "$page" '<div class="stage-head" id="capabilities">' '<h2 id="why"')"
   missing="$(missing_from "$region" "$wants")"
