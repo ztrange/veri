@@ -24,6 +24,12 @@
 #   branches on, the third the backlog it lists when the loop was stopped by the budget
 #   rather than by a leaf finding nothing left.
 #
+# Contract under test, the reader of that footer:
+#   SKILL.md's `#### Refactor loop` section — no script assembles the `### 🛠️ Refactor`
+#   comment, so the procedure's prose is the contract — tells the two stop conditions apart
+#   and, when the budget ended the loop, says how many candidates were left and lists them
+#   from the leaf's `CANDIDATES:` lines. Pinned here beside the prompt that asks for them.
+#
 # Contract under test, revise phase:
 #   build-develop-prompt.sh revise <phase> <spec-file> <step-text> <test-cmd> <reason-file>
 #   exits 0 and prints a prompt carrying the verifier's rejection reason verbatim — the
@@ -175,6 +181,51 @@ grep -qiE 'one[^.]{0,20}per line' <<<"$refactor" || problems="$problems; does no
 grep -qiE '^CANDIDATES:.*none' <<<"$refactor" || problems="$problems; the CANDIDATES: line does not offer none"
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor requires a CANDIDATES: report line — the candidates still seen, one per line, or none (${problems#; })"
+
+# 9. the consumer half of case 8's contract (issue #106). Case 8 pins that the prompt asks
+#    for the `CANDIDATES:` line; a footer nothing reads is dead protocol, and the reader is
+#    the conductor's procedure — so the two halves are pinned in one file, the producer above
+#    and the consumer here. The narration has to do three things the loop's two stop
+#    conditions make distinct: name both of them, so a step that ran dry is not reported as a
+#    step that ran out of money; say HOW MANY candidates the budget left behind; and LIST
+#    them, out of the leaf's `CANDIDATES:` lines, since the list is the backlog and a count
+#    with no items is not one.
+#
+#    Read as prose because prose is all there is: no script assembles this comment — the
+#    conductor writes it from what it read — so the procedure's own words are the whole of
+#    the contract, the way SKILL.md's launcher prose is for wait-leaf.sh (wait-leaf.test.sh).
+#    The `#### Refactor loop` section is cut out first and its newlines folded to spaces: both
+#    `nothing left to tidy` and `budget` recur elsewhere in the document, so a file-wide read
+#    would answer yes for a section that never mentioned either, and a claim that wraps across
+#    two lines is still one sentence to the proximity probes. Fails closed — an empty cut means
+#    the heading moved and nothing below was tested, which must not read as a pass.
+SKILL="$HERE/../../SKILL.md"
+narration="$(awk '/^#### Refactor loop/ { inside = 1; next }
+                  inside && /^#{1,6} / { exit }
+                  inside' "$SKILL" | tr '\n' ' ')"
+problems=""
+if [[ -z "$narration" ]]; then
+  problems="$problems; no '#### Refactor loop' section in SKILL.md — the narration could not be read"
+else
+  grep -qi 'nothing left to tidy' <<<"$narration" ||
+    problems="$problems; the narration never names the nothing-left-to-tidy stop"
+  grep -qi 'budget' <<<"$narration" ||
+    problems="$problems; the narration never names the budget stop"
+  # The protocol token, spelled as the leaf spells it, so the conductor is told where the
+  # leftovers come from rather than left to summarise the transcript.
+  grep -q 'CANDIDATES:' <<<"$narration" ||
+    problems="$problems; the narration never names the leaf's CANDIDATES: line"
+  # A listing verb beside the candidates, in either order, and within one sentence of them.
+  grep -qiE '(list|lists|listing|enumerate)[^.]{0,80}candidate|candidate[^.]{0,80}(list|lists|listing|enumerate)' <<<"$narration" ||
+    problems="$problems; the narration does not say the comment lists those candidates"
+  # The count — `N left`, `how many candidates`, any wording that quantifies what was left.
+  # A bare `n` only counts when the next word is `candidates` or `left`, so the
+  # `nothing left to tidy` already there cannot answer for it.
+  grep -qiE '(how many|number of|count of|(^|[^[:alnum:]])n)[[:space:]]+(candidates?|left)' <<<"$narration" ||
+    problems="$problems; the narration does not say how many candidates the budget left"
+fi
+[[ -z "$problems" ]] \
+  && ok || no "SKILL.md's Refactor narration tells nothing-left-to-tidy from stopped-by-budget and lists the N candidates from the leaf's CANDIDATES: lines (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"
