@@ -28,6 +28,21 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    # Same guardrail as ci.yml's gates job, different number on purpose. With no
+    # timeout-minutes a job inherits GitHub's default ceiling of 6 hours and bills every
+    # one of those minutes while looking exactly like a slow run; this job observably
+    # takes 11-23 s. The budget is still deliberately larger than the gates job's 3
+    # minutes, because the two fail differently: gates is local, deterministic work,
+    # while most of this job is upload-pages-artifact and deploy-pages, which wait on
+    # GitHub's Pages service and the github-pages environment — work this repo neither
+    # controls nor can predict, and which can be slow on GitHub's side with nothing
+    # wrong. A cap tight enough to catch a hang would also kill a deploy that was merely
+    # waiting, and a failed publish is worse than a slow one: this workflow only ever
+    # runs because a human triggered it and is watching. Ten minutes still turns a true
+    # hang from six hours into ten.
+    timeout-minutes: 10
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
