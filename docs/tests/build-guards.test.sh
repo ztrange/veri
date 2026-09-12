@@ -467,7 +467,7 @@ hunks_git() {
 import sys
 sys.path.insert(0, "docs/wt")
 import gitmeta
-meta = gitmeta.read(".", {"classify-bail.sh": "skills/solve-issue/scripts/classify-bail.sh"})
+meta = gitmeta.read(".", {"classify-bail.sh": "skills/tdd/scripts/classify-bail.sh"})
 for first, (tag, description, last) in sorted(meta["marks"]["classify-bail.sh"]["hunks"].items()):
     print("%d-%d %s" % (first, last, tag))
 PY
@@ -1857,7 +1857,7 @@ first bail'
 #    that reported only the first line has nothing to say here, and one that ran the hunk
 #    past line 4 into the untouched v0.1 lines below would report the wrong end.
 hunks_git "a hunk reports the last line of its run, not only the first" '3-4 v0.2' \
-  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+  bash -c 'rewrite_hunk_as_feat "$SAMPLE_SCRIPT" 3 4 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
 
@@ -1876,10 +1876,10 @@ hunks_git "a hunk reports the last line of its run, not only the first" '3-4 v0.
 hunk_map_git "the page carries an inverted map, one entry per hunk span" \
   'v0.2 classify-bail.sh 3-4 rewrite lines 3 and 4 of classify-bail.sh
 v0.3 classify-bail.sh 6-6 rewrite line 6 of classify-bail.sh' \
-  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+  bash -c 'rewrite_hunk_as_feat "$SAMPLE_SCRIPT" 3 4 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 6 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 6 \
              "# rewritten by the v0.3 commit" \
              "fix: rewrite line 6 of classify-bail.sh (#3)" v0.3'
 
@@ -1917,7 +1917,7 @@ tags_git "the mark covers the whole run, and the chip lands once" 1 \
   '<span class="l hunk" data-tag="v0.2" title="rewrite lines 3 and 4 of classify-bail.sh">'\
 '<span class="c"># rewritten by the v0.2 commit</span></span>
 <span class="l hunk cont"><span class="c"># rewritten by the v0.2 commit</span></span>' \
-  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+  bash -c 'rewrite_hunk_as_feat "$SAMPLE_SCRIPT" 3 4 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
 
@@ -1932,7 +1932,7 @@ tags_git "the mark covers the whole run, and the chip lands once" 1 \
 #     marks the assertion is about: a build with no hunk in it would have nothing to find
 #     dimmed and would pass on an empty page.
 undimmed_git "nothing chosen: the marks ship undimmed" \
-  bash -c 'rewrite_hunk_as_feat skills/solve-issue/scripts/classify-bail.sh 3 4 \
+  bash -c 'rewrite_hunk_as_feat "$SAMPLE_SCRIPT" 3 4 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite lines 3 and 4 of classify-bail.sh (#2)" v0.2'
 
@@ -1959,13 +1959,13 @@ since_git "choosing a version lights every hunk tagged later than it and dims th
   'v0.10 classify-bail.sh 7-7 lit
 v0.2 classify-bail.sh 3-3 dim
 v0.9 classify-bail.sh 5-5 dim' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
              "# rewritten by the v0.9 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#3)" v0.9
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 7 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 7 \
              "# rewritten by the v0.10 commit" \
              "fix: rewrite line 7 of classify-bail.sh (#4)" v0.10'
 
@@ -2001,15 +2001,15 @@ index_git "choosing a version collapses the index to later ones, each linking it
   'v0.10 classify-bail.sh 7-7, classify-bail.sh 10-10
 v0.3 -
 v0.9 classify-bail.sh 5-5' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
            tag_feat_outside_the_scripts \
              "feat: a capability no script on this page carries (#3)" v0.3
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
              "# rewritten by the v0.9 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#4)" v0.9
-           rewrite_two_lines_as_feat skills/solve-issue/scripts/classify-bail.sh 7 10 \
+           rewrite_two_lines_as_feat "$SAMPLE_SCRIPT" 7 10 \
              "# rewritten by the v0.10 commit" \
              "fix: rewrite lines 7 and 10 of classify-bail.sh (#5)" v0.10'
 
@@ -2043,16 +2043,16 @@ walk_git "n and p walk the lit hunks in page order" \
   'supervise.sh 8-8
 supervise.sh 20-20
 classify-bail.sh 5-5' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
              "# rewritten by the v0.3 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#3)" v0.3
-           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 20 \
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 20 \
              "# rewritten by the v0.4 commit" \
              "fix: rewrite line 20 of supervise.sh (#4)" v0.4
-           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
 
@@ -2074,10 +2074,10 @@ hash_git "the URL carries the choice, and a page opened at that URL is in since-
   '#since=v0.2' v0.9 \
   'opened v0.2
 hash since=v0.9' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
              "# rewritten by the v0.9 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#3)" v0.9'
 
@@ -2105,10 +2105,10 @@ store_git "the button is remembered by the browser, and a browser that refuses s
   'first load -
 next load v0.10
 blocked -' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.9 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.9
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
              "# rewritten by the v0.10 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#3)" v0.10'
 
@@ -2166,16 +2166,16 @@ n #2 v0.4
 next #4 v0.3
 p #2 v0.4
 previous #1 v0.5' \
-  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
-           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
              "# rewritten by the v0.3 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#3)" v0.3
-           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 20 \
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 20 \
              "# rewritten by the v0.4 commit" \
              "fix: rewrite line 20 of supervise.sh (#4)" v0.4
-           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
 
