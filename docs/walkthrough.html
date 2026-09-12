@@ -4802,6 +4802,18 @@ html{scroll-behavior:smooth}
   var PAGE_RANK = {};
   (window.__VERI_SCRIPTS__ || []).forEach(function (file, i) { PAGE_RANK[file] = i; });
 
+  /* Page order, as a comparison of two hunk entries: the order the page lists the
+     scripts, and within one script the lowest line first. An entry is
+     [script, first, last, description]. Never the script's NAME, which puts
+     classify-bail.sh before supervise.sh as text and after it on the page. A script the
+     nav does not carry has no place on the page, so it sorts last rather than poisoning
+     the comparison with a NaN. */
+  function rank(entry) {
+    var r = PAGE_RANK[entry[0]];
+    return r === undefined ? Infinity : r;
+  }
+  function byPageOrder(a, b) { return rank(a) - rank(b) || a[1] - b[1]; }
+
   function lit(tag, since) {
     var hunkRank = ORDER.indexOf(tag), readRank = ORDER.indexOf(since);
     // -1 is what indexOf answers for a tag the order does not carry, and it ranks below
@@ -4846,24 +4858,14 @@ html{scroll-behavior:smooth}
      The sort is what makes it a walk. The hunks arrive grouped by capability, newest
      capability first — the index's order, which is not the page's: one script's runs are
      scattered across several groups and the scripts interleaved, so a reader pressing n
-     through them is thrown up and down two thousand lines of listing. Page order is the
-     order the page lists its scripts, lowest line first inside one: PAGE_RANK for the
-     script, the hunk's first line for the tie. Never the script's name, which puts
-     classify-bail.sh before supervise.sh as text and after it on the page. */
+     through them is thrown up and down two thousand lines of listing. byPageOrder above
+     is the order they are read in instead. */
   function walk(since) {
     var stops = [], tags = litTags(since);
     for (var i = 0; i < tags.length; i++) {
       stops = stops.concat(HUNKS[tags[i]] || []);
     }
-    // An entry is [script, first, last, description]. A script the nav does not carry
-    // has no place on the page, so it sorts last rather than poisoning the comparison
-    // with a NaN.
-    function rank(entry) {
-      var r = PAGE_RANK[entry[0]];
-      return r === undefined ? Infinity : r;
-    }
-    stops.sort(function (a, b) { return rank(a) - rank(b) || a[1] - b[1]; });
-    return stops;
+    return stops.sort(byPageOrder);
   }
 
   window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk };
