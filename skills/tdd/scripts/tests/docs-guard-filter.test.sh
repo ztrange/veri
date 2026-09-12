@@ -111,6 +111,22 @@ run_filtered() {
   report_text="$(cat "$out" 2>/dev/null)"
 }
 
+# in_time <what kind of run> — the deadline probe both cases end on, appended to `problems`
+# when the run hit the ceiling rather than coming back inside it.
+#
+# Both cases make that claim for the same reason, so the reason is written here once: a
+# suite that ignored ONLY goes on to build the sandboxes it was not asked for, and is still
+# building them when kill_tree reaches it. Spelled out per case it read as two probes with
+# the consequence reworded, which invites the next case to reword it again.
+#
+# It reads `elapsed` where run_filtered left it, the way the probes around it read `code`
+# and `report_text`, and appends to the caller's `problems` — both are the protocol this
+# suite already runs on rather than anything this function introduces.
+in_time() {
+  (( elapsed < LIMIT )) ||
+    problems+=("want a $1 run back inside ${LIMIT}s, got ${elapsed}s — it built cases nothing asked for")
+}
+
 # 1. The contract above, and all three of its halves in one case, because no two of them
 #    are worth anything apart. A suite that ignores ONLY and runs everything is green on
 #    "exited 0"; one that runs the matching case and then the rest of them is green on
@@ -124,8 +140,7 @@ run_filtered "$ONLY_CASE"
   problems+=("want exit 0 from ONLY='$ONLY_CASE' $SUITE, got $code after ${elapsed}s")
 [[ "$report_text" == *"$ONLY_COUNT"* ]] ||
   problems+=("want '$ONLY_COUNT' in its output — the matching case and no other; got: $(printf '%s' "$report_text" | tail -3 | tr '\n' '/')")
-(( elapsed < LIMIT )) ||
-  problems+=("want a filtered run back inside ${LIMIT}s, got ${elapsed}s — it built the cases it was not asked for")
+in_time filtered
 report "$name"
 
 # 2. A filter that matches nothing is the typo path, and it is the one case where a silent
@@ -153,8 +168,7 @@ lowered="$(printf '%s' "$report_text" | tr 'A-Z' 'a-z')"
   problems+=("want it to say no case matched '$NO_MATCH'; got: $(printf '%s' "$report_text" | tail -3 | tr '\n' '/')")
 printf '%s\n' "$report_text" | grep -Eq '[1-9][0-9]* passed' &&
   problems+=("want no case run at all; got a count claiming passes: $(printf '%s' "$report_text" | tail -1)")
-(( elapsed < LIMIT )) ||
-  problems+=("want a no-match run back inside ${LIMIT}s, got ${elapsed}s — it built cases nothing asked for")
+in_time no-match
 report "$name"
 
 echo "----"
