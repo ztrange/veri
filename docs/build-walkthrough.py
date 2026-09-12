@@ -320,6 +320,20 @@ def hunk_marks(meta, fname):
     return (meta["marks"].get(fname) or {}).get("hunks") or {}
 
 
+def script_since(meta, fname):
+    """One script's `since` — the version it arrived in — or "" with no version layer.
+
+    The third of the same family as version_badge and hunk_marks: one script's slice of
+    gitmeta's marks, answering for a tree that has no version layer instead of making the
+    caller re-check. "" rather than None for the same reason version_badge returns "":
+    absent and unreleased are both "no version to rank this script by", and every caller
+    of the three wants the same nothing back.
+    """
+    if not meta:
+        return ""
+    return (meta["marks"].get(fname) or {}).get("since") or ""
+
+
 def render_reference():
     """The full reference — every construct, with computed back-links."""
     groups = []
@@ -483,16 +497,16 @@ def render_since_json(meta, entries):
     rendered from.
 
     {} in a tree with no version layer, matching the hunk map and the tag order: the
-    client reads an empty map rather than checking whether there is one.
+    client reads an empty map rather than checking whether there is one — which is
+    script_since()'s answer there, so this loop needs no special case for it.
     """
     import json
     d = {}
-    if meta:
-        for e in entries:
-            if e["kind"] == "file":
-                since = (meta["marks"].get(e["label"]) or {}).get("since")
-                if since:
-                    d[e["label"]] = since
+    for e in entries:
+        if e["kind"] == "file":
+            since = script_since(meta, e["label"])
+            if since:
+                d[e["label"]] = since
     return json.dumps(d, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
