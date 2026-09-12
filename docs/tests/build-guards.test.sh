@@ -48,7 +48,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-pass=0 fail=0 ran=0
+pass=0 fail=0 ran=0 case_start=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -74,10 +74,34 @@ trap 'rm -rf "$WORK"' EXIT
 # It also counts what it let through, because this is the one place that knows: a filter
 # that matches nothing otherwise ends the suite green over a run that asserted nothing, so
 # `ran` is what the tail below turns into exit 3.
+#
+# And it starts that case's clock, for the same reason: this is the one line every case
+# passes through on its way in, before it copies a tree or starts a python. `passed` below
+# reads the clock back.
 selected() {
   local filter="${ONLY:-}"
   [[ -z "$filter" || "$1" == *"$filter"* ]] || return 1
   ran=$((ran + 1))
+  case_start=$SECONDS
+}
+
+# passed <case name> — close a case that passed: count it, and say so on one line,
+# `ok - <name> (<n>s)`.
+#
+# The other half of issue #119. The suite used to print only its failures and a final
+# count, so a leaf that wanted to know what one case did had to run the whole suite again
+# through grep — and the ~140 s of silence in between is also all supervise.sh's heartbeat
+# ever sees, which is what a stuck-detection bail on a healthy run is made of. One line as
+# each case passes fixes both: the output is a readable per-case record, and it arrives
+# while the suite is still working.
+#
+# The seconds come from `case_start`, stamped by `selected` when this case was let in, so
+# the figure is that case's own sandbox-and-build cost and not the elapsed suite. Whole
+# seconds: SECONDS is the only clock bash 3.2 has without a subprocess, and per-case
+# resolution finer than that buys nothing here.
+passed() {
+  pass=$((pass + 1))
+  echo "ok - $1 ($((SECONDS - case_start))s)"
 }
 
 # Which sandbox the assertion helpers below build in. Most cases want the default —
@@ -157,7 +181,7 @@ refuses() {
   build "$d" >/dev/null && code=0 || code=$?
   err="$(cat "$d/err.txt" 2>/dev/null)"
   if [[ "$code" != 0 && "$err" == *"$want"* ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name"
@@ -175,7 +199,7 @@ accepts() {
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   if [[ "$code" == 0 && "$page" == *"$want"* ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -193,7 +217,7 @@ omits() {
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   if [[ "$code" == 0 && "$page" != *"$unwanted"* ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -215,7 +239,7 @@ accepts_without() {
   [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
   page="$(build "$d")" && code=0 || code=$?
   if [[ "$code" == 0 && "$page" == *"$want"* && "$page" != *"$unwanted"* ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -271,7 +295,7 @@ opens_with() {
   region="$(region_between "$page" '</header>' '<h2 id="what"')"
   missing="$(missing_from "$region" "$wants")"
   if [[ "$code" == 0 && -z "$missing" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -299,7 +323,7 @@ rail_lists() {
   region="$(region_between "$page" '<aside class="rail">' '</aside>')"
   missing="$(missing_from "$region" "$wants")"
   if [[ "$code" == 0 && -z "$missing" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -328,7 +352,7 @@ rail_group_lists() {
   region="$(region_between "$page" "$head" '<h4>')"
   missing="$(missing_from "$region" "$wants")"
   if [[ "$code" == 0 && -z "$missing" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -395,7 +419,7 @@ figure_between() {
   region="$(region_between "$page" "$start" "$end")"
   found="$(figure_holding "$region" "$wants")"
   if [[ "$code" == 0 && -n "$found" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -443,7 +467,7 @@ index_says() {
   region="$(region_between "$page" '<div class="stage-head" id="capabilities">' '<h2 id="why"')"
   missing="$(missing_from "$region" "$wants")"
   if [[ "$code" == 0 && -z "$missing" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -474,7 +498,7 @@ tags_git() {
     [[ "$page" == *"$want"* ]] || missing="$want"
   done <<< "$wants"
   if [[ "$code" == 0 && -z "$missing" && "$got" == "$n" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -512,7 +536,7 @@ for first, (tag, description, last) in sorted(meta["marks"]["classify-bail.sh"][
 PY
   )" && code=0 || code=$?
   if [[ "$code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -573,7 +597,7 @@ PY
   )" && read_code=0 || read_code=$?
   entries="$(printf '%s' "$got" | grep -c . | tr -d ' ')"
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" && "$entries" == "$spans" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, map read exit $read_code)"
@@ -631,7 +655,7 @@ PY
     printf '%s\n' "$got" | grep -Eq "$want" || missing+="$want"$'\n'
   done <<< "$wants"
   if [[ "$code" == 0 && "$read_code" == 0 && -z "$missing" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, stylesheet read exit $read_code)"
@@ -714,7 +738,7 @@ for selector, block in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
 PY
   )" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && -z "$got" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, stylesheet read exit $read_code)"
@@ -1007,7 +1031,7 @@ console.log(rows.join("\n"));
 JS
   got="$(ask_page "$d" page.html "$since")" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, since-mode read exit $read_code)"
@@ -1078,7 +1102,7 @@ console.log(rows.join("\n"));
 JS
   got="$(ask_page "$d" page.html "$since")" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, collapsed-index read exit $read_code)"
@@ -1135,7 +1159,7 @@ console.log(stops.join("\n"));
 JS
   got="$(ask_page "$d" page.html "$since")" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, walk read exit $read_code)"
@@ -1197,7 +1221,7 @@ JS
   got="$( export VERI_ASK_HASH="$opened"; ask_page "$d" page.html "$pick" )" \
     && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, URL round-trip read exit $read_code)"
@@ -1269,7 +1293,7 @@ JS
       { export VERI_ASK_STORE_BLOCKED=1; ask_page "$d" page.html "blocked" mark; }
   )" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, three-load read exit $read_code)"
@@ -1390,7 +1414,7 @@ JS
         ask_page "$d" page.html "since $since" n n next p previous; }
   )" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, wiring read exit $read_code)"
@@ -1419,7 +1443,7 @@ checks_git() {
   out="$( cd "$d" && python3 docs/build-walkthrough.py >/dev/null 2>&1 \
                   && python3 docs/check-walkthrough.py 2>&1 )" && code=0 || code=$?
   if [[ "$code" == 0 ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -1480,7 +1504,7 @@ diagrams_in_slice() {
     names_all "$blk" "$wants" && found="yes"
   done <<< "$blocks"
   if [[ "$code" == 0 && -n "$found" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -1981,7 +2005,7 @@ PY
   )" && code=0 || code=$?
   local made budget; read -r made budget <<< "${got%%$'\n'*}"
   if [[ "$code" == 0 && "$made" -le "$budget" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
@@ -2333,7 +2357,7 @@ page_is_current() {
   local built="$WORK/current.html" err="$WORK/current.err"
   ( cd "$ROOT" && python3 docs/build-walkthrough.py --stdout >"$built" 2>"$err" ) && code=0 || code=$?
   if [[ "$code" == 0 ]] && cmp -s "$built" "$committed"; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
