@@ -2,7 +2,7 @@
 # refactor-budget.sh — bound the refactor loop, so a step costs the same on every run.
 #
 # Given the number of transforms done so far as $1, say whether another one may run:
-# exit 0 while <count> is below VERI_REFACTOR_BUDGET (default 2), exit 3 once the budget
+# exit 0 while <count> is below VERI_REFACTOR_BUDGET (default 5), exit 3 once the budget
 # is spent. A one-line status goes to stdout either way, so the conductor can mirror it.
 #
 # A budget that is not a whole number >= 0 is a misconfigured run, not a decision: fail
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 count="${1:-}"
-budget="${VERI_REFACTOR_BUDGET:-2}"
+budget="${VERI_REFACTOR_BUDGET:-5}"
 
 if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
   echo "refactor-budget: VERI_REFACTOR_BUDGET must be a whole number >= 0: $budget" >&2
