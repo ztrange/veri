@@ -28,23 +28,32 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/.tdd"
 
-# waited <name> <code> — spawn a writer that records <code> in the completion file
-# .tdd/<name>.exit two seconds from now, then wait for <name> in the foreground with a
-# 20-second budget. Echoes "<wait-leaf's exit code> <seconds the wait took>".
+# timed <name> <budget> — wait for <name> in the foreground with a <budget>-second budget,
+# and echo "<wait-leaf's exit code> <seconds the wait took>".
 #
-# The two numbers are what the case needs: the code proves the recorded status is passed
-# through, and the elapsed time tells "returned when the file appeared" from "sat out the
-# whole budget and then read it" — both end in the same exit code otherwise.
+# Both numbers are what a case needs, whichever way it is pointed: the code is the answer,
+# and the elapsed time separates the two ways of arriving at it — "returned when the file
+# appeared" from "sat out the whole budget and then read it", and, where no file ever lands,
+# "gave up when the budget ran out" from "never waited at all". The exit code alone cannot
+# tell those apart.
 #
 # VERI_POLL is pinned rather than inherited (see hermetic-suites.test.sh): an ambient poll
 # interval of minutes would make the elapsed time a fact about the caller's environment.
-waited() {
-  local name="$1" code="$2" t0 rc
-  ( sleep 2; printf '%s\n' "$code" > "$work/.tdd/$name.exit" ) &
+timed() {
+  local t0 rc
   t0="$(date +%s)"
-  ( cd "$work" && env VERI_POLL=0.2 "$WAIT" "$name" 20 >/dev/null 2>&1 )
+  ( cd "$work" && env VERI_POLL=0.2 "$WAIT" "$1" "$2" >/dev/null 2>&1 )
   rc=$?
   printf '%s %s\n' "$rc" "$(( $(date +%s) - t0 ))"
+}
+
+# waited <name> <code> — spawn a writer that records <code> in the completion file
+# .tdd/<name>.exit two seconds from now, i.e. after the wait has already started, then `timed`
+# the wait for <name> with a budget ten times that delay, so the answer can only come from the
+# file landing and not from the budget running out.
+waited() {
+  ( sleep 2; printf '%s\n' "$2" > "$work/.tdd/$1.exit" ) &
+  timed "$1" 20
   wait
 }
 
@@ -81,9 +90,7 @@ w_stuck="$(waited late-stuck 2)"
 #    and logs every value it served. The last logged value is the virtual moment the script
 #    gave up, i.e. the default budget itself — measured in well under a second of real time.
 #    A default of 600 would be logged as 600 and fail the case rather than hang it.
-b_given="$( t0="$(date +%s)"
-            ( cd "$work" && env VERI_POLL=0.2 "$WAIT" never-lands 1 >/dev/null 2>&1 )
-            printf '%s %s\n' "$?" "$(( $(date +%s) - t0 ))" )"
+b_given="$(timed never-lands 1)"
 
 clockbin="$work/clockbin"; mkdir -p "$clockbin"
 clocklog="$work/clock.log"; : > "$clocklog"
