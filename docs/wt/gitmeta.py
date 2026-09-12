@@ -88,6 +88,18 @@ def _blame_lines(out):
         yield sha, subject or ""
 
 
+def _blame(root, rel):
+    """(sha, subject) per line of `rel` as HEAD has it — or None if git cannot answer.
+
+    The one place the blame command is spelled, for the two questions asked of it: which
+    versions touched a script (hunks) and which touched the prose about one (prose_marks).
+    Both need the same list of lines, and a difference between them here — a different
+    revision, a missing `--line-porcelain` — would be a difference nothing names.
+    """
+    out = _git(root, "blame", "--line-porcelain", "HEAD", "--", rel)
+    return None if out is None else list(_blame_lines(out))
+
+
 def _runs(blame):
     """(first line, last line, sha, subject) for each run of lines one commit last touched.
 
@@ -130,12 +142,12 @@ def hunks(root, rel, tags, since):
     """
     if since not in tags:
         return {}
-    out = _git(root, "blame", "--line-porcelain", "HEAD", "--", rel)
-    if out is None:
+    blame = _blame(root, rel)
+    if blame is None:
         return {}
     floor = tags.index(since)
     marks = {}
-    for first, last, sha, subject in _runs(_blame_lines(out)):
+    for first, last, sha, subject in _runs(blame):
         if not BEHAVIOUR.match(subject):
             continue
         tag = _first_tag_containing(root, sha, tags)
@@ -161,10 +173,9 @@ def prose_marks(root, rel, tags, spans):
     underneath it would be guessing at which of the two wrote the words. A span with no
     behaviour commit left visible in it is absent from the map rather than keyed to None.
     """
-    out = _git(root, "blame", "--line-porcelain", "HEAD", "--", rel)
-    if out is None:
+    blame = _blame(root, rel)
+    if blame is None:
         return {}
-    blame = list(_blame_lines(out))
     marks = {}
     for first, last in spans:
         newest = None
