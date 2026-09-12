@@ -147,17 +147,74 @@ _Avoid_: eligible, ready, available, unblocked (that is only one of the four)
 The part of veri that decides *which* issue is next, and the only part that changes per
 rung of the scope ladder. Everything below it — conductor, leaves, supervisor, blind
 verification, ledger — is identical at every rung. At rung 2 it is `solvable-issues.sh`,
-which prints the solvable numbers ascending (exit 3 when there are none).
+which prints the solvable numbers of one scope, bugs first and then ascending (exit 3 when
+there are none).
 _Avoid_: scheduler, picker, queue
+
+**Scope**:
+The pool one `/tdd <scope>` invocation drains: the issues carrying that scope's opt-in
+label. `plain` is the default scope and is the bare `ready-for-agent` label; any other
+scope is `ready-for-agent:<scope>`. One scope per loop — two loops on one scope collide.
+_Avoid_: pool, queue, label (as the user-facing name)
+
+**Bug**:
+A kind of issue, marked by the `bug` label, reporting behaviour the code has and should
+not: what happened, what was expected, and how to get there. A scope's bugs are taken
+before any of its other issues, and a bug's Red is a **reproduction**.
+_Avoid_: defect, hotfix, regression (for the issue — that is the test's word)
+
+**Reproduction**:
+The Red of a bug: one test that encodes the expected behaviour and fails on the current
+code **for the reported reason** — not for a missing symbol or a typo, which the blind
+verifier rejects. Once Green it stays as the bug's regression test.
+_Avoid_: repro (ok as a gloss), failing test (unqualified)
+
+**Actor**:
+One of the three things that act in a run: the conductor, a developer leaf, a verifier
+leaf. The scripts the conductor runs are not actors; what they do is recorded as the
+conductor's events.
+_Avoid_: agent (ok as a gloss), worker, process
+
+**Event log**:
+The per-run, append-only record of what each actor did and when: every leaf launch, exit
+and verdict with its wall time, turns, tokens and cost, and the conductor's step, pin, bail
+and completion marks. It is what every viewer and every metric reads. It is not the human
+record — that stays the issue thread.
+_Avoid_: trace, telemetry, audit log
+
+**Attempt**:
+One leaf launch in service of a phase. A step's attempts are its first leaf plus every
+revise after a `REJECT` and every stuck retry.
+_Avoid_: try, iteration, retry (unqualified — that is the supervisor's word)
+
+**Rework**:
+What a step spent on attempts that were `REJECT`ed before it recovered and reached Step
+done — their time, tokens and cost, counted per phase. Kept apart from waste: rework
+bought the step, waste bought nothing.
+_Avoid_: waste, retries
+
+**Waste**:
+Everything a bailed step spent. The bail reverts the step's uncommitted work, so every
+attempt in it — including phases whose verdict was `PASS`, such as a Red that passed
+before Green bailed — bought nothing. Committed earlier steps are never waste.
+_Avoid_: rework, loss, cost (unqualified)
+
+**Metrics**:
+The per-issue summary computed from the event log: attempts, verdicts, kills, rework and
+waste per phase and per step; wall time, tokens and cost per step and in total; steps done
+of planned. Committed beside the ledger and posted with the run's final comment. A scope's
+metrics are the sum over its issues' and are never committed.
+_Avoid_: stats, telemetry, report
 
 ## Scope ladder
 
 The framework grows in three rungs, each wrapping the previous — never a rewrite. Issue
 selection changes per rung; everything below the selection layer stays the same:
 
-1. **Single issue** — the human names the one issue to solve (`/solve-issue <number>`). XP:
+1. **Single issue** — the human names the one issue to solve (`/tdd <number>`). XP:
    point it at exactly one, no automated selection yet.
-2. **Loop** — `/solve-issues` runs the single-issue conductor across the *solvable* issues,
+2. **Loop** — `/tdd [<scope>]` runs the single-issue conductor across the *solvable* issues
+   of one scope,
    one after another, recomputing the solvable set after every issue rather than walking a
    list captured once. The first bail stops the loop unless told otherwise. It adds no
    failure mode of its own: every outcome is one of rung 1's.
