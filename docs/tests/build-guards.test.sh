@@ -1352,19 +1352,23 @@ if (!mode || typeof mode.walk !== "function") {
 }
 
 /* Every run of lines the page knows about, as `<script> <first>-<last>`. A stop that is
-   one of these is a hunk; a stop that is not is the script itself. */
+   one of these is a hunk; a stop that is not is the script itself — so the two sides of
+   that lookup are one spelling, named once: filled from the map here and asked of it in
+   where() below. Written twice they would have to agree character for character, and a
+   comma where a dash went would report every hunk in the walk as a header. */
+function runKey(f) { return f[0] + " " + f[1] + "-" + f[2]; }
+
 var hunks = window.__VERI_HUNKS__ || {};
 var runs = {};
 Object.keys(hunks).forEach(function (tag) {
   (hunks[tag] || []).forEach(function (entry) {
-    var f = fields(entry);
-    runs[f[0] + " " + f[1] + "-" + f[2]] = true;
+    runs[runKey(fields(entry))] = true;
   });
 });
 
 function where(stop) {
   var f = typeof stop === "string" ? [stop] : fields(stop);
-  var run = f[0] + " " + f[1] + "-" + f[2];
+  var run = runKey(f);
   return runs[run] ? run : f[0] + " header";
 }
 
