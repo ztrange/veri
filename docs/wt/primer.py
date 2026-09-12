@@ -42,7 +42,7 @@ PRIMER = [{'id': 'p-header',
              'sig': 'set -uo pipefail',
              'name': 'Strict mode without <code>-e</code>',
              'body': '',
-             'seen': '<code>supervise.sh</code> only, and that omission is the point of it.',
+             'seen': '<code>supervise.sh</code> and <code>wait-leaf.sh</code> &mdash; the two scripts whose whole job is reporting a non-zero result rather than dying of one.',
              'gloss': 'Strict mode with <code>-e</code> deliberately left out, so an expected '
                       "non-zero exit doesn't kill the script."},
             {'id': 'p-sete',

@@ -2,7 +2,7 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/solve-issue/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus seventeen bash scripts it calls. Read `CONTEXT.md` for the glossary — the terms
+follows, plus eighteen bash scripts it calls. Read `CONTEXT.md` for the glossary — the terms
 there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
 
 ## Commands
@@ -101,10 +101,10 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/solve-issue/scripts/tests/` — nineteen files for seventeen scripts
+`skills/solve-issue/scripts/tests/` — twenty files for eighteen scripts
 (`supervise.sh` has a second suite for its retry axis, and `hermetic-suites.test.sh`
 belongs to no single script: it is a cross-suite test that pins the suites' independence
-from ambient `VERI_*` tunables). All nineteen keep `pass`/`fail`
+from ambient `VERI_*` tunables). All twenty keep `pass`/`fail`
 counters, print `FAIL - <name>` with a diff, and end with a count. Match that style
 rather than introducing a framework.
 
