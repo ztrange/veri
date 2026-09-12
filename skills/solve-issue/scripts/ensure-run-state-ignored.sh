@@ -36,16 +36,20 @@ common_dir="$(git -C "$root" rev-parse --git-common-dir)"
 case "$common_dir" in /*) ;; *) common_dir="$root/$common_dir" ;; esac
 exclude="$common_dir/info/exclude"
 
-# append_rule <file> — put the three lines at the end of <file>, in git's reading order. Both
-# destinations need exactly this, so it is written once: two copies of the append could drift into
-# disagreeing about the newline guard, and only one of the two files would then survive it.
+# append_rule <file> — put the three lines at the end of <file>, in git's reading order, having
+# first made <file> appendable at all. Both destinations need exactly this, so it is written once:
+# two copies of the append could drift into disagreeing about the newline guard, and only one of the
+# two files would then survive it.
 #
-# The guard: give <file> a final newline if its last byte is not one, so the append cannot fuse its
-# last rule with `.tdd/*` into a single line and destroy both. `$(...)` strips trailing newlines
-# from what it captures, so a file already ending in one yields the empty string here: a non-empty
-# last byte is exactly the case that needs the newline. -s keeps `tail` off a file that does not
-# exist yet.
+# Appendable means two things. Its directory has to exist — git creates .git/info/exclude itself, so
+# that only bites a common dir someone has pruned, but `>>` cannot create a parent and would die
+# under `set -e` rather than say so. And <file> has to end in a newline, or the append fuses its last
+# rule with `.tdd/*` into a single line and destroys both: `$(...)` strips trailing newlines from
+# what it captures, so a file already ending in one yields the empty string here, and a non-empty
+# last byte is exactly the case that needs one added. -s keeps `tail` off a file that does not exist
+# yet.
 append_rule() {
+  mkdir -p "$(dirname "$1")"
   if [ -s "$1" ] && [ -n "$(tail -c 1 "$1")" ]; then
     echo "" >> "$1"
   fi
@@ -105,7 +109,6 @@ fi
 # ignore .tdd/. The .gitignore's refusal comes first, so a .gitignore we will not touch leaves this
 # file untouched too.
 if ! has_rule "$exclude"; then
-  mkdir -p "$(dirname "$exclude")"
   append_rule "$exclude"
 fi
 
