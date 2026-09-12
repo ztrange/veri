@@ -80,12 +80,23 @@ old_scripts_dir="$old_skill_dir/scripts"
 # body forwards to /tdd. They are allowed to name the old home; nothing else is.
 stubs=("$old_skill_dir/SKILL.md" "skills/solve-issues/SKILL.md")
 
+# exempt <path> — true for the files allowed to go on naming the old home: the two stubs,
+# and anything under .tdd/, whose ledgers are run state quoting each issue's own words back
+# verbatim, including this one's. Named as a predicate so the probe below reads as one
+# condition per file rather than a loop whose exit has to be counted out in levels.
+exempt() {
+  case "$1" in .tdd/*) return 0 ;; esac
+  local stub
+  for stub in "${stubs[@]}"; do
+    [[ "$1" == "$stub" ]] && return 0
+  done
+  return 1
+}
+
 # 2. The plumbing moved with the skill. Stated as the absence it has to produce rather than
 #    as a list of files to check, so a path constant hiding somewhere this test never heard
-#    of still counts: no tracked file names the old scripts directory except the stubs.
-#    Tracked, via `git grep`, because the repository's content is what ships — and .tdd/ is
-#    excluded because those ledgers are run state, quoting each issue's own words back
-#    verbatim, including this one's.
+#    of still counts: no tracked file names the old scripts directory except the exempt
+#    ones. Tracked, via `git grep`, because the repository's content is what ships.
 name="no tracked file outside the two stubs still names $old_scripts_dir"
 problems=()
 # git grep exits 1 for "no matches", which is the pass here, and 2+ for a real failure —
@@ -95,11 +106,7 @@ hits="$(cd "$ROOT" && git grep --files-with-matches --fixed-strings -e "$old_scr
 if [[ "$code" -le 1 ]]; then
   while IFS= read -r f; do
     [[ -n "$f" ]] || continue
-    case "$f" in .tdd/*) continue ;; esac
-    for stub in "${stubs[@]}"; do
-      [[ "$f" == "$stub" ]] && continue 2
-    done
-    problems+=("$f still names $old_scripts_dir")
+    exempt "$f" || problems+=("$f still names $old_scripts_dir")
   done <<< "$hits"
 else
   problems+=("git grep failed with exit $code")
