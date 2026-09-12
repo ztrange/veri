@@ -222,8 +222,10 @@ unattended, so it is the only one this procedure uses.
 ## Inputs
 
 There is one command, so what the user typed after it is what decides which of the two
-procedures below runs. Read the first word of `$ARGUMENTS` and resolve it three ways —
-there is no fourth case, and nothing here is a question to put back to the user:
+procedures below runs. No shape of argument is ever a question to put back to the user: a
+word that is not a number is never a malformed issue number, and an empty argument is never
+a missing one. Read the first word of `$ARGUMENTS` and resolve it three ways — there is no
+fourth case:
 
 - **An integer** — it is an issue **number** `<n>`, and this invocation is the
   single-issue procedure: run *Procedure* below on that issue, end to end.
@@ -231,8 +233,7 @@ there is no fourth case, and nothing here is a question to put back to the user:
   below, which selects the issues in that scope and runs the single-issue procedure over
   them one at a time.
 - **No argument at all** — a bare invocation is the scope `plain`, so it takes the scope
-  branch above with `plain` as its scope. A word that is not a number is never a
-  malformed issue number, and an empty argument is never a missing one.
+  branch above with `plain` as its scope.
 
 ## Procedure
 
