@@ -652,6 +652,110 @@ PY
   fi
 }
 
+# since_reader — how a built page is asked for each script's own `since`, printed on
+# stdout as a python program. Two spellings are read, because which one a build emits is
+# a spelling choice and not a behaviour, exactly as hunk_map_git has it for the entries of
+# the hunk map: a `window.__VERI_SINCE_OF__` map from script to tag, or a `data-since`
+# attribute on the script header the listing already opens with.
+# It prints how many scripts the page LISTS on its first line and then one line per script
+# that carries a since — `<script> <tag>`, sorted — so a caller can ask whether the answer
+# covers every script without writing eighteen names down.
+# Shipped as a file rather than a heredoc inside a $( ), for the reason at the top of this
+# file: bash 3.2 scans a nested heredoc for quotes through its body.
+since_reader() {
+  cat <<'PY'
+import json, re, sys
+
+page = open(sys.argv[1]).read()
+
+def emitted(name):
+    """One of the page globals, decoded, or None when the page carries no such block."""
+    m = re.search(r"window\.__VERI_%s__\s*=\s*(.+?);?\s*</script>" % name, page, re.S)
+    return json.loads(m.group(1)) if m else None
+
+listed = emitted("SCRIPTS") or []
+since = dict(emitted("SINCE_OF") or {})
+
+# The other spelling: the attribute on the header each listing opens with. The markup is
+# read with the scripts and the stylesheet cut out, so a mention inside them cannot answer
+# for it, and a header already reporting through the map above is not counted twice.
+markup = re.sub(r"<(style|script)\b.*?</\1>", "", page, flags=re.S)
+for attrs, fname in re.findall(r"<h3\b([^>]*)>\s*<code>([^<]+)</code>", markup):
+    m = re.search(r'data-since="([^"]+)"', attrs)
+    if m:
+        since.setdefault(fname, m.group(1))
+
+print(len(listed))
+for name in sorted(since):
+    if since[name]:
+        print("%s %s" % (name, since[name]))
+PY
+}
+
+# since_of_git <name> <wants> <mutator...>
+# The hunk map says which LINES a version touched. It cannot say which SCRIPTS a reader has
+# never seen at all: a script that arrived whole in v0.18 has no hunk in it — hunks() drops
+# every run at or below the file's own `since`, because the header badge already says it —
+# so a client holding only the map cannot tell a script the reader read long ago from one
+# that did not exist when they read. That fact is on the page already, as the badge, and a
+# badge is prose; this is the same fact in a form the client can rank a script by.
+#
+# Two halves, and neither is worth anything alone. The answer has to be COMPLETE — one
+# since per script the page lists — which is checked against the page's own script list
+# rather than against a list typed here, for the reason the git budget is computed rather
+# than typed: adding a script to the walkthrough must not silently move the line. And it
+# has to be each script's own `since` rather than any other version on hand, which is what
+# <wants> pins by naming a script whose `since` and whose `changed` are different tags: a
+# build emitting the file's latest change, or the repo's latest tag, answers v0.2 where the
+# script arrived in v0.1.
+#
+# The third half is the tree that has no version layer at all — no git, no tags, which is
+# what a tarball or a shallow checkout looks like — and it is in this case rather than
+# beside it because a map that ships is only safe if it is absent there: the client reads
+# an empty answer instead of checking whether there is one, and the build still succeeds.
+since_of_git() {
+  local name="$1" wants="$2"; shift 2
+  local d code read_code page got listed body entries missing
+  local bare bare_code bare_read bare_page bare_got bare_entries
+
+  d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  since_reader > "$d/read-since.py"
+  got="$( cd "$d" && python3 read-since.py page.html 2>&1 )" && read_code=0 || read_code=$?
+  listed="$(printf '%s\n' "$got" | sed -n 1p)"
+  body="$(printf '%s\n' "$got" | tail -n +2)"
+  entries="$(printf '%s' "$body" | grep -c . | tr -d ' ')"
+  missing="$(missing_from "$body" "$wants")"
+
+  bare="$(sandbox)"
+  bare_page="$(build "$bare")" && bare_code=0 || bare_code=$?
+  printf '%s' "$bare_page" > "$bare/page.html"
+  since_reader > "$bare/read-since.py"
+  bare_got="$( cd "$bare" && python3 read-since.py page.html 2>&1 )" \
+    && bare_read=0 || bare_read=$?
+  bare_entries="$(printf '%s\n' "$bare_got" | tail -n +2 | grep -c . | tr -d ' ')"
+
+  if [[ "$code" == 0 && "$read_code" == 0 && -z "$missing" && "$entries" == "$listed" \
+        && "$bare_code" == 0 && "$bare_read" == 0 && "$bare_entries" == 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, since read exit $read_code)"
+    echo "    want a since for each of the $listed script(s) the page lists, including:"
+    printf '%s\n' "$wants" | sed 's/^/      /'
+    echo "    got $entries:"
+    printf '%s\n' "$body" | sed 's/^/      /' | head -6
+    [[ -n "$missing" ]] && { echo "    missing:"; printf '%s\n' "$missing" | sed 's/^/      /'; }
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+    echo "    and, with no git: a build (exit $bare_code, since read exit $bare_read)"
+    echo "    carrying no since at all, got $bare_entries:"
+    printf '%s\n' "$bare_got" | tail -n +2 | sed 's/^/      /' | head -4
+    [[ "$bare_code" != 0 ]] && sed 's/^/    | /' "$bare/err.txt" | head -6
+  fi
+}
+
 # hunk_css <name> <wants>
 # Every other assertion here reads the page's markup. This one reads the stylesheet the
 # build inlines into that same page, because a mark nothing styles is not a mark: the
@@ -2429,6 +2533,32 @@ previous #1 v0.5' \
            rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
+
+# 28. and the whole layer above has one thing it cannot see: a script the reader has never
+#     read a line of. Every case from 21 on decides from `window.__VERI_HUNKS__`, and the
+#     map holds no hunk for a script that arrived whole in a later version — hunks() drops
+#     every run at or below the file's own `since`, on the sound ground that the header
+#     badge already says so. Right for the badge, wrong for since-mode: a reader who opens
+#     the page at v0.10 is walked past `issue-worktree.sh` entirely, because everything in
+#     it is v0.18 and none of it is a hunk. The client has to be able to rank a script the
+#     same way it ranks a hunk, and nothing it holds today says which version a script
+#     arrived in.
+#
+#     The fixture is two versions with every script arriving in the first, which is the
+#     shape that tells `since` apart from the two versions sitting next to it: v0.2
+#     rewrites a line of classify-bail.sh, so that script's `changed` is v0.2 and the
+#     repository's latest tag is v0.2, while its `since` — the only right answer — is still
+#     v0.1. A build emitting either of the other two is green on a case that names any
+#     other script and red on this one.
+#     The count check inside the helper is the other half: one since per script the page
+#     lists, so an answer holding the one script this case names and nothing else does not
+#     pass. And the no-git build is in the same case because an answer that ships has to be
+#     absent where there is no version layer to read it from.
+since_of_git "the page carries each script's own since, and carries none without git" \
+  'classify-bail.sh v0.1' \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
