@@ -58,6 +58,15 @@ probe() {
   done
 }
 
+# probe_ceiling — the one fact both comments owe, named once. Every other probe in this
+# suite is specific to its job, but the 6-hour default is what both budgets exist to bound,
+# so the two cases asserted it with the same message and the same regex; sharing them keeps
+# the wording from drifting apart on one side only.
+probe_ceiling() {
+  probe "comment beside the timeout does not name the 6-hour default ceiling" \
+    '(6[ -]?h|six[ -]?hour)'
+}
+
 # job_block <file> <job> -> the lines that belong to one job's mapping, on stdout.
 # A job key sits at indent 2 under `jobs:` and everything of its own is indented further,
 # so the block runs from the line after `  <job>:` to the next line that starts at indent
@@ -124,8 +133,7 @@ name="ci.yml gates: timeout-minutes 3, with a comment citing the 6-hour ceiling,
 problems=()
 
 if timeout_comment "$CI_YML" gates 3; then
-  probe "comment beside the timeout does not name the 6-hour default ceiling" \
-    '(6[ -]?h|six[ -]?hour)'
+  probe_ceiling
   probe "comment does not cite the ~40 s the job observably takes" \
     '(^|[^0-9])(3[0-9]|4[0-9])[ -]?s'
   probe "comment does not cite the ~230 s the job took when the docs gates ran in CI" \
@@ -143,8 +151,7 @@ name="pages.yml deploy: timeout-minutes 10, with a comment citing the 6-hour cei
 problems=()
 
 if timeout_comment "$PAGES_YML" deploy 10; then
-  probe "comment beside the timeout does not name the 6-hour default ceiling" \
-    '(6[ -]?h|six[ -]?hour)'
+  probe_ceiling
   probe "comment does not cite the 11-23 s the job observably takes" \
     '(^|[^0-9])11([^0-9]|$)' '23[ -]?s'
   probe "comment does not say the job waits on GitHub's Pages service" \
