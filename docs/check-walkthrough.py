@@ -36,7 +36,7 @@ import subprocess
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-SCRIPTS_DIR = ROOT / "skills" / "solve-issue" / "scripts"
+SCRIPTS_DIR = ROOT / "skills" / "tdd" / "scripts"
 PAGE = HERE / "walkthrough.html"
 
 bad = []

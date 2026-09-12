@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Linux only. The scripts under skills/solve-issue/scripts/ promise to run on
+      # Linux only. The scripts under skills/tdd/scripts/ promise to run on
       # both bash dialects — macOS ships bash 3.2 with BSD sed/grep/stat, Linux bash
       # 5.x with GNU coreutils — and this runner covers the Linux half. The macOS
       # half is covered by development happening on a Mac: every `make test` a leaf

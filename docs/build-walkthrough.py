@@ -27,7 +27,7 @@ import re
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-SCRIPTS_DIR = ROOT / "skills" / "solve-issue" / "scripts"
+SCRIPTS_DIR = ROOT / "skills" / "tdd" / "scripts"
 OUT = HERE / "walkthrough.html"
 
 sys.path.insert(0, str(HERE / "wt"))

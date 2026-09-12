@@ -8,8 +8,10 @@
 # and it is spelled in two places that must agree — the directory Claude Code loads the
 # skill from, and the `name:` field of its SKILL.md frontmatter, which is the command.
 #
-# Contract under test:
+# Contracts under test:
 #   skills/tdd/ is a directory, and skills/tdd/SKILL.md's frontmatter reads `name: tdd`.
+#   No tracked file outside the two forwarding stubs still names the scripts directory
+#   under the skill's old home — the build and test plumbing follows the skill when it moves.
 #
 # Run: scripts/tests/skill-identity.test.sh
 set -uo pipefail
@@ -65,6 +67,42 @@ if [[ -f "$ROOT/$skill_md" ]]; then
     problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
 else
   problems+=("want a SKILL.md at $skill_md, found none")
+fi
+report "$name"
+
+# The skill's former home, and the scripts directory inside it that the Makefile, the docs
+# build and the demo fixtures used to point at. Assembled from two pieces on purpose: the
+# probe below greps the whole repository for the joined string, so spelling it out here
+# would make this file its own first offender.
+old_skill_dir="skills/solve-issue"
+old_scripts_dir="$old_skill_dir/scripts"
+# The two files the move deliberately leaves behind under the old names, each a stub whose
+# body forwards to /tdd. They are allowed to name the old home; nothing else is.
+stubs=("$old_skill_dir/SKILL.md" "skills/solve-issues/SKILL.md")
+
+# 2. The plumbing moved with the skill. Stated as the absence it has to produce rather than
+#    as a list of files to check, so a path constant hiding somewhere this test never heard
+#    of still counts: no tracked file names the old scripts directory except the stubs.
+#    Tracked, via `git grep`, because the repository's content is what ships — and .tdd/ is
+#    excluded because those ledgers are run state, quoting each issue's own words back
+#    verbatim, including this one's.
+name="no tracked file outside the two stubs still names $old_scripts_dir"
+problems=()
+# git grep exits 1 for "no matches", which is the pass here, and 2+ for a real failure —
+# collapsing the two would turn a broken probe into a silent green.
+hits="$(cd "$ROOT" && git grep --files-with-matches --fixed-strings -e "$old_scripts_dir")" &&
+  code=0 || code=$?
+if [[ "$code" -le 1 ]]; then
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    case "$f" in .tdd/*) continue ;; esac
+    for stub in "${stubs[@]}"; do
+      [[ "$f" == "$stub" ]] && continue 2
+    done
+    problems+=("$f still names $old_scripts_dir")
+  done <<< "$hits"
+else
+  problems+=("git grep failed with exit $code")
 fi
 report "$name"
 

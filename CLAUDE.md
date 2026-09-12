@@ -101,7 +101,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/solve-issue/scripts/tests/` — twenty-one files for eighteen scripts.
+`skills/tdd/scripts/tests/` — twenty-one files for eighteen scripts.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on

@@ -15,7 +15,7 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/.." && pwd)"
-S="$REPO/skills/solve-issue/scripts"
+S="$REPO/skills/tdd/scripts"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT

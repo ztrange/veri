@@ -15,7 +15,7 @@
 #   pipeline  docs/wt/*, docs/build-walkthrough.py, docs/check-walkthrough.py, docs/tests/
 #             → the guards (docs-test) AND the freshness check (docs-fresh). Changing how
 #               the page is built is the only way to break the guards.
-#   inputs    skills/solve-issue/scripts/*.sh, skills/solve-issue/SKILL.md (the revise
+#   inputs    skills/tdd/scripts/*.sh, skills/tdd/SKILL.md (the revise
 #             budget the page cross-checks), docs/walkthrough.html itself (a hand edit),
 #             Makefile → the freshness check only: the page may now be stale, but the
 #               build that makes it has not changed.
@@ -51,7 +51,7 @@ mb="$(git merge-base HEAD "$base" 2>/dev/null)" || {
 changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
 
 pipeline_re='^docs/(wt/|build-walkthrough\.py$|check-walkthrough\.py$|tests/)'
-inputs_re='^(skills/solve-issue/scripts/[^/]+\.sh|skills/solve-issue/SKILL\.md|docs/walkthrough\.html|Makefile)$'
+inputs_re='^(skills/tdd/scripts/[^/]+\.sh|skills/tdd/SKILL\.md|docs/walkthrough\.html|Makefile)$'
 
 run_test=0 run_fresh=0 why_test="" why_fresh=""
 if [ "$mode" = all ]; then

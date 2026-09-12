@@ -25,12 +25,12 @@ trap 'rm -rf "$WORK"' EXIT
 # has a committed file to compare against.
 repo() {
   local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
-  mkdir -p "$d/docs" "$d/skills/solve-issue"
+  mkdir -p "$d/docs" "$d/skills/tdd"
   cp "$ROOT/docs/build-walkthrough.py" "$ROOT/docs/check-walkthrough.py" "$ROOT/docs/merge-gates.sh" "$d/docs/"
   cp -R "$ROOT/docs/wt" "$d/docs/wt"; rm -rf "$d/docs/wt/__pycache__"
   cp -R "$ROOT/docs/tests" "$d/docs/tests"
-  cp -R "$ROOT/skills/solve-issue/scripts" "$d/skills/solve-issue/scripts"
-  cp "$ROOT/skills/solve-issue/SKILL.md" "$d/skills/solve-issue/"
+  cp -R "$ROOT/skills/tdd/scripts" "$d/skills/tdd/scripts"
+  cp "$ROOT/skills/tdd/SKILL.md" "$d/skills/tdd/"
   cp "$ROOT/Makefile" "$d/"
   ( cd "$d" && python3 docs/build-walkthrough.py >/dev/null 2>&1 )
   git -C "$d" -c init.defaultBranch=base init -q
@@ -74,11 +74,11 @@ plans "no page input changed: nothing runs" 'nothing to run' 'docs-fresh' \
 
 # 2. a script changed: the page may be stale, the build is not suspect. Fresh only.
 plans "a script changed: freshness only" 'docs-fresh' 'docs-test' \
-  bash -c 'touch_file skills/solve-issue/scripts/classify-bail.sh'
+  bash -c 'touch_file skills/tdd/scripts/classify-bail.sh'
 
 # 3. SKILL.md changed: the page cross-checks its revise budget. Fresh only.
 plans "SKILL.md changed: freshness only" 'docs-fresh' 'docs-test' \
-  bash -c 'touch_file skills/solve-issue/SKILL.md'
+  bash -c 'touch_file skills/tdd/SKILL.md'
 
 # 4. the page itself changed by hand: freshness catches a hand edit. Fresh only.
 plans "the page was edited: freshness only" 'docs-fresh' 'docs-test' \
@@ -95,7 +95,7 @@ plans "the guard suite changed: guards and freshness" 'docs-test' '' \
 # 7. uncommitted work counts: a gate that ignored the working tree would pass a dirty
 #    merge. The mutator leaves the change unstaged (no commit of it — the commit is empty).
 plans "an uncommitted script change still counts" 'docs-fresh' '' \
-  bash -c 'touch_file skills/solve-issue/scripts/verify.sh; git stash -q; git stash pop -q; git reset -q'
+  bash -c 'touch_file skills/tdd/scripts/verify.sh; git stash -q; git stash pop -q; git reset -q'
 
 # 8. VERI_GATES=all runs both whatever the diff says — here, a diff that owes nothing.
 GATES=all plans "VERI_GATES=all overrides the diff" 'docs-test' '' \
