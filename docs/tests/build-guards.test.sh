@@ -1215,10 +1215,44 @@ function press(key) {
 JS
 }
 
+# whole_script — how a question tells an entry that is a whole script from one that is a run
+# of lines, printed on stdout. Every run window.__VERI_HUNKS__ holds is keyed as
+# `<script> <first>-<last>`; an entry that is one of those is a hunk, and an entry that is
+# not is the script itself, whatever shape it arrives in. Shipped with the stub for the
+# reason map_entry and key_press are: the two sides of that lookup — the key the table is
+# filled with and the key it is asked for — have to agree character for character, and a
+# comma where a dash went would report every hunk on the page as a whole script.
+# The word is the caller's, because two questions report the same fact about different
+# things: a stop the walk lands on is that script's `header`, an index row lists it as `new`.
+# The table is built on the first question rather than at load, so a question that never
+# asks pays nothing.
+whole_script() {
+  cat <<'JS'
+function runKey(f) { return f[0] + " " + f[1] + "-" + f[2]; }
+
+var RUNS = null;
+function runs() {
+  if (RUNS) return RUNS;
+  RUNS = {};
+  var hunks = window.__VERI_HUNKS__ || {};
+  Object.keys(hunks).forEach(function (tag) {
+    (hunks[tag] || []).forEach(function (entry) { RUNS[runKey(fields(entry))] = true; });
+  });
+  return RUNS;
+}
+
+function runOrWhole(entry, word) {
+  var f = typeof entry === "string" ? [entry] : fields(entry);
+  var run = runKey(f);
+  return runs()[run] ? run : f[0] + " " + word;
+}
+JS
+}
+
 # ask_page <dir> <page> [args...]
 # Ask the page a question its markup cannot answer: run <dir>/question.js — which the
 # calling assertion has just written — against <page>, under the stub above and the entry
-# reader and the keypress beside it, with node.
+# reader, the keypress and the whole-script lookup beside it, with node.
 # The question reads its own arguments from process.argv[3] on and prints the report its
 # case compares; stdout and stderr both come back, and the exit code is node's, so a
 # question that cannot find what it asks for says so and fails the case.
@@ -1226,7 +1260,7 @@ JS
 # and a case fails rather than skips when it is absent.
 ask_page() {
   local d="$1" page="$2"; shift 2
-  { dom_stub; map_entry; key_press; cat "$d/question.js"; } > "$d/ask.js"
+  { dom_stub; map_entry; key_press; whole_script; cat "$d/question.js"; } > "$d/ask.js"
   ( cd "$d" && node ask.js "$page" "$@" 2>&1 )
 }
 
@@ -1453,32 +1487,14 @@ if (!mode || typeof mode.walk !== "function") {
   process.exit(1);
 }
 
-/* Every run of lines the page knows about, as `<script> <first>-<last>`. A stop that is
-   one of these is a hunk; a stop that is not is the script itself — so the two sides of
-   that lookup are one spelling, named once: filled from the map here and asked of it in
-   where() below. Written twice they would have to agree character for character, and a
-   comma where a dash went would report every hunk in the walk as a header. */
-function runKey(f) { return f[0] + " " + f[1] + "-" + f[2]; }
-
-var hunks = window.__VERI_HUNKS__ || {};
-var runs = {};
-Object.keys(hunks).forEach(function (tag) {
-  (hunks[tag] || []).forEach(function (entry) {
-    runs[runKey(fields(entry))] = true;
-  });
-});
-
-function where(stop) {
-  var f = typeof stop === "string" ? [stop] : fields(stop);
-  var run = runKey(f);
-  return runs[run] ? run : f[0] + " header";
-}
-
+/* A stop the hunk map holds a run for is a hunk, and a stop it does not is the script's
+   header: runOrWhole() beside the stub is that lookup, spelt once for both questions that
+   make it. */
 var rows = [];
 for (var i = 3; i < process.argv.length; i++) {
   var since = process.argv[i];
   (mode.walk(since) || []).forEach(function (stop) {
-    rows.push(since + " " + where(stop));
+    rows.push(since + " " + runOrWhole(stop, "header"));
   });
 }
 console.log(rows.join("\n"));
@@ -1858,31 +1874,14 @@ if (!mode || typeof mode.index !== "function") {
 function tagOf(row) { return Array.isArray(row) ? row[0] : row.tag; }
 function entriesOf(row) { return (Array.isArray(row) ? row[1] : row.hunks) || []; }
 
-/* Every run of lines the page knows about, as `<script> <first>-<last>`. An entry that is
-   one of these is a hunk; an entry that is not is the script itself — so the two sides of
-   that lookup are one spelling, named once: filled from the map here and asked of it in
-   entry() below, exactly as new_script_git does it for a stop. */
-function runKey(f) { return f[0] + " " + f[1] + "-" + f[2]; }
-
-var hunks = window.__VERI_HUNKS__ || {};
-var runs = {};
-Object.keys(hunks).forEach(function (tag) {
-  (hunks[tag] || []).forEach(function (entry) {
-    runs[runKey(fields(entry))] = true;
-  });
-});
-
-function entry(e) {
-  var f = typeof e === "string" ? [e] : fields(e);
-  var run = runKey(f);
-  return runs[run] ? run : f[0] + " new";
-}
-
+/* An entry the hunk map holds a run for is a hunk, and one it does not is the script
+   itself: runOrWhole() beside the stub is that lookup, the same one new_script_git makes
+   of a stop, and only the word for a whole script differs. */
 var rows = [];
 for (var i = 3; i < process.argv.length; i++) {
   var since = process.argv[i];
   var shown = (mode.index(since) || []).map(function (row) {
-    var text = entriesOf(row).map(entry);
+    var text = entriesOf(row).map(function (e) { return runOrWhole(e, "new"); });
     text.sort();
     return since + " " + tagOf(row) + " " + (text.length ? text.join(", ") : "-");
   });
