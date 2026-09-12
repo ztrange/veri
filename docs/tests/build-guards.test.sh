@@ -383,6 +383,36 @@ stage3_figure() { figure_between "$1" 'id="s3"' 'id="s4"' "$2"; }
 omits_git() { local SANDBOX=sandbox_git; omits "$@"; }
 accepts_without_git() { local SANDBOX=sandbox_git; accepts_without "$@"; }
 
+# index_says <name> <wants> [mutator...]
+# opens_with's question, asked of the capability index: the slice the build puts between
+# `<div class="stage-head" id="capabilities">` and the pitch's first heading, which is the
+# whole of that section and nothing else. That section is where the reader chooses a
+# version, so it is the only place a sentence about what the choice answers is next to the
+# control rather than two thousand lines away from it — and a claim about WHERE a sentence
+# sits cannot be asked of the whole page.
+# Built in sandbox_git, because the index is the one section that exists only when git does
+# (case 10). In a bare sandbox the region is the empty string, which would make this a
+# question about nothing.
+index_says() {
+  local name="$1" wants="$2"; shift 2
+  local d code page region missing
+  d="$(sandbox_git)"
+  [[ $# -gt 0 ]] && ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  region="$(region_between "$page" '<div class="stage-head" id="capabilities">' '<h2 id="why"')"
+  missing="$(missing_from "$region" "$wants")"
+  if [[ "$code" == 0 && -z "$missing" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want, inside the capability index, all of: $wants"
+    echo "    missing:"
+    [[ -n "$missing" ]] && printf '%s\n' "$missing" | sed 's/^/      /'
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # tags_git <name> <n-hunk-tags> <expected-spans> <mutator...>
 # accepts() and omits() each ask one yes/no question of the whole page, and a hunk tag
 # needs two asked together: "this line carries v0.2" is only half the claim, because an
@@ -1843,6 +1873,24 @@ blocked -' \
            rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
              "# rewritten by the v0.10 commit" \
              "feat: rewrite line 5 of classify-bail.sh (#3)" v0.10'
+
+# 26. and the reader has to be told what the answer they get actually means. A hunk is
+#     awarded to a tag only when a `feat:` or `fix:` commit last touched it, which is the
+#     design — a version is a capability — and it makes since-mode answer a narrower
+#     question than the one its control seems to ask. Lines a `refactor:`, a `test:` or a
+#     `docs:` commit rewrote after the reader last read are dimmed exactly like lines
+#     nobody has touched since v0.1, so a reader who takes the dimming for "unchanged"
+#     reads a file believing it is the one they read last time. One sentence in the index
+#     says so, where the choice is made rather than in a note further down the page.
+#
+#     Both wants together, because each alone is green against prose that does not make
+#     the claim. The index's own paragraphs are already about capabilities — "capabilities
+#     that live there have no listing on this page" — so the first half is nearly true of
+#     the section today; and a sentence carrying only the second half says what since-mode
+#     does not answer without ever saying what it does. The contrast is the sentence.
+index_says "the index says since-mode answers capabilities, not bytes" \
+'capabilities changed
+bytes'
 
 echo "----"
 echo "$pass passed, $fail failed"

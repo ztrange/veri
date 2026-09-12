@@ -9,6 +9,6 @@
 - [x] `n` and `p`, and two buttons in the crumb bar, walk the lit hunks in page order
 - [x] the URL hash carries `since=vX`, and reloading that URL restores the mode
 - [x] the "mark read up to vX" button persists the choice in `localStorage` and the next load opens in since-mode; a browser that blocks storage still renders the plain page
-- [ ] one sentence next to the control says since-mode answers which capabilities changed, not which bytes changed
+- [x] one sentence next to the control says since-mode answers which capabilities changed, not which bytes changed
 - [ ] pressing `n` or `p`, or clicking the next/previous buttons the crumb bar carries, scrolls the reader to the next or previous stop of the since-mode walk, and the buttons are absent from the crumb bar when no version is chosen
 - [ ] `make docs` regenerates the page, and `make docs-check` and `make docs-test` pass
