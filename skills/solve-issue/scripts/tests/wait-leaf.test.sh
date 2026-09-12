@@ -69,6 +69,42 @@ w_stuck="$(waited late-stuck 2)"
   promptly "$w_stuck" 2; } && ok \
   || no "exits with the code recorded a couple of seconds into the wait, as soon as it lands (got '<code> <secs>': success=$w_ok want '0 <=10', failure=$w_fail want '1 <=10', killed-stuck=$w_stuck want '2 <=10')"
 
+# 2. no completion file → exit 3 ("nothing to report yet"), once the budget is spent and not
+#    before, and the budget the conductor gets when it names none is short enough that one
+#    call fits inside Claude Code's 10-minute foreground cap: at most 540 seconds.
+#
+#    Two arms, because the criterion has two halves. The first passes an explicit 1-second
+#    budget, so real time can prove both the code and that the wait ended. The second names
+#    no budget at all, and its length is measured rather than waited out: the script reads
+#    the clock with `date +%s` (as supervise.sh does — bash 3.2 has no $EPOCHSECONDS), so a
+#    stub `date` earlier on PATH hands it a VIRTUAL clock that jumps 10 seconds per reading
+#    and logs every value it served. The last logged value is the virtual moment the script
+#    gave up, i.e. the default budget itself — measured in well under a second of real time.
+#    A default of 600 would be logged as 600 and fail the case rather than hang it.
+b_given="$( t0="$(date +%s)"
+            ( cd "$work" && env VERI_POLL=0.2 "$WAIT" never-lands 1 >/dev/null 2>&1 )
+            printf '%s %s\n' "$?" "$(( $(date +%s) - t0 ))" )"
+
+clockbin="$work/clockbin"; mkdir -p "$clockbin"
+clocklog="$work/clock.log"; : > "$clocklog"
+cat > "$clockbin/date" <<'D'
+#!/usr/bin/env bash
+# Virtual clock: reading N is 10*N seconds past the start, and every reading served is
+# appended to $VERI_CLOCK_LOG so the caller can see how far the waiter let it run.
+n="$(wc -l < "$VERI_CLOCK_LOG" | tr -d ' ')"
+printf '%s\n' "$(( n * 10 ))" | tee -a "$VERI_CLOCK_LOG"
+D
+chmod +x "$clockbin/date"
+( cd "$work" && env VERI_POLL=0 VERI_CLOCK_LOG="$clocklog" PATH="$clockbin:$PATH" \
+    "$WAIT" no-budget-named >/dev/null 2>&1 )
+rc_default=$?
+b_default="$(tail -n 1 "$clocklog")"
+
+{ promptly "$b_given" 3 &&
+  [[ "$rc_default" == 3 ]] &&
+  [[ "$b_default" =~ ^[0-9]+$ ]] && [[ "$b_default" -le 540 ]]; } && ok \
+  || no "exits 3 once a budget with no completion file is spent, and the default budget is at most 540s (given 1s: got '<code> <secs>'=$b_given want '3 <=10'; default: code=$rc_default want 3, gave up at ${b_default:-<no clock reading>}s want <=540)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
