@@ -2170,6 +2170,12 @@ previous #1 v0.5' \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
 
+# bytes <file> -> its size, with no padding
+# BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
+# gaps, so tr strips them. One named thing rather than the same pipeline twice, for the
+# same reason hunk_spans is: the report below asks it of both files in one line.
+bytes() { wc -c <"$1" | tr -d ' '; }
+
 # page_is_current <name>
 # The one assertion that asks about THIS repository instead of a sandbox. Every case above
 # builds a disposable copy and judges what came out, which says the generator is sound and
@@ -2201,7 +2207,7 @@ page_is_current() {
     echo "FAIL - $name (exit $code)"
     echo "    want: docs/walkthrough.html is what this tree builds — run \`make docs\` and commit it"
     if [[ "$code" == 0 ]]; then
-      echo "    got:  built $(wc -c <"$built" | tr -d ' ') bytes / committed $(wc -c <"$committed" | tr -d ' ')"
+      echo "    got:  built $(bytes "$built") bytes / committed $(bytes "$committed")"
       diff "$committed" "$built" | sed 's/^/    | /' | head -8
     else
       sed 's/^/    | /' "$err" | head -6
