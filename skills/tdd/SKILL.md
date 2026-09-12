@@ -258,9 +258,13 @@ unauthenticated baseline never gets a cycle.
    reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
    session each one fails at launch (`supervise.sh` exit 1 before any work), which is
    neither a verdict nor a hang and so has no bail classification — catch it here.
-3. **Suite is green at baseline.** Get the test command from `$S/detect-test-command.sh`
-   (see *Detecting the test command*) and run it. If already red, stop and report — a
-   cycle must not start on a red baseline.
+3. **Suite is green at baseline — and time it.** Get the test command from
+   `$S/detect-test-command.sh` (see *Detecting the test command*) and run it. If already
+   red, stop and report — a cycle must not start on a red baseline. Note how long the run
+   took and keep it as `baseline`, the elapsed wall time in whole seconds (round up); step
+   6 sizes the run's hard timeout from it. This measurement is free — the run happens
+   anyway — and it is the only one taken, so a suite that gets slower mid-run does not
+   move the timeout under a leaf.
 4. **Default branch.** Capture it for the PR base:
    `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. **Exit 2** means
@@ -269,6 +273,22 @@ unauthenticated baseline never gets a cycle.
    decision, and catching it here is what lets the refactor loop treat exit 2 as impossible.
    Exit 0 and exit 3 both mean it parses (3 only says the budget is 0 — a run with the
    refactor loop switched off), so continue.
+6. **Size the run's hard timeout from the baseline.** Hand step 3's `baseline` to
+   `$S/leaf-timeout.sh` and **export** the result, so every leaf of the run is launched
+   under it rather than under the supervisor's fixed 900 s default:
+   ```
+   timeout="$($S/leaf-timeout.sh "$baseline")" && export VERI_TIMEOUT="$timeout"
+   ```
+   The script keeps a quick suite on today's 900 s and gives a slow one 6 × its baseline —
+   which is what stops a leaf whose own test command takes minutes being killed as stuck
+   while it is working (#71: a 900 s cap against a 140-250 s suite, two bails, both steps
+   reverted). Because the export is done here, in the conductor's own shell, it is in force
+   for every `supervise.sh` in every phase of every cycle below; nothing else has to pass
+   it. An explicit `VERI_TIMEOUT` is printed back as given, so setting one by hand still
+   wins and the liveness axis stays yours. **Exit 2** means the number could not be read —
+   a malformed measurement, or an explicit `VERI_TIMEOUT` that is not a whole number ≥ 1 —
+   and is a preflight-class stop like step 5: report its stderr diagnostic verbatim and do
+   not start, because a run whose timeout is garbage kills every leaf it launches.
 
 ### 1. Read the issue, enter the issue's worktree, capture the spec (or resume)
 
@@ -346,7 +366,12 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
    while ignoring leaf logs.)
 3. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment listing the steps,
-   noting that the ledger is the source of truth and each step will be blind-verified.
+   noting that the ledger is the source of truth and each step will be blind-verified. The
+   comment also states the hard timeout preflight step 6 settled on and where it came from
+   — `timeout 1200 s (6 × a 200 s baseline)`, or `timeout 900 s (floor; 5 s baseline)`, or
+   `timeout 900 s (VERI_TIMEOUT set by hand)` — so a reader of the thread can see which
+   number every leaf of this run is under and why. On #71 that had to be reconstructed from
+   the timestamps of two bails.
 
 ### 2b. Start comment
 
