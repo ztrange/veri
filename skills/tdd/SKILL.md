@@ -161,10 +161,11 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   conductor owns that run) or the default branch cannot be named. `$S/issue-worktree.sh
   --remove <n>` removes the worktree once the PR has landed, and **refuses** (exit 2) one
   holding uncommitted changes.
-- `$S/detect-test-command.sh [repo-root]` — print the one command that runs the **target
-  repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do* code — when no
-  marker it trusts matched, which is your cue to ask the user. First match wins, and the
-  repo's `.veri/test-command` beats every inference (see *Detecting the test command*).
+- `$S/detect-test-command.sh [--issue <body-file>] [repo-root]` — print the one command that
+  runs the **target repo's** full suite on stdout; **exit 3** — the repo-wide *nothing to do*
+  code — when no marker it trusts matched, which is your cue to ask the user. First match
+  wins: the issue body's own `Test command:` line, then the repo's `.veri/test-command`,
+  then every inference (see *Detecting the test command*).
 - `$S/solvable-issues.sh [--repo <owner/name>]` — the **selection layer**: prints the
   numbers of the issues veri may take right now — open, labelled `ready-for-agent`, every
   issue under their `## Blocked by` heading closed, and not already claimed by an open PR
@@ -258,13 +259,20 @@ unauthenticated baseline never gets a cycle.
    reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
    session each one fails at launch (`supervise.sh` exit 1 before any work), which is
    neither a verdict nor a hang and so has no bail classification — catch it here.
-3. **Suite is green at baseline — and time it.** Get the test command from
-   `$S/detect-test-command.sh` (see *Detecting the test command*) and run it. If already
-   red, stop and report — a cycle must not start on a red baseline. Note how long the run
-   took and keep it as `baseline`, the elapsed wall time in whole seconds (round up); step
-   6 sizes the run's hard timeout from it. This measurement is free — the run happens
-   anyway — and it is the only one taken, so a suite that gets slower mid-run does not
-   move the timeout under a leaf.
+3. **Suite is green at baseline — and time it.** The issue may name its own test command,
+   so read its body first — into a temp file, since the caller's checkout must stay clean:
+   ```
+   body="$(mktemp)" && gh issue view <n> --json body -q .body > "$body"
+   ```
+   Then get the test command from `$S/detect-test-command.sh --issue "$body"` (see
+   *Detecting the test command*) and run it. If already red, stop and report — a cycle must
+   not start on a red baseline. Reading the body **here**, before the baseline runs, is what
+   keeps the baseline and every later leaf on one command: detected after the baseline, the
+   issue's line would arrive too late to be the command the baseline proved green. Note how
+   long the run took and keep it as `baseline`, the elapsed wall time in whole seconds
+   (round up); step 6 sizes the run's hard timeout from it. This measurement is free — the
+   run happens anyway — and it is the only one taken, so a suite that gets slower mid-run
+   does not move the timeout under a leaf.
 4. **Default branch.** Capture it for the PR base:
    `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. **Exit 2** means
@@ -366,12 +374,14 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
    while ignoring leaf logs.)
 3. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment listing the steps,
-   noting that the ledger is the source of truth and each step will be blind-verified. The
-   comment also states the hard timeout preflight step 6 settled on and where it came from
-   — `timeout 1200 s (6 × a 200 s baseline)`, or `timeout 900 s (floor; 5 s baseline)`, or
-   `timeout 900 s (VERI_TIMEOUT set by hand)` — so a reader of the thread can see which
-   number every leaf of this run is under and why. On #71 that had to be reconstructed from
-   the timestamps of two bails.
+   naming the test command preflight detected and every leaf will run, and noting that the
+   ledger is the source of truth and each step will be blind-verified. The test command is
+   in that comment so a wrong one is visible on the thread before the first leaf starts,
+   rather than after a cycle has paid for it. The comment also states the hard timeout
+   preflight step 6 settled on and where it came from — `timeout 1200 s (6 × a 200 s
+   baseline)`, or `timeout 900 s (floor; 5 s baseline)`, or `timeout 900 s (VERI_TIMEOUT set
+   by hand)` — so a reader of the thread can see which number every leaf of this run is
+   under and why. On #71 that had to be reconstructed from the timestamps of two bails.
 
 ### 2b. Start comment
 
@@ -721,18 +731,25 @@ git history agree on exactly what is done — so resume never repeats or skips a
 
 ## Detecting the test command
 
-Do not pick it by hand. Run `$S/detect-test-command.sh <repo-root>` once, from the target
-repo's root: it prints the one full-suite command on stdout and exits 0. On **exit 3** it
-prints nothing — no marker it trusts matched — so **ask the user** for the command rather
-than guessing.
+Do not pick it by hand. Run `$S/detect-test-command.sh --issue <body-file> <repo-root>`
+once, from the target repo's root, with the issue body preflight step 0.3 saved: it prints
+the one full-suite command on stdout and exits 0. On **exit 3** it prints nothing — no
+marker it trusts matched — so **ask the user** for the command rather than guessing.
 
 That stdout is `<test-cmd>` everywhere it is needed: the baseline run in preflight (step
 0.3) and the `<test-cmd>` argument of every `$S/build-develop-prompt.sh` call, so every
-leaf runs the same suite.
+leaf runs the same suite. Detect it once, with `--issue`, and pass that one string on —
+a second detection spelled without the flag would hand the leaves a different command from
+the one the baseline proved green.
 
-When the inference guesses wrong for a particular repo, the fix is that repo's, not this
-skill's: a human writes `.veri/test-command` there, and its first non-empty line is used
-verbatim ahead of every other rule. That file is the per-repo escape hatch.
+A `Test command: <cmd>` line in the issue body wins over everything else, for that issue's
+run only: an issue that named its suite in words has already answered the question, and
+that is what `--issue` puts in front of the rest. That is the per-issue escape hatch.
+
+When the inference guesses wrong for a particular repo rather than for one issue, the fix
+is that repo's, not this skill's: a human writes `.veri/test-command` there, and its first
+non-empty line is used verbatim ahead of every inference. That file is the per-repo escape
+hatch.
 
 ## Guardrails
 
