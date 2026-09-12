@@ -195,6 +195,68 @@ for probe in "- 4 0 4/5" "- 5 3 5/5" "3 3 3 3/3"; do
 done
 report "$name"
 
+# 8. the default refactor-budget.sh encodes and the prose that states it must not drift
+#    apart. Case 7 asks the running script what its default is; this case asks whether the
+#    sentences about it still say the same number. `VERI_REFACTOR_BUDGET`'s default is
+#    written down in four places: once as code (`budget="${VERI_REFACTOR_BUDGET:-N}"`) and
+#    three times as prose — the script's own header, SKILL.md's Refactor entry, and two
+#    spots in docs/wt/commentary.py (the stage-5 three-budgets diagram, which lists each
+#    axis with its default, and refactor-budget.sh's own commentary, which quotes the
+#    assignment line verbatim). Changing the constant alone leaves three sentences
+#    confidently stating the old figure and nothing in the repo notices: the walkthrough is
+#    generated from the scripts, so `make docs` happily rebuilds a page whose hand-written
+#    commentary contradicts the source it sits next to.
+#
+#    This is supervise.test.sh case 10's guarantee — "the default supervise.sh encodes and
+#    the prose that states it must not drift apart", issue #98 — applied to the second
+#    number of that shape. It lives here rather than under `docs/tests/` for the reason
+#    that case gives: `make docs-check` is deliberately not part of `make test` (Makefile,
+#    "Neither is part of `test` on purpose"), so a case parked there would not run in the
+#    suite this script's own behaviour is verified against.
+#
+#    Each site is located by a regex that ends at the figure it asks about, and a site
+#    whose pattern can no longer be found reports `<none>` — a rewording that moves a
+#    statement out of the check's sight is drift too, and must fail rather than pass
+#    silently. CLAUDE.md names the tunable but states no number for it, so there is nothing
+#    there to compare and it is not a site.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+
+# stated <file> <extended-regex> — the figure the first match of <regex> states, or
+# '<none>' / '<no-file>' when there is nothing to read. Newlines are squashed to spaces
+# first, because the prose below wraps at ~90 columns and a statement split across two
+# lines is still one statement; the figure is the LAST run of digits in the match, which is
+# why every regex here stops at it.
+stated() {
+  local hit
+  [[ -f "$1" ]] || { echo '<no-file>'; return; }
+  hit="$(tr '\n' ' ' < "$1" | grep -oE "$2" | head -1)"
+  [[ -n "$hit" ]] || { echo '<none>'; return; }
+  printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
+}
+
+# The code site, read through that same helper: `budget="${VERI_REFACTOR_BUDGET:-N}"`
+# states the figure as much as the three sentences do, and it is the one the others must
+# match. The script's header mentions the tunable earlier in the file, but says `(default
+# N)` rather than `:-N`, so this pattern's first match is the assignment itself.
+name="the default budget encoded in refactor-budget.sh and every prose statement of it agree"
+encoded="$(stated "$BUDGET" 'VERI_REFACTOR_BUDGET:-[0-9]+')"
+
+problems=()
+[[ "$encoded" =~ ^[0-9]+$ ]] ||
+  problems+=("refactor-budget.sh: no VERI_REFACTOR_BUDGET default found, got: $encoded")
+while IFS='|' read -r where file regex; do
+  [[ -n "$where" ]] || continue
+  got="$(stated "$ROOT/$file" "$regex")"
+  [[ "$got" == "$encoded" ]] ||
+    problems+=("$where: says $got, refactor-budget.sh encodes $encoded")
+done <<'SITES'
+refactor-budget.sh-header|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_BUDGET \(default [0-9]+
+SKILL.md-refactor|skills/tdd/SKILL.md|VERI_REFACTOR_BUDGET.{0,3} \(default [0-9]+
+commentary.py-budgets-diagram|docs/wt/commentary.py|VERI_REFACTOR_BUDGET +\([0-9]+
+commentary.py-refactor-budget|docs/wt/commentary.py|VERI_REFACTOR_BUDGET:-[0-9]+
+SITES
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

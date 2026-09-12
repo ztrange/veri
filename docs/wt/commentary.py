@@ -941,7 +941,7 @@ STAGES = [
 <span class="fmeta">stage 5</span></div>
 <div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">liveness                     verdict                      cost</span>
 <span class="l">the leaf never answered      it answered, was rejected    one step's tidying, priced</span>
-<span class="l">VERI_STUCK_RETRIES     (1)   REVISE_BUDGET          (2)   VERI_REFACTOR_BUDGET   (2)</span>
+<span class="l">VERI_STUCK_RETRIES     (1)   REVISE_BUDGET          (2)   VERI_REFACTOR_BUDGET   (5)</span>
 <span class="l">supervise.sh                 the conductor's revise loop  refactor-budget.sh</span>
 <span class="l">        &#9474;                            &#9474;                            &#9474;</span>
 <span class="l">        &#9660; spent                      &#9660; spent                      &#9660; spent</span>
@@ -3235,7 +3235,7 @@ SCRIPTS += [dict(
   empty string, where it is refused deliberately rather than by an abort whose exit code
   would be the wrong one.
 </p><p>
-  <code>budget="${VERI_REFACTOR_BUDGET:-2}"</code> is {{p-default|the tunable-with-default
+  <code>budget="${VERI_REFACTOR_BUDGET:-5}"</code> is {{p-default|the tunable-with-default
   idiom}} every tunable in veri uses: read the environment, else fall back to a literal.
   It is what lets a test pin <code>VERI_REFACTOR_BUDGET=0</code> &mdash; the &ldquo;loop is
   off&rdquo; case &mdash; without touching the script.
