@@ -310,32 +310,45 @@
     stops[at].scrollIntoView({ block: "center" });
   }
 
-  function stepper(word, glyph, delta) {
+  /* The two directions of the one walk, each spelled once and whole: the key that steps
+     it, the word the button is called by, the arrow it shows, and which way along the
+     stops it moves. Written out at the call sites instead — an argument list here and an
+     arm of the keydown there — `n` moving forwards and the button called "next" moving
+     forwards are two facts that merely agree, and an edit to one of them leaves a page
+     whose key and whose button walk opposite ways. In page order, which is also the order
+     the buttons are appended in: up the page first, then down it. */
+  var DIRECTIONS = [
+    { key: "p", word: "previous", glyph: "&uarr;", delta: -1 },
+    { key: "n", word: "next",     glyph: "&darr;", delta: 1 }
+  ];
+
+  function stepper(dir) {
     /* What the button is called, spelled once and given to both places a browser looks
        for a name: the accessibility tree and the native tooltip. Written out twice they
        are two strings that happen to agree, and an edit to one of them leaves a screen
        reader announcing a button the hover calls something else. */
-    var name = word + " change since " + since;
+    var name = dir.word + " change since " + since;
     var b = document.createElement("button");
     b.className = "crumb-step";
     b.setAttribute("type", "button");
     b.setAttribute("aria-label", name);
     b.setAttribute("title", name);
-    b.innerHTML = glyph;                 // the label a sighted reader reads is the arrow
-    b.addEventListener("click", function () { step(delta); });
+    b.innerHTML = dir.glyph;             // the label a sighted reader reads is the arrow
+    b.addEventListener("click", function () { step(dir.delta); });
     return b;
   }
 
-  crumb.appendChild(stepper("previous", "&uarr;", -1));
-  crumb.appendChild(stepper("next", "&darr;", 1));
+  DIRECTIONS.forEach(function (dir) { crumb.appendChild(stepper(dir)); });
 
   document.addEventListener("keydown", function (e) {
     // a held modifier makes it the browser's shortcut, not ours: ⌘N opens a window
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (e.key === "n") step(1);
-    else if (e.key === "p") step(-1);
-    else return;
-    e.preventDefault();
+    for (var d = 0; d < DIRECTIONS.length; d++) {
+      if (e.key !== DIRECTIONS[d].key) continue;
+      step(DIRECTIONS[d].delta);
+      e.preventDefault();                // a key we handled is not also the browser's
+      return;
+    }
   });
 })();
 
