@@ -65,8 +65,14 @@ trap 'rm -rf "$WORK"' EXIT
 # the sandbox and the build ARE the cost: a case that is skipped copies no tree, starts no
 # python and asks git nothing. It returns 0 — a skipped case is neither a pass nor a
 # failure, and must not move either counter.
+#
+# The filter is read into a local first so that no filter is one named thing — and so the
+# `set -u` safety is in the read, not in `[[ ]]` short-circuiting past an unset `$ONLY`
+# before it can be expanded. It stays quoted in the pattern: a filter is a substring to
+# find, never a glob to match, so `*` in it means an asterisk.
 selected() {
-  [[ -z "${ONLY:-}" || "$1" == *"$ONLY"* ]]
+  local filter="${ONLY:-}"
+  [[ -z "$filter" || "$1" == *"$filter"* ]]
 }
 
 # Which sandbox the assertion helpers below build in. Most cases want the default —
