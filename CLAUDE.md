@@ -101,12 +101,14 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/solve-issue/scripts/tests/` — twenty files for eighteen scripts
-(`supervise.sh` has a second suite for its retry axis, and `hermetic-suites.test.sh`
-belongs to no single script: it is a cross-suite test that pins the suites' independence
-from ambient `VERI_*` tunables). All twenty keep `pass`/`fail`
-counters, print `FAIL - <name>` with a diff, and end with a count. Match that style
-rather than introducing a framework.
+`skills/solve-issue/scripts/tests/` — twenty-one files for eighteen scripts.
+`supervise.sh` has a second suite for its retry axis, and two suites belong to no single
+script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
+from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
+something outside `skills/` at all — it reads `.github/workflows/ci.yml` as text, the way
+GitHub Actions does, and pins what the `gates` job declares and why (issue #99). All
+twenty-one keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a
+count. Match that style rather than introducing a framework.
 
 Where a test would otherwise need a real model or a real clock, it injects instead:
 `CLAUDE_BIN` swaps in a stub binary, and `VERI_HEARTBEAT` / `VERI_TIMEOUT` /
