@@ -19,6 +19,15 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # whichever name the skill currently carries — the path this case is about is then
 # spelled out in full below rather than derived from where this file happens to live.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
+
+# The two halves of the identity, each written down exactly once: the directory Claude Code
+# loads the skill from, and the command name its frontmatter must declare. Neither is
+# derived from the other, so a half-finished move — tree renamed, frontmatter not, or the
+# reverse — still fails; and every message below quotes these rather than re-spelling them,
+# so there is one place to edit if the skill is ever renamed again.
+skill_dir="skills/tdd"
+want_name="tdd"
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -38,21 +47,21 @@ report() {
 #    the name its frontmatter declares. The frontmatter is the leading `---` block, and
 #    only its first `name:` counts — the awk stops at the closing `---` so a later `name:`
 #    in the prose cannot answer for it.
-name="the skill ships at skills/tdd/ and its frontmatter reads name: tdd"
+name="the skill ships at $skill_dir/ and its frontmatter reads name: $want_name"
 problems=()
-[[ -d "$ROOT/skills/tdd" ]] ||
-  problems+=("want a directory at skills/tdd, found none")
-skill="$ROOT/skills/tdd/SKILL.md"
+[[ -d "$ROOT/$skill_dir" ]] ||
+  problems+=("want a directory at $skill_dir, found none")
+skill="$ROOT/$skill_dir/SKILL.md"
 if [[ -f "$skill" ]]; then
   # sub() edits $0 and returns how many replacements it made, so it doubles as the
   # "this line is the name field" test; print then emits what is left, the value.
   got="$(awk 'NR == 1 && $0 == "---" { inside = 1; next }
               inside && $0 == "---" { exit }
               inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$skill")"
-  [[ "$got" == "tdd" ]] ||
-    problems+=("skills/tdd/SKILL.md frontmatter: want name 'tdd', got $(printf '%q' "$got")")
+  [[ "$got" == "$want_name" ]] ||
+    problems+=("$skill_dir/SKILL.md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
 else
-  problems+=("want a SKILL.md at skills/tdd, found none")
+  problems+=("want a SKILL.md at $skill_dir, found none")
 fi
 report "$name"
 
