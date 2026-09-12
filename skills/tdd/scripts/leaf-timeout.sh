@@ -12,10 +12,27 @@
 # with nothing on stdout, so a conductor capturing stdout in a command substitution cannot
 # mistake a malformed call for a real timeout and run the whole issue on it.
 #
+# An explicit VERI_TIMEOUT is the answer, not an input: it is printed as given whatever the
+# baseline measured, so the liveness axis stays the operator's to set (CLAUDE.md's three
+# budgets on three axes). It is held to >= 1, not >= 0: a zero timeout kills every leaf the
+# instant it starts, which costs a stuck retry and a reverted step each time, so a typo
+# fails closed here rather than burning the issue looking like model failure.
+#
 # Usage:   leaf-timeout.sh <baseline-seconds>   # a whole number >= 0
+#          VERI_TIMEOUT=<n> leaf-timeout.sh …   # <n> a whole number >= 1, used as given
 set -euo pipefail
 
 baseline="${1:-}"
+timeout="${VERI_TIMEOUT:-}"
+
+if [[ -n "$timeout" ]]; then
+  if [[ ! "$timeout" =~ ^[0-9]+$ ]] || [[ "$timeout" -lt 1 ]]; then
+    echo "leaf-timeout: VERI_TIMEOUT must be a whole number >= 1: $timeout" >&2
+    exit 2
+  fi
+  echo "$timeout"
+  exit 0
+fi
 
 if [[ ! "$baseline" =~ ^[0-9]+$ ]]; then
   echo "leaf-timeout: <baseline-seconds> must be a whole number >= 0: $baseline" >&2

@@ -13,6 +13,12 @@
 #                                fail-closed answer refactor-budget.sh gives a bad budget,
 #                                so a conductor reading stdout in a command substitution
 #                                cannot capture a malformed call as a real timeout.
+#   VERI_TIMEOUT=<n> set        → prints <n> as given and exits 0, whatever the baseline
+#                                would have derived: an explicit timeout is the answer,
+#                                not an input to the derivation.
+#   VERI_TIMEOUT set to anything that is not a whole number >= 1 (`0`, `abc`, `-1`, `1.5`)
+#                              → exit 2 with the same fail-closed shape, rather than
+#                                falling back to the derivation.
 #
 # Run: scripts/tests/leaf-timeout.test.sh
 set -uo pipefail
@@ -73,6 +79,41 @@ bad_probe() {
   rm -f "$out" "$err"
 }
 
+# override_probe <veri-timeout> <baseline> — VERI_TIMEOUT set to a usable value: the script
+# must print it back byte for byte and exit 0, whatever the baseline would have derived.
+# The baseline passed alongside is always one whose derivation differs from the override,
+# so a script that quietly re-derived would print the other number and the probe would say
+# so. Nothing on stderr: an explicit knob honoured is not a diagnosable event.
+override_probe() {
+  local timeout="$1" baseline="$2" out err code
+  out="$(mktemp)" err="$(mktemp)"
+  VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" "$baseline" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("VERI_TIMEOUT=$timeout baseline $baseline: want exit 0, got $code")
+  [[ "$(cat "$out")" == "$timeout" ]] ||
+    problems+=("VERI_TIMEOUT=$timeout baseline $baseline: want $timeout on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ ! -s "$err" ]] ||
+    problems+=("VERI_TIMEOUT=$timeout baseline $baseline: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  rm -f "$out" "$err"
+}
+
+# bad_override_probe <veri-timeout> — VERI_TIMEOUT set to something that is not a whole
+# number >= 1, with a baseline the script could otherwise derive from perfectly well: the
+# refusal must be about the override, so falling back to the derivation would be caught
+# here as output on stdout where there should be none.
+bad_override_probe() {
+  local timeout="$1" out err code
+  out="$(mktemp)" err="$(mktemp)"
+  VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" 200 >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("VERI_TIMEOUT=$timeout: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("VERI_TIMEOUT=$timeout: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ -s "$err" ]] ||
+    problems+=("VERI_TIMEOUT=$timeout: want a diagnostic on stderr, got nothing")
+  rm -f "$out" "$err"
+}
+
 # 1. The whole of this step's criterion, as one case: with VERI_TIMEOUT unset the script
 #    derives the timeout, and a baseline it cannot derive from is refused rather than
 #    guessed at.
@@ -102,6 +143,38 @@ bad_probe "baseline abc" abc
 bad_probe "baseline -1" -1
 bad_probe "baseline 1.5" 1.5
 bad_probe "no argument"
+report "$name"
+
+# 2. The other half of the same decision: an explicit VERI_TIMEOUT is the conductor's
+#    answer, not an input to the derivation. It is printed as given whatever the baseline
+#    measured — this is the CLAUDE.md invariant that the three budgets stay on three axes,
+#    and a derivation allowed to raise or lower a hand-set timeout would merge the liveness
+#    axis with the cost of measuring it. The issue's own third bullet is the 900/200 probe:
+#    `VERI_TIMEOUT=900` against a baseline that derives 1200 must still be 900, which is
+#    exactly the resumption the conductor did by hand on #71 (`VERI_TIMEOUT=1800`, the
+#    second probe here, against a quick baseline that would derive the 900 s floor). 1 is
+#    the smallest override the contract admits, and it is below the floor, so it also pins
+#    that the floor does not apply to a value the operator chose.
+#
+#    The bad probes are the ways an override arrives unusable, and they fail closed for a
+#    sharper reason than the baseline's do: this one is a value a human typed. `0` is the
+#    case ">= 1" exists for and the one a ">= 0" check would wave through — a zero timeout
+#    kills every leaf of the run the instant it starts, and each kill costs a stuck retry
+#    and a reverted step, so a typo would burn the whole issue looking like model failure.
+#    `-1` and `1.5` are the same typo one character away, and `abc` stands for the shell
+#    expansion that produced a word instead of a number. Each baseline here is 200 — a
+#    measurement the script derives from happily — so the refusal can only be about the
+#    override, and a silent fall back to the 1200 s derivation shows up as stdout that
+#    should have been empty.
+name="explicit VERI_TIMEOUT is printed as given whatever the baseline measured; a VERI_TIMEOUT that is not a whole number >= 1 exits 2 with a diagnostic on stderr and nothing on stdout"
+problems=()
+override_probe 900 200
+override_probe 1800 5
+override_probe 1 200
+bad_override_probe 0
+bad_override_probe abc
+bad_override_probe -1
+bad_override_probe 1.5
 report "$name"
 
 echo "----"
