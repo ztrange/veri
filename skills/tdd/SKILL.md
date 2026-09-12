@@ -546,13 +546,12 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    generality).
 3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
-   Say **how many transforms ran** and **which stop condition ended the loop** — a leaf's
-   `nothing left to tidy`, or the budget — mirroring `refactor-budget.sh`'s own status line
-   (`refactor 2/2 — budget spent`), so a reader can tell a step that was tidy from a step
-   that ran out of budget. A step that ran dry says **nothing left to tidy**; a step the
-   budget stopped says **how many candidates** the last leaf left and **lists** them, one
-   per line, taken verbatim from its `CANDIDATES:` lines — a count with no items is not a
-   backlog, and the backlog is the whole point of recording what the budget dropped.
+   Say **how many transforms ran** and **which stop condition ended the loop**, mirroring
+   `refactor-budget.sh`'s own status line (`refactor 2/2 — budget spent`): a step that ran
+   dry says **nothing left to tidy**, and a step the budget stopped says **how many
+   candidates** the last leaf left and **lists** them, one per line, taken verbatim from its
+   `CANDIDATES:` lines — a count with no items is not a backlog, and the backlog is the
+   whole point of recording what the budget dropped.
    - **PASS:** the step's cycle is complete — **mirror to the issue**: post a `### ✅ Step
      done` comment, and tick the matching acceptance criterion in the **issue body**
      (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Then loop back to
