@@ -507,8 +507,8 @@ env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" 
   && ok || no "VERI_LABEL set to the empty string is refused with exit 2 and a diagnostic on stderr, never treated as any label (exit=$refused_code want 2, stdout='$(tr '\n' '|' < "$refused_out")' want empty, stderr='$(tr '\n' ' ' < "$refused_err")' want a diagnostic)"
 
 # 11. A knob nobody is told about is not a parameter, it is a secret, so the three documents a
-# human reads before launching a loop must carry it: `/solve-issues`'s own procedure
-# (`skills/solve-issues/SKILL.md`, which is where `--repo` and `VERI_MAX_ISSUES` are already
+# human reads before launching a loop must carry it: the loop's own procedure
+# (`skills/tdd/SKILL.md`, which is where `--repo` and `VERI_MAX_ISSUES` are already
 # written down), the README's rung-2 paragraph, and CONTEXT.md, where *solvable* and the
 # eligibility signal are defined. Each must name the variable AND say what it is for — one
 # label per loop, so two loops on one repo draw from different pools. The variable name alone
@@ -536,7 +536,7 @@ doc_claims() {  # doc_claims <doc> <tag> <grep argument…>
 }
 
 docs_missing=""
-for doc in skills/solve-issues/SKILL.md README.md CONTEXT.md; do
+for doc in skills/tdd/SKILL.md README.md CONTEXT.md; do
   doc_claims "$doc" VERI_LABEL -e 'VERI_LABEL'
   doc_claims "$doc" one-label-per-loop -iE -e 'one[ -]label[ -]per[ -]loop'
 done
@@ -547,7 +547,7 @@ done
 # 12. Exit 3 is this script's "nothing to do", and what the loop says when it gets one has to
 # name the pool it actually drained: a run launched on `ready-for-agent:docs` that reports `no
 # ready-for-agent issue` sends the reader to a list that was never consulted, where issues are
-# waiting and none of them explains the silence. So `/solve-issues`'s own instruction for exit
+# waiting and none of them explains the silence. So the loop's own instruction for exit
 # 3 must name the label — `${VERI_LABEL:-ready-for-agent}` — rather than spelling the default
 # unconditionally, which is what it did while the label was hardcoded.
 #
@@ -558,11 +558,12 @@ done
 # ends it, and the case asserts the slice is non-empty before asserting what is in it — an
 # empty slice means the headings moved and the claim was never checked, which must read as a
 # failure rather than as a pass.
-skill="$REPO_ROOT/skills/solve-issues/SKILL.md"
+skill_doc="skills/tdd/SKILL.md"
+skill="$REPO_ROOT/$skill_doc"
 exit3="$(awk '/^- \*\*Exit 3:/{keep = 1} /^- \*\*Exit 0:/{keep = 0} keep' "$skill")"
 
 { [[ -n "$exit3" ]] && grep -q 'VERI_LABEL' <<<"$exit3"; } \
-  && ok || no "the exit-3 instruction in skills/solve-issues/SKILL.md names the label it drained (bullet='$(tr '\n' ' ' <<<"$exit3")' want a non-empty slice naming VERI_LABEL)"
+  && ok || no "the exit-3 instruction in $skill_doc names the label it drained (bullet='$(tr '\n' ' ' <<<"$exit3")' want a non-empty slice naming VERI_LABEL)"
 
 # 13. `docs/walkthrough.html` quotes every script verbatim and says so in the listing's own
 # header — `<n> lines · complete source` — so a script that has grown while the committed page
