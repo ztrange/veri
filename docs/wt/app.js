@@ -133,9 +133,10 @@
     return readRank >= 0 && hunkRank > readRank;
   }
 
-  /* The capabilities that choice lights, newest first — the one place that asks which
-     versions came after the reader's, so the index and the walk below can never disagree
-     about which they are.
+  /* The capabilities that choice lights, newest first — the index's rows, in the order
+     the index prints them. Which versions are lit is lit()'s answer and only lit()'s,
+     here as in walk() below, so the two can never disagree about that; what this adds is
+     an ORDER the index needs and the walk must not inherit.
 
      Read out of ORDER, never out of window.__VERI_HUNKS__: the map is keyed by the tags
      that own a hunk, so a capability that changed nothing this page quotes is absent from
@@ -166,16 +167,23 @@
      bar — step through, so that next always moves the reader down the page and previous
      always back up it.
 
-     The sort is what makes it a walk. The hunks arrive grouped by capability, newest
-     capability first — the index's order, which is not the page's: one script's runs are
-     scattered across several groups and the scripts interleaved, so a reader pressing n
-     through them is thrown up and down two thousand lines of listing. byPageOrder above
-     is the order they are read in instead. */
+     The stops are read straight out of window.__VERI_HUNKS__ — every run a lit tag owns,
+     in whatever order the map hands its keys over — and byPageOrder above is what turns
+     that into a walk. Not out of litTags(): its newest-first order is the index's, and
+     borrowing it would leave the walk's result standing on how the index chose to print
+     its rows rather than on the sort, silently, for as long as the two happened to agree.
+     Unsorted the hunks arrive grouped by capability, so one script's runs are scattered
+     across several groups and the scripts interleaved — a reader pressing n through that
+     is thrown up and down two thousand lines of listing.
+
+     The map is the right authority for stops where it was the wrong one for rows: a
+     capability that touched nothing this page quotes contributes no stop, which is
+     exactly its absence from the map, whereas the index still owes it a row. */
   function walk(since) {
-    var stops = [], tags = litTags(since);
-    for (var i = 0; i < tags.length; i++) {
-      stops = stops.concat(HUNKS[tags[i]] || []);
-    }
+    var stops = [];
+    Object.keys(HUNKS).forEach(function (tag) {
+      if (lit(tag, since)) stops = stops.concat(HUNKS[tag]);
+    });
     return stops.sort(byPageOrder);
   }
 
