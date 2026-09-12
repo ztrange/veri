@@ -873,6 +873,62 @@ JS
   fi
 }
 
+# walk_git <name> <chosen-version> <expected-report> <mutator...>
+# since_git asks which hunks a choice lights and index_git what that choice does to the
+# capability index. This asks the third thing a reader does with them: getting from one to
+# the next. Lit hunks are a handful of runs scattered through two thousand lines of
+# listing, so a reader who has no way to step them is back to scrolling and reading every
+# chip on the way past — which is what `n`, `p` and the two buttons in the crumb bar are
+# for. All four step ONE sequence, and that sequence is what this pins:
+# `window.__VERI_SINCE__.walk(since)`, the lit hunks in the order the page shows them.
+#
+# The sequence rather than the four things that step it, for the reason index_git already
+# records about its links: a key binding and a button are DOM wiring, and this harness has
+# no DOM to press a key in or click a button on. What it can ask is where a press has to
+# land and in what order, which is the whole of the criterion that can be wrong — a walk
+# in the wrong order sends the reader up the page as often as down it, whichever of the
+# four started it.
+#
+# The report is one line per stop — `<script> <first>-<last>` — and, alone among the
+# reports here, it is NOT sorted before it is compared: the order IS the assertion.
+# Entries are read in either spelling the map may use, as hunk_map_git has it.
+walk_git() {
+  local name="$1" since="$2" want="$3"; shift 3
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var since = process.argv[3];
+
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.walk !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.walk(since)");
+  process.exit(1);
+}
+
+/* Where pressing n from the top of the page takes the reader, stop by stop, and where
+   p takes them back: one ordered sequence read in the order the page hands it over. */
+var stops = (mode.walk(since) || []).map(function (hunk) {
+  var f = fields(hunk);
+  return f[0] + " " + f[1] + "-" + f[2];
+});
+console.log(stops.join("\n"));
+JS
+  got="$(ask_page "$d" page.html "$since")" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, walk read exit $read_code)"
+    echo "    want the stops n and p walk, for a reader who last read at $since:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # checks_git <name> <mutator...>
 # Every other assertion here reads the page build-walkthrough.py produced. This one hands
 # that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
@@ -1522,6 +1578,49 @@ v0.9 classify-bail.sh 5-5' \
            rewrite_two_lines_as_feat skills/solve-issue/scripts/classify-bail.sh 7 10 \
              "# rewritten by the v0.10 commit" \
              "fix: rewrite lines 7 and 10 of classify-bail.sh (#5)" v0.10'
+
+# 23. and having lit them, the reader has to be able to walk them. `n`, `p` and the two
+#     buttons in the crumb bar all step one sequence: the lit hunks in PAGE order, so that
+#     pressing n always moves down the page and p always moves back up it.
+#
+#     Page order is three claims an implementation can get wrong one at a time, so the
+#     fixture makes all three bite in a single walk. A reader who last read at v0.2 is
+#     owed, in this order:
+#
+#       supervise.sh 8-8      v0.5  — the page lists supervise.sh fifth
+#       supervise.sh 20-20    v0.4  — and line 8 comes before line 20 within it
+#       classify-bail.sh 5-5  v0.3  — classify-bail.sh is fifteenth
+#       classify-bail.sh 3-3  v0.2  — never a stop: it is what the reader last read
+#
+#     Walking `window.__VERI_HUNKS__` tag by tag is the obvious thing to write — the map
+#     is keyed by tag and app.js already reads it that way for the index — and it answers
+#     v0.3, v0.4, v0.5: classify-bail.sh before supervise.sh, and line 20 before line 8.
+#     Every stop in the wrong place, and the reader jumping backwards on every press.
+#     Sorting by script NAME instead gets the first stop wrong the other way, because
+#     classify-bail.sh sorts before supervise.sh as text and comes after it on the page —
+#     which is why the two scripts in this case are these two and not any two. Only the
+#     order the page itself lists its scripts in, lowest line first inside a script,
+#     produces this answer.
+#     And the v0.2 hunk is the half that says the walk visits the LIT hunks rather than
+#     every mark on the page: a walk that stops there is walking the reader back through
+#     code they have just told it they already read.
+walk_git "n and p walk the lit hunks in page order" \
+  v0.2 \
+  'supervise.sh 8-8
+supervise.sh 20-20
+classify-bail.sh 5-5' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.3 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#3)" v0.3
+           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 20 \
+             "# rewritten by the v0.4 commit" \
+             "fix: rewrite line 20 of supervise.sh (#4)" v0.4
+           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
+             "# rewritten by the v0.5 commit" \
+             "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
 
 echo "----"
 echo "$pass passed, $fail failed"
