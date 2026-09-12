@@ -482,8 +482,13 @@ def render_scripts_json(entries):
     return json.dumps(files, ensure_ascii=False, separators=(",", ":"))
 
 
-def render_since_json(meta, entries):
+def render_since_of_json(meta, entries):
     """Each listed script's `since` — the version it arrived in — keyed by file name.
+
+    Named for the global it fills, `__VERI_SINCE_OF__`, the way render_hunks_json is for
+    `__VERI_HUNKS__`: `render_since_json` would name `__VERI_SINCE__`, which is a
+    different thing the page already has — #70's decision layer (`lit`, `index`, `walk`,
+    `choose`). That map is one of its inputs, not it.
 
     The hunk map cannot answer this. hunks() drops every run at or below a file's own
     `since`, because the header badge already says the script is new, so a script that
@@ -566,7 +571,7 @@ def main():
         nav=render_nav_json(entries),
         hunks=render_hunks_json(META),
         scripts=render_scripts_json(entries),
-        since_of=render_since_json(META, entries),
+        since_of=render_since_of_json(META, entries),
         order=render_order_json(META),
         pitch=refs(com.PITCH_HTML).replace("{{SOLVED}}", solved_count),
         intro=refs(com.INTRO_HTML).replace("{{TOTAL}}", str(grand)),
