@@ -131,10 +131,9 @@ fi
 
 # The plan section, matched the same way: the step that mirrors the plan to the issue
 # thread lives in it, and the criterion is that THAT comment carry the number.
-plan_records="$(section '^### [0-9]+\..*[Pp]lan' | paragraphs)"
-records="$plan_records"
+records="$(section '^### [0-9]+\..*[Pp]lan' | paragraphs)"
 records_from="$skill_md plan"
-if [[ -z "$plan_records" ]]; then
+if [[ -z "$records" ]]; then
   problems+=("$skill_md has no numbered '### … plan' section — what the plan comment states could not be read")
 else
   claim 'has the plan comment state the timeout and the baseline it was derived from' \
