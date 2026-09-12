@@ -170,10 +170,13 @@ report "$name"
 #    `problems` says which probe broke.
 name="the default budget is 5: unset, count 4 exits 0 and count 5 exits 3, an explicit value still overrides, and the status line names the budget in force"
 problems=()
-# Each probe: <env value, or `-` for unset> <count> <expected exit> <expected status prefix>
-for probe in "- 4 0 refactor 4/5" "- 5 3 refactor 5/5" "3 3 3 refactor 3/3"; do
+# Each probe: <env value, or `-` for unset> <count> <expected exit> <expected k/budget>
+# The status's leading word is the same in every probe, so it lives in the format below
+# rather than in the data: a probe is four whitespace-separated fields, none of which
+# contains whitespace itself, so `set --` splits it without anything needing rejoining.
+for probe in "- 4 0 4/5" "- 5 3 5/5" "3 3 3 3/3"; do
   set -- $probe
-  budget_env="$1" count="$2" exp_code="$3" exp_status="$4 $5"
+  budget_env="$1" count="$2" exp_code="$3" exp_status="refactor $4"
   label="VERI_REFACTOR_BUDGET=$budget_env count $count"
   # The two kinds of probe differ only in how the child's environment is set up, so branch
   # on that alone and leave one copy of the call itself: `-u VAR` clears the variable for
