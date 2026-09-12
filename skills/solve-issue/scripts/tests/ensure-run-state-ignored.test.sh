@@ -155,6 +155,19 @@ caller_status="$(git -C "$repo" status --porcelain 2>&1)"
 { [[ -z "$caller_status" ]] && [[ "$wt_there" == 0 ]]; } \
   && ok || no "caller's checkout: git status --porcelain is empty while the worktree at .tdd/wt/1 exists (status='$caller_status' want empty, worktree-present=$wt_there want 0)"
 
+# 8. the #27 contract survives the #72 fix, inside the worktree. Cases 1 and 3 pin it in a plain
+# repo whose only ignore source is .gitignore; here the shared info/exclude carries `.tdd/*` as well,
+# and that line would ignore the ledger on its own. It must not: a .gitignore in the path's own
+# directory outranks info/exclude, so the committed `!.tdd/issue-*.md` still un-ignores the ledger.
+# Same repo as case 7 — the point is that the fix that emptied the caller's status changed nothing
+# about what the worktree reports.
+wt="$repo/.tdd/wt/1"
+ignored "$wt" .tdd/develop-red.log && log_code=0 || log_code=$?
+ignored "$wt" .tdd/issue-1.md && ledger_code=0 || ledger_code=$?
+
+{ [[ "$log_code" == 0 ]] && [[ "$ledger_code" == 1 ]]; } \
+  && ok || no "worktree with the rule in info/exclude too: still ignores .tdd/develop-red.log and still does not ignore the ledger (develop-red.log=$log_code want 0 ignored, issue-1.md=$ledger_code want 1 not ignored)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
