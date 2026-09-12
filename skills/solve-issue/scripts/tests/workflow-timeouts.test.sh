@@ -60,8 +60,6 @@ problems=()
 block=()
 while IFS= read -r line; do block+=("$line"); done < <(job_block "$CI_YML" gates)
 n="${#block[@]}"
-[[ "$n" -gt 0 ]] ||
-  problems+=("no gates job found in $CI_YML")
 
 # The declaration has to be the job's own, not a step's: job keys in this file sit at
 # indent 4, beside `runs-on`. A trailing comment on the same line is allowed — that is
@@ -74,9 +72,14 @@ while [[ "$i" -lt "$n" ]]; do
   i=$((i + 1))
 done
 
-if [[ "$idx" -lt 0 ]]; then
-  [[ "$n" -eq 0 ]] ||
-    problems+=("gates job declares no job-level 'timeout-minutes: 3'")
+# Three states, each with its own message and only one of them reported: no job at all,
+# a job without the declaration, or the declaration to read the comment around. A missing
+# job would otherwise also report as a missing timeout, which is true but says the wrong
+# thing about what to go fix.
+if [[ "$n" -eq 0 ]]; then
+  problems+=("no gates job found in $CI_YML")
+elif [[ "$idx" -lt 0 ]]; then
+  problems+=("gates job declares no job-level 'timeout-minutes: 3'")
 else
   # "Beside it" is the timeout line itself plus the run of comment lines directly above
   # it — the register both workflow headers already use for a decision that needs a why.
