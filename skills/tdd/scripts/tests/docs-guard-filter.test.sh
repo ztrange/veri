@@ -61,6 +61,18 @@ report() {
   fi
 }
 
+# kill_tree <pid> — end that process and everything it started, the way supervise.sh:66
+# does: TERM to the whole process group first, so the suite's own EXIT trap runs and takes
+# its sandboxes with it, then KILL after a grace for a child that ignored it. Each signal
+# goes to the group and falls back to the bare process, for a launch that never became a
+# group leader.
+kill_tree() {
+  local pid="$1"
+  kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
+  for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || return 0; sleep 0.4; done
+  kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+}
+
 # run_filtered <only> <out> — run the guard suite with ONLY=<only>, its output into <out>,
 # under a deadline; prints "<exit code> <elapsed seconds>".
 #
@@ -71,9 +83,7 @@ report() {
 # truthful red either way.
 #
 # Launched in its own process group (job-control monitor mode, as supervise.sh does) so the
-# deadline kills the python build the suite is inside and not just the shell wrapping it;
-# TERM first so the suite's own EXIT trap can take its sandboxes with it, KILL after a
-# grace for a child that ignores it.
+# deadline reaches the python build the suite is inside and not just the shell wrapping it.
 run_filtered() {
   local only="$1" out="$2" pid code start elapsed
   set -m
@@ -83,9 +93,7 @@ run_filtered() {
   start=$SECONDS
   while kill -0 "$pid" 2>/dev/null; do
     if (( SECONDS - start >= LIMIT )); then
-      kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
-      for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || break; sleep 0.4; done
-      kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
+      kill_tree "$pid"
       break
     fi
     sleep 1
