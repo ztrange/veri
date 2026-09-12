@@ -105,6 +105,19 @@ b_default="$(tail -n 1 "$clocklog")"
   [[ "$b_default" =~ ^[0-9]+$ ]] && [[ "$b_default" -le 540 ]]; } && ok \
   || no "exits 3 once a budget with no completion file is spent, and the default budget is at most 540s (given 1s: got '<code> <secs>'=$b_given want '3 <=10'; default: code=$rc_default want 3, gave up at ${b_default:-<no clock reading>}s want <=540)"
 
+# 3. no completion file and no leaf either → still exit 3, never 0. Absence of a result is
+#    not success: a 0 here would tell the conductor that a leaf which was never launched had
+#    passed, and it would tick the ledger on it.
+#
+#    Run in a pristine directory rather than the shared one — no `.tdd` at all, no writer
+#    spawned, no supervisor — so the only thing the script can be answering about is the
+#    absence itself, with nothing of another case's making for it to find.
+bare="$work/bare"; mkdir -p "$bare"
+( cd "$bare" && env VERI_POLL=0.2 "$WAIT" never-launched 1 >/dev/null 2>&1 )
+rc_bare=$?
+[[ "$rc_bare" == 3 ]] && ok \
+  || no "exits 3, never 0, when there is no completion file and no leaf running (got $rc_bare, want 3)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
