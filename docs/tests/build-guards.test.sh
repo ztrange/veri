@@ -1632,6 +1632,18 @@ rewrite_two_lines_as_feat() {
   git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
 }
 
+# drop_every_tag
+# Leave the history exactly as it is and take the tags away. That is a real tree, not a
+# contrived one: a project before its first release, a clone fetched with --no-tags, a fork
+# nobody has ever tagged. The version layer has nothing to rank a commit against there, and
+# the page is still the whole of the documentation.
+# Written as a loop over `git tag` rather than as `git tag -d v0.1`, so it keeps meaning
+# "no tags" if sandbox_git ever lands a second one.
+drop_every_tag() {
+  local t
+  for t in $(git tag); do git tag -d "$t" >/dev/null; done
+}
+
 # tag_feat_outside_the_scripts <subject> <tag>
 # A version that changed a capability without touching a single line this page quotes —
 # the conductor-only row the index already renders as "Conductor only". The commit has to
@@ -1643,7 +1655,7 @@ tag_feat_outside_the_scripts() {
 }
 export -f append_line_to_script sed_commentary rewrite_line_as_refactor prose_line
 export -f rewrite_hunk_as_feat rewrite_line_as_feat
-export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts
+export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts drop_every_tag
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
@@ -2372,6 +2384,23 @@ prose_chip_git "a chunk explained by a later version is chipped, a retidied one 
              "$(prose_line "A short header for a short script")" \
              "  This paragraph was reworded by the v0.2 commit." \
              "feat: reword the L1-7 paragraph of classify-bail.sh (#2)" v0.2'
+
+# 31. and the commentary chips degrade like the rest of the version layer. Case 10 made that
+#     claim for the source half of the page in a tree with no git at all; this is the other
+#     tree the version layer has to survive — a real repository with a real history and no
+#     tag anywhere in it, which is what a project before its first release or a --no-tags
+#     clone is. There is nothing to rank a prose commit against there, so the answer is not
+#     "chip it with the newest tag" or "chip it with nothing to say": it is no chip, and a
+#     page that still carries every word of its commentary.
+#
+#     Both halves in one case, which is what prose_chip_git already asserts together: the
+#     build has to EXIT ZERO and the report of marked commentary columns has to be empty.
+#     Either half alone is satisfied by the wrong tree — a build that crashed prints no
+#     marks, and a build that chipped every chunk exits zero.
+#     No expected report at all, so the empty string: the page is read by the same reader
+#     case 30 uses, and every line it would print is a chip that should not be there.
+prose_chip_git "no tags: no commentary chip, and the page still builds" '' \
+  bash -c 'drop_every_tag'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
