@@ -196,7 +196,7 @@ def render_script(spec):
         a, b = ch["lines"]
         note = refs(ch.get("html", ""), fname)
         cls = " quiet" if ch.get("quiet") else ""
-        chip = prose_chip(PROSE_MARKS.get((fname, ch.get("span"))))
+        chip = prose_chip(PROSE_MARKS.get(ch["span"]))
         rows.append(
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
@@ -286,12 +286,18 @@ def hunk_marks(meta, fname):
 
 
 def chunk_marks(meta):
-    """`{(script, chunk span): tag}` for every commentary chunk a later version explains.
+    """`{chunk span: tag}` for every commentary chunk a later version explains.
 
     The commentary half's answer to hunk_marks(). A chunk is blamed where its prose is
     committed — docs/wt/commentary.py, by the span commentary.py recorded for it — and it
     earns a chip on the same rule the listings use: only a version LATER than the script's
     own `since` says anything the header badge has not already said once.
+
+    The span alone is the key, as it is in the map gitmeta.prose_marks() hands back: it is
+    a line range of one file, so no two chunks can share one and naming the script beside
+    it would be a second copy of something the range already fixes. The script is what the
+    rule is applied WITH — it owns the `since` the chunk's version is measured against —
+    not part of the answer.
 
     {} when there is no version layer, like its sibling, so the caller renders the page
     with the annotation missing rather than checking whether there is one.
@@ -299,7 +305,7 @@ def chunk_marks(meta):
     if not meta:
         return {}
     tags = [v["tag"] for v in meta["versions"]]
-    dated = gitmeta.prose_marks(
+    newest = gitmeta.prose_marks(
         ROOT, COMMENTARY_REL, tags,
         [ch["span"] for s in com.SCRIPTS for ch in s["chunks"]])
     marks = {}
@@ -309,9 +315,9 @@ def chunk_marks(meta):
             continue
         floor = tags.index(since)
         for ch in s["chunks"]:
-            tag = dated.get(ch["span"])
+            tag = newest.get(ch["span"])
             if tag and tags.index(tag) > floor:
-                marks[(s["file"], ch["span"])] = tag
+                marks[ch["span"]] = tag
     return marks
 
 
