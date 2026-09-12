@@ -1883,6 +1883,77 @@ v0.3 classify-bail.sh 6-6 rewrite line 6 of classify-bail.sh' \
              "# rewritten by the v0.3 commit" \
              "fix: rewrite line 6 of classify-bail.sh (#3)" v0.3'
 
+# git_budget_git <name> <mutator...>
+# How many git processes ONE build forks. Every question gitmeta asks is a process, and a
+# process costs ~30 ms to start on a laptop whatever it answers — so a build's time is its
+# question count, not its history: 476 processes made a 16 s build of the real tree, and
+# the twenty sandboxed builds above are most of what `make docs-test` costs. The guard is
+# a budget, computed rather than typed so adding a script to the walkthrough or a tag to
+# a case does not silently move the line: one blame per script (blame is per file, and git
+# has no batch form), one ancestry walk per tag (which commits a version contains is the
+# one question with no single-call answer), and a fixed handful for the rest — the tag
+# list, every tag's date and title, the whole history once, the origin, the unreleased
+# check. What it catches is a question asked per commit or per line: `tag --contains` for
+# every blamed sha, `show --name-only` for every commit in a range.
+# Counted by wrapping gitmeta._git, the one function every git question goes through,
+# and running the build in the same interpreter: build-walkthrough.py puts docs/wt on
+# sys.path and imports gitmeta by that name, which resolves to the module already patched
+# here. The budget's own two git questions are asked AFTER the build, through the
+# unwrapped function, so they are not counted against it.
+git_budget_git() {
+  local name="$1"; shift
+  local d code got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  got="$( cd "$d" && python3 - 2>&1 <<'PY'
+import contextlib, io, runpy, sys
+from collections import Counter
+sys.path.insert(0, "docs/wt")
+import commentary, gitmeta
+calls, real = [], gitmeta._git
+def counted(root, *args):
+    calls.append(args[0])
+    return real(root, *args)
+gitmeta._git = counted
+sys.argv = ["docs/build-walkthrough.py", "--stdout"]
+try:
+    with contextlib.redirect_stdout(io.StringIO()):
+        runpy.run_path("docs/build-walkthrough.py", run_name="__main__")
+except SystemExit as e:
+    if e.code not in (None, 0):
+        raise
+scripts = len(commentary.SCRIPTS)
+tags = len((real(".", "tag", "--sort=v:refname") or "").splitlines())
+print("%d %d" % (len(calls), scripts + tags + 8))
+for sub, n in Counter(calls).most_common():
+    print("  %4d git %s" % (n, sub))
+PY
+  )" && code=0 || code=$?
+  local made budget; read -r made budget <<< "${got%%$'\n'*}"
+  if [[ "$code" == 0 && "$made" -le "$budget" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want at most $budget git processes for one build: one per script, one per tag, eight more"
+    echo "    got  $made:"
+    printf '%s\n' "$got" | tail -n +2 | sed 's/^/    /' | head -8
+  fi
+}
+
+# 18b. and the whole version layer has to be READ within a budget of git processes. The
+#     cases above pin what the layer says; this one pins what saying it costs, because the
+#     cost is what decided last night: a leaf on a docs issue runs this suite after every
+#     edit, a verifier runs it again, and at 140 s a run the supervisor's 900 s timeout
+#     read a working leaf as a hung one. Three tags and eighteen scripts admit 29
+#     processes. Asking one question per blamed commit is over the line at once.
+git_budget_git "a build asks git once per script, once per tag, and a fixed handful more" \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
+             "# rewritten by the v0.3 commit" \
+             "feat: rewrite line 8 of supervise.sh (#3)" v0.3'
+
 # 19. and the mark has to be something a reader can see. Cases 11 and 17-18 settled where a
 #     hunk is and what it owns; all of that shipped as markup nobody styled, so scrolling
 #     past a run of lines a later capability rewrote looked exactly like scrolling past one
