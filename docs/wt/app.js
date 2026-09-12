@@ -296,9 +296,10 @@
 
    The stops are the mark ELEMENTS in document order, not walk()'s entries: the press has
    to end at a place in the page, and the DOM is the only thing that knows where a run of
-   lines sits. Which of them are stops is still lit()'s answer, read off the `data-tag`
-   the build put on each run's first line, so the walk and the dimming can never disagree
-   about what a choice lights.
+   lines sits, or where a script begins. Which of them are stops is still lit()'s answer,
+   read off the version the build wrote beside each mark — `data-tag` on a run's first
+   line, `data-since` on a script's header — so the walk and the dimming can never
+   disagree about what a choice lights.
 
    Nothing is built when no version is chosen. A reader who has not asked what changed has
    nothing to step, and buttons that step nothing are worse than absent — so the resting
@@ -313,9 +314,20 @@
   var since = mode.since();
   if (!since) return;                    // the resting page: no walk, and no buttons for one
 
-  var stops = [], marks = document.querySelectorAll("pre.src .l.hunk[data-tag]");
+  /* The two kinds of stop, asked for in one query so the browser answers in document
+     order — which is the order the walk is in, and the only order that puts a script's
+     header before the runs of lines inside it. Two queries concatenated would put every
+     header after every hunk, and a reader pressing n would be shown the middle of a file
+     they have never seen before they were shown the file.
+     A hunk's version is the `data-tag` on the first line of the run; a script's is the
+     `data-since` the build puts on its header, and a script with no version to rank
+     carries no such attribute, so the selector never offers it. Which of the two an
+     element carries is what it is — nothing carries both. */
+  var stops = [], marks = document.querySelectorAll(
+    "pre.src .l.hunk[data-tag], h3[data-since]");
   for (var i = 0; i < marks.length; i++) {
-    if (mode.lit(marks[i].getAttribute("data-tag"), since)) stops.push(marks[i]);
+    var tag = marks[i].getAttribute("data-tag") || marks[i].getAttribute("data-since");
+    if (mode.lit(tag, since)) stops.push(marks[i]);
   }
   if (!stops.length) return;             // nothing has landed since: nothing to walk
 

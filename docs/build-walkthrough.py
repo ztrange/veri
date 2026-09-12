@@ -244,13 +244,24 @@ def render_script(spec):
                         for k, v in spec["contract"])
         contract = '<div class="contract"><dl>%s</dl></div>' % items
 
+    # The header's own version, as an attribute rather than as the badge's prose. A script
+    # that arrived whole in a later version has no hunk anywhere in it — hunks() drops every
+    # run at or below a file's own `since` — so the header is the only place in the markup
+    # that can be the stop since-mode owes a reader who has never seen the script. The badge
+    # beside it says the same thing to a reader; this says it to the stepper, which needs a
+    # ranked tag and not a sentence. Absent, not empty, where there is no version to name:
+    # `h3[data-since]` is how the stepper asks for these, and an empty attribute would offer
+    # it every script on the page as a stop tagged with nothing.
+    since = script_since(META, fname)
     return (
-        '<h3 id="%s"><code>%s</code>%s%s</h3>\n%s\n%s\n'
+        '<h3 id="%s"%s><code>%s</code>%s%s</h3>\n%s\n%s\n'
         '<div class="ann">'
         '<div class="ann-head"><span class="fname">%s</span>'
         '<span class="fmeta">%d lines &middot; complete source</span></div>'
         "%s</div>\n%s"
-        % (spec["id"], fname,
+        % (spec["id"],
+           (' data-since="%s"' % html.escape(since)) if since else "",
+           fname,
            (" &mdash; " + spec["tagline"]) if spec.get("tagline") else "",
            version_badge(META, fname),
            refs(spec.get("blurb", ""), fname), contract,
