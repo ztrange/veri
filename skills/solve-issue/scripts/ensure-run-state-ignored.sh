@@ -52,41 +52,57 @@ append_rule() {
   printf '%s\n' "$ignore_all" "$keep_ledger" "$drop_spec" >> "$1"
 }
 
-# where <line> — the number of the first line of $gitignore that IS <line>, whole and on its own,
+# where <line> <file> — the number of the first line of <file> that IS <line>, whole and on its own,
 # or the empty string when absent. -F keeps the glob literal (no regex), -x forbids a partial-line
 # match so `x.tdd/*` does not count as `.tdd/*`, -n prefixes each hit with `<lineno>:` — `head -1`
 # takes the first hit and `cut` keeps the number, which is what the ordering check below compares.
 # `|| true` is load-bearing under `pipefail`: absent the line, grep exits 1 and the whole pipeline
 # inherits it, which `set -e` would turn into the script dying instead of reporting "not there".
-where() { grep -nxF "$1" "$gitignore" | head -1 | cut -d: -f1 || true; }
+where() { grep -nxF "$1" "$2" | head -1 | cut -d: -f1 || true; }
 
-gitignore_has_rule=no
-
-if [ -f "$gitignore" ]; then
-  # "Already present" means the whole rule, in git's reading order, never a subset and never the
-  # same three lines shuffled: with the negation last, `!.tdd/issue-*.md` un-ignores the spec the
-  # line above just re-ignored, so every line is there and the rule is not. Appending cannot repair
-  # either case — git reads a second `.tdd/*` after the negation that precedes it — so both are
-  # refused rather than rewritten: exit 2, the "no answer could be obtained" code, fails the
-  # conductor's preflight before a cycle starts committing its scratch.
-  at_all="$(where "$ignore_all")"
-  at_ledger="$(where "$keep_ledger")"
-  at_spec="$(where "$drop_spec")"
+# has_rule <file> — true when <file> already carries the whole rule, in git's reading order; false
+# when it carries none of it. Never true for a subset and never for the same three lines shuffled:
+# with the negation last, `!.tdd/issue-*.md` un-ignores the spec the line above just re-ignored, so
+# every line is there and the rule is not. Appending cannot repair either case — git reads a second
+# `.tdd/*` after the negation that precedes it — so both are refused rather than rewritten: exit 2,
+# the "no answer could be obtained" code, fails the conductor's preflight before a cycle starts
+# committing its scratch. (`exit` inside a function that is not a subshell ends the script, which is
+# what this wants: there is nothing to report once the file is un-appendable.)
+#
+# Both destinations are asked this, and it is asked before either is written: appending blind is
+# what makes a resumed run — the conductor re-runs step 1.4 — double the block in info/exclude,
+# which nothing commits and nothing reads back, so the duplicate would sit in the caller's ignore
+# rules forever, three more lines per run.
+has_rule() {
+  local file="$1" at_all at_ledger at_spec
+  [ -f "$file" ] || return 1
+  at_all="$(where "$ignore_all" "$file")"
+  at_ledger="$(where "$keep_ledger" "$file")"
+  at_spec="$(where "$drop_spec" "$file")"
   if [ -n "$at_all" ] && [ -n "$at_ledger" ] && [ -n "$at_spec" ] \
     && [ "$at_all" -lt "$at_ledger" ] && [ "$at_ledger" -lt "$at_spec" ]; then
-    gitignore_has_rule=yes
-  elif [ -n "$at_spec" ]; then
-    echo "ensure-run-state-ignored: $gitignore carries veri's run-state rule only in part, or with its lines out of order — fix it by hand" >&2
+    return 0
+  fi
+  if [ -n "$at_spec" ]; then
+    echo "ensure-run-state-ignored: $file carries veri's run-state rule only in part, or with its lines out of order — fix it by hand" >&2
     exit 2
   fi
+  return 1
+}
+
+gitignore_has_rule=no
+if has_rule "$gitignore"; then
+  gitignore_has_rule=yes
 fi
 
 # The exclude file is written whatever the .gitignore turned out to be: a repo that already carries
 # the rule in history (veri's own, #27) still has a caller's checkout that has never been told to
-# ignore .tdd/. The refusal above comes first, so a .gitignore we will not touch leaves this file
-# untouched too.
-mkdir -p "$(dirname "$exclude")"
-append_rule "$exclude"
+# ignore .tdd/. The .gitignore's refusal comes first, so a .gitignore we will not touch leaves this
+# file untouched too.
+if ! has_rule "$exclude"; then
+  mkdir -p "$(dirname "$exclude")"
+  append_rule "$exclude"
+fi
 
 if [ "$gitignore_has_rule" = yes ]; then
   echo "already present"
