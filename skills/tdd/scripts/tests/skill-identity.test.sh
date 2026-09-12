@@ -302,20 +302,24 @@ inputs_bullets() {
        END { if (rec != "") print rec }' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
-# some_bullet <regex>… — true when a single line of the global `bullets` matches every
-# <regex>. Each claim below is a pair — the argument, and the procedure it selects — and a
-# pair split across two bullets is not a dispatch: it is two sentences that happen to share
-# a word. `continue 2` leaves the regex loop and takes the next bullet, so a bullet matching
-# some but not all of the pair is simply not the one.
-some_bullet() {
-  local line re
+# claim <what one bullet must say> <regex>… — assert that a single line of the global
+# `bullets` matches every <regex>, recording a problem naming <what> if none does. Each claim
+# below is a pair — the argument, and the procedure it selects — and a pair split across two
+# bullets is not a dispatch: it is two sentences that happen to share a word. `continue 2`
+# leaves the regex loop and takes the next bullet, so a bullet matching some but not all of
+# the pair is simply not the one. The probe and the sentence it fails with belong together:
+# the three resolutions differ only in that pair and in the sentence, so the surrounding
+# "…Inputs: no bullet …" is written once here rather than at each of the three.
+claim() {
+  local what="$1" line re
+  shift
   while IFS= read -r line; do
     for re in "$@"; do
       [[ "$line" =~ $re ]] || continue 2
     done
     return 0
   done <<< "$bullets"
-  return 1
+  problems+=("$skill_md Inputs: no bullet $what")
 }
 
 # 6. What the one command does with its argument. The move left a single skill where there
@@ -340,12 +344,12 @@ if [[ -z "$bullets" ]]; then
   # was tested, which must not read as three passes.
   problems+=("$skill_md has no bullets under '## Inputs' — how the argument resolves could not be read")
 else
-  some_bullet 'integer' 'single|one issue|procedure' ||
-    problems+=("$skill_md Inputs: no bullet sends an integer argument to the single-issue procedure")
-  some_bullet 'scope' 'drain|loop' ||
-    problems+=("$skill_md Inputs: no bullet reads a non-integer argument as a scope to drain")
-  some_bullet 'plain' 'bare|no argument|without an argument|omit|default|empty' ||
-    problems+=("$skill_md Inputs: no bullet makes a bare invocation the scope plain")
+  claim 'sends an integer argument to the single-issue procedure' \
+    'integer' 'single|one issue|procedure'
+  claim 'reads a non-integer argument as a scope to drain' \
+    'scope' 'drain|loop'
+  claim 'makes a bare invocation the scope plain' \
+    'plain' 'bare|no argument|without an argument|omit|default|empty'
 fi
 grep -qE '^#+ .*[Ll]oop' "$ROOT/$skill_md" ||
   problems+=("$skill_md has no loop section, so a scope argument resolves to nothing")
