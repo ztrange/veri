@@ -89,6 +89,13 @@ old_scripts_dir="$old_skill_dir/scripts"
 # body forwards to /tdd. They are allowed to name the old home; nothing else is.
 stubs=("$old_skill_dir/SKILL.md" "skills/solve-issues/SKILL.md")
 
+# stub_name <stub-path> — the old name a stub answers to, which is its own directory's name:
+# Claude Code resolves a command by the directory it loads the skill from. Case 4 wants it
+# bare, to compare against the stub's frontmatter, and case 5 wants it slash-led, as a user
+# types it; deriving both from here keeps `stubs` the one place either old name is spelled,
+# which is what lets this file sweep the repository for strings it must not itself contain.
+stub_name() { basename "$(dirname "$1")"; }
+
 # exempt <path> — true for the files allowed to go on naming the old home: the two stubs,
 # and anything under .tdd/, whose ledgers are run state quoting each issue's own words back
 # verbatim, including this one's. Named as a predicate so the probe below reads as one
@@ -215,9 +222,7 @@ skill_body() {
 name='both old-name SKILL.md stubs forward $ARGUMENTS to /tdd'
 problems=()
 for stub in "${stubs[@]}"; do
-  # The command a stub answers to is its own directory's name — derived, not written out
-  # again, so the `stubs` list above stays the one place the two old names are spelled.
-  old_name="$(basename "$(dirname "$stub")")"
+  old_name="$(stub_name "$stub")"
   if [[ ! -f "$ROOT/$stub" ]]; then
     problems+=("want a stub at $stub, found none")
     continue
@@ -237,13 +242,10 @@ for stub in "${stubs[@]}"; do
 done
 report "$name"
 
-# The two old commands as a user types them: a slash, then the old skill's own directory
-# name. Derived from `stubs` rather than written out for the reason case 2 gives about the
-# old scripts directory — a file that spells the string it sweeps for is its own first
-# offender, and the comments above are careful not to spell either of these either.
+# The two old commands as a user types them: a slash, then the name each stub answers to.
 old_cmds=()
 for stub in "${stubs[@]}"; do
-  old_cmds+=("/$(basename "$(dirname "$stub")")")
+  old_cmds+=("/$(stub_name "$stub")")
 done
 
 # The one file that names the old commands without being a source of them: docs/walkthrough.html
