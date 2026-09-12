@@ -979,8 +979,11 @@ if (process.env.VERI_ASK_WIRED) {
     mark.position = marks.length + 1;    // where it sits among the marks, top of page first
     marks.push(mark);
   }
-  /* A source mark or a commentary one, for the query below. */
-  function sourceMark(m) { return m.className.indexOf("hunk") >= 0; }
+  /* A source mark or a commentary one, for the query below — asked through the classing
+     classedAs just installed rather than scanning the `class` string a second time, so one
+     place in this stub knows how a mark's classes are read, and the answer is by token:
+     `hunk` is the class `l hunk` carrying it, not any class with those four letters in it. */
+  var sourceMark = function (m) { return m.classList.contains("hunk"); };
 
   var crumb = node("div");
   crumb.className = "crumb";
