@@ -25,14 +25,20 @@ poll="${VERI_POLL:-1}"
 exitfile=".tdd/$name.exit"
 deadline=$(( $(date +%s) + max ))
 
+# recorded_code — echo the supervisor's final code, or fail when the file holds no status
+# yet. A file seen between its creation and its write reads back empty, and an empty read is
+# not a status, so that case fails here too and the caller keeps polling. Only a plain code
+# ends the wait.
+recorded_code() {
+  local ec=""
+  [[ -f "$exitfile" ]] || return 1
+  read -r ec < "$exitfile" 2>/dev/null || true
+  [[ "$ec" =~ ^[0-9]+$ ]] || return 1
+  printf '%s\n' "$ec"
+}
+
 while :; do
-  if [[ -f "$exitfile" ]]; then
-    # A file seen between its creation and its write reads back empty; that is not a status,
-    # so keep polling rather than exiting on it. Only a plain code ends the wait.
-    ec=""
-    read -r ec < "$exitfile" 2>/dev/null || true
-    [[ "$ec" =~ ^[0-9]+$ ]] && exit "$ec"
-  fi
+  ec="$(recorded_code)" && exit "$ec"
   (( $(date +%s) >= deadline )) && break
   sleep "$poll"
 done
