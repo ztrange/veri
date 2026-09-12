@@ -187,12 +187,49 @@
     return stops.sort(byPageOrder);
   }
 
+  /* "I have read everything up to now", made durable — the other half of remembering the
+     choice, and the half a reader who never pastes a URL anywhere depends on. The hash
+     carries the choice to whoever they send the link to; this carries it to the reader
+     themselves, on the visit that starts from the bookmark they have always had, with no
+     `#since=` on it.
+
+     What the button writes is the newest version the page knows: ORDER's LAST entry,
+     because that list arrives in git's version sort. Read as text the last tag is v0.9,
+     and a button that stored that would tell the reader for ever after that v0.10 — a
+     capability they have not seen — is one they have.
+
+     Both ends are wrapped, because localStorage is not a given: a private window, cookies
+     turned off, a profile locked down by someone else's policy. On those browsers the
+     access itself throws, and an unguarded read costs the reader the whole document
+     instead of costing them since-mode. What a refusal leaves them with is the page a
+     reader who never pressed the button gets — which is the walkthrough, prose and
+     listings and all, none of which needed a store. */
+  var STORE_KEY = "veri-wt-since";
+
+  function stored() {
+    try { return window.localStorage.getItem(STORE_KEY) || ""; }
+    catch (e) { return ""; }               // a browser that refuses has read nothing
+  }
+
+  function markRead() {
+    var latest = ORDER[ORDER.length - 1];
+    if (!latest) return;                   // a tree with no version layer marks nothing
+    try { window.localStorage.setItem(STORE_KEY, latest); } catch (e) {}
+  }
+
   /* The version this page is in, and a reader choosing one — since-mode's only durable
      state. Kept in a variable it would die with the tab: nothing to bookmark, nothing to
      paste to whoever asked what changed, and a reader who comes back sets it up again. The
-     address bar is the one place a browser hands back on the next load, so that is where
-     it lives, as `#since=vX`; choose() writes it there and chosen() reads the same place,
-     which is the whole of why reloading that URL comes up in the mode.
+     address bar is the first place a browser hands back on the next load, so that is where
+     choose() puts it, as `#since=vX`, and chosen() reads the same place — which is the
+     whole of why reloading that URL comes up in the mode. Failing that it falls back to
+     the store above, so a visit with no hash still opens on what has landed since the
+     button was last pressed.
+
+     The hash wins when both say something, because it is the more specific of the two: it
+     is a version this visit asked for, where the store is one some earlier visit did.
+     Which way round matters for the reader who is handed a `#since=` link — they must see
+     what the link says, not what their own last press said.
 
      chosen(), not since(): lit(), litTags(), index() and walk() all take the reader's
      version as a parameter called `since`, and a function of that name would be shadowed
@@ -215,13 +252,13 @@
 
   function chosen() {
     var m = HASH_RE.exec(location.hash || "");
-    return m ? m[1] : "";
+    return m ? m[1] : stored();
   }
 
   function choose(tag) { location.hash = HASH_PREFIX + tag; }
 
   window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk,
-                            since: chosen, choose: choose };
+                            since: chosen, choose: choose, markRead: markRead };
 })();
 
 /* veri, Annotated — scrollspy: where am I.
