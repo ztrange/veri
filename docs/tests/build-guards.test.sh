@@ -2197,8 +2197,8 @@ bytes() { wc -c <"$1" | tr -d ' '; }
 # cmp on the bytes rather than $(...) on both sides, which would strip the trailing
 # newlines it is supposed to be comparing.
 page_is_current() {
-  local name="$1" built="$WORK/current.html" err="$WORK/current.err" code committed
-  committed="$ROOT/docs/walkthrough.html"
+  local name="$1" committed="$ROOT/docs/walkthrough.html" code
+  local built="$WORK/current.html" err="$WORK/current.err"
   ( cd "$ROOT" && python3 docs/build-walkthrough.py --stdout >"$built" 2>"$err" ) && code=0 || code=$?
   if [[ "$code" == 0 ]] && cmp -s "$built" "$committed"; then
     pass=$((pass + 1))
