@@ -185,6 +185,59 @@ SITES
 [[ -z "$prose_misses" ]] && ok \
   || no "the heartbeat default encoded in supervise.sh and every prose statement of it agree (encoded=${encoded:-<none>}, drift:$prose_misses)"
 
+# 11. the silence window a leaf actually gets when VERI_HEARTBEAT is unset is 180s, and an
+#     explicit VERI_HEARTBEAT still wins over it. Case 10 compares numbers written down in
+#     files; this one asks the running supervisor, which answers in the kill line it writes
+#     to stderr — `no heartbeat for Ns (window Ms)`, where M is the window in force.
+#
+#     Waiting out a real 180s silence would cost the suite three minutes, so the clock is
+#     injected rather than the wait endured. A `date` stub placed first on PATH answers
+#     `+%s` with the real time plus $TEST_CLOCK_SKEW seconds; the log's mtime is read
+#     through `stat`, which is NOT stubbed and so stays real. The supervisor computes
+#     `silence = now - mtime_of(log)`, so it reads ~$TEST_CLOCK_SKEW from the very first
+#     poll, and any window shorter than the skew fires at once. The hard timeout is
+#     untouched by this: it compares two skewed readings (`t - t0`), so the constant skew
+#     cancels and it still measures real elapsed seconds — which is what stops the arms
+#     below hanging for 30s when no heartbeat kill comes.
+#
+#     Both arms hang the same leaf under a 200s skew, so the only difference between them
+#     is where the window comes from: absent → the script's default, present → the caller's
+#     number. `env -u VERI_HEARTBEAT` unsets it for the child rather than trusting the
+#     suite's own environment to be clean, the same hermeticity case 8 insists on.
+realdate="$(command -v date)"
+cat > "$stub/date" <<D
+#!/usr/bin/env bash
+# \`date +%s\` answers \$TEST_CLOCK_SKEW seconds into the future; every other invocation is
+# the real \`date\`, untouched. The real path is baked in at generation time because this
+# stub sits on PATH as \`date\` itself and would otherwise re-exec into itself forever.
+if [[ "\$*" == "+%s" ]]; then
+  printf '%s\n' "\$(( \$("$realdate" +%s) + \${TEST_CLOCK_SKEW:-0} ))"
+else
+  exec "$realdate" "\$@"
+fi
+D
+chmod +x "$stub/date"
+
+# killed_window <name> <skew> <heartbeat|''> — hang a leaf under a skewed clock and echo
+# the window the supervisor said it killed on, or '<no-heartbeat-kill>' if it died some
+# other way (the hard timeout) or not at all. An empty third argument leaves VERI_HEARTBEAT
+# unset in the child, which is the whole point of the first arm.
+killed_window() {
+  local name="$1" skew="$2" hb="${3-}"
+  local -a hbenv
+  if [[ -n "$hb" ]]; then hbenv=(VERI_HEARTBEAT="$hb"); else hbenv=(-u VERI_HEARTBEAT); fi
+  ( cd "$work" && env "${hbenv[@]}" PATH="$stub:$PATH" TEST_CLOCK_SKEW="$skew" \
+      VERI_STUCK_RETRIES=0 VERI_TIMEOUT=5 VERI_POLL=0.2 \
+      "$SUP" "$name" "$stub/leaf-hang" >/dev/null 2>"$work/err-$name" )
+  grep -oE 'window [0-9]+s' "$work/err-$name" | head -1 | grep -oE '[0-9]+' \
+    || echo '<no-heartbeat-kill>'
+}
+
+default_window="$(killed_window hb-default  200 '')"
+explicit_window="$(killed_window hb-explicit 200 5)"
+{ [[ "$default_window" == 180 ]] && [[ "$explicit_window" == 5 ]]; } && ok \
+  || no "VERI_HEARTBEAT unset → a 180s window, explicit VERI_HEARTBEAT=5 → a 5s window (unset gave ${default_window}, explicit gave ${explicit_window})"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

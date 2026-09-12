@@ -23,7 +23,7 @@
 # `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
 # polling that file instead of by reading this script's stdout.
 #
-# Tunables (env): VERI_HEARTBEAT silence window secs (default 45) · VERI_TIMEOUT hard cap
+# Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
 # attempts after the first when a leaf is killed-stuck (default 1).
 set -uo pipefail
@@ -32,7 +32,7 @@ name="${1:?usage: supervise.sh <name> <cmd> [args...]}"
 shift
 [[ $# -ge 1 ]] || { echo "supervise: missing <cmd>" >&2; exit 2; }
 
-heartbeat="${VERI_HEARTBEAT:-45}"
+heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
 poll="${VERI_POLL:-1}"
 retries="${VERI_STUCK_RETRIES:-1}"

@@ -1706,7 +1706,7 @@ SCRIPTS += [dict(
         ("Exit", '<span class="ec ec-0"><b>0</b> success</span> '
                  '<span class="ec ec-1"><b>1</b> leaf failed</span> '
                  '<span class="ec ec-2"><b>2</b> killed-stuck</span>'),
-        ("Tunables", "<code>VERI_HEARTBEAT</code> 45s &middot; <code>VERI_TIMEOUT</code> 900s "
+        ("Tunables", "<code>VERI_HEARTBEAT</code> 180s &middot; <code>VERI_TIMEOUT</code> 900s "
                      "&middot; <code>VERI_POLL</code> 1s &middot; <code>VERI_STUCK_RETRIES</code> 1"),
     ],
     chunks=[
@@ -1738,7 +1738,7 @@ SCRIPTS += [dict(
         dict(lines=(35, 43), html=r'''<p>
   The four tunables, each a {{p-default|${VAR:-default}}}: environment wins, otherwise the
   default. That one idiom is what makes the script testable &mdash; a test sets
-  <code>VERI_HEARTBEAT=2</code> and a hang trips in two seconds instead of forty-five.
+  <code>VERI_HEARTBEAT=2</code> and a hang trips in two seconds instead of a hundred and eighty.
 </p><p>
   Lines 41&ndash;43 derive three filenames from <code>&lt;name&gt;</code>: a
   <strong>log</strong>, about to serve as the heartbeat sensor; an <strong>rc file</strong>,
@@ -2042,7 +2042,7 @@ SCRIPTS += [dict(
 </p>
 <div class="note"><span class="tag">What streaming buys, concretely</span><p>
   In text mode the log file is untouched for minutes and then written all at once. The
-  supervisor's 45-second silence window would fire on every healthy leaf. Streaming is why
+  supervisor's 180-second silence window would fire on every healthy leaf. Streaming is why
   the heartbeat default can be so much shorter than the 900-second timeout &mdash; the two
   clocks measure genuinely different things only because output is continuous.
 </p></div>'''),
