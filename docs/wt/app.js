@@ -108,7 +108,10 @@
 
   function lit(tag, since) {
     var hunkRank = ORDER.indexOf(tag), readRank = ORDER.indexOf(since);
-    return hunkRank >= 0 && readRank >= 0 && hunkRank > readRank;
+    // -1 is what indexOf answers for a tag the order does not carry, and it ranks below
+    // every real one — so an unknown tag is never later than a known choice, and an
+    // unknown choice lights nothing. One comparison says both.
+    return readRank >= 0 && hunkRank > readRank;
   }
 
   window.__VERI_SINCE__ = { lit: lit };
