@@ -155,6 +155,27 @@ none_out="$("$BUILD" 2>"$none_err")"; code=$?
   && [[ -s "$none_err" ]] \
   && ok || no "no arguments at all exits 2 with a usage diagnostic on stderr and prints no prompt (exit $code, stderr: $(tr '\n' ' ' < "$none_err"))"
 
+# 8. the refactor prompt asks for one more report line than case 3 pins: the candidates the
+#    leaf still sees after applying its transform (issue #106). A leaf applies one transform
+#    and stops, so the loop's second stop condition — the budget — leaves work on the floor
+#    with nothing saying what it was; that line is the backlog the conductor's `### 🛠️
+#    Refactor` comment lists, and a later repo-wide refactor capability reads. One criterion
+#    with three faces, so one case: the footer carries a `CANDIDATES:` line of its own —
+#    the protocol token, at the start of a line like `RESULT:` and `FLAGS:`, because the
+#    conductor greps for it — the candidates go **one per line**, so N of them can be
+#    counted and listed rather than parsed out of a sentence, and the line says `none` when
+#    the leaf sees nothing left, which is what distinguishes a clean stop from a truncated
+#    one. `problems` says which face broke.
+touched_left='scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh'
+cand="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched_left" 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+grep -qE '^CANDIDATES:' <<<"$cand" || problems="$problems; no CANDIDATES: report line"
+grep -qiE 'one[^.]{0,20}per line' <<<"$cand" || problems="$problems; does not ask for one candidate per line"
+grep -qiE '^CANDIDATES:.*none' <<<"$cand" || problems="$problems; the CANDIDATES: line does not offer none"
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor requires a CANDIDATES: report line — the candidates still seen, one per line, or none (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
