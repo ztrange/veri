@@ -145,6 +145,42 @@ def hunks(root, rel, tags, since):
     return marks
 
 
+def prose_marks(root, rel, tags, spans):
+    """{(first line, last line): tag} for each span of prose that a version explains.
+
+    The same blame as hunks(), pointed at the file the PROSE is committed in — the spans
+    are line ranges of `rel` itself, not of the script a chunk describes, because only
+    the former has a history that can say when the explanation changed.
+
+    A span is answered by the NEWEST version any of its lines shipped in: a chunk a reader
+    comes back to is as new as the newest thing said in it, and one line rewritten by a
+    later version makes the whole paragraph a different explanation.
+
+    A non-behaviour commit hides what it sat on, exactly as it does for the scripts — a
+    prose tidy is not a new explanation, and reaching past a `refactor:` for the `feat:`
+    underneath it would be guessing at which of the two wrote the words. A span with no
+    behaviour commit left visible in it is absent from the map rather than keyed to None.
+    """
+    out = _git(root, "blame", "--line-porcelain", "HEAD", "--", rel)
+    if out is None:
+        return {}
+    blame = list(_blame_lines(out))
+    marks = {}
+    for first, last in spans:
+        newest = None
+        for sha, subject in blame[first - 1:last]:
+            if not BEHAVIOUR.match(subject):
+                continue
+            tag = _first_tag_containing(root, sha, tags)
+            if tag is None:                  # a commit no version contains yet
+                continue
+            if newest is None or tags.index(tag) > tags.index(newest):
+                newest = tag
+        if newest is not None:
+            marks[(first, last)] = newest
+    return marks
+
+
 def origin_url(root):
     """The repo's https URL, for linking issue numbers — or None if it cannot be read.
 

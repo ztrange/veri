@@ -483,6 +483,56 @@ PY
   fi
 }
 
+# prose_git <name> <expected-report> <mutator...>
+# hunks_git asks gitmeta what a version did to a SCRIPT. This one asks it what a version
+# did to the prose that explains the scripts: docs/wt/commentary.py is a tracked file, so
+# the same blame answers it, and the unit a reader sees there is a chunk — a span of that
+# file, not of the script it describes. Hence a span in and a version out, which is a
+# question only gitmeta can be asked: the spans themselves are worked out elsewhere, and
+# nothing in the page records which commit answered for one.
+# The two spans are the docstring lines the mutator below rewrites, and the report is one
+# line per span asked about, in the order asked — `<first>-<last> <tag>`, and `none` for a
+# span that earns no version, so the negative half is asserted rather than merely absent.
+# Whether the map keys a span as a (first, last) pair or as the string `first-last` is a
+# spelling and not a behaviour, so either is read.
+# The tag list comes from gitmeta.read() rather than typed in here, for hunks_git reasons:
+# the ordered tags are something the build works out for itself, and handing over a
+# different list would let the case pass against a tree the real build reads differently.
+prose_git() {
+  local name="$1" want="$2"; shift 2
+  local d code got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  got="$( cd "$d" && python3 - 2>&1 <<'PY'
+import sys
+sys.path.insert(0, "docs/wt")
+import gitmeta
+SPANS = [(3, 5), (7, 7)]
+
+def answer(marks, first, last):
+    """The version for one span, in either spelling the map may key it by."""
+    for key in ((first, last), "%d-%d" % (first, last)):
+        if key in marks:
+            return marks[key]
+    return None
+
+meta = gitmeta.read(".", {"classify-bail.sh": "skills/solve-issue/scripts/classify-bail.sh"})
+tags = [v["tag"] for v in meta["versions"]]
+marks = gitmeta.prose_marks(".", "docs/wt/commentary.py", tags, SPANS)
+for first, last in SPANS:
+    print("%d-%d %s" % (first, last, answer(marks, first, last) or "none"))
+PY
+  )" && code=0 || code=$?
+  if [[ "$code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want the commentary spans to report: $want"
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -6
+  fi
+}
+
 # hunk_map_git <name> <expected-report> <mutator...>
 # The page's markup can say "this line starts a v0.2 hunk" and nothing more: the wrapper
 # <span> carries the tag and the description, but it is keyed by line and it stops where
@@ -2178,6 +2228,41 @@ previous #1 v0.5' \
            rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
              "# rewritten by the v0.5 commit" \
              "feat: rewrite line 8 of supervise.sh (#5)" v0.5'
+
+# 29. and the prose gets a version too. Everything above blames the SCRIPTS — a run of
+#     lines, the commit that last touched it, the version that commit shipped in — which
+#     leaves the half of the page that actually explains veri untracked: a reader coming
+#     back at v0.9 is told which lines of supervise.sh changed and never told that the
+#     paragraph beside them is a different explanation than the one they read. So gitmeta
+#     blames docs/wt/commentary.py itself, asked by the span a chunk occupies in THAT file
+#     rather than the script line range the chunk describes — the two have nothing to do
+#     with each other, and the file the prose is committed in is the only one whose blame
+#     can say when the prose changed.
+#
+#     Two spans of the module docstring, each in the case for a distinct reason:
+#
+#       3-5, whose line 4 a v0.2 feat: rewrote  -> v0.2, the NEWEST behaviour commit that
+#                                                  answers for any line of the span; lines 3
+#                                                  and 5 are still on the v0.1 commit that
+#                                                  added the file
+#       7-7, rewritten by an untagged refactor: -> none. A prose tidy is not a new
+#                                                  explanation, so a non-behaviour commit
+#                                                  hides what it sat on — the same trade the
+#                                                  source side already makes
+#
+#     The first span is what stops an implementation answering with the version the span
+#     opens on, or the oldest it finds in it; the second is what stops one reaching past
+#     blame for the v0.1 feat: still underneath the refactor, which would be guessing at
+#     which of the two wrote the explanation.
+prose_git "a commentary span reports the version its newest behaviour commit shipped in" \
+  '3-5 v0.2
+7-7 none' \
+  bash -c 'rewrite_line_as_feat docs/wt/commentary.py 4 \
+             "# rewritten by the v0.2 commit" \
+             "feat: reword line 4 of commentary.py (#2)" v0.2
+           rewrite_line_as_refactor docs/wt/commentary.py 7 \
+             "# reflowed by the refactor commit" \
+             "refactor: reflow line 7 of commentary.py"'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
