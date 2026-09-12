@@ -73,6 +73,21 @@ paragraphs() {
        END { if (rec != "") print rec }' | tr '[:upper:]' '[:lower:]'
 }
 
+# records_of <label> <heading-regex> <problem> — load the paragraphs of one section into
+# the globals the claims read: `records`, the text a claim searches, and `records_from`,
+# the label a failure is named by. Returns 1 when the section is missing or empty, having
+# recorded <problem> instead — that is the fail-closed half, and the reason this is a
+# return and not just an assignment: a renamed or emptied section has to read as one
+# problem saying so, never as claims that quietly passed because there was no text to
+# contradict them.
+records_of() {
+  records_from="$skill_md $1"
+  records="$(section "$2" | paragraphs)"
+  [[ -n "$records" ]] && return 0
+  problems+=("$3")
+  return 1
+}
+
 # claim <what one step must say> <regex>… — assert that a single line of the global
 # `records` matches every <regex>, recording a problem naming <what> if none does. Each
 # claim below is a pair or a triple — the measurement and what is done with it, the
@@ -114,13 +129,9 @@ problems=()
 # The preflight section, matched by the word rather than by its number, so renumbering the
 # procedure does not fail this case. `[0-9]+\.` is what tells it from `### Loop 0.
 # Preflight — none of its own`, the loop's section, which delegates every check to here.
-records="$(section '^### [0-9]+\..*[Pp]reflight' | paragraphs)"
-records_from="$skill_md preflight"
-if [[ -z "$records" ]]; then
-  # Fail closed: no records means the section was renamed or emptied and not one claim
-  # below was tested, which must not read as three passes.
-  problems+=("$skill_md has no numbered '### … Preflight' section — what preflight does with the timeout could not be read")
-else
+if records_of preflight '^### [0-9]+\..*[Pp]reflight' \
+  "$skill_md has no numbered '### … Preflight' section — what preflight does with the timeout could not be read"
+then
   claim 'times the green-baseline run it already does' \
     'baseline' "$elapsed_re"
   claim 'hands that measurement to leaf-timeout.sh' \
@@ -131,11 +142,9 @@ fi
 
 # The plan section, matched the same way: the step that mirrors the plan to the issue
 # thread lives in it, and the criterion is that THAT comment carry the number.
-records="$(section '^### [0-9]+\..*[Pp]lan' | paragraphs)"
-records_from="$skill_md plan"
-if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no numbered '### … plan' section — what the plan comment states could not be read")
-else
+if records_of plan '^### [0-9]+\..*[Pp]lan' \
+  "$skill_md has no numbered '### … plan' section — what the plan comment states could not be read"
+then
   claim 'has the plan comment state the timeout and the baseline it was derived from' \
     'timeout' 'baseline' 'comment'
 fi
