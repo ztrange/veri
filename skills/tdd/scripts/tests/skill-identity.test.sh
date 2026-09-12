@@ -51,20 +51,27 @@ report() {
   fi
 }
 
+# frontmatter_name <file> — the value of the first `name:` inside the leading `---` block,
+# empty if the block or the field is missing. The frontmatter is the leading `---` block
+# and only its first `name:` counts: the exit at the closing `---` stops a later `name:`
+# in the prose from answering for it. sub() edits $0 and returns how many replacements it
+# made, so it doubles as the "this line is the name field" test; print then emits what is
+# left, the value. Used by case 1 for the skill's own name and by case 4 for each stub's —
+# the same question asked of different files, so it is asked in one place.
+frontmatter_name() {
+  awk 'NR == 1 && $0 == "---" { inside = 1; next }
+       inside && $0 == "---" { exit }
+       inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
+}
+
 # 1. Both halves of the skill's identity, as one criterion: the directory it lives in and
-#    the name its frontmatter declares. The frontmatter is the leading `---` block, and
-#    only its first `name:` counts — the awk stops at the closing `---` so a later `name:`
-#    in the prose cannot answer for it.
+#    the name its frontmatter declares.
 name="the skill ships at $skill_dir/ and its frontmatter reads name: $want_name"
 problems=()
 [[ -d "$ROOT/$skill_dir" ]] ||
   problems+=("want a directory at $skill_dir, found none")
 if [[ -f "$ROOT/$skill_md" ]]; then
-  # sub() edits $0 and returns how many replacements it made, so it doubles as the
-  # "this line is the name field" test; print then emits what is left, the value.
-  got="$(awk 'NR == 1 && $0 == "---" { inside = 1; next }
-              inside && $0 == "---" { exit }
-              inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$ROOT/$skill_md")"
+  got="$(frontmatter_name "$ROOT/$skill_md")"
   [[ "$got" == "$want_name" ]] ||
     problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
 else
@@ -172,16 +179,6 @@ else
   problems+=("want the page's commentary at $commentary, found none")
 fi
 report "$name"
-
-# frontmatter_name <file> — the value of the first `name:` inside the leading `---` block,
-# empty if the block or the field is missing. Same scan as case 1's: sub() edits $0 and
-# returns how many replacements it made, so it doubles as the "this line is the name field"
-# test, and the exit at the closing `---` stops prose below from answering for it.
-frontmatter_name() {
-  awk 'NR == 1 && $0 == "---" { inside = 1; next }
-       inside && $0 == "---" { exit }
-       inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
-}
 
 # skill_body <file> — everything after the frontmatter block: the instruction a session
 # actually reads. The frontmatter is excluded on purpose, because a stub's `description:`
