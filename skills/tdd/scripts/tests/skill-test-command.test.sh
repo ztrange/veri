@@ -49,18 +49,22 @@ report() {
   fi
 }
 
-# section <heading-regex> — select the lines under the first heading matching
-# <heading-regex>, up to the line before the next heading of any level, into the globals
+# section <heading> — select the lines under the first heading that STARTS WITH the literal
+# <heading>, up to the line before the next heading of any level, into the globals
 # `sec_start` and `sec_end`. Returns non-zero when no such heading exists, so a renamed
 # section is reported rather than silently probed as an empty range — the fail-closed half
 # that keeps "the section is gone" from reading as "the section says nothing wrong".
+#
+# A literal prefix rather than a regex: every heading here carries trailing prose after an
+# em dash or an arrow, so the prefix is what identifies it, and a literal is what lets
+# `need_section` below quote the same string it searched for.
 #
 # The section is a LINE RANGE rather than the text itself because one claim below is about
 # order: the issue body has to be read before the command is detected, and line numbers are
 # what make "before" answerable.
 sec_start=0 sec_end=0
 section() {
-  sec_start="$(grep -nE "$1" "$md" | head -1 | cut -d: -f1)"
+  sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
   [[ -n "$sec_start" ]] || { sec_end=0; return 1; }
   # The next heading, counted from the line after this one so the section's own heading
   # cannot close it; none means the section runs to the end of the file.
@@ -72,6 +76,18 @@ section() {
     sec_end=$(($(wc -l < "$md")))
   fi
   return 0
+}
+
+# need_section <heading> <consequence> — select the section under <heading> (see `section`),
+# or push one problem naming it and return non-zero. Each of the three cases below opens the
+# same way, and each used to spell its heading twice: once as the pattern to search for and
+# once inside the message about not finding it. One constant for both, the same trick
+# `skill_md`/`md` plays above, is what stops a message from naming a heading the probe never
+# looked for.
+need_section() {
+  section "$1" && return 0
+  problems+=("$skill_md has no '$1' section — $2")
+  return 1
 }
 
 # at <regex> — the line number of the first line of the current section matching <regex>,
@@ -111,9 +127,7 @@ problems=()
 # The baseline is preflight's, and preflight is what runs before any cycle — so the issue
 # body has to be read there, ahead of the detection, and not at step 1.3 where the blind
 # spec is written. Both facts are asked of this one section, in its own order.
-if ! section '^### 0\. Preflight'; then
-  problems+=("$skill_md has no '### 0. Preflight' section — where the baseline reads its test command could not be read")
-else
+if need_section '### 0. Preflight' 'where the baseline reads its test command could not be read'; then
   detect_at="$(at 'detect-test-command\.sh')"
   body_at="$(at 'gh issue view')"
   if [[ -z "$detect_at" ]]; then
@@ -135,9 +149,7 @@ fi
 # baseline; this is where the document says that one stdout is what every leaf's prompt
 # carries, so a detection spelled without --issue here hands the leaves a different
 # command from the one the baseline just used.
-if ! section '^## Detecting the test command'; then
-  problems+=("$skill_md has no '## Detecting the test command' section — how <test-cmd> is obtained could not be read")
-else
+if need_section '## Detecting the test command' 'how <test-cmd> is obtained could not be read'; then
   [[ -n "$(at '--issue')" ]] ||
     problems+=("$skill_md's 'Detecting the test command' section never names --issue, so <test-cmd> — what every leaf runs — is detected without the issue's line")
 fi
@@ -145,9 +157,7 @@ fi
 # And the run says which command it picked, in the comment a human reads before the first
 # leaf starts. The plan comment is the anchor because that is the one the conductor posts
 # at scoping time; a command named only in the ledger is not visible on the thread.
-if ! section '^### 2\. Scope & plan'; then
-  problems+=("$skill_md has no '### 2. Scope & plan' section — what the plan comment states could not be read")
-else
+if need_section '### 2. Scope & plan' 'what the plan comment states could not be read'; then
   plan_item="$(items | grep -E 'plan.*comment')"
   if [[ -z "$plan_item" ]]; then
     problems+=("$skill_md's 'Scope & plan' section has no numbered item posting the plan comment — what that comment states could not be read")
