@@ -198,13 +198,21 @@
      instead of a copy that can lag it. The leading `#` is a delimiter the browser puts
      back on the getter whatever was assigned, not part of the choice, and a hash that is
      not a `since=` — a link to a script's own section — names no version: both fall out
-     of the match. Which tag a reader may name is lit()'s business, not this one's. */
+     of the match. Which tag a reader may name is lit()'s business, not this one's.
+
+     The two spell `since=` once between them, HASH_PREFIX, and the pattern is built from
+     it rather than written out a second time: they are the ends of one round trip, and a
+     page that writes one key and reads another restores nothing while both halves keep
+     passing their own read. */
+  var HASH_PREFIX = "since=";
+  var HASH_RE = new RegExp("^#?" + HASH_PREFIX + "(.+)$");
+
   function since() {
-    var m = /^#?since=(.+)$/.exec(location.hash || "");
+    var m = HASH_RE.exec(location.hash || "");
     return m ? m[1] : "";
   }
 
-  function choose(tag) { location.hash = "since=" + tag; }
+  function choose(tag) { location.hash = HASH_PREFIX + tag; }
 
   window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk,
                             since: since, choose: choose };
