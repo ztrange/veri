@@ -18,6 +18,18 @@ on:
 jobs:
   gates:
     runs-on: ubuntu-latest
+
+    # A job that declares no timeout-minutes inherits GitHub's default ceiling of 6
+    # hours, and while it burns those minutes it looks exactly like a slow run. This
+    # job cannot legitimately be slow: `make test` is plain-shell suites over local
+    # files, with the model stubbed via CLAUDE_BIN and no network call anywhere, and it
+    # observably takes ~40 s. So a gates job still running at three minutes is stuck,
+    # not slow, and the cap turns a six-hour silent bill into a red tick that says so.
+    # The number assumes the docs gates stay out of CI (#90): while they ran here the
+    # job took ~230 s, which this budget would cut off. Putting them back means raising
+    # this, deliberately, rather than discovering it as a failure.
+    timeout-minutes: 3
+
     steps:
       - uses: actions/checkout@v4
 
