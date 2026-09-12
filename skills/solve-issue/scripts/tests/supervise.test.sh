@@ -111,6 +111,20 @@ retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
 { [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
   || no "ambient VERI_STUCK_RETRIES=3 → hung leaf still runs exactly once (code=$code, killed-stuck lines=$stuck_lines, retry lines=$retry_lines)"
 
+# 9. the supervisor records its OWN final code in a completion file at .tdd/<name>.exit, so
+#    a leaf launched detached can be waited on by polling that file instead of by reading
+#    this process's stdout. Three arms, one per status in the contract: success writes 0; a
+#    leaf exiting 3 writes the supervisor's 1, not the leaf's raw 3 (that raw code is what
+#    .tdd/<name>.rc carries); and a killed-stuck leaf — which never writes an rc file at
+#    all — still writes 2, so the waiter learns the answer instead of waiting out its
+#    budget. Fresh names, so no earlier case's file can stand in for a missing one.
+exitfile_of() { cat "$work/.tdd/$1.exit" 2>/dev/null || echo '<missing>'; }
+sup exit-ok    5 10 leaf-ok   ; eok="$(exitfile_of exit-ok)"
+sup exit-fail  5 10 leaf-fail ; efail="$(exitfile_of exit-fail)"
+sup exit-stuck 1 30 leaf-hang ; estuck="$(exitfile_of exit-stuck)"
+{ [[ "$eok" == 0 ]] && [[ "$efail" == 1 ]] && [[ "$estuck" == 2 ]]; } && ok \
+  || no ".tdd/<name>.exit records the supervisor's own final code, killed-stuck included (success=$eok want 0, failure=$efail want 1, killed-stuck=$estuck want 2)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -19,7 +19,9 @@
 # can be piped straight into parse-verdict.sh.
 #
 # Status: exit 0 success · 1 leaf-failure · 2 killed-stuck. A one-line status (with the
-# kill cause) is written to stderr.
+# kill cause) is written to stderr, and the same code is recorded in the completion file
+# `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
+# polling that file instead of by reading this script's stdout.
 #
 # Tunables (env): VERI_HEARTBEAT silence window secs (default 45) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
@@ -38,6 +40,7 @@ retries="${VERI_STUCK_RETRIES:-1}"
 mkdir -p .tdd
 log=".tdd/$name.log"
 rcfile=".tdd/$name.rc"
+exitfile=".tdd/$name.exit"
 
 now() { date +%s; }
 
@@ -127,4 +130,9 @@ esac
 
 echo "supervise[$name]: $status${reason:+ — $reason}" >&2
 cat "$log"
+# The completion file: this supervisor's OWN status code, on every path including
+# killed-stuck (where the leaf's subshell never gets to write `.tdd/<name>.rc` at all).
+# A leaf launched detached is waited on by polling this, so it must carry the 0/1/2 of the
+# exit-code contract rather than the leaf's raw code that `.rc` records.
+printf '%s\n' "$ec" > "$exitfile"
 exit "$ec"
