@@ -71,36 +71,41 @@ job_block() {
   ' "$1"
 }
 
-# 1. The contract above. The four facts in the comment are one criterion — the number is
-#    only defensible with its reasoning beside it — so they report as one case, with
-#    `problems` naming whichever fact is missing.
-name="ci.yml gates: timeout-minutes 3, with a comment citing the 6-hour ceiling, ~40 s, ~230 s, and docs gates staying out of CI"
-problems=()
+# timeout_comment <file> <job> <minutes> — locate that job's own `timeout-minutes: <minutes>`
+# and set `$lc` to the lowercased comment beside it, which is what every probe() reads.
+# Returns non-zero, with the reason appended to `$problems`, when there is no comment to
+# read. Three states, each with its own message and only one of them reported: no job at
+# all, a job without the declaration, or the declaration to read the comment around. A
+# missing job would otherwise also report as a missing timeout, which is true but says the
+# wrong thing about what to go fix.
+timeout_comment() {
+  local file="$1" job="$2" minutes="$3"
+  local line n idx i j ctx re
+  local -a block
+  block=()
+  while IFS= read -r line; do block+=("$line"); done < <(job_block "$file" "$job")
+  n="${#block[@]}"
 
-block=()
-while IFS= read -r line; do block+=("$line"); done < <(job_block "$CI_YML" gates)
-n="${#block[@]}"
+  # The declaration has to be the job's own, not a step's: job keys in these files sit at
+  # indent 4, beside `runs-on`. A trailing comment on the same line is allowed — that is
+  # one of the two shapes "a comment beside it" can take.
+  re="^    timeout-minutes:[ ]*${minutes}[ ]*(#.*)?$"
+  idx=-1
+  i=0
+  while [[ "$i" -lt "$n" ]]; do
+    if [[ "${block[$i]}" =~ $re ]]; then idx="$i"; break; fi
+    i=$((i + 1))
+  done
 
-# The declaration has to be the job's own, not a step's: job keys in this file sit at
-# indent 4, beside `runs-on`. A trailing comment on the same line is allowed — that is
-# one of the two shapes "a comment beside it" can take.
-timeout_re='^    timeout-minutes:[ ]*3[ ]*(#.*)?$'
-idx=-1
-i=0
-while [[ "$i" -lt "$n" ]]; do
-  if [[ "${block[$i]}" =~ $timeout_re ]]; then idx="$i"; break; fi
-  i=$((i + 1))
-done
+  if [[ "$n" -eq 0 ]]; then
+    problems+=("no $job job found in $file")
+    return 1
+  fi
+  if [[ "$idx" -lt 0 ]]; then
+    problems+=("$job job declares no job-level 'timeout-minutes: $minutes'")
+    return 1
+  fi
 
-# Three states, each with its own message and only one of them reported: no job at all,
-# a job without the declaration, or the declaration to read the comment around. A missing
-# job would otherwise also report as a missing timeout, which is true but says the wrong
-# thing about what to go fix.
-if [[ "$n" -eq 0 ]]; then
-  problems+=("no gates job found in $CI_YML")
-elif [[ "$idx" -lt 0 ]]; then
-  problems+=("gates job declares no job-level 'timeout-minutes: 3'")
-else
   # "Beside it" is the timeout line itself plus the run of comment lines directly above
   # it — the register both workflow headers already use for a decision that needs a why.
   ctx="${block[$idx]}"
@@ -110,7 +115,15 @@ else
     j=$((j - 1))
   done
   lc="$(printf '%s' "$ctx" | tr 'A-Z' 'a-z')"
+}
 
+# 1. The contract above. The four facts in the comment are one criterion — the number is
+#    only defensible with its reasoning beside it — so they report as one case, with
+#    `problems` naming whichever fact is missing.
+name="ci.yml gates: timeout-minutes 3, with a comment citing the 6-hour ceiling, ~40 s, ~230 s, and docs gates staying out of CI"
+problems=()
+
+if timeout_comment "$CI_YML" gates 3; then
   probe "comment beside the timeout does not name the 6-hour default ceiling" \
     '(6[ -]?h|six[ -]?hour)'
   probe "comment does not cite the ~40 s the job observably takes" \
@@ -129,31 +142,7 @@ report "$name"
 name="pages.yml deploy: timeout-minutes 10, with a comment citing the 6-hour ceiling, 11-23 s, and why it is larger than gates"
 problems=()
 
-block=()
-while IFS= read -r line; do block+=("$line"); done < <(job_block "$PAGES_YML" deploy)
-n="${#block[@]}"
-
-timeout_re='^    timeout-minutes:[ ]*10[ ]*(#.*)?$'
-idx=-1
-i=0
-while [[ "$i" -lt "$n" ]]; do
-  if [[ "${block[$i]}" =~ $timeout_re ]]; then idx="$i"; break; fi
-  i=$((i + 1))
-done
-
-if [[ "$n" -eq 0 ]]; then
-  problems+=("no deploy job found in $PAGES_YML")
-elif [[ "$idx" -lt 0 ]]; then
-  problems+=("deploy job declares no job-level 'timeout-minutes: 10'")
-else
-  ctx="${block[$idx]}"
-  j=$((idx - 1))
-  while [[ "$j" -ge 0 ]] && [[ "${block[$j]}" =~ ^[[:space:]]*# ]]; do
-    ctx="${block[$j]}"$'\n'"$ctx"
-    j=$((j - 1))
-  done
-  lc="$(printf '%s' "$ctx" | tr 'A-Z' 'a-z')"
-
+if timeout_comment "$PAGES_YML" deploy 10; then
   probe "comment beside the timeout does not name the 6-hour default ceiling" \
     '(6[ -]?h|six[ -]?hour)'
   probe "comment does not cite the 11-23 s the job observably takes" \
