@@ -306,12 +306,15 @@ inputs_bullets() {
 
 # claim <what one bullet must say> <regex>… — assert that a single line of the global
 # `bullets` matches every <regex>, recording a problem naming <what> if none does. Each claim
-# below is a pair — the argument, and the procedure it selects — and a pair split across two
-# bullets is not a dispatch: it is two sentences that happen to share a word. `continue 2`
-# leaves the regex loop and takes the next bullet, so a bullet matching some but not all of
-# the pair is simply not the one. The probe and the sentence it fails with belong together:
-# the three resolutions differ only in that pair and in the sentence, so the surrounding
-# "…Inputs: no bullet …" is written once here rather than at each of the three.
+# below is a pair — for case 6 the argument and the procedure it selects, for case 7 the scope
+# and the label it derives — and a pair split across two bullets is not a derivation: it is
+# two sentences that happen to share a word. `continue 2` leaves the regex loop and takes the
+# next bullet, so a bullet matching some but not all of the pair is simply not the one. The
+# probe and the sentence it fails with belong together: the claims differ only in that pair
+# and in the sentence, so the surrounding "…: no bullet …" is written once here rather than
+# at each of the six. Both `bullets` and `bullets_from` — the part of the document those
+# bullets were read out of, which names the failure — are the caller's to set, so the two
+# cases differ in the globals they set and not in a helper each.
 claim() {
   local what="$1" line re
   shift
@@ -321,7 +324,7 @@ claim() {
     done
     return 0
   done <<< "$bullets"
-  problems+=("$skill_md Inputs: no bullet $what")
+  problems+=("$bullets_from: no bullet $what")
 }
 
 # 6. What the one command does with its argument. The move left a single skill where there
@@ -341,6 +344,7 @@ claim() {
 name="$skill_md resolves its argument: an integer is one issue, any other word a scope, bare is plain"
 problems=()
 bullets="$(inputs_bullets "$ROOT/$skill_md")"
+bullets_from="$skill_md Inputs"
 if [[ -z "$bullets" ]]; then
   # Fail closed: no bullets means the section was renamed or emptied and not one claim below
   # was tested, which must not read as three passes.
@@ -377,22 +381,6 @@ md_bullets() {
        END { if (rec != "") print rec }' "$1" | tr '[:upper:]' '[:lower:]'
 }
 
-# states <what one bullet must say> <regex>… — assert that a single line of the global
-# `bullets` matches every <regex>, recording a problem naming <what> if none does. Same
-# shape and the same `continue 2` as `claim` above: a pair split across two bullets is not
-# a derivation, it is two sentences sharing a word.
-states() {
-  local what="$1" line re
-  shift
-  while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    return 0
-  done <<< "$bullets"
-  problems+=("$skill_md: no bullet $what")
-}
-
 # 7. Which label a scope selects on. Case 6 pins that a non-integer argument is a scope; a
 #    scope is only a pool once the document says which label names it, and the mapping is
 #    not the identity: the scope `plain` selects on the bare `ready-for-agent` label —
@@ -409,6 +397,7 @@ states() {
 name="$skill_md derives a scope's label: ready-for-agent for plain, ready-for-agent:<scope> otherwise, VERI_LABEL overriding"
 problems=()
 bullets="$(md_bullets "$ROOT/$skill_md")"
+bullets_from="$skill_md"
 if [[ -z "$bullets" ]]; then
   # Fail closed, as case 6 does: no bullets means the document's shape changed and not one
   # claim below was tested, which must not read as three passes.
@@ -417,11 +406,11 @@ else
   # `plain` bounded by non-alphanumerics so `explain` and `plain text` cannot answer for the
   # scope's name; the other two are distinctive enough as substrings, the colon in
   # `ready-for-agent:` being the whole of what claim two is about.
-  states 'gives the scope plain the bare ready-for-agent label' \
+  claim 'gives the scope plain the bare ready-for-agent label' \
     '(^|[^[:alnum:]])plain([^[:alnum:]]|$)' 'ready-for-agent'
-  states 'gives any other scope the label ready-for-agent:<scope>' \
+  claim 'gives any other scope the label ready-for-agent:<scope>' \
     'scope' 'ready-for-agent:'
-  states 'keeps VERI_LABEL as the override of the derived label' \
+  claim 'keeps VERI_LABEL as the override of the derived label' \
     'veri_label' 'overrid|precedence|wins'
 fi
 report "$name"
