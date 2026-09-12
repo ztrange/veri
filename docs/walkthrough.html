@@ -4986,8 +4986,17 @@ html{scroll-behavior:smooth}
    The stops are the mark ELEMENTS in document order, not walk()'s entries: the press has
    to end at a place in the page, and the DOM is the only thing that knows where a run of
    lines sits. Which of them are stops is still lit()'s answer, read off the `data-tag`
-   the build put on each run's first line, so the walk and the dimming can never disagree
-   about what a choice lights.
+   the build put on the mark, so the walk and the dimming can never disagree about what a
+   choice lights.
+
+   BOTH halves of the page are marks: a run's first line in a listing, and the chip on the
+   commentary column beside it. A version can land in either — a `feat:` that rewrites
+   supervise.sh, and one that rewrites the paragraph explaining it — and a walk that
+   stepped only the listings would take the reader past the changed explanation without
+   stopping at it. One query for the two rather than one each, because a browser answers a
+   selector list in DOCUMENT order and that is the order the walk needs: prose sorted after
+   all the code, or each half walked through to its end before the other starts, sends a
+   reader who pressed n back up the page mid-walk.
 
    Nothing is built when no version is chosen. A reader who has not asked what changed has
    nothing to step, and buttons that step nothing are worse than absent — so the resting
@@ -5002,7 +5011,8 @@ html{scroll-behavior:smooth}
   var since = mode.since();
   if (!since) return;                    // the resting page: no walk, and no buttons for one
 
-  var stops = [], marks = document.querySelectorAll("pre.src .l.hunk[data-tag]");
+  var stops = [], marks = document.querySelectorAll(
+    "pre.src .l.hunk[data-tag], .ann-note .ann-tag[data-tag]");
   for (var i = 0; i < marks.length; i++) {
     if (mode.lit(marks[i].getAttribute("data-tag"), since)) stops.push(marks[i]);
   }

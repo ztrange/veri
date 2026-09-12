@@ -941,26 +941,37 @@ if (process.env.VERI_ASK_WIRED) {
     return el;
   };
 
-  /* The hunk marks the page ships, in document order, each carrying the attributes its
-     own <span> carries. `class="l hunk"` matches the first line of a run only: a
-     continuation line is `class="l hunk cont"`, and the closing quote is what tells them
-     apart — the same distinction hunk_spans counts by. */
+  /* Every version mark the page ships, in document order, each carrying the attributes
+     its own element carries: a source hunk's first line and a commentary chunk's chip
+     alike. Both are found by `data-tag`, which is the page's one word for "this element
+     belongs to that version" — the same thing prose_chip_git reads a marked commentary
+     column by — so the element and the class the prose side spells its chip with stay the
+     build's business rather than something this harness pins. A continuation line of a run
+     carries no `data-tag`, which is what keeps one hunk to one mark, the same distinction
+     hunk_spans counts by.
+     Which half of the page a mark belongs to is read off `hunk` in its class. That
+     spelling is not free — the cases above assert the source wrapper verbatim — and it is
+     the only thing here that has to tell the two apart. */
   var marks = [];
-  var head = /<span class="l hunk"([^>]*)>/g, hit;
+  var head = /<(\w+)\s([^>]*\sdata-tag="[^"]*"[^>]*)>/g, hit;
   while ((hit = head.exec(page)) !== null) {
-    var mark = node("span");
-    mark.className = "l hunk";
-    mark.setAttribute("class", "l hunk");
+    var mark = node(hit[1]);
     var attr = /([\w-]+)="([^"]*)"/g, pair;
-    while ((pair = attr.exec(hit[1])) !== null) {
+    while ((pair = attr.exec(hit[2])) !== null) {
       mark.setAttribute(pair[1], pair[2]);
       if (pair[1].indexOf("data-") === 0) mark.dataset[pair[1].slice(5)] = pair[2];
     }
-    mark.classList.contains = function (c) { return c === "l" || c === "hunk"; };
-    mark.matches = function (sel) { return sel.indexOf("hunk") >= 0; };
+    mark.className = mark.getAttribute("class") || "";
+    (function (el) {
+      var tokens = el.className.split(/\s+/);
+      el.classList.contains = function (c) { return tokens.indexOf(c) >= 0; };
+      el.matches = function (sel) { return tokens.some(function (t) { return sel.indexOf(t) >= 0; }); };
+    })(mark);
     mark.position = marks.length + 1;    // where it sits among the marks, top of page first
     marks.push(mark);
   }
+  /* A source mark or a commentary one, for the query below. */
+  function sourceMark(m) { return m.className.indexOf("hunk") >= 0; }
 
   var crumb = node("div");
   crumb.className = "crumb";
@@ -975,8 +986,18 @@ if (process.env.VERI_ASK_WIRED) {
   document.querySelector = function (sel) {
     return /crumb(?!-)/.test(sel) ? crumb : element();
   };
+  /* A query for marks is answered with the marks it names, in document order; anything
+     else still answers with nothing, so the layers this stub does not model bail at load
+     as they always did. A selector naming `hunk` asks for the source half and one naming
+     `ann` for the commentary half — the two words the page's own markup spells them with —
+     and one naming both, or naming neither while asking for `data-tag`, asks for every
+     mark. Kept this narrow rather than answering every mark to every query so that a page
+     which reads its two halves back in two queries is not handed each of them twice. */
   document.querySelectorAll = function (sel) {
-    return sel.indexOf("hunk") >= 0 ? marks.slice() : [];
+    var source = sel.indexOf("hunk") >= 0, prose = sel.indexOf("ann") >= 0;
+    if (!source && !prose && sel.indexOf("data-tag") < 0) return [];
+    if (source === prose) return marks.slice();
+    return marks.filter(function (m) { return sourceMark(m) === source; });
   };
   document.getElementById = function (id) {
     for (var i = 0; i < marks.length; i++) {
@@ -2401,6 +2422,63 @@ prose_chip_git "a chunk explained by a later version is chipped, a retidied one 
 #     case 30 uses, and every line it would print is a chip that should not be there.
 prose_chip_git "no tags: no commentary chip, and the page still builds" '' \
   bash -c 'drop_every_tag'
+
+# 32. and a chipped chunk has to join the reading mode, not merely wear a date. Cases 29-31
+#     put a version on the commentary and stop at the markup; since-mode is what a reader
+#     DOES with a version, and a chip that no choice dims and no press ever visits is a
+#     decoration beside two thousand lines the reader still has to scroll past to find.
+#     So the commentary marks answer to the same rule and step in the same walk as the
+#     source hunks: one sequence in page order, with prose and code interleaved exactly as
+#     the page lays them out.
+#
+#     Asked through wiring_git, which is case 27's question with the stub now enumerating
+#     every mark the page ships rather than the source half alone — so a commentary chip is
+#     a stop here only if the page itself treats it as one.
+#
+#     Four marks, in the order the page carries them, and every one of them is in the case
+#     for a reason:
+#
+#       #1 supervise.sh line 8, v0.3        — a source hunk in the L1-28 row
+#       #2 the L1-28 chunk's chip, v0.4     — the commentary of that same row, which the
+#                                             page prints AFTER the listing beside it
+#       #3 the L29-34 chunk's chip, v0.2    — never a stop: it is what the reader last read
+#       #4 classify-bail.sh line 3, v0.5    — a source hunk fifteenth on the page
+#
+#     #2 is the whole criterion in one stop: a walk that steps only `.l.hunk` marks goes
+#     straight from #1 to #4 and the reader is never taken to the paragraph that changed.
+#     #3 is the dimming half — the rule that decides a chip is the rule that decides a
+#     hunk, so a chip tagged at the reader's own version is passed over exactly as a hunk
+#     tagged there is, and an implementation that lights every chip it finds stops there.
+#     #1 before #2 and both before #4 is page order across the two halves: prose sorted
+#     after all the code, or a walk that runs each half through to its end before starting
+#     the other, answers #1 #4 #2 #3 and sends the reader back up the page mid-walk.
+#     The two buttons are pressed after the two keys, as case 27 has it, so all four
+#     steppers are shown to hold ONE place in the walk rather than four of their own.
+#     The paragraphs are found by their sentences rather than by line number — see
+#     prose_line — because commentary.py is the file this repo rewrites most.
+wiring_git "n, p and the buttons walk the commentary marks in page order with the source" \
+  v0.2 \
+  'at rest buttons none
+since v0.2 buttons next previous
+n #1 v0.3
+n #2 v0.4
+next #4 v0.5
+p #2 v0.4
+previous #1 v0.3' \
+  bash -c 'rewrite_line_as_feat docs/wt/commentary.py \
+             "$(prose_line "deliberately left out")" \
+             "  This paragraph was reworded by the v0.2 commit." \
+             "feat: reword the L29-34 paragraph of supervise.sh (#2)" v0.2
+           rewrite_line_as_feat skills/solve-issue/scripts/supervise.sh 8 \
+             "# rewritten by the v0.3 commit" \
+             "feat: rewrite line 8 of supervise.sh (#3)" v0.3
+           rewrite_line_as_feat docs/wt/commentary.py \
+             "$(prose_line "A twenty-six-line header")" \
+             "  This paragraph was reworded by the v0.4 commit." \
+             "feat: reword the L1-28 paragraph of supervise.sh (#4)" v0.4
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.5 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#5)" v0.5'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
