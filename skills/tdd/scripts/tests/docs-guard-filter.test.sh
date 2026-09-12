@@ -171,6 +171,39 @@ printf '%s\n' "$report_text" | grep -Eq '[1-9][0-9]* passed' &&
 in_time no-match
 report "$name"
 
+# 3. The other half of #119: the suite printed only failures and a final count, so reading
+#    what one case did meant running the whole thing again through grep — and 140 s of
+#    silence is also all supervise.sh's heartbeat sees. Every passing case has to announce
+#    itself as it passes, `ok - <name> (<n>s)`, beside the FAIL lines that were already
+#    there.
+#
+#    Two cases and not one, because "one line per case, in order" is not a claim a single
+#    case can carry: a suite that prints one ok line for the whole run, or prints them in
+#    whatever order it finishes, is green on any one-case run. 'expands intact' is the
+#    cheapest pair that shares a substring — two `accepts` cases, a bare sandbox and a page
+#    each, no git history — and their names are listed here in the order build-guards.test.sh
+#    invokes them (docs/tests/build-guards.test.sh:1598 then :1600), which is the order the
+#    output has to be in.
+#
+#    The probe reads the ok lines back through a sed that only matches the full shape,
+#    `ok - ` then the name then a parenthesised whole-number seconds, and compares the names
+#    it extracted against the two wanted — as one string, so it pins all three halves at
+#    once: the format (a line in any other shape yields no name and drops out), the order,
+#    and that there is exactly one line per passing case and no other.
+OK_FILTER='expands intact'
+OK_CASES=('brace-heavy display expands intact' 'nested-brace display expands intact')
+name="every passing case prints one 'ok - <name> (<n>s)' line, in order"
+problems=()
+run_filtered "$OK_FILTER"
+got_oks="$(printf '%s\n' "$report_text" | sed -n 's/^ok - \(.*\) ([0-9][0-9]*s)$/\1/p')"
+want_oks="$(printf '%s\n' "${OK_CASES[@]}")"
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from ONLY='$OK_FILTER' $SUITE — both cases pass in this tree; got $code after ${elapsed}s")
+[[ "$got_oks" == "$want_oks" ]] ||
+  problems+=("want one 'ok - <name> (<n>s)' line per passing case, in order: $(printf '%s' "$want_oks" | tr '\n' '/'); got: $(printf '%s' "$got_oks" | tr '\n' '/')")
+in_time ok-line
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
