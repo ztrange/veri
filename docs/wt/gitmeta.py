@@ -121,6 +121,30 @@ def _runs(blame):
         yield first, last, sha, subject
 
 
+def _newest_tag(root, lines, tags):
+    """The latest version any of these blamed lines shipped in — None if none did.
+
+    The ranking half of prose_marks() below, kept apart from the span half for the reason
+    _runs() is kept apart from hunks(): this one knows nothing about where the lines came
+    from, only that a set of them answers with one version, the newest.
+
+    Two kinds of line answer nothing and are skipped rather than counted: one whose last
+    commit changed no capability — a `docs:` or `refactor:` hides what it sat on, and
+    reaching past it would be guessing at which of the two wrote the words — and one whose
+    commit no tag contains yet, which has not shipped in any version to report.
+    """
+    newest = None
+    for sha, subject in lines:
+        if not BEHAVIOUR.match(subject):
+            continue
+        tag = _first_tag_containing(root, sha, tags)
+        if tag is None:
+            continue
+        if newest is None or tags.index(tag) > tags.index(newest):
+            newest = tag
+    return newest
+
+
 def hunks(root, rel, tags, since):
     """{first line: (tag, description, last line)} for each tagged hunk.
 
@@ -169,24 +193,15 @@ def prose_marks(root, rel, tags, spans):
     later version makes the whole paragraph a different explanation.
 
     A non-behaviour commit hides what it sat on, exactly as it does for the scripts — a
-    prose tidy is not a new explanation, and reaching past a `refactor:` for the `feat:`
-    underneath it would be guessing at which of the two wrote the words. A span with no
-    behaviour commit left visible in it is absent from the map rather than keyed to None.
+    prose tidy is not a new explanation. A span with nothing left visible for _newest_tag()
+    to answer with is absent from the map rather than keyed to None.
     """
     blame = _blame(root, rel)
     if blame is None:
         return {}
     marks = {}
     for first, last in spans:
-        newest = None
-        for sha, subject in blame[first - 1:last]:
-            if not BEHAVIOUR.match(subject):
-                continue
-            tag = _first_tag_containing(root, sha, tags)
-            if tag is None:                  # a commit no version contains yet
-                continue
-            if newest is None or tags.index(tag) > tags.index(newest):
-                newest = tag
+        newest = _newest_tag(root, blame[first - 1:last], tags)
         if newest is not None:
             marks[(first, last)] = newest
     return marks
