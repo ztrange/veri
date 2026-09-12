@@ -218,12 +218,19 @@ fi
 D
 chmod +x "$stub/date"
 
-# killed_window <name> <skew> <heartbeat|''> — hang a leaf under a skewed clock and echo
-# the window the supervisor said it killed on, or '<no-heartbeat-kill>' if it died some
-# other way (the hard timeout) or not at all. An empty third argument leaves VERI_HEARTBEAT
+# How far into the future the stub reports the clock, shared by both arms. It has to clear
+# the largest window either arm expects — 180, the default — or the unset arm would poll a
+# silence below its own window and never be killed at all, and the case would then read
+# '<no-heartbeat-kill>' rather than a number. That constraint is the reason for the value,
+# so it is named here next to it instead of being a bare 200 repeated at the call sites.
+skew=200
+
+# killed_window <name> <heartbeat|''> — hang a leaf under the skewed clock and echo the
+# window the supervisor said it killed on, or '<no-heartbeat-kill>' if it died some other
+# way (the hard timeout) or not at all. An empty second argument leaves VERI_HEARTBEAT
 # unset in the child, which is the whole point of the first arm.
 killed_window() {
-  local name="$1" skew="$2" hb="${3-}"
+  local name="$1" hb="${2-}"
   local -a hbenv
   if [[ -n "$hb" ]]; then hbenv=(VERI_HEARTBEAT="$hb"); else hbenv=(-u VERI_HEARTBEAT); fi
   ( cd "$work" && env "${hbenv[@]}" PATH="$stub:$PATH" TEST_CLOCK_SKEW="$skew" \
@@ -233,8 +240,8 @@ killed_window() {
     || echo '<no-heartbeat-kill>'
 }
 
-default_window="$(killed_window hb-default  200 '')"
-explicit_window="$(killed_window hb-explicit 200 5)"
+default_window="$(killed_window hb-default  '')"
+explicit_window="$(killed_window hb-explicit 5)"
 { [[ "$default_window" == 180 ]] && [[ "$explicit_window" == 5 ]]; } && ok \
   || no "VERI_HEARTBEAT unset → a 180s window, explicit VERI_HEARTBEAT=5 → a 5s window (unset gave ${default_window}, explicit gave ${explicit_window})"
 
