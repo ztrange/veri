@@ -353,13 +353,13 @@ html{scroll-behavior:smooth}
   <p class="eyebrow">A line-by-line reading</p>
   <h1>veri, Annotated</h1>
   <p class="standfirst">
-    17 shell scripts, 1240 lines, that let a language model run
+    17 shell scripts, 1296 lines, that let a language model run
     test-driven development on itself without being trusted to. Every script in full,
     beside the commentary &mdash; and every piece of bash syntax one hover away.
   </p>
   <p class="meta">
-    <span><b>v0.22</b> latest version</span><span><b>17</b> scripts</span>
-    <span><b>1240</b> lines, all shown</span>
+    <span><b>v0.23</b> latest version</span><span><b>17</b> scripts</span>
+    <span><b>1296</b> lines, all shown</span>
     <span><b>40</b> reference entries</span>
   </p>
 </header>
@@ -380,7 +380,7 @@ html{scroll-behavior:smooth}
   Only <code>feat:</code> and <code>fix:</code> commits count: documentation, tests and
   refactors change this page without changing what veri can do.
 </p>
-<ol class="vers"><li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span><span class="ver-d">on main, past v0.22</span></p><p class="ver-t">Work has landed since the last version. If it had changed a capability it would have been tagged, so this is documentation, tests or tidying &mdash; or a tag nobody cut.</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.22</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/65">#65</a> <a href="https://github.com/ztrange/veri/issues/66">#66</a> <a href="https://github.com/ztrange/veri/issues/77">#77</a></span></p><p class="ver-t">detect-test-command.sh recognises a setup.cfg [tool:pytest] section as a pytest repo</p><p class="ver-s"><b>Read</b><a href="#detect-test-command"><code>detect-test-command.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.21</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/64">#64</a> <a href="https://github.com/ztrange/veri/issues/69">#69</a></span></p><p class="ver-t">refactor-budget.sh validates its count argument and fails closed with exit 2</p><p class="ver-s"><b>Read</b><a href="#refactor-budget"><code>refactor-budget.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.20</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/51">#51</a> <a href="https://github.com/ztrange/veri/issues/63">#63</a></span></p><p class="ver-t">build-develop-prompt.sh refuses an unknown phase and a bad revise target with exit 2</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.19</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/41">#41</a></span></p><p class="ver-t">rung 2 of the scope ladder: solvable-issues.sh lists the issues veri may take — open, ready-for-agent, unblocked, unclaimed — and /solve-issues drains them one at a time, recomputing the list after each</p><p class="ver-s"><b>Read</b><a href="#solvable-issues"><code>solvable-issues.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.18</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/43">#43</a></span></p><p class="ver-t">the issue branch lives in its own git worktree, never in the caller&#x27;s checkout: issue-worktree.sh creates, reuses, refuses to steal, and removes it</p><p class="ver-s"><b>Read</b><a href="#issue-worktree"><code>issue-worktree.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.17</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/42">#42</a></span></p><p class="ver-t">the refactor loop has a deterministic budget: refactor-budget.sh stops it after VERI_REFACTOR_BUDGET transforms per step, default 2, and fails closed on a budget that does not parse</p><p class="ver-s"><b>Read</b><a href="#refactor-budget"><code>refactor-budget.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.16</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/39">#39</a></span></p><p class="ver-t">the test command is detected by a script: detect-test-command.sh covers npm/pnpm/yarn, make, pytest, go, cargo and unittest, with a .veri/test-command override that beats every inference</p><p class="ver-s"><b>Read</b><a href="#detect-test-command"><code>detect-test-command.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.15</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/50">#50</a></span></p><p class="ver-t">Per-hunk version tags in script listings: which lines changed, and why</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.14</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/44">#44</a></span></p><p class="ver-t">veri runs on Linux as well as macOS: CI gates every PR on ubuntu and macos, the supervisor reads mtimes portably, and the prompt builders carry &amp; and \ verbatim under bash 5.2</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a> &middot; <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.13</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/38">#38</a></span></p><p class="ver-t">developer-leaf prompts are versioned templates: build-develop-prompt.sh assembles red, green, refactor and revise from prompts/develop-*.md, the conductor supplies only the variables</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.12</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/30">#30</a></span></p><p class="ver-t">a partial or mis-ordered run-state rule is refused, never reported present</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.11</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/31">#31</a></span></p><p class="ver-t">an already-satisfied criterion is pinned by a blind mutation check, not bailed</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.10</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/25">#25</a> <a href="https://github.com/ztrange/veri/issues/27">#27</a></span></p><p class="ver-t">target repo ignores veri run state before the first commit</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.9</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/7">#7</a></span></p><p class="ver-t">hardened edges: baseline, classified bail, completion polish</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.8</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/18">#18</a></span></p><p class="ver-t">classify a bail as system vs process, deterministically</p><p class="ver-s"><b>Read</b><a href="#classify-bail"><code>classify-bail.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.7</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/6">#6</a></span></p><p class="ver-t">loops + ledger: multi-criterion issues, resumable</p><p class="ver-s"><b>Read</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a> &middot; <a href="#tick-ledger"><code>tick-ledger.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.6</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/14">#14</a></span></p><p class="ver-t">effective leaf heartbeat via streaming output</p><p class="ver-s"><b>Read</b><a href="#extract-result"><code>extract-result.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.5</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/5">#5</a></span></p><p class="ver-t">bounded revise loop on REJECT - veri self-corrects</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.4</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/12">#12</a></span></p><p class="ver-t">supervisor retries a killed-stuck leaf up to a bounded budget</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.3</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/4">#4</a></span></p><p class="ver-t">supervised leaves: heartbeat + timeout make veri unstuckable</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.2</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/3">#3</a></span></p><p class="ver-t">blind independent verification of red, green and refactor</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#parse-verdict"><code>parse-verdict.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a> &middot; <a href="#verify"><code>verify.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.1</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/2">#2</a></span></p><p class="ver-t">walking skeleton: solve one issue via R-G-R, narrated to the issue</p><p class="ver-s"><b>Read</b><a href="#tick-criterion"><code>tick-criterion.sh</code></a> &middot; <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></li></ol>
+<ol class="vers"><li class="ver unreleased"><p class="ver-h"><span class="vtag">Unreleased</span><span class="ver-d">on main, past v0.23</span></p><p class="ver-t">Work has landed since the last version. If it had changed a capability it would have been tagged, so this is documentation, tests or tidying &mdash; or a tag nobody cut.</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.23</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/78">#78</a> <a href="https://github.com/ztrange/veri/issues/79">#79</a> <a href="https://github.com/ztrange/veri/issues/91">#91</a></span></p><p class="ver-t">the /solve-issues opt-in label is read from VERI_LABEL, so two loops on one repo can drain disjoint pools</p><p class="ver-s"><b>Read</b><a href="#solvable-issues"><code>solvable-issues.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.22</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/65">#65</a> <a href="https://github.com/ztrange/veri/issues/66">#66</a> <a href="https://github.com/ztrange/veri/issues/77">#77</a></span></p><p class="ver-t">detect-test-command.sh recognises a setup.cfg [tool:pytest] section as a pytest repo</p><p class="ver-s"><b>Read</b><a href="#detect-test-command"><code>detect-test-command.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.21</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/64">#64</a> <a href="https://github.com/ztrange/veri/issues/69">#69</a></span></p><p class="ver-t">refactor-budget.sh validates its count argument and fails closed with exit 2</p><p class="ver-s"><b>Read</b><a href="#refactor-budget"><code>refactor-budget.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.20</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/51">#51</a> <a href="https://github.com/ztrange/veri/issues/63">#63</a></span></p><p class="ver-t">build-develop-prompt.sh refuses an unknown phase and a bad revise target with exit 2</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.19</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/41">#41</a></span></p><p class="ver-t">rung 2 of the scope ladder: solvable-issues.sh lists the issues veri may take — open, ready-for-agent, unblocked, unclaimed — and /solve-issues drains them one at a time, recomputing the list after each</p><p class="ver-s"><b>Read</b><a href="#solvable-issues"><code>solvable-issues.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.18</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/43">#43</a></span></p><p class="ver-t">the issue branch lives in its own git worktree, never in the caller&#x27;s checkout: issue-worktree.sh creates, reuses, refuses to steal, and removes it</p><p class="ver-s"><b>Read</b><a href="#issue-worktree"><code>issue-worktree.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.17</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/42">#42</a></span></p><p class="ver-t">the refactor loop has a deterministic budget: refactor-budget.sh stops it after VERI_REFACTOR_BUDGET transforms per step, default 2, and fails closed on a budget that does not parse</p><p class="ver-s"><b>Read</b><a href="#refactor-budget"><code>refactor-budget.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.16</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/39">#39</a></span></p><p class="ver-t">the test command is detected by a script: detect-test-command.sh covers npm/pnpm/yarn, make, pytest, go, cargo and unittest, with a .veri/test-command override that beats every inference</p><p class="ver-s"><b>Read</b><a href="#detect-test-command"><code>detect-test-command.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.15</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/50">#50</a></span></p><p class="ver-t">Per-hunk version tags in script listings: which lines changed, and why</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.14</span><span class="ver-d">2026-09-11</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/44">#44</a></span></p><p class="ver-t">veri runs on Linux as well as macOS: CI gates every PR on ubuntu and macos, the supervisor reads mtimes portably, and the prompt builders carry &amp; and \ verbatim under bash 5.2</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a> &middot; <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.13</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/38">#38</a></span></p><p class="ver-t">developer-leaf prompts are versioned templates: build-develop-prompt.sh assembles red, green, refactor and revise from prompts/develop-*.md, the conductor supplies only the variables</p><p class="ver-s"><b>Read</b><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.12</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/30">#30</a></span></p><p class="ver-t">a partial or mis-ordered run-state rule is refused, never reported present</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.11</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/31">#31</a></span></p><p class="ver-t">an already-satisfied criterion is pinned by a blind mutation check, not bailed</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.10</span><span class="ver-d">2026-09-10</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/25">#25</a> <a href="https://github.com/ztrange/veri/issues/27">#27</a></span></p><p class="ver-t">target repo ignores veri run state before the first commit</p><p class="ver-s"><b>Read</b><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.9</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/7">#7</a></span></p><p class="ver-t">hardened edges: baseline, classified bail, completion polish</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.8</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/18">#18</a></span></p><p class="ver-t">classify a bail as system vs process, deterministically</p><p class="ver-s"><b>Read</b><a href="#classify-bail"><code>classify-bail.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.7</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/6">#6</a></span></p><p class="ver-t">loops + ledger: multi-criterion issues, resumable</p><p class="ver-s"><b>Read</b><a href="#next-unchecked"><code>next-unchecked.sh</code></a> &middot; <a href="#tick-ledger"><code>tick-ledger.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.6</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/14">#14</a></span></p><p class="ver-t">effective leaf heartbeat via streaming output</p><p class="ver-s"><b>Read</b><a href="#extract-result"><code>extract-result.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.5</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/5">#5</a></span></p><p class="ver-t">bounded revise loop on REJECT - veri self-corrects</p><p class="ver-s conductor">Conductor only &mdash; no script on this page changed</p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.4</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/12">#12</a></span></p><p class="ver-t">supervisor retries a killed-stuck leaf up to a bounded budget</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.3</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/4">#4</a></span></p><p class="ver-t">supervised leaves: heartbeat + timeout make veri unstuckable</p><p class="ver-s"><b>Read</b><a href="#supervise"><code>supervise.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.2</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/3">#3</a></span></p><p class="ver-t">blind independent verification of red, green and refactor</p><p class="ver-s"><b>Read</b><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a> &middot; <a href="#parse-verdict"><code>parse-verdict.sh</code></a> &middot; <a href="#run-leaf"><code>run-leaf.sh</code></a> &middot; <a href="#verify"><code>verify.sh</code></a></p></li><li class="ver"><p class="ver-h"><span class="vtag">v0.1</span><span class="ver-d">2026-06-27</span><span class="ver-i"><a href="https://github.com/ztrange/veri/issues/2">#2</a></span></p><p class="ver-t">walking skeleton: solve one issue via R-G-R, narrated to the issue</p><p class="ver-s"><b>Read</b><a href="#tick-criterion"><code>tick-criterion.sh</code></a> &middot; <a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></p></li></ol>
 <p class="vers-foot">
   A version that changed <em>no</em> script is not an error. The conductor is
   <code>SKILL.md</code> &mdash; English prose, not code &mdash; and capabilities that live
@@ -405,7 +405,7 @@ html{scroll-behavior:smooth}
 </p>
 <p>
   <strong>veri is built with itself.</strong> Every capability on this page was scoped,
-  tested and landed by a veri run against this repository, <span class="solved-n">20</span> issues so far &mdash; the same order,
+  tested and landed by a veri run against this repository, <span class="solved-n">21</span> issues so far &mdash; the same order,
   under the same blind verification, as everything described below. The figure is counted
   out of git when this page is built, not typed into it, so it cannot quietly go stale.
 </p>
@@ -458,7 +458,7 @@ html{scroll-behavior:smooth}
   That line is the entire design philosophy: <strong>the model decides, the scripts
   enforce.</strong> Anything that must be exact and repeatable is pulled out of the fuzzy
   part and into a shell script with a unit test behind it. So the guarantees you can
-  actually rely on all live in the 1240 lines this page reproduces in full.
+  actually rely on all live in the 1296 lines this page reproduces in full.
 </p>
 <p>One more role, because it appears constantly:</p>
 <ul>
@@ -1382,21 +1382,30 @@ html{scroll-behavior:smooth}
   the path, printed last, for the caller to <code>cd</code> into.
 </p></div></div></div>
 
-<h3 id="ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code> &mdash; the target repo's ignore rule<span class="vbadge">since <b>v0.10</b> &middot; changed <b>v0.12</b></span></h3>
+<h3 id="ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code> &mdash; the target repo's ignore rule<span class="vbadge">since <b>v0.10</b></span></h3>
 <p>
-  Sixty-three lines that write three. It used to trust a single line, seen once, to mean the
-  whole block had already landed. It now checks all three lines <strong>and their reading
-  order</strong>, and a <code>.gitignore</code> that carries the rule only in part, or the
-  right three lines shuffled, is refused rather than patched or waved through.
+  A hundred and nineteen lines that write three &mdash; into <strong>two files</strong>, and it
+  needs both. The worktree's <code>.gitignore</code> is committed, so it is what keeps the
+  merged repo safe from a later <code>git add -A</code>; the shared <code>info/exclude</code>
+  is never committed and is read by every worktree, so it is what keeps the
+  <em>caller's</em> checkout clean while the run is still in progress. Each file is checked
+  for all three lines <strong>and their reading order</strong> before anything is written, and
+  a destination that carries the rule only in part, or the right three lines shuffled, is
+  refused rather than patched or waved through.
 </p>
-<div class="contract"><dl><dt>Usage</dt><dd><code>ensure-run-state-ignored.sh [repo-root]</code> (default: the current directory)</dd><dt>stdout</dt><dd><code>added</code> when it wrote the rule, <code>already present</code> when it was already there in full and in order</dd><dt>stderr</dt><dd>the fix-it-by-hand message when an existing <code>.gitignore</code> carries the rule only in part, or out of order</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> wrote the rule, or found it already there, whole and in order</span> <span class="ec ec-2"><b>2</b> the existing rule is partial or misordered</span></dd></dl></div>
-<div class="ann"><div class="ann-head"><span class="fname">ensure-run-state-ignored.sh</span><span class="fmeta">63 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
-<span class="l"><span class="c"># ensure-run-state-ignored.sh — install veri's run-state rule into a target repo's .gitignore.</span></span>
+<div class="contract"><dl><dt>Usage</dt><dd><code>ensure-run-state-ignored.sh [repo-root]</code> (default: the current directory)</dd><dt>stdout</dt><dd><code>added</code> when it wrote the rule into the worktree's <code>.gitignore</code>, <code>already present</code> when that file already carried it in full and in order &mdash; the word reports the <code>.gitignore</code> only; <code>info/exclude</code> is ensured either way</dd><dt>stderr</dt><dd>the fix-it-by-hand message when either destination carries the rule only in part, or out of order</dd><dt>Exit</dt><dd><span class="ec ec-0"><b>0</b> wrote the rule, or found it already there, whole and in order</span> <span class="ec ec-2"><b>2</b> the existing rule is partial or misordered</span></dd></dl></div>
+<div class="ann"><div class="ann-head"><span class="fname">ensure-run-state-ignored.sh</span><span class="fmeta">119 lines &middot; complete source</span></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">#!/usr/bin/env bash</span>
+<span class="l"><span class="c"># ensure-run-state-ignored.sh — install veri's run-state rule into a target repo's ignore files.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># veri writes leaf logs, .rc markers, .prompt files and the blind spec into the target repo's</span></span>
 <span class="l"><span class="c"># .tdd/; only the ledger (.tdd/issue-&lt;n&gt;.md) belongs in history. This writes the three-line,</span></span>
 <span class="l"><span class="c"># order-sensitive rule that makes git agree: ignore .tdd/*, un-ignore the ledger, re-ignore</span></span>
 <span class="l"><span class="c"># the spec (which would otherwise be caught by the ledger's negation).</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># The rule goes into two files and needs both: the worktree's .gitignore, which is committed and</span></span>
+<span class="l"><span class="c"># so keeps the merged repo safe from a later `git add -A`, and the shared info/exclude, which is</span></span>
+<span class="l"><span class="c"># never committed and so keeps the caller's checkout clean while the run is in progress. Why</span></span>
+<span class="l"><span class="c"># neither is sufficient alone is at each one's block below.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Usage:   ensure-run-state-ignored.sh [repo-root]      (default: the current directory)</span></span>
 <span class="l"><span class="k">set</span> -euo pipefail</span></pre></div><div class="ann-note"><p>
@@ -1407,112 +1416,228 @@ html{scroll-behavior:smooth}
   and the <strong>last matching line wins</strong> &mdash; the order is the behaviour, which
   is why the script below checks it rather than just the lines' presence.
 </p><p>
+  The header also names the <strong>two destinations</strong> that rule goes into, because
+  neither one alone does the whole job. The worktree's <code>.gitignore</code> is committed
+  as the issue branch's first commit, so it is what makes the <em>merged</em> repo safe from
+  a later <code>git add -A</code>. The shared <code>info/exclude</code> is never committed
+  and is read by every worktree of the repo, so it is what keeps the <em>caller's</em>
+  checkout clean while the run is still going.
+</p><p>
   <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> as everywhere else.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 10"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 15"><span class="l"></span>
 <span class="l">root=<span class="s">"</span><span class="v">${1:-.}</span><span class="s">"</span></span>
 <span class="l">gitignore=<span class="s">"</span><span class="v">$root</span><span class="s">/.gitignore"</span></span></pre></div><div class="ann-note"><p>
   The repo root is optional, <a class="tt" data-ref="p-default" href="#p-default">${1:-.}</a>, so the conductor can call it bare from
-  the target's working directory. Everything below works on one path, so it gets a name.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 13"><span class="l"></span>
+  the target's working directory. The first destination is one path under it, so it gets a
+  name.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 18"><span class="l"></span>
 <span class="l"><span class="c"># The rule, one line per variable, in the order git needs to read them. Named once because the</span></span>
-<span class="l"><span class="c"># presence check below and the append at the end must agree on the exact text: two spellings of</span></span>
+<span class="l"><span class="c"># presence check below and `append_rule` must agree on the exact text: two spellings of</span></span>
 <span class="l"><span class="c"># `.tdd/issue-*-spec.md` could drift apart, and the script would then append a rule it had just</span></span>
 <span class="l"><span class="c"># failed to recognise.</span></span>
 <span class="l">ignore_all=<span class="s">'.tdd/*'</span>         <span class="c"># sweep every run artefact under .tdd/ out of git's sight</span></span>
 <span class="l">keep_ledger=<span class="s">'!.tdd/issue-*.md'</span>   <span class="c"># except the ledger, the one file that belongs in history</span></span>
 <span class="l">drop_spec=<span class="s">'.tdd/issue-*-spec.md'</span> <span class="c"># but not the blind spec, which that negation would drag back in</span></span></pre></div><div class="ann-note"><p>
   The three lines of the rule, named once. The header comment above says why: the presence
-  check further down and the append at the bottom both need the exact same text for each
-  line, and two spellings of <code>drop_spec</code> drifting apart would make the script
-  append a rule it had just failed to recognise as already there. Each variable carries its
-  own trailing comment &mdash; <code>ignore_all</code> sweeps everything under
-  <code>.tdd/</code> out of sight, <code>keep_ledger</code> carves the one file that belongs
-  in history back out, <code>drop_spec</code> takes back the one file that carve-out would
-  otherwise drag along with it.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 21"><span class="l"></span>
-<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh checks the rule&#x27;s order — a shuffled block is refused, not reported present"><span class="c"># where &lt;line&gt; — the number of the first line of $gitignore that IS &lt;line&gt;, whole and on its own,</span></span>
-<span class="l"><span class="c"># or the empty string when absent. -F keeps the glob literal (no regex), -x forbids a partial-line</span></span>
-<span class="l"><span class="c"># match so `x.tdd/*` does not count as `.tdd/*`, -n prefixes each hit with `&lt;lineno&gt;:` — `head -1`</span></span>
-<span class="l"><span class="c"># takes the first hit and `cut` keeps the number, which is what the ordering check below compares.</span></span>
-<span class="l"><span class="c"># `|| true` is load-bearing under `pipefail`: absent the line, grep exits 1 and the whole pipeline</span></span>
-<span class="l"><span class="c"># inherits it, which `set -e` would turn into the script dying instead of reporting "not there".</span></span>
-<span class="l">where() { grep -nxF <span class="s">"</span><span class="v">$1</span><span class="s">"</span> <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span> | head -1 | cut -d: -f1 || true; }</span></pre></div><div class="ann-note"><p>
-  <a class="tt" data-ref="p-func" href="#p-func">where()</a> replaces what used to be a plain <code>has()</code> boolean: it returns
-  not <em>whether</em> a line is in <code>$gitignore</code> but <strong>which line number</strong>
-  it first appears on, so the order of the three lines becomes something the script can
-  compare. <code>-n</code> on <code>grep</code> prefixes each hit with
-  <code>&lt;lineno&gt;:</code>; <code>head -1</code> takes the first match and <code>cut</code>
-  keeps the number in front of the colon.
+  check further down and the append below both need the exact same text for each line, and
+  two spellings of <code>drop_spec</code> drifting apart would make the script append a rule
+  it had just failed to recognise as already there &mdash; now into either file. Each
+  variable carries its own trailing comment &mdash; <code>ignore_all</code> sweeps everything
+  under <code>.tdd/</code> out of sight, <code>keep_ledger</code> carves the one file that
+  belongs in history back out, <code>drop_spec</code> takes back the one file that carve-out
+  would otherwise drag along with it.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 26"><span class="l"></span>
+<span class="l"><span class="c"># The same rule has to reach a second file. The .gitignore above is committed on the issue branch,</span></span>
+<span class="l"><span class="c"># so the checkout the conductor was invoked from — still on the default branch — never sees it and</span></span>
+<span class="l"><span class="c"># keeps reporting the worktree under .tdd/ as untracked, which the next run's preflight refuses to</span></span>
+<span class="l"><span class="c"># start on. `info/exclude` under the *common* git dir is read by every worktree of the repo and is</span></span>
+<span class="l"><span class="c"># never committed, so it needs no branch and no PR; --git-common-dir is what resolves a linked</span></span>
+<span class="l"><span class="c"># worktree's own gitdir back to the primary's, and answers relative to $root when it answers</span></span>
+<span class="l"><span class="c"># relatively at all.</span></span>
+<span class="l">common_dir=<span class="s">"$(git -C "</span><span class="v">$root</span><span class="s">" rev-parse --git-common-dir)"</span></span>
+<span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$common_dir</span><span class="s">"</span> <span class="k">in</span> /*) ;; *) common_dir=<span class="s">"</span><span class="v">$root</span><span class="s">/</span><span class="v">$common_dir</span><span class="s">"</span> ;; <span class="k">esac</span></span>
+<span class="l">exclude=<span class="s">"</span><span class="v">$common_dir</span><span class="s">/info/exclude"</span></span></pre></div><div class="ann-note"><p>
+  <strong>The second destination, and the bug that put it here.</strong> The
+  <code>.gitignore</code> above is committed <em>on the issue branch</em>. The checkout
+  <code>/solve-issue</code> was invoked from stays on the default branch for the whole run, so
+  it never sees that commit &mdash; and keeps reporting the worktree under <code>.tdd/</code>
+  as untracked. Preflight step&nbsp;1 refuses to start on a dirty caller's checkout, so on a
+  target repo whose history did not already carry the rule, the next <code>/solve-issue</code>
+  could not start until this one's PR merged. It never showed on veri's own repo, whose
+  <code>.gitignore</code> has carried the rule since the ledger itself was first committed.
 </p><p>
-  <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124; true</a> at the end is load-bearing under
-  <a class="tt" data-ref="p-strict" href="#p-strict">pipefail</a>: when the line is absent, <code>grep</code> exits 1 and the pipeline
-  would inherit that failure, which <code>set -e</code> would turn into the script dying
-  instead of reporting "not there" as an empty string.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 29"><span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh refuses a partial rule (sentinel alone) with exit 2 instead of reporting it present"></span>
-<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span> ]; <span class="k">then</span></span>
-<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh checks the rule&#x27;s order — a shuffled block is refused, not reported present">  <span class="c"># "Already present" means the whole rule, in git's reading order, never a subset and never the</span></span>
-<span class="l">  <span class="c"># same three lines shuffled: with the negation last, `!.tdd/issue-*.md` un-ignores the spec the</span></span>
-<span class="l">  <span class="c"># line above just re-ignored, so every line is there and the rule is not. Appending cannot repair</span></span>
-<span class="l">  <span class="c"># either case — git reads a second `.tdd/*` after the negation that precedes it — so both are</span></span>
-<span class="l">  <span class="c"># refused rather than rewritten: exit 2, the "no answer could be obtained" code, fails the</span></span>
-<span class="l">  <span class="c"># conductor's preflight before a cycle starts committing its scratch.</span></span>
-<span class="l">  at_all=<span class="s">"$(where "</span><span class="v">$ignore_all</span><span class="s">")"</span></span>
-<span class="l">  at_ledger=<span class="s">"$(where "</span><span class="v">$keep_ledger</span><span class="s">")"</span></span>
-<span class="l">  at_spec=<span class="s">"$(where "</span><span class="v">$drop_spec</span><span class="s">")"</span></span>
-<span class="l">  <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$at_all</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ] \</span>
-<span class="l">    &amp;&amp; [ <span class="s">"</span><span class="v">$at_all</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> ] &amp;&amp; [ <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
-<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh refuses a partial rule (sentinel alone) with exit 2 instead of reporting it present">    echo <span class="s">"already present"</span></span>
-<span class="l">    <span class="k">exit</span> 0</span>
+  <code>info/exclude</code> is git's per-repository ignore file: same syntax, same effect,
+  but it lives inside the git directory and is <strong>never committed</strong> &mdash; so it
+  needs no branch and no PR, and it is in force in the caller's checkout the moment it is
+  written. The one subtlety is <em>which</em> git directory. A linked worktree has a gitdir
+  of its own under <code>.git/worktrees/&lt;name&gt;</code>, and an exclude file placed there
+  would be read by that worktree alone &mdash; exactly the checkout that did not need it.
+  <code>rev-parse --git-common-dir</code> is what resolves a linked worktree's gitdir back to
+  the primary's, which every worktree shares.
+</p><p>
+  It answers relative to <code>$root</code> when it answers relatively at all (a plain
+  <code>.git</code>, typically), so the <a class="tt" data-ref="p-case" href="#p-case">case</a> prefixes <code>$root</code> back on
+  unless the answer already starts with <code>/</code> &mdash; <code>/*</code> is a glob
+  pattern here, not a path, and matching it is how you ask "is this absolute?" without
+  spawning anything.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 37"><span class="l"></span>
+<span class="l"><span class="c"># append_rule &lt;file&gt; — put the three lines at the end of &lt;file&gt;, in git's reading order, having</span></span>
+<span class="l"><span class="c"># first made &lt;file&gt; appendable at all. Both destinations need exactly this, so it is written once:</span></span>
+<span class="l"><span class="c"># two copies of the append could drift into disagreeing about the newline guard, and only one of the</span></span>
+<span class="l"><span class="c"># two files would then survive it.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Appendable means two things. Its directory has to exist — git creates .git/info/exclude itself, so</span></span>
+<span class="l"><span class="c"># that only bites a common dir someone has pruned, but `&gt;&gt;` cannot create a parent and would die</span></span>
+<span class="l"><span class="c"># under `set -e` rather than say so. And &lt;file&gt; has to end in a newline, or the append fuses its last</span></span>
+<span class="l"><span class="c"># rule with `.tdd/*` into a single line and destroys both: `$(...)` strips trailing newlines from</span></span>
+<span class="l"><span class="c"># what it captures, so a file already ending in one yields the empty string here, and a non-empty</span></span>
+<span class="l"><span class="c"># last byte is exactly the case that needs one added. -s keeps `tail` off a file that does not exist</span></span>
+<span class="l"><span class="c"># yet.</span></span>
+<span class="l">append_rule() {</span>
+<span class="l">  mkdir -p <span class="s">"$(dirname "</span><span class="v">$1</span><span class="s">")"</span></span>
+<span class="l">  <span class="k">if</span> [ -s <span class="s">"</span><span class="v">$1</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"$(tail -c 1 "</span><span class="v">$1</span><span class="s">")"</span> ]; <span class="k">then</span></span>
+<span class="l">    echo <span class="s">""</span> &gt;&gt; <span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
 <span class="l">  <span class="k">fi</span></span>
-<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh checks the rule&#x27;s order — a shuffled block is refused, not reported present">  <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
-<span class="l">    echo <span class="s">"ensure-run-state-ignored: </span><span class="v">$gitignore</span><span class="s"> carries veri's run-state rule only in part, or with its lines out of order — fix it by hand"</span> &gt;&amp;2</span>
-<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh refuses a partial rule (sentinel alone) with exit 2 instead of reporting it present">    <span class="k">exit</span> 2</span>
-<span class="l">  <span class="k">fi</span></span>
-<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
-  The comment states the standard this branch enforces, and it is stricter than "all three
-  lines exist": <strong>"already present" means the whole rule, in git's reading order,
-  never a subset and never the same three lines shuffled.</strong> With the negation last,
-  <code>!.tdd/issue-*.md</code> un-ignores the spec the line above it just re-ignored, so
-  every line can be present while the rule itself is not. Lines 38&ndash;40 capture where
-  each line falls with <code>where()</code>; lines 41&ndash;42 require all three to exist
-  <em>and</em> to fall in ascending order before declaring victory.
-</p><div class="note"><span class="tag">Resolved: refused, not repaired</span><p>
-  Anything short of that &mdash; one line missing, or the three lines out of order &mdash;
-  used to be invisible to the old sentinel-only check. It no longer is, and the fix is not to
-  patch it up: appending a fourth line cannot mend either failure, because git only ever
-  reads a rule top to bottom and a second <code>.tdd/*</code> appended after an existing
-  negation cannot retroactively change what precedes it. So the script refuses instead,
-  with <span class="ec ec-2"><b>2</b></span> &mdash; the "no answer could be obtained" code
-  &mdash; which fails the conductor's preflight loudly, before a cycle starts committing
-  scratch state into a target repo that was never actually protected.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 50"><span class="l"></span>
-<span class="l"><span class="c"># An existing .gitignore need not end in a newline; appending straight onto it would fuse its</span></span>
-<span class="l"><span class="c"># last rule with `.tdd/*` into one line, destroying both. Terminate that line first.</span></span>
-<span class="l"><span class="c"># `$(...)` strips trailing newlines from what it captures, so a file that already ends in one</span></span>
-<span class="l"><span class="c"># yields the empty string here: a non-empty last byte is exactly the case that needs the newline.</span></span>
-<span class="l"><span class="c"># -s guards the substitution — it keeps `tail` off a .gitignore that does not exist yet.</span></span>
-<span class="l"><span class="k">if</span> [ -s <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"$(tail -c 1 "</span><span class="v">$gitignore</span><span class="s">")"</span> ]; <span class="k">then</span></span>
-<span class="l">  echo <span class="s">""</span> &gt;&gt; <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span></span>
-<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
-  <strong>Append safety.</strong> A file need not end in a newline, and a naive
+<span class="l">  printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$ignore_all</span><span class="s">"</span> <span class="s">"</span><span class="v">$keep_ledger</span><span class="s">"</span> <span class="s">"</span><span class="v">$drop_spec</span><span class="s">"</span> &gt;&gt; <span class="s">"</span><span class="v">$1</span><span class="s">"</span></span>
+<span class="l">}</span></pre></div><div class="ann-note"><p>
+  <a class="tt" data-ref="p-func" href="#p-func">append_rule()</a> is the write, extracted because two destinations now need exactly
+  it. Two copies could drift into disagreeing about the newline guard below, and only one of
+  the two files would then survive it &mdash; a divergence nothing downstream would report.
+</p><p>
+  It also owns <em>making its destination appendable</em>, which is two separate things.
+  <code>mkdir -p</code> on the parent: git creates <code>.git/info/exclude</code> itself, so
+  a missing <code>info/</code> only happens in a common dir someone has pruned, but
+  <a class="tt" data-ref="p-redirect" href="#p-redirect">&gt;&gt;</a> cannot create a parent directory and would die under
+  <a class="tt" data-ref="p-strict" href="#p-strict">set -e</a> rather than say what was wrong.
+</p><p>
+  <strong>And append safety.</strong> A file need not end in a newline, and a naive
   <code>&gt;&gt;</code> onto one that does not would fuse its last rule with
   <code>.tdd/*</code> into a single pattern that matches nothing &mdash; silently breaking
-  both. The red test for this step seeded exactly that file, and the failing output showed
+  both. The red test for that step seeded exactly such a file, and the failing output showed
   <code>debug.log</code> and <code>.tdd/develop-red.log</code> both stop being ignored.
 </p><p>
   The check reads the last byte with <code>tail -c 1</code> inside <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">$( … )</a>, and
   leans on a property of command substitution: it <em>strips trailing newlines</em> from
   what it captures. So a file that already ends in a newline yields the empty string, and a
   non-empty result is precisely the file that needs one. The <code>-s</code> guard keeps
-  <code>tail</code> off a file that does not exist yet.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 59"><span class="l"></span>
-<span class="l">printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$ignore_all</span><span class="s">"</span> <span class="s">"</span><span class="v">$keep_ledger</span><span class="s">"</span> <span class="s">"</span><span class="v">$drop_spec</span><span class="s">"</span> &gt;&gt; <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span></span>
+  <code>tail</code> off a file that does not exist yet. Then the write itself:
+  <a class="tt" data-ref="p-printf" href="#p-printf">printf '%s\n'</a> over the three named variables, one argument per line. Because
+  <code>&gt;&gt;</code> creates the file when it is absent, "no <code>.gitignore</code> at
+  all" and "no exclude file at all" need no branch of their own.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 57"><span class="l"></span>
+<span class="l"><span class="c"># where &lt;line&gt; &lt;file&gt; — the number of the first line of &lt;file&gt; that IS &lt;line&gt;, whole and on its own,</span></span>
+<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh checks the rule&#x27;s order — a shuffled block is refused, not reported present"><span class="c"># or the empty string when absent. -F keeps the glob literal (no regex), -x forbids a partial-line</span></span>
+<span class="l"><span class="c"># match so `x.tdd/*` does not count as `.tdd/*`, -n prefixes each hit with `&lt;lineno&gt;:` — `head -1`</span></span>
+<span class="l"><span class="c"># takes the first hit and `cut` keeps the number, which is what the ordering check below compares.</span></span>
+<span class="l"><span class="c"># `|| true` is load-bearing under `pipefail`: absent the line, grep exits 1 and the whole pipeline</span></span>
+<span class="l"><span class="c"># inherits it, which `set -e` would turn into the script dying instead of reporting "not there".</span></span>
+<span class="l">where() { grep -nxF <span class="s">"</span><span class="v">$1</span><span class="s">"</span> <span class="s">"</span><span class="v">$2</span><span class="s">"</span> | head -1 | cut -d: -f1 || true; }</span></pre></div><div class="ann-note"><p>
+  <a class="tt" data-ref="p-func" href="#p-func">where()</a> takes a line <em>and a file</em> &mdash; both destinations are asked the
+  same questions &mdash; and returns not <em>whether</em> the line is in it but
+  <strong>which line number</strong> it first appears on, so the order of the three lines
+  becomes something the script can compare. <code>-F</code> keeps the glob literal rather
+  than reading it as a regex, <code>-x</code> forbids a partial-line match so
+  <code>x.tdd/*</code> does not count as <code>.tdd/*</code>, <code>-n</code> prefixes each
+  hit with <code>&lt;lineno&gt;:</code>; <code>head -1</code> takes the first match and
+  <code>cut</code> keeps the number in front of the colon.
+</p><p>
+  <a class="tt" data-ref="p-shortcircuit" href="#p-shortcircuit">&#124;&#124; true</a> at the end is load-bearing under
+  <a class="tt" data-ref="p-strict" href="#p-strict">pipefail</a>: when the line is absent, <code>grep</code> exits 1 and the pipeline
+  would inherit that failure, which <code>set -e</code> would turn into the script dying
+  instead of reporting "not there" as an empty string.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 65"><span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh refuses a partial rule (sentinel alone) with exit 2 instead of reporting it present"></span>
+<span class="l"><span class="c"># has_rule &lt;file&gt; — true when &lt;file&gt; already carries the whole rule, in git's reading order; false</span></span>
+<span class="l"><span class="c"># when it carries none of it. Never true for a subset and never for the same three lines shuffled:</span></span>
+<span class="l"><span class="c"># with the negation last, `!.tdd/issue-*.md` un-ignores the spec the line above just re-ignored, so</span></span>
+<span class="l"><span class="c"># every line is there and the rule is not. Appending cannot repair either case — git reads a second</span></span>
+<span class="l"><span class="c"># `.tdd/*` after the negation that precedes it — so both are refused rather than rewritten: exit 2,</span></span>
+<span class="l"><span class="c"># the "no answer could be obtained" code, fails the conductor's preflight before a cycle starts</span></span>
+<span class="l"><span class="c"># committing its scratch. (`exit` inside a function that is not a subshell ends the script, which is</span></span>
+<span class="l"><span class="c"># what this wants: there is nothing to report once the file is un-appendable.)</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Both destinations are asked this, and it is asked before either is written: appending blind is</span></span>
+<span class="l"><span class="c"># what makes a resumed run — the conductor re-runs step 1.4 — double the block in info/exclude,</span></span>
+<span class="l"><span class="c"># which nothing commits and nothing reads back, so the duplicate would sit in the caller's ignore</span></span>
+<span class="l"><span class="c"># rules forever, three more lines per run.</span></span>
+<span class="l">has_rule() {</span>
+<span class="l">  <span class="k">local</span> file=<span class="s">"</span><span class="v">$1</span><span class="s">"</span> at_all at_ledger at_spec</span>
+<span class="l">  [ -f <span class="s">"</span><span class="v">$file</span><span class="s">"</span> ] || <span class="k">return</span> 1</span>
+<span class="l">  at_all=<span class="s">"$(where "</span><span class="v">$ignore_all</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
+<span class="l">  at_ledger=<span class="s">"$(where "</span><span class="v">$keep_ledger</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
+<span class="l">  at_spec=<span class="s">"$(where "</span><span class="v">$drop_spec</span><span class="s">" "</span><span class="v">$file</span><span class="s">")"</span></span>
+<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh checks the rule&#x27;s order — a shuffled block is refused, not reported present">  <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$at_all</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> ] &amp;&amp; [ -n <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ] \</span>
+<span class="l">    &amp;&amp; [ <span class="s">"</span><span class="v">$at_all</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> ] &amp;&amp; [ <span class="s">"</span><span class="v">$at_ledger</span><span class="s">"</span> -lt <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">    <span class="k">return</span> 0</span>
+<span class="l">  <span class="k">fi</span></span>
+<span class="l">  <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$at_spec</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">    echo <span class="s">"ensure-run-state-ignored: </span><span class="v">$file</span><span class="s"> carries veri's run-state rule only in part, or with its lines out of order — fix it by hand"</span> &gt;&amp;2</span>
+<span class="l hunk" data-tag="v0.12" title="ensure-run-state-ignored.sh refuses a partial rule (sentinel alone) with exit 2 instead of reporting it present">    <span class="k">exit</span> 2</span>
+<span class="l">  <span class="k">fi</span></span>
+<span class="l">  <span class="k">return</span> 1</span>
+<span class="l">}</span></pre></div><div class="ann-note"><p>
+  <a class="tt" data-ref="p-func" href="#p-func">has_rule()</a> is the standard, and it is stricter than "all three lines exist":
+  <strong>already present means the whole rule, in git's reading order, never a subset and
+  never the same three lines shuffled.</strong> With the negation last,
+  <code>!.tdd/issue-*.md</code> un-ignores the spec the line above it just re-ignored, so
+  every line can be present while the rule itself is not. Lines 83&ndash;85 capture where
+  each line falls with <code>where()</code>; lines 86&ndash;87 require all three to exist
+  <em>and</em> to fall in ascending order before returning true.
+</p><div class="note"><span class="tag">Refused, not repaired</span><p>
+  Anything short of that &mdash; one line missing, or the three lines out of order &mdash;
+  cannot be mended by appending a fourth line, because git only ever reads a rule top to
+  bottom and a second <code>.tdd/*</code> appended after an existing negation cannot
+  retroactively change what precedes it. So the script refuses instead, with
+  <span class="ec ec-2"><b>2</b></span> &mdash; the "no answer could be obtained" code &mdash;
+  which fails the conductor's preflight loudly, before a cycle starts committing scratch
+  state into a target repo that was never actually protected. <code>exit</code> inside a
+  function that is not a subshell ends the whole script, which is what this wants: there is
+  nothing left to report once a destination is un-appendable.
+</p></div><p>
+  Asking this of the <em>exclude</em> file too is what makes the second write idempotent, and
+  that matters more there than in the <code>.gitignore</code>. The conductor re-runs
+  step&nbsp;1.4 on a resumed run; nothing commits <code>info/exclude</code> and nothing reads
+  it back, so an append made blind would sit in the caller's ignore rules forever, three more
+  lines every run.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 95"><span class="l"></span>
+<span class="l"><span class="c"># The word the conductor keys off, decided here rather than at the echo below: the .gitignore has to</span></span>
+<span class="l"><span class="c"># be *asked* first, so that a partial or misordered one aborts before anything is written, but it is</span></span>
+<span class="l"><span class="c"># *appended* last, after the exclude file. Holding the answer as the word it will print keeps those</span></span>
+<span class="l"><span class="c"># two moments from needing a sentinel whose spelling has to stay in step with two echo sites.</span></span>
+<span class="l"><span class="k">if</span> has_rule <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span>; <span class="k">then</span></span>
+<span class="l">  verdict=<span class="s">"already present"</span></span>
+<span class="l"><span class="k">else</span></span>
+<span class="l">  verdict=<span class="s">"added"</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  The word the conductor keys off is decided <em>here</em>, before either file is written,
+  and it is about the <code>.gitignore</code> alone: <code>added</code> when that file does
+  not yet carry the rule, <code>already present</code> when it does.
+</p><p>
+  Deciding it early is what lets the two writes below happen in the order they need. The
+  <code>.gitignore</code> has to be <strong>asked</strong> first, so that a partial or
+  misordered one aborts with <span class="ec ec-2"><b>2</b></span> before anything anywhere is
+  written &mdash; but it is <strong>appended</strong> last, after the exclude file. Holding
+  the answer as the word it will print keeps those two moments apart without a yes/no
+  sentinel whose spelling would have to stay in step with two separate echo sites.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 105"><span class="l"></span>
+<span class="l"><span class="c"># The exclude file is written whatever the .gitignore turned out to be: a repo that already carries</span></span>
+<span class="l"><span class="c"># the rule in history (veri's own, #27) still has a caller's checkout that has never been told to</span></span>
+<span class="l"><span class="c"># ignore .tdd/. The .gitignore's refusal comes first, so a .gitignore we will not touch leaves this</span></span>
+<span class="l"><span class="c"># file untouched too.</span></span>
+<span class="l"><span class="k">if</span> ! has_rule <span class="s">"</span><span class="v">$exclude</span><span class="s">"</span>; <span class="k">then</span></span>
+<span class="l">  append_rule <span class="s">"</span><span class="v">$exclude</span><span class="s">"</span></span>
+<span class="l"><span class="k">fi</span></span>
 <span class="l"></span>
-<span class="l">echo <span class="s">"added"</span></span></pre></div><div class="ann-note"><p>
-  The write itself: <a class="tt" data-ref="p-printf" href="#p-printf">printf '%s\n'</a> over the three named variables, one argument
-  per line, appended with <a class="tt" data-ref="p-redirect" href="#p-redirect">&gt;&gt;</a>. Because the same redirect creates the file
-  when it is absent, the "no <code>.gitignore</code> at all" case needs no branch of its own.
-  The final line is the report the conductor keys off.
+<span class="l"><span class="k">if</span> [ <span class="s">"</span><span class="v">$verdict</span><span class="s">"</span> = added ]; <span class="k">then</span></span>
+<span class="l">  append_rule <span class="s">"</span><span class="v">$gitignore</span><span class="s">"</span></span>
+<span class="l"><span class="k">fi</span></span>
+<span class="l"></span>
+<span class="l">echo <span class="s">"</span><span class="v">$verdict</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
+  The two writes, then the report. The exclude file is ensured <strong>whatever the
+  <code>.gitignore</code> turned out to be</strong>: a repo that already carries the rule in
+  history &mdash; veri's own does &mdash; still has a caller's
+  checkout that has never been told to ignore <code>.tdd/</code>. So
+  <code>already present</code> on stdout does not mean nothing was written; it means nothing
+  is there to <em>commit</em>.
 </p><p>
   <strong>And the conductor's half of that contract</strong>, so you need not go to
   <code>SKILL.md</code> for it: on <code>added</code> it commits the edited
@@ -1521,7 +1646,9 @@ html{scroll-behavior:smooth}
   <code>git add .gitignore &amp;&amp; git commit -m "chore: ignore veri run state (#&lt;n&gt;)"</code>.
   On <code>already present</code> there is nothing to commit and it moves straight on. Either
   way the rule is in history before the first cycle's <code>git add -A</code> runs, which is
-  the whole point of doing this in step&nbsp;1.4 rather than later.
+  the whole point of doing this in step&nbsp;1.4 rather than later &mdash; and either way the
+  caller's checkout is already ignoring <code>.tdd/</code>, which is what lets the
+  <em>next</em> run's preflight find it clean.
 </p></div></div></div>
 
 <h3 id="detect-test-command"><code>detect-test-command.sh</code> &mdash; the one command that runs the suite<span class="vbadge">since <b>v0.16</b> &middot; changed <b>v0.22</b></span></h3>
@@ -3830,7 +3957,7 @@ html{scroll-behavior:smooth}
   &mdash; the plumbing broke, rather than the loop simply running out.
 </p></div></div></div>
 
-<h3 id="solvable-issues"><code>solvable-issues.sh</code> &mdash; the selection gate<span class="vbadge">since <b>v0.19</b></span></h3>
+<h3 id="solvable-issues"><code>solvable-issues.sh</code> &mdash; the selection gate<span class="vbadge">since <b>v0.19</b> &middot; changed <b>v0.23</b></span></h3>
 <p>
   Every script before this one assumes the issue is already chosen. This is what rung 2
   of the <a href="https://github.com/ztrange/veri/blob/main/CONTEXT.md">scope
@@ -3932,7 +4059,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># would quietly take one for the other. Fail closed like refactor-budget.sh does on a</span></span>
 <span class="l"><span class="c"># malformed budget: a diagnostic on stderr, exit 2 — no answer could be obtained — and</span></span>
 <span class="l"><span class="c"># nothing on stdout for a caller to mistake for a pool.</span></span>
-<span class="l"><span class="k">if</span> [[ -z <span class="s">"</span><span class="v">${VERI_LABEL-x}</span><span class="s">"</span> ]]; <span class="k">then</span></span>
+<span class="l hunk" data-tag="v0.23" title="refuse an empty VERI_LABEL with exit 2"><span class="k">if</span> [[ -z <span class="s">"</span><span class="v">${VERI_LABEL-x}</span><span class="s">"</span> ]]; <span class="k">then</span></span>
 <span class="l">  echo <span class="s">"solvable-issues: VERI_LABEL is set but empty: name a label or leave it unset"</span> &gt;&amp;2</span>
 <span class="l">  <span class="k">exit</span> 2</span>
 <span class="l"><span class="k">fi</span></span>
@@ -3964,7 +4091,7 @@ html{scroll-behavior:smooth}
   does on a malformed budget: a diagnostic on stderr with <a class="tt" data-ref="p-redirect" href="#p-redirect">&gt;&amp;2</a>, then
   <a href="#exitcodes">exit code 2</a> &mdash; no answer could be obtained, the plumbing is
   wrong &mdash; and nothing on stdout for a caller to mistake for a pool.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 60"><span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 60"><span class="l hunk" data-tag="v0.23" title="refuse an empty VERI_LABEL with exit 2"></span>
 <span class="l"><span class="c"># One document, from whichever of the two sources is in force. Both the override and the</span></span>
 <span class="l"><span class="c"># `--repo` scoping are decided here rather than around the pair of fetches, so each document</span></span>
 <span class="l"><span class="c"># is named exactly once — beside the gh call that produces it and the fixture that stands in</span></span>
@@ -4008,7 +4135,7 @@ html{scroll-behavior:smooth}
 <span class="l"></span>
 <span class="l"><span class="s">issues = json.loads(sys.argv[1])</span></span>
 <span class="l"><span class="s">prs = json.loads(sys.argv[2])</span></span>
-<span class="l"><span class="s">label = sys.argv[3]</span></span></pre></div><div class="ann-note"><p>
+<span class="l hunk" data-tag="v0.23" title="read the opt-in label from VERI_LABEL"><span class="s">label = sys.argv[3]</span></span></pre></div><div class="ann-note"><p>
   <a class="tt" data-ref="p-exec" href="#p-exec">exec python3 -c '…'</a> hands the rest of the script to Python outright, the same
   move <a href="#extract-result"><code>extract-result.sh</code></a> makes and for a
   related reason: the JSON is on the command line here, not on stdin, so there is no
@@ -4077,7 +4204,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="s">    here rather than run as early returns so the function reads as the definition it is."""</span></span>
 <span class="l">    number = issue[<span class="s">"number"</span>]</span>
 <span class="l">    still_open = number <span class="k">in</span> open_issues</span>
-<span class="l">    opted_in = any(l.get(<span class="s">"name"</span>) == label <span class="k">for</span> l <span class="k">in</span> issue.get(<span class="s">"labels"</span>, []))</span>
+<span class="l hunk" data-tag="v0.23" title="read the opt-in label from VERI_LABEL">    opted_in = any(l.get(<span class="s">"name"</span>) == label <span class="k">for</span> l <span class="k">in</span> issue.get(<span class="s">"labels"</span>, []))</span>
 <span class="l">    unclaimed = number not <span class="k">in</span> claimed</span>
 <span class="l">    unblocked = all(n not <span class="k">in</span> open_issues <span class="k">for</span> n <span class="k">in</span> blockers(issue.get(<span class="s">"body"</span>, <span class="s">""</span>)))</span>
 <span class="l">    <span class="k">return</span> still_open and opted_in and unclaimed and unblocked</span></pre></div><div class="ann-note"><p>
@@ -4101,7 +4228,7 @@ html{scroll-behavior:smooth}
 <span class="l"><span class="c"># learns it from the code rather than from having to notice that stdout was empty.</span></span>
 <span class="l"><span class="k">if</span> not numbers:</span>
 <span class="l">    sys.exit(3)</span>
-<span class="l"><span class="s">' "$issues_json" "$prs_json" "$label"</span></span></pre></div><div class="ann-note"><p>
+<span class="l hunk" data-tag="v0.23" title="read the opt-in label from VERI_LABEL"><span class="s">' "$issues_json" "$prs_json" "$label"</span></span></pre></div><div class="ann-note"><p>
   The numbers, sorted, one per line. <code>sys.exit(3)</code> when none qualify is not an
   afterthought: it is the same <a href="#exitcodes">exit code 3</a> as everywhere else in
   veri, "nothing to do" rather than an error, so a caller looping over this script's
@@ -4183,7 +4310,7 @@ html{scroll-behavior:smooth}
       <code>if</code>, but <code>(( count++ ))</code> as a bare statement under
       <a class="ref" href="#p-strict">set -e</a> will kill your script when the count is zero.
       veri sidesteps it entirely with <code>x=$(( x + 1 ))</code>.
-    </p><p class="seen"><code>supervise.sh</code> — both clocks and the retry counter.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></div><div class="card" id="p-case"><code class="card-sig">case "$x" in … esac</code><p class="card-name">Pattern dispatch</p><p class="seen"><code>classify-bail.sh</code> is essentially nothing else; also the status→exit-code mapping in <code>supervise.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#issue-worktree"><code>issue-worktree.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-shortcircuit"><code class="card-sig">cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2</code><p class="card-name">Short-circuit chaining</p><p>
+    </p><p class="seen"><code>supervise.sh</code> — both clocks and the retry counter.</p><p class="used-by"><b>Referenced from</b><a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></p></div><div class="card" id="p-case"><code class="card-sig">case "$x" in … esac</code><p class="card-name">Pattern dispatch</p><p class="seen"><code>classify-bail.sh</code> is essentially nothing else; also the status→exit-code mapping in <code>supervise.sh</code>.</p><p class="used-by"><b>Referenced from</b><a href="#issue-worktree"><code>issue-worktree.sh</code></a>, <a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a>, <a href="#supervise"><code>supervise.sh</code></a>, <a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a>, <a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a>, <a href="#parse-verdict"><code>parse-verdict.sh</code></a>, <a href="#classify-bail"><code>classify-bail.sh</code></a></p></div><div class="card" id="p-shortcircuit"><code class="card-sig">cmd1 || cmd2 &nbsp;·&nbsp; cmd1 &amp;&amp; cmd2</code><p class="card-name">Short-circuit chaining</p><p>
       A second, subtler use: a command on the left of <code>||</code> is exempt from
       <a class="ref" href="#p-strict">set -e</a>, because its failure is being handled. That
       is why <code>cmd || true</code> is the idiom for "let this one fail harmlessly".
@@ -4328,7 +4455,7 @@ html{scroll-behavior:smooth}
 <div class="tbl-wrap">
 <table>
   <thead><tr><th>Script</th><th class="num">Lines</th><th>Stage</th></tr></thead>
-  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">63</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">138</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">132</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">37</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">129</td><td>5 &middot; or bail</td></tr></tbody>
+  <tbody><tr><td><a href="#issue-worktree"><code>issue-worktree.sh</code></a></td><td class="num">169</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#ensure-run-state-ignored"><code>ensure-run-state-ignored.sh</code></a></td><td class="num">119</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#detect-test-command"><code>detect-test-command.sh</code></a></td><td class="num">138</td><td>0 &middot; prepare the target</td></tr><tr><td><a href="#next-unchecked"><code>next-unchecked.sh</code></a></td><td class="num">25</td><td>1 &middot; read the ledger</td></tr><tr><td><a href="#supervise"><code>supervise.sh</code></a></td><td class="num">130</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#run-leaf"><code>run-leaf.sh</code></a></td><td class="num">52</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#extract-result"><code>extract-result.sh</code></a></td><td class="num">35</td><td>2 &middot; run a leaf</td></tr><tr><td><a href="#build-verify-prompt"><code>build-verify-prompt.sh</code></a></td><td class="num">58</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#build-develop-prompt"><code>build-develop-prompt.sh</code></a></td><td class="num">132</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#verify"><code>verify.sh</code></a></td><td class="num">73</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#parse-verdict"><code>parse-verdict.sh</code></a></td><td class="num">95</td><td>3 &middot; verify the claim</td></tr><tr><td><a href="#tick-criterion"><code>tick-criterion.sh</code></a></td><td class="num">24</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-ledger"><code>tick-ledger.sh</code></a></td><td class="num">18</td><td>4 &middot; record the result</td></tr><tr><td><a href="#tick-issue-criterion"><code>tick-issue-criterion.sh</code></a></td><td class="num">39</td><td>4 &middot; record the result</td></tr><tr><td><a href="#classify-bail"><code>classify-bail.sh</code></a></td><td class="num">23</td><td>5 &middot; or bail</td></tr><tr><td><a href="#refactor-budget"><code>refactor-budget.sh</code></a></td><td class="num">37</td><td>5 &middot; or bail</td></tr><tr><td><a href="#solvable-issues"><code>solvable-issues.sh</code></a></td><td class="num">129</td><td>5 &middot; or bail</td></tr></tbody>
 </table>
 </div>
 <p>
@@ -4380,7 +4507,7 @@ html{scroll-behavior:smooth}
     <strong>veri, Annotated</strong> &mdash; the complete source of veri's
     <code>/solve-issue</code> conductor, read line by line.
   </p>
-  <p class="mono">17 scripts &middot; 1240 lines &middot; generated by docs/build-walkthrough.py</p>
+  <p class="mono">17 scripts &middot; 1296 lines &middot; generated by docs/build-walkthrough.py</p>
 </footer>
 </div>
 
