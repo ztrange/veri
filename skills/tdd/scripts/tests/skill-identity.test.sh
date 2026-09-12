@@ -252,6 +252,12 @@ old_cmds=()
 for stub in "${stubs[@]}"; do
   old_cmds+=("/$(stub_name "$stub")")
 done
+# Those two names as one alternation, since every probe that looks for either wants both:
+# case 5 anchors this to a "not part of a path" boundary to sweep the sources, and case 8
+# wraps it in the surrounding characters it quotes out of the generated page. Written once
+# here so neither re-lists the names — which is also what keeps this file out of its own
+# results, the strings being assembled from `stubs` and never spelled anywhere.
+old_cmd_alt="(${old_cmds[0]}|${old_cmds[1]})"
 
 # The one file that names the old commands without being a source of them: docs/walkthrough.html
 # is generated, never hand-edited ("Never edit it by hand" — CLAUDE.md), and its prose comes
@@ -271,9 +277,9 @@ name="no tracked file outside the two stubs names ${old_cmds[0]} or ${old_cmds[1
 problems=()
 # The leading group is the "not part of a path" test: start of line, or a character that
 # cannot be the tail of a path component. It is what keeps `skills/solve-issue/SKILL.md`
-# out of this case and in case 2's, and both old names in the alternation because the
+# out of this case and in case 2's, and both old names ride in $old_cmd_alt because the
 # plural is a command in its own right, not an inflection of the singular.
-cmd_re="(^|[^[:alnum:]_/.-])(${old_cmds[0]}|${old_cmds[1]})"
+cmd_re="(^|[^[:alnum:]_/.-])$old_cmd_alt"
 sweep -E "$cmd_re" || problems+=("git grep failed with exit $?")
 while IFS= read -r f; do
   [[ -n "$f" ]] || continue
@@ -461,10 +467,10 @@ else
   offences="$(grep -cE "$cmd_re" <<< "$body")"
   if [[ "$offences" -gt 0 ]]; then
     # This page's lines run to thousands of characters, so quote the neighbourhood of the
-    # first offence; the head of its line usually does not contain it. The alternation is
-    # taken from $old_cmds rather than written out, as everywhere else in this suite, so
-    # the file sweeping for these strings still does not contain them.
-    where="$(grep -oE ".{0,40}(${old_cmds[0]}|${old_cmds[1]}).{0,40}" <<< "$body" | head -1)"
+    # first offence; the head of its line usually does not contain it. $old_cmd_alt without
+    # the boundary group: the surrounding characters are what is being quoted here, so a
+    # match mid-path is still the neighbourhood the grep above counted.
+    where="$(grep -oE ".{0,40}${old_cmd_alt}.{0,40}" <<< "$body" | head -1)"
     problems+=("$generated_page still names an old command on $offences line(s) — run make docs; first: …${where}…")
   fi
 fi
