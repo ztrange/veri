@@ -203,26 +203,37 @@ SKILL="$HERE/../../SKILL.md"
 narration="$(awk '/^#### Refactor loop/ { inside = 1; next }
                   inside && /^#{1,6} / { exit }
                   inside' "$SKILL" | tr '\n' ' ')"
+
+# One claim, one miss: record the complaint unless the narration matches. Same shape as
+# `doc_claims` in solvable-issues.test.sh, and for the same reason — what it collapses is the
+# accumulator, so five probes cannot drift into reporting misses in five shapes, while the
+# grep arguments stay at the call site, where the difference between a literal protocol token
+# and a loosely-matched sentence is the point. `-e` because a pattern is data, not a flag.
+narrates() {  # narrates <complaint> <grep argument…>
+  local complaint="$1"; shift
+  grep -q "$@" <<<"$narration" || problems="$problems; $complaint"
+}
+
 problems=""
 if [[ -z "$narration" ]]; then
   problems="$problems; no '#### Refactor loop' section in SKILL.md — the narration could not be read"
 else
-  grep -qi 'nothing left to tidy' <<<"$narration" ||
-    problems="$problems; the narration never names the nothing-left-to-tidy stop"
-  grep -qi 'budget' <<<"$narration" ||
-    problems="$problems; the narration never names the budget stop"
+  narrates "the narration never names the nothing-left-to-tidy stop" \
+    -i -e 'nothing left to tidy'
+  narrates "the narration never names the budget stop" \
+    -i -e 'budget'
   # The protocol token, spelled as the leaf spells it, so the conductor is told where the
   # leftovers come from rather than left to summarise the transcript.
-  grep -q 'CANDIDATES:' <<<"$narration" ||
-    problems="$problems; the narration never names the leaf's CANDIDATES: line"
+  narrates "the narration never names the leaf's CANDIDATES: line" \
+    -e 'CANDIDATES:'
   # A listing verb beside the candidates, in either order, and within one sentence of them.
-  grep -qiE '(list|lists|listing|enumerate)[^.]{0,80}candidate|candidate[^.]{0,80}(list|lists|listing|enumerate)' <<<"$narration" ||
-    problems="$problems; the narration does not say the comment lists those candidates"
+  narrates "the narration does not say the comment lists those candidates" \
+    -iE -e '(list|lists|listing|enumerate)[^.]{0,80}candidate|candidate[^.]{0,80}(list|lists|listing|enumerate)'
   # The count — `N left`, `how many candidates`, any wording that quantifies what was left.
   # A bare `n` only counts when the next word is `candidates` or `left`, so the
   # `nothing left to tidy` already there cannot answer for it.
-  grep -qiE '(how many|number of|count of|(^|[^[:alnum:]])n)[[:space:]]+(candidates?|left)' <<<"$narration" ||
-    problems="$problems; the narration does not say how many candidates the budget left"
+  narrates "the narration does not say how many candidates the budget left" \
+    -iE -e '(how many|number of|count of|(^|[^[:alnum:]])n)[[:space:]]+(candidates?|left)'
 fi
 [[ -z "$problems" ]] \
   && ok || no "SKILL.md's Refactor narration tells nothing-left-to-tidy from stopped-by-budget and lists the N candidates from the leaf's CANDIDATES: lines (${problems#; })"
