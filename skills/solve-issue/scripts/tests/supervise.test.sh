@@ -118,10 +118,15 @@ retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
 #    .tdd/<name>.rc carries); and a killed-stuck leaf — which never writes an rc file at
 #    all — still writes 2, so the waiter learns the answer instead of waiting out its
 #    budget. Fresh names, so no earlier case's file can stand in for a missing one.
-exitfile_of() { cat "$work/.tdd/$1.exit" 2>/dev/null || echo '<missing>'; }
-sup exit-ok    5 10 leaf-ok   ; eok="$(exitfile_of exit-ok)"
-sup exit-fail  5 10 leaf-fail ; efail="$(exitfile_of exit-fail)"
-sup exit-stuck 1 30 leaf-hang ; estuck="$(exitfile_of exit-stuck)"
+#
+# recorded_code <name> <heartbeat> <timeout> <leaf> — run one leaf through sup() and echo
+# what landed in .tdd/<name>.exit, or '<missing>' if nothing did. The name is written once
+# per arm, so the run and the file read cannot drift onto different leaves: naming them
+# separately, a typo would read some earlier case's file and pass on it.
+recorded_code() { sup "$@"; cat "$work/.tdd/$1.exit" 2>/dev/null || echo '<missing>'; }
+eok="$(recorded_code    exit-ok    5 10 leaf-ok)"
+efail="$(recorded_code  exit-fail  5 10 leaf-fail)"
+estuck="$(recorded_code exit-stuck 1 30 leaf-hang)"
 { [[ "$eok" == 0 ]] && [[ "$efail" == 1 ]] && [[ "$estuck" == 2 ]]; } && ok \
   || no ".tdd/<name>.exit records the supervisor's own final code, killed-stuck included (success=$eok want 0, failure=$efail want 1, killed-stuck=$estuck want 2)"
 
