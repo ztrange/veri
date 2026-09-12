@@ -533,6 +533,66 @@ PY
   fi
 }
 
+# prose_chip_git <name> <expected-report> <mutator...>
+# prose_git asks gitmeta which version answers for a span of docs/wt/commentary.py, handing
+# it the span. This one asks the BUILD the whole question: work the spans out for yourself
+# from the chunks you loaded, blame them, and mark the chunks a later version explains.
+# Hence the page rather than the module — the chip is what a reader gets, and the build
+# having the right answer internally is worth nothing if it never reaches the markup.
+#
+# The report is one line per MARKED commentary column — `<script> <first>-<last> <tag>` —
+# and the whole of it is compared rather than searched, for hunks_git reasons: a chunk the
+# build marked and should not have is as wrong as one it left plain. `<first>-<last>` is
+# the chunk's range in the SCRIPT, not its span in commentary.py: the page records the
+# former (it is the listing beside the prose) and nothing in the markup says the latter.
+#
+# A row is read as marked when a version tag appears in its commentary half — the text
+# past the `</pre>` that closes the source half. `data-tag="vX.Y"` is what is looked for
+# because that is the page's existing vocabulary for "this element belongs to that
+# version": the source-side hunk wrapper carries one, app.js selects on it, and the
+# stylesheet draws the chip from `attr(data-tag)`. Which element under the column holds it
+# — the column itself, a chip span inside it — is left free, and so is the class the
+# column is spelled with.
+prose_chip_git() {
+  local name="$1" want="$2"; shift 2
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  got="$( cd "$d" && python3 - page.html 2>&1 <<'PY'
+import re, sys
+page = open(sys.argv[1]).read()
+# The listing of one chunk: its first line is the counter the build seeds, and the lines
+# below it are joined by newlines, so the count of those is how far the chunk runs.
+PRE = re.compile(r'<pre class="src"[^>]*counter-reset: ln (\d+)"[^>]*>(.*?)</pre>', re.S)
+TAG = re.compile(r'data-tag="(v\d+\.\d+)"')
+
+for block in page.split('<div class="ann-head"><span class="fname">')[1:]:
+    fname = block.split('</span>', 1)[0]
+    for row in block.split('<div class="ann-row">')[1:]:
+        listing = PRE.search(row)
+        if not listing:
+            continue
+        first = int(listing.group(1)) + 1
+        last = first + listing.group(2).count("\n")
+        mark = TAG.search(row[listing.end():])
+        if mark:
+            print("%s %d-%d %s" % (fname, first, last, mark.group(1)))
+PY
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, page read exit $read_code)"
+    echo "    want the marked commentary columns to be:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "${got:-none}" | sed 's/^/      /' | head -6
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # hunk_map_git <name> <expected-report> <mutator...>
 # The page's markup can say "this line starts a v0.2 hunk" and nothing more: the wrapper
 # <span> carries the tag and the description, but it is keyed by line and it stops where
@@ -1539,6 +1599,18 @@ rewrite_line_as_feat() {
   rewrite_hunk_as_feat "$file" "$lineno" "$lineno" "$@"
 }
 
+# prose_line <needle> -> the line number of docs/wt/commentary.py that carries <needle>
+# The rewrite mutators take a line NUMBER, which is fine for the scripts — a case names
+# line 3 of classify-bail.sh and line 3 stays line 3. commentary.py is the file this repo
+# edits most, so a number written down here would drift into some other chunk, and the
+# case would quietly start asking about prose nobody meant. So the line is looked up by
+# the sentence in it, and the lookup refuses rather than guesses: no match, or more than
+# one, prints nothing and the mutator that consumes it fails loudly on an empty argument.
+prose_line() {
+  local hits; hits="$(grep -nF "$1" docs/wt/commentary.py | cut -d: -f1)"
+  [[ "$(printf '%s\n' "$hits" | grep -c .)" == 1 ]] && printf '%s' "$hits"
+}
+
 # rewrite_line_as_refactor <file> <line-no> <text> <subject>
 # The same rewrite, landed as a NON-behaviour commit — and deliberately with no tag of
 # its own, because a refactor does not change what veri can do, so veri's own convention
@@ -1569,7 +1641,7 @@ tag_feat_outside_the_scripts() {
   printf '\n/* %s */\n' "$1" >> docs/wt/style.css
   git add -A && git commit -qm "$1" && git tag -a "$2" -m "what $2 can do"
 }
-export -f append_line_to_script sed_commentary rewrite_line_as_refactor
+export -f append_line_to_script sed_commentary rewrite_line_as_refactor prose_line
 export -f rewrite_hunk_as_feat rewrite_line_as_feat
 export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts
 
@@ -2263,6 +2335,43 @@ prose_git "a commentary span reports the version its newest behaviour commit shi
            rewrite_line_as_refactor docs/wt/commentary.py 7 \
              "# reflowed by the refactor commit" \
              "refactor: reflow line 7 of commentary.py"'
+
+# 30. and the reader has to be told. Case 29 stops at gitmeta, which is handed the span and
+#     answers with a version; the build is what has to come up with the spans in the first
+#     place — the chunks live in a python literal and their line ranges in commentary.py
+#     are nowhere in it — and then put the answer on the page beside the prose it dates.
+#     Same bar as a source hunk, so the same two halves, on the same script:
+#
+#       chunk L1-7,  whose paragraph a v0.2 feat: reworded  -> a v0.2 chip on its
+#                                                              commentary column, because
+#                                                              v0.2 is later than
+#                                                              classify-bail.sh's own since
+#                                                              of v0.1
+#       chunk L8-11, whose paragraph a refactor: reworded    -> nothing. A prose tidy is not
+#                                                              a new explanation
+#
+#     The refactor lands BEFORE v0.2 is cut, for the reason case 11's refactor case spells
+#     out: v0.2 therefore CONTAINS it, so a build that never looked at the commit type
+#     would chip L8-11 with v0.2 too and the second report line would appear. Without that
+#     ordering the chunk would go unchipped for the wrong reason — no tag contains the
+#     commit — and the negative half would be green against an implementation that has no
+#     rule at all.
+#     Everything else on the page is still on the single v0.1 commit that sandbox_git lands
+#     the whole tree as, which is not later than any script's since, so one report line is
+#     the whole report: a build that chipped every chunk, or chipped by file rather than by
+#     chunk, shows up as the extra lines it prints.
+#     The paragraphs are found by their sentences rather than by line number — see
+#     prose_line — because commentary.py is the file this repo rewrites most.
+prose_chip_git "a chunk explained by a later version is chipped, a retidied one is not" \
+  'classify-bail.sh 1-7 v0.2' \
+  bash -c 'rewrite_line_as_refactor docs/wt/commentary.py \
+             "$(prose_line "The cause arrives as an argument")" \
+             "  This paragraph was reflowed by the refactor commit." \
+             "refactor: reflow the L8-11 paragraph of classify-bail.sh"
+           rewrite_line_as_feat docs/wt/commentary.py \
+             "$(prose_line "A short header for a short script")" \
+             "  This paragraph was reworded by the v0.2 commit." \
+             "feat: reword the L1-7 paragraph of classify-bail.sh (#2)" v0.2'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of

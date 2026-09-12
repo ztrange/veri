@@ -170,6 +170,15 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
 .ann-note ul{margin:0 0 11px;padding-left:19px}
 .ann-note li{margin-bottom:5px;font-size:14.6px}
 .ann-note.quiet{color:var(--ink-faint);font-style:italic;font-size:14px}
+/* The commentary column's version chip: the same claim as a hunk's, on the other half of
+   the row — this explanation was last rewritten by a capability later than the one the
+   script arrived in. Floated rather than placed in the flow so it sits beside the first
+   line of prose instead of pushing the paragraph down, and it comes first in the markup
+   because a float only moves up to the line box it is declared in. */
+.ann-note .ann-tag{float:right;margin:1px 0 2px 10px;padding:0 4px;border-radius:3px;
+  font-family:"JetBrains Mono",monospace;font-size:9.5px;line-height:1.5;
+  letter-spacing:.02em;color:var(--accent);background:var(--accent-wash);
+  user-select:none}
 pre.src{margin:0;font-family:"JetBrains Mono",monospace;font-size:12.4px;
   line-height:1.72;color:var(--code-ink);tab-size:2}
 /* Hanging indent: the line number sits in a 6.5em gutter and the code hangs to its

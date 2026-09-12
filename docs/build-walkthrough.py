@@ -196,11 +196,12 @@ def render_script(spec):
         a, b = ch["lines"]
         note = refs(ch.get("html", ""), fname)
         cls = " quiet" if ch.get("quiet") else ""
+        chip = prose_chip(PROSE_MARKS.get((fname, ch.get("span"))))
         rows.append(
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
-            '<div class="ann-note%s">%s</div>'
-            "</div>" % (code_block(src[a - 1:b], a, fname, marks), cls, note))
+            '<div class="ann-note%s">%s%s</div>'
+            "</div>" % (code_block(src[a - 1:b], a, fname, marks), cls, chip, note))
 
     contract = ""
     if spec.get("contract"):
@@ -284,6 +285,47 @@ def hunk_marks(meta, fname):
     return (meta["marks"].get(fname) or {}).get("hunks") or {}
 
 
+def chunk_marks(meta):
+    """`{(script, chunk span): tag}` for every commentary chunk a later version explains.
+
+    The commentary half's answer to hunk_marks(). A chunk is blamed where its prose is
+    committed — docs/wt/commentary.py, by the span commentary.py recorded for it — and it
+    earns a chip on the same rule the listings use: only a version LATER than the script's
+    own `since` says anything the header badge has not already said once.
+
+    {} when there is no version layer, like its sibling, so the caller renders the page
+    with the annotation missing rather than checking whether there is one.
+    """
+    if not meta:
+        return {}
+    tags = [v["tag"] for v in meta["versions"]]
+    spans = [(s["file"], ch["span"]) for s in com.SCRIPTS for ch in s["chunks"]]
+    dated = gitmeta.prose_marks(ROOT, COMMENTARY_REL, tags, [sp for _f, sp in spans])
+    marks = {}
+    for fname, span in spans:
+        tag = dated.get(span)
+        since = (meta["marks"].get(fname) or {}).get("since")
+        if tag and since in tags and tags.index(tag) > tags.index(since):
+            marks[(fname, span)] = tag
+    return marks
+
+
+def prose_chip(tag):
+    """The version chip for one commentary chunk, or "" for a chunk no version explains.
+
+    Carries `data-tag` because that is the page's word for "this element belongs to that
+    version" — the listings' hunk spans carry it, and since-mode selects on it, so both
+    columns answer the same query. Unlike a listing's chip the tag is also written out as
+    text: a source line is asserted verbatim and can only hold the tag in an attribute,
+    while the prose column has no such constraint and a chip that needs the stylesheet to
+    have any content is one an unstyled page drops.
+    """
+    if not tag:
+        return ""
+    esc = html.escape(tag)
+    return '<span class="ann-tag" data-tag="%s">%s</span>' % (esc, esc)
+
+
 def render_reference():
     """The full reference — every construct, with computed back-links."""
     groups = []
@@ -307,11 +349,16 @@ def render_reference():
 
 
 SCRIPT_ID = {s["file"]: s["id"] for s in com.SCRIPTS}
+# The prose's own path in the repo — what `git blame` is pointed at for the commentary
+# chips, the way a script's path is for its hunks.
+COMMENTARY_REL = str((HERE / "wt" / "commentary.py").relative_to(ROOT))
 
 # The version layer, read once. None in a tree with no git or no tags — which is the
 # case docs/tests/build-guards.test.sh builds in, and that build must still succeed.
 META = gitmeta.read(ROOT, {s["file"]: str((SCRIPTS_DIR / s["file"]).relative_to(ROOT))
                            for s in com.SCRIPTS})
+# Which chunks a later version explains, read once for the same reason META is.
+PROSE_MARKS = chunk_marks(META)
 ORIGIN = gitmeta.origin_url(ROOT)
 # How many issues veri has solved by being run on itself. None in a tree that cannot
 # count them — read separately from META because it is a property of the history, not of

@@ -132,11 +132,19 @@ def _newest_tag(root, lines, tags):
     commit changed no capability — a `docs:` or `refactor:` hides what it sat on, and
     reaching past it would be guessing at which of the two wrote the words — and one whose
     commit no tag contains yet, which has not shipped in any version to report.
+
+    A commit is asked about once however many of the span's lines it wrote. That is a
+    saving and not a nicety: _first_tag_containing() forks a `git tag --contains`, a span
+    is normally one commit repeated down every line of it, and the whole of a prose file
+    gets covered by spans — so the naive form spends one process per line of it and turns
+    a one-second build into a minute-long one.
     """
     newest = None
+    asked = set()
     for sha, subject in lines:
-        if not BEHAVIOUR.match(subject):
+        if sha in asked or not BEHAVIOUR.match(subject):
             continue
+        asked.add(sha)
         tag = _first_tag_containing(root, sha, tags)
         if tag is None:
             continue

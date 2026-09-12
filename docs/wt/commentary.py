@@ -3387,3 +3387,39 @@ SCRIPTS += [dict(
 </p>'''),
     ]),
 ]
+
+
+# ── where each chunk's own prose lives ─────────────────────────────────────────
+def _record_chunk_spans():
+    """Give every chunk a `span`: the (first, last) line of THIS file it occupies.
+
+    A chunk's `lines` key is a range of the SCRIPT it explains, and that range has no
+    history — the script's line 8 is not where the paragraph about it was written. The
+    version layer asks the other question, "when was this explanation last changed", and
+    `git blame` can only answer it about the file the prose is committed in, by line.
+    Nothing in the literals above says which lines that is.
+
+    So it is read off this module's own syntax tree, once at import, rather than written
+    beside every chunk by hand: a span typed out is a second copy of a fact the source
+    already states, and it would silently go stale the first time a paragraph grew a
+    sentence. `end_lineno` is the last line of the `dict(...)` call, which for a chunk is
+    the line its closing quotes sit on.
+    """
+    import ast
+    import pathlib
+
+    tree = ast.parse(pathlib.Path(__file__).read_text())
+    spans = {}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or getattr(node.func, "id", "") != "dict":
+            continue
+        kw = {k.arg: k.value for k in node.keywords}
+        if "file" not in kw or "chunks" not in kw:      # a script dict, not a chunk
+            continue
+        spans[kw["file"].value] = [(c.lineno, c.end_lineno) for c in kw["chunks"].elts]
+    for s in SCRIPTS:
+        for ch, span in zip(s["chunks"], spans.get(s["file"], [])):
+            ch["span"] = span
+
+
+_record_chunk_spans()
