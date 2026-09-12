@@ -168,6 +168,34 @@ ignored "$wt" .tdd/issue-1.md && ledger_code=0 || ledger_code=$?
 { [[ "$log_code" == 0 ]] && [[ "$ledger_code" == 1 ]]; } \
   && ok || no "worktree with the rule in info/exclude too: still ignores .tdd/develop-red.log and still does not ignore the ledger (develop-red.log=$log_code want 0 ignored, issue-1.md=$ledger_code want 1 not ignored)"
 
+# 9. the script is idempotent across BOTH destinations. Case 2 pins the .gitignore half in a plain
+# repo; the exclude file is the half a second run can quietly double, because nothing commits it and
+# nothing reads it back — the duplicate would sit in the primary checkout's ignore rules forever,
+# growing by three lines per conductor run. A run is resumable (the conductor re-runs step 1.4 on a
+# resume), so "run it twice" is the normal case, not a pathological one.
+#
+# Same worktree layout as case 7, freshly built: the exclude file lives under the *common* git dir,
+# which for the linked worktree at .tdd/wt/1 is the primary's own $repo/.git — so one write from
+# inside the worktree has to stay one block when seen from there.
+repo="$work/twice-both"
+mkdir -p "$repo"
+git init -q -b main "$repo" >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+git_q "$repo" worktree add "$repo/.tdd/wt/1" -b tdd/1 >/dev/null 2>&1
+wt="$repo/.tdd/wt/1"
+exclude="$repo/.git/info/exclude"
+
+"$ENSURE" "$wt" >/dev/null 2>&1
+cp "$wt/.gitignore" "$work/twice-both.gitignore.before"
+cp "$exclude" "$work/twice-both.exclude.before"
+
+"$ENSURE" "$wt" >/dev/null 2>&1 && code=0 || code=$?
+cmp -s "$work/twice-both.gitignore.before" "$wt/.gitignore" && gi_same=0 || gi_same=$?
+cmp -s "$work/twice-both.exclude.before" "$exclude" && ex_same=0 || ex_same=$?
+
+{ [[ "$gi_same" == 0 ]] && [[ "$ex_same" == 0 ]] && [[ "$code" == 0 ]]; } \
+  && ok || no "second run on the same repo: leaves the worktree .gitignore and info/exclude byte-identical and exits 0 (.gitignore cmp=$gi_same want 0 identical, info/exclude cmp=$ex_same want 0 identical, exit=$code want 0)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
