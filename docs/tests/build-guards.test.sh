@@ -1815,6 +1815,96 @@ JS
   fi
 }
 
+# new_index_git <name> <version-the-reader-read> <the-script-own-since> <expected-report> <mutator...>
+# index_git asks what a choice does to the capability index when every row is a run of
+# changed lines. This asks the one row that is not a run: the version a script ARRIVED in.
+# The index is where the reader makes the choice and the only place on the page that says
+# WHERE a version changed something, so a version whose whole contribution was a new script
+# renders there as a row with nothing under it — the reader is told that version touched
+# nothing this page quotes, about a version that added a file to it. `window.__VERI_HUNKS__`
+# cannot fill that row: hunks() drops every run at or below the file's own `since`, so a
+# script that arrived whole has no hunk anywhere in it, which is why the page was given
+# each script's own `since` to rank it by.
+#
+# One page, asked twice, because the criterion is one sentence read from either end, as
+# new_script_git's is: for a reader whose version is EARLIER than the script's `since` the
+# arrival version is a row and the script is listed in it, and for one whose version IS
+# that `since` the script is listed nowhere — they have read it. A row that lists every
+# script as new is as wrong as one that lists none, and only the pair catches both.
+#
+# The report is one line per row per load — `<version asked> <tag> <entries>`, or
+# `<version asked> <tag> -` for a row with nothing under it — and the whole of it is
+# compared, because the claim is as much about the rows the script is NOT listed in as the
+# one it is. An entry is `<script> <first>-<last>` when the hunk map holds that run and
+# `<script> new` when it does not, which is how new_script_git tells a whole-script stop
+# from a hunk without this harness deciding how a build spells either: whether the row
+# renders it with a middot, a badge or the word alone is markup, and there is no DOM here
+# to read it back from. Rows sort as text within a load, as index_git has it — the order of
+# the report is not what is under test.
+new_index_git() {
+  local name="$1" before="$2" after="$3" want="$4"; shift 4
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.index !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.index(since)");
+  process.exit(1);
+}
+
+/* A row as (tag, entries), in either spelling it may be written in, as index_git has it. */
+function tagOf(row) { return Array.isArray(row) ? row[0] : row.tag; }
+function entriesOf(row) { return (Array.isArray(row) ? row[1] : row.hunks) || []; }
+
+/* Every run of lines the page knows about, as `<script> <first>-<last>`. An entry that is
+   one of these is a hunk; an entry that is not is the script itself — so the two sides of
+   that lookup are one spelling, named once: filled from the map here and asked of it in
+   entry() below, exactly as new_script_git does it for a stop. */
+function runKey(f) { return f[0] + " " + f[1] + "-" + f[2]; }
+
+var hunks = window.__VERI_HUNKS__ || {};
+var runs = {};
+Object.keys(hunks).forEach(function (tag) {
+  (hunks[tag] || []).forEach(function (entry) {
+    runs[runKey(fields(entry))] = true;
+  });
+});
+
+function entry(e) {
+  var f = typeof e === "string" ? [e] : fields(e);
+  var run = runKey(f);
+  return runs[run] ? run : f[0] + " new";
+}
+
+var rows = [];
+for (var i = 3; i < process.argv.length; i++) {
+  var since = process.argv[i];
+  var shown = (mode.index(since) || []).map(function (row) {
+    var text = entriesOf(row).map(entry);
+    text.sort();
+    return since + " " + tagOf(row) + " " + (text.length ? text.join(", ") : "-");
+  });
+  shown.sort();
+  rows = rows.concat(shown);
+}
+console.log(rows.join("\n"));
+JS
+  got="$(ask_page "$d" page.html "$before" "$after")" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, collapsed-index read exit $read_code)"
+    echo "    want the index shown to a reader who last read at $before, then at $after:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -10
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # checks_git <name> <mutator...>
 # Every other assertion here reads the page build-walkthrough.py produced. This one hands
 # that page to docs/check-walkthrough.py, which reads the markup back and re-derives the
@@ -2910,6 +3000,58 @@ v0.2 n arrived-whole.sh v0.6
 v0.2 p arrived-whole.sh header
 v0.3 n supervise.sh v0.4
 v0.3 n arrived-whole.sh v0.6' \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           add_script_as_feat arrived-whole.sh arrived-whole 2 \
+             "feat: a script that arrives whole (#3)" v0.3
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
+             "# rewritten by the v0.4 commit" \
+             "feat: rewrite line 8 of supervise.sh (#4)" v0.4
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
+             "# rewritten by the v0.5 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#5)" v0.5
+           rewrite_line_as_feat skills/tdd/scripts/arrived-whole.sh 2 \
+             "# rewritten by the v0.6 commit" \
+             "feat: rewrite line 2 of arrived-whole.sh (#6)" v0.6'
+
+# 31. and the index the choice is made in owes the same script the same answer. Cases 29 and
+#     30 take the reader to a new script by pressing `n`; this is the reader who does not
+#     press anything and reads the index instead, which is the only place on the page that
+#     says WHERE a version changed something. The version a script arrived in has no hunk
+#     anywhere — hunks() drops every run at or below the file's own `since` — so its row
+#     comes out empty, and an empty row is the page telling the reader that a version which
+#     added a whole file to it touched nothing they can go and look at.
+#
+#     Case 30's fixture, for its reasons — arrived-whole.sh ships in v0.3 and is rewritten
+#     in v0.6, with hunks either side of it in v0.4 and v0.5 — read as rows instead of
+#     stops. A reader who last read at v0.2 is owed four rows, and the fixture makes each
+#     one a different way of getting this wrong:
+#
+#       v0.3  the version the script arrived in  -> arrived-whole.sh new
+#       v0.4  a hunk in a script they have read  -> supervise.sh 8-8
+#       v0.5  another                            -> classify-bail.sh 5-5
+#       v0.6  a hunk INSIDE the new script       -> arrived-whole.sh 2-2, not `new` again
+#
+#     v0.6 is the row that says the script is listed under the version it ARRIVED in and not
+#     under every version that touched it: an implementation that awards the script to
+#     whichever row it can find a reason to is green on v0.3 and lists arrived-whole.sh
+#     twice. v0.4 and v0.5 are the rows it must stay out of altogether, which a row keyed by
+#     the reader's choice or by the latest tag cannot manage — both are v0.6 or v0.2 here,
+#     never v0.3.
+#     The second load is the same page at v0.3, the version it arrived in: the script is
+#     listed in no row at all, because a reader who has read it is owed what changed in it
+#     and the v0.6 row is where that is. The three surviving rows being identical in both
+#     loads is what says the arrival row is the only thing that moved.
+new_index_git "the index lists a new script under the version it arrived in" \
+  v0.2 v0.3 \
+  'v0.2 v0.3 arrived-whole.sh new
+v0.2 v0.4 supervise.sh 8-8
+v0.2 v0.5 classify-bail.sh 5-5
+v0.2 v0.6 arrived-whole.sh 2-2
+v0.3 v0.4 supervise.sh 8-8
+v0.3 v0.5 classify-bail.sh 5-5
+v0.3 v0.6 arrived-whole.sh 2-2' \
   bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
