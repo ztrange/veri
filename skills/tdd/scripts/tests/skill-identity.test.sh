@@ -258,6 +258,13 @@ done
 # here so neither re-lists the names — which is also what keeps this file out of its own
 # results, the strings being assembled from `stubs` and never spelled anywhere.
 old_cmd_alt="(${old_cmds[0]}|${old_cmds[1]})"
+# An old name used as a COMMAND and not as a path: the alternation preceded by the "not part of
+# a path" test — start of line, or a character that cannot be the tail of a path component.
+# That boundary is what keeps `skills/solve-issue/SKILL.md` out of the two sweeps below and in
+# case 2's, so naming a stub's file stays legal while telling a reader to invoke a command that
+# no longer resolves to a procedure does not. Hoisted next to the alternation it is built from
+# because both cases match on it: case 5 over the sources, case 8 over the generated page.
+cmd_re="(^|[^[:alnum:]_/.-])$old_cmd_alt"
 
 # The one file that names the old commands without being a source of them: docs/walkthrough.html
 # is generated, never hand-edited ("Never edit it by hand" — CLAUDE.md), and its prose comes
@@ -275,11 +282,6 @@ generated_page="docs/walkthrough.html"
 #    that no longer resolves to a procedure does not.
 name="no tracked file outside the two stubs names ${old_cmds[0]} or ${old_cmds[1]}"
 problems=()
-# The leading group is the "not part of a path" test: start of line, or a character that
-# cannot be the tail of a path component. It is what keeps `skills/solve-issue/SKILL.md`
-# out of this case and in case 2's, and both old names ride in $old_cmd_alt because the
-# plural is a command in its own right, not an inflection of the singular.
-cmd_re="(^|[^[:alnum:]_/.-])$old_cmd_alt"
 sweep -E "$cmd_re" || problems+=("git grep failed with exit $?")
 while IFS= read -r f; do
   [[ -n "$f" ]] || continue
