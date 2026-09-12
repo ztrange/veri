@@ -179,8 +179,8 @@ while IFS='|' read -r where file regex; do
   got="$(stated "$ROOT/$file" "$regex")"
   [[ "$got" == "$encoded" ]] || prose_misses="$prose_misses $where:says-$got"
 done <<'SITES'
-supervise.sh-header|skills/solve-issue/scripts/supervise.sh|VERI_HEARTBEAT silence window secs \(default [0-9]+
-SKILL.md-tunables|skills/solve-issue/SKILL.md|VERI_HEARTBEAT.{0,3}\(silence window s, +default [0-9]+
+supervise.sh-header|skills/tdd/scripts/supervise.sh|VERI_HEARTBEAT silence window secs \(default [0-9]+
+SKILL.md-tunables|skills/tdd/SKILL.md|VERI_HEARTBEAT.{0,3}\(silence window s, +default [0-9]+
 commentary.py-contract|docs/wt/commentary.py|VERI_HEARTBEAT</code> [0-9]+s
 commentary.py-streaming-note|docs/wt/commentary.py|[0-9]+-second silence window
 SITES
