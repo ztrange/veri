@@ -191,8 +191,14 @@
      state. Kept in a variable it would die with the tab: nothing to bookmark, nothing to
      paste to whoever asked what changed, and a reader who comes back sets it up again. The
      address bar is the one place a browser hands back on the next load, so that is where
-     it lives, as `#since=vX`; choose() writes it there and since() reads the same place,
+     it lives, as `#since=vX`; choose() writes it there and chosen() reads the same place,
      which is the whole of why reloading that URL comes up in the mode.
+
+     chosen(), not since(): lit(), litTags(), index() and walk() all take the reader's
+     version as a parameter called `since`, and a function of that name would be shadowed
+     inside every one of them — invisible exactly where a reader of this module would go
+     looking for it. It is still exported as `since`, which is what the address spells and
+     what the page's consumers ask for.
 
      Read live rather than captured at load, so the address and the mode are one fact
      instead of a copy that can lag it. The leading `#` is a delimiter the browser puts
@@ -207,7 +213,7 @@
   var HASH_PREFIX = "since=";
   var HASH_RE = new RegExp("^#?" + HASH_PREFIX + "(.+)$");
 
-  function since() {
+  function chosen() {
     var m = HASH_RE.exec(location.hash || "");
     return m ? m[1] : "";
   }
@@ -215,7 +221,7 @@
   function choose(tag) { location.hash = HASH_PREFIX + tag; }
 
   window.__VERI_SINCE__ = { lit: lit, index: index, walk: walk,
-                            since: since, choose: choose };
+                            since: chosen, choose: choose };
 })();
 
 /* veri, Annotated — scrollspy: where am I.
