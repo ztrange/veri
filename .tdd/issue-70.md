@@ -5,7 +5,7 @@
 - [x] `docs/wt/style.css` styles `.l.hunk` with a gutter chip carrying the tag text and a faint left rule spanning the hunk's extent
 - [x] with no version chosen and nothing stored, the page renders as it does today plus the visible marks, with no dimming
 - [x] choosing a version dims every hunk not tagged later than it and lights every hunk that is, ordered by git's version sort so `v0.10` ranks after `v0.9`, and a hunk tagged X itself is not lit
-- [ ] choosing a version collapses the capability index to the versions after it, and each remaining version row links to every hunk that version touched
+- [x] choosing a version collapses the capability index to the versions after it, and each remaining version row links to every hunk that version touched
 - [ ] `n` and `p`, and two buttons in the crumb bar, walk the lit hunks in page order
 - [ ] the URL hash carries `since=vX`, and reloading that URL restores the mode
 - [ ] the "mark read up to vX" button persists the choice in `localStorage` and the next load opens in since-mode; a browser that blocks storage still renders the plain page

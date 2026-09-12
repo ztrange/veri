@@ -28,10 +28,18 @@
 # Each case runs against a disposable copy of the tree, so the real repo is never
 # mutated even if a case aborts.
 #
-# One case reaches past python3 for node: since-mode is a decision the page's own JS
-# makes, and nothing in the markup records it. See since_git. node is a dependency of
-# reading the page back, never of building or shipping it, and the case fails rather than
-# skips when it is absent.
+# Two cases reach past python3 for node: since-mode is a decision the page's own JS makes,
+# and nothing in the markup records it. See ask_page, which both go through. node is a
+# dependency of reading the page back, never of building or shipping it, and those cases
+# fail rather than skip when it is absent.
+#
+# One bash trap, and it has bitten: a heredoc nested inside a $( ) is scanned for quotes
+# THROUGH its body by bash 3.2, so a lone apostrophe in one opens a quote the parser never
+# closes and the whole suite dies with "unexpected EOF" before a single case runs. The
+# python readers below are all written that way, so an apostrophe there has to be paired,
+# or sit inside a double-quoted run where bash reads it as literal — which is the only
+# thing keeping the "entry's" in a docstring below from killing the file. The JS questions
+# are out of reach of it entirely: ask_page has them written to a file first.
 #
 # Run: docs/tests/build-guards.test.sh
 set -uo pipefail
@@ -641,40 +649,15 @@ PY
   fi
 }
 
-# since_git <name> <chosen-version> <expected-report> <mutator...>
-# Every other assertion here reads what the build emitted. This one runs it: choosing a
-# version is something a reader does in a browser, and no amount of reading the markup
-# says which hunks that choice lights.
-#
-# So the page's own <script> blocks are evaluated outside a browser, in the order the
-# document lists them, against a DOM that answers every query with nothing — the tooltip
-# and scrollspy layers bail at load, exactly as they do on a page whose markup they
-# cannot find, and the version decision is what is left to ask. node is what evaluates
-# them; it is not a new dependency for the product, only for reading the page's JS back,
-# and the case fails loudly rather than skipping if it is absent.
-#
-# What it asks is `window.__VERI_SINCE__.lit(tag, since)` — truthy when a hunk tagged
-# `tag` is lit for a reader who last read at `since`. The decision has to be reachable
-# without a browser for the same reason `window.__VERI_HUNKS__` exists: the page is the
-# only place it lives, and dimming a run of lines is a class this harness cannot see.
-# The CSS half — what lit and dimmed look like — is cases 19 and 20.
-#
-# The report is one line per hunk the page carries — `<tag> <script> <first>-<last>
-# lit|dim` — and the whole of it is compared, because both halves of the claim are in it:
-# a hunk the choice should light and one it should leave dimmed are the same assertion
-# read from either end. Lines sort as text, which is why the report reads v0.10, v0.2,
-# v0.9: the ORDER of the report is not what is under test, the verdict on each line is.
-# Entries are read in either spelling the map may use, as hunk_map_git does.
-since_git() {
-  local name="$1" since="$2" want="$3"; shift 3
-  local d code read_code page got; d="$(sandbox_git)"
-  ( cd "$d" && "$@" )
-  page="$(build "$d")" && code=0 || code=$?
-  printf '%s' "$page" > "$d/page.html"
-  got="$( cd "$d" && node - page.html "$since" 2>&1 <<'JS'
+# dom_stub — the browser the page gets when there is no browser, printed on stdout: a DOM
+# that answers every query with nothing, so the tooltip and scrollspy layers bail at load
+# exactly as they do on a page whose markup they cannot find, and the layer a question is
+# about is what is left. It ends by evaluating the page's own <script> blocks in document
+# order, so whatever they hang on `window` is there for the question appended underneath.
+dom_stub() {
+  cat <<'JS'
 var fs = require("fs");
 var page = fs.readFileSync(process.argv[2], "utf8");
-var since = process.argv[3];
 
 /* A stand-in for one element: every method a page script might reach for, answering
    with nothing of its own. Written out rather than proxied so a call the stub does not
@@ -727,6 +710,51 @@ var blocks = page.match(/<script>[\s\S]*?<\/script>/g) || [];
 for (var i = 0; i < blocks.length; i++) {
   (0, eval)(blocks[i].slice("<script>".length, -"</script>".length));
 }
+JS
+}
+
+# ask_page <dir> <page> [args...]
+# Ask the page a question its markup cannot answer: run <dir>/question.js — which the
+# calling assertion has just written — against <page>, under the stub above, with node.
+# The question reads its own arguments from process.argv[3] on and prints the report its
+# case compares; stdout and stderr both come back, and the exit code is node's, so a
+# question that cannot find what it asks for says so and fails the case.
+# node is a dependency of reading the page's JS back, never of building or shipping it,
+# and a case fails rather than skips when it is absent.
+ask_page() {
+  local d="$1" page="$2"; shift 2
+  { dom_stub; cat "$d/question.js"; } > "$d/ask.js"
+  ( cd "$d" && node ask.js "$page" "$@" 2>&1 )
+}
+
+# since_git <name> <chosen-version> <expected-report> <mutator...>
+# Every other assertion here reads what the build emitted. This one runs it: choosing a
+# version is something a reader does in a browser, and no amount of reading the markup
+# says which hunks that choice lights.
+#
+# So the page is asked through ask_page, which evaluates its own <script> blocks against
+# the stub DOM above and then this question.
+#
+# What it asks is `window.__VERI_SINCE__.lit(tag, since)` — truthy when a hunk tagged
+# `tag` is lit for a reader who last read at `since`. The decision has to be reachable
+# without a browser for the same reason `window.__VERI_HUNKS__` exists: the page is the
+# only place it lives, and dimming a run of lines is a class this harness cannot see.
+# The CSS half — what lit and dimmed look like — is cases 19 and 20.
+#
+# The report is one line per hunk the page carries — `<tag> <script> <first>-<last>
+# lit|dim` — and the whole of it is compared, because both halves of the claim are in it:
+# a hunk the choice should light and one it should leave dimmed are the same assertion
+# read from either end. Lines sort as text, which is why the report reads v0.10, v0.2,
+# v0.9: the ORDER of the report is not what is under test, the verdict on each line is.
+# Entries are read in either spelling the map may use, as hunk_map_git does.
+since_git() {
+  local name="$1" since="$2" want="$3"; shift 3
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var since = process.argv[3];
 
 var mode = window.__VERI_SINCE__;
 if (!mode || typeof mode.lit !== "function") {
@@ -735,10 +763,7 @@ if (!mode || typeof mode.lit !== "function") {
 }
 
 var hunks = window.__VERI_HUNKS__ || {};
-/* (script, first, last) of one entry, in either spelling the map may use.
-   No apostrophe anywhere in this heredoc, deliberately: bash 3.2 scans for the closing
-   paren of the enclosing $( ) THROUGH a heredoc body, so a lone one here opens a quote
-   the parser never closes and the whole suite dies with "unexpected EOF". */
+/* (script, first, last) of one entry, in either spelling the map may use. */
 function fields(entry) {
   return Array.isArray(entry) ? entry.slice(0, 3)
                               : [entry.script, entry.first, entry.last];
@@ -754,13 +779,87 @@ Object.keys(hunks).forEach(function (tag) {
 rows.sort();
 console.log(rows.join("\n"));
 JS
-  )" && read_code=0 || read_code=$?
+  got="$(ask_page "$d" page.html "$since")" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
     pass=$((pass + 1))
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, since-mode read exit $read_code)"
     echo "    want, for a reader who last read at $since:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# index_git <name> <chosen-version> <expected-report> <mutator...>
+# since_git asks what a choice does to the LISTINGS; this asks what it does to the
+# capability index, which is the other half of since-mode and a different question. The
+# index at rest is every version the repo has ever cut, newest first. Choosing one
+# collapses it to the versions after that — the reader is asking what they have missed,
+# and a row for something they have already read is noise — and turns each surviving row
+# into a table of contents for that version: the hunks it touched, so the reader can go
+# straight to the lines rather than hunting the page for lit ones.
+#
+# Asked through ask_page for the same reason since_git is: the collapse happens when a
+# reader picks a version, and the markup the build ships carries the full index, so there
+# is nothing in the page to read it off. What it asks is
+# `window.__VERI_SINCE__.index(since)` — the rows the index shows a reader who last read
+# at `since`, each carrying its tag and the hunks it links to.
+#
+# What each row must KNOW is pinned, not how the link is spelt: a link to a hunk is the
+# script it is in and the lines it runs between, and the label, the anchor and the <a>
+# that carries them are markup this harness has no DOM to render or read back.
+#
+# The report is one line per surviving row — `<tag> <script> <first>-<last>, …`, or
+# `<tag> -` for a row with no hunk under it — and the whole of it is compared, because the
+# collapse is a claim about the rows that are NOT there as much as the ones that are. Rows
+# sort as text, which is why the report reads v0.10 before v0.3: the order of the report
+# is not what is under test. The links within a row sort by script and then by line, so
+# they read in page order.
+index_git() {
+  local name="$1" since="$2" want="$3"; shift 3
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var since = process.argv[3];
+
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.index !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.index(since)");
+  process.exit(1);
+}
+
+/* A row as (tag, hunks), and one of its hunks as (script, first, last), in either
+   spelling either may be written in. */
+function tagOf(row) { return Array.isArray(row) ? row[0] : row.tag; }
+function hunksOf(row) { return (Array.isArray(row) ? row[1] : row.hunks) || []; }
+function fields(entry) {
+  return Array.isArray(entry) ? entry.slice(0, 3)
+                              : [entry.script, entry.first, entry.last];
+}
+
+var rows = (mode.index(since) || []).map(function (row) {
+  var links = hunksOf(row).map(fields);
+  links.sort(function (a, b) {
+    return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1];
+  });
+  var text = links.map(function (f) { return f[0] + " " + f[1] + "-" + f[2]; });
+  return tagOf(row) + " " + (text.length ? text.join(", ") : "-");
+});
+rows.sort();
+console.log(rows.join("\n"));
+JS
+  got="$(ask_page "$d" page.html "$since")" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, collapsed-index read exit $read_code)"
+    echo "    want the index shown to a reader who last read at $since:"
     printf '%s\n' "$want" | sed 's/^/      /'
     echo "    got:"
     printf '%s\n' "$got" | sed 's/^/      /' | head -8
@@ -903,8 +1002,29 @@ rewrite_line_as_refactor() {
   sed -i.bak "${lineno}s|.*|$text|" "$file" && rm -f "$file.bak"
   git add -A && git commit -qm "$subject"
 }
+# rewrite_two_lines_as_feat <file> <first> <second> <text> <subject> <tag>
+# Two lines that are NOT adjacent, rewritten by ONE commit, and the tag it ships in.
+# Blame answers the same sha for both and the untouched lines between them break the run
+# in two, so this is one version owning two hunks — which is what a version row listing
+# "every hunk that version touched" needs in order to say more than "the hunk".
+rewrite_two_lines_as_feat() {
+  local file="$1" a="$2" b="$3" text="$4" subject="$5" tag="$6"
+  sed -i.bak -e "${a}s|.*|$text|" -e "${b}s|.*|$text|" "$file" && rm -f "$file.bak"
+  git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
+}
+
+# tag_feat_outside_the_scripts <subject> <tag>
+# A version that changed a capability without touching a single line this page quotes —
+# the conductor-only row the index already renders as "Conductor only". The commit has to
+# land somewhere, so it lands in the stylesheet, which the build inlines and no listing
+# shows.
+tag_feat_outside_the_scripts() {
+  printf '\n/* %s */\n' "$1" >> docs/wt/style.css
+  git add -A && git commit -qm "$1" && git tag -a "$2" -m "what $2 can do"
+}
 export -f append_line_to_script sed_commentary rewrite_line_as_refactor
 export -f rewrite_hunk_as_feat rewrite_line_as_feat
+export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
@@ -1352,6 +1472,50 @@ v0.9 classify-bail.sh 5-5 dim' \
            rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 7 \
              "# rewritten by the v0.10 commit" \
              "fix: rewrite line 7 of classify-bail.sh (#4)" v0.10'
+
+# 22. and the same choice has to reach the capability index. Case 21 is what a choice does
+#     to the listings; this is what it does to the index a reader makes the choice in. The
+#     index at rest lists every version veri has ever cut, which is the wrong answer to
+#     "what have I missed" — so choosing v0.2 drops every row up to and including v0.2 and
+#     leaves each surviving row pointing at the hunks that version touched, which is the
+#     only thing on the page that says WHERE a version changed something rather than that
+#     it did.
+#
+#     Four versions, and each is in the case for a reason the others cannot cover:
+#
+#       v0.1  the version the tree arrived in  -> gone: read long ago
+#       v0.2  the choice itself                -> gone: it is what they last read
+#       v0.3  later, and touched no script     -> a row, with nothing to link to
+#       v0.9  later, one hunk                  -> a row linking classify-bail.sh 5-5
+#       v0.10 later, TWO hunks in one commit   -> a row linking BOTH 7-7 and 10-10
+#
+#     v0.3 is the row an implementation that walks `window.__VERI_HUNKS__` cannot produce:
+#     the map is keyed by the tags that own hunks, so a capability that changed something
+#     this page does not quote is missing from it entirely, and the reader is told a
+#     version they have not read does not exist. The index has to come from the version
+#     ORDER and the map has to be read into it, not the other way round.
+#     v0.10 is the row that says "every hunk", not "the hunk": one commit rewriting lines
+#     7 and 10 with line 8 untouched between them is two runs under one tag, and a row
+#     that links the first and stops sends the reader to half of what changed.
+#     And v0.2 against v0.10 is the lexical trap again, from the other end: `v0.10` sorts
+#     BEFORE `v0.2` as text, so an implementation that filters the rows by comparing tag
+#     strings collapses the index onto the one version the reader most wanted to see.
+index_git "choosing a version collapses the index to later ones, each linking its hunks" \
+  v0.2 \
+  'v0.10 classify-bail.sh 7-7, classify-bail.sh 10-10
+v0.3 -
+v0.9 classify-bail.sh 5-5' \
+  bash -c 'rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           tag_feat_outside_the_scripts \
+             "feat: a capability no script on this page carries (#3)" v0.3
+           rewrite_line_as_feat skills/solve-issue/scripts/classify-bail.sh 5 \
+             "# rewritten by the v0.9 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#4)" v0.9
+           rewrite_two_lines_as_feat skills/solve-issue/scripts/classify-bail.sh 7 10 \
+             "# rewritten by the v0.10 commit" \
+             "fix: rewrite lines 7 and 10 of classify-bail.sh (#5)" v0.10'
 
 echo "----"
 echo "$pass passed, $fail failed"
