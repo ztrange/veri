@@ -98,6 +98,16 @@ main{padding:0 0 120px;min-width:0}
 .crumb .sep{color:var(--ink-faint);font-size:11px;padding:0 1px;user-select:none}
 .crumb .here{color:var(--ink);font-weight:600}
 .crumb .file{font-family:"JetBrains Mono",monospace;font-size:11.5px}
+/* The since-mode walk's two steppers, appended by app.js only when a version is chosen —
+   the resting bar has neither. They sit at the far right, away from the trail that grows
+   leftwards as the reader descends: margin-left:auto on the first one takes the slack, so
+   the pair stays put however long the current path is. */
+.crumb .crumb-step{margin-left:6px;padding:2px 7px;border:1px solid var(--rule);
+  border-radius:4px;background:transparent;color:var(--ink-soft);cursor:pointer;
+  font:inherit;font-size:12px;line-height:1.4}
+.crumb .crumb-step:first-of-type{margin-left:auto}
+.crumb .crumb-step:hover{color:var(--accent);border-color:var(--accent);
+  background:var(--accent-wash)}
 
 /* Anchors land below the bar rather than under it. */
 [id]{scroll-margin-top:calc(var(--crumb-h) + 14px)}
