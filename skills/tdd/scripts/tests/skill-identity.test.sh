@@ -113,6 +113,64 @@ else
 fi
 report "$name"
 
+# 3. Where the generated page comes from. `make docs-check` builds docs/walkthrough.html
+#    from the scripts and demands the committed page back byte for byte, so a build
+#    pointed at a directory the skill has left fails it outright — one "missing script"
+#    per listing. The condition for that gate to be green on the new path is this pair:
+#    the pipeline reads $skill_dir/scripts, and every script the page documents is there.
+#
+#    It is a separate case from 2 because case 2 structurally cannot see it. The two
+#    python files spell the directory as path COMPONENTS — `ROOT / "skills" / "tdd" /
+#    "scripts"` — so the joined string case 2 sweeps for never appears in them, and one
+#    left on the old home would keep that case green while `make docs` reported every
+#    script missing. This is the positive half: the pipeline names the skill's own.
+#
+#    What this case deliberately does NOT do is rebuild the page and diff it. That is
+#    `docs-fresh`, and the Makefile keeps it out of `make test` on purpose ("Neither is
+#    part of `test` on purpose"): the page also encodes tags, blame and a commit count,
+#    so a comparison here would turn the baseline red on a tag nobody cut in this repo
+#    and on every script a green step edits — and veri refuses to start on a red
+#    baseline. So this case asserts what makes the gate green and stays quiet about
+#    when it was last run.
+name="the walkthrough is generated from $skill_dir/scripts"
+problems=()
+# "skills/tdd/scripts" as python spells it — `"skills" / "tdd" / "scripts"` — derived from
+# $skill_dir rather than written out again, so a future rename still has one place to edit:
+# quote each path segment, then join on " / ".
+py_scripts_dir="$(printf '%s/scripts' "$skill_dir" | sed 's#[^/]*#"&"#g; s#/# / #g')"
+for py in docs/build-walkthrough.py docs/check-walkthrough.py; do
+  if [[ -f "$ROOT/$py" ]]; then
+    # -x so a line that merely mentions the components does not answer for the constant,
+    # -F because the expression is a literal, quotes and slashes and all.
+    grep -qxF "SCRIPTS_DIR = ROOT / $py_scripts_dir" "$ROOT/$py" ||
+      problems+=("$py: want SCRIPTS_DIR = ROOT / $py_scripts_dir, got $(printf '%q' "$(grep -m1 '^SCRIPTS_DIR' "$ROOT/$py")")")
+  else
+    problems+=("want the page's $py, found none")
+  fi
+done
+
+# The page's listings are declared in the commentary, one `file="<name>.sh"` per script;
+# the build resolves each against SCRIPTS_DIR. A name with no file under the skill's
+# scripts directory is exactly the "missing script" the build refuses on.
+commentary="docs/wt/commentary.py"
+if [[ -f "$ROOT/$commentary" ]]; then
+  documented="$(sed -n 's/.*file="\([^"]*\)".*/\1/p' "$ROOT/$commentary")"
+  # Fail closed: no names extracted means the declaration moved and nothing was checked,
+  # which must not read as "every documented script is present".
+  if [[ -z "$documented" ]]; then
+    problems+=("$commentary declares no script listings — the page's set of scripts could not be read")
+  else
+    while IFS= read -r f; do
+      [[ -n "$f" ]] || continue
+      [[ -f "$ROOT/$skill_dir/scripts/$f" ]] ||
+        problems+=("$commentary documents $f, which is not in $skill_dir/scripts")
+    done <<< "$documented"
+  fi
+else
+  problems+=("want the page's commentary at $commentary, found none")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
