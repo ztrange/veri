@@ -39,18 +39,29 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # The first matching line answers, so a body that mentions the command again lower down —
 # in a note, a quotation, a later section — cannot overrule the one that stated it. What
 # follows the marker is printed verbatim but for the whitespace separating the two: the
-# `#` expansion drops the marker, and the loop drops spaces and tabs one at a time until
-# the first real character, since bash 3.2 has no trim of its own. A line with nothing
-# after the marker names no command, so it is skipped rather than answered with "".
+# `#` expansion drops the marker, and `trimmed` drops what separated it from the command.
+# A line with nothing after the marker names no command, so it is skipped rather than
+# answered with "".
+#
+# `trimmed <string>` prints that string with its leading spaces and tabs removed. Bash 3.2
+# has no trim of its own, so it drops one blank at a time — the loop runs until neither
+# prefix removal changes the string, which is when the first real character is reached.
+# Naming it keeps the rule to its own sentence: the command is what follows the marker,
+# trimmed.
+trimmed() {
+  local s="$1"
+  while [ "${s# }" != "$s" ] || [ "${s#	}" != "$s" ]; do
+    s="${s# }"
+    s="${s#	}"
+  done
+  printf '%s\n' "$s"
+}
+
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
       'Test command:'*)
-        cmd="${line#Test command:}"
-        while [ "${cmd# }" != "$cmd" ] || [ "${cmd#	}" != "$cmd" ]; do
-          cmd="${cmd# }"
-          cmd="${cmd#	}"
-        done
+        cmd="$(trimmed "${line#Test command:}")"
         if [ -n "$cmd" ]; then
           answer "$cmd"
         fi
