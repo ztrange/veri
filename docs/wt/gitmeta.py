@@ -16,6 +16,14 @@ it regenerates and demands a byte-identical result:
     date baked into HTML would make docs-check fail by the calendar with no code
     change at all.
 
+And one rule keeps a build CHEAP, which docs/tests/build-guards.test.sh pins as a
+budget: git is asked once per script, once per tag, and a fixed handful of times
+besides. Every question is a process, and a process costs ~30 ms to start whatever
+it answers — so a build's time is its question count, and a question asked per
+commit or per blamed line is the one shape this module never takes. Twenty sandboxed
+builds are most of what `make docs-test` costs, and a leaf on a docs issue runs that
+suite after every edit.
+
 Everything degrades to None when git is unavailable or the repo carries no tags:
 docs/tests/build-guards.test.sh builds from a copied tree with no .git in it, and
 that build must still succeed — just without the version layer.
@@ -45,21 +53,96 @@ def _git(root, *args):
     return p.stdout.strip() if p.returncode == 0 else None
 
 
+# Which version each commit shipped in, answered once per (repo, tag list) and kept for
+# the rest of the process. A build is one process, so this caches one build's answer;
+# it is not state that outlives the tree it was read from.
+_SHIPPED = {}
+
+
+def _shipped(root, order):
+    """{sha: the earliest tag containing it}, for every commit any tag contains.
+
+    One `git rev-list <tag>` per tag, oldest first, and a sha keeps the first tag that
+    claims it — which is what "the version it shipped in" means. Per tag rather than per
+    commit because containment is the one question git only answers from a walk: `tag
+    --contains` walks the whole history for ONE sha, and asking it once per blamed run
+    and twice per script cost a real build 235 of its 476 processes.
+    """
+    key = (str(root), tuple(order))
+    if key not in _SHIPPED:
+        table = {}
+        for tag in order:                    # oldest first, so the first claim wins
+            for sha in (_git(root, "rev-list", tag) or "").splitlines():
+                table.setdefault(sha, tag)
+        _SHIPPED[key] = table
+    return _SHIPPED[key]
+
+
 def _first_tag_containing(root, sha, order):
     """The earliest version that contains this commit — i.e. the one it shipped in.
 
-    `git tag --contains` answers in whatever order it likes, so rank against the
-    caller's ordered tag list rather than trusting the output. Returns None for a
-    commit no tag contains, which is the honest answer: it has not shipped yet.
+    Returns None for a commit no tag contains, which is the honest answer: it has not
+    shipped yet. `order` is oldest-first; the ranking happened once, in _shipped().
     """
-    out = _git(root, "tag", "--contains", sha)
-    if not out:
+    return _shipped(root, order).get(sha)
+
+
+def _history(root, starts):
+    """[(sha, subject, [(status, old path, new path), ...])] newest first, for every
+    commit reachable from any of `starts` — or None if git cannot answer.
+
+    One `git log --name-status` over everything, in place of `show --name-only` once per
+    commit and `log --follow` twice per script: the paths a commit touched are the same
+    fact whichever question is later asked of them. A rename record carries both names
+    — `R100<tab>old<tab>new` — and -M asks for rename detection outright rather than
+    trusting diff.renames, because _added_and_changed() follows a script back through
+    its renames by those records, which is what `--follow` did. A plain record has one
+    path, reported as both.
+
+    Each record is a NUL, the sha, a tab, the subject, then the status lines. NUL rather
+    than a line-start sentinel because a subject can begin with anything.
+    """
+    out = _git(root, "log", "-M", "--name-status", "--format=%x00%H%x09%s", *starts)
+    if out is None:
         return None
-    have = {t for t in out.splitlines() if t}
-    for t in order:                      # order is oldest-first
-        if t in have:
-            return t
-    return None
+    history = []
+    for record in out.split("\x00"):
+        if not record.strip():
+            continue
+        head, _, body = record.partition("\n")
+        sha, _, subject = head.partition("\t")
+        files = []
+        for line in body.splitlines():
+            if line.strip():
+                parts = line.split("\t")
+                files.append((parts[0], parts[1], parts[-1]))
+        history.append((sha, subject, files))
+    return history
+
+
+def _added_and_changed(history, rel):
+    """(the commit that added `rel`, the newest behaviour commit that touched it).
+
+    Either is None when the history does not say. Walks newest-first under the name the
+    file had at each point: a rename record met on the way switches the name being looked
+    for to the old one, which is `--follow` by hand — once over one history for every
+    script, rather than twice per script. The rename commit itself counts as touching the
+    file, as it does under --follow: a feat: that moves the skill is the version every
+    script arrived at its path in. The add is the OLDEST add, as `--diff-filter=A` read
+    from the bottom was: the walk is newest-first, so the last one seen wins.
+    """
+    path, added, changed = rel, None, None
+    for sha, subject, files in history:
+        for status, old, new in files:
+            if new != path:
+                continue
+            if changed is None and BEHAVIOUR.match(subject):
+                changed = sha
+            if status == "A":
+                added = sha
+            elif status.startswith("R"):
+                path = old
+    return added, changed
 
 
 def _subject_prose(subject):
@@ -190,44 +273,56 @@ def read(root, script_rel_paths):
     if not tags:
         return None                      # a repo that does not version this way
 
+    # A version's range is the commits that shipped in it — the ones it is the earliest
+    # tag to contain, which is the rule the hunks rank by too, so the index and the
+    # margins cannot disagree about which version a commit belongs to. HEAD is read
+    # alongside the tags so a script's own history is on hand for the marks below.
+    history = _history(root, ["HEAD"] + tags) or []
+    shipped = _shipped(root, tags)
+    in_version = {tag: [] for tag in tags}
+    for sha, subject, files in history:
+        tag = shipped.get(sha)
+        if tag is not None:
+            in_version[tag].append((subject, files))
+
+    # Every tag's date and title in one question rather than two per tag.
+    dated = {}
+    for line in (_git(root, "for-each-ref",
+                      "--format=%(refname:short)%09%(creatordate:short)%09%(contents:subject)",
+                      "refs/tags") or "").splitlines():
+        tag, _, rest = line.partition("\t")
+        date, _, title = rest.partition("\t")
+        dated[tag] = (date.strip(), title.strip())
+
     versions = []
-    for i, tag in enumerate(tags):
-        rng = tag if i == 0 else "%s..%s" % (tags[i - 1], tag)
-        log = (_git(root, "log", "--format=%H\t%s", rng) or "").splitlines()
+    for tag in tags:
         issues, touched = [], set()
-        for line in log:
-            sha, subject = line.split("\t", 1)
+        for subject, files in in_version[tag]:
             m = ISSUE.search(subject)
             if m and m.group(1) not in issues:
                 issues.append(m.group(1))
             if not BEHAVIOUR.match(subject):
                 continue
-            for path in (_git(root, "show", "--name-only", "--format=", sha) or "").splitlines():
+            for _, _, path in files:
                 name = path.rsplit("/", 1)[-1]
                 if name in script_rel_paths:
                     touched.add(name)
+        date, title = dated.get(tag, ("", ""))
         versions.append({
             "tag": tag,
-            "date": _git(root, "for-each-ref", "--format=%(creatordate:short)",
-                         "refs/tags/" + tag) or "",
-            "title": _git(root, "for-each-ref", "--format=%(contents:subject)",
-                          "refs/tags/" + tag) or "",
+            "date": date,
+            "title": title,
             "issues": sorted(issues, key=int),
             "scripts": sorted(touched),
         })
 
     marks = {}
     for name, rel in script_rel_paths.items():
-        # --follow, or the move out of .claude/skills truncates every history to it.
-        # One path at a time: --follow refuses more.
-        added = (_git(root, "log", "--diff-filter=A", "--follow", "--format=%H",
-                      "--", rel) or "").splitlines()
-        hist = (_git(root, "log", "--follow", "--format=%H\t%s", "--", rel) or "").splitlines()
-        changed = [l.split("\t", 1)[0] for l in hist if BEHAVIOUR.match(l.split("\t", 1)[1])]
-        since = _first_tag_containing(root, added[-1], tags) if added else None
+        added, changed = _added_and_changed(history, rel)
+        since = _first_tag_containing(root, added, tags) if added else None
         marks[name] = {
             "since": since,
-            "changed": _first_tag_containing(root, changed[0], tags) if changed else None,
+            "changed": _first_tag_containing(root, changed, tags) if changed else None,
             "hunks": hunks(root, rel, tags, since),
         }
 
