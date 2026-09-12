@@ -69,7 +69,7 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   the captured output on stdout. **Exit 0 = success, 1 = leaf-failure, 2 = killed-stuck**
   (hung past the heartbeat window or over the hard timeout, **after** its stuck-retry
   budget). A one-line status goes to stderr. Tunables: `VERI_HEARTBEAT` (silence window s,
-  default 45), `VERI_TIMEOUT` (hard cap s, default 900), `VERI_STUCK_RETRIES` (extra
+  default 180), `VERI_TIMEOUT` (hard cap s, default 900), `VERI_STUCK_RETRIES` (extra
   attempts after a killed-stuck, default 1 — the **liveness** axis, independent of both the
   conductor's verdict-axis `REVISE_BUDGET` and its cost-axis `VERI_REFACTOR_BUDGET`).
   Because leaves **stream** (below), the default
