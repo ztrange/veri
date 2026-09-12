@@ -122,6 +122,37 @@ report_text="$(cat "$out" 2>/dev/null)"
   problems+=("want a filtered run back inside ${LIMIT}s, got ${elapsed}s — it built the cases it was not asked for")
 report "$name"
 
+# 2. A filter that matches nothing is the typo path, and it is the one case where a silent
+#    green is actively dangerous: every case skips, nothing is asserted, and a suite that
+#    ends `[[ $fail -eq 0 ]]` exits 0 — so a leaf that mistyped its ONLY reads "the guards
+#    pass" off a run that guarded nothing. Exit 3 is the code every veri script uses for
+#    "nothing to do" (CLAUDE.md: exit codes are the API), which the conductor already tells
+#    apart from a real negative.
+#
+#    Three probes, for the three halves of the step: the code, the message that says which
+#    filter found nothing, and the claim that it ran no case. The last is pinned twice over
+#    because either half alone is cheap to fake — a run back inside the ceiling could still
+#    have built one sandbox, and a "0 passed" line could still be printed by a run that
+#    built all twenty-eight and skipped the counting. The message is matched
+#    case-insensitively on "no case" plus the filter itself: the wording is the
+#    implementer's, but it has to name what was asked for, or it cannot be acted on.
+NO_MATCH='no-such-case-zzz'
+name="ONLY='$NO_MATCH' matches no case: exit 3, says so, and runs nothing"
+problems=()
+out="$WORK/nomatch.txt"
+read -r code elapsed <<< "$(run_filtered "$NO_MATCH" "$out")"
+report_text="$(cat "$out" 2>/dev/null)"
+lowered="$(printf '%s' "$report_text" | tr 'A-Z' 'a-z')"
+[[ "$code" == 3 ]] ||
+  problems+=("want exit 3 — nothing to do — from ONLY='$NO_MATCH' $SUITE, got $code after ${elapsed}s")
+[[ "$lowered" == *"no case"* && "$report_text" == *"$NO_MATCH"* ]] ||
+  problems+=("want it to say no case matched '$NO_MATCH'; got: $(printf '%s' "$report_text" | tail -3 | tr '\n' '/')")
+printf '%s\n' "$report_text" | grep -Eq '[1-9][0-9]* passed' &&
+  problems+=("want no case run at all; got a count claiming passes: $(printf '%s' "$report_text" | tail -1)")
+(( elapsed < LIMIT )) ||
+  problems+=("want a no-match run back inside ${LIMIT}s, got ${elapsed}s — it built cases nothing asked for")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
