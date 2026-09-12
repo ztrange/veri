@@ -61,6 +61,22 @@ good_probe() {
   rm -f "$out" "$err"
 }
 
+# assert_fail_closed <label> <code> <stdout-file> <stderr-file> — the three things every
+# refusal owes, whichever way the unusable value arrived. Named once because a refusal is
+# one shape: exit 2 ("no answer could be obtained", not exit 1's clean negative), nothing
+# on stdout so a conductor reading it in a command substitution cannot capture a refusal
+# as a timeout, and a diagnostic on stderr so a human is told which value was wrong.
+# Appends to the caller's `problems`, which the case sets up as a global.
+assert_fail_closed() {
+  local label="$1" code="$2" out="$3" err="$4"
+  [[ "$code" == 2 ]] ||
+    problems+=("$label: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("$label: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ -s "$err" ]] ||
+    problems+=("$label: want a diagnostic on stderr, got nothing")
+}
+
 # bad_probe <label> [args...] — a call the script must refuse, run with exactly the
 # arguments given. A function rather than an argv array because the "no argument" probe
 # needs an argument list of length zero, and under `set -u` bash 3.2 rejects "${arr[@]}"
@@ -70,12 +86,7 @@ bad_probe() {
   local out err code
   out="$(mktemp)" err="$(mktemp)"
   env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$@" >"$out" 2>"$err" && code=0 || code=$?
-  [[ "$code" == 2 ]] ||
-    problems+=("$label: want exit 2, got $code")
-  [[ ! -s "$out" ]] ||
-    problems+=("$label: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ -s "$err" ]] ||
-    problems+=("$label: want a diagnostic on stderr, got nothing")
+  assert_fail_closed "$label" "$code" "$out" "$err"
   rm -f "$out" "$err"
 }
 
@@ -105,12 +116,7 @@ bad_override_probe() {
   local timeout="$1" out err code
   out="$(mktemp)" err="$(mktemp)"
   VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" 200 >"$out" 2>"$err" && code=0 || code=$?
-  [[ "$code" == 2 ]] ||
-    problems+=("VERI_TIMEOUT=$timeout: want exit 2, got $code")
-  [[ ! -s "$out" ]] ||
-    problems+=("VERI_TIMEOUT=$timeout: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ -s "$err" ]] ||
-    problems+=("VERI_TIMEOUT=$timeout: want a diagnostic on stderr, got nothing")
+  assert_fail_closed "VERI_TIMEOUT=$timeout" "$code" "$out" "$err"
   rm -f "$out" "$err"
 }
 
