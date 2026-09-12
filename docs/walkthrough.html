@@ -4899,6 +4899,7 @@ html{scroll-behavior:smooth}
   "use strict";
   var ORDER = window.__VERI_ORDER__ || [];
   var HUNKS = window.__VERI_HUNKS__ || {};
+  var SINCE_OF = window.__VERI_SINCE_OF__ || {};
 
   /* Where each script sits on the page, by file name. window.__VERI_SCRIPTS__ is the
      build's list of the scripts in document order, taken from the same entries the
@@ -4906,17 +4907,25 @@ html{scroll-behavior:smooth}
   var PAGE_RANK = {};
   (window.__VERI_SCRIPTS__ || []).forEach(function (file, i) { PAGE_RANK[file] = i; });
 
-  /* Page order, as a comparison of two hunk entries: the order the page lists the
-     scripts, and within one script the lowest line first. An entry is
-     [script, first, last, description]. Never the script's NAME, which puts
+  /* Page order, as a comparison of two stops: the order the page lists the scripts, and
+     within one script the lowest line first. A hunk stop is an entry
+     [script, first, last, description]; a whole-script stop is the file name alone, since
+     a script that arrived whole is not a run of lines and has nothing but a name to give.
+     Ranked by that name's place in PAGE_RANK and never by the name itself, which puts
      classify-bail.sh before supervise.sh as text and after it on the page. A script the
      nav does not carry has no place on the page, so it sorts last rather than poisoning
-     the comparison with a NaN. */
-  function rank(entry) {
-    var r = PAGE_RANK[entry[0]];
+     the comparison with a NaN.
+
+     A whole-script stop sits at line 0 — before every line of the listing, and so before
+     every hunk inside it, which is the order the reader needs: the script is news to them
+     in its entirety, and a run of lines within it is a detail of that. */
+  function file(stop) { return typeof stop === "string" ? stop : stop[0]; }
+  function line(stop) { return typeof stop === "string" ? 0 : stop[1]; }
+  function rank(stop) {
+    var r = PAGE_RANK[file(stop)];
     return r === undefined ? Infinity : r;
   }
-  function byPageOrder(a, b) { return rank(a) - rank(b) || a[1] - b[1]; }
+  function byPageOrder(a, b) { return rank(a) - rank(b) || line(a) - line(b); }
 
   function lit(tag, since) {
     var hunkRank = ORDER.indexOf(tag), readRank = ORDER.indexOf(since);
@@ -4971,11 +4980,24 @@ html{scroll-behavior:smooth}
 
      The map is the right authority for stops where it was the wrong one for rows: a
      capability that touched nothing this page quotes contributes no stop, which is
-     exactly its absence from the map, whereas the index still owes it a row. */
+     exactly its absence from the map, whereas the index still owes it a row.
+
+     It is not the whole authority, though. A script whose own `since` is later than the
+     reader's version is news to them from its first line, and the map holds no hunk
+     anywhere inside it: the build drops every run at or below a file's `since`, because
+     the header badge already says the script is new. That badge is prose a reader
+     scrolling past may never reach, and a walk built out of the map alone steps straight
+     past the script — which is the whole of issue #123's defect, a reader at v0.10 never
+     taken to issue-worktree.sh, arrived whole in v0.18. So window.__VERI_SINCE_OF__ is
+     the second source of stops: one per script the reader has never seen a line of,
+     ranked by the same lit() the hunks are. */
   function walk(since) {
     var stops = [];
     Object.keys(HUNKS).forEach(function (tag) {
       if (lit(tag, since)) stops = stops.concat(HUNKS[tag]);
+    });
+    Object.keys(SINCE_OF).forEach(function (f) {
+      if (lit(SINCE_OF[f], since)) stops.push(f);
     });
     return stops.sort(byPageOrder);
   }

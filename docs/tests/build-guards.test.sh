@@ -1318,6 +1318,79 @@ JS
   fi
 }
 
+# new_script_git <name> <version-the-reader-read> <the-script-own-since> <expected-report> <mutator...>
+# walk_git asks where a choice takes the reader among the LINES that changed. This asks
+# the one stop that is not a line: a script that did not exist when the reader last read.
+# `window.__VERI_HUNKS__` cannot hold it — hunks() drops every run at or below the file's
+# own `since`, so a script that arrived whole has no hunk anywhere in it — which is why a
+# walk built out of the map alone steps straight past it, and why the page was given each
+# script's own `since` to rank it by.
+#
+# One page, asked twice, because the criterion has two halves that are the same sentence
+# read from either end: for a reader whose version is EARLIER than the script's `since` it
+# is a stop, and for one whose version IS that `since` it is not. A walk that treats every
+# script as new is as wrong as one that treats none as new, and only the pair catches both.
+#
+# The report is one line per stop, `<version asked> <script> <where>`, in walk order and
+# NOT sorted — the order is the assertion, as it is in walk_git. `<where>` is the line
+# range for a stop the hunk map holds and the word `header` for one it does not, which is
+# how a whole-script stop is told from a hunk without this harness deciding how a build
+# spells it: an entry that is not in the map is not a run of lines, whatever shape it
+# arrives in. Entries are read in either spelling the map may use, as walk_git has it,
+# plus the bare file name, since a stop that is only a script has only a name to give.
+new_script_git() {
+  local name="$1" before="$2" after="$3" want="$4"; shift 4
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.walk !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.walk(since)");
+  process.exit(1);
+}
+
+/* Every run of lines the page knows about, as `<script> <first>-<last>`. A stop that is
+   one of these is a hunk; a stop that is not is the script itself. */
+var hunks = window.__VERI_HUNKS__ || {};
+var runs = {};
+Object.keys(hunks).forEach(function (tag) {
+  (hunks[tag] || []).forEach(function (entry) {
+    var f = fields(entry);
+    runs[f[0] + " " + f[1] + "-" + f[2]] = true;
+  });
+});
+
+function where(stop) {
+  var f = typeof stop === "string" ? [stop] : fields(stop);
+  var run = f[0] + " " + f[1] + "-" + f[2];
+  return runs[run] ? run : f[0] + " header";
+}
+
+var rows = [];
+for (var i = 3; i < process.argv.length; i++) {
+  var since = process.argv[i];
+  (mode.walk(since) || []).forEach(function (stop) {
+    rows.push(since + " " + where(stop));
+  });
+}
+console.log(rows.join("\n"));
+JS
+  got="$(ask_page "$d" page.html "$before" "$after")" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, walk read exit $read_code)"
+    echo "    want the stops walked by a reader who last read at $before, then at $after:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -10
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # hash_git <name> <hash-the-page-is-opened-at> <version-then-chosen> <expected-report> <mutator...>
 # since_git, index_git and walk_git all hand the page a version and ask what it does with
 # it. This asks where that version comes from and where it goes: the URL. A reader who
@@ -1731,6 +1804,36 @@ rewrite_two_lines_as_feat() {
   git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
 }
 
+# add_script_as_feat <file> <id> <stage> <subject> <tag>
+# A script the page lists that did NOT ship in the first version — the one history every
+# mutator above is unable to produce, because rewriting a line leaves every script's
+# `since` at v0.1 where sandbox_git put it. Three things have to land together for the
+# build to accept it: the file itself, the commentary chunk claiming its lines (without
+# which the coverage guard refuses the whole build), and the behaviour commit and tag it
+# arrives in.
+# The entry is appended, which puts the script last within its stage — stage 2 lands it
+# after supervise.sh and before classify-bail.sh, which is the page order the case below
+# walks through.
+add_script_as_feat() {
+  local file="$1" id="$2" stage="$3" subject="$4" tag="$5"
+  cat > "skills/tdd/scripts/$file" <<'SH'
+#!/usr/bin/env bash
+# the line a later version rewrites
+set -euo pipefail
+printf '%s\n' "a script that arrived whole"
+SH
+  cat >> docs/wt/commentary.py <<PY
+
+SCRIPTS += [dict(
+    file="$file", stage=$stage, id="$id",
+    tagline="arrived whole in a later version",
+    blurb="<p>A script that did not exist in the first version.</p>",
+    chunks=[dict(lines=(1, 4), html="<p>The whole of it, in one chunk.</p>")],
+)]
+PY
+  git add -A && git commit -qm "$subject" && git tag -a "$tag" -m "what $tag can do"
+}
+
 # tag_feat_outside_the_scripts <subject> <tag>
 # A version that changed a capability without touching a single line this page quotes —
 # the conductor-only row the index already renders as "Conductor only". The commit has to
@@ -1742,7 +1845,7 @@ tag_feat_outside_the_scripts() {
 }
 export -f append_line_to_script sed_commentary rewrite_line_as_refactor
 export -f rewrite_hunk_as_feat rewrite_line_as_feat
-export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts
+export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts add_script_as_feat
 
 # 1. baseline: an unmutated tree builds, and emits real source verbatim
 accepts "baseline builds" '<title>veri, Annotated</title>'
@@ -2559,6 +2662,50 @@ since_of_git "the page carries each script's own since, and carries none without
   bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2'
+
+# 29. and with that on the page, the walk owes the reader the stop it has been missing. A
+#     script that arrived after the version they last read is not a run of changed lines
+#     inside something they know — it is a file they have never seen a line of, and the
+#     whole of it is news. Case 23 walks the hunks and stops there, which is the defect
+#     this issue is about: a reader at v0.10 is stepped past issue-worktree.sh, arrived
+#     whole in v0.18, because nothing in it is a hunk.
+#
+#     One fixture, walked twice, because the two halves are one sentence read from either
+#     end. arrived-whole.sh ships in v0.3 and is rewritten in v0.6; supervise.sh is the
+#     fifth script on the page and arrived-whole.sh the ninth (stage 2, appended) and
+#     classify-bail.sh the sixteenth, so the three stops interleave and both ways of
+#     dodging the sort are caught: a walk that appends the new scripts puts the header
+#     after the hunk INSIDE it, and one that prepends them puts it before supervise.sh.
+#     A reader who last read at v0.2 is owed the header, and one who last read at v0.3 —
+#     the version it arrived in — is owed everything else on that list and not the header,
+#     because they have read the script already. The rest of the walk is identical in both,
+#     which is what says the header is the only thing that moved.
+#     classify-bail.sh's v0.2 hunk is a stop in neither: the version the reader last read
+#     is not news to them, as case 23 has it, and a new-script stop must not quietly
+#     relax that.
+new_script_git "a script newer than the chosen version is a stop, before any hunk inside it" \
+  v0.2 v0.3 \
+  'v0.2 supervise.sh 8-8
+v0.2 arrived-whole.sh header
+v0.2 arrived-whole.sh 2-2
+v0.2 classify-bail.sh 5-5
+v0.3 supervise.sh 8-8
+v0.3 arrived-whole.sh 2-2
+v0.3 classify-bail.sh 5-5' \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           add_script_as_feat arrived-whole.sh arrived-whole 2 \
+             "feat: a script that arrives whole (#3)" v0.3
+           rewrite_line_as_feat skills/tdd/scripts/supervise.sh 8 \
+             "# rewritten by the v0.4 commit" \
+             "feat: rewrite line 8 of supervise.sh (#4)" v0.4
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
+             "# rewritten by the v0.5 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#5)" v0.5
+           rewrite_line_as_feat skills/tdd/scripts/arrived-whole.sh 2 \
+             "# rewritten by the v0.6 commit" \
+             "feat: rewrite line 2 of arrived-whole.sh (#6)" v0.6'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
