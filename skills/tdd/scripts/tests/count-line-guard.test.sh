@@ -89,6 +89,21 @@ report() {
 # output quoted inside an indented problem line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# blames <run output> <suite> <consequence> — the half of the criterion cases 1 and 3 both end
+# in, asked once because both ask it of the same runner: a line of the run's output has to
+# both name <suite> and say it never reached its count line. It is not asked as "the output
+# mentions the suite" because the recipe already prints `== <suite>` before running each one,
+# and bash's own death message carries the suite's path too, so both are there whatever the
+# runner concluded. What has to name the suite is the report of the failure. One problem is
+# appended if no line does, carrying <consequence> — what the silence costs that case — and
+# the lines that did name the suite, which is what tells a missing report from a misworded one.
+blames() {
+  local named
+  named="$(grep -F "$2" <<< "$1")"
+  grep -Eqi 'count[ -]line' <<< "$named" ||
+    problems+=("no line of the run both names $2 and says it never reached its count line$3; the lines naming it were: $(flat "$named")")
+}
+
 # probe_fixture_dies_quietly — the premise the case rests on, asserted rather than assumed:
 # the fixture really does die after its first case and really does come back 0. A fixture
 # that had stopped doing either would leave the probes below passing against a runner that
@@ -115,22 +130,10 @@ probe_make_fails() {
     problems+=("want 'make test' to fail over a suite that died; it exited 0 and said: $(flat "$make_out")")
 }
 
-# probe_make_names_the_suite — the other half of the criterion, and the reason it is not
-# asked as "the output mentions the fixture": the recipe already prints `== <suite>` before
-# running each one, and bash's own death message carries the fixture's path too, so both
-# are there whatever the runner concludes. What has to name the suite is the report of the
-# failure — a line that both names it and says what was wrong with it.
-probe_make_names_the_suite() {
-  local named
-  named="$(grep -F "$FIXTURE_NAME" <<< "$make_out")"
-  grep -Eqi 'count[ -]line' <<< "$named" ||
-    problems+=("no line of 'make test' output both names $FIXTURE_NAME and says it never reached its count line; the lines naming it were: $(flat "$named")")
-}
-
 # 1. One criterion, one case: a suite that dies silently is refused, and the refusal says
 #    which suite. Three probes — the premise, the exit code, the report — each arguing for
 #    itself above. probe_make_fails runs the recipe and leaves its output in `make_out` for
-#    probe_make_names_the_suite, so the two read one run rather than paying for two. That
+#    the `blames` check after it, so the two read one run rather than paying for two. That
 #    one variable is the whole of what they share: the run's exit status is local to the
 #    probe that asks about it.
 name="make test over a suite that dies from an unbound variable after its first case and exits 0 fails and names it"
@@ -139,7 +142,7 @@ make_out=""
 
 probe_fixture_dies_quietly
 probe_make_fails
-probe_make_names_the_suite
+blames "$make_out" "$FIXTURE_NAME" ", so its refusal does not say which suite died"
 
 report "$name"
 
@@ -212,7 +215,7 @@ report "$name"
 # catch — because a suite that runs to its count line would be let through by a runner that
 # checks it and by one that checks nothing, and say nothing about which this is.
 probe_added_suite_gets_the_check() {
-  local tree out code named
+  local tree out code
   tree="$(mktemp -d)" || {
     problems+=("could not make a scratch tree to add a suite to, so the criterion went unasked")
     return
@@ -226,9 +229,7 @@ probe_added_suite_gets_the_check() {
   out="$(make -C "$tree" test 2>&1)" && code=0 || code=$?
   [[ "$code" != 0 ]] ||
     problems+=("want the recipe to refuse a suite added under $TESTS_DIR with no TESTS override and no edit to it; it exited 0 and said: $(flat "$out")")
-  named="$(grep -F "$ADDED_NAME" <<< "$out")"
-  grep -Eqi 'count[ -]line' <<< "$named" ||
-    problems+=("no line of the run names $ADDED_NAME and says it never reached its count line, so the added suite did not get the check; the lines naming it were: $(flat "$named")")
+  blames "$out" "$ADDED_NAME" ", so the added suite did not get the check"
 
   rm -rf "$tree"
 }
