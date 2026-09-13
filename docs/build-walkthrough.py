@@ -185,6 +185,38 @@ def _owed_segment(fname, first, last):
     return (first, last, com.OWED_HTML, " owed")
 
 
+def segments(spec, fname, total):
+    """The script's lines 1..total split into rows, as (first, last, note html, note class).
+
+    One segment per chunk, in the order the chunks are written, plus one per run of lines
+    no chunk claims. Every line of the file lands in exactly one segment, which is what
+    makes the rendered listing verbatim: the rows are the file, cut up.
+
+    The three ways the chunks can fail to say that are no longer one thing. A chunk that
+    starts LATE leaves lines nobody wrote prose for, which since #125 is debt this page
+    carries rather than a build failure: the source renders as it always does, under a
+    note saying what is owed. A chunk that starts EARLY claims lines another chunk already
+    claimed, and one that runs past the end of the file claims lines that do not exist;
+    both are still fatal, because neither describes a listing that could be rendered at all.
+    """
+    cursor = 1
+    out = []
+    for ch in spec["chunks"]:
+        a, b = ch["lines"]
+        if a > cursor:
+            out.append(_owed_segment(fname, cursor, a - 1))
+        elif a < cursor:
+            _problems.append("%s: chunk starts at L%d, expected L%d" % (fname, a, cursor))
+        if b < a or b > total:
+            _problems.append("%s: bad range L%d-%d (file has %d lines)" % (fname, a, b, total))
+        out.append((a, b, refs(ch.get("html", ""), fname),
+                    " quiet" if ch.get("quiet") else ""))
+        cursor = b + 1
+    if cursor <= total:
+        out.append(_owed_segment(fname, cursor, total))
+    return out
+
+
 def render_script(spec):
     """One script: header, contract, then the full source beside its commentary."""
     fname = spec["file"]
@@ -195,33 +227,10 @@ def render_script(spec):
     src = path.read_text().splitlines()
     total = len(src)
 
-    # Every line is claimed by exactly one chunk, in order — and the three ways that can
-    # break are no longer one thing. A chunk that starts LATE leaves lines nobody wrote
-    # prose for, which since #125 is debt this page carries rather than a build failure:
-    # the source renders as it always does, under a note saying what is owed. A chunk that
-    # starts EARLY claims lines another chunk already claimed, and one that runs past the
-    # end of the file claims lines that do not exist; both are still fatal, because
-    # neither describes a listing that could be rendered at all.
-    cursor = 1
-    segments = []                      # (first line, last line, note html, note class)
-    for ch in spec["chunks"]:
-        a, b = ch["lines"]
-        if a > cursor:
-            segments.append(_owed_segment(fname, cursor, a - 1))
-        elif a < cursor:
-            _problems.append("%s: chunk starts at L%d, expected L%d" % (fname, a, cursor))
-        if b < a or b > total:
-            _problems.append("%s: bad range L%d-%d (file has %d lines)" % (fname, a, b, total))
-        segments.append((a, b, refs(ch.get("html", ""), fname),
-                         " quiet" if ch.get("quiet") else ""))
-        cursor = b + 1
-    if cursor <= total:
-        segments.append(_owed_segment(fname, cursor, total))
-
     marks = hunk_marks(META, fname)
 
     rows = []
-    for a, b, note, cls in segments:
+    for a, b, note, cls in segments(spec, fname, total):
         rows.append(
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
