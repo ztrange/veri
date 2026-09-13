@@ -25,11 +25,11 @@ stub="$(mktemp -d)"
 work="$(mktemp -d)"
 # Every temp dir this suite makes is removed here, on the one path that runs however the
 # script ends — including the Ctrl-C or the `make test` timeout that an `rm` at the foot of
-# a case never reaches. `$ev_work` and `$rt_work` are cases 12 and 13's and are made 270
-# lines down, so they are named with `${…:-}`: unset until then, and `rm -rf ""` is a silent
-# no-op (POSIX: `-f` ignores an operand that does not exist), so an early exit cleans the
-# two that do exist.
-trap 'rm -rf "$stub" "$work" "${ev_work:-}" "${rt_work:-}"' EXIT
+# a case never reaches. `$launch_work` and `$retry_work` are cases 12 and 13's and are made
+# 270 lines down, so they are named with `${…:-}`: unset until then, and `rm -rf ""` is a
+# silent no-op (POSIX: `-f` ignores an operand that does not exist), so an early exit cleans
+# the two that do exist.
+trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
@@ -325,27 +325,30 @@ else:
 ' "$1/.tdd/events.jsonl" "$2" "$3" 2>/dev/null || echo '<<no event log>>'
 }
 
-ev_work="$(mktemp -d)"
+# Every variable this case owns is prefixed with the event it is about, and case 13's with
+# its own — so the two read as the siblings they are, and each says at a glance which of
+# `event_field`'s two event arguments its assertions are about.
+launch_work="$(mktemp -d)"
 # The name and the command are each written once, then used both to launch and to expect —
-# the shape `$ev_cmd` already had. Spelled a second time in the assertion instead, the name
-# could drift from the launched one and the case would go green on a leaf it never ran; and
-# the expected attempt below is 2 only because THIS name ends in `-2`.
-ev_name=revise-green-2
-ev_cmd=(env VERI_TIMEOUT=1200 "$stub/leaf-ok")
-( cd "$ev_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
-    "$SUP" "$ev_name" "${ev_cmd[@]}" ) >/dev/null 2>&1
-ev_code=$?
+# the shape `$launch_cmd` already had. Spelled a second time in the assertion instead, the
+# name could drift from the launched one and the case would go green on a leaf it never ran;
+# and the expected attempt below is 2 only because THIS name ends in `-2`.
+launch_name=revise-green-2
+launch_cmd=(env VERI_TIMEOUT=1200 "$stub/leaf-ok")
+( cd "$launch_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+    "$SUP" "$launch_name" "${launch_cmd[@]}" ) >/dev/null 2>&1
+launch_code=$?
 # Each field read once, into a variable the assertion and the failure message share — the
 # capture-then-compare shape cases 9 and 11 already use. Read twice, the line a failure
 # reports would be a second reading of the log rather than the one that failed.
-ev_got_name="$(event_field    "$ev_work" launch name)"
-ev_got_cmd="$(event_field     "$ev_work" launch cmd)"
-ev_got_attempt="$(event_field "$ev_work" launch attempt)"
-{ [[ "$ev_code" == 0 ]] \
-  && [[ "$ev_got_name"    == "$ev_name" ]] \
-  && [[ "$ev_got_cmd"     == "${ev_cmd[*]}" ]] \
-  && [[ "$ev_got_attempt" == 2 ]]; } && ok \
-  || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$ev_code, name=$ev_got_name, cmd=$ev_got_cmd, attempt=$ev_got_attempt)"
+launch_got_name="$(event_field    "$launch_work" launch name)"
+launch_got_cmd="$(event_field     "$launch_work" launch cmd)"
+launch_got_attempt="$(event_field "$launch_work" launch attempt)"
+{ [[ "$launch_code" == 0 ]] \
+  && [[ "$launch_got_name"    == "$launch_name" ]] \
+  && [[ "$launch_got_cmd"     == "${launch_cmd[*]}" ]] \
+  && [[ "$launch_got_attempt" == 2 ]]; } && ok \
+  || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$launch_code, name=$launch_got_name, cmd=$launch_got_cmd, attempt=$launch_got_attempt)"
 
 # 13. relaunching a killed-stuck leaf leaves a `retry` line in the same log, carrying the
 #     cause the watchdog killed the attempt for (issue #107, ADR-0014: "the supervisor
@@ -372,18 +375,18 @@ ev_got_attempt="$(event_field "$ev_work" launch attempt)"
 #     one line it demands says as well that a budget of one retry wrote one mark, not one
 #     per attempt.
 
-rt_work="$(mktemp -d)"
-( cd "$rt_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.2 \
+retry_work="$(mktemp -d)"
+( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.2 \
     "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
-rt_code=$?
+retry_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11 and
 # 12's shape. Read twice, a failure would report a second reading of the log, not the one
 # that failed. The exit code is asserted alongside so a case that went green on a leaf which
 # never actually recovered would still be caught.
-rt_cause="$(event_field "$rt_work" retry cause)"
-{ [[ "$rt_code" == 0 ]] \
-  && [[ "$rt_cause" == 'no heartbeat for '*' (window 1s)' ]]; } && ok \
-  || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$rt_code, cause=$rt_cause)"
+retry_cause="$(event_field "$retry_work" retry cause)"
+{ [[ "$retry_code" == 0 ]] \
+  && [[ "$retry_cause" == 'no heartbeat for '*' (window 1s)' ]]; } && ok \
+  || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$retry_code, cause=$retry_cause)"
 
 echo "----"
 echo "$pass passed, $fail failed"
