@@ -31,6 +31,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # inputs, and the first line where they differ is the tick. Line counts match, so FNR —
 # awk's per-input line number — indexes both, and `-` is the ticked text on stdin.
 mark_ticked_line() {
+  local before="$1"
   MARK="$2" awk '
     BEGIN { mark = ENVIRON["MARK"]; done = 0 }
     NR == FNR { before[FNR] = $0; next }
@@ -38,7 +39,7 @@ mark_ticked_line() {
       if (!done && $0 != before[FNR]) { $0 = $0 mark; done = 1 }
       print
     }
-  ' "$1" -
+  ' "$before" -
 }
 
 new="$("$HERE/tick-criterion.sh" "$matcher" < "$file")" || exit $?
