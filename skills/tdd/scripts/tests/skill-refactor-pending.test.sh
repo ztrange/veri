@@ -276,9 +276,18 @@ reads() {
 #
 # Fail closed for the same reason `reads` does: a renamed heading or a deleted entry has to
 # read as unreadable, not as an empty string that every probe then passes on.
+#
+# The document and the thing it owes are left composed in `$record_name`, beside the
+# `$instruction` the read landed in, so `says_pending_until_verified` below can name what it is
+# probing without being handed that name a second time — the shape `reads_entry` and
+# `entry_says` already have, where the reader leaves what it read and the probes ask about it.
+# Spelled at the call instead, the name would be a second literal beside the one the miss above
+# reports under, free to drift into probing one record under another's name.
+record_name=""
 record_of() {
   local where="$1" what="$2"
   shift 2
+  record_name="$where's $what"
   first_record "$@" && return 0
   problems+=("$where has no $what — what it records about a ticked step could not be read")
   return 1
@@ -344,17 +353,17 @@ says_exit_codes() {
     "never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
 }
 
-# says_pending_until_verified <which record> — the two things each of the two repository
-# documents owes about a ticked step: the mark it wears, spelled, and the verification that is
-# the only thing that takes the mark off again. Both records owe the same pair and both
-# mislead the same way without it, so the pair is spelled once here and the two calls differ
-# only in which record they name. Asked of the `$instruction` `record_of` last read, the way
+# says_pending_until_verified — the two things each of the two repository documents owes about
+# a ticked step: the mark it wears, spelled, and the verification that is the only thing that
+# takes the mark off again. Both records owe the same pair and both mislead the same way
+# without it, so the pair is spelled once here and the two calls are identical. Asked of the
+# `$instruction` `record_of` last read and reported under the `$record_name` it left, the way
 # every other probe in this suite is asked of what its reader left.
 says_pending_until_verified() {
   says "$mark" \
-    "$1 never spells the \`$mark\` mark, so this repository's own account of the ledger still says a tick means the step is finished, and the next agent to read it takes the mark back out as noise"
+    "$record_name never spells the \`$mark\` mark, so this repository's own account of the ledger still says a tick means the step is finished, and the next agent to read it takes the mark back out as noise"
   says 'verify-refactor' \
-    "$1 records the mark without naming verify-refactor, so nothing says what clears it and a ticked step's mark reads as something the ledger wears for ever"
+    "$record_name records the mark without naming verify-refactor, so nothing says what clears it and a ticked step's mark reads as something the ledger wears for ever"
 }
 
 # miss <fact> — one problem of the ordered probe below: <fact>, then the instruction it was
@@ -582,7 +591,7 @@ if records_from claude_records \
   # The invariant, found by the claim it makes rather than by the heading it sits under: it is
   # the one record that calls the committed ledger the source of truth.
   if record_of "$claude_md" 'ledger invariant' 'committed ledger' 'source of truth'; then
-    says_pending_until_verified "$claude_md's ledger invariant"
+    says_pending_until_verified
   fi
 fi
 if records_from context_records \
@@ -590,7 +599,7 @@ if records_from context_records \
   # The glossary entry, found by its own heading line, which opens the record: a bare `ledger`
   # anchor would match the entries around it that use the word in passing.
   if record_of "$context_md" 'Ledger glossary entry' '^\*\*ledger\*\*:'; then
-    says_pending_until_verified "$context_md's Ledger entry"
+    says_pending_until_verified
   fi
 fi
 report "$name"
