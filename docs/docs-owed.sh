@@ -44,6 +44,12 @@ git rev-parse --git-dir >/dev/null 2>&1 || {
 PAGE=docs/walkthrough.html
 SCRIPTS_DIR=skills/tdd/scripts
 
+# lists <newline-separated list> <item> — is <item> one whole line of that list? Both of
+# the rules below ask this, of a different list, and -F -x together are the load-bearing
+# part: without -x, v0.1 reads as listed because v0.10 is, and without -F the dot in a
+# version number matches any character.
+lists() { printf '%s\n' "$1" | grep -Fqx -- "$2"; }
+
 page_commit="$(git log -1 --format=%H -- "$PAGE")"
 [ -n "$page_commit" ] || {
   echo "docs-owed: no commit touches $PAGE — there is no committed page to be behind" >&2
@@ -87,19 +93,19 @@ touched="$(git log --format= --name-only "$page_commit..HEAD" -- "$SCRIPTS_DIR" 
 while IFS= read -r path; do
   [ -n "$path" ] || continue
   name="${path##*/}"
-  printf '%s\n' "$listed" | grep -Fqx -- "$name" || continue
+  lists "$listed" "$name" || continue
   owed+=("page behind: $name — its last commit is newer than the page's build")
 done <<< "$touched"
 
 # ── tags the committed capability index does not name ───────────────────────────
 # Every tag the build knew about is written into the page as a quoted JSON token
 # (window.__VERI_ORDER__, in git's version sort), so the tags the page names are the
-# quoted vN.M tokens in it — and quoted is what keeps v0.1 from reading as listed because
-# v0.10 is. A page built before any tag existed names none, and owes all of them.
+# quoted vN.M tokens in it — the quotes are what make the token whole, so v0.10 is not read
+# as a v0.1 the page names. A page built before any tag existed names none, and owes all.
 index_tags="$(git show "HEAD:$PAGE" 2>/dev/null | grep -oE '"v[0-9]+\.[0-9]+"' | tr -d '"' | sort -u)"
 while IFS= read -r tag; do
   [ -n "$tag" ] || continue
-  printf '%s\n' "$index_tags" | grep -Fqx -- "$tag" && continue
+  lists "$index_tags" "$tag" && continue
   owed+=("tag missing from the index: $tag — the page was built before it was cut")
 done <<< "$(git tag | grep -E '^v[0-9]+\.[0-9]+$' | sort -u)"
 
