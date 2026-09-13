@@ -75,9 +75,18 @@ report() {
   fi
 }
 
-# flat <text> — one line of it, for a failure message. Newlines become slashes so a suite's
-# tail that came back red is still readable inside an indented problem line.
+# flat <text> — one line of it, for a failure message. Newlines become slashes so something
+# multi-line — a build's stderr, a suite's tail — is still readable inside an indented
+# problem line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
+
+# tail_of <output> — how a run under test ended, flattened onto one problem line: its last
+# few lines, which is where a suite's own count line and whatever stopped it are. Every
+# probe below that reports an unexpected exit code quotes this, so it is one helper rather
+# than six copies of `flat "$(tail -N <<< "$out")"` — nested twice, that is most of a dense
+# problem line, and its N had drifted to 3 in four of them and 5 in the other two while
+# meaning the same thing in all six. Five lines, the wider of the two the copies used.
+tail_of() { flat "$(tail -5 <<< "$1")"; }
 
 # tree_owing_prose — a disposable copy of this tree with $SCRIPT grown past the last line
 # any commentary chunk claims, printed as a path. Named, and out of the case body, so the
@@ -190,7 +199,7 @@ probe_plant_is_debt "$planted"
 
 run_in_copy "$planted" "$OWED_SUITE"
 { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
-  problems+=("want $OWED_SUITE green over a tree owing prose for $SCRIPT_NAME — a script commit is a development-lane event and must not turn the docs lane red; got $code: $(flat "$(tail -5 <<< "$out")")")
+  problems+=("want $OWED_SUITE green over a tree owing prose for $SCRIPT_NAME — a script commit is a development-lane event and must not turn the docs lane red; got $code: $(tail_of "$out")")
 
 report "$name"
 
@@ -233,7 +242,7 @@ cmp -s "$BUILT" "$planted/docs/walkthrough.html" &&
 # history — is the same fixture docs-guard-filter.test.sh uses for that.
 run_in_copy "$planted" "$GUARDS_SUITE" "$LIVE_CASE"
 { [[ "$code" == 0 ]] && grep -Fq '1 passed, 0 failed' <<< "$out"; } ||
-  problems+=("want ONLY='$LIVE_CASE' $GUARDS_SUITE green in the copy — without it exit 3 below says nothing; got $code: $(flat "$(tail -3 <<< "$out")")")
+  problems+=("want ONLY='$LIVE_CASE' $GUARDS_SUITE green in the copy — without it exit 3 below says nothing; got $code: $(tail_of "$out")")
 
 # The claim. The message beside the code, because exit 3 alone could come from anywhere in
 # the suite: it has to be the no-match path, which names the filter that found nothing. The
@@ -242,9 +251,9 @@ run_in_copy "$planted" "$GUARDS_SUITE" "$LIVE_CASE"
 run_in_copy "$planted" "$GUARDS_SUITE" "$PAGE_FILTER"
 lowered="$(tr 'A-Z' 'a-z' <<< "$out")"
 [[ "$code" == 3 ]] ||
-  problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS_SUITE over a tree whose committed page is stale; got $code: $(flat "$(tail -5 <<< "$out")")")
+  problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS_SUITE over a tree whose committed page is stale; got $code: $(tail_of "$out")")
 [[ "$lowered" == *"no case"* && "$out" == *"$PAGE_FILTER"* ]] ||
-  problems+=("want it to say no case matched '$PAGE_FILTER' — the generator's suite must judge no committed page; got: $(flat "$(tail -3 <<< "$out")")")
+  problems+=("want it to say no case matched '$PAGE_FILTER' — the generator's suite must judge no committed page; got: $(tail_of "$out")")
 
 report "$name"
 
@@ -278,7 +287,7 @@ probe_plant_is_debt "$planted"
 run_in_copy "$planted" "$GUARDS_SUITE"
 count="$(grep -Eo '[0-9]+ passed, [0-9]+ failed' <<< "$out" | tail -1)"
 if [[ -z "$count" ]]; then
-  problems+=("want $GUARDS_SUITE to reach its count line over a tree owing prose for $SCRIPT_NAME — it stopped before its tail, so every case after the one that stopped it never ran; got $code: $(flat "$(tail -3 <<< "$out")")")
+  problems+=("want $GUARDS_SUITE to reach its count line over a tree owing prose for $SCRIPT_NAME — it stopped before its tail, so every case after the one that stopped it never ran; got $code: $(tail_of "$out")")
 else
   # Two ways the tail and the exit code can disagree, each spelled as the state it
   # complains about rather than as the state it demands: a branch on what the count says
@@ -286,7 +295,7 @@ else
   # being reported, and the report is the whole value of a failing case.
   failed="${count#* passed, }"; failed="${failed% failed}"
   if [[ "$failed" == 0 && "$code" != 0 ]]; then
-    problems+=("want exit 0 from $GUARDS_SUITE to agree with its own '$count'; got $code: $(flat "$(tail -3 <<< "$out")")")
+    problems+=("want exit 0 from $GUARDS_SUITE to agree with its own '$count'; got $code: $(tail_of "$out")")
   elif [[ "$failed" != 0 && "$code" == 0 ]]; then
     problems+=("want a non-zero exit from $GUARDS_SUITE to agree with its own '$count' — a green exit over failing cases is what makes make docs-test and the merge gate behind it report success anyway")
   fi
