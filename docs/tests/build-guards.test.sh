@@ -1084,11 +1084,34 @@ globalThis.innerWidth = 1200; globalThis.innerHeight = 800;
    resting page, no hash — is what every other question asks about.
    history is the other way a page can write the URL, and it writes the same place: a page
    that replaces the address rather than assigning location.hash has still put the choice
-   where the next load will find it, and which of the two it uses is not behaviour. */
-globalThis.location = { hash: process.env.VERI_ASK_HASH || "", href: "", search: "" };
+   where the next load will find it, and which of the two it uses is not behaviour.
+
+   Assigning the hash is also how the page hears about it. A browser fires `hashchange` at
+   the window on that assignment, so a page that repaints there repaints for the reader who
+   pressed Back and the one who edited the address bar too — and a control that calls
+   choose() and leaves the repainting to that event is not broken, it is idiomatic. So the
+   setter fires it, and history.replaceState, which changes the same address and fires
+   nothing in a browser, does not: a page that replaces the address and waits for an event
+   waits forever there, and must not be told otherwise here. Nothing is fired when the
+   address does not actually change, which is the other half of what a browser does.
+   The event only reaches anyone under VERI_ASK_WIRED — the unwired stub drops every
+   listener at the door, as it did before this existed. */
+var hashNow = process.env.VERI_ASK_HASH || "";
+function setHash(next, fire) {
+  if (String(next) === hashNow) return;
+  hashNow = String(next);
+  if (fire && typeof globalThis.__fire === "function") {
+    globalThis.__fire("hashchange", { type: "hashchange" });
+  }
+}
+globalThis.location = { href: "", search: "" };
+Object.defineProperty(globalThis.location, "hash", {
+  get: function () { return hashNow; },
+  set: function (v) { setHash(v, true); }
+});
 globalThis.history = {
   replaceState: function (state, title, url) {
-    location.hash = String(url).replace(/^[^#]*/, "");
+    setHash(String(url).replace(/^[^#]*/, ""), false);
   },
   pushState: function (state, title, url) { history.replaceState(state, title, url); }
 };
@@ -1152,8 +1175,12 @@ if (process.env.VERI_ASK_WIRED) {
   var listeners = {};
   var on = function (type, fn) { (listeners[type] = listeners[type] || []).push(fn); };
   globalThis.addEventListener = on;
+  /* Both ways a page can be listening: the listeners it added, and the `onhashchange`-style
+     property it may have assigned instead. A browser calls both, and which of the two a
+     page uses is a spelling choice — the event is the same event. */
   globalThis.__fire = function (type, event) {
     (listeners[type] || []).slice().forEach(function (fn) { fn(event); });
+    if (typeof globalThis["on" + type] === "function") globalThis["on" + type](event);
   };
 
   /* One element's class list, as a list the page can actually change. element() above
@@ -1262,7 +1289,7 @@ if (process.env.VERI_ASK_WIRED) {
      beside the rest. Nothing is invented here — an implementation that reads an attribute
      the build does not emit finds nothing, which is the whole reason the marks are parsed
      rather than handed over. */
-  var parsed = function (tag, attrs, at) {
+  var parsed = function (tag, attrs, at, inner) {
     var el = node(tag);
     el.at = at;
     var attr = /([\w-]+)="([^"]*)"/g, pair;
@@ -1270,6 +1297,16 @@ if (process.env.VERI_ASK_WIRED) {
       el.setAttribute(pair[1], pair[2]);
       if (pair[1].indexOf("data-") === 0) el.dataset[pair[1].slice(5)] = pair[2];
     }
+    /* What the element says, for the elements a reader reads rather than scrolls to. The
+       markup between the tags, as markup and as the words left when the tags are taken out
+       of it, because a caller asking what a control is called does not know which of the
+       two it was written in. `value` comes back the way a browser hands it back, as the
+       property and not only as the attribute. */
+    if (inner !== undefined) {
+      el.innerHTML = inner;
+      el.textContent = inner.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+    }
+    if (el.getAttribute("value") !== null) el.value = el.getAttribute("value");
     el.matches = function (sel) { return selects(el, sel); };
     return el;
   };
@@ -1328,11 +1365,79 @@ if (process.env.VERI_ASK_WIRED) {
     rows.push(row);
   }
 
-  /* The three kinds in one list, in the order the page prints them — which is the order a
+  /* The controls the page's markup carries — every <select> and every <button>, each with
+     its options and with what it says. A control is the one element here a reader USES
+     rather than reads, and the two routes a page can put one on the page are both real: the
+     build can write it into the markup, which is what this parses, or the page can make one
+     at load and append it, which is what the index elements below are for. Which of the two
+     an implementation picks is a spelling choice, and the reader finds the same control
+     either way — so a harness that modelled only one of them would fail a page that works.
+     A <select> keeps its own <option>s as its children, because what a select offers is
+     the whole of the first half of the claim, and they are parsed out of its own markup
+     rather than as elements in their own right for the same reason. */
+  var controls = [];
+  var openers = /<(select|button)((?:\s[^>]*)?)>([\s\S]*?)<\/\1>/g, opener;
+  while ((opener = openers.exec(page)) !== null) {
+    var control = parsed(opener[1], opener[2], opener.index, opener[3]);
+    control.kind = "control";
+    var choices = /<option((?:\s[^>]*)?)>([\s\S]*?)<\/option>/g, choice;
+    while ((choice = choices.exec(opener[3])) !== null) {
+      control.appendChild(parsed("option", choice[1], opener.index, choice[2]));
+    }
+    controls.push(control);
+  }
+
+  /* The capability index, as a PLACE and as an ELEMENT, which is what makes "the index
+     carries the control" a claim this harness can judge rather than "the page does".
+     As a place: the section the version rows live in, from its own anchor down to the
+     heading of whatever section follows the last row — so a control the build wrote into
+     the markup is in the index when its offset falls inside it, and the pair of stepper
+     buttons the page puts in the crumb bar never is.
+     As an element: the section and the list of rows are handed back real, so a control the
+     page BUILDS at load and appends to either is somewhere a question can read it back
+     from. Everything else still answers with a fresh nothing that forgets what it is
+     given, which is what every other question here wants. */
+  var opensIndex = /<div[^>]*id="capabilities"[^>]*>/.exec(page);
+  var opensList = /<ol[^>]*class="vers"[^>]*>/.exec(page);
+  var indexFrom = opensIndex ? opensIndex.index : -1;
+  var indexTo = page.indexOf("<h2", rows.length ? rows[rows.length - 1].at : 0);
+  if (indexTo < 0) indexTo = page.length;
+  var indexEls = [opensIndex, opensList].filter(Boolean).map(function (found) {
+    var el = parsed(/^<([\w-]+)/.exec(found[0])[1], found[0], found.index);
+    el.kind = "index";
+    return el;
+  });
+
+  /* Everything appended inside those, however deep the page nested it: a control in a
+     wrapper in the index is in the index. */
+  var inside = function (roots, found) {
+    (roots || []).forEach(function (root) {
+      (root.children || []).forEach(function (child) {
+        found.push(child);
+        inside([child], found);
+      });
+    });
+    return found;
+  };
+
+  /* The controls a reader would find in the capability index, by either route. What is NOT
+     in this list is half of what it says: a control the page appended to the crumb bar, or
+     to the document, is not where the choice is made. */
+  globalThis.__controls = function () {
+    return controls.filter(function (c) {
+        return indexFrom >= 0 && c.at >= indexFrom && c.at < indexTo;
+      })
+      .concat(inside(indexEls, []).filter(function (el) {
+        return el.tagName === "SELECT" || el.tagName === "BUTTON";
+      }));
+  };
+
+  /* The kinds in one list, in the order the page prints them — which is the order a
      browser's querySelectorAll answers in, and the order a walk built from one query
      stands on. Only a hunk mark takes the name of the listing it fell in: a header states
      its own, and a row belongs to no script at all. */
-  var ordered = marks.concat(heads, rows).sort(function (a, b) { return a.at - b.at; });
+  var ordered = marks.concat(heads, rows, controls, indexEls)
+                     .sort(function (a, b) { return a.at - b.at; });
   var listing = "";
   ordered.forEach(function (el) {
     if (el.kind === "header") listing = el.script;
@@ -1346,11 +1451,19 @@ if (process.env.VERI_ASK_WIRED) {
   document.createElement = function (tag) { return node(tag); };
   /* The crumb bar is the one element a question needs to be the SAME object every time it
      is asked for — the page puts its buttons there and the question reads them back out.
+     Past it, the elements this stub has parsed out of the markup and whatever the page has
+     appended inside the index, so a layer that goes looking for a place to put a control —
+     or for the control it put there on an earlier pass — finds the same one twice.
      Everything else still answers with a fresh nothing, as above, so a layer that queries
      for something this stub does not model gets what it got before rather than a null it
      would crash on. */
   document.querySelector = function (sel) {
-    return /crumb(?!-)/.test(sel) ? crumb : element();
+    if (/crumb(?!-)/.test(sel)) return crumb;
+    var pool = ordered.concat(inside(indexEls, []));
+    for (var q = 0; q < pool.length; q++) {
+      if (selects(pool[q], sel)) return pool[q];
+    }
+    return element();
   };
   document.querySelectorAll = function (sel) {
     return ordered.filter(function (el) { return selects(el, sel); });
@@ -2204,6 +2317,180 @@ JS
     printf '%s\n' "$want" | sed 's/^/      /'
     echo "    got:"
     printf '%s\n' "$got" | sed 's/^/      /' | head -24
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# control_git <name> <version-the-page-is-opened-at> <version-the-reader-picks> <expected-report> <mutator...>
+# Every case above is about a choice the reader has already made — the hash they arrived
+# with, the version they pressed the button on. This is the making of it: the control the
+# whole mode is reached through, which the page does not have, so the only reader who can
+# be in since-mode today is one who types `#since=vX` into the address bar themselves.
+#
+# The page runs in the wired DOM — see VERI_ASK_WIRED in the stub — because there is no
+# other way to ask: a <select> nobody can change and a button nobody can click answer
+# nothing about their own wiring. Two loads, because the claim has an end in each:
+#
+#   at rest    no hash, nothing stored -> the control is there, offering every version and
+#                                         showing none of them; the reader picks one and the
+#                                         page repaints, having never reloaded
+#   since vX   opened at `#since=vX`   -> the control comes up already showing what the
+#                                         address says, and follows it when it changes
+#
+# The steps are argv, so the same question asks both loads:
+#
+#   options     what the select offers — the versions it names, newest first, then `+none`
+#               for the option that names none of them, or `+none-missing` for its absence.
+#               The versions are ordered as the select lists them and the none option is
+#               not, because where a page puts "everything" in the list is a taste and the
+#               order of the versions is not: v0.10 and v0.9 sort the wrong way as text,
+#               which is the trap this layer has turned on since case 21.
+#   shows       the version the select is displaying, or `none`
+#   button      the version the "mark read up to vX" button names, found by what it says to
+#               a reader or to a screen reader and never by its class — a button found by a
+#               class this harness knows is a button the reader cannot find. X is the newest
+#               version, which is the whole of what the button means.
+#   click       the button pressed, and what `since()` answers afterwards
+#   pick=vX     the reader choosing vX in the select, and what `since()` answers afterwards:
+#               the select is wired to choose(), whatever route it takes to it.
+#   paint       what that choice did to the page, read exactly as case 32 reads it — one
+#               line per version the marks carry — because "updates the paint" means the
+#               paint case 32 pins, arrived at without a reload.
+#   hash=vX     the address changing under the page, which is the reader pressing Back or
+#               editing the address bar. The stub fires `hashchange` on the assignment, as
+#               a browser does, so nothing here is delivered that a browser would not.
+#
+# A load whose control is missing reports `-` and goes on, so the first run of this case
+# names everything the page lacks rather than dying on the first thing.
+control_git() {
+  local name="$1" opened="$2" pick="$3" want="$4"; shift 4
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var label = process.argv[3], steps = process.argv.slice(4);
+
+wired();
+
+var mode = window.__VERI_SINCE__;
+if (!mode || typeof mode.since !== "function") {
+  console.error("the page exposes no window.__VERI_SINCE__.since()");
+  process.exit(1);
+}
+
+/* What a reader would call this control: what it says, or what it tells a screen reader it
+   says. Which of the four an implementation uses is a spelling choice; having none of them
+   is a control nobody can name, and nobody can name is nobody can find. */
+function named(el) {
+  return [el.textContent, el.innerHTML,
+          el.getAttribute("aria-label"), el.getAttribute("title")]
+    .filter(function (part) { return part; }).join(" ").toLowerCase();
+}
+
+/* The version an option offers, or "" for the one that offers none. A tag may be the value
+   the option submits or the text it shows — an implementation can put it in either and a
+   reader reads the same list — so a version found in either place is that option's version,
+   and an option naming no version at all is the none option however it is worded. */
+function offered(opt) {
+  var found = /v\d+\.\d+/.exec([opt.value, opt.getAttribute("value"),
+                                opt.textContent, opt.innerHTML]
+                                 .filter(function (p) { return p; }).join(" "));
+  return found ? found[0] : "";
+}
+
+/* The version the select is displaying. A page may say it by assigning the select's value
+   or by marking the option selected, which are the same thing to a reader. */
+function showing(sel) {
+  var picked = (sel.children || []).filter(function (o) { return o.selected; })[0];
+  var found = /v\d+\.\d+/.exec(String(sel.value || "")) ||
+              (picked ? /v\d+\.\d+/.exec(offered(picked)) : null);
+  return found ? found[0] : "none";
+}
+
+/* Which of the two classes a mark was given, or neither — case 32's reading, and `both` is
+   its own answer there for the reason it is here: a repaint that adds the new class without
+   taking the old one off has left the reader a mark that is news and read at once. */
+function paint(el) {
+  var isLit = el.classList.contains("lit"), isDim = el.classList.contains("dim");
+  return isLit && isDim ? "both" : isLit ? "lit" : isDim ? "dim" : "-";
+}
+
+/* An event delivered to one element, both ways a page can be listening for it. */
+function fire(el, type) {
+  var event = { type: type, target: el,
+                preventDefault: function () {}, stopPropagation: function () {} };
+  ((el.handlers || {})[type] || []).forEach(function (handler) { handler(event); });
+  if (typeof el["on" + type] === "function") el["on" + type](event);
+}
+
+var offer = null, button = null;
+globalThis.__controls().forEach(function (el) {
+  if (!offer && el.tagName === "SELECT") offer = el;
+  if (!button && el.tagName === "BUTTON" && /mark read up to/.test(named(el))) button = el;
+});
+
+function say(what) { console.log(label + " " + what); }
+
+steps.forEach(function (step) {
+  var how = step.split("=")[0], arg = step.split("=")[1];
+
+  if (how === "options") {
+    if (!offer) return say("select -");
+    var all = (offer.children || []).map(offered);
+    var versions = all.filter(function (v) { return v; });
+    say("select " + (versions.join(" ") || "-") +
+        (all.length > versions.length ? " +none" : " +none-missing"));
+
+  } else if (how === "shows") {
+    say("select " + (offer ? "shows " + showing(offer) : "-"));
+
+  } else if (how === "button") {
+    var says = button ? /mark read up to\s+(v\d+\.\d+)/.exec(named(button)) : null;
+    say("button " + (says ? "mark read up to " + says[1] : "-"));
+
+  } else if (how === "click") {
+    if (!button) return say("click -");
+    fire(button, "click");
+    say("click -> since " + (mode.since() || "-"));
+
+  } else if (how === "pick") {
+    if (!offer) return say("pick " + arg + " -> no select");
+    offer.value = arg;
+    fire(offer, "change");
+    say("pick " + arg + " -> since " + (mode.since() || "-"));
+
+  } else if (how === "paint") {
+    var lines = {};
+    var marks = document.querySelectorAll("[data-tag], [data-since]");
+    for (var i = 0; i < marks.length; i++) {
+      lines["paint " + (marks[i].getAttribute("data-tag") ||
+                        marks[i].getAttribute("data-since")) +
+            " " + paint(marks[i])] = true;
+    }
+    Object.keys(lines).sort().forEach(say);
+
+  } else if (how === "hash") {
+    location.hash = "#since=" + arg;
+    say("hashchange " + arg);
+  }
+});
+JS
+  got="$(
+    export VERI_ASK_WIRED=1
+    ask_page "$d" page.html "at rest" options shows button click "pick=$pick" paint &&
+      { export VERI_ASK_HASH="#since=$opened"
+        ask_page "$d" page.html "since $opened" shows "hash=$pick" shows; }
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, control read exit $read_code)"
+    echo "    want, on the resting page and then on one opened at $opened:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -20
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
   fi
 }
@@ -3463,6 +3750,64 @@ unmarked untouched' \
   bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
              "# rewritten by the v0.2 commit" \
              "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2'
+
+# 34. and there is still no way into any of it. Cases 21-33 are all about a reader who has
+#     already chosen a version, and the only reader who can is one who knows to type
+#     `#since=v0.9` into the address bar — `choose()` and `markRead()` have been on the page
+#     since #70 and nothing on it calls either. The mode is a door with no handle.
+#
+#     The handle goes in the capability index, which is where the choice is already being
+#     made in prose: the index is the one section that lists the versions, says what each
+#     one did, and collapses onto the ones the reader has not read. So the claim is as much
+#     about WHERE the control is as what it does — a select in the crumb bar is a control
+#     in the chrome that steps the walk, and the stub's `__controls()` answers for the index
+#     alone for that reason.
+#
+#     Both ends of the wiring, on one fixture, because either alone is a control that lies:
+#
+#       at rest    the select offers v0.10 v0.9 v0.2 v0.1 and a way back out, shows none of
+#                  them — a reader who has chosen nothing must not be told they chose v0.1 —
+#                  the button names v0.10, and pressing it puts the reader at v0.10 with no
+#                  hash anywhere, which is markRead() and nothing else
+#       then       the reader picks v0.9 and the page answers: since() says v0.9, and the
+#                  marks repaint around it in the same process the page loaded in, which is
+#                  the whole of "without a reload"
+#       since v0.2 the select comes up on v0.2, because the address said so and a control
+#                  that shows anything else is telling the reader they are reading something
+#                  they are not; and when the address moves to v0.9 under it — Back, a
+#                  pasted link, the reader's own edit — it follows
+#
+#     v0.9 against v0.10 is the lexical trap, here in the one place the reader looks at it:
+#     `v0.10` sorts BEFORE `v0.9` as text, so an option list built by sorting the strings
+#     offers the newest capability fourth and the button offers to mark the reader read up
+#     to a version two behind the tip.
+#     And the paint after the pick is case 32's report, four versions deep: it is not enough
+#     that the choice reached the layer, the page has to change in front of the reader who
+#     made it — the pick happens on a page loaded at rest, where nothing is painted at all,
+#     so every one of those four lines is news the repaint put there.
+control_git "the index carries the version select and the mark-read button, wired to the mode" \
+  v0.2 v0.9 \
+  'at rest select v0.10 v0.9 v0.2 v0.1 +none
+at rest select shows none
+at rest button mark read up to v0.10
+at rest click -> since v0.10
+at rest pick v0.9 -> since v0.9
+at rest paint v0.1 dim
+at rest paint v0.10 lit
+at rest paint v0.2 dim
+at rest paint v0.9 dim
+since v0.2 select shows v0.2
+since v0.2 hashchange v0.9
+since v0.2 select shows v0.9' \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
+             "# rewritten by the v0.9 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#3)" v0.9
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 7 \
+             "# rewritten by the v0.10 commit" \
+             "fix: rewrite line 7 of classify-bail.sh (#4)" v0.10'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
