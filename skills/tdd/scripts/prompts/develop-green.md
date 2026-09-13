@@ -29,9 +29,15 @@ stop — do not edit it.
 1. Make the target case pass with the smallest change that genuinely implements the
    behaviour. No generality, options, flags or extra cases the test does not demand —
    later steps triangulate those.
-2. Run the **full suite**, not just the target case, and confirm it is green. A new pass
-   bought with a broken sibling test is not a pass; fix it or revert.
-3. Leave no change this step does not require.
+2. Iterate against the suite that holds the target case, not the full suite: that one
+   suite answers the only question each iteration asks, and answers it in a fraction of
+   the time. How this repository runs one suite is a convention like any other —
+   establish it under **Read the conventions out of the repository** at the top of this
+   prompt, from the files that are already there.
+3. Run the **full suite** exactly once, immediately before you write the `SUITE:` report
+   line, and confirm it is green. A new pass bought with a broken sibling test is not a
+   pass; fix it or revert.
+4. Leave no change this step does not require.
 
 ### Report (last lines of your output)
 
