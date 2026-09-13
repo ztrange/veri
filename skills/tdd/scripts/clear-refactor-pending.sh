@@ -19,9 +19,9 @@ matcher="${2:-}"
 mark=' ⟂ refactor pending'
 
 new="$(MATCHER="$matcher" MARK="$mark" awk '
-  BEGIN { m = ENVIRON["MATCHER"]; mark = ENVIRON["MARK"]; done = 0 }
+  BEGIN { matcher = ENVIRON["MATCHER"]; mark = ENVIRON["MARK"]; done = 0 }
   {
-    if (!done && $0 ~ /^[[:space:]]*-[[:space:]]\[x\]/ && index($0, m) > 0 && sub(mark "$", "")) {
+    if (!done && $0 ~ /^[[:space:]]*-[[:space:]]\[x\]/ && index($0, matcher) > 0 && sub(mark "$", "")) {
       done = 1
     }
     print
