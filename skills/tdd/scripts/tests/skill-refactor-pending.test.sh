@@ -225,54 +225,61 @@ precedes() {
   fi
 }
 
-# reads <what it is> <anchor-regex>… — the first instruction of the global `records`
-# matching every <anchor-regex>, into the global `instruction`; otherwise one problem naming
-# <what it is> and a non-zero return. Reads as the sentence it fails with: `reads 'ticks
-# the ledger'` asks for the instruction *that* ticks the ledger, and `says`/`denies` then
-# probe what this left behind.
+# first_record <anchor-regex>… — the search both readers below are: the first record of the
+# global `records` matching every <anchor-regex>, into the global `instruction` and a zero
+# return; a non-zero return and `instruction` untouched when none does. It appends no problem,
+# because which sentence a miss is worth is the one thing its two callers do not share.
+#
+# Spelled once here for the same reason `records_of` is: "which record answers this probe" is a
+# grammar, and two copies of it are free to drift — a `continue 2` that turned into a `break`
+# in one of them would quietly answer with a record that matched only the first anchor.
+first_record() {
+  local line re
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    instruction="$line"
+    return 0
+  done <<< "$records"
+  return 1
+}
+
+# reads <what it is> <anchor-regex>… — `first_record`, for SKILL.md: the instruction it finds,
+# or one problem naming <what it is> and a non-zero return. Reads as the sentence it fails
+# with: `reads 'ticks the ledger'` asks for the instruction *that* ticks the ledger, and
+# `says`/`denies` then probe what this left behind.
 #
 # Fail closed: a branch that has been reworded away is reported as unreadable rather than
 # probed as an empty string, which would let "the instruction is gone" pass as "the
 # instruction is right".
 instruction=""
 reads() {
-  local what="$1" line re
+  local what="$1"
   shift
-  while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    instruction="$line"
-    return 0
-  done <<< "$records"
+  first_record "$@" && return 0
   problems+=("$skill_md has no instruction that $what — what that branch prescribes could not be read")
   return 1
 }
 
 # record_of <document> <what it is> <anchor-regex>… — `reads`, for the repository's own two
-# documents: the first record of the global `records` matching every <anchor-regex>, into the
-# global `instruction`; otherwise one problem naming <document> and <what it is>, and a
-# non-zero return so the probes that follow are skipped rather than run against a stale read.
+# documents: the same `first_record` search, but a problem naming <document> and <what it is>,
+# and a non-zero return so the probes that follow are skipped rather than run against a stale
+# read.
 #
-# Separate from `reads` rather than a flag on it, because the two fail with different
-# sentences: SKILL.md prescribes, so a record missing from it is a branch that no longer says
-# what to do, whereas these two describe, and a record missing from them is a fact this
-# repository no longer writes down. Naming the document is also the point — there are two of
-# them here, and a message that spelled SKILL.md's path would send the fix to a third file
-# that is already right.
+# A second wrapper rather than a flag on `reads`, because the sentence is the whole difference:
+# SKILL.md prescribes, so a record missing from it is a branch that no longer says what to do,
+# whereas these two describe, and a record missing from them is a fact this repository no
+# longer writes down. Naming the document is also the point — there are two of them here, and a
+# message that spelled SKILL.md's path would send the fix to a third file that is already
+# right.
 #
 # Fail closed for the same reason `reads` does: a renamed heading or a deleted entry has to
 # read as unreadable, not as an empty string that every probe then passes on.
 record_of() {
-  local where="$1" what="$2" line re
+  local where="$1" what="$2"
   shift 2
-  while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    instruction="$line"
-    return 0
-  done <<< "$records"
+  first_record "$@" && return 0
   problems+=("$where has no $what — what it records about a ticked step could not be read")
   return 1
 }
