@@ -98,6 +98,21 @@ plans "no page input changed: nothing runs" 'nothing to run' 'docs-fresh' \
 plans "a change under skills/ owes nothing" 'nothing to run' 'docs-fresh' \
   bash -c 'touch_file skills/tdd/scripts/classify-bail.sh; touch_file skills/tdd/SKILL.md'
 
+# 2b. #146: and neither does an ADR travelling with it. A development issue records its
+#     decisions under docs/adr/ — #125 committed ADR 0016 that way — and the page build
+#     reads nothing there: `grep -n adr docs/build-walkthrough.py docs/wt/gitmeta.py
+#     docs/check-walkthrough.py` finds nothing, so an ADR can neither make the page stale
+#     nor move a guard. Under the directory rule (case 5b) it nevertheless matched ^docs/
+#     and billed every development PR carrying one the whole docs lane — the suites plus the
+#     freshness check, ~5 min — for a file the lane does not read. docs/adr/ is carved back
+#     out, the same way skills/ is: a branch whose changes outside the owed-nothing set are
+#     only under docs/adr/ owes no gate. One case for both paths because it is one rule and
+#     not two — the branch touches a script and an ADR together and still owes nothing.
+plans "a change under skills/ and docs/adr/ owes nothing" 'nothing to run' 'docs-fresh' \
+  bash -c 'touch_file skills/tdd/scripts/classify-bail.sh
+           mkdir -p docs/adr
+           printf "# 0017. a decision\n" > docs/adr/0017-a-decision.md'
+
 # 3. the page itself changed by hand: freshness catches a hand edit. Fresh only.
 plans "the page was edited: freshness only" 'docs-fresh' 'docs-test' \
   bash -c 'touch_file docs/walkthrough.html'
