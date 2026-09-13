@@ -175,6 +175,20 @@ owed() {
   err="$(cat "$WORK/err.txt" 2>/dev/null)"
 }
 
+# answers_with_a_list <dir> <the tree it is run over, as a phrase> — run the subject there
+# and pin the half of the contract every planted case shares: a tree with debt exits 0,
+# because a list is an answer and not a failure (CLAUDE.md: exit codes are the API). Three
+# cases below owe this, each right before it greps the list for what it planted, and the
+# phrase is the only thing that differs between them — it is there so a failure says which
+# tree came back as a failure rather than as a report. Runs `owed`, so it publishes `code`,
+# `out` and `err` for those greps; reads `problems` where it stands, the protocol the rest
+# of this file already uses.
+answers_with_a_list() {
+  owed "$1"
+  [[ "$code" == 0 ]] ||
+    problems+=("want exit 0 from $SUBJECT over $2 — a list is an answer, not a failure; got $code: $(flat "$out$err")")
+}
+
 # 1. The contract above, and both of its halves in one case, because neither is worth
 #    anything without the other: a script that exits 3 and prints nothing whatever the
 #    tree looks like passes the empty half, and one that prints its three lines
@@ -217,9 +231,7 @@ git -C "$d" commit -qam "fix: rewrite a line of $STALE after the page was built 
 
 git -C "$d" tag -a "$TAG" -m 'a capability the committed index does not list'
 
-owed "$d"
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from $SUBJECT over a tree with debt — a list is an answer, not a failure; got $code: $(flat "$out$err")")
+answers_with_a_list "$d" "a tree with debt"
 
 for want in "$UNCOVERED:a script line no commentary chunk covers" \
             "$STALE:a script whose last commit is newer than the page's" \
@@ -556,9 +568,7 @@ real_lines="$(awk 'END {print NR}' "$d/$SCRIPTS_DIR/$MISQUOTED")"
 git -C "$d" commit -qam 'docs: a page that misquotes the tree it stands in (#4)'
 page_is_newest "$d" "the blame rule could report $MISQUOTED without reading the page at all"
 
-owed "$d"
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from $SUBJECT over a tree whose committed page misquotes it — a list is an answer, not a failure; got $code: $(flat "$out$err")")
+answers_with_a_list "$d" "a tree whose committed page misquotes it"
 printf '%s\n' "$out" | grep -Fq -- "$MISQUOTED" ||
   problems+=("want a line naming $MISQUOTED — the committed page quotes its listing as $wrong_lines lines and the script is $real_lines; got: $(flat "$out")")
 
@@ -607,9 +617,7 @@ grep -Fq -- "$OLD_CMD" "$d/$PAGE" ||
 git -C "$d" commit -qam 'docs: a page still naming a command that no longer resolves (#5)'
 page_is_newest "$d" "a dated rule could report this without reading the page at all"
 
-owed "$d"
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from $SUBJECT over a tree whose committed page names an old command — a list is an answer, not a failure; got $code: $(flat "$out$err")")
+answers_with_a_list "$d" "a tree whose committed page names an old command"
 printf '%s\n' "$out" | grep -Fq -- "$OLD_CMD" ||
   problems+=("want a line naming $OLD_CMD — the committed page tells a reader to run it and no such command resolves any more; got: $(flat "$out")")
 
