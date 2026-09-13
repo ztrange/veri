@@ -54,6 +54,13 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
 
+# The mark itself, spelled once. Two probes of case 4 ask for this exact string — the entry for
+# the flag that writes it, and the entry for the script that strips it — and that they ask for
+# the *same* string is the claim, not an incidental repetition: the fact one of them fails with
+# is that either side can be reworded without the other noticing, and two independent literals
+# here would let this suite drift exactly that way itself.
+mark='⟂ refactor pending'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -439,8 +446,8 @@ if records_from scripts_instructions \
   if reads_entry tick-ledger.sh; then
     says '--refactor-pending' \
       "$skill_md's entry for tick-ledger.sh never mentions --refactor-pending, so the flag the green commit must tick with is invisible to a session that reads the list to find out how to tick"
-    says '⟂ refactor pending' \
-      "$skill_md's entry for tick-ledger.sh never spells the mark the flag appends, so nothing connects that write to the \`⟂ refactor pending\` string next-pending-refactor.sh matches, and either side can be reworded without the other noticing"
+    says "$mark" \
+      "$skill_md's entry for tick-ledger.sh never spells the mark the flag appends, so nothing connects that write to the \`$mark\` string next-pending-refactor.sh matches, and either side can be reworded without the other noticing"
     says 'exits? 3' \
       "$skill_md's entry for tick-ledger.sh never names exit 3, so a green commit whose substring matched no unchecked step looks like it ticked, and the step is committed as green with no mark and no tick"
   fi
@@ -456,7 +463,7 @@ if records_from scripts_instructions \
   # clear-refactor-pending.sh — the eraser. Nothing on stdout, so what its entry owes instead
   # is which mark it takes off, and that it does so in the ledger itself.
   if reads_entry clear-refactor-pending.sh; then
-    says '⟂ refactor pending' \
+    says "$mark" \
       "$skill_md's entry for clear-refactor-pending.sh never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
     says 'strip|remove|drop|clear|delete' \
       "$skill_md's entry for clear-refactor-pending.sh never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
