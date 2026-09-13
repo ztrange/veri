@@ -103,29 +103,35 @@ denies() {
   if [[ "$text" =~ $1 ]]; then problems+=("$2"); fi
 }
 
+# miss <fact> — one problem of the ordered probe below: <fact>, then the instruction it was
+# read from, clipped, so the fix is an edit to a line already in front of you. Every miss
+# quotes it, which is why the quoting lives here rather than at each of the three.
+miss() {
+  problems+=("$1: $(printf '%.130s' "$text")")
+}
+
 # says_clear_commit_mirror — the three things the instruction in `$text` must prescribe, and
 # the order they must come in: clear the mark, commit the cleared ledger, and only then
 # mirror the step to the issue. The order is the whole claim here, which is why this is not
 # three `says` calls: each probe reads only what the one before it left — `rest` — and the
 # first miss returns, because "and after that?" has no answer once the order is already
-# broken. Every miss quotes the instruction, so the fix is an edit to a line already in
-# front of you.
+# broken.
 says_clear_commit_mirror() {
   local rest="$text"
   if [[ ! "$rest" =~ clear-refactor-pending\.sh ]]; then
-    problems+=("$skill_md never runs clear-refactor-pending.sh where a step's cycle completes, so the mark green wrote is never removed and every finished step reads as pending: $(printf '%.130s' "$text")")
+    miss "$skill_md never runs clear-refactor-pending.sh where a step's cycle completes, so the mark green wrote is never removed and every finished step reads as pending"
     return
   fi
   rest="${rest#*clear-refactor-pending.sh}"
   if [[ ! "$rest" =~ git[[:space:]].*commit ]]; then
-    problems+=("$skill_md clears the mark but commits nothing after it, so the cleared ledger stays uncommitted and the next resume reads the committed one, which still says pending: $(printf '%.130s' "$text")")
+    miss "$skill_md clears the mark but commits nothing after it, so the cleared ledger stays uncommitted and the next resume reads the committed one, which still says pending"
     return
   fi
   # Past the commit: what is left is what the document does once the cleared ledger is safe
   # on disk, and the mirror has to be in there rather than before it.
   rest="${rest#*commit}"
   [[ "$rest" =~ tick-issue-criterion\.sh ]] ||
-    problems+=("$skill_md mirrors the step to the issue before the cleared ledger is committed, so a run killed in that window has an issue saying done over a ledger still saying pending: $(printf '%.130s' "$text")")
+    miss "$skill_md mirrors the step to the issue before the cleared ledger is committed, so a run killed in that window has an issue saying done over a ledger still saying pending"
 }
 
 # 1. One criterion — the mark is written at exactly one tick, withheld at the other, and
