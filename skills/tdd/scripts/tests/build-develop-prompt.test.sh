@@ -287,23 +287,24 @@ fi
 #     what the leaf is told to RUN, not that a suite is mentioned.
 red_flat="$(tr '\n' ' ' <<<"$red")"
 
-# One claim, one miss — `narrates` above, pointed at the prompt instead of the narration,
-# and collapsing the accumulator for the same reason: four probes cannot then drift into
-# reporting their misses in four shapes, while the patterns stay at the call site, where
-# the comment above reasons about them. `-e` because a pattern is data, not a flag.
-red_says() {  # red_says <complaint> <grep argument…>
-  local complaint="$1"; shift
-  grep -q "$@" <<<"$red_flat" || problems="$problems; $complaint"
+# One claim, one miss — `narrates` above, pointed at a prompt instead of the narration, and
+# collapsing the accumulator for the same reason: probes cannot then drift into reporting
+# their misses in as many shapes, while the patterns stay at the call site, where the comment
+# above reasons about them. Which prompt is an argument, since case 12 below asks the same of
+# develop-green's. `-e` because a pattern is data, not a flag.
+prompt_says() {  # prompt_says <flattened prompt> <complaint> <grep argument…>
+  local flat="$1" complaint="$2"; shift 2
+  grep -q "$@" <<<"$flat" || problems="$problems; $complaint"
 }
 
 problems=""
-red_says "never says to run the suite that holds the new case" \
+prompt_says "$red_flat" "never says to run the suite that holds the new case" \
   -iE -e 'suite (that |which )?(holds|contains|holding|containing)[^.]{0,40}case'
-red_says "never says NOT to run the full suite" \
+prompt_says "$red_flat" "never says NOT to run the full suite" \
   -iE -e "(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite"
-red_says "no fallback for a repository that cannot run one suite" \
+prompt_says "$red_flat" "no fallback for a repository that cannot run one suite" \
   -iE -e '(cannot|can.t|no way to|unable to|has no way)[^.]{0,60}(suite|file)'
-red_says "does not ask the leaf to say so in its report" \
+prompt_says "$red_flat" "does not ask the leaf to say so in its report" \
   -iE -e '(say|says|saying|state|states|note|report) (so|it|this|that)[^.]{0,30}report'
 [[ -z "$problems" ]] \
   && ok || no "develop-red says to run the suite holding the new case, not the full suite, falling back to the test command and saying so in the report (${problems#; })"
@@ -326,22 +327,15 @@ red_says "does not ask the leaf to say so in its report" \
 #     invocation and case 2 owns the exit-0 check on it.
 green_flat="$(tr '\n' ' ' <<<"$green")"
 
-# One claim, one miss — `red_says` above, pointed at the green prompt, and collapsing the
-# accumulator for the same reason. `-e` because a pattern is data, not a flag.
-green_says() {  # green_says <complaint> <grep argument…>
-  local complaint="$1"; shift
-  grep -q "$@" <<<"$green_flat" || problems="$problems; $complaint"
-}
-
 problems=""
-green_says "never says to iterate on the suite that holds the target case" \
+prompt_says "$green_flat" "never says to iterate on the suite that holds the target case" \
   -iE -e 'iterat[^.]{0,60}suite|suite[^.]{0,60}iterat'
-green_says "never says the full suite is run exactly once" \
+prompt_says "$green_flat" "never says the full suite is run exactly once" \
   -iE -e '(full|whole|entire) suite[^.]{0,40}once|once[^.]{0,40}(full|whole|entire) suite'
 # Placed against the report line, not merely mentioned: `SUITE:` is the protocol token the
 # conductor greps for, so a prompt that says "once" without saying when leaves the leaf free
 # to spend it first and iterate afterwards.
-green_says "does not put that one run immediately before the SUITE: report line" \
+prompt_says "$green_flat" "does not put that one run immediately before the SUITE: report line" \
   -iE -e 'before[^.]{0,60}SUITE:'
 [[ -z "$problems" ]] \
   && ok || no "develop-green says to iterate on the target case's suite and run the full suite exactly once, immediately before the SUITE: report line (${problems#; })"
