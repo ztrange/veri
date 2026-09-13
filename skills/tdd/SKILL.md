@@ -140,6 +140,14 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   answered), `REVISE_BUDGET` is verdict (it answered and was rejected), this one is **cost
   per step** — how much tidying one step is worth, decided once for the run instead of by
   your judgement mid-loop.
+- `$S/event.sh <event> [key=value …]` — append one JSON line to the run's event log
+  `.tdd/events.jsonl`, relative to the worktree you are in. `supervise.sh` and `verify.sh`
+  call it from inside themselves, so their events are complete by construction; **your**
+  marks — `step-start`, `step-done`, `pin`, `revise`, `bail`, `done`, `resume` — are prose,
+  so each is prescribed below at the point the matching narration is, and the run's context
+  (`VERI_ISSUE`, `VERI_ACTOR=conductor`, `VERI_STEP`, `VERI_PHASE`, `VERI_ATTEMPT`) rides on
+  the call in the environment. The log is run state: it is ignored, never committed, and
+  goes with the worktree.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Writes the rule to **both** the worktree's `.gitignore` (committed, so the first
@@ -396,7 +404,14 @@ Green → Refactor) for the next step:
 
 ```
 $S/next-unchecked.sh < .tdd/issue-<n>.md        # exit 3 ⇒ all steps done → go to step 4 (PR)
+VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-start
 ```
+
+The `event.sh` line is this step's **mark** in the run's event log — the step has no issue
+comment of its own, so the moment `next-unchecked.sh` hands one over is where its clock
+starts. Every mark below is spelled the same way: the run's context (`VERI_ISSUE`,
+`VERI_ACTOR=conductor`, and the step or phase the mark is about) goes in the environment on
+the call itself, so one instruction carries the whole call.
 
 Let **STEP** be that step's description. Run the Red, Green, and Refactor phases below
 **against STEP's criterion** (use STEP's wording as the criterion the leaves pin, and as
@@ -554,8 +569,10 @@ back to `next-unchecked.sh` for the following step. The phase sub-steps are:
    whole point of recording what the budget dropped.
    - **PASS:** the step's cycle is complete — **mirror to the issue**: post a `### ✅ Step
      done` comment, and tick the matching acceptance criterion in the **issue body**
-     (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Then loop back to
-     the top of **step 3** for the next unchecked ledger step.
+     (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Mark the same
+     moment in the log —
+     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-done` — then
+     loop back to the top of **step 3** for the next unchecked ledger step.
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
    - **Malformed / killed-stuck (exit 2):** **bail**. (Earlier steps' commits are preserved.)
@@ -577,7 +594,10 @@ issue branch and its commits without any switching.
    <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>"
    ```
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
-4. Post a final `### ✅ Done — <pr-url>` comment.
+4. Post a final `### ✅ Done — <pr-url>` comment, and close the run's log with the same URL:
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
+   ```
 
 **The worktree stays.** Do not remove it here: it holds the run's leaf logs and is where a
 resume would land if the PR comes back for more work. It is removed once the PR is **merged**
@@ -606,8 +626,10 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
-  verifier's reason, and tick the matching acceptance criterion in the **issue body**
-  (`$S/tick-issue-criterion.sh <n> '<substring>'`). The step is **done** — **no Green and
+  verifier's reason, tick the matching acceptance criterion in the **issue body**
+  (`$S/tick-issue-criterion.sh <n> '<substring>'`), and mark it in the log —
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=pin $S/event.sh pin`.
+  The step is **done** — **no Green and
   no Refactor**, since there is no new production code to write or to tidy. Loop back to
   the top of **step 3** for the next unchecked ledger step.
 - **REJECT (exit 1):** enter the **revise loop** for the **red** phase — see *Revising on a
@@ -633,7 +655,10 @@ leaves never share context, so each revise leaf is told explicitly what to fix.
 For attempt `k = 1 … REVISE_BUDGET`:
 
 1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
-   the verifier's **rejection reason verbatim**.
+   the verifier's **rejection reason verbatim**, and mark the same attempt in the log:
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
+   ```
 2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure):
@@ -703,7 +728,11 @@ To bail:
 4. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
    carries the last reason (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the
    kill cause otherwise), and points at the progress log (`.tdd/<phase>.log` or
-   `.tdd/revise-<phase>-*.log`) for forensics.
+   `.tdd/revise-<phase>-*.log`) for forensics. Mark the stop in the log too, with the cause
+   token and the classification step 2 derived from it:
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
+   ```
 5. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
    failing step (see *Resume*).
 6. Report to the user: the phase, the **classification** (system vs process), the reason,
@@ -726,8 +755,10 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
 2. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
    loop continues from exactly there. Already-checked steps (and their commits) are kept.
-3. Post a `### ▶️ Resuming` comment naming that step, then run the cycle loop (step 3) as
-   normal. When `next-unchecked.sh` exits 3, every step is done → go to the draft PR.
+3. Post a `### ▶️ Resuming` comment naming that step, and mark the pick-up in the log —
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<step>' $S/event.sh resume` — then run
+   the cycle loop (step 3) as normal. When `next-unchecked.sh` exits 3, every step is done →
+   go to the draft PR.
 
 Because each step was checked off **atomically with its green commit**, the ledger and the
 git history agree on exactly what is done — so resume never repeats or skips a step.

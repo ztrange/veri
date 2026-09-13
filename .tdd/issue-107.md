@@ -12,4 +12,4 @@
 - [x] `verify.sh` appends a `verdict` event carrying the phase, `PASS`/`REJECT`/malformed and the reason's first line
 - [x] A harvester appends one `usage` event per finished leaf with wall ms, API ms, turns, the four token counts and dollars read from that leaf's closing stream-json `result` record
 - [x] The harvester appends nothing and says so on stderr when the leaf's log carries no closing `result` record, so absence is never recorded as zero
-- [ ] `SKILL.md` prescribes an `event.sh` call for each conductor mark — `step-start`, `step-done`, `pin`, `revise`, `bail`, `done`, `resume` — beside the issue comment it already mirrors
+- [x] `SKILL.md` prescribes an `event.sh` call for each conductor mark — `step-start`, `step-done`, `pin`, `revise`, `bail`, `done`, `resume` — beside the issue comment it already mirrors
