@@ -129,11 +129,12 @@ probe_adr_in_docs_roster() {
 }
 
 # probe_adr_runs_there — the roster probe's blind spot: a file the target runs and that dies
-# on its first line is still on the roster. So run the suite from its new home and read both
-# its exit code and its count line, for the reason case 4 of docs-guard-filter.test.sh
-# spells out — zero cases run and every case passing both exit 0. Returns non-zero when the
-# file is not there at all, which is also what gates the header probe: a suite that is
-# missing has no header to read.
+# on its first line is still on the roster — a move that left its ROOT counting the old
+# depth is still picked up by the glob and still cannot find the ADR set it reads. So run the
+# suite from its new home and read both its exit code and its count line, for the reason case
+# 4 of docs-guard-filter.test.sh spells out — zero cases run and every case passing both exit
+# 0. Returns non-zero when the file is not there at all, which is also what gates the header
+# probe: a suite that is missing has no header to read.
 probe_adr_runs_there() {
   local out code
   if [[ ! -x "$ADR_SUITE_PATH" ]]; then
@@ -148,9 +149,11 @@ probe_adr_runs_there() {
 
 # probe_rehomed_header — the three things the moved suite's header has to say and not say,
 # in one place: no argument for the home it left, no mention of the path it no longer has,
-# and a word about the target that runs it now. Reads everything above the first `set` line,
-# which is where every suite here keeps its rationale, and appends to `$problems` the way
-# report() reads it — the protocol docs-gap-adr.test.sh's probe functions use too.
+# and a word about the target that runs it now. The rationale is what makes the placement
+# reviewable, so a false one left in place is what sends the next reader to move the suite
+# back. Reads everything above the first `set` line, which is where every suite here keeps
+# its rationale, and appends to `$problems` the way report() reads it — the protocol
+# docs-gap-adr.test.sh's probe functions use too.
 probe_rehomed_header() {
   local text
   text="$(header "$ADR_SUITE_PATH")"
@@ -165,8 +168,11 @@ probe_rehomed_header() {
 
 # probe_dev_lane_clean — the lane's other half, which is a sweep and not a question about one
 # file: every suite `make test` would run, read for a subject line that names the docs
-# pipeline. Asks for development's roster itself because nothing else in the case reads it,
-# and appends to `$problems` the way report() reads it.
+# pipeline. A sweep because the rule is about the lane and not about one suite — any file
+# `make test` runs whose subject names something under docs/ is the same failure wearing a
+# different name, so asking only whether the ADR suite left would miss the next one. Asks
+# for development's roster itself because nothing else in the case reads it, and appends to
+# `$problems` the way report() reads it.
 probe_dev_lane_clean() {
   local suite subj
   while IFS= read -r suite; do
@@ -218,24 +224,9 @@ probe_gate_rule_prose() {
 }
 
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
-#    run by the docs target and by nothing in development's. Four probes.
-#
-#    The roster probe alone would pass over a file that the target runs and that dies on
-#    its first line, so the suite is also run from its new home: a move that leaves its
-#    ROOT counting the old depth still gets picked up by the glob and still cannot find
-#    the ADR set it reads. Its exit code is the claim and the count line beside it, for
-#    the reason case 4 of docs-guard-filter.test.sh spells out — zero cases run and every
-#    case passing both exit 0.
-#
-#    The header is the third probe because the rationale is what makes the placement
-#    reviewable: the paragraph arguing this suite belongs under `make test`, and the run
-#    line pointing at its old path, are both false where it now sits, and a false reason
-#    left in place is what sends the next reader to move it back.
-#
-#    The last probe sweeps development's whole roster rather than only asking whether this
-#    one file left it, because the rule is about the lane and not about one suite: any
-#    file `make test` runs whose subject line names something under docs/ is the same
-#    failure wearing a different name.
+#    run by the docs target, and no suite development's target runs is about the docs
+#    pipeline. Four probes, each arguing for itself in the comment above it. Only the order
+#    belongs here: the run probe gates the header probe, for the reason it gives.
 name="the ADR suite runs under 'make docs-test', and no suite 'make test' runs is about the docs pipeline"
 problems=()
 
