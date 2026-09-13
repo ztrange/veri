@@ -78,6 +78,23 @@ roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 # this tree says what it is about.
 subject() { awk 'NR > 1 && /^#/ { print; exit }' "$ROOT/$1"; }
 
+# probe_rehomed_header — the three things the moved suite's header has to say and not say,
+# in one place: no argument for the home it left, no mention of the path it no longer has,
+# and a word about the target that runs it now. Reads everything above the first `set` line,
+# which is where every suite here keeps its rationale, and appends to `$problems` the way
+# report() reads it — the protocol docs-gap-adr.test.sh's probe functions use too.
+probe_rehomed_header() {
+  local header
+  header="$(awk '/^set /{ exit } { print }' "$ADR_SUITE_PATH")"
+
+  [[ "$header" != *"not under docs/tests/"* ]] ||
+    problems+=("the header still argues the suite lives somewhere other than docs/tests/, which is where it now is")
+  [[ "$header" != *"scripts/tests/docs-gap-adr.test.sh"* ]] ||
+    problems+=("the header still names scripts/tests/docs-gap-adr.test.sh, a path the suite no longer has")
+  [[ "$header" == *"docs-test"* ]] ||
+    problems+=("want the header to say which target runs the suite now; it does not mention docs-test")
+}
+
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
 #    run by the docs target and by nothing in development's. Four probes.
 #
@@ -111,13 +128,7 @@ if [[ -x "$ADR_SUITE_PATH" ]]; then
   { [[ "$adr_code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$adr_out"; } ||
     problems+=("want exit 0 and a green count over cases that ran from $ADR_SUITE; got $adr_code: $(flat "$(tail -3 <<< "$adr_out")")")
 
-  header="$(awk '/^set /{ exit } { print }' "$ADR_SUITE_PATH")"
-  [[ "$header" != *"not under docs/tests/"* ]] ||
-    problems+=("the header still argues the suite lives somewhere other than docs/tests/, which is where it now is")
-  [[ "$header" != *"scripts/tests/docs-gap-adr.test.sh"* ]] ||
-    problems+=("the header still names scripts/tests/docs-gap-adr.test.sh, a path the suite no longer has")
-  [[ "$header" == *"docs-test"* ]] ||
-    problems+=("want the header to say which target runs the suite now; it does not mention docs-test")
+  probe_rehomed_header
 else
   problems+=("want $ADR_SUITE to exist and be executable; it is not")
 fi
