@@ -785,10 +785,10 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    `$green` is the step's **green commit** — the last commit that changed the ledger, since
    the tick is atomic with it and the clear that would follow never happened. So `$touched`
    is the same bounds the interrupted loop had, and `$count` the transforms it already
-   committed, so the budget is not spent twice. Run the **Refactor loop** (step 3's
+   committed, so the budget is not spent twice. Run the **Refactor loop** (the cycle loop's
    sub-section) with those two inputs, and its **verify-refactor** after it — the check the
    interruption skipped. Its PASS clears the mark and commits the cleared ledger exactly as
-   in step 3; then come back here and ask sub-step 2 again.
+   in the cycle loop; then come back here and ask sub-step 2 again.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
    loop continues from exactly there, so **STEP** is that step's description, bound here
    instead of at the top of step 3. Already-checked steps (and their commits) are kept.
