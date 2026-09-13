@@ -5,4 +5,4 @@
 - [x] A fact about the committed page's own content — an old command name, a script's quoted line count — is reported by the docs lane's page check, not by `build-guards.test.sh`
 - [x] `make merge-gates` runs no docs gate for a branch whose changes are only under `skills/` and `docs/adr/`, pinned in `docs/tests/merge-gates.test.sh`, with the `docs/merge-gates.sh` header and the CLAUDE.md merge-gates row saying why
 - [x] `make merge-gates` on a branch changing `docs/wt/` still runs every docs suite and `docs-fresh`
-- [ ] The other committed-page fact of the table's fourth row — the page naming an old command — has a docs-lane home too, so #143 deletes no unguarded fact
+- [x] The other committed-page fact of the table's fourth row — the page naming an old command — has a docs-lane home too, so #143 deletes no unguarded fact

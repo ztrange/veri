@@ -63,6 +63,24 @@ STALE_PATH="$SCRIPTS_DIR/$STALE"
 MISQUOTED=next-unchecked.sh
 TAG=v9.9
 
+# The fifth, and the one name here that is derived rather than written down: an old command,
+# as a user types it, that the committed page may still be telling a reader to invoke. A
+# forwarding stub is a skills/<name>/ carrying a SKILL.md and no scripts of its own — the
+# live skill carries those — and the command is a slash followed by that directory's name.
+# Assembled rather than spelled because skills/tdd/scripts/tests/skill-identity.test.sh
+# sweeps every tracked file for exactly this string, and a suite that spelled it out would
+# be that sweep's first offender; that suite assembles it from its `stubs` for the same
+# reason. Empty if the repository has no stub left, which case 5 reports as a vacuous case
+# rather than passing on a plant it never made.
+OLD_CMD=""
+for stub in "$ROOT"/skills/*/SKILL.md; do
+  [ -f "$stub" ] || continue
+  stub_dir="${stub%/SKILL.md}"
+  [ -d "$stub_dir/scripts" ] && continue
+  OLD_CMD="/$(basename "$stub_dir")"
+  break
+done
+
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem,
 # so the output says which half of the contract broke rather than just that the case did.
@@ -518,6 +536,60 @@ owed "$d"
   problems+=("want exit 0 from $SUBJECT over a tree whose committed page misquotes it — a list is an answer, not a failure; got $code: $(flat "$out$err")")
 printf '%s\n' "$out" | grep -Fq -- "$MISQUOTED" ||
   problems+=("want a line naming $MISQUOTED — the committed page quotes its listing as $wrong_lines lines and the script is $real_lines; got: $(flat "$out")")
+
+report "$name"
+
+# 5. The committed page's other content fact, and the second half of what `make test` used
+#    to hold about the page (#146): it still tells a reader to invoke a command that no
+#    longer resolves to a procedure. skills/tdd/scripts/tests/skill-identity.test.sh case 8
+#    held it, which put a claim about a generated artefact inside the command every veri
+#    leaf runs — a page nobody had rebuilt could stop a TDD cycle on a red the scripts did
+#    not cause (ADR 0016). Its sources are already swept by that suite's case 5 and are
+#    clean; what is left is the ARTEFACT nobody has rebuilt, which is debt to report (#137)
+#    and so belongs on this list beside the misquoted line count.
+#
+#    Not a reading the four rules above can make. `commentary` and `page behind` both ask
+#    about history, and a page carrying prose that is merely out of date is newer than
+#    everything it is out of date about; `page misquotes` reads the page's content but only
+#    its listing headers, where a command name never appears. The name lives in the page's
+#    prose, so only a reading of that prose finds it.
+#
+#    Planted after everything the build wrote, which puts it outside the capability index
+#    for the reason skill-identity case 8 cuts that index out before sweeping: the index is
+#    generated from annotated tag messages, which quote each issue's own words as they were
+#    written, and a tag's message is history rather than documentation that can be brought
+#    up to date. This repository's own page names an old command twice inside it today.
+#
+#    Committed alone and last, as case 4 does, so the page is the tree's newest commit and
+#    every dated rule is silent by construction — a line naming the old command can then
+#    only have come from reading what the page says.
+name="docs/docs-owed.sh reports a committed page that still names a command which no longer resolves, with no commit newer than the page's to date it by"
+problems=()
+d="$(repo)"
+
+[ -n "$OLD_CMD" ] ||
+  problems+=("the case is vacuous: no forwarding stub under skills/ to read an old command name from, so nothing was planted")
+
+owed "$d"
+{ [[ "$code" == 3 ]] && [[ -z "$out" ]]; } ||
+  problems+=("the case is vacuous: $SUBJECT already has debt to report over the tree its page was just built from, so a line naming $OLD_CMD below would not be this plant's; got $code: $(flat "$out$err")")
+
+# A line of the page's own prose, telling a reader to run the command. Appended rather than
+# substituted in: the page's lines run to thousands of characters, and what this plants is a
+# sentence that was true before the skill was renamed, not an edit to any particular one.
+printf '<p class="note">Start a cycle by running %s on the issue.</p>\n' "$OLD_CMD" >> "$d/$PAGE"
+grep -Fq -- "$OLD_CMD" "$d/$PAGE" ||
+  problems+=("the plant did not land: the committed page does not name $OLD_CMD after appending a line that does")
+
+git -C "$d" commit -qam 'docs: a page still naming a command that no longer resolves (#5)'
+[[ "$(git -C "$d" log -1 --format=%H)" == "$(git -C "$d" log -1 --format=%H -- "$PAGE")" ]] ||
+  problems+=("the case is vacuous: the page is not the tree's newest commit, so a dated rule could report this without reading the page at all")
+
+owed "$d"
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from $SUBJECT over a tree whose committed page names an old command — a list is an answer, not a failure; got $code: $(flat "$out$err")")
+printf '%s\n' "$out" | grep -Fq -- "$OLD_CMD" ||
+  problems+=("want a line naming $OLD_CMD — the committed page tells a reader to run it and no such command resolves any more; got: $(flat "$out")")
 
 report "$name"
 
