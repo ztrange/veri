@@ -47,22 +47,27 @@ repo() {
 touch_file() { printf '\n# touched\n' >> "$1"; }
 export -f touch_file
 
-# plans <name> <expected-substring> <unexpected-substring> <mutator...>
+# plans <name> <expected-substrings> <unexpected-substring> <mutator...>
 # The mutator runs in the repo and commits; merge-gates then runs in plan mode and its
-# stdout must contain the first string and not the second. GATES (default auto) is the
-# VERI_GATES value handed to the script, so one case can assert on `all`.
+# stdout must contain every expected string and not the unexpected one. The expected
+# argument is one substring per line, because a case that owes both gates asserts on both
+# lines of the plan and on the reason each names. GATES (default auto) is the VERI_GATES
+# value handed to the script, so one case can assert on `all`.
 GATES=auto
 plans() {
   local name="$1" want="$2" unwanted="$3"; shift 3
-  local d out code; d="$(repo)"
+  local d out code w ok=1; d="$(repo)"
   ( cd "$d" && "$@" && git add -A && git commit -qm 'work' --allow-empty )
   out="$(cd "$d" && VERI_GATES="$GATES" VERI_GATES_PLAN=1 VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?
-  if [[ "$code" == 0 && "$out" == *"$want"* && ( -z "$unwanted" || "$out" != *"$unwanted"* ) ]]; then
+  while IFS= read -r w; do
+    [[ -z "$w" || "$out" == *"$w"* ]] || ok=0
+  done <<< "$want"
+  if [[ "$code" == 0 && "$ok" == 1 && ( -z "$unwanted" || "$out" != *"$unwanted"* ) ]]; then
     pass=$((pass + 1))
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
-    echo "    want:     $want"
+    while IFS= read -r w; do echo "    want:     $w"; done <<< "$want"
     [[ -n "$unwanted" ]] && echo "    not:      $unwanted"
     echo "$out" | sed 's/^/    | /'
   fi
@@ -104,16 +109,9 @@ plans "the guard suite changed: guards and freshness" 'docs-test' '' \
 #     anywhere. The rule is the directory now, minus the page on its own (case 3): a branch
 #     that changes only docs/docs-owed.sh owes every docs suite plus the freshness check,
 #     and the reason names the file.
-d="$(repo)"
-( cd "$d" && touch_file docs/docs-owed.sh && git add -A && git commit -qm work )
-out="$(cd "$d" && VERI_GATES_PLAN=1 VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?
-if [[ "$code" == 0 && "$out" == *"docs-test"* && "$out" == *"docs-fresh"* && "$out" == *"docs/docs-owed.sh"* ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - a change under docs/ outside the page owes every docs suite and freshness (exit $code)"
-  echo "$out" | sed 's/^/    | /'
-fi
+plans "a change under docs/ outside the page owes every docs suite and freshness" \
+  $'docs-test\ndocs-fresh\ndocs/docs-owed.sh' '' \
+  bash -c 'touch_file docs/docs-owed.sh'
 
 # 6. uncommitted work counts: a gate that ignored the working tree would pass a dirty
 #    merge. The mutator leaves the change unstaged (no commit of it — the commit is empty).
