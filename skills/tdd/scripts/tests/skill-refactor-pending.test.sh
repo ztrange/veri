@@ -118,6 +118,22 @@ draft_pr_instructions() {
   section_of '### 4. Draft PR' '^## |^### '
 }
 
+# records_from <reader> <nothing-to-read fact> — what one of the readers above yields, into
+# the global `records`, and a zero return; or, when it yields nothing at all, one problem
+# naming <fact> and a non-zero return, so the case that follows is skipped rather than run
+# against an empty document.
+#
+# Fail closed, for the reason `reads` below does: an empty slice means the heading was
+# renamed or its section emptied, and then not one probe of that case was tested — which must
+# not read as a pass. All three cases open with it, so that rule is spelled once here instead
+# of as three guards that could each drift from the others.
+records_from() {
+  records="$("$1")"
+  [[ -n "$records" ]] && return 0
+  problems+=("$2")
+  return 1
+}
+
 # ordinal <regex> — the 1-based position, within the global `records`, of the first
 # instruction matching <regex>, or 0 when none does. Position is what turns two independent
 # "is it there?" probes into the one question a criterion about order asks: which of the two
@@ -262,12 +278,8 @@ says_reset_reenter_verify() {
 #    edit to one document.
 name="$skill_md ticks green with --refactor-pending, pins without it, and clears the mark before mirroring the step done"
 problems=()
-records="$(instructions)"
-if [[ -z "$records" ]]; then
-  # Fail closed: no records means the document was renamed or emptied and not one probe
-  # below was tested, which must not read as a pass.
-  problems+=("$skill_md has no instructions to read — the mark's lifetime could not be checked")
-else
+if records_from instructions \
+    "$skill_md has no instructions to read — the mark's lifetime could not be checked"; then
   # Green's PASS — the only tick that writes the mark, because it is the only one a
   # refactor loop follows.
   if reads 'ticks the ledger and commits the code with a `feat:` commit' \
@@ -300,12 +312,8 @@ report "$name"
 #    run exactly where #116 found it — a PR opened over an unverified refactor.
 name="$skill_md's Resume asks next-pending-refactor.sh before next-unchecked.sh, re-enters the pending step's refactor loop, and reaches the draft PR only when both exit 3"
 problems=()
-records="$(resume_instructions)"
-if [[ -z "$records" ]]; then
-  # Fail closed, as above: an empty slice means `## Resume` was renamed or emptied, and not
-  # one probe below was tested.
-  problems+=("$skill_md has no ## Resume section to read — what a resumed run does could not be checked")
-else
+if records_from resume_instructions \
+    "$skill_md has no ## Resume section to read — what a resumed run does could not be checked"; then
   # The order of the two asks. A resume that asks for an unchecked step first starts the
   # next step's red phase with the previous step's refactor still unverified — which is the
   # bug, one step later.
@@ -339,12 +347,8 @@ report "$name"
 #    any step still only green — and stops before `git push` if either says otherwise.
 name="$skill_md's Draft PR step refuses to push or open the PR while git status --porcelain is non-empty or next-pending-refactor.sh finds a pending step"
 problems=()
-records="$(draft_pr_instructions)"
-if [[ -z "$records" ]]; then
-  # Fail closed, as above: an empty slice means `### 4. Draft PR` was renamed or emptied, and
-  # not one probe below was tested.
-  problems+=("$skill_md has no ### 4. Draft PR section to read — what guards the push could not be checked")
-else
+if records_from draft_pr_instructions \
+    "$skill_md has no ### 4. Draft PR section to read — what guards the push could not be checked"; then
   # The gate comes before the push, or it is not a gate: a check made after the branch is
   # already on the remote cannot refuse anything.
   precedes 'git status --porcelain' 'git push' \
