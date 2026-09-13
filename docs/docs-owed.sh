@@ -146,13 +146,17 @@ done <<< "$touched"
 # out of the COMMITTED page, as the tag rule below reads it, because the debt being listed
 # is the debt a reader of the repository would meet.
 #
-# Bytecode off and the header matched as the whole <span> pair docs/build-walkthrough.py:261
-# writes, so the count taken is the one belonging to that name and not the first number that
-# happens to follow it on a line running to thousands of characters. A name the page lists
-# but the tree does not carry is a different failure, and not this rule's to report.
+# The header is matched as the whole <span> pair docs/build-walkthrough.py:261 writes, so the
+# count taken is the one belonging to that name and not the first number that happens to
+# follow it on a line running to thousands of characters. A name the page lists but the tree
+# does not carry is a different failure, and not this rule's to report.
+#
+# No `sys.dont_write_bytecode` here, unlike the block above and unlike the build: what that
+# line suppresses is a __pycache__ beside an imported module, and the only module this block
+# imports from the tree is none — everything it uses is the standard library, whose bytecode
+# lives with the interpreter and was never going to show up as an untracked file.
 misquoted="$(python3 - "$PAGE" "$SCRIPTS_DIR" <<'PY'
 import pathlib, re, subprocess, sys
-sys.dont_write_bytecode = True
 
 page_path, scripts_dir = sys.argv[1], pathlib.Path(sys.argv[2])
 page = subprocess.run(["git", "show", "HEAD:" + page_path],
