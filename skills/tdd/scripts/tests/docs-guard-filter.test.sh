@@ -234,12 +234,18 @@ report "$name"
 #    FAIL lines and exits 0 — and from the Makefile that is indistinguishable from green.
 #
 #    So this runs the real target, through make, over a tree where a case genuinely fails.
-#    The sabotage is build-guards' own case-2 mutator — one line appended to
-#    skills/tdd/scripts/classify-bail.sh that the commentary does not claim — applied to
-#    the ROOT that suite copies its sandboxes from, so the coverage guard refuses the build
-#    that ONLY_CASE expects to succeed. A copy and not this tree: the failure has to be
-#    real, and this tree has to stay green. Filtered to the one case, so the whole probe
-#    costs one refused build.
+#    The sabotage is build-guards' own unknown-reference mutator — one {{p-id|…}} in
+#    docs/wt/commentary.py misspelt into an id no entry has — applied to the ROOT that
+#    suite copies its sandboxes from, so the reference guard refuses the build that
+#    ONLY_CASE expects to succeed. A copy and not this tree: the failure has to be real,
+#    and this tree has to stay green. Filtered to the one case, so the whole probe costs
+#    one refused build.
+#
+#    It used to append an uncovered line to a script instead, which stopped being a
+#    failure at all in issue #125: a line no commentary chunk claims is now debt the page
+#    carries and reports. The typo is the guard that reversal deliberately left fatal —
+#    debt is prose somebody has not written yet, a dead reference is a mistake — so it is
+#    the sabotage least likely to stop being one under this suite's feet.
 #
 #    A non-zero make is not on its own the claim, and this is worth spelling out because
 #    the loose version of this case passes over a suite whose exit status has been broken
@@ -272,7 +278,10 @@ cp -R "$ROOT/docs/wt" "$sab/docs/wt"
 rm -rf "$sab/docs/wt/__pycache__"
 cp -R "$ROOT/docs/tests" "$sab/docs/tests"
 cp -R "$ROOT/skills/tdd/scripts" "$sab/skills/tdd/scripts"
-printf '\n# a line the commentary does not cover\n' >> "$sab/skills/tdd/scripts/classify-bail.sh"
+sed -i.bak 's/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/' \
+  "$sab/docs/wt/commentary.py" && rm -f "$sab/docs/wt/commentary.py.bak"
+grep -q 'p-stirct' "$sab/docs/wt/commentary.py" ||
+  problems+=("the sabotage did not land: no {{p-strict|set -euo pipefail}} in docs/wt/commentary.py to misspell")
 sab_out="$(ONLY="$ONLY_CASE" "$sab/docs/tests/build-guards.test.sh" 2>&1)" && sab_code=0 || sab_code=$?
 [[ "$sab_code" == 1 ]] ||
   problems+=("want exit 1 — a clean negative — from ONLY='$ONLY_CASE' build-guards.test.sh over a tree where that case fails; got $sab_code: $(printf '%s' "$sab_out" | tail -2 | tr '\n' '/')")

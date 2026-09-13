@@ -34,9 +34,12 @@ fail, and your edit is lost on the next `make docs`. To change that page:
 - styling / the tooltip layer → `docs/wt/style.css`, `docs/wt/app.js`
 - then `make docs`
 
-The build **fails rather than emitting a wrong page** if a script's commentary chunks
-stop covering lines 1..N exactly once, or if a `{{p-id|…}}` names an entry that does not
-exist. So editing a script means running `make docs` and fixing what it reports.
+The build **fails rather than emitting a wrong page** if a `{{p-id|…}}` names an entry
+that does not exist, or if a commentary chunk claims lines a script does not have. What it
+no longer fails on is a line **no** chunk claims (#125): that line renders as it always
+does, its note column says `commentary owed`, and the build prints `owed: <script>
+L<a>–<b>` on stderr and exits 0. Prose is allowed to lag behind code — the page's promise
+is that the source is verbatim, not that someone has explained it yet.
 
 ## Exit codes are the API
 

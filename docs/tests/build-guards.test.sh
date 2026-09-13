@@ -8,8 +8,11 @@
 # arrangement failing silently, and each one exists because the failure actually
 # happened during authoring:
 #
-#   1. coverage    — a script's chunks must cover lines 1..N exactly once. Without it,
-#                    adding a line to a script detaches the commentary with no signal.
+#   1. coverage    — a script's chunks must claim lines 1..N in order, each line once.
+#                    A chunk claiming lines the file does not have, or lines another
+#                    chunk already claimed, is a wrong range and still fails the build.
+#                    A line NO chunk claims is the half issue #125 reversed: it is debt
+#                    the page carries and the build reports, not a failure.
 #   2. unknown ref — {{p-id|…}} must name a real reference entry, or the page ships a
 #                    dead tooltip.
 #   3. expansion   — no {{ref}} may survive into the output. The original matcher used
@@ -271,6 +274,46 @@ missing_from() {
   while IFS= read -r want; do
     [[ "$text" == *"$want"* ]] || printf '%s\n' "$want"
   done <<< "$2"
+}
+
+# owes <name> <wants> <expected-substring-in-stderr> <mutator...>
+# The mutator leaves the tree in DEBT — a script line no commentary chunk claims — and the
+# build must carry it rather than refuse it: exit 0, a page that shows the line and says a
+# reader is owed prose for it, and a stderr summary that names the debt.
+#
+# This is refuses() turned inside out, and it needs all three halves at once because each
+# one alone is satisfied by a wrong build. Exit 0 on its own is a build that swallowed the
+# gap in silence, which is how prose rots unnoticed. The page strings on their own would
+# pass a build that marked the listing and told nobody running it. And the stderr line on
+# its own would pass a build that reported the debt and then dropped the uncovered lines
+# out of the listing — the page promises the source verbatim, so the lines a chunk does
+# not cover are exactly the lines that must still be there.
+#
+# <wants> is ONE argument holding one required page substring per line, the same shape
+# opens_with and rail_lists take, for the same reason: the claim is that all of them are
+# in the page, and a report naming one at a time sends you round the build again.
+owes() {
+  selected "$1" || return 0
+  local name="$1" wants="$2" want_err="$3"; shift 3
+  local d code page err missing; d="$("$SANDBOX")"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  err="$(cat "$d/err.txt" 2>/dev/null)"
+  missing="$(missing_from "$page" "$wants")"
+  if [[ "$code" == 0 && -z "$missing" && "$err" == *"$want_err"* ]]; then
+    passed "$name"
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want exit 0, a page containing all of: $wants"
+    echo "    and stderr containing:                 $want_err"
+    if [[ -n "$missing" ]]; then
+      echo "    missing from the page:"
+      printf '%s\n' "$missing" | sed 's/^/      /'
+    fi
+    echo "    stderr was:"
+    printf '%s\n' "$err" | sed 's/^/    | /' | head -6
+  fi
 }
 
 # opens_with <name> <wants> [mutator...]
@@ -1601,13 +1644,39 @@ export -f rewrite_two_lines_as_feat tag_feat_outside_the_scripts
 accepts "baseline builds" '<title>veri, Annotated</title>'
 accepts "emits script source verbatim" 'echo $? &gt; "$rcfile"' 
 
-# 2. coverage guard — a script grows a line the commentary does not claim
-refuses "a longer script fails coverage" "file has" \
-  bash -c 'append_line_to_script "$SAMPLE_SCRIPT"'
+# 2. coverage guard — a script grows a line the commentary does not claim. Deleted in
+#    issue #125, which reversed exactly this: that tree is the one case 3b below builds,
+#    and the claim there is that it exits 0. The two cases ran the SAME mutator and
+#    demanded opposite outcomes, so this one could not be left in — a suite cannot hold
+#    both halves of a reversal. Its other half survives as case 3: commentary claiming
+#    lines the file does not have is still a wrong range, not debt.
 
 # 3. coverage guard — a script loses a line
 refuses "a shorter script fails coverage" "file has" \
   bash -c 'sed -i.bak "$(wc -l < "$SAMPLE_SCRIPT")d" "$SAMPLE_SCRIPT"'
+
+# 3b. and the reversal of case 2 (issue #125). A script that grew a line the commentary
+#     does not claim is DEBT, not a broken build: development moves at its own pace and
+#     the prose catches up on its own, so a gap must not be able to block a script from
+#     landing. The build carries it instead — exit 0, the uncovered line in the listing
+#     with a mark a reader can see, and one `owed:` line per gap on stderr so whoever ran
+#     the build knows what the page is behind on.
+#
+#     The line must render PLAIN — `<span class="l">`, the same opening every uncovered
+#     line of every listing gets — because the page's one promise is the source verbatim,
+#     and the half of that promise this case guards is that a gap in the prose costs the
+#     reader no source at all.
+#
+#     The range is read off the real script rather than written down: append_line_to_script
+#     adds two lines to the end of it, a blank and the comment, so the debt is that pair
+#     and nothing else. Naming them by arithmetic means classify-bail.sh growing a line
+#     moves the expected range with it instead of making this case wrong.
+owed_from=$(( $(wc -l < "$ROOT/$SAMPLE_SCRIPT") + 1 ))
+owes "an uncovered script line is owed, not refused" \
+  '<span class="l"><span class="c"># a line the commentary does not cover</span></span>
+commentary owed' \
+  "owed: classify-bail.sh L${owed_from}–$((owed_from + 1))" \
+  bash -c 'append_line_to_script "$SAMPLE_SCRIPT"'
 
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
