@@ -44,6 +44,13 @@ git rev-parse --git-dir >/dev/null 2>&1 || {
 PAGE=docs/walkthrough.html
 SCRIPTS_DIR=skills/tdd/scripts
 
+# What a version looks like, as an extended-regex fragment: vN.M and nothing else (CLAUDE.md
+# — a version is an annotated tag vN.M, there is no other kind). Written once because the
+# tag rule below compares two lists of versions read from two different places, the tags git
+# knows about and the tags the committed page names, and a shape that changed on one side
+# only would report every tag as missing from an index that lists them all.
+VERSION_TAG='v[0-9]+\.[0-9]+'
+
 # lists <newline-separated list> <item> — is <item> one whole line of that list? Both of
 # the rules below ask this, of a different list, and -F -x together are the load-bearing
 # part: without -x, v0.1 reads as listed because v0.10 is, and without -F the dot in a
@@ -102,12 +109,12 @@ done <<< "$touched"
 # (window.__VERI_ORDER__, in git's version sort), so the tags the page names are the
 # quoted vN.M tokens in it — the quotes are what make the token whole, so v0.10 is not read
 # as a v0.1 the page names. A page built before any tag existed names none, and owes all.
-index_tags="$(git show "HEAD:$PAGE" 2>/dev/null | grep -oE '"v[0-9]+\.[0-9]+"' | tr -d '"' | sort -u)"
+index_tags="$(git show "HEAD:$PAGE" 2>/dev/null | grep -oE "\"$VERSION_TAG\"" | tr -d '"' | sort -u)"
 while IFS= read -r tag; do
   [ -n "$tag" ] || continue
   lists "$index_tags" "$tag" && continue
   owed+=("tag missing from the index: $tag — the page was built before it was cut")
-done <<< "$(git tag | grep -E '^v[0-9]+\.[0-9]+$' | sort -u)"
+done <<< "$(git tag | grep -E "^${VERSION_TAG}$" | sort -u)"
 
 [ "${#owed[@]}" -eq 0 ] && exit 3
 printf '%s\n' "${owed[@]}"
