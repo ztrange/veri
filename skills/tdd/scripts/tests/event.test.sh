@@ -65,6 +65,15 @@ if not isinstance(obj, dict):
 ' "$1" 2>/dev/null
 }
 
+# want_parses <file> — one probe, appended to the caller's `problems`: the file's first line
+# is a JSON object. Its true/false is also the caller's cue, since the field probes below all
+# read that same line and would each report the same broken line again.
+want_parses() {
+  parses "$1" && return 0
+  problems+=("want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$1")")")
+  return 1
+}
+
 # jget <file> <key> — print the value of <key> from the JSON object on the file's first
 # line, or the literal `<<missing>>` when the key is absent. `print()` of the parsed value
 # rather than the raw text, so the comparison is against what a reader of the log would get
@@ -136,9 +145,7 @@ else
   [[ "$lines" == 1 ]] ||
     problems+=("want exactly 1 line in .tdd/events.jsonl, got $lines")
 
-  if ! parses "$ctx_log"; then
-    problems+=("want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$ctx_log")")")
-  else
+  if want_parses "$ctx_log"; then
     ts="$(jget "$ctx_log" ts)"
     if [[ ! "$ts" =~ ^[0-9]+$ ]]; then
       problems+=("ts: want a whole number of seconds since the epoch, got $(printf '%q' "$ts")")
@@ -173,9 +180,7 @@ noctx_log="$noctx_work/.tdd/events.jsonl"
     "$EVENT" resume ) >/dev/null 2>&1
 if [[ ! -f "$noctx_log" ]]; then
   problems+=("want the line appended anyway, but no .tdd/events.jsonl under $noctx_work")
-elif ! parses "$noctx_log"; then
-  problems+=("want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$noctx_log")")")
-else
+elif want_parses "$noctx_log"; then
   for key in ts issue actor phase step event attempt; do
     [[ "$(jget "$noctx_log" "$key")" != "<<missing>>" ]] ||
       problems+=("want the key $key present anyway, got it missing")
