@@ -32,8 +32,8 @@ scope, however tempting.
    transform could plausibly break, and answer it in a fraction of the time. How this
    repository runs one suite is a convention like any other — establish it under **Read the
    conventions out of the repository** at the top of this prompt, from the files that are
-   already there. They must stay green; revert the transform rather than leave a red suite
-   behind.
+   already there. Those suites must stay green; revert the transform rather than leave a
+   red suite behind.
 3. The full suite runs at verify-refactor, on the settled result. The trade is that a break
    in an untouched suite surfaces there, as a REJECT you answer by revising, rather than at
    the transform that caused it.
