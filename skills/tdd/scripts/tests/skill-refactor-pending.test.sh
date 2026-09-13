@@ -67,11 +67,13 @@ claude_path="$ROOT/$claude_md"
 context_md="CONTEXT.md"
 context_path="$ROOT/$context_md"
 
-# The mark itself, spelled once. Two probes of case 4 ask for this exact string — the entry for
-# the flag that writes it, and the entry for the script that strips it — and that they ask for
-# the *same* string is the claim, not an incidental repetition: the fact one of them fails with
-# is that either side can be reworded without the other noticing, and two independent literals
-# here would let this suite drift exactly that way itself.
+# The mark itself, spelled once. Four probes ask for this exact string, and they span three
+# documents: two in case 4 — SKILL.md's reference-list entry for the flag that writes it, and
+# the entry for the script that strips it — and one in case 5, asked in turn of CLAUDE.md's
+# invariant and CONTEXT.md's glossary entry. That they all ask for the *same* string is the
+# claim, not an incidental repetition: the fact any one of them fails with is that the
+# procedure and the account of it can be reworded apart without either noticing, and
+# independent literals here would let this suite drift exactly that way itself.
 mark='⟂ refactor pending'
 
 pass=0 fail=0
