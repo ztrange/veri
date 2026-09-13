@@ -242,25 +242,33 @@ denies() {
 #
 # All three entries of the case below are read this way, and all three would fail that way
 # without it, so the anchor is spelled once here and only the script's name differs at the
-# three calls — the same reason `says_exit_codes` is one function rather than two. The name's
-# dots are escaped on the way in, so the regex a call implies matches the script it named and
-# not every name of the same shape.
+# three calls. The name's dots are escaped on the way in, so the regex a call implies matches
+# the script it named and not every name of the same shape.
+#
+# The name is also left in `$entry_script`, beside the `$instruction` the read landed in, so a
+# probe that follows can name the entry it is probing without being handed that name a second
+# time — the shape `reads` and `says` already have, where the reader leaves what it read and
+# the probes ask about it. Handing it over twice would not fail; it would let a probe report
+# its problem under the name of an entry it never read.
+entry_script=""
 reads_entry() {
   local escaped="${1//./\\.}"
+  entry_script="$1"
   reads "documents $1 in the script reference list" "^- .\\\$s/$escaped"
 }
 
-# says_exit_codes <script> — the two codes a reference-list entry for either of the mark's
-# two new scripts must name: 0, the answer, and 3, the *nothing to do* code this repository
-# reserves for it. Both scripts answer with the same pair and both fail the same way without
-# it — the conductor branches on the code, so a code nobody wrote down is a branch the
-# session invents — which is why the pair is spelled once here and only the script's name
-# differs at the two calls. `exits?` rather than `exit`, because the list writes it both ways.
+# says_exit_codes — the two codes a reference-list entry for either of the mark's two new
+# scripts must name: 0, the answer, and 3, the *nothing to do* code this repository reserves
+# for it. Both scripts answer with the same pair and both fail the same way without it — the
+# conductor branches on the code, so a code nobody wrote down is a branch the session invents
+# — which is why the pair is spelled once here and the two calls are identical. Asked of the
+# entry `reads_entry` last read, like every other probe in this suite. `exits?` rather than
+# `exit`, because the list writes it both ways.
 says_exit_codes() {
   says 'exits? 0' \
-    "$skill_md's entry for $1 never names exit 0, so nothing says what a call that did its work answers with, and the conductor is left inferring it from whether stdout came back empty"
+    "$skill_md's entry for $entry_script never names exit 0, so nothing says what a call that did its work answers with, and the conductor is left inferring it from whether stdout came back empty"
   says 'exits? 3' \
-    "$skill_md's entry for $1 never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
+    "$skill_md's entry for $entry_script never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
 }
 
 # miss <fact> — one problem of the ordered probe below: <fact>, then the instruction it was
@@ -457,7 +465,7 @@ if records_from scripts_instructions \
   if reads_entry next-pending-refactor.sh; then
     says 'prints?[^.]*step' \
       "$skill_md's entry for next-pending-refactor.sh never says it prints the pending step, so a resumed conductor is not told that stdout is the step to re-enter the refactor loop on"
-    says_exit_codes 'next-pending-refactor.sh'
+    says_exit_codes
   fi
 
   # clear-refactor-pending.sh — the eraser. Nothing on stdout, so what its entry owes instead
@@ -467,7 +475,7 @@ if records_from scripts_instructions \
       "$skill_md's entry for clear-refactor-pending.sh never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
     says 'strip|remove|drop|clear|delete' \
       "$skill_md's entry for clear-refactor-pending.sh never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
-    says_exit_codes 'clear-refactor-pending.sh'
+    says_exit_codes
   fi
 fi
 report "$name"
