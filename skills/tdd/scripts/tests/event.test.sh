@@ -114,10 +114,10 @@ want_field() {
 #    millisecond count and an ISO-8601 stamp each fall outside or fail the digits test.
 name="event.sh <event> key=value appends one line to .tdd/events.jsonl that parses as JSON and carries ts, issue, actor, phase, step, event and attempt plus every payload given"
 problems=()
-work="$(mktemp -d)"
-log="$work/.tdd/events.jsonl"
+ctx_work="$(mktemp -d)"
+ctx_log="$ctx_work/.tdd/events.jsonl"
 before="$(date +%s)"
-( cd "$work" && env VERI_ISSUE=107 VERI_ACTOR=conductor VERI_PHASE=red VERI_STEP=3 \
+( cd "$ctx_work" && env VERI_ISSUE=107 VERI_ACTOR=conductor VERI_PHASE=red VERI_STEP=3 \
     VERI_ATTEMPT=2 "$EVENT" step-start \
     'cmd=env VERI_TIMEOUT=1200 run-leaf.sh .tdd/develop-red.prompt' \
     'reason=the leaf wrote "no" and a stray \ backslash' ) >/dev/null 2>&1 && code=0 || code=$?
@@ -126,33 +126,33 @@ after="$(date +%s)"
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0, got $code")
 
-if [[ ! -f "$log" ]]; then
-  problems+=("want the line appended to .tdd/events.jsonl, but no such file under $work")
+if [[ ! -f "$ctx_log" ]]; then
+  problems+=("want the line appended to .tdd/events.jsonl, but no such file under $ctx_work")
 else
   # Exactly one line for exactly one call — and `wc -l` counts newlines, so a writer that
   # left the terminator off scores 0 here, which is the same bug as the next event landing
   # on the end of this one.
-  lines="$(wc -l < "$log" | tr -d ' ')"
+  lines="$(wc -l < "$ctx_log" | tr -d ' ')"
   [[ "$lines" == 1 ]] ||
     problems+=("want exactly 1 line in .tdd/events.jsonl, got $lines")
 
-  if ! parses "$log"; then
-    problems+=("want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$log")")")
+  if ! parses "$ctx_log"; then
+    problems+=("want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$ctx_log")")")
   else
-    ts="$(jget "$log" ts)"
+    ts="$(jget "$ctx_log" ts)"
     if [[ ! "$ts" =~ ^[0-9]+$ ]]; then
       problems+=("ts: want a whole number of seconds since the epoch, got $(printf '%q' "$ts")")
     elif (( ts < before || ts > after )); then
       problems+=("ts: want seconds since the epoch within [$before, $after], got $ts")
     fi
-    want_field "$log" issue   107
-    want_field "$log" actor   conductor
-    want_field "$log" phase   red
-    want_field "$log" step    3
-    want_field "$log" event   step-start
-    want_field "$log" attempt 2
-    want_field "$log" cmd     'env VERI_TIMEOUT=1200 run-leaf.sh .tdd/develop-red.prompt'
-    want_field "$log" reason  'the leaf wrote "no" and a stray \ backslash'
+    want_field "$ctx_log" issue   107
+    want_field "$ctx_log" actor   conductor
+    want_field "$ctx_log" phase   red
+    want_field "$ctx_log" step    3
+    want_field "$ctx_log" event   step-start
+    want_field "$ctx_log" attempt 2
+    want_field "$ctx_log" cmd     'env VERI_TIMEOUT=1200 run-leaf.sh .tdd/develop-red.prompt'
+    want_field "$ctx_log" reason  'the leaf wrote "no" and a stray \ backslash'
   fi
 fi
 
@@ -162,22 +162,22 @@ fi
 # value it can give them — while a writer that emits only the fields it has env for leaves
 # its reader to tell "phase absent" from "phase unknown", which is the ambiguity the
 # harvester's `absence is not zero` rule exists to refuse elsewhere in this issue.
-work2="$(mktemp -d)"
-log2="$work2/.tdd/events.jsonl"
-( cd "$work2" && env -u VERI_ISSUE -u VERI_ACTOR -u VERI_PHASE -u VERI_STEP -u VERI_ATTEMPT \
+noctx_work="$(mktemp -d)"
+noctx_log="$noctx_work/.tdd/events.jsonl"
+( cd "$noctx_work" && env -u VERI_ISSUE -u VERI_ACTOR -u VERI_PHASE -u VERI_STEP -u VERI_ATTEMPT \
     "$EVENT" resume ) >/dev/null 2>&1
-if [[ ! -f "$log2" ]]; then
-  problems+=("no context in the environment: want the line appended anyway, but no .tdd/events.jsonl under $work2")
-elif ! parses "$log2"; then
-  problems+=("no context in the environment: want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$log2")")")
+if [[ ! -f "$noctx_log" ]]; then
+  problems+=("no context in the environment: want the line appended anyway, but no .tdd/events.jsonl under $noctx_work")
+elif ! parses "$noctx_log"; then
+  problems+=("no context in the environment: want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$noctx_log")")")
 else
   for key in ts issue actor phase step event attempt; do
-    [[ "$(jget "$log2" "$key")" != "<<missing>>" ]] ||
+    [[ "$(jget "$noctx_log" "$key")" != "<<missing>>" ]] ||
       problems+=("no context in the environment: want the key $key present anyway, got it missing")
   done
-  want_field "$log2" event resume
+  want_field "$noctx_log" event resume
 fi
-rm -rf "$work" "$work2"
+rm -rf "$ctx_work" "$noctx_work"
 report "$name"
 
 echo "----"
