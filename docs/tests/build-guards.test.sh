@@ -714,6 +714,7 @@ PY
 # beside it because a map that ships is only safe if it is absent there: the client reads
 # an empty answer instead of checking whether there is one, and the build still succeeds.
 since_of_git() {
+  selected "$1" || return 0
   local name="$1" wants="$2"; shift 2
   local d code read_code page got listed body entries missing
   local bare bare_code bare_read bare_page bare_got bare_entries
@@ -739,7 +740,7 @@ since_of_git() {
 
   if [[ "$code" == 0 && "$read_code" == 0 && -z "$missing" && "$entries" == "$listed" \
         && "$bare_code" == 0 && "$bare_read" == 0 && "$bare_entries" == 0 ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, since read exit $read_code)"
@@ -935,6 +936,7 @@ PY
 # a rule keyed on an attribute the page does not carry is never live, and the third line
 # would be green on a page with nothing on it to fade.
 paint_css() {
+  selected "$1" || return 0
   local name="$1" want="$2"; shift 2
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1025,7 +1027,7 @@ print("\n".join(ungated) if ungated else "unmarked untouched")
 PY
   )" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, stylesheet read exit $read_code)"
@@ -1799,6 +1801,7 @@ JS
 # arrives in. Entries are read in either spelling the map may use, as walk_git has it,
 # plus the bare file name, since a stop that is only a script has only a name to give.
 new_script_git() {
+  selected "$1" || return 0
   local name="$1" before="$2" after="$3" want="$4"; shift 4
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -1825,7 +1828,7 @@ console.log(rows.join("\n"));
 JS
   got="$(ask_page "$d" page.html "$before" "$after")" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, walk read exit $read_code)"
@@ -2110,6 +2113,7 @@ JS
 # compared, order included: the order IS the claim, since a header ranked anywhere but
 # before its own hunks is a reader sent to the middle of a file they have never seen.
 header_wiring_git() {
+  selected "$1" || return 0
   local name="$1" before="$2" after="$3" want="$4"; shift 4
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -2143,7 +2147,7 @@ JS
         ask_page "$d" page.html "$after" n n; }
   )" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, wiring read exit $read_code)"
@@ -2182,6 +2186,7 @@ JS
 # to read it back from. Rows sort as text within a load, as index_git has it — the order of
 # the report is not what is under test.
 new_index_git() {
+  selected "$1" || return 0
   local name="$1" before="$2" after="$3" want="$4"; shift 4
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -2215,7 +2220,7 @@ console.log(rows.join("\n"));
 JS
   got="$(ask_page "$d" page.html "$before" "$after")" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, collapsed-index read exit $read_code)"
@@ -2259,6 +2264,7 @@ JS
 # Lines sort as text within a load, as index_git has it: the order of the report is not
 # what is under test, the verdict on each line is.
 paint_git() {
+  selected "$1" || return 0
   local name="$1" since="$2" want="$3"; shift 3
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -2309,7 +2315,7 @@ JS
         ask_page "$d" page.html "since $since"; }
   )" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, paint read exit $read_code)"
@@ -2363,6 +2369,7 @@ JS
 # A load whose control is missing reports `-` and goes on, so the first run of this case
 # names everything the page lacks rather than dying on the first thing.
 control_git() {
+  selected "$1" || return 0
   local name="$1" opened="$2" pick="$3" want="$4"; shift 4
   local d code read_code page got; d="$(sandbox_git)"
   ( cd "$d" && "$@" )
@@ -2483,7 +2490,7 @@ JS
         ask_page "$d" page.html "since $opened" shows "hash=$pick" shows; }
   )" && read_code=0 || read_code=$?
   if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
-    pass=$((pass + 1))
+    passed "$name"
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code, control read exit $read_code)"
