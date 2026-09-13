@@ -121,6 +121,17 @@ GitHub Actions does, and pins what the `gates` job declares and why (issue #99).
 keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.
 
+That last line is not a formatting convention — **the `test` recipe enforces it**. A suite
+whose output does not end in `<n> passed, <m> failed` fails the run, named:
+`<suite>: never reached its count line`. A suite's **exit code alone is not trusted**
+because a suite that dies partway routinely comes back 0 — under `set -u`, which every
+suite here declares, a word rather than a number inside `[[ … -le … ]]` is read as a
+variable name, an unset name kills the script, and the script then exits with the status of
+the command *before* the comparison. `build-guards.test.sh` ran 37 of its 54 cases that way
+until commit `c4a6bdb`, and the run still said `all suites green` (#157). A non-zero exit
+still fails a suite, count line or not; the check lives in the recipe once, so a suite added
+under the glob is covered by existing.
+
 **A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
 existing — `make docs-test` globs that directory, so a suite added there owes no Makefile
 edit (#137). `make test` is the **full suite**, and three leaves per step run it:

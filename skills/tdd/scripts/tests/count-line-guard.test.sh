@@ -64,6 +64,11 @@ MAKEFILE="$ROOT/Makefile"
 TESTS_DIR='skills/tdd/scripts/tests'
 ADDED_NAME='newly-added.test.sh'
 
+# The document case 5 reads. Absolute only: nothing prints this path — a failure there names
+# the section rather than the file, since there is one CLAUDE.md and its location is not the
+# thing in doubt.
+CLAUDE_MD="$ROOT/CLAUDE.md"
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -315,6 +320,67 @@ streamed=no
 
 probe_run_showed_the_line_while_the_suite_ran
 probe_that_run_could_have_told_the_difference
+
+report "$name"
+
+# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
+# below is written one way and still matches prose that marked the same words up as
+# `make test` or **count line**. The normalisation skill-suite-runs.test.sh uses on the same
+# document, for the same reason.
+plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
+
+# says <fact> <regex>... — one fact the text in `$idiom` has to carry, written as the regexes
+# any wording carrying it would match: all of them have to match, and one problem naming the
+# fact is appended if any does not. Regexes rather than fixed strings because what the
+# section records is the claim and how it is phrased is the author's — the protocol the other
+# prose suites in this tree use.
+says() {
+  local fact="$1" re
+  shift
+  for re in "$@"; do
+    [[ "$idiom" =~ $re ]] || {
+      problems+=("CLAUDE.md's Testing idiom section does not say $fact")
+      return
+    }
+  done
+}
+
+# probe_idiom_records_the_check — the criterion. The section is read by its heading, from
+# `## Testing idiom` to the next `## `, and not by matching the whole document: that section
+# is where an author writing a suite is sent, so a sentence about the count line two sections
+# up in the command table would answer for prose that section does not have. Lines are joined
+# onto one because CLAUDE.md wraps mid-sentence, and a claim split over a line break has to
+# still read as one sentence.
+#
+# Fails closed on a section that is not there: an empty string matches no regex, so both
+# facts would be reported missing — true, but it names two edits when the repair is that the
+# heading moved.
+probe_idiom_records_the_check() {
+  idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$CLAUDE_MD" | plain | tr '\n' ' ')"
+  [[ -n "${idiom// /}" ]] || {
+    problems+=("CLAUDE.md has no '## Testing idiom' section to read, so neither half of the rule is recorded where an author writing a suite is sent")
+    return
+  }
+
+  says "the runner itself fails a suite that never reached its count line" \
+    'count[ -]line' 'fail|refus|reject|red'
+  says "why a suite's exit code alone is not trusted — one that stops asserting partway can still come back 0" \
+    'exit (code|status)|exits? 0|exit-code' \
+    'alone|by itself|only|not enough|trust' \
+    'die|dies|died|dying|stops? asserting|silen|unbound|set -u'
+}
+
+# 5. What the document says, which is the half of this issue that outlives the runner. Cases
+#    1 to 4 pin what `make test` does; this one pins that the next author to write a suite is
+#    told the runner asks for the count line, and told why an exit code is not taken for an
+#    answer. Without the second half the rule reads as a formatting convention, and the first
+#    person whose suite is refused deletes the check rather than the bug — the mechanism is
+#    exactly the thing that is not obvious from reading a green run.
+name="CLAUDE.md's Testing idiom section says the runner enforces the count line, and why an exit code alone is not trusted"
+problems=()
+idiom=""
+
+probe_idiom_records_the_check
 
 report "$name"
 
