@@ -189,9 +189,9 @@ report "$name"
 #
 #    Same missing answer as case 3, reached by the shape that hides it: the name does carry a
 #    `-`, so anything asking whether the STRING has one is satisfied, while the phase read out
-#    of it is still the empty string. That is the one value event.sh:22-25 refuses to let stand
-#    for an unknown — a run whose log says `"phase": ""` has recorded that this leaf had no
-#    phase, not that nobody could read one — so the name is refused here rather than logged.
+#    of it is still the empty string — which is what makes this the name that pins the guard on
+#    the phase rather than on the shape. Why that empty phase may not be logged in place of a
+#    refusal is said beside the guard that refuses it (leaf-role.sh:69-71).
 #    `develop-` is not a name a run launches today; it is what a caller's own string handling
 #    produces when the phase it meant to append was empty, and the refusal is what turns that
 #    into a diagnostic on the spot instead of a blank field found later.
