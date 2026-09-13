@@ -8,11 +8,29 @@
 .PHONY: test
 TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 
+# A suite's exit code alone is not trusted (#157). Every suite here declares `set -u`, and
+# under it a word rather than a number inside `[[ … -le … ]]` is read as a variable name; an
+# unset name kills the script, and a script killed that way exits with the status of the
+# command before the comparison rather than a failure — routinely 0. build-guards.test.sh
+# ran 37 of its 54 cases that way until commit c4a6bdb, and no output said so. So the runner
+# also asks each suite for the `<n> passed, <m> failed` line it prints last: output that
+# does not end in it means the suite stopped asserting, whatever it exited with. The check
+# lives here, once, so a suite added under the glob above is covered by existing.
+#
+# `tee` rather than a plain capture so a 70 s suite's lines still appear while it runs; the
+# file it leaves behind is read only once the suite is done. The suite's own exit status
+# travels in a second file because a pipeline's status is its last command's — tee's — and
+# PIPESTATUS is bash's, not the /bin/sh make runs recipes with.
 test:
-	@fail=0; \
+	@fail=0; out="$$(mktemp)"; code="$$(mktemp)"; \
+	trap 'rm -f "$$out" "$$code"' EXIT; \
 	for t in $(TESTS); do \
 	  printf '== %s\n' "$$(basename $$t)"; \
-	  "$$t" || fail=1; \
+	  { "$$t"; echo $$? > "$$code"; } 2>&1 | tee "$$out"; \
+	  [ "$$(cat "$$code")" -eq 0 ] || fail=1; \
+	  tail -n 1 "$$out" | grep -Eq '^[0-9]+ passed, [0-9]+ failed$$' || { \
+	    printf '%s: never reached its count line\n' "$$(basename $$t)"; fail=1; \
+	  }; \
 	done; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
