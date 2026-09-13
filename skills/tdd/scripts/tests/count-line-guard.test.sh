@@ -39,6 +39,16 @@ FIXTURE='skills/tdd/scripts/tests/fixtures/silent-death/dies-silently.test.sh'
 FIXTURE_PATH="$ROOT/$FIXTURE"
 FIXTURE_NAME="$(basename "$FIXTURE")"
 
+# The two suites that run to the end, one with each answer: fixtures/live-suites holds the
+# shapes the runner must go on treating exactly as it did before #157, and case 2 below
+# says why each of them is a shape a wrong runner could get wrong. Repo-relative for the
+# same reason as above — it is what the recipe is handed — with the absolute path beside it
+# for running the fixture on its own.
+GREEN_FIXTURE='skills/tdd/scripts/tests/fixtures/live-suites/ends-green.test.sh'
+GREEN_FIXTURE_PATH="$ROOT/$GREEN_FIXTURE"
+RED_FIXTURE='skills/tdd/scripts/tests/fixtures/live-suites/ends-red.test.sh'
+RED_FIXTURE_PATH="$ROOT/$RED_FIXTURE"
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -110,6 +120,62 @@ make_out=""
 probe_fixture_dies_quietly
 probe_make_fails
 probe_make_names_the_suite
+
+report "$name"
+
+# probe_live_fixtures_are_what_they_claim — the premises of case 2, asserted rather than
+# assumed exactly as probe_fixture_dies_quietly asserts case 1's: the green fixture really
+# does end in a count line reporting nothing failed and really does exit 0, and the red one
+# really does reach its count line and really does exit non-zero. A fixture that had drifted
+# off either shape would leave the two probes after it agreeing with a runner that had
+# stopped telling the shapes apart.
+probe_live_fixtures_are_what_they_claim() {
+  local out code
+  out="$("$GREEN_FIXTURE_PATH" 2>&1)" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("the green fixture no longer exits 0; got $code, so nothing below pins the passing half")
+  [[ "$(tail -n 1 <<< "$out")" =~ ^[0-9]+' passed, 0 failed'$ ]] ||
+    problems+=("the green fixture no longer ends in a count line reporting nothing failed: $(flat "$out")")
+
+  out="$("$RED_FIXTURE_PATH" 2>&1)" && code=0 || code=$?
+  [[ "$code" != 0 ]] ||
+    problems+=("the red fixture no longer exits non-zero, so nothing below pins a runner that reads the count line instead of the exit code")
+  [[ "$(tail -n 1 <<< "$out")" =~ ^[0-9]+' passed, '[0-9]+' failed'$ ]] ||
+    problems+=("the red fixture no longer reaches its count line, so it fails the way case 1's fixture does: $(flat "$out")")
+}
+
+# probe_make_passes_the_green_suite — the half that keeps the check from being satisfied by
+# a runner that refuses everything. `make test TESTS=<fixture>` points the recipe at that
+# one suite, as case 1 does, and asks for the answer a green suite has always got.
+probe_make_passes_the_green_suite() {
+  local out code
+  out="$(make -C "$ROOT" test TESTS="$GREEN_FIXTURE" 2>&1)" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("want 'make test' to pass a suite that ends in its count line with nothing failed; it exited $code and said: $(flat "$out")")
+}
+
+# probe_make_fails_the_red_suite — the half that keeps the count line from displacing the
+# exit code rather than joining it. This fixture has the line the check asks for, so a
+# runner that had come to read only that line calls it green, and an ordinary test failure
+# — the most common red there is — stops being reported at all.
+probe_make_fails_the_red_suite() {
+  local out code
+  out="$(make -C "$ROOT" test TESTS="$RED_FIXTURE" 2>&1)" && code=0 || code=$?
+  [[ "$code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite that exits non-zero even though it reached its count line; it exited 0 and said: $(flat "$out")")
+}
+
+# 2. The two answers the runner gave before #157 and must go on giving: a suite that ends in
+#    its count line with nothing failed and exits 0 still passes, and a suite that prints its
+#    count line but exits non-zero still fails. One criterion — what the new check did NOT
+#    change — so one case, with a probe for each direction it could have been broken in and
+#    one for the fixtures both rest on.
+name="make test still passes a suite ending in its count line with nothing failed, and still fails one that prints its count line and exits non-zero"
+problems=()
+
+probe_live_fixtures_are_what_they_claim
+probe_make_passes_the_green_suite
+probe_make_fails_the_red_suite
 
 report "$name"
 
