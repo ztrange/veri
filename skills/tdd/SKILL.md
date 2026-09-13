@@ -409,9 +409,9 @@ VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-start
 
 The `event.sh` line is this step's **mark** in the run's event log — the step has no issue
 comment of its own, so the moment `next-unchecked.sh` hands one over is where its clock
-starts. Every mark below is spelled the same way: the run's context (`VERI_ISSUE`,
-`VERI_ACTOR=conductor`, and the step or phase the mark is about) goes in the environment on
-the call itself, so one instruction carries the whole call.
+starts. Every mark below is spelled the same way, with the run's context riding on the call
+in the environment as *The scripts* sets out above, so one instruction carries the whole
+call.
 
 Let **STEP** be that step's description. Run the Red, Green, and Refactor phases below
 **against STEP's criterion** (use STEP's wording as the criterion the leaves pin, and as
