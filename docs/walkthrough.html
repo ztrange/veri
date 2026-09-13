@@ -477,7 +477,7 @@ h3[data-since].dim .vbadge{opacity:.42}
 </p>
 <p>
   <strong>veri is built with itself.</strong> Every capability on this page was scoped,
-  tested and landed by a veri run against this repository, <span class="solved-n">33</span> issues so far &mdash; the same order,
+  tested and landed by a veri run against this repository, <span class="solved-n">34</span> issues so far &mdash; the same order,
   under the same blind verification, as everything described below. The figure is counted
   out of git when this page is built, not typed into it, so it cannot quietly go stale.
 </p>
@@ -4080,7 +4080,7 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="fmeta">stage 5</span></div>
 <div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 0"><span class="l">liveness                     verdict                      cost</span>
 <span class="l">the leaf never answered      it answered, was rejected    one step's tidying, priced</span>
-<span class="l">VERI_STUCK_RETRIES     (1)   REVISE_BUDGET          (2)   VERI_REFACTOR_BUDGET   (2)</span>
+<span class="l">VERI_STUCK_RETRIES     (1)   REVISE_BUDGET          (2)   VERI_REFACTOR_BUDGET   (5)</span>
 <span class="l">supervise.sh                 the conductor's revise loop  refactor-budget.sh</span>
 <span class="l">        &#9474;                            &#9474;                            &#9474;</span>
 <span class="l">        &#9660; spent                      &#9660; spent                      &#9660; spent</span>
@@ -4201,7 +4201,7 @@ h3[data-since].dim .vbadge{opacity:.42}
   as broken, never as fine.
 </p></div></div></div></div>
 
-<h3 id="refactor-budget" data-since="v0.17"><code>refactor-budget.sh</code> &mdash; the refactor loop's stopping rule<span class="vbadge">since <b>v0.17</b> &middot; changed <b>v0.28</b></span></h3>
+<h3 id="refactor-budget" data-since="v0.17"><code>refactor-budget.sh</code> &mdash; the refactor loop's stopping rule<span class="vbadge">since <b>v0.17</b></span></h3>
 <p>
   Seventeen lines of logic under a sixteen-line header &mdash;
   <a href="#classify-bail"><code>classify-bail.sh</code></a>'s closest sibling: one small
@@ -4214,7 +4214,7 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="l"><span class="c"># refactor-budget.sh — bound the refactor loop, so a step costs the same on every run.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># Given the number of transforms done so far as $1, say whether another one may run:</span></span>
-<span class="l"><span class="c"># exit 0 while &lt;count&gt; is below VERI_REFACTOR_BUDGET (default 2), exit 3 once the budget</span></span>
+<span class="l"><span class="c"># exit 0 while &lt;count&gt; is below VERI_REFACTOR_BUDGET (default 5), exit 3 once the budget</span></span>
 <span class="l"><span class="c"># is spent. A one-line status goes to stdout either way, so the conductor can mirror it.</span></span>
 <span class="l"><span class="c">#</span></span>
 <span class="l"><span class="c"># A budget that is not a whole number &gt;= 0 is a misconfigured run, not a decision: fail</span></span>
@@ -4237,7 +4237,7 @@ h3[data-since].dim .vbadge{opacity:.42}
   <a class="tt" data-ref="p-strict" href="#p-strict">set -euo pipefail</a> on line 17, same as everywhere else.
 </p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 17"><span class="l"></span>
 <span class="l">count=<span class="s">"</span><span class="v">${1:-}</span><span class="s">"</span></span>
-<span class="l">budget=<span class="s">"</span><span class="v">${VERI_REFACTOR_BUDGET:-2}</span><span class="s">"</span></span>
+<span class="l">budget=<span class="s">"</span><span class="v">${VERI_REFACTOR_BUDGET:-5}</span><span class="s">"</span></span>
 <span class="l"></span></pre></div><div class="ann-note"><p>
   <code>count="${1:-}"</code> reuses <a class="tt" data-ref="p-guard" href="#p-guard">the empty-default guard</a> rather than
   requiring the argument outright, so a missing one does not abort under
@@ -4247,7 +4247,7 @@ h3[data-since].dim .vbadge{opacity:.42}
   empty string, where it is refused deliberately rather than by an abort whose exit code
   would be the wrong one.
 </p><p>
-  <code>budget="${VERI_REFACTOR_BUDGET:-2}"</code> is <a class="tt" data-ref="p-default" href="#p-default">the tunable-with-default
+  <code>budget="${VERI_REFACTOR_BUDGET:-5}"</code> is <a class="tt" data-ref="p-default" href="#p-default">the tunable-with-default
   idiom</a> every tunable in veri uses: read the environment, else fall back to a literal.
   It is what lets a test pin <code>VERI_REFACTOR_BUDGET=0</code> &mdash; the &ldquo;loop is
   off&rdquo; case &mdash; without touching the script.
