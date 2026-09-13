@@ -1533,28 +1533,64 @@ SCRIPTS += [dict(
   the <code>if</code> says which marker was found, <code>answer</code> says what the marker
   means &mdash; and it is the reason a rule that matched never falls through to the next one.
 </p>'''),
-        dict(lines=(33, 71), html=r'''<p>
+        dict(lines=(33, 62), html=r'''<p>
   <strong>Rule 0: the issue's own line</strong>, ahead of even the override file.
   <code>.veri/test-command</code> is the repo's answer for every run; a <code>Test
   command:</code> line in the issue body is this run's, and the narrower claim wins &mdash; a
   docs issue says so in its own words and the leaves obey that instead of the repo-wide suite.
 </p><p>
-  {{p-func|trimmed()}} prints its argument with leading spaces and tabs removed. Bash 3.2 has
-  no trim of its own, so it drops one blank at a time: {{p-strip|${s# }}} removes one leading
-  space, its twin one leading tab, and the loop runs until neither changes the string &mdash;
-  which is when the first real character has been reached.
+  The marker is looked for <em>anywhere</em> on the line, not only at its start, because
+  that is where issues actually write it: mid-sentence in the Notes, with the command in a
+  backtick span (issue&nbsp;#131). What follows the marker becomes the command in two named
+  steps, so the rule reads as the sentence it is &mdash; the command is what follows the
+  marker, <code>ltrim</code>med and <code>unwrapped</code>.
 </p><p>
+  {{p-func|ltrim()}} prints its argument with the leading whitespace removed, spelled exactly
+  as <a href="#parse-verdict"><code>parse-verdict.sh</code></a> spells it &mdash; the
+  operation already had a name in this codebase, so it keeps that one rather than growing a
+  second, hand-rolled loop. Read it inside out. {{p-strip|${1%%[![:space:]]*}}} cuts the
+  string at its first non-blank character and keeps what came before: the run of blanks
+  itself. The outer <code>${1#"…"}</code> then drops that run from the front. The inner
+  expansion is quoted because <code>#</code> takes a <em>pattern</em>, and quoting makes
+  what the inner expansion produced match only itself &mdash; never glob syntax such as
+  <code>*</code> or <code>[</code>.
+</p>'''),
+        dict(lines=(63, 76), html=r'''<p>
+  {{p-func|unwrapped()}} prints the backtick span its argument opens with, and the argument
+  untouched when it opens with anything else &mdash; so a command written bare, as in
+  <code>Test command: make test</code>, is still printed verbatim.
+</p><p>
+  {{p-case|case "$1" in '`'*)}} asks &ldquo;does it open with a backtick?&rdquo;; the
+  backtick is quoted so the pattern means that one character. Then two strips:
+  {{p-strip|${1#\`}}} drops the opening backtick, and <code>${s%%\`*}</code> cuts at the
+  first backtick after it, dropping everything from the closing one on &mdash; the
+  <code>. More prose.</code> that would otherwise be handed to a leaf as part of the
+  command. The backslash in <code>\`</code> is not decoration: inside double quotes a bare
+  backtick opens an old-style command substitution, so it has to be escaped to mean itself.
+</p><p>
+  <code>local s</code> keeps the half-stripped string out of the script's own variables:
+  {{p-func|a function's variables are global}} unless declared <code>local</code>, so
+  without it <code>s</code> would still be set after every call.
+</p>'''),
+        dict(lines=(77, 89), html=r'''<p>
   The rule itself runs only when the flag was given and names a file that exists. The same
   {{p-readloop|while IFS= read -r line || [ -n "$line" ]}} as rule 1 walks the body, and
-  {{p-case|case "$line" in 'Test command:'*)}} matches a line that starts with the marker.
-  {{p-strip|${line#Test command:}}} drops the marker, <code>trimmed</code> drops the
-  whitespace that separated it from the command, and what is left is answered verbatim. The
-  first matching line answers, so a body that mentions the command again lower down &mdash; in
-  a note, a quotation, a later section &mdash; cannot overrule the one that stated it; and a
-  line with nothing after the marker names no command, so it is skipped rather than answered
-  with an empty string.
+  {{p-case|case "$line" in *'Test command:'*)}} matches a line with the marker anywhere in
+  it &mdash; the leading <code>*</code> is what lets prose come first.
+</p><p>
+  One line then does the whole rule. {{p-strip|${line#*Test command:}}} drops the prose
+  ahead of the marker together with the marker itself &mdash; a single <code>#</code> is the
+  shortest match, so it is the <em>first</em> marker on the line that answers.
+  <code>ltrim</code> drops the whitespace after it, <code>unwrapped</code> reduces a
+  backtick span to its contents, and the two {{p-cmdsub|$( … )}} wrappers feed each step's
+  output to the next.
+</p><p>
+  The first matching line answers, so a body that mentions the command again lower down
+  &mdash; in a note, a quotation, a later section &mdash; cannot overrule the one that stated
+  it; and a line with nothing after the marker (or an empty span) names no command, so it is
+  skipped rather than answered with an empty string.
 </p>'''),
-        dict(lines=(72, 87), html=r'''<p>
+        dict(lines=(90, 105), html=r'''<p>
   <strong>Rule 1: the override file.</strong> If <code>.veri/test-command</code> exists, its
   first non-empty line is the command, read back verbatim.
 </p><p>
@@ -1573,7 +1609,7 @@ SCRIPTS += [dict(
   bytes &mdash; the whole point of the escape hatch is that what the repo wrote is what the
   leaf runs.
 </p>'''),
-        dict(lines=(88, 110), html=r'''<p>
+        dict(lines=(106, 128), html=r'''<p>
   <strong>Rule 2: <code>package.json</code>.</strong> A declared <code>test</code> script
   names the node runner; which runner is a separate question, answered by the lockfile
   committed beside it &mdash; a lockfile is the repo saying which package manager actually
@@ -1593,7 +1629,7 @@ SCRIPTS += [dict(
   position is exempt from strict mode by construction, which is what lets this rule ask its
   question instead of dying when the answer is no.
 </p>'''),
-        dict(lines=(111, 124), html=r'''<p>
+        dict(lines=(129, 142), html=r'''<p>
   <strong>Rule 3: the Makefile.</strong> A <code>test:</code> target names <code>make
   test</code>. <code>grep -qE '^test[[:space:]]*:'</code> anchors the match to the
   <em>start</em> of a line, so a <code>test :</code> spelling still matches while
@@ -1607,7 +1643,7 @@ SCRIPTS += [dict(
   to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
   at all.
 </p></div>'''),
-        dict(lines=(125, 152), html=r'''<p>
+        dict(lines=(143, 170), html=r'''<p>
   <strong>Rule 4: pytest configuration.</strong> Three files, asked about differently on
   purpose. <code>pytest.ini</code> exists only to configure pytest, so the filename alone is
   the whole claim &mdash; the file may well be empty. <code>pyproject.toml</code> makes no
@@ -1631,7 +1667,7 @@ SCRIPTS += [dict(
   <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
   the exit status, not the dots, so quiet output is what a leaf should actually see.
 </p>'''),
-        dict(lines=(153, 168), html=r'''<p>
+        dict(lines=(171, 186), html=r'''<p>
   <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
   runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
   <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
@@ -1642,7 +1678,7 @@ SCRIPTS += [dict(
   the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
   whole crate.
 </p>'''),
-        dict(lines=(169, 185), html=r'''<p>
+        dict(lines=(187, 203), html=r'''<p>
   <strong>Rule 7, the last before giving up:</strong> a python repo that committed no runner
   configuration at all still has a suite if <code>tests/</code> holds files named
   <code>test_*.py</code>, and the stdlib can run them with nothing installed &mdash;
@@ -1657,7 +1693,7 @@ SCRIPTS += [dict(
   for. The loop answers on the first real match and simply falls through when there was none,
   with no need for the <code>nullglob</code> shell option.
 </p>'''),
-        dict(lines=(186, 189), html=r'''<p>
+        dict(lines=(204, 207), html=r'''<p>
   Nothing decided: say nothing, and let <span class="ec ec-3"><b>3</b></span> &mdash;
   &ldquo;nothing to do&rdquo;, not an error &mdash; send the question to the human, the same
   code <a href="#next-unchecked"><code>next-unchecked.sh</code></a> uses when the ledger has

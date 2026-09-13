@@ -1818,8 +1818,28 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="l"><span class="c"># character that is not blank and what remains is the run of blanks in front of it. `${1#…}`</span></span>
 <span class="l"><span class="c"># then drops that run from the front. The inner expansion is quoted because `#` takes a</span></span>
 <span class="l"><span class="c"># pattern, and blanks are not the only thing a leading `*` or `[` in the string could mean.</span></span>
-<span class="l">ltrim() { printf <span class="s">'%s'</span> <span class="s">"</span><span class="v">${1#"${1%%[![:space:]]*}"}</span><span class="s">"</span>; }</span>
-<span class="l"></span>
+<span class="l">ltrim() { printf <span class="s">'%s'</span> <span class="s">"</span><span class="v">${1#"${1%%[![:space:]]*}"}</span><span class="s">"</span>; }</span></pre></div><div class="ann-note"><p>
+  <strong>Rule 0: the issue's own line</strong>, ahead of even the override file.
+  <code>.veri/test-command</code> is the repo's answer for every run; a <code>Test
+  command:</code> line in the issue body is this run's, and the narrower claim wins &mdash; a
+  docs issue says so in its own words and the leaves obey that instead of the repo-wide suite.
+</p><p>
+  The marker is looked for <em>anywhere</em> on the line, not only at its start, because
+  that is where issues actually write it: mid-sentence in the Notes, with the command in a
+  backtick span (issue&nbsp;#131). What follows the marker becomes the command in two named
+  steps, so the rule reads as the sentence it is &mdash; the command is what follows the
+  marker, <code>ltrim</code>med and <code>unwrapped</code>.
+</p><p>
+  <a class="tt" data-ref="p-func" href="#p-func">ltrim()</a> prints its argument with the leading whitespace removed, spelled exactly
+  as <a href="#parse-verdict"><code>parse-verdict.sh</code></a> spells it &mdash; the
+  operation already had a name in this codebase, so it keeps that one rather than growing a
+  second, hand-rolled loop. Read it inside out. <a class="tt" data-ref="p-strip" href="#p-strip">${1%%[![:space:]]*}</a> cuts the
+  string at its first non-blank character and keeps what came before: the run of blanks
+  itself. The outer <code>${1#"…"}</code> then drops that run from the front. The inner
+  expansion is quoted because <code>#</code> takes a <em>pattern</em>, and quoting makes
+  what the inner expansion produced match only itself &mdash; never glob syntax such as
+  <code>*</code> or <code>[</code>.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 62"><span class="l"></span>
 <span class="l"><span class="c"># `unwrapped &lt;string&gt;` prints the backtick span the string opens with, and the string</span></span>
 <span class="l"><span class="c"># untouched when it opens with anything else — so a command written bare is still printed</span></span>
 <span class="l"><span class="c"># verbatim. `#` drops the opening backtick and `%%` cuts at the closing one, dropping the</span></span>
@@ -1827,32 +1847,28 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="l">unwrapped() {</span>
 <span class="l">  <span class="k">case</span> <span class="s">"</span><span class="v">$1</span><span class="s">"</span> <span class="k">in</span></span>
 <span class="l">    <span class="s">'`'</span>*)</span>
-<span class="l">      <span class="k">local</span> s=<span class="s">"</span><span class="v">${1#\`}</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
-  <strong>Rule 0: the issue's own line</strong>, ahead of even the override file.
-  <code>.veri/test-command</code> is the repo's answer for every run; a <code>Test
-  command:</code> line in the issue body is this run's, and the narrower claim wins &mdash; a
-  docs issue says so in its own words and the leaves obey that instead of the repo-wide suite.
-</p><p>
-  <a class="tt" data-ref="p-func" href="#p-func">trimmed()</a> prints its argument with leading spaces and tabs removed. Bash 3.2 has
-  no trim of its own, so it drops one blank at a time: <a class="tt" data-ref="p-strip" href="#p-strip">${s# }</a> removes one leading
-  space, its twin one leading tab, and the loop runs until neither changes the string &mdash;
-  which is when the first real character has been reached.
-</p><p>
-  The rule itself runs only when the flag was given and names a file that exists. The same
-  <a class="tt" data-ref="p-readloop" href="#p-readloop">while IFS= read -r line || [ -n "$line" ]</a> as rule 1 walks the body, and
-  <a class="tt" data-ref="p-case" href="#p-case">case "$line" in 'Test command:'*)</a> matches a line that starts with the marker.
-  <a class="tt" data-ref="p-strip" href="#p-strip">${line#Test command:}</a> drops the marker, <code>trimmed</code> drops the
-  whitespace that separated it from the command, and what is left is answered verbatim. The
-  first matching line answers, so a body that mentions the command again lower down &mdash; in
-  a note, a quotation, a later section &mdash; cannot overrule the one that stated it; and a
-  line with nothing after the marker names no command, so it is skipped rather than answered
-  with an empty string.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 71"><span class="l">      printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">${s%%\`*}</span><span class="s">"</span></span>
+<span class="l">      <span class="k">local</span> s=<span class="s">"</span><span class="v">${1#\`}</span><span class="s">"</span></span>
+<span class="l">      printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">${s%%\`*}</span><span class="s">"</span></span>
 <span class="l">      ;;</span>
 <span class="l">    *) printf <span class="s">'%s\n'</span> <span class="s">"</span><span class="v">$1</span><span class="s">"</span> ;;</span>
 <span class="l">  <span class="k">esac</span></span>
-<span class="l">}</span>
-<span class="l"></span>
+<span class="l">}</span></pre></div><div class="ann-note"><p>
+  <a class="tt" data-ref="p-func" href="#p-func">unwrapped()</a> prints the backtick span its argument opens with, and the argument
+  untouched when it opens with anything else &mdash; so a command written bare, as in
+  <code>Test command: make test</code>, is still printed verbatim.
+</p><p>
+  <a class="tt" data-ref="p-case" href="#p-case">case "$1" in '`'*)</a> asks &ldquo;does it open with a backtick?&rdquo;; the
+  backtick is quoted so the pattern means that one character. Then two strips:
+  <a class="tt" data-ref="p-strip" href="#p-strip">${1#\`}</a> drops the opening backtick, and <code>${s%%\`*}</code> cuts at the
+  first backtick after it, dropping everything from the closing one on &mdash; the
+  <code>. More prose.</code> that would otherwise be handed to a leaf as part of the
+  command. The backslash in <code>\`</code> is not decoration: inside double quotes a bare
+  backtick opens an old-style command substitution, so it has to be escaped to mean itself.
+</p><p>
+  <code>local s</code> keeps the half-stripped string out of the script's own variables:
+  <a class="tt" data-ref="p-func" href="#p-func">a function's variables are global</a> unless declared <code>local</code>, so
+  without it <code>s</code> would still be set after every call.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 76"><span class="l"></span>
 <span class="l hunk" data-tag="v0.31" title="detect-test-command.sh --issue &lt;body-file&gt; answers the issue&#x27;s Test command: line ahead of every other rule"><span class="k">if</span> [ -n <span class="s">"</span><span class="v">$issue</span><span class="s">"</span> ] &amp;&amp; [ -f <span class="s">"</span><span class="v">$issue</span><span class="s">"</span> ]; <span class="k">then</span></span>
 <span class="l hunk cont">  <span class="k">while</span> IFS= read -r line || [ -n <span class="s">"</span><span class="v">$line</span><span class="s">"</span> ]; <span class="k">do</span></span>
 <span class="l hunk cont">    <span class="k">case</span> <span class="s">"</span><span class="v">$line</span><span class="s">"</span> <span class="k">in</span></span>
@@ -1862,7 +1878,41 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="l hunk cont">          answer <span class="s">"</span><span class="v">$cmd</span><span class="s">"</span></span>
 <span class="l hunk cont">        <span class="k">fi</span></span>
 <span class="l hunk cont">        ;;</span>
-<span class="l hunk cont">    <span class="k">esac</span></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont">    <span class="k">esac</span></span>
+<span class="l hunk cont">  <span class="k">done</span> &lt; <span class="s">"</span><span class="v">$issue</span><span class="s">"</span></span>
+<span class="l hunk cont"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  The rule itself runs only when the flag was given and names a file that exists. The same
+  <a class="tt" data-ref="p-readloop" href="#p-readloop">while IFS= read -r line || [ -n "$line" ]</a> as rule 1 walks the body, and
+  <a class="tt" data-ref="p-case" href="#p-case">case "$line" in *'Test command:'*)</a> matches a line with the marker anywhere in
+  it &mdash; the leading <code>*</code> is what lets prose come first.
+</p><p>
+  One line then does the whole rule. <a class="tt" data-ref="p-strip" href="#p-strip">${line#*Test command:}</a> drops the prose
+  ahead of the marker together with the marker itself &mdash; a single <code>#</code> is the
+  shortest match, so it is the <em>first</em> marker on the line that answers.
+  <code>ltrim</code> drops the whitespace after it, <code>unwrapped</code> reduces a
+  backtick span to its contents, and the two <a class="tt" data-ref="p-cmdsub" href="#p-cmdsub">$( … )</a> wrappers feed each step's
+  output to the next.
+</p><p>
+  The first matching line answers, so a body that mentions the command again lower down
+  &mdash; in a note, a quotation, a later section &mdash; cannot overrule the one that stated
+  it; and a line with nothing after the marker (or an empty span) names no command, so it is
+  skipped rather than answered with an empty string.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 89"><span class="l hunk cont"></span>
+<span class="l"><span class="c"># 1. The override file. Its first non-empty line is the command, verbatim: `IFS=` keeps</span></span>
+<span class="l"><span class="c"># read from stripping leading and trailing whitespace, -r keeps it from eating</span></span>
+<span class="l"><span class="c"># backslashes, and `answer` re-emits exactly those bytes — the whole point of the escape</span></span>
+<span class="l"><span class="c"># hatch is that what the repo wrote is what the leaf runs.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `|| [ -n "$line" ]` is load-bearing: read exits non-zero at end of file, which is also</span></span>
+<span class="l"><span class="c"># what it does after handing back a final line that had no trailing newline. Without the</span></span>
+<span class="l"><span class="c"># second test that last line would be read and then discarded.</span></span>
+<span class="l">override=<span class="s">"</span><span class="v">$root</span><span class="s">/.veri/test-command"</span></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$override</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">  <span class="k">while</span> IFS= read -r line || [ -n <span class="s">"</span><span class="v">$line</span><span class="s">"</span> ]; <span class="k">do</span></span>
+<span class="l">    <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$line</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">      answer <span class="s">"</span><span class="v">$line</span><span class="s">"</span></span>
+<span class="l">    <span class="k">fi</span></span>
+<span class="l">  <span class="k">done</span> &lt; <span class="s">"</span><span class="v">$override</span><span class="s">"</span></span></pre></div><div class="ann-note"><p>
   <strong>Rule 1: the override file.</strong> If <code>.veri/test-command</code> exists, its
   first non-empty line is the command, read back verbatim.
 </p><p>
@@ -1880,29 +1930,29 @@ h3[data-since].dim .vbadge{opacity:.42}
   empty line still yields its first real one; <code>answer</code> then re-emits those exact
   bytes &mdash; the whole point of the escape hatch is that what the repo wrote is what the
   leaf runs.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 87"><span class="l hunk cont">  <span class="k">done</span> &lt; <span class="s">"</span><span class="v">$issue</span><span class="s">"</span></span>
-<span class="l hunk cont"><span class="k">fi</span></span>
-<span class="l hunk cont"></span>
-<span class="l"><span class="c"># 1. The override file. Its first non-empty line is the command, verbatim: `IFS=` keeps</span></span>
-<span class="l"><span class="c"># read from stripping leading and trailing whitespace, -r keeps it from eating</span></span>
-<span class="l"><span class="c"># backslashes, and `answer` re-emits exactly those bytes — the whole point of the escape</span></span>
-<span class="l"><span class="c"># hatch is that what the repo wrote is what the leaf runs.</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># `|| [ -n "$line" ]` is load-bearing: read exits non-zero at end of file, which is also</span></span>
-<span class="l"><span class="c"># what it does after handing back a final line that had no trailing newline. Without the</span></span>
-<span class="l"><span class="c"># second test that last line would be read and then discarded.</span></span>
-<span class="l">override=<span class="s">"</span><span class="v">$root</span><span class="s">/.veri/test-command"</span></span>
-<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$override</span><span class="s">"</span> ]; <span class="k">then</span></span>
-<span class="l">  <span class="k">while</span> IFS= read -r line || [ -n <span class="s">"</span><span class="v">$line</span><span class="s">"</span> ]; <span class="k">do</span></span>
-<span class="l">    <span class="k">if</span> [ -n <span class="s">"</span><span class="v">$line</span><span class="s">"</span> ]; <span class="k">then</span></span>
-<span class="l">      answer <span class="s">"</span><span class="v">$line</span><span class="s">"</span></span>
-<span class="l">    <span class="k">fi</span></span>
-<span class="l">  <span class="k">done</span> &lt; <span class="s">"</span><span class="v">$override</span><span class="s">"</span></span>
-<span class="l"><span class="k">fi</span></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 105"><span class="l"><span class="k">fi</span></span>
 <span class="l"></span>
 <span class="l"><span class="c"># 2. A package.json that declares a test script names the node runner. Which runner is a</span></span>
 <span class="l"><span class="c"># separate question, answered by the lockfile the repo committed beside it: a lockfile is</span></span>
-<span class="l"><span class="c"># the repo saying which package manager actually installs here, so `pnpm test` / `yarn</span></span></pre></div><div class="ann-note"><p>
+<span class="l"><span class="c"># the repo saying which package manager actually installs here, so `pnpm test` / `yarn</span></span>
+<span class="l"><span class="c"># test` rather than an `npm test` that would resolve a different dependency tree.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `tr -d '[:space:]'` flattens the file to one line with no whitespace, so the pattern can</span></span>
+<span class="l"><span class="c"># be written as if package.json were minified — formatting stops mattering. `[^}]*` then</span></span>
+<span class="l"><span class="c"># pins the "test": key to inside the "scripts" object, so a dependency or a config section</span></span>
+<span class="l"><span class="c"># that happens to be called "test" cannot answer for it. Both are inside an `if`</span></span>
+<span class="l"><span class="c"># condition, where grep's exit 1 for "no match" is an answer rather than a failure `set</span></span>
+<span class="l"><span class="c"># -e` would abort on.</span></span>
+<span class="l">pkg=<span class="s">"</span><span class="v">$root</span><span class="s">/package.json"</span></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$pkg</span><span class="s">"</span> ] &amp;&amp; tr -d <span class="s">'[:space:]'</span> &lt; <span class="s">"</span><span class="v">$pkg</span><span class="s">"</span> | grep -q <span class="s">'"scripts":{[^}]*"test":'</span>; <span class="k">then</span></span>
+<span class="l">  <span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pnpm-lock.yaml"</span> ]; <span class="k">then</span></span>
+<span class="l">    answer <span class="s">'pnpm test'</span></span>
+<span class="l">  <span class="k">elif</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/yarn.lock"</span> ]; <span class="k">then</span></span>
+<span class="l">    answer <span class="s">'yarn test'</span></span>
+<span class="l">  <span class="k">else</span></span>
+<span class="l">    answer <span class="s">'npm test'</span></span>
+<span class="l">  <span class="k">fi</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
   <strong>Rule 2: <code>package.json</code>.</strong> A declared <code>test</code> script
   names the node runner; which runner is a separate question, answered by the lockfile
   committed beside it &mdash; a lockfile is the repo saying which package manager actually
@@ -1921,37 +1971,7 @@ h3[data-since].dim .vbadge{opacity:.42}
   abort on &mdash; a command in <code>if</code>/<code>&amp;&amp;</code>/<code>||</code>
   position is exempt from strict mode by construction, which is what lets this rule ask its
   question instead of dying when the answer is no.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 110"><span class="l"><span class="c"># test` rather than an `npm test` that would resolve a different dependency tree.</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># `tr -d '[:space:]'` flattens the file to one line with no whitespace, so the pattern can</span></span>
-<span class="l"><span class="c"># be written as if package.json were minified — formatting stops mattering. `[^}]*` then</span></span>
-<span class="l"><span class="c"># pins the "test": key to inside the "scripts" object, so a dependency or a config section</span></span>
-<span class="l"><span class="c"># that happens to be called "test" cannot answer for it. Both are inside an `if`</span></span>
-<span class="l"><span class="c"># condition, where grep's exit 1 for "no match" is an answer rather than a failure `set</span></span>
-<span class="l"><span class="c"># -e` would abort on.</span></span>
-<span class="l">pkg=<span class="s">"</span><span class="v">$root</span><span class="s">/package.json"</span></span>
-<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$pkg</span><span class="s">"</span> ] &amp;&amp; tr -d <span class="s">'[:space:]'</span> &lt; <span class="s">"</span><span class="v">$pkg</span><span class="s">"</span> | grep -q <span class="s">'"scripts":{[^}]*"test":'</span>; <span class="k">then</span></span>
-<span class="l">  <span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pnpm-lock.yaml"</span> ]; <span class="k">then</span></span>
-<span class="l">    answer <span class="s">'pnpm test'</span></span>
-<span class="l">  <span class="k">elif</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/yarn.lock"</span> ]; <span class="k">then</span></span>
-<span class="l">    answer <span class="s">'yarn test'</span></span></pre></div><div class="ann-note"><p>
-  <strong>Rule 3: the Makefile.</strong> A <code>test:</code> target names <code>make
-  test</code>. <code>grep -qE '^test[[:space:]]*:'</code> anchors the match to the
-  <em>start</em> of a line, so a <code>test :</code> spelling still matches while
-  <code>.PHONY: test</code> &mdash; which does not itself start with <code>test</code> &mdash;
-  cannot be mistaken for the target.
-</p><div class="note"><span class="tag">Reordered on purpose</span><p>
-  This rule runs <strong>before</strong> the python markers below it, and the script's own
-  comment records that the ordering used to be described the other way round. A repo that
-  wrote a <code>test</code> target chose it &mdash; often precisely to wrap
-  <code>pytest</code> with whatever else the suite needs beyond it &mdash; so the target gets
-  to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
-  at all.
-</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 124"><span class="l">  <span class="k">else</span></span>
-<span class="l">    answer <span class="s">'npm test'</span></span>
-<span class="l">  <span class="k">fi</span></span>
-<span class="l"><span class="k">fi</span></span>
-<span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 128"><span class="l"></span>
 <span class="l"><span class="c"># 3. A Makefile declaring a `test:` target names `make test`, and it does so before the</span></span>
 <span class="l"><span class="c"># python markers are ever looked at. That ordering is deliberate and differs from the one</span></span>
 <span class="l"><span class="c"># SKILL.md used to describe: a repo that wrote a `test` target chose it — very often</span></span>
@@ -1964,8 +1984,20 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="l">mk=<span class="s">"</span><span class="v">$root</span><span class="s">/Makefile"</span></span>
 <span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$mk</span><span class="s">"</span> ] &amp;&amp; grep -qE <span class="s">'^test[[:space:]]*:'</span> <span class="s">"</span><span class="v">$mk</span><span class="s">"</span>; <span class="k">then</span></span>
 <span class="l">  answer <span class="s">'make test'</span></span>
-<span class="l"><span class="k">fi</span></span>
-<span class="l"></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rule 3: the Makefile.</strong> A <code>test:</code> target names <code>make
+  test</code>. <code>grep -qE '^test[[:space:]]*:'</code> anchors the match to the
+  <em>start</em> of a line, so a <code>test :</code> spelling still matches while
+  <code>.PHONY: test</code> &mdash; which does not itself start with <code>test</code> &mdash;
+  cannot be mistaken for the target.
+</p><div class="note"><span class="tag">Reordered on purpose</span><p>
+  This rule runs <strong>before</strong> the python markers below it, and the script's own
+  comment records that the ordering used to be described the other way round. A repo that
+  wrote a <code>test</code> target chose it &mdash; often precisely to wrap
+  <code>pytest</code> with whatever else the suite needs beyond it &mdash; so the target gets
+  to answer, and <code>pytest.ini</code> is left to speak only for repos that wrote no target
+  at all.
+</p></div></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 142"><span class="l"></span>
 <span class="l"><span class="c"># 4. A repo that declares pytest configuration names `pytest -q` — `-q` because the</span></span>
 <span class="l hunk" data-tag="v0.22" title="recognise a setup.cfg [tool:pytest] section as a pytest repo"><span class="c"># conductor reads the exit status, not the dots. Three spellings are one rule, and they are</span></span>
 <span class="l"><span class="c"># asked differently on purpose. `pytest.ini` exists only to configure pytest, so the</span></span>
@@ -1974,7 +2006,25 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="l"><span class="c"># it for the section that does: `[tool.pytest`, anchored to the start of a line so a</span></span>
 <span class="l"><span class="c"># mention in prose or in another table's value cannot answer for it, and matched as a</span></span>
 <span class="l hunk" data-tag="v0.22" title="recognise a setup.cfg [tool:pytest] section as a pytest repo"><span class="c"># prefix because real repos write `[tool.pytest.ini_options]`. `setup.cfg` is packaging</span></span>
-<span class="l hunk cont"><span class="c"># metadata too, so it is asked the same way, for the header pytest documents for that file:</span></span></pre></div><div class="ann-note"><p>
+<span class="l hunk cont"><span class="c"># metadata too, so it is asked the same way, for the header pytest documents for that file:</span></span>
+<span class="l hunk cont"><span class="c"># `[tool:pytest]`, spelled with a colon rather than the dot pyproject.toml uses.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the</span></span>
+<span class="l"><span class="c"># dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an</span></span>
+<span class="l"><span class="c"># answer rather than a failure `set -e` would abort on.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># The two look-inside spellings ask the identical question of different files, so it is named</span></span>
+<span class="l"><span class="c"># once: `declares &lt;file&gt; &lt;pattern&gt;` is true when the file is there and a line in it matches.</span></span>
+<span class="l"><span class="c"># Naming it also drops what the inline spelling needed and this does not — the path repeated</span></span>
+<span class="l"><span class="c"># twice per clause, and the `{ ...; }` braces that kept `&amp;&amp;` from binding tighter than the</span></span>
+<span class="l"><span class="c"># `||` separating the three markers.</span></span>
+<span class="l">declares() { [ -f <span class="s">"</span><span class="v">$1</span><span class="s">"</span> ] &amp;&amp; grep -qE <span class="s">"</span><span class="v">$2</span><span class="s">"</span> <span class="s">"</span><span class="v">$1</span><span class="s">"</span>; }</span>
+<span class="l"></span>
+<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pytest.ini"</span> ] \</span>
+<span class="l">  || declares <span class="s">"</span><span class="v">$root</span><span class="s">/pyproject.toml"</span> <span class="s">'^\[tool\.pytest'</span> \</span>
+<span class="l">  || declares <span class="s">"</span><span class="v">$root</span><span class="s">/setup.cfg"</span> <span class="s">'^\[tool:pytest\]'</span>; <span class="k">then</span></span>
+<span class="l">  answer <span class="s">'pytest -q'</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
   <strong>Rule 4: pytest configuration.</strong> Three files, asked about differently on
   purpose. <code>pytest.ini</code> exists only to configure pytest, so the filename alone is
   the whole claim &mdash; the file may well be empty. <code>pyproject.toml</code> makes no
@@ -1997,34 +2047,7 @@ h3[data-since].dim .vbadge{opacity:.42}
 </p><p>
   <code>-q</code> on the eventual <code>pytest -q</code> is not cosmetic: the conductor reads
   the exit status, not the dots, so quiet output is what a leaf should actually see.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 152"><span class="l hunk cont"><span class="c"># `[tool:pytest]`, spelled with a colon rather than the dot pyproject.toml uses.</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># `\[` escapes the bracket that would otherwise open a character class, and `\.` keeps the</span></span>
-<span class="l"><span class="c"># dot literal. grep sits inside the `if` condition, where its exit 1 for "no match" is an</span></span>
-<span class="l"><span class="c"># answer rather than a failure `set -e` would abort on.</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># The two look-inside spellings ask the identical question of different files, so it is named</span></span>
-<span class="l"><span class="c"># once: `declares &lt;file&gt; &lt;pattern&gt;` is true when the file is there and a line in it matches.</span></span>
-<span class="l"><span class="c"># Naming it also drops what the inline spelling needed and this does not — the path repeated</span></span>
-<span class="l"><span class="c"># twice per clause, and the `{ ...; }` braces that kept `&amp;&amp;` from binding tighter than the</span></span>
-<span class="l"><span class="c"># `||` separating the three markers.</span></span>
-<span class="l">declares() { [ -f <span class="s">"</span><span class="v">$1</span><span class="s">"</span> ] &amp;&amp; grep -qE <span class="s">"</span><span class="v">$2</span><span class="s">"</span> <span class="s">"</span><span class="v">$1</span><span class="s">"</span>; }</span>
-<span class="l"></span>
-<span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/pytest.ini"</span> ] \</span>
-<span class="l">  || declares <span class="s">"</span><span class="v">$root</span><span class="s">/pyproject.toml"</span> <span class="s">'^\[tool\.pytest'</span> \</span>
-<span class="l">  || declares <span class="s">"</span><span class="v">$root</span><span class="s">/setup.cfg"</span> <span class="s">'^\[tool:pytest\]'</span>; <span class="k">then</span></span></pre></div><div class="ann-note"><p>
-  <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
-  runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
-  <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
-  whole claim and nothing inside either file needs reading.
-</p><p>
-  <code>./...</code> is go's own spelling for &ldquo;every package beneath here&rdquo;;
-  without it, <code>go test</code> runs only the root package and quietly skips the rest of
-  the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
-  whole crate.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 168"><span class="l">  answer <span class="s">'pytest -q'</span></span>
-<span class="l"><span class="k">fi</span></span>
-<span class="l"></span>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 170"><span class="l"></span>
 <span class="l"><span class="c"># 5 and 6. The two compiled stacks each name their toolchain's own runner. Both markers are</span></span>
 <span class="l"><span class="c"># the manifest their toolchain requires at the repo root, and neither filename belongs to</span></span>
 <span class="l"><span class="c"># any other kind of project, so — unlike pyproject.toml above — the name alone is the whole</span></span>
@@ -2038,7 +2061,34 @@ h3[data-since].dim .vbadge{opacity:.42}
 <span class="l"><span class="k">fi</span></span>
 <span class="l"></span>
 <span class="l"><span class="k">if</span> [ -f <span class="s">"</span><span class="v">$root</span><span class="s">/Cargo.toml"</span> ]; <span class="k">then</span></span>
-<span class="l">  answer <span class="s">'cargo test'</span></span></pre></div><div class="ann-note"><p>
+<span class="l">  answer <span class="s">'cargo test'</span></span>
+<span class="l"><span class="k">fi</span></span></pre></div><div class="ann-note"><p>
+  <strong>Rules 5 and 6: the two compiled stacks.</strong> Each names its toolchain's own
+  runner. Unlike <code>pyproject.toml</code> above, neither <code>go.mod</code> nor
+  <code>Cargo.toml</code> belongs to any other kind of project, so the filename alone is the
+  whole claim and nothing inside either file needs reading.
+</p><p>
+  <code>./...</code> is go's own spelling for &ldquo;every package beneath here&rdquo;;
+  without it, <code>go test</code> runs only the root package and quietly skips the rest of
+  the suite. <code>cargo test</code> needs no such argument &mdash; it already walks the
+  whole crate.
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 186"><span class="l"></span>
+<span class="l"><span class="c"># 7. The last rule before giving up: a python repo that committed no runner configuration at</span></span>
+<span class="l"><span class="c"># all still has a suite if `tests/` holds files named `test_*.py`, and the stdlib runs them</span></span>
+<span class="l"><span class="c"># without anything installed — `python3` because a modern macOS has no `python`, `-m unittest</span></span>
+<span class="l"><span class="c"># discover` because there is no runner script to call, `-q` for the same reason as pytest's.</span></span>
+<span class="l"><span class="c">#</span></span>
+<span class="l"><span class="c"># Unlike every rule above, the marker is a pattern rather than a file at a known path, so the</span></span>
+<span class="l"><span class="c"># question is asked by letting the shell expand the pattern and testing what came back. A glob</span></span>
+<span class="l"><span class="c"># that matches nothing is left as its own literal text by default, and `[ -f ]` is false for</span></span>
+<span class="l"><span class="c"># that non-existent filename — so the loop answers on the first real match and falls through</span></span>
+<span class="l"><span class="c"># when there was none, with no need for the `nullglob` that bash 3.2 would handle differently.</span></span>
+<span class="l"><span class="c"># Only the pattern is unquoted: "$root" stays quoted so a path with spaces still resolves.</span></span>
+<span class="l"><span class="k">for</span> f <span class="k">in</span> <span class="s">"</span><span class="v">$root</span><span class="s">"</span>/tests/test_*.py; <span class="k">do</span></span>
+<span class="l">  <span class="k">if</span> [ -f <span class="s">"</span><span class="v">$f</span><span class="s">"</span> ]; <span class="k">then</span></span>
+<span class="l">    answer <span class="s">'python3 -m unittest discover -q'</span></span>
+<span class="l">  <span class="k">fi</span></span>
+<span class="l"><span class="k">done</span></span></pre></div><div class="ann-note"><p>
   <strong>Rule 7, the last before giving up:</strong> a python repo that committed no runner
   configuration at all still has a suite if <code>tests/</code> holds files named
   <code>test_*.py</code>, and the stdlib can run them with nothing installed &mdash;
@@ -2052,32 +2102,15 @@ h3[data-since].dim .vbadge{opacity:.42}
   is left as its own literal, non-existent filename, which <code>[ -f "$f" ]</code> is false
   for. The loop answers on the first real match and simply falls through when there was none,
   with no need for the <code>nullglob</code> shell option.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 185"><span class="l"><span class="k">fi</span></span>
-<span class="l"></span>
-<span class="l"><span class="c"># 7. The last rule before giving up: a python repo that committed no runner configuration at</span></span>
-<span class="l"><span class="c"># all still has a suite if `tests/` holds files named `test_*.py`, and the stdlib runs them</span></span></pre></div><div class="ann-note"><p>
+</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 203"><span class="l"></span>
+<span class="l"><span class="c"># Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the</span></span>
+<span class="l"><span class="c"># question to the human.</span></span>
+<span class="l"><span class="k">exit</span> 3</span></pre></div><div class="ann-note"><p>
   Nothing decided: say nothing, and let <span class="ec ec-3"><b>3</b></span> &mdash;
   &ldquo;nothing to do&rdquo;, not an error &mdash; send the question to the human, the same
   code <a href="#next-unchecked"><code>next-unchecked.sh</code></a> uses when the ledger has
   no unticked step left.
-</p></div></div><div class="ann-row"><div class="ann-code"><pre class="src" style="counter-reset: ln 189"><span class="l"><span class="c"># without anything installed — `python3` because a modern macOS has no `python`, `-m unittest</span></span>
-<span class="l"><span class="c"># discover` because there is no runner script to call, `-q` for the same reason as pytest's.</span></span>
-<span class="l"><span class="c">#</span></span>
-<span class="l"><span class="c"># Unlike every rule above, the marker is a pattern rather than a file at a known path, so the</span></span>
-<span class="l"><span class="c"># question is asked by letting the shell expand the pattern and testing what came back. A glob</span></span>
-<span class="l"><span class="c"># that matches nothing is left as its own literal text by default, and `[ -f ]` is false for</span></span>
-<span class="l"><span class="c"># that non-existent filename — so the loop answers on the first real match and falls through</span></span>
-<span class="l"><span class="c"># when there was none, with no need for the `nullglob` that bash 3.2 would handle differently.</span></span>
-<span class="l"><span class="c"># Only the pattern is unquoted: "$root" stays quoted so a path with spaces still resolves.</span></span>
-<span class="l"><span class="k">for</span> f <span class="k">in</span> <span class="s">"</span><span class="v">$root</span><span class="s">"</span>/tests/test_*.py; <span class="k">do</span></span>
-<span class="l">  <span class="k">if</span> [ -f <span class="s">"</span><span class="v">$f</span><span class="s">"</span> ]; <span class="k">then</span></span>
-<span class="l">    answer <span class="s">'python3 -m unittest discover -q'</span></span>
-<span class="l">  <span class="k">fi</span></span>
-<span class="l"><span class="k">done</span></span>
-<span class="l"></span>
-<span class="l"><span class="c"># Nothing decided: say nothing, and let exit 3 — "nothing to do", not an error — send the</span></span>
-<span class="l"><span class="c"># question to the human.</span></span>
-<span class="l"><span class="k">exit</span> 3</span></pre></div><div class="ann-note owed"><p><b>commentary owed.</b> These lines landed after the prose beside them was written. The source above is the file as it is today &mdash; that much this page always promises; the explanation is what it still owes you.</p></div></div></div>
+</p></div></div></div>
 
 <div class="stage-head" id="s1"><p class="stage-num">Stage <b>1</b> &middot; read the ledger</p><h2>Where a cycle begins</h2><p class="stage-lede">Before anything runs, the conductor asks one question: what is the next thing to do? The answer comes from a committed markdown checklist, and from the smallest script in the suite.</p></div>
 
