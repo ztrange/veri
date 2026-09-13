@@ -79,6 +79,7 @@ probe_fixture_dies_quietly() {
 # that one suite, so this runs the real runner over the real shape rather than a copy of
 # either, and asks for the answer the runner gives a human and a merge: a non-zero exit.
 probe_make_fails() {
+  local make_code
   make_out="$(make -C "$ROOT" test TESTS="$FIXTURE" 2>&1)" && make_code=0 || make_code=$?
   [[ "$make_code" != 0 ]] ||
     problems+=("want 'make test' to fail over a suite that died; it exited 0 and said: $(flat "$make_out")")
@@ -99,10 +100,12 @@ probe_make_names_the_suite() {
 # 1. One criterion, one case: a suite that dies silently is refused, and the refusal says
 #    which suite. Three probes — the premise, the exit code, the report — each arguing for
 #    itself above. probe_make_fails runs the recipe and leaves its output in `make_out` for
-#    probe_make_names_the_suite, so the two read one run rather than paying for two.
+#    probe_make_names_the_suite, so the two read one run rather than paying for two. That
+#    one variable is the whole of what they share: the run's exit status is local to the
+#    probe that asks about it.
 name="make test over a suite that dies from an unbound variable after its first case and exits 0 fails and names it"
 problems=()
-make_out="" make_code=0
+make_out=""
 
 probe_fixture_dies_quietly
 probe_make_fails
