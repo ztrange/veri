@@ -37,13 +37,12 @@ refuse() {
   exit 2
 }
 
-# The name splits at its first `-` into the two halves the role is read out of, and each is
-# named for the half it holds rather than for where in the string it sat: `%%-*` strips the
-# longest trailing match of `-*`, leaving the leading word, which is the actor's; `#*-` strips
-# the shortest leading match, leaving the phase and, when the name carries one, the attempt —
-# `red`, `green-2`, `refactor`.
+# The name splits at its first `-` into the two halves the role is read out of, and each cut is
+# made where its result is meaningful: this one just above the arm that reads it, the phase's
+# below the guard that establishes there is a phase to read at all. Each half is named for what
+# it holds rather than for where in the string it sat. `%%-*` strips the longest trailing match
+# of `-*`, leaving the leading word, which is the actor's.
 actor_word="${name%%-*}"
-phase_attempt="${name#*-}"
 
 # An unknown leading word is refused rather than guessed at, since either guess is a silent
 # wrong answer in a log whose purpose is telling the pipeline's two halves apart: an actor
@@ -63,6 +62,11 @@ esac
 if [[ "$name" != *-* ]]; then
   refuse "leaf name '$name' says no phase"
 fi
+
+# The other half, cut only now that the guard above has established the name has one: `#*-`
+# strips the shortest leading match, leaving the phase and, when the name carries one, the
+# attempt — `red`, `green-2`, `refactor`.
+phase_attempt="${name#*-}"
 
 # A trailing `-<digits>` is the attempt the name carries, and what precedes it is the phase; a
 # name without one is attempt 1. Not the empty string: event.sh writes every context key
