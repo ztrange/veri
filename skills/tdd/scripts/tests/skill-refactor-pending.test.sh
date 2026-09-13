@@ -151,7 +151,7 @@ if [[ -z "$records" ]]; then
 else
   # Green's PASS — the only tick that writes the mark, because it is the only one a
   # refactor loop follows.
-  if reads 'ticks the ledger and commits the step`s code with a `feat:` commit' \
+  if reads 'ticks the ledger and commits the code with a `feat:` commit' \
       'tick-ledger\.sh' 'feat:'; then
     says 'tick-ledger\.sh[[:space:]]+--refactor-pending' \
       "$skill_md's green PASS still ticks with plain \`tick-ledger.sh\`, so the step is recorded as done the moment it is green and a run interrupted in its refactor loop resumes with nothing left to do"
@@ -167,7 +167,7 @@ else
 
   # verify-refactor's PASS — the only place the mark is cleared, and the clearing has to
   # land in a commit before the step is mirrored as done.
-  if reads 'ends the step`s cycle by posting the `### ✅ step done` comment' 'step done'; then
+  if reads 'ends the cycle by posting the `### ✅ step done` comment' 'step done'; then
     says_clear_commit_mirror
   fi
 fi
