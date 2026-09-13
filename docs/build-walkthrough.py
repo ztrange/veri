@@ -298,10 +298,18 @@ def render_versions(meta):
             issues = '<span class="ver-i">%s</span>' % " ".join(
                 ('<a href="%s/issues/%s">#%s</a>' % (ORIGIN, n, n)) if ORIGIN else "#" + n
                 for n in v["issues"])
+        # The row's own version, as an attribute rather than as the prose of its `vtag`.
+        # A reader's choice collapses this index onto the versions they have not read, and
+        # the client does that by hiding the rows index() does not return — which means
+        # matching a row against a tag. The `vtag` says the same thing to a reader; this
+        # says it to the paint, which needs the tag itself and not a heading it would have
+        # to scrape. Absent on the Unreleased row above, which names no version: work past
+        # the last tag is news to every reader, so no choice hides it.
+        tag = html.escape(v["tag"])
         rows.append(
-            '<li class="ver"><p class="ver-h"><span class="vtag">%s</span>'
+            '<li class="ver" data-ver="%s"><p class="ver-h"><span class="vtag">%s</span>'
             '<span class="ver-d">%s</span>%s</p><p class="ver-t">%s</p>%s</li>'
-            % (html.escape(v["tag"]), html.escape(v["date"]), issues,
+            % (tag, tag, html.escape(v["date"]), issues,
                html.escape(v["title"]), what))
     return "".join(rows)
 

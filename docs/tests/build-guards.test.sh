@@ -1024,7 +1024,42 @@ if (process.env.VERI_ASK_WIRED) {
     el.attrs = {};
     el.handlers = {};
     el.children = [];
-    el.setAttribute = function (k, v) { el.attrs[k] = String(v); };
+
+    /* The class list, as a list the page can actually change. element() above answers
+       every membership with false and drops every add, which is what the questions asked
+       of the unwired stub want — a layer that paints a page it cannot find has painted
+       nothing. A question about the PAINT has nothing left to read that way, so here the
+       tokens are kept, and kept in `className` and in the `class` attribute at once, the
+       way a browser keeps them: a page that adds through one and is read back through the
+       other must see its own edit either way. */
+    function tokens() { return el.className ? el.className.split(/\s+/) : []; }
+    function write(list) {
+      var seen = {};
+      el.className = list.filter(function (c) {
+        if (!c || seen[c]) return false;
+        seen[c] = true;
+        return true;
+      }).join(" ");
+      el.attrs["class"] = el.className;
+    }
+    el.classList = {
+      contains: function (c) { return tokens().indexOf(c) >= 0; },
+      add: function () { write(tokens().concat([].slice.call(arguments))); },
+      remove: function () {
+        var drop = [].slice.call(arguments);
+        write(tokens().filter(function (c) { return drop.indexOf(c) < 0; }));
+      },
+      toggle: function (c, on) {
+        var want = on === undefined ? !el.classList.contains(c) : !!on;
+        if (want) el.classList.add(c); else el.classList.remove(c);
+        return want;
+      }
+    };
+
+    el.setAttribute = function (k, v) {
+      el.attrs[k] = String(v);
+      if (k === "class") el.className = String(v);
+    };
     el.getAttribute = function (k) {
       return Object.prototype.hasOwnProperty.call(el.attrs, k) ? el.attrs[k] : null;
     };
@@ -1087,9 +1122,6 @@ if (process.env.VERI_ASK_WIRED) {
       el.setAttribute(pair[1], pair[2]);
       if (pair[1].indexOf("data-") === 0) el.dataset[pair[1].slice(5)] = pair[2];
     }
-    el.className = el.getAttribute("class") || "";
-    var classes = " " + el.className + " ";
-    el.classList.contains = function (c) { return classes.indexOf(" " + c + " ") >= 0; };
     el.matches = function (sel) { return selects(el, sel); };
     return el;
   };
@@ -1131,14 +1163,32 @@ if (process.env.VERI_ASK_WIRED) {
     }
   }
 
-  /* The two kinds in one list, in the order the page prints them — which is the order a
+  /* The capability index's rows — one <li class="ver"> per version, the element a choice
+     either leaves showing or takes away. Parsed like the marks and for the same reason:
+     what a row IS comes out of the page's own markup, so a question about the rows cannot
+     be answered by anything this harness invented.
+     The version a row is for is the one it prints in its `vtag`, which is the only thing
+     on the row that names it; `class="ver unreleased"` is the row for work past the last
+     tag and names no version, so it carries "" and answers for itself. */
+  var rows = [];
+  var items = /<li class="ver([^"]*)"([^>]*)>([\s\S]*?)<\/li>/g, item;
+  while ((item = items.exec(page)) !== null) {
+    var row = parsed("li", 'class="ver' + item[1] + '"' + item[2], item.index);
+    row.kind = "row";
+    var vtag = /<span class="vtag">([^<]*)<\/span>/.exec(item[3]);
+    row.version = vtag ? vtag[1] : "";
+    rows.push(row);
+  }
+
+  /* The three kinds in one list, in the order the page prints them — which is the order a
      browser's querySelectorAll answers in, and the order a walk built from one query
-     stands on. */
-  var ordered = marks.concat(heads).sort(function (a, b) { return a.at - b.at; });
+     stands on. Only a hunk mark takes the name of the listing it fell in: a header states
+     its own, and a row belongs to no script at all. */
+  var ordered = marks.concat(heads, rows).sort(function (a, b) { return a.at - b.at; });
   var listing = "";
   ordered.forEach(function (el) {
     if (el.kind === "header") listing = el.script;
-    else el.script = listing;
+    else if (el.kind === "hunk") el.script = listing;
   });
 
   var crumb = node("div");
@@ -1912,6 +1962,100 @@ JS
     printf '%s\n' "$want" | sed 's/^/      /'
     echo "    got:"
     printf '%s\n' "$got" | sed 's/^/      /' | head -10
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
+# paint_git <name> <chosen-version> <expected-report> <mutator...>
+# Every since-mode case above asks the decision layer what it would answer. This asks what
+# the reader SEES, which is a different claim and the one the layer exists for: an
+# implementation whose lit(), index() and walk() are all perfect and which touches no
+# element on the page is green on cases 21-31 and ships a walkthrough that looks exactly
+# like the one that has no since-mode in it.
+#
+# So the page runs in the wired DOM — see VERI_ASK_WIRED in the stub — where a class the
+# page adds is a class this harness can read back and a row it hides stays hidden. Two
+# loads, because the criterion has two halves and neither is worth anything alone:
+#
+#   at rest    no hash, nothing stored -> nothing painted, every row showing
+#   since-mode opened at `#since=vX`   -> every mark lit or dim, the rows collapsed
+#
+# The marks are asked for by the version they CARRY — `[data-tag], [data-since]` — and not
+# by what they are. One query is what makes this case cover all three of the things the
+# criterion names: a hunk's first line, a script's header, and the commentary chip, which
+# carries a `data-tag` of its own. The report is one line per version the page carries and
+# per paint the marks carrying it were given — `<load> mark <version> lit|dim|-`, `-` for
+# a mark carrying neither class, `both` for one carrying the pair — so every mark on the
+# page is accounted for by a line, and a layer that paints the headers and forgets the
+# hunks reports two lines where the whole page agreeing reports one. Counts are left out
+# deliberately: how many elements carry a version is a build detail, and the claim is that
+# all of them were painted the same way.
+#
+# The rows are `<load> row <version> shown|hidden`, by the version each one prints. Hidden
+# is read in the two spellings that need no stylesheet to interpret — the `hidden`
+# attribute, or an inline `display:none` — because there is no rendering here and a class
+# whose fade lives in the stylesheet would have to be spelt into this harness to be seen.
+# Lines sort as text within a load, as index_git has it: the order of the report is not
+# what is under test, the verdict on each line is.
+paint_git() {
+  local name="$1" since="$2" want="$3"; shift 3
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  cat > "$d/question.js" <<'JS'
+var label = process.argv[3];
+
+wired();
+
+/* Which of the two classes a mark was given, or neither. `both` is its own answer rather
+   than a preference for one of them: a mark that is lit and dimmed at once is a page
+   telling the reader two things, and which one the stylesheet happens to win with is not
+   something this harness can see. */
+function paint(el) {
+  var isLit = el.classList.contains("lit"), isDim = el.classList.contains("dim");
+  return isLit && isDim ? "both" : isLit ? "lit" : isDim ? "dim" : "-";
+}
+
+/* Gone from the page, in the two spellings a page can use without a stylesheet to say it
+   in. The property and the attribute are both read because assigning `el.hidden = true`
+   and calling setAttribute("hidden", "") are the same thing to a browser and two
+   different ones to a stub. */
+function gone(el) {
+  return !!el.hidden || el.hasAttribute("hidden") || el.style.display === "none";
+}
+
+var lines = {};
+var marks = document.querySelectorAll("[data-tag], [data-since]");
+for (var i = 0; i < marks.length; i++) {
+  var version = marks[i].getAttribute("data-tag") ||
+                marks[i].getAttribute("data-since");
+  lines[label + " mark " + version + " " + paint(marks[i])] = true;
+}
+
+var rows = document.querySelectorAll("li.ver");
+for (var r = 0; r < rows.length; r++) {
+  lines[label + " row " + rows[r].version + " " + (gone(rows[r]) ? "hidden" : "shown")]
+    = true;
+}
+
+console.log(Object.keys(lines).sort().join("\n"));
+JS
+  got="$(
+    export VERI_ASK_WIRED=1
+    ask_page "$d" page.html "at rest" &&
+      { export VERI_ASK_HASH="#since=$since"
+        ask_page "$d" page.html "since $since"; }
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, paint read exit $read_code)"
+    echo "    want, on the resting page and then for a reader who last read at $since:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -24
     [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
   fi
 }
@@ -3077,6 +3221,80 @@ v0.3 v0.6 arrived-whole.sh 2-2' \
            rewrite_line_as_feat skills/tdd/scripts/arrived-whole.sh 2 \
              "# rewritten by the v0.6 commit" \
              "feat: rewrite line 2 of arrived-whole.sh (#6)" v0.6'
+
+# 32. and none of cases 21-31 has yet changed a single pixel of the page. Every one of them
+#     asks a function what it would answer — lit(), index(), walk(), since() — and the two
+#     that press a key read where the page scrolled to. An implementation whose answers are
+#     all exactly right and which puts no class on any element is green on the whole run of
+#     them, and hands the reader a page indistinguishable from the one with no since-mode
+#     in it: the reader chooses a version and nothing about the document says which of the
+#     two thousand lines in front of them is the answer. This is that paint.
+#
+#     Three things carry a version and so have an answer to show — a hunk's first line
+#     (`data-tag`), a script's header (`data-since`), and the commentary chip beside a
+#     chunk — and the case asks for them by the attribute rather than by what they are, so
+#     one report covers all three. The index is the other half: the rows a choice keeps are
+#     shown and the rows it drops are gone, which is the same collapse case 22 pinned as a
+#     return value, now pinned as the page.
+#
+#     A reader who last read at v0.9, and a fixture where each version is a different way of
+#     getting this wrong:
+#
+#       v0.1  every script's `since`, and no hunk anywhere  -> dim: 18 headers, read long ago
+#       v0.2  a hunk earlier than the choice                -> dim
+#       v0.9  a hunk at the choice itself                   -> dim: what they last read
+#       v0.10 a hunk later than the choice                  -> lit
+#       v0.11 a script that arrived whole, later            -> lit: its header, the one mark
+#                                                              in it, and the only element
+#                                                              on the page for a script the
+#                                                              reader has never seen
+#
+#     v0.9 against v0.10 and v0.11 is the lexical trap the whole layer turns on, here for
+#     the third time: `v0.10` and `v0.11` both sort BEFORE `v0.9` as text and after it as
+#     versions, so a paint that compares the strings it finds in the attributes dims the two
+#     newest capabilities and hides the answer from the one reader who asked for it. And
+#     v0.1 is the count that cannot be faked: eighteen headers, painted by the same rule as
+#     the four marks that are not headers, which is what says the paint reaches every mark
+#     rather than the handful the fixture touched.
+#
+#     The resting load is the other half, and it is case 20's claim read from the DOM
+#     instead of the stylesheet: a reader who has chosen nothing is owed the page unchanged,
+#     so no mark carries either class and no row is missing. `-` rather than "not dimmed",
+#     because a page that lights every mark at rest is telling a reader who asked nothing
+#     that the whole document is news to them.
+paint_git "choosing a version paints the marks and collapses the index rows" \
+  v0.9 \
+  'at rest mark v0.1 -
+at rest mark v0.10 -
+at rest mark v0.11 -
+at rest mark v0.2 -
+at rest mark v0.9 -
+at rest row v0.1 shown
+at rest row v0.10 shown
+at rest row v0.11 shown
+at rest row v0.2 shown
+at rest row v0.9 shown
+since v0.9 mark v0.1 dim
+since v0.9 mark v0.10 lit
+since v0.9 mark v0.11 lit
+since v0.9 mark v0.2 dim
+since v0.9 mark v0.9 dim
+since v0.9 row v0.1 hidden
+since v0.9 row v0.10 shown
+since v0.9 row v0.11 shown
+since v0.9 row v0.2 hidden
+since v0.9 row v0.9 hidden' \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 5 \
+             "# rewritten by the v0.9 commit" \
+             "feat: rewrite line 5 of classify-bail.sh (#3)" v0.9
+           rewrite_line_as_feat "$SAMPLE_SCRIPT" 7 \
+             "# rewritten by the v0.10 commit" \
+             "fix: rewrite line 7 of classify-bail.sh (#4)" v0.10
+           add_script_as_feat arrived-whole.sh arrived-whole 2 \
+             "feat: a script that arrives whole (#5)" v0.11'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
