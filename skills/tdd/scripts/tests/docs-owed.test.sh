@@ -16,6 +16,11 @@
 #   the page is current with it prints nothing and exits 3, the code every veri script
 #   uses for nothing to do (CLAUDE.md: exit codes are the API).
 #
+#   Given `--file` it also carries that list into the `ready-for-agent:docs` pool, as ONE
+#   issue titled `Docs: catch the walkthrough up to <sha>`, edited again on a later run
+#   rather than opened a second time. Both sides of that are injected: the pool it reads
+#   through VERI_GH_JSON, the calls it makes through a stub `gh` on PATH.
+#
 # Where this suite lives, and why it is not under docs/tests/ beside the other two docs
 # suites: `make docs-test` names its suites one recipe line each, so a new file there is
 # run by nothing until the Makefile is edited too, while `make test` — the command veri's
@@ -23,9 +28,10 @@
 # 2026-09-11 — globs skills/tdd/scripts/tests/*.test.sh and picks a new suite up by
 # existing. It is not the first suite here whose subject sits outside skills/:
 # workflow-timeouts.test.sh reads .github/workflows/ci.yml, and docs-guard-filter.test.sh
-# runs a docs suite. It costs `make test` one copy of the tree and one sandboxed page
-# build — ~2 s measured, against the ~140 s the whole guard suite takes, because the page
-# is built once for the case rather than once per case.
+# runs a docs suite. It costs `make test` one copy of the tree per case and one sandboxed
+# page build per case plus one per run of the subject — ~9 s measured for the two, against
+# the ~140 s the whole guard suite takes, because each case builds its tree once and then
+# reads it repeatedly rather than starting over per probe.
 #
 # Run: scripts/tests/docs-owed.test.sh
 set -uo pipefail
@@ -168,6 +174,142 @@ done
 got_lines="$(printf '%s\n' "$out" | grep -c '[^[:space:]]')"
 (( got_lines >= 3 )) ||
   problems+=("want at least one line per item — three debts were planted, so at least three lines; got $got_lines: $(flat "$out")")
+
+report "$name"
+
+# ── --file: the debt filed as the one issue the docs pool drains ─────────────────
+#
+# The list alone still needs somebody to run it and read it. `--file` is what closes that
+# loop: the same list, carried into the `ready-for-agent:docs` pool as ONE issue titled
+# `Docs: catch the walkthrough up to <sha>`, re-edited on every later run rather than
+# opened again — a pool that grew one issue per merge would be a worse report than no
+# report, since draining it would mean reading N copies of the same debt.
+#
+# Two sources, two overrides, both already idioms here: what gh KNOWS is read through
+# VERI_GH_JSON (the directory of fixtures solvable-issues.sh reads `issues.json` from, with
+# the shape of `gh issue list --json number,title,state,labels`), and what gh is ASKED TO DO
+# is caught by a stub `gh` on PATH (as tick-issue-criterion.test.sh does), which records the
+# invocation instead of performing it. Between them the case needs no network and no repo.
+
+# The stub: one line naming each invocation, then its arguments one per line, so a title
+# with spaces in it survives to be read back. Any --body/--body-file, in either spelling,
+# is resolved to its text in $GH_BODY — what the issue would actually say. `issue create`
+# answers with a URL, since that is what gh prints and a caller may read it.
+STUB="$WORK/bin"
+mkdir -p "$STUB"
+cat > "$STUB/gh" <<'STUB'
+#!/usr/bin/env bash
+{ printf '+++ %s %s\n' "${1:-}" "${2:-}"; printf '%s\n' "$@"; } >> "$GH_LOG"
+prev=""
+for a in "$@"; do
+  case "$a" in
+    --body=*)      printf '%s\n' "${a#--body=}" >> "$GH_BODY" ;;
+    --body-file=*) cat "${a#--body-file=}"      >> "$GH_BODY" ;;
+  esac
+  case "$prev" in
+    --body)      printf '%s\n' "$a" >> "$GH_BODY" ;;
+    --body-file) cat "$a"           >> "$GH_BODY" ;;
+  esac
+  prev="$a"
+done
+[[ "${1:-}" == issue && "${2:-}" == create ]] && echo "https://github.com/veri/veri/issues/77"
+exit 0
+STUB
+chmod +x "$STUB/gh"
+
+# file_run <repo-dir> <fixture-dir> <name> — the subject with --file, over that repository,
+# reading that pool and writing to the stub. Publishes `code` beside `log` and `body`: the
+# record of what it asked gh to do, and the text it would have put in the issue.
+file_run() {
+  log="$WORK/gh.$3.log"; body="$WORK/gh.$3.body"
+  : > "$log"; : > "$body"
+  ( cd "$1" && env PATH="$STUB:$PATH" GH_LOG="$log" GH_BODY="$body" VERI_GH_JSON="$2" \
+      "./$SUBJECT" --file >/dev/null 2>&1 ) && code=0 || code=$?
+}
+
+# 2. `--file` over a tree with debt and an empty pool opens exactly one issue — in the docs
+#    pool, titled for the tree's own sha, carrying the list as its body — and over the same
+#    tree with that issue already open edits it instead of opening a second.
+#
+#    One debt is enough here and the tag is the cheapest of the three: cutting it needs no
+#    edit, no commit and no rebuild, so what the case pays for is the filing, not the
+#    planting. The tree's HEAD does not move between the two runs, so the second run is the
+#    first one repeated — which is exactly the run that must not open a second issue.
+name="docs/docs-owed.sh --file opens one ready-for-agent:docs issue titled for the tree's sha, and edits that one on a later run"
+problems=()
+d="$(repo)"
+git -C "$d" tag -a "$TAG" -m 'a capability the committed index does not list'
+head_sha="$(git -C "$d" rev-parse HEAD)"
+
+# The list itself, from the same tree, unfiled: what the issue body has to carry. Read from
+# the subject rather than spelled out here so the body is pinned to be THE list and not a
+# second rendering of it that could drift from the one a human reads.
+list="$(cd "$d" && "./$SUBJECT" 2>/dev/null)"
+[ -n "$list" ] ||
+  problems+=("the case is vacuous: $SUBJECT reports no debt over a tree with $TAG cut after its page was built")
+
+fx="$WORK/pool.empty"; mkdir -p "$fx"
+printf '[]\n' > "$fx/issues.json"
+file_run "$d" "$fx" create
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from $SUBJECT --file over a tree with debt and an empty docs pool; got $code")
+
+created="$(grep -c '^+++ issue create$' "$log")"
+[[ "$created" == 1 ]] ||
+  problems+=("want exactly one \`gh issue create\` when the pool holds no such issue; got $created: $(flat "$(cat "$log")")")
+
+grep -Fq 'ready-for-agent:docs' "$log" ||
+  problems+=("want the issue opened in the ready-for-agent:docs pool — nothing drains it otherwise; got: $(flat "$(cat "$log")")")
+
+# The title, read back from whichever argument carried it. `<sha>` is the tree the debt was
+# measured over, so it must be HEAD's — abbreviated or whole, the implementer's call, but a
+# prefix of it and long enough to name a commit.
+title_line="$(grep -F 'Docs: catch the walkthrough up to' "$log" | head -1)"
+sha="${title_line##*catch the walkthrough up to }"
+if [[ -z "$title_line" ]]; then
+  problems+=("want the issue titled 'Docs: catch the walkthrough up to <sha>'; nothing in the call says so: $(flat "$(cat "$log")")")
+elif [[ "${#sha}" -lt 7 || "$head_sha" != "$sha"* ]]; then
+  problems+=("want <sha> in the title to be the sha the debt was read at, $head_sha; got '$sha'")
+fi
+
+while IFS= read -r item; do
+  [ -n "$item" ] || continue
+  grep -Fq -- "$item" "$body" ||
+    problems+=("want the issue body to be the list — it is missing '$item'; got: $(flat "$(cat "$body")")")
+done <<< "$list"
+
+# The later run: the same tree, the same debt, and now the issue the first run opened is in
+# the pool. The one that is already open is the one to edit.
+filed_title="${sha:+Docs: catch the walkthrough up to $sha}"
+filed_title="${filed_title:-Docs: catch the walkthrough up to $head_sha}"
+fx="$WORK/pool.open"; mkdir -p "$fx"
+cat > "$fx/issues.json" <<JSON
+[
+  {
+    "number": 77,
+    "title": "$filed_title",
+    "state": "OPEN",
+    "labels": [{"name": "ready-for-agent:docs"}]
+  }
+]
+JSON
+file_run "$d" "$fx" update
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from a second $SUBJECT --file, with the issue already open; got $code")
+
+created="$(grep -c '^+++ issue create$' "$log")"
+[[ "$created" == 0 ]] ||
+  problems+=("want no second issue opened when one is already open in the docs pool; got $created \`gh issue create\`: $(flat "$(cat "$log")")")
+
+edited="$(grep -c '^+++ issue edit$' "$log")"
+{ [[ "$edited" -ge 1 ]] && grep -Fqx -- '77' "$log"; } ||
+  problems+=("want the open issue #77 edited instead — the debt moved on, the issue must too; got $edited \`gh issue edit\`: $(flat "$(cat "$log")")")
+
+while IFS= read -r item; do
+  [ -n "$item" ] || continue
+  grep -Fq -- "$item" "$body" ||
+    problems+=("want the edited body to be the current list — it is missing '$item'; got: $(flat "$(cat "$body")")")
+done <<< "$list"
 
 report "$name"
 
