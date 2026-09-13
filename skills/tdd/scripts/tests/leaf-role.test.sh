@@ -13,6 +13,8 @@
 #   the mapping itself        → `develop-red` is actor `developer`, phase `red`, attempt 1;
 #                               `revise-green-2` is `developer`, `green`, attempt 2;
 #                               `verify-refactor` is `verifier`, phase `refactor`.
+#   a leading word it does    → a diagnostic naming this script and the name on stderr,
+#   not recognise               nothing on stdout, exit 2.
 #
 # Assignments rather than three bare values, in `VERI_*` spelling, because of where the
 # answer goes: the context event.sh reads is the environment (event.sh:17-19), so a caller
@@ -107,6 +109,45 @@ problems=()
 role_probe develop-red     VERI_ACTOR=developer VERI_PHASE=red      VERI_ATTEMPT=1
 role_probe revise-green-2  VERI_ACTOR=developer VERI_PHASE=green    VERI_ATTEMPT=2
 role_probe verify-refactor VERI_ACTOR=verifier  VERI_PHASE=refactor
+report "$name"
+
+# refusal_probe <leaf-name> — a name whose leading word is none of the three the mapping
+# knows, and the three things a refusal owes. Exit 2 rather than 1: a leaf name the mapping
+# cannot read is "no answer could be obtained", the plumbing speaking, not a clean negative
+# any caller could act on. Nothing on stdout, because the answer is consumed as
+# `env $(leaf-role.sh "$name") …` — a refusal that printed a half-role there would be
+# word-split into the caller's environment and logged as if it were a role. And the
+# diagnostic must carry both the script and the offending name: the writers call this from
+# inside supervise.sh and the harvester, so a bare "unbound variable" on some run's stderr
+# names neither what refused nor what it choked on.
+refusal_probe() {
+  local leaf="$1"
+  local out err code stderr_text
+  out="$(mktemp)" err="$(mktemp)"
+  "$LEAF_ROLE" "$leaf" >"$out" 2>"$err" && code=0 || code=$?
+  stderr_text="$(cat "$err")"
+  [[ "$code" == 2 ]] ||
+    problems+=("$leaf: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("$leaf: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ "$stderr_text" == *leaf-role* ]] ||
+    problems+=("$leaf: want the script named on stderr, got: $(printf '%q' "$stderr_text")")
+  [[ "$stderr_text" == *"$leaf"* ]] ||
+    problems+=("$leaf: want the name on stderr, got: $(printf '%q' "$stderr_text")")
+  rm -f "$out" "$err"
+}
+
+# 2. The mapping fails closed on a leading word it does not know.
+#
+#    `plan-red` is the shape this guards against: a well-formed leaf name — leading word, a
+#    phase after the dash — launched under a role nobody taught this script. Guessing is the
+#    failure mode worth refusing, because both wrong answers are silent: an actor defaulted
+#    to `developer` files a leaf's events under a role it never had, and an empty actor writes
+#    `"actor": ""` into a log whose whole purpose is telling the two halves of the pipeline
+#    apart. Neither is visible until someone reads the log and believes it.
+name="leaf-role.sh fails closed on a leaf name whose leading word it does not recognise: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
+problems=()
+refusal_probe plan-red
 report "$name"
 
 echo "----"
