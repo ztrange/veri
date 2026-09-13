@@ -81,20 +81,26 @@ capture() {
   rm -f "$out" "$err"
 }
 
-# role_probe <leaf-name> <KEY=want> … — one leaf name the mapping must answer, and the
+# role_probe <leaf-name> <KEY=value> … — one leaf name the mapping must answer, and the
 # assignments its answer must contain. Every probe also asserts exit 0 and silence on stderr:
 # a name the mapping knows is not a diagnosable event, and a script that printed its answer
 # to stderr would otherwise pass while `env $(…)` at the call site received nothing.
+#
+# Each argument is a whole assignment, and the loop names it so: `wanted_assignment` is the
+# `KEY=value` pair, `key` and `expected` the two halves cut out of it. The pair was called
+# `want` before, which is the name the rest of this suite's siblings give the expected VALUE
+# (leaf-timeout.test.sh's `good_probe <baseline> <want>`) — so one word meant the pair here
+# and its right half there, three lines apart.
 role_probe() {
   local leaf="$1"; shift
-  local code out_text err_text want key expected got
+  local code out_text err_text wanted_assignment key expected got
   capture "$leaf"
   [[ "$code" == 0 ]] ||
     problems+=("$leaf: want exit 0, got $code")
   [[ -z "$err_text" ]] ||
     problems+=("$leaf: want nothing on stderr, got: $(printf '%q' "$err_text")")
-  for want in "$@"; do
-    key="${want%%=*}" expected="${want#*=}"
+  for wanted_assignment in "$@"; do
+    key="${wanted_assignment%%=*}" expected="${wanted_assignment#*=}"
     got="$(assignment "$out_text" "$key")"
     [[ "$got" == "$expected" ]] ||
       problems+=("$leaf: want $key=$(printf '%q' "$expected"), got $(printf '%q' "$got") (printed: $(printf '%q' "$out_text"))")
