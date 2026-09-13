@@ -308,6 +308,44 @@ red_says "does not ask the leaf to say so in its report" \
 [[ -z "$problems" ]] \
   && ok || no "develop-red says to run the suite holding the new case, not the full suite, falling back to the test command and saying so in the report (${problems#; })"
 
+# 12. how often the green leaf is told to run the full suite (issue #144). Case 2 pins WHICH
+#     test the green leaf must satisfy; this case pins what it spends getting there. Green is
+#     where the full-suite guarantee lives — a pass bought with a broken sibling test is not a
+#     pass — so unlike Red the full run cannot go away here. What can go is running it on
+#     every iteration: 12 runs across 11 leaves, 13 of 358 leaf-minutes, in the 2026-09-13
+#     overnight run, for a question only the last of those runs answers. So the prompt sends
+#     the leaf's iterations to the suite that holds the target case, and spends the full suite
+#     exactly once, immediately before the `SUITE:` line that reports it — the one place the
+#     guarantee is actually read. Three faces of one criterion, so one case.
+#
+#     Built the way case 11 builds Red's: the prompt is folded to a single line first, since
+#     it is markdown wrapped at ~85 columns and grep matches within one line, and every
+#     alternation branch carries at most ONE `[^.]{0,N}` — two either side of a `|` make BSD
+#     grep backtrack for minutes on a one-line input, a hang that would only appear once the
+#     prompt matched. The prompt read is case 2's: same phase, same arguments, so there is one
+#     invocation and case 2 owns the exit-0 check on it.
+green_flat="$(tr '\n' ' ' <<<"$green")"
+
+# One claim, one miss — `red_says` above, pointed at the green prompt, and collapsing the
+# accumulator for the same reason. `-e` because a pattern is data, not a flag.
+green_says() {  # green_says <complaint> <grep argument…>
+  local complaint="$1"; shift
+  grep -q "$@" <<<"$green_flat" || problems="$problems; $complaint"
+}
+
+problems=""
+green_says "never says to iterate on the suite that holds the target case" \
+  -iE -e 'iterat[^.]{0,60}suite|suite[^.]{0,60}iterat'
+green_says "never says the full suite is run exactly once" \
+  -iE -e '(full|whole|entire) suite[^.]{0,40}once|once[^.]{0,40}(full|whole|entire) suite'
+# Placed against the report line, not merely mentioned: `SUITE:` is the protocol token the
+# conductor greps for, so a prompt that says "once" without saying when leaves the leaf free
+# to spend it first and iterate afterwards.
+green_says "does not put that one run immediately before the SUITE: report line" \
+  -iE -e 'before[^.]{0,60}SUITE:'
+[[ -z "$problems" ]] \
+  && ok || no "develop-green says to iterate on the target case's suite and run the full suite exactly once, immediately before the SUITE: report line (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
