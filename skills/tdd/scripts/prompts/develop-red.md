@@ -25,8 +25,12 @@ not ask for.
 1. Read the existing suite the case belongs in and add it in that suite's own style,
    leaving its other cases untouched and green. If no suite fits, create one that matches
    the repository's testing idiom.
-2. Run it against the **unmodified** production code with the test command above and
-   record whether the new case FAILS or PASSES. **Either answer is acceptable, and must be
+2. Run it against the **unmodified** production code and record whether the new case FAILS
+   or PASSES. Run the suite that holds the new case, not the full suite: the only question
+   this phase asks is whether that one case fails, and rule 1 above covers how this
+   repository runs a single suite — establish it by reading the files that are already
+   there. If the repository has no way to run one suite on its own, fall back to the test
+   command above and say so in your report. **Either answer is acceptable, and must be
    reported truthfully**: a criterion that earlier work already satisfies yields a passing
    test, and the pipeline has a dedicated path for exactly that. Do not bend the test to
    force a failure.
