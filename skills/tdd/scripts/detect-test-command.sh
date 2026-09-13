@@ -109,15 +109,20 @@ if [ -n "$issue" ] && [ -f "$issue" ]; then
         # either side of the same marker rather than of two different ones. `prefix` is
         # what the line carries ahead of it, and says whether that marker is quoted;
         # `rest` is what it carries behind it, and names the command.
+        #
+        # Two reasons a marker does not answer, and both are written as the same guard —
+        # skip this line and read the next — so what is left after them is the one line
+        # that does answer, rather than an `answer` buried inside a condition.
         prefix="${line%%"$marker"*}"
         rest="${line#*"$marker"}"
         if quoted "$prefix"; then
           continue
         fi
         cmd="$(unwrapped "$(ltrim "$rest")")"
-        if [ -n "$cmd" ]; then
-          answer "$cmd"
+        if [ -z "$cmd" ]; then
+          continue
         fi
+        answer "$cmd"
         ;;
     esac
   done < "$issue"
