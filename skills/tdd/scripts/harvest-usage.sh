@@ -46,9 +46,11 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # so a `record's` in a comment or a docstring ends the program there and python is handed the
 # rest as argv.
 #
-# Collected into a variable rather than piped, so `set -e` sees python's status: a log with no
-# such record (a killed leaf) yields None here and reading its usage raises, so nothing is
-# logged, rather than an empty payload being written as if the leaf had reported nothing.
+# Collected into a variable rather than piped, so this script sees python's status: exit 3 is
+# the block's report that the log holds no closing record, which the branch below turns into a
+# diagnostic. Piped, that status would be lost and an empty payload written as if the leaf had
+# reported nothing.
+status=0
 pairs="$(python3 -c '
 import json, sys
 
@@ -82,9 +84,30 @@ def usage_pairs(record):
         pairs.append("%s=%s" % (key, usage[key]))
     return pairs
 
-for pair in usage_pairs(closing_result(sys.argv[1])):
+record = closing_result(sys.argv[1])
+if record is None:
+    # Nothing to read, which is not a crash: a killed leaf leaves a log that stops wherever
+    # the last write landed. Exit 3 says so in the codes the rest of the suite speaks —
+    # nothing to do — and leaves saying it in English to the caller, which knows the leaf
+    # name this block was only handed a path to.
+    sys.exit(3)
+
+for pair in usage_pairs(record):
     print(pair)
-' "$log")"
+' "$log")" || status=$?
+
+# Absence is not zero: no record means no `usage` line at all, and a line on stderr naming
+# this program and the leaf so a reader of a six-leaf run knows which one went unaccounted
+# for. Exit 3 rather than 0, the code the rest of the scripts use for nothing to do.
+if [[ "$status" == 3 ]]; then
+  echo "harvest-usage.sh: no closing result record in $log — no usage event appended for $name" >&2
+  exit 3
+fi
+
+# Any other non-zero is python failing at something it was expected to do — a record missing
+# one of the eight keys, an unreadable log — and is passed on rather than swallowed by the
+# branch above, which would report a broken harvester as a killed leaf.
+[[ "$status" == 0 ]] || exit "$status"
 
 # One argument per line, read into an array rather than word-split out of the string: a
 # `key=value` is one argument to event.sh whatever is in the value, and splitting on spaces

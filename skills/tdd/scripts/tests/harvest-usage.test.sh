@@ -14,12 +14,14 @@
 # true, and the copy that goes stale is always the one in the file nobody opens when the design
 # changes.
 #
-# Contract under test (this step only — a finished leaf, with a record to read):
+# Contract under test:
 #   harvest-usage.sh <leaf-name>  → reads `.tdd/<leaf-name>.log` relative to the directory
 #                                   it is run in (the issue's worktree, the way supervise.sh
 #                                   already spells that same path), and exits 0.
 #   the event log                 → gains exactly one `usage` line, carrying the eight
 #                                   numbers of the closing `result` record.
+#   a log with no such record     → nothing is appended and the harvester says so on stderr,
+#                                   naming itself and the leaf.
 #
 # Run: scripts/tests/harvest-usage.test.sh
 set -uo pipefail
@@ -80,6 +82,30 @@ if len(hits) != 1:
 else:
     print(hits[0].get(sys.argv[3], "<<missing>>"))
 ' "$1/.tdd/events.jsonl" "$2" "$3" 2>/dev/null || echo '<<no event log>>'
+}
+
+# event_count <dir> <event> — how many <event> lines a run in <dir> wrote to its event log,
+# and 0 when it wrote no log at all. `event_field` above is the probe for reading a value off
+# the one line that must exist; case 2's assertion is that NO such line exists, which that
+# probe can only report as the text of a diagnostic — comparing against `<<0 usage lines>>`
+# would make this suite's own error spelling load-bearing.
+#
+# A missing log counting as 0 is why case 2 also probes that the log is there at all: without
+# that, a harvester that deleted the whole file, or a supervise.sh that never wrote one, would
+# read here as "appended nothing" and pass.
+event_count() {
+  python3 -c '
+import sys, json
+n = 0
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == sys.argv[2]:
+        n += 1
+print(n)
+' "$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo 0
 }
 
 stub="$(mktemp -d)"
@@ -183,6 +209,101 @@ for key in duration_ms duration_api_ms num_turns total_cost_usd \
   [[ "$got" == "${!var}" ]] ||
     problems+=("$key: want $(printf '%q' "${!var}"), got $(printf '%q' "$got")")
 done
+
+report "$name"
+
+# 2. The step's criterion: a leaf whose log holds no closing `result` record. The harvester
+#    appends nothing, and says so on stderr — so the numbers that leaf never reported are
+#    absent from the log rather than present as zeros.
+#
+#    A killed leaf is where this really happens: the watchdog SIGKILLs it mid-stream, so its
+#    log stops wherever the last write landed and no accounting was ever emitted. That shape
+#    is what the fixture below reproduces — two whole events and then a line cut off in the
+#    middle — rather than the kill itself, because what the harvester can see is the log, and
+#    a truncated log is the same log however it came to be truncated. Driving a real kill here
+#    would buy no assertion and spend the watchdog's wall time to do it.
+#
+#    Run through supervise.sh and inside a run that already has an event log, for the reason
+#    the probe's header gives: `.tdd/events.jsonl` at this point holds the supervisor's own
+#    `launch` and `exit` lines, so "appended nothing" is being asserted against a file that
+#    exists and has lines in it. A case whose log was empty for want of any writer at all
+#    would pass on a harvester that appended eight zeros.
+#
+#    Its own directories under the two the first case used, so the leaf, the log and the event
+#    log are this case's alone — a count of `usage` lines is meaningless in a directory where
+#    another case already harvested one — and so the existing trap still cleans both up.
+#
+#    The exit status is deliberately not pinned. The criterion names two observable things,
+#    the empty log and the diagnostic, and says nothing about the code; the ledger's steps
+#    that wanted one said so (`leaf-role.sh` … "exit 2"). Choosing a code here would pin an
+#    answer this step never asked for.
+name="a leaf whose log carries no closing result record: the harvester appends no usage event and says so on stderr, naming itself and the leaf"
+problems=()
+
+killed=develop-green
+killed_stub="$stub/killed"
+killed_work="$work/killed"
+mkdir -p "$killed_stub" "$killed_work/.tdd"
+
+# The killed leaf's log: two events it managed to emit, then a line that stops mid-key. No
+# `result` record, because the kill came before the leaf could close one. Single-quoted, so
+# nothing in the JSON is read by the shell, and `printf '%s'` for the last one — no trailing
+# newline, which is what a stream cut off mid-write leaves behind.
+{
+  printf '%s\n' '{"type":"system","subtype":"init","session_id":"3b71","tools":["Read","Bash"]}'
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"Writing the test."}]}}'
+  printf '%s'   '{"type":"assistant","message":{"content":[{"type":"te'
+} > "$killed_stub/stream.jsonl"
+
+cat > "$killed_stub/claude" <<STUB
+#!/usr/bin/env bash
+cat "$killed_stub/stream.jsonl"
+exit 0
+STUB
+chmod +x "$killed_stub/claude"
+
+printf 'write the failing test.' > "$killed_work/.tdd/$killed.prompt"
+
+( cd "$killed_work" && env CLAUDE_BIN="$killed_stub/claude" VERI_STUCK_RETRIES=0 \
+    VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 "$SUP" "$killed" "$RUN_LEAF" \
+    ".tdd/$killed.prompt" \
+  ) >/dev/null 2>&1
+killed_launch_code=$?
+
+# Three probes about the fixture, so a setup that drifted says so rather than being read as
+# the harvester behaving: the leaf ran, the log it left really does hold no `result` record,
+# and the event log exists with the supervisor's own lines in it.
+[[ "$killed_launch_code" == 0 ]] ||
+  problems+=("setup: want the stub leaf to exit 0 through supervise.sh, got $killed_launch_code")
+grep -q '"type":"result"' "$killed_work/.tdd/$killed.log" 2>/dev/null &&
+  problems+=("setup: want no closing result record in .tdd/$killed.log, found one")
+[[ -s "$killed_work/.tdd/events.jsonl" ]] ||
+  problems+=("setup: want supervise.sh's own lines in the event log, found none")
+
+# The harvest, with stderr kept rather than discarded — it is half of what this case pins.
+killed_err="$(mktemp)"
+( cd "$killed_work" && "$HARVEST" "$killed" ) >/dev/null 2>"$killed_err"
+killed_err_text="$(cat "$killed_err")"
+rm -f "$killed_err"
+
+# Nothing appended. Zero `usage` lines, not "no numbers in the one it wrote": a line of eight
+# zeros, or of eight empty strings, is exactly the reading of a killed leaf the criterion
+# forbids, and both would satisfy a probe that only asked about the values.
+killed_usage_lines="$(event_count "$killed_work" usage)"
+[[ "$killed_usage_lines" == 0 ]] ||
+  problems+=("want 0 usage lines in the event log, got $killed_usage_lines")
+
+# And said so. The diagnostic must carry both the harvester and the leaf, for the reason
+# leaf-role.test.sh's refusal_probe gives: one run harvests six leaves, so a message that
+# names neither leaves a reader unable to tell which leaf went unaccounted for, or what it was
+# that declined to account for it. A crash trace names neither, which is the distance between
+# "appends nothing" and "appends nothing and says so".
+[[ -n "$killed_err_text" ]] ||
+  problems+=("want a diagnostic on stderr, got nothing")
+[[ "$killed_err_text" == *harvest-usage* ]] ||
+  problems+=("want the harvester named on stderr, got: $(printf '%q' "$killed_err_text")")
+[[ "$killed_err_text" == *"$killed"* ]] ||
+  problems+=("want the leaf named on stderr, got: $(printf '%q' "$killed_err_text")")
 
 report "$name"
 
