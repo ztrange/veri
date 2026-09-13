@@ -466,6 +466,21 @@ report "$name"
 # Back to the plain list, for the reading none of the three above is: what the committed
 # page SAYS, read out of the page itself rather than inferred from when it was committed.
 
+# starts_clean <dir> <the line the plant below is to produce> — the subject has nothing to
+# report over that tree yet, so whatever it says after the plant is the plant's. Both cases
+# below owe this first read, and for the reason case 1 reads its tree twice: a script that
+# listed every script it could see would pass the planted half while saying nothing about the
+# tree it was pointed at. Named for the reason page_is_newest below is — spelled out it is two
+# probes over one run, and the argument is the only thing that differs between the two call
+# sites, there so a failure says which line the case failed to make evidence. Runs `owed`, so
+# it publishes `code`, `out` and `err` for the probes that follow; reads `problems` where it
+# stands, the protocol the rest of this file already uses.
+starts_clean() {
+  owed "$1"
+  { [[ "$code" == 3 ]] && [[ -z "$out" ]]; } ||
+    problems+=("the case is vacuous: $SUBJECT already has debt to report over the tree its page was just built from, so $2 below would not be this plant's; got $code: $(flat "$out$err")")
+}
+
 # page_is_newest <dir> <what a dated rule could have said instead> — the page is that tree's
 # newest commit, so every rule that reads HISTORY is silent by construction and a line about
 # the page can only have come from reading what the page SAYS. Both cases below plant in the
@@ -508,9 +523,7 @@ name="docs/docs-owed.sh reports what the committed page misquotes — a script's
 problems=()
 d="$(repo)"
 
-owed "$d"
-{ [[ "$code" == 3 ]] && [[ -z "$out" ]]; } ||
-  problems+=("the case is vacuous: $SUBJECT already has debt to report over the tree its page was just built from, so a line about $MISQUOTED below would not be this plant's; got $code: $(flat "$out$err")")
+starts_clean "$d" "a line about $MISQUOTED"
 
 # The listing header the build writes per script (docs/build-walkthrough.py:261), with its
 # count rewritten to a figure no script has. The name is matched as the whole <span> pair
@@ -582,9 +595,7 @@ d="$(repo)"
 [ -n "$OLD_CMD" ] ||
   problems+=("the case is vacuous: no forwarding stub under skills/ to read an old command name from, so nothing was planted")
 
-owed "$d"
-{ [[ "$code" == 3 ]] && [[ -z "$out" ]]; } ||
-  problems+=("the case is vacuous: $SUBJECT already has debt to report over the tree its page was just built from, so a line naming $OLD_CMD below would not be this plant's; got $code: $(flat "$out$err")")
+starts_clean "$d" "a line naming $OLD_CMD"
 
 # A line of the page's own prose, telling a reader to run the command. Appended rather than
 # substituted in: the page's lines run to thousands of characters, and what this plants is a
