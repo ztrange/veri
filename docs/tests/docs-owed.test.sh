@@ -41,13 +41,15 @@ pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# The three debts the case plants, named once here, by the string the list has to carry
-# for each: the script that is owed prose, the script the page is behind, and the tag the
-# index never saw. Not a format — where each one appears on its line, and what sits beside
-# it, is the implementer's to choose; that it is nameable is not.
+# The debts the cases plant, named once here, by the string the list has to carry for
+# each: the script that is owed prose, the script the page is behind, the tag the index
+# never saw, and the script the committed page misquotes. Not a format — where each one
+# appears on its line, and what sits beside it, is the implementer's to choose; that it is
+# nameable is not.
 UNCOVERED=classify-bail.sh
 STALE=refactor-budget.sh
 STALE_PATH=skills/tdd/scripts/refactor-budget.sh
+MISQUOTED=next-unchecked.sh
 TAG=v9.9
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -427,6 +429,73 @@ if [[ -z "$title_line" ]]; then
 elif [[ "${#sha}" -lt 7 || "$new_sha" != "$sha"* ]]; then
   problems+=("want the issue retitled to the sha this run read the debt at, $new_sha; got '$sha'")
 fi
+
+report "$name"
+
+# ── the committed page's own content ─────────────────────────────────────────────
+#
+# Back to the plain list, for the reading none of the three above is: what the committed
+# page SAYS, read out of the page itself rather than inferred from when it was committed.
+#
+# 4. A page that misquotes the tree is debt even when no commit is newer than it. The
+#    `page behind` rule dates the page against the scripts, so it answers a question about
+#    HISTORY — and comes up clean for a page whose content is wrong without a later commit
+#    to date it against: a page edited by hand (CLAUDE.md's one trap), one committed in the
+#    same breath as the change it fails to reflect, one built from a tree that was not this
+#    one. The page's central claim is its own content — `<n> lines · complete source`
+#    under each listing — so a quoted line count that disagrees with the script standing
+#    beside it makes the page wrong on its face, whatever its dates say.
+#
+#    This is where that fact comes to live (#146). `make test` held it — solvable-issues.
+#    test.sh case 13 read the committed page's count for solvable-issues.sh, and
+#    skill-identity.test.sh case 8 swept the committed page for an old command name — which
+#    put a claim about a generated artefact inside the command every veri leaf runs, so a
+#    page nobody had rebuilt could stop a TDD cycle on a red the scripts did not cause (ADR
+#    0016). It does not move to docs/tests/build-guards.test.sh either: that suite judges
+#    only trees it builds itself, and judging the committed page there would make the
+#    generator answer for a page it did not write. The committed page is debt to report
+#    (#137), and this script is what reports debt.
+#
+#    The drift is planted in the page and committed, so the page is the newest commit in
+#    the tree and every dated rule is silent by construction — which is what makes a line
+#    naming the script here evidence of a reading of the page's content, and not of the
+#    blame rule firing under another name. The tree is read clean first for the same
+#    reason case 1 reads it twice: a script that lists every script it can see passes the
+#    planted half and says nothing about the tree.
+name="docs/docs-owed.sh reports what the committed page misquotes — a script's quoted line count — with no commit newer than the page's to date it by"
+problems=()
+d="$(repo)"
+
+owed "$d"
+{ [[ "$code" == 3 ]] && [[ -z "$out" ]]; } ||
+  problems+=("the case is vacuous: $SUBJECT already has debt to report over the tree its page was just built from, so a line about $MISQUOTED below would not be this plant's; got $code: $(flat "$out$err")")
+
+# The listing header the build writes per script (docs/build-walkthrough.py:261), with its
+# count rewritten to a figure no script has. The name is matched as the whole <span> the
+# build emits, so the count moved is the one belonging to THIS script and not the first
+# number that happens to follow its name somewhere else on a page whose lines run to
+# thousands of characters.
+( cd "$d" && sed -i.bak \
+    "s#<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">[0-9]* lines#<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">9999 lines#" \
+    docs/walkthrough.html && rm -f docs/walkthrough.html.bak )
+grep -Fq "<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">9999 lines" "$d/docs/walkthrough.html" ||
+  problems+=("the misquote did not land: no listing header for $MISQUOTED in the committed page to rewrite the line count of")
+real_lines="$(awk 'END {print NR}' "$d/skills/tdd/scripts/$MISQUOTED")"
+[[ "$real_lines" != 9999 ]] ||
+  problems+=("the case is vacuous: $MISQUOTED really is 9999 lines long, so the page is not misquoting it")
+
+# Committed alone, and last: HEAD's newest commit is now the page's own, so `page behind`
+# has no script dated after it and the tag and commentary rules were answered by the clean
+# read above. Nothing but a reading of the page's content is left to report this.
+git -C "$d" commit -qam 'docs: a page that misquotes the tree it stands in (#4)'
+[[ "$(git -C "$d" log -1 --format=%H)" == "$(git -C "$d" log -1 --format=%H -- docs/walkthrough.html)" ]] ||
+  problems+=("the case is vacuous: the page is not the tree's newest commit, so the blame rule could report $MISQUOTED without reading the page at all")
+
+owed "$d"
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from $SUBJECT over a tree whose committed page misquotes it — a list is an answer, not a failure; got $code: $(flat "$out$err")")
+printf '%s\n' "$out" | grep -Fq -- "$MISQUOTED" ||
+  problems+=("want a line naming $MISQUOTED — the committed page quotes its listing as 9999 lines and the script is $real_lines; got: $(flat "$out")")
 
 report "$name"
 
