@@ -21,10 +21,8 @@
 #
 # The tree is copied and planted rather than asserted about where it stands, because the
 # claim is about some other repository and this one owes no commentary today: a probe run
-# here would pass on both sides of the fix and pin nothing. The copy is docs/, skills/ and
-# the Makefile — what the suite under test reads — and not the whole tree, because in the
-# primary clone .tdd/wt/ holds this repository's worktrees and a recursive copy would
-# descend into them.
+# here would pass on both sides of the fix and pin nothing. What that copy is, and what it
+# deliberately leaves out, is `tree_owing_prose` below.
 #
 # It costs one copy of those paths, one page build over the copy and one run of the suite
 # under test, ~14 s measured, nearly all of it that run — which is the observation itself.
@@ -64,30 +62,39 @@ report() {
 # tail that came back red is still readable inside an indented problem line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# tree_owing_prose — a disposable copy of this tree with $SCRIPT grown past the last line
+# any commentary chunk claims, printed as a path. Named, and out of the case body, so the
+# case reads as the three steps it is: build the tree, prove the plant is really a plant,
+# run the suite over it — the same shape `repo` gives the suite under test.
+#
+# docs/, skills/ and the Makefile are what that suite reads; the whole tree is not copied
+# because in the primary clone .tdd/wt/ holds this repository's worktrees and cp -R would
+# descend into them. The gap is planted at the END of the script: a chunk claims a line
+# range, so a line inside the file's existing length may already be claimed, while the
+# lines past its end can be claimed by nothing.
+tree_owing_prose() {
+  local d="$WORK/tree"
+  mkdir -p "$d"
+  cp -R "$ROOT/docs" "$d/docs"
+  cp -R "$ROOT/skills" "$d/skills"
+  cp "$ROOT/Makefile" "$d/"
+  rm -rf "$d/docs/wt/__pycache__"
+  printf '\n# a line this tree grew after its prose was written\n# and a second one\n' >> "$d/$SCRIPT"
+  printf '%s' "$d"
+}
+
 # 1. A script gains lines nobody has written prose for, which is what a merged development
 #    PR leaves behind every time (#125: the build carries an uncovered line as debt instead
 #    of refusing to emit the page, and a change under skills/ owes no rebuild). The docs
 #    lane's suite for the tool that REPORTS that debt must still pass, because the debt is
 #    the tool's subject and not its verdict on the repository it lives in.
 #
-#    The gap is planted at the end of the script: a chunk in docs/wt/commentary.py claims a
-#    line range, so any line inside the file's existing length may already be claimed, while
-#    the lines past its end can be claimed by nothing.
-#
 #    Exit code and the count line together are the claim, for the reason case 4 of
 #    docs-guard-filter.test.sh spells out: a suite with zero cases run and a suite with
 #    every case passing both exit 0, and only one of them is evidence.
 name="docs/tests/docs-owed.test.sh passes over a tree whose scripts carry lines no commentary chunk covers"
 problems=()
-
-d="$WORK/tree"
-mkdir -p "$d"
-cp -R "$ROOT/docs" "$d/docs"
-cp -R "$ROOT/skills" "$d/skills"
-cp "$ROOT/Makefile" "$d/"
-rm -rf "$d/docs/wt/__pycache__"
-
-printf '\n# a line this tree grew after its prose was written\n# and a second one\n' >> "$d/$SCRIPT"
+d="$(tree_owing_prose)"
 
 # The plant is only a plant if the build reads it as debt, and the build is where
 # docs-owed.sh reads coverage from too — so this asks the same question the subject asks,
