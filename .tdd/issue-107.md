@@ -5,7 +5,7 @@
 - [x] A leaf name maps once to its role: `develop-red` is actor `developer` phase `red` attempt 1, `revise-green-2` is `developer`/`green`/attempt 2, `verify-refactor` is `verifier`/`refactor`
 - [x] `leaf-role.sh` fails closed on a leaf name whose leading word it does not recognise: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2
 - [x] `leaf-role.sh` refuses a leaf name with a recognised leading word but no phase after it, the same fail-closed way: diagnostic on stderr, nothing on stdout, exit 2
-- [ ] `leaf-role.sh` refuses an **empty** phase too, so `develop-` is refused: the guard tests the phase half rather than the name's shape
+- [x] `leaf-role.sh` refuses an **empty** phase too, so `develop-` is refused: the guard tests the phase half rather than the name's shape
 - [ ] `supervise.sh` appends a `launch` event naming the leaf, the command it ran and the attempt number
 - [ ] `supervise.sh` appends a `retry` event carrying the kill cause when a killed-stuck leaf is relaunched
 - [ ] `supervise.sh` appends an `exit` event carrying its 0/1/2 status, the kill cause when there is one, and the attempt's wall seconds
