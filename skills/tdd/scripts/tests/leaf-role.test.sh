@@ -76,7 +76,7 @@ assignment() {
 # to stderr would otherwise pass while `env $(…)` at the call site received nothing.
 role_probe() {
   local leaf="$1"; shift
-  local out err code printed want key got
+  local out err code printed want key expected got
   out="$(mktemp)" err="$(mktemp)"
   "$LEAF_ROLE" "$leaf" >"$out" 2>"$err" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
@@ -85,10 +85,10 @@ role_probe() {
     problems+=("$leaf: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
   printed="$(cat "$out")"
   for want in "$@"; do
-    key="${want%%=*}"
+    key="${want%%=*}" expected="${want#*=}"
     got="$(assignment "$printed" "$key")"
-    [[ "$got" == "${want#*=}" ]] ||
-      problems+=("$leaf: want $key=$(printf '%q' "${want#*=}"), got $(printf '%q' "$got") (printed: $(printf '%q' "$printed"))")
+    [[ "$got" == "$expected" ]] ||
+      problems+=("$leaf: want $key=$(printf '%q' "$expected"), got $(printf '%q' "$got") (printed: $(printf '%q' "$printed"))")
   done
   rm -f "$out" "$err"
 }
