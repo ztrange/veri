@@ -51,25 +51,20 @@ report() {
   fi
 }
 
-# parses <file> — true when the file's first line is a JSON object. python3 rather than jq:
-# extract-result.sh already execs python3 in production, so the interpreter is a dependency
-# the repo has, and jq is not. Asserted on its own, ahead of every field probe, so a line
-# that is not JSON at all says so once instead of showing seven missing keys.
-parses() {
+# want_parses <file> — one probe, appended to the caller's `problems`: the file's first line
+# is a JSON object. Asserted on its own, ahead of every field probe, so a line that is not
+# JSON at all says so once instead of showing seven missing keys — and its true/false is also
+# the caller's cue to skip those probes, since they all read that same line and would each
+# report the same broken line again. python3 rather than jq: extract-result.sh already execs
+# python3 in production, so the interpreter is a dependency the repo has, and jq is not.
+want_parses() {
   python3 -c '
 import sys, json
 line = open(sys.argv[1]).read().splitlines()[0]
 obj = json.loads(line)
 if not isinstance(obj, dict):
     raise SystemExit("not a JSON object")
-' "$1" 2>/dev/null
-}
-
-# want_parses <file> — one probe, appended to the caller's `problems`: the file's first line
-# is a JSON object. Its true/false is also the caller's cue, since the field probes below all
-# read that same line and would each report the same broken line again.
-want_parses() {
-  parses "$1" && return 0
+' "$1" 2>/dev/null && return 0
   problems+=("want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$1")")")
   return 1
 }
