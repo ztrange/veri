@@ -15,11 +15,9 @@
 #                               `verify-refactor` is `verifier`, phase `refactor`.
 #   a leading word it does    → a diagnostic naming this script and the name on stderr,
 #   not recognise               nothing on stdout, exit 2.
-#   a recognised leading word → the same refusal: diagnostic on stderr, nothing on stdout,
-#   with no phase after it      exit 2.
-#   a recognised leading word → the same refusal again: a name that carries the `-` but
-#   with an EMPTY phase after    nothing after it says no phase either.
-#   the `-`
+#   a recognised leading word → the same refusal, for both shapes that carry no phase:
+#   with no phase after it      `develop`, which has no `-` at all, and `develop-`, whose
+#                               `-` has nothing after it.
 #
 # Assignments rather than three bare values, in `VERI_*` spelling, because of where the
 # answer goes: the context event.sh reads is the environment (event.sh:17-19), so a caller
