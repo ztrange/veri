@@ -175,6 +175,36 @@ detect --issue "$body" "$repo"
 matched \
   && ok || no "a mid-line Test command: followed by a backtick span answers the span alone, dropping the prose on either side (exit=$code want 0, stdout='$out' want '$want')"
 
+# 0d. the marker at the *start* of the line, with the command still in a backtick span and
+# prose still running past it. This is #75's shape, and it is the one measured on main as
+# worse than a miss: rule 0 found the marker, printed everything after it, and answered
+# '`make docs-test`. `docs/walkthrough.html` is GENERATED — never hand-edit it.' — a string
+# that cannot run at all, handed to every leaf as its test command. Case 0 pins the bare
+# spelling, where the rest of the line *is* the command; case 0c pins the backtick span
+# found mid-sentence. Neither says what happens when the two shapes meet: the marker where
+# #120's rule always looked for it, and the command wrapped the way veri's own issues write
+# it. A rule that treated a line-start marker as the bare spelling and only unwrapped the
+# mid-line one passes both of those and fails this.
+#
+# The prose after the closing backtick is seeded with a full stop, a second backtick span
+# and an em dash — the bytes of #75's real Notes line — so a stdout that carried any of it
+# is legible as the wrong answer rather than as a near miss on whitespace.
+#
+# The seeded repo arms the Makefile `test:` fall-through for the same reason case 0c does:
+# a run that loses the marker entirely reports `make test`, the wrong answer the real issues
+# get, instead of an anonymous exit 3.
+want='make docs-test'
+repo="$work/issue-linestart-backticks"
+body="$work/issue-linestart-backticks-body.md"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '## Notes\n\nTest command: `make docs-test`. `docs/walkthrough.html` is GENERATED — never hand-edit it.\n' > "$body"
+
+detect --issue "$body" "$repo"
+
+matched \
+  && ok || no "a line starting Test command: followed by a backtick span answers the span alone, not the rest of the line (exit=$code want 0, stdout='$out' want '$want')"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
