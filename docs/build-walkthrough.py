@@ -185,7 +185,7 @@ def _owed_segment(fname, first, last):
     return (first, last, com.OWED_HTML, " owed")
 
 
-def segments(spec, fname, total):
+def segments(spec, total):
     """The script's lines 1..total split into rows, as (first, last, note html, note class).
 
     One segment per chunk, in the order the chunks are written, plus one per run of lines
@@ -199,6 +199,7 @@ def segments(spec, fname, total):
     claimed, and one that runs past the end of the file claims lines that do not exist;
     both are still fatal, because neither describes a listing that could be rendered at all.
     """
+    fname = spec["file"]
     cursor = 1
     out = []
     for ch in spec["chunks"]:
@@ -230,7 +231,7 @@ def render_script(spec):
     marks = hunk_marks(META, fname)
 
     rows = []
-    for a, b, note, cls in segments(spec, fname, total):
+    for a, b, note, cls in segments(spec, total):
         rows.append(
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
