@@ -122,9 +122,9 @@ Match that style rather than introducing a framework.
 recipe line in `make docs-test`. `make test` is the **full suite**, and three leaves per step
 run it: `develop-green` once before it reports, and the two blind verifiers (verify-green and
 verify-refactor). The red and refactor leaves run one suite instead — the one holding the new
-case, the ones covering the files a transform touched (#144) — so a docs suite under `make
-test`'s glob still taxes every step three times over, with a tool that is not functional
-(ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
+case, the ones covering the files a transform touched (#144) — so a docs suite under
+`make test`'s glob still taxes every step three times over, with a tool that is not
+functional (ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
 2026-09-12 for that reason: together ~30 s of an 81 s `make test`.
 
 Where a test would otherwise need a real model or a real clock, it injects instead:
