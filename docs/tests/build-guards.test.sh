@@ -3147,12 +3147,23 @@ v0.3 classify-bail.sh 6-6 rewrite line 6 of classify-bail.sh' \
 # sys.path and imports gitmeta by that name, which resolves to the module already patched
 # here. The budget's own two git questions are asked AFTER the build, through the
 # unwrapped function, so they are not counted against it.
+#
+# The two streams are kept apart, and that is load-bearing rather than tidiness. The first
+# line of stdout is the two numbers this case compares; stderr is where the BUILD talks, and
+# since #125 a tree whose scripts carry lines no commentary chunk covers is a normal tree —
+# it says so with a `COMMENTARY OWED:` header and one `owed:` line per gap. Folded together
+# with 2>&1 that header arrives where the count was expected, and `[[ COMMENTARY -le OWED: ]]`
+# is arithmetic on an unset name: under `set -u` that kills the file where it stands, so the
+# suite ends with no count line, exit 0, and every case after this one never run — `make
+# docs-test` and the merge gate behind it reporting success over a suite that stopped. So
+# stderr lands in a file and is printed only when the case fails, where a traceback or the
+# build's own `BUILD PROBLEMS:` is worth reading and cannot be read as a number.
 git_budget_git() {
   selected "$1" || return 0
   local name="$1"; shift
-  local d code got; d="$(sandbox_git)"
+  local d code got err; d="$(sandbox_git)"; err="$d/budget.err"
   ( cd "$d" && "$@" )
-  got="$( cd "$d" && python3 - 2>&1 <<'PY'
+  got="$( cd "$d" && python3 - 2>"$err" <<'PY'
 import contextlib, io, runpy, sys
 from collections import Counter
 sys.path.insert(0, "docs/wt")
@@ -3185,6 +3196,7 @@ PY
     echo "    want at most $budget git processes for one build: one per script, one per tag, eight more"
     echo "    got  $made:"
     printf '%s\n' "$got" | tail -n +2 | sed 's/^/    /' | head -8
+    sed 's/^/    /' "$err" | head -8
   fi
 }
 
