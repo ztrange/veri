@@ -280,13 +280,15 @@ count="$(grep -Eo '[0-9]+ passed, [0-9]+ failed' <<< "$out" | tail -1)"
 if [[ -z "$count" ]]; then
   problems+=("want $GUARDS_SUITE to reach its count line over a tree owing prose for $SCRIPT_NAME — it stopped before its tail, so every case after the one that stopped it never ran; got $code: $(flat "$(tail -3 <<< "$out")")")
 else
+  # Two ways the tail and the exit code can disagree, each spelled as the state it
+  # complains about rather than as the state it demands: a branch on what the count says
+  # with the assertion inverted inside it has the reader work out which disagreement is
+  # being reported, and the report is the whole value of a failing case.
   failed="${count#* passed, }"; failed="${failed% failed}"
-  if [[ "$failed" == 0 ]]; then
-    [[ "$code" == 0 ]] ||
-      problems+=("want exit 0 from $GUARDS_SUITE to agree with its own '$count'; got $code: $(flat "$(tail -3 <<< "$out")")")
-  else
-    [[ "$code" != 0 ]] ||
-      problems+=("want a non-zero exit from $GUARDS_SUITE to agree with its own '$count' — a green exit over failing cases is what makes make docs-test and the merge gate behind it report success anyway")
+  if [[ "$failed" == 0 && "$code" != 0 ]]; then
+    problems+=("want exit 0 from $GUARDS_SUITE to agree with its own '$count'; got $code: $(flat "$(tail -3 <<< "$out")")")
+  elif [[ "$failed" != 0 && "$code" == 0 ]]; then
+    problems+=("want a non-zero exit from $GUARDS_SUITE to agree with its own '$count' — a green exit over failing cases is what makes make docs-test and the merge gate behind it report success anyway")
   fi
 fi
 
