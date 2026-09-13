@@ -22,7 +22,12 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
 stub="$(mktemp -d)"
 work="$(mktemp -d)"
-trap 'rm -rf "$stub" "$work"' EXIT
+# Every temp dir this suite makes is removed here, on the one path that runs however the
+# script ends — including the Ctrl-C or the `make test` timeout that an `rm` at the foot of
+# a case never reaches. `$ev_work` is case 12's and is made 270 lines down, so it is named
+# with `${…:-}`: unset until then, and `rm -rf ""` is a silent no-op (POSIX: `-f` ignores an
+# operand that does not exist), so an early exit cleans the two that do exist.
+trap 'rm -rf "$stub" "$work" "${ev_work:-}"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
@@ -310,7 +315,6 @@ ev_got_attempt="$(launch_field "$ev_log" attempt)"
   && [[ "$ev_got_cmd"     == "${ev_cmd[*]}" ]] \
   && [[ "$ev_got_attempt" == 2 ]]; } && ok \
   || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$ev_code, name=$ev_got_name, cmd=$ev_got_cmd, attempt=$ev_got_attempt)"
-rm -rf "$ev_work"
 
 echo "----"
 echo "$pass passed, $fail failed"
