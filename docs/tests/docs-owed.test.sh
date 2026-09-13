@@ -68,36 +68,22 @@ report() {
 # that came back wrong is still readable inside an indented problem line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
-# repo — a disposable copy of this tree as a repository of its own, with a page that is
-# current with it: everything committed once, the page built ON TOP of that history and
-# committed second. Built inside the sandbox rather than copied from here because the
-# committed page carries what git said at build time — the real repo's tags, the real
-# repo's blame — and a page answering for another repository's history would be behind
-# this one from its first breath, which is the very thing the case then plants on purpose.
+# cover_every_script_line <dir> — every script's last chunk stretched to the end of the
+# file it claims, in that copy of the tree and only there, so the copy owes no commentary.
 #
-# The build's own stdout is dropped and its stderr kept out of the way: the copy is made to
-# owe no commentary below, so it has nothing to say, and a build that did would show up as
-# debt the clean half of the case then reports.
-repo() {
-  local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
-  cp -R "$ROOT/docs" "$d/docs"
-  cp -R "$ROOT/skills" "$d/skills"
-  cp "$ROOT/Makefile" "$d/"
-  rm -rf "$d/docs/wt/__pycache__"
-
-  # Every script's last chunk stretched to the end of the file it claims — in the copy, and
-  # only there. What THIS repository owes in prose today is a fact about the development
-  # lane: a merged PR that grew a script leaves lines no chunk covers, and since #125 that
-  # is debt the build carries rather than refuses. The copy inherits it, and the clean half
-  # of case 1 — exit 3, nothing on stdout — would then be answering for whoever committed
-  # last rather than for the tree this function built. Grown, not clamped: a script that
-  # grew is the event being insulated against, and one that shrank past a chunk's end is a
-  # build failure in either tree, not debt.
-  #
-  # Appended as code rather than sed over the chunk table because the fix-up has to know
-  # each script's line count, and the module is imported by the build and by the subject
-  # both — so the one copy of commentary.py answers for the whole sandbox.
-  cat >> "$d/docs/wt/commentary.py" <<'PY'
+# What THIS repository owes in prose today is a fact about the development lane: a merged
+# PR that grew a script leaves lines no chunk covers, and since #125 that is debt the build
+# carries rather than refuses. The copy inherits it, and the clean half of case 1 — exit 3,
+# nothing on stdout — would then be answering for whoever committed last rather than for
+# the tree `repo` built. Grown, not clamped: a script that grew is the event being
+# insulated against, and one that shrank past a chunk's end is a build failure in either
+# tree, not debt.
+#
+# Appended as code rather than sed over the chunk table because the fix-up has to know each
+# script's line count, and the module is imported by the build and by the subject both — so
+# the one copy of commentary.py answers for the whole sandbox.
+cover_every_script_line() {
+  cat >> "$1/docs/wt/commentary.py" <<'PY'
 
 # ── appended by docs/tests/docs-owed.test.sh in the disposable copy it builds ──
 # Paths and the line count are spelled the way docs/build-walkthrough.py spells them
@@ -116,6 +102,25 @@ for _spec in SCRIPTS:
     if _total > _last["lines"][1]:
         _last["lines"] = (_last["lines"][0], _total)
 PY
+}
+
+# repo — a disposable copy of this tree as a repository of its own, with a page that is
+# current with it: everything committed once, the page built ON TOP of that history and
+# committed second. Built inside the sandbox rather than copied from here because the
+# committed page carries what git said at build time — the real repo's tags, the real
+# repo's blame — and a page answering for another repository's history would be behind
+# this one from its first breath, which is the very thing the case then plants on purpose.
+#
+# The build's own stdout is dropped and its stderr kept out of the way: the copy is made to
+# owe no commentary below, so it has nothing to say, and a build that did would show up as
+# debt the clean half of the case then reports.
+repo() {
+  local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
+  cp -R "$ROOT/docs" "$d/docs"
+  cp -R "$ROOT/skills" "$d/skills"
+  cp "$ROOT/Makefile" "$d/"
+  rm -rf "$d/docs/wt/__pycache__"
+  cover_every_script_line "$d"
 
   git -C "$d" -c init.defaultBranch=main init -q
   git -C "$d" config user.email veri@example.invalid
