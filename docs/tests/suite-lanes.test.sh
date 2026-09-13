@@ -95,6 +95,21 @@ probe_rehomed_header() {
     problems+=("want the header to say which target runs the suite now; it does not mention docs-test")
 }
 
+# probe_dev_lane_clean — the lane's other half, which is a sweep and not a question about one
+# file: every suite `make test` would run, read for a subject line that names the docs
+# pipeline. Asks for development's roster itself because nothing else in the case reads it,
+# and appends to `$problems` the way report() reads it.
+probe_dev_lane_clean() {
+  local suite subj
+  while IFS= read -r suite; do
+    [[ -n "$suite" ]] || continue
+    subj="$(subject "$suite")"
+    if grep -Eq "$DOCS_SUBJECT" <<< "$subj"; then
+      problems+=("'make test' runs $suite, whose subject is the docs pipeline: $(flat "$subj")")
+    fi
+  done <<< "$(roster test)"
+}
+
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
 #    run by the docs target and by nothing in development's. Four probes.
 #
@@ -118,7 +133,6 @@ name="the ADR suite runs under 'make docs-test', and no suite 'make test' runs i
 problems=()
 
 docs_roster="$(roster docs-test)"
-test_roster="$(roster test)"
 
 grep -qx "$ADR_SUITE" <<< "$docs_roster" ||
   problems+=("want $ADR_SUITE among the suites 'make docs-test' runs; it runs: $(flat "$docs_roster")")
@@ -133,13 +147,7 @@ else
   problems+=("want $ADR_SUITE to exist and be executable; it is not")
 fi
 
-while IFS= read -r suite; do
-  [[ -n "$suite" ]] || continue
-  subj="$(subject "$suite")"
-  if grep -Eq "$DOCS_SUBJECT" <<< "$subj"; then
-    problems+=("'make test' runs $suite, whose subject is the docs pipeline: $(flat "$subj")")
-  fi
-done <<< "$test_roster"
+probe_dev_lane_clean
 
 report "$name"
 
