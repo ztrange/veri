@@ -12,10 +12,10 @@ case. Three rules hold in every phase:
    happen. An unexpected result reported truthfully keeps the run on its rails; a
    tidied-up one derails it.
 3. **Run every test command in the foreground, and report only after it has exited.**
-   Never put a suite run in the background and then write your report while it is still
-   going: the conductor reads that report as the suite's answer, so it acts on a result
-   nothing has produced yet — and pays for the same run twice when it has to go and get
-   the real one.
+   Never put a suite run in the background and then write your report while that
+   run is still going: the conductor reads that report as the suite's answer, so it
+   acts on a result nothing has produced yet — and pays for the same run twice when
+   it has to go and get the real one.
 
 Work inside the current repository. Keep your investigation tight and on-task, and change
 nothing this step does not require.
