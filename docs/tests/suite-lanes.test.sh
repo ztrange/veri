@@ -122,9 +122,7 @@ while IFS= read -r suite; do
   if printf '%s' "$subj" | grep -Eq "$DOCS_SUBJECT"; then
     problems+=("'make test' runs $suite, whose subject is the docs pipeline: $(flat "$subj")")
   fi
-done <<EOF
-$test_roster
-EOF
+done <<< "$test_roster"
 
 report "$name"
 
