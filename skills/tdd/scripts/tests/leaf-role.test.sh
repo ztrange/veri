@@ -90,27 +90,6 @@ role_probe() {
   rm -f "$out" "$err"
 }
 
-# 1. The whole of this step's criterion, as one case: the three leaf names the criterion
-#    itself names, each with the role it says that name means.
-#
-#    They are the three shapes a leaf name comes in, and each probe does work the others
-#    cannot. `develop-red` is the plain developer leaf, and its attempt 1 pins that a name
-#    with no number still yields an attempt — a mapping that emitted none would leave
-#    event.sh writing `attempt: ""` on the first launch of every step, which is the
-#    "absent is not the spelling of unknown" rule event.sh:22-25 already refuses.
-#    `revise-green-2` is the name that carries its own attempt: its role is `developer` and
-#    `green` even though the name says neither word, so a mapping that read the leading word
-#    as the actor or the trailing word as the phase is caught, and its attempt 2 is the only
-#    place the trailing count is read. `verify-refactor` is the other actor — `verifier`, the
-#    blind half of the pipeline, whose events must never be logged as the developer's, since
-#    telling a REJECT's verdict from the work it judged is the whole point of the two roles.
-name="leaf-role.sh maps a leaf name to its role: develop-red is developer/red/attempt 1, revise-green-2 is developer/green/attempt 2, verify-refactor is verifier/refactor"
-problems=()
-role_probe develop-red     VERI_ACTOR=developer VERI_PHASE=red      VERI_ATTEMPT=1
-role_probe revise-green-2  VERI_ACTOR=developer VERI_PHASE=green    VERI_ATTEMPT=2
-role_probe verify-refactor VERI_ACTOR=verifier  VERI_PHASE=refactor
-report "$name"
-
 # refusal_probe <leaf-name> — a name whose leading word is none of the three the mapping
 # knows, and the three things a refusal owes. Exit 2 rather than 1: a leaf name the mapping
 # cannot read is "no answer could be obtained", the plumbing speaking, not a clean negative
@@ -136,6 +115,27 @@ refusal_probe() {
     problems+=("$leaf: want the name on stderr, got: $(printf '%q' "$stderr_text")")
   rm -f "$out" "$err"
 }
+
+# 1. The whole of this step's criterion, as one case: the three leaf names the criterion
+#    itself names, each with the role it says that name means.
+#
+#    They are the three shapes a leaf name comes in, and each probe does work the others
+#    cannot. `develop-red` is the plain developer leaf, and its attempt 1 pins that a name
+#    with no number still yields an attempt — a mapping that emitted none would leave
+#    event.sh writing `attempt: ""` on the first launch of every step, which is the
+#    "absent is not the spelling of unknown" rule event.sh:22-25 already refuses.
+#    `revise-green-2` is the name that carries its own attempt: its role is `developer` and
+#    `green` even though the name says neither word, so a mapping that read the leading word
+#    as the actor or the trailing word as the phase is caught, and its attempt 2 is the only
+#    place the trailing count is read. `verify-refactor` is the other actor — `verifier`, the
+#    blind half of the pipeline, whose events must never be logged as the developer's, since
+#    telling a REJECT's verdict from the work it judged is the whole point of the two roles.
+name="leaf-role.sh maps a leaf name to its role: develop-red is developer/red/attempt 1, revise-green-2 is developer/green/attempt 2, verify-refactor is verifier/refactor"
+problems=()
+role_probe develop-red     VERI_ACTOR=developer VERI_PHASE=red      VERI_ATTEMPT=1
+role_probe revise-green-2  VERI_ACTOR=developer VERI_PHASE=green    VERI_ATTEMPT=2
+role_probe verify-refactor VERI_ACTOR=verifier  VERI_PHASE=refactor
+report "$name"
 
 # 2. The mapping fails closed on a leading word it does not know.
 #
