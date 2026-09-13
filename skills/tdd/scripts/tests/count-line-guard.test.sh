@@ -114,6 +114,17 @@ blames() {
     problems+=("no line of the run both names $2 and says it never reached its count line$3; the lines naming it were: $(flat "$named")")
 }
 
+# recipe <fixture> — run this repository's `test` recipe over that one suite and nothing else,
+# leaving the run's combined output in `recipe_out` and its exit status in `recipe_code`. Three
+# probes below ask the same thing of the same runner and differ only in which answer they want,
+# and `make test TESTS=<fixture>` is the whole of how a fixture is put in front of the real
+# recipe rather than a copy of it — so the invocation is written once here. Both halves are left
+# where the caller can see them because case 1 asks two questions of one run: the exit status
+# first, then whether the output named the suite.
+recipe() {
+  recipe_out="$(make -C "$ROOT" test TESTS="$1" 2>&1)" && recipe_code=0 || recipe_code=$?
+}
+
 # probe_fixture_dies_quietly — the premise the case rests on, asserted rather than assumed:
 # the fixture really does die after its first case and really does come back 0. A fixture
 # that had stopped doing either would leave the probes below passing against a runner that
@@ -130,29 +141,28 @@ probe_fixture_dies_quietly() {
     problems+=("the fixture reached its count line, so it did not die: $(flat "$out")")
 }
 
-# probe_make_fails — the criterion itself. `make test TESTS=<fixture>` points the recipe at
-# that one suite, so this runs the real runner over the real shape rather than a copy of
-# either, and asks for the answer the runner gives a human and a merge: a non-zero exit.
+# probe_make_fails — the criterion itself. The run goes through `recipe` above, so it is the
+# real runner over the real shape rather than a copy of either, and this asks for the answer
+# the runner gives a human and a merge: a non-zero exit.
 probe_make_fails() {
-  local make_code
-  make_out="$(make -C "$ROOT" test TESTS="$FIXTURE" 2>&1)" && make_code=0 || make_code=$?
-  [[ "$make_code" != 0 ]] ||
-    problems+=("want 'make test' to fail over a suite that died; it exited 0 and said: $(flat "$make_out")")
+  recipe "$FIXTURE"
+  [[ "$recipe_code" != 0 ]] ||
+    problems+=("want 'make test' to fail over a suite that died; it exited 0 and said: $(flat "$recipe_out")")
 }
 
 # 1. One criterion, one case: a suite that dies silently is refused, and the refusal says
 #    which suite. Three probes — the premise, the exit code, the report — each arguing for
-#    itself above. probe_make_fails runs the recipe and leaves its output in `make_out` for
-#    the `blames` check after it, so the two read one run rather than paying for two. That
-#    one variable is the whole of what they share: the run's exit status is local to the
-#    probe that asks about it.
+#    itself above. probe_make_fails runs the recipe through the helper above and leaves the
+#    run in `recipe_out` for the `blames` check after it, so the two read one run rather than
+#    paying for two.
 name="make test over a suite that dies from an unbound variable after its first case and exits 0 fails and names it"
 problems=()
-make_out=""
+recipe_out=""
+recipe_code=0
 
 probe_fixture_dies_quietly
 probe_make_fails
-blames "$make_out" "$FIXTURE_NAME" ", so its refusal does not say which suite died"
+blames "$recipe_out" "$FIXTURE_NAME" ", so its refusal does not say which suite died"
 
 report "$name"
 
@@ -178,13 +188,12 @@ probe_live_fixtures_are_what_they_claim() {
 }
 
 # probe_make_passes_the_green_suite — the half that keeps the check from being satisfied by
-# a runner that refuses everything. `make test TESTS=<fixture>` points the recipe at that
-# one suite, as case 1 does, and asks for the answer a green suite has always got.
+# a runner that refuses everything. Through `recipe` as case 1 is, pointed at the one fixture,
+# and asking for the answer a green suite has always got.
 probe_make_passes_the_green_suite() {
-  local out code
-  out="$(make -C "$ROOT" test TESTS="$GREEN_FIXTURE" 2>&1)" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("want 'make test' to pass a suite that ends in its count line with nothing failed; it exited $code and said: $(flat "$out")")
+  recipe "$GREEN_FIXTURE"
+  [[ "$recipe_code" == 0 ]] ||
+    problems+=("want 'make test' to pass a suite that ends in its count line with nothing failed; it exited $recipe_code and said: $(flat "$recipe_out")")
 }
 
 # probe_make_fails_the_red_suite — the half that keeps the count line from displacing the
@@ -192,10 +201,9 @@ probe_make_passes_the_green_suite() {
 # runner that had come to read only that line calls it green, and an ordinary test failure
 # — the most common red there is — stops being reported at all.
 probe_make_fails_the_red_suite() {
-  local out code
-  out="$(make -C "$ROOT" test TESTS="$RED_FIXTURE" 2>&1)" && code=0 || code=$?
-  [[ "$code" != 0 ]] ||
-    problems+=("want 'make test' to fail a suite that exits non-zero even though it reached its count line; it exited 0 and said: $(flat "$out")")
+  recipe "$RED_FIXTURE"
+  [[ "$recipe_code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite that exits non-zero even though it reached its count line; it exited 0 and said: $(flat "$recipe_out")")
 }
 
 # 2. The two answers the runner gave before #157 and must go on giving: a suite that ends in
