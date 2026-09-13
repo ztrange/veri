@@ -170,22 +170,27 @@ says_clear_commit_mirror() {
 # says_reset_reenter_verify — the four things the `$instruction` just read must prescribe for
 # a step that comes back pending: throw away what the killed leaf left on disk, re-enter the
 # refactor loop with its two inputs (the files of the step's green commit, and how many
-# transforms already landed), and verify-refactor after it. `git diff --name-only` is the
-# anchor the order is read against — the reset has to come before it and the verification
-# after it — so its absence returns rather than probing two halves of a string that has no
-# middle.
+# transforms already landed), and verify-refactor after it. `$anchor` is what the order is
+# read against — the reset has to come before it and the verification after it — so its
+# absence returns rather than probing two halves of a string that has no middle.
+#
+# It is spelled once, and used three times: to establish it is there, and to cut the
+# instruction either side of it. A second spelling that drifted from the first would not
+# fail — a `%%`/`#` whose pattern misses yields the whole string — it would silently make
+# both halves the whole instruction, and the two ordered probes would then pass on any
+# wording that merely mentions a reset and a verification anywhere.
 says_reset_reenter_verify() {
   local before after
-  local files_re='git diff --name-only'
+  local anchor='git diff --name-only'
   local reset_re='git (checkout|restore|reset|stash|clean)'
   local green_re='git log.*issue-<n>\.md'
   local verify_re='verify-refactor|verify\.sh refactor'
-  if [[ ! "$instruction" =~ $files_re ]]; then
+  if [[ ! "$instruction" =~ $anchor ]]; then
     miss "$skill_md's Resume re-enters no refactor loop for the pending step — nothing computes the files of its green commit, so the loop has no bounds to tidy within and the step is left green but never tidied"
     return
   fi
-  before="${instruction%%git diff --name-only*}"
-  after="${instruction#*git diff --name-only}"
+  before="${instruction%%$anchor*}"
+  after="${instruction#*$anchor}"
   [[ "$before" =~ $reset_re ]] ||
     miss "$skill_md's Resume re-enters the refactor loop without first resetting the worktree, so the transform the killed leaf left uncommitted is carried into the resumed step and into the PR unverified"
   [[ "$instruction" =~ $green_re ]] ||
