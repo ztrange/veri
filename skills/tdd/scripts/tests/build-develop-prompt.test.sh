@@ -271,9 +271,7 @@ fi
 #     the suite that holds the new case instead, says not to run the full one, and keeps the
 #     test command as the fallback for a repository with no way to run a suite on its own —
 #     with the leaf saying so in its report, since a fallback nobody can see is indistinguish-
-#     able from a leaf that ignored the instruction. Four faces of one criterion, so one case
-#     and a `problems` accumulator, collapsed into a probe helper the way case 9's `narrates`
-#     does it.
+#     able from a leaf that ignored the instruction. Four faces of one criterion, so one case.
 #
 #     The prompt is folded to a single line first, for case 9's reason: it is markdown wrapped
 #     at ~85 columns, so any claim long enough to be worth probing for spans two lines, and
