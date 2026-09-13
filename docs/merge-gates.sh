@@ -73,7 +73,7 @@ changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls
 
 pipeline_re='^docs/'
 stale_re='^(docs/walkthrough\.html|Makefile)$'
-nothing_re='^docs/adr/'
+exempt_re='^docs/adr/'   # under docs/, but exempt from the rules below (#146)
 
 run_test=0 run_fresh=0 why_test="" why_fresh=""
 if [ "$mode" = all ]; then
@@ -81,8 +81,9 @@ if [ "$mode" = all ]; then
 else
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    # carved out first: a path under docs/ the build does not read owes nothing (#146).
-    if [[ "$f" =~ $nothing_re ]]; then
+    # the exemption is tested first: a path under docs/ the build does not read owes
+    # nothing (#146), so it must win over the pipeline rule it would otherwise match.
+    if [[ "$f" =~ $exempt_re ]]; then
       continue
     # stale next: the page is the one thing under docs/ that is output, not input.
     elif [[ "$f" =~ $stale_re ]]; then
