@@ -629,9 +629,9 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   verifier's reason, tick the matching acceptance criterion in the **issue body**
   (`$S/tick-issue-criterion.sh <n> '<substring>'`), and mark it in the log —
   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=pin $S/event.sh pin`.
-  The step is **done** — **no Green and
-  no Refactor**, since there is no new production code to write or to tidy. Loop back to
-  the top of **step 3** for the next unchecked ledger step.
+  The step is **done** — **no Green and no Refactor**, since there is no new production
+  code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
+  ledger step.
 - **REJECT (exit 1):** enter the **revise loop** for the **red** phase — see *Revising on a
   REJECT* — building the prompt as `revise red … .tdd/verify-pin.reason`: the phase argument
   is the *developer* phase being redone, while the reason file is named for the *verifier*
