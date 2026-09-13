@@ -8,6 +8,12 @@
 .PHONY: test
 TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 
+# The line every suite under that glob prints last, as an ERE — the "count line" the
+# recipe's failure message names and CLAUDE.md's testing idiom requires, defined here
+# rather than inline so the term has one place to point at. `$$` is make's escape for a
+# literal `$`, so grep is handed an end-of-line anchor.
+COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
+
 # A suite's exit code alone is not trusted (#157). Every suite here declares `set -u`, and
 # under it a word rather than a number inside `[[ … -le … ]]` is read as a variable name; an
 # unset name kills the script, and a script killed that way exits with the status of the
@@ -29,7 +35,7 @@ test:
 	  printf '== %s\n' "$$name"; \
 	  { "$$t"; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
-	  tail -n 1 "$$suite_out" | grep -Eq '^[0-9]+ passed, [0-9]+ failed$$' || { \
+	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
 	    printf '%s: never reached its count line\n' "$$name"; fail=1; \
 	  }; \
 	done; \
