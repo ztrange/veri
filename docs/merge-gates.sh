@@ -81,12 +81,12 @@ if [ "$mode" = all ]; then
 else
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    # the exemption is tested first: a path under docs/ the build does not read owes
-    # nothing (#146), so it must win over the pipeline rule it would otherwise match.
-    if [[ "$f" =~ $exempt_re ]]; then
-      continue
-    # stale next: the page is the one thing under docs/ that is output, not input.
-    elif [[ "$f" =~ $stale_re ]]; then
+    # a second guard, not a third rule: a path under docs/ the build does not read owes
+    # nothing (#146), so it is dropped here rather than reaching the chain below, where it
+    # would match the pipeline rule.
+    [[ "$f" =~ $exempt_re ]] && continue
+    # stale first: the page is the one thing under docs/ that is output, not input.
+    if [[ "$f" =~ $stale_re ]]; then
       run_fresh=1; why_fresh="${why_fresh:-$f}"
     elif [[ "$f" =~ $pipeline_re ]]; then
       run_test=1 run_fresh=1; why_test="${why_test:-$f}"; why_fresh="${why_fresh:-$f}"
