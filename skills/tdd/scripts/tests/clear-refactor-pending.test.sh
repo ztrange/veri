@@ -24,13 +24,13 @@ seed() { printf '# Plan for #42\n\n- [x] add the slugify lowercasing ⟂ refacto
 #    step → exit 3 with the file byte-identical
 seed
 "$CLEAR" "$led" "collapse to single hyphen"; code=$?
-before="$work/before.md"; cp "$led" "$before"   # the cleared ledger, as the no-match run finds it
+cleared="$work/cleared.md"; cp "$led" "$cleared"
 "$CLEAR" "$led" "percent-encode the remainder" 2>/dev/null; none_code=$?
 { [[ "$code" == 0 ]] \
-  && grep -q '^- \[x\] collapse to single hyphen (again)$' "$before" \
-  && grep -q '^- \[x\] add the slugify lowercasing ⟂ refactor pending$' "$before" \
-  && grep -q '^- \[x\] collapse to single hyphen$' "$before" \
-  && [[ "$none_code" == 3 ]] && cmp -s "$led" "$before"; } \
+  && grep -q '^- \[x\] collapse to single hyphen (again)$' "$cleared" \
+  && grep -q '^- \[x\] add the slugify lowercasing ⟂ refactor pending$' "$cleared" \
+  && grep -q '^- \[x\] collapse to single hyphen$' "$cleared" \
+  && [[ "$none_code" == 3 ]] && cmp -s "$led" "$cleared"; } \
   && ok || no "clears the first matching marked step, else exit 3 and untouched (code=$code none_code=$none_code)"
 
 echo "----"
