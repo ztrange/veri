@@ -60,7 +60,8 @@ marker='Test command:'
 #
 # A marker *inside a backtick span* is being quoted, not stated: a body that writes the two
 # words while describing how a leaf finds its command is talking about the line, not writing
-# one. Such a marker is skipped and the scan goes on, because first-match-wins makes a mention
+# one. Such a marker is skipped and the scan goes on — to later markers on the same line first,
+# then to later lines — because first-match-wins makes a mention
 # fatal otherwise — the real line further down cannot overrule it, and what gets handed to the
 # conductor is the prose that trailed the quote (#145).
 #
@@ -102,29 +103,43 @@ unwrapped() {
 
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
-    case "$line" in
-      *"$marker"*)
-        # The line cut in two at its *first* marker, which is the one that answers: `%%`
-        # takes the shortest prefix and `#` the shortest match, so the two halves are cut
-        # either side of the same marker rather than of two different ones. `prefix` is
-        # what the line carries ahead of it, and says whether that marker is quoted;
-        # `rest` is what it carries behind it, and names the command.
-        #
-        # Two reasons a marker does not answer, and both are written as the same guard —
-        # skip this line and read the next — so what is left after them is the one line
-        # that does answer, rather than an `answer` buried inside a condition.
-        prefix="${line%%"$marker"*}"
-        rest="${line#*"$marker"}"
-        if quoted "$prefix"; then
-          continue
-        fi
-        cmd="$(unwrapped "$(ltrim "$rest")")"
-        if [ -z "$cmd" ]; then
-          continue
-        fi
-        answer "$cmd"
-        ;;
-    esac
+    # A line is walked marker by marker rather than answered from its first one, because a
+    # skipped marker has somewhere else to go on the same line: an issue that quotes the
+    # two words and then states them in the same sentence — which is how #145's own body
+    # reads — hides the line that answers behind the one that does not. `rest` is the part
+    # of the line not yet walked and `seen` is the part already walked, and each turn moves
+    # one marker's worth of text from the first to the second. The `case` is the loop's only
+    # exit that is not an answer: when `rest` holds no further marker the line is spent, and
+    # a line that never held one is spent on the first turn.
+    rest="$line"
+    seen=""
+    while :; do
+      case "$rest" in
+        *"$marker"*) ;;
+        *) break ;;
+      esac
+      # The unwalked text cut in two at its *first* marker: `%%` takes the shortest prefix
+      # and `#` the shortest match, so the two halves are cut either side of the same
+      # marker rather than of two different ones. The prefix joins `seen`, which is what
+      # says whether this marker is quoted — the whole of the line ahead of it, not just
+      # the stretch since the previous marker, because it is the backticks opened anywhere
+      # earlier that leave a span open here. The markers themselves never join `seen`, and
+      # need not: the two words carry no backtick, so they cannot change the count that
+      # decides it.
+      seen="$seen${rest%%"$marker"*}"
+      rest="${rest#*"$marker"}"
+      # Two reasons a marker does not answer, and both are written as the same guard —
+      # leave it behind and look for the next one — so what is left after them is the one
+      # marker that does answer, rather than an `answer` buried inside a condition.
+      if quoted "$seen"; then
+        continue
+      fi
+      cmd="$(unwrapped "$(ltrim "$rest")")"
+      if [ -z "$cmd" ]; then
+        continue
+      fi
+      answer "$cmd"
+    done
   done < "$issue"
 fi
 

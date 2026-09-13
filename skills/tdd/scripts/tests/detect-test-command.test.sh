@@ -377,6 +377,39 @@ done
 [[ -z "$misread" ]] \
   && ok || no "a body whose only marker sits inside a backtick span falls through to the next rule, exactly as a body with no marker does —$misread"
 
+# 0i. both markers on the *same* line: the quotation first, the statement behind it. Cases
+# 0g and 0h put the quote and the real line in different paragraphs, so skipping the quote
+# only ever has to mean "read the next line". This says what skipping has to mean within one
+# line — go on to the next marker on it — and a fix that treats a quoted marker as a verdict
+# on the whole line passes 0g and 0h and answers `make test` here, on an issue that stated
+# `make docs-test` in the same sentence.
+#
+# The shape is one veri's own issues write: a sentence that names the mechanism and then uses
+# it, which is exactly how #145's body and this test file's own commentary read. `%%` takes
+# the prefix at the *first* marker and `#` the rest at the same one, so the two halves are cut
+# either side of the quotation — the stated marker is in `rest`, downstream of the guard, and
+# is reachable only by scanning on.
+#
+# The seeded repo arms the Makefile `test:` fall-through, as cases 0c–0f do rather than 0g–0h,
+# because here the three outcomes already have three different stdouts without an override:
+# `make docs-test` only if the scan went on past the quote, `make test` if the quoted marker
+# condemned the whole line, and ` line names it. Test command: ` — the text between the quote's
+# closing backtick and the stated command's opening one — if the quote answered.
+#
+# The trailing `. More prose.` is the same guard 0c seeds: it keeps a stdout that carried the
+# tail of the line legible as the wrong answer rather than as a near miss on whitespace.
+want='make docs-test'
+repo="$work/quoted-then-stated"
+body="$work/quoted-then-stated-body.md"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '## Notes\n\nA leaf takes its command from the `Test command:` line, so: Test command: `%s`. More prose.\n' "$want" > "$body"
+
+detect --issue "$body" "$repo"
+
+matched \
+  && ok || no "a line carrying a quoted marker and then a stated one answers the stated command (exit=$code want 0, stdout='$out' want '$want')"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
