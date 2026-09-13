@@ -109,10 +109,17 @@ print(n)
 }
 
 # launch_leaf <stub-dir> <work-dir> <leaf> — run <leaf> to completion in <work-dir> against a
-# stub `claude` that prints <stub-dir>/stream.jsonl, and return the supervisor's own status.
-# Both cases need the same two files out of it — `<work-dir>/.tdd/<leaf>.log` for the
-# harvester to read, and `<work-dir>/.tdd/events.jsonl` for it to append to (or not) — and
-# differ only in the stream the stub prints, which each writes itself beforehand.
+# stub `claude` that prints <stub-dir>/stream.jsonl, and complain into `problems` unless the
+# supervisor exited 0. Both cases need the same two files out of it —
+# `<work-dir>/.tdd/<leaf>.log` for the harvester to read, and `<work-dir>/.tdd/events.jsonl`
+# for it to append to (or not) — and differ only in the stream the stub prints, which each
+# writes itself beforehand.
+#
+# The launch probe lives here rather than in each case because a failed launch means the same
+# thing to both — no log, so nothing the harvester is asked about is being measured — and both
+# reported it in the same words. It appends to the caller's `problems` the way
+# docs-gap-adr.test.sh's must_say does, so report() below closes over it unchanged; the leaf's
+# name goes in the message because the helper no longer knows which case it is serving.
 #
 # Through supervise.sh, never run-leaf.sh directly, because that is how every leaf in a real
 # run is launched and therefore how `.tdd/<name>.log` really comes to exist: run-leaf.sh
@@ -139,9 +146,12 @@ STUB
   chmod +x "$stub_dir/claude"
   mkdir -p "$work_dir/.tdd"
   printf 'do the step.' > "$work_dir/.tdd/$leaf.prompt"
+  local code=0
   ( cd "$work_dir" && env CLAUDE_BIN="$stub_dir/claude" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 \
       VERI_TIMEOUT=10 VERI_POLL=0.2 "$SUP" "$leaf" "$RUN_LEAF" ".tdd/$leaf.prompt" \
-    ) >/dev/null 2>&1
+    ) >/dev/null 2>&1 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("setup: want the stub leaf $leaf to exit 0 through supervise.sh, got $code")
 }
 
 stub="$(mktemp -d)"
@@ -194,13 +204,10 @@ cat > "$stub/stream.jsonl" <<STREAM
 STREAM
 
 launch_leaf "$stub" "$work" "$leaf"
-launch_code=$?
 
-# Two probes about the fixture rather than about the harvester, so a broken setup says so
-# instead of showing eight wrong numbers: the leaf finished, and the log it left really does
-# hold the record the harvester is being asked to read.
-[[ "$launch_code" == 0 ]] ||
-  problems+=("setup: want the stub leaf to exit 0 through supervise.sh, got $launch_code")
+# A probe about the fixture rather than about the harvester, so a broken setup says so instead
+# of showing eight wrong numbers: the log the leaf left really does hold the record the
+# harvester is being asked to read. That the leaf finished at all is launch_leaf's own probe.
 grep -q '"type":"result"' "$work/.tdd/$leaf.log" 2>/dev/null ||
   problems+=("setup: want the closing result record in .tdd/$leaf.log, not found")
 
@@ -269,13 +276,11 @@ mkdir -p "$killed_stub"
 } > "$killed_stub/stream.jsonl"
 
 launch_leaf "$killed_stub" "$killed_work" "$killed"
-killed_launch_code=$?
 
-# Three probes about the fixture, so a setup that drifted says so rather than being read as
-# the harvester behaving: the leaf ran, the log it left really does hold no `result` record,
-# and the event log exists with the supervisor's own lines in it.
-[[ "$killed_launch_code" == 0 ]] ||
-  problems+=("setup: want the stub leaf to exit 0 through supervise.sh, got $killed_launch_code")
+# Two probes about the fixture, so a setup that drifted says so rather than being read as the
+# harvester behaving: the log the leaf left really does hold no `result` record, and the event
+# log exists with the supervisor's own lines in it. That the leaf ran at all is launch_leaf's
+# own probe.
 grep -q '"type":"result"' "$killed_work/.tdd/$killed.log" 2>/dev/null &&
   problems+=("setup: want no closing result record in .tdd/$killed.log, found one")
 [[ -s "$killed_work/.tdd/events.jsonl" ]] ||
