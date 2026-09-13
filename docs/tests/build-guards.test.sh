@@ -896,6 +896,137 @@ PY
   fi
 }
 
+# paint_css <name> <expected-report> <mutator...>
+# The paint the layer above puts ON the marks, read from the stylesheet that renders it.
+# `lit` and `dim` are class tokens until some rule answers for them: a page that sorts
+# every mark correctly and styles neither class looks, to the reader who just chose a
+# version, exactly like the page that has no since-mode in it.
+#
+# Three lines, because a choice has three renderings to keep apart — the marks that are
+# news, the marks that are not, and the marks on a page where nobody chose anything:
+#
+#   dim <verdict>       what a rule requiring .dim does to a mark
+#   lit <verdict>       what a rule requiring .lit does to one
+#   unmarked untouched  or one line per rule that fades a mark requiring neither
+#
+# A verdict is read from the declarations of every rule whose selector NAMES the class,
+# outside `:not(...)` — a class named there is one the rule matches for the absence of, so
+# `.l.hunk:not(.lit)` is not a rule about lit marks. `unstyled` is no such rule at all;
+# `faded` is opacity below 1 or any filter, the two properties that fade an element
+# without changing what it says, and an unparseable opacity counts as fading rather than
+# being waved through; `plain` is declarations that only put back the resting look
+# (`opacity:1`, `filter:none`), which is what "fade everything and un-fade the lit ones"
+# leaves behind and is not a highlight; `highlighted` is anything else. Which property
+# does the highlighting — a colour, a weight, a background, an outline — is free, for the
+# reason case 19 leaves faintness free: no assertion this suite can make would tell a
+# tasteful highlight from a garish one, and pinning the property would pin the design.
+#
+# The third line is the resting reader, and it is the claim that the paint is GATED: a
+# stylesheet that fades `.hunk` outright and restores `.lit` renders the two chosen states
+# correctly and greys out the page for everyone who chose nothing. Read as case 20 reads
+# it — a rule counts only if it is LIVE, every class and attribute it names carried by the
+# markup the build ships — and narrowed to selectors that name a mark (`hunk`, `data-tag`,
+# `data-since`), because the page has honest reasons to rest something at zero opacity:
+# `.tip` is a tooltip that is not showing. Fading only, on the same footing as case 20:
+# an ungated highlight is not something this reader can tell from the page-as-designed.
+#
+# Built over a real history with a hunk in it so the page genuinely carries both kinds of
+# mark — `data-tag` on a run of changed lines, `data-since` on every script header — since
+# a rule keyed on an attribute the page does not carry is never live, and the third line
+# would be green on a page with nothing on it to fade.
+paint_css() {
+  local name="$1" want="$2"; shift 2
+  local d code read_code page got; d="$(sandbox_git)"
+  ( cd "$d" && "$@" )
+  page="$(build "$d")" && code=0 || code=$?
+  printf '%s' "$page" > "$d/page.html"
+  got="$( cd "$d" && python3 - page.html 2>&1 <<'PY'
+import re, sys
+page = open(sys.argv[1]).read()
+m = re.search(r"<style>(.*?)</style>", page, re.S)
+if not m:
+    sys.exit("the page carries no inlined stylesheet")
+css = re.sub(r"/\*.*?\*/", "", m.group(1), flags=re.S)
+
+markup = re.sub(r"<(style|script)\b.*?</\1>", "", page, flags=re.S)
+carried = set(re.findall(r"([A-Za-z_][\w-]*)=", markup))
+for value in re.findall(r'class="([^"]*)"', markup):
+    carried.update(value.split())
+
+MARKS = ("hunk", "data-tag", "data-since")
+
+def bare(selector):
+    """The selector minus its :not() arguments, which name classes it matches WITHOUT."""
+    return re.sub(r":not\([^()]*\)", "", selector)
+
+def requires(selector, token):
+    return re.search(r"\.%s(?![\w-])" % token, bare(selector)) is not None
+
+def fades(prop, value):
+    if prop == "opacity":
+        try:
+            return float(value) < 1
+        except ValueError:
+            return True
+    return prop == "filter" and value != "none"
+
+def restores(prop, value):
+    return (prop, value) in (("opacity", "1"), ("filter", "none"))
+
+def live(selector):
+    """Does this selector match the page as it ships — every class and attribute carried?"""
+    return all(t in carried for t in re.findall(r"[.\[]([A-Za-z_][\w-]*)", bare(selector)))
+
+# Innermost blocks only, as in hunk_css: a selector cannot contain a brace, so an @media
+# prelude never matches and the rules nested inside it are read with their own selectors.
+rules = []
+for selector, block in re.findall(r"([^{}]+)\{([^{}]*)\}", css):
+    selector = " ".join(selector.split())
+    declarations = []
+    for declaration in block.split(";"):
+        prop, sep, value = declaration.partition(":")
+        if sep:
+            declarations.append((" ".join(prop.split()), " ".join(value.split())))
+    rules.append((selector, declarations))
+
+def verdict(token):
+    declared = [d for selector, block in rules if requires(selector, token) for d in block]
+    if not declared:
+        return "unstyled"
+    if any(fades(prop, value) for prop, value in declared):
+        return "faded"
+    if any(not restores(prop, value) for prop, value in declared):
+        return "highlighted"
+    return "plain"
+
+print("dim %s" % verdict("dim"))
+print("lit %s" % verdict("lit"))
+
+ungated = []
+for selector, block in rules:
+    if requires(selector, "lit") or requires(selector, "dim"):
+        continue
+    if not any(token in selector for token in MARKS) or not live(selector):
+        continue
+    for prop, value in block:
+        if fades(prop, value):
+            ungated.append("unmarked %s | %s | %s" % (selector, prop, value))
+print("\n".join(ungated) if ungated else "unmarked untouched")
+PY
+  )" && read_code=0 || read_code=$?
+  if [[ "$code" == 0 && "$read_code" == 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code, stylesheet read exit $read_code)"
+    echo "    want, of the stylesheet the page inlines:"
+    printf '%s\n' "$want" | sed 's/^/      /'
+    echo "    got:"
+    printf '%s\n' "$got" | sed 's/^/      /' | head -8
+    [[ "$code" != 0 ]] && sed 's/^/    | /' "$d/err.txt" | head -6
+  fi
+}
+
 # dom_stub — the browser the page gets when there is no browser, printed on stdout: a DOM
 # that answers every query with nothing, so the tooltip and scrollspy layers bail at load
 # exactly as they do on a page whose markup they cannot find, and the layer a question is
@@ -3302,6 +3433,26 @@ since v0.9 row v0.9 hidden' \
              "fix: rewrite line 7 of classify-bail.sh (#4)" v0.10
            add_script_as_feat arrived-whole.sh arrived-whole 2 \
              "feat: a script that arrives whole (#5)" v0.11'
+
+# 33. and case 32 painted classes onto elements that nothing renders. `lit` and `dim` land
+#     on the marks exactly as they should and the stylesheet has never heard of either, so
+#     the reader who picks a version is handed the same page back — the whole layer, from
+#     #70 down, still invisible. This is the rule that makes the classes mean something.
+#
+#     Both states, because each alone is a different wrong page: dim with no lit greys out
+#     what the reader has read and leaves the news at the same strength as the rest of the
+#     document; lit with no dim marks the news and leaves it to compete with two thousand
+#     lines at full strength. And `unmarked untouched` is the third: the fade has to be
+#     gated on `.dim` rather than applied to every mark and lifted off `.lit`, which is the
+#     cheaper thing to write, renders these two states identically, and greys out the page
+#     for every first visit — the reading of case 20 that reaches the header marks too.
+paint_css "the stylesheet renders the paint: dim faded, lit highlighted, the rest as it was" \
+  'dim faded
+lit highlighted
+unmarked untouched' \
+  bash -c 'rewrite_line_as_feat "$SAMPLE_SCRIPT" 3 \
+             "# rewritten by the v0.2 commit" \
+             "feat: rewrite line 3 of classify-bail.sh (#2)" v0.2'
 
 # bytes <file> -> its size, with no padding
 # BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of

@@ -364,3 +364,31 @@ html{scroll-behavior:smooth}
   margin-left:10px;white-space:nowrap;vertical-align:middle}
 .vbadge b{color:var(--accent);font-weight:600}
 .vbadge.new{color:var(--ec1)}
+
+/* ── since-mode: the paint ─────────────────────────────────────────────────────
+   A reader who chose a version has every versioned mark on the page classed by the
+   paint loop in app.js: `lit` where the capability it carries is news to them, `dim`
+   where they have read it already. Neither class exists on the page until that choice
+   is made, so these rules match nothing at rest and a first visit renders exactly as
+   it did before the mode existed — which is the whole of why the paint is a class and
+   not a default the mode undoes.
+
+   What is painted is the MARK, never the text it sits on. A hunk's mark is its rule
+   and its chip; a script header's is its badge. So dim recedes towards the page a
+   reader who chose nothing sees — the stripe drops back to the transparent slot, the
+   chip fades — rather than greying out source, which would leave an already-read line
+   harder to read than the unmarked lines around it. Lit goes the other way, to the
+   accent at full strength and a chip filled rather than washed.
+
+   Keyed on the mark's own markup rather than on the class alone, because dim and lit
+   mean the same thing on both kinds of mark and render as different things: opacity on
+   a whole `h3` would fade a navigational landmark a reader still needs to scroll past. */
+pre.src .l.hunk.dim{border-left-color:transparent}
+pre.src .l.hunk.dim[data-tag]::after{opacity:.34}
+pre.src .l.hunk.lit{border-left-color:var(--accent)}
+pre.src .l.hunk.lit[data-tag]::after{background:var(--accent);color:var(--accent-ink)}
+/* A whole script that is new to this reader is the loudest thing the mode has to say,
+   so its heading takes the accent rule in the margin the listings use for a hunk. */
+h3[data-since].lit{border-left:3px solid var(--accent);padding-left:13px;margin-left:-16px}
+h3[data-since].lit .vbadge{color:var(--accent);background:var(--accent-wash)}
+h3[data-since].dim .vbadge{opacity:.42}
