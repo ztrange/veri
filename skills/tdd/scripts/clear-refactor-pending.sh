@@ -19,9 +19,14 @@ matcher="${2:-}"
 mark=' ⟂ refactor pending'
 
 new="$(MATCHER="$matcher" MARK="$mark" awk '
-  BEGIN { matcher = ENVIRON["MATCHER"]; mark = ENVIRON["MARK"]; done = 0 }
+  BEGIN {
+    matcher = ENVIRON["MATCHER"]; mark = ENVIRON["MARK"]; done = 0
+    # The checkbox grammar of a ticked step, named apart from the matcher and the mark so
+    # the test below reads as "a ticked step, containing the matcher, carrying the mark".
+    ticked = "^[[:space:]]*-[[:space:]]\\[x\\]"
+  }
   {
-    if (!done && $0 ~ /^[[:space:]]*-[[:space:]]\[x\]/ && index($0, matcher) > 0 && sub(mark "$", "")) {
+    if (!done && $0 ~ ticked && index($0, matcher) > 0 && sub(mark "$", "")) {
       done = 1
     }
     print
