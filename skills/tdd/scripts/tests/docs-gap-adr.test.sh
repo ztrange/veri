@@ -74,35 +74,47 @@ probe_reversal_record() {
     '(prose|commentary)' '(lag|behind|catch(es|ing)? up)'
 }
 
+# find_reversal_record — which file says it, the other half of the split above. One ADR has
+# to carry the whole decision, not four ADRs a fact each: the point of the record is that a
+# reader who finds it can stop looking. So the sweep is per file — every probe against one
+# file's text — and it stops at the first file that misses none. Only files that mention
+# commentary at all are candidates; the rest of the set is about the conductor and would
+# otherwise turn up as a near miss on a shared word like "fail". A file that misses some is
+# kept as the closest miss, because "no ADR records this" and "the ADR forgot the promise"
+# are different repairs and the failure below has to tell them apart.
+#
+# Sets four globals the case reads: `found` (the file carrying the whole record, empty if
+# none), `adr_seen` and `candidates` (how far the sweep got), and `best_file` /
+# `best_missing` (the closest miss and the facts it is short). `problems` is deliberately
+# local: inside here it is one file's scratch list, outside it is the case's own failure
+# list, and the two must not be the same array.
+find_reversal_record() {
+  local adr
+  local -a problems
+
+  adr_seen=0 candidates=0 found=""
+  best_file="" best_missing=()
+  for adr in "$ADR_DIR"/[0-9][0-9][0-9][0-9]-*.md; do
+    [[ -f "$adr" ]] || continue
+    adr_seen=$((adr_seen + 1))
+    lc="$(tr '[:upper:]' '[:lower:]' < "$adr")"
+    [[ "$lc" =~ commentar ]] || continue
+    candidates=$((candidates + 1))
+
+    problems=()
+    probe_reversal_record
+
+    if [[ "${#problems[@]}" -eq 0 ]]; then found="$adr"; return; fi
+    if [[ -z "$best_file" || "${#problems[@]}" -lt "${#best_missing[@]}" ]]; then
+      best_file="$adr"; best_missing=("${problems[@]}")
+    fi
+  done
+}
+
 # --- the reversal is on the record -------------------------------------------------
-# One ADR has to carry the whole decision, not four ADRs a fact each: the point of the
-# record is that a reader who finds it can stop looking. So the sweep is per file — every
-# probe against one file's text — and the case passes on the first file that misses none.
-# Only files that mention commentary at all are candidates; the rest of the set is about
-# the conductor and would otherwise turn up as a near miss on a shared word like "fail".
-# A file that misses some probes is the closest miss, and the failure names which facts it
-# is short, because "no ADR records this" and "the ADR forgot the promise" are different
-# repairs.
 name="an ADR records that the walkthrough build tolerates uncovered lines, and what the page promises instead"
-problems=()
 
-adr_seen=0 candidates=0 found=""
-best_file="" best_missing=()
-for adr in "$ADR_DIR"/[0-9][0-9][0-9][0-9]-*.md; do
-  [[ -f "$adr" ]] || continue
-  adr_seen=$((adr_seen + 1))
-  lc="$(tr '[:upper:]' '[:lower:]' < "$adr")"
-  [[ "$lc" =~ commentar ]] || continue
-  candidates=$((candidates + 1))
-
-  problems=()
-  probe_reversal_record
-
-  if [[ "${#problems[@]}" -eq 0 ]]; then found="$adr"; break; fi
-  if [[ -z "$best_file" || "${#problems[@]}" -lt "${#best_missing[@]}" ]]; then
-    best_file="$adr"; best_missing=("${problems[@]}")
-  fi
-done
+find_reversal_record
 
 problems=()
 if [[ "$adr_seen" -eq 0 ]]; then
