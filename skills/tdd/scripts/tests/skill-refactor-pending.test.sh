@@ -71,15 +71,17 @@ instructions() {
     END { flush() }' "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
 }
 
-# record <what it is> <anchor-regex>… — the first instruction of the global `records`
+# reads <what it is> <anchor-regex>… — the first instruction of the global `records`
 # matching every <anchor-regex>, into the global `text`; otherwise one problem naming
-# <what it is> and a non-zero return.
+# <what it is> and a non-zero return. Reads as the sentence it fails with: `reads 'ticks
+# the ledger'` asks for the instruction *that* ticks the ledger, and `says`/`denies` then
+# probe what this left behind.
 #
 # Fail closed: a branch that has been reworded away is reported as unreadable rather than
 # probed as an empty string, which would let "the instruction is gone" pass as "the
 # instruction is right".
 text=""
-record() {
+reads() {
   local what="$1" line re
   shift
   while IFS= read -r line; do
@@ -149,7 +151,7 @@ if [[ -z "$records" ]]; then
 else
   # Green's PASS — the only tick that writes the mark, because it is the only one a
   # refactor loop follows.
-  if record 'ticks the ledger and commits the step`s code with a `feat:` commit' \
+  if reads 'ticks the ledger and commits the step`s code with a `feat:` commit' \
       'tick-ledger\.sh' 'feat:'; then
     says 'tick-ledger\.sh[[:space:]]+--refactor-pending' \
       "$skill_md's green PASS still ticks with plain \`tick-ledger.sh\`, so the step is recorded as done the moment it is green and a run interrupted in its refactor loop resumes with nothing left to do"
@@ -157,7 +159,7 @@ else
 
   # The pin path — a step with no production code has no refactor loop, so a mark written
   # here would never be cleared.
-  if record 'ticks the ledger and commits the pin with a `test: pin` commit' \
+  if reads 'ticks the ledger and commits the pin with a `test: pin` commit' \
       'tick-ledger\.sh' 'test: pin'; then
     denies '--refactor-pending' \
       "$skill_md's pin path ticks with --refactor-pending, but a pinned step runs no refactor loop, so the mark it writes can never be cleared and resume would re-enter a loop that step never had"
@@ -165,7 +167,7 @@ else
 
   # verify-refactor's PASS — the only place the mark is cleared, and the clearing has to
   # land in a commit before the step is mirrored as done.
-  if record 'ends the step`s cycle by posting the `### ✅ step done` comment' 'step done'; then
+  if reads 'ends the step`s cycle by posting the `### ✅ step done` comment' 'step done'; then
     says_clear_commit_mirror
   fi
 fi
