@@ -55,6 +55,16 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # fatal otherwise — the real line further down cannot overrule it, and what gets handed to the
 # conductor is the prose that trailed the quote (#145).
 #
+# `quoted <prefix>` is true when that prefix — the text a line carries ahead of its marker —
+# leaves a backtick span open, which is what makes the marker behind it a quotation. Backticks
+# pair off, so an odd count is a span still open. `${1//[!\`]/}` deletes every character that
+# is not a backtick and `${#…}` counts what is left, which is cheaper and steadier than asking
+# where each span starts and ends.
+quoted() {
+  local ticks="${1//[!\`]/}"
+  [ $(( ${#ticks} % 2 )) -eq 1 ]
+}
+
 # Two steps then turn what is left into the command, and each is named so the rule reads as
 # the sentence it is: the command is what follows the marker, ltrimmed and unwrapped.
 #
@@ -79,16 +89,6 @@ unwrapped() {
       ;;
     *) printf '%s\n' "$1" ;;
   esac
-}
-
-# `quoted <prefix>` is true when that prefix — the text a line carries ahead of its marker —
-# leaves a backtick span open, which is what makes the marker behind it a quotation. Backticks
-# pair off, so an odd count is a span still open. `${1//[!\`]/}` deletes every character that
-# is not a backtick and `${#…}` counts what is left, which is cheaper and steadier than asking
-# where each span starts and ends.
-quoted() {
-  local ticks="${1//[!\`]/}"
-  [ $(( ${#ticks} % 2 )) -eq 1 ]
 }
 
 # The two words themselves, named once because rule 0 now asks after them three times — to
