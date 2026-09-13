@@ -34,26 +34,32 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # by reading the tail: run-leaf.sh streams the leaf's events and then appends the extracted
 # result *text* after them (run-leaf.sh:48-50), so the record is never the last line of the
 # log it lives in. Lines that are not JSON objects — that appended text — are skipped, the
-# same way extract-result.sh skips them.
+# same way extract-result.sh skips them. That scan is a function so the two things this
+# program does — find the record, print the numbers out of it — are read one at a time, and
+# so the thing the rest of the script talks about has that name in the code too.
 #
 # Collected into a variable rather than piped, so `set -e` sees python's status: a log with no
-# such record (a killed leaf) raises here and nothing is logged, rather than an empty payload
-# being written as if the leaf had reported nothing.
+# such record (a killed leaf) yields None here and reading its usage raises, so nothing is
+# logged, rather than an empty payload being written as if the leaf had reported nothing.
 pairs="$(python3 -c '
 import json, sys
 
-record = None
-for line in open(sys.argv[1]):
-    s = line.strip()
-    if not s.startswith("{"):
-        continue
-    try:
-        obj = json.loads(s)
-    except ValueError:
-        continue
-    if isinstance(obj, dict) and obj.get("type") == "result":
-        record = obj               # last result record wins
+def closing_result(path):
+    """The last {"type":"result", ...} record in the log at path, or None if it holds none."""
+    record = None
+    for line in open(path):
+        s = line.strip()
+        if not s.startswith("{"):
+            continue
+        try:
+            obj = json.loads(s)
+        except ValueError:
+            continue
+        if isinstance(obj, dict) and obj.get("type") == "result":
+            record = obj           # last result record wins
+    return record
 
+record = closing_result(sys.argv[1])
 usage = record["usage"]
 for key in ("duration_ms", "duration_api_ms", "num_turns", "total_cost_usd"):
     print("%s=%s" % (key, record[key]))
