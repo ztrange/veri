@@ -109,8 +109,10 @@ role_probe() {
   done
 }
 
-# refusal_probe <leaf-name> — a name whose leading word is none of the three the mapping
-# knows, and the three things a refusal owes. Exit 2 rather than 1: a leaf name the mapping
+# refusal_probe <leaf-name> — a name the mapping must refuse, and the three things a refusal
+# owes whatever made the name unreadable. Which names those are, and what each would have been
+# answered with had it not been refused, belongs to the two cases below that call this: the
+# shapes differ, the obligations do not. Exit 2 rather than 1: a leaf name the mapping
 # cannot read is "no answer could be obtained", the plumbing speaking, not a clean negative
 # any caller could act on. Nothing on stdout, because the answer is consumed as
 # `env $(leaf-role.sh "$name") …` — a refusal that printed a half-role there would be
