@@ -1015,23 +1015,17 @@ if (process.env.VERI_ASK_WIRED) {
     (listeners[type] || []).slice().forEach(function (fn) { fn(event); });
   };
 
-  /* One element that remembers: element() above with the methods that drop what they are
-     given replaced by ones that keep it. Still written out rather than proxied, for the
-     reason element() is — a call neither covers fails as a named TypeError. */
-  var node = function (tag) {
-    var el = element();
-    el.tagName = String(tag).toUpperCase();
-    el.attrs = {};
-    el.handlers = {};
-    el.children = [];
-
-    /* The class list, as a list the page can actually change. element() above answers
-       every membership with false and drops every add, which is what the questions asked
-       of the unwired stub want — a layer that paints a page it cannot find has painted
-       nothing. A question about the PAINT has nothing left to read that way, so here the
-       tokens are kept, and kept in `className` and in the `class` attribute at once, the
-       way a browser keeps them: a page that adds through one and is read back through the
-       other must see its own edit either way. */
+  /* One element's class list, as a list the page can actually change. element() above
+     answers every membership with false and drops every add, which is what the questions
+     asked of the unwired stub want — a layer that paints a page it cannot find has painted
+     nothing. A question about the PAINT has nothing left to read that way, so here the
+     tokens are kept, and kept in `className` and in the `class` attribute at once, the way
+     a browser keeps them: a page that adds through one and is read back through the other
+     must see its own edit either way.
+     A thing of its own beside node() rather than thirty lines inside it: this is the one
+     part of an element that has state and rules about it, and the rest of node() is a list
+     of methods that each keep what they are handed. */
+  var classListFor = function (el) {
     function tokens() { return el.className ? el.className.split(/\s+/) : []; }
     function write(list) {
       var seen = {};
@@ -1042,7 +1036,7 @@ if (process.env.VERI_ASK_WIRED) {
       }).join(" ");
       el.attrs["class"] = el.className;
     }
-    el.classList = {
+    var classes = {
       contains: function (c) { return tokens().indexOf(c) >= 0; },
       add: function () { write(tokens().concat([].slice.call(arguments))); },
       remove: function () {
@@ -1050,11 +1044,24 @@ if (process.env.VERI_ASK_WIRED) {
         write(tokens().filter(function (c) { return drop.indexOf(c) < 0; }));
       },
       toggle: function (c, on) {
-        var want = on === undefined ? !el.classList.contains(c) : !!on;
-        if (want) el.classList.add(c); else el.classList.remove(c);
+        var want = on === undefined ? !classes.contains(c) : !!on;
+        if (want) classes.add(c); else classes.remove(c);
         return want;
       }
     };
+    return classes;
+  };
+
+  /* One element that remembers: element() above with the methods that drop what they are
+     given replaced by ones that keep it. Still written out rather than proxied, for the
+     reason element() is — a call neither covers fails as a named TypeError. */
+  var node = function (tag) {
+    var el = element();
+    el.tagName = String(tag).toUpperCase();
+    el.attrs = {};
+    el.handlers = {};
+    el.children = [];
+    el.classList = classListFor(el);
 
     el.setAttribute = function (k, v) {
       el.attrs[k] = String(v);
