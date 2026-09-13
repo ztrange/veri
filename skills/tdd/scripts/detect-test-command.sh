@@ -36,6 +36,15 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # the narrower claim wins — a docs issue says so in its own words and the leaves obey that
 # instead of the repo-wide suite.
 #
+# The two words themselves, named once because rule 0 asks after them three times — to
+# recognise the line, to take the prefix ahead of the marker, and to take the command behind
+# it — and the three have to be the same bytes: a line recognised by one spelling and cut at
+# another would answer with the wrong half of itself. Every use quotes the expansion, because
+# `case`, `#` and `%%` all take patterns and what is wanted here is the literal text. The name
+# is introduced ahead of the paragraphs below rather than beside the code, because every one
+# of them spells the marker as `"$marker"` and none of them spells out the words.
+marker='Test command:'
+
 # The first matching line answers, so a body that mentions the command again lower down —
 # in a note, a quotation, a later section — cannot overrule the one that stated it. What
 # follows the marker is printed verbatim but for the whitespace separating the two: the
@@ -90,13 +99,6 @@ unwrapped() {
     *) printf '%s\n' "$1" ;;
   esac
 }
-
-# The two words themselves, named once because rule 0 now asks after them three times — to
-# recognise the line, to take the prefix ahead of the marker, and to take the command behind
-# it — and the three have to be the same bytes: a line recognised by one spelling and cut at
-# another would answer with the wrong half of itself. Every use quotes the expansion, because
-# `case`, `#` and `%%` all take patterns and what is wanted here is the literal text.
-marker='Test command:'
 
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
