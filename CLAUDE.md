@@ -109,14 +109,20 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — twenty-one files for eighteen scripts.
+`skills/tdd/scripts/tests/` — twenty-six files for nineteen scripts, all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
 something outside `skills/` at all — it reads `.github/workflows/ci.yml` as text, the way
 GitHub Actions does, and pins what the `gates` job declares and why (issue #99). All
-twenty-one keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a
-count. Match that style rather than introducing a framework.
+keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
+Match that style rather than introducing a framework.
+
+**A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and gets a
+recipe line in `make docs-test`. `make test` is what every veri leaf runs after every edit,
+so a docs suite under its glob taxes veri's development with a tool that is not functional
+(ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
+2026-09-12 for that reason: together ~30 s of an 81 s `make test`.
 
 Where a test would otherwise need a real model or a real clock, it injects instead:
 `CLAUDE_BIN` swaps in a stub binary, and `VERI_HEARTBEAT` / `VERI_TIMEOUT` /

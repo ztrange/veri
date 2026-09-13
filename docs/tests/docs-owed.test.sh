@@ -21,23 +21,21 @@
 #   rather than opened a second time. Both sides of that are injected: the pool it reads
 #   through VERI_GH_JSON, the calls it makes through a stub `gh` on PATH.
 #
-# Where this suite lives, and why it is not under docs/tests/ beside the other two docs
-# suites: `make docs-test` names its suites one recipe line each, so a new file there is
-# run by nothing until the Makefile is edited too, while `make test` — the command veri's
-# own preflight detects, and the only gate CI has run since docs-check left it on
-# 2026-09-11 — globs skills/tdd/scripts/tests/*.test.sh and picks a new suite up by
-# existing. It is not the first suite here whose subject sits outside skills/:
-# workflow-timeouts.test.sh reads .github/workflows/ci.yml, and docs-guard-filter.test.sh
-# runs a docs suite. It costs `make test` one copy of the tree per case and one sandboxed
-# page build per case plus one per run of the subject — ~9 s measured for the two, against
-# the ~140 s the whole guard suite takes, because each case builds its tree once and then
-# reads it repeatedly rather than starting over per probe.
+# Where this suite lives: under docs/tests/, run by `make docs-test`, and not under `make
+# test`. It started under `make test` for the auto-discovery `make test`'s glob gives, and
+# cost every veri leaf ~13 s on every run of the suite to defend a docs tool; the docs are
+# not functional and are brought up to date on their own cadence (ADR 0016), so nothing
+# about them rides in veri's own development cycle. `make docs-test` names its suites one
+# recipe line each — a new docs suite is run by nothing until it has one — and `make
+# merge-gates` runs that target for any change under docs/tests/. It costs one copy of the
+# tree per case and one sandboxed page build per case plus one per run of the subject,
+# ~13 s measured.
 #
-# Run: scripts/tests/docs-owed.test.sh
+# Run: docs/tests/docs-owed.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../../../.." && pwd)"
+ROOT="$(cd "$HERE/../.." && pwd)"
 SUBJECT="docs/docs-owed.sh"
 pass=0 fail=0
 WORK="$(mktemp -d)"
