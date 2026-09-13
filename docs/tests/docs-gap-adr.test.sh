@@ -17,17 +17,20 @@
 #   beside it may lag. Which file, and how it is worded, are the author's — each probe
 #   below accepts any phrasing that carries its fact.
 #
-# Where this suite lives, and why not under docs/tests/: `make docs-test` names its suites
-# one recipe line each, so a file added there runs only once the Makefile is edited too,
-# while `make test` globs skills/tdd/scripts/tests/*.test.sh and picks a new suite up by
-# existing. It reads sixteen small files and spawns no subprocess per probe, so it costs
-# `make test` well under a second.
+# Where this suite lives (issue #137): here, with the rest of the docs pipeline's suites,
+# because that is what its subject is — `make test` is what every veri leaf runs after every
+# edit and what the conductor reads its baseline off, so a docs assertion inside it lets the
+# docs pipeline stop development on a red the code did not cause (ADR 0016). It sat under
+# the `make test` glob while `make docs-test` still named its suites one recipe line each,
+# which made a suite added here run only once the Makefile was edited too; that target globs
+# docs/tests/*.test.sh now, so this suite runs by existing. It reads sixteen small files and
+# spawns no subprocess per probe, so it costs `make docs-test` well under a second.
 #
-# Run: scripts/tests/docs-gap-adr.test.sh
+# Run: docs/tests/docs-gap-adr.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../../../.." && pwd)"
+ROOT="$(cd "$HERE/../.." && pwd)"
 ADR_DIR="$ROOT/docs/adr"
 pass=0 fail=0
 

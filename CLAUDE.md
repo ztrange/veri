@@ -109,7 +109,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — twenty-six files for nineteen scripts, all run by `make test`.
+`skills/tdd/scripts/tests/` — twenty-five files for nineteen scripts, all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
@@ -118,14 +118,19 @@ GitHub Actions does, and pins what the `gates` job declares and why (issue #99).
 keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.
 
-**A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and gets a
-recipe line in `make docs-test`. `make test` is the **full suite**, and three leaves per step
-run it: `develop-green` once before it reports, and the two blind verifiers (verify-green and
+**A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
+existing — `make docs-test` globs that directory, so a suite added there owes no Makefile
+edit (#137). `make test` is the **full suite**, and three leaves per step run it:
+`develop-green` once before it reports, and the two blind verifiers (verify-green and
 verify-refactor). The red and refactor leaves run one suite instead — the one holding the new
 case, the ones covering the files a transform touched (#144) — so a docs suite under
 `make test`'s glob still taxes every step three times over, with a tool that is not
 functional (ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
-2026-09-12 for that reason: together ~30 s of an 81 s `make test`.
+2026-09-12 for that reason: together ~30 s of an 81 s `make test`. `docs-gap-adr.test.sh`
+followed on 2026-09-13 — its subject is a record under `docs/adr/`, and the only thing that
+had kept it here was the recipe line the glob replaced. `suite-lanes.test.sh`, also under
+`docs/tests/`, pins the line: it reads both targets' rosters off `make -n` and fails if
+anything `make test` runs declares a docs subject.
 
 Where a test would otherwise need a real model or a real clock, it injects instead:
 `CLAUDE_BIN` swaps in a stub binary, and `VERI_HEARTBEAT` / `VERI_TIMEOUT` /
