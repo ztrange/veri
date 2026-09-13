@@ -11,10 +11,15 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 NEXT="$HERE/../next-pending-refactor.sh"
 pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+check() {  # check <name> <expected-exit> <input> <expected-stdout>
+  local name="$1" exp_code="$2" input="$3" exp="$4" out code
+  out="$(printf '%s' "$input" | "$NEXT")" && code=0 || code=$?
+  if [[ "$code" == "$exp_code" && "$out" == "$exp" ]]; then pass=$((pass + 1)); else
+    fail=$((fail + 1)); echo "FAIL - $name (want exit $exp_code, got $code)"
+    diff <(printf '%s\n' "$exp") <(printf '%s\n' "$out") | sed 's/^/    /'
+  fi
+}
 
-# 1. the first marked step's description, mark stripped; no marked step → exit 3, no output
 pending='# Plan for #42
 
 - [x] add the slugify lowercasing
@@ -26,11 +31,12 @@ settled='# Plan for #42
 - [x] add the slugify lowercasing
 - [ ] collapse non-alphanumerics to a single hyphen'
 
-out="$(printf '%s' "$pending" | "$NEXT")"; code=$?
-none="$(printf '%s' "$settled" | "$NEXT")"; none_code=$?
-{ [[ "$code" == 0 ]] && [[ "$out" == "collapse non-alphanumerics to a single hyphen" ]] \
-  && [[ "$none_code" == 3 ]] && [[ -z "$none" ]]; } \
-  && ok || no "first pending step without the mark, else exit 3 (code=$code out='$out' none_code=$none_code none='$none')"
+# 1. the first marked step's description, with the mark stripped
+check "first pending description, mark stripped" 0 "$pending" \
+  "collapse non-alphanumerics to a single hyphen"
+
+# 2. no step carries the mark → exit 3, no output (nothing to re-enter)
+check "no pending step exits 3" 3 "$settled" ""
 
 echo "----"
 echo "$pass passed, $fail failed"
