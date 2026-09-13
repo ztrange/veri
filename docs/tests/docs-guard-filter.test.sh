@@ -335,13 +335,14 @@ report "$name"
 name="a docs suite the Makefile has never heard of runs under 'make docs-test' by existing"
 problems=()
 disc="$WORK/discovery"
-# The fixture suite's path, named once because two statements have to agree on it: the
-# heredoc writes the file and chmod makes it runnable, and a suite written at one path and
-# made executable at another is a fixture the target cannot run — which reads as the
-# failure this case is looking for. Same reason ONLY_CASE is named above.
+# The fixture suite's path, named once because three statements have to agree on it: the
+# mkdir creates the directory it sits in, the heredoc writes the file and chmod makes it
+# runnable. A suite written at one path and made executable at another — or written into a
+# directory the glob does not cover — is a fixture the target cannot run, which reads as
+# the failure this case is looking for. Same reason ONLY_CASE is named above.
 new_suite="$disc/docs/tests/brand-new.test.sh"
 marker="$disc/brand-new.ran"
-mkdir -p "$disc/docs/tests"
+mkdir -p "$(dirname "$new_suite")"
 cp "$ROOT/Makefile" "$disc/"
 cat > "$new_suite" <<EOF
 #!/usr/bin/env bash
