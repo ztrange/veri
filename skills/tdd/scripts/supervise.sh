@@ -81,7 +81,12 @@ kill_tree() {
   kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
 }
 
-# Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets status/reason/rc.
+# Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets four globals, not
+# three: status/reason/rc, and `$t0` — the epoch second this attempt launched. The loop below
+# reads it for the hard timeout, and the `exit` mark at the foot of this script subtracts it
+# for the attempt's wall seconds, which is why none of the four is `local`: declaring `t0`
+# local to tidy it would leave that mark reading an unset name, and `set -u` would then kill
+# the supervisor on the last line of a run that had otherwise succeeded.
 attempt_once() {
   : > "$log"
   rm -f "$rcfile"
