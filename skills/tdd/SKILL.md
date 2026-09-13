@@ -422,8 +422,9 @@ following step. The phase sub-steps are:
 
 1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
    write **exactly one** failing test pinning the criterion to **observable external
-   behavior**, with **no production code**, and to run it against the unmodified code — and
-   launch the leaf **through the supervisor**:
+   behavior**, with **no production code**, and to run **the suite holding that case** — not
+   the full suite — against the unmodified code, since the only question Red asks is whether
+   that one case fails — and launch the leaf **through the supervisor**:
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' > .tdd/develop-red.prompt
    rm -f .tdd/develop-red.exit
@@ -512,8 +513,8 @@ following step. The phase sub-steps are:
 #### Refactor loop — behavior-preserving transforms until none, then verify-refactor (blind, once)
 
 1. **Loop the transforms.** Repeatedly launch a developer leaf that applies **one**
-   behavior-preserving transformation (naming, duplication, clarity) and runs the **full
-   suite**, keeping it green. **Ask the budget before each leaf**: `<count>` is how many
+   behavior-preserving transformation (naming, duplication, clarity) and runs the **suites
+   covering the files it touched**, keeping them green. **Ask the budget before each leaf**: `<count>` is how many
    transforms this step has applied so far — start at **0**, and count only leaves that
    reported `RESULT: applied …`, never one that reported `nothing left to tidy`. Build each
    prompt from the `refactor` template and launch **through the supervisor** (exit **2** →
@@ -557,8 +558,11 @@ following step. The phase sub-steps are:
    nohup bash -c "$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err; echo \$? > .tdd/verdict-refactor.exit" > /dev/null 2>&1 &
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
-   — one verdict on the final state (suite still green, code up to standard, no smuggled
-   generality).
+   — one verdict on the final state (**full suite** still green, code up to standard, no
+   smuggled generality). This is where the full suite runs in this phase: the transform
+   leaves ran only the suites covering their files, so a break in a suite none of them
+   touched surfaces here, as a REJECT the revise loop answers rather than a revert inside
+   the loop.
 3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
    Say **how many transforms ran** and **which stop condition ended the loop**, mirroring
