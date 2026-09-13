@@ -47,14 +47,15 @@ pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# The two suites under test — one case each — and the script both cases plant a coverage gap
-# in. Named once each because the failure messages quote them and the probes act on them, and
-# a case that planted the gap in one script while naming another in its complaint would send
-# the reader to the wrong file. Both here rather than one at the top and one beside the case
-# that runs it, and neither called just `SUITE`, because this file's subject is the pair: the
-# question it asks — which tree may a docs-lane suite judge — is asked of docs-owed.test.sh
-# and of build-guards.test.sh in the same words, and a reader comparing the two answers
-# should meet both names at once. The bare script name too: the build reports debt by basename.
+# The two suites under test — one case on docs-owed.test.sh, two on build-guards.test.sh — and
+# the script every case plants a coverage gap in. Named once each because the failure messages
+# quote them and the probes act on them, and a case that planted the gap in one script while
+# naming another in its complaint would send the reader to the wrong file. Both here rather
+# than one at the top and one beside the case that runs it, and neither called just `SUITE`,
+# because this file's subject is the pair: the question it asks — which tree may a docs-lane
+# suite judge — is asked of docs-owed.test.sh and of build-guards.test.sh in the same words,
+# and a reader comparing the two answers should meet both names at once. The bare script name
+# too: the build reports debt by basename.
 OWED_SUITE='docs/tests/docs-owed.test.sh'
 GUARDS_SUITE='docs/tests/build-guards.test.sh'
 SCRIPT='skills/tdd/scripts/classify-bail.sh'
@@ -89,8 +90,8 @@ flat() { printf '%s' "$1" | tr '\n' '/'; }
 # range, so a line inside the file's existing length may already be claimed, while the
 # lines past its end can be claimed by nothing.
 #
-# Built once and handed to every case that asks: both cases below want the same tree, and a
-# second copy on top of the first would land docs/ inside docs/ and append the plant twice.
+# Built once and handed to every case that asks: all three cases below want the same tree, and
+# a second copy on top of the first would land docs/ inside docs/ and append the plant twice.
 #
 # Each case holds the path it returns as `planted`, for the reason run_in_copy names its
 # three inputs: the probes are dense single lines several lines below the call, and a reader
@@ -110,10 +111,10 @@ tree_owing_prose() {
 
 # build_over <dir> — one page build over <dir>, its stdout left in $BUILT and its stderr in
 # $BUILD_ERR. Memoized on $BUILT for the same reason tree_owing_prose is memoized on its
-# directory: both cases probe the plant by asking the generator about that one tree, and the
-# two things they want are the two streams of a single build — the coverage debt it reports
-# on stderr, and the page it emits on stdout. Asked twice it would cost a second build to
-# learn the same two facts about the same bytes.
+# directory: all three cases probe the plant by asking the generator about that one tree, and
+# the two things they want are the two streams of a single build — the coverage debt it reports
+# on stderr (cases 1 and 3), and the page it emits on stdout (case 2). Asked once per case it
+# would cost two more builds to learn the same two facts about the same bytes.
 #
 # --stdout, so no probe ever writes the docs/walkthrough.html a case then compares against.
 # The exit code is nobody's claim here: a build that died leaves an empty page and an empty
@@ -149,8 +150,8 @@ probe_plant_is_debt() {
 # this file makes is one of these: the whole question is what a docs-lane suite says when
 # it is run somewhere other than where it lives, so the runs are the probes.
 #
-# Named because all three probes assert on the exit code, and the incantation that records
-# it is the one piece of bash here a reader can get wrong without the suite noticing:
+# Named because every one of those runs asserts on the exit code, and the incantation that
+# records it is the one piece of bash here a reader can get wrong without the suite noticing:
 # `$?` is gone the moment the next command runs, so the `&& code=0 || code=$?` tail is the
 # whole of the capture. A copy of it that dropped the tail would leave `$code` holding the
 # PREVIOUS run's answer — the case below asserting exit 3 would pass over a suite that
