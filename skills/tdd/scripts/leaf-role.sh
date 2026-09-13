@@ -25,12 +25,15 @@ set -euo pipefail
 # `${1:?msg}` expands $1, but aborts the shell with msg on stderr if it is unset or empty.
 name="${1:?usage: leaf-role.sh <leaf-name>}"
 
-# `%%-*` strips the longest trailing match of `-*`, leaving the leading word; `#*-` strips the
-# shortest leading match, leaving everything after it — `red`, `green-2`, `refactor`.
-lead="${name%%-*}"
-rest="${name#*-}"
+# The name splits at its first `-` into the two halves the role is read out of, and each is
+# named for the half it holds rather than for where in the string it sat: `%%-*` strips the
+# longest trailing match of `-*`, leaving the leading word, which is the actor's; `#*-` strips
+# the shortest leading match, leaving the phase and, when the name carries one, the attempt —
+# `red`, `green-2`, `refactor`.
+actor_word="${name%%-*}"
+phase_attempt="${name#*-}"
 
-case "$lead" in
+case "$actor_word" in
   develop|revise) actor=developer ;;
   verify)         actor=verifier  ;;
 esac
@@ -42,13 +45,14 @@ esac
 #
 # One regex states the whole split and both halves are read out of its captures — `(.*)` is
 # greedy, so on `green-2` it takes `green` and leaves the digits to `([0-9]+)`. Deriving the
-# phase separately, by stripping the suffix off `$rest` again, would be a second spelling of
-# the same cut that has to agree with the first; two captures of one match cannot disagree.
-if [[ "$rest" =~ ^(.*)-([0-9]+)$ ]]; then
+# phase separately, by stripping the suffix off `$phase_attempt` again, would be a second
+# spelling of the same cut that has to agree with the first; two captures of one match cannot
+# disagree.
+if [[ "$phase_attempt" =~ ^(.*)-([0-9]+)$ ]]; then
   phase="${BASH_REMATCH[1]}"
   attempt="${BASH_REMATCH[2]}"
 else
-  phase="$rest"
+  phase="$phase_attempt"
   attempt=1
 fi
 
