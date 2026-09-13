@@ -144,9 +144,13 @@ fi
 stale="$(grep -nE 'every [a-z]*[[:space:]]*leaf runs' "$cmd")"
 [[ -z "$stale" ]] ||
   problems+=("$claude_md still says every leaf runs the suite after every edit, which the red and refactor leaves no longer do: $stale")
-paragraphs "$cmd" | grep -qE 'full suite' ||
+# The paragraphs of CLAUDE.md that mention the full suite at all, read once and named:
+# whether there are any, and whether they name the leaves, are two questions about that same
+# text, and asking the second of a second pipeline lets the two drift apart.
+full_suite_paragraphs="$(paragraphs "$cmd" | grep -E 'full suite')"
+[[ -n "$full_suite_paragraphs" ]] ||
   problems+=("$claude_md never names the full suite at all, so which leaves run it is recorded nowhere a reader of this repository would look")
-paragraphs "$cmd" | grep -E 'full suite' | grep -qE 'develop-green|verify-green|verifier' ||
+grep -qE 'develop-green|verify-green|verifier' <<<"$full_suite_paragraphs" ||
   problems+=("$claude_md mentions the full suite without naming the leaves that run it (develop-green and the blind verifiers), so the rule reads as a description of every leaf again")
 
 report "$name"
