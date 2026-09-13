@@ -64,6 +64,16 @@ MAKEFILE="$ROOT/Makefile"
 TESTS_DIR='skills/tdd/scripts/tests'
 ADDED_NAME='newly-added.test.sh'
 
+# The line every suite under skills/tdd/scripts/tests/ prints last, and so the thing the
+# runner now looks for — the Makefile names it once as `COUNT_LINE` for the same reason.
+# Anchored, because "the suite reached its count line" is a claim about a whole line: an
+# unanchored copy would also be answered by a suite that quoted the words mid-sentence on
+# its way down. Four probes below ask for it, and a pattern that drifted between them would
+# leave half the cases agreeing with a runner the other half refused. Case 2's green fixture
+# spells `0 failed` out instead, since what it asserts is not that the line is there but
+# that it reports nothing failed.
+COUNT_LINE='^[0-9]+ passed, [0-9]+ failed$'
+
 # The document case 5 reads. Absolute only: nothing prints this path — a failure there names
 # the section rather than the file, since there is one CLAUDE.md and its location is not the
 # thing in doubt.
@@ -116,7 +126,7 @@ probe_fixture_dies_quietly() {
     problems+=("the fixture no longer exits 0 when it dies; got $code, so nothing here pins a runner that trusts the exit code")
   grep -q 'unbound variable' <<< "$out" ||
     problems+=("the fixture no longer dies from an unbound variable; its output was: $(flat "$out")")
-  ! grep -Eq '[0-9]+ passed, [0-9]+ failed' <<< "$out" ||
+  ! grep -Eq "$COUNT_LINE" <<< "$out" ||
     problems+=("the fixture reached its count line, so it did not die: $(flat "$out")")
 }
 
@@ -163,7 +173,7 @@ probe_live_fixtures_are_what_they_claim() {
   out="$("$RED_FIXTURE_PATH" 2>&1)" && code=0 || code=$?
   [[ "$code" != 0 ]] ||
     problems+=("the red fixture no longer exits non-zero, so nothing below pins a runner that reads the count line instead of the exit code")
-  [[ "$(tail -n 1 <<< "$out")" =~ ^[0-9]+' passed, '[0-9]+' failed'$ ]] ||
+  [[ "$(tail -n 1 <<< "$out")" =~ $COUNT_LINE ]] ||
     problems+=("the red fixture no longer reaches its count line, so it fails the way case 1's fixture does: $(flat "$out")")
 }
 
@@ -259,7 +269,7 @@ report "$name"
 # The loop ends when the count line lands, which is the suite finishing; the 30 s cap is
 # there so a runner that hangs is reported rather than hanging this suite with it.
 probe_run_showed_the_line_while_the_suite_ran() {
-  local looks=0 count_line='^[0-9]+ passed, [0-9]+ failed$' mk
+  local looks=0 mk
   stream_log="$(mktemp)" || {
     problems+=("could not make a file to collect a run's output into, so the criterion went unasked")
     return
@@ -270,9 +280,9 @@ probe_run_showed_the_line_while_the_suite_ran() {
   mk=$!
   while :; do
     if grep -qF "$PAUSE_LINE" "$stream_log"; then
-      grep -Eq "$count_line" "$stream_log" || { streamed=yes; break; }
+      grep -Eq "$COUNT_LINE" "$stream_log" || { streamed=yes; break; }
     fi
-    grep -Eq "$count_line" "$stream_log" && break
+    grep -Eq "$COUNT_LINE" "$stream_log" && break
     looks=$((looks + 1))
     if [[ "$looks" -gt 300 ]]; then
       problems+=("the run had still not printed the fixture's count line after 30s; gave up on it")
@@ -303,7 +313,7 @@ probe_run_showed_the_line_while_the_suite_ran() {
 probe_that_run_could_have_told_the_difference() {
   [[ "$stream_elapsed" -ge 1 ]] ||
     problems+=("the whole run took under a second, so the fixture no longer pauses and there was no window in which a streamed line and a buffered one differ")
-  grep -Eq '^[0-9]+ passed, [0-9]+ failed$' "$stream_log" ||
+  grep -Eq "$COUNT_LINE" "$stream_log" ||
     problems+=("the fixture's count line never matched the pattern the probe above waits for, so 'the FAIL line without the count line' was true of every look and says nothing: $(flat "$(cat "$stream_log")")")
   rm -f "$stream_log"
 }
