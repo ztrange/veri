@@ -1,7 +1,7 @@
 # Plan for #107 — Every run writes an event log: launches, exits, verdicts and each leaf's time, tokens and cost
 
 - [x] `event.sh <event> [key=value …]` appends one line to `.tdd/events.jsonl` that parses as JSON and carries `ts`, `issue`, `actor`, `phase`, `step`, `event` and `attempt`, plus every `key=value` payload given
-- [ ] `event.sh` appends rather than truncates, creating the log on first write, so a run's events accumulate in the order they happened
+- [x] `event.sh` appends rather than truncates, creating the log on first write, so a run's events accumulate in the order they happened
 - [ ] A leaf name maps once to its role: `develop-red` is actor `developer` phase `red` attempt 1, `revise-green-2` is `developer`/`green`/attempt 2, `verify-refactor` is `verifier`/`refactor`
 - [ ] `supervise.sh` appends a `launch` event naming the leaf, the command it ran and the attempt number
 - [ ] `supervise.sh` appends a `retry` event carrying the kill cause when a killed-stuck leaf is relaunched
