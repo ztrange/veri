@@ -39,7 +39,7 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # The first matching line answers, so a body that mentions the command again lower down —
 # in a note, a quotation, a later section — cannot overrule the one that stated it. What
 # follows the marker is printed verbatim but for the whitespace separating the two: the
-# `#` expansion drops the marker, and `trimmed` drops what separated it from the command.
+# `#` expansion drops the marker, and `ltrim` drops what separated it from the command.
 # A line with nothing after the marker names no command, so it is skipped rather than
 # answered with "".
 #
@@ -50,19 +50,16 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # marker on the line is the one that answers.
 #
 # Two steps then turn what is left into the command, and each is named so the rule reads as
-# the sentence it is: the command is what follows the marker, trimmed and unwrapped.
+# the sentence it is: the command is what follows the marker, ltrimmed and unwrapped.
 #
-# `trimmed <string>` prints that string with its leading spaces and tabs removed. Bash 3.2
-# has no trim of its own, so it drops one blank at a time — the loop runs until neither
-# prefix removal changes the string, which is when the first real character is reached.
-trimmed() {
-  local s="$1"
-  while [ "${s# }" != "$s" ] || [ "${s#	}" != "$s" ]; do
-    s="${s# }"
-    s="${s#	}"
-  done
-  printf '%s\n' "$s"
-}
+# `ltrim <string>` prints that string with its leading whitespace removed, and is spelled
+# here exactly as `parse-verdict.sh` spells it — the operation already had a name in this
+# codebase, so it keeps that one rather than growing a second hand-rolled spelling.
+# `${1%%[![:space:]]*}` is the leading whitespace itself: cut the string at the first
+# character that is not blank and what remains is the run of blanks in front of it. `${1#…}`
+# then drops that run from the front. The inner expansion is quoted because `#` takes a
+# pattern, and blanks are not the only thing a leading `*` or `[` in the string could mean.
+ltrim() { printf '%s' "${1#"${1%%[![:space:]]*}"}"; }
 
 # `unwrapped <string>` prints the backtick span the string opens with, and the string
 # untouched when it opens with anything else — so a command written bare is still printed
@@ -82,7 +79,7 @@ if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
       *'Test command:'*)
-        cmd="$(unwrapped "$(trimmed "${line#*Test command:}")")"
+        cmd="$(unwrapped "$(ltrim "${line#*Test command:}")")"
         if [ -n "$cmd" ]; then
           answer "$cmd"
         fi
