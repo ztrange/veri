@@ -242,6 +242,56 @@ done
 [[ -z "$misread" ]] \
   && ok || no "a bare Test command: at line start still answers verbatim, and a body with no marker still falls through to the old precedence —$misread"
 
+# 0f. the four bodies this issue was opened about, verbatim, as veri's own issue tracker
+# holds them: #71, #75, #80 and #123, each a docs issue that names `make docs-test` in its
+# Notes. Cases 0c and 0d pin the two *shapes* — marker mid-line, marker at line start, the
+# command in a backtick span either way — on one hand-written line each. This case pins the
+# real thing, and that is a different claim: a hand-written line is the shape as the test
+# author understood it, and the whole of #131 is that what veri's issues actually write was
+# not that. Measured on main, all four answered `make test`, except #75, which answered a
+# string with a full stop and a sentence glued to it that no shell can run.
+#
+# The bodies are committed under `fixtures/detect-test-command/` rather than printf'd into
+# `$work` like every case above, because they are evidence, not a seeded shape: the point is
+# that nobody trimmed them into something the rule already handles. So everything a real body
+# carries and a hand-written line does not is in play — thirty to fifty-odd lines of
+# headings, `- [ ]` criteria, em dashes, `#70`-style cross-references, and backtick spans in
+# nearly every sentence, #123's naming HTML elements (`<select>`, `<button>`) inside them.
+# Each body's marker sits in its `## Notes`, three of the four with prose and several spans
+# ahead of it on the line, and all four with a full stop or a whole sentence behind it.
+#
+# The four are not one shape repeated. #75's marker opens its line, which is the spelling
+# #120's rule already looked for and the one that answered worst on main; #71, #80 and #123
+# bury theirs mid-sentence behind a list of the files to touch. Between them they are both
+# halves of what 0c and 0d pin, as the issues really wrote it rather than as a test author
+# retyped it.
+#
+# `make test` specifically is what they answered before, so the seeded repo arms the Makefile
+# `test:` target for the same reason cases 0c and 0d do: a run against a rule that has lost
+# the marker reports the exact wrong answer the issue measured, rather than an anonymous
+# exit 3.
+#
+# One repo, seeded once and reused across the four: the repo is only there to have a
+# fall-through worth misreading, and rule 0 answers before any file in it is opened, so
+# nothing a body does could carry over into the next. Four fixtures, one case, the same way
+# the three node runners and the three pytest spellings are one case each — "the real bodies
+# answer their own command" is one claim, observed four times, and `misread` collects every
+# issue that got it wrong so a failure names all of them rather than only the first.
+want='make docs-test'
+misread=""
+repo="$work/real-issue-bodies"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+
+for n in 71 75 80 123; do
+  detect --issue "$HERE/fixtures/detect-test-command/issue-$n.md" "$repo"
+
+  matched || note "#$n"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "the real bodies of #71, #75, #80 and #123 each answer make docs-test —$misread"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
