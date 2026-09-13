@@ -347,31 +347,124 @@
 
    Nothing is painted when no version is chosen, for the reason the stepper builds no
    buttons then: the resting page is what every first visit arrives at, and a document that
-   greys itself out for a reader who asked nothing has told them something false. */
+   greys itself out for a reader who asked nothing has told them something false.
+
+   Run again on every `hashchange`, because the choice is made ON this page now: the
+   control below writes the hash, and a paint done once at load would leave the reader who
+   just picked a version looking at the page they had before it. The browser fires that
+   event for the reader who pressed Back or edited the address bar too, so one listener
+   covers every route into a different version. Which is why the resting page is a state
+   this repaints INTO rather than a reason to return early: a reader can leave since-mode
+   as well as enter it, and the marks painted a moment ago have to come clean again. */
 (function () {
   "use strict";
   var mode = window.__VERI_SINCE__;
   if (!mode) return;
 
-  var since = mode.since();
-  if (!since) return;                    // the resting page: nothing dimmed, every row shown
+  function repaint() {
+    var since = mode.since();               // "" is the resting page: nothing dimmed, all rows
 
-  var marks = document.querySelectorAll("[data-tag], [data-since]");
-  for (var i = 0; i < marks.length; i++) {
-    marks[i].classList.add(mode.lit(mode.versionOf(marks[i]), since) ? "lit" : "dim");
+    var marks = document.querySelectorAll("[data-tag], [data-since]");
+    for (var i = 0; i < marks.length; i++) {
+      // both taken off first: a repaint that only added would leave the mark a reader has
+      // now read carrying `lit` beside the `dim` it just earned, which says two things.
+      marks[i].classList.remove("lit", "dim");
+      if (since) {
+        marks[i].classList.add(mode.lit(mode.versionOf(marks[i]), since) ? "lit" : "dim");
+      }
+    }
+
+    /* The versions the choice leaves standing, as a set of the tags index() named. Read out
+       of index() and not out of lit() a second time, so the rows a reader is shown and the
+       rows the index computes are one answer rather than two that agree until one is
+       edited. */
+    var keep = {};
+    (since ? mode.index(since) || [] : []).forEach(function (row) { keep[row.tag] = true; });
+
+    var rows = document.querySelectorAll("li.ver[data-ver]");
+    for (var r = 0; r < rows.length; r++) {
+      rows[r].hidden = !!since && !keep[rows[r].getAttribute("data-ver")];
+    }
   }
 
-  /* The versions the choice leaves standing, as a set of the tags index() named. Read out
-     of index() and not out of lit() a second time, so the rows a reader is shown and the
-     rows the index computes are one answer rather than two that agree until one is
-     edited. */
-  var keep = {};
-  (mode.index(since) || []).forEach(function (row) { keep[row.tag] = true; });
+  repaint();
+  window.addEventListener("hashchange", repaint);
+})();
 
-  var rows = document.querySelectorAll("li.ver[data-ver]");
-  for (var r = 0; r < rows.length; r++) {
-    rows[r].hidden = !keep[rows[r].getAttribute("data-ver")];
+/* veri, Annotated — since-mode: the handle.
+   Everything above is about a reader who has already chosen a version. This is the
+   choosing, and without it the only reader who can be in since-mode is one who knows to
+   type `#since=v0.9` into the address bar themselves: choose() and markRead() have been on
+   the page since the decision layer was written and nothing on it calls either.
+
+   It goes in the capability index, because that is where the choice is already being made
+   in prose — the one section that lists the versions, says what each did, and collapses
+   onto the ones the reader has not read. The crumb bar is for stepping the walk, which is
+   what a reader does AFTER choosing.
+
+   Two controls, for the two ways a reader can say where they got to. The select is for
+   the one who remembers a version: it offers them newest first, out of the build's version
+   order and never a sort of the tag strings, which would offer v0.10 fourth in a list
+   headed by v0.9. The button is for the one who does not: it names the newest version the
+   page knows, and pressing it is markRead() and nothing else — no hash, since the reader
+   who marks the page read is asking for the resting page, not for a link to one.
+
+   The select shows since()'s answer rather than remembering its own: at load, so a page
+   opened at `#since=v0.2` does not tell the reader they have chosen nothing, and on every
+   `hashchange`, so Back and a pasted link move it too. Writing the hash is the whole of
+   what a pick does — the paint above and the stepper below are already listening there, so
+   a choice made here reaches them by the same route a pasted link does.
+
+   Nothing is built without a version order, which is a tree with no git or no tags: a
+   select offering no versions is a control that cannot be used, and the rest of the page
+   builds and reads exactly as it did before the mode existed. */
+(function () {
+  "use strict";
+  var mode = window.__VERI_SINCE__;
+  var ORDER = window.__VERI_ORDER__ || [];
+  var index = document.querySelector("#capabilities");
+  if (!mode || !ORDER.length || !index) return;
+
+  var pick = document.createElement("p");
+  pick.className = "ver-pick";
+
+  var select = document.createElement("select");
+  /* What the control is called. The options name versions and nothing says what choosing
+     one means, so the name is the question the reader is answering — and it is given to
+     the accessibility tree because there is no <label> to carry it. */
+  select.setAttribute("aria-label", "show what has changed since");
+
+  /* The way back out, first, because it is where every reader starts: an option naming no
+     version at all, whose empty value is what choose() writes when the reader picks it. */
+  var all = document.createElement("option");
+  all.value = "";
+  all.textContent = "the whole page";
+  select.appendChild(all);
+
+  // newest first — ORDER is oldest-first in git's version sort, so this walks it backwards
+  for (var i = ORDER.length - 1; i >= 0; i--) {
+    var option = document.createElement("option");
+    option.value = ORDER[i];
+    option.textContent = "since " + ORDER[i];
+    select.appendChild(option);
   }
+
+  var button = document.createElement("button");
+  button.className = "ver-read";
+  button.setAttribute("type", "button");
+  button.textContent = "mark read up to " + ORDER[ORDER.length - 1];
+
+  select.addEventListener("change", function () { mode.choose(select.value); });
+  button.addEventListener("click", function () { mode.markRead(); });
+
+  function show() { select.value = mode.since() || ""; }
+
+  pick.appendChild(select);
+  pick.appendChild(button);
+  index.appendChild(pick);
+
+  show();
+  window.addEventListener("hashchange", show);
 })();
 
 /* veri, Annotated — since-mode: stepping the walk.
