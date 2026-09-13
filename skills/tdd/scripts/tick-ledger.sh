@@ -25,19 +25,25 @@ file="${1:?usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>}"
 matcher="${2:-}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-new="$("$HERE/tick-criterion.sh" "$matcher" < "$file")" || exit $?
-
-# The marked line is the one tick-criterion.sh changed: read the pre-tick file and the
-# transformed text as two inputs, and mark the first line where they differ. Line counts
-# match, so FNR — awk's per-input line number — indexes both.
-if [[ -n "$mark" ]]; then
-  new="$(MARK="$mark" awk '
+# mark_ticked_line <pre-tick-file> <mark>  < ticked-text -> that text on stdout, with <mark>
+# appended to the one line tick-criterion.sh changed. Which line that is, is read off the
+# two texts rather than re-derived: the pre-tick file and the ticked text go in as awk's two
+# inputs, and the first line where they differ is the tick. Line counts match, so FNR —
+# awk's per-input line number — indexes both, and `-` is the ticked text on stdin.
+mark_ticked_line() {
+  MARK="$2" awk '
     NR == FNR { before[FNR] = $0; next }
     {
       if (!done && $0 != before[FNR]) { $0 = $0 ENVIRON["MARK"]; done = 1 }
       print
     }
-  ' "$file" - <<< "$new")"
+  ' "$1" -
+}
+
+new="$("$HERE/tick-criterion.sh" "$matcher" < "$file")" || exit $?
+
+if [[ -n "$mark" ]]; then
+  new="$(mark_ticked_line "$file" "$mark" <<< "$new")"
 fi
 
 printf '%s\n' "$new" > "$file"
