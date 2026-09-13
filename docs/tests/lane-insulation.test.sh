@@ -42,11 +42,16 @@ pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# The suite under test, and the script the case plants a coverage gap in. Named once each
-# because the failure messages quote them and the probes act on them, and a case that
-# planted the gap in one script while naming another in its complaint would send the reader
-# to the wrong file. The bare name too: the build reports debt by basename.
-SUITE='docs/tests/docs-owed.test.sh'
+# The two suites under test — one case each — and the script both cases plant a coverage gap
+# in. Named once each because the failure messages quote them and the probes act on them, and
+# a case that planted the gap in one script while naming another in its complaint would send
+# the reader to the wrong file. Both here rather than one at the top and one beside the case
+# that runs it, and neither called just `SUITE`, because this file's subject is the pair: the
+# question it asks — which tree may a docs-lane suite judge — is asked of docs-owed.test.sh
+# and of build-guards.test.sh in the same words, and a reader comparing the two answers
+# should meet both names at once. The bare script name too: the build reports debt by basename.
+OWED_SUITE='docs/tests/docs-owed.test.sh'
+GUARDS_SUITE='docs/tests/build-guards.test.sh'
 SCRIPT='skills/tdd/scripts/classify-bail.sh'
 SCRIPT_NAME="${SCRIPT##*/}"
 
@@ -120,7 +125,7 @@ build_over() {
 #    Exit code and the count line together are the claim, for the reason case 4 of
 #    docs-guard-filter.test.sh spells out: a suite with zero cases run and a suite with
 #    every case passing both exit 0, and only one of them is evidence.
-name="docs/tests/docs-owed.test.sh passes over a tree whose scripts carry lines no commentary chunk covers"
+name="$OWED_SUITE passes over a tree whose scripts carry lines no commentary chunk covers"
 problems=()
 d="$(tree_owing_prose)"
 
@@ -133,9 +138,9 @@ build_over "$d"
 grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
   problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
 
-out="$("$d/$SUITE" 2>&1)" && code=0 || code=$?
+out="$("$d/$OWED_SUITE" 2>&1)" && code=0 || code=$?
 { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
-  problems+=("want $SUITE green over a tree owing prose for $SCRIPT_NAME — a script commit is a development-lane event and must not turn the docs lane red; got $code: $(flat "$(tail -5 <<< "$out")")")
+  problems+=("want $OWED_SUITE green over a tree owing prose for $SCRIPT_NAME — a script commit is a development-lane event and must not turn the docs lane red; got $code: $(flat "$(tail -5 <<< "$out")")")
 
 report "$name"
 
@@ -159,10 +164,9 @@ report "$name"
 #    fifty-four pass costs ~240 s of the ~250 s that suite takes, and says nothing this does
 #    not. The filter is the fixture, like docs-guard-filter's ONLY_CASE: it names the cases
 #    the fix removes, so a rename rather than a removal would read here as a removal.
-GUARDS='docs/tests/build-guards.test.sh'
 PAGE_FILTER='committed page'
 LIVE_CASE='baseline builds'
-name="$GUARDS has no case that judges the committed page, over a tree whose page is behind its scripts"
+name="$GUARDS_SUITE has no case that judges the committed page, over a tree whose page is behind its scripts"
 problems=()
 d="$(tree_owing_prose)"
 
@@ -177,18 +181,18 @@ cmp -s "$BUILT" "$d/docs/walkthrough.html" &&
 # And the suite has to be able to run in the copy at all, or exit 3 could be a suite that
 # dies before it reaches any case. The cheapest case it has — one sandbox, one build, no git
 # history — is the same fixture docs-guard-filter.test.sh uses for that.
-live="$(ONLY="$LIVE_CASE" "$d/$GUARDS" 2>&1)" && live_code=0 || live_code=$?
+live="$(ONLY="$LIVE_CASE" "$d/$GUARDS_SUITE" 2>&1)" && live_code=0 || live_code=$?
 { [[ "$live_code" == 0 ]] && grep -Fq '1 passed, 0 failed' <<< "$live"; } ||
-  problems+=("want ONLY='$LIVE_CASE' $GUARDS green in the copy — without it exit 3 below says nothing; got $live_code: $(flat "$(tail -3 <<< "$live")")")
+  problems+=("want ONLY='$LIVE_CASE' $GUARDS_SUITE green in the copy — without it exit 3 below says nothing; got $live_code: $(flat "$(tail -3 <<< "$live")")")
 
 # The claim. The message beside the code, because exit 3 alone could come from anywhere in
 # the suite: it has to be the no-match path, which names the filter that found nothing. The
 # wording is the implementer's, so only "no case" and the filter itself are matched, the way
 # case 2 of docs-guard-filter.test.sh matches them.
-out="$(ONLY="$PAGE_FILTER" "$d/$GUARDS" 2>&1)" && code=0 || code=$?
+out="$(ONLY="$PAGE_FILTER" "$d/$GUARDS_SUITE" 2>&1)" && code=0 || code=$?
 lowered="$(tr 'A-Z' 'a-z' <<< "$out")"
 [[ "$code" == 3 ]] ||
-  problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS over a tree whose committed page is stale; got $code: $(flat "$(tail -5 <<< "$out")")")
+  problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS_SUITE over a tree whose committed page is stale; got $code: $(flat "$(tail -5 <<< "$out")")")
 [[ "$lowered" == *"no case"* && "$out" == *"$PAGE_FILTER"* ]] ||
   problems+=("want it to say no case matched '$PAGE_FILTER' — the generator's suite must judge no committed page; got: $(flat "$(tail -3 <<< "$out")")")
 
