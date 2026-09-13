@@ -16,20 +16,28 @@
 #   <substring> and no others — so it exits 0, reports exactly those cases in its count
 #   line, and comes back in seconds rather than in the minutes the whole suite takes.
 #
-# The pin lives here, under `make test`, rather than inside the suite it is about: `make
-# test` is the command veri's own preflight detects and the only docs-or-otherwise gate CI
-# runs (docs-check left CI on 2026-09-11), so a filter pinned here is defended on every
-# push. It costs `make test` ~18 s: three sandboxed page builds for the filter and ok-line
-# cases (~4 s), and one whole run of docs/tests/merge-gates.test.sh (~14 s) for the case
-# that asks whether `make docs-test` still fails the way it did before the filter existed.
-# That suite has no filter of its own, so the last case pays for all eleven of its cases;
-# the alternative is not observing the claim at all.
+# The pin lives beside the suite it is about, under `make docs-test`, and not under `make
+# test`. It was under `make test` for a day, where it cost every veri leaf ~17 s on every
+# run of the suite to defend a docs tool; the docs are not functional and are brought up
+# to date on their own cadence (ADR 0016), so nothing about them rides in veri's own
+# development cycle. `make merge-gates` runs it for any change under docs/tests/, and so
+# for any change to the suite it pins. It costs ~18 s: three sandboxed page builds for the
+# filter and ok-line cases (~4 s), and one whole run of merge-gates.test.sh (~14 s) for the
+# case that asks whether `make docs-test` still fails the way it did before the filter
+# existed. That suite has no filter of its own, so the last case pays for all eleven of its
+# cases; the alternative is not observing the claim at all.
 #
-# Run: scripts/tests/docs-guard-filter.test.sh
+# `make docs-test` runs this suite, and case 4 runs `make docs-test` over a sabotaged copy
+# of the tree. That does not recurse: the copy's first recipe line, build-guards.test.sh,
+# is the one sabotaged to fail, and make stops at the first recipe line that fails, so the
+# copy never reaches this suite. It would recurse one level only if build-guards stopped
+# failing over the sabotage — which is exactly what case 4 then reports.
+#
+# Run: docs/tests/docs-guard-filter.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../../../.." && pwd)"
+ROOT="$(cd "$HERE/../.." && pwd)"
 SUITE="$ROOT/docs/tests/build-guards.test.sh"
 pass=0 fail=0
 WORK="$(mktemp -d)"
