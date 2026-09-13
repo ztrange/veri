@@ -69,5 +69,35 @@ reason="$(printf '%s' "$out" | "$HERE/parse-verdict.sh")"
 vcode=$?
 set -e
 
+# The `verdict` mark (issue #107, ADR-0014). This script is the only place that holds the
+# phase and the verdict at once: supervise.sh watched a leaf called `verify-<phase>` succeed
+# and knows nothing about what it decided, and parse-verdict.sh read a verdict out of text
+# without ever learning which phase the text was about.
+#
+# The word is derived from $vcode rather than from the reason, because $vcode is what this
+# script already turned the leaf's output into — one derivation, not two that must agree.
+# `*` covers 2 and nothing else can reach here: parse-verdict.sh exits 0, 1 or 2 only.
+case "$vcode" in
+  0) word=PASS ;;
+  1) word=REJECT ;;
+  *) word=malformed ;;
+esac
+
+# `${reason%%$'\n'*}` strips the longest trailing match of newline-and-anything, leaving the
+# first line — the whole of what the log takes. A model's justification runs to paragraphs
+# and the log is one line per event; the full reason is already mirrored to the issue thread
+# by the conductor, which is where a human reads it. A malformed verdict has no reason at all
+# (parse-verdict.sh prints nothing), so this writes the empty string it actually has.
+#
+# The context comes from leaf-role.sh, the same derivation supervise.sh marks under
+# (supervise.sh:141-157), so both halves of one verification file under the same actor and
+# phase; a refusal leaves $role empty and nothing is logged, rather than a line whose actor
+# was invented.
+role="$("$HERE/leaf-role.sh" "verify-$phase")" || role=""
+if [[ -n "$role" ]]; then
+  # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+  env $role "$HERE/event.sh" verdict verdict="$word" reason="${reason%%$'\n'*}"
+fi
+
 printf '%s\n' "$reason"
 exit "$vcode"

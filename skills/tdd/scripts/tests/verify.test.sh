@@ -117,6 +117,104 @@ retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
 { [[ "$code" == 2 ]] && [[ "$stuck_lines" -eq 1 ]] && [[ "$retry_lines" -eq 0 ]]; } && ok \
   || no "ambient VERI_STUCK_RETRIES=3 → hung verifier leaf still runs exactly once (code=$code, killed-stuck lines=$stuck_lines, retry lines=$retry_lines)"
 
+# 9. every verification leaves a `verdict` line in the run's event log — `.tdd/events.jsonl`,
+#    written through event.sh — carrying the phase it judged, the verdict word and the first
+#    line of the reason (issue #107, ADR-0014). This script is the only place that holds all
+#    three at once: supervise.sh sees a leaf called `verify-<phase>` succeed and says nothing
+#    about what it decided, and parse-verdict.sh reads a verdict out of text but never learns
+#    which phase the text was about.
+#
+#    Three arms, one per verdict word — PASS, REJECT and the malformed output that yields
+#    neither — because the criterion names all three, each in a directory of its own under
+#    `$work` (so the suite's existing EXIT trap removes them). The event log accumulates
+#    across a run and supervise.sh's own `launch` and `exit` marks land in this same file, so
+#    a shared directory would leave `verdict_field` reading whichever arm wrote last; the
+#    probe demanding exactly one `verdict` line then also pins this mark as written once per
+#    verification rather than once per attempt.
+#
+#    Each arm judges a different phase — green, red, refactor — so a writer that hardcoded
+#    one phase, or read it from somewhere other than this run's argv, cannot satisfy all
+#    three. The phase is asserted on the line's `phase` field, the context key every event
+#    carries (event.sh:49), not on a payload key of its own: a reader grouping a run's lines
+#    by phase asks one question of every line, and a verdict filed under an empty phase is
+#    exactly what that reader would miss.
+#
+#    The PASS and REJECT arms' reasons are two lines each, and the assertion is equality with
+#    the first — so a writer that logged the whole reason is caught rather than read past.
+#    The first line is what the criterion asks for because the log is a line-per-event file
+#    and a model's multi-line justification would otherwise break the format the reader
+#    depends on; the full reason is already mirrored to the issue thread by the conductor.
+#    Only those two arms assert a reason: a malformed verdict has no reason to take a first
+#    line of (parse-verdict.sh prints nothing and exits 2), so this case does not invent an
+#    answer for what goes there.
+
+verdict_work="$work/verdict"
+
+# verdict_run <arm> <phase> <fake-out-text> — one verification in its own directory under
+# $verdict_work, against the same stub claude the rest of this suite drives. ARGV_OUT goes
+# into the arm's directory too, since the stub writes it unconditionally and the shared
+# `$work/argv` is case 4's evidence.
+verdict_run() {
+  mkdir -p "$verdict_work/$1"
+  ( cd "$verdict_work/$1" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$verdict_work/$1/argv" \
+      FAKE_OUT_TEXT="$3" "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py test_lowercases \
+  ) >/dev/null 2>&1
+}
+
+# verdict_field <arm> <key> — the value of <key> on the one `verdict` line of the event log
+# the arm's run wrote, or a diagnostic in `<<…>>` when there is no such line, more than one,
+# or no log at all. python3 rather than jq, the dependency event.test.sh and extract-result.sh
+# already rely on. The arm names a directory, not a file: where the log lands under it —
+# `.tdd/events.jsonl`, relative to the verification's cwd — is said once here rather than in
+# each assertion.
+verdict_field() {
+  python3 -c '
+import sys, json
+hits = []
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == "verdict":
+        hits.append(obj)
+if len(hits) != 1:
+    print("<<%d verdict lines>>" % len(hits))
+else:
+    print(hits[0].get(sys.argv[2], "<<missing>>"))
+' "$verdict_work/$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo '<<no event log>>'
+}
+
+verdict_run pass green 'I ran it.
+VERDICT: PASS
+REASON: Target test and full suite are green.
+The mutation I applied turned the target test red.'
+verdict_run reject red 'VERDICT: REJECT
+REASON: The test asserts on a private helper, not observable behavior.
+Rewrite it against the public function.'
+verdict_run malformed refactor 'the leaf rambled and never rendered a verdict'
+
+# Each field read once, into a variable the assertion and the failure message share — the
+# capture-then-compare shape the cases above already use.
+pass_verdict="$(verdict_field pass verdict)"
+pass_phase="$(verdict_field pass phase)"
+pass_reason="$(verdict_field pass reason)"
+reject_verdict="$(verdict_field reject verdict)"
+reject_phase="$(verdict_field reject phase)"
+reject_reason="$(verdict_field reject reason)"
+malformed_verdict="$(verdict_field malformed verdict)"
+malformed_phase="$(verdict_field malformed phase)"
+
+{ [[ "$pass_verdict"      == PASS ]] \
+  && [[ "$pass_phase"     == green ]] \
+  && [[ "$pass_reason"    == 'Target test and full suite are green.' ]] \
+  && [[ "$reject_verdict" == REJECT ]] \
+  && [[ "$reject_phase"   == red ]] \
+  && [[ "$reject_reason"  == 'The test asserts on a private helper, not observable behavior.' ]] \
+  && [[ "$malformed_verdict" == malformed ]] \
+  && [[ "$malformed_phase"   == refactor ]]; } && ok \
+  || no "a verification appends one verdict event carrying the phase, the verdict word and the reason's first line (PASS arm: verdict=$pass_verdict phase=$pass_phase reason=$pass_reason; REJECT arm: verdict=$reject_verdict phase=$reject_phase reason=$reject_reason; malformed arm: verdict=$malformed_verdict phase=$malformed_phase)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
