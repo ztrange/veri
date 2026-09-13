@@ -20,14 +20,13 @@ check() {  # check <name> <expected-exit> <input> <expected-stdout>
   fi
 }
 
+# 1. the first marked step's description, with the mark stripped
 pending='# Plan for #42
 
 - [x] add the slugify lowercasing
 - [x] collapse non-alphanumerics to a single hyphen ⟂ refactor pending
 - [x] strip leading and trailing hyphens ⟂ refactor pending
 - [ ] percent-encode the remainder'
-
-# 1. the first marked step's description, with the mark stripped
 check "first pending description, mark stripped" 0 "$pending" \
   "collapse non-alphanumerics to a single hyphen"
 
