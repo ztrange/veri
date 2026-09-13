@@ -4,12 +4,7 @@
 # written by the scripts, not a service).
 # Zero-dependency plain-shell asserts, same idiom as leaf-timeout.test.sh.
 #
-# Why a script of its own: the writers only ever receive the name. `supervise.sh <name> <cmd>`
-# takes a leaf name and nothing else (supervise.sh:31), and the harvester will be handed
-# `.tdd/<name>.log`; but an event line's context is `actor`, `phase` and `attempt`
-# (event.sh:47-53). So every writer has to perform the same derivation, and the issue says to
-# "define that mapping once" rather than let supervise.sh and the harvester each re-spell it
-# and disagree about what `revise-green-2` was.
+# Why the mapping is a script of its own is said in its header (leaf-role.sh:5-9), once.
 #
 # Contract under test (this step only — the mapping, not any writer that uses it):
 #   leaf-role.sh <leaf-name>  → prints the leaf's role as env assignments,
