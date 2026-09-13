@@ -23,6 +23,12 @@
 # `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
 # polling that file instead of by reading this script's stdout.
 #
+# One `launch` event is appended to the run's event log, `.tdd/events.jsonl` — the leaf's
+# name, the command behind it, and the attempt its name encodes (issue #107, ADR-0014).
+# Once per supervision, not once per attempt: a second `launch` would read as a second
+# leaf. A name leaf-role.sh cannot read leaves no line at all, rather than one whose actor
+# and attempt were invented.
+#
 # Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
 # attempts after the first when a leaf is killed-stuck (default 1).
