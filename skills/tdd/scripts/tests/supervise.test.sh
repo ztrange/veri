@@ -299,11 +299,17 @@ ev_cmd=(env VERI_TIMEOUT=1200 "$stub/leaf-ok")
 ( cd "$ev_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
     "$SUP" revise-green-2 "${ev_cmd[@]}" ) >/dev/null 2>&1
 ev_code=$?
+# Each field read once, into a variable the assertion and the failure message share — the
+# capture-then-compare shape cases 9 and 11 already use. Read twice, the line a failure
+# reports would be a second reading of the log rather than the one that failed.
+ev_got_name="$(launch_field    "$ev_log" name)"
+ev_got_cmd="$(launch_field     "$ev_log" cmd)"
+ev_got_attempt="$(launch_field "$ev_log" attempt)"
 { [[ "$ev_code" == 0 ]] \
-  && [[ "$(launch_field "$ev_log" name)"    == revise-green-2 ]] \
-  && [[ "$(launch_field "$ev_log" cmd)"     == "${ev_cmd[*]}" ]] \
-  && [[ "$(launch_field "$ev_log" attempt)" == 2 ]]; } && ok \
-  || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$ev_code, name=$(launch_field "$ev_log" name), cmd=$(launch_field "$ev_log" cmd), attempt=$(launch_field "$ev_log" attempt))"
+  && [[ "$ev_got_name"    == revise-green-2 ]] \
+  && [[ "$ev_got_cmd"     == "${ev_cmd[*]}" ]] \
+  && [[ "$ev_got_attempt" == 2 ]]; } && ok \
+  || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$ev_code, name=$ev_got_name, cmd=$ev_got_cmd, attempt=$ev_got_attempt)"
 rm -rf "$ev_work"
 
 echo "----"
