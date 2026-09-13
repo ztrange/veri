@@ -39,9 +39,14 @@ esac
 # name without one is attempt 1. Not the empty string: event.sh writes every context key
 # whether or not it is known (event.sh:22-25), so an absent attempt would be logged as
 # `"attempt": ""` on the first launch of every step rather than as the 1 it is.
-if [[ "$rest" =~ -([0-9]+)$ ]]; then
-  phase="${rest%-*}"
-  attempt="${BASH_REMATCH[1]}"
+#
+# One regex states the whole split and both halves are read out of its captures — `(.*)` is
+# greedy, so on `green-2` it takes `green` and leaves the digits to `([0-9]+)`. Deriving the
+# phase separately, by stripping the suffix off `$rest` again, would be a second spelling of
+# the same cut that has to agree with the first; two captures of one match cannot disagree.
+if [[ "$rest" =~ ^(.*)-([0-9]+)$ ]]; then
+  phase="${BASH_REMATCH[1]}"
+  attempt="${BASH_REMATCH[2]}"
 else
   phase="$rest"
   attempt=1
