@@ -15,7 +15,7 @@ case. Three rules hold in every phase:
    Never put a suite run in the background and then write your report while that
    run is still going: the conductor reads that report as the suite's answer, so it
    acts on a result nothing has produced yet — and pays for the same run twice when
-   it has to go and get the real one.
+   it has to go and get the real answer.
 
 Work inside the current repository. Keep your investigation tight and on-task, and change
 nothing this step does not require.
