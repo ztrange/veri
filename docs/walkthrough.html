@@ -5264,20 +5264,23 @@ h3[data-since].dim .vbadge{opacity:.42}
      the accessibility tree because there is no <label> to carry it. */
   select.setAttribute("aria-label", "show what has changed since");
 
-  /* The way back out, first, because it is where every reader starts: an option naming no
-     version at all, whose empty value is what choose() writes when the reader picks it. */
-  var all = document.createElement("option");
-  all.value = "";
-  all.textContent = "the whole page";
-  select.appendChild(all);
-
-  // newest first — ORDER is oldest-first in git's version sort, so this walks it backwards
-  for (var i = ORDER.length - 1; i >= 0; i--) {
+  /* One option: the value choose() is handed, and the words the reader picks it by. The
+     two are not the same string and never were — the none option offers no version at all
+     — so the pair is what an option IS here, and saying it once keeps the list below a
+     list of what is offered rather than three lines of DOM per entry. */
+  function offer(value, label) {
     var option = document.createElement("option");
-    option.value = ORDER[i];
-    option.textContent = "since " + ORDER[i];
+    option.value = value;
+    option.textContent = label;
     select.appendChild(option);
   }
+
+  /* The way back out, first, because it is where every reader starts: an option naming no
+     version at all, whose empty value is what choose() writes when the reader picks it. */
+  offer("", "the whole page");
+
+  // newest first — ORDER is oldest-first in git's version sort, so this walks it backwards
+  for (var i = ORDER.length - 1; i >= 0; i--) offer(ORDER[i], "since " + ORDER[i]);
 
   var button = document.createElement("button");
   button.className = "ver-read";
