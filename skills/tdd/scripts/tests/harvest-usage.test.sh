@@ -154,6 +154,21 @@ STUB
     problems+=("setup: want the stub leaf $leaf to exit 0 through supervise.sh, got $code")
 }
 
+# has_result_record <work-dir> <leaf> — did the leaf's log come out holding a closing
+# `result` record? True for a leaf that finished, false for one cut off mid-stream.
+#
+# Both cases ask this of the log launch_leaf left, and ask it for opposite answers: case 1's
+# fixture is only measuring the harvester if the record is there, case 2's only if it is not.
+# Spelled twice, the pattern and the `.tdd/<leaf>.log` path were two copies of a fact about
+# what run-leaf.sh writes — the same fact launch_leaf above already keeps — so a change in how
+# that log is written would have to be found in three places instead of one.
+#
+# `2>/dev/null` because a missing log is an answer here, not a message: launch_leaf has already
+# complained about the launch that failed to produce one.
+has_result_record() {
+  grep -q '"type":"result"' "$1/.tdd/$2.log" 2>/dev/null
+}
+
 stub="$(mktemp -d)"
 work="$(mktemp -d)"
 trap 'rm -rf "$stub" "$work"' EXIT
@@ -208,7 +223,7 @@ launch_leaf "$stub" "$work" "$leaf"
 # A probe about the fixture rather than about the harvester, so a broken setup says so instead
 # of showing eight wrong numbers: the log the leaf left really does hold the record the
 # harvester is being asked to read. That the leaf finished at all is launch_leaf's own probe.
-grep -q '"type":"result"' "$work/.tdd/$leaf.log" 2>/dev/null ||
+has_result_record "$work" "$leaf" ||
   problems+=("setup: want the closing result record in .tdd/$leaf.log, not found")
 
 # The harvest itself, run in the worktree the way every other writer is.
@@ -281,7 +296,7 @@ launch_leaf "$killed_stub" "$killed_work" "$killed"
 # harvester behaving: the log the leaf left really does hold no `result` record, and the event
 # log exists with the supervisor's own lines in it. That the leaf ran at all is launch_leaf's
 # own probe.
-grep -q '"type":"result"' "$killed_work/.tdd/$killed.log" 2>/dev/null &&
+! has_result_record "$killed_work" "$killed" ||
   problems+=("setup: want no closing result record in .tdd/$killed.log, found one")
 [[ -s "$killed_work/.tdd/events.jsonl" ]] ||
   problems+=("setup: want supervise.sh's own lines in the event log, found none")
