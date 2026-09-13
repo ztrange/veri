@@ -126,6 +126,24 @@ build_over() {
   ( cd "$1" && python3 docs/build-walkthrough.py --stdout >"$BUILT" 2>"$BUILD_ERR" )
 }
 
+# probe_plant_is_debt <dir> — the plant is only a plant if the build reads it as debt, and the
+# build is where docs-owed.sh reads coverage from too, so this asks the same question the
+# subjects ask, of the copy, rather than re-deriving the coverage rule here. Named once
+# because two cases make exactly this probe and each would be vacuous without it in a
+# different way: a renamed script or a commentary chunk that grew to the end of the file
+# leaves case 1 passing over a tree that owes nothing — the tree it already passes over today
+# — and leaves case 3 watching the suite reach its count line for want of any stderr to
+# misread. One wording for one claim, so a reader who has met it once need not check the
+# second copy still says the same thing.
+#
+# Off the memoized build, so both cases pay for one. Appends to `$problems` the way report()
+# reads it.
+probe_plant_is_debt() {
+  build_over "$1"
+  grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
+    problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
+}
+
 # run_in_copy <dir> <suite> [<filter>] — run <suite> out of the planted copy at <dir>,
 # leaving its output, both streams, in $out and its exit code in $code. Every observation
 # this file makes is one of these: the whole question is what a docs-lane suite says when
@@ -167,14 +185,7 @@ name="$OWED_SUITE passes over a tree whose scripts carry lines no commentary chu
 problems=()
 planted="$(tree_owing_prose)"
 
-# The plant is only a plant if the build reads it as debt, and the build is where
-# docs-owed.sh reads coverage from too — so this asks the same question the subject asks,
-# of the copy, rather than re-deriving the coverage rule here. Without it a renamed script
-# or a commentary chunk that grew to the end of the file would leave the case passing over
-# a tree that owes nothing, which is the tree it already passes over today.
-build_over "$planted"
-grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
-  problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
+probe_plant_is_debt "$planted"
 
 run_in_copy "$planted" "$OWED_SUITE"
 { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
@@ -259,12 +270,7 @@ name="$GUARDS_SUITE runs every case to its count line over a tree whose scripts 
 problems=()
 planted="$(tree_owing_prose)"
 
-# The same plant probe cases 1 and 2 make, off the same memoized build: without a gap for the
-# build to report there is no stderr to misread, and the suite would run to its count line
-# here exactly as it does in a tree that owes nothing.
-build_over "$planted"
-grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
-  problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
+probe_plant_is_debt "$planted"
 
 # The last count line rather than the first: every `ok - <name>` line above it carries a
 # per-case figure, and the suite's own tail is the one that counts cases.
