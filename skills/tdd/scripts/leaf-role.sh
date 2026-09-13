@@ -67,7 +67,7 @@ phase_attempt="${name:${#actor_word}+1}"
 # `develop`, which carries no `-` at all, and `develop-`, which carries the `-` with nothing
 # after it — a name that satisfies any test of the STRING while the phase in it is still empty.
 # Neither may be logged in place of a refusal: event.sh writes every context key whether or not
-# it is known (event.sh:22-25), so the empty phase would go down as `"phase": ""`, which reads
+# it is known (event.sh:20-22), so the empty phase would go down as `"phase": ""`, which reads
 # as a leaf that had no phase rather than one whose phase nobody could read.
 if [[ -z "$phase_attempt" ]]; then
   refuse "says no phase"
@@ -75,7 +75,7 @@ fi
 
 # A trailing `-<digits>` is the attempt the name carries, and what precedes it is the phase; a
 # name without one is attempt 1. Not the empty string: event.sh writes every context key
-# whether or not it is known (event.sh:22-25), so an absent attempt would be logged as
+# whether or not it is known (event.sh:20-22), so an absent attempt would be logged as
 # `"attempt": ""` on the first launch of every step rather than as the 1 it is.
 #
 # One regex states the whole split and both halves are read out of its captures — `(.*)` is
