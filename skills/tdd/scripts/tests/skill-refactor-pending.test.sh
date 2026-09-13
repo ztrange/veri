@@ -15,11 +15,16 @@
 # stops answering the question the mark exists for — "is this ticked step tidied, or only
 # green?" — which is the question a resumed conductor asks.
 #
-# Contract under test (this step only):
-#   SKILL.md's Green PASS ticks with `tick-ledger.sh --refactor-pending`; the pin path's
-#   tick carries no such flag; and the instruction that ends a step's cycle runs
-#   `clear-refactor-pending.sh`, commits the cleared ledger, and only then mirrors the step
-#   as done.
+# Contract under test — the mark's writer, then its reader, one case each:
+#   1. SKILL.md's Green PASS ticks with `tick-ledger.sh --refactor-pending`; the pin path's
+#      tick carries no such flag; and the instruction that ends a step's cycle runs
+#      `clear-refactor-pending.sh`, commits the cleared ledger, and only then mirrors the
+#      step as done.
+#   2. SKILL.md's Resume asks `next-pending-refactor.sh` before `next-unchecked.sh`, and the
+#      branch it takes on a pending step resets what the killed leaf left uncommitted,
+#      re-enters that step's refactor loop with the files of its green commit (the last
+#      commit that changed the ledger) and the count of `refactor:` commits since it, then
+#      runs verify-refactor — with the draft PR behind both scripts exiting 3.
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -61,14 +66,40 @@ report() {
 # Runs of whitespace collapse to one space as the record is closed, so a sentence wrapped
 # across two lines still reads as one. Case is folded away last, because the sentences are
 # the writer's.
-instructions() {
-  awk '
+record_grammar='
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
     /^[0-9]+\. / || /^[[:space:]]*- / { flush(); rec = $0; next }
     /^[[:space:]]*$/ { flush(); next }
     rec == "" { rec = $0; next }
     { rec = rec " " $0 }
-    END { flush() }' "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
+    END { flush() }'
+
+instructions() {
+  awk "$record_grammar" "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
+}
+
+# resume_instructions — the same records, but only those of the `## Resume` section: from
+# that heading to the next `## ` one. Scoped because the document asks `next-unchecked.sh`
+# twice — once at the top of the cycle loop, once on the resume path — and it is only the
+# second that this issue is about, so an unscoped read would answer with the wrong branch
+# and, worse, let a Resume that says nothing at all pass on the cycle loop's wording.
+# `### ` sub-headings survive the slice: the pattern wants "## " with the space.
+resume_instructions() {
+  awk '/^## / { inside = ($0 == "## Resume"); next } inside' "$ROOT/$skill_md" |
+    awk "$record_grammar" | tr '[:upper:]' '[:lower:]'
+}
+
+# ordinal <regex> — the 1-based position, within the global `records`, of the first
+# instruction matching <regex>, or 0 when none does. Position is what turns two independent
+# "is it there?" probes into the one question the criterion asks: which of the two scripts
+# the resumed conductor consults first.
+ordinal() {
+  local n=0 line
+  while IFS= read -r line; do
+    n=$((n + 1))
+    if [[ "$line" =~ $1 ]]; then printf '%s\n' "$n"; return 0; fi
+  done <<< "$records"
+  printf '0\n'
 }
 
 # reads <what it is> <anchor-regex>… — the first instruction of the global `records`
@@ -136,6 +167,35 @@ says_clear_commit_mirror() {
     miss "$skill_md mirrors the step to the issue before the cleared ledger is committed, so a run killed in that window has an issue saying done over a ledger still saying pending"
 }
 
+# says_reset_reenter_verify — the four things the `$instruction` just read must prescribe for
+# a step that comes back pending: throw away what the killed leaf left on disk, re-enter the
+# refactor loop with its two inputs (the files of the step's green commit, and how many
+# transforms already landed), and verify-refactor after it. `git diff --name-only` is the
+# anchor the order is read against — the reset has to come before it and the verification
+# after it — so its absence returns rather than probing two halves of a string that has no
+# middle.
+says_reset_reenter_verify() {
+  local before after
+  local files_re='git diff --name-only'
+  local reset_re='git (checkout|restore|reset|stash|clean)'
+  local green_re='git log.*issue-<n>\.md'
+  local verify_re='verify-refactor|verify\.sh refactor'
+  if [[ ! "$instruction" =~ $files_re ]]; then
+    miss "$skill_md's Resume re-enters no refactor loop for the pending step — nothing computes the files of its green commit, so the loop has no bounds to tidy within and the step is left green but never tidied"
+    return
+  fi
+  before="${instruction%%git diff --name-only*}"
+  after="${instruction#*git diff --name-only}"
+  [[ "$before" =~ $reset_re ]] ||
+    miss "$skill_md's Resume re-enters the refactor loop without first resetting the worktree, so the transform the killed leaf left uncommitted is carried into the resumed step and into the PR unverified"
+  [[ "$instruction" =~ $green_re ]] ||
+    miss "$skill_md's Resume never identifies the pending step's green commit as the last commit that changed the ledger, so the files it hands the refactor loop are some other commit's and the tidy-up is aimed at the wrong code"
+  [[ "$instruction" =~ refactor: ]] ||
+    miss "$skill_md's Resume hands the refactor loop no count of the \`refactor:\` commits already made for the step, so the budget restarts at 0 and an interrupted run can spend it twice over"
+  [[ "$after" =~ $verify_re ]] ||
+    miss "$skill_md's Resume re-enters the refactor loop but never runs verify-refactor after it, which is the check the interruption skipped in the first place"
+}
+
 # 1. One criterion — the mark is written at exactly one tick, withheld at the other, and
 #    cleared where the step ends — and so one case. The three probes are one wiring: a mark
 #    written and never cleared stalls every resumed run in a refactor loop, and a mark
@@ -169,6 +229,50 @@ else
   # land in a commit before the step is mirrored as done.
   if reads 'ends the cycle by posting the `### ✅ step done` comment' 'step done'; then
     says_clear_commit_mirror
+  fi
+fi
+report "$name"
+
+# 2. One criterion — the mark's reader. Resume is the whole reason the mark is written, so
+#    asking for it is only half the fix: the order of the two asks decides whether a pending
+#    step is picked up at all, and what the pending branch prescribes decides whether the
+#    step is actually finished or merely re-entered. Both are one case, because a Resume that
+#    asks `next-pending-refactor.sh` and then does the wrong thing with the answer leaves the
+#    run exactly where #116 found it — a PR opened over an unverified refactor.
+name="$skill_md's Resume asks next-pending-refactor.sh before next-unchecked.sh, re-enters the pending step's refactor loop, and reaches the draft PR only when both exit 3"
+problems=()
+records="$(resume_instructions)"
+if [[ -z "$records" ]]; then
+  # Fail closed, as above: an empty slice means `## Resume` was renamed or emptied, and not
+  # one probe below was tested.
+  problems+=("$skill_md has no ## Resume section to read — what a resumed run does could not be checked")
+else
+  # The order of the two asks. A resume that asks for an unchecked step first starts the
+  # next step's red phase with the previous step's refactor still unverified — which is the
+  # bug, one step later.
+  ask_pending="$(ordinal 'next-pending-refactor\.sh')"
+  ask_unchecked="$(ordinal 'next-unchecked\.sh')"
+  if [[ "$ask_pending" -eq 0 ]]; then
+    problems+=("$skill_md's Resume never asks next-pending-refactor.sh, so a run interrupted inside a step's refactor loop reads that step's tick as done and walks straight to the PR")
+  elif [[ "$ask_unchecked" -eq 0 ]]; then
+    problems+=("$skill_md's Resume no longer asks next-unchecked.sh, so a resumed run has no next step to continue from")
+  elif [[ "$ask_pending" -gt "$ask_unchecked" ]]; then
+    problems+=("$skill_md's Resume asks next-unchecked.sh before next-pending-refactor.sh, so it opens the next step's red phase while the previous step's refactor is still unverified")
+  fi
+
+  # The pending branch — what the resumed conductor does with a step that comes back green
+  # but not tidied.
+  if reads 'runs next-pending-refactor.sh on a resume' 'next-pending-refactor\.sh'; then
+    says_reset_reenter_verify
+  fi
+
+  # The exit — the draft PR is where the interrupted run wrongly went, so it must now be
+  # behind both scripts having nothing left to hand over.
+  if reads 'sends a resumed run to the draft pr' 'draft pr'; then
+    says 'next-pending-refactor\.sh' \
+      "$skill_md sends a resumed run to the draft PR on next-unchecked.sh alone, so a ledger whose every step is ticked still reaches the PR with the last step's refactor unverified"
+    says 'next-unchecked\.sh' \
+      "$skill_md sends a resumed run to the draft PR without next-unchecked.sh having exited 3, so a run with steps still to do can reach the PR"
   fi
 fi
 report "$name"
