@@ -499,9 +499,12 @@ following step. The phase sub-steps are:
    `### 🔎 verify-green — PASS|REJECT` (the reason).
    - **PASS — check off the ledger step and commit atomically.** Tick STEP in the ledger,
      then commit the code **and** the ticked ledger in **one** commit so git and ledger
-     never diverge:
+     never diverge. The tick carries `--refactor-pending`, which appends ` ⟂ refactor
+     pending` to that same line: the step is green, but its refactor loop and
+     verify-refactor are still ahead of it, so a run interrupted between here and them must
+     resume into that loop rather than read the tick as *done*.
      ```
-     $S/tick-ledger.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
+     $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md '<distinctive substring of STEP>'
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
      ```
      Continue to the Refactor loop.
@@ -571,10 +574,18 @@ following step. The phase sub-steps are:
    candidates** the last leaf left and **lists** them, one per line, taken verbatim from its
    `CANDIDATES:` lines — a count with no items is not a backlog, and the backlog is the
    whole point of recording what the budget dropped.
-   - **PASS:** the step's cycle is complete — **mirror to the issue**: post a `### ✅ Step
-     done` comment, and tick the matching acceptance criterion in the **issue body**
-     (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Mark the same
-     moment in the log —
+   - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
+     **clear the refactor-pending mark and commit the cleared ledger first**, before
+     anything outside the repository says the step is done:
+     ```
+     $S/clear-refactor-pending.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
+     git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
+     ```
+     A clear left uncommitted is not a clear: resume reads the **committed** ledger, so
+     until that commit exists the step still says pending. Then **mirror to the issue**:
+     post a `### ✅ Step done` comment, and tick the matching acceptance criterion in the
+     **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Mark
+     the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-done` — then
      loop back to the top of **step 3** for the next unchecked ledger step.
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
