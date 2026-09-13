@@ -124,6 +124,20 @@ plans "the page was edited: freshness only" 'docs-fresh' 'docs-test' \
 plans "commentary changed: docs-test and freshness" 'docs-test  (every docs suite' '' \
   bash -c 'touch_file docs/wt/commentary.py'
 
+# 4b. #146: and the exemption case 2b carves out stops at docs/adr/. docs/wt/ is the
+#     directory the build actually reads — every module the page is assembled from lives
+#     there — so a change to one is the clearest thing there is that owes both gates: the
+#     suites, because a guard can move, and the freshness check, because the page the
+#     module builds is now a different page. An exemption written one character too wide
+#     (`^docs/(adr|wt)/`, `^docs/a`) takes this with it and the whole docs lane goes quiet
+#     on its own pipeline, which is why the boundary gets a case of its own rather than
+#     being left implied by case 4. Asserts on both plan lines and on the reason naming the
+#     file, and touches gitmeta.py rather than commentary.py so it pins the directory and
+#     not the one file another case already stands on.
+plans "a change under docs/wt/ owes every docs suite and freshness" \
+  $'docs-test\ndocs-fresh\ndocs/wt/gitmeta.py' '' \
+  bash -c 'touch_file docs/wt/gitmeta.py'
+
 # 5. so does a change to the guard suite itself.
 plans "the guard suite changed: docs-test and freshness" 'docs-test' '' \
   bash -c 'touch_file docs/tests/build-guards.test.sh'
