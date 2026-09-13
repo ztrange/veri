@@ -43,6 +43,15 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # A line with nothing after the marker names no command, so it is skipped rather than
 # answered with "".
 #
+# The marker is looked for *anywhere* on the line, not only at its start, because that is
+# where issues actually write it: mid-sentence in the Notes, with the command in a backtick
+# span (#131). `*'Test command:'*` matches that line, `${line#*Test command:}` drops the
+# prose ahead of the marker as well as the marker itself — shortest match, so the first
+# marker on the line is the one that answers — and when what is left opens with a backtick
+# the command is that span alone: `#` drops the opening backtick and `%%` cuts at the
+# closing one, dropping the `. More prose.` that would otherwise be handed to a leaf as
+# part of the command.
+#
 # `trimmed <string>` prints that string with its leading spaces and tabs removed. Bash 3.2
 # has no trim of its own, so it drops one blank at a time — the loop runs until neither
 # prefix removal changes the string, which is when the first real character is reached.
@@ -60,8 +69,14 @@ trimmed() {
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
-      'Test command:'*)
-        cmd="$(trimmed "${line#Test command:}")"
+      *'Test command:'*)
+        cmd="$(trimmed "${line#*Test command:}")"
+        case "$cmd" in
+          '`'*)
+            cmd="${cmd#\`}"
+            cmd="${cmd%%\`*}"
+            ;;
+        esac
         if [ -n "$cmd" ]; then
           answer "$cmd"
         fi
