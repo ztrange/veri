@@ -94,12 +94,12 @@ plans "a change under skills/ owes nothing" 'nothing to run' 'docs-fresh' \
 plans "the page was edited: freshness only" 'docs-fresh' 'docs-test' \
   bash -c 'touch_file docs/walkthrough.html'
 
-# 4. the pipeline changed: the guards must fire too, and the reason names the file.
-plans "commentary changed: guards and freshness" 'docs-test  (every docs suite' '' \
+# 4. the pipeline changed: the docs suites must fire too, and the reason names the file.
+plans "commentary changed: docs-test and freshness" 'docs-test  (every docs suite' '' \
   bash -c 'touch_file docs/wt/commentary.py'
 
 # 5. so does a change to the guard suite itself.
-plans "the guard suite changed: guards and freshness" 'docs-test' '' \
+plans "the guard suite changed: docs-test and freshness" 'docs-test' '' \
   bash -c 'touch_file docs/tests/build-guards.test.sh'
 
 # 5b. #137: so does anything else under docs/. Before this, the pipeline pattern named
