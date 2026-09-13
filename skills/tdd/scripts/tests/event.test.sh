@@ -155,29 +155,34 @@ else
     want_field "$ctx_log" reason  'the leaf wrote "no" and a stray \ backslash'
   fi
 fi
+rm -rf "$ctx_work"
+report "$name"
 
-# The seven fixed keys are the line's promise, not a summary of what the caller happened to
-# set: a reader that groups by phase or counts attempts must find them on every line. So a
-# call made with none of the context in the environment still writes all seven — whatever
-# value it can give them — while a writer that emits only the fields it has env for leaves
-# its reader to tell "phase absent" from "phase unknown", which is the ambiguity the
-# harvester's `absence is not zero` rule exists to refuse elsewhere in this issue.
+# 2. The other half of the same criterion: the seven fixed keys are the line's promise, not
+#    a summary of what the caller happened to set. A reader that groups by phase or counts
+#    attempts must find them on every line, so a call made with none of the context in the
+#    environment still writes all seven — whatever value it can give them — while a writer
+#    that emits only the fields it has env for leaves its reader to tell "phase absent" from
+#    "phase unknown", which is the ambiguity the harvester's `absence is not zero` rule
+#    exists to refuse elsewhere in this issue.
+name="no run context in the environment: the line is still appended, still parses, and still carries all seven fixed keys"
+problems=()
 noctx_work="$(mktemp -d)"
 noctx_log="$noctx_work/.tdd/events.jsonl"
 ( cd "$noctx_work" && env -u VERI_ISSUE -u VERI_ACTOR -u VERI_PHASE -u VERI_STEP -u VERI_ATTEMPT \
     "$EVENT" resume ) >/dev/null 2>&1
 if [[ ! -f "$noctx_log" ]]; then
-  problems+=("no context in the environment: want the line appended anyway, but no .tdd/events.jsonl under $noctx_work")
+  problems+=("want the line appended anyway, but no .tdd/events.jsonl under $noctx_work")
 elif ! parses "$noctx_log"; then
-  problems+=("no context in the environment: want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$noctx_log")")")
+  problems+=("want the line to parse as a JSON object, got: $(printf '%q' "$(head -1 "$noctx_log")")")
 else
   for key in ts issue actor phase step event attempt; do
     [[ "$(jget "$noctx_log" "$key")" != "<<missing>>" ]] ||
-      problems+=("no context in the environment: want the key $key present anyway, got it missing")
+      problems+=("want the key $key present anyway, got it missing")
   done
   want_field "$noctx_log" event resume
 fi
-rm -rf "$ctx_work" "$noctx_work"
+rm -rf "$noctx_work"
 report "$name"
 
 echo "----"
