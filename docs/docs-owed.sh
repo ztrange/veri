@@ -182,6 +182,17 @@ while IFS=' ' read -r name quoted total; do
   owed+=("page misquotes: $name — its listing quotes $quoted lines, the script has $total")
 done <<< "$misquoted"
 
+# ── the committed page itself, read once for the two rules that sweep its text ──
+# The prose rule below and the tag rule below that are two readings of ONE artefact, so it
+# is fetched once and held: a second `git show` is a second process (~30 ms) for bytes
+# already in hand, and it is a second chance to answer for a different tree, since HEAD can
+# move under a run. `die` here rather than in either rule, because a page that cannot be
+# read is one failure whichever of them noticed it first. The misquote rule above keeps its
+# own read: it runs inside python3, where handing a half-megabyte of HTML across as an
+# argument would be the expensive way to save a cheap process.
+page_text="$(git show "HEAD:$PAGE")" ||
+  die "cannot read the committed page's text"
+
 # ── page names an old command: prose telling a reader to invoke one ─────────────
 # The second reading of the page's own content, and a second one because the rule above
 # cannot make it: that one reads the listing headers the build writes, where a command name
@@ -211,11 +222,10 @@ done
 # nobody could pay. This repository's own page names one twice inside it. Cut open line
 # through close line, which is one line today; a page built from a tree with no tags carries
 # no index at all (build-walkthrough.py:600), and then there is nothing to cut.
-prose="$(git show "HEAD:$PAGE" | awk '
+prose="$(printf '%s\n' "$page_text" | awk '
   index($0, "<ol class=\"vers\">") { cutting = 1 }
   cutting { if (index($0, "</ol>")) cutting = 0; next }
-  { print }')" ||
-  die "cannot read the committed page's prose"
+  { print }')"
 
 # A name used as a COMMAND and not as a path, bounded on both sides. Before: start of line or
 # a character that cannot be the tail of a path component, so the page may go on naming a
@@ -235,7 +245,7 @@ done <<< "$old_cmds"
 # (window.__VERI_ORDER__, in git's version sort), so the tags the page names are the
 # quoted vN.M tokens in it — the quotes are what make the token whole, so v0.10 is not read
 # as a v0.1 the page names. A page built before any tag existed names none, and owes all.
-index_tags="$(git show "HEAD:$PAGE" 2>/dev/null | grep -oE "\"$VERSION_TAG\"" | tr -d '"' | sort -u)"
+index_tags="$(printf '%s\n' "$page_text" | grep -oE "\"$VERSION_TAG\"" | tr -d '"' | sort -u)"
 while IFS= read -r tag; do
   [ -n "$tag" ] || continue
   lists "$index_tags" "$tag" && continue
