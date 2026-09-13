@@ -332,6 +332,51 @@ detect --issue "$body" "$repo"
 matched \
   && ok || no "a marker quoted inside a backtick span does not answer, and the later line stating it with make test does (exit=$code want 0, stdout='$out' want '$want')"
 
+# 0h. the body whose *only* marker is a quotation. Case 0g pins the half where a later line
+# states the marker, so skipping the quote has somewhere to land; this pins the half where it
+# has nowhere — rule 0 has to step aside entirely and let the next rule answer, exactly as it
+# does for a body that never wrote the two words at all. A fix that skipped the quoted marker
+# but then treated "rule 0 read the body" as itself an answer — exit 3, or an empty command —
+# passes 0g and fails here, and that is the whole of what this case is for.
+#
+# "exactly as a body with no marker does" is a comparison, so both sides of it are seeded and
+# asked: two bodies differing only in whether the two words appear inside that backtick span,
+# one case, the way cases 0b and 0e pair a shape against its baseline. The `absent` body is the
+# pre-existing behaviour the `quoted` body must now equal; having them side by side is what
+# makes a divergence between them legible rather than a bare wrong answer.
+#
+# The quoted marker is seeded with prose running past its closing backtick, and that is
+# load-bearing for the same reason it is in 0g: a marker quoted at the very end of its line
+# names no command and is skipped already, by the `-n "$cmd"` test rule 0 has had since #120.
+# With prose behind it, an unguarded rule 0 answers ` line names it, and #131 made that line
+# count mid-sentence.` — a sentence fragment, which is what makes this fail loudly.
+#
+# The fall-through is armed with a `.veri/test-command` rather than the Makefile `test:` target,
+# again as in 0g: its bytes are ones no inference could produce, so the three outcomes have
+# three different stdouts — the override only if rule 0 stood aside, the prose fragment if the
+# quote answered, and empty-with-exit-3 if rule 0 swallowed the body.
+want='bin/run-suite --all --strict'
+misread=""
+repo="$work/only-quoted-marker"
+mkdir -p "$repo/.veri"
+printf '%s\n' "$want" > "$repo/.veri/test-command"
+
+for shape in quoted absent; do
+  body="$work/only-quoted-marker-$shape-body.md"
+  case "$shape" in
+    quoted) phrase='the `Test command:` line names it' ;;
+    absent) phrase='a line in its Notes names it' ;;
+  esac
+  printf '# Leaves run one suite instead of the full one\n\nSince #120 a leaf takes its command from the issue body: %s, and #131 made that line count mid-sentence.\n\n## Notes\n\nFiles: `skills/tdd/scripts/detect-test-command.sh`.\n' "$phrase" > "$body"
+
+  detect --issue "$body" "$repo"
+
+  matched || note "$shape"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "a body whose only marker sits inside a backtick span falls through to the next rule, exactly as a body with no marker does —$misread"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
