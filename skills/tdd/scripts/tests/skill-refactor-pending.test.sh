@@ -57,32 +57,32 @@ report() {
   fi
 }
 
-# instructions — the document's numbered steps, bullets and paragraphs, one per line and
-# lowercased. A record runs from a `N. ` or a `- ` (indented or not) in column one, or from
-# the first line after a blank, up to the next such line or the next blank; a fenced
-# command block inside a bullet is part of that bullet's record, which is what lets a probe
-# ask whether the branch that says "PASS" is the one that runs the command.
+# records_of — the lines on stdin as records: the document's numbered steps, bullets and
+# paragraphs, one per line and lowercased. A record runs from a `N. ` or a `- ` (indented or
+# not) in column one, or from the first line after a blank, up to the next such line or the
+# next blank; a fenced command block inside a bullet is part of that bullet's record, which
+# is what lets a probe ask whether the branch that says "PASS" is the one that runs the
+# command.
 #
 # Runs of whitespace collapse to one space as the record is closed, so a sentence wrapped
 # across two lines still reads as one. Case is folded away last, because the sentences are
 # the writer's.
-record_grammar='
+#
+# Both readers below end in it, the way skill-suite-runs.test.sh's readers both end in
+# `plain`, so "what a record is" is spelled once. A second spelling would not fail — it
+# would quietly answer a probe with records built by a grammar the other reader has since
+# outgrown.
+records_of() {
+  awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
     /^[0-9]+\. / || /^[[:space:]]*- / { flush(); rec = $0; next }
     /^[[:space:]]*$/ { flush(); next }
     rec == "" { rec = $0; next }
     { rec = rec " " $0 }
-    END { flush() }'
-
-# records_of — the lines on stdin as records: the grammar above applied, then the case
-# folded. Both readers below end in it, the way skill-suite-runs.test.sh's readers both end
-# in `plain`, so "what a record is" is spelled once. A second spelling would not fail — it
-# would quietly answer a probe with records built by a grammar the other reader has since
-# outgrown.
-records_of() {
-  awk "$record_grammar" | tr '[:upper:]' '[:lower:]'
+    END { flush() }' | tr '[:upper:]' '[:lower:]'
 }
 
+# instructions — the whole document as records.
 instructions() {
   records_of < "$ROOT/$skill_md"
 }
