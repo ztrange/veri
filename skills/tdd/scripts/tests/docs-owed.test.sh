@@ -320,6 +320,80 @@ body_carries_list "edited body"
 
 report "$name"
 
+# 3. The run that moves the sha on: HEAD is past the commit the open issue was filed at, so
+#    the issue in the pool is titled for an OLDER sha than the one this run measures. It is
+#    still the one issue this pool gets — edited, and retitled to the sha the debt now
+#    stands at — not a second one beside it.
+#
+#    This is the case case 2 cannot make. There both runs stand on the same HEAD, so the
+#    open issue's title is character-for-character the one this run would write, and an
+#    implementation that looked for the whole title in the pool passes it while opening a
+#    fresh issue after every merge — the failure the single-issue rule exists to prevent.
+#    Only a moved sha tells the two apart.
+#
+#    The older title is not spelled out here: it is read back from what the subject itself
+#    filed at the older commit, so the pool holds the issue the previous merge really would
+#    have left behind, whichever spelling of a sha the implementer puts in a title.
+name="docs/docs-owed.sh --file at a newer commit retitles the open docs issue to the newer sha instead of opening a second"
+problems=()
+d="$(repo)"
+git -C "$d" tag -a "$TAG" -m 'a capability the committed index does not list'
+old_sha="$(git -C "$d" rev-parse HEAD)"
+
+fx="$WORK/pool.empty2"; mkdir -p "$fx"
+printf '[]\n' > "$fx/issues.json"
+file_run "$d" "$fx" first
+filed_title="$(grep -F 'Docs: catch the walkthrough up to' "$log" | head -1)"
+[ -n "$filed_title" ] ||
+  problems+=("the case is vacuous: the first $SUBJECT --file filed no titled issue to be found again: $(flat "$(cat "$log")")")
+filed_title="${filed_title:-Docs: catch the walkthrough up to $old_sha}"
+
+# HEAD moves. A file outside skills/ and outside the docs pipeline, so the tree's debt is
+# the same tag it already owed and nothing about what is owed changes — only the sha the
+# debt stands at, which is the whole point of the case.
+printf 'a commit after the issue was filed\n' > "$d/scratch.txt"
+git -C "$d" add scratch.txt
+git -C "$d" commit -qm 'chore: a commit after the issue was filed (#4)'
+new_sha="$(git -C "$d" rev-parse HEAD)"
+[[ "$new_sha" != "$old_sha" ]] ||
+  problems+=("the case is vacuous: HEAD did not move, so the open issue's sha is still current")
+
+fx="$WORK/pool.older"; mkdir -p "$fx"
+cat > "$fx/issues.json" <<JSON
+[
+  {
+    "number": 77,
+    "title": "$filed_title",
+    "state": "OPEN",
+    "labels": [{"name": "ready-for-agent:docs"}]
+  }
+]
+JSON
+file_run "$d" "$fx" retitle
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from $SUBJECT --file at a commit newer than the open issue's; got $code")
+
+created="$(grep -c '^+++ issue create$' "$log")"
+[[ "$created" == 0 ]] ||
+  problems+=("want no second issue when the open one is titled for an older sha — the pool holds one; got $created \`gh issue create\`: $(flat "$(cat "$log")")")
+
+edited="$(grep -c '^+++ issue edit$' "$log")"
+{ [[ "$edited" -ge 1 ]] && grep -Fqx -- '77' "$log"; } ||
+  problems+=("want the open issue #77 edited instead; got $edited \`gh issue edit\`: $(flat "$(cat "$log")")")
+
+# And retitled: the title it is edited to names the sha this run measured, not the one the
+# issue was opened with. An edit that left the old title standing would file the debt under
+# a tree nobody is looking at any more.
+title_line="$(grep -F 'Docs: catch the walkthrough up to' "$log" | head -1)"
+sha="${title_line##*catch the walkthrough up to }"
+if [[ -z "$title_line" ]]; then
+  problems+=("want the edit to carry the title 'Docs: catch the walkthrough up to <sha>'; nothing in the call says so: $(flat "$(cat "$log")")")
+elif [[ "${#sha}" -lt 7 || "$new_sha" != "$sha"* ]]; then
+  problems+=("want the issue retitled to the sha this run read the debt at, $new_sha; got '$sha'")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
