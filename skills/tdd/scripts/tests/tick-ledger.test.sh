@@ -37,6 +37,15 @@ printf -- '- [x] collapse to single hyphen\n- [ ] collapse to single hyphen (aga
 { [[ "$code" == 0 ]] && grep -q '^- \[x\] collapse to single hyphen (again)$' "$led"; } \
   && ok || no "skips checked, ticks next matching (code=$code)"
 
+# 4. --refactor-pending ticks the step and marks that same line; the plain tick leaves no mark
+seed
+"$TICK" --refactor-pending "$led" "collapse to single hyphen"; marked=$?
+"$TICK" "$led" "strip edge hyphens"; plain=$?
+{ [[ "$marked" == 0 ]] && [[ "$plain" == 0 ]] \
+  && grep -q '^- \[x\] collapse to single hyphen ⟂ refactor pending$' "$led" \
+  && grep -q '^- \[x\] strip edge hyphens$' "$led"; } \
+  && ok || no "--refactor-pending marks the ticked line, plain tick does not (marked=$marked plain=$plain)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
