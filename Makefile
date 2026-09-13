@@ -25,11 +25,12 @@ test:
 	@fail=0; out="$$(mktemp)"; code="$$(mktemp)"; \
 	trap 'rm -f "$$out" "$$code"' EXIT; \
 	for t in $(TESTS); do \
-	  printf '== %s\n' "$$(basename $$t)"; \
+	  name="$$(basename "$$t")"; \
+	  printf '== %s\n' "$$name"; \
 	  { "$$t"; echo $$? > "$$code"; } 2>&1 | tee "$$out"; \
 	  [ "$$(cat "$$code")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$out" | grep -Eq '^[0-9]+ passed, [0-9]+ failed$$' || { \
-	    printf '%s: never reached its count line\n' "$$(basename $$t)"; fail=1; \
+	    printf '%s: never reached its count line\n' "$$name"; fail=1; \
 	  }; \
 	done; \
 	echo "----"; \
