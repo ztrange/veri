@@ -227,6 +227,21 @@ file_run() {
       "./$SUBJECT" --file >/dev/null 2>&1 ) && code=0 || code=$?
 }
 
+# body_carries_list <what> — every item of `list` appears in the `body` the last file_run
+# captured, one problem per item that does not. Both runs owe this, and for the same
+# reason: what the pool holds has to be the debt as it stands, so an issue opened with the
+# list and then edited to something else is as broken as one opened empty. <what> is the
+# only thing that differs between the two, and it is there so a failure says which run's
+# body came back short. Reads `list`, `body` and `problems` where they stand, the protocol
+# the rest of this file already uses.
+body_carries_list() {
+  while IFS= read -r item; do
+    [ -n "$item" ] || continue
+    grep -Fq -- "$item" "$body" ||
+      problems+=("want the $1 to be the list — it is missing '$item'; got: $(flat "$(cat "$body")")")
+  done <<< "$list"
+}
+
 # 2. `--file` over a tree with debt and an empty pool opens exactly one issue — in the docs
 #    pool, titled for the tree's own sha, carrying the list as its body — and over the same
 #    tree with that issue already open edits it instead of opening a second.
@@ -272,11 +287,7 @@ elif [[ "${#sha}" -lt 7 || "$head_sha" != "$sha"* ]]; then
   problems+=("want <sha> in the title to be the sha the debt was read at, $head_sha; got '$sha'")
 fi
 
-while IFS= read -r item; do
-  [ -n "$item" ] || continue
-  grep -Fq -- "$item" "$body" ||
-    problems+=("want the issue body to be the list — it is missing '$item'; got: $(flat "$(cat "$body")")")
-done <<< "$list"
+body_carries_list "issue body"
 
 # The later run: the same tree, the same debt, and now the issue the first run opened is in
 # the pool. The one that is already open is the one to edit.
@@ -305,11 +316,7 @@ edited="$(grep -c '^+++ issue edit$' "$log")"
 { [[ "$edited" -ge 1 ]] && grep -Fqx -- '77' "$log"; } ||
   problems+=("want the open issue #77 edited instead — the debt moved on, the issue must too; got $edited \`gh issue edit\`: $(flat "$(cat "$log")")")
 
-while IFS= read -r item; do
-  [ -n "$item" ] || continue
-  grep -Fq -- "$item" "$body" ||
-    problems+=("want the edited body to be the current list — it is missing '$item'; got: $(flat "$(cat "$body")")")
-done <<< "$list"
+body_carries_list "edited body"
 
 report "$name"
 
