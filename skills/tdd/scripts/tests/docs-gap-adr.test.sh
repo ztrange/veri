@@ -58,6 +58,22 @@ probe() {
   done
 }
 
+# probe_reversal_record — the whole contract, as the four facts the record has to carry.
+# Reads `$lc`, the lowercased text of one ADR, and leaves in `$problems` one line per fact
+# that file is short of — the protocol probe() and report() already share. Separated from
+# the sweep below so that what the record must say is in one place, and choosing which file
+# says it is in another: a change to the contract edits only this function.
+probe_reversal_record() {
+  probe "does not say the build once failed on a line no commentary covered" \
+    '(fail|refus)' '(uncovered|not covered|no commentary|without commentary|gap)'
+  probe "does not say the build now carries that line as debt, marked owed" \
+    'owed' '(mark|render|list|note|report)'
+  probe "does not say the source the page shows is still verbatim" \
+    'verbatim'
+  probe "does not say the prose beside it may lag" \
+    '(prose|commentary)' '(lag|behind|catch(es|ing)? up)'
+}
+
 # --- the reversal is on the record -------------------------------------------------
 # One ADR has to carry the whole decision, not four ADRs a fact each: the point of the
 # record is that a reader who finds it can stop looking. So the sweep is per file — every
@@ -80,14 +96,7 @@ for adr in "$ADR_DIR"/[0-9][0-9][0-9][0-9]-*.md; do
   candidates=$((candidates + 1))
 
   problems=()
-  probe "does not say the build once failed on a line no commentary covered" \
-    '(fail|refus)' '(uncovered|not covered|no commentary|without commentary|gap)'
-  probe "does not say the build now carries that line as debt, marked owed" \
-    'owed' '(mark|render|list|note|report)'
-  probe "does not say the source the page shows is still verbatim" \
-    'verbatim'
-  probe "does not say the prose beside it may lag" \
-    '(prose|commentary)' '(lag|behind|catch(es|ing)? up)'
+  probe_reversal_record
 
   if [[ "${#problems[@]}" -eq 0 ]]; then found="$adr"; break; fi
   if [[ -z "$best_file" || "${#problems[@]}" -lt "${#best_missing[@]}" ]]; then
