@@ -350,7 +350,7 @@ ev_got_attempt="$(event_field "$ev_log" launch attempt)"
 #     recovered is no reason at all, so a recovered run otherwise leaves no record anywhere
 #     of why it had to be relaunched. The `launch` mark above cannot cover it either: that
 #     one is written once per supervision, outside the retry loop, so a second attempt
-#     passes it by (supervise.sh:128-140).
+#     passes it by (supervise.sh:150-153).
 #
 #     This is the only case in this file that lets the leaf reach a second attempt, so it
 #     is also the only one that does not go through `sup` — the helper pins

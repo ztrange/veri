@@ -119,34 +119,38 @@ attempt_once() {
   wait "$pid" 2>/dev/null || true
 }
 
-# The run's `launch` mark (issue #107, ADR-0014). Written here because this is the one
-# choke point every leaf goes through, so a log missing one is a leaf nothing recorded
-# starting — and because the three things the mark carries are exactly what this script
-# was handed: the leaf's name, the command behind it, and, through leaf-role.sh, the
-# attempt that name encodes. `$*` joins argv with a single space, the spelling event.sh's
-# header quotes for a `cmd=` payload.
+# The three assignments every mark below is written under, read once. A refusal leaves this
+# empty — a failed command substitution still assigns, the empty stdout the refusal printed
+# — and that emptiness is the whole of "leaf-role.sh could not read this name" for `mark`
+# to test.
+role="$("$HERE/leaf-role.sh" "$name")" || role=""
+
+# mark <event> [key=value …] — append one line to the run's event log (issue #107,
+# ADR-0014), or nothing at all. Both marks below go through here, so what the two have in
+# common is said once rather than in each:
+#
+#   * `$role` is deliberately unquoted — it is the `VERI_ACTOR=… VERI_PHASE=… VERI_ATTEMPT=…`
+#     line leaf-role.sh prints for `env` to word-split into event.sh's environment, which is
+#     the calling convention that script documents.
+#   * a name leaf-role.sh cannot read refuses with its own diagnostic on stderr and empty
+#     stdout, and then nothing is logged at all: a line whose actor and attempt were invented
+#     would be worse than the absent one a reader is already told to tolerate.
+mark() {
+  [[ -n "$role" ]] || return 0
+  # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+  env $role "$HERE/event.sh" "$@"
+}
+
+# The run's `launch` mark. Written here because this is the one choke point every leaf goes
+# through, so a log missing one is a leaf nothing recorded starting — and because the three
+# things the mark carries are exactly what this script was handed: the leaf's name, the
+# command behind it, and, through leaf-role.sh, the attempt that name encodes. `$*` joins
+# argv with a single space, the spelling event.sh's header quotes for a `cmd=` payload.
 #
 # Once per supervision, not once per attempt — which is what its place here shows: outside
 # the loop below, so a retried attempt passes it by. That attempt is the `retry` mark's to
 # report, and a second `launch` would read as a second leaf.
-#
-# `$role` is deliberately unquoted — it is the `VERI_ACTOR=… VERI_PHASE=… VERI_ATTEMPT=…`
-# line leaf-role.sh prints for `env` to word-split into event.sh's environment, which is
-# the calling convention that script documents. A name leaf-role.sh cannot read refuses
-# with its own diagnostic on stderr and empty stdout, and then nothing is logged: a launch
-# line whose actor and attempt were invented would be worse than the absent one a reader
-# is already told to tolerate.
-#
-# The role is read into a variable rather than used where it is computed, because the
-# `retry` mark in the loop below needs the same three assignments. A refusal leaves it
-# empty — a failed command substitution still assigns, the empty stdout the refusal
-# printed — so one `[[ -n … ]]` at each call site is the whole of "leaf-role.sh could not
-# read this name", in both places.
-role="$("$HERE/leaf-role.sh" "$name")" || role=""
-# shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
-if [[ -n "$role" ]]; then
-  env $role "$HERE/event.sh" launch name="$name" cmd="$*"
-fi
+mark launch name="$name" cmd="$*"
 
 # First attempt plus up to $retries extra attempts. A normal result (success/failure)
 # short-circuits; only killed-stuck is retried.
@@ -161,10 +165,7 @@ while :; do
   # status line at the foot of this script reports the LAST attempt's reason, so a leaf that
   # recovered reports none at all. Written beside the human-readable line that already says
   # the same thing to stderr, so the two cannot drift apart.
-  # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
-  if [[ -n "$role" ]]; then
-    env $role "$HERE/event.sh" retry cause="$reason"
-  fi
+  mark retry cause="$reason"
   echo "supervise[$name]: retry $tries/$retries after killed-stuck" >&2
 done
 
