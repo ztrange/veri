@@ -1678,6 +1678,31 @@ commentary owed' \
   "owed: classify-bail.sh L${owed_from}–$((owed_from + 1))" \
   bash -c 'append_line_to_script "$SAMPLE_SCRIPT"'
 
+# 3c. and the gap that is NOT at the end of the file (issue #125). Case 3b's uncovered run
+#     is the tail: everything after the last chunk, which is a run with no chunk after it.
+#     A run between two chunks is the other shape of the same debt, and a build that
+#     carried only the tail would still refuse this tree — or, worse, close the gap by
+#     dropping the two lines out of the listing, which is the promise (the source,
+#     verbatim) breaking quietly. So the claim is all three halves again, with the range
+#     naming the interior lines rather than the ones past the end.
+#
+#     The debt is made by moving ONE chunk's start two lines later, not by touching the
+#     script: classify-bail.sh is unchanged, the chunk before still ends at L11, the chunk
+#     after still ends at L18, and L12–13 are left claimed by nobody. Those numbers are
+#     the ones written in the chunk table this sed edits, so if that table ever moves, the
+#     sed matches nothing, the tree owes nothing and this case fails — loudly, rather than
+#     passing on a build that was never given a gap to carry.
+#
+#     The two source lines are asked for by their exact markup for the same reason case 3b
+#     asks for its one: `<span class="l">` is the opening every unmarked line gets, so
+#     finding them proves the gap cost the reader no source.
+owes "an interior gap is owed with its own range" \
+  '<span class="l"><span class="k">case</span> <span class="s">"</span><span class="v">$cause</span><span class="s">"</span> <span class="k">in</span></span>
+<span class="l">  killed-stuck | no-verdict)</span>
+commentary owed' \
+  "owed: classify-bail.sh L12–13" \
+  bash -c 'sed_commentary "s/lines=(12, 18)/lines=(14, 18)/"'
+
 # 4. unknown-reference guard — a typo'd id must not become a dead tooltip
 refuses "unknown reference id is refused" "unknown primer ref" \
   bash -c 'sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/"'
