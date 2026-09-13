@@ -6,4 +6,5 @@
 - [x] `docs/merge-gates.sh` owes `docs-fresh` for nothing under `skills/`, still owes both gates for a change under `docs/wt/`, `build-walkthrough.py` or `docs/tests/`, and its header, its tests and CLAUDE.md say so
 - [x] `docs/docs-owed.sh` lists the committed page's debt — uncovered script lines, scripts whose blame is newer than the page's build, tags the index does not list — one item per line, and exits 3 with nothing on stdout when there is none
 - [x] `docs/docs-owed.sh --file` opens one issue in the `ready-for-agent:docs` pool titled `Docs: catch the walkthrough up to <sha>` whose body is that list, and updates the open one on a later run rather than opening a second — testable without the network through `VERI_GH_JSON` fixtures
+- [ ] a later `--file` run at a newer commit edits the open `Docs: catch the walkthrough up to <older sha>` issue — retitling it to the newer sha — rather than opening a second one
 - [ ] an ADR in `docs/adr/` records the reversal: why the build once failed on a gap, what changed, and the page's new promise — source always verbatim, prose may lag and says so
