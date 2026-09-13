@@ -367,16 +367,21 @@ launch_got_attempt="$(event_field "$launch_work" launch attempt)"
 #     exported by the shell that ran `make test` cannot suppress it.
 #
 #     The expected cause is the heartbeat window's, because that is how this leaf dies:
-#     VERI_HEARTBEAT=1 against a 60s silent sleep, well inside the 30s hard cap. The first
-#     number in the supervisor's wording is the elapsed silence, which the poll interval
-#     makes a race, so the assertion globs over that one and pins the words and the window
-#     the wording carries (supervise.sh:112).
+#     `$retry_window` against a 60s silent sleep, well inside the 30s hard cap. That window
+#     is written once and then used both to run the leaf and to expect its cause — case 12's
+#     shape, and here it is what makes the assertion legible: the number in `(window Ns)` is
+#     the one the supervisor was handed, not a constant that happens to agree with it. The
+#     FIRST number in the supervisor's wording is the elapsed silence, which the poll
+#     interval makes a race, so the assertion globs over that one and pins the words and the
+#     window the wording carries (supervise.sh:112).
 #     The log is read through `event_field` above, the probe case 12 also uses; here the
 #     one line it demands says as well that a budget of one retry wrote one mark, not one
 #     per attempt.
 
 retry_work="$(mktemp -d)"
-( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.2 \
+retry_window=1
+( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT="$retry_window" \
+    VERI_TIMEOUT=30 VERI_POLL=0.2 \
     "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
 retry_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11 and
@@ -385,7 +390,7 @@ retry_code=$?
 # never actually recovered would still be caught.
 retry_cause="$(event_field "$retry_work" retry cause)"
 { [[ "$retry_code" == 0 ]] \
-  && [[ "$retry_cause" == 'no heartbeat for '*' (window 1s)' ]]; } && ok \
+  && [[ "$retry_cause" == "no heartbeat for "*" (window ${retry_window}s)" ]]; } && ok \
   || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$retry_code, cause=$retry_cause)"
 
 echo "----"
