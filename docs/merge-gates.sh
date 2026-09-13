@@ -17,16 +17,18 @@
 #               the page is built is the only way to break the guards.
 #   stale     docs/walkthrough.html itself (a hand edit), Makefile → the freshness check
 #             only: the page may now be stale, but the build that makes it has not changed.
-#   anything else → nothing. A test-only or README PR owes no page — and since #125,
-#             neither does anything under skills/. A script or SKILL.md change does leave
-#             the page stale, but that staleness is now debt the page carries openly
-#             (an uncovered line renders marked `commentary owed`) and docs/docs-owed.sh
-#             files, rather than a merge-time bill: owing a fresh page put the `make docs`
-#             regen commit, and the prose the build used to refuse to build without, on the
-#             critical path of every development PR. Prose is allowed to lag; the page's
-#             promise is that the source it shows is verbatim, not that it is explained.
+#   anything else → nothing. A README or test-only PR owes no page, and since #125 neither
+#             does anything under skills/ — a script or SKILL.md change included.
 # Tags are NOT a file, so a tag cut since the page was built is not seen here; that is
 # docs/hooks/reference-transaction's job, and docs-fresh names the missing tag if it runs.
+#
+# WHY skills/ OWES NOTHING (#125): a script change does leave the page stale. That
+# staleness is now debt the page carries openly — an uncovered line renders marked
+# `commentary owed` — and docs/docs-owed.sh files, rather than a bill collected at merge.
+# Owing a fresh page put the `make docs` regen commit, and the prose the build used to
+# refuse to build without, on the critical path of every development PR. Prose is allowed
+# to lag; the page's promise is that the source it shows is verbatim, not that it is
+# explained.
 #
 # EXIT CODES, the repo-wide four: 0 = every gate that ran passed (or none was owed);
 # 1 = a gate ran and failed — check-walkthrough's own output says which and, for a stale
