@@ -28,10 +28,15 @@
 # and one that has to be there. There is no build behaviour to break on purpose in either,
 # so neither has a mutator; they just assert on the page the tree produces as it stands.
 #
-# Each case runs against a disposable copy of the tree, so the real repo is never
-# mutated even if a case aborts. The last case is the one exception, and only in what it
-# reads: it asks whether THIS repository's committed page is the page this tree builds.
-# It writes nothing either.
+# Every case runs against a disposable copy of the tree, so the real repo is never
+# mutated even if a case aborts — and, since issue #137, never judged either. The subject
+# here is the generator, so every claim is about a tree this suite built. Whether the
+# committed docs/walkthrough.html is still what this tree builds is not one of them: a
+# script commit that leaves lines no commentary chunk claims, or a tag cut in another
+# worktree, puts the page behind with nothing whatever wrong with the generator, and
+# `make docs-test` is the command a /tdd run on a docs issue reads its baseline off. That
+# lag is already a docs-owed.sh reading ("page behind", "tag") and `make docs-fresh`'s
+# refusal inside `make merge-gates`, which is what still stops a stale page landing.
 #
 # Two cases reach past python3 for node: since-mode is a decision the page's own JS makes,
 # and nothing in the markup records it. See ask_page, which both go through. node is a
@@ -3815,100 +3820,6 @@ since v0.2 select shows v0.9' \
            rewrite_line_as_feat "$SAMPLE_SCRIPT" 7 \
              "# rewritten by the v0.10 commit" \
              "fix: rewrite line 7 of classify-bail.sh (#4)" v0.10'
-
-# bytes <file> -> its size, with no padding
-# BSD wc right-aligns its count in a field of spaces, which lands mid-sentence as a run of
-# gaps, so tr strips them. One named thing rather than the same pipeline twice, for the
-# same reason hunk_spans is: the report below asks it of both files in one line.
-bytes() { wc -c <"$1" | tr -d ' '; }
-
-# page_is_current <name>
-# The one assertion that asks about THIS repository instead of a sandbox. Every case above
-# builds a disposable copy and judges what came out, which says the generator is sound and
-# says nothing about the file a reader actually opens: docs/walkthrough.html is committed
-# output, and it falls behind on its own — a line added to a script, a paragraph of
-# commentary, a tag cut in another worktree — with nothing in `make test` to notice.
-#
-# So the claim is the generator's own fixpoint: build the page again from the tree as it
-# stands, and the committed bytes are already it. That is what `make docs` regenerating the
-# page leaves behind, and it is the one thing the criterion can be observed as.
-#
-# check-walkthrough.py asks this same question as its first phase, so `make docs-check`
-# answers it too and the overlap is deliberate. `make docs-test` is the command the page's
-# own issues are developed against, and alone it attests only that the guards still fire —
-# a suite fully green over a page nobody rebuilt.
-#
-# --stdout, never a rebuild in place: an assertion must not write the file it is judging,
-# and a case that did would be green on its second run however stale the commit was.
-# cmp on the bytes rather than $(...) on both sides, which would strip the trailing
-# newlines it is supposed to be comparing.
-page_is_current() {
-  selected "$1" || return 0
-  local name="$1" committed="$ROOT/docs/walkthrough.html" code
-  local built="$WORK/current.html" err="$WORK/current.err"
-  ( cd "$ROOT" && python3 docs/build-walkthrough.py --stdout >"$built" 2>"$err" ) && code=0 || code=$?
-  if [[ "$code" == 0 ]] && cmp -s "$built" "$committed"; then
-    passed "$name"
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name (exit $code)"
-    echo "    want: docs/walkthrough.html is what this tree builds — run \`make docs\` and commit it"
-    if [[ "$code" == 0 ]]; then
-      echo "    got:  built $(bytes "$built") bytes / committed $(bytes "$committed")"
-      diff "$committed" "$built" | sed 's/^/    | /' | head -8
-    else
-      sed 's/^/    | /' "$err" | head -6
-    fi
-  fi
-}
-
-# 28. and none of it reaches a reader until the page is rebuilt and the rebuild is
-#     committed. Everything since-mode needs lives in docs/wt/app.js and docs/wt/style.css,
-#     which the build inlines — so the sources can carry the whole reading mode while
-#     docs/walkthrough.html, the only file GitHub Pages publishes, still serves the page
-#     from before it. Nothing in `make test` sees that, because docs-check is kept out of
-#     it on purpose: prose lagging behind code must never bail a TDD run. This case is
-#     what makes the lag visible from `make docs-test`.
-page_is_current "the committed page is the one this tree builds"
-
-# page_checks_out <name>
-# The second assertion about THIS repository, and the other half of what `make docs-check`
-# answers. page_is_current asks whether the committed bytes are the generator's fixpoint;
-# the checker asks the questions a fixpoint cannot answer, because it re-derives the page's
-# claims from the files on disk rather than from the build: every script quoted verbatim at
-# the right line numbers, every in-page link and every tooltip ref resolving, the capability
-# index listing exactly this repo's tags newest-first — and the TDD-loop figure still
-# agreeing with the two files it is NOT generated from, the phases build-verify-prompt.sh
-# accepts and SKILL.md's revise budget. Those last two are the gap: the build never opens
-# either file, so the page can be a perfect fixpoint and still tell a reader the budget is
-# 2 on the day SKILL.md moves to 3, with `make docs` regenerating byte-identical output
-# forever. checks_git asks the checker the same question about a sandbox, where the scripts
-# are copies and the history is one commit; only this asks it about the tree that ships.
-#
-# Read-only like the case above, and for the same reason: check-walkthrough.py builds into
-# memory and compares, so nothing under docs/ is written by an assertion judging it.
-# Failure prints the tail, where the checker's own FAIL lines are.
-page_checks_out() {
-  selected "$1" || return 0
-  local name="$1" code out
-  out="$( cd "$ROOT" && python3 docs/check-walkthrough.py 2>&1 )" && code=0 || code=$?
-  if [[ "$code" == 0 ]]; then
-    passed "$name"
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name (exit $code)"
-    echo "    want: check-walkthrough.py passes on the committed page — \`make docs-check\` green"
-    printf '%s\n' "$out" | sed 's/^/    | /' | tail -6
-  fi
-}
-
-# 35. and a rebuilt page is not yet a green `make docs-check`. The case above is the whole
-#     of what this suite says about the shipped page, and it says one thing: the bytes are
-#     the ones this tree builds. That leaves `make docs-check` half-unwatched from
-#     `make docs-test` — the checker's later phases judge the committed markup against
-#     SKILL.md and build-verify-prompt.sh, neither of which the generator reads, so no
-#     amount of rebuilding makes them agree and no case here notices when they stop.
-page_checks_out "the committed page passes the checker \`make docs-check\` runs"
 
 # A filter that matched nothing is the typo path, and the one place a silent green is
 # actively dangerous: every case skipped, nothing asserted, and `[[ $fail -eq 0 ]]` exits 0

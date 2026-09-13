@@ -19,13 +19,19 @@
 #   chunk covers. Its zero-debt case is a claim about a tree that suite builds, so how far
 #   this repository's own prose has fallen behind its own scripts cannot decide it.
 #
+#   docs/tests/build-guards.test.sh has no case that judges the committed page at all: asked
+#   for one over a tree whose docs/walkthrough.html is not what that tree builds, it reports
+#   that nothing matched. The generator's suite answers for the generator.
+#
 # The tree is copied and planted rather than asserted about where it stands, because the
 # claim is about some other repository and this one owes no commentary today: a probe run
 # here would pass on both sides of the fix and pin nothing. What that copy is, and what it
 # deliberately leaves out, is `tree_owing_prose` below.
 #
-# It costs one copy of those paths, one page build over the copy and one run of the suite
-# under test, ~14 s measured, nearly all of it that run — which is the observation itself.
+# It costs one copy of those paths, shared by both cases; two page builds over it, one per
+# case, each the probe that says the plant is really a plant; one run of docs-owed.test.sh;
+# and two filtered runs of build-guards.test.sh, one sandboxed build apiece. ~17 s measured,
+# nearly all of it those runs — which are the observation itself.
 #
 # Run: docs/tests/lane-insulation.test.sh
 set -uo pipefail
@@ -72,8 +78,12 @@ flat() { printf '%s' "$1" | tr '\n' '/'; }
 # descend into them. The gap is planted at the END of the script: a chunk claims a line
 # range, so a line inside the file's existing length may already be claimed, while the
 # lines past its end can be claimed by nothing.
+#
+# Built once and handed to every case that asks: both cases below want the same tree, and a
+# second copy on top of the first would land docs/ inside docs/ and append the plant twice.
 tree_owing_prose() {
   local d="$WORK/tree"
+  [[ -d "$d" ]] && { printf '%s' "$d"; return 0; }
   mkdir -p "$d"
   cp -R "$ROOT/docs" "$d/docs"
   cp -R "$ROOT/skills" "$d/skills"
@@ -108,6 +118,62 @@ grep -Fq "owed: $SCRIPT_NAME" <<< "$build_err" ||
 out="$("$d/$SUITE" 2>&1)" && code=0 || code=$?
 { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
   problems+=("want $SUITE green over a tree owing prose for $SCRIPT_NAME — a script commit is a development-lane event and must not turn the docs lane red; got $code: $(flat "$(tail -5 <<< "$out")")")
+
+report "$name"
+
+# 2. The same lane, the other suite under docs/tests/ that judged the tree it was running in
+#    rather than one it built: the generator's own. `page_is_current` asked whether
+#    docs/walkthrough.html is the fixpoint of a build over this tree, and `page_checks_out`
+#    ran check-walkthrough.py over the same committed bytes — so a tag cut in another
+#    worktree, or a script commit nobody has written the prose for yet, turned `make
+#    docs-test` red with nothing whatever wrong with the generator. That the page is behind
+#    is already docs-owed.sh's reading and `make docs-fresh`'s refusal at merge; it is not a
+#    verdict the suite for the tool that BUILDS the page gets to reach.
+#
+#    So: asked over such a tree for its cases about the committed page, the suite has none to
+#    run, and says so — exit 3, the code every veri script uses for nothing to do (CLAUDE.md:
+#    exit codes are the API) and the one its own no-match path already returns, pinned by
+#    case 2 of docs-guard-filter.test.sh.
+#
+#    Filtered rather than run whole, and the filtered run is the whole of the observation and
+#    not a corner of it: every other case in that suite builds its own sandbox and judges what
+#    came out of it, so none of them can see this tree's page at all. Watching the other
+#    fifty-four pass costs ~240 s of the ~250 s that suite takes, and says nothing this does
+#    not. The filter is the fixture, like docs-guard-filter's ONLY_CASE: it names the cases
+#    the fix removes, so a rename rather than a removal would read here as a removal.
+GUARDS='docs/tests/build-guards.test.sh'
+PAGE_FILTER='committed page'
+LIVE_CASE='baseline builds'
+name="$GUARDS has no case that judges the committed page, over a tree whose page is behind its scripts"
+problems=()
+d="$(tree_owing_prose)"
+
+# The tree has to be one a case judging the committed page would FAIL over, or exit 3 and a
+# green run are the same observation and this pins nothing. Same shape as case 1's build
+# probe: ask the copy the question the removed case asked — is the committed page what this
+# tree builds — rather than re-deriving an answer here.
+built="$WORK/built.html"
+( cd "$d" && python3 docs/build-walkthrough.py --stdout >"$built" 2>/dev/null )
+cmp -s "$built" "$d/docs/walkthrough.html" &&
+  problems+=("the case is vacuous: the committed page in the copy is already what that tree builds, so a case judging it would pass there anyway")
+
+# And the suite has to be able to run in the copy at all, or exit 3 could be a suite that
+# dies before it reaches any case. The cheapest case it has — one sandbox, one build, no git
+# history — is the same fixture docs-guard-filter.test.sh uses for that.
+live="$(ONLY="$LIVE_CASE" "$d/$GUARDS" 2>&1)" && live_code=0 || live_code=$?
+{ [[ "$live_code" == 0 ]] && grep -Fq '1 passed, 0 failed' <<< "$live"; } ||
+  problems+=("want ONLY='$LIVE_CASE' $GUARDS green in the copy — without it exit 3 below says nothing; got $live_code: $(flat "$(tail -3 <<< "$live")")")
+
+# The claim. The message beside the code, because exit 3 alone could come from anywhere in
+# the suite: it has to be the no-match path, which names the filter that found nothing. The
+# wording is the implementer's, so only "no case" and the filter itself are matched, the way
+# case 2 of docs-guard-filter.test.sh matches them.
+out="$(ONLY="$PAGE_FILTER" "$d/$GUARDS" 2>&1)" && code=0 || code=$?
+lowered="$(tr 'A-Z' 'a-z' <<< "$out")"
+[[ "$code" == 3 ]] ||
+  problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS over a tree whose committed page is stale; got $code: $(flat "$(tail -5 <<< "$out")")")
+[[ "$lowered" == *"no case"* && "$out" == *"$PAGE_FILTER"* ]] ||
+  problems+=("want it to say no case matched '$PAGE_FILTER' — the generator's suite must judge no committed page; got: $(flat "$(tail -3 <<< "$out")")")
 
 report "$name"
 
