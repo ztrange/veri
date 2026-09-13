@@ -38,22 +38,35 @@
 # that failed outright, which is a bug in the docs pipeline rather than debt.
 set -uo pipefail
 
+# die <message> [detail…] — say so on stderr and stop, at exit 2 always. Every failure this
+# script can have is the same kind of failure: no answer could be obtained. The debt itself
+# is never one — a list exits 0 and an empty list exits 3 — so 2 is not one option among
+# the four here, it is the only code a failure ever carries, and putting it in one place is
+# what keeps that true. Extra arguments print verbatim on the lines below, for the one
+# caller that has a build's own complaint to pass on rather than a sentence of its own.
+die() {
+  echo "docs-owed: $1" >&2
+  shift
+  [ "$#" -eq 0 ] || printf '%s\n' "$@" >&2
+  exit 2
+}
+
 # The only argument, and an unknown one is a misconfigured caller rather than a page with
 # no debt: exit 2, not 3.
 file=0
 case "${1:-}" in
   "")      ;;
   --file)  file=1 ;;
-  *)       echo "docs-owed: usage: docs-owed.sh [--file]" >&2; exit 2 ;;
+  *)       die "usage: docs-owed.sh [--file]" ;;
 esac
 
 # The repository this script is IN, not the one the caller happens to stand in: the page,
 # the scripts and the history being compared are all this tree's.
-root="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)" || {
-  echo "docs-owed: cannot resolve the repository root from $0" >&2; exit 2; }
+root="$(cd "$(dirname "$0")/.." 2>/dev/null && pwd)" ||
+  die "cannot resolve the repository root from $0"
 cd "$root" || exit 2
-git rev-parse --git-dir >/dev/null 2>&1 || {
-  echo "docs-owed: $root is not a git repository" >&2; exit 2; }
+git rev-parse --git-dir >/dev/null 2>&1 ||
+  die "$root is not a git repository"
 
 PAGE=docs/walkthrough.html
 SCRIPTS_DIR=skills/tdd/scripts
@@ -72,9 +85,8 @@ VERSION_TAG='v[0-9]+\.[0-9]+'
 lists() { printf '%s\n' "$1" | grep -Fqx -- "$2"; }
 
 page_commit="$(git log -1 --format=%H -- "$PAGE")"
-[ -n "$page_commit" ] || {
-  echo "docs-owed: no commit touches $PAGE — there is no committed page to be behind" >&2
-  exit 2; }
+[ -n "$page_commit" ] ||
+  die "no commit touches $PAGE — there is no committed page to be behind"
 
 owed=()
 
@@ -83,10 +95,8 @@ owed=()
 # is a real problem (a dead {{p-id|…}} reference, a chunk claiming lines a script does not
 # have) and is not this script's to report. --stdout so reading the tree's debt never
 # rewrites the page being measured.
-build_err="$(python3 docs/build-walkthrough.py --stdout 2>&1 >/dev/null)" || {
-  echo "docs-owed: the build failed, so what prose is missing cannot be read:" >&2
-  printf '%s\n' "$build_err" >&2
-  exit 2; }
+build_err="$(python3 docs/build-walkthrough.py --stdout 2>&1 >/dev/null)" ||
+  die "the build failed, so what prose is missing cannot be read:" "$build_err"
 while IFS= read -r gap; do
   [ -n "$gap" ] || continue
   owed+=("commentary owed: $gap")
@@ -108,7 +118,7 @@ sys.path.insert(0, "docs/wt")
 import commentary
 print("\n".join(s["file"] for s in commentary.SCRIPTS))
 PY
-)" || { echo "docs-owed: cannot read the page's script list from docs/wt/commentary.py" >&2; exit 2; }
+)" || die "cannot read the page's script list from docs/wt/commentary.py"
 
 touched="$(git log --format= --name-only "$page_commit..HEAD" -- "$SCRIPTS_DIR" | sort -u)"
 while IFS= read -r path; do
@@ -149,7 +159,7 @@ if [ -n "${VERI_GH_JSON:-}" ]; then
 else
   issues_json="$(gh issue list --label "$DOCS_LABEL" --state open \
     --json number,title,state,labels)"
-fi || { echo "docs-owed: cannot read the $DOCS_LABEL pool" >&2; exit 2; }
+fi || die "cannot read the $DOCS_LABEL pool"
 
 # The issue to edit, if there is one: open, in this pool, and titled for SOME sha — the
 # prefix, not the whole title, because the sha in an issue filed at an earlier merge is
@@ -168,7 +178,7 @@ for issue in issues:
     print(issue["number"])
     break
 PY
-)" || { echo "docs-owed: cannot read the $DOCS_LABEL pool's issues" >&2; exit 2; }
+)" || die "cannot read the $DOCS_LABEL pool's issues"
 
 # The body is the list, one bullet per item, with the sha it was read at above it. Through
 # a file rather than --body: an item carries an em dash and newlines, and a file is the one
@@ -186,9 +196,9 @@ trap 'rm -f "$body"' EXIT
 
 if [ -n "$existing" ]; then
   gh issue edit "$existing" --title "$title" --body-file "$body" >/dev/null ||
-    { echo "docs-owed: cannot edit issue #$existing" >&2; exit 2; }
+    die "cannot edit issue #$existing"
 else
   gh issue create --title "$title" --label "$DOCS_LABEL" --body-file "$body" >/dev/null ||
-    { echo "docs-owed: cannot open the $DOCS_LABEL issue" >&2; exit 2; }
+    die "cannot open the $DOCS_LABEL issue"
 fi
 exit 0
