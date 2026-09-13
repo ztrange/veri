@@ -350,6 +350,19 @@ launch_got_attempt="$(event_field "$launch_work" launch attempt)"
   && [[ "$launch_got_attempt" == 2 ]]; } && ok \
   || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$launch_code, name=$launch_got_name, cmd=$launch_got_cmd, attempt=$launch_got_attempt)"
 
+# heartbeat_kill <cause> <window> — does <cause> read as the watchdog's diagnosis of a
+# heartbeat kill on a <window>-second silence window? Cases 13 and 14 both ask it, of the
+# `retry` mark's cause and of the `exit` mark's, so the wording is pinned here once: spelled
+# out in each, a loosened or mistyped pattern could be fixed in the copy one case reads and
+# left standing in the other's — the same reason `event_field` above serves both.
+#
+# The FIRST number in the supervisor's wording is the elapsed silence, which the poll interval
+# makes a race, so this globs over that one and pins the words plus the window the wording
+# carries (supervise.sh:125). The pattern is a literal inside the function rather than a string
+# the callers expand, so it stays a glob without either caller having to leave a `$var`
+# unquoted on the right of `==`.
+heartbeat_kill() { [[ "$1" == "no heartbeat for "*" (window ${2}s)" ]]; }
+
 # 13. relaunching a killed-stuck leaf leaves a `retry` line in the same log, carrying the
 #     cause the watchdog killed the attempt for (issue #107, ADR-0014: "the supervisor
 #     writes every leaf launch, attempt and exit (with the kill cause)"). Nothing else can
@@ -371,9 +384,7 @@ launch_got_attempt="$(event_field "$launch_work" launch attempt)"
 #     is written once and then used both to run the leaf and to expect its cause — case 12's
 #     shape, and here it is what makes the assertion legible: the number in `(window Ns)` is
 #     the one the supervisor was handed, not a constant that happens to agree with it. The
-#     FIRST number in the supervisor's wording is the elapsed silence, which the poll
-#     interval makes a race, so the assertion globs over that one and pins the words and the
-#     window the wording carries (supervise.sh:112).
+#     wording itself is `heartbeat_kill`'s to know, above.
 #     The log is read through `event_field` above, the probe case 12 also uses; here the
 #     one line it demands says as well that a budget of one retry wrote one mark, not one
 #     per attempt.
@@ -390,7 +401,7 @@ retry_code=$?
 # never actually recovered would still be caught.
 retry_cause="$(event_field "$retry_work" retry cause)"
 { [[ "$retry_code" == 0 ]] \
-  && [[ "$retry_cause" == "no heartbeat for "*" (window ${retry_window}s)" ]]; } && ok \
+  && heartbeat_kill "$retry_cause" "$retry_window"; } && ok \
   || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$retry_code, cause=$retry_cause)"
 
 # 14. every supervision ends with one `exit` line in the same log, carrying the three things
@@ -411,8 +422,8 @@ retry_cause="$(event_field "$retry_work" retry cause)"
 #     Only the killed-stuck arm asserts a cause, because it is the only arm that has one;
 #     what a run with no kill writes in its place the criterion leaves open ("the kill cause
 #     when there is one"), so this case does not invent an answer for it. The cause expected
-#     is the heartbeat window's, the wording case 13 already pins, with the elapsed-silence
-#     figure globbed over because the poll interval makes it a race.
+#     is the heartbeat window's, read through `heartbeat_kill` above — case 13's predicate,
+#     so neither case can go green on a wording the other would reject.
 #
 #     The seconds are pinned as a count that exists and is plain digits on a fast leaf, and
 #     on the stuck arm as one that has reached the window the leaf was killed on: a silence
@@ -451,7 +462,7 @@ exit_stuck_secs="$(event_field   "$exit_work/stuck" exit secs)"
 { [[ "$exit_ok_status"    == 0 ]] && [[ "$exit_ok_secs" =~ ^[0-9]+$ ]] \
   && [[ "$exit_fail_status"  == 1 ]] \
   && [[ "$exit_stuck_status" == 2 ]] \
-  && [[ "$exit_stuck_cause"  == "no heartbeat for "*" (window ${exit_window}s)" ]] \
+  && heartbeat_kill "$exit_stuck_cause" "$exit_window" \
   && [[ "$exit_stuck_secs" =~ ^[0-9]+$ ]] && (( exit_stuck_secs >= exit_window )); } && ok \
   || no "a supervised leaf appends one exit event carrying the 0/1/2 status, the kill cause and the attempt's wall seconds (success status=$exit_ok_status want 0, secs=$exit_ok_secs; failure status=$exit_fail_status want 1; killed-stuck status=$exit_stuck_status want 2, cause=$exit_stuck_cause, secs=$exit_stuck_secs want >=$exit_window)"
 
