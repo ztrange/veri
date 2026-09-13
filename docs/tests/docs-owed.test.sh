@@ -306,6 +306,29 @@ file_run() {
       "./$SUBJECT" --file >/dev/null 2>&1 ) && code=0 || code=$?
 }
 
+# pool_holding <fixture dir name> <issue title> — a VERI_GH_JSON fixture holding one open
+# docs issue under that title, in the shape `gh issue list --json number,title,state,labels`
+# answers with, and publishes its path in `fx` for the file_run that reads it. Two cases
+# below build one and differ only in the directory's name and in the title the previous run
+# left behind; everything else is the shape the subject has to recognise — open, in the docs
+# pool, and numbered 77, which is the number those cases then watch the edit go to. Spelled
+# twice, a fixture that drifted on one side would have the subject skipping an issue for a
+# reason the case never meant to plant. The empty pool stays written out where it is used:
+# `[]` is not a shape two sites have to agree on.
+pool_holding() {
+  fx="$WORK/$1"; mkdir -p "$fx"
+  cat > "$fx/issues.json" <<JSON
+[
+  {
+    "number": 77,
+    "title": "$2",
+    "state": "OPEN",
+    "labels": [{"name": "ready-for-agent:docs"}]
+  }
+]
+JSON
+}
+
 # body_carries_list <what> — every item of `list` appears in the `body` the last file_run
 # captured, one problem per item that does not. Both runs owe this, and for the same
 # reason: what the pool holds has to be the debt as it stands, so an issue opened with the
@@ -372,17 +395,7 @@ body_carries_list "issue body"
 # the pool. The one that is already open is the one to edit.
 filed_title="${sha:+Docs: catch the walkthrough up to $sha}"
 filed_title="${filed_title:-Docs: catch the walkthrough up to $head_sha}"
-fx="$WORK/pool.open"; mkdir -p "$fx"
-cat > "$fx/issues.json" <<JSON
-[
-  {
-    "number": 77,
-    "title": "$filed_title",
-    "state": "OPEN",
-    "labels": [{"name": "ready-for-agent:docs"}]
-  }
-]
-JSON
+pool_holding pool.open "$filed_title"
 file_run "$d" "$fx" update
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from a second $SUBJECT --file, with the issue already open; got $code")
@@ -437,17 +450,7 @@ new_sha="$(git -C "$d" rev-parse HEAD)"
 [[ "$new_sha" != "$old_sha" ]] ||
   problems+=("the case is vacuous: HEAD did not move, so the open issue's sha is still current")
 
-fx="$WORK/pool.older"; mkdir -p "$fx"
-cat > "$fx/issues.json" <<JSON
-[
-  {
-    "number": 77,
-    "title": "$filed_title",
-    "state": "OPEN",
-    "labels": [{"name": "ready-for-agent:docs"}]
-  }
-]
-JSON
+pool_holding pool.older "$filed_title"
 file_run "$d" "$fx" retitle
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from $SUBJECT --file at a commit newer than the open issue's; got $code")
