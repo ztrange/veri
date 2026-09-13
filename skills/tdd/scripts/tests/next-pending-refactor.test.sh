@@ -9,11 +9,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-NEXT="$HERE/../next-pending-refactor.sh"
+PENDING="$HERE/../next-pending-refactor.sh"
 pass=0 fail=0
 check() {  # check <name> <expected-exit> <input> <expected-stdout>
   local name="$1" exp_code="$2" input="$3" exp="$4" out code
-  out="$(printf '%s' "$input" | "$NEXT")" && code=0 || code=$?
+  out="$(printf '%s' "$input" | "$PENDING")" && code=0 || code=$?
   if [[ "$code" == "$exp_code" && "$out" == "$exp" ]]; then pass=$((pass + 1)); else
     fail=$((fail + 1)); echo "FAIL - $name (want exit $exp_code, got $code)"
     diff <(printf '%s\n' "$exp") <(printf '%s\n' "$out") | sed 's/^/    /'
