@@ -15,10 +15,10 @@
 # of the environment (event.sh:17-19), and this way the VERI_* names stay spelled in one script
 # rather than at every call site.
 #
-# The three name shapes the run launches are `develop-<phase>` (SKILL.md:643 and its siblings),
-# `revise-<phase>-<k>` and `verify-<phase>`. `develop` and `revise` are both the developer,
-# since a revise leaf is a fresh developer answering the verifier's objection, not a third
-# role — which is the one thing about these shapes the notation cannot show, so it is said
+# The three name shapes the run launches are `develop-<phase>` (SKILL.md:415, 469 and 511),
+# `revise-<phase>-<k>` (SKILL.md:643) and `verify-<phase>`. `develop` and `revise` are both the
+# developer, since a revise leaf is a fresh developer answering the verifier's objection, not a
+# third role — which is the one thing about these shapes the notation cannot show, so it is said
 # here and the rest is said at the two cuts that perform it.
 set -euo pipefail
 

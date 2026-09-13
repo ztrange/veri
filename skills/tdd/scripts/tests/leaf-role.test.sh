@@ -29,7 +29,7 @@
 #
 # `verify-refactor`'s attempt is not probed, because the criterion does not state one and the
 # name cannot carry it: the revise loop re-runs `verify.sh <phase>` under the same
-# `verify-<phase>` name on every attempt (SKILL.md:641-644), so a verifier's attempt number
+# `verify-<phase>` name on every attempt (SKILL.md:654-659), so a verifier's attempt number
 # is the conductor's to pass, not this mapping's to read. A leaf name that does carry one
 # — `revise-green-2`'s trailing `2` — is exactly what the second probe pins.
 #
