@@ -33,10 +33,12 @@ name="${1:?usage: leaf-role.sh <leaf-name>}"
 actor_word="${name%%-*}"
 phase_attempt="${name#*-}"
 
-# An unknown leading word is refused rather than guessed: both guesses are silent wrong answers
-# in a log whose purpose is telling the pipeline's two halves apart. Exit 2 — no answer could be
-# obtained — with the diagnostic on stderr and stdout left empty, since the caller consumes this
-# as `env $(leaf-role.sh "$name") …` and would word-split a half-role into its environment.
+# An unknown leading word is refused rather than guessed at, since either guess is a silent
+# wrong answer in a log whose purpose is telling the pipeline's two halves apart: an actor
+# defaulted to `developer` files the leaf's events under a role it never had, and an actor left
+# empty writes `"actor": ""` for a leaf that had one. Exit 2 — no answer could be obtained —
+# with the diagnostic on stderr and stdout left empty, because the caller consumes this as
+# `env $(leaf-role.sh "$name") …` and would word-split a half-role into its environment.
 case "$actor_word" in
   develop|revise) actor=developer ;;
   verify)         actor=verifier  ;;
