@@ -87,7 +87,10 @@ Two traps, both already cost something once:
   the spec file, the test path and a test id. There is no parameter for the developer's
   rationale, so it cannot leak. Adding one would silently end the guarantee.
 - **The committed ledger is the source of truth** for which steps are done, ticked
-  atomically with each step's green commit. The GitHub issue only mirrors it.
+  atomically with each step's green commit — a tick that also appends
+  `⟂ refactor pending`, which only that step's verify-refactor PASS takes off again. So a
+  ticked step is green, not finished, and the mark is what tells a resumed run which it
+  is. The GitHub issue only mirrors it.
 - **Three budgets on three axes, never merged**: `VERI_STUCK_RETRIES` (liveness — the leaf
   never answered), `REVISE_BUDGET` (verdict — it answered and was rejected) and
   `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's tidying is worth, since a

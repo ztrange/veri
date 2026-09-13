@@ -7,4 +7,4 @@
 - [x] `SKILL.md`'s Resume asks `next-pending-refactor.sh` before `next-unchecked.sh`, and on a pending step resets uncommitted work, re-enters that step's refactor loop with the files of its green commit (the last commit that changed the ledger) and the count of `refactor:` commits since it, then runs verify-refactor — going to the draft PR only when both scripts exit 3
 - [x] `SKILL.md`'s Draft PR step refuses to push or open the PR while `git status --porcelain` is non-empty or `next-pending-refactor.sh` still finds a pending step
 - [x] `SKILL.md`'s script reference list documents `tick-ledger.sh --refactor-pending`, `next-pending-refactor.sh` and `clear-refactor-pending.sh`, each with what it prints and its exit codes
-- [ ] `CLAUDE.md`'s ledger invariant and `CONTEXT.md`'s **Ledger** entry say a checked step also carries a refactor-pending mark until its verify-refactor passes
+- [x] `CLAUDE.md`'s ledger invariant and `CONTEXT.md`'s **Ledger** entry say a checked step also carries a refactor-pending mark until its verify-refactor passes

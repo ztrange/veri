@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Unit tests for how the conductor drives the refactor-pending mark — like
 # skill-event-marks.test.sh and skill-suite-runs.test.sh this suite belongs to no single
-# script: its subject is skills/tdd/SKILL.md, read as text, the way the session that
-# follows it reads it.
+# script: its subject is prose, read as text, the way the session that follows it reads it.
+# skills/tdd/SKILL.md for the procedure itself, and — the way skill-suite-runs.test.sh reads
+# SKILL.md and CLAUDE.md together — this repository's own CLAUDE.md and CONTEXT.md for the
+# account of that procedure the next agent is handed before touching any of it.
 # Zero-dependency plain-shell asserts, same idiom as skill-event-marks.test.sh.
 #
 # Why this exists (issue #116): `tick-ledger.sh --refactor-pending`,
@@ -32,6 +34,9 @@
 #      out of before it calls it — has an entry for each of the three, saying what it
 #      prints (or, for the two that edit the ledger, the mark they write and strip) and
 #      which exit codes it can answer with.
+#   5. CLAUDE.md's ledger invariant and CONTEXT.md's **Ledger** entry each say that a ticked
+#      step also carries the mark until its verify-refactor passes, rather than that the tick
+#      alone means the step is done.
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -53,6 +58,14 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 # `records_of` and `section_of` are each spelled once.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
+# The repository's own two documents, each named the same way and for the same reason. They
+# are where an agent finds out what the ledger is (CONTEXT.md's glossary) and what may never
+# be broken about it (CLAUDE.md's invariants), which is why the mark has to be in them and
+# why a message about one must never spell the other's path.
+claude_md="CLAUDE.md"
+claude_path="$ROOT/$claude_md"
+context_md="CONTEXT.md"
+context_path="$ROOT/$context_md"
 
 # The mark itself, spelled once. Two probes of case 4 ask for this exact string — the entry for
 # the flag that writes it, and the entry for the script that strips it — and that they ask for
@@ -105,6 +118,18 @@ records_of() {
 # instructions — the whole document as records.
 instructions() {
   records_of < "$skill_path"
+}
+
+# claude_records / context_records — the repository's own two documents as records, whole.
+# Unscoped, unlike the three SKILL.md readers below: the case that reads them finds its record
+# by what the record says — the invariant that calls the ledger the source of truth, the
+# glossary entry headed `**Ledger**:` — and no other record in either file carries those
+# anchors, so there is no second branch an unscoped read could answer with.
+claude_records() {
+  records_of < "$claude_path"
+}
+context_records() {
+  records_of < "$context_path"
 }
 
 # section_of <heading> <closers-re> — the records of one section of the document: the lines
@@ -224,6 +249,34 @@ reads() {
   return 1
 }
 
+# record_of <document> <what it is> <anchor-regex>… — `reads`, for the repository's own two
+# documents: the first record of the global `records` matching every <anchor-regex>, into the
+# global `instruction`; otherwise one problem naming <document> and <what it is>, and a
+# non-zero return so the probes that follow are skipped rather than run against a stale read.
+#
+# Separate from `reads` rather than a flag on it, because the two fail with different
+# sentences: SKILL.md prescribes, so a record missing from it is a branch that no longer says
+# what to do, whereas these two describe, and a record missing from them is a fact this
+# repository no longer writes down. Naming the document is also the point — there are two of
+# them here, and a message that spelled SKILL.md's path would send the fix to a third file
+# that is already right.
+#
+# Fail closed for the same reason `reads` does: a renamed heading or a deleted entry has to
+# read as unreadable, not as an empty string that every probe then passes on.
+record_of() {
+  local where="$1" what="$2" line re
+  shift 2
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    instruction="$line"
+    return 0
+  done <<< "$records"
+  problems+=("$where has no $what — what it records about a ticked step could not be read")
+  return 1
+}
+
 # says <regex> <fact> / denies <regex> <fact> — one thing the `$instruction` just read must
 # carry, or must not, written as the regex of any wording that would carry it; `fact` names
 # it once when the probe is wrong.
@@ -282,6 +335,19 @@ says_exit_codes() {
     "never names exit 0, so nothing says what a call that did its work answers with, and the conductor is left inferring it from whether stdout came back empty"
   entry_says 'exits? 3' \
     "never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
+}
+
+# says_pending_until_verified <which record> — the two things each of the two repository
+# documents owes about a ticked step: the mark it wears, spelled, and the verification that is
+# the only thing that takes the mark off again. Both records owe the same pair and both
+# mislead the same way without it, so the pair is spelled once here and the two calls differ
+# only in which record they name. Asked of the `$instruction` `record_of` last read, the way
+# every other probe in this suite is asked of what its reader left.
+says_pending_until_verified() {
+  says "$mark" \
+    "$1 never spells the \`$mark\` mark, so this repository's own account of the ledger still says a tick means the step is finished, and the next agent to read it takes the mark back out as noise"
+  says 'verify-refactor' \
+    "$1 records the mark without naming verify-refactor, so nothing says what clears it and a ticked step's mark reads as something the ledger wears for ever"
 }
 
 # miss <fact> — one problem of the ordered probe below: <fact>, then the instruction it was
@@ -489,6 +555,35 @@ if records_from scripts_instructions \
     entry_says 'strip|remove|drop|clear|delete' \
       "never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
     says_exit_codes
+  fi
+fi
+report "$name"
+
+# 5. One criterion — the two documents that explain this repository to whoever touches it next
+#    record the mark too — and so one case. Cases 1–4 pin the procedure; this one pins the
+#    account of it. As they stand, CLAUDE.md's invariant says a ticked step is done ("ticked
+#    atomically with each step's green commit", full stop) and CONTEXT.md defines the ledger as
+#    the source of truth for which steps are done: read together they assert exactly the thing
+#    #116 found to be false — that a tick means tidied. Prose that contradicts the procedure is
+#    worse than prose that says nothing, because it is the account a human trusts, and an agent
+#    who re-derives the old rule from it deletes the mark as a stray character. One case,
+#    because it is one fact owed by two records and any fix to it is one edit to each.
+name="$claude_md's ledger invariant and $context_md's Ledger entry say a ticked step carries the refactor-pending mark until its verify-refactor passes"
+problems=()
+if records_from claude_records \
+    "$claude_md has no records to read — what this repository calls unbreakable about the ledger could not be checked"; then
+  # The invariant, found by the claim it makes rather than by the heading it sits under: it is
+  # the one record that calls the committed ledger the source of truth.
+  if record_of "$claude_md" 'ledger invariant' 'committed ledger' 'source of truth'; then
+    says_pending_until_verified "$claude_md's ledger invariant"
+  fi
+fi
+if records_from context_records \
+    "$context_md has no records to read — what this repository means by \"ledger\" could not be checked"; then
+  # The glossary entry, found by its own heading line, which opens the record: a bare `ledger`
+  # anchor would match the entries around it that use the word in passing.
+  if record_of "$context_md" 'Ledger glossary entry' '^\*\*ledger\*\*:'; then
+    says_pending_until_verified "$context_md's Ledger entry"
   fi
 fi
 report "$name"
