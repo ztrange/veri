@@ -56,13 +56,20 @@ report() {
   fi
 }
 
+# plain — stdin with emphasis marks and backticks dropped and the case folded, because
+# `**full suite**` and "full suite" are the same sentence. Both readers below normalise
+# through this, so a probe's regex is written one way and matches either document however
+# its author chose to mark the words up.
+plain() {
+  tr -d '*`' | tr '[:upper:]' '[:lower:]'
+}
+
 # doc_text <file> <heading-prefix> <from-regex> — the text of the first section of <file>
 # whose heading STARTS WITH the literal <heading-prefix>, up to the line before the next
 # heading of any level; from the first line matching <from-regex> when one is given, so a
-# claim about one sub-step is not answered by a sentence three sub-steps above it. Emphasis
-# marks and backticks are dropped and the case is folded, because `**full suite**` and "full
-# suite" are the same sentence; the lines are then joined onto one, so a claim split over a
-# line break still reads as one sentence.
+# claim about one sub-step is not answered by a sentence three sub-steps above it. The text
+# is normalised through `plain` and its lines are then joined onto one, so a claim split
+# over a line break still reads as one sentence.
 #
 # A literal prefix rather than a regex: the phase headings carry trailing prose after an em
 # dash, so the prefix is what identifies them, and a literal is what lets `need_text` below
@@ -74,7 +81,7 @@ doc_text() {
     in_s {
       if (!want && $0 ~ from) want = 1
       if (want) print
-    }' "$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+    }' "$1" | plain | tr '\n' ' '
 }
 
 # need_text <heading-prefix> [from-regex] — the SKILL.md section under <heading-prefix> into
@@ -95,13 +102,12 @@ says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
-# paragraphs <file> — the file's blank-line-separated paragraphs, one per line, marks
-# dropped and case folded like doc_text. CLAUDE.md is prose that wraps mid-sentence, so a
-# paragraph is the unit a claim about it can be asked of: a match on the whole file would
-# let "full suite" in one section answer for a leaf named in another.
+# paragraphs <file> — the file's blank-line-separated paragraphs, one per line, normalised
+# through `plain`. CLAUDE.md is prose that wraps mid-sentence, so a paragraph is the unit a
+# claim about it can be asked of: a match on the whole file would let "full suite" in one
+# section answer for a leaf named in another.
 paragraphs() {
-  awk 'BEGIN { RS = "" } { gsub(/\n/, " "); print }' "$1" |
-    tr -d '*`' | tr '[:upper:]' '[:lower:]'
+  awk 'BEGIN { RS = "" } { gsub(/\n/, " "); print }' "$1" | plain
 }
 
 # 1. One criterion — the two documents agree with the prompts about which leaves run the
