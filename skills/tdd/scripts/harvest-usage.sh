@@ -39,9 +39,14 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # by reading the tail: run-leaf.sh streams the leaf's events and then appends the extracted
 # result *text* after them (run-leaf.sh:48-50), so the record is never the last line of the
 # log it lives in. Lines that are not JSON objects — that appended text — are skipped, the
-# same way extract-result.sh skips them. That scan is a function so the two things this
-# program does — find the record, print the numbers out of it — are read one at a time, and
-# so the thing the rest of the script talks about has that name in the code too.
+# same way extract-result.sh skips them. Each of the two things this program does — find the
+# record, read the numbers out of it — is a function, so they are read one at a time and the
+# things the rest of the script talks about have those names in the code too. What is left at
+# the foot is one line composing them, which is the whole program said in one place.
+#
+# Note the apostrophe nobody may write inside this block: it is a single-quoted shell string,
+# so a `record's` in a comment or a docstring ends the program there and python is handed the
+# rest as argv.
 #
 # Collected into a variable rather than piped, so `set -e` sees python's status: a log with no
 # such record (a killed leaf) yields None here and reading its usage raises, so nothing is
@@ -64,13 +69,19 @@ def closing_result(path):
             record = obj           # last result record wins
     return record
 
-record = closing_result(sys.argv[1])
-usage = record["usage"]
-for key in ("duration_ms", "duration_api_ms", "num_turns", "total_cost_usd"):
-    print("%s=%s" % (key, record[key]))
-for key in ("input_tokens", "output_tokens",
-            "cache_read_input_tokens", "cache_creation_input_tokens"):
-    print("%s=%s" % (key, usage[key]))
+def usage_pairs(record):
+    """The eight numbers in one closing result record, as event.sh key=value arguments."""
+    usage = record["usage"]
+    pairs = []
+    for key in ("duration_ms", "duration_api_ms", "num_turns", "total_cost_usd"):
+        pairs.append("%s=%s" % (key, record[key]))
+    for key in ("input_tokens", "output_tokens",
+                "cache_read_input_tokens", "cache_creation_input_tokens"):
+        pairs.append("%s=%s" % (key, usage[key]))
+    return pairs
+
+for pair in usage_pairs(closing_result(sys.argv[1])):
+    print(pair)
 ' "$log")"
 
 # One argument per line, read into an array rather than word-split out of the string: a
