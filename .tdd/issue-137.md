@@ -5,5 +5,5 @@
 - [x] `docs-owed.test.sh` asserts docs-owed.sh's zero-debt exit against a sandbox it builds, not the real tree, so a script change leaving lines uncovered or a new tag leaves that suite green
 - [x] the generator's suite no longer judges the committed page: `page_is_current` and `page_checks_out` leave `make docs-test`, so a tag or an uncovered-line script commit leaves `make docs-test` green
 - [x] `make merge-gates` on a branch changing anything under `docs/` except `docs/walkthrough.html` alone (e.g. only `docs/docs-owed.sh`) runs every docs suite plus docs-fresh, pinned in `docs/tests/merge-gates.test.sh`
-- [ ] `make merge-gates` on a branch changing `docs/wt/` still fails on a stale page
+- [x] `make merge-gates` on a branch changing `docs/wt/` still fails on a stale page
 - [ ] CLAUDE.md (Commands, Testing idiom) and the `Makefile` / `docs/merge-gates.sh` headers say where each suite lives and which gate runs it, including the widened merge-gates selection
