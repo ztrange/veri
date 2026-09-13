@@ -300,9 +300,14 @@ else:
 
 ev_work="$(mktemp -d)"
 ev_log="$ev_work/.tdd/events.jsonl"
+# The name and the command are each written once, then used both to launch and to expect —
+# the shape `$ev_cmd` already had. Spelled a second time in the assertion instead, the name
+# could drift from the launched one and the case would go green on a leaf it never ran; and
+# the expected attempt below is 2 only because THIS name ends in `-2`.
+ev_name=revise-green-2
 ev_cmd=(env VERI_TIMEOUT=1200 "$stub/leaf-ok")
 ( cd "$ev_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
-    "$SUP" revise-green-2 "${ev_cmd[@]}" ) >/dev/null 2>&1
+    "$SUP" "$ev_name" "${ev_cmd[@]}" ) >/dev/null 2>&1
 ev_code=$?
 # Each field read once, into a variable the assertion and the failure message share — the
 # capture-then-compare shape cases 9 and 11 already use. Read twice, the line a failure
@@ -311,7 +316,7 @@ ev_got_name="$(launch_field    "$ev_log" name)"
 ev_got_cmd="$(launch_field     "$ev_log" cmd)"
 ev_got_attempt="$(launch_field "$ev_log" attempt)"
 { [[ "$ev_code" == 0 ]] \
-  && [[ "$ev_got_name"    == revise-green-2 ]] \
+  && [[ "$ev_got_name"    == "$ev_name" ]] \
   && [[ "$ev_got_cmd"     == "${ev_cmd[*]}" ]] \
   && [[ "$ev_got_attempt" == 2 ]]; } && ok \
   || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$ev_code, name=$ev_got_name, cmd=$ev_got_cmd, attempt=$ev_got_attempt)"
