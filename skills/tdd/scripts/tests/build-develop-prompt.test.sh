@@ -361,6 +361,37 @@ prompt_says "$refactor" "does not state that a break in an untouched suite surfa
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor says to run the suites covering the touched files rather than the full suite, names verify-refactor as where the full suite runs and states the untouched-suite trade-off (${problems#; })"
 
+# 14. HOW a developer leaf runs whichever suite cases 11–13 sent it to (issue #144). Those
+#     cases pin which command each phase spends; this one pins that the leaf waits for it. A
+#     #137 refactor leaf reported with its `make docs-test` still running in the background,
+#     so the conductor read a report the suite had not answered yet and re-ran it — ~5 min
+#     spent twice for one result. Backgrounding is exactly the shortcut the cheaper runs of
+#     cases 11–13 make tempting, so the rule holds in **every** phase and is asked of every
+#     built developer prompt: red, green, refactor and revise. Each is its own miss, so a
+#     template that drops the sentence is named rather than covered for by the other three.
+#
+#     Built the way case 11 builds Red's, under the grep constraint reasoned about there:
+#     one bounded `[^.]{0,N}` per branch. The prompts read are cases 1–4's — same phases,
+#     same arguments, so there is one invocation each and those cases own the exit-0 checks.
+#     `only after` rather than any report/exit proximity, because `git diff --exit-code`
+#     already sits a few words from "report" in develop-red: a loose probe would answer yes
+#     for a prompt that never mentions waiting.
+runs_in_foreground() {  # runs_in_foreground <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "develop-$label never says to run test commands in the foreground" \
+    -iE -e 'foreground'
+  prompt_says "$prompt" "develop-$label never says to report only after they exit" \
+    -iE -e '(only after|not until|never before)[^.]{0,60}(exit|exits|exited|finish)'
+}
+
+problems=""
+runs_in_foreground red "$red"
+runs_in_foreground green "$green"
+runs_in_foreground refactor "$refactor"
+runs_in_foreground revise "$revise"
+[[ -z "$problems" ]] \
+  && ok || no "every built developer prompt says to run test commands in the foreground and report only after they exit (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
