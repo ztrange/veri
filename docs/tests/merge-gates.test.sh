@@ -108,10 +108,13 @@ plans "a change under skills/ owes nothing" 'nothing to run' 'docs-fresh' \
 #     out, the same way skills/ is: a branch whose changes outside the owed-nothing set are
 #     only under docs/adr/ owes no gate. One case for both paths because it is one rule and
 #     not two — the branch touches a script and an ADR together and still owes nothing.
+#     The sandbox carries no docs/adr — nothing in the pipeline reads one — so the case
+#     makes the directory and then changes the ADR the way every other case changes its
+#     file. What the decision reads is the path; the content is never opened, so there is
+#     none to write.
 plans "a change under skills/ and docs/adr/ owes nothing" 'nothing to run' 'docs-fresh' \
   bash -c 'touch_file skills/tdd/scripts/classify-bail.sh
-           mkdir -p docs/adr
-           printf "# 0017. a decision\n" > docs/adr/0017-a-decision.md'
+           mkdir -p docs/adr && touch_file docs/adr/0017-a-decision.md'
 
 # 3. the page itself changed by hand: freshness catches a hand edit. Fresh only.
 plans "the page was edited: freshness only" 'docs-fresh' 'docs-test' \
