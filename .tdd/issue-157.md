@@ -4,4 +4,4 @@
 - [x] A suite that ends in its count line with `0 failed` and exits 0 still passes, and a suite that prints its count line but exits non-zero still fails
 - [x] A suite added under `skills/tdd/scripts/tests/` gets the check with no edit to the runner
 - [x] `make test`'s output still shows each suite's lines as they are printed, not only after the suite ends
-- [ ] CLAUDE.md "Testing idiom" says the runner enforces the count line, and why an exit code alone is not trusted
+- [x] CLAUDE.md "Testing idiom" says the runner enforces the count line, and why an exit code alone is not trusted
