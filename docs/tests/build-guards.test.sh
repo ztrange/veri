@@ -1682,6 +1682,17 @@ commentary owed' \
 refuses "unknown reference id is refused" "unknown primer ref" \
   bash -c 'sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/"'
 
+# 4b. and the half of that guard the reversal put at risk (issue #125). Case 4 typos a ref
+#     in a tree that is otherwise clean, so the build has no other reason to exit 0 and
+#     nothing distinguishes "the typo is fatal" from "the build had nothing to tolerate".
+#     Since case 3b there IS such a reason: a gap in the commentary now buys exit 0 and a
+#     line on stderr. So this case puts both in the same tree — the uncovered line AND the
+#     typo — and demands the build still refuse. A typo is not debt: the page can ship
+#     prose nobody has written yet, but not a tooltip that points at nothing.
+refuses "a dead reference in a tree that also owes commentary is refused" "unknown primer ref" \
+  bash -c 'append_line_to_script "$SAMPLE_SCRIPT"
+           sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-stirct|set -euo pipefail}}/"'
+
 # 5. expansion guard — a reference that never closes must not be emitted literally
 refuses "unterminated reference is refused" "unterminated reference" \
   bash -c 'sed_commentary "s/{{p-strict|set -euo pipefail}}/{{p-strict|set -euo pipefail/"'
