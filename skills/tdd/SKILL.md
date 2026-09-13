@@ -123,12 +123,6 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
-- `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
-  refactor is unverified**: the description of the first `- [x]` step carrying the
-  ` ⟂ refactor pending` mark, with the mark stripped, so what comes back is the same text
-  `next-unchecked.sh` hands the loop and the tick wrappers match on. **Exit 0** when it
-  printed one; **exit 3** with empty stdout when no step carries the mark — every green step
-  has been tidied, so a resume has no refactor loop to re-enter.
 - `$S/tick-ledger.sh [--refactor-pending] .tdd/issue-<n>.md '<substring>'` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). **Exit 3** if no unchecked step matched the substring — the file is left untouched,
@@ -137,12 +131,18 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   the green commit records the step as **green but not yet tidied**; that is the flag the
   green PASS ticks with, and the one the pin path must tick without — a pinned step runs no
   refactor loop, so a mark left there would never be cleared.
-- `$S/clear-refactor-pending.sh .tdd/issue-<n>.md '<substring>'` — the counterpart of that
-  flag: **strip the ` ⟂ refactor pending` mark** from the first ticked step matching the
-  substring, in place, once that step's refactor has been verified. Nothing on stdout.
-  **Exit 0** when it cleared the mark; **exit 3** when no ticked step both matched and
-  carried it — the file is left byte-identical, because nothing is written unless the
-  transform found its line.
+- `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` — print the **first ticked step whose
+  refactor is unverified**: the description of the first `- [x]` step carrying the
+  ` ⟂ refactor pending` mark, with the mark stripped, so what comes back is the same text
+  `next-unchecked.sh` hands the loop and the tick wrappers match on. **Exit 0** when it
+  printed one; **exit 3** with empty stdout when no step carries the mark — every green step
+  has been tidied, so a resume has no refactor loop to re-enter.
+- `$S/clear-refactor-pending.sh .tdd/issue-<n>.md '<substring>'` — the counterpart of
+  `tick-ledger.sh --refactor-pending`: **strip the ` ⟂ refactor pending` mark** from the first
+  ticked step matching the substring, in place, once that step's refactor has been verified.
+  Nothing on stdout. **Exit 0** when it cleared the mark; **exit 3** when no ticked step both
+  matched and carried it — the file is left byte-identical, because nothing is written unless
+  the transform found its line.
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
   non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
