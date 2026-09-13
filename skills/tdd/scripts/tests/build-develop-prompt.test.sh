@@ -376,7 +376,7 @@ prompt_says "$refactor" "does not state that a break in an untouched suite surfa
 #     `only after` rather than any report/exit proximity, because `git diff --exit-code`
 #     already sits a few words from "report" in develop-red: a loose probe would answer yes
 #     for a prompt that never mentions waiting.
-runs_in_foreground() {  # runs_in_foreground <phase label> <prompt>
+demands_foreground() {  # demands_foreground <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "develop-$label never says to run test commands in the foreground" \
     -iE -e 'foreground'
@@ -385,10 +385,10 @@ runs_in_foreground() {  # runs_in_foreground <phase label> <prompt>
 }
 
 problems=""
-runs_in_foreground red "$red"
-runs_in_foreground green "$green"
-runs_in_foreground refactor "$refactor"
-runs_in_foreground revise "$revise"
+demands_foreground red "$red"
+demands_foreground green "$green"
+demands_foreground refactor "$refactor"
+demands_foreground revise "$revise"
 [[ -z "$problems" ]] \
   && ok || no "every built developer prompt says to run test commands in the foreground and report only after they exit (${problems#; })"
 
