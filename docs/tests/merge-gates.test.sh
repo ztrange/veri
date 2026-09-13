@@ -56,18 +56,21 @@ export -f touch_file
 GATES=auto
 plans() {
   local name="$1" want="$2" unwanted="$3"; shift 3
-  local d out code w ok=1; d="$(repo)"
+  local d out code w missing=""; d="$(repo)"
   ( cd "$d" && "$@" && git add -A && git commit -qm 'work' --allow-empty )
   out="$(cd "$d" && VERI_GATES="$GATES" VERI_GATES_PLAN=1 VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?
+  # one pass over the wants, collecting the unmet ones as the report lines they become: what
+  # decides the case is exactly what the failure needs to print, so it is gathered once
+  # rather than the list walked again. Empty means every want was found.
   while IFS= read -r w; do
-    [[ -z "$w" || "$out" == *"$w"* ]] || ok=0
+    [[ -z "$w" || "$out" == *"$w"* ]] || missing+="    missing:  $w"$'\n'
   done <<< "$want"
-  if [[ "$code" == 0 && "$ok" == 1 && ( -z "$unwanted" || "$out" != *"$unwanted"* ) ]]; then
+  if [[ "$code" == 0 && -z "$missing" && ( -z "$unwanted" || "$out" != *"$unwanted"* ) ]]; then
     pass=$((pass + 1))
   else
     fail=$((fail + 1))
     echo "FAIL - $name (exit $code)"
-    while IFS= read -r w; do echo "    want:     $w"; done <<< "$want"
+    printf '%s' "$missing"
     [[ -n "$unwanted" ]] && echo "    not:      $unwanted"
     echo "$out" | sed 's/^/    | /'
   fi
