@@ -100,16 +100,18 @@ repo() {
   cat >> "$d/docs/wt/commentary.py" <<'PY'
 
 # ── appended by docs/tests/docs-owed.test.sh in the disposable copy it builds ──
-import os as _os
-_wt = _os.path.dirname(_os.path.abspath(__file__))
-_scripts = _os.path.join(_os.path.dirname(_os.path.dirname(_wt)),
-                         "skills", "tdd", "scripts")
+# Paths and the line count are spelled the way docs/build-walkthrough.py spells them
+# (its HERE/ROOT/SCRIPTS_DIR, its len(read_text().splitlines())), so the end this
+# stretches a chunk to is the same number the build compares it against.
+import pathlib as _pathlib
+_HERE = _pathlib.Path(__file__).resolve().parent.parent   # docs/wt/ -> docs/
+_ROOT = _HERE.parent
+_SCRIPTS_DIR = _ROOT / "skills" / "tdd" / "scripts"
 for _spec in SCRIPTS:
-    _path = _os.path.join(_scripts, _spec["file"])
-    if not _os.path.exists(_path):
+    _path = _SCRIPTS_DIR / _spec["file"]
+    if not _path.exists():
         continue
-    with open(_path) as _f:
-        _total = sum(1 for _ in _f)
+    _total = len(_path.read_text().splitlines())
     _last = _spec["chunks"][-1]
     if _total > _last["lines"][1]:
         _last["lines"] = (_last["lines"][0], _total)
