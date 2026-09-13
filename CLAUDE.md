@@ -119,8 +119,11 @@ keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a c
 Match that style rather than introducing a framework.
 
 **A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and gets a
-recipe line in `make docs-test`. `make test` is what every veri leaf runs after every edit,
-so a docs suite under its glob taxes veri's development with a tool that is not functional
+recipe line in `make docs-test`. `make test` is the **full suite**, and three leaves per step
+run it: `develop-green` once before it reports, and the two blind verifiers (verify-green and
+verify-refactor). The red and refactor leaves run one suite instead — the one holding the new
+case, the ones covering the files a transform touched (#144) — so a docs suite under `make
+test`'s glob still taxes every step three times over, with a tool that is not functional
 (ADR 0016). `docs-guard-filter.test.sh` and `docs-owed.test.sh` were moved out on
 2026-09-12 for that reason: together ~30 s of an 81 s `make test`.
 
