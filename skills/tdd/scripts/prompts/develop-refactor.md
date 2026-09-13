@@ -35,8 +35,8 @@ scope, however tempting.
    conventions out of the repository** at the top of this prompt, from the files that are
    already there.
 3. The full suite runs at verify-refactor, on the settled result. The trade is that a break
-   in an untouched suite surfaces there, as a REJECT you answer by revising, rather than at
-   the transform that caused it.
+   in an untouched suite surfaces there, as a REJECT the revise loop answers, rather than
+   at the transform that caused it.
 4. **No untested generality.** Generality is earned by triangulation — another test
    demanding it — never hand-written here. Do not add options, flags, parameters or
    abstraction no existing test requires.
