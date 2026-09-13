@@ -84,6 +84,24 @@ print(obj[key] if key in obj else "<<missing>>")
 ' "$1" "$2" 2>/dev/null
 }
 
+# jevents <file> — print the `event` value of every line in the file, in file order, one per
+# line: the log read the way a reader of a whole run reads it, rather than `jget`'s single
+# first line. A line that is not a JSON object prints `<<unparseable>>` and a line without the
+# key prints `<<missing>>`, so a broken line is visible in its own position instead of
+# collapsing the sequence and being mistaken for a missing call.
+jevents() {
+  python3 -c '
+import sys, json
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        print("<<unparseable>>")
+        continue
+    print(obj.get("event", "<<missing>>") if isinstance(obj, dict) else "<<unparseable>>")
+' "$1" 2>/dev/null
+}
+
 # want_field <file> <key> <expected> — one field probe, appended to the caller's `problems`.
 want_field() {
   local file="$1" key="$2" expected="$3" got
@@ -183,6 +201,41 @@ elif want_parses "$noctx_log"; then
   want_field "$noctx_log" event resume
 fi
 rm -rf "$noctx_work"
+report "$name"
+
+# 3. The log accumulates. One call is one line, but a run is many calls, and what makes the
+#    file a log rather than a note is that the second call adds to what the first wrote: the
+#    conductor's marks arrive as separate processes, each one a fresh `event.sh`, so a writer
+#    that opened the file for writing instead of for appending would leave a file holding
+#    only whichever mark came last — the same file, the same single parseable line, and every
+#    probe of case 1 still green. Three calls with three distinct event names, made in a
+#    directory that has no `.tdd` at all, so the first call is also the one that has to create
+#    the log; the pin is the whole sequence in the order the calls were made, which a
+#    truncating writer cannot produce and a writer that prepended would produce reversed.
+name="successive calls accumulate: the first creates the log and each later one appends, leaving one line per call in the order they happened"
+problems=()
+acc_work="$(mktemp -d)"
+acc_log="$acc_work/.tdd/events.jsonl"
+acc_want="step-start pin step-done"
+
+for ev in step-start pin step-done; do
+  ( cd "$acc_work" && env VERI_ISSUE=107 VERI_ACTOR=conductor VERI_PHASE=red VERI_STEP=3 \
+      VERI_ATTEMPT=1 "$EVENT" "$ev" ) >/dev/null 2>&1 ||
+    problems+=("want exit 0 from the $ev call, got $?")
+done
+
+if [[ ! -f "$acc_log" ]]; then
+  problems+=("want the log created by the first call, but no .tdd/events.jsonl under $acc_work")
+else
+  # The `event` field of each line, joined with spaces so one probe reports the whole
+  # sequence: `tr` turns the newlines into spaces and `${acc_got% }` drops the trailing one
+  # the last newline leaves behind.
+  acc_got="$(jevents "$acc_log" | tr '\n' ' ')"
+  acc_got="${acc_got% }"
+  [[ "$acc_got" == "$acc_want" ]] ||
+    problems+=("want the events $(printf '%q' "$acc_want"), got $(printf '%q' "$acc_got")")
+fi
+rm -rf "$acc_work"
 report "$name"
 
 echo "----"
