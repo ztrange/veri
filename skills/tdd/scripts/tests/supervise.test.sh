@@ -291,10 +291,17 @@ explicit_window="$(killed_window hb-explicit 5)"
 #     `launch` line rather than asserting on the file's only line — the `retry` and `exit`
 #     marks land in this same file and must not turn this case red.
 #
-# launch_field <log> <key> — the value of <key> on the log's one `launch` line, or a
+# event_field <log> <event> <key> — the value of <key> on the log's one <event> line, or a
 # diagnostic in `<<…>>` when there is no such line, more than one, or no log at all. python3
 # rather than jq, the dependency event.test.sh and extract-result.sh already rely on.
-launch_field() {
+#
+# The event is a parameter because cases 12 and 13 ask the same question of `launch` and of
+# `retry`, and one probe answering both is one probe to trust: a bug in the counting or in
+# the JSON parse cannot now be fixed in the copy one case reads and left standing in the
+# other's. Exactly one match is demanded in both, which says two things at once — the log
+# holds a line of that kind, and it holds only one, so a `launch` written per attempt or a
+# `retry` written per poll would be caught rather than read past.
+event_field() {
   python3 -c '
 import sys, json
 hits = []
@@ -303,13 +310,13 @@ for line in open(sys.argv[1]).read().splitlines():
         obj = json.loads(line)
     except Exception:
         continue
-    if isinstance(obj, dict) and obj.get("event") == "launch":
+    if isinstance(obj, dict) and obj.get("event") == sys.argv[2]:
         hits.append(obj)
 if len(hits) != 1:
-    print("<<%d launch lines>>" % len(hits))
+    print("<<%d %s lines>>" % (len(hits), sys.argv[2]))
 else:
-    print(hits[0].get(sys.argv[2], "<<missing>>"))
-' "$1" "$2" 2>/dev/null || echo '<<no event log>>'
+    print(hits[0].get(sys.argv[3], "<<missing>>"))
+' "$1" "$2" "$3" 2>/dev/null || echo '<<no event log>>'
 }
 
 ev_work="$(mktemp -d)"
@@ -326,9 +333,9 @@ ev_code=$?
 # Each field read once, into a variable the assertion and the failure message share — the
 # capture-then-compare shape cases 9 and 11 already use. Read twice, the line a failure
 # reports would be a second reading of the log rather than the one that failed.
-ev_got_name="$(launch_field    "$ev_log" name)"
-ev_got_cmd="$(launch_field     "$ev_log" cmd)"
-ev_got_attempt="$(launch_field "$ev_log" attempt)"
+ev_got_name="$(event_field    "$ev_log" launch name)"
+ev_got_cmd="$(event_field     "$ev_log" launch cmd)"
+ev_got_attempt="$(event_field "$ev_log" launch attempt)"
 { [[ "$ev_code" == 0 ]] \
   && [[ "$ev_got_name"    == "$ev_name" ]] \
   && [[ "$ev_got_cmd"     == "${ev_cmd[*]}" ]] \
@@ -356,30 +363,9 @@ ev_got_attempt="$(launch_field "$ev_log" attempt)"
 #     number in the supervisor's wording is the elapsed silence, which the poll interval
 #     makes a race, so the assertion globs over that one and pins the words and the window
 #     the wording carries (supervise.sh:112).
-#
-# retry_field <log> <key> — the value of <key> on the log's one `retry` line, or a
-# diagnostic in `<<…>>` when there is no such line, more than one, or no log at all. The
-# same shape as launch_field above, and for the same reasons; the two differ only in the
-# event they pick, which is a merge for the refactor to make rather than a generality this
-# step asked for. A count of exactly one earns its place twice here: it also says a budget
-# of one retry wrote one mark, not one per attempt.
-retry_field() {
-  python3 -c '
-import sys, json
-hits = []
-for line in open(sys.argv[1]).read().splitlines():
-    try:
-        obj = json.loads(line)
-    except Exception:
-        continue
-    if isinstance(obj, dict) and obj.get("event") == "retry":
-        hits.append(obj)
-if len(hits) != 1:
-    print("<<%d retry lines>>" % len(hits))
-else:
-    print(hits[0].get(sys.argv[2], "<<missing>>"))
-' "$1" "$2" 2>/dev/null || echo '<<no event log>>'
-}
+#     The log is read through `event_field` above, the probe case 12 also uses; here the
+#     one line it demands says as well that a budget of one retry wrote one mark, not one
+#     per attempt.
 
 rt_work="$(mktemp -d)"
 rt_log="$rt_work/.tdd/events.jsonl"
@@ -390,7 +376,7 @@ rt_code=$?
 # 12's shape. Read twice, a failure would report a second reading of the log, not the one
 # that failed. The exit code is asserted alongside so a case that went green on a leaf which
 # never actually recovered would still be caught.
-rt_cause="$(retry_field "$rt_log" cause)"
+rt_cause="$(event_field "$rt_log" retry cause)"
 { [[ "$rt_code" == 0 ]] \
   && [[ "$rt_cause" == 'no heartbeat for '*' (window 1s)' ]]; } && ok \
   || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$rt_code, cause=$rt_cause)"
