@@ -371,7 +371,7 @@ heartbeat_kill() { [[ "$1" == "no heartbeat for "*" (window ${2}s)" ]]; }
 #     recovered is no reason at all, so a recovered run otherwise leaves no record anywhere
 #     of why it had to be relaunched. The `launch` mark above cannot cover it either: that
 #     one is written once per supervision, outside the retry loop, so a second attempt
-#     passes it by (supervise.sh:150-153).
+#     passes it by (supervise.sh:165-168).
 #
 #     This is the only case in this file that lets the leaf reach a second attempt, so it
 #     is also the only one that does not go through `sup` — the helper pins
@@ -427,7 +427,7 @@ retry_cause="$(event_field "$retry_work" retry cause)"
 #
 #     The seconds are pinned as a count that exists and is plain digits on a fast leaf, and
 #     on the stuck arm as one that has reached the window the leaf was killed on: a silence
-#     of more than `$exit_window` seconds has to have elapsed before the kill (supervise.sh:110-115),
+#     of more than `$exit_window` seconds has to have elapsed before the kill (supervise.sh:120-127),
 #     so a hardcoded 0 or a field carrying something other than elapsed time fails there.
 
 exit_work="$(mktemp -d)"
@@ -435,7 +435,7 @@ exit_window=2
 
 # exit_run <arm> <heartbeat> <leaf> — supervise one leaf in its own directory under
 # $exit_work, named for the arm. The leaf is called `develop-red` in every arm: leaf-role.sh
-# has to be able to read the name or nothing is logged at all (supervise.sh:140-148), and
+# has to be able to read the name or nothing is logged at all (supervise.sh:141-154), and
 # nothing in this case is about which name it is. The hard timeout is well clear of every
 # arm, so the stuck arm dies on the heartbeat and its cause says so.
 exit_run() {
