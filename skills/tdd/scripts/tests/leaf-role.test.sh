@@ -67,27 +67,38 @@ assignment() {
   printf '%s\n' '<<missing>>'
 }
 
+# capture <leaf-name> — run the mapping once and leave its three results in the caller's
+# locals `code`, `out_text` and `err_text`. Both probes below judge all three, and collecting
+# them is temp-file bookkeeping that would otherwise be spelled identically in each: a probe
+# that forgot the `2>` would let a diagnostic escape to the suite's own stderr and still pass.
+# The assignments are deliberately unqualified — bash scoping is dynamic, so they land in the
+# `local` the calling probe declared, and nothing here leaks into the next case.
+capture() {
+  local out err
+  out="$(mktemp)" err="$(mktemp)"
+  "$LEAF_ROLE" "$1" >"$out" 2>"$err" && code=0 || code=$?
+  out_text="$(cat "$out")" err_text="$(cat "$err")"
+  rm -f "$out" "$err"
+}
+
 # role_probe <leaf-name> <KEY=want> … — one leaf name the mapping must answer, and the
 # assignments its answer must contain. Every probe also asserts exit 0 and silence on stderr:
 # a name the mapping knows is not a diagnosable event, and a script that printed its answer
 # to stderr would otherwise pass while `env $(…)` at the call site received nothing.
 role_probe() {
   local leaf="$1"; shift
-  local out err code printed want key expected got
-  out="$(mktemp)" err="$(mktemp)"
-  "$LEAF_ROLE" "$leaf" >"$out" 2>"$err" && code=0 || code=$?
+  local code out_text err_text want key expected got
+  capture "$leaf"
   [[ "$code" == 0 ]] ||
     problems+=("$leaf: want exit 0, got $code")
-  [[ ! -s "$err" ]] ||
-    problems+=("$leaf: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
-  printed="$(cat "$out")"
+  [[ -z "$err_text" ]] ||
+    problems+=("$leaf: want nothing on stderr, got: $(printf '%q' "$err_text")")
   for want in "$@"; do
     key="${want%%=*}" expected="${want#*=}"
-    got="$(assignment "$printed" "$key")"
+    got="$(assignment "$out_text" "$key")"
     [[ "$got" == "$expected" ]] ||
-      problems+=("$leaf: want $key=$(printf '%q' "$expected"), got $(printf '%q' "$got") (printed: $(printf '%q' "$printed"))")
+      problems+=("$leaf: want $key=$(printf '%q' "$expected"), got $(printf '%q' "$got") (printed: $(printf '%q' "$out_text"))")
   done
-  rm -f "$out" "$err"
 }
 
 # refusal_probe <leaf-name> — a name whose leading word is none of the three the mapping
@@ -101,19 +112,16 @@ role_probe() {
 # names neither what refused nor what it choked on.
 refusal_probe() {
   local leaf="$1"
-  local out err code stderr_text
-  out="$(mktemp)" err="$(mktemp)"
-  "$LEAF_ROLE" "$leaf" >"$out" 2>"$err" && code=0 || code=$?
-  stderr_text="$(cat "$err")"
+  local code out_text err_text
+  capture "$leaf"
   [[ "$code" == 2 ]] ||
     problems+=("$leaf: want exit 2, got $code")
-  [[ ! -s "$out" ]] ||
-    problems+=("$leaf: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ "$stderr_text" == *leaf-role* ]] ||
-    problems+=("$leaf: want the script named on stderr, got: $(printf '%q' "$stderr_text")")
-  [[ "$stderr_text" == *"$leaf"* ]] ||
-    problems+=("$leaf: want the name on stderr, got: $(printf '%q' "$stderr_text")")
-  rm -f "$out" "$err"
+  [[ -z "$out_text" ]] ||
+    problems+=("$leaf: want nothing on stdout, got: $(printf '%q' "$out_text")")
+  [[ "$err_text" == *leaf-role* ]] ||
+    problems+=("$leaf: want the script named on stderr, got: $(printf '%q' "$err_text")")
+  [[ "$err_text" == *"$leaf"* ]] ||
+    problems+=("$leaf: want the name on stderr, got: $(printf '%q' "$err_text")")
 }
 
 # 1. The whole of this step's criterion, as one case: the three leaf names the criterion
