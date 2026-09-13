@@ -96,18 +96,27 @@ for pair in usage_pairs(record):
     print(pair)
 ' "$log")" || status=$?
 
-# Absence is not zero: no record means no `usage` line at all, and a line on stderr naming
-# this program and the leaf so a reader of a six-leaf run knows which one went unaccounted
-# for. Exit 3 rather than 0, the code the rest of the scripts use for nothing to do.
-if [[ "$status" == 3 ]]; then
-  echo "harvest-usage.sh: no closing result record in $log — no usage event appended for $name" >&2
-  exit 3
-fi
+# What the block reported, all three outcomes in one place and in the order of their codes. As
+# an `if` for the one interesting code plus a negated test for the rest, the reader had to hold
+# "everything that is not 3" in their head across the branch between them to see that 0 was the
+# only status that carried on; here the fallthrough is a line of its own.
+case "$status" in
+  # The eight numbers are in `$pairs`. Everything below this block writes them out.
+  0) ;;
 
-# Any other non-zero is python failing at something it was expected to do — a record missing
-# one of the eight keys, an unreadable log — and is passed on rather than swallowed by the
-# branch above, which would report a broken harvester as a killed leaf.
-[[ "$status" == 0 ]] || exit "$status"
+  # Absence is not zero: no record means no `usage` line at all, and a line on stderr naming
+  # this program and the leaf so a reader of a six-leaf run knows which one went unaccounted
+  # for. Exit 3 rather than 0, the code the rest of the scripts use for nothing to do.
+  3)
+    echo "harvest-usage.sh: no closing result record in $log — no usage event appended for $name" >&2
+    exit 3
+    ;;
+
+  # Any other non-zero is python failing at something it was expected to do — a record missing
+  # one of the eight keys, an unreadable log — and is passed on rather than folded into the
+  # arm above, which would report a broken harvester as a killed leaf.
+  *) exit "$status" ;;
+esac
 
 # One argument per line, read into an array rather than word-split out of the string: a
 # `key=value` is one argument to event.sh whatever is in the value, and splitting on spaces
