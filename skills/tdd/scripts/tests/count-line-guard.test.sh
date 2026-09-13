@@ -49,6 +49,13 @@ GREEN_FIXTURE_PATH="$ROOT/$GREEN_FIXTURE"
 RED_FIXTURE='skills/tdd/scripts/tests/fixtures/live-suites/ends-red.test.sh'
 RED_FIXTURE_PATH="$ROOT/$RED_FIXTURE"
 
+# A suite that says something and then goes on working, for case 4: it prints one FAIL line,
+# waits, and only then reaches its count line. Repo-relative and nothing else — this fixture
+# is never run on its own, only through the recipe, because when its lines appear is a fact
+# about the runner rather than about the fixture.
+PAUSE_FIXTURE='skills/tdd/scripts/tests/fixtures/streaming/pauses-midway.test.sh'
+PAUSE_LINE='FAIL - a suite says something before it is finished'
+
 # The runner itself, and the directory its glob looks in. Case 3 needs both by name because
 # it stands the runner up somewhere else: the only way to watch what the recipe does with a
 # suite that was not there before is to add one, and adding one here would hand `make test` a
@@ -229,6 +236,85 @@ name="a suite added under skills/tdd/scripts/tests/ gets the count-line check wi
 problems=()
 
 probe_added_suite_gets_the_check
+
+report "$name"
+
+# probe_run_showed_the_line_while_the_suite_ran — the criterion, and the only way to ask it
+# is to watch a run rather than read one: a runner that collects a suite's output and prints
+# it when the suite is over leaves exactly the same text behind as one that streams it. So
+# the run goes into the background writing to a file, and the file is read ten times a
+# second while it fills.
+#
+# What counts as an answer is the pair, not the FAIL line alone: the fixture's own count line
+# is the last thing it prints, so output holding the FAIL line and NOT the count line can
+# only have been written before the suite finished. A runner that buffered would put both
+# there in the same instant, and no look finds one without the other.
+#
+# The loop ends when the count line lands, which is the suite finishing; the 30 s cap is
+# there so a runner that hangs is reported rather than hanging this suite with it.
+probe_run_showed_the_line_while_the_suite_ran() {
+  local looks=0 count_line='^[0-9]+ passed, [0-9]+ failed$' mk
+  stream_log="$(mktemp)" || {
+    problems+=("could not make a file to collect a run's output into, so the criterion went unasked")
+    return
+  }
+
+  local started=$SECONDS
+  make -C "$ROOT" test TESTS="$PAUSE_FIXTURE" > "$stream_log" 2>&1 &
+  mk=$!
+  while :; do
+    if grep -qF "$PAUSE_LINE" "$stream_log"; then
+      grep -Eq "$count_line" "$stream_log" || { streamed=yes; break; }
+    fi
+    grep -Eq "$count_line" "$stream_log" && break
+    looks=$((looks + 1))
+    if [[ "$looks" -gt 300 ]]; then
+      problems+=("the run had still not printed the fixture's count line after 30s; gave up on it")
+      kill "$mk" 2>/dev/null
+      break
+    fi
+    sleep 0.1
+  done
+  wait "$mk" 2>/dev/null
+  stream_elapsed=$((SECONDS - started))
+
+  [[ "$streamed" == yes ]] || {
+    if grep -qF "$PAUSE_LINE" "$stream_log"; then
+      problems+=("the suite's FAIL line was never there without its count line beside it, so the run had shown nothing until the suite was over; it said: $(flat "$(cat "$stream_log")")")
+    else
+      problems+=("the run never showed the suite's FAIL line at all; it said: $(flat "$(cat "$stream_log")")")
+    fi
+  }
+}
+
+# probe_that_run_could_have_told_the_difference — the premises of the probe above, asked of
+# the run it already made rather than of a second one, which is why it comes after it: the
+# fixture is slow on purpose and a second run of it would be paid by every `make test`.
+# Both premises are load-bearing in the same direction — a fixture that stopped pausing
+# leaves the two lines microseconds apart, and one whose count line stopped matching the
+# pattern above leaves "without its count line" true forever — and either would let a
+# buffering runner through.
+probe_that_run_could_have_told_the_difference() {
+  [[ "$stream_elapsed" -ge 1 ]] ||
+    problems+=("the whole run took under a second, so the fixture no longer pauses and there was no window in which a streamed line and a buffered one differ")
+  grep -Eq '^[0-9]+ passed, [0-9]+ failed$' "$stream_log" ||
+    problems+=("the fixture's count line never matched the pattern the probe above waits for, so 'the FAIL line without the count line' was true of every look and says nothing: $(flat "$(cat "$stream_log")")")
+  rm -f "$stream_log"
+}
+
+# 4. The recipe still shows each suite's lines as they are printed. Cases 1 to 3 are all
+#    satisfied by a runner that collects a suite's output and reads it once the suite is
+#    over — that is the obvious way to ask a suite for its last line — and such a runner
+#    turns `make test` into 70 s of silence followed by everything at once. This case is
+#    what stops that trade.
+name="make test shows a suite's line while that suite is still running"
+problems=()
+stream_log=""
+stream_elapsed=0
+streamed=no
+
+probe_run_showed_the_line_while_the_suite_ran
+probe_that_run_could_have_told_the_difference
 
 report "$name"
 
