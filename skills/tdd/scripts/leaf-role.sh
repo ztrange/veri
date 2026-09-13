@@ -45,6 +45,16 @@ case "$actor_word" in
   *) echo "leaf-role: unknown leaf name '$name' (want develop-*|revise-*|verify-*)" >&2; exit 2 ;;
 esac
 
+# A name with no `-` at all carries no phase, and is refused for the same reason the unknown
+# word above is: the answer would be invented rather than read. The invention is in the two
+# expansions themselves — both return the WHOLE string when there is nothing to strip, so
+# `develop` would be read as actor `developer` and phase `develop`, a phase no run has, printed
+# with exit 0 as if the name had said it.
+if [[ "$name" != *-* ]]; then
+  echo "leaf-role: leaf name '$name' says no phase (want develop-*|revise-*|verify-*)" >&2
+  exit 2
+fi
+
 # A trailing `-<digits>` is the attempt the name carries, and what precedes it is the phase; a
 # name without one is attempt 1. Not the empty string: event.sh writes every context key
 # whether or not it is known (event.sh:22-25), so an absent attempt would be logged as
