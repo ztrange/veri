@@ -30,6 +30,13 @@ target="${4:-}"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+# The verifier leaf's name, spelled once. Four things below are derived from it and must agree
+# — the name supervise.sh supervises under, the `.tdd/<name>.prompt` and `.tdd/<name>.log`
+# paths that follow supervise.sh's convention for it, and the name leaf-role.sh reads the
+# event's actor and phase out of — so a reader sees one name used four times rather than four
+# expressions to check against each other.
+leaf_name="verify-$phase"
+
 # Default verifier sandbox: may read the repo and run tests, but never modify the tree.
 # Space-separated tool lists per `claude --help`.
 default_leaf_args=(--permission-mode bypassPermissions \
@@ -48,18 +55,18 @@ prompt="$("$HERE/build-verify-prompt.sh" "$phase" "$spec_file" "$test_path" "$ta
 # supervise.sh owns the .tdd/verify-<phase>.log progress log and returns the captured
 # output; a hung/runaway verifier is killed and reported killed-stuck (exit 2).
 mkdir -p .tdd
-promptfile=".tdd/verify-$phase.prompt"
+promptfile=".tdd/$leaf_name.prompt"
 printf '%s' "$prompt" > "$promptfile"
 
 set +e
-out="$("$HERE/supervise.sh" "verify-$phase" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
+out="$("$HERE/supervise.sh" "$leaf_name" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
 scode=$?
 set -e
 
 # A killed-stuck verifier yields no verdict — surface it as malformed (the conductor
 # stops, just as it would on an unparseable verdict).
 if [[ "$scode" -eq 2 ]]; then
-  echo "verifier leaf killed-stuck — no verdict rendered (see .tdd/verify-$phase.log)"
+  echo "verifier leaf killed-stuck — no verdict rendered (see .tdd/$leaf_name.log)"
   exit 2
 fi
 
@@ -96,7 +103,7 @@ reason_line="${reason%%$'\n'*}"
 # (supervise.sh:141-157), so both halves of one verification file under the same actor and
 # phase; a refusal leaves $role empty and nothing is logged, rather than a line whose actor
 # was invented.
-role="$("$HERE/leaf-role.sh" "verify-$phase")" || role=""
+role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
 if [[ -n "$role" ]]; then
   # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
   env $role "$HERE/event.sh" verdict verdict="$word" reason="$reason_line"
