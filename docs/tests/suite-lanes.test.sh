@@ -83,6 +83,13 @@ roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 # this tree says what it is about.
 subject() { awk 'NR > 1 && /^#/ { print; exit }' "$ROOT/$1"; }
 
+# header <path> — everything above the first `set` line, which is where every file in this
+# tree keeps its rationale: a suite's is the paragraph arguing where it lives, a script's is
+# the paragraph arguing what it does. One helper because both cases read it the same way —
+# case 1 asks the moved suite's, case 2 asks docs/merge-gates.sh's. Takes a full path, as
+# comment_above does.
+header() { awk '/^set / { exit } { print }' "$1"; }
+
 # comment_above <path> <regex> — the run of `#` lines directly above the first line of
 # <path> matching <regex>, which is where a Makefile keeps a target's rationale. The run
 # resets on any non-comment line, so this returns that target's own paragraph and not
@@ -145,14 +152,14 @@ probe_adr_runs_there() {
 # which is where every suite here keeps its rationale, and appends to `$problems` the way
 # report() reads it — the protocol docs-gap-adr.test.sh's probe functions use too.
 probe_rehomed_header() {
-  local header
-  header="$(awk '/^set /{ exit } { print }' "$ADR_SUITE_PATH")"
+  local text
+  text="$(header "$ADR_SUITE_PATH")"
 
-  [[ "$header" != *"not under docs/tests/"* ]] ||
+  [[ "$text" != *"not under docs/tests/"* ]] ||
     problems+=("the header still argues the suite lives somewhere other than docs/tests/, which is where it now is")
-  [[ "$header" != *"scripts/tests/docs-gap-adr.test.sh"* ]] ||
+  [[ "$text" != *"scripts/tests/docs-gap-adr.test.sh"* ]] ||
     problems+=("the header still names scripts/tests/docs-gap-adr.test.sh, a path the suite no longer has")
-  [[ "$header" == *"docs-test"* ]] ||
+  [[ "$text" == *"docs-test"* ]] ||
     problems+=("want the header to say which target runs the suite now; it does not mention docs-test")
 }
 
@@ -228,7 +235,7 @@ problems=()
 gates_row="$(grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md")"
 idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$ROOT/CLAUDE.md")"
 make_comment="$(comment_above "$ROOT/Makefile" '^merge-gates:')"
-script_header="$(awk '/^set / { exit } { print }' "$ROOT/docs/merge-gates.sh")"
+script_header="$(header "$ROOT/docs/merge-gates.sh")"
 
 says "CLAUDE.md's Testing idiom section" "$idiom" \
   "a docs-pipeline suite lives under docs/tests/ and runs there by existing" \
