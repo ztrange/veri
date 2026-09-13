@@ -45,9 +45,9 @@ answer() { printf '%s\n' "$1"; exit 0; }
 #
 # The marker is looked for *anywhere* on the line, not only at its start, because that is
 # where issues actually write it: mid-sentence in the Notes, with the command in a backtick
-# span (#131). `*'Test command:'*` matches that line, and `${line#*Test command:}` drops the
-# prose ahead of the marker as well as the marker itself — shortest match, so the first
-# marker on the line is the one that answers.
+# span (#131). `*"$marker"*` matches that line, and `${line#*"$marker"}` drops the prose ahead
+# of the marker as well as the marker itself — shortest match, so the first marker on the line
+# is the one that answers.
 #
 # A marker *inside a backtick span* is being quoted, not stated: a body that writes the two
 # words while describing how a leaf finds its command is talking about the line, not writing
@@ -91,17 +91,24 @@ quoted() {
   [ $(( ${#ticks} % 2 )) -eq 1 ]
 }
 
+# The two words themselves, named once because rule 0 now asks after them three times — to
+# recognise the line, to take the prefix ahead of the marker, and to take the command behind
+# it — and the three have to be the same bytes: a line recognised by one spelling and cut at
+# another would answer with the wrong half of itself. Every use quotes the expansion, because
+# `case`, `#` and `%%` all take patterns and what is wanted here is the literal text.
+marker='Test command:'
+
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
-      *'Test command:'*)
-        # `${line%%Test command:*}` is the shortest prefix — cut at the *first* marker, the
-        # same one `${line#*Test command:}` answers from — so the span being asked about is
+      *"$marker"*)
+        # `${line%%"$marker"*}` is the shortest prefix — cut at the *first* marker, the
+        # same one `${line#*"$marker"}` answers from — so the span being asked about is
         # the one that marker sits in.
-        if quoted "${line%%Test command:*}"; then
+        if quoted "${line%%"$marker"*}"; then
           continue
         fi
-        cmd="$(unwrapped "$(ltrim "${line#*Test command:}")")"
+        cmd="$(unwrapped "$(ltrim "${line#*"$marker"}")")"
         if [ -n "$cmd" ]; then
           answer "$cmd"
         fi
