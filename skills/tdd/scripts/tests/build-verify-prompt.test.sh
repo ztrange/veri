@@ -72,6 +72,15 @@ pin="$("$BUILD" pin "$work/spec.md" "$testpath" test_slugify_lowercases)"; code=
   && grep -qiE 'behaviou?r-level|trivial' <<<"$pin" \
   && ok || no "verify-pin carries spec + test path and the three pin checks (exit $code)"
 
+# 10. both blind verifiers still demand the project's FULL TEST SUITE, in those words.
+#     #144 moves the developer leaves off the full suite and onto the suite they touched,
+#     so these two prompts become the only place a regression in an untouched suite is
+#     caught. The phrase is matched tolerantly of markdown emphasis (`**full test
+#     suite**`) but not of the whole sentence going missing.
+full_suite='full[^[:alnum:]]*test[^[:alnum:]]*suite'
+grep -qiE "$full_suite" <<<"$green" && grep -qiE "$full_suite" <<<"$refactor" \
+  && ok || no "verify-green and verify-refactor still require the full test suite"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
