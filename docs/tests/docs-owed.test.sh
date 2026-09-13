@@ -471,18 +471,24 @@ owed "$d"
   problems+=("the case is vacuous: $SUBJECT already has debt to report over the tree its page was just built from, so a line about $MISQUOTED below would not be this plant's; got $code: $(flat "$out$err")")
 
 # The listing header the build writes per script (docs/build-walkthrough.py:261), with its
-# count rewritten to a figure no script has. The name is matched as the whole <span> the
-# build emits, so the count moved is the one belonging to THIS script and not the first
+# count rewritten to a figure no script has. The name is matched as the whole <span> pair
+# the build emits, so the count moved is the one belonging to THIS script and not the first
 # number that happens to follow its name somewhere else on a page whose lines run to
 # thousands of characters.
-( cd "$d" && sed -i.bak \
-    "s#<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">[0-9]* lines#<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">9999 lines#" \
+#
+# The header and the wrong count are each spelled once, because three sites below have to
+# agree on them — the sed that plants the misquote, the grep that says it landed, and the
+# vacuity check that the script is not really that long. Spelled out three times, the sed's
+# two near-identical halves hide which part of the header the rewrite actually moves.
+header="<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">"
+wrong_lines=9999
+( cd "$d" && sed -i.bak "s#$header[0-9]* lines#$header$wrong_lines lines#" \
     docs/walkthrough.html && rm -f docs/walkthrough.html.bak )
-grep -Fq "<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">9999 lines" "$d/docs/walkthrough.html" ||
+grep -Fq "$header$wrong_lines lines" "$d/docs/walkthrough.html" ||
   problems+=("the misquote did not land: no listing header for $MISQUOTED in the committed page to rewrite the line count of")
 real_lines="$(awk 'END {print NR}' "$d/skills/tdd/scripts/$MISQUOTED")"
-[[ "$real_lines" != 9999 ]] ||
-  problems+=("the case is vacuous: $MISQUOTED really is 9999 lines long, so the page is not misquoting it")
+[[ "$real_lines" != "$wrong_lines" ]] ||
+  problems+=("the case is vacuous: $MISQUOTED really is $wrong_lines lines long, so the page is not misquoting it")
 
 # Committed alone, and last: HEAD's newest commit is now the page's own, so `page behind`
 # has no script dated after it and the tag and commentary rules were answered by the clean
@@ -495,7 +501,7 @@ owed "$d"
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from $SUBJECT over a tree whose committed page misquotes it — a list is an answer, not a failure; got $code: $(flat "$out$err")")
 printf '%s\n' "$out" | grep -Fq -- "$MISQUOTED" ||
-  problems+=("want a line naming $MISQUOTED — the committed page quotes its listing as 9999 lines and the script is $real_lines; got: $(flat "$out")")
+  problems+=("want a line naming $MISQUOTED — the committed page quotes its listing as $wrong_lines lines and the script is $real_lines; got: $(flat "$out")")
 
 report "$name"
 
