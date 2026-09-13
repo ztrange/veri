@@ -16,6 +16,12 @@
 # stdout: the verifier's reason (mirror it to the issue thread).
 # exit:   0 PASS · 1 REJECT · 2 malformed verdict or build error.
 #
+# One `verdict` event is appended to the run's event log, `.tdd/events.jsonl` (issue #107,
+# ADR-0014), carrying the phase judged, the PASS/REJECT/malformed word of the exit line above
+# and the first line of the reason. A leaf name leaf-role.sh cannot read leaves no line at
+# all, rather than one whose actor and phase were invented — the tolerance supervise.sh's
+# own marks have.
+#
 # `claude -p` exits 0 whatever the verdict, so the verdict is taken from PARSING the
 # leaf's output, not from the leaf's process status. The verifier leaf is denied Write/
 # Edit so it can read the repo and run the test command but cannot fix the code it judges
