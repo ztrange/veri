@@ -235,7 +235,7 @@ stated() {
 }
 
 # The code site, read through that same helper: `budget="${VERI_REFACTOR_BUDGET:-N}"`
-# states the figure as much as the three sentences do, and it is the one the others must
+# states the figure as much as the four sentences do, and it is the one the others must
 # match. The script's header mentions the tunable earlier in the file, but says `(default
 # N)` rather than `:-N`, so this pattern's first match is the assignment itself.
 encoded="$(stated "$BUDGET" 'VERI_REFACTOR_BUDGET:-[0-9]+')"
