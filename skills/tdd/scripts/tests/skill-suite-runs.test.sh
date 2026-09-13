@@ -34,11 +34,12 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 # Each document twice: the path as every failure message spells it, and the same path
 # resolved for the probes to read. One constant for both, so a message can never name a file
-# the probes did not open.
+# the probes did not open. Two documents, so each resolved path is named after its own — a
+# bare `md` would not say which, and `cmd` in this repository is the test command.
 skill_md="skills/tdd/SKILL.md"
-md="$ROOT/$skill_md"
+skill_path="$ROOT/$skill_md"
 claude_md="CLAUDE.md"
-cmd="$ROOT/$claude_md"
+claude_path="$ROOT/$claude_md"
 
 pass=0 fail=0
 
@@ -90,7 +91,7 @@ doc_text() {
 # string, which would let "the section is gone" read as "the section says nothing wrong".
 text=""
 need_text() {
-  text="$(doc_text "$md" "$1" "${2-}")"
+  text="$(doc_text "$skill_path" "$1" "${2-}")"
   [[ -n "${text// /}" ]] && return 0
   problems+=("$skill_md has no '$1' section to read — what that phase's leaf runs could not be established")
   return 1
@@ -147,13 +148,13 @@ fi
 # And the document the next agent reads before touching any of this. The stale sentence is
 # load-bearing prose — it is the reason docs suites live outside `make test`'s glob — so it
 # has to be corrected, not deleted.
-stale="$(grep -nE 'every [a-z]*[[:space:]]*leaf runs' "$cmd")"
+stale="$(grep -nE 'every [a-z]*[[:space:]]*leaf runs' "$claude_path")"
 [[ -z "$stale" ]] ||
   problems+=("$claude_md still says every leaf runs the suite after every edit, which the red and refactor leaves no longer do: $stale")
 # The paragraphs of CLAUDE.md that mention the full suite at all, read once and named:
 # whether there are any, and whether they name the leaves, are two questions about that same
 # text, and asking the second of a second pipeline lets the two drift apart.
-full_suite_paragraphs="$(paragraphs "$cmd" | grep -E 'full suite')"
+full_suite_paragraphs="$(paragraphs "$claude_path" | grep -E 'full suite')"
 [[ -n "$full_suite_paragraphs" ]] ||
   problems+=("$claude_md never names the full suite at all, so which leaves run it is recorded nowhere a reader of this repository would look")
 grep -qE 'develop-green|verify-green|verifier' <<<"$full_suite_paragraphs" ||
