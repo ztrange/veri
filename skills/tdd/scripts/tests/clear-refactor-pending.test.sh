@@ -11,27 +11,42 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 CLEAR="$HERE/../clear-refactor-pending.sh"
 pass=0 fail=0
-ok() { pass=$((pass + 1)); }
-no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-
 led="$work/issue-42.md"
-seed() { printf '# Plan for #42\n\n- [x] add the slugify lowercasing ⟂ refactor pending\n- [x] collapse to single hyphen\n- [x] collapse to single hyphen (again) ⟂ refactor pending\n- [ ] percent-encode the remainder\n' > "$led"; }
 
-# 1. the mark leaves the first matching step that carries it, and only that one; no such
-#    step → exit 3 with the file byte-identical
-seed
-"$CLEAR" "$led" "collapse to single hyphen"; code=$?
-cleared="$work/cleared.md"; cp "$led" "$cleared"
-"$CLEAR" "$led" "percent-encode the remainder" 2>/dev/null; none_code=$?
-{ [[ "$code" == 0 ]] \
-  && grep -q '^- \[x\] collapse to single hyphen (again)$' "$cleared" \
-  && grep -q '^- \[x\] add the slugify lowercasing ⟂ refactor pending$' "$cleared" \
-  && grep -q '^- \[x\] collapse to single hyphen$' "$cleared" \
-  && [[ "$none_code" == 3 ]] && cmp -s "$led" "$cleared"; } \
-  && ok || no "clears the first matching marked step, else exit 3 and untouched (code=$code none_code=$none_code)"
+ledger='# Plan for #42
+
+- [x] add the slugify lowercasing ⟂ refactor pending
+- [x] collapse to single hyphen
+- [x] collapse to single hyphen (again) ⟂ refactor pending
+- [ ] percent-encode the remainder'
+
+check() {  # check <name> <expected-exit> <matcher> <expected-ledger-text>
+  local name="$1" exp_code="$2" matcher="$3" exp="$4" code want="$work/want.md"
+  printf '%s\n' "$ledger" > "$led"
+  printf '%s\n' "$exp" > "$want"
+  "$CLEAR" "$led" "$matcher" 2>/dev/null && code=0 || code=$?
+  if [[ "$code" == "$exp_code" ]] && cmp -s "$want" "$led"; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1)); echo "FAIL - $name (want exit $exp_code, got $code)"
+    diff "$want" "$led" | sed 's/^/    /'
+  fi
+}
+
+# 1. the mark leaves the first step that both contains the matcher and carries it: the
+#    unmarked `collapse to single hyphen` above it is skipped, the other step's mark stays
+check "clears the first matching marked step" 0 "collapse to single hyphen" '# Plan for #42
+
+- [x] add the slugify lowercasing ⟂ refactor pending
+- [x] collapse to single hyphen
+- [x] collapse to single hyphen (again)
+- [ ] percent-encode the remainder'
+
+# 2. no marked step contains the matcher → exit 3, the ledger byte-identical to the seed
+check "no matching marked step exits 3, ledger untouched" 3 "percent-encode the remainder" "$ledger"
 
 echo "----"
 echo "$pass passed, $fail failed"
