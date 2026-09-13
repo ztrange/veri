@@ -32,6 +32,8 @@ name="${1:?usage: supervise.sh <name> <cmd> [args...]}"
 shift
 [[ $# -ge 1 ]] || { echo "supervise: missing <cmd>" >&2; exit 2; }
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
 heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
 poll="${VERI_POLL:-1}"
@@ -43,6 +45,27 @@ rcfile=".tdd/$name.rc"
 exitfile=".tdd/$name.exit"
 
 now() { date +%s; }
+
+# The run's `launch` mark (issue #107, ADR-0014). Written here because this is the one
+# choke point every leaf goes through, so a log missing one is a leaf nothing recorded
+# starting — and because the three things the mark carries are exactly what this script
+# was handed: the leaf's name, the command behind it, and, through leaf-role.sh, the
+# attempt that name encodes. `$*` joins argv with a single space, the spelling event.sh's
+# header quotes for a `cmd=` payload.
+#
+# Once per supervision, not once per attempt: a retried attempt is the `retry` mark's to
+# report, and a second `launch` would read as a second leaf.
+#
+# `$role` is deliberately unquoted — it is the `VERI_ACTOR=… VERI_PHASE=… VERI_ATTEMPT=…`
+# line leaf-role.sh prints for `env` to word-split into event.sh's environment, which is
+# the calling convention that script documents. A name leaf-role.sh cannot read refuses
+# with its own diagnostic on stderr and empty stdout, and then nothing is logged: a launch
+# line whose actor and attempt were invented would be worse than the absent one a reader
+# is already told to tolerate.
+# shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+if role="$("$HERE/leaf-role.sh" "$name")"; then
+  env $role "$HERE/event.sh" launch name="$name" cmd="$*"
+fi
 
 # Seconds-since-epoch of $1's last modification — the heartbeat sensor. There is no portable
 # `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two

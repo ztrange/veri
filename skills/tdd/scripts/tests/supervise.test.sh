@@ -248,6 +248,64 @@ explicit_window="$(killed_window hb-explicit 5)"
 { [[ "$default_window" == 180 ]] && [[ "$explicit_window" == 5 ]]; } && ok \
   || no "VERI_HEARTBEAT unset → a 180s window, explicit VERI_HEARTBEAT=5 → a 5s window (unset gave ${default_window}, explicit gave ${explicit_window})"
 
+# 12. every leaf the supervisor launches leaves a `launch` line in the run's event log —
+#     `.tdd/events.jsonl`, written through event.sh — naming the leaf, the command it ran and
+#     the attempt number (issue #107, ADR-0014). The supervisor is the only place that knows
+#     those three: it is the one choke point every leaf goes through (this file's header), so
+#     a log missing a launch is a leaf nothing recorded starting.
+#
+#     The leaf is named `revise-green-2`, not a fresh invented name, because the attempt
+#     number the line must carry is the one the NAME carries — leaf-role.sh reads a trailing
+#     `-<digits>` as the attempt and everything else as attempt 1 (leaf-role.sh:86-92). A
+#     `develop-red` leaf's line would read 1 whether the writer derived it or hardcoded it;
+#     under this name only a derived one says 2.
+#
+#     The command is `env VERI_TIMEOUT=1200 <leaf>` because that is the shape a real launch
+#     has — the conductor passes the leaf's timeout in exactly that prefix, and event.sh's own
+#     header quotes `cmd=env VERI_TIMEOUT=1200 run-leaf.sh .tdd/develop-red.prompt` as the
+#     payload it has to keep intact (event.sh:41). The expected value is that argv joined by
+#     spaces, the same spelling.
+#
+#     A work directory of its own: the event log accumulates across a whole run, and every
+#     case above shares `$work`, so a probe there would be reading whichever launch some
+#     earlier case happened to write last. For the same reason the probe picks the log's
+#     `launch` line rather than asserting on the file's only line — the `retry` and `exit`
+#     marks land in this same file and must not turn this case red.
+#
+# launch_field <log> <key> — the value of <key> on the log's one `launch` line, or a
+# diagnostic in `<<…>>` when there is no such line, more than one, or no log at all. python3
+# rather than jq, the dependency event.test.sh and extract-result.sh already rely on.
+launch_field() {
+  python3 -c '
+import sys, json
+hits = []
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == "launch":
+        hits.append(obj)
+if len(hits) != 1:
+    print("<<%d launch lines>>" % len(hits))
+else:
+    print(hits[0].get(sys.argv[2], "<<missing>>"))
+' "$1" "$2" 2>/dev/null || echo '<<no event log>>'
+}
+
+ev_work="$(mktemp -d)"
+ev_log="$ev_work/.tdd/events.jsonl"
+ev_cmd=(env VERI_TIMEOUT=1200 "$stub/leaf-ok")
+( cd "$ev_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+    "$SUP" revise-green-2 "${ev_cmd[@]}" ) >/dev/null 2>&1
+ev_code=$?
+{ [[ "$ev_code" == 0 ]] \
+  && [[ "$(launch_field "$ev_log" name)"    == revise-green-2 ]] \
+  && [[ "$(launch_field "$ev_log" cmd)"     == "${ev_cmd[*]}" ]] \
+  && [[ "$(launch_field "$ev_log" attempt)" == 2 ]]; } && ok \
+  || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$ev_code, name=$(launch_field "$ev_log" name), cmd=$(launch_field "$ev_log" cmd), attempt=$(launch_field "$ev_log" attempt))"
+rm -rf "$ev_work"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
