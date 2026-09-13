@@ -311,11 +311,11 @@ mg_out="$(ONLY= "$ROOT/docs/tests/merge-gates.test.sh" 2>&1)" && mg_code=0 || mg
 report "$name"
 
 # 5. The other thing a human, a merge gate and CI read off that target: which suites it
-#    runs. It names them one recipe line each, so a new suite under docs/tests/ is run by
-#    nothing until someone also edits the Makefile — and the edit nobody makes is the one
-#    they did not know was owed. `make test` has never had that failure mode; it globs, so
-#    a suite runs by existing. That is the claim here, for docs-test, and stated as
-#    behaviour rather than as the shape of the recipe: over a tree holding a docs suite
+#    runs. It used to name them one recipe line each, and a new suite under docs/tests/ was
+#    then run by nothing until someone also edited the Makefile — and the edit nobody makes
+#    is the one they did not know was owed. `make test` has never had that failure mode; it
+#    globs, so a suite runs by existing. That is the claim here, for docs-test, and stated
+#    as behaviour rather than as the shape of the recipe: over a tree holding a docs suite
 #    this Makefile has never heard of, the target runs it.
 #
 #    The fixture tree is the Makefile and that one suite — no build-walkthrough.py, no git
