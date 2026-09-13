@@ -169,32 +169,26 @@ refusal_probe plan-red
 report "$name"
 
 # 3. The mapping fails closed on a name whose leading word it does know but which says no
-#    phase at all.
+#    phase — both shapes that can carry none, as one case, because they are owed one refusal
+#    and not two.
 #
-#    `develop` is that shape: the actor is readable, and there is nothing after it to read a
-#    phase out of. It is a case of its own rather than more of case 2 because the invention it
-#    refuses has a different source — not an arm nobody wrote, but the two expansions the split
-#    is made of. What those two do to a name carrying no `-`, and the answer `leaf-role.sh
-#    develop` would otherwise have printed, is said beside the guard that refuses it
-#    (leaf-role.sh:58-62).
-name="leaf-role.sh fails closed on a leaf name with a recognised leading word but no phase after it: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
+#    It is a case of its own rather than more of case 2 because the invention it refuses has a
+#    different source — not an arm nobody wrote, but the cut the phase is read by. What that
+#    cut leaves each of these names, and the answer `leaf-role.sh develop` would otherwise have
+#    printed, is said beside the cut (leaf-role.sh:58-62); why the empty phase may not be
+#    logged in place of a refusal is said beside the guard (leaf-role.sh:69-71).
+#
+#    Each probe does work the other cannot. `develop` is the plain shape: the actor is
+#    readable, and there is nothing after it to read a phase out of. `develop-` reaches the
+#    same missing answer by the shape that hides it — the name does carry a `-`, so anything
+#    asking whether the STRING has one is satisfied while the phase read out of it is still the
+#    empty string, which is what makes it the name that pins the guard on the phase rather than
+#    on the shape. It is not a name a run launches today; it is what a caller's own string
+#    handling produces when the phase it meant to append was empty, and the refusal is what
+#    turns that into a diagnostic on the spot instead of a blank field found later.
+name="leaf-role.sh fails closed on a leaf name with a recognised leading word but no phase after it — develop, with no dash at all, and develop-, whose dash has nothing after it: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
 problems=()
 refusal_probe develop
-report "$name"
-
-# 4. The mapping fails closed on a name whose phase is empty — `develop-`, a trailing dash and
-#    nothing after it.
-#
-#    Same missing answer as case 3, reached by the shape that hides it: the name does carry a
-#    `-`, so anything asking whether the STRING has one is satisfied, while the phase read out
-#    of it is still the empty string — which is what makes this the name that pins the guard on
-#    the phase rather than on the shape. Why that empty phase may not be logged in place of a
-#    refusal is said beside the guard that refuses it (leaf-role.sh:69-71).
-#    `develop-` is not a name a run launches today; it is what a caller's own string handling
-#    produces when the phase it meant to append was empty, and the refusal is what turns that
-#    into a diagnostic on the spot instead of a blank field found later.
-name="leaf-role.sh fails closed on a leaf name whose phase is empty: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
-problems=()
 refusal_probe develop-
 report "$name"
 
