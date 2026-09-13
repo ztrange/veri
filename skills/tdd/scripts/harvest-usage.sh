@@ -26,6 +26,11 @@ set -euo pipefail
 # `${1:?msg}` expands $1, but aborts the shell with msg on stderr if it is unset or empty.
 name="${1:?usage: harvest-usage.sh <leaf-name>}"
 
+# The one file this program reads, named beside the leaf name it is built from rather than
+# spelled at the foot of the python block below, where it arrives as `sys.argv[1]` and says
+# nothing about which leaf it belongs to.
+log=".tdd/$name.log"
+
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 # The eight numbers, as the `key=value` arguments event.sh takes, one per line.
@@ -66,7 +71,7 @@ for key in ("duration_ms", "duration_api_ms", "num_turns", "total_cost_usd"):
 for key in ("input_tokens", "output_tokens",
             "cache_read_input_tokens", "cache_creation_input_tokens"):
     print("%s=%s" % (key, usage[key]))
-' ".tdd/$name.log")"
+' "$log")"
 
 # One argument per line, read into an array rather than word-split out of the string: a
 # `key=value` is one argument to event.sh whatever is in the value, and splitting on spaces
