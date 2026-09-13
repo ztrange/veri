@@ -81,15 +81,18 @@ kill_tree() {
   kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
 }
 
-# Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets four globals, not
-# three: status/reason/rc, and `$secs` — how many wall seconds this attempt took, which the
-# `exit` mark at the foot of this script reports. None of the four is `local`: they are this
-# function's answers, and a run's last attempt is what every line below reads. The launch
-# stamp `$t0` is `local` precisely because it is not one of those answers — the watchdog loop
-# needs it for the hard timeout and the subtraction below turns it into `secs`, so nothing
-# outside here has to know that the duration is measured rather than reported.
+# Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets three globals, and
+# those three are its answers: status/reason, and `$secs` — how many wall seconds this attempt
+# took, which the `exit` mark at the foot of this script reports. They are not `local` because
+# a run's last attempt is what every line below reads. Everything else the watchdog needs is,
+# so the list above is the whole of what this function says to the rest of the script: the
+# launch stamp `$t0` (the loop's hard-timeout baseline, and the subtraction below turns it
+# into `secs`), the loop's clock reading `$t` and its silence measure `$silence`, and `$rc`,
+# the leaf's own raw exit code — which `status` already summarises into the vocabulary
+# everything below speaks, so nothing down there reads the number itself. `$pid` is the one
+# non-answer that must stay global anyway: `kill_tree` is a separate function and reads it.
 attempt_once() {
-  local t0
+  local t0 t silence rc
   : > "$log"
   rm -f "$rcfile"
 
