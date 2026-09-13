@@ -116,6 +116,30 @@ build_over() {
   ( cd "$1" && python3 docs/build-walkthrough.py --stdout >"$BUILT" 2>"$BUILD_ERR" )
 }
 
+# run_in_copy <dir> <suite> [<filter>] — run <suite> out of the planted copy at <dir>,
+# leaving its output, both streams, in $out and its exit code in $code. Every observation
+# this file makes is one of these: the whole question is what a docs-lane suite says when
+# it is run somewhere other than where it lives, so the runs are the probes.
+#
+# Named because all three probes assert on the exit code, and the incantation that records
+# it is the one piece of bash here a reader can get wrong without the suite noticing:
+# `$?` is gone the moment the next command runs, so the `&& code=0 || code=$?` tail is the
+# whole of the capture. A copy of it that dropped the tail would leave `$code` holding the
+# PREVIOUS run's answer — the case below asserting exit 3 would pass over a suite that
+# exited 0, because the liveness probe before it left a 3 behind on a bad day. One door,
+# so there is one place to get it right.
+#
+# It also retires the second pair of variables: case 2 runs the same suite twice and had
+# to call the first pair `live`/`live_code` to keep the second from clobbering it, which
+# read as two different kinds of result when they are two runs of one kind. Each probe
+# now reads $out and $code immediately after its own call, so the reuse is the point.
+#
+# ONLY is the filter build-guards.test.sh reads (see `selected` there); empty is no
+# filter, and a suite that has no filter never looks at the variable.
+run_in_copy() {
+  out="$(ONLY="${3-}" "$1/$2" 2>&1)" && code=0 || code=$?
+}
+
 # 1. A script gains lines nobody has written prose for, which is what a merged development
 #    PR leaves behind every time (#125: the build carries an uncovered line as debt instead
 #    of refusing to emit the page, and a change under skills/ owes no rebuild). The docs
@@ -138,7 +162,7 @@ build_over "$d"
 grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
   problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
 
-out="$("$d/$OWED_SUITE" 2>&1)" && code=0 || code=$?
+run_in_copy "$d" "$OWED_SUITE"
 { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
   problems+=("want $OWED_SUITE green over a tree owing prose for $SCRIPT_NAME — a script commit is a development-lane event and must not turn the docs lane red; got $code: $(flat "$(tail -5 <<< "$out")")")
 
@@ -181,15 +205,15 @@ cmp -s "$BUILT" "$d/docs/walkthrough.html" &&
 # And the suite has to be able to run in the copy at all, or exit 3 could be a suite that
 # dies before it reaches any case. The cheapest case it has — one sandbox, one build, no git
 # history — is the same fixture docs-guard-filter.test.sh uses for that.
-live="$(ONLY="$LIVE_CASE" "$d/$GUARDS_SUITE" 2>&1)" && live_code=0 || live_code=$?
-{ [[ "$live_code" == 0 ]] && grep -Fq '1 passed, 0 failed' <<< "$live"; } ||
-  problems+=("want ONLY='$LIVE_CASE' $GUARDS_SUITE green in the copy — without it exit 3 below says nothing; got $live_code: $(flat "$(tail -3 <<< "$live")")")
+run_in_copy "$d" "$GUARDS_SUITE" "$LIVE_CASE"
+{ [[ "$code" == 0 ]] && grep -Fq '1 passed, 0 failed' <<< "$out"; } ||
+  problems+=("want ONLY='$LIVE_CASE' $GUARDS_SUITE green in the copy — without it exit 3 below says nothing; got $code: $(flat "$(tail -3 <<< "$out")")")
 
 # The claim. The message beside the code, because exit 3 alone could come from anywhere in
 # the suite: it has to be the no-match path, which names the filter that found nothing. The
 # wording is the implementer's, so only "no case" and the filter itself are matched, the way
 # case 2 of docs-guard-filter.test.sh matches them.
-out="$(ONLY="$PAGE_FILTER" "$d/$GUARDS_SUITE" 2>&1)" && code=0 || code=$?
+run_in_copy "$d" "$GUARDS_SUITE" "$PAGE_FILTER"
 lowered="$(tr 'A-Z' 'a-z' <<< "$out")"
 [[ "$code" == 3 ]] ||
   problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS_SUITE over a tree whose committed page is stale; got $code: $(flat "$(tail -5 <<< "$out")")")
