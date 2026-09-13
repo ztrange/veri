@@ -42,6 +42,12 @@ SUBJECT="docs/docs-owed.sh"
 # Relative, so it reads as the subject reads it: `git -C "$d" … -- "$PAGE"` inside the copy,
 # `"$d/$PAGE"` from out here.
 PAGE="docs/walkthrough.html"
+# Where the scripts the page lists stand, likewise spelled once (docs/docs-owed.sh:78): the
+# cases below reach into it to date a script and to measure one the page misquotes, and a
+# copy that drifted would plant its debt beside the tree rather than in it. Relative for the
+# same reason PAGE is — `git -C "$d" … -- "$SCRIPTS_DIR/…"` inside the copy, `"$d/$SCRIPTS_DIR/…"`
+# from out here.
+SCRIPTS_DIR="skills/tdd/scripts"
 pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -53,7 +59,7 @@ trap 'rm -rf "$WORK"' EXIT
 # nameable is not.
 UNCOVERED=classify-bail.sh
 STALE=refactor-budget.sh
-STALE_PATH=skills/tdd/scripts/refactor-budget.sh
+STALE_PATH="$SCRIPTS_DIR/$STALE"
 MISQUOTED=next-unchecked.sh
 TAG=v9.9
 
@@ -496,7 +502,7 @@ misquote="$header$wrong_lines lines"
 ( cd "$d" && sed -i.bak "s#$header[0-9]* lines#$misquote#" "$PAGE" && rm -f "$PAGE.bak" )
 grep -Fq "$misquote" "$d/$PAGE" ||
   problems+=("the misquote did not land: no listing header for $MISQUOTED in the committed page to rewrite the line count of")
-real_lines="$(awk 'END {print NR}' "$d/skills/tdd/scripts/$MISQUOTED")"
+real_lines="$(awk 'END {print NR}' "$d/$SCRIPTS_DIR/$MISQUOTED")"
 [[ "$real_lines" != "$wrong_lines" ]] ||
   problems+=("the case is vacuous: $MISQUOTED really is $wrong_lines lines long, so the page is not misquoting it")
 
