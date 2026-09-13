@@ -42,7 +42,13 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
+# The document twice, the way skill-suite-runs.test.sh names its two: the path as every
+# problem message spells it, and the same path resolved for the readers below to open. One
+# constant for each, so a message can never name a file the readers did not read — and so
+# the resolving happens once rather than at each reader, which is the same reason
+# `records_of` and `section_of` are each spelled once.
 skill_md="skills/tdd/SKILL.md"
+skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
@@ -87,7 +93,7 @@ records_of() {
 
 # instructions — the whole document as records.
 instructions() {
-  records_of < "$ROOT/$skill_md"
+  records_of < "$skill_path"
 }
 
 # section_of <heading> <closers-re> — the records of one section of the document: the lines
@@ -97,7 +103,7 @@ instructions() {
 # above is one function rather than one per reader.
 section_of() {
   awk -v heading="$1" -v closers="$2" \
-    '$0 ~ closers { inside = ($0 == heading); next } inside' "$ROOT/$skill_md" | records_of
+    '$0 ~ closers { inside = ($0 == heading); next } inside' "$skill_path" | records_of
 }
 
 # resume_instructions — the records of the `## Resume` section. Scoped because the document
