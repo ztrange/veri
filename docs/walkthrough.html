@@ -395,8 +395,13 @@ pre.src .l.hunk.dim[data-tag]::after{opacity:.34}
 pre.src .l.hunk.lit{border-left-color:var(--accent)}
 pre.src .l.hunk.lit[data-tag]::after{background:var(--accent);color:var(--accent-ink)}
 /* A whole script that is new to this reader is the loudest thing the mode has to say,
-   so its heading takes the accent rule in the margin the listings use for a hunk. */
-h3[data-since].lit{border-left:3px solid var(--accent);padding-left:13px;margin-left:-16px}
+   so its heading takes the accent rule in the margin the listings use for a hunk. The
+   slot is held open on every versioned heading, transparent, the way `pre.src .l` holds
+   one for a hunk — the padding and the negative margin cancel the border's width, so the
+   title sits where it always did and lighting one moves no text. Colouring it at paint
+   time instead would reflow the heading the moment a reader chose a version. */
+h3[data-since]{border-left:3px solid transparent;padding-left:13px;margin-left:-16px}
+h3[data-since].lit{border-left-color:var(--accent)}
 h3[data-since].lit .vbadge{color:var(--accent);background:var(--accent-wash)}
 h3[data-since].dim .vbadge{opacity:.42}
 </style>
