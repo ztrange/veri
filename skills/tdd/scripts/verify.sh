@@ -83,12 +83,15 @@ case "$vcode" in
   *) word=malformed ;;
 esac
 
-# `${reason%%$'\n'*}` strips the longest trailing match of newline-and-anything, leaving the
-# first line — the whole of what the log takes. A model's justification runs to paragraphs
-# and the log is one line per event; the full reason is already mirrored to the issue thread
-# by the conductor, which is where a human reads it. A malformed verdict has no reason at all
-# (parse-verdict.sh prints nothing), so this writes the empty string it actually has.
-#
+# The mark's other payload value, named beside $word above so the call below reads as the two
+# things the event carries rather than as one name and one expression. `%%$'\n'*` strips the
+# longest trailing match of newline-and-anything, leaving the first line — the whole of what the
+# log takes. A model's justification runs to paragraphs and the log is one line per event; the
+# full reason is already mirrored to the issue thread by the conductor, which is where a human
+# reads it. A malformed verdict has no reason at all (parse-verdict.sh prints nothing), so this
+# is the empty string it actually has.
+reason_line="${reason%%$'\n'*}"
+
 # The context comes from leaf-role.sh, the same derivation supervise.sh marks under
 # (supervise.sh:141-157), so both halves of one verification file under the same actor and
 # phase; a refusal leaves $role empty and nothing is logged, rather than a line whose actor
@@ -96,7 +99,7 @@ esac
 role="$("$HERE/leaf-role.sh" "verify-$phase")" || role=""
 if [[ -n "$role" ]]; then
   # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
-  env $role "$HERE/event.sh" verdict verdict="$word" reason="${reason%%$'\n'*}"
+  env $role "$HERE/event.sh" verdict verdict="$word" reason="$reason_line"
 fi
 
 printf '%s\n' "$reason"
