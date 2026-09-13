@@ -65,6 +65,8 @@ report() {
 
 # flat <text> — one line of it, for a failure message. Newlines become slashes so a roster
 # or a suite's tail that came back wrong is still readable inside an indented problem line.
+# The one place a here-string would not do: `<<<` appends a newline, which `tr` would turn
+# into a trailing slash on every message.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
 # roster <target> — the suite paths <target> would run, one per line. `make -n` prints the
@@ -101,13 +103,13 @@ problems=()
 docs_roster="$(roster docs-test)"
 test_roster="$(roster test)"
 
-printf '%s\n' "$docs_roster" | grep -qx "$ADR_SUITE" ||
+grep -qx "$ADR_SUITE" <<< "$docs_roster" ||
   problems+=("want $ADR_SUITE among the suites 'make docs-test' runs; it runs: $(flat "$docs_roster")")
 
 if [[ -x "$ADR_SUITE_PATH" ]]; then
   adr_out="$("$ADR_SUITE_PATH" 2>&1)" && adr_code=0 || adr_code=$?
-  { [[ "$adr_code" == 0 ]] && printf '%s\n' "$adr_out" | grep -Eq '[1-9][0-9]* passed, 0 failed'; } ||
-    problems+=("want exit 0 and a green count over cases that ran from $ADR_SUITE; got $adr_code: $(flat "$(printf '%s' "$adr_out" | tail -3)")")
+  { [[ "$adr_code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$adr_out"; } ||
+    problems+=("want exit 0 and a green count over cases that ran from $ADR_SUITE; got $adr_code: $(flat "$(tail -3 <<< "$adr_out")")")
 
   header="$(awk '/^set /{ exit } { print }' "$ADR_SUITE_PATH")"
   [[ "$header" != *"not under docs/tests/"* ]] ||
@@ -123,7 +125,7 @@ fi
 while IFS= read -r suite; do
   [[ -n "$suite" ]] || continue
   subj="$(subject "$suite")"
-  if printf '%s' "$subj" | grep -Eq "$DOCS_SUBJECT"; then
+  if grep -Eq "$DOCS_SUBJECT" <<< "$subj"; then
     problems+=("'make test' runs $suite, whose subject is the docs pipeline: $(flat "$subj")")
   fi
 done <<< "$test_roster"
