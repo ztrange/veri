@@ -245,8 +245,8 @@ denies() {
 # three calls. The name's dots are escaped on the way in, so the regex a call implies matches
 # the script it named and not every name of the same shape.
 #
-# The name is also left in `$entry_script`, beside the `$instruction` the read landed in, so a
-# probe that follows can name the entry it is probing without being handed that name a second
+# The name is also left in `$entry_script`, beside the `$instruction` the read landed in, so
+# `entry_says` below can name the entry it is probing without being handed that name a second
 # time — the shape `reads` and `says` already have, where the reader leaves what it read and
 # the probes ask about it. Handing it over twice would not fail; it would let a probe report
 # its problem under the name of an entry it never read.
@@ -257,6 +257,19 @@ reads_entry() {
   reads "documents $1 in the script reference list" "^- .\\\$s/$escaped"
 }
 
+# entry_says <regex> <fact> — `says`, for the entry `reads_entry` last read: one problem
+# naming the document and that entry's script, then <fact>, which is written as the sentence
+# that follows the name ("never names exit 3, so …").
+#
+# Every probe of case 4 is this shape — eight of them, all reporting against whichever entry
+# the reader landed in — so "which entry this is about" is spelled once here and each call
+# carries only the thing that entry owes. Spelled at the call instead, the script's name
+# would be a second literal beside the one `reads_entry` matched on, free to drift into
+# naming an entry the probe never read.
+entry_says() {
+  says "$1" "$skill_md's entry for $entry_script $2"
+}
+
 # says_exit_codes — the two codes a reference-list entry for either of the mark's two new
 # scripts must name: 0, the answer, and 3, the *nothing to do* code this repository reserves
 # for it. Both scripts answer with the same pair and both fail the same way without it — the
@@ -265,10 +278,10 @@ reads_entry() {
 # entry `reads_entry` last read, like every other probe in this suite. `exits?` rather than
 # `exit`, because the list writes it both ways.
 says_exit_codes() {
-  says 'exits? 0' \
-    "$skill_md's entry for $entry_script never names exit 0, so nothing says what a call that did its work answers with, and the conductor is left inferring it from whether stdout came back empty"
-  says 'exits? 3' \
-    "$skill_md's entry for $entry_script never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
+  entry_says 'exits? 0' \
+    "never names exit 0, so nothing says what a call that did its work answers with, and the conductor is left inferring it from whether stdout came back empty"
+  entry_says 'exits? 3' \
+    "never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
 }
 
 # miss <fact> — one problem of the ordered probe below: <fact>, then the instruction it was
@@ -452,29 +465,29 @@ if records_from scripts_instructions \
   # appends (spelled, because that literal is what the reader matches on), and the code a
   # ledger with no matching step answers with either way.
   if reads_entry tick-ledger.sh; then
-    says '--refactor-pending' \
-      "$skill_md's entry for tick-ledger.sh never mentions --refactor-pending, so the flag the green commit must tick with is invisible to a session that reads the list to find out how to tick"
-    says "$mark" \
-      "$skill_md's entry for tick-ledger.sh never spells the mark the flag appends, so nothing connects that write to the \`$mark\` string next-pending-refactor.sh matches, and either side can be reworded without the other noticing"
-    says 'exits? 3' \
-      "$skill_md's entry for tick-ledger.sh never names exit 3, so a green commit whose substring matched no unchecked step looks like it ticked, and the step is committed as green with no mark and no tick"
+    entry_says '--refactor-pending' \
+      "never mentions --refactor-pending, so the flag the green commit must tick with is invisible to a session that reads the list to find out how to tick"
+    entry_says "$mark" \
+      "never spells the mark the flag appends, so nothing connects that write to the \`$mark\` string next-pending-refactor.sh matches, and either side can be reworded without the other noticing"
+    entry_says 'exits? 3' \
+      "never names exit 3, so a green commit whose substring matched no unchecked step looks like it ticked, and the step is committed as green with no mark and no tick"
   fi
 
   # next-pending-refactor.sh — the reader, and the only one of the three whose answer is on
   # stdout, so its entry owes what that answer is as well as the two codes.
   if reads_entry next-pending-refactor.sh; then
-    says 'prints?[^.]*step' \
-      "$skill_md's entry for next-pending-refactor.sh never says it prints the pending step, so a resumed conductor is not told that stdout is the step to re-enter the refactor loop on"
+    entry_says 'prints?[^.]*step' \
+      "never says it prints the pending step, so a resumed conductor is not told that stdout is the step to re-enter the refactor loop on"
     says_exit_codes
   fi
 
   # clear-refactor-pending.sh — the eraser. Nothing on stdout, so what its entry owes instead
   # is which mark it takes off, and that it does so in the ledger itself.
   if reads_entry clear-refactor-pending.sh; then
-    says "$mark" \
-      "$skill_md's entry for clear-refactor-pending.sh never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
-    says 'strip|remove|drop|clear|delete' \
-      "$skill_md's entry for clear-refactor-pending.sh never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
+    entry_says "$mark" \
+      "never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
+    entry_says 'strip|remove|drop|clear|delete' \
+      "never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
     says_exit_codes
   fi
 fi
