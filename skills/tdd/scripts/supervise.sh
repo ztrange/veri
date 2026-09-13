@@ -23,11 +23,12 @@
 # `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
 # polling that file instead of by reading this script's stdout.
 #
-# One `launch` event is appended to the run's event log, `.tdd/events.jsonl` — the leaf's
-# name, the command behind it, and the attempt its name encodes (issue #107, ADR-0014).
-# Once per supervision, not once per attempt: a second `launch` would read as a second
-# leaf. A name leaf-role.sh cannot read leaves no line at all, rather than one whose actor
-# and attempt were invented.
+# Two kinds of event are appended to the run's event log, `.tdd/events.jsonl` (issue #107,
+# ADR-0014): one `launch` — the leaf's name, the command behind it, and the attempt its name
+# encodes — and one `retry` per relaunch, carrying the cause the watchdog killed the previous
+# attempt for. `launch` is written once per supervision, not once per attempt: a second one
+# would read as a second leaf, and the relaunch is `retry`'s to report. A name leaf-role.sh
+# cannot read leaves no line at all, rather than one whose actor and attempt were invented.
 #
 # Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
@@ -135,8 +136,15 @@ attempt_once() {
 # with its own diagnostic on stderr and empty stdout, and then nothing is logged: a launch
 # line whose actor and attempt were invented would be worse than the absent one a reader
 # is already told to tolerate.
+#
+# The role is read into a variable rather than used where it is computed, because the
+# `retry` mark in the loop below needs the same three assignments. A refusal leaves it
+# empty — a failed command substitution still assigns, the empty stdout the refusal
+# printed — so one `[[ -n … ]]` at each call site is the whole of "leaf-role.sh could not
+# read this name", in both places.
+role="$("$HERE/leaf-role.sh" "$name")" || role=""
 # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
-if role="$("$HERE/leaf-role.sh" "$name")"; then
+if [[ -n "$role" ]]; then
   env $role "$HERE/event.sh" launch name="$name" cmd="$*"
 fi
 
@@ -148,6 +156,15 @@ while :; do
   [[ "$status" == "killed-stuck" ]] || break
   (( tries >= retries )) && break
   tries=$(( tries + 1 ))
+  # The `retry` mark (issue #107, ADR-0014). It carries the watchdog's own diagnosis of why
+  # the attempt just killed had to be abandoned, which nothing else in the run can say: the
+  # status line at the foot of this script reports the LAST attempt's reason, so a leaf that
+  # recovered reports none at all. Written beside the human-readable line that already says
+  # the same thing to stderr, so the two cannot drift apart.
+  # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+  if [[ -n "$role" ]]; then
+    env $role "$HERE/event.sh" retry cause="$reason"
+  fi
   echo "supervise[$name]: retry $tries/$retries after killed-stuck" >&2
 done
 
