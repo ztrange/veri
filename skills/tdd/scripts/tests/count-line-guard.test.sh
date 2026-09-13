@@ -49,6 +49,14 @@ GREEN_FIXTURE_PATH="$ROOT/$GREEN_FIXTURE"
 RED_FIXTURE='skills/tdd/scripts/tests/fixtures/live-suites/ends-red.test.sh'
 RED_FIXTURE_PATH="$ROOT/$RED_FIXTURE"
 
+# The runner itself, and the directory its glob looks in. Case 3 needs both by name because
+# it stands the runner up somewhere else: the only way to watch what the recipe does with a
+# suite that was not there before is to add one, and adding one here would hand `make test` a
+# suite whose first act is to run `make test`.
+MAKEFILE="$ROOT/Makefile"
+TESTS_DIR='skills/tdd/scripts/tests'
+ADDED_NAME='newly-added.test.sh'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -176,6 +184,51 @@ problems=()
 probe_live_fixtures_are_what_they_claim
 probe_make_passes_the_green_suite
 probe_make_fails_the_red_suite
+
+report "$name"
+
+# probe_added_suite_gets_the_check — the criterion, watched rather than argued. A throwaway
+# tree gets the two things the recipe needs and nothing else: this repository's Makefile,
+# copied byte for byte, and one suite sitting at the path the glob looks in. No TESTS is
+# passed and no name is written anywhere, so the recipe reaching that suite at all means it
+# found it by existing — and the failure line naming it is the count-line check, the one
+# thing in the recipe that has anything to say about a suite that died. `cmp` is the other
+# half of the criterion: it asserts the runner under test really is the committed one, so
+# the case cannot be satisfied by a Makefile this suite quietly adjusted on its way past.
+#
+# The suite added is case 1's fixture under a new name — the shape the check exists to
+# catch — because a suite that runs to its count line would be let through by a runner that
+# checks it and by one that checks nothing, and say nothing about which this is.
+probe_added_suite_gets_the_check() {
+  local tree out code named
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch tree to add a suite to, so the criterion went unasked")
+    return
+  }
+  mkdir -p "$tree/$TESTS_DIR"
+  cp "$MAKEFILE" "$tree/Makefile"
+  cp "$FIXTURE_PATH" "$tree/$TESTS_DIR/$ADDED_NAME"
+  cmp -s "$MAKEFILE" "$tree/Makefile" ||
+    problems+=("the runner under test is not this repository's Makefile, so nothing here says the check costs no edit to it")
+
+  out="$(make -C "$tree" test 2>&1)" && code=0 || code=$?
+  [[ "$code" != 0 ]] ||
+    problems+=("want the recipe to refuse a suite added under $TESTS_DIR with no TESTS override and no edit to it; it exited 0 and said: $(flat "$out")")
+  named="$(grep -F "$ADDED_NAME" <<< "$out")"
+  grep -Eqi 'count[ -]line' <<< "$named" ||
+    problems+=("no line of the run names $ADDED_NAME and says it never reached its count line, so the added suite did not get the check; the lines naming it were: $(flat "$named")")
+
+  rm -rf "$tree"
+}
+
+# 3. A suite added under skills/tdd/scripts/tests/ is checked without the runner being
+#    touched. Cases 1 and 2 both hand the recipe a TESTS value, which is how a fixture is
+#    run at all but also how a runner that only checked suites it was told about would pass
+#    them; this case names no suite and edits nothing, and the check still fires.
+name="a suite added under skills/tdd/scripts/tests/ gets the count-line check with no edit to the runner"
+problems=()
+
+probe_added_suite_gets_the_check
 
 report "$name"
 
