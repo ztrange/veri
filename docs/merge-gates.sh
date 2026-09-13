@@ -71,9 +71,9 @@ mb="$(git merge-base HEAD "$base" 2>/dev/null)" || {
 # should never see the latter, but a gate that ignored it would pass a dirty tree.
 changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
 
-# Declared in the order they are applied below: exempt drops a path before it is judged,
-# then stale, then pipeline — so `the rules below` in the first comment names the other two.
-exempt_re='^docs/adr/'   # under docs/, but exempt from the rules below (#146)
+# Declared in the order they are applied below: exempt drops a path (#146) before either of
+# the two rules under it judges it; then stale, then pipeline.
+exempt_re='^docs/adr/'
 stale_re='^(docs/walkthrough\.html|Makefile)$'
 pipeline_re='^docs/'
 
