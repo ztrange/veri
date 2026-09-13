@@ -26,16 +26,16 @@ pending='# Plan for #42
 - [x] collapse non-alphanumerics to a single hyphen ⟂ refactor pending
 - [x] strip leading and trailing hyphens ⟂ refactor pending
 - [ ] percent-encode the remainder'
-settled='# Plan for #42
-
-- [x] add the slugify lowercasing
-- [ ] collapse non-alphanumerics to a single hyphen'
 
 # 1. the first marked step's description, with the mark stripped
 check "first pending description, mark stripped" 0 "$pending" \
   "collapse non-alphanumerics to a single hyphen"
 
 # 2. no step carries the mark → exit 3, no output (nothing to re-enter)
+settled='# Plan for #42
+
+- [x] add the slugify lowercasing
+- [ ] collapse non-alphanumerics to a single hyphen'
 check "no pending step exits 3" 3 "$settled" ""
 
 echo "----"
