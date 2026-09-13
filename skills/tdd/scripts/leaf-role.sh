@@ -25,6 +25,18 @@ set -euo pipefail
 # `${1:?msg}` expands $1, but aborts the shell with msg on stderr if it is unset or empty.
 name="${1:?usage: leaf-role.sh <leaf-name>}"
 
+# refuse <reason> — the one way this script says no, and the three things every refusal owes
+# whatever made a name unreadable. Exit 2 — no answer could be obtained, the plumbing speaking
+# rather than a clean negative — with the diagnostic on stderr and stdout left empty, because
+# the caller consumes this as `env $(leaf-role.sh "$name") …` and would word-split a half-role
+# printed there into its environment, logging it as if the name had said it. The script's own
+# name and the list of shapes are spelled here rather than at each refusal: two arms that came
+# to disagree about which shapes are legal would tell one reader's run a different story.
+refuse() {
+  echo "leaf-role: $1 (want develop-*|revise-*|verify-*)" >&2
+  exit 2
+}
+
 # The name splits at its first `-` into the two halves the role is read out of, and each is
 # named for the half it holds rather than for where in the string it sat: `%%-*` strips the
 # longest trailing match of `-*`, leaving the leading word, which is the actor's; `#*-` strips
@@ -36,13 +48,11 @@ phase_attempt="${name#*-}"
 # An unknown leading word is refused rather than guessed at, since either guess is a silent
 # wrong answer in a log whose purpose is telling the pipeline's two halves apart: an actor
 # defaulted to `developer` files the leaf's events under a role it never had, and an actor left
-# empty writes `"actor": ""` for a leaf that had one. Exit 2 — no answer could be obtained —
-# with the diagnostic on stderr and stdout left empty, because the caller consumes this as
-# `env $(leaf-role.sh "$name") …` and would word-split a half-role into its environment.
+# empty writes `"actor": ""` for a leaf that had one.
 case "$actor_word" in
   develop|revise) actor=developer ;;
   verify)         actor=verifier  ;;
-  *) echo "leaf-role: unknown leaf name '$name' (want develop-*|revise-*|verify-*)" >&2; exit 2 ;;
+  *) refuse "unknown leaf name '$name'" ;;
 esac
 
 # A name with no `-` at all carries no phase, and is refused for the same reason the unknown
@@ -51,8 +61,7 @@ esac
 # `develop` would be read as actor `developer` and phase `develop`, a phase no run has, printed
 # with exit 0 as if the name had said it.
 if [[ "$name" != *-* ]]; then
-  echo "leaf-role: leaf name '$name' says no phase (want develop-*|revise-*|verify-*)" >&2
-  exit 2
+  refuse "leaf name '$name' says no phase"
 fi
 
 # A trailing `-<digits>` is the attempt the name carries, and what precedes it is the phase; a
