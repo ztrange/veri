@@ -125,20 +125,31 @@ recipe() {
   recipe_out="$(make -C "$ROOT" test TESTS="$1" 2>&1)" && recipe_code=0 || recipe_code=$?
 }
 
+# direct <fixture path> — the other run this suite makes, and the reason the fixtures are held
+# by absolute path as well: one fixture on its own, outside the recipe, its combined output left
+# in `direct_out` and its exit status in `direct_code`. Every premise probe below needs it where
+# the cases need `recipe` above, because what a premise asserts is the shape of the fixture
+# itself — it dies, it exits 0, it ends in a count line — and a run through the recipe would be
+# answering for the runner in the same breath. Written once because the way a status is caught
+# here is not the obvious one: this suite does not run under `set -e`, so the exit code has to be
+# taken on the spot, and `&& … || …` is the only form that survives a fixture that fails.
+direct() {
+  direct_out="$("$1" 2>&1)" && direct_code=0 || direct_code=$?
+}
+
 # probe_fixture_dies_quietly — the premise the case rests on, asserted rather than assumed:
 # the fixture really does die after its first case and really does come back 0. A fixture
 # that had stopped doing either would leave the probes below passing against a runner that
 # reads nothing but the exit code, and the case would report green over the hole it exists
 # to pin.
 probe_fixture_dies_quietly() {
-  local out code
-  out="$("$FIXTURE_PATH" 2>&1)" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("the fixture no longer exits 0 when it dies; got $code, so nothing here pins a runner that trusts the exit code")
-  grep -q 'unbound variable' <<< "$out" ||
-    problems+=("the fixture no longer dies from an unbound variable; its output was: $(flat "$out")")
-  ! grep -Eq "$COUNT_LINE" <<< "$out" ||
-    problems+=("the fixture reached its count line, so it did not die: $(flat "$out")")
+  direct "$FIXTURE_PATH"
+  [[ "$direct_code" == 0 ]] ||
+    problems+=("the fixture no longer exits 0 when it dies; got $direct_code, so nothing here pins a runner that trusts the exit code")
+  grep -q 'unbound variable' <<< "$direct_out" ||
+    problems+=("the fixture no longer dies from an unbound variable; its output was: $(flat "$direct_out")")
+  ! grep -Eq "$COUNT_LINE" <<< "$direct_out" ||
+    problems+=("the fixture reached its count line, so it did not die: $(flat "$direct_out")")
 }
 
 # probe_make_fails — the criterion itself. The run goes through `recipe` above, so it is the
@@ -173,18 +184,17 @@ report "$name"
 # off either shape would leave the two probes after it agreeing with a runner that had
 # stopped telling the shapes apart.
 probe_live_fixtures_are_what_they_claim() {
-  local out code
-  out="$("$GREEN_FIXTURE_PATH" 2>&1)" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("the green fixture no longer exits 0; got $code, so nothing below pins the passing half")
-  [[ "$(tail -n 1 <<< "$out")" =~ ^[0-9]+' passed, 0 failed'$ ]] ||
-    problems+=("the green fixture no longer ends in a count line reporting nothing failed: $(flat "$out")")
+  direct "$GREEN_FIXTURE_PATH"
+  [[ "$direct_code" == 0 ]] ||
+    problems+=("the green fixture no longer exits 0; got $direct_code, so nothing below pins the passing half")
+  [[ "$(tail -n 1 <<< "$direct_out")" =~ ^[0-9]+' passed, 0 failed'$ ]] ||
+    problems+=("the green fixture no longer ends in a count line reporting nothing failed: $(flat "$direct_out")")
 
-  out="$("$RED_FIXTURE_PATH" 2>&1)" && code=0 || code=$?
-  [[ "$code" != 0 ]] ||
+  direct "$RED_FIXTURE_PATH"
+  [[ "$direct_code" != 0 ]] ||
     problems+=("the red fixture no longer exits non-zero, so nothing below pins a runner that reads the count line instead of the exit code")
-  [[ "$(tail -n 1 <<< "$out")" =~ $COUNT_LINE ]] ||
-    problems+=("the red fixture no longer reaches its count line, so it fails the way case 1's fixture does: $(flat "$out")")
+  [[ "$(tail -n 1 <<< "$direct_out")" =~ $COUNT_LINE ]] ||
+    problems+=("the red fixture no longer reaches its count line, so it fails the way case 1's fixture does: $(flat "$direct_out")")
 }
 
 # probe_make_passes_the_green_suite — the half that keeps the check from being satisfied by
