@@ -32,9 +32,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # awk's per-input line number — indexes both, and `-` is the ticked text on stdin.
 mark_ticked_line() {
   MARK="$2" awk '
+    BEGIN { mark = ENVIRON["MARK"]; done = 0 }
     NR == FNR { before[FNR] = $0; next }
     {
-      if (!done && $0 != before[FNR]) { $0 = $0 ENVIRON["MARK"]; done = 1 }
+      if (!done && $0 != before[FNR]) { $0 = $0 mark; done = 1 }
       print
     }
   ' "$1" -
