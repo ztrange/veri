@@ -95,7 +95,7 @@ plans "the page was edited: freshness only" 'docs-fresh' 'docs-test' \
   bash -c 'touch_file docs/walkthrough.html'
 
 # 4. the pipeline changed: the guards must fire too, and the reason names the file.
-plans "commentary changed: guards and freshness" 'docs-test  (build guards' '' \
+plans "commentary changed: guards and freshness" 'docs-test  (every docs suite' '' \
   bash -c 'touch_file docs/wt/commentary.py'
 
 # 5. so does a change to the guard suite itself.

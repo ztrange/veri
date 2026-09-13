@@ -82,7 +82,7 @@ if [ $run_test -eq 0 ] && [ $run_fresh -eq 0 ]; then
   echo "merge-gates: nothing to run — no page input changed against $base"
   exit 0
 fi
-[ $run_test  -eq 1 ] && echo "merge-gates: docs-test  (build guards, ~2 min) — $why_test"
+[ $run_test  -eq 1 ] && echo "merge-gates: docs-test  (every docs suite, ~2 min) — $why_test"
 [ $run_fresh -eq 1 ] && echo "merge-gates: docs-fresh (rebuild + compare, ~2 s) — $why_fresh"
 [ "$plan" = 1 ] && exit 0
 
