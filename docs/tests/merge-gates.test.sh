@@ -72,51 +72,57 @@ plans() {
 plans "no page input changed: nothing runs" 'nothing to run' 'docs-fresh' \
   bash -c 'echo x > README.md'
 
-# 2. a script changed: the page may be stale, the build is not suspect. Fresh only.
-plans "a script changed: freshness only" 'docs-fresh' 'docs-test' \
-  bash -c 'touch_file skills/tdd/scripts/classify-bail.sh'
+# 2. #125: a change under skills/ owes no gate at all. Until #125 a script owed docs-fresh
+#    and SKILL.md owed it too (the page cross-checks its revise budget); those two paths are
+#    the whole of what an ordinary development PR touches, and owing them a fresh page is
+#    what put the `make docs` regen commit — plus the prose the build refused to build
+#    without — on the critical path of every script change. The page is allowed to lag now:
+#    the build carries an uncovered line as debt and docs/docs-owed.sh files it, so the merge
+#    no longer has to collect it. One case for both paths, because "nothing under skills/" is
+#    one rule and not two: the branch changes a script and SKILL.md together and still owes
+#    nothing.
+plans "a change under skills/ owes nothing" 'nothing to run' 'docs-fresh' \
+  bash -c 'touch_file skills/tdd/scripts/classify-bail.sh; touch_file skills/tdd/SKILL.md'
 
-# 3. SKILL.md changed: the page cross-checks its revise budget. Fresh only.
-plans "SKILL.md changed: freshness only" 'docs-fresh' 'docs-test' \
-  bash -c 'touch_file skills/tdd/SKILL.md'
-
-# 4. the page itself changed by hand: freshness catches a hand edit. Fresh only.
+# 3. the page itself changed by hand: freshness catches a hand edit. Fresh only.
 plans "the page was edited: freshness only" 'docs-fresh' 'docs-test' \
   bash -c 'touch_file docs/walkthrough.html'
 
-# 5. the pipeline changed: the guards must fire too, and the reason names the file.
+# 4. the pipeline changed: the guards must fire too, and the reason names the file.
 plans "commentary changed: guards and freshness" 'docs-test  (build guards' '' \
   bash -c 'touch_file docs/wt/commentary.py'
 
-# 6. so does a change to the guard suite itself.
+# 5. so does a change to the guard suite itself.
 plans "the guard suite changed: guards and freshness" 'docs-test' '' \
   bash -c 'touch_file docs/tests/build-guards.test.sh'
 
-# 7. uncommitted work counts: a gate that ignored the working tree would pass a dirty
+# 6. uncommitted work counts: a gate that ignored the working tree would pass a dirty
 #    merge. The mutator leaves the change unstaged (no commit of it — the commit is empty).
-plans "an uncommitted script change still counts" 'docs-fresh' '' \
-  bash -c 'touch_file skills/tdd/scripts/verify.sh; git stash -q; git stash pop -q; git reset -q'
+#    It edits the docs pipeline rather than a script because since #125 a script owes no
+#    gate, so a script here would be indistinguishable from the working tree being ignored.
+plans "an uncommitted pipeline change still counts" 'docs-test' '' \
+  bash -c 'touch_file docs/wt/commentary.py; git stash -q; git stash pop -q; git reset -q'
 
-# 8. VERI_GATES=all runs both whatever the diff says — here, a diff that owes nothing.
+# 7. VERI_GATES=all runs both whatever the diff says — here, a diff that owes nothing.
 GATES=all plans "VERI_GATES=all overrides the diff" 'docs-test' '' \
   bash -c 'echo x > README.md'
 GATES=auto
 
-# 8b. and a value that is neither is refused with exit 2, not treated as auto.
+# 7b. and a value that is neither is refused with exit 2, not treated as auto.
 d="$(repo)"
 out="$(cd "$d" && VERI_GATES=sometimes VERI_GATES_PLAN=1 VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?
 if [[ "$code" == 2 && "$out" == *"must be auto or all"* ]]; then pass=$((pass + 1)); else
   fail=$((fail + 1)); echo "FAIL - a bad VERI_GATES is exit 2 (exit $code)"; echo "$out" | sed 's/^/    | /'; fi
 
-# 9. a base that does not resolve is exit 2, not a silent "nothing changed".
+# 8. a base that does not resolve is exit 2, not a silent "nothing changed".
 d="$(repo)"
 ( cd "$d" && echo x > README.md && git add -A && git commit -qm work )
 out="$(cd "$d" && VERI_GATES_PLAN=1 VERI_GATES_BASE=no-such-ref docs/merge-gates.sh 2>&1)" && code=0 || code=$?
 if [[ "$code" == 2 && "$out" == *"does not resolve"* ]]; then pass=$((pass + 1)); else
   fail=$((fail + 1)); echo "FAIL - unresolvable base is exit 2 (exit $code)"; echo "$out" | sed 's/^/    | /'; fi
 
-# 10. the failure path, for real: a hand-edited page makes docs-fresh fail, merge-gates
-#     exits 1 and prints the regen fix. This one rebuilds the page (~2 s).
+# 9. the failure path, for real: a hand-edited page makes docs-fresh fail, merge-gates
+#    exits 1 and prints the regen fix. This one rebuilds the page (~2 s).
 d="$(repo)"
 ( cd "$d" && printf '\n<!-- hand edit -->\n' >> docs/walkthrough.html && git add -A && git commit -qm 'hand edit' )
 out="$(cd "$d" && VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?

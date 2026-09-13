@@ -69,8 +69,9 @@ docs-check: docs-test docs-fresh
 # runners), and a push hook would run them on pushes that touched nothing the page reads.
 # This is the replacement: run once at merge time, in the PR's worktree on the rebased
 # tip, it diffs the branch against origin/main and runs only the gates the changed files
-# warrant — nothing for a README PR, docs-fresh for a script change, both for a change
-# to the build pipeline. docs/merge-gates.sh has the rules and the exit codes;
+# warrant — nothing for a README PR, nothing for a change under skills/ either since #125,
+# docs-fresh for a hand-edited page, both for a change to the build pipeline.
+# docs/merge-gates.sh has the rules and the exit codes;
 # VERI_GATES=all forces both, VERI_GATES_BASE picks another base.
 merge-gates:
 	@docs/merge-gates.sh
