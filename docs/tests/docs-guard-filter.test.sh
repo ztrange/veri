@@ -27,11 +27,18 @@
 # existed. That suite has no filter of its own, so the last case pays for all eleven of its
 # cases; the alternative is not observing the claim at all.
 #
-# `make docs-test` runs this suite, and case 4 runs `make docs-test` over a sabotaged copy
-# of the tree. That does not recurse: the copy's first recipe line, build-guards.test.sh,
-# is the one sabotaged to fail, and make stops at the first recipe line that fails, so the
-# copy never reaches this suite. It would recurse one level only if build-guards stopped
-# failing over the sabotage — which is exactly what case 4 then reports.
+# Case 5 widens the subject from that suite to the target that runs it: not what `make
+# docs-test` does with one suite's cases, but which suites it runs at all. It belongs here
+# rather than in a suite of its own for the reason it is about — a new file under
+# docs/tests/ is run by nothing until the Makefile says so, so a suite added to pin that
+# could not be the thing that pins it.
+#
+# `make docs-test` runs this suite, and cases 4 and 5 run `make docs-test` over copies of
+# the tree. Neither recurses. Case 4's copy is sabotaged so that its first recipe line,
+# build-guards.test.sh, fails, and make stops at the first recipe line that fails, so the
+# copy never reaches this suite — it would recurse one level only if build-guards stopped
+# failing over the sabotage, which is exactly what case 4 then reports. Case 5's copy
+# carries no suite but its own one-line fixture, so there is nothing there to recurse into.
 #
 # Run: docs/tests/docs-guard-filter.test.sh
 set -uo pipefail
@@ -301,6 +308,48 @@ make_out="$(ONLY="$ONLY_CASE" make -C "$sab" docs-test 2>&1)" && make_code=0 || 
 mg_out="$(ONLY= "$ROOT/docs/tests/merge-gates.test.sh" 2>&1)" && mg_code=0 || mg_code=$?
 { [[ "$mg_code" == 0 ]] && printf '%s\n' "$mg_out" | grep -Eq '[1-9][0-9]* passed, 0 failed'; } ||
   problems+=("want exit 0 and a green count over cases that ran from $ROOT/docs/tests/merge-gates.test.sh; got $mg_code: $(printf '%s' "$mg_out" | tail -3 | tr '\n' '/')")
+report "$name"
+
+# 5. The other thing a human, a merge gate and CI read off that target: which suites it
+#    runs. It names them one recipe line each, so a new suite under docs/tests/ is run by
+#    nothing until someone also edits the Makefile — and the edit nobody makes is the one
+#    they did not know was owed. `make test` has never had that failure mode; it globs, so
+#    a suite runs by existing. That is the claim here, for docs-test, and stated as
+#    behaviour rather than as the shape of the recipe: over a tree holding a docs suite
+#    this Makefile has never heard of, the target runs it.
+#
+#    The fixture tree is the Makefile and that one suite — no build-walkthrough.py, no git
+#    history, none of the four real suites. Partly cost: those four are ~170 s together and
+#    this case asks nothing of any of them. Partly recursion, per the note at the top of
+#    this file: a copy carrying this suite would run this case again one level down. And
+#    partly the claim itself — over a tree where the named suites are absent, a recipe that
+#    still names them stops on the first missing file and the new suite never runs, while
+#    one that globs finds exactly what is there and nothing else.
+#
+#    Two probes. The marker the fixture writes is the whole claim: a target that exited 0
+#    without ever running it is precisely the failure, and an exit status alone cannot tell
+#    those apart. Make's own status is the second, for the same reason case 4 pins it
+#    passing a 1 through — a discovered suite whose 0 the target swallowed, or whose 0 it
+#    turned into something else, is not a suite the target runs.
+name="a docs suite the Makefile has never heard of runs under 'make docs-test' by existing"
+problems=()
+disc="$WORK/discovery"
+marker="$disc/brand-new.ran"
+mkdir -p "$disc/docs/tests"
+cp "$ROOT/Makefile" "$disc/"
+cat > "$disc/docs/tests/brand-new.test.sh" <<EOF
+#!/usr/bin/env bash
+# Fixture: a docs suite added to the tree without touching the Makefile. It records that it
+# was run and passes; what a real one would assert is beside the point here.
+: > "$marker"
+echo "1 passed, 0 failed"
+EOF
+chmod 755 "$disc/docs/tests/brand-new.test.sh"
+disc_out="$(make -C "$disc" docs-test 2>&1)" && disc_code=0 || disc_code=$?
+[[ -e "$marker" ]] ||
+  problems+=("want docs/tests/brand-new.test.sh run by 'make docs-test' with no Makefile edit; it left no marker, so nothing ran it: $(printf '%s' "$disc_out" | tail -3 | tr '\n' '/')")
+[[ "$disc_code" == 0 ]] ||
+  problems+=("want exit 0 from 'make docs-test' over a tree whose one docs suite passes; got $disc_code: $(printf '%s' "$disc_out" | tail -3 | tr '\n' '/')")
 report "$name"
 
 echo "----"

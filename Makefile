@@ -54,11 +54,14 @@ install-hooks:
 	cp docs/hooks/reference-transaction "$$h" && chmod 755 "$$h"; \
 	echo "installed $$h"
 
+# A glob, as `test` above is: a suite under docs/tests/ runs by existing, so adding one
+# never also owes a Makefile edit nobody knew was owed. It stops at the first suite that
+# fails and passes that status out, which is what the target's callers — a human, a merge
+# gate — read off it.
+DOCS_TESTS := $(sort $(wildcard docs/tests/*.test.sh))
+
 docs-test:
-	@docs/tests/build-guards.test.sh
-	@docs/tests/merge-gates.test.sh
-	@docs/tests/docs-guard-filter.test.sh
-	@docs/tests/docs-owed.test.sh
+	@for t in $(DOCS_TESTS); do "$$t" || exit $$?; done
 
 # The freshness half of docs-check on its own: rebuild once, compare to the committed
 # page (~2 s). Split out because merge-gates owes it far more often than the guards.
