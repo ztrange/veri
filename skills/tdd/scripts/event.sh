@@ -27,8 +27,12 @@
 # make the whole log unparseable. json.dumps is what decides that, not the caller.
 set -euo pipefail
 
-event="${1:?usage: event.sh <event> [key=value …]}"
-shift
+# `${1:?msg}` expands $1, but if it is unset or empty it aborts the shell with msg on stderr
+# — before the mkdir below, so a mis-called event.sh leaves no trace. `:` is the do-nothing
+# builtin: it discards the expanded value, because nothing here needs it. This script's own
+# argv already IS python's argv — the event name first, the payload after — so the name is
+# not bound to a variable and shifted off only to be spliced back on at the exec.
+: "${1:?usage: event.sh <event> [key=value …]}"
 
 mkdir -p .tdd
 
@@ -53,4 +57,4 @@ for arg in sys.argv[2:]:
 
 with open(".tdd/events.jsonl", "a") as f:
     f.write(json.dumps(line) + "\n")
-' "$event" "$@"
+' "$@"
