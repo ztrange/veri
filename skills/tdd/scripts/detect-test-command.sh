@@ -102,13 +102,17 @@ if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
       *"$marker"*)
-        # `${line%%"$marker"*}` is the shortest prefix — cut at the *first* marker, the
-        # same one `${line#*"$marker"}` answers from — so the span being asked about is
-        # the one that marker sits in.
-        if quoted "${line%%"$marker"*}"; then
+        # The line cut in two at its *first* marker, which is the one that answers: `%%`
+        # takes the shortest prefix and `#` the shortest match, so the two halves are cut
+        # either side of the same marker rather than of two different ones. `prefix` is
+        # what the line carries ahead of it, and says whether that marker is quoted;
+        # `rest` is what it carries behind it, and names the command.
+        prefix="${line%%"$marker"*}"
+        rest="${line#*"$marker"}"
+        if quoted "$prefix"; then
           continue
         fi
-        cmd="$(unwrapped "$(ltrim "${line#*"$marker"}")")"
+        cmd="$(unwrapped "$(ltrim "$rest")")"
         if [ -n "$cmd" ]; then
           answer "$cmd"
         fi
