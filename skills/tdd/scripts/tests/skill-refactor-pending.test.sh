@@ -103,10 +103,11 @@ report() {
 # across two lines still reads as one. Case is folded away last, because the sentences are
 # the writer's.
 #
-# Both readers below end in it, the way skill-suite-runs.test.sh's readers both end in
-# `plain`, so "what a record is" is spelled once. A second spelling would not fail — it
-# would quietly answer a probe with records built by a grammar the other reader has since
-# outgrown.
+# Every reader below ends in it — `instructions`, the two that read this repository's own
+# documents, and the `section_of` slice the three scoped readers share — the way
+# skill-suite-runs.test.sh's two readers both end in `plain`, so "what a record is" is spelled
+# once. A second spelling would not fail — it would quietly answer a probe with records built
+# by a grammar the other readers have since outgrown.
 records_of() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
