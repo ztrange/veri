@@ -58,6 +58,19 @@ marker='Test command:'
 # of the marker as well as the marker itself — shortest match, so the first marker on the line
 # is the one that answers.
 #
+# `holds_marker <string>` is true when that string still carries the marker somewhere in it.
+# That is the walk's own question, asked of the unwalked tail before every turn rather than of
+# the whole line once, and naming it is what lets the walk be a plain `while` whose condition
+# says what it asks. `case` is the shell's literal-pattern test — unlike `grep` it starts no
+# process, and unlike `[` it takes `*…*` as "contains" — but it falls out with status 0 when
+# nothing matched, so both answers are returned explicitly rather than left to that default.
+holds_marker() {
+  case "$1" in
+    *"$marker"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+#
 # A marker *inside a backtick span* is being quoted, not stated: a body that writes the two
 # words while describing how a leaf finds its command is talking about the line, not writing
 # one. Such a marker is skipped and the scan goes on — to later markers on the same line first,
@@ -108,16 +121,12 @@ if [ -n "$issue" ] && [ -f "$issue" ]; then
     # two words and then states them in the same sentence — which is how #145's own body
     # reads — hides the line that answers behind the one that does not. `rest` is the part
     # of the line not yet walked and `seen` is the part already walked, and each turn moves
-    # one marker's worth of text from the first to the second. The `case` is the loop's only
-    # exit that is not an answer: when `rest` holds no further marker the line is spent, and
-    # a line that never held one is spent on the first turn.
+    # one marker's worth of text from the first to the second. The condition is the loop's
+    # only exit that is not an answer: when `rest` holds no further marker the line is spent,
+    # and a line that never held one is spent before its first turn.
     rest="$line"
     seen=""
-    while :; do
-      case "$rest" in
-        *"$marker"*) ;;
-        *) break ;;
-      esac
+    while holds_marker "$rest"; do
       # The unwalked text cut in two at its *first* marker: `%%` takes the shortest prefix
       # and `#` the shortest match, so the two halves are cut either side of the same
       # marker rather than of two different ones. The prefix joins `seen`, which is what
