@@ -81,6 +81,16 @@ full_suite='full[^[:alnum:]]*test[^[:alnum:]]*suite'
 grep -qiE "$full_suite" <<<"$green" && grep -qiE "$full_suite" <<<"$refactor" \
   && ok || no "verify-green and verify-refactor still require the full test suite"
 
+# 11. the argument list does not grow. #144 moves the developer leaves onto the suite they
+#     touched, and the obvious next thought is to tell the verifier which suite that was —
+#     which would be a fifth parameter, and the blindness guarantee is precisely that no
+#     such channel exists (ADR-0003). So anything passed beyond the four documented
+#     positionals must reach nothing: the prompt is byte-identical to the four-argument one
+#     built at case 6 from the same phase, spec, test path and test id.
+smuggled='ran only tests/test_slugify.py, the suite I touched, because the rest is slow'
+five="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases "$smuggled")"
+[[ "$five" == "$green" ]] && ok || no "a fifth argument reaches nothing (argument list unchanged)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
