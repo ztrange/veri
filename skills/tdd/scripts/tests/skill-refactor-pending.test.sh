@@ -72,7 +72,7 @@ instructions() {
 }
 
 # reads <what it is> <anchor-regex>… — the first instruction of the global `records`
-# matching every <anchor-regex>, into the global `text`; otherwise one problem naming
+# matching every <anchor-regex>, into the global `instruction`; otherwise one problem naming
 # <what it is> and a non-zero return. Reads as the sentence it fails with: `reads 'ticks
 # the ledger'` asks for the instruction *that* ticks the ledger, and `says`/`denies` then
 # probe what this left behind.
@@ -80,7 +80,7 @@ instructions() {
 # Fail closed: a branch that has been reworded away is reported as unreadable rather than
 # probed as an empty string, which would let "the instruction is gone" pass as "the
 # instruction is right".
-text=""
+instruction=""
 reads() {
   local what="$1" line re
   shift
@@ -88,38 +88,38 @@ reads() {
     for re in "$@"; do
       [[ "$line" =~ $re ]] || continue 2
     done
-    text="$line"
+    instruction="$line"
     return 0
   done <<< "$records"
   problems+=("$skill_md has no instruction that $what — what that branch prescribes could not be read")
   return 1
 }
 
-# says <regex> <fact> / denies <regex> <fact> — one thing the instruction in `$text` must
+# says <regex> <fact> / denies <regex> <fact> — one thing the `$instruction` just read must
 # carry, or must not, written as the regex of any wording that would carry it; `fact` names
 # it once when the probe is wrong.
 says() {
-  [[ "$text" =~ $1 ]] || problems+=("$2")
+  [[ "$instruction" =~ $1 ]] || problems+=("$2")
 }
 denies() {
-  if [[ "$text" =~ $1 ]]; then problems+=("$2"); fi
+  if [[ "$instruction" =~ $1 ]]; then problems+=("$2"); fi
 }
 
 # miss <fact> — one problem of the ordered probe below: <fact>, then the instruction it was
 # read from, clipped, so the fix is an edit to a line already in front of you. Every miss
 # quotes it, which is why the quoting lives here rather than at each of the three.
 miss() {
-  problems+=("$1: $(printf '%.130s' "$text")")
+  problems+=("$1: $(printf '%.130s' "$instruction")")
 }
 
-# says_clear_commit_mirror — the three things the instruction in `$text` must prescribe, and
-# the order they must come in: clear the mark, commit the cleared ledger, and only then
+# says_clear_commit_mirror — the three things the `$instruction` just read must prescribe,
+# and the order they must come in: clear the mark, commit the cleared ledger, and only then
 # mirror the step to the issue. The order is the whole claim here, which is why this is not
 # three `says` calls: each probe reads only what the one before it left — `rest` — and the
 # first miss returns, because "and after that?" has no answer once the order is already
 # broken.
 says_clear_commit_mirror() {
-  local rest="$text"
+  local rest="$instruction"
   if [[ ! "$rest" =~ clear-refactor-pending\.sh ]]; then
     miss "$skill_md never runs clear-refactor-pending.sh where a step's cycle completes, so the mark green wrote is never removed and every finished step reads as pending"
     return
