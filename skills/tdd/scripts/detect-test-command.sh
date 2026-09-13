@@ -45,18 +45,19 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # of them spells the marker as `"$marker"` and none of them spells out the words.
 marker='Test command:'
 
-# The first matching line answers, so a body that mentions the command again lower down —
-# in a note, a quotation, a later section — cannot overrule the one that stated it. What
-# follows the marker is printed verbatim but for the whitespace separating the two: the
-# `#` expansion drops the marker, and `ltrim` drops what separated it from the command.
-# A line with nothing after the marker names no command, so it is skipped rather than
-# answered with "".
+# The first marker that states a command answers, so a body that names the command again
+# lower down — in a note, a later section — cannot overrule the one that stated it first.
+# What follows that marker is printed verbatim but for the whitespace separating the two:
+# the `#` expansion drops the marker, and `ltrim` drops what separated it from the command.
+# A marker with nothing after it names no command, so it is skipped rather than answered
+# with "".
 #
-# The marker is looked for *anywhere* on the line, not only at its start, because that is
+# The marker is looked for *anywhere* on a line, not only at its start, because that is
 # where issues actually write it: mid-sentence in the Notes, with the command in a backtick
-# span (#131). `*"$marker"*` matches that line, and `${line#*"$marker"}` drops the prose ahead
-# of the marker as well as the marker itself — shortest match, so the first marker on the line
-# is the one that answers.
+# span (#131). `holds_marker` below is that "anywhere" test, and `#*"$marker"` drops the prose
+# ahead of a marker as well as the marker itself — shortest match, so what is cut away is the
+# text up to the *first* marker in what is left, which is what lets a line be taken one
+# marker at a time rather than at its first marker only.
 #
 # `holds_marker <string>` is true when that string still carries the marker somewhere in it.
 # That is the walk's own question, asked of the unwalked tail before every turn rather than of
