@@ -42,4 +42,4 @@ stop — do not edit it.
 ### Report (last lines of your output)
 
 IMPL_PATH: <comma-separated paths of the production files you created or changed>
-SUITE: GREEN | RED — <the suite's final summary line>
+SUITE: GREEN | RED — <the full suite's final summary line>
