@@ -595,9 +595,10 @@ following step. The phase sub-steps are:
 ### 4. Draft PR
 
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off. The full suite
-must be green and all work committed before this step. Like every step since 1.2, this one
-runs **from inside the worktree** — both commands below are issued there, so they see the
-issue branch and its commits without any switching.
+must be green before this step; that nothing is left uncommitted and no step is still only
+green is not taken on trust here — sub-step 1 asks. Like every step since 1.2, this one runs
+**from inside the worktree** — every command below is issued there, so each sees the issue
+branch and its commits without any switching.
 
 1. **Ask the two questions that decide whether there is anything fit to push, and refuse to
    go on while either says no** — both from inside the worktree, before the branch leaves
