@@ -15,11 +15,16 @@
 #   pipeline  docs/wt/*, docs/build-walkthrough.py, docs/check-walkthrough.py, docs/tests/
 #             → the guards (docs-test) AND the freshness check (docs-fresh). Changing how
 #               the page is built is the only way to break the guards.
-#   inputs    skills/tdd/scripts/*.sh, skills/tdd/SKILL.md (the revise
-#             budget the page cross-checks), docs/walkthrough.html itself (a hand edit),
-#             Makefile → the freshness check only: the page may now be stale, but the
-#               build that makes it has not changed.
-#   anything else → nothing. A test-only or README PR owes no page.
+#   inputs    docs/walkthrough.html itself (a hand edit), Makefile → the freshness check
+#             only: the page may now be stale, but the build that makes it has not changed.
+#   anything else → nothing. A test-only or README PR owes no page — and since #125,
+#             neither does anything under skills/. A script or SKILL.md change does leave
+#             the page stale, but that staleness is now debt the page carries openly
+#             (an uncovered line renders marked `commentary owed`) and docs/docs-owed.sh
+#             files, rather than a merge-time bill: owing a fresh page put the `make docs`
+#             regen commit, and the prose the build used to refuse to build without, on the
+#             critical path of every development PR. Prose is allowed to lag; the page's
+#             promise is that the source it shows is verbatim, not that it is explained.
 # Tags are NOT a file, so a tag cut since the page was built is not seen here; that is
 # docs/hooks/reference-transaction's job, and docs-fresh names the missing tag if it runs.
 #
@@ -51,7 +56,7 @@ mb="$(git merge-base HEAD "$base" 2>/dev/null)" || {
 changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
 
 pipeline_re='^docs/(wt/|build-walkthrough\.py$|check-walkthrough\.py$|tests/)'
-inputs_re='^(skills/tdd/scripts/[^/]+\.sh|skills/tdd/SKILL\.md|docs/walkthrough\.html|Makefile)$'
+inputs_re='^(docs/walkthrough\.html|Makefile)$'
 
 run_test=0 run_fresh=0 why_test="" why_fresh=""
 if [ "$mode" = all ]; then
