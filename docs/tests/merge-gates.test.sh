@@ -26,7 +26,8 @@ trap 'rm -rf "$WORK"' EXIT
 repo() {
   local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
   mkdir -p "$d/docs" "$d/skills/tdd"
-  cp "$ROOT/docs/build-walkthrough.py" "$ROOT/docs/check-walkthrough.py" "$ROOT/docs/merge-gates.sh" "$d/docs/"
+  cp "$ROOT/docs/build-walkthrough.py" "$ROOT/docs/check-walkthrough.py" "$ROOT/docs/merge-gates.sh" \
+     "$ROOT/docs/docs-owed.sh" "$d/docs/"
   cp -R "$ROOT/docs/wt" "$d/docs/wt"; rm -rf "$d/docs/wt/__pycache__"
   cp -R "$ROOT/docs/tests" "$d/docs/tests"
   cp -R "$ROOT/skills/tdd/scripts" "$d/skills/tdd/scripts"
@@ -95,6 +96,24 @@ plans "commentary changed: guards and freshness" 'docs-test  (build guards' '' \
 # 5. so does a change to the guard suite itself.
 plans "the guard suite changed: guards and freshness" 'docs-test' '' \
   bash -c 'touch_file docs/tests/build-guards.test.sh'
+
+# 5b. #137: so does anything else under docs/. Before this, the pipeline pattern named
+#     docs/wt/, the two python scripts and docs/tests/ one by one, so docs/docs-owed.sh and
+#     docs/merge-gates.sh matched neither pattern and a change to either got no gate at
+#     all — and since the docs suites left `make test`, two of them ran in no gate
+#     anywhere. The rule is the directory now, minus the page on its own (case 3): a branch
+#     that changes only docs/docs-owed.sh owes every docs suite plus the freshness check,
+#     and the reason names the file.
+d="$(repo)"
+( cd "$d" && touch_file docs/docs-owed.sh && git add -A && git commit -qm work )
+out="$(cd "$d" && VERI_GATES_PLAN=1 VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?
+if [[ "$code" == 0 && "$out" == *"docs-test"* && "$out" == *"docs-fresh"* && "$out" == *"docs/docs-owed.sh"* ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - a change under docs/ outside the page owes every docs suite and freshness (exit $code)"
+  echo "$out" | sed 's/^/    | /'
+fi
 
 # 6. uncommitted work counts: a gate that ignored the working tree would pass a dirty
 #    merge. The mutator leaves the change unstaged (no commit of it — the commit is empty).

@@ -12,11 +12,14 @@
 # extent the branch changed an input. So: diff against the base, decide, run.
 #
 # WHAT THE PAGE READS, AND SO WHAT WARRANTS WHICH GATE:
-#   pipeline  docs/wt/*, docs/build-walkthrough.py, docs/check-walkthrough.py, docs/tests/
-#             → the guards (docs-test) AND the freshness check (docs-fresh). Changing how
-#               the page is built is the only way to break the guards.
+#   pipeline  anything under docs/ except the page itself → every suite under docs/tests/
+#             (docs-test) AND the freshness check (docs-fresh). The rule is the directory,
+#             not a list of its parts (#137): docs/docs-owed.sh and this script matched no
+#             listed part and so got no gate at all, and since the docs suites left
+#             `make test` two of them ran in no gate anywhere.
 #   stale     docs/walkthrough.html itself (a hand edit), Makefile → the freshness check
-#             only: the page may now be stale, but the build that makes it has not changed.
+#             only: the page is the one thing under docs/ that is output, not input, so a
+#             hand edit to it can only make it stale — the build that makes it is unchanged.
 #   anything else → nothing. A README or test-only PR owes no page, and since #125 neither
 #             does anything under skills/ — a script or SKILL.md change included.
 # Tags are NOT a file, so a tag cut since the page was built is not seen here; that is
@@ -57,7 +60,7 @@ mb="$(git merge-base HEAD "$base" 2>/dev/null)" || {
 # should never see the latter, but a gate that ignored it would pass a dirty tree.
 changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
 
-pipeline_re='^docs/(wt/|build-walkthrough\.py$|check-walkthrough\.py$|tests/)'
+pipeline_re='^docs/'
 stale_re='^(docs/walkthrough\.html|Makefile)$'
 
 run_test=0 run_fresh=0 why_test="" why_fresh=""
@@ -66,10 +69,11 @@ if [ "$mode" = all ]; then
 else
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    if [[ "$f" =~ $pipeline_re ]]; then
-      run_test=1 run_fresh=1; why_test="${why_test:-$f}"; why_fresh="${why_fresh:-$f}"
-    elif [[ "$f" =~ $stale_re ]]; then
+    # stale first: the page is the one thing under docs/ that is output, not input.
+    if [[ "$f" =~ $stale_re ]]; then
       run_fresh=1; why_fresh="${why_fresh:-$f}"
+    elif [[ "$f" =~ $pipeline_re ]]; then
+      run_test=1 run_fresh=1; why_test="${why_test:-$f}"; why_fresh="${why_fresh:-$f}"
     fi
   done <<< "$changed"
 fi
@@ -84,7 +88,11 @@ fi
 
 rc=0
 if [ $run_test -eq 1 ]; then
-  docs/tests/build-guards.test.sh || rc=1
+  # every suite under docs/tests/, via the target that globs them — naming one here would
+  # leave the suites added since out of the only gate that runs them. This script's own
+  # tunables are unset first: one of those suites tests this script, and an ambient
+  # VERI_GATES=all or VERI_GATES_PLAN=1 would reach the cases that set neither and fail them.
+  env -u VERI_GATES -u VERI_GATES_PLAN -u VERI_GATES_BASE make docs-test || rc=1
 fi
 if [ $run_fresh -eq 1 ]; then
   python3 docs/check-walkthrough.py || {
