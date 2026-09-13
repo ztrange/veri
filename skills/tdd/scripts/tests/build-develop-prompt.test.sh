@@ -238,6 +238,31 @@ fi
 [[ -z "$problems" ]] \
   && ok || no "SKILL.md's Refactor narration tells nothing-left-to-tidy from stopped-by-budget and lists the N candidates from the leaf's CANDIDATES: lines (${problems#; })"
 
+# 10. the triangulating case for case 9's `CANDIDATES:` probe (issue #106). Case 9 reads the
+#     whole `#### Refactor loop` section, and `CANDIDATES:` occurs in it twice: sub-step 1 names
+#     the line when it says what a leaf's report ends with, and the narration bullet names it as
+#     where its list is taken from. So sub-step 1 answers case 9's probe on its own — the
+#     narration could stop citing the leaf's own line, leaving the conductor to summarise the
+#     transcript instead of copying `CANDIDATES:` verbatim, and case 9 would stay green. This
+#     case reads the narration bullet ALONE — from its `3. ` to the end of the section, so
+#     sub-steps 1 and 2 are outside the cut — and so it fails exactly where case 9 cannot: the
+#     bullet stops naming `CANDIDATES:` while sub-step 1 still does. Fails closed on an empty
+#     cut for case 9's reason: a moved heading or a renumbered bullet means nothing below was
+#     read, which must not answer yes.
+bullet="$(awk '/^#### Refactor loop/ { inside = 1; next }
+               inside && /^#{1,6} / { exit }
+               inside && /^3\. / { narration = 1 }
+               inside && narration' "$SKILL" | tr '\n' ' ')"
+
+problems=""
+if [[ -z "$bullet" ]]; then
+  problems="no '3.' bullet under '#### Refactor loop' — the narration bullet could not be read"
+elif ! grep -q -e 'CANDIDATES:' <<<"$bullet"; then
+  problems="the narration bullet never names CANDIDATES:, so only sub-step 1 does"
+fi
+[[ -z "$problems" ]] \
+  && ok || no "SKILL.md's Refactor narration bullet names the leaf's CANDIDATES: line itself, not merely somewhere in the section ($problems)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
