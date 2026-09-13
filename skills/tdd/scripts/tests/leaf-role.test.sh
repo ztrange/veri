@@ -171,14 +171,11 @@ report "$name"
 #    phase at all.
 #
 #    `develop` is that shape: the actor is readable, and there is nothing after it to read a
-#    phase out of. It is refused for the same reason case 2's unknown word is — the answer
-#    would be invented rather than read — but it is a distinct probe because the invention has
-#    a different source: not an arm nobody wrote, but the two expansions the split is made of,
-#    both of which return the WHOLE string when the name carries no `-`. So the actor word and
-#    the phase are read out of the same six letters, and `leaf-role.sh develop` answers
-#    `VERI_PHASE=develop` — a phase no run has, logged with exit 0 as if it were read off the
-#    name. The refusal owes the same three things as case 2's, and this probe asks for them
-#    the same way.
+#    phase out of. It is a case of its own rather than more of case 2 because the invention it
+#    refuses has a different source — not an arm nobody wrote, but the two expansions the split
+#    is made of. What those two do to a name carrying no `-`, and the answer `leaf-role.sh
+#    develop` would otherwise have printed, is said beside the guard that refuses it
+#    (leaf-role.sh:58-62).
 name="leaf-role.sh fails closed on a leaf name with a recognised leading word but no phase after it: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
 problems=()
 refusal_probe develop
