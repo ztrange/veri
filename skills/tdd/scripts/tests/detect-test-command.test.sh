@@ -445,6 +445,46 @@ detect --issue "$body" "$repo"
 matched \
   && ok || no "a development issue quoting a docs issue's marker with make docs-test answers the make test its Notes state (exit=$code want 0, stdout='$out' want '$want')"
 
+# 0k. the body this issue was opened about, verbatim, as veri's own tracker holds it: #144,
+# read on 2026-09-13. Cases 0g–0j pin the *shapes* — a quoted marker with the real line a
+# paragraph below, a body whose only marker is quoted, both markers on one line, a quotation
+# naming a suite — on one or two hand-written lines each. This pins the real thing, and that
+# is a different claim, for the reason 0f states about #71, #75, #80 and #123: a hand-written
+# line is the shape as the test author understood it, and what an issue actually writes was
+# not that. It is also the only case here whose failure was *observed* rather than
+# constructed — measured at 06:49 that morning, before any of this was written.
+#
+# The fixture is committed under `fixtures/detect-test-command/` beside those four rather than
+# printf'd into `$work`, and for the same reason: it is evidence, so nobody trims it into
+# something the rule already handles. Everything a real body carries is therefore in play —
+# a measurements table whose cells are backtick spans, `- [x]` criteria, em dashes, `#121`-style
+# cross-references, `{{TEST_CMD}}` in braces, and paths in spans in nearly every sentence.
+# What the case is about sits at its two ends: line 3 quotes the marker inside a backtick
+# span while naming the issues that gave a leaf its command, and line 65 states it with
+# `make test` sixty-odd lines later, bare and running to the end of the line.
+#
+# Measured on main, rule 0 answered from line 3 with ` line). Those made a slow suite
+# *survivable* for a leaf. This issue makes a leaf run the slow suite *fewer times*.` — the
+# prose trailing the quote's closing backtick, handed to the conductor as the shell command
+# for the baseline and every leaf of that run. The #144 conductor caught it by hand; an
+# unattended one baselines on a sentence fragment and bails.
+#
+# The fall-through is armed with a `.veri/test-command` rather than the Makefile `test:`
+# target the 0f repo uses, for the reason 0g spells out: `make test` is the answer wanted
+# here, so a Makefile would hand those same bytes to a rule 0 that never consulted the body
+# and the case would pass without line 65 answering. With the override the three outcomes
+# have three stdouts — `make test` only if line 65 answered, `bin/run-suite --all --strict`
+# if rule 0 found nothing at all, and the prose fragment above if line 3 answered.
+want='make test'
+repo="$work/issue-144-body"
+mkdir -p "$repo/.veri"
+printf '%s\n' 'bin/run-suite --all --strict' > "$repo/.veri/test-command"
+
+detect --issue "$HERE/fixtures/detect-test-command/issue-144.md" "$repo"
+
+matched \
+  && ok || no "#144's real body, whose line 3 quotes the marker and whose line 65 states it, answers make test (exit=$code want 0, stdout='$out' want '$want')"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
