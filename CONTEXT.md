@@ -63,7 +63,10 @@ _Avoid_: TODO list, backlog
 **Ledger**:
 The local, committed file (one per issue) that holds the plan as a checkbox list and is
 the **source of truth** for which steps are done. Committed atomically with each cycle's
-code; the issue thread mirrors it. Resume reads the ledger for the next unchecked step.
+code; the issue thread mirrors it. A step's green commit ticks it and marks it
+`⟂ refactor pending` in the same write, and that mark comes off only when the step's
+verify-refactor passes — so a tick alone says green, not tidied. Resume reads the ledger
+for the next unchecked step.
 _Avoid_: TODO.md (it generalizes that), state file
 
 **Acceptance criterion**:
