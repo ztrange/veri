@@ -71,13 +71,13 @@ holds_marker() {
     *) return 1 ;;
   esac
 }
-#
+
 # A marker *inside a backtick span* is being quoted, not stated: a body that writes the two
 # words while describing how a leaf finds its command is talking about the line, not writing
-# one. Such a marker is skipped and the scan goes on — to later markers on the same line first,
-# then to later lines — because first-match-wins makes a mention
-# fatal otherwise — the real line further down cannot overrule it, and what gets handed to the
-# conductor is the prose that trailed the quote (#145).
+# one. Such a marker is skipped and the scan goes on — to later markers on the same line
+# first, then to later lines. First-match-wins is what would otherwise make a mention fatal:
+# the real line further down could not overrule it, and what the conductor would be handed
+# is the prose that trailed the quote (#145).
 #
 # `quoted <prefix>` is true when that prefix — the text a line carries ahead of its marker —
 # leaves a backtick span open, which is what makes the marker behind it a quotation. Backticks
