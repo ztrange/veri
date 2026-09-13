@@ -6,8 +6,9 @@
 # clear status (success / failure / killed-stuck) plus the captured output.
 #
 # Driven against STUB LEAF SCRIPTS (no claude): exit-0, exit-nonzero, hang, slow-but-alive,
-# and runaway (alive but over the hard timeout). Timings are compressed via the env knobs
-# VERI_HEARTBEAT / VERI_TIMEOUT / VERI_POLL so the suite stays fast.
+# runaway (alive but over the hard timeout), and flaky (hangs once, then succeeds).
+# Timings are compressed via the env knobs VERI_HEARTBEAT / VERI_TIMEOUT / VERI_POLL so the
+# suite stays fast.
 #
 # Status contract: exit 0 success · 1 leaf-failure · 2 killed-stuck.
 #
@@ -24,10 +25,11 @@ stub="$(mktemp -d)"
 work="$(mktemp -d)"
 # Every temp dir this suite makes is removed here, on the one path that runs however the
 # script ends — including the Ctrl-C or the `make test` timeout that an `rm` at the foot of
-# a case never reaches. `$ev_work` is case 12's and is made 270 lines down, so it is named
-# with `${…:-}`: unset until then, and `rm -rf ""` is a silent no-op (POSIX: `-f` ignores an
-# operand that does not exist), so an early exit cleans the two that do exist.
-trap 'rm -rf "$stub" "$work" "${ev_work:-}"' EXIT
+# a case never reaches. `$ev_work` and `$rt_work` are cases 12 and 13's and are made 270
+# lines down, so they are named with `${…:-}`: unset until then, and `rm -rf ""` is a silent
+# no-op (POSIX: `-f` ignores an operand that does not exist), so an early exit cleans the
+# two that do exist.
+trap 'rm -rf "$stub" "$work" "${ev_work:-}" "${rt_work:-}"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
@@ -55,6 +57,18 @@ L
 cat > "$stub/leaf-runaway" <<'L'
 #!/usr/bin/env bash
 while true; do echo "leaf: busy"; sleep 0.2; done
+L
+# flaky: hangs (silent) the FIRST time it runs, succeeds the SECOND — the one leaf here that
+# gets past its first attempt, which is what case 13 needs to watch a relaunch. The marker
+# lives in cwd, which the supervisor preserves across attempts, so a run in a directory some
+# earlier run already flaked in would succeed straight away and never be relaunched: case 13
+# gives it a directory of its own for that reason as much as for the event log's.
+cat > "$stub/leaf-flaky" <<'L'
+#!/usr/bin/env bash
+if [[ -e .retry-marker ]]; then
+  echo "leaf: recovered on retry"; exit 0
+fi
+echo "leaf: starting"; : > .retry-marker; sleep 60; echo "unreachable"
 L
 chmod +x "$stub"/leaf-*
 
@@ -320,6 +334,66 @@ ev_got_attempt="$(launch_field "$ev_log" attempt)"
   && [[ "$ev_got_cmd"     == "${ev_cmd[*]}" ]] \
   && [[ "$ev_got_attempt" == 2 ]]; } && ok \
   || no "a launched leaf appends a launch event naming the leaf, its command and the attempt (code=$ev_code, name=$ev_got_name, cmd=$ev_got_cmd, attempt=$ev_got_attempt)"
+
+# 13. relaunching a killed-stuck leaf leaves a `retry` line in the same log, carrying the
+#     cause the watchdog killed the attempt for (issue #107, ADR-0014: "the supervisor
+#     writes every leaf launch, attempt and exit (with the kill cause)"). Nothing else can
+#     say it: the cause is the watchdog's own diagnosis, and the one status line the
+#     supervisor prints at the end reports the LAST attempt's reason — which on a leaf that
+#     recovered is no reason at all, so a recovered run otherwise leaves no record anywhere
+#     of why it had to be relaunched. The `launch` mark above cannot cover it either: that
+#     one is written once per supervision, outside the retry loop, so a second attempt
+#     passes it by (supervise.sh:128-140).
+#
+#     This is the only case in this file that lets the leaf reach a second attempt, so it
+#     is also the only one that does not go through `sup` — the helper pins
+#     VERI_STUCK_RETRIES=0 (line 76 above). Here the variable is cleared with `env -u`
+#     instead, so the DEFAULT budget of 1 retry is what produces the relaunch and a value
+#     exported by the shell that ran `make test` cannot suppress it.
+#
+#     The expected cause is the heartbeat window's, because that is how this leaf dies:
+#     VERI_HEARTBEAT=1 against a 60s silent sleep, well inside the 30s hard cap. The first
+#     number in the supervisor's wording is the elapsed silence, which the poll interval
+#     makes a race, so the assertion globs over that one and pins the words and the window
+#     the wording carries (supervise.sh:112).
+#
+# retry_field <log> <key> — the value of <key> on the log's one `retry` line, or a
+# diagnostic in `<<…>>` when there is no such line, more than one, or no log at all. The
+# same shape as launch_field above, and for the same reasons; the two differ only in the
+# event they pick, which is a merge for the refactor to make rather than a generality this
+# step asked for. A count of exactly one earns its place twice here: it also says a budget
+# of one retry wrote one mark, not one per attempt.
+retry_field() {
+  python3 -c '
+import sys, json
+hits = []
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == "retry":
+        hits.append(obj)
+if len(hits) != 1:
+    print("<<%d retry lines>>" % len(hits))
+else:
+    print(hits[0].get(sys.argv[2], "<<missing>>"))
+' "$1" "$2" 2>/dev/null || echo '<<no event log>>'
+}
+
+rt_work="$(mktemp -d)"
+rt_log="$rt_work/.tdd/events.jsonl"
+( cd "$rt_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.2 \
+    "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
+rt_code=$?
+# Read once, into the variable the assertion and the failure message share — cases 9, 11 and
+# 12's shape. Read twice, a failure would report a second reading of the log, not the one
+# that failed. The exit code is asserted alongside so a case that went green on a leaf which
+# never actually recovered would still be caught.
+rt_cause="$(retry_field "$rt_log" cause)"
+{ [[ "$rt_code" == 0 ]] \
+  && [[ "$rt_cause" == 'no heartbeat for '*' (window 1s)' ]]; } && ok \
+  || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$rt_code, cause=$rt_cause)"
 
 echo "----"
 echo "$pass passed, $fail failed"
