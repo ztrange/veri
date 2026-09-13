@@ -410,6 +410,41 @@ detect --issue "$body" "$repo"
 matched \
   && ok || no "a line carrying a quoted marker and then a stated one answers the stated command (exit=$code want 0, stdout='$out' want '$want')"
 
+# 0j. the quotation that names a *suite*: a development issue whose prose quotes a docs
+# issue's marker together with `make docs-test`, and whose Notes state the marker with
+# `make test`. Case 0g pins the same two-line shape with prose behind the quote, and what
+# an unguarded rule 0 answers there is a sentence fragment — a command no shell can run,
+# so the conductor's baseline errors and the run bails in the open. This is the failure the
+# issue calls the worse one, and it is worse because it does not bail: what follows the
+# quoted marker here names a real suite, so the baseline goes green on the docs tests and
+# every leaf of a *development* issue then runs them, which #143 forbids outright. A wrong
+# answer that runs is the one nothing downstream catches.
+#
+# The quotation is written the way a body actually writes it — marker and command inside one
+# backtick span, describing what a docs issue says rather than saying it — and the prose
+# running past the closing backtick is the same guard 0g and 0h seed: a quotation at the very
+# end of its line names no command and is skipped already, by the `-n "$cmd"` test rule 0 has
+# had since #120.
+#
+# The fall-through is armed with a `.veri/test-command` rather than the Makefile `test:`
+# target, for the reason 0g spells out: `make test` is the answer wanted, so a Makefile would
+# hand those same bytes to a rule 0 that never consulted the body and the case would pass
+# without the stated line answering. With the override, the three outcomes have three
+# stdouts — `make test` only if the stated line answered, `bin/run-suite --all --strict` if
+# rule 0 found nothing at all, and a string opening `make docs-test` if the quotation
+# answered, which is the docs suite legible in the failure message.
+want='make test'
+repo="$work/quoted-docs-command"
+body="$work/quoted-docs-command-body.md"
+mkdir -p "$repo/.veri"
+printf '%s\n' 'bin/run-suite --all --strict' > "$repo/.veri/test-command"
+printf '# Rule 0 answers a development issue with its own suite\n\nA docs issue writes `Test command: make docs-test` in its Notes, so every leaf on it runs the docs suite. This issue is not a docs issue.\n\n## Notes\n\nFiles: `skills/tdd/scripts/detect-test-command.sh`.\n\nTest command: %s\n' "$want" > "$body"
+
+detect --issue "$body" "$repo"
+
+matched \
+  && ok || no "a development issue quoting a docs issue's marker with make docs-test answers the make test its Notes state (exit=$code want 0, stdout='$out' want '$want')"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
