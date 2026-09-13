@@ -23,15 +23,20 @@
 #   for one over a tree whose docs/walkthrough.html is not what that tree builds, it reports
 #   that nothing matched. The generator's suite answers for the generator.
 #
+#   docs/tests/build-guards.test.sh run whole over such a tree reaches its count line, and
+#   exits non-zero if that line says anything failed. Surviving the run is a separate claim
+#   from declining to judge the page: a suite that dies where it stands reports green.
+#
 # The tree is copied and planted rather than asserted about where it stands, because the
 # claim is about some other repository and this one owes no commentary today: a probe run
 # here would pass on both sides of the fix and pin nothing. What that copy is, and what it
 # deliberately leaves out, is `tree_owing_prose` below.
 #
-# It costs one copy of those paths and one page build over it, both shared by the two cases —
+# It costs one copy of those paths and one page build over it, shared by all three cases —
 # that build's two streams are what says the plant is really a plant, see `build_over`; then
-# one run of docs-owed.test.sh and two filtered runs of build-guards.test.sh, one sandboxed
-# build apiece. ~15 s measured, nearly all of it those runs — which are the observation itself.
+# one run of docs-owed.test.sh, two filtered runs of build-guards.test.sh with one sandboxed
+# build apiece, and one unfiltered run of it. ~215 s measured, some 200 of them that last run
+# — the suite's own cost over one tree, and the only thing that can observe it completing.
 #
 # Run: docs/tests/lane-insulation.test.sh
 set -uo pipefail
@@ -228,6 +233,55 @@ lowered="$(tr 'A-Z' 'a-z' <<< "$out")"
   problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS_SUITE over a tree whose committed page is stale; got $code: $(flat "$(tail -5 <<< "$out")")")
 [[ "$lowered" == *"no case"* && "$out" == *"$PAGE_FILTER"* ]] ||
   problems+=("want it to say no case matched '$PAGE_FILTER' — the generator's suite must judge no committed page; got: $(flat "$(tail -3 <<< "$out")")")
+
+report "$name"
+
+# 3. The same suite over the same tree, asked the other question: not which cases it declines
+#    to run, but whether it survives the run at all. A tree owing prose makes the build talk
+#    on stderr — a `COMMENTARY OWED:` header and one `owed:` line per gap — and the case that
+#    counts the build's git processes captures it with 2>&1 and reads the first line as its
+#    two numbers, so it gets the word `COMMENTARY` where it wanted a count. Arithmetic on an
+#    unset name under `set -u` kills the file where it stands: no count line, and exit 0. So
+#    `make docs-test` and the merge gate behind it both report success over a suite whose
+#    later cases never ran — this issue's third criterion (a script commit leaving lines
+#    uncovered leaves the docs lane green) failing in the one direction nobody watches.
+#
+#    Unfiltered, and that is the observation rather than an oversight: the tail that prints
+#    the count sits after every case, so reaching it IS every case having been reached, and a
+#    filtered run would skip past whichever case dies. ~200 s, the suite's own cost over one
+#    tree; nothing cheaper can see a suite finish.
+#
+#    Green is deliberately not the claim. A case may legitimately fail over a tree owing
+#    prose, and either answer belongs to the docs lane; what must never happen is the suite
+#    claiming success without having reached a verdict. So: the count line is there, and the
+#    exit code agrees with what it says.
+name="$GUARDS_SUITE runs every case to its count line over a tree whose scripts carry lines no commentary chunk covers"
+problems=()
+planted="$(tree_owing_prose)"
+
+# The same plant probe cases 1 and 2 make, off the same memoized build: without a gap for the
+# build to report there is no stderr to misread, and the suite would run to its count line
+# here exactly as it does in a tree that owes nothing.
+build_over "$planted"
+grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
+  problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
+
+# The last count line rather than the first: every `ok - <name>` line above it carries a
+# per-case figure, and the suite's own tail is the one that counts cases.
+run_in_copy "$planted" "$GUARDS_SUITE"
+count="$(grep -Eo '[0-9]+ passed, [0-9]+ failed' <<< "$out" | tail -1)"
+if [[ -z "$count" ]]; then
+  problems+=("want $GUARDS_SUITE to reach its count line over a tree owing prose for $SCRIPT_NAME — it stopped before its tail, so every case after the one that stopped it never ran; got $code: $(flat "$(tail -3 <<< "$out")")")
+else
+  failed="${count#* passed, }"; failed="${failed% failed}"
+  if [[ "$failed" == 0 ]]; then
+    [[ "$code" == 0 ]] ||
+      problems+=("want exit 0 from $GUARDS_SUITE to agree with its own '$count'; got $code: $(flat "$(tail -3 <<< "$out")")")
+  else
+    [[ "$code" != 0 ]] ||
+      problems+=("want a non-zero exit from $GUARDS_SUITE to agree with its own '$count' — a green exit over failing cases is what makes make docs-test and the merge gate behind it report success anyway")
+  fi
+fi
 
 report "$name"
 
