@@ -291,9 +291,15 @@ explicit_window="$(killed_window hb-explicit 5)"
 #     `launch` line rather than asserting on the file's only line — the `retry` and `exit`
 #     marks land in this same file and must not turn this case red.
 #
-# event_field <log> <event> <key> — the value of <key> on the log's one <event> line, or a
-# diagnostic in `<<…>>` when there is no such line, more than one, or no log at all. python3
-# rather than jq, the dependency event.test.sh and extract-result.sh already rely on.
+# event_field <dir> <event> <key> — the value of <key> on the one <event> line of the event
+# log a run in <dir> wrote, or a diagnostic in `<<…>>` when there is no such line, more than
+# one, or no log at all. python3 rather than jq, the dependency event.test.sh and
+# extract-result.sh already rely on.
+#
+# A run directory rather than a file path, so where the log lands under it — `.tdd/events.jsonl`,
+# relative to the leaf's cwd, which is the whole of the issue spec's "in the issue's worktree" —
+# is stated once here instead of once per case. Cases 12 and 13 then name only the directory
+# they gave the supervisor, and neither can go green against a path the other does not use.
 #
 # The event is a parameter because cases 12 and 13 ask the same question of `launch` and of
 # `retry`, and one probe answering both is one probe to trust: a bug in the counting or in
@@ -316,11 +322,10 @@ if len(hits) != 1:
     print("<<%d %s lines>>" % (len(hits), sys.argv[2]))
 else:
     print(hits[0].get(sys.argv[3], "<<missing>>"))
-' "$1" "$2" "$3" 2>/dev/null || echo '<<no event log>>'
+' "$1/.tdd/events.jsonl" "$2" "$3" 2>/dev/null || echo '<<no event log>>'
 }
 
 ev_work="$(mktemp -d)"
-ev_log="$ev_work/.tdd/events.jsonl"
 # The name and the command are each written once, then used both to launch and to expect —
 # the shape `$ev_cmd` already had. Spelled a second time in the assertion instead, the name
 # could drift from the launched one and the case would go green on a leaf it never ran; and
@@ -333,9 +338,9 @@ ev_code=$?
 # Each field read once, into a variable the assertion and the failure message share — the
 # capture-then-compare shape cases 9 and 11 already use. Read twice, the line a failure
 # reports would be a second reading of the log rather than the one that failed.
-ev_got_name="$(event_field    "$ev_log" launch name)"
-ev_got_cmd="$(event_field     "$ev_log" launch cmd)"
-ev_got_attempt="$(event_field "$ev_log" launch attempt)"
+ev_got_name="$(event_field    "$ev_work" launch name)"
+ev_got_cmd="$(event_field     "$ev_work" launch cmd)"
+ev_got_attempt="$(event_field "$ev_work" launch attempt)"
 { [[ "$ev_code" == 0 ]] \
   && [[ "$ev_got_name"    == "$ev_name" ]] \
   && [[ "$ev_got_cmd"     == "${ev_cmd[*]}" ]] \
@@ -368,7 +373,6 @@ ev_got_attempt="$(event_field "$ev_log" launch attempt)"
 #     per attempt.
 
 rt_work="$(mktemp -d)"
-rt_log="$rt_work/.tdd/events.jsonl"
 ( cd "$rt_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.2 \
     "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
 rt_code=$?
@@ -376,7 +380,7 @@ rt_code=$?
 # 12's shape. Read twice, a failure would report a second reading of the log, not the one
 # that failed. The exit code is asserted alongside so a case that went green on a leaf which
 # never actually recovered would still be caught.
-rt_cause="$(event_field "$rt_log" retry cause)"
+rt_cause="$(event_field "$rt_work" retry cause)"
 { [[ "$rt_code" == 0 ]] \
   && [[ "$rt_cause" == 'no heartbeat for '*' (window 1s)' ]]; } && ok \
   || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$rt_code, cause=$rt_cause)"
