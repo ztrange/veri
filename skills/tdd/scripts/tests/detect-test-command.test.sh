@@ -205,6 +205,43 @@ detect --issue "$body" "$repo"
 matched \
   && ok || no "a line starting Test command: followed by a backtick span answers the span alone, not the rest of the line (exit=$code want 0, stdout='$out' want '$want')"
 
+# 0e. the two shapes the backtick handling must leave exactly as they were: a marker whose
+# command is written bare, and a body carrying no marker at all. Cases 0c and 0d say what a
+# backtick span means; this says what everything *outside* a backtick span still means, and
+# both halves are what unwrapping can quietly take away. A rule that cut every command at a
+# backtick — rather than only one that opens with it — mangles `bin/run --all`, which has no
+# backticks to cut at; a rule that loosened which lines count as the marker starts answering
+# for bodies that never named a command, and the fall-through those bodies rely on never runs.
+#
+# Two seeded repos, one case, because it is one claim — "recognising the span changed nothing
+# on either side of it" — observed at its two outcomes. The bare command carries a flag no
+# inference could ever produce, so any trimming, re-quoting or unwrapping of it shows up in
+# stdout; the silent body's repo arms the Makefile `test:` target, so falling through has a
+# visible answer instead of an anonymous exit 3, and a rule 0 that answered anyway is legible
+# as the wrong command rather than as exit 3.
+misread=""
+for shape in bare silent; do
+  repo="$work/unwrap-untouched-$shape"
+  body="$work/unwrap-untouched-$shape-body.md"
+  mkdir -p "$repo"
+  printf 'test:\n\techo hi\n' > "$repo/Makefile"
+  case "$shape" in
+    bare)
+      printf '## Notes\n\nTest command: bin/run --all\n' > "$body"
+      want='bin/run --all' ;;
+    silent)
+      printf '## Notes\n\nNothing here names a run command.\n' > "$body"
+      want='make test' ;;
+  esac
+
+  detect --issue "$body" "$repo"
+
+  matched || note "$shape"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "a bare Test command: at line start still answers verbatim, and a body with no marker still falls through to the old precedence —$misread"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test
