@@ -15,7 +15,7 @@
 #   pipeline  docs/wt/*, docs/build-walkthrough.py, docs/check-walkthrough.py, docs/tests/
 #             → the guards (docs-test) AND the freshness check (docs-fresh). Changing how
 #               the page is built is the only way to break the guards.
-#   inputs    docs/walkthrough.html itself (a hand edit), Makefile → the freshness check
+#   stale     docs/walkthrough.html itself (a hand edit), Makefile → the freshness check
 #             only: the page may now be stale, but the build that makes it has not changed.
 #   anything else → nothing. A test-only or README PR owes no page — and since #125,
 #             neither does anything under skills/. A script or SKILL.md change does leave
@@ -56,7 +56,7 @@ mb="$(git merge-base HEAD "$base" 2>/dev/null)" || {
 changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u)"
 
 pipeline_re='^docs/(wt/|build-walkthrough\.py$|check-walkthrough\.py$|tests/)'
-inputs_re='^(docs/walkthrough\.html|Makefile)$'
+stale_re='^(docs/walkthrough\.html|Makefile)$'
 
 run_test=0 run_fresh=0 why_test="" why_fresh=""
 if [ "$mode" = all ]; then
@@ -66,7 +66,7 @@ else
     [ -n "$f" ] || continue
     if [[ "$f" =~ $pipeline_re ]]; then
       run_test=1 run_fresh=1; why_test="${why_test:-$f}"; why_fresh="${why_fresh:-$f}"
-    elif [[ "$f" =~ $inputs_re ]]; then
+    elif [[ "$f" =~ $stale_re ]]; then
       run_fresh=1; why_fresh="${why_fresh:-$f}"
     fi
   done <<< "$changed"
