@@ -5,5 +5,5 @@
 - [x] The built develop-refactor prompt says to run the suites covering the touched files after its transform rather than the full suite, names verify-refactor as where the full suite runs, and states the trade-off that a break in an untouched suite surfaces there
 - [x] The built verify-green and verify-refactor prompts still require the project's full test suite, pinned by a test that has been watched to fail with the sentence removed
 - [x] Every built developer prompt says to run test commands in the foreground and to report only after they exit
-- [ ] build-verify-prompt.sh accepts the same arguments as before, so no new parameter reaches a verifier
+- [x] build-verify-prompt.sh accepts the same arguments as before, so no new parameter reaches a verifier
 - [ ] SKILL.md where it describes each phase's leaf, and CLAUDE.md where it describes suite runs, say which leaves run the full suite
