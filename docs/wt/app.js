@@ -300,6 +300,63 @@
                             since: chosen, choose: choose, markRead: markRead };
 })();
 
+/* veri, Annotated — since-mode: painting the answer.
+   The layer above decides which capabilities are news to a reader and which rows the index
+   owes them. This is what the reader SEES of that decision, and without it the mode is a
+   set of correct answers nobody is shown: a reader chooses a version and the page in front
+   of them is the same two thousand lines it was before, with nothing saying which of them
+   is the answer they asked for.
+
+   Two halves, because a choice says two things. Every mark that carries a version is lit
+   or dimmed by lit()'s verdict on the version it carries, so the listings say which
+   passages are news; and the capability index is collapsed onto the rows index() returns,
+   so the place the choice is made in stops offering versions the reader has read already.
+   Both read the layer above rather than comparing tags here — the whole mode turns on
+   v0.10 being later than v0.9 and not earlier, which only the build's version order knows.
+
+   The marks are asked for by the attribute they carry and not by what they are, which is
+   the one query that covers all of them: a hunk's first line carries `data-tag`, a script's
+   header carries `data-since`, and anything the build later gives a version to is painted
+   by this loop without it learning that markup. Nothing carries both, so which of the two
+   an element has is what it is.
+
+   A row is hidden rather than classed — the one half of the paint that owes the stylesheet
+   nothing. `hidden` is the browser's own word for "not part of the document for now", so
+   the collapse survives a stylesheet that never loaded, where a class would leave the
+   reader the index they were trying to get away from. A row carrying no `data-ver` is left
+   showing: that is the Unreleased row, which names no version because it is everything past
+   the last tag, and so is news to every reader whatever they last read.
+
+   Nothing is painted when no version is chosen, for the reason the stepper builds no
+   buttons then: the resting page is what every first visit arrives at, and a document that
+   greys itself out for a reader who asked nothing has told them something false. */
+(function () {
+  "use strict";
+  var mode = window.__VERI_SINCE__;
+  if (!mode) return;
+
+  var since = mode.since();
+  if (!since) return;                    // the resting page: nothing dimmed, every row shown
+
+  var marks = document.querySelectorAll("[data-tag], [data-since]");
+  for (var i = 0; i < marks.length; i++) {
+    var tag = marks[i].getAttribute("data-tag") || marks[i].getAttribute("data-since");
+    marks[i].classList.add(mode.lit(tag, since) ? "lit" : "dim");
+  }
+
+  /* The versions the choice leaves standing, as a set of the tags index() named. Read out
+     of index() and not out of lit() a second time, so the rows a reader is shown and the
+     rows the index computes are one answer rather than two that agree until one is
+     edited. */
+  var keep = {};
+  (mode.index(since) || []).forEach(function (row) { keep[row.tag] = true; });
+
+  var rows = document.querySelectorAll("li.ver[data-ver]");
+  for (var r = 0; r < rows.length; r++) {
+    rows[r].hidden = !keep[rows[r].getAttribute("data-ver")];
+  }
+})();
+
 /* veri, Annotated — since-mode: stepping the walk.
    The layer above knows which hunks a reader's choice lights and in what order they come;
    this is what moves the reader along them. Lit runs are a handful of short passages
