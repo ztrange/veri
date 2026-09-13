@@ -103,6 +103,31 @@ denies() {
   if [[ "$text" =~ $1 ]]; then problems+=("$2"); fi
 }
 
+# says_clear_commit_mirror — the three things the instruction in `$text` must prescribe, and
+# the order they must come in: clear the mark, commit the cleared ledger, and only then
+# mirror the step to the issue. The order is the whole claim here, which is why this is not
+# three `says` calls: each probe reads only what the one before it left — `rest` — and the
+# first miss returns, because "and after that?" has no answer once the order is already
+# broken. Every miss quotes the instruction, so the fix is an edit to a line already in
+# front of you.
+says_clear_commit_mirror() {
+  local rest="$text"
+  if [[ ! "$rest" =~ clear-refactor-pending\.sh ]]; then
+    problems+=("$skill_md never runs clear-refactor-pending.sh where a step's cycle completes, so the mark green wrote is never removed and every finished step reads as pending: $(printf '%.130s' "$text")")
+    return
+  fi
+  rest="${rest#*clear-refactor-pending.sh}"
+  if [[ ! "$rest" =~ git[[:space:]].*commit ]]; then
+    problems+=("$skill_md clears the mark but commits nothing after it, so the cleared ledger stays uncommitted and the next resume reads the committed one, which still says pending: $(printf '%.130s' "$text")")
+    return
+  fi
+  # Past the commit: what is left is what the document does once the cleared ledger is safe
+  # on disk, and the mirror has to be in there rather than before it.
+  rest="${rest#*commit}"
+  [[ "$rest" =~ tick-issue-criterion\.sh ]] ||
+    problems+=("$skill_md mirrors the step to the issue before the cleared ledger is committed, so a run killed in that window has an issue saying done over a ledger still saying pending: $(printf '%.130s' "$text")")
+}
+
 # 1. One criterion — the mark is written at exactly one tick, withheld at the other, and
 #    cleared where the step ends — and so one case. The three probes are one wiring: a mark
 #    written and never cleared stalls every resumed run in a refactor loop, and a mark
@@ -135,20 +160,7 @@ else
   # verify-refactor's PASS — the only place the mark is cleared, and the clearing has to
   # land in a commit before the step is mirrored as done.
   if record 'ends the step`s cycle by posting the `### ✅ step done` comment' 'step done'; then
-    if [[ "$text" =~ clear-refactor-pending\.sh ]]; then
-      # Everything the instruction prescribes after the clear: the commit that carries the
-      # cleared ledger has to be in here, and the mirror after that.
-      cleared="${text#*clear-refactor-pending.sh}"
-      if [[ "$cleared" =~ git[[:space:]].*commit ]]; then
-        committed="${cleared#*commit}"
-        [[ "$committed" =~ tick-issue-criterion\.sh ]] ||
-          problems+=("$skill_md mirrors the step to the issue before the cleared ledger is committed, so a run killed in that window has an issue saying done over a ledger still saying pending: $(printf '%.130s' "$text")")
-      else
-        problems+=("$skill_md clears the mark but commits nothing after it, so the cleared ledger stays uncommitted and the next resume reads the committed one, which still says pending: $(printf '%.130s' "$text")")
-      fi
-    else
-      problems+=("$skill_md never runs clear-refactor-pending.sh where a step's cycle completes, so the mark green wrote is never removed and every finished step reads as pending: $(printf '%.130s' "$text")")
-    fi
+    says_clear_commit_mirror
   fi
 fi
 report "$name"
