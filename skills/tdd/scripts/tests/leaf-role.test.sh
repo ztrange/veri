@@ -144,7 +144,7 @@ refusal_probe() {
 #    cannot. `develop-red` is the plain developer leaf, and its attempt 1 pins that a name
 #    with no number still yields an attempt — a mapping that emitted none would leave
 #    event.sh writing `attempt: ""` on the first launch of every step, which is the
-#    "absent is not the spelling of unknown" rule event.sh:22-25 already refuses.
+#    "absent is not the spelling of unknown" rule event.sh:20-22 already refuses.
 #    `revise-green-2` is the name that carries its own attempt: its role is `developer` and
 #    `green` even though the name says neither word, so a mapping that read the leading word
 #    as the actor or the trailing word as the phase is caught, and its attempt 2 is the only
