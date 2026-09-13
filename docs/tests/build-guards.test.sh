@@ -953,8 +953,6 @@ carried = set(re.findall(r"([A-Za-z_][\w-]*)=", markup))
 for value in re.findall(r'class="([^"]*)"', markup):
     carried.update(value.split())
 
-MARKS = ("hunk", "data-tag", "data-since")
-
 def bare(selector):
     """The selector minus its :not() arguments, which name classes it matches WITHOUT."""
     return re.sub(r":not\([^()]*\)", "", selector)
@@ -976,6 +974,20 @@ def restores(prop, value):
 def live(selector):
     """Does this selector match the page as it ships — every class and attribute carried?"""
     return all(t in carried for t in re.findall(r"[.\[]([A-Za-z_][\w-]*)", bare(selector)))
+
+MARKS = ("hunk", "data-tag", "data-since")
+
+def reaches_a_resting_mark(selector):
+    """Does this rule reach a mark on the page a reader who chose NOTHING is looking at?
+
+    Three ways it does not. It names `.lit` or `.dim`: those classes exist only once a
+    choice has been made, so the rule is gated and cannot touch the resting page. It
+    names no mark: the page rests other things at zero opacity for honest reasons, and
+    `.tip` is a tooltip that is not showing. It is not live: a rule whose classes and
+    attributes the markup does not carry styles nothing, as in case 20."""
+    if requires(selector, "lit") or requires(selector, "dim"):
+        return False
+    return any(token in selector for token in MARKS) and live(selector)
 
 # Innermost blocks only, as in hunk_css: a selector cannot contain a brace, so an @media
 # prelude never matches and the rules nested inside it are read with their own selectors.
@@ -1004,9 +1016,7 @@ print("lit %s" % verdict("lit"))
 
 ungated = []
 for selector, block in rules:
-    if requires(selector, "lit") or requires(selector, "dim"):
-        continue
-    if not any(token in selector for token in MARKS) or not live(selector):
+    if not reaches_a_resting_mark(selector):
         continue
     for prop, value in block:
         if fades(prop, value):
