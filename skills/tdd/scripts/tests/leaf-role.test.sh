@@ -161,7 +161,7 @@ report "$name"
 #    phase after the dash — launched under a role nobody taught this script. Guessing is the
 #    failure mode worth refusing; which two guesses those are, and why neither is visible
 #    until someone reads the log and believes it, is said beside the arm that refuses them
-#    (leaf-role.sh:36-41).
+#    (leaf-role.sh:48-51).
 name="leaf-role.sh fails closed on a leaf name whose leading word it does not recognise: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
 problems=()
 refusal_probe plan-red
