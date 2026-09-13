@@ -10,8 +10,8 @@
 # where that fact is held: run it after a merge and the debt is a list, not something
 # somebody has to notice.
 #
-# WHAT COUNTS AS DEBT — four readings, one line each, because a merged PR can leave the
-# page behind in four unrelated ways:
+# WHAT COUNTS AS DEBT — five readings, one line each, because a merged PR can leave the
+# page behind in five unrelated ways:
 #   commentary  a run of script lines no chunk in docs/wt/commentary.py claims. Read from
 #               the build itself (its `owed:` summary on stderr) rather than re-deriving
 #               the rule here, so the page and this list cannot disagree about coverage.
@@ -24,10 +24,14 @@
 #               it by gets reported at all (#146): one edited by hand — CLAUDE.md's one
 #               trap — one committed in the same breath as the change it fails to reflect,
 #               one built from a tree that was not this one.
+#   page names  the committed page telling a reader to invoke a command that no longer
+#   an old      resolves to a procedure. The page's CONTENT again, but its PROSE this time:
+#   command     a rename fixes the prose's source and leaves the artefact saying the old
+#               name until somebody rebuilds it (#146).
 #   tag         a version the committed capability index does not name. A tag is the one
 #               input to the page that changes with no commit behind it, so nothing marks
 #               the page stale when one is cut.
-# The four are independent on purpose: a tree can owe any one of them alone, and which
+# The five are independent on purpose: a tree can owe any one of them alone, and which
 # one it owes says what the fix is.
 #
 # OUTPUT is a list and nothing else — one item per line, no header, no totals — because
@@ -177,6 +181,54 @@ while IFS=' ' read -r name quoted total; do
   [ -n "$name" ] || continue
   owed+=("page misquotes: $name — its listing quotes $quoted lines, the script has $total")
 done <<< "$misquoted"
+
+# ── page names an old command: prose telling a reader to invoke one ─────────────
+# The second reading of the page's own content, and a second one because the rule above
+# cannot make it: that one reads the listing headers the build writes, where a command name
+# never appears. A command appears in the page's PROSE, which comes from docs/wt/commentary.py
+# — so renaming a skill fixes the source and leaves the artefact telling a reader to run
+# something that no longer resolves to a procedure, with nothing to date it stale: a page
+# whose prose is out of date is newer than everything it is out of date about. The sources are
+# swept by skills/tdd/scripts/tests/skill-identity.test.sh; what is left is the page nobody
+# has rebuilt, which is debt to report (#146).
+#
+# WHICH commands, read off the tree rather than listed here: a forwarding stub is a
+# skills/<name>/ carrying a SKILL.md and no scripts of its own — the live skill carries
+# those — and the command is a slash followed by that directory's name. Read that way so a
+# later rename needs no edit here, and so this file never spells out a name it greps for.
+old_cmds=""
+for stub in skills/*/SKILL.md; do
+  [ -f "$stub" ] || continue
+  stub_dir="${stub%/SKILL.md}"
+  [ -d "$stub_dir/scripts" ] && continue
+  old_cmds+="/${stub_dir##*/}"$'\n'
+done
+
+# The capability index is cut out before the sweep, for the reason skill-identity.test.sh
+# case 8 cuts it out of the same sweep: it is generated from annotated tag messages, which
+# quote each issue's own words as they were written, and a tag's message is history rather
+# than documentation anyone can bring up to date — so a command named in there is debt
+# nobody could pay. This repository's own page names one twice inside it. Cut open line
+# through close line, which is one line today; a page built from a tree with no tags carries
+# no index at all (build-walkthrough.py:600), and then there is nothing to cut.
+prose="$(git show "HEAD:$PAGE" | awk '
+  index($0, "<ol class=\"vers\">") { cutting = 1 }
+  cutting { if (index($0, "</ol>")) cutting = 0; next }
+  { print }')" ||
+  die "cannot read the committed page's prose"
+
+# A name used as a COMMAND and not as a path, bounded on both sides. Before: start of line or
+# a character that cannot be the tail of a path component, so the page may go on naming a
+# stub's own file — skills/<name>/SKILL.md — while telling a reader to invoke it is debt: the
+# same boundary skill-identity.test.sh sweeps the sources with. After: so a shorter stub name
+# is not reported on a page whose only old command is the longer one it is a prefix of. The
+# names themselves stay unspelled here, as they do in that suite, for the same reason: this
+# file is tracked, and a file that spelled them would be that sweep's first offender.
+while IFS= read -r cmd; do
+  [ -n "$cmd" ] || continue
+  printf '%s\n' "$prose" | grep -qE "(^|[^[:alnum:]_/.-])$cmd([^[:alnum:]_-]|\$)" || continue
+  owed+=("page names an old command: $cmd — the committed page tells a reader to invoke it")
+done <<< "$old_cmds"
 
 # ── tags the committed capability index does not name ───────────────────────────
 # Every tag the build knew about is written into the page as a quoted JSON token
