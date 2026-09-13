@@ -90,24 +90,32 @@ instructions() {
   records_of < "$ROOT/$skill_md"
 }
 
-# resume_instructions — the same records, but only those of the `## Resume` section: from
-# that heading to the next `## ` one. Scoped because the document asks `next-unchecked.sh`
-# twice — once at the top of the cycle loop, once on the resume path — and it is only the
-# second that this issue is about, so an unscoped read would answer with the wrong branch
-# and, worse, let a Resume that says nothing at all pass on the cycle loop's wording.
-# `### ` sub-headings survive the slice: the pattern wants "## " with the space.
-resume_instructions() {
-  awk '/^## / { inside = ($0 == "## Resume"); next } inside' "$ROOT/$skill_md" | records_of
+# section_of <heading> <closers-re> — the records of one section of the document: the lines
+# after the one that is exactly <heading>, up to the next line matching <closers-re>, which
+# is what says which headings end it. Both scoped readers below are this same slice, so it
+# is spelled once here and only the two arguments differ — the same reason `records_of`
+# above is one function rather than one per reader.
+section_of() {
+  awk -v heading="$1" -v closers="$2" \
+    '$0 ~ closers { inside = ($0 == heading); next } inside' "$ROOT/$skill_md" | records_of
 }
 
-# draft_pr_instructions — the records of the `### 4. Draft PR` section: from that heading to
-# the next heading of either level. Scoped for the same reason `resume_instructions` is — the
-# document pushes a branch and names the PR on more than one path (Bailing pushes too; Resume
-# points at this step) — and this criterion is about the step that does the pushing, not about
-# the prose elsewhere that sends a run to it.
+# resume_instructions — the records of the `## Resume` section. Scoped because the document
+# asks `next-unchecked.sh` twice — once at the top of the cycle loop, once on the resume path
+# — and it is only the second that this issue is about, so an unscoped read would answer with
+# the wrong branch and, worse, let a Resume that says nothing at all pass on the cycle loop's
+# wording. `### ` sub-headings survive the slice: the closers want "## " with the space.
+resume_instructions() {
+  section_of '## Resume' '^## '
+}
+
+# draft_pr_instructions — the records of the `### 4. Draft PR` section, which a heading of
+# either level ends. Scoped for the same reason `resume_instructions` is — the document
+# pushes a branch and names the PR on more than one path (Bailing pushes too; Resume points
+# at this step) — and this criterion is about the step that does the pushing, not about the
+# prose elsewhere that sends a run to it.
 draft_pr_instructions() {
-  awk '/^## / || /^### / { inside = ($0 == "### 4. Draft PR"); next } inside' \
-    "$ROOT/$skill_md" | records_of
+  section_of '### 4. Draft PR' '^## |^### '
 }
 
 # ordinal <regex> — the 1-based position, within the global `records`, of the first
