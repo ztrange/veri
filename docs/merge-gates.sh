@@ -21,7 +21,8 @@
 #             only: the page is the one thing under docs/ that is output, not input, so a
 #             hand edit to it can only make it stale — the build that makes it is unchanged.
 #   anything else → nothing. A README or test-only PR owes no page, and since #125 neither
-#             does anything under skills/ — a script or SKILL.md change included.
+#             does anything under skills/ — a script or SKILL.md change included — nor,
+#             since #146, anything under docs/adr/.
 # Tags are NOT a file, so a tag cut since the page was built is not seen here; that is
 # docs/hooks/reference-transaction's job, and docs-fresh names the missing tag if it runs.
 #
@@ -32,6 +33,16 @@
 # refuse to build without, on the critical path of every development PR. Prose is allowed
 # to lag; the page's promise is that the source it shows is verbatim, not that it is
 # explained.
+#
+# WHY docs/adr/ OWES NOTHING (#146): an ADR is a record of a decision, and the page build
+# reads none of them — `grep -n adr docs/build-walkthrough.py docs/wt/gitmeta.py
+# docs/check-walkthrough.py` finds nothing — so an ADR can neither make the page stale nor
+# move a guard. Under the directory rule above it nevertheless matched ^docs/, and since
+# development issues record their decisions there (#125 committed ADR 0016 that way), every
+# development PR carrying one paid the whole docs lane — the suites plus the freshness
+# check, ~5 min — for a file the lane does not read. It is carved back out the same way
+# skills/ is. The docs lane's own runs still cover it: docs/tests/docs-gap-adr.test.sh runs
+# by existing under the docs-test glob, whatever this decision says.
 #
 # EXIT CODES, the repo-wide four: 0 = every gate that ran passed (or none was owed);
 # 1 = a gate ran and failed — check-walkthrough's own output says which and, for a stale
@@ -62,6 +73,7 @@ changed="$( { git diff --name-only "$mb" HEAD; git diff --name-only HEAD; git ls
 
 pipeline_re='^docs/'
 stale_re='^(docs/walkthrough\.html|Makefile)$'
+nothing_re='^docs/adr/'
 
 run_test=0 run_fresh=0 why_test="" why_fresh=""
 if [ "$mode" = all ]; then
@@ -69,8 +81,11 @@ if [ "$mode" = all ]; then
 else
   while IFS= read -r f; do
     [ -n "$f" ] || continue
-    # stale first: the page is the one thing under docs/ that is output, not input.
-    if [[ "$f" =~ $stale_re ]]; then
+    # carved out first: a path under docs/ the build does not read owes nothing (#146).
+    if [[ "$f" =~ $nothing_re ]]; then
+      continue
+    # stale next: the page is the one thing under docs/ that is output, not input.
+    elif [[ "$f" =~ $stale_re ]]; then
       run_fresh=1; why_fresh="${why_fresh:-$f}"
     elif [[ "$f" =~ $pipeline_re ]]; then
       run_test=1 run_fresh=1; why_test="${why_test:-$f}"; why_fresh="${why_fresh:-$f}"
