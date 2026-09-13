@@ -108,6 +108,42 @@ print(n)
 ' "$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo 0
 }
 
+# launch_leaf <stub-dir> <work-dir> <leaf> — run <leaf> to completion in <work-dir> against a
+# stub `claude` that prints <stub-dir>/stream.jsonl, and return the supervisor's own status.
+# Both cases need the same two files out of it — `<work-dir>/.tdd/<leaf>.log` for the
+# harvester to read, and `<work-dir>/.tdd/events.jsonl` for it to append to (or not) — and
+# differ only in the stream the stub prints, which each writes itself beforehand.
+#
+# Through supervise.sh, never run-leaf.sh directly, because that is how every leaf in a real
+# run is launched and therefore how `.tdd/<name>.log` really comes to exist: run-leaf.sh
+# builds it by streaming the leaf's events and then APPENDING the extracted result text after
+# them (run-leaf.sh:44-49). So the record is never the last line of the file it has to be
+# found in, and a harvester that read the tail would pass against a hand-written fixture and
+# fail against every real leaf. Driving the real launcher is what puts that wrinkle in front
+# of it.
+#
+# The stub ignores its argv and prints that stream, the way a leaf that finished does; its
+# heredoc is unquoted, so <stub-dir> is baked into the script rather than read from whatever
+# environment supervise.sh hands the leaf. For the same reason the prompt's text is written
+# here and is arbitrary: nothing downstream of the stub ever reads it.
+#
+# The watchdog knobs are pinned rather than inherited so this suite's wall time is its own
+# answer (hermetic-suites.test.sh's concern); the stub returns at once, so they never fire.
+launch_leaf() {
+  local stub_dir="$1" work_dir="$2" leaf="$3"
+  cat > "$stub_dir/claude" <<STUB
+#!/usr/bin/env bash
+cat "$stub_dir/stream.jsonl"
+exit 0
+STUB
+  chmod +x "$stub_dir/claude"
+  mkdir -p "$work_dir/.tdd"
+  printf 'do the step.' > "$work_dir/.tdd/$leaf.prompt"
+  ( cd "$work_dir" && env CLAUDE_BIN="$stub_dir/claude" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 \
+      VERI_TIMEOUT=10 VERI_POLL=0.2 "$SUP" "$leaf" "$RUN_LEAF" ".tdd/$leaf.prompt" \
+    ) >/dev/null 2>&1
+}
+
 stub="$(mktemp -d)"
 work="$(mktemp -d)"
 trap 'rm -rf "$stub" "$work"' EXIT
@@ -116,12 +152,8 @@ trap 'rm -rf "$stub" "$work"' EXIT
 #    turns the record that leaf closed with into one `usage` line carrying its eight numbers.
 #
 #    The leaf is a real launch through supervise.sh against a `CLAUDE_BIN` stub, not a log
-#    file written by hand, because the thing the harvester reads is not the stub's stdout —
-#    it is `.tdd/<name>.log`, which run-leaf.sh builds by streaming the leaf's events and
-#    then APPENDING the extracted result text after them (run-leaf.sh:44-49). So the record
-#    is never the last line of the file it has to be found in, and a harvester that read the
-#    tail would pass against a hand-written fixture and fail against every real leaf. Driving
-#    the real launcher is what puts that wrinkle in front of it.
+#    file written by hand: launch_leaf's header above gives the reason, which is that the file
+#    the harvester reads is not the stub's stdout but the log run-leaf.sh assembles from it.
 #
 #    The name is `verify-refactor` because that is the leaf the issue measured these numbers
 #    on (#98's), so the case and the numbers in it have the same provenance.
@@ -161,26 +193,7 @@ cat > "$stub/stream.jsonl" <<STREAM
 {"type":"result","subtype":"success","is_error":false,"duration_ms":$want_duration_ms,"duration_api_ms":$want_duration_api_ms,"num_turns":$want_num_turns,"result":"VERDICT: PASS\nREASON: the refactor kept the suite green.","session_id":"9f2c","total_cost_usd":$want_total_cost_usd,"usage":{"input_tokens":$want_input_tokens,"cache_creation_input_tokens":$want_cache_creation_input_tokens,"cache_read_input_tokens":$want_cache_read_input_tokens,"output_tokens":$want_output_tokens}}
 STREAM
 
-# The stub claude: ignores its argv and prints that stream, the way a leaf that finished
-# does. Its own heredoc is unquoted too, so `$stub` is baked into the script rather than
-# read from whatever environment supervise.sh hands the leaf.
-cat > "$stub/claude" <<STUB
-#!/usr/bin/env bash
-cat "$stub/stream.jsonl"
-exit 0
-STUB
-chmod +x "$stub/claude"
-
-mkdir -p "$work/.tdd"
-printf 'verify the refactor.' > "$work/.tdd/$leaf.prompt"
-
-# The launch. Through supervise.sh, never run-leaf.sh directly, because that is how every
-# leaf in a real run is launched and therefore how `.tdd/<name>.log` really comes to exist.
-# The watchdog knobs are pinned rather than inherited so this suite's wall time is its own
-# answer (hermetic-suites.test.sh's concern); the stub returns at once, so they never fire.
-( cd "$work" && env CLAUDE_BIN="$stub/claude" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 \
-    VERI_TIMEOUT=10 VERI_POLL=0.2 "$SUP" "$leaf" "$RUN_LEAF" ".tdd/$leaf.prompt" \
-  ) >/dev/null 2>&1
+launch_leaf "$stub" "$work" "$leaf"
 launch_code=$?
 
 # Two probes about the fixture rather than about the harvester, so a broken setup says so
@@ -243,7 +256,7 @@ problems=()
 killed=develop-green
 killed_stub="$stub/killed"
 killed_work="$work/killed"
-mkdir -p "$killed_stub" "$killed_work/.tdd"
+mkdir -p "$killed_stub"
 
 # The killed leaf's log: two events it managed to emit, then a line that stops mid-key. No
 # `result` record, because the kill came before the leaf could close one. Single-quoted, so
@@ -255,19 +268,7 @@ mkdir -p "$killed_stub" "$killed_work/.tdd"
   printf '%s'   '{"type":"assistant","message":{"content":[{"type":"te'
 } > "$killed_stub/stream.jsonl"
 
-cat > "$killed_stub/claude" <<STUB
-#!/usr/bin/env bash
-cat "$killed_stub/stream.jsonl"
-exit 0
-STUB
-chmod +x "$killed_stub/claude"
-
-printf 'write the failing test.' > "$killed_work/.tdd/$killed.prompt"
-
-( cd "$killed_work" && env CLAUDE_BIN="$killed_stub/claude" VERI_STUCK_RETRIES=0 \
-    VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 "$SUP" "$killed" "$RUN_LEAF" \
-    ".tdd/$killed.prompt" \
-  ) >/dev/null 2>&1
+launch_leaf "$killed_stub" "$killed_work" "$killed"
 killed_launch_code=$?
 
 # Three probes about the fixture, so a setup that drifted says so rather than being read as
