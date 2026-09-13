@@ -37,6 +37,11 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 SUBJECT="docs/docs-owed.sh"
+# The committed page, spelled once because four sites below read it, rewrite it or date it,
+# and it is the one path the subject and this suite have to agree on (docs/docs-owed.sh:77).
+# Relative, so it reads as the subject reads it: `git -C "$d" … -- "$PAGE"` inside the copy,
+# `"$d/$PAGE"` from out here.
+PAGE="docs/walkthrough.html"
 pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
@@ -183,7 +188,7 @@ git -C "$d" commit -qam 'docs: move a chunk off the lines it claimed (#2)'
 
 ( cd "$d" && sed -i.bak '2s|.*|# refactor-budget.sh — rewritten in place, same line count|' "$STALE_PATH" && rm -f "$STALE_PATH.bak" )
 git -C "$d" commit -qam "fix: rewrite a line of $STALE after the page was built (#3)"
-[[ "$(git -C "$d" log -1 --format=%H -- "$STALE_PATH")" != "$(git -C "$d" log -1 --format=%H -- docs/walkthrough.html)" ]] ||
+[[ "$(git -C "$d" log -1 --format=%H -- "$STALE_PATH")" != "$(git -C "$d" log -1 --format=%H -- "$PAGE")" ]] ||
   problems+=("the blame debt did not land: $STALE_PATH is still answered for by the commit the page is")
 
 git -C "$d" tag -a "$TAG" -m 'a capability the committed index does not list'
@@ -488,9 +493,8 @@ owed "$d"
 header="<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">"
 wrong_lines=9999
 misquote="$header$wrong_lines lines"
-( cd "$d" && sed -i.bak "s#$header[0-9]* lines#$misquote#" \
-    docs/walkthrough.html && rm -f docs/walkthrough.html.bak )
-grep -Fq "$misquote" "$d/docs/walkthrough.html" ||
+( cd "$d" && sed -i.bak "s#$header[0-9]* lines#$misquote#" "$PAGE" && rm -f "$PAGE.bak" )
+grep -Fq "$misquote" "$d/$PAGE" ||
   problems+=("the misquote did not land: no listing header for $MISQUOTED in the committed page to rewrite the line count of")
 real_lines="$(awk 'END {print NR}' "$d/skills/tdd/scripts/$MISQUOTED")"
 [[ "$real_lines" != "$wrong_lines" ]] ||
@@ -500,7 +504,7 @@ real_lines="$(awk 'END {print NR}' "$d/skills/tdd/scripts/$MISQUOTED")"
 # has no script dated after it and the tag and commentary rules were answered by the clean
 # read above. Nothing but a reading of the page's content is left to report this.
 git -C "$d" commit -qam 'docs: a page that misquotes the tree it stands in (#4)'
-[[ "$(git -C "$d" log -1 --format=%H)" == "$(git -C "$d" log -1 --format=%H -- docs/walkthrough.html)" ]] ||
+[[ "$(git -C "$d" log -1 --format=%H)" == "$(git -C "$d" log -1 --format=%H -- "$PAGE")" ]] ||
   problems+=("the case is vacuous: the page is not the tree's newest commit, so the blame rule could report $MISQUOTED without reading the page at all")
 
 owed "$d"
