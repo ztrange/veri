@@ -319,12 +319,10 @@ prompt_says "$red_flat" "does not ask the leaf to say so in its report" \
 #     exactly once, immediately before the `SUITE:` line that reports it — the one place the
 #     guarantee is actually read. Three faces of one criterion, so one case.
 #
-#     Built the way case 11 builds Red's: the prompt is folded to a single line first, since
-#     it is markdown wrapped at ~85 columns and grep matches within one line, and every
-#     alternation branch carries at most ONE `[^.]{0,N}` — two either side of a `|` make BSD
-#     grep backtrack for minutes on a one-line input, a hang that would only appear once the
-#     prompt matched. The prompt read is case 2's: same phase, same arguments, so there is one
-#     invocation and case 2 owns the exit-0 check on it.
+#     Built the way case 11 builds Red's, under the two constraints reasoned about there: the
+#     prompt is folded to a single line before probing, and every alternation branch carries at
+#     most ONE `[^.]{0,N}`. The prompt read is case 2's: same phase, same arguments, so there is
+#     one invocation and case 2 owns the exit-0 check on it.
 green_flat="$(tr '\n' ' ' <<<"$green")"
 
 problems=""
