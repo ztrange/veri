@@ -114,41 +114,51 @@ unwrapped() {
   esac
 }
 
+# `answer_from <line>` answers from the first marker on that line that is stated rather than
+# quoted, and returns having answered nothing when the line carries no such marker. Naming the
+# walk is what leaves the read loop below saying only that every line is asked, and it keeps the
+# walk's three pieces of bookkeeping — how much of the line is left, how much is behind, and
+# what the current marker names — `local` to the walk instead of loose in a script whose every
+# later rule reads from the top level.
+#
+# A line is walked marker by marker rather than answered from its first one, because a
+# skipped marker has somewhere else to go on the same line: an issue that quotes the
+# two words and then states them in the same sentence — which is how #145's own body
+# reads — hides the line that answers behind the one that does not. `rest` is the part
+# of the line not yet walked and `seen` is the part already walked, and each turn moves
+# one marker's worth of text from the first to the second. The condition is the walk's
+# only exit that is not an answer: when `rest` holds no further marker the line is spent,
+# and a line that never held one is spent before its first turn.
+answer_from() {
+  local rest="$1" seen="" cmd
+  while holds_marker "$rest"; do
+    # The unwalked text cut in two at its *first* marker: `%%` takes the shortest prefix
+    # and `#` the shortest match, so the two halves are cut either side of the same
+    # marker rather than of two different ones. The prefix joins `seen`, which is what
+    # says whether this marker is quoted — the whole of the line ahead of it, not just
+    # the stretch since the previous marker, because it is the backticks opened anywhere
+    # earlier that leave a span open here. The markers themselves never join `seen`, and
+    # need not: the two words carry no backtick, so they cannot change the count that
+    # decides it.
+    seen="$seen${rest%%"$marker"*}"
+    rest="${rest#*"$marker"}"
+    # Two reasons a marker does not answer, and both are written as the same guard —
+    # leave it behind and look for the next one — so what is left after them is the one
+    # marker that does answer, rather than an `answer` buried inside a condition.
+    if quoted "$seen"; then
+      continue
+    fi
+    cmd="$(unwrapped "$(ltrim "$rest")")"
+    if [ -z "$cmd" ]; then
+      continue
+    fi
+    answer "$cmd"
+  done
+}
+
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
-    # A line is walked marker by marker rather than answered from its first one, because a
-    # skipped marker has somewhere else to go on the same line: an issue that quotes the
-    # two words and then states them in the same sentence — which is how #145's own body
-    # reads — hides the line that answers behind the one that does not. `rest` is the part
-    # of the line not yet walked and `seen` is the part already walked, and each turn moves
-    # one marker's worth of text from the first to the second. The condition is the loop's
-    # only exit that is not an answer: when `rest` holds no further marker the line is spent,
-    # and a line that never held one is spent before its first turn.
-    rest="$line"
-    seen=""
-    while holds_marker "$rest"; do
-      # The unwalked text cut in two at its *first* marker: `%%` takes the shortest prefix
-      # and `#` the shortest match, so the two halves are cut either side of the same
-      # marker rather than of two different ones. The prefix joins `seen`, which is what
-      # says whether this marker is quoted — the whole of the line ahead of it, not just
-      # the stretch since the previous marker, because it is the backticks opened anywhere
-      # earlier that leave a span open here. The markers themselves never join `seen`, and
-      # need not: the two words carry no backtick, so they cannot change the count that
-      # decides it.
-      seen="$seen${rest%%"$marker"*}"
-      rest="${rest#*"$marker"}"
-      # Two reasons a marker does not answer, and both are written as the same guard —
-      # leave it behind and look for the next one — so what is left after them is the one
-      # marker that does answer, rather than an `answer` buried inside a condition.
-      if quoted "$seen"; then
-        continue
-      fi
-      cmd="$(unwrapped "$(ltrim "$rest")")"
-      if [ -z "$cmd" ]; then
-        continue
-      fi
-      answer "$cmd"
-    done
+    answer_from "$line"
   done < "$issue"
 fi
 
