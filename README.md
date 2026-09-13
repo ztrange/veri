@@ -120,7 +120,7 @@ committed ledgers make an interrupted run resumable by invoking `/tdd <scope>` a
   <https://ztrange.github.io/veri/> by hand-running `.github/workflows/pages.yml`, so a
   deploy is a decision rather than a side effect of a merge.
 - [`CONTEXT.md`](./CONTEXT.md) — the domain glossary (ubiquitous language) and scope ladder.
-- [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0013, one per resolved
+- [`docs/adr/`](./docs/adr/) — Architecture Decision Records 0001–0016, one per resolved
   design fork.
 
 ## Status
