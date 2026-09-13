@@ -25,10 +25,10 @@ not ask for.
 1. Read the existing suite the case belongs in and add it in that suite's own style,
    leaving its other cases untouched and green. If no suite fits, create one that matches
    the repository's testing idiom.
-2. Run it against the **unmodified** production code and record whether the new case FAILS
-   or PASSES. Run the suite that holds the new case, not the full suite: the only question
-   this phase asks is whether that one case fails, and how this repository runs one suite
-   is a convention like any other — establish it under **Read the conventions out of the
+2. Run the suite that holds the new case — not the full suite — against the **unmodified**
+   production code, and record whether the new case FAILS or PASSES. The only question this
+   phase asks is whether that one case fails, and how this repository runs one suite is a
+   convention like any other — establish it under **Read the conventions out of the
    repository** at the top of this prompt, from the files that are already there.
    If the repository has no way to run one suite on its own, fall back to the test
    command above and say so in your report.
