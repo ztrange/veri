@@ -155,8 +155,12 @@ verdict_work="$work/verdict"
 # into the arm's directory too, since the stub writes it unconditionally and the shared
 # `$work/argv` is case 4's evidence.
 verdict_run() {
-  mkdir -p "$verdict_work/$1"
-  ( cd "$verdict_work/$1" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$verdict_work/$1/argv" \
+  # The arm's directory, named once: it is the one made, the one run in, and the one ARGV_OUT
+  # is written under — three uses of a single path rather than three expressions a reader has
+  # to compare. Absolute, so it still names the same directory after the `cd` below.
+  local dir="$verdict_work/$1"
+  mkdir -p "$dir"
+  ( cd "$dir" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$dir/argv" \
       FAKE_OUT_TEXT="$3" "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py test_lowercases \
   ) >/dev/null 2>&1
 }
