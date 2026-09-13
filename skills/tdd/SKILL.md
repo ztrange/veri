@@ -422,8 +422,8 @@ following step. The phase sub-steps are:
 
 1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
    write **exactly one** failing test pinning the criterion to **observable external
-   behavior**, with **no production code**, and to run **the suite holding that case** — not
-   the full suite — against the unmodified code, since the only question Red asks is whether
+   behavior**, with **no production code**, and to run **the suite holding that case**, not
+   the full suite, against the unmodified code, since the only question Red asks is whether
    that one case fails — and launch the leaf **through the supervisor**:
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' > .tdd/develop-red.prompt
