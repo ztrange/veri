@@ -263,6 +263,41 @@ fi
 [[ -z "$problems" ]] \
   && ok || no "SKILL.md's Refactor narration bullet names the leaf's CANDIDATES: line itself, not merely somewhere in the section ($problems)"
 
+# 11. what the red leaf is told to RUN (issue #144). Case 1 pins that the prompt carries the
+#     test command; this case pins that running the test command is no longer what Red asks
+#     for by default. Red answers one question — does this one new case fail against
+#     unmodified code — and the full suite is the most expensive way to ask it: 25 runs across
+#     12 leaves, 30 of 358 leaf-minutes, in the 2026-09-13 overnight run. So the prompt names
+#     the suite that holds the new case instead, says not to run the full one, and keeps the
+#     test command as the fallback for a repository with no way to run a suite on its own —
+#     with the leaf saying so in its report, since a fallback nobody can see is indistinguish-
+#     able from a leaf that ignored the instruction. Four faces of one criterion, so one case
+#     and a `problems` accumulator, as case 8 does.
+#
+#     The prompt is folded to a single line first, for case 9's reason: it is markdown wrapped
+#     at ~85 columns, so any claim long enough to be worth probing for spans two lines, and
+#     grep matches within one. The prompt read is case 1's — same phase, same arguments, so
+#     there is one invocation and case 1 owns the exit-0 check on it.
+#     Two shapes these probes must avoid. A branch carries at most ONE `[^.]{0,N}`: BSD grep
+#     backtracks, and two bounded repeats either side of an alternation take minutes on a
+#     one-line input — a hang that would only appear once the prompt matches. And the first
+#     probe keys on `holds`/`contains` rather than any `suite … case` proximity, because
+#     sub-step 1 already says "the existing suite the case belongs in": what changes here is
+#     what the leaf is told to RUN, not that a suite is mentioned.
+red_flat="$(tr '\n' ' ' <<<"$red")"
+
+problems=""
+grep -qiE 'suite (that |which )?(holds|contains|holding|containing)[^.]{0,40}case' <<<"$red_flat" \
+  || problems="$problems; never says to run the suite that holds the new case"
+grep -qiE "(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite" <<<"$red_flat" \
+  || problems="$problems; never says NOT to run the full suite"
+grep -qiE '(cannot|can.t|no way to|unable to|has no way)[^.]{0,60}(suite|file)' <<<"$red_flat" \
+  || problems="$problems; no fallback for a repository that cannot run one suite"
+grep -qiE '(say|says|saying|state|states|note|report) (so|it|this|that)[^.]{0,30}report' <<<"$red_flat" \
+  || problems="$problems; does not ask the leaf to say so in its report"
+[[ -z "$problems" ]] \
+  && ok || no "develop-red says to run the suite holding the new case, not the full suite, falling back to the test command and saying so in the report (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
