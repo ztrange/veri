@@ -31,12 +31,12 @@ test:
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status"' EXIT; \
 	for t in $(TESTS); do \
-	  name="$$(basename "$$t")"; \
-	  printf '== %s\n' "$$name"; \
+	  suite_name="$$(basename "$$t")"; \
+	  printf '== %s\n' "$$suite_name"; \
 	  { "$$t"; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
-	    printf '%s: never reached its count line\n' "$$name"; fail=1; \
+	    printf '%s: never reached its count line\n' "$$suite_name"; fail=1; \
 	  }; \
 	done; \
 	echo "----"; \
