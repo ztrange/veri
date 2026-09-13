@@ -768,13 +768,35 @@ is nothing to re-create or switch. The **resume check** then finds an existing
 
 1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
-2. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
+2. **Ask for a pending refactor before anything else.**
+   `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` prints the first checked step whose
+   refactor-pending mark is still there — a step the previous run left **green but not
+   tidied**, because it was killed between that step's green commit and its
+   verify-refactor. **Exit 3** means no step carries the mark: go to sub-step 3. Otherwise
+   **STEP** is that description, and this step's refactor loop is re-entered where it
+   stopped — starting by throwing away whatever the killed leaf left uncommitted, which no
+   verifier has seen and which must never reach the PR:
+   ```
+   git reset --hard HEAD
+   green="$(git log -1 --format=%H -- .tdd/issue-<n>.md)"
+   touched="$(git diff --name-only "$green^" "$green" | paste -sd, -)"
+   count="$(git log --format=%s "$green"..HEAD | grep -c '^refactor:')"
+   ```
+   `$green` is the step's **green commit** — the last commit that changed the ledger, since
+   the tick is atomic with it and the clear that would follow never happened. So `$touched`
+   is the same bounds the interrupted loop had, and `$count` the transforms it already
+   committed, so the budget is not spent twice. Run the **Refactor loop** (step 3's
+   sub-section) with those two inputs, and its **verify-refactor** after it — the check the
+   interruption skipped. Its PASS clears the mark and commits the cleared ledger exactly as
+   in step 3; then come back here and ask sub-step 2 again.
+3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
    loop continues from exactly there, so **STEP** is that step's description, bound here
    instead of at the top of step 3. Already-checked steps (and their commits) are kept.
-3. Post a `### ▶️ Resuming` comment naming that step, and mark the pick-up in the log —
+4. Post a `### ▶️ Resuming` comment naming that step, and mark the pick-up in the log —
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh resume` — then run
-   the cycle loop (step 3) as normal. When `next-unchecked.sh` exits 3, every step is done →
-   go to the draft PR.
+   the cycle loop (step 3) as normal. Go to the **draft PR** only when
+   `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
+   checked, and every checked step's refactor is verified.
 
 Because each step was checked off **atomically with its green commit**, the ledger and the
 git history agree on exactly what is done — so resume never repeats or skips a step.
