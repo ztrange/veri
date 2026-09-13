@@ -379,7 +379,7 @@ prompt_says "$refactor" "does not state that a break in an untouched suite surfa
 demands_foreground() {  # demands_foreground <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "develop-$label never says to run test commands in the foreground" \
-    -iE -e 'foreground'
+    -i -e 'foreground'
   prompt_says "$prompt" "develop-$label never says to report only after the test command has exited" \
     -iE -e '(only after|not until|never before)[^.]{0,60}(exit|exits|exited|finish)'
 }
