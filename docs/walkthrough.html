@@ -5248,8 +5248,12 @@ h3[data-since].dim .vbadge{opacity:.42}
   "use strict";
   var mode = window.__VERI_SINCE__;
   var ORDER = window.__VERI_ORDER__ || [];
-  var index = document.querySelector("#capabilities");
-  if (!mode || !ORDER.length || !index) return;
+  /* capabilities, not index: `index` is already this module's name for the function that
+     says which version rows a reader is owed, and a local holding the section element
+     would read as that answer everywhere it appears. The selector's own word is the one
+     that says which of the two this is. */
+  var capabilities = document.querySelector("#capabilities");
+  if (!mode || !ORDER.length || !capabilities) return;
 
   var pick = document.createElement("p");
   pick.className = "ver-pick";
@@ -5287,7 +5291,7 @@ h3[data-since].dim .vbadge{opacity:.42}
 
   pick.appendChild(select);
   pick.appendChild(button);
-  index.appendChild(pick);
+  capabilities.appendChild(pick);
 
   show();
   window.addEventListener("hashchange", show);
