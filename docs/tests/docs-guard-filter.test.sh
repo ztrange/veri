@@ -335,17 +335,22 @@ report "$name"
 name="a docs suite the Makefile has never heard of runs under 'make docs-test' by existing"
 problems=()
 disc="$WORK/discovery"
+# The fixture suite's path, named once because two statements have to agree on it: the
+# heredoc writes the file and chmod makes it runnable, and a suite written at one path and
+# made executable at another is a fixture the target cannot run — which reads as the
+# failure this case is looking for. Same reason ONLY_CASE is named above.
+new_suite="$disc/docs/tests/brand-new.test.sh"
 marker="$disc/brand-new.ran"
 mkdir -p "$disc/docs/tests"
 cp "$ROOT/Makefile" "$disc/"
-cat > "$disc/docs/tests/brand-new.test.sh" <<EOF
+cat > "$new_suite" <<EOF
 #!/usr/bin/env bash
 # Fixture: a docs suite added to the tree without touching the Makefile. It records that it
 # was run and passes; what a real one would assert is beside the point here.
 : > "$marker"
 echo "1 passed, 0 failed"
 EOF
-chmod 755 "$disc/docs/tests/brand-new.test.sh"
+chmod 755 "$new_suite"
 disc_out="$(make -C "$disc" docs-test 2>&1)" && disc_code=0 || disc_code=$?
 # Both probes end on the same excerpt of the same run, so it is cut once rather than twice:
 # whichever of them fails, what the reader needs is what that one make run printed.
