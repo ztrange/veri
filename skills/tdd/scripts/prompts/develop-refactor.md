@@ -29,11 +29,11 @@ scope, however tempting.
 1. Pick **one** transformation that makes the code clearer — naming, duplication,
    structure — and apply it. Not a batch: one, so a break is attributable.
 2. Run the suites covering the files you touched, not the full suite: they answer what one
-   transform could plausibly break, and answer it in a fraction of the time. How this
+   transform could plausibly break, and answer it in a fraction of the time. Those suites
+   must stay green; revert the transform rather than leave a red suite behind. How this
    repository runs one suite is a convention like any other — establish it under **Read the
    conventions out of the repository** at the top of this prompt, from the files that are
-   already there. Those suites must stay green; revert the transform rather than leave a
-   red suite behind.
+   already there.
 3. The full suite runs at verify-refactor, on the settled result. The trade is that a break
    in an untouched suite surfaces there, as a REJECT you answer by revising, rather than at
    the transform that caused it.
