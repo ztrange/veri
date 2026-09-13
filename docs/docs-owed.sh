@@ -10,18 +10,24 @@
 # where that fact is held: run it after a merge and the debt is a list, not something
 # somebody has to notice.
 #
-# WHAT COUNTS AS DEBT — three readings, one line each, because a merged PR can leave the
-# page behind in three unrelated ways:
+# WHAT COUNTS AS DEBT — four readings, one line each, because a merged PR can leave the
+# page behind in four unrelated ways:
 #   commentary  a run of script lines no chunk in docs/wt/commentary.py claims. Read from
 #               the build itself (its `owed:` summary on stderr) rather than re-deriving
 #               the rule here, so the page and this list cannot disagree about coverage.
 #   page behind a script whose last commit is newer than the page's. Its listing is
 #               verbatim as of the page's build, which is to say no longer verbatim; a
 #               rebuild is what fixes it, and no coverage gap need be involved at all.
+#   page        a listing header whose quoted line count disagrees with the script standing
+#   misquotes   beside it. This one reads the page's own CONTENT, not its dates, which is
+#               the only way a page that is wrong on its face with no later commit to date
+#               it by gets reported at all (#146): one edited by hand — CLAUDE.md's one
+#               trap — one committed in the same breath as the change it fails to reflect,
+#               one built from a tree that was not this one.
 #   tag         a version the committed capability index does not name. A tag is the one
 #               input to the page that changes with no commit behind it, so nothing marks
 #               the page stale when one is cut.
-# The three are independent on purpose: a tree can owe any one of them alone, and which
+# The four are independent on purpose: a tree can owe any one of them alone, and which
 # one it owes says what the fix is.
 #
 # OUTPUT is a list and nothing else — one item per line, no header, no totals — because
@@ -127,6 +133,46 @@ while IFS= read -r path; do
   lists "$listed" "$name" || continue
   owed+=("page behind: $name — its last commit is newer than the page's build")
 done <<< "$touched"
+
+# ── page misquotes: a listing header that disagrees with the script beside it ────
+# The reading the two rules above cannot make, because both of them ask about HISTORY: one
+# about which commits came after the page's, the other about what the build says of the
+# tree as it stands now. A page whose content is simply wrong — a count edited by hand, a
+# page committed alongside the change it does not reflect — is newer than everything it
+# misquotes, so nothing dates it as stale. Its own text is the only witness left (#146).
+#
+# The line count is the page's central claim: every listing says `<n> lines · complete
+# source`, so a count that disagrees with the script makes the page wrong on its face. Read
+# out of the COMMITTED page, as the tag rule below reads it, because the debt being listed
+# is the debt a reader of the repository would meet.
+#
+# Bytecode off and the header matched as the whole <span> pair docs/build-walkthrough.py:261
+# writes, so the count taken is the one belonging to that name and not the first number that
+# happens to follow it on a line running to thousands of characters. A name the page lists
+# but the tree does not carry is a different failure, and not this rule's to report.
+misquoted="$(python3 - "$PAGE" "$SCRIPTS_DIR" <<'PY'
+import pathlib, re, subprocess, sys
+sys.dont_write_bytecode = True
+
+page_path, scripts_dir = sys.argv[1], pathlib.Path(sys.argv[2])
+page = subprocess.run(["git", "show", "HEAD:" + page_path],
+                      stdout=subprocess.PIPE, text=True, check=True).stdout
+header = re.compile(r'<span class="fname">([^<]+)</span><span class="fmeta">([0-9]+) lines')
+for fname, quoted in header.findall(page):
+    path = scripts_dir / fname
+    if not path.exists():
+        continue
+    # splitlines(), the count the build itself wrote (build-walkthrough.py:229), so the two
+    # sides of this comparison are counting the same thing.
+    total = len(path.read_text().splitlines())
+    if int(quoted) != total:
+        print("%s %s %s" % (fname, quoted, total))
+PY
+)" || die "cannot read the committed page's listing headers"
+while IFS=' ' read -r name quoted total; do
+  [ -n "$name" ] || continue
+  owed+=("page misquotes: $name — its listing quotes $quoted lines, the script has $total")
+done <<< "$misquoted"
 
 # ── tags the committed capability index does not name ───────────────────────────
 # Every tag the build knew about is written into the page as a quoted JSON token
