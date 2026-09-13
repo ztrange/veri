@@ -292,6 +292,46 @@ done
 [[ -z "$misread" ]] \
   && ok || no "the real bodies of #71, #75, #80 and #123 each answer make docs-test —$misread"
 
+# 0g. the marker *quoted* rather than stated. #131 made the marker count anywhere on a line,
+# and with it a mere mention of the marker — a body that writes the two words inside a
+# backtick span, talking about the line rather than writing one — became an answer. First
+# match wins, so that mention is fatal: the real line further down cannot overrule it.
+#
+# This is #144's own body, measured 2026-09-13: its line 3 quotes the marker while
+# describing how a leaf finds its command, and its Notes state it with `make test` fifty-odd
+# lines later. Rule 0 answered from line 3, printing the prose that followed the closing
+# backtick — a sentence fragment, handed to the conductor as the shell command for the
+# baseline and every leaf.
+#
+# The seeded body is that shape and only that shape: a quoted marker high up whose line
+# carries prose behind it, and a stated marker in the Notes. The prose behind the quote is
+# what makes this fail loudly rather than quietly — a body that quoted the marker at the very
+# end of its line would name no command and be skipped already, by the `-n "$cmd"` test rule
+# 0 has had since #120.
+#
+# The fall-through is armed with a `.veri/test-command`, not with the Makefile `test:` target
+# cases 0c–0f use, and that is the half of the seeding worth reading twice: `make test` is the
+# answer wanted here, so a Makefile would hand the same bytes to a rule 0 that skipped the
+# body entirely, and the case would pass without the stated line ever having been consulted.
+# The override gives the three outcomes three different stdouts — `make test` only if the
+# stated line answered, `bin/run-suite --all --strict` if rule 0 found nothing at all, and the
+# prose fragment if the quote answered — so a failure says which of the two mistakes was made.
+#
+# `$want` seeds the stated line as well as checking stdout, the same reason case 0 does it:
+# "answers `make test`" is a claim about bytes, so the bytes written in are the bytes expected
+# out.
+want='make test'
+repo="$work/quoted-marker"
+body="$work/quoted-marker-body.md"
+mkdir -p "$repo/.veri"
+printf '%s\n' 'bin/run-suite --all --strict' > "$repo/.veri/test-command"
+printf '# Leaves run one suite instead of the full one\n\nSince #120 a leaf takes its command from the issue body: the `Test command:` line names it, and #131 made that line count mid-sentence.\n\n## Notes\n\nTest command: %s\n' "$want" > "$body"
+
+detect --issue "$body" "$repo"
+
+matched \
+  && ok || no "a marker quoted inside a backtick span does not answer, and the later line stating it with make test does (exit=$code want 0, stdout='$out' want '$want')"
+
 # 1. the .veri/test-command override wins over every inference, and its line is printed
 # verbatim. The repo is seeded so that *both* of the highest-precedence inferences would
 # otherwise fire (package.json with a test script → `npm test`; Makefile with a test

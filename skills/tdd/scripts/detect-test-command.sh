@@ -49,6 +49,12 @@ answer() { printf '%s\n' "$1"; exit 0; }
 # prose ahead of the marker as well as the marker itself — shortest match, so the first
 # marker on the line is the one that answers.
 #
+# A marker *inside a backtick span* is being quoted, not stated: a body that writes the two
+# words while describing how a leaf finds its command is talking about the line, not writing
+# one. Such a marker is skipped and the scan goes on, because first-match-wins makes a mention
+# fatal otherwise — the real line further down cannot overrule it, and what gets handed to the
+# conductor is the prose that trailed the quote (#145).
+#
 # Two steps then turn what is left into the command, and each is named so the rule reads as
 # the sentence it is: the command is what follows the marker, ltrimmed and unwrapped.
 #
@@ -75,10 +81,26 @@ unwrapped() {
   esac
 }
 
+# `quoted <prefix>` is true when that prefix — the text a line carries ahead of its marker —
+# leaves a backtick span open, which is what makes the marker behind it a quotation. Backticks
+# pair off, so an odd count is a span still open. `${1//[!\`]/}` deletes every character that
+# is not a backtick and `${#…}` counts what is left, which is cheaper and steadier than asking
+# where each span starts and ends.
+quoted() {
+  local ticks="${1//[!\`]/}"
+  [ $(( ${#ticks} % 2 )) -eq 1 ]
+}
+
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
       *'Test command:'*)
+        # `${line%%Test command:*}` is the shortest prefix — cut at the *first* marker, the
+        # same one `${line#*Test command:}` answers from — so the span being asked about is
+        # the one that marker sits in.
+        if quoted "${line%%Test command:*}"; then
+          continue
+        fi
         cmd="$(unwrapped "$(ltrim "${line#*Test command:}")")"
         if [ -n "$cmd" ]; then
           answer "$cmd"
