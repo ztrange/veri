@@ -754,9 +754,10 @@ is nothing to re-create or switch. The **resume check** then finds an existing
 1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
 2. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
-   loop continues from exactly there. Already-checked steps (and their commits) are kept.
+   loop continues from exactly there, so **STEP** is that step's description, bound here
+   instead of at the top of step 3. Already-checked steps (and their commits) are kept.
 3. Post a `### ▶️ Resuming` comment naming that step, and mark the pick-up in the log —
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<step>' $S/event.sh resume` — then run
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh resume` — then run
    the cycle loop (step 3) as normal. When `next-unchecked.sh` exits 3, every step is done →
    go to the draft PR.
 
