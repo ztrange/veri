@@ -38,10 +38,9 @@ refuse() {
 }
 
 # The name splits at its first `-` into the two halves the role is read out of, and each cut is
-# made where its result is meaningful: this one just above the arm that reads it, the phase's
-# below the guard that establishes there is a phase to read at all. Each half is named for what
-# it holds rather than for where in the string it sat. `%%-*` strips the longest trailing match
-# of `-*`, leaving the leading word, which is the actor's.
+# made just above the arm that reads it. Each half is named for what it holds rather than for
+# where in the string it sat. `%%-*` strips the longest trailing match of `-*`, leaving the
+# leading word, which is the actor's.
 actor_word="${name%%-*}"
 
 # An unknown leading word is refused rather than guessed at, since either guess is a silent
@@ -54,19 +53,25 @@ case "$actor_word" in
   *) refuse "unknown leaf name '$name'" ;;
 esac
 
-# A name with no `-` at all carries no phase, and is refused for the same reason the unknown
-# word above is: the answer would be invented rather than read. The invention is in the two
-# expansions themselves — both return the WHOLE string when there is nothing to strip, so
-# `develop` would be read as actor `developer` and phase `develop`, a phase no run has, printed
-# with exit 0 as if the name had said it.
-if [[ "$name" != *-* ]]; then
+# The other half: everything past the leading word and the `-` that would end it, which is the
+# phase and, when the name carries one, the attempt — `red`, `green-2`, `refactor`. Cut by
+# length rather than by a second pattern, because a pattern invents a phase where there is
+# none: `${name#*-}` returns the WHOLE string when there is no `-` to strip, so `develop` would
+# read as phase `develop`, a phase no run has. Counting past the word runs off the end of
+# `develop` instead, and off the end of `develop-` too, so both say what they mean — nothing.
+phase_attempt="${name:${#actor_word}+1}"
+
+# A name that carries no phase is refused for the same reason the unknown word above is: the
+# answer would be invented rather than read. The guard tests the phase that was read, not the
+# shape it was read from, and that is what makes it fail closed on both names that have none:
+# `develop`, which carries no `-` at all, and `develop-`, which carries the `-` with nothing
+# after it — a name that satisfies any test of the STRING while the phase in it is still empty.
+# Neither may be logged in place of a refusal: event.sh writes every context key whether or not
+# it is known (event.sh:22-25), so the empty phase would go down as `"phase": ""`, which reads
+# as a leaf that had no phase rather than one whose phase nobody could read.
+if [[ -z "$phase_attempt" ]]; then
   refuse "leaf name '$name' says no phase"
 fi
-
-# The other half, cut only now that the guard above has established the name has one: `#*-`
-# strips the shortest leading match, leaving the phase and, when the name carries one, the
-# attempt — `red`, `green-2`, `refactor`.
-phase_attempt="${name#*-}"
 
 # A trailing `-<digits>` is the attempt the name carries, and what precedes it is the phase; a
 # name without one is attempt 1. Not the empty string: event.sh writes every context key

@@ -17,6 +17,9 @@
 #   not recognise               nothing on stdout, exit 2.
 #   a recognised leading word → the same refusal: diagnostic on stderr, nothing on stdout,
 #   with no phase after it      exit 2.
+#   a recognised leading word → the same refusal again: a name that carries the `-` but
+#   with an EMPTY phase after    nothing after it says no phase either.
+#   the `-`
 #
 # Assignments rather than three bare values, in `VERI_*` spelling, because of where the
 # answer goes: the context event.sh reads is the environment (event.sh:17-19), so a caller
@@ -179,6 +182,22 @@ report "$name"
 name="leaf-role.sh fails closed on a leaf name with a recognised leading word but no phase after it: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
 problems=()
 refusal_probe develop
+report "$name"
+
+# 4. The mapping fails closed on a name whose phase is empty — `develop-`, a trailing dash and
+#    nothing after it.
+#
+#    Same missing answer as case 3, reached by the shape that hides it: the name does carry a
+#    `-`, so anything asking whether the STRING has one is satisfied, while the phase read out
+#    of it is still the empty string. That is the one value event.sh:22-25 refuses to let stand
+#    for an unknown — a run whose log says `"phase": ""` has recorded that this leaf had no
+#    phase, not that nobody could read one — so the name is refused here rather than logged.
+#    `develop-` is not a name a run launches today; it is what a caller's own string handling
+#    produces when the phase it meant to append was empty, and the refusal is what turns that
+#    into a diagnostic on the spot instead of a blank field found later.
+name="leaf-role.sh fails closed on a leaf name whose phase is empty: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
+problems=()
+refusal_probe develop-
 report "$name"
 
 echo "----"
