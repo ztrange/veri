@@ -480,11 +480,17 @@ owed "$d"
 # agree on them — the sed that plants the misquote, the grep that says it landed, and the
 # vacuity check that the script is not really that long. Spelled out three times, the sed's
 # two near-identical halves hide which part of the header the rewrite actually moves.
+#
+# `misquote` is the header as the page is to end up carrying it, named because the sed that
+# writes it and the grep that reads it back are the two sides of one claim: a grep spelled
+# out again could drift from the replacement and then confirm a landing that never happened.
+# It leaves the sed reading as what it does — whatever count that header quotes, this one.
 header="<span class=\"fname\">$MISQUOTED</span><span class=\"fmeta\">"
 wrong_lines=9999
-( cd "$d" && sed -i.bak "s#$header[0-9]* lines#$header$wrong_lines lines#" \
+misquote="$header$wrong_lines lines"
+( cd "$d" && sed -i.bak "s#$header[0-9]* lines#$misquote#" \
     docs/walkthrough.html && rm -f docs/walkthrough.html.bak )
-grep -Fq "$header$wrong_lines lines" "$d/docs/walkthrough.html" ||
+grep -Fq "$misquote" "$d/docs/walkthrough.html" ||
   problems+=("the misquote did not land: no listing header for $MISQUOTED in the committed page to rewrite the line count of")
 real_lines="$(awk 'END {print NR}' "$d/skills/tdd/scripts/$MISQUOTED")"
 [[ "$real_lines" != "$wrong_lines" ]] ||
