@@ -34,8 +34,12 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 pass=0 fail=0
 
 # The suite this step moves, at the path it has to end up on — named once so the roster
-# probe, the run probe and the header probes all ask about the same file.
+# probe, the run probe and the header probes all ask about the same file. Twice, because
+# the file has two names here and neither substitutes for the other: repo-relative is what
+# a roster line says and what the failure messages quote, absolute is what running it and
+# reading it need, since this suite is run from wherever the target was invoked.
 ADR_SUITE='docs/tests/docs-gap-adr.test.sh'
+ADR_SUITE_PATH="$ROOT/$ADR_SUITE"
 
 # What a subject line naming the docs pipeline looks like. Every suite in this repository
 # declares its subject on its first comment line ("Unit tests for scripts/verify.sh — …",
@@ -100,12 +104,12 @@ test_roster="$(roster test)"
 printf '%s\n' "$docs_roster" | grep -qx "$ADR_SUITE" ||
   problems+=("want $ADR_SUITE among the suites 'make docs-test' runs; it runs: $(flat "$docs_roster")")
 
-if [[ -x "$ROOT/$ADR_SUITE" ]]; then
-  adr_out="$("$ROOT/$ADR_SUITE" 2>&1)" && adr_code=0 || adr_code=$?
+if [[ -x "$ADR_SUITE_PATH" ]]; then
+  adr_out="$("$ADR_SUITE_PATH" 2>&1)" && adr_code=0 || adr_code=$?
   { [[ "$adr_code" == 0 ]] && printf '%s\n' "$adr_out" | grep -Eq '[1-9][0-9]* passed, 0 failed'; } ||
     problems+=("want exit 0 and a green count over cases that ran from $ADR_SUITE; got $adr_code: $(flat "$(printf '%s' "$adr_out" | tail -3)")")
 
-  header="$(awk '/^set /{ exit } { print }' "$ROOT/$ADR_SUITE")"
+  header="$(awk '/^set /{ exit } { print }' "$ADR_SUITE_PATH")"
   [[ "$header" != *"not under docs/tests/"* ]] ||
     problems+=("the header still argues the suite lives somewhere other than docs/tests/, which is where it now is")
   [[ "$header" != *"scripts/tests/docs-gap-adr.test.sh"* ]] ||
