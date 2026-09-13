@@ -86,16 +86,21 @@ flat() { printf '%s' "$1" | tr '\n' '/'; }
 #
 # Built once and handed to every case that asks: both cases below want the same tree, and a
 # second copy on top of the first would land docs/ inside docs/ and append the plant twice.
+#
+# Each case holds the path it returns as `planted`, for the reason run_in_copy names its
+# three inputs: the probes are dense single lines several lines below the call, and a reader
+# meeting `build_over "$planted"` or `cmp -s "$BUILT" "$planted/docs/walkthrough.html"` there
+# is told what tree is being asked, rather than a letter to go and resolve.
 tree_owing_prose() {
-  local d="$WORK/tree"
-  [[ -d "$d" ]] && { printf '%s' "$d"; return 0; }
-  mkdir -p "$d"
-  cp -R "$ROOT/docs" "$d/docs"
-  cp -R "$ROOT/skills" "$d/skills"
-  cp "$ROOT/Makefile" "$d/"
-  rm -rf "$d/docs/wt/__pycache__"
-  printf '\n# a line this tree grew after its prose was written\n# and a second one\n' >> "$d/$SCRIPT"
-  printf '%s' "$d"
+  local planted="$WORK/tree"
+  [[ -d "$planted" ]] && { printf '%s' "$planted"; return 0; }
+  mkdir -p "$planted"
+  cp -R "$ROOT/docs" "$planted/docs"
+  cp -R "$ROOT/skills" "$planted/skills"
+  cp "$ROOT/Makefile" "$planted/"
+  rm -rf "$planted/docs/wt/__pycache__"
+  printf '\n# a line this tree grew after its prose was written\n# and a second one\n' >> "$planted/$SCRIPT"
+  printf '%s' "$planted"
 }
 
 # build_over <dir> — one page build over <dir>, its stdout left in $BUILT and its stderr in
@@ -155,18 +160,18 @@ run_in_copy() {
 #    every case passing both exit 0, and only one of them is evidence.
 name="$OWED_SUITE passes over a tree whose scripts carry lines no commentary chunk covers"
 problems=()
-d="$(tree_owing_prose)"
+planted="$(tree_owing_prose)"
 
 # The plant is only a plant if the build reads it as debt, and the build is where
 # docs-owed.sh reads coverage from too — so this asks the same question the subject asks,
 # of the copy, rather than re-deriving the coverage rule here. Without it a renamed script
 # or a commentary chunk that grew to the end of the file would leave the case passing over
 # a tree that owes nothing, which is the tree it already passes over today.
-build_over "$d"
+build_over "$planted"
 grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
   problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
 
-run_in_copy "$d" "$OWED_SUITE"
+run_in_copy "$planted" "$OWED_SUITE"
 { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
   problems+=("want $OWED_SUITE green over a tree owing prose for $SCRIPT_NAME — a script commit is a development-lane event and must not turn the docs lane red; got $code: $(flat "$(tail -5 <<< "$out")")")
 
@@ -196,20 +201,20 @@ PAGE_FILTER='committed page'
 LIVE_CASE='baseline builds'
 name="$GUARDS_SUITE has no case that judges the committed page, over a tree whose page is behind its scripts"
 problems=()
-d="$(tree_owing_prose)"
+planted="$(tree_owing_prose)"
 
 # The tree has to be one a case judging the committed page would FAIL over, or exit 3 and a
 # green run are the same observation and this pins nothing. The same build case 1 probed the
 # plant with, read off its other stream: ask the copy the question the removed case asked —
 # is the committed page what this tree builds — rather than re-deriving an answer here.
-build_over "$d"
-cmp -s "$BUILT" "$d/docs/walkthrough.html" &&
+build_over "$planted"
+cmp -s "$BUILT" "$planted/docs/walkthrough.html" &&
   problems+=("the case is vacuous: the committed page in the copy is already what that tree builds, so a case judging it would pass there anyway")
 
 # And the suite has to be able to run in the copy at all, or exit 3 could be a suite that
 # dies before it reaches any case. The cheapest case it has — one sandbox, one build, no git
 # history — is the same fixture docs-guard-filter.test.sh uses for that.
-run_in_copy "$d" "$GUARDS_SUITE" "$LIVE_CASE"
+run_in_copy "$planted" "$GUARDS_SUITE" "$LIVE_CASE"
 { [[ "$code" == 0 ]] && grep -Fq '1 passed, 0 failed' <<< "$out"; } ||
   problems+=("want ONLY='$LIVE_CASE' $GUARDS_SUITE green in the copy — without it exit 3 below says nothing; got $code: $(flat "$(tail -3 <<< "$out")")")
 
@@ -217,7 +222,7 @@ run_in_copy "$d" "$GUARDS_SUITE" "$LIVE_CASE"
 # the suite: it has to be the no-match path, which names the filter that found nothing. The
 # wording is the implementer's, so only "no case" and the filter itself are matched, the way
 # case 2 of docs-guard-filter.test.sh matches them.
-run_in_copy "$d" "$GUARDS_SUITE" "$PAGE_FILTER"
+run_in_copy "$planted" "$GUARDS_SUITE" "$PAGE_FILTER"
 lowered="$(tr 'A-Z' 'a-z' <<< "$out")"
 [[ "$code" == 3 ]] ||
   problems+=("want exit 3 — no case to run — from ONLY='$PAGE_FILTER' $GUARDS_SUITE over a tree whose committed page is stale; got $code: $(flat "$(tail -5 <<< "$out")")")
