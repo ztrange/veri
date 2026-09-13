@@ -74,8 +74,17 @@ record_grammar='
     { rec = rec " " $0 }
     END { flush() }'
 
+# records_of — the lines on stdin as records: the grammar above applied, then the case
+# folded. Both readers below end in it, the way skill-suite-runs.test.sh's readers both end
+# in `plain`, so "what a record is" is spelled once. A second spelling would not fail — it
+# would quietly answer a probe with records built by a grammar the other reader has since
+# outgrown.
+records_of() {
+  awk "$record_grammar" | tr '[:upper:]' '[:lower:]'
+}
+
 instructions() {
-  awk "$record_grammar" "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
+  records_of < "$ROOT/$skill_md"
 }
 
 # resume_instructions — the same records, but only those of the `## Resume` section: from
@@ -85,8 +94,7 @@ instructions() {
 # and, worse, let a Resume that says nothing at all pass on the cycle loop's wording.
 # `### ` sub-headings survive the slice: the pattern wants "## " with the space.
 resume_instructions() {
-  awk '/^## / { inside = ($0 == "## Resume"); next } inside' "$ROOT/$skill_md" |
-    awk "$record_grammar" | tr '[:upper:]' '[:lower:]'
+  awk '/^## / { inside = ($0 == "## Resume"); next } inside' "$ROOT/$skill_md" | records_of
 }
 
 # ordinal <regex> — the 1-based position, within the global `records`, of the first
