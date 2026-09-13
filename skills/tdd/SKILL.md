@@ -599,8 +599,21 @@ must be green and all work committed before this step. Like every step since 1.2
 runs **from inside the worktree** — both commands below are issued there, so they see the
 issue branch and its commits without any switching.
 
-1. Push the branch, from the worktree: `git push -u origin tdd/<n>-<slug>`.
-2. Open a **draft** PR linked to the issue; the body must contain `Closes #<n>`:
+1. **Ask the two questions that decide whether there is anything fit to push, and refuse to
+   go on while either says no** — both from inside the worktree, before the branch leaves
+   it:
+   ```
+   git status --porcelain
+   $S/next-pending-refactor.sh < .tdd/issue-<n>.md
+   ```
+   A non-empty `git status --porcelain` is work no verifier has seen — the transform a
+   killed refactor leaf left on disk — and an exit 0 from `next-pending-refactor.sh` is a
+   step that is checked but still only green. On either, **do not push and do not open the
+   PR**: for a pending step go to *Resume* sub-step 2, which resets the stray work and
+   re-enters that step's refactor loop, and come back here only once both questions have
+   gone quiet — an empty status, and `next-pending-refactor.sh` exiting 3.
+2. Push the branch, from the worktree: `git push -u origin tdd/<n>-<slug>`.
+3. Open a **draft** PR linked to the issue; the body must contain `Closes #<n>`:
    ```
    gh pr create --draft --base <default-branch> \
      --title "<type>: <criterion summary> (#<n>)" \
@@ -608,8 +621,8 @@ issue branch and its commits without any switching.
 
    <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>"
    ```
-3. **Never merge the PR.** Landing the code is always the human's deliberate act.
-4. Post a final `### ✅ Done — <pr-url>` comment, and close the run's log with the same URL:
+4. **Never merge the PR.** Landing the code is always the human's deliberate act.
+5. Post a final `### ✅ Done — <pr-url>` comment, and close the run's log with the same URL:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    ```
