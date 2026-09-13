@@ -465,6 +465,19 @@ report "$name"
 #
 # Back to the plain list, for the reading none of the three above is: what the committed
 # page SAYS, read out of the page itself rather than inferred from when it was committed.
+
+# page_is_newest <dir> <what a dated rule could have said instead> — the page is that tree's
+# newest commit, so every rule that reads HISTORY is silent by construction and a line about
+# the page can only have come from reading what the page SAYS. Both cases below plant in the
+# committed page and both owe this check, which is why it is named: spelled out, it is two
+# `git log -1` invocations a reader has to compare before seeing what is being claimed. The
+# argument is the only thing that differs between the two call sites, and it is there so a
+# failure says which dated rule the case failed to rule out. Reads `problems` where it
+# stands, the protocol the rest of this file already uses.
+page_is_newest() {
+  [[ "$(git -C "$1" log -1 --format=%H)" == "$(git -C "$1" log -1 --format=%H -- "$PAGE")" ]] ||
+    problems+=("the case is vacuous: the page is not the tree's newest commit, so $2")
+}
 #
 # 4. A page that misquotes the tree is debt even when no commit is newer than it. The
 #    `page behind` rule dates the page against the scripts, so it answers a question about
@@ -528,8 +541,7 @@ real_lines="$(awk 'END {print NR}' "$d/$SCRIPTS_DIR/$MISQUOTED")"
 # has no script dated after it and the tag and commentary rules were answered by the clean
 # read above. Nothing but a reading of the page's content is left to report this.
 git -C "$d" commit -qam 'docs: a page that misquotes the tree it stands in (#4)'
-[[ "$(git -C "$d" log -1 --format=%H)" == "$(git -C "$d" log -1 --format=%H -- "$PAGE")" ]] ||
-  problems+=("the case is vacuous: the page is not the tree's newest commit, so the blame rule could report $MISQUOTED without reading the page at all")
+page_is_newest "$d" "the blame rule could report $MISQUOTED without reading the page at all"
 
 owed "$d"
 [[ "$code" == 0 ]] ||
@@ -582,8 +594,7 @@ grep -Fq -- "$OLD_CMD" "$d/$PAGE" ||
   problems+=("the plant did not land: the committed page does not name $OLD_CMD after appending a line that does")
 
 git -C "$d" commit -qam 'docs: a page still naming a command that no longer resolves (#5)'
-[[ "$(git -C "$d" log -1 --format=%H)" == "$(git -C "$d" log -1 --format=%H -- "$PAGE")" ]] ||
-  problems+=("the case is vacuous: the page is not the tree's newest commit, so a dated rule could report this without reading the page at all")
+page_is_newest "$d" "a dated rule could report this without reading the page at all"
 
 owed "$d"
 [[ "$code" == 0 ]] ||
