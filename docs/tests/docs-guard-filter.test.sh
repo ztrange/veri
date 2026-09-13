@@ -346,10 +346,13 @@ echo "1 passed, 0 failed"
 EOF
 chmod 755 "$disc/docs/tests/brand-new.test.sh"
 disc_out="$(make -C "$disc" docs-test 2>&1)" && disc_code=0 || disc_code=$?
+# Both probes end on the same excerpt of the same run, so it is cut once rather than twice:
+# whichever of them fails, what the reader needs is what that one make run printed.
+disc_tail="$(printf '%s' "$disc_out" | tail -3 | tr '\n' '/')"
 [[ -e "$marker" ]] ||
-  problems+=("want docs/tests/brand-new.test.sh run by 'make docs-test' with no Makefile edit; it left no marker, so nothing ran it: $(printf '%s' "$disc_out" | tail -3 | tr '\n' '/')")
+  problems+=("want docs/tests/brand-new.test.sh run by 'make docs-test' with no Makefile edit; it left no marker, so nothing ran it: $disc_tail")
 [[ "$disc_code" == 0 ]] ||
-  problems+=("want exit 0 from 'make docs-test' over a tree whose one docs suite passes; got $disc_code: $(printf '%s' "$disc_out" | tail -3 | tr '\n' '/')")
+  problems+=("want exit 0 from 'make docs-test' over a tree whose one docs suite passes; got $disc_code: $disc_tail")
 report "$name"
 
 echo "----"
