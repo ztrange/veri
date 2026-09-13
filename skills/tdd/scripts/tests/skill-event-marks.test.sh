@@ -98,6 +98,18 @@ mark() {
   fi
 }
 
+# comment_mark <event> <heading> <anchor-regex>… — a `mark` whose anchor is the issue
+# comment it mirrors, which is every mark but `step-start`: the heading names the comment
+# in the failure message, and `comment` joins the anchors so an instruction that merely
+# mentions the heading in passing cannot answer for the one that posts it. Six of the seven
+# go through here, so what is left spelled out at `step-start` is the one real difference —
+# a step begins at a command, not at a comment.
+comment_mark() {
+  local event="$1" heading="$2"
+  shift 2
+  mark "$event" "posts the \`$heading\` comment" "$@" 'comment'
+}
+
 # 1. The whole of this step's criterion, as one case: seven marks, each beside the comment
 #    it mirrors. They are one case because they are one wiring — an event log missing any
 #    one of them cannot answer when a step started, why a run stopped, or what it cost —
@@ -112,18 +124,12 @@ if [[ -z "$records" ]]; then
 else
   mark step-start 'takes the next unchecked step with next-unchecked.sh' \
     'next-unchecked\.sh'
-  mark step-done 'posts the `### ✅ Step done` comment' \
-    'step done' 'comment'
-  mark pin 'posts the `### 📌 Already satisfied` comment' \
-    'already satisfied' 'comment'
-  mark revise 'posts the `### ♻️ Revise <phase> — attempt <k>` comment' \
-    'revise <phase>' 'attempt' 'comment'
-  mark bail 'posts the `### ⛔ Bailed — <phase>` comment' \
-    'bailed' 'comment'
-  mark done 'posts the final `### ✅ Done — <pr-url>` comment' \
-    'pr-url' 'comment'
-  mark resume 'posts the `### ▶️ Resuming` comment' \
-    'resuming' 'comment'
+  comment_mark step-done '### ✅ Step done' 'step done'
+  comment_mark pin '### 📌 Already satisfied' 'already satisfied'
+  comment_mark revise '### ♻️ Revise <phase> — attempt <k>' 'revise <phase>' 'attempt'
+  comment_mark bail '### ⛔ Bailed — <phase>' 'bailed'
+  comment_mark done '### ✅ Done — <pr-url>' 'pr-url'
+  comment_mark resume '### ▶️ Resuming' 'resuming'
 fi
 report "$name"
 
