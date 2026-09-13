@@ -33,18 +33,19 @@ scope, however tempting.
    repository runs one suite is a convention like any other — establish it under **Read the
    conventions out of the repository** at the top of this prompt, from the files that are
    already there. They must stay green; revert the transform rather than leave a red suite
-   behind. The full suite runs at verify-refactor, on the settled result — the trade is
-   that a break in an untouched suite surfaces there, as a REJECT you answer by revising,
-   rather than at the transform that caused it.
-3. **No untested generality.** Generality is earned by triangulation — another test
+   behind.
+3. The full suite runs at verify-refactor, on the settled result. The trade is that a break
+   in an untouched suite surfaces there, as a REJECT you answer by revising, rather than at
+   the transform that caused it.
+4. **No untested generality.** Generality is earned by triangulation — another test
    demanding it — never hand-written here. Do not add options, flags, parameters or
    abstraction no existing test requires.
-4. If the code is **overfit** — it hard-codes the one tested case rather than implementing
+5. If the code is **overfit** — it hard-codes the one tested case rather than implementing
    the behaviour — do **not** generalize it yourself. Flag it as needing a triangulating
    test, and say which case would force the generality.
-5. If the code is already clean under those rules, change nothing and say so. "Nothing
+6. If the code is already clean under those rules, change nothing and say so. "Nothing
    left to tidy" is a legitimate result, not a failure to find work.
-6. Leave your transform **uncommitted** in the working tree — do not run `git commit`; the
+7. Leave your transform **uncommitted** in the working tree — do not run `git commit`; the
    conductor commits, because the commit is its atomic tick-and-commit.
 
 ### Report (last lines of your output)
