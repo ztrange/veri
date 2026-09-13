@@ -791,10 +791,11 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    in the cycle loop; then come back here and ask sub-step 2 again.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
    loop continues from exactly there, so **STEP** is that step's description, bound here
-   instead of at the top of step 3. Already-checked steps (and their commits) are kept.
+   instead of at the top of the cycle loop. Already-checked steps (and their commits) are
+   kept.
 4. Post a `### ▶️ Resuming` comment naming that step, and mark the pick-up in the log —
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh resume` — then run
-   the cycle loop (step 3) as normal. Go to the **draft PR** only when
+   the cycle loop as normal. Go to the **draft PR** only when
    `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
    checked, and every checked step's refactor is verified.
 
