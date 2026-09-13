@@ -29,11 +29,11 @@ name="${1:?usage: leaf-role.sh <leaf-name>}"
 # whatever made a name unreadable. Exit 2 — no answer could be obtained, the plumbing speaking
 # rather than a clean negative — with the diagnostic on stderr and stdout left empty, because
 # the caller consumes this as `env $(leaf-role.sh "$name") …` and would word-split a half-role
-# printed there into its environment, logging it as if the name had said it. The script's own
-# name and the list of shapes are spelled here rather than at each refusal: two arms that came
-# to disagree about which shapes are legal would tell one reader's run a different story.
+# printed there into its environment, logging it as if the name had said it. All of that but the
+# reason — this script's name, the offending leaf's, the legal shapes — is spelled here rather
+# than at each arm, which is what stops a later arm forgetting one or spelling it differently.
 refuse() {
-  echo "leaf-role: $1 (want develop-*|revise-*|verify-*)" >&2
+  echo "leaf-role: leaf name '$name' $1 (want develop-*|revise-*|verify-*)" >&2
   exit 2
 }
 
@@ -50,7 +50,7 @@ actor_word="${name%%-*}"
 case "$actor_word" in
   develop|revise) actor=developer ;;
   verify)         actor=verifier  ;;
-  *) refuse "unknown leaf name '$name'" ;;
+  *) refuse "has an unknown leading word" ;;
 esac
 
 # The other half: everything past the leading word and the `-` that would end it, which is the
@@ -70,7 +70,7 @@ phase_attempt="${name:${#actor_word}+1}"
 # it is known (event.sh:22-25), so the empty phase would go down as `"phase": ""`, which reads
 # as a leaf that had no phase rather than one whose phase nobody could read.
 if [[ -z "$phase_attempt" ]]; then
-  refuse "leaf name '$name' says no phase"
+  refuse "says no phase"
 fi
 
 # A trailing `-<digits>` is the attempt the name carries, and what precedes it is the phase; a
