@@ -279,9 +279,17 @@ probe_run_showed_the_line_while_the_suite_ran() {
   make -C "$ROOT" test TESTS="$PAUSE_FIXTURE" > "$stream_log" 2>&1 &
   mk=$!
   while :; do
+    # A look that finds the FAIL line is the last one, whichever way it answers: no count
+    # line beside it is the streamed run this case wants, and a count line beside it is the
+    # suite already over. So both leave the loop here, and the two questions are asked in
+    # this order — the FAIL line first, the count line second — because the log only grows:
+    # the count line missing *after* the FAIL line was seen is what says the two coexisted.
     if grep -qF "$PAUSE_LINE" "$stream_log"; then
-      grep -Eq "$COUNT_LINE" "$stream_log" || { streamed=yes; break; }
+      grep -Eq "$COUNT_LINE" "$stream_log" || streamed=yes
+      break
     fi
+    # The FAIL line is not there, so a count line means the suite ended without it — a
+    # broken fixture, reported by the probe below rather than waited out here.
     grep -Eq "$COUNT_LINE" "$stream_log" && break
     looks=$((looks + 1))
     if [[ "$looks" -gt 300 ]]; then
