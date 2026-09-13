@@ -25,6 +25,9 @@
 #      re-enters that step's refactor loop with the files of its green commit (the last
 #      commit that changed the ledger) and the count of `refactor:` commits since it, then
 #      runs verify-refactor — with the draft PR behind both scripts exiting 3.
+#   3. SKILL.md's Draft PR step itself refuses to push or open the PR while
+#      `git status --porcelain` is non-empty or `next-pending-refactor.sh` still finds a
+#      pending step.
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -95,6 +98,16 @@ instructions() {
 # `### ` sub-headings survive the slice: the pattern wants "## " with the space.
 resume_instructions() {
   awk '/^## / { inside = ($0 == "## Resume"); next } inside' "$ROOT/$skill_md" | records_of
+}
+
+# draft_pr_instructions — the records of the `### 4. Draft PR` section: from that heading to
+# the next heading of either level. Scoped for the same reason `resume_instructions` is — the
+# document pushes a branch and names the PR on more than one path (Bailing pushes too; Resume
+# points at this step) — and this criterion is about the step that does the pushing, not about
+# the prose elsewhere that sends a run to it.
+draft_pr_instructions() {
+  awk '/^## / || /^### / { inside = ($0 == "### 4. Draft PR"); next } inside' \
+    "$ROOT/$skill_md" | records_of
 }
 
 # ordinal <regex> — the 1-based position, within the global `records`, of the first
@@ -286,6 +299,44 @@ else
       "$skill_md sends a resumed run to the draft PR on next-unchecked.sh alone, so a ledger whose every step is ticked still reaches the PR with the last step's refactor unverified"
     says 'next-unchecked\.sh' \
       "$skill_md sends a resumed run to the draft PR without next-unchecked.sh having exited 3, so a run with steps still to do can reach the PR"
+  fi
+fi
+report "$name"
+
+# 3. One criterion — the gate on the way out, and so one case. Resume's last sub-step already
+#    says a resumed run reaches the PR only when both scripts exit 3, but that is prose on one
+#    path *into* this step; the cycle loop walks into it too, and what #116 actually found was
+#    a worktree carrying a killed leaf's uncommitted transform. So the refusal has to live
+#    where the push is: the Draft PR step asks both questions itself — is the tree clean, is
+#    any step still only green — and stops before `git push` if either says otherwise.
+name="$skill_md's Draft PR step refuses to push or open the PR while git status --porcelain is non-empty or next-pending-refactor.sh finds a pending step"
+problems=()
+records="$(draft_pr_instructions)"
+if [[ -z "$records" ]]; then
+  # Fail closed, as above: an empty slice means `### 4. Draft PR` was renamed or emptied, and
+  # not one probe below was tested.
+  problems+=("$skill_md has no ### 4. Draft PR section to read — what guards the push could not be checked")
+else
+  # The gate comes before the push, or it is not a gate: a check made after the branch is
+  # already on the remote cannot refuse anything.
+  gate="$(ordinal 'git status --porcelain')"
+  push="$(ordinal 'git push')"
+  if [[ "$gate" -eq 0 ]]; then
+    problems+=("$skill_md's Draft PR step never checks git status --porcelain, so the transform a killed refactor leaf left uncommitted is pushed into the PR with no verifier having seen it")
+  elif [[ "$push" -eq 0 ]]; then
+    problems+=("$skill_md's Draft PR step no longer pushes the branch, so there is nothing for the check to guard")
+  elif [[ "$gate" -gt "$push" ]]; then
+    problems+=("$skill_md's Draft PR step checks the tree only after git push, so the dirty worktree is already on the remote by the time anything notices")
+  fi
+
+  # What that gate asks, and what it does with the answer. Both conditions belong to the one
+  # instruction: a run stopped here is stopped for the same reason either way — the PR would
+  # otherwise carry work no verifier has passed.
+  if reads 'checks the worktree is clean before the branch is pushed' 'git status --porcelain'; then
+    says 'next-pending-refactor\.sh' \
+      "$skill_md's Draft PR step checks only that the tree is clean, so a ledger whose last step is committed but still marked refactor-pending opens a PR with that step's refactor never verified"
+    says 'refuse|do not push|does not push|stop|bail|must not|never' \
+      "$skill_md's Draft PR step names the checks but never says they can stop it, so a non-empty status or a pending step is read as information and the push goes ahead anyway"
   fi
 fi
 report "$name"
