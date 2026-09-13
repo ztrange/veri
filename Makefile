@@ -22,14 +22,14 @@ TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 # travels in a second file because a pipeline's status is its last command's — tee's — and
 # PIPESTATUS is bash's, not the /bin/sh make runs recipes with.
 test:
-	@fail=0; out="$$(mktemp)"; code="$$(mktemp)"; \
-	trap 'rm -f "$$out" "$$code"' EXIT; \
+	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; \
+	trap 'rm -f "$$suite_out" "$$suite_status"' EXIT; \
 	for t in $(TESTS); do \
 	  name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$name"; \
-	  { "$$t"; echo $$? > "$$code"; } 2>&1 | tee "$$out"; \
-	  [ "$$(cat "$$code")" -eq 0 ] || fail=1; \
-	  tail -n 1 "$$out" | grep -Eq '^[0-9]+ passed, [0-9]+ failed$$' || { \
+	  { "$$t"; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
+	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
+	  tail -n 1 "$$suite_out" | grep -Eq '^[0-9]+ passed, [0-9]+ failed$$' || { \
 	    printf '%s: never reached its count line\n' "$$name"; fail=1; \
 	  }; \
 	done; \
