@@ -45,18 +45,16 @@ answer() { printf '%s\n' "$1"; exit 0; }
 #
 # The marker is looked for *anywhere* on the line, not only at its start, because that is
 # where issues actually write it: mid-sentence in the Notes, with the command in a backtick
-# span (#131). `*'Test command:'*` matches that line, `${line#*Test command:}` drops the
+# span (#131). `*'Test command:'*` matches that line, and `${line#*Test command:}` drops the
 # prose ahead of the marker as well as the marker itself — shortest match, so the first
-# marker on the line is the one that answers — and when what is left opens with a backtick
-# the command is that span alone: `#` drops the opening backtick and `%%` cuts at the
-# closing one, dropping the `. More prose.` that would otherwise be handed to a leaf as
-# part of the command.
+# marker on the line is the one that answers.
+#
+# Two steps then turn what is left into the command, and each is named so the rule reads as
+# the sentence it is: the command is what follows the marker, trimmed and unwrapped.
 #
 # `trimmed <string>` prints that string with its leading spaces and tabs removed. Bash 3.2
 # has no trim of its own, so it drops one blank at a time — the loop runs until neither
 # prefix removal changes the string, which is when the first real character is reached.
-# Naming it keeps the rule to its own sentence: the command is what follows the marker,
-# trimmed.
 trimmed() {
   local s="$1"
   while [ "${s# }" != "$s" ] || [ "${s#	}" != "$s" ]; do
@@ -66,17 +64,25 @@ trimmed() {
   printf '%s\n' "$s"
 }
 
+# `unwrapped <string>` prints the backtick span the string opens with, and the string
+# untouched when it opens with anything else — so a command written bare is still printed
+# verbatim. `#` drops the opening backtick and `%%` cuts at the closing one, dropping the
+# `. More prose.` that would otherwise be handed to a leaf as part of the command.
+unwrapped() {
+  case "$1" in
+    '`'*)
+      local s="${1#\`}"
+      printf '%s\n' "${s%%\`*}"
+      ;;
+    *) printf '%s\n' "$1" ;;
+  esac
+}
+
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
     case "$line" in
       *'Test command:'*)
-        cmd="$(trimmed "${line#*Test command:}")"
-        case "$cmd" in
-          '`'*)
-            cmd="${cmd#\`}"
-            cmd="${cmd%%\`*}"
-            ;;
-        esac
+        cmd="$(unwrapped "$(trimmed "${line#*Test command:}")")"
         if [ -n "$cmd" ]; then
           answer "$cmd"
         fi
