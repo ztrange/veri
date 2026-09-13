@@ -131,17 +131,6 @@ probe_rehomed_header() {
 # file: every suite `make test` would run, read for a subject line that names the docs
 # pipeline. Asks for development's roster itself because nothing else in the case reads it,
 # and appends to `$problems` the way report() reads it.
-# probe_widened_selection <where> <text> — the two halves of what each copy of the merge
-# gate's rule has to carry, asked of one piece of prose: which changes bring the docs
-# suites out (anything under docs/ except the page, which is the build's output rather than
-# one of its inputs), and which target runs them. Appends to `$problems` through says(),
-# which is what makes a failure name the file whose copy is stale.
-probe_widened_selection() {
-  says "$1" "$2" "the merge gate owes the docs suites for a change under docs/ except the page" \
-    'under [^ ]*docs/' 'except|but|other than|apart from' 'walkthrough\.html|the page'
-  says "$1" "$2" "which target it runs there — it never names docs-test" 'docs-test'
-}
-
 probe_dev_lane_clean() {
   local suite subj
   while IFS= read -r suite; do
@@ -151,6 +140,17 @@ probe_dev_lane_clean() {
       problems+=("'make test' runs $suite, whose subject is the docs pipeline: $(flat "$subj")")
     fi
   done <<< "$(roster test)"
+}
+
+# probe_widened_selection <where> <text> — the two halves of what each copy of the merge
+# gate's rule has to carry, asked of one piece of prose: which changes bring the docs
+# suites out (anything under docs/ except the page, which is the build's output rather than
+# one of its inputs), and which target runs them. Appends to `$problems` through says(),
+# which is what makes a failure name the file whose copy is stale.
+probe_widened_selection() {
+  says "$1" "$2" "the merge gate owes the docs suites for a change under docs/ except the page" \
+    'under [^ ]*docs/' 'except|but|other than|apart from' 'walkthrough\.html|the page'
+  says "$1" "$2" "which target it runs there — it never names docs-test" 'docs-test'
 }
 
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
