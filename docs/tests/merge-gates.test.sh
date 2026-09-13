@@ -154,6 +154,29 @@ out="$(cd "$d" && VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || c
 if [[ "$code" == 1 && "$out" == *"stale"* && "$out" == *"make docs && git add docs/walkthrough.html"* ]]; then pass=$((pass + 1)); else
   fail=$((fail + 1)); echo "FAIL - a stale page fails with the fix printed (exit $code)"; echo "$out" | tail -6 | sed 's/^/    | /'; fi
 
+# 10. #137: a stale page still fails the merge after the guards stopped judging it.
+#     build-guards.test.sh dropped page_is_current and page_checks_out so that a tag or a
+#     script commit no longer turns `make docs-test` red; the fact they held — a merge
+#     cannot land a stale page — is docs-fresh's alone now, and this is where it is
+#     watched. The branch edits docs/wt/style.css, which the build inlines into the page,
+#     so the staleness comes from a pipeline change rather than the hand edit case 9 uses.
+#
+#     `make` is stubbed to a no-op for the docs-test half. This is a real run, and the
+#     sandbox carries a copy of docs/tests/, so letting docs-test run would run this suite
+#     inside itself — and the nested copy would do it again, without bound. The stub takes
+#     that half out and leaves docs-fresh, the half under test, running for real (~2 s).
+d="$(repo)"
+stub="$(mktemp -d "$WORK/stub.XXXXXX")"
+cat > "$stub/make" <<'STUB'
+#!/usr/bin/env bash
+echo "stub make: $*"
+STUB
+chmod +x "$stub/make"
+( cd "$d" && touch_file docs/wt/style.css && git add -A && git commit -qm 'style: a pipeline change' )
+out="$(cd "$d" && env PATH="$stub:$PATH" VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || code=$?
+if [[ "$code" == 1 && "$out" == *"docs/wt/style.css"* && "$out" == *"stale"* && "$out" == *"make docs && git add docs/walkthrough.html"* ]]; then pass=$((pass + 1)); else
+  fail=$((fail + 1)); echo "FAIL - a docs/wt/ change that leaves the page stale still fails (exit $code)"; echo "$out" | tail -8 | sed 's/^/    | /'; fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
