@@ -31,14 +31,14 @@ not ask for.
    is a convention like any other — establish it under **Read the conventions out of the
    repository** at the top of this prompt, from the files that are already there.
    If the repository has no way to run one suite on its own, fall back to the test
-   command above and say so in your report. **Either answer is acceptable, and must be
-   reported truthfully**: a criterion that earlier work already satisfies yields a passing
-   test, and the pipeline has a dedicated path for exactly that. Do not bend the test to
-   force a failure.
+   command above and say so in your report.
+3. **Either answer is acceptable, and must be reported truthfully**: a criterion that
+   earlier work already satisfies yields a passing test, and the pipeline has a dedicated
+   path for exactly that. Do not bend the test to force a failure.
    If it PASSES, additionally confirm it is *capable* of failing — temporarily break the
    behaviour it pins, run the case and watch it go red, then restore the production code
    exactly and verify the restore with `git diff --exit-code` on the file you touched.
-3. Leave no change to any file other than the test file.
+4. Leave no change to any file other than the test file.
 
 ### Report (last lines of your output)
 
