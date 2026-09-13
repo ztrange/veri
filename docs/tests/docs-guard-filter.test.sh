@@ -319,12 +319,13 @@ report "$name"
 #    this Makefile has never heard of, the target runs it.
 #
 #    The fixture tree is the Makefile and that one suite — no build-walkthrough.py, no git
-#    history, none of the four real suites. Partly cost: those four are ~170 s together and
-#    this case asks nothing of any of them. Partly recursion, per the note at the top of
-#    this file: a copy carrying this suite would run this case again one level down. And
-#    partly the claim itself — over a tree where the named suites are absent, a recipe that
-#    still names them stops on the first missing file and the new suite never runs, while
-#    one that globs finds exactly what is there and nothing else.
+#    history, none of the suites docs/tests/ really holds. Partly cost: the real ones are
+#    minutes together and this case asks nothing of any of them. Partly recursion, per the
+#    note at the top of this file: a copy carrying this suite would run this case again one
+#    level down. And partly the claim itself — over a tree where the suites the old recipe
+#    named are absent, a recipe that still names them stops on the first missing file and
+#    the new suite never runs, while one that globs finds exactly what is there and nothing
+#    else.
 #
 #    Two probes. The marker the fixture writes is the whole claim: a target that exited 0
 #    without ever running it is precisely the failure, and an exit status alone cannot tell
