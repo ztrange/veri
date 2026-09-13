@@ -170,6 +170,13 @@ p code,li code,td code,dd code,.note code,.ann-note code,.tip code{
 .ann-note ul{margin:0 0 11px;padding-left:19px}
 .ann-note li{margin-bottom:5px;font-size:14.6px}
 .ann-note.quiet{color:var(--ink-faint);font-style:italic;font-size:14px}
+/* A chunkless run of source: the note column says the prose is owed, and has to read as
+   a gap rather than as commentary. The amber the page already spends on "careful here"
+   (--ec1, the gotcha note and exit code 1), washed behind the whole cell so the row is
+   findable while scrolling, which a mark inside the text would not be. */
+.ann-note.owed{background:var(--ec1-wash);font-size:14px;color:var(--ink-soft)}
+.ann-note.owed b{color:var(--ec1);font-family:"JetBrains Mono",monospace;font-size:12px;
+  letter-spacing:.06em;text-transform:uppercase}
 pre.src{margin:0;font-family:"JetBrains Mono",monospace;font-size:12.4px;
   line-height:1.72;color:var(--code-ink);tab-size:2}
 /* Hanging indent: the line number sits in a 6.5em gutter and the code hangs to its

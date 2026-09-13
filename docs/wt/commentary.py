@@ -139,6 +139,20 @@ ORIENTATION_NAV = [
 # — which is what the build has to do in a tree with no git, or none of that history.
 SOLVED_COUNT_HTML = ', <span class="solved-n">%d</span> issues so far'
 
+# What stands in the commentary column for a run of lines no chunk below claims. The
+# build used to refuse to emit a page at all in that case; since issue #125 it emits this
+# instead, so a script can land the day it is written and the prose can follow. It lives
+# here with the rest of the page's words rather than in the builder for the usual reason:
+# this is prose, and prose is this file's job.
+#
+# It says what is missing in the reader's terms, not the repository's. "The chunks do not
+# cover these lines" is a fact about docs/wt/commentary.py, which the reader has never
+# seen; what they are actually owed is the explanation, and the sentence says so.
+OWED_HTML = ('<p><b>commentary owed.</b> These lines landed after the '
+             'prose beside them was written. The source above is the file as it is today '
+             '&mdash; that much this page always promises; the explanation is what it '
+             'still owes you.</p>')
+
 # The first thing on the page after the masthead and the capability index: the argument,
 # before the explanation. INTRO_HTML below describes the design to a reader who has
 # already decided to read; someone arriving cold is owed the case for spending the time.
@@ -990,13 +1004,19 @@ UPKEEP_HTML = r'''
   time, so the code half cannot drift. The prose half lives in
   <code>docs/wt/commentary.py</code>, keyed by line range.
 </p>
-<p>Two rules are enforced by the build, and it fails rather than emitting a wrong page:</p>
+<p>
+  What the build guarantees is that half: the code. A mistake in the prose stops it; prose
+  that has not been written yet does not.
+</p>
 <ul>
-  <li><strong>Full coverage.</strong> Each script's commentary chunks must cover lines
-      1..N exactly once, contiguously. Add a line to a script and the build stops until a
-      chunk claims it &mdash; so commentary cannot silently detach from code.</li>
   <li><strong>Live references.</strong> Every <code>&#123;&#123;p-id|…&#125;&#125;</code> must name a real
       reference entry. A typo fails the build instead of producing a dead link.</li>
+  <li><strong>Debt, not failure.</strong> Each script's chunks claim lines 1..N in order,
+      each line once. A chunk claiming lines the file does not have still fails the build.
+      A line <em>no</em> chunk claims used to as well; now it renders as it always does,
+      flagged in the note column as prose this page still owes you, and the build says so
+      on stderr. A script lands the day it is written and the explanation follows &mdash;
+      what you never lose is the source.</li>
 </ul>
 <div class="tbl-wrap">
 <table>

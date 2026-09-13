@@ -1,6 +1,6 @@
 # Plan for #125 — Docs catch up on their own cadence: the build tolerates uncovered lines, a script PR owes no page, and a catch-up job files the docs debt into the docs pool
 
-- [ ] a script line no commentary chunk covers builds instead of failing: it renders plain with a visible "commentary owed" mark, and the build's stderr summary lists it as `owed: <script> L<a>–<b>`
+- [x] a script line no commentary chunk covers builds instead of failing: it renders plain with a visible "commentary owed" mark, and the build's stderr summary lists it as `owed: <script> L<a>–<b>`
 - [ ] a `{{p-id|…}}` reference that names no entry still fails the build — a typo is not debt
 - [ ] `docs/merge-gates.sh` owes `docs-fresh` for nothing under `skills/`, still owes both gates for a change under `docs/wt/`, `build-walkthrough.py` or `docs/tests/`, and its header, its tests and CLAUDE.md say so
 - [ ] `docs/docs-owed.sh` lists the committed page's debt — uncovered script lines, scripts whose blame is newer than the page's build, tags the index does not list — one item per line, and exits 3 with nothing on stdout when there is none

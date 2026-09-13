@@ -48,6 +48,10 @@ REF_LEFTOVER = re.compile(r"\{\{[a-z0-9-]+\|")
 PRIMER_BY_ID = {i["id"]: i for g in primer_mod.PRIMER for i in g["items"]}
 USED_BY = {}          # primer id -> ordered list of script files referencing it
 _problems = []
+# Runs of source no commentary chunk claims, `<script> L<a>–<b>`, one per gap. Kept apart
+# from _problems because it is the opposite kind of thing: a problem stops the build, this
+# is debt the build carries and reports (issue #125).
+_owed = []
 
 
 def _close(text, i):
@@ -167,6 +171,20 @@ def code_block(lines, start, origin="?", marks=None):
             % (start - 1, "\n".join(out)))
 
 
+def _owed_segment(fname, first, last):
+    """One run of source no chunk claims, as a segment — and a line in the owed summary.
+
+    The build used to refuse here, which made a line added to a script unlandable until
+    somebody wrote prose for it. The page's promise was never the prose, though: it is
+    that the source is the file as it is today, verbatim. So the lines still render, and
+    what is missing is said in the one column that can say it — and on stderr, because a
+    mark only a reader of the built page ever sees is not how whoever ran the build finds
+    out what the page is behind on.
+    """
+    _owed.append("%s L%d–%d" % (fname, first, last))
+    return (first, last, com.OWED_HTML, " owed")
+
+
 def render_script(spec):
     """One script: header, contract, then the full source beside its commentary."""
     fname = spec["file"]
@@ -177,25 +195,33 @@ def render_script(spec):
     src = path.read_text().splitlines()
     total = len(src)
 
-    # every line must be covered exactly once, in order, with no gaps
+    # Every line is claimed by exactly one chunk, in order — and the three ways that can
+    # break are no longer one thing. A chunk that starts LATE leaves lines nobody wrote
+    # prose for, which since #125 is debt this page carries rather than a build failure:
+    # the source renders as it always does, under a note saying what is owed. A chunk that
+    # starts EARLY claims lines another chunk already claimed, and one that runs past the
+    # end of the file claims lines that do not exist; both are still fatal, because
+    # neither describes a listing that could be rendered at all.
     cursor = 1
+    segments = []                      # (first line, last line, note html, note class)
     for ch in spec["chunks"]:
         a, b = ch["lines"]
-        if a != cursor:
+        if a > cursor:
+            segments.append(_owed_segment(fname, cursor, a - 1))
+        elif a < cursor:
             _problems.append("%s: chunk starts at L%d, expected L%d" % (fname, a, cursor))
         if b < a or b > total:
             _problems.append("%s: bad range L%d-%d (file has %d lines)" % (fname, a, b, total))
+        segments.append((a, b, refs(ch.get("html", ""), fname),
+                         " quiet" if ch.get("quiet") else ""))
         cursor = b + 1
-    if cursor != total + 1:
-        _problems.append("%s: chunks cover %d lines, file has %d" % (fname, cursor - 1, total))
+    if cursor <= total:
+        segments.append(_owed_segment(fname, cursor, total))
 
     marks = hunk_marks(META, fname)
 
     rows = []
-    for ch in spec["chunks"]:
-        a, b = ch["lines"]
-        note = refs(ch.get("html", ""), fname)
-        cls = " quiet" if ch.get("quiet") else ""
+    for a, b, note, cls in segments:
         rows.append(
             '<div class="ann-row">'
             '<div class="ann-code">%s</div>'
@@ -508,6 +534,14 @@ def main():
     if leftover:
         _problems.append("unexpanded references left in the page: %s"
                          % sorted(set(leftover)))
+
+    # Printed whether or not the build goes on to fail: the debt is a fact about the tree,
+    # not a consequence of the outcome, and a run that also hit a real problem still wants
+    # to say what prose the page is missing.
+    if _owed:
+        print("COMMENTARY OWED:", file=sys.stderr)
+        for o in _owed:
+            print("  owed: " + o, file=sys.stderr)
 
     if _problems:
         print("BUILD PROBLEMS:", file=sys.stderr)
