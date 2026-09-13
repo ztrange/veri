@@ -134,10 +134,14 @@ build_over() {
 # read as two different kinds of result when they are two runs of one kind. Each probe
 # now reads $out and $code immediately after its own call, so the reuse is the point.
 #
-# ONLY is the filter build-guards.test.sh reads (see `selected` there); empty is no
-# filter, and a suite that has no filter never looks at the variable.
+# The three inputs are named on their own line, as `report` names its one, because the run
+# itself is a single dense line and `"$1/$2"` there reads as two anonymous words rather than
+# a path into the copy. ONLY is the filter build-guards.test.sh reads (see `selected`
+# there); `${3-}` is empty when the caller passed nothing, and a suite that has no filter
+# never looks at the variable.
 run_in_copy() {
-  out="$(ONLY="${3-}" "$1/$2" 2>&1)" && code=0 || code=$?
+  local dir="$1" suite="$2" filter="${3-}"
+  out="$(ONLY="$filter" "$dir/$suite" 2>&1)" && code=0 || code=$?
 }
 
 # 1. A script gains lines nobody has written prose for, which is what a merged development
