@@ -7,4 +7,4 @@
 - [x] choosing a version paints the answer in the DOM: every hunk mark, commentary chip and new-script header carries class `lit` or `dim` by the tag-order rule, the index rows `index(since)` does not return are hidden, and at rest nothing is dimmed or hidden
 - [x] the paint is visible: the page's stylesheet gives `.dim` marks a faded rendering and `.lit` marks a highlighted one, so a reader who chose a version sees which hunks, chips and new-script headers are news, while a mark with neither class renders exactly as before
 - [x] the capability index carries a version `<select>` (newest first plus a none option) wired to `choose(tag)` and a "mark read up to vX" button wired to `markRead()`, both found by visible text or accessible label; the select reflects `since()` at load and after `hashchange`, and changing it updates the paint without a reload
-- [ ] `make docs` regenerates the page, and `make docs-check` and `make docs-test` pass
+- [x] `make docs` regenerates the page, and `make docs-check` and `make docs-test` pass

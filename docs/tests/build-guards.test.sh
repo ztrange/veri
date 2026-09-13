@@ -3864,6 +3864,45 @@ page_is_current() {
 #     what makes the lag visible from `make docs-test`.
 page_is_current "the committed page is the one this tree builds"
 
+# page_checks_out <name>
+# The second assertion about THIS repository, and the other half of what `make docs-check`
+# answers. page_is_current asks whether the committed bytes are the generator's fixpoint;
+# the checker asks the questions a fixpoint cannot answer, because it re-derives the page's
+# claims from the files on disk rather than from the build: every script quoted verbatim at
+# the right line numbers, every in-page link and every tooltip ref resolving, the capability
+# index listing exactly this repo's tags newest-first — and the TDD-loop figure still
+# agreeing with the two files it is NOT generated from, the phases build-verify-prompt.sh
+# accepts and SKILL.md's revise budget. Those last two are the gap: the build never opens
+# either file, so the page can be a perfect fixpoint and still tell a reader the budget is
+# 2 on the day SKILL.md moves to 3, with `make docs` regenerating byte-identical output
+# forever. checks_git asks the checker the same question about a sandbox, where the scripts
+# are copies and the history is one commit; only this asks it about the tree that ships.
+#
+# Read-only like the case above, and for the same reason: check-walkthrough.py builds into
+# memory and compares, so nothing under docs/ is written by an assertion judging it.
+# Failure prints the tail, where the checker's own FAIL lines are.
+page_checks_out() {
+  selected "$1" || return 0
+  local name="$1" code out
+  out="$( cd "$ROOT" && python3 docs/check-walkthrough.py 2>&1 )" && code=0 || code=$?
+  if [[ "$code" == 0 ]]; then
+    passed "$name"
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name (exit $code)"
+    echo "    want: check-walkthrough.py passes on the committed page — \`make docs-check\` green"
+    printf '%s\n' "$out" | sed 's/^/    | /' | tail -6
+  fi
+}
+
+# 35. and a rebuilt page is not yet a green `make docs-check`. The case above is the whole
+#     of what this suite says about the shipped page, and it says one thing: the bytes are
+#     the ones this tree builds. That leaves `make docs-check` half-unwatched from
+#     `make docs-test` — the checker's later phases judge the committed markup against
+#     SKILL.md and build-verify-prompt.sh, neither of which the generator reads, so no
+#     amount of rebuilding makes them agree and no case here notices when they stop.
+page_checks_out "the committed page passes the checker \`make docs-check\` runs"
+
 # A filter that matched nothing is the typo path, and the one place a silent green is
 # actively dangerous: every case skipped, nothing asserted, and `[[ $fail -eq 0 ]]` exits 0
 # — so a leaf that mistyped its ONLY reads "the guards pass" off a run that guarded
