@@ -189,6 +189,34 @@ probe_widened_selection() {
   says "$1" "$2" "which target it runs there — it never names docs-test" 'docs-test'
 }
 
+# probe_suite_home_prose — the lane's first half as a reader meets it: CLAUDE.md's Testing
+# idiom section, which is the section that tells an author writing a suite where to put it.
+# Reads that section by its heading — from `## Testing idiom` to the next `## ` — and asks
+# says() for the two facts, so it appends to `$problems` the way report() reads it.
+probe_suite_home_prose() {
+  local idiom
+  idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$ROOT/CLAUDE.md")"
+  says "CLAUDE.md's Testing idiom section" "$idiom" \
+    "a docs-pipeline suite lives under docs/tests/ and runs there by existing" \
+    'docs/tests/' 'glob|by existing'
+}
+
+# probe_gate_rule_prose — the lane's other half, asked of each of the three copies of the
+# merge gate's rule: CLAUDE.md's command-table row, the Makefile comment above the target,
+# and the gate script's own header. One probe over three pieces of prose because the fact
+# is one — each copy goes through probe_widened_selection, whose <where> argument is what
+# makes a failure name the copy that is stale. Each piece is read the way its own file
+# keeps it: a table row by its leading cell, a Makefile target's paragraph by the run of
+# comments above it, a script's rationale by everything above its first `set` line.
+probe_gate_rule_prose() {
+  probe_widened_selection "CLAUDE.md's 'make merge-gates' row" \
+    "$(grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md")"
+  probe_widened_selection "the Makefile comment above the merge-gates target" \
+    "$(comment_above "$ROOT/Makefile" '^merge-gates:')"
+  probe_widened_selection "docs/merge-gates.sh's header" \
+    "$(header "$ROOT/docs/merge-gates.sh")"
+}
+
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
 #    run by the docs target and by nothing in development's. Four probes.
 #
@@ -232,18 +260,8 @@ report "$name"
 name="CLAUDE.md and the Makefile / merge-gates.sh headers say where a docs suite lives and which gate runs it"
 problems=()
 
-gates_row="$(grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md")"
-idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$ROOT/CLAUDE.md")"
-make_comment="$(comment_above "$ROOT/Makefile" '^merge-gates:')"
-script_header="$(header "$ROOT/docs/merge-gates.sh")"
-
-says "CLAUDE.md's Testing idiom section" "$idiom" \
-  "a docs-pipeline suite lives under docs/tests/ and runs there by existing" \
-  'docs/tests/' 'glob|by existing'
-
-probe_widened_selection "CLAUDE.md's 'make merge-gates' row" "$gates_row"
-probe_widened_selection "the Makefile comment above the merge-gates target" "$make_comment"
-probe_widened_selection "docs/merge-gates.sh's header" "$script_header"
+probe_suite_home_prose
+probe_gate_rule_prose
 
 report "$name"
 
