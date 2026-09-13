@@ -155,10 +155,9 @@ report "$name"
 #
 #    `plan-red` is the shape this guards against: a well-formed leaf name — leading word, a
 #    phase after the dash — launched under a role nobody taught this script. Guessing is the
-#    failure mode worth refusing, because both wrong answers are silent: an actor defaulted
-#    to `developer` files a leaf's events under a role it never had, and an empty actor writes
-#    `"actor": ""` into a log whose whole purpose is telling the two halves of the pipeline
-#    apart. Neither is visible until someone reads the log and believes it.
+#    failure mode worth refusing; which two guesses those are, and why neither is visible
+#    until someone reads the log and believes it, is said beside the arm that refuses them
+#    (leaf-role.sh:36-41).
 name="leaf-role.sh fails closed on a leaf name whose leading word it does not recognise: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
 problems=()
 refusal_probe plan-red
