@@ -15,6 +15,8 @@
 #                               `verify-refactor` is `verifier`, phase `refactor`.
 #   a leading word it does    → a diagnostic naming this script and the name on stderr,
 #   not recognise               nothing on stdout, exit 2.
+#   a recognised leading word → the same refusal: diagnostic on stderr, nothing on stdout,
+#   with no phase after it      exit 2.
 #
 # Assignments rather than three bare values, in `VERI_*` spelling, because of where the
 # answer goes: the context event.sh reads is the environment (event.sh:17-19), so a caller
@@ -161,6 +163,23 @@ report "$name"
 name="leaf-role.sh fails closed on a leaf name whose leading word it does not recognise: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
 problems=()
 refusal_probe plan-red
+report "$name"
+
+# 3. The mapping fails closed on a name whose leading word it does know but which says no
+#    phase at all.
+#
+#    `develop` is that shape: the actor is readable, and there is nothing after it to read a
+#    phase out of. It is refused for the same reason case 2's unknown word is — the answer
+#    would be invented rather than read — but it is a distinct probe because the invention has
+#    a different source: not an arm nobody wrote, but the two expansions the split is made of,
+#    both of which return the WHOLE string when the name carries no `-`. So the actor word and
+#    the phase are read out of the same six letters, and `leaf-role.sh develop` answers
+#    `VERI_PHASE=develop` — a phase no run has, logged with exit 0 as if it were read off the
+#    name. The refusal owes the same three things as case 2's, and this probe asks for them
+#    the same way.
+name="leaf-role.sh fails closed on a leaf name with a recognised leading word but no phase after it: a diagnostic naming the script and the name on stderr, nothing on stdout, exit 2"
+problems=()
+refusal_probe develop
 report "$name"
 
 echo "----"
