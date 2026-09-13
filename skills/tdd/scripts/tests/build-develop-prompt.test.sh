@@ -333,6 +333,34 @@ prompt_says "$green" "does not put that one run immediately before the SUITE: re
 [[ -z "$problems" ]] \
   && ok || no "develop-green says to iterate on the target case's suite and run the full suite exactly once, immediately before the SUITE: report line (${problems#; })"
 
+# 13. what the refactor leaf is told to RUN after its transform (issue #144). Case 3 pins the
+#     bounds of the tidy-up; this case pins what checking it costs. Refactor runs the suite more
+#     than any other phase: `VERI_REFACTOR_BUDGET` defaults to 5, so one step can run the full
+#     suite six times back to back — 75 runs across 55 leaves, 84 of 358 leaf-minutes in the
+#     2026-09-13 overnight run, the biggest single item in it. So the transform is checked
+#     against the suites covering the files it touched, and the full run is spent once, at
+#     verify-refactor, on the settled result. That buys something real with something real, so
+#     the prompt has to state the trade rather than bury it: a break in a suite nobody touched
+#     now surfaces at verify-refactor — a REJECT the revise loop answers — instead of at the
+#     transform that caused it. Three faces of one criterion, so one case.
+#
+#     Built the way case 11 builds Red's, under the grep constraints reasoned about there. The
+#     prompt read is case 3's: same phase, same arguments, so there is one invocation and case 3
+#     owns the exit-0 check on it.
+problems=""
+prompt_says "$refactor" "never says to run the suites covering the touched files" \
+  -iE -e 'suites?[^.]{0,40}cover|cover[^.]{0,40}suites?'
+prompt_says "$refactor" "never says NOT to run the full suite" \
+  -iE -e "(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite"
+prompt_says "$refactor" "does not name verify-refactor as where the full suite runs" \
+  -iE -e 'verify-refactor[^.]{0,60}(full|whole|entire) suite|(full|whole|entire) suite[^.]{0,60}verify-refactor'
+# The trade-off itself, not just the saving: what a leaf is no longer told to check is a
+# regression it can no longer attribute, and a prompt that omits that reads as a free win.
+prompt_says "$refactor" "does not state that a break in an untouched suite surfaces there instead" \
+  -iE -e '(untouched|nobody touched|no one touched|nothing touched)[^.]{0,80}(surface|shows up|appears|caught)|(surface|shows up|appears|caught)[^.]{0,80}(untouched|nobody touched|no one touched)'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor says to run the suites covering the touched files rather than the full suite, names verify-refactor as where the full suite runs and states the untouched-suite trade-off (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

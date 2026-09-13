@@ -28,8 +28,14 @@ scope, however tempting.
 
 1. Pick **one** transformation that makes the code clearer — naming, duplication,
    structure — and apply it. Not a batch: one, so a break is attributable.
-2. Run the **full suite** with the test command above. It must stay green. Revert the
-   transform rather than leave a red suite behind.
+2. Run the suites covering the files you touched, not the full suite: they answer what one
+   transform could plausibly break, and answer it in a fraction of the time. How this
+   repository runs one suite is a convention like any other — establish it under **Read the
+   conventions out of the repository** at the top of this prompt, from the files that are
+   already there. They must stay green; revert the transform rather than leave a red suite
+   behind. The full suite runs at verify-refactor, on the settled result — the trade is
+   that a break in an untouched suite surfaces there, as a REJECT you answer by revising,
+   rather than at the transform that caused it.
 3. **No untested generality.** Generality is earned by triangulation — another test
    demanding it — never hand-written here. Do not add options, flags, parameters or
    abstraction no existing test requires.
