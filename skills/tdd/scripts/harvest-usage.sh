@@ -35,14 +35,12 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 # The eight numbers, as the `key=value` arguments event.sh takes, one per line.
 #
-# The record is found by scanning the WHOLE file for the last `{"type":"result"…}` line, not
-# by reading the tail: run-leaf.sh streams the leaf's events and then appends the extracted
-# result *text* after them (run-leaf.sh:48-50), so the record is never the last line of the
-# log it lives in. Lines that are not JSON objects — that appended text — are skipped, the
-# same way extract-result.sh skips them. Each of the two things this program does — find the
-# record, read the numbers out of it — is a function, so they are read one at a time and the
-# things the rest of the script talks about have those names in the code too. What is left at
-# the foot is one line composing them, which is the whole program said in one place.
+# Each of the two things this program does — find the record, read the numbers out of it — is
+# a function, so they are read one at a time and the things the rest of the script talks
+# about have those names in the code too. Each keeps the reason it is written the way it is
+# next to itself, so a reader meets the rationale at the code it explains rather than three
+# screens above it. What is left at the foot is one line composing them, which is the whole
+# program said in one place.
 #
 # Note the apostrophe nobody may write inside this block: it is a single-quoted shell string,
 # so a `record's` in a comment or a docstring ends the program there and python is handed the
@@ -56,6 +54,10 @@ import json, sys
 
 def closing_result(path):
     """The last {"type":"result", ...} record in the log at path, or None if it holds none."""
+    # The WHOLE file is scanned rather than its tail read: run-leaf.sh streams the leaf events
+    # and then appends the extracted result *text* after them (run-leaf.sh:48-50), so the
+    # record is never the last line of the log it lives in. Lines that are not JSON objects —
+    # that appended text — are skipped, the same way extract-result.sh skips them.
     record = None
     for line in open(path):
         s = line.strip()
