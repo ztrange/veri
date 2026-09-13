@@ -7,3 +7,4 @@
 - [x] `make merge-gates` on a branch changing anything under `docs/` except `docs/walkthrough.html` alone (e.g. only `docs/docs-owed.sh`) runs every docs suite plus docs-fresh, pinned in `docs/tests/merge-gates.test.sh`
 - [x] `make merge-gates` on a branch changing `docs/wt/` still fails on a stale page
 - [x] CLAUDE.md (Commands, Testing idiom) and the `Makefile` / `docs/merge-gates.sh` headers say where each suite lives and which gate runs it, including the widened merge-gates selection
+- [ ] `build-guards.test.sh` runs every case to its count line and a non-zero exit on failure over a tree whose scripts carry lines no commentary chunk covers (its git-budget case reads the build's stderr debt list as its numbers and dies on set -u, exit 0, no count line)
