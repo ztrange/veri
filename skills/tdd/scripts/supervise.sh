@@ -82,12 +82,14 @@ kill_tree() {
 }
 
 # Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets four globals, not
-# three: status/reason/rc, and `$t0` — the epoch second this attempt launched. The loop below
-# reads it for the hard timeout, and the `exit` mark at the foot of this script subtracts it
-# for the attempt's wall seconds, which is why none of the four is `local`: declaring `t0`
-# local to tidy it would leave that mark reading an unset name, and `set -u` would then kill
-# the supervisor on the last line of a run that had otherwise succeeded.
+# three: status/reason/rc, and `$secs` — how many wall seconds this attempt took, which the
+# `exit` mark at the foot of this script reports. None of the four is `local`: they are this
+# function's answers, and a run's last attempt is what every line below reads. The launch
+# stamp `$t0` is `local` precisely because it is not one of those answers — the watchdog loop
+# needs it for the hard timeout and the subtraction below turns it into `secs`, so nothing
+# outside here has to know that the duration is measured rather than reported.
 attempt_once() {
+  local t0
   : > "$log"
   rm -f "$rcfile"
 
@@ -124,6 +126,9 @@ attempt_once() {
   done
 
   wait "$pid" 2>/dev/null || true
+  # Stopped here rather than where the mark is written, so the count is the attempt's own
+  # wall time and not that plus whatever the retry loop and the status line cost after it.
+  secs=$(( $(now) - t0 ))
 }
 
 # The three assignments every mark below is written under, read once. A refusal leaves this
@@ -187,10 +192,10 @@ esac
 # same thing to stderr, so the two cannot drift apart. It carries the three things only this
 # script holds at this moment: the 0/1/2 of the exit-code contract — this supervisor's own
 # code, not the leaf's raw one — the watchdog's kill cause, and the wall seconds the last
-# attempt took, measured from the `$t0` attempt_once stamped at its launch. That duration is
-# the first anything in a run records, so no reader can recover it by subtracting two other
-# marks. `cause=` is passed only when there is one: what a run with no kill would put there
-# is a fiction, and an absent key reads as the absence it is.
+# attempt took, which is the `$secs` attempt_once measured for it. That duration is the first
+# anything in a run records, so no reader can recover it by subtracting two other marks.
+# `cause=` is passed only when there is one: what a run with no kill would put there is a
+# fiction, and an absent key reads as the absence it is.
 echo "supervise[$name]: $status${reason:+ — $reason}" >&2
 # The payload is assembled in an array rather than spliced in with an unquoted `${reason:+…}`:
 # the kill cause carries spaces ("no heartbeat for 3s (window 2s)"), so that expansion would
@@ -199,7 +204,7 @@ echo "supervise[$name]: $status${reason:+ — $reason}" >&2
 # an empty one expanded under `set -u` is an error on the bash 3.2 this suite still runs on.
 payload=(status="$ec")
 [[ -z "$reason" ]] || payload+=(cause="$reason")
-payload+=(secs="$(( $(now) - t0 ))")
+payload+=(secs="$secs")
 mark exit "${payload[@]}"
 cat "$log"
 # The completion file: this supervisor's OWN status code, on every path including
