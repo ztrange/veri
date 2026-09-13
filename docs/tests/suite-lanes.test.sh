@@ -110,6 +110,35 @@ says() {
   done
 }
 
+# probe_adr_in_docs_roster — the move's first half: the suite, at the path it has to end up
+# on, is among the ones `make docs-test` would run. Asks for the docs target's roster itself
+# the way probe_dev_lane_clean asks for development's, and appends to `$problems` the way
+# report() reads it.
+probe_adr_in_docs_roster() {
+  local docs_roster
+  docs_roster="$(roster docs-test)"
+  grep -qx "$ADR_SUITE" <<< "$docs_roster" ||
+    problems+=("want $ADR_SUITE among the suites 'make docs-test' runs; it runs: $(flat "$docs_roster")")
+}
+
+# probe_adr_runs_there — the roster probe's blind spot: a file the target runs and that dies
+# on its first line is still on the roster. So run the suite from its new home and read both
+# its exit code and its count line, for the reason case 4 of docs-guard-filter.test.sh
+# spells out — zero cases run and every case passing both exit 0. Returns non-zero when the
+# file is not there at all, which is also what gates the header probe: a suite that is
+# missing has no header to read.
+probe_adr_runs_there() {
+  local out code
+  if [[ ! -x "$ADR_SUITE_PATH" ]]; then
+    problems+=("want $ADR_SUITE to exist and be executable; it is not")
+    return 1
+  fi
+  out="$("$ADR_SUITE_PATH" 2>&1)" && code=0 || code=$?
+  { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
+    problems+=("want exit 0 and a green count over cases that ran from $ADR_SUITE; got $code: $(flat "$(tail -3 <<< "$out")")")
+  return 0
+}
+
 # probe_rehomed_header — the three things the moved suite's header has to say and not say,
 # in one place: no argument for the home it left, no mention of the path it no longer has,
 # and a word about the target that runs it now. Reads everything above the first `set` line,
@@ -175,21 +204,8 @@ probe_widened_selection() {
 name="the ADR suite runs under 'make docs-test', and no suite 'make test' runs is about the docs pipeline"
 problems=()
 
-docs_roster="$(roster docs-test)"
-
-grep -qx "$ADR_SUITE" <<< "$docs_roster" ||
-  problems+=("want $ADR_SUITE among the suites 'make docs-test' runs; it runs: $(flat "$docs_roster")")
-
-if [[ -x "$ADR_SUITE_PATH" ]]; then
-  adr_out="$("$ADR_SUITE_PATH" 2>&1)" && adr_code=0 || adr_code=$?
-  { [[ "$adr_code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$adr_out"; } ||
-    problems+=("want exit 0 and a green count over cases that ran from $ADR_SUITE; got $adr_code: $(flat "$(tail -3 <<< "$adr_out")")")
-
-  probe_rehomed_header
-else
-  problems+=("want $ADR_SUITE to exist and be executable; it is not")
-fi
-
+probe_adr_in_docs_roster
+probe_adr_runs_there && probe_rehomed_header
 probe_dev_lane_clean
 
 report "$name"
