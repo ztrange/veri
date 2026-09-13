@@ -23,12 +23,14 @@
 # `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
 # polling that file instead of by reading this script's stdout.
 #
-# Two kinds of event are appended to the run's event log, `.tdd/events.jsonl` (issue #107,
+# Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (issue #107,
 # ADR-0014): one `launch` — the leaf's name, the command behind it, and the attempt its name
-# encodes — and one `retry` per relaunch, carrying the cause the watchdog killed the previous
-# attempt for. `launch` is written once per supervision, not once per attempt: a second one
-# would read as a second leaf, and the relaunch is `retry`'s to report. A name leaf-role.sh
-# cannot read leaves no line at all, rather than one whose actor and attempt were invented.
+# encodes — one `retry` per relaunch, carrying the cause the watchdog killed the previous
+# attempt for, and one `exit` — the 0/1/2 status above, the kill cause when there is one, and
+# how many wall seconds the last attempt took. `launch` and `exit` are written once per
+# supervision, not once per attempt: a second one would read as a second leaf, and the
+# relaunch is `retry`'s to report. A name leaf-role.sh cannot read leaves no line at all,
+# rather than one whose actor and attempt were invented.
 #
 # Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
@@ -176,7 +178,24 @@ case "$status" in
   *)            ec=2; status="killed-stuck"; reason="${reason:-unknown}" ;;
 esac
 
+# The `exit` mark (issue #107, ADR-0014), beside the human-readable status line that says the
+# same thing to stderr, so the two cannot drift apart. It carries the three things only this
+# script holds at this moment: the 0/1/2 of the exit-code contract — this supervisor's own
+# code, not the leaf's raw one — the watchdog's kill cause, and the wall seconds the last
+# attempt took, measured from the `$t0` attempt_once stamped at its launch. That duration is
+# the first anything in a run records, so no reader can recover it by subtracting two other
+# marks. `cause=` is passed only when there is one: what a run with no kill would put there
+# is a fiction, and an absent key reads as the absence it is.
 echo "supervise[$name]: $status${reason:+ — $reason}" >&2
+# The payload is assembled in an array rather than spliced in with an unquoted `${reason:+…}`:
+# the kill cause carries spaces ("no heartbeat for 3s (window 2s)"), so that expansion would
+# word-split it into four arguments, and the three without an `=` would land in the JSON under
+# keys that are whole phrases. The array is never empty, so quoting it is enough on its own —
+# an empty one expanded under `set -u` is an error on the bash 3.2 this suite still runs on.
+payload=(status="$ec")
+[[ -z "$reason" ]] || payload+=(cause="$reason")
+payload+=(secs="$(( $(now) - t0 ))")
+mark exit "${payload[@]}"
 cat "$log"
 # The completion file: this supervisor's OWN status code, on every path including
 # killed-stuck (where the leaf's subshell never gets to write `.tdd/<name>.rc` at all).

@@ -25,11 +25,11 @@ stub="$(mktemp -d)"
 work="$(mktemp -d)"
 # Every temp dir this suite makes is removed here, on the one path that runs however the
 # script ends — including the Ctrl-C or the `make test` timeout that an `rm` at the foot of
-# a case never reaches. `$launch_work` and `$retry_work` are cases 12 and 13's and are made
-# 270 lines down, so they are named with `${…:-}`: unset until then, and `rm -rf ""` is a
-# silent no-op (POSIX: `-f` ignores an operand that does not exist), so an early exit cleans
-# the two that do exist.
-trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}"' EXIT
+# a case never reaches. `$launch_work`, `$retry_work` and `$exit_work` are cases 12, 13 and
+# 14's and are made 270 lines down, so they are named with `${…:-}`: unset until then, and
+# `rm -rf ""` is a silent no-op (POSIX: `-f` ignores an operand that does not exist), so an
+# early exit cleans the ones that do exist.
+trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}" "${exit_work:-}"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
@@ -392,6 +392,68 @@ retry_cause="$(event_field "$retry_work" retry cause)"
 { [[ "$retry_code" == 0 ]] \
   && [[ "$retry_cause" == "no heartbeat for "*" (window ${retry_window}s)" ]]; } && ok \
   || no "a relaunched killed-stuck leaf appends one retry event carrying the kill cause (code=$retry_code, cause=$retry_cause)"
+
+# 14. every supervision ends with one `exit` line in the same log, carrying the three things
+#     only the supervisor holds at that moment (issue #107, ADR-0014): the 0/1/2 status of
+#     the exit-code contract, the cause when the watchdog killed the leaf, and how many wall
+#     seconds the attempt took. The status is the supervisor's OWN code — the number case 9
+#     watches land in `.tdd/<name>.exit` — not the leaf's raw exit code, so the arms below
+#     run the same three leaves case 9 does and expect 0, 1 and 2 in the log for them.
+#     The wall seconds are the first duration anything in a run records at all (the issue's
+#     "today nothing in a run records when anything began"), so nothing else in the log can
+#     be subtracted to recover them.
+#
+#     Three arms, one per status, each in a directory of its own under one temp dir: the
+#     event log accumulates across a run, so two arms sharing a directory would read each
+#     other's `exit` line — and `event_field` demands exactly one, which is also what pins
+#     this mark as written once per supervision rather than once per poll or per attempt.
+#
+#     Only the killed-stuck arm asserts a cause, because it is the only arm that has one;
+#     what a run with no kill writes in its place the criterion leaves open ("the kill cause
+#     when there is one"), so this case does not invent an answer for it. The cause expected
+#     is the heartbeat window's, the wording case 13 already pins, with the elapsed-silence
+#     figure globbed over because the poll interval makes it a race.
+#
+#     The seconds are pinned as a count that exists and is plain digits on a fast leaf, and
+#     on the stuck arm as one that has reached the window the leaf was killed on: a silence
+#     of more than `$exit_window` seconds has to have elapsed before the kill (supervise.sh:110-115),
+#     so a hardcoded 0 or a field carrying something other than elapsed time fails there.
+
+exit_work="$(mktemp -d)"
+exit_window=2
+
+# exit_run <arm> <heartbeat> <leaf> — supervise one leaf in its own directory under
+# $exit_work, named for the arm. The leaf is called `develop-red` in every arm: leaf-role.sh
+# has to be able to read the name or nothing is logged at all (supervise.sh:140-148), and
+# nothing in this case is about which name it is. The hard timeout is well clear of every
+# arm, so the stuck arm dies on the heartbeat and its cause says so.
+exit_run() {
+  mkdir -p "$exit_work/$1"
+  ( cd "$exit_work/$1" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$2" VERI_TIMEOUT=30 \
+      VERI_POLL=0.2 "$SUP" develop-red "$stub/$3" ) >/dev/null 2>&1
+}
+
+exit_run ok    5              leaf-ok
+exit_run fail  5              leaf-fail
+exit_run stuck "$exit_window" leaf-hang
+
+# Each field read once, into a variable the assertion and the failure message share — cases
+# 9, 11, 12 and 13's shape.
+exit_ok_status="$(event_field    "$exit_work/ok"    exit status)"
+exit_ok_secs="$(event_field      "$exit_work/ok"    exit secs)"
+exit_fail_status="$(event_field  "$exit_work/fail"  exit status)"
+exit_stuck_status="$(event_field "$exit_work/stuck" exit status)"
+exit_stuck_cause="$(event_field  "$exit_work/stuck" exit cause)"
+exit_stuck_secs="$(event_field   "$exit_work/stuck" exit secs)"
+
+# The digit test on `$exit_stuck_secs` comes before the comparison and short-circuits it:
+# `(( ))` on a diagnostic like `<<0 exit lines>>` is an arithmetic syntax error, not a false.
+{ [[ "$exit_ok_status"    == 0 ]] && [[ "$exit_ok_secs" =~ ^[0-9]+$ ]] \
+  && [[ "$exit_fail_status"  == 1 ]] \
+  && [[ "$exit_stuck_status" == 2 ]] \
+  && [[ "$exit_stuck_cause"  == "no heartbeat for "*" (window ${exit_window}s)" ]] \
+  && [[ "$exit_stuck_secs" =~ ^[0-9]+$ ]] && (( exit_stuck_secs >= exit_window )); } && ok \
+  || no "a supervised leaf appends one exit event carrying the 0/1/2 status, the kill cause and the attempt's wall seconds (success status=$exit_ok_status want 0, secs=$exit_ok_secs; failure status=$exit_fail_status want 1; killed-stuck status=$exit_stuck_status want 2, cause=$exit_stuck_cause, secs=$exit_stuck_secs want >=$exit_window)"
 
 echo "----"
 echo "$pass passed, $fail failed"
