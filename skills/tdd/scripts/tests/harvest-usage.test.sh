@@ -4,13 +4,15 @@
 # Zero-dependency plain-shell asserts, same idiom as event.test.sh.
 #
 # The other writers mark what they can see as it happens; this one is the reader of what a
-# leaf already wrote down. `claude -p --output-format stream-json` closes every run with a
-# `{"type":"result", …}` record carrying the leaf's own accounting — how long it took, how
-# much of that was the API, how many turns, how many tokens of each of the four kinds, and
-# what it cost — and until now nothing in a run picked those numbers up (ADR-0014's context:
-# "Time and cost were already on disk in every leaf's closing usage record, but nothing
-# harvested them"). The harvester turns one leaf's record into one `usage` line in the run's
-# event log, so a reader of that log has the whole run's cost without opening six .log files.
+# leaf already wrote down — ADR-0014's context: "Time and cost were already on disk in every
+# leaf's closing usage record, but nothing harvested them".
+#
+# What that closing record holds, why the harvester takes the leaf's NAME rather than its log
+# path, and why the payload keys are the record's own and unrenamed are stated in the script's
+# own header (harvest-usage.sh:8-23), and deliberately not restated here. They were, until this
+# refactor, in both files word for word: one rationale in two copies is two things to keep
+# true, and the copy that goes stale is always the one in the file nobody opens when the design
+# changes.
 #
 # Contract under test (this step only — a finished leaf, with a record to read):
 #   harvest-usage.sh <leaf-name>  → reads `.tdd/<leaf-name>.log` relative to the directory
@@ -18,15 +20,6 @@
 #                                   already spells that same path), and exits 0.
 #   the event log                 → gains exactly one `usage` line, carrying the eight
 #                                   numbers of the closing `result` record.
-#
-# It takes the NAME, not the log path, for the reason leaf-role.sh's header already gives:
-# the writers only ever receive the name, because the name is also what the actor, phase and
-# attempt on the line are derived from, and a path would make the script spell the leaf twice.
-#
-# The payload keys are the record's own — `duration_ms`, `duration_api_ms`, `num_turns`,
-# `total_cost_usd` and the four `usage.*` counts, unnested. Renaming them would put a
-# translation table between the log and the stream that somebody has to keep true; leaving
-# them as they arrived means a reader who has seen one has seen the other.
 #
 # Run: scripts/tests/harvest-usage.test.sh
 set -uo pipefail
