@@ -112,8 +112,8 @@ draft_pr_instructions() {
 
 # ordinal <regex> — the 1-based position, within the global `records`, of the first
 # instruction matching <regex>, or 0 when none does. Position is what turns two independent
-# "is it there?" probes into the one question the criterion asks: which of the two scripts
-# the resumed conductor consults first.
+# "is it there?" probes into the one question a criterion about order asks: which of the two
+# the document does first.
 ordinal() {
   local n=0 line
   while IFS= read -r line; do
@@ -121,6 +121,31 @@ ordinal() {
     if [[ "$line" =~ $1 ]]; then printf '%s\n' "$n"; return 0; fi
   done <<< "$records"
   printf '0\n'
+}
+
+# precedes <first-re> <second-re> <no-first> <no-second> <out-of-order> — one problem when the
+# global `records` do not do <first-re> before <second-re>, phrased as whichever of the three
+# things went wrong: the first instruction is gone, the second is, or they have swapped.
+#
+# Two of the criteria below are this same claim — Resume asks `next-pending-refactor.sh`
+# before `next-unchecked.sh`, and the Draft PR step checks the tree before it pushes — and
+# both fail those same three ways, so the branching is spelled once here and only the three
+# sentences differ at the call.
+#
+# The two absences are reported before the order is, and as their own problems, because a
+# missing instruction has ordinal 0: compared as a position it reads as "comes first", which
+# would let a document that dropped the check altogether pass the ordering probe.
+precedes() {
+  local first second
+  first="$(ordinal "$1")"
+  second="$(ordinal "$2")"
+  if [[ "$first" -eq 0 ]]; then
+    problems+=("$3")
+  elif [[ "$second" -eq 0 ]]; then
+    problems+=("$4")
+  elif [[ "$first" -gt "$second" ]]; then
+    problems+=("$5")
+  fi
 }
 
 # reads <what it is> <anchor-regex>… — the first instruction of the global `records`
@@ -276,15 +301,10 @@ else
   # The order of the two asks. A resume that asks for an unchecked step first starts the
   # next step's red phase with the previous step's refactor still unverified — which is the
   # bug, one step later.
-  ask_pending="$(ordinal 'next-pending-refactor\.sh')"
-  ask_unchecked="$(ordinal 'next-unchecked\.sh')"
-  if [[ "$ask_pending" -eq 0 ]]; then
-    problems+=("$skill_md's Resume never asks next-pending-refactor.sh, so a run interrupted inside a step's refactor loop reads that step's tick as done and walks straight to the PR")
-  elif [[ "$ask_unchecked" -eq 0 ]]; then
-    problems+=("$skill_md's Resume no longer asks next-unchecked.sh, so a resumed run has no next step to continue from")
-  elif [[ "$ask_pending" -gt "$ask_unchecked" ]]; then
-    problems+=("$skill_md's Resume asks next-unchecked.sh before next-pending-refactor.sh, so it opens the next step's red phase while the previous step's refactor is still unverified")
-  fi
+  precedes 'next-pending-refactor\.sh' 'next-unchecked\.sh' \
+    "$skill_md's Resume never asks next-pending-refactor.sh, so a run interrupted inside a step's refactor loop reads that step's tick as done and walks straight to the PR" \
+    "$skill_md's Resume no longer asks next-unchecked.sh, so a resumed run has no next step to continue from" \
+    "$skill_md's Resume asks next-unchecked.sh before next-pending-refactor.sh, so it opens the next step's red phase while the previous step's refactor is still unverified"
 
   # The pending branch — what the resumed conductor does with a step that comes back green
   # but not tidied.
@@ -319,15 +339,10 @@ if [[ -z "$records" ]]; then
 else
   # The gate comes before the push, or it is not a gate: a check made after the branch is
   # already on the remote cannot refuse anything.
-  gate="$(ordinal 'git status --porcelain')"
-  push="$(ordinal 'git push')"
-  if [[ "$gate" -eq 0 ]]; then
-    problems+=("$skill_md's Draft PR step never checks git status --porcelain, so the transform a killed refactor leaf left uncommitted is pushed into the PR with no verifier having seen it")
-  elif [[ "$push" -eq 0 ]]; then
-    problems+=("$skill_md's Draft PR step no longer pushes the branch, so there is nothing for the check to guard")
-  elif [[ "$gate" -gt "$push" ]]; then
-    problems+=("$skill_md's Draft PR step checks the tree only after git push, so the dirty worktree is already on the remote by the time anything notices")
-  fi
+  precedes 'git status --porcelain' 'git push' \
+    "$skill_md's Draft PR step never checks git status --porcelain, so the transform a killed refactor leaf left uncommitted is pushed into the PR with no verifier having seen it" \
+    "$skill_md's Draft PR step no longer pushes the branch, so there is nothing for the check to guard" \
+    "$skill_md's Draft PR step checks the tree only after git push, so the dirty worktree is already on the remote by the time anything notices"
 
   # What that gate asks, and what it does with the answer. Both conditions belong to the one
   # instruction: a run stopped here is stopped for the same reason either way — the PR would
