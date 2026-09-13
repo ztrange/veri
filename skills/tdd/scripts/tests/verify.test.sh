@@ -29,11 +29,18 @@ chmod +x "$stubdir/claude"
 
 printf 'slugify must lowercase the title and join words with hyphens.' > "$work/spec.md"
 
+# verify_in <dir> <phase> <fake-out-text> — one verification of $work/spec.md against the stub
+# claude, run in <dir> with the stub's argv recorded at <dir>/argv. stdout is the verifier's
+# reason and the exit status is verify.sh's, so a caller reads whichever of the two it is about.
+# Both helpers below are this call, so the stub wiring and the fixture arguments — the spec, the
+# test path, the test id — are spelled once rather than once per helper.
+verify_in() {
+  ( cd "$1" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$3" \
+      "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py test_lowercases )
+}
+
 verify() {  # verify <fake-out-text> <phase> -> runs in $work, sets $out/$code
-  local text="$1" phase="$2"
-  out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$work/argv" \
-            FAKE_OUT_TEXT="$text" "$VERIFY" "$phase" "$work/spec.md" \
-            tests/test_slugify.py test_lowercases )"
+  out="$(verify_in "$work" "$2" "$1")"
   code=$?
 }
 
@@ -151,18 +158,16 @@ retry_lines="$(grep -c 'retry [0-9][0-9]*/[0-9][0-9]*' "$work/err")"
 verdict_work="$work/verdict"
 
 # verdict_run <arm> <phase> <fake-out-text> — one verification in its own directory under
-# $verdict_work, against the same stub claude the rest of this suite drives. ARGV_OUT goes
-# into the arm's directory too, since the stub writes it unconditionally and the shared
-# `$work/argv` is case 4's evidence.
+# $verdict_work. That directory is also where the stub records its argv, since verify_in writes
+# it beside the run and the shared `$work/argv` is case 4's evidence. Nothing here reads the
+# reason or the exit status: this case's whole subject is the line the run leaves in the log.
 verdict_run() {
-  # The arm's directory, named once: it is the one made, the one run in, and the one ARGV_OUT
-  # is written under — three uses of a single path rather than three expressions a reader has
-  # to compare. Absolute, so it still names the same directory after the `cd` below.
+  # The arm's directory, named once: it is the one made and the one run in — two uses of a
+  # single path rather than two expressions a reader has to compare. Absolute, since verify_in
+  # both cd's into it and writes ARGV_OUT under it.
   local dir="$verdict_work/$1"
   mkdir -p "$dir"
-  ( cd "$dir" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$dir/argv" \
-      FAKE_OUT_TEXT="$3" "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py test_lowercases \
-  ) >/dev/null 2>&1
+  verify_in "$dir" "$2" "$3" >/dev/null 2>&1
 }
 
 # verdict_field <arm> <key> — the value of <key> on the one `verdict` line of the event log
