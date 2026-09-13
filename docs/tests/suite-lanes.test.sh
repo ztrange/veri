@@ -17,6 +17,11 @@
 #   it, it passes from there, and its header no longer argues for the home it left. And no
 #   suite `make test` runs declares a subject in the docs pipeline.
 #
+#   And the prose a reader consults says the same lane the targets and the gate script
+#   enforce: CLAUDE.md and the `Makefile` / `docs/merge-gates.sh` headers say where a docs
+#   suite lives and which gate runs it, the merge gate's selection included. Which words
+#   carry those facts is the author's — each probe accepts any phrasing that carries one.
+#
 # Both rosters are read off `make -n`, which expands a target's list and runs nothing. The
 # claim is which suites a target would run, and running them to find out would cost
 # minutes — and for docs-test would recurse into this file.
@@ -78,6 +83,33 @@ roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 # this tree says what it is about.
 subject() { awk 'NR > 1 && /^#/ { print; exit }' "$ROOT/$1"; }
 
+# comment_above <path> <regex> — the run of `#` lines directly above the first line of
+# <path> matching <regex>, which is where a Makefile keeps a target's rationale. The run
+# resets on any non-comment line, so this returns that target's own paragraph and not
+# every comment in the file.
+comment_above() {
+  awk -v re="$2" '
+    $0 ~ re { for (i = 1; i <= n; i++) print buf[i]; exit }
+    /^#/ { buf[++n] = $0; next }
+    { n = 0 }
+  ' "$1"
+}
+
+# says <where> <text> <fact> <regex>... — one fact a piece of prose has to carry, written
+# as the regexes that would show it is there: all of them have to match the lowercased
+# text, and "<where> does not say <fact>" names it once if any does not. The protocol
+# docs-gap-adr.test.sh's probe() uses, over prose instead of an ADR: appends to `$problems`
+# the way report() reads it, and each regex accepts any wording that carries the fact, so
+# the case pins what the docs say and not how they are phrased.
+says() {
+  local where="$1" fact="$3" lc re
+  lc="$(printf '%s' "$2" | tr 'A-Z' 'a-z')"
+  shift 3
+  for re in "$@"; do
+    [[ "$lc" =~ $re ]] || { problems+=("$where does not say $fact"); return; }
+  done
+}
+
 # probe_rehomed_header — the three things the moved suite's header has to say and not say,
 # in one place: no argument for the home it left, no mention of the path it no longer has,
 # and a word about the target that runs it now. Reads everything above the first `set` line,
@@ -99,6 +131,17 @@ probe_rehomed_header() {
 # file: every suite `make test` would run, read for a subject line that names the docs
 # pipeline. Asks for development's roster itself because nothing else in the case reads it,
 # and appends to `$problems` the way report() reads it.
+# probe_widened_selection <where> <text> — the two halves of what each copy of the merge
+# gate's rule has to carry, asked of one piece of prose: which changes bring the docs
+# suites out (anything under docs/ except the page, which is the build's output rather than
+# one of its inputs), and which target runs them. Appends to `$problems` through says(),
+# which is what makes a failure name the file whose copy is stale.
+probe_widened_selection() {
+  says "$1" "$2" "the merge gate owes the docs suites for a change under docs/ except the page" \
+    'under [^ ]*docs/' 'except|but|other than|apart from' 'walkthrough\.html|the page'
+  says "$1" "$2" "which target it runs there — it never names docs-test" 'docs-test'
+}
+
 probe_dev_lane_clean() {
   local suite subj
   while IFS= read -r suite; do
@@ -148,6 +191,36 @@ else
 fi
 
 probe_dev_lane_clean
+
+report "$name"
+
+# 2. The same lane, as the three places a reader is sent to read it: CLAUDE.md's command
+#    table and Testing idiom section, the `Makefile` comment above the merge-gates target,
+#    and docs/merge-gates.sh's own header. One case because it is one fact wearing three
+#    copies — where a docs suite lives, and which gate runs it — and a copy that still
+#    describes the narrow selection the gate had before this issue sends the next reader
+#    to run the wrong thing, or to conclude the widened gate is a bug.
+#
+#    The merge gate's rule is the directory and not a list of its parts, so each probe asks
+#    for that shape — anything under docs/ but the page, which is output rather than input
+#    — and for the target it runs, rather than for the old enumeration of docs/wt/,
+#    build-walkthrough.py and docs/tests/. Regexes, not fixed strings: the facts are the
+#    claim, the wording is the author's.
+name="CLAUDE.md and the Makefile / merge-gates.sh headers say where a docs suite lives and which gate runs it"
+problems=()
+
+gates_row="$(grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md")"
+idiom="$(awk '/^## Testing idiom/ { f = 1; next } f && /^## / { exit } f' "$ROOT/CLAUDE.md")"
+make_comment="$(comment_above "$ROOT/Makefile" '^merge-gates:')"
+script_header="$(awk '/^set / { exit } { print }' "$ROOT/docs/merge-gates.sh")"
+
+says "CLAUDE.md's Testing idiom section" "$idiom" \
+  "a docs-pipeline suite lives under docs/tests/ and runs there by existing" \
+  'docs/tests/' 'glob|by existing'
+
+probe_widened_selection "CLAUDE.md's 'make merge-gates' row" "$gates_row"
+probe_widened_selection "the Makefile comment above the merge-gates target" "$make_comment"
+probe_widened_selection "docs/merge-gates.sh's header" "$script_header"
 
 report "$name"
 
