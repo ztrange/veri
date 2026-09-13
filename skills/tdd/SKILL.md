@@ -400,7 +400,7 @@ running in) and the number of plan steps, and noting each phase will be blind-ve
 ### 3. The cycle loop
 
 Loop until the ledger has no unchecked step. Each iteration runs **one full cycle** (Red →
-Green → Refactor) for the next step:
+Green → Refactor) for the next step; let **STEP** be that step's description:
 
 ```
 $S/next-unchecked.sh < .tdd/issue-<n>.md        # exit 3 ⇒ all steps done → go to step 4 (PR)
@@ -413,10 +413,10 @@ starts. Every mark below is spelled the same way, with the run's context riding 
 in the environment as *The scripts* sets out above, so one instruction carries the whole
 call.
 
-Let **STEP** be that step's description. Run the Red, Green, and Refactor phases below
-**against STEP's criterion** (use STEP's wording as the criterion the leaves pin, and as
-the `<substring>` for ticking). When a step's cycle completes (refactor verified), loop
-back to `next-unchecked.sh` for the following step. The phase sub-steps are:
+Run the Red, Green, and Refactor phases below **against STEP's criterion** (use STEP's
+wording as the criterion the leaves pin, and as the `<substring>` for ticking). When a
+step's cycle completes (refactor verified), loop back to `next-unchecked.sh` for the
+following step. The phase sub-steps are:
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
