@@ -273,36 +273,36 @@ fi
 #     with the leaf saying so in its report, since a fallback nobody can see is indistinguish-
 #     able from a leaf that ignored the instruction. Four faces of one criterion, so one case.
 #
-#     The prompt is folded to a single line first, for case 9's reason: it is markdown wrapped
-#     at ~85 columns, so any claim long enough to be worth probing for spans two lines, and
-#     grep matches within one. The prompt read is case 1's — same phase, same arguments, so
-#     there is one invocation and case 1 owns the exit-0 check on it.
+#     The prompt read is case 1's — same phase, same arguments, so there is one invocation and
+#     case 1 owns the exit-0 check on it.
 #     Two shapes these probes must avoid. A branch carries at most ONE `[^.]{0,N}`: BSD grep
 #     backtracks, and two bounded repeats either side of an alternation take minutes on a
 #     one-line input — a hang that would only appear once the prompt matches. And the first
 #     probe keys on `holds`/`contains` rather than any `suite … case` proximity, because
 #     sub-step 1 already says "the existing suite the case belongs in": what changes here is
 #     what the leaf is told to RUN, not that a suite is mentioned.
-red_flat="$(tr '\n' ' ' <<<"$red")"
-
+#
 # One claim, one miss — `narrates` above, pointed at a prompt instead of the narration, and
 # collapsing the accumulator for the same reason: probes cannot then drift into reporting
 # their misses in as many shapes, while the patterns stay at the call site, where the comment
 # above reasons about them. Which prompt is an argument, since case 12 below asks the same of
-# develop-green's. `-e` because a pattern is data, not a flag.
-prompt_says() {  # prompt_says <flattened prompt> <complaint> <grep argument…>
-  local flat="$1" complaint="$2"; shift 2
-  grep -q "$@" <<<"$flat" || problems="$problems; $complaint"
+# develop-green's. The fold to one line is the helper's job rather than each caller's, and is
+# there for case 9's reason: a prompt is markdown wrapped at ~85 columns, so any claim long
+# enough to be worth probing for spans two lines, and grep matches within one. `-e` because a
+# pattern is data, not a flag.
+prompt_says() {  # prompt_says <prompt> <complaint> <grep argument…>
+  local prompt="$1" complaint="$2"; shift 2
+  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" || problems="$problems; $complaint"
 }
 
 problems=""
-prompt_says "$red_flat" "never says to run the suite that holds the new case" \
+prompt_says "$red" "never says to run the suite that holds the new case" \
   -iE -e 'suite (that |which )?(holds|contains|holding|containing)[^.]{0,40}case'
-prompt_says "$red_flat" "never says NOT to run the full suite" \
+prompt_says "$red" "never says NOT to run the full suite" \
   -iE -e "(not|rather than|instead of|no need to|never|don't|do not)[^.]{0,40}(full|whole|entire) suite"
-prompt_says "$red_flat" "no fallback for a repository that cannot run one suite" \
+prompt_says "$red" "no fallback for a repository that cannot run one suite" \
   -iE -e '(cannot|can.t|no way to|unable to|has no way)[^.]{0,60}(suite|file)'
-prompt_says "$red_flat" "does not ask the leaf to say so in its report" \
+prompt_says "$red" "does not ask the leaf to say so in its report" \
   -iE -e '(say|says|saying|state|states|note|report) (so|it|this|that)[^.]{0,30}report'
 [[ -z "$problems" ]] \
   && ok || no "develop-red says to run the suite holding the new case, not the full suite, falling back to the test command and saying so in the report (${problems#; })"
@@ -317,21 +317,18 @@ prompt_says "$red_flat" "does not ask the leaf to say so in its report" \
 #     exactly once, immediately before the `SUITE:` line that reports it — the one place the
 #     guarantee is actually read. Three faces of one criterion, so one case.
 #
-#     Built the way case 11 builds Red's, under the two constraints reasoned about there: the
-#     prompt is folded to a single line before probing, and every alternation branch carries at
-#     most ONE `[^.]{0,N}`. The prompt read is case 2's: same phase, same arguments, so there is
-#     one invocation and case 2 owns the exit-0 check on it.
-green_flat="$(tr '\n' ' ' <<<"$green")"
-
+#     Built the way case 11 builds Red's, under the constraint reasoned about there: every
+#     alternation branch carries at most ONE `[^.]{0,N}`. The prompt read is case 2's: same
+#     phase, same arguments, so there is one invocation and case 2 owns the exit-0 check on it.
 problems=""
-prompt_says "$green_flat" "never says to iterate on the suite that holds the target case" \
+prompt_says "$green" "never says to iterate on the suite that holds the target case" \
   -iE -e 'iterat[^.]{0,60}suite|suite[^.]{0,60}iterat'
-prompt_says "$green_flat" "never says the full suite is run exactly once" \
+prompt_says "$green" "never says the full suite is run exactly once" \
   -iE -e '(full|whole|entire) suite[^.]{0,40}once|once[^.]{0,40}(full|whole|entire) suite'
 # Placed against the report line, not merely mentioned: `SUITE:` is the protocol token the
 # conductor greps for, so a prompt that says "once" without saying when leaves the leaf free
 # to spend it first and iterate afterwards.
-prompt_says "$green_flat" "does not put that one run immediately before the SUITE: report line" \
+prompt_says "$green" "does not put that one run immediately before the SUITE: report line" \
   -iE -e 'before[^.]{0,60}SUITE:'
 [[ -z "$problems" ]] \
   && ok || no "develop-green says to iterate on the target case's suite and run the full suite exactly once, immediately before the SUITE: report line (${problems#; })"
