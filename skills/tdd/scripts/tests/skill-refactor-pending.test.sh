@@ -227,6 +227,22 @@ denies() {
   if [[ "$instruction" =~ $1 ]]; then problems+=("$2"); fi
 }
 
+# reads_entry <script> — the reference-list entry *for* <script>, into `$instruction`: the
+# record that opens `- \`$S/<script>`, rather than any record that merely mentions it. That is
+# the same distinction `scripts_instructions` draws against the call sites, one level down —
+# within the list itself, a passing mention inside a neighbouring entry would otherwise be
+# read as the entry, and a script that never gained one would pass on someone else's bullet.
+#
+# All three entries of the case below are read this way, and all three would fail that way
+# without it, so the anchor is spelled once here and only the script's name differs at the
+# three calls — the same reason `says_exit_codes` is one function rather than two. The name's
+# dots are escaped on the way in, so the regex a call implies matches the script it named and
+# not every name of the same shape.
+reads_entry() {
+  local escaped="${1//./\\.}"
+  reads "documents $1 in the script reference list" "^- .\\\$s/$escaped"
+}
+
 # says_exit_codes <script> — the two codes a reference-list entry for either of the mark's
 # two new scripts must name: 0, the answer, and 3, the *nothing to do* code this repository
 # reserves for it. Both scripts answer with the same pair and both fail the same way without
@@ -416,16 +432,11 @@ name="$skill_md's script reference list documents tick-ledger.sh --refactor-pend
 problems=()
 if records_from scripts_instructions \
     "$skill_md has no ## The scripts section to read — what the reference list documents could not be checked"; then
-  # Every anchor below is the entry's own opening — `- \`$S/<script>` — rather than the bare
-  # script name, so a passing mention inside some other entry can never be read as the entry
-  # itself, which is the same distinction `scripts_instructions` draws against the call sites.
-
   # tick-ledger.sh — the writer. Its entry already documents the plain tick, so what the flag
   # owes the list is the second thing that one write does: the flag's own name, the mark it
   # appends (spelled, because that literal is what the reader matches on), and the code a
   # ledger with no matching step answers with either way.
-  if reads 'documents tick-ledger.sh in the script reference list' \
-      '^- .\$s/tick-ledger\.sh'; then
+  if reads_entry tick-ledger.sh; then
     says '--refactor-pending' \
       "$skill_md's entry for tick-ledger.sh never mentions --refactor-pending, so the flag the green commit must tick with is invisible to a session that reads the list to find out how to tick"
     says '⟂ refactor pending' \
@@ -436,8 +447,7 @@ if records_from scripts_instructions \
 
   # next-pending-refactor.sh — the reader, and the only one of the three whose answer is on
   # stdout, so its entry owes what that answer is as well as the two codes.
-  if reads 'documents next-pending-refactor.sh in the script reference list' \
-      '^- .\$s/next-pending-refactor\.sh'; then
+  if reads_entry next-pending-refactor.sh; then
     says 'prints?[^.]*step' \
       "$skill_md's entry for next-pending-refactor.sh never says it prints the pending step, so a resumed conductor is not told that stdout is the step to re-enter the refactor loop on"
     says_exit_codes 'next-pending-refactor.sh'
@@ -445,8 +455,7 @@ if records_from scripts_instructions \
 
   # clear-refactor-pending.sh — the eraser. Nothing on stdout, so what its entry owes instead
   # is which mark it takes off, and that it does so in the ledger itself.
-  if reads 'documents clear-refactor-pending.sh in the script reference list' \
-      '^- .\$s/clear-refactor-pending\.sh'; then
+  if reads_entry clear-refactor-pending.sh; then
     says '⟂ refactor pending' \
       "$skill_md's entry for clear-refactor-pending.sh never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
     says 'strip|remove|drop|clear|delete' \
