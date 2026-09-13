@@ -287,10 +287,14 @@ grep -q '"type":"result"' "$killed_work/.tdd/$killed.log" 2>/dev/null &&
   problems+=("setup: want supervise.sh's own lines in the event log, found none")
 
 # The harvest, with stderr kept rather than discarded — it is half of what this case pins.
-killed_err="$(mktemp)"
-( cd "$killed_work" && "$HARVEST" "$killed" ) >/dev/null 2>"$killed_err"
-killed_err_text="$(cat "$killed_err")"
-rm -f "$killed_err"
+#
+# `2>&1 >/dev/null`, in that order, the way issue-worktree.test.sh:119-121 captures a refusal:
+# stderr is pointed at where stdout currently goes (the command substitution's capture), then
+# stdout is sent to /dev/null. So the variable holds the diagnostic alone. The temp file this
+# replaces existed only to carry stderr the three lines from the run to the `cat` that read it
+# back, and needed a `rm` of its own because it was the one file in this suite the trap on
+# `$stub` and `$work` did not cover.
+killed_err_text="$( ( cd "$killed_work" && "$HARVEST" "$killed" ) 2>&1 >/dev/null )"
 
 # Nothing appended. Zero `usage` lines, not "no numbers in the one it wrote": a line of eight
 # zeros, or of eight empty strings, is exactly the reading of a killed leaf the criterion
