@@ -23,11 +23,16 @@ trap 'rm -rf "$WORK"' EXIT
 # repo — a copy of the docs pipeline, the scripts, SKILL.md and the Makefile, committed
 # once on `base`, with `work` checked out on top. The page is built once so docs-fresh
 # has a committed file to compare against.
+#
+# The top-level docs scripts come in by glob, not by name: every one of them is a file a
+# case may touch now that the rule is the directory (#137), and a roster here is the same
+# debt the Makefile's one-line-per-suite recipe was — it puts an edit between adding a
+# docs script and a case being able to name it. The page is excluded because it is built
+# below, not copied.
 repo() {
   local d; d="$(mktemp -d "$WORK/case.XXXXXX")"
   mkdir -p "$d/docs" "$d/skills/tdd"
-  cp "$ROOT/docs/build-walkthrough.py" "$ROOT/docs/check-walkthrough.py" "$ROOT/docs/merge-gates.sh" \
-     "$ROOT/docs/docs-owed.sh" "$d/docs/"
+  cp "$ROOT"/docs/*.py "$ROOT"/docs/*.sh "$d/docs/"
   cp -R "$ROOT/docs/wt" "$d/docs/wt"; rm -rf "$d/docs/wt/__pycache__"
   cp -R "$ROOT/docs/tests" "$d/docs/tests"
   cp -R "$ROOT/skills/tdd/scripts" "$d/skills/tdd/scripts"
