@@ -28,10 +28,10 @@
 # here would pass on both sides of the fix and pin nothing. What that copy is, and what it
 # deliberately leaves out, is `tree_owing_prose` below.
 #
-# It costs one copy of those paths, shared by both cases; two page builds over it, one per
-# case, each the probe that says the plant is really a plant; one run of docs-owed.test.sh;
-# and two filtered runs of build-guards.test.sh, one sandboxed build apiece. ~17 s measured,
-# nearly all of it those runs — which are the observation itself.
+# It costs one copy of those paths and one page build over it, both shared by the two cases —
+# that build's two streams are what says the plant is really a plant, see `build_over`; then
+# one run of docs-owed.test.sh and two filtered runs of build-guards.test.sh, one sandboxed
+# build apiece. ~15 s measured, nearly all of it those runs — which are the observation itself.
 #
 # Run: docs/tests/lane-insulation.test.sh
 set -uo pipefail
@@ -93,6 +93,24 @@ tree_owing_prose() {
   printf '%s' "$d"
 }
 
+# build_over <dir> — one page build over <dir>, its stdout left in $BUILT and its stderr in
+# $BUILD_ERR. Memoized on $BUILT for the same reason tree_owing_prose is memoized on its
+# directory: both cases probe the plant by asking the generator about that one tree, and the
+# two things they want are the two streams of a single build — the coverage debt it reports
+# on stderr, and the page it emits on stdout. Asked twice it would cost a second build to
+# learn the same two facts about the same bytes.
+#
+# --stdout, so no probe ever writes the docs/walkthrough.html a case then compares against.
+# The exit code is nobody's claim here: a build that died leaves an empty page and an empty
+# debt report, and both probes read that as the plant not being a plant, which is what a
+# broken fixture should say.
+BUILT="$WORK/built.html"
+BUILD_ERR="$WORK/built.err"
+build_over() {
+  [[ -f "$BUILT" ]] && return 0
+  ( cd "$1" && python3 docs/build-walkthrough.py --stdout >"$BUILT" 2>"$BUILD_ERR" )
+}
+
 # 1. A script gains lines nobody has written prose for, which is what a merged development
 #    PR leaves behind every time (#125: the build carries an uncovered line as debt instead
 #    of refusing to emit the page, and a change under skills/ owes no rebuild). The docs
@@ -111,9 +129,9 @@ d="$(tree_owing_prose)"
 # of the copy, rather than re-deriving the coverage rule here. Without it a renamed script
 # or a commentary chunk that grew to the end of the file would leave the case passing over
 # a tree that owes nothing, which is the tree it already passes over today.
-build_err="$( cd "$d" && python3 docs/build-walkthrough.py --stdout 2>&1 >/dev/null )"
-grep -Fq "owed: $SCRIPT_NAME" <<< "$build_err" ||
-  problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$build_err")")
+build_over "$d"
+grep -Fq "owed: $SCRIPT_NAME" "$BUILD_ERR" ||
+  problems+=("the case is vacuous: appending to $SCRIPT left no coverage gap for the build to report; it said: $(flat "$(cat "$BUILD_ERR")")")
 
 out="$("$d/$SUITE" 2>&1)" && code=0 || code=$?
 { [[ "$code" == 0 ]] && grep -Eq '[1-9][0-9]* passed, 0 failed' <<< "$out"; } ||
@@ -149,12 +167,11 @@ problems=()
 d="$(tree_owing_prose)"
 
 # The tree has to be one a case judging the committed page would FAIL over, or exit 3 and a
-# green run are the same observation and this pins nothing. Same shape as case 1's build
-# probe: ask the copy the question the removed case asked — is the committed page what this
-# tree builds — rather than re-deriving an answer here.
-built="$WORK/built.html"
-( cd "$d" && python3 docs/build-walkthrough.py --stdout >"$built" 2>/dev/null )
-cmp -s "$built" "$d/docs/walkthrough.html" &&
+# green run are the same observation and this pins nothing. The same build case 1 probed the
+# plant with, read off its other stream: ask the copy the question the removed case asked —
+# is the committed page what this tree builds — rather than re-deriving an answer here.
+build_over "$d"
+cmp -s "$BUILT" "$d/docs/walkthrough.html" &&
   problems+=("the case is vacuous: the committed page in the copy is already what that tree builds, so a case judging it would pass there anyway")
 
 # And the suite has to be able to run in the copy at all, or exit 3 could be a suite that
