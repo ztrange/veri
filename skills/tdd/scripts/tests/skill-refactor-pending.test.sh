@@ -28,6 +28,10 @@
 #   3. SKILL.md's Draft PR step itself refuses to push or open the PR while
 #      `git status --porcelain` is non-empty or `next-pending-refactor.sh` still finds a
 #      pending step.
+#   4. SKILL.md's script reference list — the section a session reads a script's contract
+#      out of before it calls it — has an entry for each of the three, saying what it
+#      prints (or, for the two that edit the ledger, the mark they write and strip) and
+#      which exit codes it can answer with.
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -124,6 +128,17 @@ draft_pr_instructions() {
   section_of '### 4. Draft PR' '^## |^### '
 }
 
+# scripts_instructions — the records of the `## The scripts (this skill's `scripts/`
+# directory)` section: the reference list, one bullet per script, that a session reads a
+# script's contract out of before it calls it. Scoped for the same reason the two readers
+# above are, and more sharply: every one of these scripts is *named* again further down, at
+# the point the procedure runs it, and a call site is not documentation — it says what to
+# run, never what comes back. An unscoped read would answer this criterion with those call
+# sites and pass a reference list that never gained an entry at all.
+scripts_instructions() {
+  section_of '## The scripts (this skill'\''s `scripts/` directory)' '^## '
+}
+
 # records_from <reader> <nothing-to-read fact> — what one of the readers above yields, into
 # the global `records`, and a zero return; or, when it yields nothing at all, one problem
 # naming <fact> and a non-zero return, so the case that follows is skipped rather than run
@@ -210,6 +225,19 @@ says() {
 }
 denies() {
   if [[ "$instruction" =~ $1 ]]; then problems+=("$2"); fi
+}
+
+# says_exit_codes <script> — the two codes a reference-list entry for either of the mark's
+# two new scripts must name: 0, the answer, and 3, the *nothing to do* code this repository
+# reserves for it. Both scripts answer with the same pair and both fail the same way without
+# it — the conductor branches on the code, so a code nobody wrote down is a branch the
+# session invents — which is why the pair is spelled once here and only the script's name
+# differs at the two calls. `exits?` rather than `exit`, because the list writes it both ways.
+says_exit_codes() {
+  says 'exits? 0' \
+    "$skill_md's entry for $1 never names exit 0, so nothing says what a call that did its work answers with, and the conductor is left inferring it from whether stdout came back empty"
+  says 'exits? 3' \
+    "$skill_md's entry for $1 never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
 }
 
 # miss <fact> — one problem of the ordered probe below: <fact>, then the instruction it was
@@ -370,6 +398,60 @@ if records_from draft_pr_instructions \
       "$skill_md's Draft PR step checks only that the tree is clean, so a ledger whose last step is committed but still marked refactor-pending opens a PR with that step's refactor never verified"
     says 'refuse|do not push|does not push|stop|bail|must not|never' \
       "$skill_md's Draft PR step names the checks but never says they can stop it, so a non-empty status or a pending step is read as information and the push goes ahead anyway"
+  fi
+fi
+report "$name"
+
+# 4. One criterion — the three scripts the mark's lifetime runs through are documented where
+#    a session goes to look a script up, and so one case. Cases 1–3 pin the *call sites*:
+#    which branch runs which script. A call site says what to run and never what comes back,
+#    and all three of these are branched on — `next-pending-refactor.sh` exiting 3 is what
+#    sends a resumed run to the PR, `clear-refactor-pending.sh` exiting 3 says the step it
+#    was told to clear is not in the ledger, `tick-ledger.sh` exiting 3 says the green commit
+#    ticked nothing. So an entry that omits a code is worse than a missing entry: a missing
+#    one is noticed, whereas a half-written one has the session invent a meaning for the code
+#    it meets. One case, because the three entries are one list and any fix to them is one
+#    edit to it.
+name="$skill_md's script reference list documents tick-ledger.sh --refactor-pending, next-pending-refactor.sh and clear-refactor-pending.sh, each with what it prints and its exit codes"
+problems=()
+if records_from scripts_instructions \
+    "$skill_md has no ## The scripts section to read — what the reference list documents could not be checked"; then
+  # Every anchor below is the entry's own opening — `- \`$S/<script>` — rather than the bare
+  # script name, so a passing mention inside some other entry can never be read as the entry
+  # itself, which is the same distinction `scripts_instructions` draws against the call sites.
+
+  # tick-ledger.sh — the writer. Its entry already documents the plain tick, so what the flag
+  # owes the list is the second thing that one write does: the flag's own name, the mark it
+  # appends (spelled, because that literal is what the reader matches on), and the code a
+  # ledger with no matching step answers with either way.
+  if reads 'documents tick-ledger.sh in the script reference list' \
+      '^- .\$s/tick-ledger\.sh'; then
+    says '--refactor-pending' \
+      "$skill_md's entry for tick-ledger.sh never mentions --refactor-pending, so the flag the green commit must tick with is invisible to a session that reads the list to find out how to tick"
+    says '⟂ refactor pending' \
+      "$skill_md's entry for tick-ledger.sh never spells the mark the flag appends, so nothing connects that write to the \`⟂ refactor pending\` string next-pending-refactor.sh matches, and either side can be reworded without the other noticing"
+    says 'exits? 3' \
+      "$skill_md's entry for tick-ledger.sh never names exit 3, so a green commit whose substring matched no unchecked step looks like it ticked, and the step is committed as green with no mark and no tick"
+  fi
+
+  # next-pending-refactor.sh — the reader, and the only one of the three whose answer is on
+  # stdout, so its entry owes what that answer is as well as the two codes.
+  if reads 'documents next-pending-refactor.sh in the script reference list' \
+      '^- .\$s/next-pending-refactor\.sh'; then
+    says 'prints?[^.]*step' \
+      "$skill_md's entry for next-pending-refactor.sh never says it prints the pending step, so a resumed conductor is not told that stdout is the step to re-enter the refactor loop on"
+    says_exit_codes 'next-pending-refactor.sh'
+  fi
+
+  # clear-refactor-pending.sh — the eraser. Nothing on stdout, so what its entry owes instead
+  # is which mark it takes off, and that it does so in the ledger itself.
+  if reads 'documents clear-refactor-pending.sh in the script reference list' \
+      '^- .\$s/clear-refactor-pending\.sh'; then
+    says '⟂ refactor pending' \
+      "$skill_md's entry for clear-refactor-pending.sh never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
+    says 'strip|remove|drop|clear|delete' \
+      "$skill_md's entry for clear-refactor-pending.sh never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
+    says_exit_codes 'clear-refactor-pending.sh'
   fi
 fi
 report "$name"
