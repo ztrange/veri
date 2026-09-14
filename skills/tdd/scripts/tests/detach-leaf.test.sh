@@ -77,6 +77,14 @@ HARNESS_PGID="$work/harness.pgid"      # subshell: the process group the harness
 TERM_SENT="$work/term.sent"            # subshell: the signal went out
 WHY_NO_TERM="$work/why-no-term"        # subshell: …or it did not, and this is what stopped it
 
+# leaf_body <exit-file> — what both children run: sleep past the moment the TERM lands, then
+# write a status into <exit-file>. One string rather than two, because the two children have to
+# differ in nothing but how they were launched: a sleep or a status that drifted between them
+# would leave the comparison at the end of this suite deciding something other than the
+# criterion. `printf '%s\n' "…"` rather than `echo`, so the `\n` the child is to print reaches
+# the harness file as two characters instead of being interpreted here.
+leaf_body() { printf '%s\n' "sleep $LINGER; printf '0\\n' > $1"; }
+
 # The harness: the shell whose process group is about to be signalled. It launches the two
 # children — the `nohup` control first, so the launcher's child is never the older of the
 # two — records how long the launcher took to hand control back, writes a marker saying both
@@ -92,8 +100,8 @@ harness="$work/harness.sh"
 cat > "$harness" <<H
 #!/usr/bin/env bash
 set -uo pipefail
-nohup bash -c "sleep $LINGER; printf '0\n' > $CONTROL_EXIT" > /dev/null 2>&1 &
-"$DETACH" bash -c "sleep $LINGER; printf '0\n' > $DETACHED_EXIT" > /dev/null 2>&1
+nohup bash -c "$(leaf_body "$CONTROL_EXIT")" > /dev/null 2>&1 &
+"$DETACH" bash -c "$(leaf_body "$DETACHED_EXIT")" > /dev/null 2>&1
 printf '%s\n' "\$SECONDS" > "$LAUNCH_SECONDS"
 printf '%s\n' launched > "$LAUNCHED_MARKER"
 sleep 60
