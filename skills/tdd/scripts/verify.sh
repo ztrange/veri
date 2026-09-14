@@ -64,6 +64,39 @@ mkdir -p .tdd
 promptfile=".tdd/$leaf_name.prompt"
 printf '%s' "$prompt" > "$promptfile"
 
+# The tree the verifier is handed, recorded before it launches (issue #172). The leaf's
+# sandbox denies four editing TOOLS (`--disallowedTools` above) and says nothing about Bash,
+# through which a leaf can write any file — so what a verifier did to the repo is a question
+# only a before/after comparison answers. The comparison is by CONTENT, which is what makes a
+# mutation the verifier reverted itself a non-event: verify-pin.md:17-22 tells it to break the
+# production code, run the test and restore, and that ends where it started.
+#
+# The snapshot is one tree object covering every tracked and untracked non-ignored path —
+# `git add -A` into a throwaway index, then `git write-tree`. GIT_INDEX_FILE keeps it off the
+# real index, and no ref is written (not `refs/stash`, see #169): only tree and blob objects,
+# which are unreachable garbage the next `git gc` collects. HEAD is read separately because a
+# commit can move it while leaving the working tree byte-identical.
+tree_snapshot() {  # prints the tree sha of the working tree, or fails where there is no repo
+  local dir tree
+  dir="$(mktemp -d)"
+  if GIT_INDEX_FILE="$dir/index" git add -A >/dev/null 2>&1; then
+    tree="$(GIT_INDEX_FILE="$dir/index" git write-tree 2>/dev/null)" || tree=""
+  else
+    tree=""
+  fi
+  rm -rf "$dir"
+  [[ -n "$tree" ]] || return 1
+  printf '%s' "$tree"
+}
+
+# An empty $tree_before is "no repo here to guard" — the tests drive verify.sh in a bare
+# temporary directory — and switches the comparison below off rather than failing the run.
+# `git rev-parse HEAD` fails the same way on a repo with no commits yet; an empty
+# $head_before then compares unequal to the sha a verifier commit would create, which is the
+# reading that reports it.
+tree_before="$(tree_snapshot)" || tree_before=""
+head_before="$(git rev-parse HEAD 2>/dev/null)" || head_before=""
+
 set +e
 out="$("$HERE/supervise.sh" "$leaf_name" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
 scode=$?
@@ -74,6 +107,24 @@ set -e
 if [[ "$scode" -eq 2 ]]; then
   echo "verifier leaf killed-stuck — no verdict rendered (see .tdd/$leaf_name.log)"
   exit 2
+fi
+
+# Compare the tree back (issue #172). A verifier that left anything behind is a SYSTEM failure
+# — exit 2 — whatever it decided, and its reason is not printed: the conductor's next move
+# after a PASS is `git add -A && git commit` (SKILL.md:526), so a verdict accepted here would
+# commit the verifier's edit as the developer's work, and an edit made before the leaf ran the
+# suite was judged along with the code it was judging. stdout carries what changed instead,
+# because the paths are what a human needs to see to know what the leaf touched.
+if [[ -n "$tree_before" ]]; then
+  tree_after="$(tree_snapshot)" || tree_after=""
+  head_after="$(git rev-parse HEAD 2>/dev/null)" || head_after=""
+  changed="$(git diff-tree -r --name-only --no-commit-id "$tree_before" "$tree_after" 2>/dev/null)" || changed=""
+  [[ "$head_before" == "$head_after" ]] || changed="${changed:+$changed$'\n'}HEAD"
+  if [[ -n "$changed" ]]; then
+    echo "verifier leaf modified the repository — verdict not accepted (see .tdd/$leaf_name.log); changed:"
+    printf '%s\n' "$changed"
+    exit 2
+  fi
 fi
 
 # The verdict is the parse result of the captured output, not the leaf's process status.
