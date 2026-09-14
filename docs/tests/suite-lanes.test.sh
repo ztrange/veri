@@ -107,6 +107,12 @@ comment_above() {
 # cell, the script's rationale by everything above its first `set` line. Named once for the
 # reason ADR_SUITE is — case 2 asks them what the rule now says and case 3 what it no longer
 # says, and two probes locating the row differently would quietly be judging different prose.
+#
+# The `where` each one is reported under travels with it, for the other half of that reason:
+# both cases hand it to a probe that puts it in front of the problem line, so two spellings
+# of the same copy would read in the output as two different files being stale.
+GATE_ROW_WHERE="CLAUDE.md's 'make merge-gates' row"
+GATE_HEADER_WHERE="docs/merge-gates.sh's header"
 gate_row() { grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md"; }
 gate_header() { header "$ROOT/docs/merge-gates.sh"; }
 
@@ -246,10 +252,10 @@ probe_suite_home_prose() {
 # keeps it: a table row by its leading cell, a Makefile target's paragraph by the run of
 # comments above it, a script's rationale by everything above its first `set` line.
 probe_gate_rule_prose() {
-  probe_widened_selection "CLAUDE.md's 'make merge-gates' row" "$(gate_row)"
+  probe_widened_selection "$GATE_ROW_WHERE" "$(gate_row)"
   probe_widened_selection "the Makefile comment above the merge-gates target" \
     "$(comment_above "$ROOT/Makefile" '^merge-gates:')"
-  probe_widened_selection "docs/merge-gates.sh's header" "$(gate_header)"
+  probe_widened_selection "$GATE_HEADER_WHERE" "$(gate_header)"
 }
 
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
@@ -300,8 +306,8 @@ report "$name"
 name="CLAUDE.md's row and merge-gates.sh's header no longer name a Makefile change as owing docs-fresh"
 problems=()
 
-probe_no_stale_trigger "CLAUDE.md's 'make merge-gates' row" "$(gate_row)"
-probe_no_stale_trigger "docs/merge-gates.sh's header" "$(gate_header)"
+probe_no_stale_trigger "$GATE_ROW_WHERE" "$(gate_row)"
+probe_no_stale_trigger "$GATE_HEADER_WHERE" "$(gate_header)"
 
 report "$name"
 
