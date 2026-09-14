@@ -152,6 +152,69 @@ stops_probe "CANDIDATES: none" "$nothing_left"
 rm -f "$cosmetic_only" "$nothing_left"
 report "$name"
 
+# 3. a report the script cannot read is a system failure, not a decision: exit 2, "no answer
+#    could be obtained" in the four-code convention, a diagnostic on stderr and nothing at
+#    all on stdout. The stdout half is the load-bearing one — the conductor mirrors that
+#    stream into its `### 🛠️ Refactor` comment as the structural leftovers, so a malformed
+#    report that printed even one line would seed the comment with a candidate nothing
+#    classed. And exit 2 rather than 3 is what keeps a leaf that forgot its classes from
+#    reading as "nothing worth doing": 3 would end the loop quietly, 2 makes the conductor
+#    narrate the malformed report before it goes to verify-refactor.
+#
+#    Three ways to hand the script an unreadable report, one criterion, so they are one
+#    case — a candidate line with no class, one with a class the two-class vocabulary does
+#    not have, and a report carrying no `CANDIDATES:` line at all, which is a leaf that
+#    dropped the section develop-refactor.md's *Report* asks for. `problems` says which
+#    fixture broke.
+#
+#    Whole reports again, written to files rather than through command substitution, both
+#    for case 1's reasons.
+name="a malformed report exits 2 with a diagnostic on stderr and nothing on stdout"
+problems=()
+
+no_class="$(mktemp)"
+cat > "$no_class" <<'REPORT'
+RESULT: applied "extract the two mktemp calls into one helper", suite green
+FLAGS: none
+CANDIDATES: fold verify.sh's two prompt paths into one
+REPORT
+
+unknown_class="$(mktemp)"
+cat > "$unknown_class" <<'REPORT'
+RESULT: applied "extract the two mktemp calls into one helper", suite green
+FLAGS: none
+CANDIDATES: cosmic | reflow the header comment to ninety columns
+REPORT
+
+no_candidates="$(mktemp)"
+cat > "$no_candidates" <<'REPORT'
+RESULT: applied "inline the single-use $phase_label variable", suite green
+FLAGS: none
+REPORT
+
+# malformed_probe <label> <fixture> — run the script on one unreadable report and collect
+# its problems. The two streams go to their own files: the case is about which stream
+# carries what, so merging them would hide a diagnostic printed onto stdout.
+malformed_probe() {
+  local label="$1" fixture="$2" out err code
+  out="$(mktemp)" err="$(mktemp)"
+  "$TRIAGE" <"$fixture" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("$label: want exit 2 — no answer could be obtained — got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("$label: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ -s "$err" ]] ||
+    problems+=("$label: want a diagnostic on stderr, got nothing")
+  rm -f "$out" "$err"
+}
+
+malformed_probe "a candidate line with no class" "$no_class"
+malformed_probe "a candidate line with an unknown class" "$unknown_class"
+malformed_probe "a report with no CANDIDATES: line" "$no_candidates"
+
+rm -f "$no_class" "$unknown_class" "$no_candidates"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
