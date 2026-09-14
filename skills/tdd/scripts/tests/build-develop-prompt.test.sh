@@ -578,11 +578,21 @@ prompt_says "$refactor" "does not say to report nothing left to tidy when only c
 #     `^CANDIDATES:` line carries no `|` at all, and `structural` and `cosmetic` occur only in
 #     case 16's definitions and case 17's sub-steps, none of them on a line starting with the
 #     token.
+#
+#     The probe is the same shape for either class, so it is written once and each caller names
+#     only its own class — case 16's `defines_class` reasoning, applied to the one anchored
+#     pattern this case owns: spelled out per class, the anchor, the `.*`, the `[^|]{0,40}` gap
+#     and the `\|` appear twice, and a bound edited on one line and not the other is a drift no
+#     diff makes loud.
+offers_class() {  # offers_class <class word>
+  local class="$1"
+  grep -qE "^CANDIDATES:.*$class[^|]{0,40}\|" <<<"$refactor" \
+    || problems="$problems; the CANDIDATES: line does not offer $class as the class"
+}
+
 problems=""
-grep -qE '^CANDIDATES:.*structural[^|]{0,40}\|' <<<"$refactor" \
-  || problems="$problems; the CANDIDATES: line does not offer structural as the class"
-grep -qE '^CANDIDATES:.*cosmetic[^|]{0,40}\|' <<<"$refactor" \
-  || problems="$problems; the CANDIDATES: line does not offer cosmetic as the class"
+offers_class structural
+offers_class cosmetic
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor requires every CANDIDATES: line to carry its class, separated from the transform (${problems#; })"
 
