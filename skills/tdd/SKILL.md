@@ -213,14 +213,18 @@ leaf** (red, green, refactor, revise) is launched straight through the superviso
 
 ```
 rm -f .tdd/<name>.exit
-$S/detach-leaf.sh $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err
+VERI_TEST_CMD='<test-cmd>' $S/detach-leaf.sh $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err
 $S/wait-leaf.sh <name>
 ```
 
 The `rm -f` first, because the completion file is named for the **phase**, not the cycle: a
 `.tdd/develop-red.exit` left by the previous step's red leaf would end the next wait
 instantly, with the previous cycle's code. Then the launch, **detached** — through
-`detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own**.
+`detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own** —
+carrying `VERI_TEST_CMD`: the run's test command, in the leaf's **environment** rather than
+its prompt, so the verifier stays blind. It is a prefix on the launch line and not a one-off
+`export` because every Bash call you make is a fresh shell, so nothing set in preflight
+survives to a launch three steps later.
 Then `wait-leaf.sh` in the **foreground**, which blocks until the leaf finishes and exits
 with its code. On **exit 3** the leaf is still running and you have only spent the wait's
 budget: **call `wait-leaf.sh` again**, as many times as it takes. Only a 0, 1 or 2 is an
@@ -456,7 +460,7 @@ following step. The phase sub-steps are:
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' > .tdd/develop-red.prompt
    rm -f .tdd/develop-red.exit
-   $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
+   VERI_TEST_CMD='<test-cmd>' $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
    ```
    You supply only those variables; the instructions are the template's, identical every
@@ -510,7 +514,7 @@ following step. The phase sub-steps are:
    ```
    $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <test-path> '<target-test-id>' > .tdd/develop-green.prompt
    rm -f .tdd/develop-green.exit
-   $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
+   VERI_TEST_CMD='<test-cmd>' $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
    ```
    The test path and target test id are the ones Red's report gave you. The leaf's report is
@@ -555,7 +559,7 @@ following step. The phase sub-steps are:
    touched="$(git diff --name-only HEAD~1 HEAD | paste -sd, -)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit
-   $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
+   VERI_TEST_CMD='<test-cmd>' $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
    ```
    The `rm -f` matters most here: every iteration of this loop reuses the name
@@ -722,7 +726,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    ```
    $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/revise-<phase>-<k>.prompt
    rm -f .tdd/revise-<phase>-<k>.exit
-   $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
+   VERI_TEST_CMD='<test-cmd>' $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
    ```
    The reason travels as a **file**, not as prose you paste in — that is why the verify step
