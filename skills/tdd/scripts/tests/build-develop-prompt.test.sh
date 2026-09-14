@@ -467,14 +467,13 @@ every_phase forbids_stash \
 #     #144, at least 22 of the 127 `refactor:` commits only re-comment, re-cite or reflow, and
 #     43 of 43 measured steps stopped on `VERI_REFACTOR_BUDGET` rather than on a leaf running
 #     dry. Raising that budget from 2 to 5 changed how long the loop runs, not why it stops.
-#     The bar is a definition: a **structural** transform changes what the code or prose is —
-#     it removes duplication, extracts or inlines, deletes dead code, renames a misleading
-#     identifier, narrows a leaking scope, moves logic where it belongs — while a **cosmetic**
-#     one rewords, re-cites, reflows or re-comments and leaves all of that alone. The sorting
-#     rule is what the transform CHANGES, not which file it sits in, which is why each class
-#     probe demands the class word beside its effects rather than merely somewhere in the
-#     prompt. Three faces of one criterion — both classes named-and-defined, and cosmetic
-#     pinned by what it leaves untouched — so one case.
+#     The bar is a definition, and the template's *The two classes of candidate* section is the
+#     one place it is written down — a second copy here is one more thing to keep in step with
+#     the prompt these probes read. What it turns on is the sorting rule: what the transform
+#     CHANGES, not which file it sits in, which is why each class probe demands the class word
+#     beside its effects rather than merely somewhere in the prompt. Three faces of one
+#     criterion — both classes named-and-defined, and cosmetic pinned by what it leaves
+#     untouched — so one case.
 #
 #     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
 #     case 3 owns the exit-0 check on it. Built with `prompt_says` for case 11's reasons, and
