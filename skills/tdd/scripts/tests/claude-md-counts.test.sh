@@ -88,6 +88,21 @@ unreadable() {
   problems+=("$1 — $2 could not be read")
 }
 
+# readable <text> <missing> <subject> — true when a passage probe came back with prose to
+# check. `flatten` turns line breaks into spaces, so a passage that is gone arrives here as
+# spaces rather than as the empty string, and `${1// /}` — every space deleted — is what
+# tells the two apart; the test is written once here rather than inline at each guard,
+# because spelled out it reads as a parameter expansion and not as a question about the
+# document. An unreadable passage records its own problem and returns non-zero, so the
+# caller skips the checks it can no longer make instead of running them against nothing.
+# Same shape as skill-suite-runs.test.sh's `need_text`: the guard reads forwards, "if the
+# passage is readable, check what it claims".
+readable() {
+  if [[ -n "${1// /}" ]]; then return 0; fi
+  unreadable "$2" "$3"
+  return 1
+}
+
 # nonempty <what> <n> <glob> — fail closed on an inventory of nothing. A glob that matched
 # no file means the tree moved out from under this suite, and zero must not quietly become
 # the number every claim is checked against. One helper rather than the sentence once per
@@ -213,15 +228,11 @@ nonempty suite "$n_suites" "$suites_glob"
 intro="$(preamble | flatten)"
 idiom="$(section "$section_name" | flatten)"
 
-if [[ -z "${intro// /}" ]]; then
-  unreadable "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"
-else
+if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
   check "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts"
 fi
 
-if [[ -z "${idiom// /}" ]]; then
-  unreadable "$claude_md has no '## $section_name' section" "the suite and script counts it states"
-else
+if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
   check "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites"
   check "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts"
 fi
