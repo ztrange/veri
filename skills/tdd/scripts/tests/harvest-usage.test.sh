@@ -226,8 +226,20 @@ launch_leaf "$stub" "$work" "$leaf"
 has_result_record "$work" "$leaf" ||
   problems+=("setup: want the closing result record in .tdd/$leaf.log, not found")
 
-# The harvest itself, run in the worktree the way every other writer is.
-( cd "$work" && "$HARVEST" "$leaf" ) >/dev/null 2>&1
+# The harvest itself, run in the worktree the way every other writer is — but not in the one
+# the leaf ran in. Since #163 supervise.sh harvests every leaf it finishes, so `$work`'s event
+# log already holds a `usage` line before this case calls anything, and a second harvest there
+# would read as the one thing the probe below refuses to read past: two of them. What this case
+# is about is the harvester itself, called directly, so it gets a directory whose only `usage`
+# line is the one it writes.
+#
+# The LOG is copied rather than regenerated, so the file under test is still the one
+# run-leaf.sh really assembled — launch_leaf's header gives the reason that matters — and only
+# the event log beside it is fresh.
+direct_work="$work/direct"
+mkdir -p "$direct_work/.tdd"
+cp "$work/.tdd/$leaf.log" "$direct_work/.tdd/$leaf.log"
+( cd "$direct_work" && "$HARVEST" "$leaf" ) >/dev/null 2>&1
 harvest_code=$?
 [[ "$harvest_code" == 0 ]] ||
   problems+=("want exit 0 from the harvester, got $harvest_code")
@@ -240,7 +252,7 @@ harvest_code=$?
 for key in duration_ms duration_api_ms num_turns total_cost_usd \
            input_tokens output_tokens cache_read_input_tokens cache_creation_input_tokens; do
   var="want_$key"
-  got="$(event_field "$work" usage "$key")"
+  got="$(event_field "$direct_work" usage "$key")"
   [[ "$got" == "${!var}" ]] ||
     problems+=("$key: want $(printf '%q' "${!var}"), got $(printf '%q' "$got")")
 done

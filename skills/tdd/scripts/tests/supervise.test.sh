@@ -25,11 +25,12 @@ stub="$(mktemp -d)"
 work="$(mktemp -d)"
 # Every temp dir this suite makes is removed here, on the one path that runs however the
 # script ends — including the Ctrl-C or the `make test` timeout that an `rm` at the foot of
-# a case never reaches. `$launch_work`, `$retry_work`, `$exit_work` and `$ctx_work` are cases
-# 12 to 15's and are made 270 lines down, so they are named with `${…:-}`: unset until then, and
+# a case never reaches. `$launch_work`, `$retry_work`, `$exit_work`, `$ctx_work` and
+# `$usage_work` are cases 12 to 16's and are made 270 lines down, so they are named with
+# `${…:-}`: unset until then, and
 # `rm -rf ""` is a silent no-op (POSIX: `-f` ignores an operand that does not exist), so an
 # early exit cleans the ones that do exist.
-trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}" "${exit_work:-}" "${ctx_work:-}"' EXIT
+trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}" "${exit_work:-}" "${ctx_work:-}" "${usage_work:-}"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
@@ -500,6 +501,51 @@ ctx_exit_step="$(event_field    "$ctx_work" exit   step)"
   && [[ "$ctx_launch_issue" == "$ctx_issue" ]] && [[ "$ctx_launch_step" == "$ctx_step" ]] \
   && [[ "$ctx_exit_issue"   == "$ctx_issue" ]] && [[ "$ctx_exit_step"   == "$ctx_step" ]]; } && ok \
   || no "VERI_ISSUE/VERI_STEP in the supervisor's environment reach its launch and exit events (code=$ctx_code, launch issue=$ctx_launch_issue want $ctx_issue step=$ctx_launch_step want $ctx_step, exit issue=$ctx_exit_issue want $ctx_issue step=$ctx_exit_step want $ctx_step)"
+
+# 16. a finished leaf's own accounting reaches the event log with nobody asking for it: the
+#     supervisor is what runs harvest-usage.sh, so a leaf whose log ends in the stream-json
+#     `result` record a `claude -p` run closes with leaves exactly one `usage` line (issue
+#     #163). The harvester has existed and been tested since #107, but nothing in a run ever
+#     called it, so those numbers sat in the .log files and reached no reader.
+#
+#     This script is where the call belongs because it owns `.tdd/<name>.log` and is the one
+#     choke point every leaf goes through (this file's header). A harvest asked for in the
+#     conductor's prose instead would be missing from exactly the leaves the prose forgot,
+#     which is the shape of the bug #163 reports.
+#
+#     The stub is written here rather than beside the leaf-* stubs at the top of the file
+#     because the number the assertion reads has to be the number the stub printed — case
+#     11's `date` stub is built at its point of use for the same reason. `num_turns` is the
+#     field probed: it comes from the record's top level, and no other number on a `usage`
+#     line could be mistaken for 7.
+#
+#     Exactly one line is half the criterion, and `event_field` is what pins it: asked for a
+#     key it reports `<<N usage lines>>` for every N but 1, so a harvest run per attempt, or a
+#     second one added elsewhere later, fails here rather than being read past. The
+#     supervisor's own exit code is asserted beside it because the harvest happens on its way
+#     out: a leaf that finished clean must still report 0.
+#
+#     A directory of its own, for case 12's reason — the event log accumulates across a run.
+usage_work="$(mktemp -d)"
+usage_turns=7
+# The closing record a finished leaf's log ends in, printed by a stub leaf of this suite's
+# usual shape. The heredoc is unquoted so `$usage_turns` expands into the JSON; nothing else
+# inside it is a shell expansion.
+cat > "$stub/leaf-result" <<L
+#!/usr/bin/env bash
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":91234,"duration_api_ms":40118,"num_turns":$usage_turns,"result":"done","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+exit 0
+L
+chmod +x "$stub/leaf-result"
+( cd "$usage_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+    "$SUP" develop-red "$stub/leaf-result" ) >/dev/null 2>&1
+usage_code=$?
+# Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
+# 13 and 15's shape.
+usage_got_turns="$(event_field "$usage_work" usage num_turns)"
+{ [[ "$usage_code" == 0 ]] && [[ "$usage_got_turns" == "$usage_turns" ]]; } && ok \
+  || no "a leaf whose log ends in a result record leaves exactly one usage event carrying that record's numbers (code=$usage_code, num_turns=$usage_got_turns want $usage_turns)"
 
 echo "----"
 echo "$pass passed, $fail failed"
