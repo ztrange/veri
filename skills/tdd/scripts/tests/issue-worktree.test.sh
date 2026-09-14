@@ -946,6 +946,54 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && [[ "$branch" == "tdd/53-local-ahead" ]] && [[ "$tip" == "$local_branch_tip" ]]; } \
   && ok || no "a local branch ahead of its remote: checked out at its own tip, not rewound to the remote's (exit=$code want 0, the clone's refs/heads/tdd/53-local-ahead='$local_ref' want the local tip $local_branch_tip, its refs/remotes/origin/tdd/53-local-ahead='$remote_ref' want the remote tip $remote_branch_tip $( [[ "$local_branch_tip" != "$remote_branch_tip" ]] && echo "— they differ, good" || echo "— the seed left them equal, so this case cannot tell the arms apart" ), stdout='$out' want '$want', branch='$branch' want 'tdd/53-local-ahead', tip='$tip' want the local branch's $local_branch_tip not the remote's $remote_branch_tip)"
 
+# 24. a name that exists in NEITHER namespace — no refs/heads/<name>, no
+# refs/remotes/*/<name> — is still cut from the default branch (issue #186).
+#
+# Case 1 already pins a fresh cut, but in a repo with no remote at all, where "the branch is
+# not on the remote" cannot be the reason the arm was taken because there is no remote to be
+# absent from. Cases 21-23 add a second namespace to look in, and the arm that cuts a new
+# branch is now the one reached only after BOTH lookups come back empty — so it needs a case
+# whose repo has a remote, has branches on it, and simply does not have this one. A lookup
+# widened past the name asked about (a prefix match, a `*` that also catches origin/HEAD, a
+# fallback to "any remote branch") takes the checkout arm here and silently hands the run a
+# worktree sitting on somebody else's work.
+#
+# Hence the other branch in the seed: `tdd/99-some-other-run`, on the remote, at a tip of its
+# own. It is what makes the assertion discriminating — a script that answered with any remote
+# branch rather than this name's would land the worktree there, and the case says so by naming
+# both tips.
+#
+# The clone is taken after the upstream is back on `main` and nothing lands afterwards, so the
+# clone's local `main` and its refs/remotes/origin/main sit at the same commit: which of the two
+# the base is read from is case 13's criterion, not this one, and a seed that made them disagree
+# would fold that question into this case.
+upstream="$work/neither-upstream"
+new_repo "$upstream"
+git_q "$upstream" switch -q -c tdd/99-some-other-run >/dev/null 2>&1
+git_q "$upstream" commit -q --allow-empty -m "another issue's run, pushed" >/dev/null 2>&1
+other_tip="$(git_q "$upstream" rev-parse tdd/99-some-other-run)"
+git_q "$upstream" switch -q main >/dev/null 2>&1
+clone="$work/neither-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+main_tip="$(git_q "$clone" rev-parse main)"
+want="$(wt_path "$clone" 55)"
+
+# Both absences, asked of the clone as the script is handed it: a fixture that had somehow
+# acquired either ref would send the call down a checkout arm and this case would pass on a
+# script that never cuts anything.
+local_ref="$(git_q "$clone" show-ref --verify --quiet refs/heads/tdd/55-neither && echo present || echo absent)"
+remote_ref="$(git_q "$clone" show-ref --verify --quiet refs/remotes/origin/tdd/55-neither && echo present || echo absent)"
+
+out="$(cd "$clone" && "$WT" 55 neither 2>/dev/null)" && code=0 || code=$?
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$local_ref" == absent ]] && [[ "$remote_ref" == absent ]] \
+  && [[ "$out" == "$want" ]] && [[ "$branch" == "tdd/55-neither" ]] \
+  && [[ "$tip" == "$main_tip" ]]; } \
+  && ok || no "a name in neither namespace, in a repo that has a remote: still cut from the default branch (exit=$code want 0, the clone's refs/heads/tdd/55-neither=$local_ref and refs/remotes/origin/tdd/55-neither=$remote_ref want both absent, stdout='$out' want '$want', branch='$branch' want 'tdd/55-neither', tip='$tip' want the default branch's $main_tip — not the other remote branch tdd/99-some-other-run's $other_tip)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
