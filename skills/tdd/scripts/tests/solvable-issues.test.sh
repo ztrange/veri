@@ -599,6 +599,55 @@ actual_lines="$(awk 'END {print NR}' "$SOLVABLE")"
 { [[ -n "$listed_lines" ]] && [[ "$listed_lines" == "$actual_lines" ]]; } \
   && ok || no "the committed walkthrough quotes solvable-issues.sh as it now stands (docs/walkthrough.html says '$listed_lines' lines, the script has $actual_lines — run make docs)"
 
+# 14. A blocker written as a full GitHub URL blocks exactly as `#<n>` does. That spelling is
+# not exotic: it is what GitHub's own autocomplete inserts and what a pasted link leaves
+# behind, so `- https://github.com/ztrange/veri/issues/120` under `## Blocked by` is the same
+# claim as `- #120` and must gate the issue the same way. Case 2 pins that gate for the `#<n>`
+# spelling; this is the identical criterion observed through the other one, which is why the
+# fixture pair below is case 2's with the reference rewritten and nothing else changed.
+#
+# One criterion observed twice, for case 2's reason: "blocks exactly as `#<n>` does" is a claim
+# about both states, so the same two issues are fed in twice changing nothing but #120's. While
+# #120 is OPEN, #125 must not be listed — #120 itself still is, labelled and naming no blocker
+# of its own — and once #120 is CLOSED the two swap, #125 becoming takeable while #120 drops out
+# for being closed. So the same fixture pair yields "120" then "125".
+#
+# The labelled blocker is what keeps both halves legible rather than collapsing one into the
+# empty-result criterion case 5 owns: stdout is a number either way, and today's script — whose
+# `#(\d+)` finds nothing in a URL, so the section reads as empty and the issue reads as
+# unblocked — prints "120\n125" on the first run, a different string rather than a reorder.
+fx="$(fixture url-blocked)"
+url_issues() {  # url_issues <state-of-120>
+  cat <<JSON
+[
+  {
+    "number": 125,
+    "title": "walkthrough: a line no commentary chunk claims is owed, not fatal",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nLet the build print what it owes.\n\n## Blocked by\n\n- https://github.com/ztrange/veri/issues/120\n"
+  },
+  {
+    "number": 120,
+    "title": "docs-owed.sh: file the commentary debt",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "$1",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+}
+
+url_issues OPEN > "$fx/issues.json"
+run "$fx"; url_while_open="$out" url_open_code="$code"
+
+url_issues CLOSED > "$fx/issues.json"
+run "$fx"; url_once_closed="$out" url_closed_code="$code"
+
+{ [[ "$url_open_code" == 0 && "$url_while_open" == "120" ]] \
+  && [[ "$url_closed_code" == 0 && "$url_once_closed" == "125" ]]; } \
+  && ok || no "a blocker written as a github.com issue URL blocks exactly as #<n> does (blocker open: exit=$url_open_code want 0, stdout='$url_while_open' want '120'; blocker closed: exit=$url_closed_code want 0, stdout='$url_once_closed' want '125')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
