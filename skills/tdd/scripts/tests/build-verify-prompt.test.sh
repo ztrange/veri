@@ -130,6 +130,44 @@ demands_foreground pin "$pin"
 [[ -z "$problems" ]] && ok \
   || no "every phase's prompt carries the foreground rule (${problems#; })"
 
+# 13. every phase's built prompt forbids `git stash` and names a way to read the committed
+#     version that touches no shared ref (issue #169). A leaf runs with
+#     `--permission-mode bypassPermissions`, and `refs/stash` is ONE ref in the shared
+#     `.git` that every worktree of the repository — the primary clone, every `.tdd/wt/<n>`,
+#     every human session — pushes onto and pops off. So a leaf that stashes to peek at the
+#     committed tree and pops afterwards pops whatever is on top *then*: another run's
+#     entry, dropped from under it, restored into this branch. A verify-red leaf in
+#     `.tdd/wt/70` stashed the developer's test file to see a baseline on 2026-09-11, and a
+#     verifier ran a bare `git stash` on 2026-09-13 with other worktrees open.
+#
+#     The prohibition alone would leave the need unmet — wanting the tree without the change
+#     is legitimate, which is why leaves keep inventing this — so the alternative is half of
+#     the behaviour and gets its own miss: `git show HEAD:<path>` to read the committed
+#     version, or a throwaway `git worktree add --detach` to compare against it. Each phase
+#     is its own miss too, for case 12's reason: a template that keeps one half is named
+#     rather than covered for by its twin.
+#
+#     Reads cases 5, 6, 7 and 9's prompts and invokes the builder not at all, as case 12
+#     does, and folds newlines the same way and for the same reason: `git stash` is two
+#     short words in markdown wrapped at ~85 columns, and grep matches within one line, so
+#     an unfolded probe would go red on a rewrap rather than on the rule going missing.
+forbids_stash() {  # forbids_stash <phase label> <prompt>
+  local label="$1" prompt
+  prompt="$(tr '\n' ' ' <<<"$2")"
+  grep -qiE "(never|do not|don't|no)[^.]{0,60}stash" <<<"$prompt" \
+    || problems="$problems; verify-$label never forbids git stash"
+  grep -qE 'git show HEAD:|git worktree add' <<<"$prompt" \
+    || problems="$problems; verify-$label names no shared-ref-free way to see the committed version"
+}
+
+problems=""
+forbids_stash red "$red"
+forbids_stash green "$green"
+forbids_stash refactor "$refactor"
+forbids_stash pin "$pin"
+[[ -z "$problems" ]] && ok \
+  || no "every phase's prompt forbids git stash and names a safe alternative (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

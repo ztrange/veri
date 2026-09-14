@@ -16,7 +16,11 @@ trustworthy, and a third is what gets it to the conductor at all:
    failure and is paid for again.
 
 Work inside the current repository (you may read any file and run the test command). Keep
-your investigation tight and on-task.
+your investigation tight and on-task. **Never run `git stash`**: the stash stack is one
+ref, `refs/stash`, in a `.git` shared by every worktree of this repository, so what you pop
+may be another agent's work — and theirs is then lost. To see the committed version of a
+file, read it with `git show HEAD:<path>`; to compare a whole tree against it, make a
+throwaway checkout with `git worktree add --detach <scratch> HEAD` and remove it afterwards.
 
 End your output with EXACTLY these two lines and nothing after them — no surrounding code
 fence, no extra formatting:
