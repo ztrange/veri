@@ -222,7 +222,12 @@ $S/wait-leaf.sh <name>
 The `rm -f` first, because the completion file is named for the **phase**, not the cycle: a
 `.tdd/develop-red.exit` left by the previous step's red leaf would end the next wait
 instantly, with the previous cycle's code. Then the launch, **detached** — through
-`detach-leaf.sh`, so the call returns at once. Then `wait-leaf.sh` in the **foreground**, which
+`detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own**.
+Never `nohup … &` instead: `nohup` makes the leaf ignore a hang-up (SIGHUP), but it leaves
+it in the **process group** of the Bash call that launched it, so a harness that signals
+that group when the call ends takes the leaf with it. A leaf killed that way writes no
+completion file, so the wait below returns exit 3 forever and you read that as "still
+running" — the run stalls with nothing to say why. Then `wait-leaf.sh` in the **foreground**, which
 blocks until the leaf finishes and exits with its code. On **exit 3** the leaf is still
 running and you have only spent the wait's budget: **call `wait-leaf.sh` again**, as many
 times as it takes. Only a 0, 1 or 2 is an answer. Read the leaf's report from
