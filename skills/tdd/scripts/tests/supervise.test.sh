@@ -581,6 +581,72 @@ usage_got_turns="$(event_field "$usage_work" usage num_turns)"
 { [[ "$usage_code" == 0 ]] && [[ "$usage_got_turns" == "$usage_turns" ]]; } && ok \
   || no "a leaf whose log ends in a result record leaves exactly one usage event carrying that record's numbers (code=$usage_code, num_turns=$usage_got_turns want $usage_turns)"
 
+
+# event_count <dir> <event> — how many <event> lines the event log a run in <dir> wrote
+# holds, or '<<no event log>>' when there is no log at all. `event_field` above answers the
+# question cases 12 to 16 ask — what the one line of a kind says — and mentions a count only
+# in the diagnostic it prints when that assumption fails. Case 17 asks about a count of ZERO,
+# which is a fact the log states rather than a failure to read it, so it gets a probe whose
+# answer is the number: read through `event_field`, the case would be asserting on the
+# wording of a diagnostic, and a clearer wording there would turn it red for nothing.
+#
+# The same parse as `event_field`'s, and the same two arguments — a run directory and an
+# event name — so the two read as the siblings they are and neither states where the log
+# lands under a run directory differently from the other.
+event_count() {
+  python3 -c '
+import sys, json
+n = 0
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == sys.argv[2]:
+        n += 1
+print(n)
+' "$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo '<<no event log>>'
+}
+
+# 17. a killed leaf leaves NO `usage` line, and the harvest that found nothing to report
+#     leaves the supervisor's own answer exactly as it was: exit 2, and 2 in the completion
+#     file `.tdd/<name>.exit` (issue #163). Case 16 pins the harvest on the path where the
+#     leaf finished and wrote its closing record; this is the other path, the one a killed
+#     leaf takes — its log stops wherever the last write landed, so there is no `result`
+#     record in it and harvest-usage.sh reports "nothing to do" (harvest-usage.sh:88-93).
+#
+#     Both halves matter and neither implies the other. A harvester that invented a `usage`
+#     line out of an absent record would satisfy the exit code and still put a row of
+#     fabricated numbers in front of a reader of #108's per-step cost. A harvester that
+#     correctly wrote nothing but let its own non-zero status reach this script's answer
+#     would turn a leaf the watchdog killed — a clean, classifiable killed-stuck — into some
+#     other code, and `classify-bail.sh` reads that code to choose the label a human sees.
+#     The completion file is asserted beside the exit code for case 9's reason: a detached
+#     leaf is waited on by polling that file, so the two are separate promises and a harvest
+#     running between the status line and the `printf` could break the second alone.
+#
+#     The leaf is `leaf-hang` under a one-second window, the way case 3 kills one: the
+#     watchdog's heartbeat, well inside `sup_run`'s 10s hard cap, so the kill is quick and
+#     the reason it happened is not what this case is about. The window rides in front of
+#     `"$SUP"` rather than being spelled into a fresh helper — `exit_run`'s convention, where
+#     `env` takes the last of a repeated name and the caller's number wins over the pinned 5.
+#
+#     A directory of its own under `$work`, for case 12's reason: the event log accumulates
+#     across a run, and a count of `usage` lines taken anywhere else would be counting some
+#     other case's leaf — case 16's, which leaves exactly the line this one denies.
+killed_work="$work/killed"
+killed_window=1
+sup_run "$killed_work" VERI_HEARTBEAT="$killed_window" "$SUP" develop-red "$stub/leaf-hang"
+killed_code=$?
+# Each fact read once, into a variable the assertion and the failure message share — cases 9,
+# 11, 12, 13, 15 and 16's shape. '<missing>' is case 9's spelling for a completion file that
+# was never written, so a run that wrote none reports that rather than an empty string.
+killed_usage="$(event_count "$killed_work" usage)"
+killed_recorded="$(cat "$killed_work/.tdd/develop-red.exit" 2>/dev/null || echo '<missing>')"
+{ [[ "$killed_usage" == 0 ]] \
+  && [[ "$killed_code" == 2 ]] \
+  && [[ "$killed_recorded" == 2 ]]; } && ok \
+  || no "a killed leaf leaves no usage event and the supervisor still exits 2 and records 2 (usage lines=$killed_usage want 0, code=$killed_code want 2, .exit=$killed_recorded want 2)"
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
