@@ -731,15 +731,25 @@ says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
 #     probed separately rather than as one alternation, which would be answered by either.
 #     `predict` occurs nowhere in the prompt built today, checked against the built prompt
 #     rather than the template.
+#
+#     Probed separately, though, the anchor, the `[^.]{0,40}` gap and the complaint sentence
+#     are spelled once per verdict — case 18's `offers_class` reasoning, applied to the one
+#     anchored pattern this case owns: a bound edited on the MATCHED line and not the DIVERGED
+#     one is a drift no diff makes loud, and the two would then be asking different questions
+#     under one headline. So the shape is written once and each caller names only its verdict.
+offers_verdict() {  # offers_verdict <verdict word>
+  local verdict="$1"
+  prompt_says "$red" "the report never offers $verdict on the PREDICTION: line" \
+    -E -e "PREDICTION:[^.]{0,40}$verdict"
+}
+
 problems=""
 says_both_ways "$red" "does not require the prediction to be stated before the run" \
   60 'predict' 'before'
 prompt_says "$red" "the report never asks for PREDICTED_FAILURE:" \
   -F -e 'PREDICTED_FAILURE:'
-prompt_says "$red" "the report never offers MATCHED on the PREDICTION: line" \
-  -E -e 'PREDICTION:[^.]{0,40}MATCHED'
-prompt_says "$red" "the report never offers DIVERGED on the PREDICTION: line" \
-  -E -e 'PREDICTION:[^.]{0,40}DIVERGED'
+offers_verdict MATCHED
+offers_verdict DIVERGED
 prompt_says "$red" "the report never asks for PREDICTION_NOTE:" \
   -F -e 'PREDICTION_NOTE:'
 [[ -z "$problems" ]] \
