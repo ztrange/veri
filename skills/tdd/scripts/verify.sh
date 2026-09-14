@@ -71,27 +71,31 @@ printf '%s' "$prompt" > "$promptfile"
 # mutation the verifier reverted itself a non-event: verify-pin.md:17-22 tells it to break the
 # production code, run the test and restore, and that ends where it started.
 #
-# The snapshot is one tree object covering every tracked and untracked non-ignored path —
-# `git add -A` into a throwaway index, then `git write-tree`. GIT_INDEX_FILE keeps it off the
-# real index, and no ref is written (not `refs/stash`, see #169): only tree and blob objects,
-# which are unreachable garbage the next `git gc` collects. HEAD is read separately because a
-# commit can move it while leaving the working tree byte-identical.
-tree_snapshot() {  # prints the tree sha of the working tree, or nothing where there is no repo
-  local dir tree=""
+# Both halves of that — taking the snapshot and putting the tree back — are one git command
+# run against an index holding every path the working tree currently has, untracked ones
+# included, which is what this builds: `git add -A` with GIT_INDEX_FILE naming a throwaway
+# file, so the real index is never touched and no ref is written (not `refs/stash`, see #169).
+# What the two commands leave behind is tree and blob objects, unreachable garbage the next
+# `git gc` collects. A directory `git add -A` fails in is one with no repo to guard, and the
+# empty output is what says so to both callers.
+in_temp_index() {  # prints the stdout of `git "$@"` run against that index, or nothing on failure
+  local dir out=""
   dir="$(mktemp -d)"
   if GIT_INDEX_FILE="$dir/index" git add -A >/dev/null 2>&1; then
-    tree="$(GIT_INDEX_FILE="$dir/index" git write-tree 2>/dev/null)" || tree=""
+    out="$(GIT_INDEX_FILE="$dir/index" git "$@" 2>/dev/null)" || out=""
   fi
   rm -rf "$dir"
-  printf '%s' "$tree"
+  printf '%s' "$out"
 }
 
-# The same index trick run backwards. `git add -A` into a throwaway index builds an index
-# holding every path the working tree currently has, untracked ones included; `read-tree -u
-# --reset` against the snapshot then makes the working tree that tree — rewriting what the
-# verifier changed and DELETING what it created, because a path in that index and not in the
-# tree is removed. Ignored paths are in neither, so the run's own state under `.tdd/` (the
-# supervisor's log, this leaf's prompt) survives untouched.
+tree_snapshot() {  # prints the tree sha of the working tree, or nothing where there is no repo
+  in_temp_index write-tree
+}
+
+# The same index run backwards: `read-tree -u --reset` against the snapshot makes the working
+# tree that tree — rewriting what the verifier changed and DELETING what it created, because a
+# path in that index and not in the tree is removed. Ignored paths are in neither, so the run's
+# own state under `.tdd/` (the supervisor's log, this leaf's prompt) survives untouched.
 #
 # `git checkout -- <path>` and `git reset --hard` are the obvious restores and both are wrong
 # here: they restore from HEAD, and verify-green and verify-red run while the developer's work
@@ -99,14 +103,11 @@ tree_snapshot() {  # prints the tree sha of the working tree, or nothing where t
 # The snapshot is the tree the verifier was handed, uncommitted work and all, which is why the
 # restore is against it rather than against a commit.
 restore_tree() {  # puts the working tree back to the tree object named by $1
-  local dir
-  dir="$(mktemp -d)"
-  if GIT_INDEX_FILE="$dir/index" git add -A >/dev/null 2>&1; then
-    GIT_INDEX_FILE="$dir/index" git read-tree -u --reset "$1" >/dev/null 2>&1 || true
-  fi
-  rm -rf "$dir"
+  in_temp_index read-tree -u --reset "$1"
 }
 
+# HEAD is snapshotted separately from the tree because a commit can move it while leaving the
+# working tree byte-identical.
 head_snapshot() {  # prints the sha HEAD names, or nothing where there is no repo or no commit
   # --verify is load-bearing: without it, on a repo with no commits yet, git rev-parse prints
   # the literal string `HEAD` on stdout (and exits 128), so the caller would compare "HEAD"
