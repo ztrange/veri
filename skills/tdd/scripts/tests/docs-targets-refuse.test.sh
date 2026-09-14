@@ -172,22 +172,32 @@ SH
   chmod +x "$1"
 }
 
-# tree_with_tripwires — a disposable tree holding the real Makefile and a stand-in for each
-# thing the four targets invoke, printed as a path. The page builder and the freshness check
-# are stood up as the two python files the recipes name; the suite the documentation target
-# globs is stood up as one executable under the directory that glob looks in, so it is found
-# by existing exactly as a real one would be. Each appends a word to the log and exits 0,
-# which is what makes "the log is empty" mean "the recipe stopped before reaching it".
+# The tree the case now running is asked about — per-case state exactly as `problems` is, and
+# read by every probe below rather than handed to each of them again. Both cases build the
+# same tree and then pass it to every probe they call, so the parameter carried no fact a
+# probe could not have had for free, and a threaded argument that is always the same value is
+# one more place for a case to get it wrong. Initialized here, at the function that owns it,
+# for the reason run_target's three globals are: `set -u` is declared above, and a probe added
+# later that reads a tree nobody built should fail on its own assertion rather than kill the
+# suite at an unbound name.
+TREE=""
+
+# tree_with_tripwires — leaves TREE a disposable tree holding the real Makefile and a stand-in
+# for each thing the four targets invoke. The page builder and the freshness check are stood
+# up as the two python files the recipes name; the suite the documentation target globs is
+# stood up as one executable under the directory that glob looks in, so it is found by
+# existing exactly as a real one would be. Each appends a word to the log and exits 0, which
+# is what makes "the log is empty" mean "the recipe stopped before reaching it". Called once
+# per case rather than once for the suite, so a target that damaged the tree could not carry
+# the damage into the case after it.
 tree_with_tripwires() {
-  local tree="$WORK/tree"
-  mkdir -p "$tree/$GENERATED_DIR/tests"
-  cp "$MAKEFILE" "$tree/Makefile"
+  TREE="$WORK/tree"
+  mkdir -p "$TREE/$GENERATED_DIR/tests"
+  cp "$MAKEFILE" "$TREE/Makefile"
 
-  python_tripwire "$tree/$GENERATED_DIR/build-walkthrough.py" "built the page"
-  python_tripwire "$tree/$GENERATED_DIR/check-walkthrough.py" "checked the page is fresh"
-  shell_tripwire "$tree/$GENERATED_DIR/tests/tripwire.test.sh" "ran a documentation suite"
-
-  printf '%s' "$tree"
+  python_tripwire "$TREE/$GENERATED_DIR/build-walkthrough.py" "built the page"
+  python_tripwire "$TREE/$GENERATED_DIR/check-walkthrough.py" "checked the page is fresh"
+  shell_tripwire "$TREE/$GENERATED_DIR/tests/tripwire.test.sh" "ran a documentation suite"
 }
 
 # The three globals run_target leaves a run in, initialized once here rather than again at the
@@ -200,18 +210,18 @@ run_code=0
 run_out=""
 run_err=""
 
-# run_target <tree> <target> <env...> — one invocation of the recipe under test, with the log
-# emptied first and the two streams kept apart, leaving the exit status in `run_code`, stdout
+# run_target <target> <env...> — one invocation of the recipe under test, over TREE, with the
+# log emptied first and the two streams kept apart, leaving the exit status in `run_code`, stdout
 # in `run_out` and stderr in `run_err`. The streams are captured separately because "says why
 # on stderr" is a claim about which stream carried the diagnostic, and a 2>&1 capture cannot
 # tell a recipe that explained itself from one that printed the same words on stdout. Only the
 # capture differs — stderr needs a file because a command substitution can only take stdout —
 # and the file is read here rather than by each probe, so both streams reach them as text.
 run_target() {
-  local tree="$1" target="$2" err="$WORK/err"
-  shift 2
+  local target="$1" err="$WORK/err"
+  shift
   : > "$LOG"
-  run_out="$(env "$TRIPWIRE_VAR=$LOG" "$@" make -C "$tree" "$target" 2>"$err")" &&
+  run_out="$(env "$TRIPWIRE_VAR=$LOG" "$@" make -C "$TREE" "$target" 2>"$err")" &&
     run_code=0 || run_code=$?
   run_err="$(cat "$err")"
 }
@@ -225,24 +235,24 @@ run_target() {
 # quote one run's status beside another run's output.
 run_streams() { printf 'stdout: %s, stderr: %s' "$(flat "$run_out")" "$(flat "$run_err")"; }
 
-# probe_runner_is_this_repositorys <tree> — the premise every probe below rests on: the
-# Makefile in the scratch tree is this repository's, byte for byte. Without it the case could
-# be satisfied by a runner this suite quietly adjusted on its way past, and would say nothing
-# about what an agent typing `make docs` in this repository gets.
+# probe_runner_is_this_repositorys — the premise every probe below rests on: the Makefile in
+# the scratch tree is this repository's, byte for byte. Without it the case could be satisfied
+# by a runner this suite quietly adjusted on its way past, and would say nothing about what an
+# agent typing `make docs` in this repository gets.
 probe_runner_is_this_repositorys() {
-  cmp -s "$MAKEFILE" "$1/Makefile" ||
+  cmp -s "$MAKEFILE" "$TREE/Makefile" ||
     problems+=("the runner under test is not this repository's Makefile, so nothing here says what its documentation targets do")
 }
 
-# probe_tripwires_fire_when_the_variable_is_unset <tree> — the other premise, and the one
-# that makes "nothing ran" mean something: with the guard variable out of the environment, each
-# of the four targets over this same tree reaches a tripwire and comes back 0. A tree in which
-# they could not — a stand-in at the wrong path, a glob that matched nothing — would answer
-# every probe below with a refusal it had nothing to do with.
+# probe_tripwires_fire_when_the_variable_is_unset — the other premise, and the one that makes
+# "nothing ran" mean something: with the guard variable out of the environment, each of the
+# four targets over this same tree reaches a tripwire and comes back 0. A tree in which they
+# could not — a stand-in at the wrong path, a glob that matched nothing — would answer every
+# probe below with a refusal it had nothing to do with.
 probe_tripwires_fire_when_the_variable_is_unset() {
   local target
   for target in "${TARGETS[@]}"; do
-    run_target "$1" "$target" env -u "$GUARD_VAR"
+    run_target "$target" env -u "$GUARD_VAR"
     [[ "$run_code" == 0 ]] ||
       problems+=("the premise broke: with $GUARD_VAR unset, 'make $target' over the scratch tree exited $run_code, so a refusal below is not distinguishable from a tree that cannot run: $(run_streams)")
     [[ -s "$LOG" ]] ||
@@ -250,7 +260,7 @@ probe_tripwires_fire_when_the_variable_is_unset() {
   done
 }
 
-# probe_targets_refuse <tree> — the criterion itself, for each of the four targets: exit 2,
+# probe_targets_refuse — the criterion itself, for each of the four targets: exit 2,
 # an untouched log, and a stderr line naming the variable it refused over. Three problems at
 # most per target, each naming it, because which of the three a recipe gets wrong is what
 # sends the next author to the right line — a guard that exits 2 after building the page has
@@ -259,7 +269,7 @@ probe_tripwires_fire_when_the_variable_is_unset() {
 probe_targets_refuse() {
   local target
   for target in "${TARGETS[@]}"; do
-    run_target "$1" "$target" env "$GUARD_VAR=$DEV_CMD"
+    run_target "$target" env "$GUARD_VAR=$DEV_CMD"
 
     [[ "$run_code" == 2 ]] ||
       problems+=("want 'make $target' to exit 2 under $GUARD_VAR='$DEV_CMD'; got $run_code, $(run_streams)")
@@ -277,14 +287,14 @@ probe_targets_refuse() {
 name="with $GUARD_VAR='$DEV_CMD', make $(target_list) each exit 2 without running anything and say why on stderr"
 problems=()
 
-tree="$(tree_with_tripwires)"
-probe_runner_is_this_repositorys "$tree"
-probe_tripwires_fire_when_the_variable_is_unset "$tree"
-probe_targets_refuse "$tree"
+tree_with_tripwires
+probe_runner_is_this_repositorys
+probe_tripwires_fire_when_the_variable_is_unset
+probe_targets_refuse
 
 report "$name"
 
-# probe_targets_run <tree> <situation> <env...> — the other criterion, asked of each of the
+# probe_targets_run <situation> <env...> — the other criterion, asked of each of the
 # four targets under one environment in which the guard must not fire: exit 0, and a log the
 # run left something in. Both halves, because either alone can be had by accident — a recipe
 # that refused before doing anything would still exit 0 if its guard said so, and a recipe
@@ -295,10 +305,10 @@ report "$name"
 # expectation and which one broke is what sends the next author to the right half of the
 # guard's condition.
 probe_targets_run() {
-  local tree="$1" situation="$2" target
-  shift 2
+  local situation="$1" target
+  shift
   for target in "${TARGETS[@]}"; do
-    run_target "$tree" "$target" "$@"
+    run_target "$target" "$@"
 
     [[ "$run_code" == 0 ]] ||
       problems+=("want 'make $target' to run as before with $situation; got exit $run_code, $(run_streams)")
@@ -321,10 +331,10 @@ probe_targets_run() {
 name="with $GUARD_VAR unset, or set to '$DOCS_CMD', make $(target_list) each run as before"
 problems=()
 
-tree="$(tree_with_tripwires)"
-probe_runner_is_this_repositorys "$tree"
-probe_targets_run "$tree" "$GUARD_VAR unset" env -u "$GUARD_VAR"
-probe_targets_run "$tree" "$GUARD_VAR='$DOCS_CMD'" env "$GUARD_VAR=$DOCS_CMD"
+tree_with_tripwires
+probe_runner_is_this_repositorys
+probe_targets_run "$GUARD_VAR unset" env -u "$GUARD_VAR"
+probe_targets_run "$GUARD_VAR='$DOCS_CMD'" env "$GUARD_VAR=$DOCS_CMD"
 
 report "$name"
 
