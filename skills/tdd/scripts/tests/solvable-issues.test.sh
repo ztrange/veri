@@ -650,6 +650,52 @@ run "$fx"; url_once_closed="$out" url_closed_code="$code"
   && [[ "$url_closed_code" == 0 && "$url_once_closed" == "125" ]]; } \
   && ok || no "a blocker written as a github.com issue URL blocks exactly as #<n> does (blocker open: exit=$url_open_code want 0, stdout='$url_while_open' want '120'; blocker closed: exit=$url_closed_code want 0, stdout='$url_once_closed' want '125')"
 
+# 15. A github.com issue URL blocks only when it names THIS repository. Case 14 makes the URL
+# spelling count at all; the same reading applied to `https://github.com/<owner>/<other>/issues/<n>`
+# would invent a blocker out of another project's issue number, and the collision is cheap rather
+# than exotic — every low number exists in a fork, in a dependency, and in the demo repo veri's
+# own unattended runs are pointed at. So the owner and name in a URL are part of the reference,
+# not decoration around the digits.
+#
+# Which repository "this one" IS has to be told to the script, and `--repo owner/name` is the
+# channel it already has — the flag case 6 pins onto both gh calls. It is spelled at the call site
+# here rather than run through the `run` helper for that reason: this is the only case whose
+# criterion turns on the script knowing which repository the numbers came from, and the two other
+# cases reading URL-form blockers must keep going through the helper untouched.
+#
+# #131 is open, labelled, and names a blocker in ANOTHER repository whose number is #120 — which
+# is also a real, open, labelled issue HERE. That collision is the whole of the case: a script
+# matching the digits after `/issues/` without looking at what precedes them finds 120, sees it
+# open, and withholds #131. Since #120 carries the label it is listed either way, so stdout is
+# "120\n131" when the owner/name is read as part of the reference and "120" alone when it is
+# ignored — a different string, not a reorder, and neither one the empty-result criterion case 5
+# owns.
+fx="$(fixture foreign-url)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 131,
+    "title": "solve-issue: narrate each phase to the issue thread",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA comment per phase.\n\n## Blocked by\n\n- https://github.com/ztrange/veri-demo-node/issues/120\n"
+  },
+  {
+    "number": 120,
+    "title": "docs-owed.sh: file the commentary debt",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+foreign_out="$(VERI_GH_JSON="$fx" "$SOLVABLE" --repo ztrange/veri 2>/dev/null)" \
+  && foreign_code=0 || foreign_code=$?
+
+{ [[ "$foreign_code" == 0 ]] && [[ "$foreign_out" == $'120\n131' ]]; } \
+  && ok || no "a URL naming another repository's issue is not read as a blocker in this one (exit=$foreign_code want 0, stdout='$foreign_out' want '120\\n131')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
