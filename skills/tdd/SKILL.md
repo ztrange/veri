@@ -563,79 +563,95 @@ following step. The phase sub-steps are:
      **bail**.
    - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing*.
 
-#### Refactor loop — behavior-preserving transforms until none, then verify-refactor (blind, once)
+#### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
-1. **Loop the transforms.** Repeatedly launch a developer leaf that applies **one**
-   behavior-preserving transformation (naming, duplication, clarity) and runs the **suites
-   covering the files it touched**, keeping them green. **Ask the budget before each leaf**: `<count>` is how many
-   transforms this step has applied so far — start at **0**, and count only leaves that
-   reported `RESULT: applied …`, never one that reported `nothing left to tidy`. Build each
-   prompt from the `refactor` template and launch **through the supervisor** (exit **2** →
-   **bail**):
+1. **One refactor leaf for the step.** Ask the budget first, with a count of **0**: that
+   call is what decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0`
+   switches refactoring off. Then build the prompt from the `refactor` template — which
+   carries the budget to the leaf as the number of transforms it may apply — and launch
+   **through the supervisor** (exit **2** → **bail**):
    ```
-   $S/refactor-budget.sh <count>   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ stop, go to 2
+   $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 3
    touched="$(git diff --name-only HEAD~1 HEAD | paste -sd, -)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
    ```
-   The `rm -f` matters most here: every iteration of this loop reuses the name
-   `develop-refactor`, so a completion file left by the previous transform would end the
-   next wait before the next leaf had done anything.
+   **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
+   the re-read of the spec and of the touched files are paid once for the step instead of
+   once for every transform it applies. That is what #150 measured — the refactor loop and
+   verify-refactor took 2,147 of #144's 3,735 leaf-seconds, and one #137 step's five
+   transforms took 49 minutes between them.
    `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
    comma-separated line. Compute it **once**, right after the step's atomic green commit —
    `git diff --name-only HEAD~1 HEAD` is exactly that commit's files at that moment — adding
-   anything still uncommitted (`git diff --name-only HEAD`) if an earlier iteration left
-   work on disk. Reuse the same list for every iteration: a transform's own commit moves
-   `HEAD`, but it does not widen what this cycle is allowed to touch.
-   The template owns the rules — one transform per leaf so a break is attributable, revert
-   rather than leave a red suite, **no untested generality** (it comes only from
-   **triangulation**), and code that is **overfit** (e.g. hard-codes the one tested case)
-   **flagged as needing a triangulating test**, never hand-generalized. Each leaf's report
-   ends with `RESULT:` (`applied <transform>, suite green` or `nothing left to tidy`),
-   `FLAGS:` (overfit code and the case that would force the generality, or `none`) and one
-   `CANDIDATES:` line per transform it still sees left in those files, each carrying its
-   class (or `none`). The loop has **three** stop conditions, and any one of them ends it: a
-   leaf reports **nothing left to tidy**, `refactor-budget.sh` exits **3** (the budget is
-   spent), or the triage below finds no structural candidate left in the leaf's report.
-   Carry the flags of every leaf
-   into the narration, then go to sub-step 2. The budget's exit **2 cannot occur here** — preflight ran
-   the script once, so a `VERI_REFACTOR_BUDGET` that does not parse stopped the run before
-   any branch existed. The budget exists because a refactor leaf asked for one transform
-   almost always finds one, each smaller than the last: without it the conductor ends the
-   loop by judgement, which is the ad-hoc decision veri exists to remove. The leaf leaves its
-   transform **uncommitted**; you commit it, and only if it changed something:
-   `git add -A && git commit -m "refactor: <what> (#<n>)"`.
-   Then **triage that committed transform**: `$S/refactor-triage.sh < .tdd/develop-refactor.out`
-   answers exit **0**, structural candidates remain, so iterate; exit **3**, nothing
-   structural is left, so **stop** the loop; exit **2**, the report is malformed, so
-   **stop** and **narrate** it. The triage is asked **after** the commit, never before, and
-   that is what makes a report nothing classed survivable rather than a bail: the transform
-   it reads the report of is already in the history, and verify-refactor still judges the
-   settled state, so **both stops go to sub-step 2**. `refactor-budget.sh` stays the cap.
-2. **Verify (blind, once) on the settled result.**
+   anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work
+   on disk.
+   The template owns the rules — the leaf triages what it sees in those files into
+   **structural** and **cosmetic** candidates and applies the structural ones, most valuable
+   first, up to its budget; it runs the **suites covering the files it touched** after every
+   transform and **reverts** one that turns them red rather than leave a red suite; it takes
+   **no untested generality** (that comes only from **triangulation**) and **flags overfit**
+   code as needing a triangulating test instead of hand-generalizing it. It also **commits
+   its own transforms**, one commit each so a break stays attributable to one change:
+   `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
+   (ADR-0007); it is the refactor commit that moved to the leaf. The report is in
+   `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
+   `nothing left to tidy`), `FLAGS:` (overfit code and the case that would force the
+   generality, or `none`) and `CANDIDATES:` (one line per leftover it still sees, each
+   carrying its class, or `none`).
+2. **Check what the leaf left.** The leaf produced the result; the conductor's job in this
+   phase is to **check** it, because verify-refactor judges the **settled tree** and can see
+   neither of the two faults below. Ask git, not the report:
+   ```
+   git status --porcelain                   # any output ⇒ refuse to go on, see below
+   git log --format=%s <green-sha>..HEAD    # every one must be a refactor:, or refuse to go on
+   git rev-list --count <green-sha>..HEAD   # the transforms that landed, narrated against the budget
+   ```
+   `<green-sha>` is this step's atomic green commit — the one carrying the ledger tick — so
+   the range holds exactly what the step's refactor produced.
+   - **A dirty tree** is work no suite run and no verifier has seen: the transform a killed
+     leaf left half-applied on disk. Do **not** continue to verify-refactor over it — `git
+     reset --hard HEAD` drops it, leaving the last committed transform, which the leaf's own
+     suite run found green — and say in the narration that it was dropped.
+   - **A commit in that range whose subject is not `refactor:`** is production code carried
+     into a behaviour-preserving phase: the blind verifier ahead is asked whether behaviour
+     was preserved, and nothing there asks whether that code was earned by a test. Do
+     **not** continue either — `git reset --hard <green-sha>` drops every commit the leaf
+     made for this step, the well-formed ones with it, since a leaf that committed
+     production code here is not one whose other commits can be taken on trust — and the
+     step goes to verify-refactor on its green state, with what was dropped named in the
+     narration.
+3. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh refactor .tdd/issue-<n>-spec.md <test-path> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err; echo \$? > .tdd/verdict-refactor.exit" > /dev/null 2>&1
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
    — one verdict on the final state (**full suite** still green, code up to standard, no
-   smuggled generality). This is where the full suite runs in this phase: the transform
-   leaves ran only the suites covering their files, so a break in a suite none of them
-   touched surfaces here, as a REJECT the revise loop answers rather than a revert inside
-   the loop.
-3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
+   smuggled generality). This is where the full suite runs in this phase: the refactor leaf
+   ran only the suites covering the files it touched, so a break in a suite none of its
+   transforms touched surfaces here, as a REJECT the revise loop answers rather than a
+   revert inside the leaf.
+4. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
-   Say **how many transforms ran** and **which of the three stop conditions ended the
-   loop**, mirroring `refactor-budget.sh`'s own status line (`refactor 2/2 — budget spent`):
-   a step that ran dry says **nothing left to tidy**, a step the budget stopped says the
-   **budget** is spent, and a step `refactor-triage.sh` ended says **no structural candidate
-   was left**. Then **list what the loop did not do**, taken verbatim from the last leaf's
-   `CANDIDATES:` lines and filed in **two separate lists** — the **structural** leftovers,
-   which a follow-up owes, and the **cosmetic** ones, which nobody owes. Each list says
-   **how many candidates** it holds and then **lists** them, one per line. A count with no
-   items is not a backlog, and the two classes run together are a backlog nobody can size.
+   Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
+   own account of what it did — against the budget, in `refactor-budget.sh`'s own shape
+   (`refactor 2/5`). A count **above** the budget is narrated as an **overrun** (`refactor
+   7/5 — overrun`), never clamped to the budget: the budget reaches the leaf as a number, so
+   a count over it is the leaf ignoring it, and that is the one thing this narration exists
+   to make visible. Say too **why the tidying stopped**: the leaf reported
+   **nothing left to tidy**, it spent the **budget** it was given, or
+   `$S/refactor-triage.sh < .tdd/develop-refactor.out` says so — exit **2**, a malformed
+   report, is **narrated** as that rather than bailed on; exit **3**, nothing structural is
+   left, so the tidying **stops** owing nothing; exit **0**, structural candidates remain
+   and a follow-up owes them. Then **list what the step did not do**, taken verbatim from
+   the leaf's `CANDIDATES:` lines and filed in **two separate lists** — the **structural**
+   leftovers, which a follow-up owes, and the **cosmetic** ones, which nobody owes. Each
+   list says **how many candidates** it holds and then **lists** them, one per line. A
+   count with no items is not a backlog, and the two classes run together are a backlog
+   nobody can size.
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **clear the refactor-pending mark and commit the cleared ledger first**, before
      anything outside the repository says the step is done:
