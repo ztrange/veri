@@ -419,6 +419,41 @@ listing="$(registry "$repo")"
   && ok || no "reached through a symlinked path: prints the resolved path git itself lists for the worktree (called from '$via', exit=$code want 0, stdout='$out' want '$want', git's registry $( grep -qxF "worktree $out" <<<"$listing" && echo "carries the line 'worktree $out'" || echo "carries no 'worktree $out' line; its worktree lines are:
 $(grep '^worktree ' <<<"$listing")" ))"
 
+# 13. the remote's default branch is ahead of the local one — the new branch is cut from the
+# remote's tip, not from the stale local branch that happens to carry the default branch's name
+# (issue #174).
+#
+# The local `main` lags `origin/main` by design here: pulling the primary clone while a conductor
+# is live would change the scripts running under it, so the pull waits (#165). A run started in
+# that window used to be built on a base already behind, and its PR then owed a rebase over
+# everything that landed meanwhile — replayed one `refactor:` commit at a time, through whatever
+# conflicts concurrent issues had left in the same files.
+#
+# The seed is case 6's upstream+clone pair with the two tips pulled apart afterwards: the clone is
+# taken first, and only then does the upstream gain a commit. So at the moment of the call the
+# clone's local `main` AND its `refs/remotes/origin/main` both sit at the old tip, and the only way
+# to reach the new one is to go and fetch it. A script that read the remote-tracking ref without
+# refreshing it would answer the same as one that read the local branch, and the case would not
+# tell them apart.
+#
+# The assertion is the new worktree's HEAD, asked of git: it must be the upstream's current tip,
+# not the tip the clone was taken at.
+upstream="$work/ahead-upstream"
+new_repo "$upstream"
+clone="$work/ahead-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+git_q "$upstream" commit -q --allow-empty -m "landed while the clone was busy" >/dev/null 2>&1
+remote_tip="$(git_q "$upstream" rev-parse main)"
+stale_tip="$(git_q "$clone" rev-parse main)"
+want="$(wt_path "$clone" 35)"
+
+out="$(cd "$clone" && "$WT" 35 from-remote-tip 2>/dev/null)" && code=0 || code=$?
+
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$tip" == "$remote_tip" ]]; } \
+  && ok || no "origin's default branch is ahead of the local one: cuts tdd/35-from-remote-tip from origin's tip (exit=$code want 0, stdout='$out' want '$want', tip='$tip' want origin's $remote_tip not the stale local main's $stale_tip)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

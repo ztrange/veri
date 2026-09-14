@@ -150,13 +150,26 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 # exists to prevent.
 #
 # origin/HEAD is git's own record of the default branch when there is a remote; it comes back
-# as `origin/main`, so ${head#origin/} strips that prefix (# removes the shortest match from
-# the front). A repo with no remote — a throwaway `git init`, a clone whose origin/HEAD was
+# as `origin/main`. A repo with no remote — a throwaway `git init`, a clone whose origin/HEAD was
 # never set — has no such record, so fall back to the two names git itself ships as defaults.
-default_branch() {
+#
+# With a remote the base is the REMOTE's tip, not the local branch of the same name, and it is
+# fetched first (issue #174). The local `main` here lags `origin/main` by design: pulling the
+# primary clone while a conductor is live would change the scripts running under it, so the pull
+# waits (#165). A branch cut from that stale local ref starts out behind and its PR then owes a
+# rebase over everything that landed meanwhile — replayed one `refactor:` commit at a time,
+# through whatever conflicts concurrent issues left in the same files.
+#
+# `git fetch origin <default>` refreshes refs/remotes/origin/<default> and nothing else: it moves
+# no local branch ref and touches no working tree, so #165's reason for not pulling stays intact.
+# ${head#origin/} strips the prefix (# removes the shortest match from the front) to name the
+# branch on the remote side; what is printed is `$head` whole, because `origin/main` is the ref
+# the new branch is cut from.
+default_base() {
   local head b
   if head="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
-    printf '%s\n' "${head#origin/}"
+    git fetch -q origin "${head#origin/}" >&2
+    printf '%s\n' "$head"
     return 0
   fi
   for b in main master; do
@@ -182,7 +195,7 @@ if branch_exists "$branch"; then
 else
   # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
   # cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
-  base="$(default_branch)" || {
+  base="$(default_base)" || {
     echo "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)" >&2
     exit 2
   }
