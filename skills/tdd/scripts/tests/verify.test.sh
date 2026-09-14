@@ -29,13 +29,16 @@ chmod +x "$stubdir/claude"
 
 printf 'slugify must lowercase the title and join words with hyphens.' > "$work/spec.md"
 
-# verify_in <dir> <phase> <fake-out-text> — one verification of $work/spec.md against the stub
-# claude, run in <dir> with the stub's argv recorded at <dir>/argv. stdout is the verifier's
-# reason and the exit status is verify.sh's, so a caller reads whichever of the two it is about.
-# Both helpers below are this call, so the stub wiring and the fixture arguments — the spec, the
-# test path, the test id — are spelled once rather than once per helper.
+# verify_in <dir> <phase> <fake-out-text> [<stub-claude>] — one verification of $work/spec.md
+# against a stub claude, run in <dir> with the stub's argv recorded at <dir>/argv. stdout is the
+# verifier's reason and the exit status is verify.sh's, so a caller reads whichever of the two it
+# is about. Every helper below is this call, so the stub wiring and the fixture arguments — the
+# spec, the test path, the test id — are spelled once rather than once per helper. The stub
+# defaults to the canned-verdict one; a caller wanting another passes it, and `env` (no `-i`)
+# hands that stub the caller's own environment too, which is how the mutating stub below gets
+# its mutation.
 verify_in() {
-  ( cd "$1" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$3" \
+  ( cd "$1" && env CLAUDE_BIN="${4:-$stubdir/claude}" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$3" \
       "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py test_lowercases )
 }
 
@@ -307,10 +310,11 @@ tamper_run() {
   printf '.tdd/\n' > "$dir/.gitignore"
   git -C "$dir" add -A >/dev/null 2>&1
   git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
-  out="$( cd "$dir" && env CLAUDE_BIN="$stubdir/claude-mutate" FAKE_MUTATE="$2" \
-            FAKE_OUT_TEXT='VERDICT: PASS
-REASON: Target test and full suite are green.' \
-            "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases 2>/dev/null )"
+  # The verification is verify_in's, with the mutating stub named as its claude and the
+  # mutation put in that stub's environment — so this arm says what is particular to it and
+  # nothing else, the spec and the test path and the test id included.
+  out="$( FAKE_MUTATE="$2" verify_in "$dir" green 'VERDICT: PASS
+REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
   code=$?
 }
 
