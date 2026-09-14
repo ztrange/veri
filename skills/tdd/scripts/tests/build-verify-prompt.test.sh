@@ -104,6 +104,16 @@ prompt_says() {  # prompt_says <prompt> <complaint> <grep argument…>
   grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" || problems="$problems; $complaint"
 }
 
+# The other half of what the two per-phase cases share: the roster. Each asks the same claim
+# of all four built prompts and reports one accumulated miss list, so which phases "every
+# phase" means lives here rather than once per case — a fifth phase is one edit, not two.
+# The reset of `problems` belongs to the fan-out and not to its callers: a case that
+# inherited the previous case's misses would fail naming the wrong claim.
+every_phase() {  # every_phase <name of a check function taking <phase label> <prompt>>
+  problems=""
+  "$1" red "$red"; "$1" green "$green"; "$1" refactor "$refactor"; "$1" pin "$pin"
+}
+
 # 12. every phase's built prompt carries the foreground rule. A verifier that puts its
 #     suite run in the background can end its turn before the run returns, printing no
 #     footer — so no `VERDICT:` line, so verify.sh exits 2 and the conductor must relaunch
@@ -133,11 +143,7 @@ demands_foreground() {  # demands_foreground <phase label> <prompt>
     -iE -e 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn'
 }
 
-problems=""
-demands_foreground red "$red"
-demands_foreground green "$green"
-demands_foreground refactor "$refactor"
-demands_foreground pin "$pin"
+every_phase demands_foreground
 [[ -z "$problems" ]] && ok \
   || no "every phase's prompt carries the foreground rule (${problems#; })"
 
@@ -170,11 +176,7 @@ forbids_stash() {  # forbids_stash <phase label> <prompt>
     -E -e 'git show HEAD:|git worktree add'
 }
 
-problems=""
-forbids_stash red "$red"
-forbids_stash green "$green"
-forbids_stash refactor "$refactor"
-forbids_stash pin "$pin"
+every_phase forbids_stash
 [[ -z "$problems" ]] && ok \
   || no "every phase's prompt forbids git stash and names a safe alternative (${problems#; })"
 
