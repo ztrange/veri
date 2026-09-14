@@ -141,8 +141,8 @@ section() {
 flatten() { tr '\n' ' '; }
 
 # What a stated count looks like: the digits, or a word — hyphenated, since "twenty-five"
-# is one. Written once because all three patterns below embed it, and a copy that drifted
-# would leave one count read differently from the others.
+# is one. Written once because every pattern below embeds it — three times over the two of
+# them — and a copy that drifted would leave one count read differently from the others.
 NUM='([0-9]+|[A-Za-z-]+)'
 
 # What may sit immediately before one: anything that is not itself part of a count. All
@@ -152,6 +152,15 @@ NUM='([0-9]+|[A-Za-z-]+)'
 # still compared against the disk, and `7` against seven suites reads as a count that
 # agreed. Written beside NUM because the two are only ever used together.
 BEFORE='[^0-9A-Za-z-]'
+
+# The sentence each passage states its counts in: one pattern per passage, named after the
+# passage it is matched against, because a pattern's capture groups only mean anything
+# against that text — `$idiom_claim` group 1 is a suite count and group 2 a script count,
+# both read out of the one sentence *Testing idiom* states them in. Beside NUM and BEFORE
+# rather than at the use below, so the regex vocabulary is in one place and the checks read
+# as comparisons.
+intro_claim=".*$BEFORE$NUM bash scripts.*"
+idiom_claim=".*$BEFORE$NUM files for $NUM scripts.*"
 
 # claimed <text> <pattern> <group> — the count <pattern> captures out of <text>, empty if
 # nothing matches. The leading `.*` is greedy, so of several sentences matching in the
@@ -203,16 +212,14 @@ idiom="$(section "$section_name" | flatten)"
 if [[ -z "${intro// /}" ]]; then
   unreadable "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"
 else
-  check "opening paragraph's script count" \
-    "$(claimed "$intro" ".*$BEFORE$NUM bash scripts.*" 1)" "$n_scripts"
+  check "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts"
 fi
 
 if [[ -z "${idiom// /}" ]]; then
   unreadable "$claude_md has no '## $section_name' section" "the suite and script counts it states"
 else
-  suite_claim=".*$BEFORE$NUM files for $NUM scripts.*"
-  check "*$section_name* suite count" "$(claimed "$idiom" "$suite_claim" 1)" "$n_suites"
-  check "*$section_name* script count" "$(claimed "$idiom" "$suite_claim" 2)" "$n_scripts"
+  check "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites"
+  check "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts"
 fi
 
 report "$name"
