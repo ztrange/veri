@@ -55,8 +55,36 @@ test:
 # AND still agrees with the two files it describes but is not generated from (the
 # phases build-verify-prompt.sh accepts, SKILL.md's revise budget).
 # A guard nobody has watched fail is decoration, which is why the tests run first.
+#
+# All four refuse inside a veri run (#143). The conductor hands every leaf it launches, and
+# every command it runs itself, the run's test command as VERI_TEST_CMD — so that variable
+# in the environment is a recipe's one way of knowing it was typed inside a run rather than
+# by a human. A development run's bargain is three `make test` runs a step; a page build is
+# not part of it, and neither is the red a stale page hands back. On 2026-09-13 the
+# conductor solving #106 spent ~5.5 min on `make docs` and `make docs-check` for a page
+# nothing had asked it for, then paid for the same rebuild again at merge.
+#
+# The guard is one line, prefixed to each of the four recipes rather than written into three
+# and forgotten in the fourth. It comes first in the recipe, so a refusal costs nothing: a
+# guard that exits 2 after building the page has already spent what the rule exists to save.
+# docs-check carries its own copy even though its prerequisites refuse before it is reached,
+# because it is the target a human types and what it does is a fact of its own.
+#
+# It stays out of the way of everyone else: unset — a human, `make merge-gates`, CI — and
+# the recipes run exactly as they did.
+#
+# The diagnostic names VERI_TEST_CMD and prints its value, because "refusing" on its own
+# sends whoever read it to this file: the variable is both what stopped the build and the
+# knob to reach for. It carries no issue number — an unescaped `#` in a variable definition
+# opens a make comment and silently truncates the value at it.
+DEV_RUN_GUARD := if [ -n "$${VERI_TEST_CMD:-}" ]; then \
+	  printf 'refusing: VERI_TEST_CMD=%s is set, so this is a veri run, and a run never owes a page build.\n' "$${VERI_TEST_CMD}" >&2; \
+	  exit 2; \
+	fi
+
 .PHONY: docs docs-check docs-test docs-fresh merge-gates install-hooks
 docs:
+	@$(DEV_RUN_GUARD)
 	@python3 docs/build-walkthrough.py
 
 # The capability index is built from `git tag`, which makes a tag the one input to
@@ -86,14 +114,17 @@ install-hooks:
 DOCS_TESTS := $(sort $(wildcard docs/tests/*.test.sh))
 
 docs-test:
+	@$(DEV_RUN_GUARD)
 	@for t in $(DOCS_TESTS); do "$$t" || exit $$?; done
 
 # The freshness half of docs-check on its own: rebuild once, compare to the committed
 # page (~2 s). Split out because merge-gates owes it far more often than the guards.
 docs-fresh:
+	@$(DEV_RUN_GUARD)
 	@python3 docs/check-walkthrough.py
 
 docs-check: docs-test docs-fresh
+	@$(DEV_RUN_GUARD)
 
 # The docs gates left CI on 2026-09-11 (the guards made every job ~4x longer on billed
 # runners), and a push hook would run them on pushes that touched nothing the page reads.
