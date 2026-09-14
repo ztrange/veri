@@ -110,11 +110,65 @@ report() {
 # output quoted inside an indented problem line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# plant_reader — write the suite the guard must catch, at `reader_path`: it binds a file in
+# the documentation tree to a variable and opens it four lines later, to read a figure out
+# of the prose. That is the shape of every site this issue deletes — the path and the read
+# verb never share a line. A whole suite down to the count line, for the reason `plant`
+# gives, and executable, because the guard meets it in a directory of runnable suites.
+plant_reader() {
+  cat > "$reader_path" <<'EOF'
+#!/usr/bin/env bash
+# Unit tests for supervise.sh's heartbeat default — the half of this case that compares the
+# code to the page's prose is the shape the guard has to catch.
+set -uo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+pass=0 fail=0
+EOF
+  printf 'commentary="%s" # %s\n' "$DOCS_READ_PATH" "$MARK" >> "$reader_path"
+  printf '%s\n' "$READ_SITE" >> "$reader_path"
+  cat >> "$reader_path" <<'EOF'
+[[ "$stated" -gt 0 ]] && pass=1 || fail=1
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
+EOF
+  chmod 755 "$reader_path"
+}
+
+# plant_quoter — write the suite the guard must leave alone, at `quoter_path`: its path in
+# that tree is a string it writes into a file of its own and greps there, never a file it
+# opens in the documentation tree. Whole and executable for the same reasons.
+plant_quoter() {
+  cat > "$quoter_path" <<'EOF'
+#!/usr/bin/env bash
+# Unit tests for detect-test-command.sh — the path here is fixture text handed to the
+# subject, the shape the guard must not refuse.
+set -uo pipefail
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+pass=0 fail=0
+EOF
+  printf 'echo "## Notes. %s is generated. Test command: make docs-test" > "$work/body.md"\n' \
+    "$DOCS_FIXTURE_PATH" >> "$quoter_path"
+  cat >> "$quoter_path" <<'EOF'
+grep -q 'make docs-test' "$work/body.md" && pass=1 || fail=1
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
+EOF
+  chmod 755 "$quoter_path"
+}
+
 # plant — build the scratch tree the case is asked about and leave its path in `tree`, the
 # three files in it in `reader_path`, `quoter_path` and `guard_copy`, and the line number of
 # the binding line in `reader_line`. Both fixtures are whole suites down to the count line,
 # because the guard is run over the directory rather than handed a file and a directory of
 # half-suites is not the thing it will meet.
+#
+# Each fixture is written by a function of its own above, so that this one reads as the
+# order the tree is built in — two suites and a copy of the guard, staged — rather than as
+# sixty lines in which the two shapes being contrasted are two heredocs apart.
 #
 # The tree is made a git repository with both fixtures staged. Nothing in the contract says
 # how the guard enumerates the suites it reads, and `git ls-files` is as reasonable an
@@ -135,48 +189,9 @@ plant() {
   quoter_path="$tree/$TESTS_DIR/$QUOTER"
   guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
 
-  # The suite the guard must catch: it binds a file in the documentation tree to a variable
-  # and opens it four lines later, to read a figure out of the prose. That is the shape of
-  # every site this issue deletes — the path and the read verb never share a line.
-  cat > "$reader_path" <<'EOF'
-#!/usr/bin/env bash
-# Unit tests for supervise.sh's heartbeat default — the half of this case that compares the
-# code to the page's prose is the shape the guard has to catch.
-set -uo pipefail
-HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$(cd "$HERE/../../../.." && pwd)"
-pass=0 fail=0
-EOF
-  printf 'commentary="%s" # %s\n' "$DOCS_READ_PATH" "$MARK" >> "$reader_path"
-  printf '%s\n' "$READ_SITE" >> "$reader_path"
-  cat >> "$reader_path" <<'EOF'
-[[ "$stated" -gt 0 ]] && pass=1 || fail=1
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
-EOF
+  plant_reader
+  plant_quoter
 
-  # The suite the guard must leave alone: its docs/ path is a string it writes into a file
-  # of its own and greps there, never a file it opens in the documentation tree.
-  cat > "$quoter_path" <<'EOF'
-#!/usr/bin/env bash
-# Unit tests for detect-test-command.sh — the path here is fixture text handed to the
-# subject, the shape the guard must not refuse.
-set -uo pipefail
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
-pass=0 fail=0
-EOF
-  printf 'echo "## Notes. %s is generated. Test command: make docs-test" > "$work/body.md"\n' \
-    "$DOCS_FIXTURE_PATH" >> "$quoter_path"
-  cat >> "$quoter_path" <<'EOF'
-grep -q 'make docs-test' "$work/body.md" && pass=1 || fail=1
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
-EOF
-
-  chmod 755 "$reader_path" "$quoter_path"
   cp "$GUARD_PATH" "$guard_copy"
   git init -q "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
