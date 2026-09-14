@@ -67,6 +67,17 @@ context_path="$ROOT/$context_md"
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
+# The claim itself, spelled once. Three probes ask for it and they span all three documents —
+# SKILL.md's Refactor section in case 1, CONTEXT.md's Cycle entry and CLAUDE.md's budget
+# invariant in case 2. That they ask in the *same* words is the claim and not an incidental
+# repetition: what any one of them fails with is that the procedure and the account of it can
+# be reworded apart without either noticing, and three independent literals here would leave
+# this suite free to drift exactly that way itself. The optional noun is whichever one a
+# document puts between the number and the leaf; the alternation is the union of the three,
+# because which of them a given document reaches for is the writer's business and not a fact
+# about the phase.
+one_leaf='(one|a single) (refactor |developer |transform )?leaf'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -122,7 +133,7 @@ else
   # 1. One leaf for the step. Both faces, because either alone passes a document that is
   #    half-rewritten: it has to SAY one leaf, and it must no longer tell the conductor to
   #    come back round for the next transform.
-  [[ "$section" =~ (one|a single)\ (refactor\ |developer\ |transform\ )?leaf ]] ||
+  [[ "$section" =~ $one_leaf ]] ||
     problems+=("$skill_md's Refactor section never says one leaf applies the step's transforms, so the conductor is not told that the cold start and the spec re-read are paid once rather than once per transform")
   relaunch="$(grep -oE 'repeatedly|(each|every|the next) iteration' <<<"$section" | head -1)"
   [[ -z "$relaunch" ]] ||
@@ -259,7 +270,7 @@ invariant="$(record "$claude_path" 'veri_stuck_retries' 'revise_budget' 'veri_re
 if [[ -z "$cycle" ]]; then
   problems+=("$context_md has no Cycle glossary entry to read — what this repository tells the next agent a refactor step is could not be established")
 else
-  [[ "$cycle" =~ (one|a single)\ (refactor\ )?leaf ]] ||
+  [[ "$cycle" =~ $one_leaf ]] ||
     problems+=("$context_md's Cycle entry never says the refactor step is one leaf, so the glossary still describes the cycle as spending a leaf per transform")
   stale_cycle="$(grep -oE 'per leaf|until none remain|per leaf invocation' <<<"$cycle" | head -1)"
   [[ -z "$stale_cycle" ]] ||
@@ -269,7 +280,7 @@ fi
 if [[ -z "$invariant" ]]; then
   problems+=("$claude_md has no invariant naming all three budgets to read — what VERI_REFACTOR_BUDGET is said to bound could not be established")
 else
-  [[ "$invariant" =~ (one|a single)\ (refactor\ )?leaf ]] ||
+  [[ "$invariant" =~ $one_leaf ]] ||
     problems+=("$claude_md's budget invariant never says one leaf spends the step's refactor budget, so the cost axis is still explained as a leaf per transform")
   stale_invariant="$(grep -oE 'asked for one always finds one|one transform per leaf|a transform per leaf' <<<"$invariant" | head -1)"
   [[ -z "$stale_invariant" ]] ||
