@@ -115,6 +115,13 @@ chmod +x "$harness"
 # message a reader has to be able to compare against the other two.
 pgid_of() { ps -o pgid= -p "$1" | tr -d ' '; }
 
+# reported <file> <if-nothing> — what one of the five report-back files above has to say, or
+# <if-nothing> when it holds nothing. Every failure message in this suite quotes one of them,
+# and each was asking for it as a bare `cat … 2>/dev/null` whose own fallback only covers the
+# file being absent: an empty one makes `cat` succeed, print nothing, and the `|| echo none`
+# never fire, so the message would read `…as ` and leave the reader guessing which it was.
+reported() { [[ -s "$1" ]] && cat "$1" || printf '%s\n' "$2"; }
+
 # appeared <file> <seconds> — true once <file> holds something, polled ten times a second up
 # to a budget. Every wait in this suite is that one question: the harness has to say both
 # children are launched before the signal goes out, the launcher's child has to have written
@@ -175,7 +182,7 @@ probe_term_hit_the_launching_shells_group() {
   ) > /dev/null 2>&1
 
   [[ -s "$TERM_SENT" ]] ||
-    problems+=("no TERM was sent to the launching shell's process group, so nothing below was asked: $(cat "$WHY_NO_TERM" 2>/dev/null || echo unknown) (its pgid read back as $(cat "$HARNESS_PGID" 2>/dev/null || echo none), this suite's is $(pgid_of $$))")
+    problems+=("no TERM was sent to the launching shell's process group, so nothing below was asked: $(reported "$WHY_NO_TERM" unknown) (its pgid read back as $(reported "$HARNESS_PGID" none), this suite's is $(pgid_of $$))")
 }
 
 # probe_the_signal_landed_on_a_running_child — the other premise, and the one that cost an
@@ -203,8 +210,8 @@ probe_the_signal_landed_on_a_running_child() {
 probe_detached_child_wrote_its_completion_file() {
   appeared "$DETACHED_EXIT" 12 ||
     problems+=("the child launched through detach-leaf.sh wrote no completion file after the TERM; $DETACHED_EXIT is $( [[ -e "$DETACHED_EXIT" ]] && echo empty || echo absent )")
-  [[ "$(cat "$DETACHED_EXIT" 2>/dev/null)" == 0 ]] ||
-    problems+=("its completion file does not hold the status the child wrote; want 0, got: $(printf '%q' "$(cat "$DETACHED_EXIT" 2>/dev/null)")")
+  [[ "$(reported "$DETACHED_EXIT" none)" == 0 ]] ||
+    problems+=("its completion file does not hold the status the child wrote; want 0, got: $(printf '%q' "$(reported "$DETACHED_EXIT" none)")")
 }
 
 # probe_the_term_was_fatal_in_that_group — the premise. The control child was launched the
@@ -215,7 +222,7 @@ probe_detached_child_wrote_its_completion_file() {
 # $LINGER seconds of grace on top, so "still nothing" is a fact and not an early look.
 probe_the_term_was_fatal_in_that_group() {
   ! appeared "$CONTROL_EXIT" "$LINGER" ||
-    problems+=("the nohup-launched control child survived the TERM too, so the signal says nothing about detaching: $CONTROL_EXIT holds $(printf '%q' "$(cat "$CONTROL_EXIT" 2>/dev/null)")")
+    problems+=("the nohup-launched control child survived the TERM too, so the signal says nothing about detaching: $CONTROL_EXIT holds $(printf '%q' "$(reported "$CONTROL_EXIT" none)")")
 }
 
 # 1. The whole of this step's criterion, as one case: a process started through the launcher
