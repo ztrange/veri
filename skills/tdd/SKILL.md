@@ -593,11 +593,10 @@ following step. The phase sub-steps are:
    Then **triage that committed transform**: `$S/refactor-triage.sh < .tdd/develop-refactor.out`
    answers exit **0**, structural candidates remain, so iterate; exit **3**, nothing
    structural is left, so **stop** the loop; exit **2**, the report is malformed, so
-   **stop** and **narrate** it. Both stops go to sub-step 2: the transform is already
-   committed and verify-refactor still judges the settled state, so a report nothing classed
-   is not worth a bail. The triage is asked **after** the commit, never before — the report
-   it reads belongs to a transform that is already in the history, which is what makes a
-   malformed one survivable. `refactor-budget.sh` stays the cap.
+   **stop** and **narrate** it. The triage is asked **after** the commit, never before, and
+   that is what makes a report nothing classed survivable rather than a bail: the transform
+   it reads the report of is already in the history, and verify-refactor still judges the
+   settled state, so **both stops go to sub-step 2**. `refactor-budget.sh` stays the cap.
 2. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit
