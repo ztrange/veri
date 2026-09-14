@@ -34,9 +34,15 @@ set -euo pipefail
 # a wrong repository is silently wrong, so gh's own default (the repo of the working
 # directory) is the only sane fallback. The `[@]+` expansion is what keeps an empty array
 # from becoming an empty argument under `set -u`.
+#
+# The slug is also kept on its own, because it is the only thing that says which repository
+# a URL-form blocker has to name to be one: `/<owner>/<other>/issues/120` is another
+# project's issue, not this one's #120.
 repo_args=()
+repo=""
 if [[ "${1:-}" == "--repo" ]]; then
-  repo_args=(--repo "${2:?usage: solvable-issues.sh [--repo owner/name]}")
+  repo="${2:?usage: solvable-issues.sh [--repo owner/name]}"
+  repo_args=(--repo "$repo")
 fi
 
 # The opt-in label, read the way every other tunable in this suite is read. Setting it moves
@@ -102,11 +108,22 @@ claimed = {
     for n in re.findall(r"\bCloses #(\d+)", pr.get("body") or "")
 }
 
+# A blocker is spelled `#<n>` or as the full URL GitHub itself renders and autocompletes, and
+# the owner and name in that URL are part of the reference rather than decoration around the
+# digits: an issue #120 exists in a fork, in a dependency and in the demo repo veri is pointed
+# at, so reading the number alone invents a blocker out of some other project. Which repository
+# "this one" is comes from `--repo`; with nothing said there is nothing to compare against, so
+# any github.com issue URL is read as local — the same assumption gh makes when it falls back
+# to the repo of the working directory.
+this_repo = sys.argv[4]
+slug = re.escape(this_repo) if this_repo else r"[^/\s]+/[^/\s]+"
+blocker_ref = r"(?:#|https://github\.com/" + slug + r"/issues/)(\d+)"
+
 def blockers(body):
     """The issue numbers named under the `## Blocked by` heading, up to the next heading.
     A section reading `None.` names none, and so does a body with no such section."""
     section = re.search(r"^## Blocked by$(.*?)(?=^## |\Z)", body, re.M | re.S)
-    return [int(n) for n in re.findall(r"(?:#|/issues/)(\d+)", section.group(1))] if section else []
+    return [int(n) for n in re.findall(blocker_ref, section.group(1))] if section else []
 
 def solvable(issue):
     """The four conditions the spec names, all of which must hold at once. They are named
@@ -126,4 +143,4 @@ for number in numbers:
 # learns it from the code rather than from having to notice that stdout was empty.
 if not numbers:
     sys.exit(3)
-' "$issues_json" "$prs_json" "$label"
+' "$issues_json" "$prs_json" "$label" "$repo"
