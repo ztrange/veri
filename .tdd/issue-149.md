@@ -1,7 +1,7 @@
 # Plan for #149 — Refactor leaves apply only structural transforms, and the loop ends when none are left
 
 - [x] `develop-refactor.md` defines structural and cosmetic candidates by what the transform changes
-- [x] `develop-refactor.md` tells the leaf to apply only a structural transform and to report nothing left to tidy when only cosmetic candidates remain ⟂ refactor pending
+- [x] `develop-refactor.md` tells the leaf to apply only a structural transform and to report nothing left to tidy when only cosmetic candidates remain
 - [ ] `develop-refactor.md` requires every `CANDIDATES:` line to carry its class
 - [ ] `refactor-triage.sh` exits 0 and prints the structural candidates when the report lists at least one
 - [ ] `refactor-triage.sh` exits 3 when the report lists only cosmetic candidates or `none`
