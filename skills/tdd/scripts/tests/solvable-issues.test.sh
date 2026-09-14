@@ -720,11 +720,23 @@ run "$fx" --repo ztrange/veri
 # the header writes `<owner>/<repo>`, `ztrange/veri` or `…` between the host and `/issues/` is the
 # writer's call and none of the three is the criterion. Each miss is named in the failure message
 # so one run says which spelling is short.
+#
+# One spelling, one claim, through the shape case 11's `doc_claims` already established: the
+# helper collapses the accumulator — `$header_missing $tag` written in exactly one place, so two
+# claims cannot drift into reporting misses in two shapes — while the grep arguments stay at the
+# call site, where the difference between a literal reference and a loosely matched URL is the
+# point. It is its own helper rather than `doc_claims` because the subject is a slice of text
+# already in hand, not a file under $REPO_ROOT.
 header="$(awk '/^set -euo pipefail$/ {exit} {print}' "$SOLVABLE")"
 
+header_names() {  # header_names <tag> <grep argument…>
+  local tag="$1"; shift
+  grep -q "$@" <<<"$header" || header_missing="$header_missing $tag"
+}
+
 header_missing=""
-grep -q '#<n>' <<<"$header" || header_missing="$header_missing hash-form"
-grep -qE 'https://github\.com/[^ ]*/issues/' <<<"$header" || header_missing="$header_missing url-form"
+header_names hash-form -e '#<n>'
+header_names url-form -E -e 'https://github\.com/[^ ]*/issues/'
 
 { [[ -n "$header" ]] && [[ -z "$header_missing" ]]; } \
   && ok || no "the header comment of solvable-issues.sh names both blocker spellings (missing:$header_missing; header slice above 'set -euo pipefail' is $(grep -c '' <<<"$header") lines, want a non-empty slice naming '#<n>' and a github.com issues URL)"
