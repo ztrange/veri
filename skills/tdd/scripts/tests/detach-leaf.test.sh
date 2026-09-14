@@ -66,6 +66,17 @@ mkdir -p "$work/.tdd"
 DETACHED_EXIT="$work/.tdd/detached-leaf.exit"
 CONTROL_EXIT="$work/.tdd/control-leaf.exit"
 
+# Everything else the probes read is a file too, and for the same reason the comment on the
+# probe below gives: the harness is another process, and the signalling runs in a subshell
+# whose output is discarded, so neither can hand a variable back. Naming them here says which
+# five channels there are, and keeps the reader from having to notice that the `$work/why-no-term`
+# a probe reports on is the one the subshell three functions up wrote.
+LAUNCHED_MARKER="$work/launched"       # harness: both launches have returned
+LAUNCH_SECONDS="$work/launch.seconds"  # harness: how long the launcher took to hand control back
+HARNESS_PGID="$work/harness.pgid"      # subshell: the process group the harness landed in
+TERM_SENT="$work/term.sent"            # subshell: the signal went out
+WHY_NO_TERM="$work/why-no-term"        # subshell: …or it did not, and this is what stopped it
+
 # The harness: the shell whose process group is about to be signalled. It launches the two
 # children — the `nohup` control first, so the launcher's child is never the older of the
 # two — records how long the launcher took to hand control back, writes a marker saying both
@@ -83,8 +94,8 @@ cat > "$harness" <<H
 set -uo pipefail
 nohup bash -c "sleep $LINGER; printf '0\n' > $CONTROL_EXIT" > /dev/null 2>&1 &
 "$DETACH" bash -c "sleep $LINGER; printf '0\n' > $DETACHED_EXIT" > /dev/null 2>&1
-printf '%s\n' "\$SECONDS" > "$work/launch.seconds"
-printf '%s\n' launched > "$work/launched"
+printf '%s\n' "\$SECONDS" > "$LAUNCH_SECONDS"
+printf '%s\n' launched > "$LAUNCHED_MARKER"
 sleep 60
 H
 chmod +x "$harness"
@@ -132,7 +143,7 @@ probe_term_hit_the_launching_shells_group() {
     hpid=$!
     set +m
 
-    appeared "$work/launched" 30 || printf 'never-launched\n' > "$work/why-no-term"
+    appeared "$LAUNCHED_MARKER" 30 || printf 'never-launched\n' > "$WHY_NO_TERM"
     # Half a second between the launcher handing control back and the signal. The child is
     # detached by the launcher and not by this suite, so there is a moment after the launch
     # returns in which it has not finished moving itself out of this group; signalling inside
@@ -142,21 +153,21 @@ probe_term_hit_the_launching_shells_group() {
     sleep 0.5
 
     pg="$(pgid_of "$hpid")"
-    printf '%s\n' "${pg:-none}" > "$work/harness.pgid"
+    printf '%s\n' "${pg:-none}" > "$HARNESS_PGID"
     if [[ ! "$pg" =~ ^[0-9]+$ ]]; then
-      printf 'no-pgid\n' > "$work/why-no-term"
+      printf 'no-pgid\n' > "$WHY_NO_TERM"
     elif [[ "$pg" == "$suite_pgid" ]]; then
-      printf 'shares-this-suites-group\n' > "$work/why-no-term"
-    elif [[ -s "$work/why-no-term" ]]; then
+      printf 'shares-this-suites-group\n' > "$WHY_NO_TERM"
+    elif [[ -s "$WHY_NO_TERM" ]]; then
       : # the launches never reported in; nothing to signal
     else
-      kill -TERM -"$pg" && printf 'sent\n' > "$work/term.sent"
+      kill -TERM -"$pg" && printf 'sent\n' > "$TERM_SENT"
     fi
     wait "$hpid"
   ) > /dev/null 2>&1
 
-  [[ -s "$work/term.sent" ]] ||
-    problems+=("no TERM was sent to the launching shell's process group, so nothing below was asked: $(cat "$work/why-no-term" 2>/dev/null || echo unknown) (its pgid read back as $(cat "$work/harness.pgid" 2>/dev/null || echo none), this suite's is $(pgid_of $$))")
+  [[ -s "$TERM_SENT" ]] ||
+    problems+=("no TERM was sent to the launching shell's process group, so nothing below was asked: $(cat "$WHY_NO_TERM" 2>/dev/null || echo unknown) (its pgid read back as $(cat "$HARNESS_PGID" 2>/dev/null || echo none), this suite's is $(pgid_of $$))")
 }
 
 # probe_the_signal_landed_on_a_running_child — the other premise, and the one that cost an
@@ -170,7 +181,7 @@ probe_term_hit_the_launching_shells_group() {
 # what it is rather than as one of the two.
 probe_the_signal_landed_on_a_running_child() {
   local elapsed
-  elapsed="$(cat "$work/launch.seconds" 2>/dev/null)"
+  elapsed="$(cat "$LAUNCH_SECONDS" 2>/dev/null)"
   [[ "$elapsed" =~ ^[0-9]+$ ]] ||
     { problems+=("the harness never recorded how long the launch took, so nothing says the TERM reached a live child"); return; }
   [[ "$elapsed" -lt "$LINGER" ]] ||
