@@ -783,9 +783,10 @@ git -C "$flight_repo" -c user.name=veri -c user.email=veri@example.test \
 # arms differ by the pid alone, and a case that spelled the path twice could pin a claim at one
 # path while seeding it at another.
 claim() {  # claim <n> <pid>
-  git -C "$flight_repo" worktree add -q -b "tdd/$1-slug" "$flight_repo/.tdd/wt/$1" main >/dev/null 2>&1
-  mkdir -p "$flight_repo/.tdd/wt/$1/.tdd"
-  printf '%s\n' "$2" > "$flight_repo/.tdd/wt/$1/.tdd/conductor.pid"
+  local wt="$flight_repo/.tdd/wt/$1"
+  git -C "$flight_repo" worktree add -q -b "tdd/$1-slug" "$wt" main >/dev/null 2>&1
+  mkdir -p "$wt/.tdd"
+  printf '%s\n' "$2" > "$wt/.tdd/conductor.pid"
 }
 
 # A pid that is certainly not alive: a child started and reaped right here, so the number was a
