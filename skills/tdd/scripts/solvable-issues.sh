@@ -116,8 +116,8 @@ claimed = {
 # "this one" is comes from `--repo`; with nothing said there is nothing to compare against, so
 # any github.com issue URL is read as local — the same assumption gh makes when it falls back
 # to the repo of the working directory.
-slug = re.escape(this_repo) if this_repo else r"[^/\s]+/[^/\s]+"
-blocker_ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % slug
+slug_pattern = re.escape(this_repo) if this_repo else r"[^/\s]+/[^/\s]+"
+blocker_ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % slug_pattern
 
 def blockers(body):
     """The issue numbers named under the `## Blocked by` heading, up to the next heading.
