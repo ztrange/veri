@@ -366,11 +366,11 @@ REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/n
 }
 
 tamper_run tracked 'printf "the verifier rewrote this\n" > src.txt'
-tracked_code=$code tracked_out="$out" r_tracked="$delta"
+tracked_code=$code tracked_out="$out" tracked_delta="$delta"
 tamper_run untracked 'printf "the verifier left this behind\n" > leftover.txt'
-untracked_code=$code untracked_out="$out" r_untracked="$delta"
+untracked_code=$code untracked_out="$out" untracked_delta="$delta"
 tamper_run head 'git commit -q -a -m "the verifier committed the developer'"'"'s work"'
-head_code=$code head_out="$out" r_head="$delta"
+head_code=$code head_out="$out" head_delta="$delta"
 
 # 11. a verifier leaf that leaves the tree changed makes verify.sh exit 2 whatever its verdict,
 #     with what changed on stdout.
@@ -381,8 +381,8 @@ head_code=$code head_out="$out" r_head="$delta"
 
 # 12. and after that exit 2 the repository is PUT BACK — the tree and HEAD exactly what they
 #     were when the verifier launched, the developer's uncommitted work included.
-{ [[ -z "$r_tracked" ]] && [[ -z "$r_untracked" ]] && [[ -z "$r_head" ]]; } && ok \
-  || no "after the exit 2 the tree and HEAD are back to what the verifier was handed, uncommitted work included (rewritten tracked file: delta='$r_tracked' code=$tracked_code; created untracked file: delta='$r_untracked' code=$untracked_code; verifier commit: delta='$r_head' code=$head_code)"
+{ [[ -z "$tracked_delta" ]] && [[ -z "$untracked_delta" ]] && [[ -z "$head_delta" ]]; } && ok \
+  || no "after the exit 2 the tree and HEAD are back to what the verifier was handed, uncommitted work included (rewritten tracked file: delta='$tracked_delta' code=$tracked_code; created untracked file: delta='$untracked_delta' code=$untracked_code; verifier commit: delta='$head_delta' code=$head_code)"
 
 echo "----"
 echo "$pass passed, $fail failed"
