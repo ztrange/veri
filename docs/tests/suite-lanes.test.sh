@@ -265,6 +265,17 @@ probe_gate_rule_prose() {
   probe_widened_selection "$GATE_HEADER_WHERE" "$(gate_header)"
 }
 
+# probe_stale_trigger_gone — the #164 half of the same rule, over the two copies the
+# criterion names. The same kind of wrapper probe_gate_rule_prose is, for the same reason:
+# a case body below is a list of the facts it claims, and each probe goes and finds its own
+# prose, rather than one case reaching for gate_row/gate_header at the call site while its
+# neighbour does not. The Makefile's comment is not swept here — the criterion names two
+# copies, and the behaviour itself has its own case in merge-gates.test.sh.
+probe_stale_trigger_gone() {
+  probe_no_stale_trigger "$GATE_ROW_WHERE" "$(gate_row)"
+  probe_no_stale_trigger "$GATE_HEADER_WHERE" "$(gate_header)"
+}
+
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
 #    run by the docs target, and no suite development's target runs is about the docs
 #    pipeline. Four probes, each arguing for itself in the comment above it. Only the order
@@ -313,8 +324,7 @@ report "$name"
 name="CLAUDE.md's row and merge-gates.sh's header no longer name a Makefile change as owing docs-fresh"
 problems=()
 
-probe_no_stale_trigger "$GATE_ROW_WHERE" "$(gate_row)"
-probe_no_stale_trigger "$GATE_HEADER_WHERE" "$(gate_header)"
+probe_stale_trigger_gone
 
 report "$name"
 
