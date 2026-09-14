@@ -109,18 +109,22 @@ comment_above() {
   ' "$1"
 }
 
-# gate_row / gate_header — the two copies of the merge gate's rule both prose cases ask
-# about, each located the way its own file keeps it: CLAUDE.md's table row by its leading
-# cell, the script's rationale by everything above its first `set` line. Named once for the
-# reason ADR_SUITE is — case 2 asks them what the rule now says and case 3 what it no longer
-# says, and two probes locating the row differently would quietly be judging different prose.
+# gate_row / gate_makefile_comment / gate_header — the three copies of the merge gate's rule
+# the prose cases ask about, each located the way its own file keeps it: CLAUDE.md's table
+# row by its leading cell, the Makefile target's paragraph by the run of comments above it,
+# the script's rationale by everything above its first `set` line. Named rather than located
+# at the call site so the case that asks all three reads as three copies of one fact, and —
+# the reason ADR_SUITE is named — so that the two copies case 3 asks again are located by the
+# same expression there as here, rather than quietly judging different prose.
 #
 # The `where` each one is reported under travels with it, for the other half of that reason:
-# both cases hand it to a probe that puts it in front of the problem line, so two spellings
-# of the same copy would read in the output as two different files being stale.
+# a probe puts it in front of the problem line, so two spellings of the same copy would read
+# in the output as two different files being stale.
 GATE_ROW_WHERE="CLAUDE.md's 'make merge-gates' row"
+GATE_MAKEFILE_WHERE="the Makefile comment above the merge-gates target"
 GATE_HEADER_WHERE="docs/merge-gates.sh's header"
 gate_row() { grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md"; }
+gate_makefile_comment() { comment_above "$ROOT/Makefile" '^merge-gates:'; }
 gate_header() { header "$ROOT/docs/merge-gates.sh"; }
 
 # says <where> <text> <fact> <regex>... — one fact a piece of prose has to carry, written
@@ -259,10 +263,9 @@ probe_suite_home_prose() {
 # keeps it: a table row by its leading cell, a Makefile target's paragraph by the run of
 # comments above it, a script's rationale by everything above its first `set` line.
 probe_gate_rule_prose() {
-  probe_widened_selection "$GATE_ROW_WHERE" "$(gate_row)"
-  probe_widened_selection "the Makefile comment above the merge-gates target" \
-    "$(comment_above "$ROOT/Makefile" '^merge-gates:')"
-  probe_widened_selection "$GATE_HEADER_WHERE" "$(gate_header)"
+  probe_widened_selection "$GATE_ROW_WHERE"      "$(gate_row)"
+  probe_widened_selection "$GATE_MAKEFILE_WHERE" "$(gate_makefile_comment)"
+  probe_widened_selection "$GATE_HEADER_WHERE"   "$(gate_header)"
 }
 
 # probe_stale_trigger_gone — the #164 half of the same rule, over the two copies the
