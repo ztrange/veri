@@ -372,9 +372,9 @@ unauthenticated baseline never gets a cycle.
    The **caller's checkout is left exactly as it was**, still on whatever branch it was on:
    it is never switched and never committed in. That is the point — a skill symlinked out of
    it or a dev server serving it must not silently start seeing the issue branch (ADR-0013).
-   **Exit 2 is a preflight-class stop**: either the branch is already checked out in another
-   worktree (another conductor owns that run — never steal it) or the default branch cannot
-   be named. Report the script's diagnostic verbatim and **do not start** — no branch of your
+   **Exit 2 is a preflight-class stop**, for any of the reasons the script's entry under *The
+   scripts* enumerates — that entry is the one place they are listed, so this step cannot fall
+   behind it. Report the script's diagnostic verbatim and **do not start** — no branch of your
    own, no cycle, nothing to revert.
 3. **Write the behavior spec to a file** the verifier leaves will read — inside the worktree,
    which you are now in:
