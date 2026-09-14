@@ -21,6 +21,11 @@
 #                     line carries no class or an unknown one, or the report lists no
 #                     `CANDIDATES:` line at all.
 #
+# And then the caller's half of that same contract: SKILL.md's *Refactor loop* is where a
+# conductor learns to run this script and what to do with each answer, and a script nothing
+# calls decides nothing. That case reads the document as text, the way refactor-budget.test.sh
+# case 8 reads it for the sibling script's default.
+#
 # Run: scripts/tests/refactor-triage.test.sh
 set -uo pipefail
 
@@ -213,6 +218,100 @@ malformed_probe "a candidate line with an unknown class" "$unknown_class"
 malformed_probe "a report with no CANDIDATES: line" "$no_candidates"
 
 rm -f "$no_class" "$unknown_class" "$no_candidates"
+report "$name"
+
+# 4. the loop that calls it. Cases 1–3 ask the script what it answers; this one asks whether
+#    anything is listening. The conductor is prose, so the whole of this script's place in the
+#    run lives in SKILL.md's *Refactor loop* section: where the call goes, and which branch
+#    each of the three answers takes. Get that wrong and the script still passes cases 1–3
+#    while the loop keeps ending only when the budget runs out, which is the thing #149 is
+#    about.
+#
+#    It lives in this suite rather than in one of the `skill-*` ones for refactor-budget.test.sh
+#    case 8's reason: the sentences under test are statements *about this script*, and a
+#    reader repairing them comes here to find out what it actually answers.
+#
+#    Three claims, one criterion — the loop runs it on each transform's settled result and
+#    branches on both non-zero answers — and so one case, with `problems` saying which claim
+#    the document dropped:
+#      - the call is made AFTER the transform is committed, not before: the report being
+#        triaged is the one belonging to a transform that is already in the history, which is
+#        what makes a malformed report survivable rather than a bail.
+#      - exit 3 stops the loop — the third stop condition.
+#      - exit 2 stops it too, and is narrated rather than bailed on.
+#
+#    Each probe accepts any wording that carries its fact — how the document phrases it is the
+#    writer's — but the two exit-code claims are asked of the text *around the call itself*,
+#    not of the section at large: this section already talks about stop conditions and about
+#    an exit 3, for `refactor-budget.sh` on the loop's other axis, and a probe that read the
+#    whole section would be answered by those sentences and pass a document that never says
+#    what THIS script's answers mean.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+# The document twice: the path as every problem message spells it, and the same path resolved
+# for the reader to open, so a message can never name a file the probes did not read.
+skill_md="skills/tdd/SKILL.md"
+skill_path="$ROOT/$skill_md"
+
+# plain — stdin with emphasis marks and backticks dropped and the case folded, because
+# `exits **3**` and "exits 3" are the same sentence. Borrowed from skill-suite-runs.test.sh,
+# which reads this same section for what its leaf runs.
+plain() {
+  tr -d '*`' | tr '[:upper:]' '[:lower:]'
+}
+
+# refactor_loop — the lines of the *Refactor loop* section, normalised through `plain`: the
+# lines after the heading that starts with `#### Refactor loop`, up to the next heading of any
+# level. Lines rather than one blob, because one probe below is about order — which of the
+# call and the commit the document does first — and that question disappears once the section
+# is joined onto a single line.
+refactor_loop() {
+  awk -v h='#### Refactor loop' \
+    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" | plain
+}
+
+# line_of <extended-regex> — the 1-based position of the first section line matching it, or
+# the empty string when none does. Position is what turns two "is it there?" probes into the
+# one question the ordering claim asks.
+line_of() {
+  grep -nE "$1" <<<"$loop_lines" | head -1 | cut -d: -f1
+}
+
+name="$skill_md's refactor loop calls refactor-triage.sh on each committed transform and stops on exit 3 and exit 2"
+problems=()
+
+loop_lines="$(refactor_loop)"
+if [[ -z "${loop_lines// /}" ]]; then
+  # Fail closed: a renamed or emptied section is reported as unreadable rather than probed as
+  # an empty string, which would let "the loop is gone" read as "the loop is right".
+  problems+=("$skill_md has no '#### Refactor loop' section to read — where the conductor calls refactor-triage.sh could not be established")
+else
+  triage_at="$(line_of 'refactor-triage\.sh')"
+  commit_at="$(line_of 'git commit -m "refactor:')"
+
+  if [[ -z "$triage_at" ]]; then
+    problems+=("$skill_md's refactor loop never names refactor-triage.sh, so nothing asks whether another leaf is worth launching and the budget stays the only thing that ends the loop")
+  elif [[ -z "$commit_at" ]]; then
+    problems+=("$skill_md's refactor loop no longer commits the transform, so whether refactor-triage.sh is called on a committed one could not be established")
+  elif [[ "$triage_at" -lt "$commit_at" ]]; then
+    problems+=("$skill_md's refactor loop calls refactor-triage.sh (line $triage_at of the section) before it commits the transform (line $commit_at), so the report is triaged against a transform that is not in the history yet")
+  fi
+
+  # The call and the 250 characters after it, one window per mention: the text a reader meets
+  # while working out what to do with each answer. Newlines go first so a sentence that wraps
+  # is still one window. 250 rather than a rounder, larger number because BSD grep — the one
+  # on the development machine this repository holds itself portable to — refuses an interval
+  # whose bound is over 255.
+  windows="$(tr '\n' ' ' <<<"$loop_lines" | grep -oE 'refactor-triage\.sh.{0,250}')"
+
+  # Either order for each pair — the document may reach the code before the consequence or the
+  # other way round — but both words within one window, which is what ties the branch to this
+  # script rather than to the budget's.
+  grep -qE '(exits? 3.{0,120}stop|stop.{0,120}exits? 3)' <<<"$windows" ||
+    problems+=("$skill_md's refactor loop never says refactor-triage.sh's exit 3 stops it, so the third stop condition is documented nowhere the conductor reads")
+  grep -qE '(exits? 2.{0,160}narrat|narrat.{0,160}exits? 2)' <<<"$windows" ||
+    problems+=("$skill_md's refactor loop never says a malformed report — refactor-triage.sh's exit 2 — is narrated, so the conductor is left to bail on one instead of finishing the step it has already committed")
+fi
+
 report "$name"
 
 echo "----"
