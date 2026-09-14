@@ -34,18 +34,23 @@ registry="$(git worktree list --porcelain)"
 # because the branch was checked out "somewhere else" (issue #166).
 #
 # ${registry%%$'\n'*} strips the longest match of "newline and everything after it" from the end,
-# leaving the first line — `worktree <absolute-path>` — and ${...#worktree } then takes that
-# label off the front. The path git prints there is absolute and has its symlinks resolved (on
-# macOS a /var/... path comes back as /private/var/...), which is the property this needs: git
-# reports every worktree path that way, so the path we print matches what `git worktree list`
-# will say about it.
+# leaving the registry's first line — `worktree <absolute-path>` — and ${first_line#worktree }
+# then takes that label off the front. The path git prints there is absolute and has its symlinks
+# resolved (on macOS a /var/... path comes back as /private/var/...), which is the property this
+# needs: git reports every worktree path that way, so the path we print matches what
+# `git worktree list` will say about it.
+#
+# Two names rather than one variable assigned twice: what the first step yields is still
+# `worktree /path/...`, label and all, so a `main_tree` holding it would be a name saying
+# something untrue of its value for the length of a line. `main_tree` is only true once the
+# label is off, and it is named for what it holds when it is.
 #
 # Named `main_tree` and not `root`: every path below hangs off it, so the name is the one place
 # a reader learns *whose* root it is. `root` is what this held back when it was --show-toplevel,
 # and it reads equally true of the caller's checkout — which is exactly the reading that put the
 # run inside a session worktree.
-main_tree="${registry%%$'\n'*}"
-main_tree="${main_tree#worktree }"
+first_line="${registry%%$'\n'*}"
+main_tree="${first_line#worktree }"
 
 # wt_path <n> — where issue <n>'s worktree lives. The layout is stated once, here, because both
 # halves of this script need it and a create that answered with a different path than the remove
