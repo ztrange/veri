@@ -48,9 +48,13 @@ not ask for.
 5. **Either answer is acceptable, and must be reported truthfully**: a criterion that
    earlier work already satisfies yields a passing test, and the pipeline has a dedicated
    path for exactly that. Do not bend the test to force a failure.
-   If it PASSES, additionally confirm it is *capable* of failing — temporarily break the
-   behaviour it pins, run the case and watch it go red, then restore the production code
-   exactly and verify the restore with `git diff --exit-code` on the file you touched.
+   If it PASSES, additionally confirm it is *capable* of failing — predict what temporarily
+   breaking the behaviour it pins should make the case print, then break it, run the case,
+   and check what it printed against that prediction, all **before** you restore: once the
+   production code is back that output cannot be reproduced, so a comparison made after the
+   restore is one made against a recollection, and a red bar nobody read is no answer. Then
+   restore the production code exactly and verify the restore with `git diff --exit-code`
+   on the file you touched.
 6. Leave no change to any file other than the test file.
 
 ### Report (last lines of your output)

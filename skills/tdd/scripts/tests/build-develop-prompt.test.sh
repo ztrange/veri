@@ -780,6 +780,51 @@ asks_for 'PREDICTION_NOTE:'
 [[ -z "$problems" ]] \
   && ok || no "develop-red requires the predicted failure before the run and carries PREDICTED_FAILURE:, PREDICTION: MATCHED | DIVERGED and PREDICTION_NOTE: in its report footer (${problems#; })"
 
+# 22. the same question asked of the OTHER branch of sub-step 5 (issue #193). Case 21 pins
+#     what the leaf predicts before the run that decides FAILS or PASSES; this case pins the
+#     path taken when that run says PASSES. There the leaf breaks the behaviour the case pins,
+#     watches it go red and restores — and a colour is exactly as weak an answer here as it is
+#     there. A temporary break that also breaks the setup, or that trips a sibling assertion,
+#     turns the case red without the case having observed anything, and the leaf then reports a
+#     test "capable of failing" on the strength of a red bar it never read. So the pin path
+#     states what the break should make the case print, compares that against what it does
+#     print, and does it BEFORE the restore: once the production code is back the output cannot
+#     be reproduced, and a comparison made after it is one made against a recollection.
+#     Three faces of one criterion, so one case.
+#
+#     The prompt read is case 1's — same phase, same arguments, so there is one invocation and
+#     case 1 owns the exit-0 check on it. Built as cases 11, 19 and 21 are and under the grep
+#     constraints reasoned about there: `prompt_says` folds the prompt to one line, and every
+#     alternation branch carries at most ONE bounded `[^.]{0,N}`. The first two claims read as
+#     naturally either way round — "predict what breaking it should print" against "what
+#     breaking it should print, predicted" — so both go through `says_both_ways`.
+#
+#     Anchored on `break`, and that word in particular is load-bearing — watched, case 16's
+#     way. `broken` is answered with sub-step 5 untouched: folded to one line, the footer puts
+#     `FAIL_OUTPUT: <… from the temporarily-broken code>` a few words from case 21's
+#     `PREDICTED_FAILURE: <… as predicted before running>`, so a `broken`-anchored probe reads
+#     the report's two placeholders as the instruction. Anchoring the prediction on what it
+#     prints fails the same way for sub-step 4's reason: `Compare what it printed against what
+#     you predicted` puts `predict` beside `print` already. `break` occurs exactly once in the
+#     prompt built today — sub-step 5's "temporarily break the behaviour it pins" — with
+#     neither `predict` nor any of check/compare/match inside 80 characters of it, checked
+#     against the built prompt rather than the template.
+#
+#     The ordering probe is the one claim that does NOT read both ways: "restore … before"
+#     says the opposite of the criterion. So its reversed branch spells the phrasings that put
+#     the restore last while leading with it — "restore only after", "do not restore until" —
+#     rather than swapping the halves, and it is written out here instead of through
+#     `says_both_ways`, which would build the branch that accepts the wrong order.
+problems=""
+says_both_ways "$red" "the pin path never asks what the temporary break should print" \
+  80 'break' 'predict'
+says_both_ways "$red" "does not say what the break printed is checked against that prediction" \
+  80 'break' '(check|compar|match)'
+prompt_says "$red" "does not put that check before the restore" \
+  -iE -e 'before[^.]{0,40}restor|restor[^.]{0,40}(only after|not until)'
+[[ -z "$problems" ]] \
+  && ok || no "develop-red's pin path predicts what the temporary break should print and checks it before restoring (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
