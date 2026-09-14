@@ -329,6 +329,38 @@ top="$(git -C "$want" rev-parse --show-toplevel 2>/dev/null)"
   && [[ ! -e "$nested" ]]; } \
   && ok || no "called from a linked worktree: creates and prints the main working tree's .tdd/wt/27, not one nested inside the caller (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', '$nested' $( [[ -e "$nested" ]] && echo "was created inside the linked worktree" || echo "absent, good" ))"
 
+# 10. the two callers agree: a run created from a linked worktree is found again by a later call
+# from the **main** working tree — same path, exit 0, nothing new created (issue #166).
+#
+# Case 2 already pins idempotence, but both of its calls come from the same checkout, so it holds
+# just as well for a script that roots the worktree wherever it happens to be standing. This case
+# is the one that separates them: the create runs from the session checkout and the resume runs
+# from the main clone, which is exactly the pair that used to disagree — the second caller computed
+# a path nobody had registered, found the branch checked out in the nested worktree, and refused
+# with "another conductor owns it" about a run nobody was driving.
+#
+# "Creates nothing" is git's own registry() snapshot either side of the second call, the same way
+# case 2 asks it: a resume that quietly cut a second branch or registered a second worktree would
+# show up there and nowhere on the filesystem.
+repo="$work/cross-caller"
+new_repo "$repo"
+linked="$(linked_worktree "$repo" cross-caller-session cross-session)"
+want="$(wt_path "$repo" 29)"
+
+first="$(cd "$linked" && "$WT" 29 cross-caller 2>/dev/null)" && first_code=0 || first_code=$?
+before="$(registry "$repo")"
+
+second="$(cd "$repo" && "$WT" 29 cross-caller 2>/dev/null)" && second_code=0 || second_code=$?
+after="$(registry "$repo")"
+
+{ [[ "$first_code" == 0 ]] && [[ "$second_code" == 0 ]] && [[ "$second" == "$want" ]] \
+  && [[ "$second" == "$first" ]] && [[ "$after" == "$before" ]]; } \
+  && ok || no "created from a linked worktree, called again from the main working tree: prints the same path, exits 0 and creates nothing (create from '$linked' exit=$first_code want 0 stdout='$first', call from the main working tree exit=$second_code want 0 stdout='$second' want '$want', git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo "changed:
+--- before
+$before
+--- after
+$after" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
