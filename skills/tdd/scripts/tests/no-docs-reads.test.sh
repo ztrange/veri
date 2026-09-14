@@ -20,6 +20,10 @@
 #   check that refused those would be deleted by the first author it blocked, taking the
 #   real one with it.
 #
+#   And the same asked of `make test` itself: no suite that target would run names one
+#   either. That is the sentence the rule exists for — the baseline preflight reads, the
+#   Green leaf runs and both blind verifiers run cannot go red over a file in that tree.
+#
 # The rule is "names one", not "opens one on this line", and the difference is the whole
 # check. Every site #143 deletes binds the path somewhere and opens it somewhere else:
 # supervise.test.sh:203 and refactor-budget.test.sh:255 put it in a `|`-separated heredoc
@@ -52,6 +56,10 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# The repository itself, four directories up: what case 2 asks `make` about, and what the
+# repo-relative paths a roster line carries are resolved against.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 # The tree the development lane stays out of, written once and without its trailing slash,
 # so that no line of this file is its own first offender.
@@ -110,6 +118,13 @@ exempt() {
   [[ "$text" =~ $WRITES_OUT ]] && ! [[ "$text" =~ $READ_VERB ]]
 }
 
+# roster <target> — the suite paths <target> would run, one repo-relative path per line.
+# `make -n` prints the recipe with the target's wildcard already expanded and executes none
+# of it, which is the only way to ask this question: running `make test` to find out what
+# `make test` runs is the recursion, and it costs 80 s besides. Same idiom as
+# suite-lanes.test.sh's roster helper, which reads both targets' lists the same way.
+roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
+
 # probe_no_suite_reaches_into_the_tree — the criterion. Every suite beside this one is asked
 # for the lines naming a path in that tree, and each of those for one of the two exemptions.
 # The suites are found by globbing this directory rather than by a list, because the list is
@@ -140,6 +155,52 @@ name="no suite under skills/tdd/scripts/tests/ names a path in the generated-doc
 problems=()
 
 probe_no_suite_reaches_into_the_tree
+
+report "$name"
+
+# probe_no_suite_the_target_runs_reaches_into_the_tree — the same question asked of the
+# roster `make test` would run rather than of this directory's glob, and answered the same
+# way, line by line through the same exemptions.
+#
+# An empty roster is a problem rather than a pass: a probe that finds no suite to read has
+# not established that none of them names a path, and a recipe reworded past the `-n`
+# expansion this reads would otherwise turn the case green by saying nothing.
+probe_no_suite_the_target_runs_reaches_into_the_tree() {
+  local rel hit lineno text
+  local -a listed=()
+  while IFS= read -r rel; do
+    [[ -n "$rel" ]] || continue
+    listed+=("$rel")
+    while IFS= read -r hit; do
+      lineno="${hit%%:*}"
+      text="${hit#*:}"
+      exempt "$text" && continue
+      problems+=("$rel:$lineno names a path in the generated-documentation tree outside a comment and outside fixture text, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — opens that tree: $(flat "$text")")
+    done < <(grep -nE "$DOCS_PATH" "$ROOT/$rel")
+  done < <(roster test)
+  [[ "${#listed[@]}" -gt 0 ]] ||
+    problems+=("\`make -n test\` named no suite at all, so nothing was read: the roster this case asks about could not be obtained")
+  return 0
+}
+
+# 2. The same rule asked of the target instead of the directory. Case 1 is the rule an
+#    author breaks, and it finds its suites by globbing the directory they are written in.
+#    This case is the consequence the rule is for: `make test` is what preflight reads its
+#    baseline off, what every Green leaf runs and what both blind verifiers run, so what
+#    has to be true is that nothing *that target runs* opens a file in the generated-
+#    documentation tree — and rewording a figure in the commentary then cannot turn a
+#    development run red over prose no development change touched.
+#
+#    The two are the same file list today, since the target's `TESTS` is the same wildcard
+#    this suite globs, and they are still not the same claim: a roster that stops matching
+#    that glob — a suite named into the target from outside this directory, a wildcard
+#    narrowed to a list — leaves case 1 reading files the baseline no longer runs and blind
+#    to the ones it does, and this sentence is the one that stops being true. Asking the
+#    target itself costs one `make -n`.
+name="no suite \`make test\` runs names a path in the generated-documentation tree outside a comment or fixture text"
+problems=()
+
+probe_no_suite_the_target_runs_reaches_into_the_tree
 
 report "$name"
 
