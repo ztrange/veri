@@ -206,7 +206,15 @@ else
   # -b creates the branch at <base> and checks it out in the new worktree in one move; -q keeps
   # git's "Preparing worktree" chatter out of the way, and >&2 sends anything it still prints to
   # stderr, because stdout here belongs to the one line the caller parses: the path.
-  git worktree add -q -b "$branch" "$path" "$base" >&2
+  #
+  # --no-track: with $base now a remote-tracking ref (`origin/main`), git's default
+  # branch.autoSetupMerge would read the shape as "you presumably want to track it" and write
+  # branch.<name>.remote/.merge for the new branch — so `tdd/<n>-<slug>` would arrive tracking the
+  # remote's default branch, and a bare `git pull` in the issue worktree would pull main into it
+  # while a bare `git push` aimed at main on the remote. The branch that carries a PR points
+  # nowhere by itself. This is a cost of the remote base, not of the old behaviour: a local `main`
+  # set up no tracking at all, so the tracking arrives with the remote base and goes off with it.
+  git worktree add -q --no-track -b "$branch" "$path" "$base" >&2
 fi
 
 printf '%s\n' "$path"
