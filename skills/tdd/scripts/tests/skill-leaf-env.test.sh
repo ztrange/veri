@@ -131,6 +131,27 @@ wait" ) >/dev/null 2>&1
   cat "$seen" 2>/dev/null || echo '<no leaf ran>'
 }
 
+# verifier_test_cmd <launch-line> <leaf> — the same probe for a verifier launch, which
+# differs from the one above in what the tree has to hold before the line can run. A
+# developer launch names its own prompt file, so the probe writes that; a verifier launch
+# names the **spec** and the **test path** instead, and verify.sh builds the prompt from
+# them, so the probe writes those two and lets verify.sh name the prompt. Everything else —
+# the stub, the shrunk windows, and `env -u VERI_TEST_CMD` for the reason spelled at
+# `launched_test_cmd` — is the same, because the question is the same.
+verifier_test_cmd() {
+  local line="$1" dir="$run/$2"
+  local seen="$dir/seen"
+  mkdir -p "$dir/.tdd"
+  rm -f "$seen"
+  printf 'a spec this stub never reads\n' > "$dir/.tdd/issue-143-spec.md"
+  printf 'a test this stub never runs\n' > "$dir/probe.test.sh"
+  ( cd "$dir" && env -u VERI_TEST_CMD S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
+      VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
+      bash -c "$line
+wait" ) >/dev/null 2>&1
+  cat "$seen" 2>/dev/null || echo '<no leaf ran>'
+}
+
 # 1. The criterion, asked of every launch line the document actually prescribes. One case,
 #    because it is one wiring: the same prefix on each line, and a line that lost it is a
 #    phase of the run whose leaf can type `make docs` unrefused.
@@ -178,6 +199,61 @@ while IFS= read -r numbered; do
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 done <<< "$launch_lines"
+report "$name"
+
+# 2. The same criterion, asked of the verifier launches. A verifier is a leaf too — `claude
+#    -p` in a tree, denied Write and Edit but free to run commands — so `make docs` is as
+#    typeable there as in a developer leaf, and a guard the documentation targets carry is
+#    worth nothing in a process that cannot see the variable it reads. It is a second case
+#    rather than more lines in the first because it is a second wiring: the prefix goes on a
+#    `nohup bash -c "…"` whose command is verify.sh, and the variable then has one more
+#    process to cross — verify.sh itself — before supervise.sh and run-leaf.sh carry it the
+#    rest of the way.
+#
+#    The variable still travels in the ENVIRONMENT, so `build-verify-prompt.sh` keeps the
+#    four parameters it has and the verifier stays blind: there is still no argument through
+#    which the developer's rationale could reach it.
+#
+#    The lines are found by what they do, the way case 1 finds its own: a detached launch of
+#    verify.sh naming the spec file it judges against is a line a conductor copies as it
+#    stands. The shape at the head of the document (SKILL.md:237) spells its arguments as an
+#    ellipsis rather than naming a spec, so — like the generic `supervise.sh` shape above —
+#    there is nothing there to run and no leaf that could see anything.
+name="every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD"
+problems=()
+
+verify_lines="$(grep -nE 'nohup .*\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' "$md")"
+[[ -n "$verify_lines" ]] ||
+  problems+=("$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found")
+
+while IFS= read -r numbered; do
+  [[ -n "$numbered" ]] || continue
+  lineno="${numbered%%:*}"
+  line="${numbered#*:}"
+  # Two spellings again, for the reason given at case 1: `line` is what the document says
+  # and what every message quotes, `launch` is the runnable copy with the placeholders a
+  # conductor supplies — the run's test command, the issue number, the test under review and
+  # the target test id, which the revise loop's line writes as `[target]` because there it is
+  # optional. The id is one word because the document leaves it unquoted, so a value with a
+  # space in it would arrive as two arguments and the probe would be testing its own fixture.
+  launch="${line//<test-cmd>/$SENTINEL}"
+  launch="${launch//<phase>/red}"
+  launch="${launch//<n>/143}"
+  launch="${launch//<test-path>/probe.test.sh}"
+  launch="${launch//<target-test-id>/probe-target}"
+  launch="${launch//\[target\]/probe-target}"
+  if [[ "$launch" == *'<'*'>'* ]]; then
+    problem "names a placeholder this probe cannot supply, so its launch could not be run"
+    continue
+  fi
+  # The phase is verify.sh's first argument, and `verify-<phase>` is both the leaf's name and
+  # the tree this launch runs in — read from the substituted copy, since the revise loop's
+  # line says `<phase>` where a run says `red`.
+  leaf="verify-$(sed -E 's/.*verify\.sh +([^ ]+).*/\1/' <<< "$launch")"
+  got="$(verifier_test_cmd "$launch" "$leaf")"
+  [[ "$got" == "$SENTINEL" ]] ||
+    problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
+done <<< "$verify_lines"
 report "$name"
 
 echo "----"
