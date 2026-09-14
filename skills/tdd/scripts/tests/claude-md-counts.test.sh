@@ -214,6 +214,39 @@ check() {
   fi
 }
 
+# moved <what> <claimed> <n> <added> — one stated count against the tree as it stood
+# BEFORE <added> landed in it. <n> is what the glob matches now, so <n>-1 is the number the
+# sentence stated before, and a sentence still stating that is one nobody edited when the
+# file arrived. That is the whole failure the case below is there for and the one `check`
+# above cannot see on its own: nothing recomputes a number written in prose, so a script
+# can land, its suite can land, `make test` can go green, and both sentences go on counting
+# the tree the script landed in. Either spelling, case-folded, for the reason `check` gives;
+# an empty <claimed> fails closed through `unreadable` for the reason `check` gives too — a
+# count the document no longer states cannot be shown to have moved.
+moved() {
+  local what="$1" claimed="$2" before="$(( $3 - 1 ))" added="$4" words
+  if [[ -z "$claimed" ]]; then
+    unreadable "$claude_md states no $what" "the sentence that counts them"
+    return
+  fi
+  claimed="$(tr '[:upper:]' '[:lower:]' <<< "$claimed")"
+  words="$(in_words "$before")"
+  if [[ "$claimed" == "$before" ]] || [[ -n "$words" && "$claimed" == "$words" ]]; then
+    problems+=("$claude_md says the $what is '$claimed' — the count of the tree without $added")
+  fi
+}
+
+# present <path> — record the problem a file the counts are supposed to cover leaves behind
+# by not being there. Fails closed for the same reason `nonempty` above does: with the file
+# gone there is no move left to look for, and `moved` would be holding the stated count
+# against a tree one file smaller than the one the sentence describes — under which a count
+# that never moved reads as one that did.
+present() {
+  if [[ ! -f "$ROOT/$1" ]]; then
+    problems+=("$1 is not in the tree whose count $claude_md states")
+  fi
+}
+
 # 1. The criterion. The counts are read off the document and the files off the disk, and
 #    every one of them has to agree.
 name="$claude_md's stated script and suite counts match the scripts and suites on disk"
@@ -235,6 +268,38 @@ fi
 if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
   check "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites"
   check "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts"
+fi
+
+report "$name"
+
+# 2. The counts moved with the script and the suite this issue adds. Case 1 asks whether
+#    the three numbers are right; this one asks whether they are right because somebody
+#    moved them when `refactor-triage.sh` and `refactor-triage.test.sh` arrived — the two
+#    files whose arrival is the only thing in this issue CLAUDE.md owes an edit for. A
+#    stated count is prose, so the tree can grow under it silently: the number that was
+#    true of the tree without these two would still be sitting in both sentences, and
+#    nothing but a case like this one goes red for it. The reads are case 1's, taken once
+#    above — `n_scripts`, `n_suites`, `intro` and `idiom` — asked a narrower question here.
+name="$claude_md's counts moved with refactor-triage.sh and its suite"
+problems=()
+
+added_script="skills/tdd/scripts/refactor-triage.sh"
+added_suite="skills/tdd/scripts/tests/refactor-triage.test.sh"
+
+present "$added_script"
+present "$added_suite"
+
+# Only ask about the move when both files are on disk: `present` has already recorded the
+# problem otherwise, and `moved`'s <n>-1 would be measuring against the wrong tree.
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
+    moved "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$added_script"
+  fi
+
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
+    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$added_suite"
+    moved "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$added_script"
+  fi
 fi
 
 report "$name"
