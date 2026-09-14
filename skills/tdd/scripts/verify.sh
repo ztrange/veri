@@ -87,7 +87,10 @@ tree_snapshot() {  # prints the tree sha of the working tree, or nothing where t
 }
 
 head_snapshot() {  # prints the sha HEAD names, or nothing where there is no repo or no commit
-  git rev-parse HEAD 2>/dev/null || true
+  # --verify is load-bearing: without it, on a repo with no commits yet, git rev-parse prints
+  # the literal string `HEAD` on stdout (and exits 128), so the caller would compare "HEAD"
+  # against the first commit's sha rather than the empty string this promises.
+  git rev-parse --verify HEAD 2>/dev/null || true
 }
 
 # An empty $tree_before is "no repo here to guard" — the tests drive verify.sh in a bare
