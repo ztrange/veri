@@ -220,11 +220,7 @@ $S/wait-leaf.sh <name>
 The `rm -f` first, because the completion file is named for the **phase**, not the cycle: a
 `.tdd/develop-red.exit` left by the previous step's red leaf would end the next wait
 instantly, with the previous cycle's code. Then the launch, **detached** — through
-`detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own** —
-carrying `VERI_TEST_CMD`: the run's test command, in the leaf's **environment** rather than
-its prompt, so the verifier stays blind. It is a prefix on the launch line and not a one-off
-`export` because every Bash call you make is a fresh shell, so nothing set in preflight
-survives to a launch three steps later.
+`detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own**.
 Then `wait-leaf.sh` in the **foreground**, which blocks until the leaf finishes and exits
 with its code. On **exit 3** the leaf is still running and you have only spent the wait's
 budget: **call `wait-leaf.sh` again**, as many times as it takes. Only a 0, 1 or 2 is an
@@ -236,6 +232,11 @@ but it leaves it in the **process group** of the Bash call that launched it, so 
 that signals that group when the call ends takes the leaf with it. A leaf killed that way
 writes no completion file, so the wait above returns exit 3 forever and you read that as
 "still running" — the run stalls with nothing to say why.
+
+The launch carries `VERI_TEST_CMD`: the run's test command, reaching the leaf through its
+**environment** rather than its prompt, so the verifier stays blind. It is a prefix on the
+launch line and not a one-off `export` because every Bash call you make is a fresh shell, so
+nothing set in preflight survives to a launch three steps later.
 
 A **verifier** (`verify.sh`, which goes through the supervisor too) takes the same shape
 with one wrinkle: the code that matters is the verifier's **verdict**, not the supervisor's
