@@ -34,7 +34,13 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 # open.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
-launcher="detach-leaf.sh"
+
+# The script a launch line has to name, written down once so the probe and the message it
+# fails with cannot drift apart. `detacher` rather than `launcher`, because in the document's
+# own vocabulary the leaf **launcher** is `supervise.sh` (SKILL.md:67) — one of the two
+# scripts a launch line is recognised BY below — and `detach-leaf.sh` is "the detaching half
+# of a detached launch" (SKILL.md:84). wait-leaf.test.sh case 4 names it the same way.
+detacher="detach-leaf.sh"
 
 pass=0 fail=0
 
@@ -54,7 +60,7 @@ report() {
 
 # fault <description> — record one thing wrong with the launch line being read, onto the
 # `faults` string the loop below opens empty for each line. Joined rather than collected
-# because a line that both misses the launcher and still says `nohup` is one wrong launch,
+# because a line that both misses the detacher and still says `nohup` is one wrong launch,
 # and reads better as one problem naming both than as two problems naming the same line.
 fault() {
   faults="${faults:+$faults, and }$1"
@@ -78,10 +84,10 @@ launch_lines() {
 }
 
 # 1. One criterion — every leaf launch detaches into a session of its own — and so one
-#    case. Both halves are about the same line: naming the launcher is what makes the
+#    case. Both halves are about the same line: naming the detacher is what makes the
 #    launch survive, and a leftover `nohup` in front of it is the shape the incident
 #    happened in, still being copied by a conductor reading the document.
-name="$skill_md launches every developer and verifier leaf through $launcher, and no launch line uses nohup"
+name="$skill_md launches every developer and verifier leaf through $detacher, and no launch line uses nohup"
 problems=()
 
 launches="$(launch_lines)"
@@ -93,7 +99,7 @@ if [[ -z "$launches" ]]; then
 else
   while IFS=$'\t' read -r lineno text; do
     faults=""
-    [[ "$text" == *"$launcher"* ]] || fault "does not go through $launcher"
+    [[ "$text" == *"$detacher"* ]] || fault "does not go through $detacher"
     [[ "$text" == *nohup* ]] && fault "still uses nohup"
     [[ -z "$faults" ]] ||
       problems+=("$skill_md:$lineno $faults: $text")
