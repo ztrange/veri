@@ -135,30 +135,34 @@ says() {
 # without saying a development run does not do it would read as a note about where the files
 # live rather than as the rule.
 probe_trap_sends_the_page_to_the_other_lane() {
+  need_section "$TRAP_HEADING" || return
+
   says "that the page and its inputs are the other lane's work, and that a development run never runs the target that rebuilds them" \
     'docs[ -]lane|documentation lane|docs issue|docs merge' \
     'develop|leaf|veri run|tdd run' \
     'never|refus|exit 2'
 }
 
-# probe_idiom_records_the_suite_rule — the half an author writing a suite in this directory
-# reads. `no-docs-reads` by name, because the address is what the rule is worth: an author
-# whose suite is refused has to be able to find the case that refused it, and that name is
-# also the only part of this fact the section does not already contain in some other
-# sentence.
-probe_idiom_records_the_suite_rule() {
+# probe_idiom_records_the_rule_and_the_checks — the section an author writing a suite in this
+# directory reads, and the two facts it owes them: the rule, and the answer to the "then
+# nobody would notice" the rule invites. One probe rather than two, because a probe is the
+# unit that reads a section and then asks of it — the shape count-line-guard.test.sh's
+# probe_idiom_records_the_check uses, where two facts also hang off one read.
+probe_idiom_records_the_rule_and_the_checks() {
+  need_section "$IDIOM_HEADING" || return
+
+  # `no-docs-reads` by name, because the address is what the rule is worth: an author whose
+  # suite is refused has to be able to find the case that refused it, and that name is also
+  # the only part of this fact the section does not already contain in some other sentence.
   says "that a suite here never reads a path in the generated tree, nor which case says so by name" \
     'never|must not|does not|no suite' \
     'read|open|reach' \
     'no-docs-reads'
-}
 
-# probe_idiom_records_where_the_checks_live — the other half of the same section, and the one
-# that keeps the rule from reading as a gap in the coverage: prose is allowed to lag behind
-# code, and what catches the lag is docs-owed.sh's report and docs-fresh's failure at a
-# documentation merge. Both names, and the lane they run in, because the answer to "then
-# nobody would notice" is those two commands and the merge they run at.
-probe_idiom_records_where_the_checks_live() {
+  # The half that keeps the rule from reading as a gap in the coverage: prose is allowed to
+  # lag behind code, and what catches the lag is docs-owed.sh's report and docs-fresh's
+  # failure at a documentation merge. Both names, and the lane they run in, because the
+  # answer to "then nobody would notice" is those two commands and the merge they run at.
   says "where the checks that catch prose lagging behind code live instead — docs-owed.sh, and docs-fresh at a documentation merge" \
     'docs-owed' \
     'docs-fresh' \
@@ -173,13 +177,8 @@ probe_idiom_records_where_the_checks_live() {
 name="CLAUDE.md states the lane rule in both sections an agent reads: the page is the other lane's work and a development run never runs a docs target, a suite here never reads the generated tree, and docs-owed.sh and docs-fresh are what catch prose lag"
 problems=()
 
-if need_section "$TRAP_HEADING"; then
-  probe_trap_sends_the_page_to_the_other_lane
-fi
-if need_section "$IDIOM_HEADING"; then
-  probe_idiom_records_the_suite_rule
-  probe_idiom_records_where_the_checks_live
-fi
+probe_trap_sends_the_page_to_the_other_lane
+probe_idiom_records_the_rule_and_the_checks
 
 report "$name"
 
