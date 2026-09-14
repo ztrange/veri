@@ -216,13 +216,20 @@ probe_plant_is_what_it_claims() {
     problems+=("the planted quoter carries no path in that tree at all, so a guard that refuses fixture text would still pass this case")
 }
 
+# run_guard — run the guard over the planted tree once, leaving what it said in `guard_out`
+# and how it exited in `guard_code`. A step of its own rather than the first line of the
+# probe below, because both probes ask about that one run: as a side effect of the first,
+# the second's subject existed only as long as nobody reordered them.
+run_guard() {
+  guard_out="$("$tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+}
+
 # probe_guard_names_the_reader_with_its_line — the first half of the criterion, and it asks
 # for both halves of what a guard is: a failure, and an address. Not "the output mentions
 # the suite" — a guard that listed every suite it read would satisfy that — but a line of
 # output that names the reading suite AND carries the line number of the binding, which is
 # the only thing that sends the next author to the site rather than to the file.
 probe_guard_names_the_reader_with_its_line() {
-  guard_out="$("$tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
   [[ "$guard_code" != 0 ]] ||
     problems+=("want the guard to fail over a suite that binds $DOCS_READ_PATH and opens it on a later line; it exited 0 and said: $(flat "$guard_out")")
   local named
@@ -260,6 +267,7 @@ guard_code=0
 
 if probe_guard_is_there && plant; then
   probe_plant_is_what_it_claims
+  run_guard
   probe_guard_names_the_reader_with_its_line
   probe_guard_leaves_the_quoter_alone
 fi
