@@ -721,19 +721,40 @@ skill_entry() {
 }
 
 entry="$(skill_entry)"
-# The fetch itself: the base is the remote branch as it is *now*, which is a question asked of
-# the network at call time, not a ref that happens to be lying in the clone.
-fetch_re='fetch'
-# The base named as the remote's branch. `origin/head` is deliberately not enough — that is
-# today's text, and it names where the default branch's *name* is read from, not what the branch
-# is cut from.
-base_re='origin/<[a-z-]+>|origin/(main|master|the default)|remote.s (tip|default)|remote default branch|tip of (the )?(remote|origin)'
-# And why the local branch of that name is not it.
-why_re='stale|behind|lags?|out of date'
 
-{ [[ -n "${entry// /}" ]] && [[ "$entry" =~ $fetch_re ]] && [[ "$entry" =~ $base_re ]] \
-  && [[ "$entry" =~ $why_re ]]; } \
-  && ok || no "SKILL.md's issue-worktree.sh entry says the branch is cut from the freshly fetched remote default branch and why the local one is not used ($( [[ -n "${entry// /}" ]] && echo "the entry: names a fetch: $( [[ "$entry" =~ $fetch_re ]] && echo yes || echo "no — a conductor reading it cannot tell the base is refreshed at all" ); names the base as the remote's branch: $( [[ "$entry" =~ $base_re ]] && echo yes || echo "no — it still describes the base as the default branch, which reads as the local one" ); says why the local one is not used: $( [[ "$entry" =~ $why_re ]] && echo yes || echo "no — nothing says the local default branch is stale, so the fetch reads as belt and braces" ); text read: '$entry'" || echo "no bullet for '\$S/issue-worktree.sh <n> <slug>' found in $SKILL — what the conductor is told about the base could not be established" ))"
+# says <complaint> <regex> — one probe, written once: the entry has to carry <regex>, and
+# <complaint> is what the failure line says is missing when it does not. The accumulator shape
+# build-develop-prompt.test.sh case 9 and solvable-issues.test.sh case 11 already use, taken up
+# here for the reason it exists there: each probe was otherwise spelled twice, once in the
+# conjunction that decides pass or fail and once inside the failure message that reports which
+# half missed, and two spellings of one test drift — the message then names a probe the
+# assertion no longer makes, which is the one line a reader trusts when this case goes red.
+# `$re` is left unquoted on the right of `=~` because that is what makes bash read it as a
+# regular expression rather than a literal string.
+says() {
+  local complaint="$1" re="$2"
+  [[ "$entry" =~ $re ]] || problems="$problems; $complaint"
+}
+
+problems=""
+if [[ -z "${entry// /}" ]]; then
+  problems="; no bullet for '\$S/issue-worktree.sh <n> <slug>' found in $SKILL — what the conductor is told about the base could not be established"
+else
+  # The fetch itself: the base is the remote branch as it is *now*, which is a question asked of
+  # the network at call time, not a ref that happens to be lying in the clone.
+  says "nothing names a fetch — a conductor reading it cannot tell the base is refreshed at all" \
+    'fetch'
+  # The base named as the remote's branch. `origin/head` is deliberately not enough — that is
+  # today's text, and it names where the default branch's *name* is read from, not what the
+  # branch is cut from.
+  says "the base is still described as the default branch, which reads as the local one" \
+    'origin/<[a-z-]+>|origin/(main|master|the default)|remote.s (tip|default)|remote default branch|tip of (the )?(remote|origin)'
+  # And why the local branch of that name is not it.
+  says "nothing says the local default branch is stale, so the fetch reads as belt and braces" \
+    'stale|behind|lags?|out of date'
+fi
+[[ -z "$problems" ]] \
+  && ok || no "SKILL.md's issue-worktree.sh entry says the branch is cut from the freshly fetched remote default branch and why the local one is not used (${problems#; }; text read: '$entry')"
 
 echo "----"
 echo "$pass passed, $fail failed"
