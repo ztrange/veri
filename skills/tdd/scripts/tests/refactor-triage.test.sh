@@ -73,10 +73,12 @@ CANDIDATES: cosmetic | reflow the header comment to ninety columns
 CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
 REPORT
 
-# Separate the two streams into their own files: stdout is what the case reads back, and
-# a diagnostic must not be able to arrive mixed into it and count as a candidate.
-out="$(mktemp)" err="$(mktemp)"
-"$TRIAGE" <"$leaf_report" >"$out" 2>"$err" && code=0 || code=$?
+# Keep the two streams apart: stdout goes to a file the case reads back, and the diagnostic
+# stream is discarded, so a diagnostic cannot arrive mixed into stdout and count as a
+# candidate. Discarded rather than captured because no probe here reads it — the cases that
+# assert on a diagnostic are the exit-2 ones, and they capture it themselves.
+out="$(mktemp)"
+"$TRIAGE" <"$leaf_report" >"$out" 2>/dev/null && code=0 || code=$?
 
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 while structural candidates remain, got $code")
@@ -100,7 +102,7 @@ cosmetic='reflow the header comment to ninety columns'
 grep -qF "$cosmetic" "$out" &&
   problems+=("the cosmetic candidate '$cosmetic' is on stdout; only structural ones belong there")
 
-rm -f "$leaf_report" "$out" "$err"
+rm -f "$leaf_report" "$out"
 report "$name"
 
 # 2. the loop's third stop condition. A report with no structural candidate left is the
