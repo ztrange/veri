@@ -143,15 +143,20 @@ rc_bare=$?
 #    the two launchers — `$S/supervise.sh`, or `$S/verify.sh`, which goes through the
 #    supervisor too — AND carrying a `.tdd/` path, i.e. a real invocation with real arguments.
 #    That leaves out the Commands-reference bullets and the prose back-references, which name a
-#    launcher and no path, and it survives the fix itself: prefixing `nohup` changes neither
-#    half of the test. The count is asserted before its members, as in solvable-issues case 12:
+#    launcher and no path, and it survives the fix itself: prefixing the detaching launcher
+#    changes neither half of the test. The count is asserted before its members, as in solvable-issues case 12:
 #    five phases launch leaves (red, green, refactor, revise, verify), so an enumeration
 #    finding fewer than five has stopped matching the document and must read as a failure
 #    rather than pass with nothing left to check.
 #
-#    *Detached* is `nohup` plus a trailing `&`. The `&` is anchored at the end of the line
-#    instead of matched anywhere on it, so the `&` inside a `2>&1` cannot stand in for the one
-#    that actually backgrounds the call. The wait is looked for on the launch line and the six
+#    *Detached* is `detach-leaf.sh` on the launch line. It was `nohup` plus a trailing `&`
+#    until #161: `nohup` only makes the child ignore SIGHUP and leaves it in the process group
+#    of the Bash call that launched it, so a harness that signals that group when the call ends
+#    takes the leaf with it — a detach on paper only, which is why the launcher now owns it and
+#    returns on its own rather than being backgrounded by the launch line. What that launcher
+#    must actually survive is `detach-leaf.test.sh`'s subject; what every launch line must name
+#    is `skill-leaf-launch.test.sh`'s. This half stays here because the pair with the foreground
+#    wait below is this script's own contract. The wait is looked for on the launch line and the six
 #    after it — the same fenced block, in practice — rather than anywhere in the file, because
 #    one mention of `wait-leaf.sh` in the Commands reference must not satisfy nine launches.
 #
@@ -164,7 +169,7 @@ launches=0 launch_misses=""
 while IFS= read -r hit; do
   launches=$(( launches + 1 ))
   n="${hit%%:*}" text="${hit#*:}"
-  { grep -q 'nohup' <<<"$text" && grep -qE '&[^0-9]*$' <<<"$text"; } \
+  grep -q 'detach-leaf\.sh' <<<"$text" \
     || launch_misses="$launch_misses line$n:not-detached"
   sed -n "${n},$(( n + 6 ))p" "$SKILL" | grep -q 'wait-leaf\.sh' \
     || launch_misses="$launch_misses line$n:no-foreground-wait"
