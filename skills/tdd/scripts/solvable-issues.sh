@@ -112,9 +112,8 @@ prs_json="$(gh_json prs.json pr list --json body,state)"
 # which is the right reading, since with no repository there is no worktree to hold a run.
 #
 # Taking the label off is inside the function, not a second assignment to a name in the script's
-# own scope, for the reason issue-worktree.sh:41 gives about the same two steps: what the first
-# step yields is still `worktree /path/...`, and no name a later line can read should be able to
-# hold that, because no name would be true of it. The one name outside says what the answer is.
+# own scope, for the reason issue-worktree.sh:37-40 argues about the same two steps; a second copy
+# of that argument here is one that drifts.
 main_working_tree() {
   local first_line
   first_line="$(git worktree list --porcelain 2>/dev/null | head -n 1 || true)"
