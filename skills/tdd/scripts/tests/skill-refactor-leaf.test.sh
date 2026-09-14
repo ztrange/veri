@@ -20,19 +20,22 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — one leaf, then the three things the conductor asks of what it left:
-#   SKILL.md's Refactor section launches ONE leaf for the step rather than one per
-#   transform; before verify-refactor it asks `git status --porcelain` and refuses to go on
-#   while the tree is dirty; it asks the subjects of the commits since the green commit and
-#   refuses to go on when one of them is not a `refactor:`; and it counts those commits with
-#   `git rev-list --count` and narrates the count against the budget, saying so when the
-#   count is over it rather than leaving the overrun out.
+# Contract under test — two criteria, the procedure and the account of it, one case each:
+#   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
+#      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
+#      on while the tree is dirty; it asks the subjects of the commits since the green
+#      commit and refuses to go on when one of them is not a `refactor:`; and it counts
+#      those commits with `git rev-list --count` and narrates the count against the budget,
+#      saying so when the count is over it rather than leaving the overrun out.
+#   2. CONTEXT.md's **Cycle** entry and CLAUDE.md's three-budgets invariant describe that
+#      same shape — one refactor leaf for the step, not a transformation per leaf — and
+#      point a reader at the ADR that now records it.
 #
-# One criterion — the conductor launches one leaf and checks its result instead of
-# producing it — and so one case. The probes are its parts: a document that launched one
-# leaf and then walked into verify-refactor over a dirty tree would be exactly as wrong as
-# one that still looped leaves, and a reader repairing either repairs the same section.
-# `problems` says which part is missing.
+# Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
+# producing it — and its probes are its parts: a document that launched one leaf and then
+# walked into verify-refactor over a dirty tree would be exactly as wrong as one that still
+# looped leaves, and a reader repairing either repairs the same section. `problems` says
+# which part is missing.
 #
 # Each probe accepts any wording that carries its fact — how the document phrases it is the
 # writer's — but the refusals are asked of the text AROUND their own check rather than of
@@ -53,6 +56,16 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 # can never name a file the probes did not read.
 skill_md="skills/tdd/SKILL.md"
 skill_path="$ROOT/$skill_md"
+
+# This repository's own two documents, named the same way and for the same reason. They are
+# what a session is handed before it opens SKILL.md at all: CONTEXT.md says what a cycle is,
+# CLAUDE.md says what may never be broken about the budgets. A message about one must never
+# spell the other's path, which is why each is a pair rather than a path built at the call
+# site.
+context_md="CONTEXT.md"
+context_path="$ROOT/$context_md"
+claude_md="CLAUDE.md"
+claude_path="$ROOT/$claude_md"
 
 pass=0 fail=0
 
@@ -156,6 +169,117 @@ else
   grep -qE 'overrun|over the budget|above the budget|exceed' <<<"$section" ||
     problems+=("$skill_md's Refactor section never says a count above the budget is narrated as an overrun, so a leaf that ran past the number it was given reads in the thread as one that did not")
 fi
+
+report "$name"
+
+# records_of <path> — the document's bullets and paragraphs as records, one per line and
+# normalised through `plain`: a record runs from a `- ` in column one (indented or not) or
+# from the first line after a blank, up to the next such line or the next blank, with runs
+# of whitespace collapsed so a claim wrapped across four lines still reads as one claim.
+# The grammar skill-refactor-pending.test.sh reads these same two documents with, spelled
+# the same way here so that "what a record is" does not get a second answer in this tree.
+records_of() {
+  awk '
+    function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
+    /^[0-9]+\. / || /^[[:space:]]*- / { flush(); rec = $0; next }
+    /^[[:space:]]*$/ { flush(); next }
+    rec == "" { rec = $0; next }
+    { rec = rec " " $0 }
+    END { flush() }' "$1" | plain
+}
+
+# record <path> <regex>... — the first record of <path> matching every <regex>, or the empty
+# string when none does. Each record is found by what it SAYS and not by the heading it sits
+# under or the position it holds: the glossary entry opens with its own name, and the
+# invariant is the only record in CLAUDE.md naming all three budget variables. A document
+# re-ordered or re-sectioned therefore still answers, and a document that stopped making the
+# claim answers with nothing — which is the failure the case wants, not a silent pass.
+record() {
+  local path="$1"; shift
+  local rec re ok
+  while IFS= read -r rec; do
+    ok=1
+    for re in "$@"; do [[ "$rec" =~ $re ]] || { ok=0; break; }; done
+    [[ "$ok" -eq 1 ]] && { printf '%s' "$rec"; return; }
+  done < <(records_of "$path")
+}
+
+# adr_pointer <text> — the first `ADR-NNNN` reference in <text> that is not the superseded
+# 0010, or the empty string when there is none. The number is compared rather than the
+# string, because this repository writes the reference both ways — `(ADR-0007)` and
+# `ADR 0016` — and a probe that matched on spelling would accept `adr 10` as a new record.
+# `10#` forces decimal so the leading zeros of `0010` are not read as octal.
+adr_pointer() {
+  local ref digits
+  while IFS= read -r ref; do
+    digits="${ref##*[!0-9]}"
+    [[ "$((10#$digits))" -eq 10 ]] && continue
+    printf '%s' "$ref"
+    return
+  done < <(grep -oE 'adr[- ]?[0-9]+' <<<"$1")
+}
+
+# 2. One criterion — the account of the cycle this repository hands the next agent describes
+#    the shape the procedure now runs — and so one case. Case 1 pins SKILL.md, the document
+#    the conductor executes; this one pins the two documents a human or an agent reads to
+#    find out what the conductor does, before either has opened SKILL.md. As they stand both
+#    describe ADR-0010's shape: CONTEXT.md's Cycle entry says "one behavior-preserving
+#    transformation per leaf, suite-gated, until none remain", and CLAUDE.md's invariant
+#    explains VERI_REFACTOR_BUDGET by "a refactor leaf asked for one always finds one" — a
+#    sentence that is only true of a leaf asked for a single transform. Prose that
+#    contradicts the procedure is worse than prose that says nothing, because it is the
+#    account that is trusted: an agent that re-derives the old shape from it puts the loop
+#    back, and reads the conductor's one-leaf launch as the bug.
+#
+#    Both halves in one case, because it is one fact owed by two records and any repair to it
+#    is one edit to each — the same reason skill-refactor-pending.test.sh asks its ledger
+#    invariant and its glossary entry together. `problems` says which record is short of it.
+#
+#    The superseding ADR is asked for here as the pointer these two records carry, and that
+#    is the whole of what this suite can ask about it. The record itself is a file under
+#    docs/adr/, and a suite in this directory may not name a path there: no-docs-reads.test.sh
+#    fails `make test` for it, because that target is the baseline preflight reads and the one
+#    both blind verifiers run, and a record in that tree must never be able to turn a
+#    development run red. The ADR set has a reader of its own on the other lane's cadence —
+#    docs/tests/docs-gap-adr.test.sh, run by `make docs-test`. So what is established from
+#    here is that a reader of either record is sent to a decision record that is not the
+#    superseded 0010; that the file it names says what it must is that suite's question.
+name="$context_md's Cycle entry and $claude_md's budget invariant describe one refactor leaf per step and point at the ADR that records it"
+problems=()
+
+# The glossary entry, by its own heading line — `**Cycle**:` opens the record, and a bare
+# `cycle` anchor would match the entries around it that use the word in passing.
+cycle="$(record "$context_path" '^cycle:')"
+# The invariant, by the three variables it is the invariant ABOUT. Naming all three is what
+# makes it unique: VERI_REFACTOR_BUDGET alone appears in four other records of that document.
+invariant="$(record "$claude_path" 'veri_stuck_retries' 'revise_budget' 'veri_refactor_budget')"
+
+# Fail closed on either record being unreadable, the way case 1 does on a renamed section: a
+# glossary entry that was deleted must not read as one that was updated.
+if [[ -z "$cycle" ]]; then
+  problems+=("$context_md has no Cycle glossary entry to read — what this repository tells the next agent a refactor step is could not be established")
+else
+  [[ "$cycle" =~ (one|a single)\ (refactor\ )?leaf ]] ||
+    problems+=("$context_md's Cycle entry never says the refactor step is one leaf, so the glossary still describes the cycle as spending a leaf per transform")
+  stale_cycle="$(grep -oE 'per leaf|until none remain|per leaf invocation' <<<"$cycle" | head -1)"
+  [[ -z "$stale_cycle" ]] ||
+    problems+=("$context_md's Cycle entry still says '$stale_cycle', so the entry a reader learns the cycle from is ADR-0010's shape and contradicts the procedure SKILL.md now runs")
+fi
+
+if [[ -z "$invariant" ]]; then
+  problems+=("$claude_md has no invariant naming all three budgets to read — what VERI_REFACTOR_BUDGET is said to bound could not be established")
+else
+  [[ "$invariant" =~ (one|a single)\ (refactor\ )?leaf ]] ||
+    problems+=("$claude_md's budget invariant never says one leaf spends the step's refactor budget, so the cost axis is still explained as a leaf per transform")
+  stale_invariant="$(grep -oE 'asked for one always finds one|one transform per leaf|a transform per leaf' <<<"$invariant" | head -1)"
+  [[ -z "$stale_invariant" ]] ||
+    problems+=("$claude_md's budget invariant still explains the budget by '$stale_invariant', which is only true of a leaf asked for a single transform")
+fi
+
+# The pointer, asked of the pair rather than of each: what the criterion owes a reader is
+# that the records name the decision, and a citation in one of them is a reader sent there.
+[[ -n "$(adr_pointer "$cycle $invariant")" ]] ||
+  problems+=("neither $context_md's Cycle entry nor $claude_md's budget invariant names an ADR other than the superseded 0010, so nothing in either record points a reader at the decision that replaced one transform per leaf")
 
 report "$name"
 

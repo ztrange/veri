@@ -1,5 +1,9 @@
 # Refactor is a loop of single transformations, blind-verified once after it settles
 
+**Superseded by [ADR-0017](0017-one-refactor-leaf-per-step.md)**: one leaf applies the
+step's transforms, committing each one, and the conductor checks the result. The
+post-loop single verdict below is the half that survives.
+
 The refactor step applies **one** behavior-preserving transformation per leaf invocation
 (extract, rename, guard clause, etc.), re-running the full suite each time (must stay
 green — objective gate), and the conductor **loops** the refactor leaf until it reports

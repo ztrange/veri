@@ -101,11 +101,13 @@ Two traps, both already cost something once:
   which of the two it is.
 - **Three budgets on three axes, never merged**: `VERI_STUCK_RETRIES` (liveness — the leaf
   never answered), `REVISE_BUDGET` (verdict — it answered and was rejected) and
-  `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's tidying is worth, since a
-  refactor leaf asked for one always finds one). One knob over any two of them would trade
-  a plumbing failure against a methodology one, or against how much a step is allowed to
-  cost. A bad `VERI_REFACTOR_BUDGET` is caught in preflight, not mid-loop, which is why
-  the refactor loop can treat `refactor-budget.sh` exit 2 as impossible.
+  `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's tidying is worth, since one
+  refactor leaf now spends the whole step's budget and a leaf given a number will find that
+  many). One knob over any two of them would trade a plumbing failure against a methodology
+  one, or against how much a step is allowed to cost. A bad `VERI_REFACTOR_BUDGET` is caught
+  in preflight, not mid-launch, which is why the refactor phase can treat
+  `refactor-budget.sh` exit 2 as impossible. ADR-0017, superseding ADR-0010, is where one
+  leaf for the step rather than one per transform is recorded.
 - **A walkthrough build asks git once per script, once per tag, and eight times besides.**
   `docs/tests/build-guards.test.sh` pins that as a budget. Every question is a process
   (~30 ms), so a question asked per commit or per blamed line — `tag --contains`, `show
