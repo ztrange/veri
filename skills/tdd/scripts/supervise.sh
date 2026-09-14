@@ -191,6 +191,23 @@ case "$status" in
   *)            ec=2; status="killed-stuck"; reason="${reason:-unknown}" ;;
 esac
 
+# The leaf's own closing accounting, harvested here rather than asked for in the conductor's
+# prose (issue #163): this script owns `.tdd/$name.log` and is the choke point every leaf goes
+# through, so a harvest written here cannot be missing from the leaves prose forgot — which is
+# the shape of the bug #163 reports, where harvest-usage.sh existed for a whole release and no
+# run ever called it. Once per supervision, after the last attempt, for the same reason the
+# `launch` and `exit` marks are: the log it reads is the last attempt's. Ahead of the `exit`
+# block below rather than inside it, so that block stays the one thing it is — the status line,
+# the payload the mark carries, and the mark — with nothing between the array and its only
+# reader.
+#
+# Its status is discarded — a log with no closing record (a killed leaf) is its exit 3, and it
+# already says so on stderr — because this script's answer is the leaf's 0/1/2, measured above
+# and written below. A broken harvester must not turn a passing leaf into a bail. Its stdout
+# goes to stderr for the same reason `cat "$log"` below is the last word on this script's own:
+# that stream is piped straight into parse-verdict.sh.
+"$HERE/harvest-usage.sh" "$name" >&2 || true
+
 # The `exit` mark (issue #107, ADR-0014), beside the human-readable status line that says the
 # same thing to stderr, so the two cannot drift apart. It carries the three things only this
 # script holds at this moment: the 0/1/2 of the exit-code contract — this supervisor's own
@@ -208,19 +225,6 @@ echo "supervise[$name]: $status${reason:+ — $reason}" >&2
 payload=(status="$ec")
 [[ -z "$reason" ]] || payload+=(cause="$reason")
 payload+=(secs="$secs")
-# The leaf's own closing accounting, harvested here rather than asked for in the conductor's
-# prose (issue #163): this script owns `.tdd/$name.log` and is the choke point every leaf goes
-# through, so a harvest written here cannot be missing from the leaves prose forgot — which is
-# the shape of the bug #163 reports, where harvest-usage.sh existed for a whole release and no
-# run ever called it. Once per supervision, after the last attempt, for the same reason the
-# `launch` and `exit` marks are: the log it reads is the last attempt's.
-#
-# Its status is discarded — a log with no closing record (a killed leaf) is its exit 3, and it
-# already says so on stderr — because this script's answer is the leaf's 0/1/2, measured above
-# and written below. A broken harvester must not turn a passing leaf into a bail. Its stdout
-# goes to stderr for the same reason `cat "$log"` below is the last word on this script's own:
-# that stream is piped straight into parse-verdict.sh.
-"$HERE/harvest-usage.sh" "$name" >&2 || true
 mark exit "${payload[@]}"
 cat "$log"
 # The completion file: this supervisor's OWN status code, on every path including
