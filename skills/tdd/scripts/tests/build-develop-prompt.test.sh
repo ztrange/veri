@@ -485,10 +485,16 @@ every_phase forbids_stash \
 #     there: no other line of the template names either class, the sub-step 1 wording
 #     quoted above included.
 problems=""
+# Each class's effects are named once and spent on both branches. Written out twice, the two
+# copies are a list that can drift by half, and the one place they do differ — the bare
+# `comment` only the forward cosmetic branch accepts — is invisible until you diff eight
+# words by eye.
+structural_alt='duplication|extract|inline|dead code|rename|scope'
+cosmetic_alt='reword|re-word|re-cite|recite|reflow|re-flow|re-comment'
 prompt_says "$refactor" "does not define structural by what the transform changes" \
-  -iE -e 'structural[^.]{0,160}(duplication|extract|inline|dead code|rename|scope)|(duplication|extract|inline|dead code|rename|scope)[^.]{0,160}structural'
+  -iE -e "structural[^.]{0,160}($structural_alt)|($structural_alt)[^.]{0,160}structural"
 prompt_says "$refactor" "does not define cosmetic by what the transform changes" \
-  -iE -e 'cosmetic[^.]{0,160}(reword|re-word|re-cite|recite|reflow|re-flow|re-comment|comment)|(reword|re-word|re-cite|recite|reflow|re-flow|re-comment)[^.]{0,160}cosmetic'
+  -iE -e "cosmetic[^.]{0,160}($cosmetic_alt|comment)|($cosmetic_alt)[^.]{0,160}cosmetic"
 # The negative half of cosmetic's definition: rewording is cosmetic precisely because it
 # removes no duplication and changes no identifier or structure. Without it the two classes
 # overlap — a rename can be described as a rewording — and the sort stops being decidable.
