@@ -7,5 +7,5 @@
 - [x] `refactor-triage.sh` exits 3 when the report lists only cosmetic candidates or `none`
 - [x] `refactor-triage.sh` exits 2 with a diagnostic on stderr and nothing on stdout when a candidate's class is missing or unknown or the report has no `CANDIDATES:` line
 - [x] `SKILL.md`'s refactor loop calls `refactor-triage.sh` after each committed transform, stops on its exit 3 and stops and narrates on its exit 2
-- [x] The `### 🛠️ Refactor` comment names the stop condition among the three and lists structural and cosmetic leftovers separately ⟂ refactor pending
+- [x] The `### 🛠️ Refactor` comment names the stop condition among the three and lists structural and cosmetic leftovers separately
 - [ ] `CLAUDE.md`'s script and suite counts move with the new script and its suite
