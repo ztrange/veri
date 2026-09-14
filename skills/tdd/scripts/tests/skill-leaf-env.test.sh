@@ -74,7 +74,6 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 stub="$WORK/stub"       # the fake `claude` every launch below ends in
 run="$WORK/run"         # one tree per launch line, named for its leaf
-SEEN="$WORK/seen"       # what that leaf saw, rewritten by each run
 mkdir -p "$stub" "$run"
 
 # The test command this probe stands in for the conductor's. A command with a space in it,
@@ -82,10 +81,10 @@ mkdir -p "$stub" "$run"
 # and one no recipe in this repository answers to, so nothing it reaches could act on it.
 SENTINEL='make sentinel-test-cmd'
 
-# The leaf, as far as run-leaf.sh can tell. It records the one thing this suite asks about —
-# what VERI_TEST_CMD says in the leaf's own environment, or `<unset>` when it says nothing —
-# and then emits the minimal stream-json for extract-result.sh to find a result in, the same
-# shape run-leaf.test.sh's stub emits.
+# The leaf, as far as run-leaf.sh can tell. Into the file its own launch names in `SEEN` it
+# records the one thing this suite asks about — what VERI_TEST_CMD says in the leaf's own
+# environment, or `<unset>` when it says nothing — and then emits the minimal stream-json for
+# extract-result.sh to find a result in, the same shape run-leaf.test.sh's stub emits.
 cat > "$stub/claude" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
@@ -114,16 +113,21 @@ chmod +x "$stub/claude"
 # anything should be reported, not run again.
 launched_test_cmd() {
   local line="$1" prompt="$2" dir="$run/$3"
-  rm -f "$SEEN"
+  # What this launch's leaf saw, in the tree that launch ran in rather than in one file every
+  # run rewrites — so each answer keeps the tree that produced it. Cleared first because two
+  # launch lines naming the same leaf share a tree, and the second reaching no leaf at all
+  # would otherwise be answered with the first one's file.
+  local seen="$dir/seen"
   mkdir -p "$dir/.tdd"
+  rm -f "$seen"
   printf 'a prompt this stub never reads\n' > "$dir/$prompt"
   # The line ends in `&` — it is launched detached — so `wait` on the next line is what
   # makes this probe foreground: without it the tree would be read while the leaf still ran.
-  ( cd "$dir" && env -u VERI_TEST_CMD S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$SEEN" \
+  ( cd "$dir" && env -u VERI_TEST_CMD S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
       VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
       bash -c "$line
 wait" ) >/dev/null 2>&1
-  cat "$SEEN" 2>/dev/null || echo '<no leaf ran>'
+  cat "$seen" 2>/dev/null || echo '<no leaf ran>'
 }
 
 # 1. The criterion, asked of every launch line the document actually prescribes. One case,
