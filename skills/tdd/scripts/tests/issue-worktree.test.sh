@@ -858,6 +858,45 @@ ledger_got="$(cat "$want/.tdd/issue-49.md" 2>/dev/null)"
   && [[ "$tip" == "$remote_branch_tip" ]] && [[ "$ledger_got" == "$ledger_want" ]]; } \
   && ok || no "a branch that exists only on the remote: checked out at its own tip with its ledger present, not re-cut from the default branch (exit=$code want 0, the clone's refs/heads/tdd/49-remote-only=$local_ref want absent, its refs/remotes/origin/tdd/49-remote-only='$remote_ref' want $remote_branch_tip, stdout='$out' want '$want', branch='$branch' want 'tdd/49-remote-only', tip='$tip' want the remote branch's $remote_branch_tip not main's $main_tip, .tdd/issue-49.md $( [[ "$ledger_got" == "$ledger_want" ]] && echo "present, good" || echo "read back as '$ledger_got' want '$ledger_want'" ))"
 
+# 22. the worktree made for a remote-only branch TRACKS that remote branch (issue #186).
+#
+# Case 21 pins that the commits arrive; this pins where the branch points afterwards. A resumed
+# run does more than read the ledger it was handed: the conductor pushes the branch, and a human
+# asked to look at the run types `git status` in that worktree. Both consult
+# branch.<name>.remote/.merge, so a local branch made at the remote's tip with no upstream written
+# reports "no upstream" to the status and sends the push wherever push.default lands it — a second
+# branch, or a refusal, for a name origin already carries. The tip being right is not enough: the
+# previous run's own branch on origin is the one this run must go on adding to.
+#
+# That cuts the opposite way to case 15, and the two are not in tension: there the base is
+# `origin/<default>`, a branch this one is not a continuation of, so tracking it would aim a bare
+# push at the default branch. Here the base IS this branch's own remote counterpart, so tracking is
+# the whole point of taking the arm.
+#
+# The seed is case 21's, with the ledger left out — this case's subject is a ref's configuration,
+# and a fixture carrying evidence for an assertion nobody makes here invites the next reader to
+# think one of the two cases covers both. The assertion is git's own answer, `%(upstream:short)`,
+# the same field case 15 requires to be empty, asked of the fixture repo rather than the worktree
+# because a branch's upstream is configuration the whole repository shares.
+upstream="$work/tracks-upstream"
+new_repo "$upstream"
+git_q "$upstream" switch -q -c tdd/51-tracks >/dev/null 2>&1
+git_q "$upstream" commit -q --allow-empty -m "the previous run's work" >/dev/null 2>&1
+git_q "$upstream" switch -q main >/dev/null 2>&1
+clone="$work/tracks-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+want="$(wt_path "$clone" 51)"
+
+local_ref="$(git_q "$clone" show-ref --verify --quiet refs/heads/tdd/51-tracks && echo present || echo absent)"
+
+out="$(cd "$clone" && "$WT" 51 tracks 2>/dev/null)" && code=0 || code=$?
+
+tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/tdd/51-tracks)"
+
+{ [[ "$code" == 0 ]] && [[ "$local_ref" == absent ]] && [[ "$out" == "$want" ]] \
+  && [[ "$tracks" == "origin/tdd/51-tracks" ]]; } \
+  && ok || no "a worktree made for a remote-only branch tracks that remote branch (exit=$code want 0, the clone's refs/heads/tdd/51-tracks=$local_ref want absent before the call, stdout='$out' want '$want', tdd/51-tracks's upstream=$( [[ -n "$tracks" ]] && echo "'$tracks'" || echo "none" ) want 'origin/tdd/51-tracks')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
