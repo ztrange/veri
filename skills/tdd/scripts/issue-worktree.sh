@@ -167,11 +167,16 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 # under, the same one both arms below answer with and the same one the caller binds. Only the
 # fetch wants the other reading of it.
 default_base() {
-  local base candidate
+  local base candidate remote_branch
   if base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
     # ${base#origin/} strips the prefix (# removes the shortest match from the front) to name the
-    # branch on the remote side, which is the half of `origin/main` that `git fetch` takes.
-    #
+    # branch on the remote side, which is the half of `origin/main` that `git fetch` takes. It is
+    # held under a name because two things below have to mean the same branch by construction: the
+    # fetch, and the diagnostic that says that fetch failed. Spelled twice, they could drift, and
+    # the message would then name a fetch nobody ran — the one line a human has to trust when the
+    # remote is unreachable.
+    remote_branch="${base#origin/}"
+
     # A fetch that fails is a refusal, never a fallback. refs/remotes/origin/<default> is still
     # there in the clone, pointing at whatever tip the last successful fetch left — so carrying on
     # would cut the branch from a base as stale as the local one this fetch exists to get away
@@ -179,8 +184,8 @@ default_base() {
     # network happened to be up. Return 2, the script's "no answer could be obtained": the remote
     # we were told to cut from could not be read. Said here, where the fetch is, because this is
     # the only place that knows the fetch was what broke; git's own message never says the word.
-    if ! git fetch -q origin "${base#origin/}" >&2; then
-      echo "issue-worktree: git fetch origin ${base#origin/} failed — refusing to cut $branch from a stale $base" >&2
+    if ! git fetch -q origin "$remote_branch" >&2; then
+      echo "issue-worktree: git fetch origin $remote_branch failed — refusing to cut $branch from a stale $base" >&2
       return 2
     fi
     printf '%s\n' "$base"
