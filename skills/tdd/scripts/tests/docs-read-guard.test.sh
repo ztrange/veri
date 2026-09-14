@@ -83,6 +83,13 @@ DOCS_FIXTURE_PATH="$DOCS_DIR/wt/app.js"
 # visible to the guard: it is an ordinary trailing comment on an ordinary line of bash.
 MARK='the-binding'
 
+# The line the planted reader opens the bound path on, written once because two places must
+# spell it identically: `plant` prints it into the fixture, and `probe_plant_is_what_it_claims`
+# asserts the read is really there. It reaches the file through `$commentary` and never names
+# the tree itself, which is the indirection this whole case exists to pin — a guard matching a
+# path beside a read verb finds nothing on this line.
+READ_SITE='stated="$(grep -c VERI_HEARTBEAT "$ROOT/$commentary")"'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -132,8 +139,8 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 pass=0 fail=0
 EOF
   printf 'commentary="%s" # %s\n' "$DOCS_READ_PATH" "$MARK" >> "$tree/$TESTS_DIR/$READER"
+  printf '%s\n' "$READ_SITE" >> "$tree/$TESTS_DIR/$READER"
   cat >> "$tree/$TESTS_DIR/$READER" <<'EOF'
-stated="$(grep -c VERI_HEARTBEAT "$ROOT/$commentary")"
 [[ "$stated" -gt 0 ]] && pass=1 || fail=1
 echo "----"
 echo "$pass passed, $fail failed"
@@ -203,7 +210,7 @@ probe_plant_is_what_it_claims() {
   carriers="$(grep -cE "(^|[^[:alnum:]_.-])$DOCS_DIR/" "$tree/$TESTS_DIR/$READER")"
   [[ "$carriers" == 1 ]] ||
     problems+=("the planted reader names the documentation tree on $carriers lines, want exactly 1 — with the path spelled at the read as well, a guard that only matched a path beside a read verb would pass this case")
-  grep -qF 'grep -c VERI_HEARTBEAT "$ROOT/$commentary"' "$tree/$TESTS_DIR/$READER" ||
+  grep -qF "$READ_SITE" "$tree/$TESTS_DIR/$READER" ||
     problems+=("the planted reader never opens the file it bound on line $reader_line, so there is no indirect read for the guard to be wrong about")
   grep -q "$DOCS_FIXTURE_PATH" "$tree/$TESTS_DIR/$QUOTER" ||
     problems+=("the planted quoter carries no path in that tree at all, so a guard that refuses fixture text would still pass this case")
