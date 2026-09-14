@@ -311,6 +311,22 @@ every_phase() {  # every_phase <name of a check function taking <phase label> <p
   [[ -z "$problems" ]] && ok || no "$headline (${problems#; })"
 }
 
+# The third thing several cases share, and the only one whose subject is a pattern rather than
+# a roster. A claim about the refactor prompt usually reads as naturally backwards as forwards
+# — "apply only a structural transform" against "a structural transform is the only one to
+# apply" — so it has to be probed both ways round, and under the grep constraint `prompt_says`
+# reasons about, one bounded `[^.]{0,N}` per alternation branch, that means spelling each half
+# and the bound once per direction. Cases 16 and 19 both want it, so the alternation is built
+# here and each caller names only its two halves and the gap between them. Spelled out per
+# probe, the only thing keeping the two copies in step is the eye that reads them: case 16
+# records exactly that drift going unnoticed, a bare `comment` the forward branch accepted and
+# the reversed one did not. `$refactor` rather than a prompt argument because both callers ask
+# this of that prompt alone.
+says_both_ways() {  # says_both_ways <complaint> <gap> <pattern> <pattern>
+  local complaint="$1" gap="$2" a="$3" b="$4"
+  prompt_says "$refactor" "$complaint" -iE -e "$a[^.]{0,$gap}$b|$b[^.]{0,$gap}$a"
+}
+
 problems=""
 prompt_says "$red" "never says to run the suite that holds the new case" \
   -iE -e 'suite (that |which )?(holds|contains|holding|containing)[^.]{0,40}case'
@@ -485,16 +501,16 @@ every_phase forbids_stash \
 #     there: no other line of the template names either class, the sub-step 1 wording
 #     quoted above included.
 #
-#     The both-directions shape is the same for either class, so it is written once here and
-#     each caller names only its own class and effects. Spelled out per class instead, the
-#     effects list appears twice per class — once in each branch — and the one place the two
-#     copies had drifted, a bare `comment` the forward cosmetic branch accepted and the
-#     reversed one did not, was invisible until you diffed eight words by eye. `re-comment`
-#     alone answers the bullet the template actually writes.
+#     The both-directions shape is `says_both_ways` above, shared with case 19; each class
+#     names only its own word and effects. Spelled out per class instead, the effects list
+#     appears twice per class — once in each branch — and the one place the two copies had
+#     drifted, a bare `comment` the forward cosmetic branch accepted and the reversed one did
+#     not, was invisible until you diffed eight words by eye. `re-comment` alone answers the
+#     bullet the template actually writes.
 defines_class() {  # defines_class <class word> <alternation of that class's effects>
   local class="$1" effects="$2"
-  prompt_says "$refactor" "does not define $class by what the transform changes" \
-    -iE -e "$class[^.]{0,160}($effects)|($effects)[^.]{0,160}$class"
+  says_both_ways "does not define $class by what the transform changes" \
+    160 "$class" "($effects)"
 }
 
 problems=""
@@ -629,19 +645,11 @@ offers_class cosmetic
 #     criterion names it and no other case pins it, so a rewrite that dropped it while adding
 #     the rest would otherwise land green.
 #
-#     Six probes of one shape, so the shape is written once and each caller names only its two
-#     halves and the gap between them — case 16's `defines_class` reasoning and case 18's
-#     `offers_class` reasoning, applied to the one pattern this case owns. Spelled out per
-#     probe, each half and each bound appears twice on the line, once per direction, and the
-#     only thing keeping the two copies in step is the eye that reads them: case 16 records
-#     exactly that drift going unnoticed, a `comment` one branch accepted and the other did
-#     not. Here the bound is one `$gap` and each half one `$a` or `$b`, so a reversed branch
-#     that disagrees with its forward half is no longer expressible.
-says_both_ways() {  # says_both_ways <complaint> <gap> <pattern> <pattern>
-  local complaint="$1" gap="$2" a="$3" b="$4"
-  prompt_says "$refactor" "$complaint" -iE -e "$a[^.]{0,$gap}$b|$b[^.]{0,$gap}$a"
-}
-
+#     Six probes of one shape, and that shape is `says_both_ways` above: each caller names
+#     only its two halves and the gap between them, so a reversed branch that disagrees with
+#     its forward half is not expressible. The bound is per probe because what the two halves
+#     have to reach across differs — a sub-step's sentence for most of them, a footer line's
+#     for the last.
 problems=""
 says_both_ways "does not say the structural candidates are applied up to the budget it is given" \
   80 'budget' 'structural'
