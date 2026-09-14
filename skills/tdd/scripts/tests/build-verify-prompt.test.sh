@@ -180,6 +180,20 @@ forbids_stash() {  # forbids_stash <phase label> <prompt>
 
 every_phase forbids_stash "every phase's prompt forbids git stash and names a safe alternative"
 
+# 14. the argument list is still the WHOLE input. #143 gives every leaf the run's test
+#     command as VERI_TEST_CMD in its environment, the blind verifier's leaf included, so
+#     for the first time the builder runs with a variable in scope that names the
+#     developer's world. Reading it would be the fifth channel case 11 refuses in positional
+#     form, arriving through the environment instead — and blindness is structural only
+#     while the four documented positionals are everything the prompt can be built from
+#     (ADR-0003). So the prompt built with it set is byte-identical to the one built with it
+#     unset, from the same four arguments.
+base="$(env -u VERI_TEST_CMD "$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases)"
+#     The probe's value is deliberately not any command this repo would fall back to, so a
+#     leak reading it cannot coincide with its own default and pass by accident.
+ambient="$(VERI_TEST_CMD='pytest -k leaked_channel' "$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases)"
+[[ "$ambient" == "$base" ]] && ok || no "VERI_TEST_CMD in the environment reaches nothing (arguments unchanged)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
