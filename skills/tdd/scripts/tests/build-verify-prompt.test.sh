@@ -159,9 +159,9 @@ demands_foreground pin "$pin"
 #     rather than covered for by its twin.
 #
 #     Reads cases 5, 6, 7 and 9's prompts and invokes the builder not at all, as case 12
-#     does, and probes through the same `prompt_says` for the same reason: `git stash` is two
-#     short words in markdown wrapped at ~85 columns, and grep matches within one line, so
-#     an unfolded probe would go red on a rewrap rather than on the rule going missing.
+#     does, and probes through the same `prompt_says`, whose fold to one line is here for
+#     the reason given at its definition: `git stash` is two short words, and a rewrap
+#     putting them across a line break is all an unfolded probe needs to read them as absent.
 forbids_stash() {  # forbids_stash <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "verify-$label never forbids git stash" \
