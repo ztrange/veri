@@ -460,6 +460,44 @@ forbids_stash() {  # forbids_stash <phase label> <prompt>
 every_phase forbids_stash \
   "every built developer prompt forbids git stash and names a safe alternative"
 
+# 16. the two classes a refactor candidate falls into, and what sorts it (issue #149). Case 3
+#     pins the bounds of the tidy-up and case 8 the `CANDIDATES:` backlog; both leave the leaf
+#     free to count anything as a candidate. Sub-step 1 asks for "one transformation that makes
+#     the code clearer" and sets no bar, so a leaf asked for one always finds one: across #105–
+#     #144, at least 22 of the 127 `refactor:` commits only re-comment, re-cite or reflow, and
+#     43 of 43 measured steps stopped on `VERI_REFACTOR_BUDGET` rather than on a leaf running
+#     dry. Raising that budget from 2 to 5 changed how long the loop runs, not why it stops.
+#     The bar is a definition: a **structural** transform changes what the code or prose is —
+#     it removes duplication, extracts or inlines, deletes dead code, renames a misleading
+#     identifier, narrows a leaking scope, moves logic where it belongs — while a **cosmetic**
+#     one rewords, re-cites, reflows or re-comments and leaves all of that alone. The sorting
+#     rule is what the transform CHANGES, not which file it sits in, which is why each class
+#     probe demands the class word beside its effects rather than merely somewhere in the
+#     prompt. Three faces of one criterion — both classes named-and-defined, and cosmetic
+#     pinned by what it leaves untouched — so one case.
+#
+#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
+#     case 3 owns the exit-0 check on it. Built with `prompt_says` for case 11's reasons, and
+#     under the grep constraint reasoned about there — one bounded `[^.]{0,N}` per alternation
+#     branch, so each class probe spends its budget going one way and the reversed branch gets
+#     its own. Both directions because a definition reads either as `**structural**: removes
+#     duplication…` or as `removing duplication is structural`, and which one a writer picks is
+#     not the criterion. The class words themselves cannot be answered by what is already
+#     there: sub-step 1's "naming, duplication, structure" contains neither `structural` nor
+#     `cosmetic`.
+problems=""
+prompt_says "$refactor" "does not define structural by what the transform changes" \
+  -iE -e 'structural[^.]{0,160}(duplication|extract|inline|dead code|rename|scope)|(duplication|extract|inline|dead code|rename|scope)[^.]{0,160}structural'
+prompt_says "$refactor" "does not define cosmetic by what the transform changes" \
+  -iE -e 'cosmetic[^.]{0,160}(reword|re-word|re-cite|recite|reflow|re-flow|re-comment|comment)|(reword|re-word|re-cite|recite|reflow|re-flow|re-comment)[^.]{0,160}cosmetic'
+# The negative half of cosmetic's definition: rewording is cosmetic precisely because it
+# removes no duplication and changes no identifier or structure. Without it the two classes
+# overlap — a rename can be described as a rewording — and the sort stops being decidable.
+prompt_says "$refactor" "does not say cosmetic leaves duplication, identifiers and structure alone" \
+  -iE -e '(without|not|no|never|leaves)[^.]{0,120}(duplication|identifier|structure)'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor defines structural and cosmetic candidates by what the transform changes (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
