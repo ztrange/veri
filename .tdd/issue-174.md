@@ -7,3 +7,4 @@
 - [ ] A repository with no remote still cuts the issue branch from its local `main`/`master`
 - [ ] A resume onto an existing issue branch checks it out as it is and attempts no fetch
 - [ ] `SKILL.md`'s description of `issue-worktree.sh` says the branch is cut from the freshly fetched remote default branch, and why the local one is not used
+- [ ] A clone that has an `origin` remote but no `refs/remotes/origin/HEAD` still cuts the issue branch from the remote's freshly fetched tip (plan amendment)
