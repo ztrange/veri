@@ -86,13 +86,17 @@ tree_snapshot() {  # prints the tree sha of the working tree, or nothing where t
   printf '%s' "$tree"
 }
 
+head_snapshot() {  # prints the sha HEAD names, or nothing where there is no repo or no commit
+  git rev-parse HEAD 2>/dev/null || true
+}
+
 # An empty $tree_before is "no repo here to guard" — the tests drive verify.sh in a bare
 # temporary directory — and switches the comparison below off rather than failing the run.
-# `git rev-parse HEAD` fails the same way on a repo with no commits yet; an empty
-# $head_before then compares unequal to the sha a verifier commit would create, which is the
-# reading that reports it.
+# head_snapshot is empty the same way on a repo with no commits yet; an empty $head_before
+# then compares unequal to the sha a verifier commit would create, which is the reading that
+# reports it.
 tree_before="$(tree_snapshot)"
-head_before="$(git rev-parse HEAD 2>/dev/null)" || head_before=""
+head_before="$(head_snapshot)"
 
 set +e
 out="$("$HERE/supervise.sh" "$leaf_name" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
@@ -114,7 +118,7 @@ fi
 # because the paths are what a human needs to see to know what the leaf touched.
 if [[ -n "$tree_before" ]]; then
   tree_after="$(tree_snapshot)"
-  head_after="$(git rev-parse HEAD 2>/dev/null)" || head_after=""
+  head_after="$(head_snapshot)"
   changed="$(git diff-tree -r --name-only --no-commit-id "$tree_before" "$tree_after" 2>/dev/null)" || changed=""
   [[ "$head_before" == "$head_after" ]] || changed="${changed:+$changed$'\n'}HEAD"
   if [[ -n "$changed" ]]; then
