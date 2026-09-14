@@ -103,6 +103,53 @@ grep -qF "$cosmetic" "$out" &&
 rm -f "$leaf_report" "$out" "$err"
 report "$name"
 
+# 2. the loop's third stop condition. A report with no structural candidate left is the
+#    "stop" answer: exit 3, "nothing to do" in the four-code convention — a real answer,
+#    not a failure, so the conductor ends the refactor loop and goes to verify-refactor
+#    rather than bailing. The two ways a leaf says it are one criterion, so they are one
+#    case: a report whose CANDIDATES: lines are all cosmetic — the point of #149, since
+#    those are exactly the transforms the budget used to be spent on — and a report whose
+#    single line is `CANDIDATES: none`, which is what develop-refactor.md's *Report*
+#    asks for when the leaf sees nothing left at all. `problems` says which fixture broke.
+#
+#    Whole reports again rather than bare candidate lines, for case 1's reason: the
+#    conductor pipes in the leaf's last lines verbatim. Each is written to a file rather
+#    than through a command substitution, also for case 1's reason — bash 3.2 mis-scans an
+#    apostrophe inside a heredoc nested in `$( … )`.
+name="a report with no structural candidate left exits 3"
+problems=()
+
+cosmetic_only="$(mktemp)"
+cat > "$cosmetic_only" <<'REPORT'
+RESULT: applied "extract the two mktemp calls into one helper", suite green
+FLAGS: none
+CANDIDATES: cosmetic | reflow the header comment to ninety columns
+CANDIDATES: cosmetic | re-cite SKILL.md's Refactor entry by section, not line
+REPORT
+
+nothing_left="$(mktemp)"
+cat > "$nothing_left" <<'REPORT'
+RESULT: applied "inline the single-use $phase_label variable", suite green
+FLAGS: none
+CANDIDATES: none
+REPORT
+
+# stops_probe <label> <fixture> — run the script on one report and collect its problem.
+# A function rather than a `for` over packed strings: a label like `CANDIDATES: none`
+# carries the punctuation any obvious separator would use.
+stops_probe() {
+  local label="$1" fixture="$2" code
+  "$TRIAGE" <"$fixture" >/dev/null 2>&1 && code=0 || code=$?
+  [[ "$code" == 3 ]] ||
+    problems+=("$label: want exit 3 — nothing worth another leaf — got $code")
+}
+
+stops_probe "only cosmetic candidates" "$cosmetic_only"
+stops_probe "CANDIDATES: none" "$nothing_left"
+
+rm -f "$cosmetic_only" "$nothing_left"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
