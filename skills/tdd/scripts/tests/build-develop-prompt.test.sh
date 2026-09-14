@@ -708,6 +708,43 @@ says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor carries VERI_REFACTOR_BUDGET into the prompt as the number of transforms the leaf may apply (${problems#; })"
 
+# 21. what the red leaf is told to do BEFORE it runs anything (issue #193). Case 1 pins that
+#     the prompt asks whether the new case failed, and case 11 what it runs to find out;
+#     neither asks HOW it failed. A case that dies in setup on a typo'd fixture path and a case
+#     whose assertion fires on the right value both report `AGAINST_UNMODIFIED: FAILS`, and both
+#     reach verify-red as a red test. The dangerous member of that family is an assertion on the
+#     wrong value: it stays red through Green, and the developer then contorts production code
+#     to satisfy an assertion that was never a statement about the spec. So the leaf states its
+#     hypothesis first — and the template has to ask for it in that order, since a prediction
+#     written after the run is a transcription of it — and the footer carries the prediction
+#     beside whether it held, which is what lets the conductor narrate both. Four faces of one
+#     criterion, so one case.
+#
+#     The prompt read is case 1's — same phase, same arguments, so there is one invocation and
+#     case 1 owns the exit-0 check on it. Built as cases 11 and 19 are and under the grep
+#     constraints reasoned about there: `prompt_says` folds the prompt to one line, so a claim
+#     wrapped at ~85 columns is still one string, and every branch carries at most ONE bounded
+#     `[^.]{0,N}`. The ordering claim goes through `says_both_ways` because it reads as
+#     naturally either way round — "predict before running" against "before you run, predict".
+#     The three footer probes are literal and anchored on the token: these are protocol strings
+#     a reader greps for, so a paraphrase of one is not one, and the two verdict words are
+#     probed separately rather than as one alternation, which would be answered by either.
+#     `predict` occurs nowhere in the prompt built today, checked against the built prompt
+#     rather than the template.
+problems=""
+says_both_ways "$red" "does not require the prediction to be stated before the run" \
+  60 'predict' 'before'
+prompt_says "$red" "the report never asks for PREDICTED_FAILURE:" \
+  -F -e 'PREDICTED_FAILURE:'
+prompt_says "$red" "the report never offers MATCHED on the PREDICTION: line" \
+  -E -e 'PREDICTION:[^.]{0,40}MATCHED'
+prompt_says "$red" "the report never offers DIVERGED on the PREDICTION: line" \
+  -E -e 'PREDICTION:[^.]{0,40}DIVERGED'
+prompt_says "$red" "the report never asks for PREDICTION_NOTE:" \
+  -F -e 'PREDICTION_NOTE:'
+[[ -z "$problems" ]] \
+  && ok || no "develop-red requires the predicted failure before the run and carries PREDICTED_FAILURE:, PREDICTION: MATCHED | DIVERGED and PREDICTION_NOTE: in its report footer (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
