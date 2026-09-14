@@ -806,6 +806,38 @@ out="$(cd "$flight_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code
 { [[ "$code" == 0 ]] && [[ "$out" == $'171\n172' ]]; } \
   && ok || no "an issue whose worktree holds a live conductor PID is withheld, one with a dead PID or no worktree is listed (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '171|172|'; live pid=$$, dead pid=$dead_pid)"
 
+# 18. The other side of case 17's lock, on its own: a run that BAILED or was killed leaves its
+# worktree and its lock behind, and the issue has to go back in the pool — a bail is exactly the
+# state a later `/tdd <n>` resumes from, so an issue no live process holds staying claimed would
+# make the lock a one-way door that only a human could open. Case 17 asserts this arm inside a
+# three-issue stdout, where any one of its three arms failing reads the same; here the bailed
+# run's issue is the ONLY issue in the fixture, so a reading that takes a stale lock for a live
+# claim comes back "nothing to do" (exit 3, nothing on stdout) against this criterion alone
+# (#170).
+#
+# The pid, the worktree and the empty `prs.json` are case 17's: `$dead_pid` is still the child
+# this suite started and reaped, and `claim` registers the worktree the same way, because what a
+# bailed run leaves on disk does not differ from what a killed one leaves.
+fx="$(fixture bailed)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 173,
+    "title": "a run that bailed before opening its draft PR",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+claim 173 "$dead_pid"
+
+out="$(cd "$flight_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == 173 ]]; } \
+  && ok || no "a bailed or killed run's issue — a dead conductor PID in its worktree's lock, no open PR — is listed again so a resume is still possible (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '173|'; dead pid=$dead_pid)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
