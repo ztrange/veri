@@ -66,7 +66,7 @@ report() {
 # drift apart: where the line is, what is wrong with it, and the line itself **as the
 # document spells it**, so a reader can find the text by searching for what the message
 # quoted, and what they fix is the document rather than the probe's substituted copy.
-# `lineno` and `line` are the loop's, the way `problems` above is `report`'s.
+# `lineno` and `line` are `scan_launches`'s, the way `problems` above is `report`'s.
 problem() {
   problems+=("$skill_md:$lineno $1:$line")
 }
@@ -174,6 +174,39 @@ runnable() {
   printf '%s\n' "$launch"
 }
 
+# scan_launches <pattern> <missing> <check> — find every launch line in the document matching
+# <pattern> and hand each runnable one, substituted, to the shell function named <check>,
+# which asks of it whatever its case is about. <missing> is the complaint recorded when the
+# document holds no matching line at all, since a case that silently examined nothing would
+# otherwise pass while asserting about no launch.
+#
+# Both cases scan the same way and differ only in what they then ask, so the scan is written
+# once. Two halves of it are easy to lose in a copy and quiet when lost: the numbered-grep
+# split into the `lineno` and `line` that every failure message quotes, and `runnable`'s
+# refusal, without which an unsubstituted `<…>` reaches the shell as a redirection and the case
+# goes green having run nothing. `lineno` and `line` are declared here and `problem` reads them
+# from the check, which bash allows — a function sees the locals of the function that called
+# it — so they stay out of the global scope the two cases share.
+scan_launches() {
+  local pattern="$1" missing="$2" check="$3"
+  local lines numbered lineno line launch
+  lines="$(grep -nE "$pattern" "$md")"
+  if [[ -z "$lines" ]]; then
+    problems+=("$missing")
+    return
+  fi
+  while IFS= read -r numbered; do
+    [[ -n "$numbered" ]] || continue
+    lineno="${numbered%%:*}"
+    line="${numbered#*:}"
+    launch="$(runnable "$line")" || {
+      problem "names a placeholder this probe cannot supply, so its launch could not be run"
+      continue
+    }
+    "$check" "$launch"
+  done <<< "$lines"
+}
+
 # 1. The criterion, asked of every launch line the document actually prescribes. One case,
 #    because it is one wiring: the same prefix on each line, and a line that lost it is a
 #    phase of the run whose leaf can type `make docs` unrefused.
@@ -186,32 +219,26 @@ runnable() {
 name="every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD"
 problems=()
 
-launch_lines="$(grep -nE '\$S/supervise\.sh .*run-leaf\.sh' "$md")"
-[[ -n "$launch_lines" ]] ||
-  problems+=("$skill_md has no line launching a leaf through supervise.sh into run-leaf.sh — the launch this case is about could not be found")
-
-while IFS= read -r numbered; do
-  [[ -n "$numbered" ]] || continue
-  lineno="${numbered%%:*}"
-  line="${numbered#*:}"
-  launch="$(runnable "$line")" || {
-    problem "names a placeholder this probe cannot supply, so its launch could not be run"
-    continue
-  }
-  # The two fields the probe reads out of a launch it has established is runnable: the
-  # leaf's name, which is also the tree the launch runs in and how a failure names itself,
-  # and the prompt file the leaf is pointed at. Both are read from the substituted copy,
-  # since a leaf named `revise-<phase>-<k>` in the document is `revise-red-1` when it runs.
+# The two fields the probe reads out of a developer launch: the leaf's name, which is also the
+# tree the launch runs in and how a failure names itself, and the prompt file the leaf is
+# pointed at. Both are read from the substituted copy, since a leaf named `revise-<phase>-<k>`
+# in the document is `revise-red-1` when it runs.
+check_developer_launch() {
+  local launch="$1" leaf prompt got
   leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$launch")"
   prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$launch" | head -1)"
   if [[ -z "$prompt" ]]; then
     problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
-    continue
+    return
   fi
   got="$(launched_test_cmd "$leaf" "$launch" "$prompt")"
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
-done <<< "$launch_lines"
+}
+
+scan_launches '\$S/supervise\.sh .*run-leaf\.sh' \
+  "$skill_md has no line launching a leaf through supervise.sh into run-leaf.sh — the launch this case is about could not be found" \
+  check_developer_launch
 report "$name"
 
 # 2. The same criterion, asked of the verifier launches. A verifier is a leaf too — `claude
@@ -235,28 +262,21 @@ report "$name"
 name="every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD"
 problems=()
 
-verify_lines="$(grep -nE 'nohup .*\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' "$md")"
-[[ -n "$verify_lines" ]] ||
-  problems+=("$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found")
-
-while IFS= read -r numbered; do
-  [[ -n "$numbered" ]] || continue
-  lineno="${numbered%%:*}"
-  line="${numbered#*:}"
-  launch="$(runnable "$line")" || {
-    problem "names a placeholder this probe cannot supply, so its launch could not be run"
-    continue
-  }
-  # The phase is verify.sh's first argument, and `verify-<phase>` is both the leaf's name and
-  # the tree this launch runs in — read from the substituted copy, since the revise loop's
-  # line says `<phase>` where a run says `red`.
+# The phase is verify.sh's first argument, and `verify-<phase>` is both the leaf's name and the
+# tree this launch runs in — read from the substituted copy, since the revise loop's line says
+# `<phase>` where a run says `red`. The two files named are spelled as `runnable`'s table
+# spells them, so the tree holds the spec and the test the line is about to hand verify.sh.
+check_verifier_launch() {
+  local launch="$1" leaf got
   leaf="verify-$(sed -E 's/.*verify\.sh +([^ ]+).*/\1/' <<< "$launch")"
-  # The two files this shape names, spelled as `runnable`'s table spells them, so the
-  # tree holds the spec and the test the line is about to hand verify.sh.
   got="$(launched_test_cmd "$leaf" "$launch" ".tdd/issue-143-spec.md" "probe.test.sh")"
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
-done <<< "$verify_lines"
+}
+
+scan_launches 'nohup .*\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
+  "$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found" \
+  check_verifier_launch
 report "$name"
 
 echo "----"
