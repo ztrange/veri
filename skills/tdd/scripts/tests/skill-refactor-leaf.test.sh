@@ -122,6 +122,16 @@ win() {
   grep -oE ".{0,250}$1.{0,250}" <<<"$section" | head -1
 }
 
+# What a refusal looks like, spelled once for the two probes that ask for one. Both checks
+# below — the dirty tree and the non-refactor: commit — owe the same thing beyond the git
+# question itself: that the section says the answer STOPS the conductor rather than merely
+# informing it, and either check reduced to advice is the same hole. Two literals for one
+# question would let a probe be widened to accept a wording the other still rejects, and the
+# next writer would then read two different answers to "what counts as refusing". The
+# alternation is the union of how this document already writes it; `don.t` rather than
+# `don't` because the apostrophe this repository types is a typographic one.
+refusal='refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not continue|bail'
+
 name="$skill_md's Refactor section launches one leaf per step and refuses verify-refactor over a dirty tree or a non-refactor: commit since the green commit, narrating the count against the budget"
 problems=()
 
@@ -145,7 +155,7 @@ else
   if [[ -z "$dirty" ]]; then
     problems+=("$skill_md's Refactor section never asks git status --porcelain, so the conductor walks into verify-refactor over whatever a killed leaf left uncommitted")
   else
-    grep -qE 'refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not continue|bail' <<<"$dirty" ||
+    grep -qE "$refusal" <<<"$dirty" ||
       problems+=("$skill_md's Refactor section asks git status --porcelain without saying a non-empty answer stops it, so the check is asked and its answer is advisory")
   fi
 
@@ -159,7 +169,7 @@ else
   else
     grep -qE 'refactor:' <<<"$subjects" ||
       problems+=("$skill_md's Refactor section reads commit subjects without saying they must be refactor:, so what the conductor is checking for is left to judgement")
-    grep -qE 'refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not continue|bail' <<<"$subjects" ||
+    grep -qE "$refusal" <<<"$subjects" ||
       problems+=("$skill_md's Refactor section never says a non-refactor: commit since the green commit stops it, so the check has no branch and the run continues either way")
   fi
 
