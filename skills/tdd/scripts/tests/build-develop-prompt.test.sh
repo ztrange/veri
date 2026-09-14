@@ -316,15 +316,15 @@ every_phase() {  # every_phase <name of a check function taking <phase label> <p
 # — "apply only a structural transform" against "a structural transform is the only one to
 # apply" — so it has to be probed both ways round, and under the grep constraint `prompt_says`
 # reasons about, one bounded `[^.]{0,N}` per alternation branch, that means spelling each half
-# and the bound once per direction. Cases 16 and 19 both want it, so the alternation is built
+# and the bound once per direction. Cases 16, 19 and 20 all want it, so the alternation is built
 # here and each caller names only its two halves and the gap between them. Spelled out per
 # probe, the only thing keeping the two copies in step is the eye that reads them: case 16
 # records exactly that drift going unnoticed, a bare `comment` the forward branch accepted and
-# the reversed one did not. `$refactor` rather than a prompt argument because both callers ask
-# this of that prompt alone.
-says_both_ways() {  # says_both_ways <complaint> <gap> <pattern> <pattern>
-  local complaint="$1" gap="$2" a="$3" b="$4"
-  prompt_says "$refactor" "$complaint" -iE -e "$a[^.]{0,$gap}$b|$b[^.]{0,$gap}$a"
+# the reversed one did not. Which prompt is an argument, since case 20 asks this of a prompt
+# built with a budget in its environment rather than of case 3's.
+says_both_ways() {  # says_both_ways <prompt> <complaint> <gap> <pattern> <pattern>
+  local prompt="$1" complaint="$2" gap="$3" a="$4" b="$5"
+  prompt_says "$prompt" "$complaint" -iE -e "$a[^.]{0,$gap}$b|$b[^.]{0,$gap}$a"
 }
 
 problems=""
@@ -501,7 +501,7 @@ every_phase forbids_stash \
 #     there: no other line of the template names either class, the sub-step 1 wording
 #     quoted above included.
 #
-#     The both-directions shape is `says_both_ways` above, shared with case 19; each class
+#     The both-directions shape is `says_both_ways` above, shared with cases 19–20; each class
 #     names only its own word and effects. Spelled out per class instead, the effects list
 #     appears twice per class — once in each branch — and the one place the two copies had
 #     drifted, a bare `comment` the forward cosmetic branch accepted and the reversed one did
@@ -509,7 +509,7 @@ every_phase forbids_stash \
 #     bullet the template actually writes.
 defines_class() {  # defines_class <class word> <alternation of that class's effects>
   local class="$1" effects="$2"
-  says_both_ways "does not define $class by what the transform changes" \
+  says_both_ways "$refactor" "does not define $class by what the transform changes" \
     160 "$class" "($effects)"
 }
 
@@ -651,27 +651,27 @@ offers_class cosmetic
 #     have to reach across differs — a sub-step's sentence for most of them, a footer line's
 #     for the last.
 problems=""
-says_both_ways "does not say the structural candidates are applied up to the budget it is given" \
+says_both_ways "$refactor" "does not say the structural candidates are applied up to the budget it is given" \
   80 'budget' 'structural'
 # The commit moves to the leaf, and it carries the subject the conductor's checks read back:
 # a prompt that says to commit without naming `refactor:` leaves the conductor counting
 # commits it cannot tell apart from the green one.
-says_both_ways "does not tell the leaf to commit its transforms itself as refactor:" \
+says_both_ways "$refactor" "does not tell the leaf to commit its transforms itself as refactor:" \
   80 'commit' 'refactor:'
 # One commit per transform is the whole of what ADR-0010's leaf-per-transform bought: batched
 # into one commit, the transforms are back to being unattributable, which is the thing that
 # must survive the leaf boundary going away.
-says_both_ways "does not say one refactor: commit per transform" \
+says_both_ways "$refactor" "does not say one refactor: commit per transform" \
   60 '(each|every|own|per)' 'refactor:'
 # After each, not once at the end: the suite run between transforms is what says WHICH
 # transform turned them red, and a single run after the last one cannot.
-says_both_ways "does not say the touched suites run after each transform" \
+says_both_ways "$refactor" "does not say the touched suites run after each transform" \
   80 'suites?' 'after each'
-says_both_ways "does not say a transform that turns them red is reverted" \
+says_both_ways "$refactor" "does not say a transform that turns them red is reverted" \
   80 'revert' 'red'
 # The footer's applied half: the RESULT: line named "<the transform>", singular, because there
 # was only ever one. Several now, so the report has to have room for several.
-says_both_ways "does not ask the report to name every transform it applied" \
+says_both_ways "$refactor" "does not ask the report to name every transform it applied" \
   80 'applied' '(transforms|one per|each|every)'
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor applies the structural candidates up to its budget, one refactor: commit per transform, runs the touched suites after each reverting one that turns them red, and reports what it applied (${problems#; })"
@@ -698,13 +698,13 @@ says_both_ways "does not ask the report to name every transform it applied" \
 #     bare-number probe is answered by punctuation, and a number the leaf cannot tell is a
 #     budget is not a budget. `37` occurs nowhere in the prompt built without it, checked
 #     against the built prompt rather than the template. Both directions and one bounded
-#     `[^.]{0,N}` per alternation branch, for case 19's reasons; written out rather than
-#     through `says_both_ways`, which reads case 3's `$refactor` and not this call's prompt.
+#     `[^.]{0,N}` per alternation branch, for case 19's reasons, so the probe is built by the
+#     same `says_both_ways`, naming this call's prompt rather than case 3's.
 problems=""
 budgeted="$(VERI_REFACTOR_BUDGET=37 "$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
-prompt_says "$budgeted" "the prompt never names 37 as the budget" \
-  -iE -e 'budget[^.]{0,80}37|37[^.]{0,80}budget'
+says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
+  80 'budget' '37'
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor carries VERI_REFACTOR_BUDGET into the prompt as the number of transforms the leaf may apply (${problems#; })"
 
