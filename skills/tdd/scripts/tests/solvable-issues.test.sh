@@ -885,6 +885,43 @@ fi
 [[ -z "$entry_missing" ]] \
   && ok || no "$context_md's Solvable entry names the conductor PID lock, and a live holder, as what marks a run in flight (missing:$entry_missing)"
 
+# 20. The other end of cases 17 and 18: something has to WRITE the lock they read. No script
+# does — `issue-worktree.sh` exits before the conductor exists, and its own `$$` would name a
+# process that is gone the moment it returns — so the writer is the conductor, and the
+# conductor's whole program is `skills/tdd/SKILL.md`. A lock nothing writes makes this script's
+# in-flight exclusion and `issue-worktree.sh`'s refusal both true of fixtures and of nothing
+# else, which is the state this case exists to keep the run out of (#170).
+#
+# Read out of step 1's section alone, not the whole document, for case 12's reason: `#170` and
+# `conductor.pid` are argued in this script's header and in CONTEXT.md, and SKILL.md quotes
+# neither, but a file-wide grep would be one paste away from passing on an aside somewhere in a
+# document thousands of lines long while step 1 — the only place early enough to claim the issue
+# from the run's FIRST step — still said nothing. The slice runs from the `### 1.` heading to the
+# next `### ` one and is asserted non-empty before it is read, so a renamed or moved step reads
+# as a failure here rather than as greps over nothing finding nothing to complain about.
+step1="$(awk '/^### 1\./ { keep = 1; next } keep && /^### / { exit } keep' "$REPO_ROOT/$skill_doc")"
+
+# Two probes, and the second is not a spelling preference. `$PPID` inside a tool call is the
+# agent's own process, which lives as long as the run; `$$` is the shell of that one command,
+# reaped before anyone reads the lock — a conductor told to write that claims its issue for
+# microseconds and then hands the pid back to the kernel to reissue. The failure is silent at
+# the writer and shows up as cases 17 and 18 passing over a feature nobody has, so the value is
+# pinned here rather than left to the wording. The redirection is matched loosely around the
+# variable (`> .tdd/conductor.pid`, quoted or not, spaced or not) because how the line is
+# written is the author's; that it writes THAT pid THERE is this suite's.
+step1_missing=""
+if [[ -z "${step1// /}" ]]; then
+  step1_missing="$step1_missing step-1-itself"
+else
+  grep -qE '> *"?\.tdd/conductor\.pid' <<<"$step1" \
+    || step1_missing="$step1_missing the-write-into-the-lock"
+  grep -qE '\$PPID[^>]*> *"?\.tdd/conductor\.pid' <<<"$step1" \
+    || step1_missing="$step1_missing the-pid-that-outlives-one-command"
+fi
+
+[[ -z "$step1_missing" ]] \
+  && ok || no "$skill_doc step 1 tells the conductor to write its own long-lived pid (\$PPID, not \$\$) into .tdd/conductor.pid, so the lock cases 17 and 18 read is one a real run leaves (missing:$step1_missing)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

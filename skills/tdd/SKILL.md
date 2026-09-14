@@ -196,7 +196,11 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   could be obtained — either the branch is **already checked out in another worktree** (it names
   that path and touches nothing: **never steal a checkout**, another conductor owns that run),
   or the default branch cannot be named, or fetching it failed — never a silent fallback to the
-  stale local ref.
+  stale local ref. And exit 2 when the worktree it would have handed back **holds a live
+  conductor**: `.tdd/conductor.pid` there names a process that still answers `kill -0`, so it
+  names that pid instead of printing the path (#170) — a second conductor `cd`'ing into a live
+  run's worktree reads that run's ledger as its own and *Resume* throws the live leaf's
+  uncommitted work away. A **dead** pid is a bailed or killed run, still a resume, still the path.
   `$S/issue-worktree.sh --remove <n>` removes the worktree once the PR has landed, and
   **refuses** (exit 2) one holding uncommitted changes.
 - `$S/detect-test-command.sh [--issue <body-file>] [repo-root]` — print the one command that
@@ -365,6 +369,23 @@ unauthenticated baseline never gets a cycle.
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
    ```
+   Then **claim the issue**, before anything else you do in there:
+   ```
+   mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid
+   ```
+   That lock is what says a run is in flight. Without it the only claim on the issue is the
+   draft PR you open once every step is green, so for the hours before that — #137 took about
+   eleven — `solvable-issues.sh` still lists the issue, and a second loop takes it, lands in
+   this worktree and follows *Resume*, whose `git reset --hard HEAD` on a `⟂ refactor pending`
+   step throws your leaf's uncommitted work away (#170). With it, `solvable-issues.sh` leaves
+   the issue out and `issue-worktree.sh` refuses this worktree to another conductor, both for
+   exactly as long as the pid in there answers `kill -0`.
+   Write **`$PPID`**, not `$$`: inside a tool call `$PPID` is your own process, which lives as
+   long as this run, while `$$` is the shell of that one command — already gone when anyone
+   reads the lock, so the claim would be dead on arrival, and the number may since have been
+   handed to a stranger. **Nothing deletes it**: liveness is the whole rule, so a bail, a crash
+   or a `kill` frees the issue with no cleanup step to forget, and a resume overwrites the dead
+   pid with its own here.
    **Every later step of the run happens inside that worktree**: the blind spec
    (`.tdd/issue-<n>-spec.md`), the ledger (`.tdd/issue-<n>.md`), every leaf log and prompt,
    every commit, the push and the PR. All the `.tdd/…` paths below are **relative to the
