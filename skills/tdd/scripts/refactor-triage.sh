@@ -20,24 +20,54 @@
 # exit 3, "nothing to do" in the four-code convention (CLAUDE.md, *Exit codes are the
 # API*): a real answer, and the refactor loop's third stop condition, not a failure.
 #
+# A report this script cannot read is the other half of that convention: a candidate line
+# carrying no class or one the two-class vocabulary does not have, or a report with no
+# `CANDIDATES:` line at all, is a leaf that did not report what develop-refactor.md's
+# *Report* asks for. That is exit 2, "no answer could be obtained" — a diagnostic on
+# stderr and nothing on stdout, so the conductor mirroring stdout into its `### 🛠️
+# Refactor` comment cannot seed it with a candidate nothing classed. Exit 3 would be the
+# wrong answer there: it would end the loop quietly, as if the leaf had said there was
+# nothing worth doing.
+#
 # Usage:   refactor-triage.sh < leaf-report.txt
 set -euo pipefail
 
-structural_seen=0
+structural=()
+candidates_seen=0
 
 # `|| [[ -n "$line" ]]` so a report whose last line has no trailing newline is still read:
 # `read` returns non-zero at EOF even when it did fill the variable.
 while IFS= read -r line || [[ -n "$line" ]]; do
+  [[ "$line" =~ ^CANDIDATES:[[:space:]]*(.*)$ ]] || continue
+  candidates_seen=1
+  class_and_transform="${BASH_REMATCH[1]}"
+
   # `[|]` rather than `\|` — inside [[ … =~ … ]] the pattern is an ERE, where a bare `|`
   # is alternation and a backslashed one is undefined; a bracket expression is neither.
-  if [[ "$line" =~ ^CANDIDATES:[[:space:]]*structural[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
-    echo "${BASH_REMATCH[1]}"
-    structural_seen=1
+  # The structural transforms are collected rather than printed as they are found: the
+  # malformed line that sends this script to exit 2 can come after them, and exit 2 owes
+  # an empty stdout.
+  if [[ "$class_and_transform" =~ ^structural[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
+    structural+=("${BASH_REMATCH[1]}")
+  elif [[ "$class_and_transform" =~ ^cosmetic[[:space:]]*[|] ]]; then
+    : # a real answer, and not one worth a leaf
+  elif [[ "$class_and_transform" =~ ^none[[:space:]]*$ ]]; then
+    : # likewise — the leaf saw nothing left at all
+  else
+    echo "refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: $line" >&2
+    exit 2
   fi
 done
 
-# The loop is not a pipeline, so its body ran in this shell and `structural_seen` survives
-# it — `cat report | while …` would have set the flag in a subshell and left 0 here.
-if [[ "$structural_seen" -eq 0 ]]; then
+# The loop is not a pipeline, so its body ran in this shell and both variables survive it
+# — `cat report | while …` would have filled them in a subshell and left them empty here.
+if [[ "$candidates_seen" -eq 0 ]]; then
+  echo "refactor-triage: the report has no CANDIDATES: line" >&2
+  exit 2
+fi
+
+if [[ "${#structural[@]}" -eq 0 ]]; then
   exit 3
 fi
+
+printf '%s\n' "${structural[@]}"
