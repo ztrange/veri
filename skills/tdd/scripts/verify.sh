@@ -115,6 +115,18 @@ head_snapshot() {  # prints the sha HEAD names, or nothing where there is no rep
   git rev-parse --verify HEAD 2>/dev/null || true
 }
 
+# The restore that pairs with it, beside it for the same reason restore_tree sits beside
+# tree_snapshot: update-ref touches the ref alone, so the working tree restore_tree has already
+# put back — the developer's uncommitted work in it included — is left exactly as it stands. It
+# is a no-op in the two cases where there is nothing to put back: an empty <before> is a repo
+# that had no commits when the verifier launched, so there is no sha to name, and a <before>
+# equal to <after> is a HEAD that never moved.
+restore_head() {  # points HEAD back at the sha $1 names, where it moved from it and $1 is a sha
+  if [[ -n "$1" && "$1" != "$2" ]]; then
+    git update-ref HEAD "$1"
+  fi
+}
+
 # An empty $tree_before is "no repo here to guard" — the tests drive verify.sh in a bare
 # temporary directory — and switches the comparison below off rather than failing the run.
 # head_snapshot is empty the same way on a repo with no commits yet; an empty $head_before
@@ -149,13 +161,11 @@ if [[ -n "$tree_before" ]]; then
   if [[ -n "$changed" ]]; then
     # Put it back before bailing. Detecting the tampering and leaving it in place would still
     # lose the step: the conductor stops here, and the tree a human then inspects — and a
-    # resumed run continues from — is whatever the verifier left. HEAD moves back with
-    # update-ref, which touches the ref alone and so leaves the restored working tree (and the
-    # developer's uncommitted work in it) exactly as restore_tree just made it. An empty
-    # $head_before is a repo with no commits to go back to, so there is no sha to name and the
-    # tree restore is the whole of what can be undone.
+    # resumed run continues from — is whatever the verifier left. The two restores are the two
+    # snapshots run backwards, in that order: HEAD is pointed back last so it moves against the
+    # tree the first one has already put right.
     restore_tree "$tree_before"
-    [[ -z "$head_before" || "$head_before" == "$head_after" ]] || git update-ref HEAD "$head_before"
+    restore_head "$head_before" "$head_after"
     echo "verifier leaf modified the repository — verdict not accepted (see .tdd/$leaf_name.log); changed:"
     printf '%s\n' "$changed"
     exit 2
