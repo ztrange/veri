@@ -2,7 +2,7 @@
 
 - [x] `develop-refactor.md` defines structural and cosmetic candidates by what the transform changes
 - [x] `develop-refactor.md` tells the leaf to apply only a structural transform and to report nothing left to tidy when only cosmetic candidates remain
-- [ ] `develop-refactor.md` requires every `CANDIDATES:` line to carry its class
+- [x] `develop-refactor.md` requires every `CANDIDATES:` line to carry its class ⟂ refactor pending
 - [ ] `refactor-triage.sh` exits 0 and prints the structural candidates when the report lists at least one
 - [ ] `refactor-triage.sh` exits 3 when the report lists only cosmetic candidates or `none`
 - [ ] `refactor-triage.sh` exits 2 with a diagnostic on stderr and nothing on stdout when a candidate's class is missing or unknown or the report has no `CANDIDATES:` line

@@ -549,6 +549,43 @@ prompt_says "$refactor" "does not say to report nothing left to tidy when only c
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor applies only a structural transform and reports nothing left to tidy when only cosmetic candidates remain (${problems#; })"
 
+# 18. the class travels on the report line, not only in the leaf's head (issue #149). Cases 16
+#     and 17 pin the taxonomy and what the leaf does with it; both are spent by the time the
+#     leaf writes its footer, and case 8's `CANDIDATES:` line asks only for "a transform you
+#     still see". So the backlog comes back unsorted, and `refactor-triage.sh` — the script
+#     that reads this footer and decides whether another leaf is worth launching — has nothing
+#     to sort it by: a leaf that left three cosmetic leftovers and one that left three
+#     structural ones hand back the same line. Sorting them afterwards would mean re-deriving
+#     from a transform's one-line description a judgement the leaf already made with the code
+#     in front of it. So the class rides on each line, as the spec writes it: `CANDIDATES:
+#     structural | <transform>` or `CANDIDATES: cosmetic | <transform>`. Two faces of one
+#     criterion — each class offered on the line — so one case.
+#
+#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
+#     case 3 owns the exit-0 check on it. Line-anchored greps rather than case 16's and 17's
+#     `prompt_says`, and that is the point of this case rather than an accident of style:
+#     `prompt_says` folds the prompt's newlines to spaces, which would throw away the `^`
+#     that makes the claim "on the `CANDIDATES:` line" instead of "somewhere in the prompt" —
+#     the distinction cases 16 and 17 already cover the other side of. Case 8's shape, for the
+#     same reason it uses it.
+#
+#     `.*` before the class word and a bounded `[^|]` after it: what is pinned is that the
+#     class is mechanically separable from the transform beside it, by the `|` the spec names,
+#     not where on the line a writer puts the word. Spelling it `[^|]*structural` instead
+#     would reject a single line offering both classes — `CANDIDATES: <structural | cosmetic>
+#     | <transform>` — since the first `|` then sits between the anchor and `cosmetic`.
+#     Neither probe can be answered by what is already there: the built prompt's one
+#     `^CANDIDATES:` line carries no `|` at all, and `structural` and `cosmetic` occur only in
+#     case 16's definitions and case 17's sub-steps, none of them on a line starting with the
+#     token.
+problems=""
+grep -qE '^CANDIDATES:.*structural[^|]{0,40}\|' <<<"$refactor" \
+  || problems="$problems; the CANDIDATES: line does not offer structural as the class"
+grep -qE '^CANDIDATES:.*cosmetic[^|]{0,40}\|' <<<"$refactor" \
+  || problems="$problems; the CANDIDATES: line does not offer cosmetic as the class"
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor requires every CANDIDATES: line to carry its class, separated from the transform (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

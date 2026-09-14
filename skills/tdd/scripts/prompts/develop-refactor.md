@@ -64,4 +64,4 @@ which file it sits in:
 
 RESULT: <"applied <the transform>, suite green" | "nothing left to tidy">
 FLAGS: <overfit code needing a triangulating test, and the case that would force it — or "none">
-CANDIDATES: <a transform you still see left in those files — one per line, each on its own CANDIDATES: line — or "none">
+CANDIDATES: <"structural | <transform>" or "cosmetic | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
