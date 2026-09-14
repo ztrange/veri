@@ -107,8 +107,15 @@ five="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases "$smu
 #     developer prompts: a per-phase helper feeding one accumulator. The prompts read are
 #     cases 5, 6, 7 and 9's — same phases, same arguments — so this case invokes the
 #     builder not at all, and those cases keep the exit-status checks on them.
+#
+#     The fold to one line is that twin's `prompt_says` idiom, and is here for its reason:
+#     a prompt is markdown wrapped at ~85 columns and grep only ever matches within one
+#     line, so `end your turn` landing across a line break would read as absent. It matches
+#     today only because the wrap happens to fall elsewhere — one rewrap of `_shared.md`
+#     and the pin goes red over its own formatting.
 demands_foreground() {  # demands_foreground <phase label> <prompt>
-  local label="$1" prompt="$2"
+  local label="$1" prompt
+  prompt="$(tr '\n' ' ' <<<"$2")"
   grep -qi 'foreground' <<<"$prompt" \
     || problems="$problems; verify-$label never says to run test commands in the foreground"
   grep -qiE 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn' <<<"$prompt" \
