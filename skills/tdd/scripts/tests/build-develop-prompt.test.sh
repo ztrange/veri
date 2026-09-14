@@ -392,6 +392,38 @@ demands_foreground revise "$revise"
 [[ -z "$problems" ]] \
   && ok || no "every built developer prompt says to run test commands in the foreground and report only after they exit (${problems#; })"
 
+# 15. WHICH act rule 3 forbids (issue #162). Case 14 pins that every developer prompt asks
+#     for a foreground run and a report written only after it exits; this case pins that the
+#     rule names **ending the turn** as the forbidden act, not only writing the report during
+#     the run. The gap is not academic: #137's second refactor leaf of step 4 ended its turn
+#     "waiting for the suite" with no footer at all — `c66b8e0`, the commit that landed rule
+#     3, is an ancestor of that run's plan commit — so it broke nothing the old wording said
+#     while costing the conductor a hand-run suite anyway. A leaf that writes no report never
+#     "writes its report while the run is still going", and the conductor is left with the
+#     same nothing either way. So the forbidden act has to be the one that actually ends the
+#     leaf. Asked of all four built prompts for case 14's reason: a template that drops the
+#     clause is named rather than covered for by the other three.
+#
+#     The prompts read are cases 1–4's — same phases, same arguments, so there is one
+#     invocation each and those cases own the exit-0 checks. `prompt_says` folds to one line
+#     for its own reason, which bites here in particular: `end your turn` is three short words
+#     in a paragraph wrapped at ~85 columns, so an unfolded probe would go red on a rewrap
+#     rather than on the rule going missing. Matched tolerantly of the articles and of
+#     markdown emphasis between the words, but not of the phrase itself.
+forbids_ending_mid_run() {  # forbids_ending_mid_run <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "develop-$label never forbids ending the turn mid-run" \
+    -iE -e 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn'
+}
+
+problems=""
+forbids_ending_mid_run red "$red"
+forbids_ending_mid_run green "$green"
+forbids_ending_mid_run refactor "$refactor"
+forbids_ending_mid_run revise "$revise"
+[[ -z "$problems" ]] \
+  && ok || no "every built developer prompt forbids ending the turn while a suite run is still going (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
