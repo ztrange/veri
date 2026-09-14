@@ -93,9 +93,16 @@ printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"o
 STUB
 chmod +x "$stub/claude"
 
-# launched_test_cmd <launch-line> <prompt-file> <leaf> — run one launch line to completion
-# in a tree of its own and echo what VERI_TEST_CMD said inside the leaf, or `<no leaf ran>`
-# when the line never reached one.
+# launched_test_cmd <leaf> <launch-line> <file>... — run one launch line to completion in a
+# tree of its own and echo what VERI_TEST_CMD said inside the leaf, or `<no leaf ran>` when
+# the line never reached one. Both cases below ask that one question, of the two launch
+# shapes the document prescribes, so both come through here.
+#
+# The `<file>` arguments are what the tree must hold before the line can run, and they are
+# the only thing the two shapes differ in: a developer launch names its own prompt file,
+# while a verifier launch names the **spec** and the **test path** and lets verify.sh build
+# the prompt from them. Each is created relative to the launch's tree; the stub reads none of
+# them, so the content only says which fixture a reader is looking at.
 #
 # `$S` is supplied the way the document supplies it — as a variable in the launching shell
 # (SKILL.md:61) — rather than substituted into the text, so the line is run as written.
@@ -113,7 +120,9 @@ chmod +x "$stub/claude"
 # here waits on wall time; retries are pinned off because a stub leaf that failed to record
 # anything should be reported, not run again.
 launched_test_cmd() {
-  local line="$1" prompt="$2" dir="$run/$3"
+  local leaf="$1" line="$2"
+  shift 2
+  local dir="$run/$leaf"
   # What this launch's leaf saw, in the tree that launch ran in rather than in one file every
   # run rewrites — so each answer keeps the tree that produced it. Cleared first because two
   # launch lines naming the same leaf share a tree, and the second reaching no leaf at all
@@ -121,30 +130,12 @@ launched_test_cmd() {
   local seen="$dir/seen"
   mkdir -p "$dir/.tdd"
   rm -f "$seen"
-  printf 'a prompt this stub never reads\n' > "$dir/$prompt"
+  local file
+  for file in "$@"; do
+    printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
+  done
   # The line ends in `&` — it is launched detached — so `wait` on the next line is what
   # makes this probe foreground: without it the tree would be read while the leaf still ran.
-  ( cd "$dir" && env -u VERI_TEST_CMD S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
-      VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
-      bash -c "$line
-wait" ) >/dev/null 2>&1
-  cat "$seen" 2>/dev/null || echo '<no leaf ran>'
-}
-
-# verifier_test_cmd <launch-line> <leaf> — the same probe for a verifier launch, which
-# differs from the one above in what the tree has to hold before the line can run. A
-# developer launch names its own prompt file, so the probe writes that; a verifier launch
-# names the **spec** and the **test path** instead, and verify.sh builds the prompt from
-# them, so the probe writes those two and lets verify.sh name the prompt. Everything else —
-# the stub, the shrunk windows, and `env -u VERI_TEST_CMD` for the reason spelled at
-# `launched_test_cmd` — is the same, because the question is the same.
-verifier_test_cmd() {
-  local line="$1" dir="$run/$2"
-  local seen="$dir/seen"
-  mkdir -p "$dir/.tdd"
-  rm -f "$seen"
-  printf 'a spec this stub never reads\n' > "$dir/.tdd/issue-143-spec.md"
-  printf 'a test this stub never runs\n' > "$dir/probe.test.sh"
   ( cd "$dir" && env -u VERI_TEST_CMD S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
       VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
       bash -c "$line
@@ -195,7 +186,7 @@ while IFS= read -r numbered; do
     problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
     continue
   fi
-  got="$(launched_test_cmd "$launch" "$prompt" "$leaf")"
+  got="$(launched_test_cmd "$leaf" "$launch" "$prompt")"
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 done <<< "$launch_lines"
@@ -250,7 +241,9 @@ while IFS= read -r numbered; do
   # the tree this launch runs in — read from the substituted copy, since the revise loop's
   # line says `<phase>` where a run says `red`.
   leaf="verify-$(sed -E 's/.*verify\.sh +([^ ]+).*/\1/' <<< "$launch")"
-  got="$(verifier_test_cmd "$launch" "$leaf")"
+  # The two files this shape names, spelled as the substitutions above spell them, so the
+  # tree holds the spec and the test the line is about to hand verify.sh.
+  got="$(launched_test_cmd "$leaf" "$launch" ".tdd/issue-143-spec.md" "probe.test.sh")"
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 done <<< "$verify_lines"
