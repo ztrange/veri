@@ -162,14 +162,16 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 #
 # `git fetch origin <default>` refreshes refs/remotes/origin/<default> and nothing else: it moves
 # no local branch ref and touches no working tree, so #165's reason for not pulling stays intact.
-# ${head#origin/} strips the prefix (# removes the shortest match from the front) to name the
-# branch on the remote side; what is printed is `$head` whole, because `origin/main` is the ref
-# the new branch is cut from.
+#
+# What the symref answers with — `origin/main` — IS the base, so that is the name it is held
+# under, the same one both arms below answer with and the same one the caller binds. Only the
+# fetch wants the other reading of it: ${base#origin/} strips the prefix (# removes the shortest
+# match from the front) to name the branch on the remote side, which is what `git fetch` takes.
 default_base() {
-  local head b
-  if head="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
-    git fetch -q origin "${head#origin/}" >&2
-    printf '%s\n' "$head"
+  local base b
+  if base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
+    git fetch -q origin "${base#origin/}" >&2
+    printf '%s\n' "$base"
     return 0
   fi
   for b in main master; do
