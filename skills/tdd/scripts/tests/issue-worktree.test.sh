@@ -386,6 +386,39 @@ after="$(registry "$repo")"
 { [[ "$code" == 0 ]] && [[ "$after" != *"worktree $want"* ]] && [[ ! -e "$want" ]]; } \
   && ok || no "--remove from a linked worktree: removes the main working tree's .tdd/wt/31 (exit=$code want 0, '$want' $( [[ -e "$want" ]] && echo "still on disk" || echo "gone, good" ), still in git's registry: $( [[ "$after" == *"worktree $want"* ]] && echo yes || echo no ))"
 
+# 12. the repository is reached through a symlinked path — the path printed is still the
+# symlink-resolved one, so it is byte-identical to the `worktree` line
+# `git worktree list --porcelain` prints for that worktree (issue #166).
+#
+# This is the property the script's own comment set out to keep when it picked a git-reported
+# root: git resolves every worktree path it stores and every one it prints, so a script that
+# built the path out of the caller's *logical* cwd would hand back a spelling git never uses.
+# Nothing downstream would notice at creation time and everything would afterwards — the
+# idempotence check greps the registry for that exact line, and `git worktree remove` is given
+# the same string.
+#
+# The seed is a symlink pointing at the fixture repo, and the script is called through it. The
+# assertion is on git's own line and not merely on a resolved-looking string: `grep -qxF`
+# (-x whole line, -F literal, so a `.` in the path is a dot) is the same question the script
+# asks of the registry, so a printed path that fails it is one the script could not find again.
+#
+# Every other case reaches the fixture directly. On macOS mktemp hands out /var/... paths that
+# are themselves behind a symlink to /private/var, which makes the distinction show up there by
+# accident; on Linux, where mktemp answers with a real /tmp path, it would not show up at all.
+# The explicit symlink is what makes the case ask the question on both.
+repo="$work/symlinked"
+new_repo "$repo"
+via="$work/reached-by-symlink"
+ln -s "$(cd "$repo" && pwd -P)" "$via"
+want="$(wt_path "$repo" 33)"
+
+out="$(cd "$via" && "$WT" 33 through-symlink 2>/dev/null)" && code=0 || code=$?
+listing="$(registry "$repo")"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && grep -qxF "worktree $out" <<<"$listing"; } \
+  && ok || no "reached through a symlinked path: prints the resolved path git itself lists for the worktree (called from '$via', exit=$code want 0, stdout='$out' want '$want', git's registry $( grep -qxF "worktree $out" <<<"$listing" && echo "carries the line 'worktree $out'" || echo "carries no 'worktree $out' line; its worktree lines are:
+$(grep '^worktree ' <<<"$listing")" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
