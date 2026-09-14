@@ -769,12 +769,11 @@ fi
 # `main` the fetch was added to get away from, silently, in the one shape that looks like every
 # other clone from the outside.
 #
-# The seed is case 13's upstream+clone pair with origin/HEAD deleted from the clone before the call
-# and the two tips then pulled apart: the clone is taken first, origin/HEAD comes off, and only then
-# does the upstream gain a commit. So at the moment of the call the clone's local `main` and its
-# `refs/remotes/origin/main` both sit at the old tip and nothing but a fetch can reach the new one,
-# while the local `main` is still there for a fallback to answer with — which is what makes cutting
-# from the remote's tip the answer only a script that went to the remote can give.
+# The seed is case 13's upstream+clone pair, its two tips pulled apart the same way and for the
+# reason stated there, plus one line: origin/HEAD comes off the clone before the call. That line is
+# the whole difference between the two cases, and what it leaves behind is the shape the two arms
+# disagree about — the local `main` still there for a fallback to answer with, the new tip still
+# reachable only by going to the remote.
 #
 # Three things asserted together: the seed genuinely carried no origin/HEAD when the script was
 # called (a git version that re-created it would otherwise make this case pass as case 13 already
