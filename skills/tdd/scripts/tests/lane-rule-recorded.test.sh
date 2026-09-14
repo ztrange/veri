@@ -92,30 +92,39 @@ section() {
     plain | tr '\n' ' '
 }
 
-# says <heading> <text> <fact> <regex>... — one fact that <text> has to carry, written as the
-# regexes any wording carrying it would match: all of them have to match, and one problem
-# naming the section and the fact is appended if any does not. Same four-argument shape
-# suite-lanes.test.sh uses, because a failure has to say which of the two sections is the one
-# missing the sentence.
+# need_section <heading> — that section of the document into the globals `heading` and `text`,
+# or one problem naming the heading and a non-zero return. The reader and the fail-closed check
+# are one step because they are one question: a caller that computed the text itself could pass
+# one section's prose under another's heading and every failure below would name the wrong
+# repair. Globals rather than a return value because bash has no way to hand back a string, and
+# the two prose suites this one follows — count-line-guard.test.sh, skill-suite-runs.test.sh —
+# both park the section under test in one for exactly that reason.
+#
+# Fail closed: an empty string matches no regex, so every fact asked of a section that is not
+# there would be reported missing — true, but it names three edits when the repair is that a
+# heading moved.
+heading="" text=""
+need_section() {
+  heading="$1"
+  text="$(section "$heading")"
+  [[ -n "${text// /}" ]] && return 0
+  problems+=("CLAUDE.md has no '$heading' section to read, so nothing states the lane rule where the agent reading that section would find it")
+  return 1
+}
+
+# says <fact> <regex>... — one fact the section in `$text` has to carry, written as the regexes
+# any wording carrying it would match: all of them have to match, and one problem naming the
+# section and the fact is appended if any does not. The section is named from `$heading`, since
+# a failure has to say which of the two is the one missing the sentence.
 says() {
-  local heading="$1" text="$2" fact="$3" re
-  shift 3
+  local fact="$1" re
+  shift
   for re in "$@"; do
     [[ "$text" =~ $re ]] || {
       problems+=("CLAUDE.md's '$heading' section does not say $fact")
       return
     }
   done
-}
-
-# probe_section_reads <heading> <text> — fail closed on a section that is not there: an empty
-# string matches no regex, so every fact asked of it would be reported missing — true, but it
-# names three edits when the repair is that a heading moved. Returns non-zero so the case can
-# skip the facts it would have asked of nothing.
-probe_section_reads() {
-  [[ -n "${2// /}" ]] && return 0
-  problems+=("CLAUDE.md has no '$1' section to read, so nothing states the lane rule where the agent reading that section would find it")
-  return 1
 }
 
 # probe_trap_sends_the_page_to_the_other_lane — the half of the rule that lives where the
@@ -126,8 +135,7 @@ probe_section_reads() {
 # without saying a development run does not do it would read as a note about where the files
 # live rather than as the rule.
 probe_trap_sends_the_page_to_the_other_lane() {
-  says "$TRAP_HEADING" "$trap_section" \
-    "that the page and its inputs are the other lane's work, and that a development run never runs the target that rebuilds them" \
+  says "that the page and its inputs are the other lane's work, and that a development run never runs the target that rebuilds them" \
     'docs[ -]lane|documentation lane|docs issue|docs merge' \
     'develop|leaf|veri run|tdd run' \
     'never|refus|exit 2'
@@ -139,8 +147,7 @@ probe_trap_sends_the_page_to_the_other_lane() {
 # also the only part of this fact the section does not already contain in some other
 # sentence.
 probe_idiom_records_the_suite_rule() {
-  says "$IDIOM_HEADING" "$idiom" \
-    "that a suite here never reads a path in the generated tree, nor which case says so by name" \
+  says "that a suite here never reads a path in the generated tree, nor which case says so by name" \
     'never|must not|does not|no suite' \
     'read|open|reach' \
     'no-docs-reads'
@@ -152,8 +159,7 @@ probe_idiom_records_the_suite_rule() {
 # documentation merge. Both names, and the lane they run in, because the answer to "then
 # nobody would notice" is those two commands and the merge they run at.
 probe_idiom_records_where_the_checks_live() {
-  says "$IDIOM_HEADING" "$idiom" \
-    "where the checks that catch prose lagging behind code live instead — docs-owed.sh, and docs-fresh at a documentation merge" \
+  says "where the checks that catch prose lagging behind code live instead — docs-owed.sh, and docs-fresh at a documentation merge" \
     'docs-owed' \
     'docs-fresh' \
     'docs merge|docs[ -]lane|documentation lane|docs issue'
@@ -167,12 +173,10 @@ probe_idiom_records_where_the_checks_live() {
 name="CLAUDE.md states the lane rule in both sections an agent reads: the page is the other lane's work and a development run never runs a docs target, a suite here never reads the generated tree, and docs-owed.sh and docs-fresh are what catch prose lag"
 problems=()
 
-trap_section="$(section "$TRAP_HEADING")"
-idiom="$(section "$IDIOM_HEADING")"
-
-probe_section_reads "$TRAP_HEADING" "$trap_section" &&
+if need_section "$TRAP_HEADING"; then
   probe_trap_sends_the_page_to_the_other_lane
-if probe_section_reads "$IDIOM_HEADING" "$idiom"; then
+fi
+if need_section "$IDIOM_HEADING"; then
   probe_idiom_records_the_suite_rule
   probe_idiom_records_where_the_checks_live
 fi
