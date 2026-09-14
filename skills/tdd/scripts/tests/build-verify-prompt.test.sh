@@ -99,16 +99,29 @@ five="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases "$smu
 #     the built prompt for each of the four phases rather than on _shared.md, because the
 #     behaviour is the rule reaching every phase, not which file holds it. Matched
 #     tolerantly of markdown emphasis and of the exact sentence, but not of either half —
-#     "foreground", and not ending the turn mid-run — going missing.
-missing_fg=""
-for ph in red green refactor pin; do
-  built="$("$BUILD" "$ph" "$work/spec.md" "$testpath" test_slugify_lowercases)"
-  grep -qi 'foreground' <<<"$built" \
-    && grep -qiE 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn' <<<"$built" \
-    || missing_fg="$missing_fg $ph"
-done
-[[ -z "$missing_fg" ]] && ok \
-  || no "every phase's prompt carries the foreground rule (missing:$missing_fg)"
+#     "foreground", and not ending the turn mid-run — going missing. Each half is its own
+#     miss, so a rewording that keeps one and drops the other is named rather than covered
+#     for by its twin.
+#
+#     Shaped after build-develop-prompt.test.sh case 14, which asks the same of the four
+#     developer prompts: a per-phase helper feeding one accumulator. The prompts read are
+#     cases 5, 6, 7 and 9's — same phases, same arguments — so this case invokes the
+#     builder not at all, and those cases keep the exit-status checks on them.
+demands_foreground() {  # demands_foreground <phase label> <prompt>
+  local label="$1" prompt="$2"
+  grep -qi 'foreground' <<<"$prompt" \
+    || problems="$problems; verify-$label never says to run test commands in the foreground"
+  grep -qiE 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn' <<<"$prompt" \
+    || problems="$problems; verify-$label never forbids ending the turn mid-run"
+}
+
+problems=""
+demands_foreground red "$red"
+demands_foreground green "$green"
+demands_foreground refactor "$refactor"
+demands_foreground pin "$pin"
+[[ -z "$problems" ]] && ok \
+  || no "every phase's prompt carries the foreground rule (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"
