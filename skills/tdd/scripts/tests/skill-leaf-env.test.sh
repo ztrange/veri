@@ -157,11 +157,14 @@ while IFS= read -r numbered; do
   line="${line//<test-cmd>/$SENTINEL}"
   line="${line//<phase>/red}"
   line="${line//<k>/1}"
-  leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$line")"
   if [[ "$line" == *'<'*'>'* ]]; then
     problem "names a placeholder this probe cannot supply, so its launch could not be run"
     continue
   fi
+  # The two fields the probe reads out of a line it has established is runnable: the leaf's
+  # name, which is also the tree the launch runs in and how a failure names itself, and the
+  # prompt file the leaf is pointed at.
+  leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$line")"
   prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$line" | head -1)"
   if [[ -z "$prompt" ]]; then
     problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
