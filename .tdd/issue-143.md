@@ -4,7 +4,7 @@
 - [x] no suite under `skills/tdd/scripts/tests/` reads a path under `docs/`, so changing only `docs/wt/commentary.py` leaves `make test` green
 - [x] changing only a script under `skills/tdd/scripts/`, without running `make docs`, leaves `make test` green
 - [x] changing `VERI_REFACTOR_BUDGET`'s default without updating `SKILL.md` or the script header still turns `make test` red
-- [x] with `VERI_TEST_CMD='make test'`, each of `make docs`, `make docs-test`, `make docs-check` and `make docs-fresh` exits 2 without running anything, and says why on stderr ⟂ refactor pending
+- [x] with `VERI_TEST_CMD='make test'`, each of `make docs`, `make docs-test`, `make docs-check` and `make docs-fresh` exits 2 without running anything, and says why on stderr
 - [ ] with `VERI_TEST_CMD` unset, or set to `make docs-test`, those four targets run as before
 - [ ] a leaf launched through `supervise.sh` the way `SKILL.md` prescribes sees `VERI_TEST_CMD` in its environment, pinned with a `CLAUDE_BIN` stub
 - [ ] `build-verify-prompt.sh` accepts the same arguments as before
