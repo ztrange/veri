@@ -87,6 +87,7 @@ import json, re, sys
 issues = json.loads(sys.argv[1])
 prs = json.loads(sys.argv[2])
 label = sys.argv[3]
+this_repo = sys.argv[4]
 
 # Openness is the whole of what a state is read for, and it is read the same way on both
 # kinds of record: `gh` writes an issue state as OPEN/CLOSED and a PR state as
@@ -115,7 +116,6 @@ claimed = {
 # "this one" is comes from `--repo`; with nothing said there is nothing to compare against, so
 # any github.com issue URL is read as local — the same assumption gh makes when it falls back
 # to the repo of the working directory.
-this_repo = sys.argv[4]
 slug = re.escape(this_repo) if this_repo else r"[^/\s]+/[^/\s]+"
 blocker_ref = r"(?:#|https://github\.com/" + slug + r"/issues/)(\d+)"
 
