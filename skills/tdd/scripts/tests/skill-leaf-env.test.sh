@@ -294,6 +294,18 @@ run_case() {
   report "$name"
 }
 
+# arg_after <script> <launch> — echo the word <launch> passes <script> as its first argument:
+# the leaf's name for supervise.sh, the phase for verify.sh. Both checks below read one, and
+# they differ only in which script they read it after — so the `sed` is here rather than once
+# per check, where the two copies would have to get the same two details right independently:
+# the escaping of the script name, and the `[^ ]+` that stops at the first word instead of
+# swallowing the rest of the line. The script arrives as the literal text a launch spells and
+# its dots are escaped here, so a caller hands this a name and not a regex.
+arg_after() {
+  local script="${1//./\\.}"
+  sed -E "s/.*$script +([^ ]+).*/\1/" <<< "$2"
+}
+
 # 1. The criterion, asked of every launch line the document actually prescribes. One case,
 #    because it is one wiring: the same prefix on each line, and a line that lost it is a
 #    phase of the run whose leaf can type `make docs` unrefused.
@@ -309,7 +321,7 @@ run_case() {
 # in the document is `revise-red-1` when it runs.
 check_developer_launch() {
   local launch="$1" leaf prompt
-  leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$launch")"
+  leaf="$(arg_after supervise.sh "$launch")"
   prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$launch" | head -1)"
   if [[ -z "$prompt" ]]; then
     problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
@@ -348,7 +360,7 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 # spells them, so the tree holds the spec and the test the line is about to hand verify.sh.
 check_verifier_launch() {
   local launch="$1" leaf
-  leaf="verify-$(sed -E 's/.*verify\.sh +([^ ]+).*/\1/' <<< "$launch")"
+  leaf="verify-$(arg_after verify.sh "$launch")"
   expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 
