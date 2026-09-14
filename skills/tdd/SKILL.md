@@ -578,16 +578,26 @@ following step. The phase sub-steps are:
    **flagged as needing a triangulating test**, never hand-generalized. Each leaf's report
    ends with `RESULT:` (`applied <transform>, suite green` or `nothing left to tidy`),
    `FLAGS:` (overfit code and the case that would force the generality, or `none`) and one
-   `CANDIDATES:` line per transform it still sees left in those files (or `none`). The loop
-   has **two** stop conditions, and either ends it: a leaf reports **nothing left to tidy**,
-   or `refactor-budget.sh` exits **3** (the budget is spent). Carry the flags of every leaf
-   into the narration, then go to sub-step 2. Exit **2 cannot occur here** — preflight ran
+   `CANDIDATES:` line per transform it still sees left in those files, each carrying its
+   class (or `none`). The loop has **three** stop conditions, and any one of them ends it: a
+   leaf reports **nothing left to tidy**, `refactor-budget.sh` exits **3** (the budget is
+   spent), or the triage below finds no structural candidate left in the leaf's report.
+   Carry the flags of every leaf
+   into the narration, then go to sub-step 2. The budget's exit **2 cannot occur here** — preflight ran
    the script once, so a `VERI_REFACTOR_BUDGET` that does not parse stopped the run before
    any branch existed. The budget exists because a refactor leaf asked for one transform
    almost always finds one, each smaller than the last: without it the conductor ends the
    loop by judgement, which is the ad-hoc decision veri exists to remove. The leaf leaves its
    transform **uncommitted**; you commit it, and only if it changed something:
    `git add -A && git commit -m "refactor: <what> (#<n>)"`.
+   Then **triage that committed transform**: `$S/refactor-triage.sh < .tdd/develop-refactor.out`
+   answers exit **0**, structural candidates remain, so iterate; exit **3**, nothing
+   structural is left, so **stop** the loop; exit **2**, the report is malformed, so
+   **stop** and **narrate** it. Both stops go to sub-step 2: the transform is already
+   committed and verify-refactor still judges the settled state, so a report nothing classed
+   is not worth a bail. The triage is asked **after** the commit, never before — the report
+   it reads belongs to a transform that is already in the history, which is what makes a
+   malformed one survivable. `refactor-budget.sh` stays the cap.
 2. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit
