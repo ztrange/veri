@@ -883,7 +883,7 @@ else
 fi
 
 [[ -z "$entry_missing" ]] \
-  && ok || no "CONTEXT.md's Solvable entry names the conductor PID lock, and a live holder, as what marks a run in flight (missing:$entry_missing)"
+  && ok || no "$context_md's Solvable entry names the conductor PID lock, and a live holder, as what marks a run in flight (missing:$entry_missing)"
 
 echo "----"
 echo "$pass passed, $fail failed"
