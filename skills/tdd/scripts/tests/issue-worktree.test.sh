@@ -580,6 +580,50 @@ $before
 --- after
 $after" ))"
 
+# 17. the repository has no remote at all — the fetch arm is not reached and the branch is still
+# cut from the local default branch (issue #174).
+#
+# Cases 1 and 7 pin *which* local branch the fallback picks, `main` and `master`, and they were
+# written when that was the only arm there was. What neither of them can see is the half #174 added
+# beside it: the remote arm now runs `git fetch origin <default>` before cutting, and turns a failed
+# fetch into a refusal. A guard written the wrong way round — fetch first and fall back only when it
+# fails, or fetch whenever a remote is merely configured — reaches the network in a repository that
+# has none, and the answer it cuts from then depends on what the network said.
+#
+# The seed is a `git init` repo with no remote whose checkout is parked on a `side` branch one commit
+# ahead of `main`, the same guard case 1 uses: with the checkout sitting on `main` itself, "cut from
+# main" and "cut from whatever HEAD was" would be the same commit and the tip assertion would prove
+# nothing.
+#
+# Two things asserted together, because "the local branch, and nothing went to the remote for it" is
+# one criterion and neither half carries it alone: the new worktree's HEAD is the local `main`'s tip,
+# and stderr is silent. That second half is what makes this case catch what cases 1 and 7 cannot —
+# both of them send stderr to /dev/null, so a fetch attempted and then shrugged off (`|| true`, a
+# warning, a fall-through) leaves them green while the script has gone to the network for an answer
+# it did not need. git's own complaint about a remote that is not configured goes to stderr, so
+# silence there is the observable that says no attempt was made.
+repo="$work/no-remote"
+new_repo "$repo"
+main_tip="$(git_q "$repo" rev-parse main)"
+git_q "$repo" switch -q -c side >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "work on side" >/dev/null 2>&1
+side_tip="$(git_q "$repo" rev-parse side)"
+want="$(wt_path "$repo" 43)"
+
+# stdout captured and stderr diverted to a file, the way case 8 does it, so both streams can be
+# asserted on from the one run.
+errfile="$work/no-remote.err"
+out="$(cd "$repo" && "$WT" 43 no-remote 2>"$errfile")" && code=0 || code=$?
+err="$(cat "$errfile")"
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$branch" == "tdd/43-no-remote" ]] \
+  && [[ "$tip" == "$main_tip" ]] && [[ -z "$err" ]]; } \
+  && ok || no "no remote at all: cuts tdd/43-no-remote from the local main without going to a remote (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/43-no-remote', tip='$tip' want the local main's $main_tip not side's $side_tip, stderr $( [[ -z "$err" ]] && echo "silent, good" || echo "carried:
+$err" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
