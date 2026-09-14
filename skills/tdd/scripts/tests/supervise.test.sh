@@ -25,11 +25,11 @@ stub="$(mktemp -d)"
 work="$(mktemp -d)"
 # Every temp dir this suite makes is removed here, on the one path that runs however the
 # script ends — including the Ctrl-C or the `make test` timeout that an `rm` at the foot of
-# a case never reaches. `$launch_work`, `$retry_work` and `$exit_work` are cases 12, 13 and
-# 14's and are made 270 lines down, so they are named with `${…:-}`: unset until then, and
+# a case never reaches. `$launch_work`, `$retry_work`, `$exit_work` and `$ctx_work` are cases
+# 12 to 15's and are made 270 lines down, so they are named with `${…:-}`: unset until then, and
 # `rm -rf ""` is a silent no-op (POSIX: `-f` ignores an operand that does not exist), so an
 # early exit cleans the ones that do exist.
-trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}" "${exit_work:-}"' EXIT
+trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}" "${exit_work:-}" "${ctx_work:-}"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
@@ -459,6 +459,47 @@ exit_stuck_secs="$(event_field   "$exit_work/stuck" exit secs)"
   && heartbeat_kill "$exit_stuck_cause" "$exit_window" \
   && [[ "$exit_stuck_secs" =~ ^[0-9]+$ ]] && (( exit_stuck_secs >= exit_window )); } && ok \
   || no "a supervised leaf appends one exit event carrying the 0/1/2 status, the kill cause and the attempt's wall seconds (success status=$exit_ok_status want 0, secs=$exit_ok_secs; failure status=$exit_fail_status want 1; killed-stuck status=$exit_stuck_status want 2, cause=$exit_stuck_cause, secs=$exit_stuck_secs want >=$exit_window)"
+
+# 15. the two marks the supervisor writes per supervision carry the RUN's context as well as
+#     the leaf's: the issue being solved and the step of its plan the leaf is working on
+#     (issue #163). leaf-role.sh can derive the actor, phase and attempt from the leaf's name,
+#     but nothing in a name says which issue or which step — that context exists only in the
+#     environment the conductor launched the leaf in, and the supervisor's job is to pass it
+#     through, not to invent it. Without it a reader can attribute a leaf to a step only by
+#     interleaving its timestamp with the conductor's own `step-start` marks.
+#
+#     `VERI_ISSUE` and `VERI_STEP` are the names event.sh already reads (event.sh:48-50), so
+#     what this case pins is that they survive the hop from this suite's `env` into the
+#     `mark` helper's child (supervise.sh:153-157) — the one place a `-i`, an explicit
+#     variable list or a `mark` that spelled the context itself would silently drop them.
+#
+#     Both marks are asserted, not just the `launch`: they are written from different points
+#     in the script (before the retry loop and after it), so a context that reached one is no
+#     evidence the other has it.
+#
+#     The two values are deliberately unlike every other number on the line — the step is 4,
+#     not the 1 the attempt carries or the 0 the success status does — so a mark that read
+#     some other field into these keys is caught rather than agreeing by coincidence. Written
+#     once each into a variable used both to launch and to expect, cases 12 and 13's shape:
+#     spelled a second time in the assertion, the expectation could drift off the launch.
+#
+#     A directory of its own, for case 12's reason: the event log accumulates across a run,
+#     and `event_field` demands exactly one line of the kind it is asked for.
+ctx_work="$(mktemp -d)"
+ctx_issue=163
+ctx_step=4
+( cd "$ctx_work" && env VERI_ISSUE="$ctx_issue" VERI_STEP="$ctx_step" \
+    VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+    "$SUP" develop-red "$stub/leaf-ok" ) >/dev/null 2>&1
+ctx_code=$?
+ctx_launch_issue="$(event_field "$ctx_work" launch issue)"
+ctx_launch_step="$(event_field  "$ctx_work" launch step)"
+ctx_exit_issue="$(event_field   "$ctx_work" exit   issue)"
+ctx_exit_step="$(event_field    "$ctx_work" exit   step)"
+{ [[ "$ctx_code" == 0 ]] \
+  && [[ "$ctx_launch_issue" == "$ctx_issue" ]] && [[ "$ctx_launch_step" == "$ctx_step" ]] \
+  && [[ "$ctx_exit_issue"   == "$ctx_issue" ]] && [[ "$ctx_exit_step"   == "$ctx_step" ]]; } && ok \
+  || no "VERI_ISSUE/VERI_STEP in the supervisor's environment reach its launch and exit events (code=$ctx_code, launch issue=$ctx_launch_issue want $ctx_issue step=$ctx_launch_step want $ctx_step, exit issue=$ctx_exit_issue want $ctx_issue step=$ctx_exit_step want $ctx_step)"
 
 echo "----"
 echo "$pass passed, $fail failed"
