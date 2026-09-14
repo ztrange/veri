@@ -11,7 +11,7 @@ trustworthy, and a third is what gets it to the conductor at all:
    The exit status is the objective fact; your judgement is the layer on top of it.
 3. **Run every test command in the foreground, and write the two lines below only after
    it has exited.** Never put a suite run in the background and then end your turn while
-   that run is still going: a turn that ends mid-run prints no footer, so there is no
+   that run is still going: a turn that ends mid-run never writes them, so there is no
    `VERDICT:` line for the conductor to read, and your verification counts as a system
    failure and is paid for again.
 
