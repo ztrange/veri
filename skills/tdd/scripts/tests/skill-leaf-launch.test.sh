@@ -75,6 +75,17 @@ fault() {
   faults="${faults:+$faults, and }$1"
 }
 
+# unreadable <missing> <subject> — record the problem a probe that printed NOTHING leaves
+# behind, onto the same `problems` array a fault ends up in. Both cases fail closed through
+# here: a probe comes back empty when the fences moved, when the launches went, or when the
+# heading was renamed, and every one of those has to read as a problem saying the document
+# could not be read — never as a case that passed because there was nothing left to
+# contradict it. One helper so neither case can quietly stop doing it, and so the two
+# messages cannot drift into different shapes.
+unreadable() {
+  problems+=("$skill_md has no $1 — $2 could not be read")
+}
+
 # launch_lines — the leaf launch lines of SKILL.md, each prefixed with its line number.
 #
 # A launch line is a line INSIDE a fenced block that names `supervise.sh` or `verify.sh`:
@@ -115,10 +126,7 @@ problems=()
 
 launches="$(launch_lines)"
 if [[ -z "$launches" ]]; then
-  # Fail closed: no launch line found means the fences moved or the document lost its
-  # launches, and either has to read as one problem saying so — never as a case that
-  # passed because there was nothing left to contradict it.
-  problems+=("$skill_md has no leaf launch line inside a fenced block — how a leaf is launched could not be read")
+  unreadable "leaf launch line inside a fenced block" "how a leaf is launched"
 else
   while IFS=$'\t' read -r lineno text; do
     faults=""
@@ -147,9 +155,7 @@ problems=()
 
 prose="$(section_prose "$section" | tr '[:upper:]' '[:lower:]')"
 if [[ -z "$prose" ]]; then
-  # Fail closed, as case 1 does: a section that could not be read is never an explanation
-  # that passed.
-  problems+=("$skill_md has no *$section* section — the reason given for the launch shape could not be read")
+  unreadable "*$section* section" "the reason given for the launch shape"
 else
   faults=""
   [[ "$prose" == *nohup* ]] || fault "never names nohup"
