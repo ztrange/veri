@@ -610,12 +610,15 @@ following step. The phase sub-steps are:
    the loop.
 3. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
-   Say **how many transforms ran** and **which stop condition ended the loop**, mirroring
-   `refactor-budget.sh`'s own status line (`refactor 2/2 — budget spent`): a step that ran
-   dry says **nothing left to tidy**, and a step the budget stopped says **how many
-   candidates** the last leaf left and **lists** them, one per line, taken verbatim from its
-   `CANDIDATES:` lines — a count with no items is not a backlog, and the backlog is the
-   whole point of recording what the budget dropped.
+   Say **how many transforms ran** and **which of the three stop conditions ended the
+   loop**, mirroring `refactor-budget.sh`'s own status line (`refactor 2/2 — budget spent`):
+   a step that ran dry says **nothing left to tidy**, a step the budget stopped says the
+   **budget** is spent, and a step `refactor-triage.sh` ended says **no structural candidate
+   was left**. Then **list what the loop did not do**, taken verbatim from the last leaf's
+   `CANDIDATES:` lines and filed in **two separate lists** — the **structural** leftovers,
+   which a follow-up owes, and the **cosmetic** ones, which nobody owes. Each list says
+   **how many candidates** it holds and then **lists** them, one per line. A count with no
+   items is not a backlog, and the two classes run together are a backlog nobody can size.
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **clear the refactor-pending mark and commit the cleared ledger first**, before
      anything outside the repository says the step is done:

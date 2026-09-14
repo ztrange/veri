@@ -314,6 +314,61 @@ fi
 
 report "$name"
 
+# 5. what the conductor writes down when the loop ends. Case 4 asks where the script is
+#    called and which branch each answer takes; this one asks what survives the run. The
+#    `### 🛠️ Refactor` comment is the only place a human reads why a step's tidying stopped,
+#    and since #149 there are three ways it can stop rather than two — so a comment that
+#    still offers only "ran dry" and "budget spent" narrates a triage-ended loop as one of
+#    the other two, and the measurement the issue exists to produce (how often the new
+#    condition fires) cannot be read back off the thread. The same comment is where the
+#    leftovers are filed, and a structural leftover is work a follow-up owes while a cosmetic
+#    one is not: run together in one list, neither is worth anything to whoever reads it.
+#
+#    Two claims, one criterion — the comment names which of the three ended the loop, and it
+#    keeps the two classes of leftover apart — so one case, with `problems` saying which the
+#    document dropped. Each probe accepts any wording that carries its fact.
+#
+#    The probes read the narration sub-step alone rather than the section at large, for case
+#    4's reason turned the other way: sub-step 1 lists the loop's own three stop conditions
+#    and names `nothing left to tidy` and the budget while doing it, so a probe over the
+#    whole section would be answered there and pass a document whose `### 🛠️ Refactor`
+#    comment mentions neither.
+name="$skill_md's ### 🛠️ Refactor comment names which of the three stop conditions ended the loop and files the leftovers by class"
+problems=()
+
+loop_lines="$(refactor_loop)"
+
+# The narration sub-step as one line: from the section's first line that names a `###`
+# comment — the `### 🛠️ Refactor` heading this case is about — up to the `- PASS:` bullet,
+# where the branch on verify-refactor's verdict begins and the narration's own rules stop.
+# Joined, because none of the probes below is about order. Opened on the `###` rather than on
+# the sub-step's own word `narrate` because sub-step 1 says "stop and narrate" too, and a
+# window opened there would take in that sub-step's list of stop conditions.
+narration="$(awk '!inside && /###/ && /refactor/ { inside = 1 }
+                  inside && /^ *- pass:/ { exit }
+                  inside' <<<"$loop_lines" | tr '\n' ' ')"
+
+if [[ -z "${narration// /}" ]]; then
+  # Fail closed, as case 4 does: a narration sub-step that names no comment at all is
+  # reported as unreadable rather than probed as an empty string.
+  problems+=("$skill_md's refactor loop names no ### comment to post, so what the ### 🛠️ Refactor comment must say could not be established")
+else
+  grep -qF 'nothing left to tidy' <<<"$narration" ||
+    problems+=("$skill_md never tells the ### 🛠️ Refactor comment to say the loop ran dry — 'nothing left to tidy', the first of the three stop conditions")
+  grep -qF 'budget' <<<"$narration" ||
+    problems+=("$skill_md never tells the ### 🛠️ Refactor comment to name the budget — the second of the three stop conditions")
+  # Either face of the third condition is accepted — that no structural candidate was left,
+  # or that only cosmetic ones were — as is naming the script that decided it.
+  grep -qE '(no|nothing|none)[ a-z]{0,14}structural|only cosmetic|refactor-triage' <<<"$narration" ||
+    problems+=("$skill_md never tells the ### 🛠️ Refactor comment to name the third stop condition — that no structural candidate was left — so a loop the triage ended is narrated as one of the other two")
+  grep -qF 'cosmetic' <<<"$narration" ||
+    problems+=("$skill_md's ### 🛠️ Refactor comment never mentions cosmetic leftovers, so the two classes of candidate go into one undifferentiated backlog")
+  grep -qE 'separat|apart|split|by class|per class|each class|own list|own line|own heading|own group' <<<"$narration" ||
+    problems+=("$skill_md never tells the ### 🛠️ Refactor comment to keep the structural leftovers apart from the cosmetic ones — a mixed list is a backlog nobody can size")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
