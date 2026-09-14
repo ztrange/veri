@@ -149,10 +149,6 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
 # exists to prevent.
 #
-# origin/HEAD is git's own record of the default branch when there is a remote; it comes back
-# as `origin/main`. A repo with no remote — a throwaway `git init`, a clone whose origin/HEAD was
-# never set — has no such record, so fall back to the two names git itself ships as defaults.
-#
 # With a remote the base is the REMOTE's tip, not the local branch of the same name, and it is
 # fetched first (issue #174). The local `main` here lags `origin/main` by design: pulling the
 # primary clone while a conductor is live would change the scripts running under it, so the pull
@@ -163,32 +159,24 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 # `git fetch origin <default>` refreshes refs/remotes/origin/<default> and nothing else: it moves
 # no local branch ref and touches no working tree, so #165's reason for not pulling stays intact.
 #
-# What the symref answers with — `origin/main` — IS the base, so that is the name it is held
-# under, the same one both arms below answer with and the same one the caller binds. Only the
-# fetch wants the other reading of it.
-default_base() {
-  local base candidate remote_branch
-  if base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
-    # ${base#origin/} strips the prefix (# removes the shortest match from the front) to name the
-    # branch on the remote side, which is the half of `origin/main` that `git fetch` takes. It is
-    # held under a name because two things below have to mean the same branch by construction: the
-    # fetch, and the diagnostic that says that fetch failed. Spelled twice, they could drift, and
-    # the message would then name a fetch nobody ran — the one line a human has to trust when the
-    # remote is unreachable.
-    remote_branch="${base#origin/}"
+# Two questions, asked by the two functions below, because they are not one question: what the
+# default branch is CALLED is something this clone can answer on its own, while whether the base
+# is the remote's copy of that branch turns on there being a remote at all.
 
-    # A fetch that fails is a refusal, never a fallback. refs/remotes/origin/<default> is still
-    # there in the clone, pointing at whatever tip the last successful fetch left — so carrying on
-    # would cut the branch from a base as stale as the local one this fetch exists to get away
-    # from, and whether a run starts from the remote's tip would come to depend on whether the
-    # network happened to be up. Return 2, the script's "no answer could be obtained": the remote
-    # we were told to cut from could not be read. Said here, where the fetch is, because this is
-    # the only place that knows the fetch was what broke; git's own message never says the word.
-    if ! git fetch -q origin "$remote_branch" >&2; then
-      echo "issue-worktree: git fetch origin $remote_branch failed — refusing to cut $branch from a stale $base" >&2
-      return 2
-    fi
-    printf '%s\n' "$base"
+# default_branch_name — the name the default branch carries, the same one on the remote side and
+# locally. origin/HEAD is git's own record of it, and it comes back as `origin/main`, so
+# ${head#origin/} strips the prefix (# removes the shortest match from the front) to leave just
+# the name — which is the half of `origin/main` that `git fetch` takes.
+#
+# A repository can have an origin and carry no such symref: `git remote add` plus a fetch writes
+# none, a clone taken before git started writing one has none, and `git remote set-head -d` takes
+# it off. So the fallback to the two names git itself ships as defaults is not the "no remote"
+# arm — it is the "nobody wrote down which branch it is" arm, and either kind of repository can
+# reach it.
+default_branch_name() {
+  local head candidate
+  if head="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
+    printf '%s\n' "${head#origin/}"
     return 0
   fi
   for candidate in main master; do
@@ -198,12 +186,47 @@ default_base() {
     fi
   done
 
-  # No origin/HEAD and no local main or master: nothing is left to cut from. Said here for the same
-  # reason the fetch's refusal is said where the fetch is — this is the only place that knows which
-  # of the two ways out was taken, and once each has named itself the caller does the same thing
-  # either way, so it needs no status to tell them apart.
+  # No origin/HEAD and no local main or master: nothing is left to name, so there is nothing to cut
+  # from. Said here for the same reason the fetch's refusal is said where the fetch is — this is
+  # the only place that knows which of the two ways out was taken, and once each has named itself
+  # the caller does the same thing either way, so it needs no status to tell them apart.
   echo "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)" >&2
   return 2
+}
+
+# default_base — the one ref `git worktree add -b` is handed, and the name the caller binds.
+#
+# What decides between the two arms is whether an `origin` remote is CONFIGURED, never whether
+# origin/HEAD is there to be read. Those look like the same question in a clone, which is how the
+# symref came to stand in for it, but a repository with an origin and no symref is ordinary
+# (#174) — and reading the symref as the test sends exactly that repository down the local arm,
+# back to the stale `main` the fetch exists to get away from, silently and in the shape that
+# looks like every other clone from the outside. `git remote get-url` asks git's configuration
+# and nothing else, so a repository with no remote reaches no network for an answer it could not
+# use — the observable case 17 pins by requiring stderr to stay silent.
+default_base() {
+  local name
+  name="$(default_branch_name)" || return 2
+
+  if ! git remote get-url origin >/dev/null 2>&1; then
+    printf '%s\n' "$name"
+    return 0
+  fi
+
+  # A fetch that fails is a refusal, never a fallback. refs/remotes/origin/<default> is still
+  # there in the clone, pointing at whatever tip the last successful fetch left — so carrying on
+  # would cut the branch from a base as stale as the local one this fetch exists to get away
+  # from, and whether a run starts from the remote's tip would come to depend on whether the
+  # network happened to be up. Return 2, the script's "no answer could be obtained": the remote
+  # we were told to cut from could not be read. Said here, where the fetch is, because this is
+  # the only place that knows the fetch was what broke; git's own message never says the word.
+  # $name is what both the fetch and the message are built from, so the line a human trusts when
+  # the remote is unreachable cannot come to name a fetch nobody ran.
+  if ! git fetch -q origin "$name" >&2; then
+    echo "issue-worktree: git fetch origin $name failed — refusing to cut $branch from a stale origin/$name" >&2
+    return 2
+  fi
+  printf '%s\n' "origin/$name"
 }
 
 # One `git worktree add`, in one of two shapes, and a single print of the path afterwards —

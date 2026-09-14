@@ -756,6 +756,52 @@ fi
 [[ -z "$problems" ]] \
   && ok || no "SKILL.md's issue-worktree.sh entry says the branch is cut from the freshly fetched remote default branch and why the local one is not used (${problems#; }; text read: '$entry')"
 
+# 20. the clone has an origin remote but no refs/remotes/origin/HEAD — the branch is still cut from
+# the remote's freshly fetched tip, not from the local branch of the same name (issue #174).
+#
+# Cases 13-16 all run against a `git clone`, which writes refs/remotes/origin/HEAD as a side effect
+# of cloning, so in every one of them the symref is there to be read and "there is a remote" and
+# "origin/HEAD names its default branch" are the same answer. A clone is not the only way a repo
+# gets an origin: `git remote add` plus a fetch sets no origin/HEAD at all, an old clone made before
+# git wrote one carries none, and `git remote set-head -d` takes it off. Such a repo has a remote
+# whose tip is the base this script exists to cut from, and reading the symref as the test for
+# whether to go to the remote at all sends it down the local fallback instead — back to the stale
+# `main` the fetch was added to get away from, silently, in the one shape that looks like every
+# other clone from the outside.
+#
+# The seed is case 13's upstream+clone pair with origin/HEAD deleted from the clone before the call
+# and the two tips then pulled apart: the clone is taken first, origin/HEAD comes off, and only then
+# does the upstream gain a commit. So at the moment of the call the clone's local `main` and its
+# `refs/remotes/origin/main` both sit at the old tip and nothing but a fetch can reach the new one,
+# while the local `main` is still there for a fallback to answer with — which is what makes cutting
+# from the remote's tip the answer only a script that went to the remote can give.
+#
+# Three things asserted together: the seed genuinely carried no origin/HEAD when the script was
+# called (a git version that re-created it would otherwise make this case pass as case 13 already
+# does, proving nothing), and the new worktree's HEAD is the upstream's current tip rather than the
+# tip the clone was taken at.
+upstream="$work/no-origin-head-upstream"
+new_repo "$upstream"
+clone="$work/no-origin-head-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD >/dev/null 2>&1
+git_q "$upstream" commit -q --allow-empty -m "landed while the clone was busy" >/dev/null 2>&1
+remote_tip="$(git_q "$upstream" rev-parse main)"
+stale_tip="$(git_q "$clone" rev-parse main)"
+want="$(wt_path "$clone" 47)"
+
+# Asked before the call, not after: an implementation that reached the remote's tip by way of
+# `git remote set-head` would legitimately leave one behind, and this is a statement about what the
+# script was handed.
+origin_head="$(git_q "$clone" symbolic-ref --quiet refs/remotes/origin/HEAD 2>/dev/null)"
+
+out="$(cd "$clone" && "$WT" 47 no-origin-head 2>/dev/null)" && code=0 || code=$?
+
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ -z "$origin_head" ]] && [[ "$tip" == "$remote_tip" ]]; } \
+  && ok || no "an origin remote but no refs/remotes/origin/HEAD: cuts tdd/47-no-origin-head from origin's freshly fetched tip (exit=$code want 0, stdout='$out' want '$want', the clone's refs/remotes/origin/HEAD $( [[ -z "$origin_head" ]] && echo "absent as seeded, good" || echo "was '$origin_head' — the seed did not remove it, so this case cannot tell the arms apart" ), tip='$tip' want origin's $remote_tip not the stale local main's $stale_tip)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

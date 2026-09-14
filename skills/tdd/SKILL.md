@@ -181,13 +181,14 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   file is ensured either way. Run once per issue right after entering the worktree (step 1).
 - `$S/issue-worktree.sh <n> <slug>` — the **linked worktree the issue branch lives in**.
   Creates (or hands back) `<repo-root>/.tdd/wt/<n>` on branch `tdd/<n>-<slug>`, cut from
-  **`origin/<default>` as just fetched** — the default branch is the one `origin/HEAD` names —
-  never from the caller's `HEAD`, and never from the **local** branch of that name: that one
-  **lags the remote by design**, since pulling the primary clone while a run is live would
-  change the scripts running under it, so a branch cut from it starts **stale** and its PR
-  then owes a rebase over everything that landed meanwhile. The fetch moves no local branch
-  and touches no working tree. With no remote the base falls back to a local `main`/`master`,
-  as before. Prints the worktree's **absolute path on stdout** — the only thing on stdout;
+  **`origin/<default>` as just fetched** — the default branch is the one `origin/HEAD` names,
+  or a local `main`/`master` when the clone records no such symref — never from the caller's
+  `HEAD`, and never from the **local** branch of that name: that one **lags the remote by
+  design**, since pulling the primary clone while a run is live would change the scripts
+  running under it, so a branch cut from it starts **stale** and its PR then owes a rebase over
+  everything that landed meanwhile. The fetch moves no local branch and touches no working
+  tree. With no remote the base falls back to a local `main`/`master`, as before. Prints the
+  worktree's **absolute path on stdout** — the only thing on stdout;
   git's chatter goes to stderr, so the path is safe to capture. **Idempotent**: a second call
   for the same issue prints the same path and creates nothing, which is what makes a resume
   land in the worktree the first run made — an existing issue branch is checked out as it is,
