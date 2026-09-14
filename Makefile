@@ -100,11 +100,14 @@ docs-check: docs-test docs-fresh
 # This is the replacement: run once at merge time, in the PR's worktree on the rebased
 # tip, it diffs the branch against origin/main and runs only the gates the changed files
 # warrant — nothing for a README PR, nothing for a change under skills/ either since #125,
-# docs-fresh alone for a hand-edited page or a Makefile change, and docs-test (every suite
-# under docs/tests/) plus docs-fresh for a change anywhere under docs/ except
-# walkthrough.html itself, which is the build's output rather than one of its inputs (#137:
-# the rule is the directory, not a list of its parts, so docs/docs-owed.sh and
-# docs/merge-gates.sh no longer match nothing and get no gate).
+# nothing for a Makefile change either since #164 (the page goes stale by design on every
+# tag and every script change, so the check on a development branch failed for what main
+# did while the branch was open, whatever the recipe edit was; a recipe that breaks a docs
+# target is the docs lane's to catch on its own cadence), docs-fresh alone for a hand-edited
+# page, and docs-test (every suite under docs/tests/) plus docs-fresh for a change anywhere
+# under docs/ except walkthrough.html itself, which is the build's output rather than one of
+# its inputs (#137: the rule is the directory, not a list of its parts, so
+# docs/docs-owed.sh and docs/merge-gates.sh no longer match nothing and get no gate).
 # docs/merge-gates.sh has the rules and the exit codes;
 # VERI_GATES=all forces both, VERI_GATES_BASE picks another base.
 merge-gates:
