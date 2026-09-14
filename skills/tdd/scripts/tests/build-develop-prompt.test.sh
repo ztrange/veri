@@ -528,14 +528,12 @@ prompt_says "$refactor" "does not say cosmetic leaves duplication, identifiers a
 #     nothing stops the transform it just committed from having been one. Two faces of one
 #     criterion, so one case.
 #
-#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
-#     case 3 owns the exit-0 check on it. Built with `prompt_says` for case 11's reasons, and
-#     under the grep constraint reasoned about there — one bounded `[^.]{0,N}` per alternation
-#     branch, so each probe spends its budget going one way and the reversed branch gets its
-#     own. Both directions because either half reads as naturally forwards as backwards:
-#     "apply only a structural transform" against "a structural transform is the only one to
-#     apply", "report `nothing left to tidy` when only cosmetic candidates remain" against
-#     "when only cosmetic candidates remain, nothing is left to tidy".
+#     Read, built and bounded as case 16's probes are, and for the reasons given there: case
+#     3's prompt, `prompt_says`, one bounded `[^.]{0,N}` per alternation branch. Both
+#     directions because either half reads as naturally forwards as backwards: "apply only a
+#     structural transform" against "a structural transform is the only one to apply", "report
+#     `nothing left to tidy` when only cosmetic candidates remain" against "when only cosmetic
+#     candidates remain, nothing is left to tidy".
 #
 #     Neither probe can be answered by what is already there, which was checked against the
 #     built prompt rather than the template: `structural` and `cosmetic` each occur exactly
