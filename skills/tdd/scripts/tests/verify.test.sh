@@ -290,10 +290,6 @@ exit 0
 STUB
 chmod +x "$stubdir/claude-mutate"
 
-# An identity for the arm that commits: a repo made by `git init` under a test has no user.name,
-# and git refuses to commit without one.
-git_t() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
-
 # tamper_run <arm> <mutation> — a fresh one-commit repo at $tamper_work/<arm>, then one PASS
 # verification in it whose leaf runs <mutation> first. Sets $out and $code to verify.sh's
 # stdout and exit status, so the assertion below reads whichever of the two it is about.
@@ -301,10 +297,16 @@ tamper_run() {
   local dir="$tamper_work/$1"
   mkdir -p "$dir"
   git init -q -b main "$dir" >/dev/null 2>&1
+  # An identity in the repo's own config: a repo made by `git init` under a test has none and
+  # git refuses to commit without one. In the config rather than on each command line because
+  # the arm whose mutation is a commit runs that commit inside the leaf's stub, where no helper
+  # of this suite reaches it — one identity, set where every caller finds it.
+  git -C "$dir" config user.name veri
+  git -C "$dir" config user.email veri@example.test
   printf 'the developer wrote this\n' > "$dir/src.txt"
   printf '.tdd/\n' > "$dir/.gitignore"
-  git_t "$dir" add -A >/dev/null 2>&1
-  git_t "$dir" commit -q -m "initial" >/dev/null 2>&1
+  git -C "$dir" add -A >/dev/null 2>&1
+  git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
   out="$( cd "$dir" && env CLAUDE_BIN="$stubdir/claude-mutate" FAKE_MUTATE="$2" \
             FAKE_OUT_TEXT='VERDICT: PASS
 REASON: Target test and full suite are green.' \
@@ -316,7 +318,7 @@ tamper_run tracked 'printf "the verifier rewrote this\n" > src.txt'
 tracked_code=$code tracked_out="$out"
 tamper_run untracked 'printf "the verifier left this behind\n" > leftover.txt'
 untracked_code=$code untracked_out="$out"
-tamper_run head 'git -c user.name=veri -c user.email=veri@example.test commit -q --allow-empty -m "the verifier committed"'
+tamper_run head 'git commit -q --allow-empty -m "the verifier committed"'
 head_code=$code head_out="$out"
 
 { [[ "$tracked_code" == 2 ]] && [[ "$tracked_out" == *src.txt* ]] \
