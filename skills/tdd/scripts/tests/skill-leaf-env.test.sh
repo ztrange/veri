@@ -61,6 +61,15 @@ report() {
   fi
 }
 
+# problem <complaint> — record one launch line that failed the case. Every such message has
+# the same three parts, and they are here rather than at each call site so the three cannot
+# drift apart: where the line is, what is wrong with it, and the line itself, since a reader
+# who has the offending launch in front of them does not have to go and open the document.
+# `lineno` and `line` are the loop's, the way `problems` above is `report`'s.
+problem() {
+  problems+=("$skill_md:$lineno $1:$line")
+}
+
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 stub="$WORK/stub"       # the fake `claude` every launch below ends in
@@ -146,17 +155,17 @@ while IFS= read -r numbered; do
   line="${line//<k>/1}"
   leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$line")"
   if [[ "$line" == *'<'*'>'* ]]; then
-    problems+=("$skill_md:$lineno names a placeholder this probe cannot supply, so its launch could not be run:$line")
+    problem "names a placeholder this probe cannot supply, so its launch could not be run"
     continue
   fi
   prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$line" | head -1)"
   if [[ -z "$prompt" ]]; then
-    problems+=("$skill_md:$lineno launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started:$line")
+    problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
     continue
   fi
   got="$(launched_test_cmd "$line" "$prompt" "$leaf")"
   [[ "$got" == "$SENTINEL" ]] ||
-    problems+=("$skill_md:$lineno launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL:$line")
+    problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 done <<< "$launch_lines"
 report "$name"
 
