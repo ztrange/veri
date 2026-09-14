@@ -2,8 +2,8 @@
 
 ## Phase: develop-refactor
 
-Apply behavior-preserving transformations to the code this cycle produced, one at a time —
-or report that nothing is left to tidy. The suites covering it stay green throughout.
+Apply behavior-preserving transformations to the code this cycle produced — or report that
+nothing is left to tidy. The suites covering it stay green throughout.
 
 ### The step (this cycle's criterion)
 
