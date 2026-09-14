@@ -13,6 +13,9 @@
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #
+# `refactor` also reads VERI_REFACTOR_BUDGET (default 5) from the environment, the number of
+# transforms the leaf may apply.
+#
 # Prints the assembled prompt on stdout (feed it to supervise.sh). Exit 2 on an unknown
 # phase or a missing template/spec file — never a partial prompt.
 set -euo pipefail
@@ -87,7 +90,7 @@ test_cmd="${4:?missing <test-cmd>}"
 # each branch names only those. Everything else stays empty, and an empty variable's
 # placeholder expands to nothing — which is why red, the phase that writes the test and so
 # has nothing yet to name, needs no branch body at all.
-test_path="" target="" touched="" reason_file=""
+test_path="" target="" touched="" reason_file="" refactor_budget=""
 case "$phase" in
   red) ;;
   green)
@@ -96,6 +99,14 @@ case "$phase" in
     ;;
   refactor)
     touched="${5:?missing <touched-files>}"
+    # The one variable this builder reads from the environment rather than from a
+    # positional. It is the same number `refactor-budget.sh` reads, same name and same
+    # default, because one leaf per step moves the spending decision inside the leaf: the
+    # bound in the template is a phrase with nothing behind it unless the number travels
+    # with the prompt. Taking it from `VERI_REFACTOR_BUDGET` rather than from an argument
+    # keeps one way to say it — a second channel could disagree with the one the loop's
+    # own bound is read from.
+    refactor_budget="${VERI_REFACTOR_BUDGET:-5}"
     ;;
   revise)
     reason_file="${5:?missing <reason-file>}"
@@ -126,6 +137,7 @@ out="${out//\{\{TEST_CMD\}\}/$test_cmd}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{TOUCHED_FILES\}\}/$touched}"
+out="${out//\{\{REFACTOR_BUDGET\}\}/$refactor_budget}"
 out="${out//\{\{REVISE_PHASE\}\}/$revised_phase}"
 out="${out//\{\{REJECTION_REASON\}\}/$reason}"
 
