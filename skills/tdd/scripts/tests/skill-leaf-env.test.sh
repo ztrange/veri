@@ -66,7 +66,7 @@ report() {
 # drift apart: where the line is, what is wrong with it, and the line itself **as the
 # document spells it**, so a reader can find the text by searching for what the message
 # quoted, and what they fix is the document rather than the probe's substituted copy.
-# `lineno` and `line` are `scan_launches`'s, the way `problems` above is `report`'s.
+# `lineno` and `line` are `scan_launches`'s, the way `problems` is `run_case`'s.
 problem() {
   problems+=("$skill_md:$lineno $1:$line")
 }
@@ -224,6 +224,25 @@ scan_launches() {
   done <<< "$lines"
 }
 
+# run_case <name> <pattern> <missing> <check> — one whole case: collect what every matching
+# launch line got wrong, then close the case under <name>. `scan_launches`'s three arguments
+# are passed straight through.
+#
+# Both cases are this shape, and the shared `problems` array is the part of it a copy could
+# get wrong silently: a case that forgot to empty the array before scanning would report its
+# predecessor's failures under its own name, and one that forgot `report` would assert
+# nothing while still printing a count. Here the array is this function's own local, so
+# emptying it is not a step anyone can omit — `problem` and `report` reach it the way the
+# check reaches `lineno` and `line`, a bash function seeing the locals of the functions that
+# called it. `local problems=()` and not a bare `local`, because under `set -u` bash 3.2 reads
+# `${#problems[@]}` on a declared-but-unassigned array as an unbound variable and dies.
+run_case() {
+  local name="$1"
+  local problems=()
+  scan_launches "$2" "$3" "$4"
+  report "$name"
+}
+
 # 1. The criterion, asked of every launch line the document actually prescribes. One case,
 #    because it is one wiring: the same prefix on each line, and a line that lost it is a
 #    phase of the run whose leaf can type `make docs` unrefused.
@@ -233,9 +252,6 @@ scan_launches() {
 #    generic shape at the head of the document (`supervise.sh <name> <cmd> [args...]`,
 #    SKILL.md:212) is deliberately not among them: it names no command to launch, so there
 #    is nothing to run and nothing a leaf could see.
-name="every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD"
-problems=()
-
 # The two fields the probe reads out of a developer launch: the leaf's name, which is also the
 # tree the launch runs in and how a failure names itself, and the prompt file the leaf is
 # pointed at. Both are read from the substituted copy, since a leaf named `revise-<phase>-<k>`
@@ -251,10 +267,10 @@ check_developer_launch() {
   expect_sentinel "$leaf" "$launch" "$prompt"
 }
 
-scan_launches '\$S/supervise\.sh .*run-leaf\.sh' \
+run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
+  '\$S/supervise\.sh .*run-leaf\.sh' \
   "$skill_md has no line launching a leaf through supervise.sh into run-leaf.sh — the launch this case is about could not be found" \
   check_developer_launch
-report "$name"
 
 # 2. The same criterion, asked of the verifier launches. A verifier is a leaf too — `claude
 #    -p` in a tree, denied Write and Edit but free to run commands — so `make docs` is as
@@ -274,9 +290,6 @@ report "$name"
 #    stands. The shape at the head of the document (SKILL.md:237) spells its arguments as an
 #    ellipsis rather than naming a spec, so — like the generic `supervise.sh` shape above —
 #    there is nothing there to run and no leaf that could see anything.
-name="every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD"
-problems=()
-
 # The phase is verify.sh's first argument, and `verify-<phase>` is both the leaf's name and the
 # tree this launch runs in — read from the substituted copy, since the revise loop's line says
 # `<phase>` where a run says `red`. The two files named are spelled as `runnable`'s table
@@ -287,10 +300,10 @@ check_verifier_launch() {
   expect_sentinel "$leaf" "$launch" ".tdd/issue-143-spec.md" "probe.test.sh"
 }
 
-scan_launches 'nohup .*\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
+run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
+  'nohup .*\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
   "$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found" \
   check_verifier_launch
-report "$name"
 
 echo "----"
 echo "$pass passed, $fail failed"
