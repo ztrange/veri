@@ -36,7 +36,13 @@ new_repo() {
   git_q "$1" commit -q --allow-empty -m "initial" >/dev/null 2>&1
 }
 
-# wt_path <repo> <n> — the path the script under test is expected to print for issue <n>.
+# wt_path <root> <n> — issue <n>'s worktree path under <root>. The `.tdd/wt/<n>` layout is
+# written once, here, and asked of two different roots: the fixture repo's main working tree,
+# where every case expects the worktree to land, and — in case 9 — the linked worktree it must
+# never be nested inside. Spelling that second one out by hand would put the layout in two
+# places, and a case asserting the absence of a path it had mistyped would pass for the wrong
+# reason.
+#
 # macOS puts mktemp dirs behind the /var -> /private/var symlink and git reports the resolved
 # path, so resolve ours too (`pwd -P`, P for physical) or the comparison fails on a correct
 # script.
@@ -313,7 +319,7 @@ repo="$work/from-linked"
 new_repo "$repo"
 linked="$(linked_worktree "$repo" from-linked-session session)"
 want="$(wt_path "$repo" 27)"
-nested="$linked/.tdd/wt/27"
+nested="$(wt_path "$linked" 27)"
 
 out="$(cd "$linked" && "$WT" 27 from-linked 2>/dev/null)" && code=0 || code=$?
 
