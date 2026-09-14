@@ -86,6 +86,27 @@ tree_snapshot() {  # prints the tree sha of the working tree, or nothing where t
   printf '%s' "$tree"
 }
 
+# The same index trick run backwards. `git add -A` into a throwaway index builds an index
+# holding every path the working tree currently has, untracked ones included; `read-tree -u
+# --reset` against the snapshot then makes the working tree that tree — rewriting what the
+# verifier changed and DELETING what it created, because a path in that index and not in the
+# tree is removed. Ignored paths are in neither, so the run's own state under `.tdd/` (the
+# supervisor's log, this leaf's prompt) survives untouched.
+#
+# `git checkout -- <path>` and `git reset --hard` are the obvious restores and both are wrong
+# here: they restore from HEAD, and verify-green and verify-red run while the developer's work
+# is still uncommitted, so either would throw away the very change the step exists to produce.
+# The snapshot is the tree the verifier was handed, uncommitted work and all, which is why the
+# restore is against it rather than against a commit.
+restore_tree() {  # puts the working tree back to the tree object named by $1
+  local dir
+  dir="$(mktemp -d)"
+  if GIT_INDEX_FILE="$dir/index" git add -A >/dev/null 2>&1; then
+    GIT_INDEX_FILE="$dir/index" git read-tree -u --reset "$1" >/dev/null 2>&1 || true
+  fi
+  rm -rf "$dir"
+}
+
 head_snapshot() {  # prints the sha HEAD names, or nothing where there is no repo or no commit
   # --verify is load-bearing: without it, on a repo with no commits yet, git rev-parse prints
   # the literal string `HEAD` on stdout (and exits 128), so the caller would compare "HEAD"
@@ -125,6 +146,15 @@ if [[ -n "$tree_before" ]]; then
   changed="$(git diff-tree -r --name-only --no-commit-id "$tree_before" "$tree_after" 2>/dev/null)" || changed=""
   [[ "$head_before" == "$head_after" ]] || changed="${changed:+$changed$'\n'}HEAD"
   if [[ -n "$changed" ]]; then
+    # Put it back before bailing. Detecting the tampering and leaving it in place would still
+    # lose the step: the conductor stops here, and the tree a human then inspects — and a
+    # resumed run continues from — is whatever the verifier left. HEAD moves back with
+    # update-ref, which touches the ref alone and so leaves the restored working tree (and the
+    # developer's uncommitted work in it) exactly as restore_tree just made it. An empty
+    # $head_before is a repo with no commits to go back to, so there is no sha to name and the
+    # tree restore is the whole of what can be undone.
+    restore_tree "$tree_before"
+    [[ -z "$head_before" || "$head_before" == "$head_after" ]] || git update-ref HEAD "$head_before"
     echo "verifier leaf modified the repository — verdict not accepted (see .tdd/$leaf_name.log); changed:"
     printf '%s\n' "$changed"
     exit 2
