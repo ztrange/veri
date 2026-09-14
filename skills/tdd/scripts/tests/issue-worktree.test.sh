@@ -361,6 +361,31 @@ $before
 --- after
 $after" ))"
 
+# 11. --remove run from a linked worktree removes the worktree under the **main** working tree
+# (issue #166). Case 4 pins --remove from the main working tree, where the caller's checkout and
+# the main tree are the same directory, so it holds just as well for a remove that deletes
+# whatever is under wherever it is standing.
+#
+# This is the `merge` skill's cleanup: it calls `issue-worktree.sh --remove <n>` from whatever
+# checkout the merge is being driven in, which is not the checkout the run was created from. A
+# remove that resolved the caller's root would compute a path nobody registered and leave the real
+# worktree behind.
+#
+# The seed creates issue 31's worktree from the main working tree and then calls --remove from a
+# linked worktree of the same repo. Both halves of "removed" are asserted the way case 4 asks
+# them: git's registry no longer lists the path, and the directory is gone from disk.
+repo="$work/remove-from-linked"
+new_repo "$repo"
+want="$(wt_path "$repo" 31)"
+(cd "$repo" && "$WT" 31 remove-from-linked >/dev/null 2>&1)
+linked="$(linked_worktree "$repo" remove-from-linked-session remove-session)"
+
+(cd "$linked" && "$WT" --remove 31 >/dev/null 2>&1) && code=0 || code=$?
+after="$(registry "$repo")"
+
+{ [[ "$code" == 0 ]] && [[ "$after" != *"worktree $want"* ]] && [[ ! -e "$want" ]]; } \
+  && ok || no "--remove from a linked worktree: removes the main working tree's .tdd/wt/31 (exit=$code want 0, '$want' $( [[ -e "$want" ]] && echo "still on disk" || echo "gone, good" ), still in git's registry: $( [[ "$after" == *"worktree $want"* ]] && echo yes || echo no ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
