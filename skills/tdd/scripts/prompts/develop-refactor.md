@@ -37,8 +37,8 @@ which file it sits in:
 
 ### What to do
 
-1. Pick **one** transformation that makes the code clearer and apply it. Not a batch: one,
-   so a break is attributable.
+1. Pick **one** transformation that makes the code clearer and apply it — only a structural
+   candidate qualifies, never a cosmetic one. Not a batch: one, so a break is attributable.
 2. Run the suites covering the files you touched, not the full suite: they answer what one
    transform could plausibly break, and answer it in a fraction of the time. Those suites
    must stay green; revert the transform rather than leave a red suite behind. How this
@@ -54,8 +54,9 @@ which file it sits in:
 5. If the code is **overfit** — it hard-codes the one tested case rather than implementing
    the behaviour — do **not** generalize it yourself. Flag it as needing a triangulating
    test, and say which case would force the generality.
-6. If the code is already clean under those rules, change nothing and say so. "Nothing
-   left to tidy" is a legitimate result, not a failure to find work.
+6. If no structural candidate is left under those rules, change nothing and report
+   "nothing left to tidy" — even when cosmetic candidates remain, since none of them is
+   worth a transform. That is a legitimate result, not a failure to find work.
 7. Leave your transform **uncommitted** in the working tree — do not run `git commit`; the
    conductor commits, because the commit is its atomic tick-and-commit.
 

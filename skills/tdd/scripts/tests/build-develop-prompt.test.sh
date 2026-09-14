@@ -516,6 +516,41 @@ prompt_says "$refactor" "does not say cosmetic leaves duplication, identifiers a
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor defines structural and cosmetic candidates by what the transform changes (${problems#; })"
 
+# 17. what the leaf does with the two classes case 16 defines (issue #149). A taxonomy the
+#     leaf is not told to act on changes nothing: case 16 pins that the template names
+#     structural and cosmetic and sorts them by what the transform changes, and sub-step 1
+#     still asks for "one transformation that makes the code clearer", which a cosmetic
+#     candidate answers. So the bar has to be spent twice over — on which transform the leaf
+#     may apply, and on when it may stop. Both halves are needed for the loop to end early:
+#     told only to prefer structural work, a leaf out of structural work applies a cosmetic
+#     one and reports it, and the loop runs to `VERI_REFACTOR_BUDGET` exactly as it did for
+#     43 of 43 measured steps; told only that cosmetic leftovers do not hold the loop open,
+#     nothing stops the transform it just committed from having been one. Two faces of one
+#     criterion, so one case.
+#
+#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
+#     case 3 owns the exit-0 check on it. Built with `prompt_says` for case 11's reasons, and
+#     under the grep constraint reasoned about there — one bounded `[^.]{0,N}` per alternation
+#     branch, so each probe spends its budget going one way and the reversed branch gets its
+#     own. Both directions because either half reads as naturally forwards as backwards:
+#     "apply only a structural transform" against "a structural transform is the only one to
+#     apply", "report `nothing left to tidy` when only cosmetic candidates remain" against
+#     "when only cosmetic candidates remain, nothing is left to tidy".
+#
+#     Neither probe can be answered by what is already there, which was checked against the
+#     built prompt rather than the template: `structural` and `cosmetic` each occur exactly
+#     once in it, in case 16's definitions, and no `only` sits within 60 characters of either,
+#     nor any of the three `nothing left to tidy` occurrences within 120 of `cosmetic`.
+problems=""
+prompt_says "$refactor" "does not say only a structural transform may be applied" \
+  -iE -e 'only[^.]{0,60}structural|structural[^.]{0,60}only'
+# The stop condition, not merely the preference: a leftover cosmetic candidate must not keep
+# the loop running, so the two have to be said in one breath.
+prompt_says "$refactor" "does not say to report nothing left to tidy when only cosmetic candidates remain" \
+  -iE -e 'nothing left to tidy[^.]{0,120}cosmetic|cosmetic[^.]{0,120}nothing left to tidy'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor applies only a structural transform and reports nothing left to tidy when only cosmetic candidates remain (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
