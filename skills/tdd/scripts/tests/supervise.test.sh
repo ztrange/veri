@@ -320,6 +320,28 @@ else:
 ' "$1/.tdd/events.jsonl" "$2" "$3" 2>/dev/null || echo '<<no event log>>'
 }
 
+# sup_run <dir> <argv…> — run one supervision to completion in <dir>, under this suite's
+# compressed watchdog knobs, with its output discarded; the caller reads its status from `$?`.
+# The knobs are pinned rather than inherited for `sup`'s reason above: a budget of retries in
+# the shell that ran `make test` would otherwise change both the wall time and, here, how many
+# marks the event log ends up holding. Cases 12, 15 and 16 all want exactly that launch, and
+# spelled it out one each; the quartet then had to be kept in step across three copies, and a
+# fourth case reading the event log would have made a fourth.
+#
+# Not `sup` itself, which is every earlier case's helper: that one runs in the shared `$work`,
+# and a case that reads the event log needs a directory of its own (case 12's reason). The
+# directory is this helper's first argument for the same reason it is `event_field`'s.
+#
+# <argv…> is the whole command, `"$SUP"` included, rather than a leaf name plus its arguments:
+# `env` applies leading `VAR=VALUE` words left to right and stops at the first word that is not
+# one, so a caller needing extra context in the child's environment — case 15's VERI_ISSUE and
+# VERI_STEP — puts it in front of `"$SUP"` and this helper needs no parameter for it.
+sup_run() {
+  local dir="$1"; shift
+  ( cd "$dir" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+      "$@" ) >/dev/null 2>&1
+}
+
 # Every variable this case owns is prefixed with the event it is about, and case 13's with
 # its own — so the two read as the siblings they are, and each says at a glance which of
 # `event_field`'s two event arguments its assertions are about.
@@ -330,8 +352,7 @@ launch_work="$(mktemp -d)"
 # and the expected attempt below is 2 only because THIS name ends in `-2`.
 launch_name=revise-green-2
 launch_cmd=(env VERI_TIMEOUT=1200 "$stub/leaf-ok")
-( cd "$launch_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
-    "$SUP" "$launch_name" "${launch_cmd[@]}" ) >/dev/null 2>&1
+sup_run "$launch_work" "$SUP" "$launch_name" "${launch_cmd[@]}"
 launch_code=$?
 # Each field read once, into a variable the assertion and the failure message share — the
 # capture-then-compare shape cases 9 and 11 already use. Read twice, the line a failure
@@ -489,9 +510,8 @@ exit_stuck_secs="$(event_field   "$exit_work/stuck" exit secs)"
 ctx_work="$(mktemp -d)"
 ctx_issue=163
 ctx_step=4
-( cd "$ctx_work" && env VERI_ISSUE="$ctx_issue" VERI_STEP="$ctx_step" \
-    VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
-    "$SUP" develop-red "$stub/leaf-ok" ) >/dev/null 2>&1
+sup_run "$ctx_work" VERI_ISSUE="$ctx_issue" VERI_STEP="$ctx_step" \
+    "$SUP" develop-red "$stub/leaf-ok"
 ctx_code=$?
 ctx_launch_issue="$(event_field "$ctx_work" launch issue)"
 ctx_launch_step="$(event_field  "$ctx_work" launch step)"
@@ -538,8 +558,7 @@ echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":91234,
 exit 0
 L
 chmod +x "$stub/leaf-result"
-( cd "$usage_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
-    "$SUP" develop-red "$stub/leaf-result" ) >/dev/null 2>&1
+sup_run "$usage_work" "$SUP" develop-red "$stub/leaf-result"
 usage_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
 # 13 and 15's shape.
