@@ -725,7 +725,14 @@ says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
 #     constraints reasoned about there: `prompt_says` folds the prompt to one line, so a claim
 #     wrapped at ~85 columns is still one string, and every branch carries at most ONE bounded
 #     `[^.]{0,N}`. The ordering claim goes through `says_both_ways` because it reads as
-#     naturally either way round — "predict before running" against "before you run, predict".
+#     naturally either way round — "predict before you run" against "before you run, predict".
+#     Its second half is `before you`, and the `you` is load-bearing — watched, case 16's way.
+#     `before` alone is answered by the footer line another probe already pins: `PREDICTED_
+#     FAILURE: <… — as predicted before running>` puts the two words adjacent, so with sub-step
+#     2 deleted outright the probe still passed. What separates the instruction from that
+#     placeholder is who it addresses — the leaf is told to predict before *it* acts, where the
+#     placeholder only notes when the prediction was formed — so the alternation spells the
+#     phrasings an instruction uses and a provenance note does not.
 #     The three footer probes are literal and anchored on the token: these are protocol strings
 #     a reader greps for, so a paraphrase of one is not one, and the two verdict words are
 #     probed separately rather than as one alternation, which would be answered by either.
@@ -754,7 +761,7 @@ offers_verdict() {  # offers_verdict <verdict word>
 
 problems=""
 says_both_ways "$red" "does not require the prediction to be stated before the run" \
-  60 'predict' 'before'
+  60 'predict' 'before (you|issuing|any command)'
 prompt_says "$red" "the report never asks for PREDICTED_FAILURE:" \
   -F -e 'PREDICTED_FAILURE:'
 offers_verdict MATCHED
