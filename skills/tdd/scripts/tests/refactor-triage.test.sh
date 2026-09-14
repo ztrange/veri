@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/refactor-triage.sh — reads a finished refactor leaf's report on
 # stdin and says whether another refactor leaf is worth launching. Zero-dependency
-# plain-shell asserts, same idiom as refactor-budget.test.sh, its sibling on the other
-# axis of the refactor loop: that script answers "may another leaf run?" from the count,
-# this one answers "is another leaf worth running?" from what the last leaf reported.
+# plain-shell asserts, same idiom as refactor-budget.test.sh, the suite for the script on
+# the refactor loop's other axis — refactor-triage.sh's own header is where the two axes
+# are told apart.
 #
 # Why this exists (issue #149): the loop's two stop conditions are a leaf reporting
 # `nothing left to tidy` and `refactor-budget.sh` exiting 3, and in practice only the
