@@ -56,13 +56,14 @@ test:
 # phases build-verify-prompt.sh accepts, SKILL.md's revise budget).
 # A guard nobody has watched fail is decoration, which is why the tests run first.
 #
-# All four refuse inside a veri run (#143). The conductor hands every leaf it launches, and
-# every command it runs itself, the run's test command as VERI_TEST_CMD — so that variable
-# in the environment is a recipe's one way of knowing it was typed inside a run rather than
-# by a human. A development run's bargain is three `make test` runs a step; a page build is
-# not part of it, and neither is the red a stale page hands back. On 2026-09-13 the
-# conductor solving #106 spent ~5.5 min on `make docs` and `make docs-check` for a page
-# nothing had asked it for, then paid for the same rebuild again at merge.
+# All four refuse inside a development run (#143). The conductor hands every leaf it
+# launches, and every command it runs itself, the run's test command as VERI_TEST_CMD — so
+# that variable in the environment is a recipe's one way of knowing it was typed inside a run
+# rather than by a human, and its *value* is what says which lane the run is in. A
+# development run's bargain is three `make test` runs a step; a page build is not part of it,
+# and neither is the red a stale page hands back. On 2026-09-13 the conductor solving #106
+# spent ~5.5 min on `make docs` and `make docs-check` for a page nothing had asked it for,
+# then paid for the same rebuild again at merge.
 #
 # The guard is one line, prefixed to each of the four recipes rather than written into three
 # and forgotten in the fourth. It comes first in the recipe, so a refusal costs nothing: a
@@ -70,17 +71,24 @@ test:
 # docs-check carries its own copy even though its prerequisites refuse before it is reached,
 # because it is the target a human types and what it does is a fact of its own.
 #
-# It stays out of the way of everyone else: unset — a human, `make merge-gates`, CI — and
-# the recipes run exactly as they did.
+# It stays out of the way of everyone else, on both sides. Unset — a human, `make
+# merge-gates`, CI — and the recipes run exactly as they did. Set to a `make docs…` target
+# and they also run: that is a documentation issue's own run, the one run that legitimately
+# builds the page, and a guard reading only the variable's presence would leave the
+# documentation lane unable to run its own tests — the same door shut on the wrong side.
+# So the condition is on the value, and `case` rather than a string compare because the lane
+# is the whole family of targets (`docs`, `docs-test`, `docs-fresh`, `docs-check`), not one
+# of them.
 #
 # The diagnostic names VERI_TEST_CMD and prints its value, because "refusing" on its own
 # sends whoever read it to this file: the variable is both what stopped the build and the
 # knob to reach for. It carries no issue number — an unescaped `#` in a variable definition
 # opens a make comment and silently truncates the value at it.
-DEV_RUN_GUARD := if [ -n "$${VERI_TEST_CMD:-}" ]; then \
-	  printf 'refusing: VERI_TEST_CMD=%s is set, so this is a veri run, and a run never owes a page build.\n' "$${VERI_TEST_CMD}" >&2; \
-	  exit 2; \
-	fi
+DEV_RUN_GUARD := case "$${VERI_TEST_CMD:-}" in \
+	  ''|'make docs'*) ;; \
+	  *) printf 'refusing: VERI_TEST_CMD=%s is set, so this is a development run, and a development run never owes a page build.\n' "$${VERI_TEST_CMD}" >&2; \
+	     exit 2 ;; \
+	esac
 
 .PHONY: docs docs-check docs-test docs-fresh merge-gates install-hooks
 docs:
