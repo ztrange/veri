@@ -19,6 +19,15 @@
 #   VERI_TIMEOUT set to anything that is not a whole number >= 1 (`0`, `abc`, `-1`, `1.5`)
 #                              → exit 2 with the same fail-closed shape, rather than
 #                                falling back to the derivation.
+#   leaf-timeout.sh <baseline-seconds> refactor  with VERI_TIMEOUT unset
+#                              → the same derivation multiplied by
+#                                max(1, VERI_REFACTOR_BUDGET) (default 5): the refactor
+#                                leaf applies the whole step's transforms in one leaf, so
+#                                its cap is as many leaves' worth as the budget it may
+#                                spend, with a floor of one leaf at a budget of 0.
+#   VERI_TIMEOUT=<n> set, refactor
+#                              → <n> as given, unmultiplied: the budget is the cost axis
+#                                and must not move a hand-set liveness cap.
 #
 # Run: scripts/tests/leaf-timeout.test.sh
 set -uo pipefail
@@ -120,6 +129,51 @@ bad_override_probe() {
   rm -f "$out" "$err"
 }
 
+# refactor_probe <budget> <baseline> <want> — the timeout the run's REFACTOR leaf gets: the
+# same call with that leaf's role named, which must answer the run's own derived timeout
+# multiplied by the number of transforms the leaf may apply. <budget> is the
+# VERI_REFACTOR_BUDGET the run is under, or the word `unset` for a run that never set one —
+# the default budget is what almost every run is actually under, so an implementation that
+# read a missing variable as 1 would otherwise go unnoticed. VERI_TIMEOUT is cleared for the
+# child in both branches: this half of the contract is about the derivation, and the
+# override half is probed separately below.
+refactor_probe() {
+  local budget="$1" baseline="$2" want="$3" out err code label
+  out="$(mktemp)" err="$(mktemp)"
+  label="VERI_REFACTOR_BUDGET=$budget baseline $baseline refactor"
+  if [[ "$budget" == unset ]]; then
+    env -u VERI_TIMEOUT -u VERI_REFACTOR_BUDGET "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
+  else
+    env -u VERI_TIMEOUT VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
+  fi
+  [[ "$code" == 0 ]] ||
+    problems+=("$label: want exit 0, got $code")
+  [[ "$(cat "$out")" == "$want" ]] ||
+    problems+=("$label: want $want on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ ! -s "$err" ]] ||
+    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  rm -f "$out" "$err"
+}
+
+# refactor_override_probe <veri-timeout> <budget> <baseline> — the refactor leaf under an
+# explicit VERI_TIMEOUT: the operator's number, printed back byte for byte and *not*
+# multiplied by the budget. Every probe pairs an override with a budget and a baseline whose
+# product is some other number, so a script that scaled the override too would print that
+# product and be named here.
+refactor_override_probe() {
+  local timeout="$1" budget="$2" baseline="$3" out err code label
+  out="$(mktemp)" err="$(mktemp)"
+  label="VERI_TIMEOUT=$timeout VERI_REFACTOR_BUDGET=$budget baseline $baseline refactor"
+  VERI_TIMEOUT="$timeout" VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("$label: want exit 0, got $code")
+  [[ "$(cat "$out")" == "$timeout" ]] ||
+    problems+=("$label: want $timeout on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ ! -s "$err" ]] ||
+    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  rm -f "$out" "$err"
+}
+
 # 1. The whole of this step's criterion, as one case: with VERI_TIMEOUT unset the script
 #    derives the timeout, and a baseline it cannot derive from is refused rather than
 #    guessed at.
@@ -181,6 +235,41 @@ bad_override_probe 0
 bad_override_probe abc
 bad_override_probe -1
 bad_override_probe 1.5
+report "$name"
+
+# 3. The refactor leaf's own timeout (issue #150). One leaf now applies the whole step's
+#    tidying rather than one leaf per transform, so it is under the run's timeout for work
+#    the run used to spread over as many leaves as it had transforms: at #137's measured
+#    rates five transforms in one leaf run ~50 min and a 29.5 min cap kills the leaf
+#    mid-tidy, throwing away every transform it had not yet committed. The leaf's cap is
+#    therefore the run's own derived timeout times the transforms it may apply — the budget
+#    is what says how many leaves' worth of work this one leaf is being asked for — and
+#    `max(1, …)` is the floor: `VERI_REFACTOR_BUDGET=0` switches refactoring off in
+#    `refactor-budget.sh`, so a run that asks for this timeout anyway must get one leaf's
+#    worth rather than the zero-second cap that kills every leaf the instant it starts.
+#
+#    The probes are the corners of that product. 200/5 is the issue's own case — a 1200 s
+#    run timeout and the default budget, the five transforms #137 spent 49 minutes on. A
+#    budget of 1 is today's behaviour, and pins that the scaling does not move a run that
+#    asks for one transform. 0 is the floor. `unset` is what nearly every run is actually
+#    under, since the budget's default lives in `refactor-budget.sh` and not in anyone's
+#    environment, so a script reading a missing variable as 1 would hand a five-transform
+#    leaf a one-leaf cap and be caught here rather than by a killed leaf on a real run.
+#
+#    The other half is the same decision the case above pins, asked of the scaled call: an
+#    explicit VERI_TIMEOUT is the operator's answer, not an input, so the budget does not
+#    multiply it either. That is CLAUDE.md's invariant that the three budgets stay on three
+#    axes — the cost axis deciding how long a leaf may live would make a hand-set liveness
+#    cap mean something different depending on how much tidying the run was paying for.
+name="leaf-timeout.sh <baseline> refactor: the run's derived timeout × max(1, VERI_REFACTOR_BUDGET), and an explicit VERI_TIMEOUT still printed as given"
+problems=()
+refactor_probe 5 200 6000
+refactor_probe 1 200 1200
+refactor_probe 0 200 1200
+refactor_probe 3 5 2700
+refactor_probe unset 5 4500
+refactor_override_probe 900 5 200
+refactor_override_probe 1800 3 5
 report "$name"
 
 echo "----"

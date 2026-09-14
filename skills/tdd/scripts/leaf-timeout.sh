@@ -18,11 +18,19 @@
 # instant it starts, which costs a stuck retry and a reverted step each time, so a typo
 # fails closed here rather than burning the issue looking like model failure.
 #
-# Usage:   leaf-timeout.sh <baseline-seconds>   # a whole number >= 0
+# The refactor leaf is the one exception to "every leaf of the run gets the same timeout":
+# it applies the whole step's transforms itself rather than one per leaf (issue #150), so
+# it is asked for as many leaves' worth of work as the budget it may spend, and its cap is
+# the run's derived timeout times that budget. An explicit VERI_TIMEOUT stays unmultiplied
+# — the budget is the cost axis, and it must not move a cap the operator set on liveness.
+#
+# Usage:   leaf-timeout.sh <baseline-seconds>              # a whole number >= 0
+#          leaf-timeout.sh <baseline-seconds> refactor     # × max(1, VERI_REFACTOR_BUDGET)
 #          VERI_TIMEOUT=<n> leaf-timeout.sh …   # <n> a whole number >= 1, used as given
 set -euo pipefail
 
 baseline="${1:-}"
+role="${2:-}"
 # `override`, not `timeout`: both branches print a timeout, so the name has to say which of
 # the two this one is. It is the value VERI_TIMEOUT arrived with — checked and printed back
 # as the answer, never mixed with the floor and scaled baseline the other branch derives
@@ -53,7 +61,25 @@ floor=900
 scaled=$((baseline * 6))
 
 if [[ "$scaled" -gt "$floor" ]]; then
-  echo "$scaled"
+  derived="$scaled"
 else
-  echo "$floor"
+  derived="$floor"
 fi
+
+# The budget's default lives in refactor-budget.sh, and is repeated here rather than asked
+# for because that script answers a different question (may another transform run?) and
+# answers it with an exit code. A run that never set the variable is the common one, so
+# reading a missing budget as 1 would quietly hand a five-transform leaf one leaf's cap.
+# `max(1, …)`: VERI_REFACTOR_BUDGET=0 switches refactoring off in refactor-budget.sh, so a
+# caller asking for this timeout anyway gets one leaf's worth, never a zero-second cap that
+# kills the leaf the instant it starts. A budget that is not a number is preflight's to
+# refuse (CLAUDE.md: caught in preflight, not mid-loop), not this script's.
+if [[ "$role" == refactor ]]; then
+  budget="${VERI_REFACTOR_BUDGET:-5}"
+  if [[ "$budget" -lt 1 ]]; then
+    budget=1
+  fi
+  derived=$((derived * budget))
+fi
+
+echo "$derived"
