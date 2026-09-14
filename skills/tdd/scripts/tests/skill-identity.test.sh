@@ -124,10 +124,18 @@ exempt() {
 # turn into a problem. `swept` is a newline-joined string rather than an array because a
 # caller reads it with `while read`, and an empty array under `set -u` is an error on the
 # bash 3.2 this repo still targets.
+#
+# The generated-documentation tree is excluded by pathspec, and that exclusion is the whole
+# of what either case says about it (#143). A sweep that entered it would be a development
+# suite reading the page and its commentary, so a rewording there — or a page nobody had
+# rebuilt yet — could fail `make test`, the command preflight reads its baseline off and
+# every leaf runs (ADR 0016). Prose lagging behind code is `docs-owed.sh`'s reading and
+# `docs-fresh`'s failure at a docs merge, not this suite's. `:!` is git's own spelling for
+# "and not this path", so the exclusion holds for every caller of this helper.
 swept=""
 sweep() {
   local code
-  swept="$(cd "$ROOT" && git grep --files-with-matches "$1" -e "$2")" && code=0 || code=$?
+  swept="$(cd "$ROOT" && git grep --files-with-matches "$1" -e "$2" -- ':!docs')" && code=0 || code=$?
   if [[ "$code" -gt 1 ]]; then
     swept=""
     return "$code"
@@ -147,63 +155,16 @@ while IFS= read -r f; do
 done <<< "$swept"
 report "$name"
 
-# 3. Where the generated page comes from. `make docs-check` builds docs/walkthrough.html
-#    from the scripts and demands the committed page back byte for byte, so a build
-#    pointed at a directory the skill has left fails it outright — one "missing script"
-#    per listing. The condition for that gate to be green on the new path is this pair:
-#    the pipeline reads $skill_dir/scripts, and every script the page documents is there.
-#
-#    It is a separate case from 2 because case 2 structurally cannot see it. The two
-#    python files spell the directory as path COMPONENTS — `ROOT / "skills" / "tdd" /
-#    "scripts"` — so the joined string case 2 sweeps for never appears in them, and one
-#    left on the old home would keep that case green while `make docs` reported every
-#    script missing. This is the positive half: the pipeline names the skill's own.
-#
-#    What this case deliberately does NOT do is rebuild the page and diff it. That is
-#    `docs-fresh`, and the Makefile keeps it out of `make test` on purpose ("Neither is
-#    part of `test` on purpose"): the page also encodes tags, blame and a commit count,
-#    so a comparison here would turn the baseline red on a tag nobody cut in this repo
-#    and on every script a green step edits — and veri refuses to start on a red
-#    baseline. So this case asserts what makes the gate green and stays quiet about
-#    when it was last run.
-name="the walkthrough is generated from $skill_dir/scripts"
-problems=()
-# "skills/tdd/scripts" as python spells it — `"skills" / "tdd" / "scripts"` — derived from
-# $skill_dir rather than written out again, so a future rename still has one place to edit:
-# quote each path segment, then join on " / ".
-py_scripts_dir="$(printf '%s/scripts' "$skill_dir" | sed 's#[^/]*#"&"#g; s#/# / #g')"
-for py in docs/build-walkthrough.py docs/check-walkthrough.py; do
-  if [[ -f "$ROOT/$py" ]]; then
-    # -x so a line that merely mentions the components does not answer for the constant,
-    # -F because the expression is a literal, quotes and slashes and all.
-    grep -qxF "SCRIPTS_DIR = ROOT / $py_scripts_dir" "$ROOT/$py" ||
-      problems+=("$py: want SCRIPTS_DIR = ROOT / $py_scripts_dir, got $(printf '%q' "$(grep -m1 '^SCRIPTS_DIR' "$ROOT/$py")")")
-  else
-    problems+=("want the page's $py, found none")
-  fi
-done
-
-# The page's listings are declared in the commentary, one `file="<name>.sh"` per script;
-# the build resolves each against SCRIPTS_DIR. A name with no file under the skill's
-# scripts directory is exactly the "missing script" the build refuses on.
-commentary="docs/wt/commentary.py"
-if [[ -f "$ROOT/$commentary" ]]; then
-  documented="$(sed -n 's/.*file="\([^"]*\)".*/\1/p' "$ROOT/$commentary")"
-  # Fail closed: no names extracted means the declaration moved and nothing was checked,
-  # which must not read as "every documented script is present".
-  if [[ -z "$documented" ]]; then
-    problems+=("$commentary declares no script listings — the page's set of scripts could not be read")
-  else
-    while IFS= read -r f; do
-      [[ -n "$f" ]] || continue
-      [[ -f "$ROOT/$skill_dir/scripts/$f" ]] ||
-        problems+=("$commentary documents $f, which is not in $skill_dir/scripts")
-    done <<< "$documented"
-  fi
-else
-  problems+=("want the page's commentary at $commentary, found none")
-fi
-report "$name"
+# 3. was "the walkthrough is generated from skills/tdd/scripts": it read the SCRIPTS_DIR
+#    constant out of the page's two python entry points and the set of listings out of its
+#    commentary, so that a generator left pointed at the skill's old home failed here. That
+#    claim is the docs lane's (#143). Reading those three files from `make test` — the
+#    command preflight reads its baseline off, that every Green leaf runs and that both
+#    blind verifiers run — let an edit to the page's generator stop a TDD cycle on a red the
+#    scripts did not cause, which is the coupling ADR 0016 rules out. It moved whole to
+#    docs/tests/generator-inputs.test.sh (#146), which `make docs-test` globs; the numbers
+#    below are left as they were, so the cases above still cite the right ones, and
+#    no-docs-reads.test.sh is what keeps the read from coming back.
 
 # skill_body <file> — everything after the frontmatter block: the instruction a session
 # actually reads. The frontmatter is excluded on purpose, because a stub's `description:`
@@ -253,9 +214,8 @@ for stub in "${stubs[@]}"; do
   old_cmds+=("/$(stub_name "$stub")")
 done
 # Those two names as one alternation, since every probe that looks for either wants both:
-# case 5 anchors this to a "not part of a path" boundary to sweep the sources, and case 8
-# wraps it in the surrounding characters it quotes out of the generated page. Written once
-# here so neither re-lists the names — which is also what keeps this file out of its own
+# case 5 anchors this to a "not part of a path" boundary to sweep the sources. Written once
+# here so no probe re-lists the names — which is also what keeps this file out of its own
 # results, the strings being assembled from `stubs` and never spelled anywhere.
 old_cmd_alt="(${old_cmds[0]}|${old_cmds[1]})"
 # An old name used as a COMMAND and not as a path: the alternation preceded by the "not part of
@@ -263,15 +223,8 @@ old_cmd_alt="(${old_cmds[0]}|${old_cmds[1]})"
 # That boundary is what keeps `skills/solve-issue/SKILL.md` out of the two sweeps below and in
 # case 2's, so naming a stub's file stays legal while telling a reader to invoke a command that
 # no longer resolves to a procedure does not. Hoisted next to the alternation it is built from
-# because both cases match on it: case 5 over the sources, case 8 over the generated page.
+# because case 5 matches on it, over the sources.
 cmd_re="(^|[^[:alnum:]_/.-])$old_cmd_alt"
-
-# The one file that names the old commands without being a source of them: docs/walkthrough.html
-# is generated, never hand-edited ("Never edit it by hand" — CLAUDE.md), and its prose comes
-# from docs/wt/commentary.py, which this sweep does cover. Rewording the commentary is what
-# fixes the page; `make docs` is what carries the wording into it, and that rebuild is a
-# separate change from the rewrite. So the subject here is the source, not the artefact.
-generated_page="docs/walkthrough.html"
 
 # 5. The prose followed the skill too. Same shape as case 2, for the same reason: stated as
 #    an absence swept for across the whole repository rather than a list of files someone
@@ -286,7 +239,6 @@ sweep -E "$cmd_re" || problems+=("git grep failed with exit $?")
 while IFS= read -r f; do
   [[ -n "$f" ]] || continue
   exempt "$f" && continue
-  [[ "$f" == "$generated_page" ]] && continue
   # Quote the first offending line, trimmed: the case is about a file set, but the fix is
   # always a line, and finding it again by hand is the tedious half.
   where="$(cd "$ROOT" && git grep -nE -e "$cmd_re" -- "$f" | head -1 | cut -c1-100)"
@@ -421,62 +373,15 @@ else
 fi
 report "$name"
 
-# 8. The generated page caught up with the rename. `make docs-check`'s first question is
-#    whether rebuilding docs/walkthrough.html reproduces the committed bytes, and today it
-#    does not: the page still quotes issue-worktree.sh's comment as it read before the
-#    rename, and the old commentary around it, so that gate is red for a cause this branch
-#    created — this suite may not even write the string it is about. Running
-#    `make docs` and committing the result is what closes it, and a page that no longer
-#    names either old command is the observable fact that says it was done.
-#
-#    Case 5 skips this file with a note that its rebuild is a separate, later change. This
-#    is that change, so the exemption expires here — and the two cases stay distinct on
-#    purpose: case 5's subject is the SOURCE a human edits (docs/wt/commentary.py, the
-#    scripts), which it has already swept clean, and this one's is the ARTEFACT. That
-#    ordering is what makes this case readable: with every source clean, a page still
-#    carrying the old command can only be a page nobody rebuilt.
-#
-#    What it deliberately does NOT do is regenerate the page and diff it. That is
-#    `docs-fresh` — ~20 s of page build — and the Makefile keeps it out of `make test` on
-#    purpose: the page also encodes git tags, blame and a commit count, so a byte diff here
-#    would turn this repository's baseline red the moment anyone cut a tag in another
-#    worktree, and veri refuses to start a cycle on a red baseline. This case reads the
-#    committed bytes only, and is immune to all three.
-#
-#    The capability index is cut out first, for the reason .tdd/ is exempt from case 5: it
-#    is generated from annotated tag messages, which quote each issue's own words as they
-#    were written — v0.19 and v0.23 both say the old plural — and a tag's message is
-#    history, not documentation that can be brought up to date. Cutting it fails closed: a
-#    page carrying no index at all is reported rather than swept, since such a page would
-#    come up clean for the wrong reason.
-name="$generated_page names no old command outside the capability index"
-problems=()
-page="$ROOT/$generated_page"
-index_open='<ol class="vers">'
-if [[ ! -f "$page" ]]; then
-  problems+=("want the generated page at $generated_page, found none")
-elif ! grep -qF "$index_open" "$page"; then
-  problems+=("$generated_page carries no capability index ($index_open) — built without its version layer, so this sweep would pass for the wrong reason")
-else
-  # The index, open line through close line inclusive, dropped. `next` inside the cutting
-  # block is what excludes the closing line too, rather than letting it fall through.
-  body="$(awk -v open="$index_open" '
-    index($0, open) { cutting = 1 }
-    cutting { if (index($0, "</ol>")) cutting = 0; next }
-    { print }' "$page")"
-  # Same pattern case 5 sweeps the sources with: the COMMAND, not the path, so the page may
-  # go on naming skills/solve-issue/SKILL.md while telling a reader to invoke it is a fail.
-  offences="$(grep -cE "$cmd_re" <<< "$body")"
-  if [[ "$offences" -gt 0 ]]; then
-    # This page's lines run to thousands of characters, so quote the neighbourhood of the
-    # first offence; the head of its line usually does not contain it. $old_cmd_alt without
-    # the boundary group: the surrounding characters are what is being quoted here, so a
-    # match mid-path is still the neighbourhood the grep above counted.
-    where="$(grep -oE ".{0,40}${old_cmd_alt}.{0,40}" <<< "$body" | head -1)"
-    problems+=("$generated_page still names an old command on $offences line(s) — run make docs; first: …${where}…")
-  fi
-fi
-report "$name"
+# 8. was "the generated page names no old command outside the capability index": it read
+#    the committed page, cut out the tag-derived index and swept the rest for either old
+#    command, the way case 5 sweeps the sources, so that a rename not yet carried into the
+#    page failed here — and it could not spell those names either, for the reason case 5's
+#    own `old_cmd_alt` gives above. That
+#    claim is the docs lane's (#143), for the reason case 3's note gives — and doubly so,
+#    since what it asked for was that somebody had run `make docs`, which is the docs lane's
+#    work by definition. Case 5 no longer needs its exemption as a result: its sweep does not
+#    enter that tree at all.
 
 echo "----"
 echo "$pass passed, $fail failed"

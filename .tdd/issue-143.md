@@ -1,6 +1,6 @@
 # Plan for #143 — No docs test runs during veri development: dev suites never read docs/, and docs targets refuse inside a development run
 
-- [ ] a suite under `skills/tdd/scripts/tests/` that reads, sources, executes or greps a path under `docs/` is named with its line by a new guard case, while a `docs/` path appearing only in fixture text is not
+- [x] a suite under `skills/tdd/scripts/tests/` that reads, sources, executes or greps a path under `docs/` is named with its line by a new guard case, while a `docs/` path appearing only in fixture text is not ⟂ refactor pending
 - [ ] no suite under `skills/tdd/scripts/tests/` reads a path under `docs/`, so changing only `docs/wt/commentary.py` leaves `make test` green
 - [ ] changing only a script under `skills/tdd/scripts/`, without running `make docs`, leaves `make test` green
 - [ ] changing `VERI_REFACTOR_BUDGET`'s default without updating `SKILL.md` or the script header still turns `make test` red

@@ -576,34 +576,15 @@ exit3="$(awk '/^- \*\*Exit 3:/{keep = 1} /^- \*\*Exit 0:/{keep = 0} keep' "$skil
 { [[ -n "$exit3" ]] && grep -q 'VERI_LABEL' <<<"$exit3"; } \
   && ok || no "the exit-3 instruction in $skill_doc names the label it drained (bullet='$(tr '\n' ' ' <<<"$exit3")' want a non-empty slice naming VERI_LABEL)"
 
-# 13. `docs/walkthrough.html` quotes every script verbatim and says so in the listing's own
-# header — `<n> lines · complete source` — so a script that has grown while the committed page
-# has not makes that page's central claim false, and `make docs-check` red with it. Editing
-# `solvable-issues.sh` for VERI_LABEL is exactly that edit: the page is generated, never
-# hand-written, so the criterion is that someone ran `make docs` and committed the result.
-#
-# The header's own line count is what this reads, rather than grepping the listing for
-# `VERI_LABEL`: the page's commentary is prose a human writes and would satisfy a bare grep
-# while the quoted source still showed the old script. The count cannot be satisfied that way —
-# it is emitted by the builder from the file it just read (docs/build-walkthrough.py:188), so
-# it agrees with `awk END{print NR}` here exactly when the page was built from this script as
-# it now stands. It is a derived number on both sides, not a constant to keep in sync: a later
-# commit that changes the script's length and rebuilds the page moves the two together.
-#
-# This case lives in this suite for the reason case 11 gives — `make docs-check` is
-# deliberately not part of `make test`, so a docs claim parked under docs/tests/ would not run
-# in the suite this change is verified against. What it does NOT do is re-run the docs build:
-# that is `docs-check`'s job, and pulling a page build into `make test` would make prose
-# lagging behind code bail a TDD run, which the Makefile rules out on purpose.
-#
-# The count is asserted non-empty before it is compared, so a page whose listing header ever
-# stops carrying it reads as a failure rather than as two empty strings matching.
-page="$REPO_ROOT/docs/walkthrough.html"
-listed_lines="$(sed -n 's#.*<span class="fname">solvable-issues\.sh</span><span class="fmeta">\([0-9]*\) lines.*#\1#p' "$page")"
-actual_lines="$(awk 'END {print NR}' "$SOLVABLE")"
-
-{ [[ -n "$listed_lines" ]] && [[ "$listed_lines" == "$actual_lines" ]]; } \
-  && ok || no "the committed walkthrough quotes solvable-issues.sh as it now stands (docs/walkthrough.html says '$listed_lines' lines, the script has $actual_lines — run make docs)"
+# 13. was "the committed walkthrough quotes solvable-issues.sh as it now stands": it read the
+# line count out of the page's own listing header and compared it to this script's length, so
+# that editing the script without rebuilding the page failed here. That claim is the docs
+# lane's (#143). It made every commit to solvable-issues.sh owe a `make docs` to keep
+# `make test` green — the command preflight reads its baseline off, that every Green leaf
+# runs and that both blind verifiers run — which is the coupling ADR 0016 rules out; a page
+# behind the code is what `docs-owed.sh` reports and `docs-fresh` catches at a docs merge.
+# The number is kept out of this suite, not renumbered away, so the case numbers below still
+# match the ones the cases above cite. no-docs-reads.test.sh is what keeps it out.
 
 # 14. A blocker written as a full GitHub URL blocks exactly as `#<n>` does. That spelling is
 # not exotic: it is what GitHub's own autocomplete inserts and what a pasted link leaves
