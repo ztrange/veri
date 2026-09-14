@@ -138,12 +138,21 @@ if [[ -n "$holder" ]]; then
   exit 2
 fi
 
+# ref_exists <full-refname> — does this refname resolve in this repo? `show-ref --verify` wants
+# the full refname and answers only through its exit code (--quiet suppresses the printed sha):
+# 0 when the ref is there, non-zero when it is not.
+#
+# The two tests below are each half of one decision — is there already a branch for this issue,
+# local or fetched — and they are asked of the same repository a line apart. Behind one name they
+# cannot come to disagree about what "exists" means or about which exit code says so; written out
+# twice, a `--quiet` dropped or a `2>/dev/null` added to one of them would change the answer on
+# only one arm, and the arm that then ran would be the one nobody had looked at.
+ref_exists() { git show-ref --verify --quiet "$1"; }
+
 # branch_exists <name> — does this repo already carry a local branch called <name>? Asked twice
 # below, of two different things: the issue branch (a resume), and each candidate default branch.
-# `show-ref --verify` wants the full refname and answers only through its exit code (--quiet
-# suppresses the printed sha): 0 when the branch exists, non-zero when it does not. Naming it
-# once keeps the refs/heads/ prefix — the part that makes --verify work at all — in one place.
-branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
+# Naming it keeps the refs/heads/ prefix — the part that makes --verify work at all — in one place.
+branch_exists() { ref_exists "refs/heads/$1"; }
 
 # remote_branch_ref <name> — the refname a branch called <name> fetched from origin lives under.
 # The spelling is written once, here, for the reason wt_path's layout is written once: the test just
@@ -162,11 +171,7 @@ remote_branch_ref() { printf '%s\n' "refs/remotes/origin/$1"; }
 # A separate function rather than a second ref namespace inside branch_exists: that one is also
 # what default_branch_name asks about `main` and `master`, where "we have fetched a remote copy of
 # it" is not the question — it needs a local ref it can cut from.
-#
-# Asked with `show-ref --verify --quiet`, the same way branch_exists asks its half: one question —
-# does this full refname resolve — answered by one command in this file, so the two arms of the same
-# decision cannot come to disagree about what "exists" means or about which exit code says so.
-remote_branch_exists() { git show-ref --verify --quiet "$(remote_branch_ref "$1")"; }
+remote_branch_exists() { ref_exists "$(remote_branch_ref "$1")"; }
 
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
