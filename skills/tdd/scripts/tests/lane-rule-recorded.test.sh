@@ -100,36 +100,42 @@ section() {
     plain | tr '\n' ' '
 }
 
-# need_section <heading> — that section of the document into the globals `heading` and `text`,
-# or one problem naming the heading and a non-zero return. The reader and the fail-closed check
-# are one step because they are one question: a caller that computed the text itself could pass
-# one section's prose under another's heading and every failure below would name the wrong
-# repair. Globals rather than a return value because bash has no way to hand back a string, and
-# the two prose suites this one follows — count-line-guard.test.sh, skill-suite-runs.test.sh —
-# both park the section under test in one for exactly that reason.
+# need_section <heading> — that section of the document into the globals `section_heading` and
+# `section_text`, or one problem naming the heading and a non-zero return. The reader and the
+# fail-closed check are one step because they are one question: a caller that computed the text
+# itself could pass one section's prose under another's heading and every failure below would
+# name the wrong repair. Globals rather than a return value because bash has no way to hand back
+# a string, and the two prose suites this one follows — count-line-guard.test.sh,
+# skill-suite-runs.test.sh — both park the section under test in one for exactly that reason.
+#
+# The `section_` prefix is the whole of what marks those two as one pair written here and read
+# in `says`: a global is in scope everywhere, so the name is the only place that can say which
+# function fills it and that the heading is the one the text was read from rather than any of
+# the other headings this file holds.
 #
 # Fail closed: an empty string matches no regex, so every fact asked of a section that is not
 # there would be reported missing — true, but it names three edits when the repair is that a
 # heading moved.
-heading="" text=""
+section_heading="" section_text=""
 need_section() {
-  heading="$1"
-  text="$(section "$heading")"
-  [[ -n "${text// /}" ]] && return 0
-  problems+=("CLAUDE.md has no '$heading' section to read, so nothing states the lane rule where the agent reading that section would find it")
+  section_heading="$1"
+  section_text="$(section "$section_heading")"
+  [[ -n "${section_text// /}" ]] && return 0
+  problems+=("CLAUDE.md has no '$section_heading' section to read, so nothing states the lane rule where the agent reading that section would find it")
   return 1
 }
 
-# says <fact> <regex>... — one fact the section in `$text` has to carry, written as the regexes
-# any wording carrying it would match: all of them have to match, and one problem naming the
-# section and the fact is appended if any does not. The section is named from `$heading`, since
-# a failure has to say which of the two is the one missing the sentence.
+# says <fact> <regex>... — one fact the section `need_section` last read has to carry, written
+# as the regexes any wording carrying it would match: all of them have to match, and one problem
+# naming the section and the fact is appended if any does not. The section is named from
+# `$section_heading`, since a failure has to say which of the two is the one missing the
+# sentence.
 says() {
   local fact="$1" re
   shift
   for re in "$@"; do
-    [[ "$text" =~ $re ]] || {
-      problems+=("CLAUDE.md's '$heading' section does not say $fact")
+    [[ "$section_text" =~ $re ]] || {
+      problems+=("CLAUDE.md's '$section_heading' section does not say $fact")
       return
     }
   done
