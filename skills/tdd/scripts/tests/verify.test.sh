@@ -297,8 +297,9 @@ chmod +x "$stubdir/claude-mutate"
 # verification in it whose leaf runs <mutation> first. Sets $out and $code to verify.sh's
 # stdout and exit status, so the assertion below reads whichever of the two it is about.
 tamper_run() {
+  # `git init <dir>` creates the directory and its leading ones, so the arm's path is named
+  # once here and made by the same command that makes it a repo.
   local dir="$tamper_work/$1"
-  mkdir -p "$dir"
   git init -q -b main "$dir" >/dev/null 2>&1
   # An identity in the repo's own config: a repo made by `git init` under a test has none and
   # git refuses to commit without one. In the config rather than on each command line because
