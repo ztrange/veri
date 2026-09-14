@@ -4,5 +4,5 @@
 - [x] `build-develop-prompt.sh refactor` puts `VERI_REFACTOR_BUDGET` into the prompt
 - [x] `SKILL.md` launches one refactor leaf per step, refuses to continue to verify-refactor over a dirty tree or a non-`refactor:` commit since the green commit, and narrates the `refactor:` commit count against the budget, overrun included
 - [x] The refactor leaf is launched with a hard timeout of the run's leaf timeout times max(1, `VERI_REFACTOR_BUDGET`), and an explicit `VERI_TIMEOUT` is still used as given
-- [x] A resume that re-enters a step's refactor resets uncommitted work and relaunches the leaf with the budget reduced by that step's existing `refactor:` commits ⟂ refactor pending
+- [x] A resume that re-enters a step's refactor resets uncommitted work and relaunches the leaf with the budget reduced by that step's existing `refactor:` commits
 - [ ] A new ADR supersedes ADR-0010, and `CONTEXT.md`'s cycle entry and `CLAUDE.md`'s budget invariant describe one refactor leaf per step
