@@ -224,6 +224,38 @@ malformed_phase="$(verdict_field malformed phase)"
   && [[ "$malformed_phase"   == refactor ]]; } && ok \
   || no "a verification appends one verdict event carrying the phase, the verdict word and the reason's first line (PASS arm: verdict=$pass_verdict phase=$pass_phase reason=$pass_reason; REJECT arm: verdict=$reject_verdict phase=$reject_phase reason=$reject_reason; malformed arm: verdict=$malformed_verdict phase=$malformed_phase)"
 
+# 10. that verdict line carries the RUN's context too: the issue being solved and the step of
+#     its plan the verification belongs to (issue #163). leaf-role.sh derives the actor and the
+#     phase from the leaf's name, but nothing in the name `verify-green` says which issue or
+#     which step — that context exists only in the environment the conductor launched this
+#     verification in, and verify.sh's job is to pass it through, not to invent it. Without it a
+#     reader can attribute a verdict to a step only by interleaving its timestamp with the
+#     conductor's own `step-start` marks.
+#
+#     `VERI_ISSUE` and `VERI_STEP` are the names event.sh already reads (event.sh:47-50), so what
+#     this pins is that they survive the hop from this suite's environment into the child of the
+#     `env $role` line (verify.sh:115) — the one place a `-i`, an explicit variable list, or a
+#     line that spelled the context itself would silently drop them.
+#
+#     `export` in a subshell rather than an assignment prefix on the function call: the two
+#     values have to reach a grandchild — verify.sh's own child — and the subshell also keeps
+#     them out of every case after this one, which the log of a shared `$work` would otherwise
+#     see. The arm's directory is written inside it and outlives it, as case 9's arms do.
+#
+#     The values are deliberately unlike every other number a `verdict` line carries: the step is
+#     5, not the attempt's 1, so a writer that read some other field into these keys is caught
+#     rather than agreeing by coincidence. Each is written once, into a variable used both to
+#     launch and to expect, so the expectation cannot drift off the launch.
+ctx_issue=163
+ctx_step=5
+( export VERI_ISSUE="$ctx_issue" VERI_STEP="$ctx_step"
+  verdict_run ctx green 'VERDICT: PASS
+REASON: Target test and full suite are green.' )
+ctx_field_issue="$(verdict_field ctx issue)"
+ctx_field_step="$(verdict_field ctx step)"
+{ [[ "$ctx_field_issue" == "$ctx_issue" ]] && [[ "$ctx_field_step" == "$ctx_step" ]]; } && ok \
+  || no "VERI_ISSUE/VERI_STEP in verify.sh's environment reach its verdict event (issue=$ctx_field_issue want $ctx_issue, step=$ctx_field_step want $ctx_step)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
