@@ -628,29 +628,43 @@ offers_class cosmetic
 #     already says to revert rather than leave a red suite behind — and is kept because the
 #     criterion names it and no other case pins it, so a rewrite that dropped it while adding
 #     the rest would otherwise land green.
+#
+#     Six probes of one shape, so the shape is written once and each caller names only its two
+#     halves and the gap between them — case 16's `defines_class` reasoning and case 18's
+#     `offers_class` reasoning, applied to the one pattern this case owns. Spelled out per
+#     probe, each half and each bound appears twice on the line, once per direction, and the
+#     only thing keeping the two copies in step is the eye that reads them: case 16 records
+#     exactly that drift going unnoticed, a `comment` one branch accepted and the other did
+#     not. Here the bound is one `$gap` and each half one `$a` or `$b`, so a reversed branch
+#     that disagrees with its forward half is no longer expressible.
+says_both_ways() {  # says_both_ways <complaint> <gap> <pattern> <pattern>
+  local complaint="$1" gap="$2" a="$3" b="$4"
+  prompt_says "$refactor" "$complaint" -iE -e "$a[^.]{0,$gap}$b|$b[^.]{0,$gap}$a"
+}
+
 problems=""
-prompt_says "$refactor" "does not say the structural candidates are applied up to the budget it is given" \
-  -iE -e 'budget[^.]{0,80}structural|structural[^.]{0,80}budget'
+says_both_ways "does not say the structural candidates are applied up to the budget it is given" \
+  80 'budget' 'structural'
 # The commit moves to the leaf, and it carries the subject the conductor's checks read back:
 # a prompt that says to commit without naming `refactor:` leaves the conductor counting
 # commits it cannot tell apart from the green one.
-prompt_says "$refactor" "does not tell the leaf to commit its transforms itself as refactor:" \
-  -iE -e 'commit[^.]{0,80}refactor:|refactor:[^.]{0,80}commit'
+says_both_ways "does not tell the leaf to commit its transforms itself as refactor:" \
+  80 'commit' 'refactor:'
 # One commit per transform is the whole of what ADR-0010's leaf-per-transform bought: batched
 # into one commit, the transforms are back to being unattributable, which is the thing that
 # must survive the leaf boundary going away.
-prompt_says "$refactor" "does not say one refactor: commit per transform" \
-  -iE -e '(each|every|own|per)[^.]{0,60}refactor:|refactor:[^.]{0,60}(each|every|own|per)'
+says_both_ways "does not say one refactor: commit per transform" \
+  60 '(each|every|own|per)' 'refactor:'
 # After each, not once at the end: the suite run between transforms is what says WHICH
 # transform turned them red, and a single run after the last one cannot.
-prompt_says "$refactor" "does not say the touched suites run after each transform" \
-  -iE -e 'suites?[^.]{0,80}after each|after each[^.]{0,80}suites?'
-prompt_says "$refactor" "does not say a transform that turns them red is reverted" \
-  -iE -e 'revert[^.]{0,80}red|red[^.]{0,80}revert'
+says_both_ways "does not say the touched suites run after each transform" \
+  80 'suites?' 'after each'
+says_both_ways "does not say a transform that turns them red is reverted" \
+  80 'revert' 'red'
 # The footer's applied half: the RESULT: line named "<the transform>", singular, because there
 # was only ever one. Several now, so the report has to have room for several.
-prompt_says "$refactor" "does not ask the report to name every transform it applied" \
-  -iE -e 'applied[^.]{0,80}(transforms|one per|each|every)|(transforms|one per|each|every)[^.]{0,80}applied'
+says_both_ways "does not ask the report to name every transform it applied" \
+  80 'applied' '(transforms|one per|each|every)'
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor applies the structural candidates up to its budget, one refactor: commit per transform, runs the touched suites after each reverting one that turns them red, and reports what it applied (${problems#; })"
 
