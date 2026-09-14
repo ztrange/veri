@@ -160,16 +160,25 @@ claimed = {
 slug_pattern = re.escape(this_repo) if this_repo else r"[^/\s]+/[^/\s]+"
 blocker_ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % slug_pattern
 
+# `os.kill(pid, 0)` is `kill -0`: it sends no signal and answers only whether the process is
+# there to send one to. A process owned by another user answers PermissionError — it exists,
+# which is the whole question, so the `except OSError` falls through to the same answer the
+# call itself gives — while one that is gone answers ProcessLookupError.
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        pass
+    return True
+
 # The lock a run in flight leaves behind, and whether the conductor that wrote it is still
 # there. Everything about it is fail-open: no repository root, no worktree, no lock file, a
 # lock holding something that is not a number — each means nobody has claimed this issue, so
 # the issue stays takeable. A claim has to be POSITIVELY observed, because the cost of reading
 # a stale file as a live run is an issue nobody can take until a human deletes it, while the
 # cost of the opposite is the collision that was already there.
-#
-# `os.kill(pid, 0)` is `kill -0`: it sends no signal and answers only whether the process is
-# there to send one to. A process owned by another user answers PermissionError — it exists,
-# which is the whole question — while one that is gone answers ProcessLookupError.
 def in_flight(number):
     if not main_tree:
         return False
@@ -180,13 +189,7 @@ def in_flight(number):
             pid = int(f.read().strip())
     except (OSError, ValueError):
         return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except OSError:
-        return True
-    return True
+    return alive(pid)
 
 def blockers(body):
     """The issue numbers named under the `## Blocked by` heading, up to the next heading.
