@@ -149,16 +149,18 @@ SH
 
 # run_target <tree> <target> <env...> — one invocation of the recipe under test, with the log
 # emptied first and the two streams kept apart, leaving the exit status in `run_code`, stdout
-# in `run_out` and the path of the stderr file in `run_err`. Separate files because "says why
+# in `run_out` and stderr in `run_err`. The streams are captured separately because "says why
 # on stderr" is a claim about which stream carried the diagnostic, and a 2>&1 capture cannot
-# tell a recipe that explained itself from one that printed the same words on stdout.
+# tell a recipe that explained itself from one that printed the same words on stdout. Only the
+# capture differs — stderr needs a file because a command substitution can only take stdout —
+# and the file is read here rather than by each probe, so both streams reach them as text.
 run_target() {
-  local tree="$1" target="$2"
+  local tree="$1" target="$2" err="$WORK/err"
   shift 2
   : > "$LOG"
-  run_err="$WORK/err"
-  run_out="$(env "$TRIPWIRE_VAR=$LOG" "$@" make -C "$tree" "$target" 2>"$run_err")" &&
+  run_out="$(env "$TRIPWIRE_VAR=$LOG" "$@" make -C "$tree" "$target" 2>"$err")" &&
     run_code=0 || run_code=$?
+  run_err="$(cat "$err")"
 }
 
 # probe_runner_is_this_repositorys <tree> — the premise every probe below rests on: the
@@ -180,7 +182,7 @@ probe_tripwires_fire_when_the_variable_is_unset() {
   for target in "${TARGETS[@]}"; do
     run_target "$1" "$target" env -u VERI_TEST_CMD
     [[ "$run_code" == 0 ]] ||
-      problems+=("the premise broke: with VERI_TEST_CMD unset, 'make $target' over the scratch tree exited $run_code, so a refusal below is not distinguishable from a tree that cannot run: $(flat "$(cat "$run_err")")")
+      problems+=("the premise broke: with VERI_TEST_CMD unset, 'make $target' over the scratch tree exited $run_code, so a refusal below is not distinguishable from a tree that cannot run: $(flat "$run_err")")
     [[ -s "$LOG" ]] ||
       problems+=("the premise broke: with VERI_TEST_CMD unset, 'make $target' reached none of the stand-ins, so an empty log after a refusal says nothing")
   done
@@ -198,11 +200,11 @@ probe_targets_refuse() {
     run_target "$1" "$target" env "VERI_TEST_CMD=$DEV_CMD"
 
     [[ "$run_code" == 2 ]] ||
-      problems+=("want 'make $target' to exit 2 under VERI_TEST_CMD='$DEV_CMD'; got $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$(cat "$run_err")")")
+      problems+=("want 'make $target' to exit 2 under VERI_TEST_CMD='$DEV_CMD'; got $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$run_err")")
     [[ ! -s "$LOG" ]] ||
       problems+=("'make $target' ran something under VERI_TEST_CMD='$DEV_CMD' — a development run must not pay for a page build: $(flat "$(cat "$LOG")")")
-    grep -q "$REASON" "$run_err" ||
-      problems+=("nothing on stderr from 'make $target' named $REASON, so its refusal does not say why: $(flat "$(cat "$run_err")")")
+    grep -q "$REASON" <<<"$run_err" ||
+      problems+=("nothing on stderr from 'make $target' named $REASON, so its refusal does not say why: $(flat "$run_err")")
   done
 }
 
