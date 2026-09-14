@@ -722,19 +722,12 @@ header_names url-form -E -e 'https://github\.com/[^ ]*/issues/'
 { [[ -n "$header" ]] && [[ -z "$header_missing" ]]; } \
   && ok || no "the header comment of solvable-issues.sh names both blocker spellings (missing:$header_missing; header slice above 'set -euo pipefail' is $(grep -c '' <<<"$header") lines, want a non-empty slice naming '#<n>' and a github.com issues URL)"
 
-# 17. A run in flight claims its issue from its FIRST step, not from the draft PR it opens at
-# its last. Case 4 pins the only claim this script used to read — an open PR saying
-# `Closes #<n>` — and a conductor opens that PR after every step is green, so for the whole run
-# before it (hours: #137 took ~11 h) the issue still reads as solvable. A second conductor then
-# takes it, is handed the live run's worktree back by issue-worktree.sh, finds its ledger, and
-# follows *Resume* — whose `git reset --hard HEAD` throws the live leaf's uncommitted work away
+# 17. A run in flight claims its issue from its FIRST step, not from the draft PR its conductor
+# opens at its last — by writing its own PID into `.tdd/wt/<n>/.tdd/conductor.pid`, which this
+# script probes with `kill -0`. What the window before that PR costs while nothing claims the
+# issue, and why the signal is a PID rather than a `veri:in-flight` label, are argued once in the
+# header comment of solvable-issues.sh; a second copy of that argument here is one that drifts
 # (#170).
-#
-# The signal is the conductor's own PID, written into its worktree as `.tdd/conductor.pid` and
-# read with `kill -0`, rather than a `veri:in-flight` label on the issue. A label is visible
-# across machines but outlives the process that set it, so a crashed run leaves its issue claimed
-# until a human goes and un-claims it by hand; a PID that no longer answers reads as free on the
-# very next selection, which is what a bailed run needs — its issue must stay resumable.
 #
 # Three issues, equally takeable in every other respect — open, labelled, `None.` under
 # `## Blocked by`, and `prs.json` left at the empty list the fixture helper seeds — so the lock is
