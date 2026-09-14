@@ -171,6 +171,12 @@ rc_bare=$?
 #    line-by-line grep would miss a sentence split across two lines. Three file-wide greps
 #    would be the other failure: those terms scattered over three sections are not a warning.
 SKILL="$HERE/../../SKILL.md"
+# The launcher a launch line has to name, written down once so the probe and the token it
+# fails with cannot drift apart. The token quotes it rather than saying `not-detached`: the
+# adjective named nothing a reader could grep the document for, and it outlived the shape it
+# was coined for — it meant `nohup` plus a trailing `&` until #161 replaced both with this
+# script.
+detacher="detach-leaf.sh"
 launches=0 launch_misses=""
 
 # missed <token> — record one way the document fails this case, onto the space-separated
@@ -183,8 +189,8 @@ missed() { launch_misses="$launch_misses $1"; }
 while IFS= read -r hit; do
   launches=$(( launches + 1 ))
   n="${hit%%:*}" text="${hit#*:}"
-  [[ "$text" == *detach-leaf.sh* ]] \
-    || missed "line$n:not-detached"
+  [[ "$text" == *"$detacher"* ]] \
+    || missed "line$n:no-$detacher"
   sed -n "${n},$(( n + 6 ))p" "$SKILL" | grep -q 'wait-leaf\.sh' \
     || missed "line$n:no-foreground-wait"
 done < <(grep -n -e '\$S/supervise\.sh' -e '\$S/verify\.sh' "$SKILL" | grep '\.tdd/')
