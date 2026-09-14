@@ -384,6 +384,26 @@ head_code=$code head_out="$out" head_delta="$delta"
 { [[ -z "$tracked_delta" ]] && [[ -z "$untracked_delta" ]] && [[ -z "$head_delta" ]]; } && ok \
   || no "after the exit 2 the tree and HEAD are back to what the verifier was handed, uncommitted work included (rewritten tracked file: delta='$tracked_delta' code=$tracked_code; created untracked file: delta='$untracked_delta' code=$untracked_code; verifier commit: delta='$head_delta' code=$head_code)"
 
+# 13. a verifier that mutated a file and put it back before ending did not modify the
+#     repository: the comparison is by CONTENT, so a tree that ends where it started carries the
+#     verdict's own exit code out rather than the bail. That is what keeps verify-pin working —
+#     verify-pin.md:17-22 tells the verifier to break the production code, run the test and
+#     restore it, so the one phase whose whole method is a transient mutation must not be read as
+#     a leaf that left the tree changed.
+#
+#     The arm is tamper_run's, so it is the same fixture the three tampering arms run in and the
+#     only thing particular to it is a mutation that ends where it began. It rewrites src.txt —
+#     the tracked file the developer is still editing, so the content restored is UNCOMMITTED and
+#     a check comparing the tree against HEAD instead of against the snapshot would call this arm
+#     changed. `git checkout -- src.txt`, the restore verify-pin.md actually spells, is for that
+#     same reason not what the mutation uses: from HEAD it would throw the developer's edit away
+#     and leave a genuinely different tree. The backup goes to mktemp's directory rather than
+#     anywhere under the repo, since one left in the tree would be exactly the untracked file
+#     case 11 bails on and this arm would then be green for the wrong reason.
+tamper_run reverted 'b="$(mktemp)"; cp src.txt "$b"; printf "the verifier broke this\n" > src.txt; cp "$b" src.txt; rm -f "$b"'
+{ [[ "$code" == 0 ]] && [[ "$out" == *'full suite are green'* ]]; } && ok \
+  || no "a verifier that restored its own mutation gets its verdict's normal exit code (code=$code want 0, stdout='$out' want the verdict's reason)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
