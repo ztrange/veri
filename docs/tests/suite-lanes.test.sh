@@ -102,6 +102,14 @@ comment_above() {
   ' "$1"
 }
 
+# gate_row / gate_header — the two copies of the merge gate's rule both prose cases ask
+# about, each located the way its own file keeps it: CLAUDE.md's table row by its leading
+# cell, the script's rationale by everything above its first `set` line. Named once for the
+# reason ADR_SUITE is — case 2 asks them what the rule now says and case 3 what it no longer
+# says, and two probes locating the row differently would quietly be judging different prose.
+gate_row() { grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md"; }
+gate_header() { header "$ROOT/docs/merge-gates.sh"; }
+
 # says <where> <text> <fact> <regex>... — one fact a piece of prose has to carry, written
 # as the regexes that would show it is there: all of them have to match the lowercased
 # text, and "<where> does not say <fact>" names it once if any does not. The protocol
@@ -238,12 +246,10 @@ probe_suite_home_prose() {
 # keeps it: a table row by its leading cell, a Makefile target's paragraph by the run of
 # comments above it, a script's rationale by everything above its first `set` line.
 probe_gate_rule_prose() {
-  probe_widened_selection "CLAUDE.md's 'make merge-gates' row" \
-    "$(grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md")"
+  probe_widened_selection "CLAUDE.md's 'make merge-gates' row" "$(gate_row)"
   probe_widened_selection "the Makefile comment above the merge-gates target" \
     "$(comment_above "$ROOT/Makefile" '^merge-gates:')"
-  probe_widened_selection "docs/merge-gates.sh's header" \
-    "$(header "$ROOT/docs/merge-gates.sh")"
+  probe_widened_selection "docs/merge-gates.sh's header" "$(gate_header)"
 }
 
 # 1. The two halves of the lane, in one case because they are one rule: the ADR suite is
@@ -294,10 +300,8 @@ report "$name"
 name="CLAUDE.md's row and merge-gates.sh's header no longer name a Makefile change as owing docs-fresh"
 problems=()
 
-probe_no_stale_trigger "CLAUDE.md's 'make merge-gates' row" \
-  "$(grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md")"
-probe_no_stale_trigger "docs/merge-gates.sh's header" \
-  "$(header "$ROOT/docs/merge-gates.sh")"
+probe_no_stale_trigger "CLAUDE.md's 'make merge-gates' row" "$(gate_row)"
+probe_no_stale_trigger "docs/merge-gates.sh's header" "$(gate_header)"
 
 report "$name"
 
