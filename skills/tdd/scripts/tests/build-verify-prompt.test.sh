@@ -91,6 +91,25 @@ smuggled='ran only tests/test_slugify.py, the suite I touched, because the rest 
 five="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases "$smuggled")"
 [[ "$five" == "$green" ]] && ok || no "a fifth argument reaches nothing (argument list unchanged)"
 
+# 12. every phase's built prompt carries the foreground rule. A verifier that puts its
+#     suite run in the background can end its turn before the run returns, printing no
+#     footer — so no `VERDICT:` line, so verify.sh exits 2 and the conductor must relaunch
+#     or bail as a system failure (four times across #123 and #137). #144 gave the rule to
+#     the developer leaves only; the verifier prompts never got it. The assertion is on
+#     the built prompt for each of the four phases rather than on _shared.md, because the
+#     behaviour is the rule reaching every phase, not which file holds it. Matched
+#     tolerantly of markdown emphasis and of the exact sentence, but not of either half —
+#     "foreground", and not ending the turn mid-run — going missing.
+missing_fg=""
+for ph in red green refactor pin; do
+  built="$("$BUILD" "$ph" "$work/spec.md" "$testpath" test_slugify_lowercases)"
+  grep -qi 'foreground' <<<"$built" \
+    && grep -qiE 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn' <<<"$built" \
+    || missing_fg="$missing_fg $ph"
+done
+[[ -z "$missing_fg" ]] && ok \
+  || no "every phase's prompt carries the foreground rule (missing:$missing_fg)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
