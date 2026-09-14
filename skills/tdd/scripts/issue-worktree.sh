@@ -145,6 +145,13 @@ fi
 # once keeps the refs/heads/ prefix — the part that makes --verify work at all — in one place.
 branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 
+# remote_branch_ref <name> — the refname a branch called <name> fetched from origin lives under.
+# The spelling is written once, here, for the reason wt_path's layout is written once: the test just
+# below and the `git worktree add` that acts on its answer are two halves of one decision, and a test
+# that asked about one ref while the add started from another would take that arm on evidence about a
+# different branch — silently, because both spellings resolve to something git will happily check out.
+remote_branch_ref() { printf '%s\n' "refs/remotes/origin/$1"; }
+
 # remote_branch_exists <name> — does the remote carry a branch called <name> that this clone has
 # fetched, when no local ref for it is left? That is what a run made on another machine and pushed
 # looks like here after a `git fetch`: refs/remotes/origin/<name> and nothing under refs/heads/
@@ -159,7 +166,7 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 # `rev-parse --verify --quiet` answers through its exit code the way `show-ref --verify` does —
 # 0 when the ref resolves, non-zero when it does not — with --quiet silencing the error and
 # >/dev/null dropping the sha it would otherwise print, since only the exit code is asked for.
-remote_branch_exists() { git rev-parse --verify --quiet "refs/remotes/origin/$1" >/dev/null; }
+remote_branch_exists() { git rev-parse --verify --quiet "$(remote_branch_ref "$1")" >/dev/null; }
 
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
@@ -263,11 +270,12 @@ elif remote_branch_exists "$branch"; then
   # file exists *in the worktree*, so a worktree cut from the default branch reads as a new run and
   # re-plans from scratch over work that is already on the remote.
   #
-  # The start point is spelled out in full rather than left to git's DWIM. `git worktree add <path>
-  # <branch>` does guess a unique refs/remotes/*/<branch> into a new local branch — but that guess
-  # is off entirely under `checkout.guess=false` in a user's config, and a behaviour this script
-  # depends on must not be one a config setting can take away without a word.
-  git worktree add -q -b "$branch" "$path" "refs/remotes/origin/$branch" >&2
+  # The start point is spelled out in full — remote_branch_ref names it — rather than left to git's
+  # DWIM. `git worktree add <path> <branch>` does guess a unique refs/remotes/*/<branch> into a new
+  # local branch — but that guess is off entirely under `checkout.guess=false` in a user's config,
+  # and a behaviour this script depends on must not be one a config setting can take away without
+  # a word.
+  git worktree add -q -b "$branch" "$path" "$(remote_branch_ref "$branch")" >&2
 else
   # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
   # cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
