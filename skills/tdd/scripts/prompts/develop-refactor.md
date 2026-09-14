@@ -41,10 +41,10 @@ which file it sits in:
 1. Triage the candidates you see in those files into the two classes above, then apply the
    structural ones, most valuable first, up to the budget you are given. Only a structural
    candidate qualifies for a transform, never a cosmetic one.
-2. Commit each transform on its own, as `refactor: <what changed> (#<issue>)` — one
-   `refactor:` commit per transform, never a batch, so a break stays attributable to one
-   change. That attribution is the whole of what a leaf per transform used to buy, and it
-   is what has to survive several transforms sharing this one.
+2. Commit each transform on its own, as `refactor: <what changed> (#<issue>)`, never a
+   batch, so a break stays attributable to one change. That attribution is the whole of
+   what a leaf per transform used to buy, and it is what has to survive several transforms
+   sharing this one.
 3. Run the suites covering the files you touched after each transform, not the full suite:
    they answer what one transform could plausibly break, and answer it in a fraction of the
    time. Those suites must stay green; revert a transform that turns them red rather than
