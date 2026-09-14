@@ -41,6 +41,14 @@ does, its note column says `commentary owed`, and the build prints `owed: <scrip
 L<a>–<b>` on stderr and exits 0. Prose is allowed to lag behind code — the page's promise
 is that the source is verbatim, not that someone has explained it yet.
 
+**Every line above is the documentation lane's work, and a development run is not in it**
+(#143). A leaf or conductor step of a `/tdd` run whose test command is not a `make docs-*`
+target never edits the page or its inputs and never runs `make docs` — the target refuses
+with exit 2, because `VERI_TEST_CMD` in its environment says a development run typed it.
+The regen recipe under "Versions are tags, and nothing else" is the same rule: it types
+`make docs` like any other caller, so it runs from a human's shell or a docs issue's run,
+never from a development one.
+
 ## Exit codes are the API
 
 Every script speaks the same four codes, and the conductor branches on them. Preserve this
@@ -145,6 +153,14 @@ followed on 2026-09-13 — its subject is a record under `docs/adr/`, and the on
 had kept it here was the recipe line the glob replaced. `suite-lanes.test.sh`, also under
 `docs/tests/`, pins the line: it reads both targets' rosters off `make -n` and fails if
 anything `make test` runs declares a docs subject.
+
+**And a suite here never reads a path in the generated tree** — not the committed page, not
+a generator input, not for one figure quoted in prose. `no-docs-reads.test.sh` fails the run
+naming the suite and the line when one does (#143); a path only written into a fixture as
+text is not a read. What catches prose lagging behind code is the documentation lane's own
+work, not a case here: `docs/docs-owed.sh` reports the chunks a script is owed, and
+`docs-fresh` goes red at a docs merge when the committed page no longer matches a fresh
+build.
 
 Where a test would otherwise need a real model or a real clock, it injects instead:
 `CLAUDE_BIN` swaps in a stub binary, and `VERI_HEARTBEAT` / `VERI_TIMEOUT` /

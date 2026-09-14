@@ -9,4 +9,4 @@
 - [x] a leaf launched through `supervise.sh` the way `SKILL.md` prescribes sees `VERI_TEST_CMD` in its environment, pinned with a `CLAUDE_BIN` stub
 - [x] the verifier launch `SKILL.md` prescribes also carries `VERI_TEST_CMD`, so a verify leaf cannot run a docs target either (plan amendment)
 - [x] `build-verify-prompt.sh` accepts the same arguments as before
-- [ ] CLAUDE.md states the rule and where docs checks live
+- [x] CLAUDE.md states the rule and where docs checks live ⟂ refactor pending
