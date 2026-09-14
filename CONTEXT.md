@@ -145,9 +145,9 @@ request saying `Closes #<n>` (such a PR means a run is in flight, or one bailed 
 branch behind) — but the conductor opens its draft PR only once every step is green, so it
 says nothing about the hours before that. The early mark is the lock
 `.tdd/wt/<n>/.tdd/conductor.pid`, written at the run's first step: the issue is in flight
-while the pid in there still answers `kill -0`, and takeable again the moment it does not,
-which is what keeps a bailed or killed run's issue resumable rather than claimed until a
-human clears the file by hand. No lock, or one nobody answers for, claims nothing. Solvable is
+while the pid in there still answers `kill -0`, and takeable again the moment it does not — a
+lock nobody answers for claims no more than a missing one, which is what keeps a bailed or
+killed run's issue resumable rather than claimed until a human clears it by hand. Solvable is
 therefore relative to *one* label: `VERI_LABEL` names it and `ready-for-agent` is only the
 default, so the same issue can be solvable for one loop and invisible to another. That is
 the intended use — **one label per loop** when more than one loop runs against a repository,
