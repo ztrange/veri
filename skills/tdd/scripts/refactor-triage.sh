@@ -3,11 +3,12 @@
 #
 # Reads a finished refactor leaf's report on stdin — its last lines, verbatim, as
 # develop-refactor.md asks for them — and answers from the `CANDIDATES:` lines it finds.
-# Since #149 every one of those carries the class of the transform it names:
+# Since #149 every one of those carries the class of the transform it names — `structural`
+# or `cosmetic`, as prompts/develop-refactor.md's *The two classes of candidate* defines
+# them:
 #
-#     CANDIDATES: structural | <transform>   removes duplication, extracts, inlines,
-#                                            deletes dead code, renames or moves logic
-#     CANDIDATES: cosmetic   | <transform>   rewords, re-cites, reflows, re-comments
+#     CANDIDATES: structural | <transform>
+#     CANDIDATES: cosmetic   | <transform>
 #
 # This is the other axis of the refactor loop from refactor-budget.sh: that script answers
 # "may another leaf run?" from the count, this one answers "is another leaf worth running?"
