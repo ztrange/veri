@@ -37,6 +37,9 @@
 #   5. CLAUDE.md's ledger invariant and CONTEXT.md's **Ledger** entry each say that a ticked
 #      step also carries the mark until its verify-refactor passes, rather than that the tick
 #      alone means the step is done.
+#   6. SKILL.md's Resume branch for a pending step resets what the killed leaf left
+#      uncommitted and relaunches the refactor leaf with `VERI_REFACTOR_BUDGET` reduced by
+#      the `refactor:` commits that step already has.
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -434,6 +437,36 @@ says_reset_reenter_verify() {
     miss "$skill_md's Resume re-enters the refactor loop but never runs verify-refactor after it, which is the check the interruption skipped in the first place"
 }
 
+# says_reset_and_reduced_budget — the three things the `$instruction` just read must prescribe
+# for the leaf a resume relaunches: throw away the uncommitted work first, then launch with
+# `VERI_REFACTOR_BUDGET`, and with that number REDUCED by the transforms the interrupted run
+# already committed.
+#
+# The budget is the half that changed. While a leaf ran per transform, the count went to
+# `refactor-budget.sh <count>` and the loop simply stopped early. One leaf per step is asked
+# for a number up front and applies transforms until it is spent, so a resume that relaunches
+# it on the ambient `VERI_REFACTOR_BUDGET` hands it the whole budget a second time and the
+# step pays twice over for its tidying — which is the cost axis this issue exists to bound.
+#
+# The reset is probed here too, and deliberately: the reduced budget is an instruction about
+# what to relaunch with, and it is only safe to relaunch anything once the half-applied
+# transform on disk is gone. The two are the one sentence this criterion is.
+#
+# Each probe accepts any wording that carries its fact. The reduction's alternation covers the
+# prose forms and the arithmetic one, but never a bare `--count` flag: computing the count is
+# what the document already does, and a probe answered by that would pass a resume that reads
+# the number and then hands the leaf the full budget anyway.
+says_reset_and_reduced_budget() {
+  local reset_re='git (checkout|restore|reset|clean)'
+  local reduced_re='reduc|minus|subtract|net of|what is left|left of|remaining|\$\(\('
+  [[ "$instruction" =~ $reset_re ]] ||
+    miss "$skill_md's Resume relaunches the refactor leaf without first resetting the worktree, so the transform the killed leaf left half-applied on disk is carried into the relaunched leaf and into the PR unverified"
+  [[ "$instruction" =~ veri_refactor_budget ]] ||
+    miss "$skill_md's Resume never names VERI_REFACTOR_BUDGET on the pending branch, so the relaunched leaf is asked for the run's whole budget and the interrupted step pays for its tidying twice over"
+  [[ "$instruction" =~ $reduced_re ]] ||
+    miss "$skill_md's Resume never says the budget the relaunched leaf is given is reduced by the \`refactor:\` commits the step already has, so the count it computes is read and then thrown away"
+}
+
 # 1. One criterion — the mark is written at exactly one tick, withheld at the other, and
 #    cleared where the step ends — and so one case. The three probes are one wiring: a mark
 #    written and never cleared stalls every resumed run in a refactor loop, and a mark
@@ -603,6 +636,26 @@ if records_from context_records \
   # anchor would match the entries around it that use the word in passing.
   if record_of "$context_md" 'Ledger glossary entry' '^\*\*ledger\*\*:'; then
     says_pending_until_verified
+  fi
+fi
+report "$name"
+
+# 6. One criterion — what a resume hands the leaf it relaunches — and so one case. Case 2
+#    pins that the pending step is picked up, reset and re-entered at all; this one pins the
+#    number the relaunch carries. They are separate criteria because the budget only became a
+#    number the leaf is handed when one leaf started applying the whole step's transforms
+#    (#150): before that the conductor asked `refactor-budget.sh <count>` before each leaf
+#    and simply stopped the loop early, so a resume needed only to pass the count along. Now
+#    a resume that relaunches on the ambient VERI_REFACTOR_BUDGET gives an interrupted step
+#    the full budget a second time — the transforms it already committed cost nothing against
+#    it — and the one thing the cost axis is there to bound goes unbounded exactly on the
+#    path where a step has already spent some of it.
+name="$skill_md's Resume resets the uncommitted work and relaunches the refactor leaf with VERI_REFACTOR_BUDGET reduced by the step's existing refactor: commits"
+problems=()
+if records_from resume_instructions \
+    "$skill_md has no ## Resume section to read — what budget a relaunched refactor leaf is given could not be checked"; then
+  if reads 'runs next-pending-refactor.sh on a resume' 'next-pending-refactor\.sh'; then
+    says_reset_and_reduced_budget
   fi
 fi
 report "$name"

@@ -873,14 +873,22 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    green="$(git log -1 --format=%H -- .tdd/issue-<n>.md)"
    touched="$(git diff --name-only "$green^" "$green" | paste -sd, -)"
    count="$(git log --format=%s "$green"..HEAD | grep -c '^refactor:')"
+   left=$(( ${VERI_REFACTOR_BUDGET:-5} - count )); (( left < 0 )) && left=0
    ```
    `$green` is the step's **green commit** — the last commit that changed the ledger, since
    the tick is atomic with it and the clear that would follow never happened. So `$touched`
    is the same bounds the interrupted loop had, and `$count` the transforms it already
-   committed, so the budget is not spent twice. Run the **Refactor loop** (the cycle loop's
-   sub-section) with those two inputs, and its **verify-refactor** after it — the check the
-   interruption skipped. Its PASS clears the mark and commits the cleared ledger exactly as
-   in the cycle loop; then come back here and ask sub-step 2 again.
+   committed. Run the **Refactor loop** (the cycle loop's sub-section) with `$touched` as
+   its bounds and **`VERI_REFACTOR_BUDGET=$left`** in the environment of every call that
+   reads it — `refactor-budget.sh`, `build-develop-prompt.sh refactor` and
+   `leaf-timeout.sh`. One leaf is handed the budget as a number and spends it, so the
+   relaunched leaf gets the run's budget **reduced** by `$count`, never the ambient one:
+   on the ambient number the interrupted step pays for its tidying twice over, which is the
+   cost the budget exists to bound. A `$left` of 0 is a budget already spent, and
+   `refactor-budget.sh 0` then skips the leaf — the step is tidied as far as it was funded
+   to be. Run its **verify-refactor** after it — the check the interruption skipped. Its
+   PASS clears the mark and commits the cleared ledger exactly as in the cycle loop; then
+   come back here and ask sub-step 2 again.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
    loop continues from exactly there, so **STEP** is that step's description, bound here
    instead of at the top of the cycle loop. Already-checked steps (and their commits) are
