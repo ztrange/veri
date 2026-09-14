@@ -23,6 +23,10 @@
 #   `make docs-test`, `make docs-check` and `make docs-fresh` exits 2, runs none of the
 #   things it would otherwise run, and says on stderr why it refused.
 #
+#   And the far side of the same door: with VERI_TEST_CMD unset — a human, `make
+#   merge-gates`, CI — or set to a documentation target, the run is not a development one
+#   and those same four targets run exactly as they did before the guard existed.
+#
 # All three halves are asked of every one of the four targets, because a guard written into
 # three recipes and forgotten in the fourth leaves the door it was built to shut open, and
 # `docs-check` is not covered by its two prerequisites: it is the target a human types, so
@@ -88,6 +92,13 @@ TARGETS=(docs docs-test docs-check docs-fresh)
 # page build. The value is the whole signal: it is not a documentation target, so a recipe
 # reading it is inside a run that never asked for a page.
 DEV_CMD='make test'
+
+# What a documentation run's test command looks like: the target veri detects for an issue
+# whose subject is the page. The guard has to read the variable's value and not merely its
+# presence, because this is the one run that legitimately builds the page — a guard that
+# fired on any veri run at all would leave the documentation lane unable to run its own
+# tests, which is the same door shut on the wrong side.
+DOCS_CMD='make docs-test'
 
 # The two environment variables this suite is written around, each spelled once. The first is
 # where the stand-ins are told to log. The second is the variable the recipes refuse over, and
@@ -242,6 +253,53 @@ tree="$(tree_with_tripwires)"
 probe_runner_is_this_repositorys "$tree"
 probe_tripwires_fire_when_the_variable_is_unset "$tree"
 probe_targets_refuse "$tree"
+
+report "$name"
+
+# probe_targets_run <tree> <situation> <env...> — the other criterion, asked of each of the
+# four targets under one environment in which the guard must not fire: exit 0, and a log the
+# run left something in. Both halves, because either alone can be had by accident — a recipe
+# that refused before doing anything would still exit 0 if its guard said so, and a recipe
+# that reached its stand-in and then broke would still leave the log written.
+#
+# <situation> is carried into the failure message rather than derived from the environment,
+# because "unset" and "set to a documentation target" are two different reasons for the same
+# expectation and which one broke is what sends the next author to the right half of the
+# guard's condition.
+probe_targets_run() {
+  local tree="$1" situation="$2" target
+  shift 2
+  for target in "${TARGETS[@]}"; do
+    run_target "$tree" "$target" "$@"
+
+    [[ "$run_code" == 0 ]] ||
+      problems+=("want 'make $target' to run as before with $situation; got exit $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$run_err")")
+    [[ -s "$LOG" ]] ||
+      problems+=("'make $target' with $situation reached none of the stand-ins, so it did not run as before: the guard fired outside a development run")
+  done
+}
+
+# 2. The criterion's other side, and one case because it is one rule: the guard fires only
+#    inside a development run, so in the two environments that are not one — the variable
+#    absent, and the variable naming a documentation target — all four targets run as they
+#    did. The two are asked together rather than as two cases because a guard gets them both
+#    wrong or both right in the same line of the Makefile: `-n "$VERI_TEST_CMD"` alone shuts
+#    out the documentation lane, and no condition at all shuts out the human.
+#
+#    Case 1 already runs the four targets with the variable unset, but as its premise —
+#    there it is what makes an empty log mean something, and its failure says the scratch
+#    tree is broken. Here the same run is the claim itself, and its failure says the guard
+#    is. A premise that the criterion happens to share is not the criterion asserted.
+name="with $GUARD_VAR unset, or set to '$DOCS_CMD', make docs, docs-test, docs-check and docs-fresh each run as before"
+problems=()
+run_code=0
+run_out=""
+run_err=""
+
+tree="$(tree_with_tripwires)"
+probe_runner_is_this_repositorys "$tree"
+probe_targets_run "$tree" "$GUARD_VAR unset" env -u "$GUARD_VAR"
+probe_targets_run "$tree" "$GUARD_VAR='$DOCS_CMD'" env "$GUARD_VAR=$DOCS_CMD"
 
 report "$name"
 
