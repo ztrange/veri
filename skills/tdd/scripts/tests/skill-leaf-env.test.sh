@@ -143,6 +143,37 @@ wait" ) >/dev/null 2>&1
   cat "$seen" 2>/dev/null || echo '<no leaf ran>'
 }
 
+# runnable <line> — echo one launch line as a conductor types it, with the document's
+# placeholders supplied; or echo nothing and return 1 when the line names one this probe
+# cannot supply.
+#
+# Two spellings of the same launch are kept apart on purpose, and this is where the second
+# one is made: the caller's `line` is what the document says, and is what every message
+# quotes, while what comes back from here is the runnable copy. The substitutions are one
+# table rather than one per case because a conductor supplies all of them from one place —
+# the run's test command, the phase and revise attempt that name one revise leaf, the issue
+# number, and the test under review with its target test id — and either launch shape is
+# free to name any of them.
+#
+# The refusal is the load-bearing half. An unsubstituted `<…>` would be read by the shell as
+# a redirection, so a case that ran it would go green while answering about nothing; the
+# caller reports the line instead. `[target]` is the revise loop's spelling of an argument
+# that is optional there, and is supplied the same way. The target test id is one word
+# because the document leaves it unquoted, so a value with a space in it would arrive as two
+# arguments and the probe would be testing its own fixture.
+runnable() {
+  local launch="$1"
+  launch="${launch//<test-cmd>/$SENTINEL}"
+  launch="${launch//<phase>/red}"
+  launch="${launch//<k>/1}"
+  launch="${launch//<n>/143}"
+  launch="${launch//<test-path>/probe.test.sh}"
+  launch="${launch//<target-test-id>/probe-target}"
+  launch="${launch//\[target\]/probe-target}"
+  [[ "$launch" != *'<'*'>'* ]] || return 1
+  printf '%s\n' "$launch"
+}
+
 # 1. The criterion, asked of every launch line the document actually prescribes. One case,
 #    because it is one wiring: the same prefix on each line, and a line that lost it is a
 #    phase of the run whose leaf can type `make docs` unrefused.
@@ -163,19 +194,10 @@ while IFS= read -r numbered; do
   [[ -n "$numbered" ]] || continue
   lineno="${numbered%%:*}"
   line="${numbered#*:}"
-  # Two spellings of the same launch, kept apart on purpose: `line` is what the document
-  # says, and is what every message quotes; `launch` is the runnable copy, with the
-  # document's placeholders supplied as a conductor supplies them — the run's test command,
-  # and the phase and revise attempt that name one revise leaf. Any other placeholder is
-  # reported rather than run — an unsubstituted `<…>` would be read by the shell as a
-  # redirection, and a case that went green on that would be answering about nothing.
-  launch="${line//<test-cmd>/$SENTINEL}"
-  launch="${launch//<phase>/red}"
-  launch="${launch//<k>/1}"
-  if [[ "$launch" == *'<'*'>'* ]]; then
+  launch="$(runnable "$line")" || {
     problem "names a placeholder this probe cannot supply, so its launch could not be run"
     continue
-  fi
+  }
   # The two fields the probe reads out of a launch it has established is runnable: the
   # leaf's name, which is also the tree the launch runs in and how a failure names itself,
   # and the prompt file the leaf is pointed at. Both are read from the substituted copy,
@@ -221,27 +243,15 @@ while IFS= read -r numbered; do
   [[ -n "$numbered" ]] || continue
   lineno="${numbered%%:*}"
   line="${numbered#*:}"
-  # Two spellings again, for the reason given at case 1: `line` is what the document says
-  # and what every message quotes, `launch` is the runnable copy with the placeholders a
-  # conductor supplies — the run's test command, the issue number, the test under review and
-  # the target test id, which the revise loop's line writes as `[target]` because there it is
-  # optional. The id is one word because the document leaves it unquoted, so a value with a
-  # space in it would arrive as two arguments and the probe would be testing its own fixture.
-  launch="${line//<test-cmd>/$SENTINEL}"
-  launch="${launch//<phase>/red}"
-  launch="${launch//<n>/143}"
-  launch="${launch//<test-path>/probe.test.sh}"
-  launch="${launch//<target-test-id>/probe-target}"
-  launch="${launch//\[target\]/probe-target}"
-  if [[ "$launch" == *'<'*'>'* ]]; then
+  launch="$(runnable "$line")" || {
     problem "names a placeholder this probe cannot supply, so its launch could not be run"
     continue
-  fi
+  }
   # The phase is verify.sh's first argument, and `verify-<phase>` is both the leaf's name and
   # the tree this launch runs in — read from the substituted copy, since the revise loop's
   # line says `<phase>` where a run says `red`.
   leaf="verify-$(sed -E 's/.*verify\.sh +([^ ]+).*/\1/' <<< "$launch")"
-  # The two files this shape names, spelled as the substitutions above spell them, so the
+  # The two files this shape names, spelled as `runnable`'s table spells them, so the
   # tree holds the spec and the test the line is about to hand verify.sh.
   got="$(launched_test_cmd "$leaf" "$launch" ".tdd/issue-143-spec.md" "probe.test.sh")"
   [[ "$got" == "$SENTINEL" ]] ||
