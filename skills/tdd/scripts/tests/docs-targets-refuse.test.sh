@@ -129,6 +129,23 @@ with open(os.environ["$TRIPWIRE_VAR"], "a") as log:
 PY
 }
 
+# shell_tripwire <path> <word> — the third stand-in, and python_tripwire's twin: the suite the
+# documentation target globs, written as an executable that appends <word> to the log, prints
+# the count line every suite in this repository ends with, and exits 0. Its heredoc is unquoted
+# for the same reason python_tripwire's is — the log's variable name is written once, in
+# TRIPWIRE_VAR, so a stand-in can never end up reading a different one than run_target sets. `\$`
+# is a literal dollar, so the file receives `"$VERI_TRIPWIRE_LOG"`; the only other thing the
+# writing shell expands is <word>, which is why nothing else here carries a `$` or a backtick.
+shell_tripwire() {
+  cat > "$1" <<SH
+#!/usr/bin/env bash
+set -uo pipefail
+printf '$2\n' >> "\$$TRIPWIRE_VAR"
+echo "1 passed, 0 failed"
+SH
+  chmod +x "$1"
+}
+
 # tree_with_tripwires — a disposable tree holding the real Makefile and a stand-in for each
 # thing the four targets invoke, printed as a path. The page builder and the freshness check
 # are stood up as the two python files the recipes name; the suite the documentation target
@@ -142,14 +159,7 @@ tree_with_tripwires() {
 
   python_tripwire "$tree/$GENERATED_DIR/build-walkthrough.py" "built the page"
   python_tripwire "$tree/$GENERATED_DIR/check-walkthrough.py" "checked the page is fresh"
-
-  cat > "$tree/$GENERATED_DIR/tests/tripwire.test.sh" <<'SH'
-#!/usr/bin/env bash
-set -uo pipefail
-printf 'ran a documentation suite\n' >> "$VERI_TRIPWIRE_LOG"
-echo "1 passed, 0 failed"
-SH
-  chmod +x "$tree/$GENERATED_DIR/tests/tripwire.test.sh"
+  shell_tripwire "$tree/$GENERATED_DIR/tests/tripwire.test.sh" "ran a documentation suite"
 
   printf '%s' "$tree"
 }
