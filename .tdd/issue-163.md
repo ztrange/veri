@@ -5,4 +5,4 @@
 - [x] SKILL.md's developer and verifier launch lines set VERI_ISSUE and VERI_STEP
 - [x] a supervised leaf whose log ends in a result record leaves exactly one usage event
 - [x] a killed leaf leaves no usage event and supervise.sh still exits 2 and writes 2 to its completion file
-- [ ] a failing harvester leaves supervise.sh's exit code and completion file unchanged
+- [x] a failing harvester leaves supervise.sh's exit code and completion file unchanged
