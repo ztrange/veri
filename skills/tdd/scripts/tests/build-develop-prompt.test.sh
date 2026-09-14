@@ -401,8 +401,7 @@ demands_foreground revise "$revise"
 #     while costing the conductor a hand-run suite anyway. A leaf that writes no report never
 #     "writes its report while the run is still going", and the conductor is left with the
 #     same nothing either way. So the forbidden act has to be the one that actually ends the
-#     leaf. Asked of all four built prompts for case 14's reason: a template that drops the
-#     clause is named rather than covered for by the other three.
+#     leaf. Asked of all four built prompts for case 14's reason.
 #
 #     Reads the four prompts case 14 reads, and adds no invocation, for the reason given
 #     there. `prompt_says` folds to one line for its own reason, which bites here in
