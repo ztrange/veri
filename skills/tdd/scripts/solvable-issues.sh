@@ -106,7 +106,7 @@ def blockers(body):
     """The issue numbers named under the `## Blocked by` heading, up to the next heading.
     A section reading `None.` names none, and so does a body with no such section."""
     section = re.search(r"^## Blocked by$(.*?)(?=^## |\Z)", body, re.M | re.S)
-    return [int(n) for n in re.findall(r"#(\d+)", section.group(1))] if section else []
+    return [int(n) for n in re.findall(r"(?:#|/issues/)(\d+)", section.group(1))] if section else []
 
 def solvable(issue):
     """The four conditions the spec names, all of which must hold at once. They are named
