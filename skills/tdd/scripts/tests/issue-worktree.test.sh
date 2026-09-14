@@ -74,6 +74,27 @@ linked_worktree() {
   printf '%s\n' "$path"
 }
 
+# ahead_pair <name> — the fixture cases 13 and 20 share: an upstream repo at $work/<name>-upstream
+# and a clone of it at $work/<name>-clone, the clone taken FIRST and the upstream gaining one more
+# commit only afterwards. That order is the whole shape: at the moment of the call the clone's local
+# `main` AND its `refs/remotes/origin/main` both sit at the old tip, so the new one is reachable by
+# nothing but a fetch — a script that read the remote-tracking ref without refreshing it would
+# answer the same as one that read the local branch, and a case seeded any other way could not tell
+# them apart.
+#
+# Sets four names rather than printing one, the way detect-test-command.test.sh's detect() sets
+# $out/$code: the seed is four facts — the two repos, and the two tips they disagree about — and a
+# caller left to re-derive any of them is a caller free to derive a different one.
+ahead_pair() {
+  upstream="$work/$1-upstream"
+  clone="$work/$1-clone"
+  new_repo "$upstream"
+  git clone -q "$upstream" "$clone" >/dev/null 2>&1
+  git_q "$upstream" commit -q --allow-empty -m "landed while the clone was busy" >/dev/null 2>&1
+  remote_tip="$(git_q "$upstream" rev-parse main)"
+  stale_tip="$(git_q "$clone" rev-parse main)"
+}
+
 # 1. a fresh call creates the worktree on a new branch cut from the DEFAULT branch, and
 # prints its path.
 #
@@ -432,22 +453,12 @@ $(grep '^worktree ' <<<"$listing")" ))"
 # everything that landed meanwhile — replayed one `refactor:` commit at a time, through whatever
 # conflicts concurrent issues had left in the same files.
 #
-# The seed is case 6's upstream+clone pair with the two tips pulled apart afterwards: the clone is
-# taken first, and only then does the upstream gain a commit. So at the moment of the call the
-# clone's local `main` AND its `refs/remotes/origin/main` both sit at the old tip, and the only way
-# to reach the new one is to go and fetch it. A script that read the remote-tracking ref without
-# refreshing it would answer the same as one that read the local branch, and the case would not
-# tell them apart.
+# The seed is `ahead_pair`, which builds that gap and says once, at the top, why it has to be built
+# in that order.
 #
 # The assertion is the new worktree's HEAD, asked of git: it must be the upstream's current tip,
 # not the tip the clone was taken at.
-upstream="$work/ahead-upstream"
-new_repo "$upstream"
-clone="$work/ahead-clone"
-git clone -q "$upstream" "$clone" >/dev/null 2>&1
-git_q "$upstream" commit -q --allow-empty -m "landed while the clone was busy" >/dev/null 2>&1
-remote_tip="$(git_q "$upstream" rev-parse main)"
-stale_tip="$(git_q "$clone" rev-parse main)"
+ahead_pair ahead
 want="$(wt_path "$clone" 35)"
 
 out="$(cd "$clone" && "$WT" 35 from-remote-tip 2>/dev/null)" && code=0 || code=$?
@@ -769,24 +780,17 @@ fi
 # `main` the fetch was added to get away from, silently, in the one shape that looks like every
 # other clone from the outside.
 #
-# The seed is case 13's upstream+clone pair, its two tips pulled apart the same way and for the
-# reason stated there, plus one line: origin/HEAD comes off the clone before the call. That line is
-# the whole difference between the two cases, and what it leaves behind is the shape the two arms
-# disagree about — the local `main` still there for a fallback to answer with, the new tip still
-# reachable only by going to the remote.
+# The seed is `ahead_pair`, the same one case 13 runs against, plus one line: origin/HEAD comes off
+# the clone before the call. That line is the whole difference between the two cases, and what it
+# leaves behind is the shape the two arms disagree about — the local `main` still there for a
+# fallback to answer with, the new tip still reachable only by going to the remote.
 #
 # Three things asserted together: the seed genuinely carried no origin/HEAD when the script was
 # called (a git version that re-created it would otherwise make this case pass as case 13 already
 # does, proving nothing), and the new worktree's HEAD is the upstream's current tip rather than the
 # tip the clone was taken at.
-upstream="$work/no-origin-head-upstream"
-new_repo "$upstream"
-clone="$work/no-origin-head-clone"
-git clone -q "$upstream" "$clone" >/dev/null 2>&1
+ahead_pair no-origin-head
 git_q "$clone" symbolic-ref --delete refs/remotes/origin/HEAD >/dev/null 2>&1
-git_q "$upstream" commit -q --allow-empty -m "landed while the clone was busy" >/dev/null 2>&1
-remote_tip="$(git_q "$upstream" rev-parse main)"
-stale_tip="$(git_q "$clone" rev-parse main)"
 want="$(wt_path "$clone" 47)"
 
 # Asked before the call, not after: an implementation that reached the remote's tip by way of
