@@ -732,15 +732,24 @@ says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
 #     `predict` occurs nowhere in the prompt built today, checked against the built prompt
 #     rather than the template.
 #
-#     Probed separately, though, the anchor, the `[^.]{0,40}` gap and the complaint sentence
-#     are spelled once per verdict — case 18's `offers_class` reasoning, applied to the one
-#     anchored pattern this case owns: a bound edited on the MATCHED line and not the DIVERGED
-#     one is a drift no diff makes loud, and the two would then be asking different questions
-#     under one headline. So the shape is written once and each caller names only its verdict.
+#     Probed separately, though, the anchor, the gap and the complaint sentence are spelled
+#     once per verdict — case 18's `offers_class` reasoning, applied to the one anchored
+#     pattern this case owns: a bound edited on the MATCHED line and not the DIVERGED one is a
+#     drift no diff makes loud, and the two would then be asking different questions under one
+#     headline. So the shape is written once and each caller names only its verdict.
+#
+#     The gap is 20, not the 40 the other bounded probes here spend, and it is load-bearing —
+#     watched, case 16's way. `prompt_says` folds the whole prompt to one line, so the footer's
+#     three lines run together, and at 40 the DIVERGED branch is answered by the *next* line:
+#     `PREDICTION: MATCHED PREDICTION_NOTE: <on DIVERGED` puts the word 30 characters past the
+#     anchor with no `.` between, so a template offering only MATCHED on the PREDICTION: line
+#     passed. What the probe means to reach across is that line's own value, `MATCHED |
+#     DIVERGED` — 18 characters, 11 of them before the DIVERGED — so 20 is the value plus room
+#     to reword it, and stops short of the 30 the leak needs.
 offers_verdict() {  # offers_verdict <verdict word>
   local verdict="$1"
   prompt_says "$red" "the report never offers $verdict on the PREDICTION: line" \
-    -E -e "PREDICTION:[^.]{0,40}$verdict"
+    -E -e "PREDICTION:[^.]{0,20}$verdict"
 }
 
 problems=""
