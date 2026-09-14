@@ -196,6 +196,13 @@ problems=()
 
 leaf=verify-refactor
 
+# The directory this case's leaf runs in: a NAMED SUBDIRECTORY of `$work`, the shape case 2's
+# `$killed_work` already has, rather than `$work` itself. `$work` is then the container the
+# trap removes and nothing else, and every run directory in this suite is a sibling of every
+# other — where `$work` doubling as case 1's own put `$direct_work` below inside the very
+# directory whose event log it exists to stay out of.
+finished_work="$work/finished"
+
 # Each number written once, in a variable the stub's record and the assertion below both
 # read. Spelled a second time in the expectation instead, the two could drift and the case
 # would go green on a number the leaf never reported.
@@ -218,27 +225,27 @@ cat > "$stub/stream.jsonl" <<STREAM
 {"type":"result","subtype":"success","is_error":false,"duration_ms":$want_duration_ms,"duration_api_ms":$want_duration_api_ms,"num_turns":$want_num_turns,"result":"VERDICT: PASS\nREASON: the refactor kept the suite green.","session_id":"9f2c","total_cost_usd":$want_total_cost_usd,"usage":{"input_tokens":$want_input_tokens,"cache_creation_input_tokens":$want_cache_creation_input_tokens,"cache_read_input_tokens":$want_cache_read_input_tokens,"output_tokens":$want_output_tokens}}
 STREAM
 
-launch_leaf "$stub" "$work" "$leaf"
+launch_leaf "$stub" "$finished_work" "$leaf"
 
 # A probe about the fixture rather than about the harvester, so a broken setup says so instead
 # of showing eight wrong numbers: the log the leaf left really does hold the record the
 # harvester is being asked to read. That the leaf finished at all is launch_leaf's own probe.
-has_result_record "$work" "$leaf" ||
+has_result_record "$finished_work" "$leaf" ||
   problems+=("setup: want the closing result record in .tdd/$leaf.log, not found")
 
 # The harvest itself, run in the worktree the way every other writer is — but not in the one
-# the leaf ran in. Since #163 supervise.sh harvests every leaf it finishes, so `$work`'s event
-# log already holds a `usage` line before this case calls anything, and a second harvest there
-# would read as the one thing the probe below refuses to read past: two of them. What this case
-# is about is the harvester itself, called directly, so it gets a directory whose only `usage`
-# line is the one it writes.
+# the leaf ran in. Since #163 supervise.sh harvests every leaf it finishes, so the launch above
+# already left a `usage` line in `$finished_work`'s event log, and a second harvest there would
+# read as the one thing the probe below refuses to read past: two of them. What this case is
+# about is the harvester itself, called directly, so it gets a directory whose only `usage` line
+# is the one it writes.
 #
 # The LOG is copied rather than regenerated, so the file under test is still the one
 # run-leaf.sh really assembled — launch_leaf's header gives the reason that matters — and only
 # the event log beside it is fresh.
 direct_work="$work/direct"
 mkdir -p "$direct_work/.tdd"
-cp "$work/.tdd/$leaf.log" "$direct_work/.tdd/$leaf.log"
+cp "$finished_work/.tdd/$leaf.log" "$direct_work/.tdd/$leaf.log"
 ( cd "$direct_work" && "$HARVEST" "$leaf" ) >/dev/null 2>&1
 harvest_code=$?
 [[ "$harvest_code" == 0 ]] ||
@@ -276,9 +283,10 @@ report "$name"
 #    exists and has lines in it. A case whose log was empty for want of any writer at all
 #    would pass on a harvester that appended eight zeros.
 #
-#    Its own directories under the two the first case used, so the leaf, the log and the event
-#    log are this case's alone — a count of `usage` lines is meaningless in a directory where
-#    another case already harvested one — and so the existing trap still cleans both up.
+#    Its own directories under this suite's two temp roots, the way case 1's are, so the leaf,
+#    the log and the event log are this case's alone — a count of `usage` lines is meaningless
+#    in a directory where another case already harvested one — and so the existing trap still
+#    cleans both up.
 #
 #    The exit status is deliberately not pinned. The criterion names two observable things,
 #    the empty log and the diagnostic, and says nothing about the code; the ledger's steps
