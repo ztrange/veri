@@ -2,8 +2,9 @@
 
 ## Phase: develop-refactor
 
-Apply **one** behavior-preserving transformation to the code this cycle produced — or
-report that nothing is left to tidy. The suites covering it stay green throughout.
+Apply behavior-preserving transformations to the code this cycle produced, one at a time,
+up to the budget you are given — or report that nothing is left to tidy. The suites
+covering it stay green throughout.
 
 ### The step (this cycle's criterion)
 
@@ -37,31 +38,34 @@ which file it sits in:
 
 ### What to do
 
-1. Pick **one** transformation that makes the code clearer and apply it — only a structural
-   candidate qualifies, never a cosmetic one. Not a batch: one, so a break is attributable.
-2. Run the suites covering the files you touched, not the full suite: they answer what one
-   transform could plausibly break, and answer it in a fraction of the time. Those suites
-   must stay green; revert the transform rather than leave a red suite behind. How this
-   repository runs one suite is a convention like any other — establish it under **Read the
-   conventions out of the repository** at the top of this prompt, from the files that are
-   already there.
-3. The full suite runs at verify-refactor, on the settled result. The trade is that a break
+1. Triage the candidates you see in those files into the two classes above, then apply the
+   structural ones, most valuable first, up to the budget you are given. Only a structural
+   candidate qualifies for a transform, never a cosmetic one.
+2. Commit each transform on its own, as `refactor: <what changed> (#<issue>)` — one
+   `refactor:` commit per transform, never a batch, so a break stays attributable to one
+   change. That attribution is the whole of what a leaf per transform used to buy, and it
+   is what has to survive several transforms sharing this one.
+3. Run the suites covering the files you touched after each transform, not the full suite:
+   they answer what one transform could plausibly break, and answer it in a fraction of the
+   time. Those suites must stay green; revert a transform that turns them red rather than
+   leave a red suite behind, and carry on with the next candidate. How this repository runs
+   one suite is a convention like any other — establish it under **Read the conventions out
+   of the repository** at the top of this prompt, from the files that are already there.
+4. The full suite runs at verify-refactor, on the settled result. The trade is that a break
    in an untouched suite surfaces there, as a REJECT the revise loop answers, rather than
    at the transform that caused it.
-4. **No untested generality.** Generality is earned by triangulation — another test
+5. **No untested generality.** Generality is earned by triangulation — another test
    demanding it — never hand-written here. Do not add options, flags, parameters or
    abstraction no existing test requires.
-5. If the code is **overfit** — it hard-codes the one tested case rather than implementing
+6. If the code is **overfit** — it hard-codes the one tested case rather than implementing
    the behaviour — do **not** generalize it yourself. Flag it as needing a triangulating
    test, and say which case would force the generality.
-6. If no structural candidate is left under those rules, change nothing and report
+7. If no structural candidate is left under those rules, change nothing and report
    "nothing left to tidy" — even when cosmetic candidates remain, since none of them is
    worth a transform. That is a legitimate result, not a failure to find work.
-7. Leave your transform **uncommitted** in the working tree — do not run `git commit`; the
-   conductor commits, because the commit is its atomic tick-and-commit.
 
 ### Report (last lines of your output)
 
-RESULT: <"applied <the transform>, suite green" | "nothing left to tidy">
+RESULT: <"applied <the transform>, suites green" — one line per transform you applied, each on its own RESULT: line, in the order you applied them — or "nothing left to tidy" if you applied none>
 FLAGS: <overfit code needing a triangulating test, and the case that would force it — or "none">
 CANDIDATES: <"structural | <transform>" or "cosmetic | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
