@@ -39,14 +39,19 @@ registry="$(git worktree list --porcelain)"
 # macOS a /var/... path comes back as /private/var/...), which is the property this needs: git
 # reports every worktree path that way, so the path we print matches what `git worktree list`
 # will say about it.
-root="${registry%%$'\n'*}"
-root="${root#worktree }"
+#
+# Named `main_tree` and not `root`: every path below hangs off it, so the name is the one place
+# a reader learns *whose* root it is. `root` is what this held back when it was --show-toplevel,
+# and it reads equally true of the caller's checkout — which is exactly the reading that put the
+# run inside a session worktree.
+main_tree="${registry%%$'\n'*}"
+main_tree="${main_tree#worktree }"
 
 # wt_path <n> — where issue <n>'s worktree lives. The layout is stated once, here, because both
 # halves of this script need it and a create that answered with a different path than the remove
 # went looking for would be a silent no-op. `.tdd/` is already git-ignored, so nesting a worktree
 # under it needs no new ignore rule.
-wt_path() { printf '%s\n' "$root/.tdd/wt/$1"; }
+wt_path() { printf '%s\n' "$main_tree/.tdd/wt/$1"; }
 
 # --remove <n> takes the worktree back out again, once its branch is merged or a human says so.
 # It is answered here, before the positional <n> <slug> parsing below, because that parsing
