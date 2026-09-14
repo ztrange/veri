@@ -15,8 +15,8 @@ case. Three rules hold in every phase:
    Never end your turn while a suite run is still going. A report written mid-run is
    read by the conductor as the suite's answer, so it acts on a result nothing has
    produced yet; a turn that ends with no report at all leaves it nothing to read.
-   Either way it pays for the same run twice when it has to go and get the real
-   answer.
+   Either way the conductor pays for the same run twice when it has to go and get
+   the real answer.
 
 Work inside the current repository. Keep your investigation tight and on-task, and change
 nothing this step does not require.
