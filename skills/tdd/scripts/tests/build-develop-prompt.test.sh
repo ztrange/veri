@@ -484,17 +484,22 @@ every_phase forbids_stash \
 #     not the criterion. The class words themselves cannot be answered by what is already
 #     there: no other line of the template names either class, the sub-step 1 wording
 #     quoted above included.
+#
+#     The both-directions shape is the same for either class, so it is written once here and
+#     each caller names only its own class and effects. Spelled out per class instead, the
+#     effects list appears twice per class — once in each branch — and the one place the two
+#     copies had drifted, a bare `comment` the forward cosmetic branch accepted and the
+#     reversed one did not, was invisible until you diffed eight words by eye. `re-comment`
+#     alone answers the bullet the template actually writes.
+defines_class() {  # defines_class <class word> <alternation of that class's effects>
+  local class="$1" effects="$2"
+  prompt_says "$refactor" "does not define $class by what the transform changes" \
+    -iE -e "$class[^.]{0,160}($effects)|($effects)[^.]{0,160}$class"
+}
+
 problems=""
-# Each class's effects are named once and spent on both branches. Written out twice, the two
-# copies are a list that can drift by half, and the one place they do differ — the bare
-# `comment` only the forward cosmetic branch accepts — is invisible until you diff eight
-# words by eye.
-structural_alt='duplication|extract|inline|dead code|rename|scope'
-cosmetic_alt='reword|re-word|re-cite|recite|reflow|re-flow|re-comment'
-prompt_says "$refactor" "does not define structural by what the transform changes" \
-  -iE -e "structural[^.]{0,160}($structural_alt)|($structural_alt)[^.]{0,160}structural"
-prompt_says "$refactor" "does not define cosmetic by what the transform changes" \
-  -iE -e "cosmetic[^.]{0,160}($cosmetic_alt|comment)|($cosmetic_alt)[^.]{0,160}cosmetic"
+defines_class structural 'duplication|extract|inline|dead code|rename|scope'
+defines_class cosmetic 'reword|re-word|re-cite|recite|reflow|re-flow|re-comment'
 # The negative half of cosmetic's definition: rewording is cosmetic precisely because it
 # removes no duplication and changes no identifier or structure. Without it the two classes
 # overlap — a rename can be described as a rewording — and the sort stops being decidable.
