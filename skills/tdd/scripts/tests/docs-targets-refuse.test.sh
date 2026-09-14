@@ -186,28 +186,30 @@ probe_tripwires_fire_when_the_variable_is_unset() {
   done
 }
 
-# probe_target_refuses <tree> <target> — the criterion itself, for one target: exit 2, an
-# untouched log, and a stderr line naming the variable it refused over. Three problems at
-# most, each naming the target, because which of the three a recipe gets wrong is what sends
-# the next author to the right line — a guard that exits 2 after building the page has cost
-# the run the minutes the rule exists to save, and one that refuses in silence looks to a
-# reader exactly like a broken build.
-probe_target_refuses() {
-  local target="$2"
-  run_target "$1" "$target" env "VERI_TEST_CMD=$DEV_CMD"
+# probe_targets_refuse <tree> — the criterion itself, for each of the four targets: exit 2,
+# an untouched log, and a stderr line naming the variable it refused over. Three problems at
+# most per target, each naming it, because which of the three a recipe gets wrong is what
+# sends the next author to the right line — a guard that exits 2 after building the page has
+# cost the run the minutes the rule exists to save, and one that refuses in silence looks to
+# a reader exactly like a broken build.
+probe_targets_refuse() {
+  local target
+  for target in "${TARGETS[@]}"; do
+    run_target "$1" "$target" env "VERI_TEST_CMD=$DEV_CMD"
 
-  [[ "$run_code" == 2 ]] ||
-    problems+=("want 'make $target' to exit 2 under VERI_TEST_CMD='$DEV_CMD'; got $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$(cat "$run_err")")")
-  [[ ! -s "$LOG" ]] ||
-    problems+=("'make $target' ran something under VERI_TEST_CMD='$DEV_CMD' — a development run must not pay for a page build: $(flat "$(cat "$LOG")")")
-  grep -q "$REASON" "$run_err" ||
-    problems+=("nothing on stderr from 'make $target' named $REASON, so its refusal does not say why: $(flat "$(cat "$run_err")")")
+    [[ "$run_code" == 2 ]] ||
+      problems+=("want 'make $target' to exit 2 under VERI_TEST_CMD='$DEV_CMD'; got $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$(cat "$run_err")")")
+    [[ ! -s "$LOG" ]] ||
+      problems+=("'make $target' ran something under VERI_TEST_CMD='$DEV_CMD' — a development run must not pay for a page build: $(flat "$(cat "$LOG")")")
+    grep -q "$REASON" "$run_err" ||
+      problems+=("nothing on stderr from 'make $target' named $REASON, so its refusal does not say why: $(flat "$(cat "$run_err")")")
+  done
 }
 
 # 1. One criterion, one case: inside a development run, all four documentation targets
-#    refuse. The two premises first — the runner is the real one, and the stand-ins the
-#    refusal is measured against really do fire — then the four targets, each through the
-#    same three probes.
+#    refuse. Three probes, each asked of the whole target list: the two premises first —
+#    the runner is the real one, and the stand-ins the refusal is measured against really
+#    do fire — then the criterion.
 name="with VERI_TEST_CMD='$DEV_CMD', make docs, docs-test, docs-check and docs-fresh each exit 2 without running anything and say why on stderr"
 problems=()
 run_code=0
@@ -217,9 +219,7 @@ run_err=""
 tree="$(tree_with_tripwires)"
 probe_runner_is_this_repositorys "$tree"
 probe_tripwires_fire_when_the_variable_is_unset "$tree"
-for target in "${TARGETS[@]}"; do
-  probe_target_refuses "$tree" "$target"
-done
+probe_targets_refuse "$tree"
 
 report "$name"
 
