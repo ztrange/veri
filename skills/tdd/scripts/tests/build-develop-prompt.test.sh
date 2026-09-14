@@ -295,6 +295,22 @@ prompt_says() {  # prompt_says <prompt> <complaint> <grep argument…>
   grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" || problems="$problems; $complaint"
 }
 
+# The other half of what cases 14–16 share: the roster, and the verdict reached from it. Each
+# of those asks one claim of all four built prompts and reports one accumulated miss list, so
+# which phases "every developer prompt" means lives here rather than once per case — a fifth
+# phase is one edit, not three — and so does the shape of the answer: green when nothing
+# accumulated, otherwise the case's own headline followed by every miss. The accumulator is a
+# `local`, which bash's dynamic scoping still puts in reach of the `prompt_says` calls two
+# frames down; a case that inherited the previous case's misses would fail naming the wrong
+# claim, and now cannot see them to inherit. Cases 11–13 probe a single prompt each and keep
+# their own `problems=""`. Same helper as build-verify-prompt.test.sh's, over this file's
+# four phases rather than that one's.
+every_phase() {  # every_phase <name of a check function taking <phase label> <prompt>> <headline>
+  local check="$1" headline="$2" problems=""
+  "$check" red "$red"; "$check" green "$green"; "$check" refactor "$refactor"; "$check" revise "$revise"
+  [[ -z "$problems" ]] && ok || no "$headline (${problems#; })"
+}
+
 problems=""
 prompt_says "$red" "never says to run the suite that holds the new case" \
   -iE -e 'suite (that |which )?(holds|contains|holding|containing)[^.]{0,40}case'
@@ -384,13 +400,8 @@ demands_foreground() {  # demands_foreground <phase label> <prompt>
     -iE -e '(only after|not until|never before)[^.]{0,60}(exit|exits|exited|finish)'
 }
 
-problems=""
-demands_foreground red "$red"
-demands_foreground green "$green"
-demands_foreground refactor "$refactor"
-demands_foreground revise "$revise"
-[[ -z "$problems" ]] \
-  && ok || no "every built developer prompt says to run test commands in the foreground and report only after they exit (${problems#; })"
+every_phase demands_foreground \
+  "every built developer prompt says to run test commands in the foreground and report only after they exit"
 
 # 15. WHICH act rule 3 forbids (issue #162). Case 14 pins that every developer prompt asks
 #     for a foreground run and a report written only after it exits; this case pins that the
@@ -415,13 +426,8 @@ forbids_ending_mid_run() {  # forbids_ending_mid_run <phase label> <prompt>
     -iE -e 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn'
 }
 
-problems=""
-forbids_ending_mid_run red "$red"
-forbids_ending_mid_run green "$green"
-forbids_ending_mid_run refactor "$refactor"
-forbids_ending_mid_run revise "$revise"
-[[ -z "$problems" ]] \
-  && ok || no "every built developer prompt forbids ending the turn while a suite run is still going (${problems#; })"
+every_phase forbids_ending_mid_run \
+  "every built developer prompt forbids ending the turn while a suite run is still going"
 
 # 16. every built developer prompt forbids `git stash` and names a way to read the committed
 #     version that touches no shared ref (issue #169). A leaf runs with
@@ -451,13 +457,8 @@ forbids_stash() {  # forbids_stash <phase label> <prompt>
     -E -e 'git show HEAD:|git worktree add'
 }
 
-problems=""
-forbids_stash red "$red"
-forbids_stash green "$green"
-forbids_stash refactor "$refactor"
-forbids_stash revise "$revise"
-[[ -z "$problems" ]] \
-  && ok || no "every built developer prompt forbids git stash and names a safe alternative (${problems#; })"
+every_phase forbids_stash \
+  "every built developer prompt forbids git stash and names a safe alternative"
 
 echo "----"
 echo "$pass passed, $fail failed"
