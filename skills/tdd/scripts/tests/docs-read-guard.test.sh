@@ -111,9 +111,10 @@ report() {
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
 # plant — build the scratch tree the case is asked about and leave its path in `tree`, the
-# line number of the binding line in `reader_line`. Both fixtures are whole suites down to
-# the count line, because the guard is run over the directory rather than handed a file and
-# a directory of half-suites is not the thing it will meet.
+# three files in it in `reader_path`, `quoter_path` and `guard_copy`, and the line number of
+# the binding line in `reader_line`. Both fixtures are whole suites down to the count line,
+# because the guard is run over the directory rather than handed a file and a directory of
+# half-suites is not the thing it will meet.
 #
 # The tree is made a git repository with both fixtures staged. Nothing in the contract says
 # how the guard enumerates the suites it reads, and `git ls-files` is as reasonable an
@@ -126,10 +127,18 @@ plant() {
   }
   mkdir -p "$tree/$TESTS_DIR"
 
+  # Where each of the three files lands, named once here rather than reassembled at each of
+  # the fourteen places that writes, copies, greps or runs one. `tree` is only known from the
+  # line above, so these cannot sit with the constants at the top of the file; they are the
+  # plant's output the same way `reader_line` is, and the probes below read them as such.
+  reader_path="$tree/$TESTS_DIR/$READER"
+  quoter_path="$tree/$TESTS_DIR/$QUOTER"
+  guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
+
   # The suite the guard must catch: it binds a file in the documentation tree to a variable
   # and opens it four lines later, to read a figure out of the prose. That is the shape of
   # every site this issue deletes — the path and the read verb never share a line.
-  cat > "$tree/$TESTS_DIR/$READER" <<'EOF'
+  cat > "$reader_path" <<'EOF'
 #!/usr/bin/env bash
 # Unit tests for supervise.sh's heartbeat default — the half of this case that compares the
 # code to the page's prose is the shape the guard has to catch.
@@ -138,9 +147,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 pass=0 fail=0
 EOF
-  printf 'commentary="%s" # %s\n' "$DOCS_READ_PATH" "$MARK" >> "$tree/$TESTS_DIR/$READER"
-  printf '%s\n' "$READ_SITE" >> "$tree/$TESTS_DIR/$READER"
-  cat >> "$tree/$TESTS_DIR/$READER" <<'EOF'
+  printf 'commentary="%s" # %s\n' "$DOCS_READ_PATH" "$MARK" >> "$reader_path"
+  printf '%s\n' "$READ_SITE" >> "$reader_path"
+  cat >> "$reader_path" <<'EOF'
 [[ "$stated" -gt 0 ]] && pass=1 || fail=1
 echo "----"
 echo "$pass passed, $fail failed"
@@ -149,7 +158,7 @@ EOF
 
   # The suite the guard must leave alone: its docs/ path is a string it writes into a file
   # of its own and greps there, never a file it opens in the documentation tree.
-  cat > "$tree/$TESTS_DIR/$QUOTER" <<'EOF'
+  cat > "$quoter_path" <<'EOF'
 #!/usr/bin/env bash
 # Unit tests for detect-test-command.sh — the path here is fixture text handed to the
 # subject, the shape the guard must not refuse.
@@ -159,20 +168,20 @@ trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 EOF
   printf 'echo "## Notes. %s is generated. Test command: make docs-test" > "$work/body.md"\n' \
-    "$DOCS_FIXTURE_PATH" >> "$tree/$TESTS_DIR/$QUOTER"
-  cat >> "$tree/$TESTS_DIR/$QUOTER" <<'EOF'
+    "$DOCS_FIXTURE_PATH" >> "$quoter_path"
+  cat >> "$quoter_path" <<'EOF'
 grep -q 'make docs-test' "$work/body.md" && pass=1 || fail=1
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
 EOF
 
-  chmod 755 "$tree/$TESTS_DIR/$READER" "$tree/$TESTS_DIR/$QUOTER"
-  cp "$GUARD_PATH" "$tree/$TESTS_DIR/$GUARD_NAME"
+  chmod 755 "$reader_path" "$quoter_path"
+  cp "$GUARD_PATH" "$guard_copy"
   git init -q "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
 
-  reader_line="$(grep -n "$MARK" "$tree/$TESTS_DIR/$READER" | cut -d: -f1)"
+  reader_line="$(grep -n "$MARK" "$reader_path" | cut -d: -f1)"
 }
 
 # probe_guard_is_there — the premise every probe below rests on, and the one that answers
@@ -204,15 +213,15 @@ probe_plant_is_what_it_claims() {
     return
   }
   local marked carriers
-  marked="$(sed -n "${reader_line}p" "$tree/$TESTS_DIR/$READER")"
+  marked="$(sed -n "${reader_line}p" "$reader_path")"
   [[ "$marked" == *"$DOCS_READ_PATH"* ]] ||
     problems+=("the planted reader's line $reader_line does not bind $DOCS_READ_PATH, so there is nothing there to catch: $(flat "$marked")")
-  carriers="$(grep -cE "(^|[^[:alnum:]_.-])$DOCS_DIR/" "$tree/$TESTS_DIR/$READER")"
+  carriers="$(grep -cE "(^|[^[:alnum:]_.-])$DOCS_DIR/" "$reader_path")"
   [[ "$carriers" == 1 ]] ||
     problems+=("the planted reader names the documentation tree on $carriers lines, want exactly 1 — with the path spelled at the read as well, a guard that only matched a path beside a read verb would pass this case")
-  grep -qF "$READ_SITE" "$tree/$TESTS_DIR/$READER" ||
+  grep -qF "$READ_SITE" "$reader_path" ||
     problems+=("the planted reader never opens the file it bound on line $reader_line, so there is no indirect read for the guard to be wrong about")
-  grep -q "$DOCS_FIXTURE_PATH" "$tree/$TESTS_DIR/$QUOTER" ||
+  grep -q "$DOCS_FIXTURE_PATH" "$quoter_path" ||
     problems+=("the planted quoter carries no path in that tree at all, so a guard that refuses fixture text would still pass this case")
 }
 
@@ -221,7 +230,7 @@ probe_plant_is_what_it_claims() {
 # probe below, because both probes ask about that one run: as a side effect of the first,
 # the second's subject existed only as long as nobody reordered them.
 run_guard() {
-  guard_out="$("$tree/$TESTS_DIR/$GUARD_NAME" 2>&1)" && guard_code=0 || guard_code=$?
+  guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
 # probe_guard_names_the_reader_with_its_line — the first half of the criterion, and it asks
@@ -261,6 +270,9 @@ probe_guard_leaves_the_quoter_alone() {
 name="no-docs-reads.test.sh names a suite that binds a path in the documentation tree and opens it later, with the line of the binding, and says nothing about one whose path is only fixture text"
 problems=()
 tree=""
+reader_path=""
+quoter_path=""
+guard_copy=""
 reader_line=""
 guard_out=""
 guard_code=0
