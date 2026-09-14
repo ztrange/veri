@@ -101,8 +101,10 @@ _Avoid_: primary clone (ok as a gloss — it usually is that, but need not be), 
 **Cycle**:
 One Red→Green→Refactor pass over a single plan step. Structure: red (developer writes one
 failing test) → verify-red (blind) → green (developer writes minimum impl) → verify-green
-(blind) → green commit → refactor loop (one behavior-preserving transformation per leaf,
-suite-gated, until none remain) → verify-refactor (blind, once) → refactor commit.
+(blind) → green commit → refactor (one refactor leaf for the whole step: it applies the
+touched files' structural candidates up to `VERI_REFACTOR_BUDGET`, suite-gated, and commits
+each transform itself, after which the conductor checks what it left) → verify-refactor
+(blind, once). ADR-0017 records that shape; it supersedes ADR-0010.
 _Avoid_: iteration, round
 
 **Triangulation**:
