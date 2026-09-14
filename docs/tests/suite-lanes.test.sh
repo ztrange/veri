@@ -195,6 +195,29 @@ probe_widened_selection() {
   says "$1" "$2" "which target it runs there — it never names docs-test" 'docs-test'
 }
 
+# probe_no_stale_trigger <where> <text> — the negative half of the same rule (#164): a copy
+# must not list a `Makefile` change among what brings docs-fresh out. A prose probe and not
+# a behaviour one because the behaviour has its own case in merge-gates.test.sh; what this
+# catches is the copy left behind, which is the one that sends the next reader to regenerate
+# a page on a development branch — exactly the bill #164 removed.
+#
+# Written as a clause sweep rather than as a `says` regex over the whole text, because the
+# text has to stay free to say the opposite: "a `Makefile` change owes nothing" mentions
+# both words and is the correct prose. So the unit is the clause — a line or a
+# comma-separated part of one, which is how both copies list a trigger — and a clause is a
+# failure only when it names the Makefile and the gate together without negating the pair.
+FRESH_GATE='docs-fresh|freshness check'
+NEGATED='(^|[^a-z-])(no|not|never|nothing|neither|nor|stops|stopped|longer)([^a-z]|$)'
+probe_no_stale_trigger() {
+  local where="$1" clause
+  while IFS= read -r clause; do
+    [[ "$clause" =~ makefile   ]] || continue
+    [[ "$clause" =~ $FRESH_GATE ]] || continue
+    [[ "$clause" =~ $NEGATED    ]] && continue
+    problems+=("$where still names a Makefile change as owing docs-fresh: $(flat "$clause")")
+  done <<< "$(printf '%s' "$2" | tr 'A-Z' 'a-z' | tr ',' '\n')"
+}
+
 # probe_suite_home_prose — the lane's first half as a reader meets it: CLAUDE.md's Testing
 # idiom section, which is the section that tells an author writing a suite where to put it.
 # Reads that section by its heading — from `## Testing idiom` to the next `## ` — and asks
@@ -253,6 +276,28 @@ problems=()
 
 probe_suite_home_prose
 probe_gate_rule_prose
+
+report "$name"
+
+# 3. #164: and the same copies no longer name a `Makefile` change as owing docs-fresh. The
+#    Makefile sat in the gate's stale pattern beside the page itself, and both copies of the
+#    rule wrote that down; the pattern has been carved back to the page alone, because the
+#    page goes stale by design on every tag and every script commit, so a branch that edited
+#    a recipe was billed a freshness check it could not pass for a reason it had nothing to
+#    do with. Prose that still lists the trigger is the half a reader meets first: it sends
+#    the next person to regenerate a docs artifact on a development branch, or to read the
+#    carve-out as a bug and put it back.
+#
+#    The two copies the criterion names, each asked separately so a failure says which one
+#    is stale. A clause sweep, not a ban on the word: the copies are free to say a Makefile
+#    change owes nothing, and the correct prose for this carve-out probably does.
+name="CLAUDE.md's row and merge-gates.sh's header no longer name a Makefile change as owing docs-fresh"
+problems=()
+
+probe_no_stale_trigger "CLAUDE.md's 'make merge-gates' row" \
+  "$(grep -m1 '^| `make merge-gates`' "$ROOT/CLAUDE.md")"
+probe_no_stale_trigger "docs/merge-gates.sh's header" \
+  "$(header "$ROOT/docs/merge-gates.sh")"
 
 report "$name"
 
