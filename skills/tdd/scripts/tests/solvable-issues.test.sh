@@ -722,6 +722,96 @@ header_names url-form -E -e 'https://github\.com/[^ ]*/issues/'
 { [[ -n "$header" ]] && [[ -z "$header_missing" ]]; } \
   && ok || no "the header comment of solvable-issues.sh names both blocker spellings (missing:$header_missing; header slice above 'set -euo pipefail' is $(grep -c '' <<<"$header") lines, want a non-empty slice naming '#<n>' and a github.com issues URL)"
 
+# 17. A run in flight claims its issue from its FIRST step, not from the draft PR it opens at
+# its last. Case 4 pins the only claim this script used to read — an open PR saying
+# `Closes #<n>` — and a conductor opens that PR after every step is green, so for the whole run
+# before it (hours: #137 took ~11 h) the issue still reads as solvable. A second conductor then
+# takes it, is handed the live run's worktree back by issue-worktree.sh, finds its ledger, and
+# follows *Resume* — whose `git reset --hard HEAD` throws the live leaf's uncommitted work away
+# (#170).
+#
+# The signal is the conductor's own PID, written into its worktree as `.tdd/conductor.pid` and
+# read with `kill -0`, rather than a `veri:in-flight` label on the issue. A label is visible
+# across machines but outlives the process that set it, so a crashed run leaves its issue claimed
+# until a human goes and un-claims it by hand; a PID that no longer answers reads as free on the
+# very next selection, which is what a bailed run needs — its issue must stay resumable.
+#
+# Three issues, equally takeable in every other respect — open, labelled, `None.` under
+# `## Blocked by`, and `prs.json` left at the empty list the fixture helper seeds — so the lock is
+# the ONLY thing separating them, and each is one arm of the criterion: #170's worktree holds a
+# lock naming a live process ($$, this suite's own shell, alive for as long as the script runs),
+# #171's holds one naming a process already reaped, and #172 has no worktree at all. stdout is
+# therefore "171\n172": a script still reading PRs alone prints all three, and one that reads any
+# lock file as a claim prints "172" by itself.
+#
+# The two worktrees are made with `git worktree add` rather than `mkdir`, and the script is run
+# from inside that throwaway repo, because a real registration is what a run leaves behind — so a
+# reading that asks git's registry and one that only stats `.tdd/wt/<n>` both meet this fixture,
+# and the case pins the claim rather than the way it is looked up.
+fx="$(fixture in-flight)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 170,
+    "title": "solvable-issues.sh lists an issue whose conductor is running",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nA run in flight claims its issue from its first step.\n\n## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 171,
+    "title": "a run that bailed and left its worktree behind",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 172,
+    "title": "an issue nobody has started",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+# The repository those worktrees hang off: a throwaway `git init` carrying one commit, since
+# `git worktree add` refuses a repo with no commit to check out, and given an identity of its own
+# so the suite does not depend on whatever user.name/user.email the machine running it carries
+# (CI carries none). Same fixture shape as issue-worktree.test.sh's `new_repo`.
+flight_repo="$work/in-flight"
+mkdir -p "$flight_repo"
+git init -q -b main "$flight_repo" >/dev/null 2>&1
+git -C "$flight_repo" -c user.name=veri -c user.email=veri@example.test \
+  commit -q --allow-empty -m initial >/dev/null 2>&1
+
+# claim <n> <pid> — what a conductor leaves on disk for issue <n>: its worktree at
+# `.tdd/wt/<n>`, registered with git, holding <pid> in the lock. Written once because the two
+# arms differ by the pid alone, and a case that spelled the path twice could pin a claim at one
+# path while seeding it at another.
+claim() {  # claim <n> <pid>
+  git -C "$flight_repo" worktree add -q -b "tdd/$1-slug" "$flight_repo/.tdd/wt/$1" main >/dev/null 2>&1
+  mkdir -p "$flight_repo/.tdd/wt/$1/.tdd"
+  printf '%s\n' "$2" > "$flight_repo/.tdd/wt/$1/.tdd/conductor.pid"
+}
+
+# A pid that is certainly not alive: a child started and reaped right here, so the number was a
+# real process a moment ago and is not one now — which is exactly the state a killed conductor's
+# lock is left in. Picking a large number out of the air instead would pin nothing, since the
+# kernel could have handed it out.
+sh -c 'exit 0' & dead_pid=$!
+wait "$dead_pid" 2>/dev/null || true
+
+claim 170 "$$"
+claim 171 "$dead_pid"
+
+# Run from inside the fixture repo rather than through `run`: which worktrees exist is a fact
+# about the repository the script is called in, and every other case is indifferent to that.
+out="$(cd "$flight_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 ]] && [[ "$out" == $'171\n172' ]]; } \
+  && ok || no "an issue whose worktree holds a live conductor PID is withheld, one with a dead PID or no worktree is listed (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '171|172|'; live pid=$$, dead pid=$dead_pid)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
