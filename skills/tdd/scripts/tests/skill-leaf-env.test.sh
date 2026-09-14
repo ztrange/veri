@@ -270,22 +270,27 @@ scan_launches() {
   done <<< "$lines"
 }
 
-# run_case <name> <pattern> <missing> <check> — one whole case: collect what every matching
-# launch line got wrong, then close the case under <name>. `scan_launches`'s three arguments
-# are passed straight through.
+# run_case <name> <body> [args...] — one whole case: run <body>, which collects what it found
+# wrong into `problems`, then close the case under <name>.
 #
-# Both cases are this shape, and the shared `problems` array is the part of it a copy could
+# Every case is this shape, and the shared `problems` array is the part of it a copy could
 # get wrong silently: a case that forgot to empty the array before scanning would report its
 # predecessor's failures under its own name, and one that forgot `report` would assert
 # nothing while still printing a count. Here the array is this function's own local, so
-# emptying it is not a step anyone can omit — `problem` and `report` reach it the way the
+# emptying it is not a step anyone can omit — `problem` and `report` reach it the way a
 # check reaches `lineno` and `line`, a bash function seeing the locals of the functions that
 # called it. `local problems=()` and not a bare `local`, because under `set -u` bash 3.2 reads
 # `${#problems[@]}` on a declared-but-unassigned array as an unbound variable and dies.
+#
+# The body is a command this is handed rather than one fixed call, because that is the only
+# thing the cases differ in: two scan the launch lines the document prescribes, the third the
+# trees those launches left behind. Written out per case, the scaffolding above would be
+# copied once per case and the reason for it with them.
 run_case() {
   local name="$1"
+  shift
   local problems=()
-  scan_launches "$2" "$3" "$4"
+  "$@"
   report "$name"
 }
 
@@ -314,6 +319,7 @@ check_developer_launch() {
 }
 
 run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
+  scan_launches \
   '\$S/supervise\.sh .*run-leaf\.sh' \
   "$skill_md has no line launching a leaf through supervise.sh into run-leaf.sh — the launch this case is about could not be found" \
   check_developer_launch
@@ -347,6 +353,7 @@ check_verifier_launch() {
 }
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
+  scan_launches \
   '\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
   "$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found" \
   check_verifier_launch
@@ -405,14 +412,12 @@ elif bad:
 ' "$1" "$SENTINEL_ISSUE" "$SENTINEL_STEP" 2>/dev/null || echo '<<no event log>>'
 }
 
-# The case as a whole, and a function for the reason `run_case` is one: `problems` is this
-# case's own local, so it cannot be handed a previous case's failures by a reset someone
-# forgot, and `report` reaches it from here exactly as it does from there — a bash function
-# seeing the locals of the functions that called it. The tree walk's working names stay
-# local with it rather than joining the globals the other two cases already share.
-run_context_case() {
-  local name="every leaf $skill_md launches leaves events carrying the run's issue and step"
-  local problems=()
+# scan_launch_trees — the case's body, in `scan_launches`'s shape: it records what it finds
+# into `run_case`'s `problems` and leaves the counting to `run_case`, reaching that array the
+# way the checks above do, a bash function seeing the locals of the functions that called it.
+# The tree walk's working names stay local with it rather than joining the globals the other
+# two cases already share.
+scan_launch_trees() {
   local trees tree where text complaint
   # `$run/*` unquoted is the glob; with no match bash leaves the pattern itself, which is not
   # a directory — so the guard below reports that no launch ran at all rather than iterating
@@ -436,10 +441,10 @@ run_context_case() {
         problems+=("$where leaves events that do not carry issue=$SENTINEL_ISSUE step='$SENTINEL_STEP' ($complaint):$text")
     done
   fi
-  report "$name"
 }
 
-run_context_case
+run_case "every leaf $skill_md launches leaves events carrying the run's issue and step" \
+  scan_launch_trees
 
 echo "----"
 echo "$pass passed, $fail failed"
