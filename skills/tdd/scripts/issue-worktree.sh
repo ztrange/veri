@@ -163,10 +163,10 @@ remote_branch_ref() { printf '%s\n' "refs/remotes/origin/$1"; }
 # what default_branch_name asks about `main` and `master`, where "we have fetched a remote copy of
 # it" is not the question — it needs a local ref it can cut from.
 #
-# `rev-parse --verify --quiet` answers through its exit code the way `show-ref --verify` does —
-# 0 when the ref resolves, non-zero when it does not — with --quiet silencing the error and
-# >/dev/null dropping the sha it would otherwise print, since only the exit code is asked for.
-remote_branch_exists() { git rev-parse --verify --quiet "$(remote_branch_ref "$1")" >/dev/null; }
+# Asked with `show-ref --verify --quiet`, the same way branch_exists asks its half: one question —
+# does this full refname resolve — answered by one command in this file, so the two arms of the same
+# decision cannot come to disagree about what "exists" means or about which exit code says so.
+remote_branch_exists() { git show-ref --verify --quiet "$(remote_branch_ref "$1")"; }
 
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
