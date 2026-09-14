@@ -23,7 +23,7 @@
 # Usage:   refactor-triage.sh < leaf-report.txt
 set -euo pipefail
 
-structural=0
+structural_seen=0
 
 # `|| [[ -n "$line" ]]` so a report whose last line has no trailing newline is still read:
 # `read` returns non-zero at EOF even when it did fill the variable.
@@ -32,12 +32,12 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # is alternation and a backslashed one is undefined; a bracket expression is neither.
   if [[ "$line" =~ ^CANDIDATES:[[:space:]]*structural[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
     echo "${BASH_REMATCH[1]}"
-    structural=$((structural + 1))
+    structural_seen=1
   fi
 done
 
-# The loop is not a pipeline, so its body ran in this shell and `structural` survives it —
-# `cat report | while …` would have counted in a subshell and left 0 here.
-if [[ "$structural" -eq 0 ]]; then
+# The loop is not a pipeline, so its body ran in this shell and `structural_seen` survives
+# it — `cat report | while …` would have set the flag in a subshell and left 0 here.
+if [[ "$structural_seen" -eq 0 ]]; then
   exit 3
 fi
