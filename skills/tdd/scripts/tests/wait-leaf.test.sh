@@ -153,12 +153,18 @@ rc_bare=$?
 #    until #161: `nohup` only makes the child ignore SIGHUP and leaves it in the process group
 #    of the Bash call that launched it, so a harness that signals that group when the call ends
 #    takes the leaf with it — a detach on paper only, which is why the launcher now owns it and
-#    returns on its own rather than being backgrounded by the launch line. What that launcher
-#    must actually survive is `detach-leaf.test.sh`'s subject; what every launch line must name
-#    is `skill-leaf-launch.test.sh`'s. This half stays here because the pair with the foreground
-#    wait below is this script's own contract. The wait is looked for on the launch line and the six
-#    after it — the same fenced block, in practice — rather than anywhere in the file, because
-#    one mention of `wait-leaf.sh` in the Commands reference must not satisfy nine launches.
+#    returns on its own rather than being backgrounded by the launch line. That makes the probe
+#    one fixed substring, asked with bash's own `==`: the two-part grep it replaced was the old
+#    shape's cost — a word anywhere on the line, plus an `&` anchored at end of line so the one
+#    inside a `2>&1` could not stand in for the one that actually backgrounded the call — and
+#    the regex, and the process it needed, went with the shape. What the launcher must actually
+#    survive is `detach-leaf.test.sh`'s subject; what every launch line must name is
+#    `skill-leaf-launch.test.sh`'s. This half stays here because the pair with the foreground
+#    wait below is this script's own contract.
+#
+#    The wait is looked for on the launch line and the six after it — the same fenced block, in
+#    practice — rather than anywhere in the file, because one mention of `wait-leaf.sh` in the
+#    Commands reference must not satisfy nine launches.
 #
 #    The warning is read as a paragraph (`awk RS=""`) naming all three of *background*,
 #    *notification* and *print mode*, because prose here wraps at ~90 columns and a
@@ -169,7 +175,7 @@ launches=0 launch_misses=""
 while IFS= read -r hit; do
   launches=$(( launches + 1 ))
   n="${hit%%:*}" text="${hit#*:}"
-  grep -q 'detach-leaf\.sh' <<<"$text" \
+  [[ "$text" == *detach-leaf.sh* ]] \
     || launch_misses="$launch_misses line$n:not-detached"
   sed -n "${n},$(( n + 6 ))p" "$SKILL" | grep -q 'wait-leaf\.sh' \
     || launch_misses="$launch_misses line$n:no-foreground-wait"
