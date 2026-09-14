@@ -897,6 +897,55 @@ tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/td
   && [[ "$tracks" == "origin/tdd/51-tracks" ]]; } \
   && ok || no "a worktree made for a remote-only branch tracks that remote branch (exit=$code want 0, the clone's refs/heads/tdd/51-tracks=$local_ref want absent before the call, stdout='$out' want '$want', tdd/51-tracks's upstream=$( [[ -n "$tracks" ]] && echo "'$tracks'" || echo "none" ) want 'origin/tdd/51-tracks')"
 
+# 23. a branch that exists BOTH locally and on the remote, with the local one ahead: checked out
+# where it stands, never rewound to the remote's tip (issue #186).
+#
+# Cases 21 and 22 add a second namespace to look in, and that is exactly what makes this case
+# necessary: the two arms now overlap, and which one a branch present in both takes decides
+# whether the commits a run made and has not yet pushed survive being resumed. Taking the remote
+# arm here would point the worktree at `refs/remotes/origin/<branch>` — every local-only commit
+# gone, and gone silently, because the branch name, the path and the exit code all read exactly as
+# they do on a correct run. That is the ordinary shape of a resume on the machine the work was
+# done on: the last run committed, the conductor's push had not happened or had not reached the
+# remote, and the worktree was removed.
+#
+# So the seed makes the two refs disagree, and in the direction only the local one is right about:
+# the upstream carries the branch at one tip, the clone's copy of it is made from that tip and then
+# committed on once more without pushing. Both halves are asserted from the clone before the call —
+# a fixture whose local ref had silently ended up at the remote's tip would make both arms answer
+# the same and prove nothing.
+#
+# The remote is reachable here, unlike case 18's: with it down, every arm that could go and look
+# fails alike, so the case would pass on a script that preferred the remote and merely could not
+# reach it.
+upstream="$work/local-ahead-upstream"
+new_repo "$upstream"
+git_q "$upstream" switch -q -c tdd/53-local-ahead >/dev/null 2>&1
+git_q "$upstream" commit -q --allow-empty -m "the tip the previous run pushed" >/dev/null 2>&1
+remote_branch_tip="$(git_q "$upstream" rev-parse tdd/53-local-ahead)"
+git_q "$upstream" switch -q main >/dev/null 2>&1
+clone="$work/local-ahead-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+git_q "$clone" switch -q -c tdd/53-local-ahead origin/tdd/53-local-ahead >/dev/null 2>&1
+git_q "$clone" commit -q --allow-empty -m "committed by the last run and never pushed" >/dev/null 2>&1
+local_branch_tip="$(git_q "$clone" rev-parse tdd/53-local-ahead)"
+git_q "$clone" switch -q main >/dev/null 2>&1
+want="$(wt_path "$clone" 53)"
+
+# The two halves of "in both places, local ahead", asked of the clone as the script is handed it.
+local_ref="$(git_q "$clone" rev-parse --verify --quiet refs/heads/tdd/53-local-ahead 2>/dev/null)"
+remote_ref="$(git_q "$clone" rev-parse --verify --quiet refs/remotes/origin/tdd/53-local-ahead 2>/dev/null)"
+
+out="$(cd "$clone" && "$WT" 53 local-ahead 2>/dev/null)" && code=0 || code=$?
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$local_ref" == "$local_branch_tip" ]] && [[ "$remote_ref" == "$remote_branch_tip" ]] \
+  && [[ "$local_branch_tip" != "$remote_branch_tip" ]] && [[ "$out" == "$want" ]] \
+  && [[ "$branch" == "tdd/53-local-ahead" ]] && [[ "$tip" == "$local_branch_tip" ]]; } \
+  && ok || no "a local branch ahead of its remote: checked out at its own tip, not rewound to the remote's (exit=$code want 0, the clone's refs/heads/tdd/53-local-ahead='$local_ref' want the local tip $local_branch_tip, its refs/remotes/origin/tdd/53-local-ahead='$remote_ref' want the remote tip $remote_branch_tip $( [[ "$local_branch_tip" != "$remote_branch_tip" ]] && echo "— they differ, good" || echo "— the seed left them equal, so this case cannot tell the arms apart" ), stdout='$out' want '$want', branch='$branch' want 'tdd/53-local-ahead', tip='$tip' want the local branch's $local_branch_tip not the remote's $remote_branch_tip)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
