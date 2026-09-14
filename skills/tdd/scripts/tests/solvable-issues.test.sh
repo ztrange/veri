@@ -696,10 +696,10 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-run "$fx" --repo ztrange/veri; foreign_out="$out" foreign_code="$code"
+run "$fx" --repo ztrange/veri
 
-{ [[ "$foreign_code" == 0 ]] && [[ "$foreign_out" == $'120\n131' ]]; } \
-  && ok || no "a URL naming another repository's issue is not read as a blocker in this one (exit=$foreign_code want 0, stdout='$foreign_out' want '120\\n131')"
+{ [[ "$code" == 0 ]] && [[ "$out" == $'120\n131' ]]; } \
+  && ok || no "a URL naming another repository's issue is not read as a blocker in this one (exit=$code want 0, stdout='$out' want '120\\n131')"
 
 echo "----"
 echo "$pass passed, $fail failed"
