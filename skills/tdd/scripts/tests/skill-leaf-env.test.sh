@@ -75,7 +75,9 @@ report() {
 # drift apart: where the line is, what is wrong with it, and the line itself **as the
 # document spells it**, so a reader can find the text by searching for what the message
 # quoted, and what they fix is the document rather than the probe's substituted copy.
-# `lineno` and `line` are `scan_launches`'s, the way `problems` is `run_case`'s.
+# `lineno` and `line` belong to whichever function is working through the document's launch
+# lines, the way `problems` is `run_case`'s: `scan_launches` reads them off a numbered grep,
+# and `scan_launch_trees` reads the same pair back out of the tree a launch left behind.
 problem() {
   problems+=("$skill_md:$lineno $1:$line")
 }
@@ -163,10 +165,13 @@ launched_test_cmd() {
   local seen="$dir/seen"
   mkdir -p "$dir/.tdd"
   # Which line of the document ran here, and what it says, so a case reading these trees later
-  # reports the launch a reader has to edit rather than the leaf it happened to name. Written
-  # from the two variables every failure message above quotes, so the message cannot name a
-  # line other than the one this tree came from.
-  printf '%s\t%s\n' "$skill_md:$lineno" "$line" > "$dir/origin"
+  # reports the launch a reader has to edit rather than the leaf it happened to name. The two
+  # fields are `lineno` and `line` themselves — the pair `problem` quotes — so a case reading a
+  # tree back restores that scope and complains through `problem` like any other, instead of
+  # spelling the message's three parts a second time where the two spellings could drift. The
+  # file name is not one of the fields: `problem` supplies `$skill_md` at the one place it
+  # already does, so a tree can never claim to have come from another document.
+  printf '%s\t%s\n' "$lineno" "$line" > "$dir/origin"
   local file
   for file in "$@"; do
     printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
@@ -428,9 +433,10 @@ elif bad:
 # into `run_case`'s `problems` and leaves the counting to `run_case`, reaching that array the
 # way the checks above do, a bash function seeing the locals of the functions that called it.
 # The tree walk's working names stay local with it rather than joining the globals the other
-# two cases already share.
+# two cases already share — and two of them are `lineno` and `line`, restored from the tree's
+# `origin` file so `problem` builds this case's messages the way it builds the other two cases'.
 scan_launch_trees() {
-  local trees tree where text complaint
+  local trees tree lineno line complaint
   # `$run/*` unquoted is the glob; with no match bash leaves the pattern itself, which is not
   # a directory — so the guard below reports that no launch ran at all rather than iterating
   # over a literal `*` or, worse, passing the case having examined nothing.
@@ -439,18 +445,19 @@ scan_launch_trees() {
     problems+=("no launch line was run, so no leaf's events could be read")
   else
     for tree in "${trees[@]}"; do
-      # Fail closed on a tree with no `origin`, rather than reading `$where` unset: under
+      # Fail closed on a tree with no `origin`, rather than reading `$lineno` unset: under
       # `set -u` bash 3.2 kills the script there and exits with the status of the command
       # BEFORE it — routinely 0 — so the suite would stop mid-case and still look green to
-      # anything reading only its exit code (#157).
+      # anything reading only its exit code (#157). The complaint is spelled out here rather
+      # than handed to `problem`, since there is no document line to quote: that is the fault.
       if [[ ! -f "$tree/origin" ]]; then
         problems+=("${tree#$run/} was launched with no record of which line of $skill_md ran it")
         continue
       fi
-      IFS=$'\t' read -r where text < "$tree/origin"
+      IFS=$'\t' read -r lineno line < "$tree/origin"
       complaint="$(bad_context "$tree/.tdd/events.jsonl")"
       [[ -z "$complaint" ]] ||
-        problems+=("$where leaves events that do not carry issue=$SENTINEL_ISSUE step='$SENTINEL_STEP' ($complaint):$text")
+        problem "leaves events that do not carry issue=$SENTINEL_ISSUE step='$SENTINEL_STEP' ($complaint)"
     done
   fi
 }
