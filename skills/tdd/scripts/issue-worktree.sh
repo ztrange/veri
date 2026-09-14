@@ -145,6 +145,22 @@ fi
 # once keeps the refs/heads/ prefix — the part that makes --verify work at all — in one place.
 branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 
+# remote_branch_exists <name> — does the remote carry a branch called <name> that this clone has
+# fetched, when no local ref for it is left? That is what a run made on another machine and pushed
+# looks like here after a `git fetch`: refs/remotes/origin/<name> and nothing under refs/heads/
+# (issue #186). branch_exists answers no about it, and the cut-from-default arm below would then
+# lay a brand-new branch over a name the remote already uses, abandoning every commit the previous
+# run pushed — silently, because every script involved succeeds.
+#
+# A separate function rather than a second ref namespace inside branch_exists: that one is also
+# what default_branch_name asks about `main` and `master`, where "we have fetched a remote copy of
+# it" is not the question — it needs a local ref it can cut from.
+#
+# `rev-parse --verify --quiet` answers through its exit code the way `show-ref --verify` does —
+# 0 when the ref resolves, non-zero when it does not — with --quiet silencing the error and
+# >/dev/null dropping the sha it would otherwise print, since only the exit code is asked for.
+remote_branch_exists() { git rev-parse --verify --quiet "refs/remotes/origin/$1" >/dev/null; }
+
 # The branch is cut from the DEFAULT branch, never from HEAD — cutting from HEAD would inherit
 # whatever the caller's checkout happened to be sitting on, which is the collision this script
 # exists to prevent.
@@ -240,6 +256,18 @@ default_base() {
 # already established no other worktree has it, so taking it steals nothing.
 if branch_exists "$branch"; then
   git worktree add -q "$path" "$branch" >&2
+elif remote_branch_exists "$branch"; then
+  # Only on the remote: make the local branch at the remote's tip, so the worktree arrives carrying
+  # the previous run's commits and — the part that decides whether a resume is even recognised as
+  # one — its committed `.tdd/issue-<n>.md` ledger. The conductor's resume check asks whether that
+  # file exists *in the worktree*, so a worktree cut from the default branch reads as a new run and
+  # re-plans from scratch over work that is already on the remote.
+  #
+  # The start point is spelled out in full rather than left to git's DWIM. `git worktree add <path>
+  # <branch>` does guess a unique refs/remotes/*/<branch> into a new local branch — but that guess
+  # is off entirely under `checkout.guess=false` in a user's config, and a behaviour this script
+  # depends on must not be one a config setting can take away without a word.
+  git worktree add -q -b "$branch" "$path" "refs/remotes/origin/$branch" >&2
 else
   # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
   # cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
