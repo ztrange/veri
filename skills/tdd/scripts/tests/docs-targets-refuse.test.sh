@@ -244,7 +244,7 @@ probe_tripwires_fire_when_the_variable_is_unset() {
   for target in "${TARGETS[@]}"; do
     run_target "$1" "$target" env -u "$GUARD_VAR"
     [[ "$run_code" == 0 ]] ||
-      problems+=("the premise broke: with $GUARD_VAR unset, 'make $target' over the scratch tree exited $run_code, so a refusal below is not distinguishable from a tree that cannot run: $(flat "$run_err")")
+      problems+=("the premise broke: with $GUARD_VAR unset, 'make $target' over the scratch tree exited $run_code, so a refusal below is not distinguishable from a tree that cannot run: $(run_streams)")
     [[ -s "$LOG" ]] ||
       problems+=("the premise broke: with $GUARD_VAR unset, 'make $target' reached none of the stand-ins, so an empty log after a refusal says nothing")
   done
