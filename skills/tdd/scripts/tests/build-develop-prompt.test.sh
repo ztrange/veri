@@ -596,6 +596,64 @@ offers_class cosmetic
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor requires every CANDIDATES: line to carry its class, separated from the transform (${problems#; })"
 
+# 19. how many transforms one refactor leaf is worth, and what it owes for each (issue #150).
+#     Cases 16–18 gave the leaf a bar and a vocabulary for its candidates; this one changes the
+#     unit of work. ADR-0010 spends a fresh leaf per transform so that a break is attributable
+#     to one change, and pays a cold `claude -p` start plus a re-read of the spec and the
+#     touched files every time: refactor leaves ran 79–192 s each in #144's event log, where
+#     the refactor loops and verify-refactor together took 2,147 of 3,735 leaf-seconds, and one
+#     #137 step spent 49 minutes over five of them. What attribution actually needs is a commit
+#     per transform and a suite run between transforms — not a leaf each. So the template asks
+#     ONE leaf for the step's structural candidates up to the budget it is given, committing
+#     each transform itself as `refactor:` (which is what moves that commit off the conductor,
+#     whose sub-step 7 forbids it today), running the suites covering the touched files after
+#     each and reverting one that turns them red, and reporting what it applied beside what it
+#     left. Five faces of one criterion, so one case.
+#
+#     The half of the report that files the leftovers by class is case 18's and is not re-probed
+#     here; what this case adds to the footer is the other half — several transforms were
+#     applied now, so the leaf has to name them rather than the one RESULT: has room for.
+#
+#     Read, built and bounded as cases 16–17 are, and for the reasons given there: case 3's
+#     prompt, so there is one invocation and case 3 owns the exit-0 check on it; `prompt_says`,
+#     which folds the prompt to one line so a claim wrapped at ~85 columns is still one string;
+#     and one bounded `[^.]{0,N}` per alternation branch, since BSD grep backtracks. Both
+#     directions per probe, because each claim reads as naturally either way round — "commit
+#     each transform as `refactor:`" against "`refactor: <what>` is what each transform is
+#     committed as".
+#
+#     Four of the five probes cannot be answered by what is already there, which was checked
+#     against the built prompt rather than the template: `budget`, `refactor:` and `after each`
+#     occur nowhere in it. The revert probe is the exception and passes today — sub-step 2
+#     already says to revert rather than leave a red suite behind — and is kept because the
+#     criterion names it and no other case pins it, so a rewrite that dropped it while adding
+#     the rest would otherwise land green.
+problems=""
+prompt_says "$refactor" "does not say the structural candidates are applied up to the budget it is given" \
+  -iE -e 'budget[^.]{0,80}structural|structural[^.]{0,80}budget'
+# The commit moves to the leaf, and it carries the subject the conductor's checks read back:
+# a prompt that says to commit without naming `refactor:` leaves the conductor counting
+# commits it cannot tell apart from the green one.
+prompt_says "$refactor" "does not tell the leaf to commit its transforms itself as refactor:" \
+  -iE -e 'commit[^.]{0,80}refactor:|refactor:[^.]{0,80}commit'
+# One commit per transform is the whole of what ADR-0010's leaf-per-transform bought: batched
+# into one commit, the transforms are back to being unattributable, which is the thing that
+# must survive the leaf boundary going away.
+prompt_says "$refactor" "does not say one refactor: commit per transform" \
+  -iE -e '(each|every|own|per)[^.]{0,60}refactor:|refactor:[^.]{0,60}(each|every|own|per)'
+# After each, not once at the end: the suite run between transforms is what says WHICH
+# transform turned them red, and a single run after the last one cannot.
+prompt_says "$refactor" "does not say the touched suites run after each transform" \
+  -iE -e 'suites?[^.]{0,80}after each|after each[^.]{0,80}suites?'
+prompt_says "$refactor" "does not say a transform that turns them red is reverted" \
+  -iE -e 'revert[^.]{0,80}red|red[^.]{0,80}revert'
+# The footer's applied half: the RESULT: line named "<the transform>", singular, because there
+# was only ever one. Several now, so the report has to have room for several.
+prompt_says "$refactor" "does not ask the report to name every transform it applied" \
+  -iE -e 'applied[^.]{0,80}(transforms|one per|each|every)|(transforms|one per|each|every)[^.]{0,80}applied'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor applies the structural candidates up to its budget, one refactor: commit per transform, runs the touched suites after each reverting one that turns them red, and reports what it applied (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

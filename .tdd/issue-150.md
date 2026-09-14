@@ -1,6 +1,6 @@
 # Plan for #150 — One refactor leaf per step applies every structural candidate, one commit each, up to VERI_REFACTOR_BUDGET
 
-- [ ] The refactor template tells one leaf to apply the step's structural candidates up to the budget it is given, one `refactor:` commit per transform, running the touched suites after each and reverting one that turns them red, and to report what it applied and what it left, structural and cosmetic separately
+- [x] The refactor template tells one leaf to apply the step's structural candidates up to the budget it is given, one `refactor:` commit per transform, running the touched suites after each and reverting one that turns them red, and to report what it applied and what it left, structural and cosmetic separately ⟂ refactor pending
 - [ ] `build-develop-prompt.sh refactor` puts `VERI_REFACTOR_BUDGET` into the prompt
 - [ ] `SKILL.md` launches one refactor leaf per step, refuses to continue to verify-refactor over a dirty tree or a non-`refactor:` commit since the green commit, and narrates the `refactor:` commit count against the budget, overrun included
 - [ ] The refactor leaf is launched with a hard timeout of the run's leaf timeout times max(1, `VERI_REFACTOR_BUDGET`), and an explicit `VERI_TIMEOUT` is still used as given
