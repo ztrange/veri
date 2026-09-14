@@ -624,6 +624,53 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && ok || no "no remote at all: cuts tdd/43-no-remote from the local main without going to a remote (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/43-no-remote', tip='$tip' want the local main's $main_tip not side's $side_tip, stderr $( [[ -z "$err" ]] && echo "silent, good" || echo "carried:
 $err" ))"
 
+# 18. a resume onto an existing issue branch checks it out as it is and attempts no fetch
+# (issue #174).
+#
+# Case 5 pins the checkout half, but against a `git init` repo with no remote: there the fetch arm
+# does not exist to be taken, so "no fetch" and "nowhere to fetch from" are the same answer. The
+# fetch #174 added belongs to *cutting* a branch — the base has to be the remote's tip — and a
+# resume cuts nothing: the branch already carries the previous run's commits, and where it was
+# originally cut from was settled then. Going to the network for it would make a resume fail
+# whenever the remote is unreachable, for a base it is not going to use.
+#
+# The seed is the upstream+clone pair of cases 13–16 with the issue branch created in the clone,
+# one commit ahead of `main`, and the upstream then deleted. origin/HEAD and origin/main survive in
+# the clone, so the remote arm is genuinely available to be taken — and the path they point at no
+# longer exists, so any fetch that is attempted comes back 128. That turns "attempts no fetch" into
+# something observable rather than an assertion about the script's shape: a resume that fetched
+# first would refuse with exit 2, the way case 16 pins it does when the fetch is the one that matters.
+#
+# Three things asserted together: the run succeeds at all (the half a fetch would break), the
+# worktree sits at the branch's own commit rather than any base (checked out as it is), and stderr
+# is silent — git's complaint about an unreachable remote goes there, so silence is what says the
+# attempt was never made even if its failure were somehow shrugged off.
+upstream="$work/resume-no-fetch-upstream"
+new_repo "$upstream"
+clone="$work/resume-no-fetch-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+git_q "$clone" switch -q -c tdd/45-resume-no-fetch >/dev/null 2>&1
+git_q "$clone" commit -q --allow-empty -m "work from the previous run" >/dev/null 2>&1
+branch_tip="$(git_q "$clone" rev-parse tdd/45-resume-no-fetch)"
+git_q "$clone" switch -q main >/dev/null 2>&1
+main_tip="$(git_q "$clone" rev-parse main)"
+rm -rf "$upstream"
+want="$(wt_path "$clone" 45)"
+
+# stdout captured and stderr diverted to a file, the way cases 8 and 17 do it, so both streams can
+# be asserted on from the one run.
+errfile="$work/resume-no-fetch.err"
+out="$(cd "$clone" && "$WT" 45 resume-no-fetch 2>"$errfile")" && code=0 || code=$?
+err="$(cat "$errfile")"
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$branch" == "tdd/45-resume-no-fetch" ]] \
+  && [[ "$tip" == "$branch_tip" ]] && [[ -z "$err" ]]; } \
+  && ok || no "resume onto an existing issue branch with the remote unreachable: checks it out as it is without going to the remote (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/45-resume-no-fetch', tip='$tip' want the existing branch's $branch_tip not main's $main_tip, stderr $( [[ -z "$err" ]] && echo "silent, good" || echo "carried:
+$err" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
