@@ -45,6 +45,12 @@ skill_path="$ROOT/$skill_md"
 # of a detached launch" (SKILL.md:84). wait-leaf.test.sh case 4 names it the same way.
 detacher="detach-leaf.sh"
 
+# The section case 2 reads, written down once for the same reason: it is both an argument to
+# the probe — `section_prose` matches on it as a heading prefix — and a name three failure
+# messages spell. Renaming the heading in the document has to break the probe, not quietly
+# leave the messages pointing at a section that is no longer called that.
+section="Launching a leaf"
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -136,14 +142,14 @@ report "$name"
 #    Read case-insensitively and with the fenced blocks dropped, because the subject is
 #    the explanation, not its capitalisation, and a command inside a fence explains
 #    nothing. The section runs from its own `##` heading to the next one.
-name="$skill_md's *Launching a leaf* says why nohup alone is not enough"
+name="$skill_md's *$section* says why nohup alone is not enough"
 problems=()
 
-prose="$(section_prose "Launching a leaf" | tr '[:upper:]' '[:lower:]')"
+prose="$(section_prose "$section" | tr '[:upper:]' '[:lower:]')"
 if [[ -z "$prose" ]]; then
   # Fail closed, as case 1 does: a section that could not be read is never an explanation
   # that passed.
-  problems+=("$skill_md has no *Launching a leaf* section — the reason given for the launch shape could not be read")
+  problems+=("$skill_md has no *$section* section — the reason given for the launch shape could not be read")
 else
   faults=""
   [[ "$prose" == *nohup* ]] || fault "never names nohup"
@@ -152,7 +158,7 @@ else
   [[ "$prose" == *"process group"* ]] ||
     fault "does not say nohup leaves the leaf in the launching call's process group"
   [[ -z "$faults" ]] ||
-    problems+=("$skill_md *Launching a leaf* $faults")
+    problems+=("$skill_md *$section* $faults")
 fi
 
 report "$name"
