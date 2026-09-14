@@ -204,6 +204,15 @@ run_target() {
   run_err="$(cat "$err")"
 }
 
+# run_streams — what the last run said, on one line, for a failure message. Both streams
+# together because a target that did the wrong thing can have explained itself on either, and
+# a message quoting one of them leaves the next reader running the command again to see the
+# other. Named here rather than spelled at each probe that reports an unexpected exit status:
+# the pair is one thought — "and here is what it printed while doing that" — and it is read
+# off run_target's globals for the same reason report() reads `problems`, so a probe cannot
+# quote one run's status beside another run's output.
+run_streams() { printf 'stdout: %s, stderr: %s' "$(flat "$run_out")" "$(flat "$run_err")"; }
+
 # probe_runner_is_this_repositorys <tree> — the premise every probe below rests on: the
 # Makefile in the scratch tree is this repository's, byte for byte. Without it the case could
 # be satisfied by a runner this suite quietly adjusted on its way past, and would say nothing
@@ -241,7 +250,7 @@ probe_targets_refuse() {
     run_target "$1" "$target" env "$GUARD_VAR=$DEV_CMD"
 
     [[ "$run_code" == 2 ]] ||
-      problems+=("want 'make $target' to exit 2 under $GUARD_VAR='$DEV_CMD'; got $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$run_err")")
+      problems+=("want 'make $target' to exit 2 under $GUARD_VAR='$DEV_CMD'; got $run_code, $(run_streams)")
     [[ ! -s "$LOG" ]] ||
       problems+=("'make $target' ran something under $GUARD_VAR='$DEV_CMD' — a development run must not pay for a page build: $(flat "$(cat "$LOG")")")
     grep -q "$GUARD_VAR" <<<"$run_err" ||
@@ -280,7 +289,7 @@ probe_targets_run() {
     run_target "$tree" "$target" "$@"
 
     [[ "$run_code" == 0 ]] ||
-      problems+=("want 'make $target' to run as before with $situation; got exit $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$run_err")")
+      problems+=("want 'make $target' to run as before with $situation; got exit $run_code, $(run_streams)")
     [[ -s "$LOG" ]] ||
       problems+=("'make $target' with $situation reached none of the stand-ins, so it did not run as before: the guard fired outside a development run")
   done
