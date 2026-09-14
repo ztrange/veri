@@ -701,6 +701,34 @@ run "$fx" --repo ztrange/veri
 { [[ "$code" == 0 ]] && [[ "$out" == $'120\n131' ]]; } \
   && ok || no "a URL naming another repository's issue is not read as a blocker in this one (exit=$code want 0, stdout='$out' want '120\\n131')"
 
+# 16. What counts as a blocker is two spellings rather than one, and the script's own header
+# comment is where a reader is told so: it is the paragraph that defines "unblocked", and a
+# reader who finds only `#<n>` there writes `- https://github.com/ztrange/veri/issues/120` in an
+# issue believing it decorative and gets exactly the miss cases 14 and 15 now pin. So the header
+# must name both — the `#<n>` reference and the full `https://github.com/<owner>/<repo>/issues/<n>`
+# URL GitHub's autocomplete inserts.
+#
+# The claim is read out of the header ALONE — everything above `set -euo pipefail`, the same slice
+# a reader sees before any code — and not out of the whole file, for case 12's reason: the body
+# already spells a github.com issue URL twice, in `blocker_ref` and in the comment above it, so a
+# file-wide grep would be green against a header that still said only `#<n>` and pin nothing. The
+# slice is asserted non-empty before it is read, so a script that ever stops carrying that `set`
+# line reads as a failure rather than as two empty greps finding nothing to complain about.
+#
+# Both spellings are matched the way case 11 matches its documents: the `#<n>` reference
+# literally, because that is the string a reader greps for, and the URL loosely, because whether
+# the header writes `<owner>/<repo>`, `ztrange/veri` or `…` between the host and `/issues/` is the
+# writer's call and none of the three is the criterion. Each miss is named in the failure message
+# so one run says which spelling is short.
+header="$(awk '/^set -euo pipefail$/ {exit} {print}' "$SOLVABLE")"
+
+header_missing=""
+grep -q '#<n>' <<<"$header" || header_missing="$header_missing hash-form"
+grep -qE 'https://github\.com/[^ ]*/issues/' <<<"$header" || header_missing="$header_missing url-form"
+
+{ [[ -n "$header" ]] && [[ -z "$header_missing" ]]; } \
+  && ok || no "the header comment of solvable-issues.sh names both blocker spellings (missing:$header_missing; header slice above 'set -euo pipefail' is $(grep -c '' <<<"$header") lines, want a non-empty slice naming '#<n>' and a github.com issues URL)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

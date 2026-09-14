@@ -8,8 +8,11 @@
 # closed, and no open pull request already says `Closes #<n>` for it — such a PR means a run
 # is in flight on that issue, or one bailed and left the branch behind, and either way the
 # issue is not veri's to take. A body whose `## Blocked by` section reads `None.` names no
-# issue at all, so the test for "unblocked" is the absence of a `#<n>` reference under that
-# heading rather than the literal word.
+# issue at all, so the test for "unblocked" is the absence of any issue reference under that
+# heading rather than the literal word. A reference is spelled either way GitHub writes one:
+# `#<n>`, or the full `https://github.com/<owner>/<repo>/issues/<n>` URL its autocomplete
+# inserts — and that URL blocks only when its `<owner>/<repo>` is this repository's, since
+# another project's #120 is not this one's.
 #
 # The repository's issues and pull requests are read as the JSON `gh` emits:
 #   gh issue list --json number,title,labels,body,state

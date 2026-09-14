@@ -2,4 +2,4 @@
 
 - [x] a blocker written as `https://github.com/<owner>/<repo>/issues/<n>` under `## Blocked by` blocks exactly as `#<n>` does
 - [x] a URL for another repository's issue is not read as a blocker in this one
-- [ ] the header comment of `solvable-issues.sh` names both spellings
+- [x] the header comment of `solvable-issues.sh` names both spellings ⟂ refactor pending
