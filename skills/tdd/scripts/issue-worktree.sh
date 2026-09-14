@@ -168,15 +168,15 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 # fetch wants the other reading of it: ${base#origin/} strips the prefix (# removes the shortest
 # match from the front) to name the branch on the remote side, which is what `git fetch` takes.
 default_base() {
-  local base b
+  local base candidate
   if base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
     git fetch -q origin "${base#origin/}" >&2
     printf '%s\n' "$base"
     return 0
   fi
-  for b in main master; do
-    if branch_exists "$b"; then
-      printf '%s\n' "$b"
+  for candidate in main master; do
+    if branch_exists "$candidate"; then
+      printf '%s\n' "$candidate"
       return 0
     fi
   done
