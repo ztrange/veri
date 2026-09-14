@@ -51,6 +51,20 @@ registry() {
   git -C "$1" for-each-ref --format='%(refname) %(objectname)' refs/heads 2>/dev/null
 }
 
+# linked_worktree <repo> <name> <branch> — a second working directory of <repo>, at $work/<name>
+# on a new <branch> cut from main, with its path printed. That is what a Claude session checkout
+# looks like from here, and two cases below need one: as the checkout that already holds the
+# issue branch (case 3), and as the checkout the script under test is called from (case 9).
+#
+# `pwd -P` for the same reason wt_path does it: git reports every worktree path with its symlinks
+# resolved, so a path we hand git unresolved comes back different and a correct script compares
+# unequal. Resolving it here means neither caller has to remember that.
+linked_worktree() {
+  local path="$(cd "$work" && pwd -P)/$2"
+  git_q "$1" worktree add -q -b "$3" "$path" main >/dev/null 2>&1
+  printf '%s\n' "$path"
+}
+
 # 1. a fresh call creates the worktree on a new branch cut from the DEFAULT branch, and
 # prints its path.
 #
@@ -111,8 +125,7 @@ $after" ))"
 # directory the script would otherwise have created.
 repo="$work/taken"
 new_repo "$repo"
-other="$(cd "$work" && pwd -P)/taken-elsewhere"
-git_q "$repo" worktree add -q -b tdd/11-collide "$other" main >/dev/null 2>&1
+other="$(linked_worktree "$repo" taken-elsewhere tdd/11-collide)"
 mine="$(wt_path "$repo" 11)"
 before="$(registry "$repo")"
 
@@ -298,8 +311,7 @@ $after" ))"
 # and git agrees a worktree is really there, and nothing was created under the linked worktree.
 repo="$work/from-linked"
 new_repo "$repo"
-linked="$(cd "$work" && pwd -P)/from-linked-session"
-git_q "$repo" worktree add -q -b session "$linked" main >/dev/null 2>&1
+linked="$(linked_worktree "$repo" from-linked-session session)"
 want="$(wt_path "$repo" 27)"
 nested="$linked/.tdd/wt/27"
 
