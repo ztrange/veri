@@ -321,15 +321,24 @@ repo_state() {
       | while read -r f; do printf '%s %s\n' "$f" "$(git hash-object "$f")"; done )
 }
 
+# state_delta <before> <after> — the difference between two repo_state strings on one line, so
+# a failing arm says which path came back wrong instead of printing two listings to compare by
+# eye. Empty when they match, which is what case 12 asserts.
+state_delta() {
+  diff <(printf '%s\n' "$1") <(printf '%s\n' "$2") | tr '\n' ';'
+}
+
 # tamper_run <arm> <mutation> — a fresh repo at $tamper_work/<arm> holding one commit and the
 # developer's uncommitted work, then one PASS verification in it whose leaf runs <mutation>
-# first. Sets $out and $code to verify.sh's stdout and exit status, and $before/$after to
-# repo_state either side of the launch, so each assertion below reads whichever of the four it
-# is about.
+# first. Sets $out and $code to verify.sh's stdout and exit status, and $delta to what
+# repo_state says moved across the launch, so each assertion below reads whichever of the three
+# it is about. The two states themselves stay local: no arm wants either one apart from their
+# difference, and taking it here is what keeps the pairing of the before with the after from
+# being respelled once per arm.
 tamper_run() {
   # `git init <dir>` creates the directory and its leading ones, so the arm's path is named
   # once here and made by the same command that makes it a repo.
-  local dir="$tamper_work/$1"
+  local dir="$tamper_work/$1" before after
   git init -q -b main "$dir" >/dev/null 2>&1
   # An identity in the repo's own config: a repo made by `git init` under a test has none and
   # git refuses to commit without one. In the config rather than on each command line because
@@ -353,21 +362,15 @@ tamper_run() {
 REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
   code=$?
   after="$(repo_state "$dir")"
-}
-
-# state_delta <before> <after> — the difference between two repo_state strings on one line, so
-# a failing arm says which path came back wrong instead of printing two listings to compare by
-# eye. Empty when they match, which is what case 12 asserts.
-state_delta() {
-  diff <(printf '%s\n' "$1") <(printf '%s\n' "$2") | tr '\n' ';'
+  delta="$(state_delta "$before" "$after")"
 }
 
 tamper_run tracked 'printf "the verifier rewrote this\n" > src.txt'
-tracked_code=$code tracked_out="$out" r_tracked="$(state_delta "$before" "$after")"
+tracked_code=$code tracked_out="$out" r_tracked="$delta"
 tamper_run untracked 'printf "the verifier left this behind\n" > leftover.txt'
-untracked_code=$code untracked_out="$out" r_untracked="$(state_delta "$before" "$after")"
+untracked_code=$code untracked_out="$out" r_untracked="$delta"
 tamper_run head 'git commit -q -a -m "the verifier committed the developer'"'"'s work"'
-head_code=$code head_out="$out" r_head="$(state_delta "$before" "$after")"
+head_code=$code head_out="$out" r_head="$delta"
 
 # 11. a verifier leaf that leaves the tree changed makes verify.sh exit 2 whatever its verdict,
 #     with what changed on stdout.
