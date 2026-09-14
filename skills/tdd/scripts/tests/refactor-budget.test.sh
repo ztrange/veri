@@ -198,21 +198,19 @@ report "$name"
 # 8. the default refactor-budget.sh encodes and the prose that states it must not drift
 #    apart. Case 7 asks the running script what its default is; this case asks whether the
 #    sentences about it still say the same number. `VERI_REFACTOR_BUDGET`'s default is
-#    written down in five places: once as code (`budget="${VERI_REFACTOR_BUDGET:-N}"`) and
-#    four times as prose — the script's own header, SKILL.md's Refactor entry, and two
-#    spots in docs/wt/commentary.py (the stage-5 three-budgets diagram, which lists each
-#    axis with its default, and refactor-budget.sh's own commentary, which quotes the
-#    assignment line verbatim). Changing the constant alone leaves four sentences
-#    confidently stating the old figure and nothing in the repo notices: the walkthrough is
-#    generated from the scripts, so `make docs` happily rebuilds a page whose hand-written
-#    commentary contradicts the source it sits next to.
+#    written down three times in this lane: once as code
+#    (`budget="${VERI_REFACTOR_BUDGET:-N}"`) and twice as prose — the script's own header
+#    and SKILL.md's Refactor entry. Changing the constant alone leaves both sentences
+#    confidently stating the old figure and nothing else in this lane notices.
 #
 #    This is supervise.test.sh case 10's guarantee — "the default supervise.sh encodes and
 #    the prose that states it must not drift apart", issue #98 — applied to the second
-#    number of that shape. It lives here rather than under `docs/tests/` for the reason
-#    that case gives: `make docs-check` is deliberately not part of `make test` (Makefile,
-#    "Neither is part of `test` on purpose"), so a case parked there would not run in the
-#    suite this script's own behaviour is verified against.
+#    number of that shape, including which statements are not its own: the figure is stated
+#    twice more in docs/wt/commentary.py (the stage-5 three-budgets diagram and this
+#    script's own commentary), and reading that file from here would put the page's prose on
+#    the development lane's critical path, where a rewording turns every leaf's `make test`
+#    red over a file no development change touched (#143, ADR 0016). Both sites moved to
+#    docs/tests/commentary-figures.test.sh (#146); no-docs-reads.test.sh keeps them out.
 #
 #    Each site is located by a regex that ends at the figure it asks about, and a site
 #    whose pattern can no longer be found reports `<none>` — a rewording that moves a
@@ -235,7 +233,7 @@ stated() {
 }
 
 # The code site, read through that same helper: `budget="${VERI_REFACTOR_BUDGET:-N}"`
-# states the figure as much as the four sentences do, and it is the one the others must
+# states the figure as much as the two sentences do, and it is the one the others must
 # match. The script's header mentions the tunable earlier in the file, but says `(default
 # N)` rather than `:-N`, so this pattern's first match is the assignment itself.
 encoded="$(stated "$BUDGET" 'VERI_REFACTOR_BUDGET:-[0-9]+')"
@@ -252,8 +250,6 @@ while IFS='|' read -r where file regex; do
 done <<'SITES'
 refactor-budget.sh-header|skills/tdd/scripts/refactor-budget.sh|VERI_REFACTOR_BUDGET \(default [0-9]+
 SKILL.md-refactor|skills/tdd/SKILL.md|VERI_REFACTOR_BUDGET.{0,3} \(default [0-9]+
-commentary.py-budgets-diagram|docs/wt/commentary.py|VERI_REFACTOR_BUDGET +\([0-9]+
-commentary.py-refactor-budget|docs/wt/commentary.py|VERI_REFACTOR_BUDGET:-[0-9]+
 SITES
 report "$name"
 

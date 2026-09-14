@@ -150,28 +150,24 @@ estuck="$(recorded_code exit-stuck 1 30 leaf-hang)"
   || no ".tdd/<name>.exit records the supervisor's own final code, killed-stuck included (success=$eok want 0, failure=$efail want 1, killed-stuck=$estuck want 2)"
 
 # 10. the default supervise.sh encodes and the prose that states it must not drift apart.
-#     `VERI_HEARTBEAT`'s default is a number written down in five places: once as code
-#     (`heartbeat="${VERI_HEARTBEAT:-N}"`) and four times as prose — the script's own
-#     `Tunables (env)` header, SKILL.md's launcher entry, and two spots in
-#     docs/wt/commentary.py (supervise.sh's contract table, and the note that explains why
-#     the silence window can be so much shorter than the hard timeout). Changing the
-#     constant alone leaves four sentences confidently stating the old figure, and nothing
-#     in the repo notices: the walkthrough is generated from the scripts, so `make docs`
-#     happily rebuilds a page whose hand-written commentary contradicts the source it sits
-#     next to. This is the same guarantee `make docs-check` already gives the revise budget
-#     ("the page and SKILL.md both say N", docs/check-walkthrough.py) applied to this one.
+#     `VERI_HEARTBEAT`'s default is a number written down three times in this lane: once as
+#     code (`heartbeat="${VERI_HEARTBEAT:-N}"`) and twice as prose — the script's own
+#     `Tunables (env)` header and SKILL.md's launcher entry. Changing the constant alone
+#     leaves both sentences confidently stating the old figure, and nothing else in this
+#     lane notices.
 #
-#     The case lives here rather than under `docs/tests/` for the reason wait-leaf.test.sh
-#     case 4 gives: `make docs-check` is deliberately not part of `make test` (Makefile,
-#     "Neither is part of `test` on purpose"), so a case parked there would not run in the
-#     suite this script's own behaviour is verified against.
+#     The figure is stated twice more in docs/wt/commentary.py, and those two statements are
+#     NOT this case's (#143). A suite here that reads that file puts the page's prose on the
+#     development lane's critical path: `make test` is what preflight reads its baseline
+#     off, what every Green leaf runs and what both blind verifiers run, so rewording a
+#     figure would turn a TDD run red over a file no development change touched (ADR 0016).
+#     Those two sites moved to docs/tests/commentary-figures.test.sh (#146), which
+#     `make docs-test` globs, and no-docs-reads.test.sh is what keeps them from coming back.
 #
 #     Each site is located by a regex that ends at the figure it asks about, and a site
 #     whose pattern can no longer be found reports `<none>` — a rewording that moves a
 #     statement out of the check's sight is drift too, and must fail rather than pass
-#     silently. One statement is knowingly out of reach: commentary.py spells the figure
-#     out in words once ("a hang trips in two seconds instead of forty-five"), which no
-#     regex here can compare against a number.
+#     silently.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 # stated <file> <extended-regex> — the figure the first match of <regex> states, or
@@ -188,7 +184,7 @@ stated() {
 }
 
 # The code site, read through that same helper: `heartbeat="${VERI_HEARTBEAT:-N}"` states
-# the figure as much as the four sentences do, and it is the one the others must match.
+# the figure as much as the two sentences do, and it is the one the others must match.
 encoded="$(stated "$SUP" 'VERI_HEARTBEAT:-[0-9]+')"
 
 prose_misses=""
@@ -200,8 +196,6 @@ while IFS='|' read -r where file regex; do
 done <<'SITES'
 supervise.sh-header|skills/tdd/scripts/supervise.sh|VERI_HEARTBEAT silence window secs \(default [0-9]+
 SKILL.md-tunables|skills/tdd/SKILL.md|VERI_HEARTBEAT.{0,3}\(silence window s, +default [0-9]+
-commentary.py-contract|docs/wt/commentary.py|VERI_HEARTBEAT</code> [0-9]+s
-commentary.py-streaming-note|docs/wt/commentary.py|[0-9]+-second silence window
 SITES
 
 [[ -z "$prose_misses" ]] && ok \
