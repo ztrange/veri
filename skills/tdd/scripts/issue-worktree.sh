@@ -13,11 +13,34 @@
 # Output:  the worktree's absolute path on stdout, exit 0.
 set -euo pipefail
 
-# --show-toplevel is the root of the checkout we were called from, with symlinks resolved
-# (on macOS a /var/... path comes back as /private/var/...). Resolved is what we want: git
-# reports worktree paths that way too, so the path we print matches what `git worktree list`
+# git's own registry of worktrees — asked once here, questioned three times below. `worktree
+# list --porcelain` prints one block per registered worktree, blank-line separated: a
+# `worktree <absolute-path>` line first, then `HEAD <sha>`, then `branch <full-ref>` (absent
+# when that worktree is detached). The **main working tree is always the first block**, which is
+# the question we ask of it right here.
+#
+# Captured into a variable rather than piped into each reader: `set -o pipefail` above would
+# let git's exit code — including the SIGPIPE it takes when a reader stops early — decide the
+# answer instead of the reader's. Each question below feeds it back in with <<<, a here-string,
+# which hands one string to a command as its stdin without a pipeline.
+registry="$(git worktree list --porcelain)"
+
+# The issue worktree belongs to the repository's MAIN working tree, never to the checkout we
+# happen to have been called from. `git rev-parse --show-toplevel`, which this used to ask,
+# answers with the caller's own worktree — so a conductor started from a linked worktree (a
+# Claude session checkout under .claude/worktrees/<name>, or any other second working directory)
+# nested the run inside it: removing that session took the run's leaf logs with it, and a resume
+# from the main clone computed the un-nested path, failed to find it registered, and then refused
+# because the branch was checked out "somewhere else" (issue #166).
+#
+# ${registry%%$'\n'*} strips the longest match of "newline and everything after it" from the end,
+# leaving the first line — `worktree <absolute-path>` — and ${...#worktree } then takes that
+# label off the front. The path git prints there is absolute and has its symlinks resolved (on
+# macOS a /var/... path comes back as /private/var/...), which is the property this needs: git
+# reports every worktree path that way, so the path we print matches what `git worktree list`
 # will say about it.
-root="$(git rev-parse --show-toplevel)"
+root="${registry%%$'\n'*}"
+root="${root#worktree }"
 
 # wt_path <n> — where issue <n>'s worktree lives. The layout is stated once, here, because both
 # halves of this script need it and a create that answered with a different path than the remove
@@ -57,17 +80,6 @@ slug="${2:?missing <slug>}"
 
 branch="tdd/$n-$slug"
 path="$(wt_path "$n")"
-
-# git's own registry of worktrees — asked once here, questioned twice below. `worktree list
-# --porcelain` prints one block per registered worktree, blank-line separated: a
-# `worktree <absolute-path>` line first, then `HEAD <sha>`, then `branch <full-ref>` (absent
-# when that worktree is detached).
-#
-# Captured into a variable rather than piped into each reader: `set -o pipefail` above would
-# let git's exit code — including the SIGPIPE it takes when a reader stops early — decide the
-# answer instead of the reader's. Each question below feeds it back in with <<<, a here-string,
-# which hands one string to a command as its stdin without a pipeline.
-registry="$(git worktree list --porcelain)"
 
 # Idempotent: a second call for the same issue — a resume, or a conductor re-entering step 1 —
 # answers with the path it already made instead of dying on `git worktree add`'s "already
