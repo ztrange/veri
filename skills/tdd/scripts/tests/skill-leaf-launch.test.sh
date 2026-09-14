@@ -52,6 +52,14 @@ report() {
   fi
 }
 
+# fault <description> — record one thing wrong with the launch line being read, onto the
+# `faults` string the loop below opens empty for each line. Joined rather than collected
+# because a line that both misses the launcher and still says `nohup` is one wrong launch,
+# and reads better as one problem naming both than as two problems naming the same line.
+fault() {
+  faults="${faults:+$faults, and }$1"
+}
+
 # launch_lines — the leaf launch lines of SKILL.md, each prefixed with its line number.
 #
 # A launch line is a line INSIDE a fenced block that names `supervise.sh` or `verify.sh`:
@@ -85,8 +93,8 @@ if [[ -z "$launches" ]]; then
 else
   while IFS=$'\t' read -r lineno text; do
     faults=""
-    [[ "$text" == *"$launcher"* ]] || faults="does not go through $launcher"
-    [[ "$text" != *nohup* ]] || faults="${faults:+$faults, and }still uses nohup"
+    [[ "$text" == *"$launcher"* ]] || fault "does not go through $launcher"
+    [[ "$text" == *nohup* ]] && fault "still uses nohup"
     [[ -z "$faults" ]] ||
       problems+=("$skill_md:$lineno $faults: $text")
   done <<< "$launches"
