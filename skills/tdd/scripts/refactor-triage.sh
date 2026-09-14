@@ -49,10 +49,13 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   # an empty stdout.
   if [[ "$class_and_transform" =~ ^structural[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
     structural+=("${BASH_REMATCH[1]}")
-  elif [[ "$class_and_transform" =~ ^cosmetic[[:space:]]*[|] ]]; then
-    : # a real answer, and not one worth a leaf
-  elif [[ "$class_and_transform" =~ ^none[[:space:]]*$ ]]; then
-    : # likewise — the leaf saw nothing left at all
+  elif [[ "$class_and_transform" =~ ^cosmetic[[:space:]]*[|] ]] ||
+       [[ "$class_and_transform" =~ ^none[[:space:]]*$ ]]; then
+    # Both are a real answer, and neither is one worth a leaf: a cosmetic transform the
+    # leaf is no longer allowed to apply, or `CANDIDATES: none`, the leaf seeing nothing
+    # left at all. One branch because the script does nothing different with them —
+    # telling them apart is the conductor's job, from the report it already has.
+    :
   else
     echo "refactor-triage: candidate line has no class, or one that is neither structural nor cosmetic: $line" >&2
     exit 2
