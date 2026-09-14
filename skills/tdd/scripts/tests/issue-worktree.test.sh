@@ -7,9 +7,12 @@
 #   issue-worktree.sh <n> <slug>   creates/reuses <repo-root>/.tdd/wt/<n> on branch
 #                                  tdd/<n>-<slug>, prints its absolute path, exit 0
 #
-# Everything is asserted against a throwaway `git init` repo with one commit — worktrees
-# need a commit to check out — and through git's own answers (`worktree list`, `rev-parse`)
-# rather than by looking at the directory, because a plain `mkdir` would pass the latter.
+# Every behavioural case is asserted against a throwaway `git init` repo with one commit —
+# worktrees need a commit to check out — and through git's own answers (`worktree list`,
+# `rev-parse`) rather than by looking at the directory, because a plain `mkdir` would pass the
+# latter. The last case is of the other kind: its subject is SKILL.md's paragraph about this
+# script, read as text, the way refactor-budget.test.sh case 8 reads the sentences stating its
+# own default.
 #
 # Run: scripts/tests/issue-worktree.test.sh
 set -uo pipefail
@@ -670,6 +673,67 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && [[ "$tip" == "$branch_tip" ]] && [[ -z "$err" ]]; } \
   && ok || no "resume onto an existing issue branch with the remote unreachable: checks it out as it is without going to the remote (exit=$code want 0, stdout='$out' want '$want', branch='$branch' want 'tdd/45-resume-no-fetch', tip='$tip' want the existing branch's $branch_tip not main's $main_tip, stderr $( [[ -z "$err" ]] && echo "silent, good" || echo "carried:
 $err" ))"
+
+# 19. SKILL.md's own description of this script says what cases 13–18 pin: the branch is cut
+# from the freshly fetched remote default branch, and why the local branch carrying that name is
+# not the base (issue #174).
+#
+# The conductor never reads this script; it reads that paragraph. So the paragraph is the whole
+# of what a conductor knows about where its run's base comes from, and the account it gives today
+# — "cut from the **default** branch (`origin/HEAD`, else a local `main`/`master`)" — is the one
+# the fix invalidates: it names the ref the default branch's *name* is read from, says nothing
+# about a fetch, and leaves the reader to assume the base is whatever `main` resolves to locally.
+# That assumption is exactly what made a run start on a base already behind. Prose that
+# contradicts the scripts is worse than prose that says nothing, because it is the account a
+# human trusts: the next agent reading it re-derives the old rule and puts it back, and a
+# conductor debugging a PR that owes a rebase looks anywhere but at the base it was cut from.
+#
+# The "why" is half the criterion and not decoration. The local default branch lags by design
+# here — pulling the primary clone while a conductor is live changes the scripts running under
+# it, so the pull waits (#165) — and a reader who does not know that reads the fetch as belt and
+# braces and deletes it the next time it is inconvenient. It is also what tells a reader why the
+# script fetches rather than doing the obvious thing and pulling.
+#
+# It lives in this suite, beside the cases that pin the behaviour it describes, for the reason
+# refactor-budget.test.sh case 8 gives for keeping the same shape of check out of `docs/tests/`:
+# `make docs-check` is deliberately not part of `make test`, so a case parked there would not run
+# in the suite this script's own behaviour is verified against — and these two are one fact, with
+# one edit fixing either.
+#
+# Three probes, one criterion, so one case: the fetch is named, the base is named as the remote's
+# branch and not merely as `origin/HEAD`, and the staleness of the local one is named as the
+# reason. Each accepts any wording that carries its fact — what the paragraph says is pinned, how
+# it is phrased is the writer's.
+SKILL="$HERE/../../SKILL.md"
+
+# skill_entry — SKILL.md's bullet for `issue-worktree.sh <n> <slug>`: the line that opens it, up
+# to the line before the next top-level bullet, heading or numbered step. Emphasis marks and
+# backticks are dropped and the case folded (`**default**` and "default" are the same word), and
+# the lines are joined onto one, so a sentence that wraps at the file's ~90 columns still reads
+# as one. Reading the bullet rather than the whole document is what makes the claim about *this*
+# script's description: SKILL.md is thousands of lines and a `git fetch` anywhere in it would
+# otherwise answer for the paragraph that has to carry it.
+skill_entry() {
+  awk '
+    !in_e && index($0, "- `$S/issue-worktree.sh <n> <slug>`") == 1 { in_e = 1; print; next }
+    in_e && /^([-#]|[0-9]+\.)/ { exit }
+    in_e { print }' "$SKILL" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+}
+
+entry="$(skill_entry)"
+# The fetch itself: the base is the remote branch as it is *now*, which is a question asked of
+# the network at call time, not a ref that happens to be lying in the clone.
+fetch_re='fetch'
+# The base named as the remote's branch. `origin/head` is deliberately not enough — that is
+# today's text, and it names where the default branch's *name* is read from, not what the branch
+# is cut from.
+base_re='origin/<[a-z-]+>|origin/(main|master|the default)|remote.s (tip|default)|remote default branch|tip of (the )?(remote|origin)'
+# And why the local branch of that name is not it.
+why_re='stale|behind|lags?|out of date'
+
+{ [[ -n "${entry// /}" ]] && [[ "$entry" =~ $fetch_re ]] && [[ "$entry" =~ $base_re ]] \
+  && [[ "$entry" =~ $why_re ]]; } \
+  && ok || no "SKILL.md's issue-worktree.sh entry says the branch is cut from the freshly fetched remote default branch and why the local one is not used ($( [[ -n "${entry// /}" ]] && echo "the entry: names a fetch: $( [[ "$entry" =~ $fetch_re ]] && echo yes || echo "no — a conductor reading it cannot tell the base is refreshed at all" ); names the base as the remote's branch: $( [[ "$entry" =~ $base_re ]] && echo yes || echo "no — it still describes the base as the default branch, which reads as the local one" ); says why the local one is not used: $( [[ "$entry" =~ $why_re ]] && echo yes || echo "no — nothing says the local default branch is stale, so the fetch reads as belt and braces" ); text read: '$entry'" || echo "no bullet for '\$S/issue-worktree.sh <n> <slug>' found in $SKILL — what the conductor is told about the base could not be established" ))"
 
 echo "----"
 echo "$pass passed, $fail failed"
