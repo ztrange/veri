@@ -404,6 +404,40 @@ tamper_run reverted 'b="$(mktemp)"; cp src.txt "$b"; printf "the verifier broke 
 { [[ "$code" == 0 ]] && [[ "$out" == *'full suite are green'* ]]; } && ok \
   || no "a verifier that restored its own mutation gets its verdict's normal exit code (code=$code want 0, stdout='$out' want the verdict's reason)"
 
+# 14. VERIFY_LEAF_ARGS changes the leaf's FLAGS, not what verify.sh accepts back (issue #172).
+#     The variable exists so an environment that needs different permissions can say so
+#     (verify.sh:28) — which means the one knob a caller has over the verifier's sandbox is also
+#     the obvious place for the tree check to be switched off by accident, by a reading that
+#     treats "the caller chose the leaf's permissions" as "the caller chose whether the tree is
+#     checked". A leaf launched under caller-supplied flags that leaves the tree changed must
+#     still bail exit 2 and still be put back, exactly as the three arms above do.
+#
+#     The arm is tamper_run's again, so the fixture — one commit, the developer's uncommitted
+#     edit and untracked file, `.tdd/` ignored — is the tracked arm's and the only thing
+#     particular to this one is the override in the launching environment. The prefix
+#     assignments reach verify.sh because verify_in's `env` has no `-i`, and they are gone after
+#     the call, so no case sees them.
+#
+#     The override is asserted to have REACHED the leaf rather than assumed: without that, an
+#     implementation that ignored VERIFY_LEAF_ARGS entirely would satisfy this case while the
+#     flags it names never applied, and the case would be about nothing. The evidence is the
+#     leaf's own argv, which this arm's mutation writes out alongside its rewrite of src.txt —
+#     `$@` inside the stub's `eval` is the stub's positional parameters, the argv run-leaf.sh
+#     handed it. It is written OUTSIDE the repo, to a path named in the launching environment:
+#     a dump under the fixture would be an untracked file the check bails on and the restore
+#     then deletes, so the evidence would destroy itself. The flags chosen replace rather than
+#     extend the default sandbox, so `--disallowedTools` present and `MultiEdit` absent is the
+#     pair that says the default array was overridden and not merely echoed.
+leafargs_out="$work/leafargs"
+LEAFARGS_OUT="$leafargs_out" VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --disallowedTools Write' \
+  tamper_run leafargs 'printf "%s\n" "$@" > "$LEAFARGS_OUT"; printf "the verifier rewrote this\n" > src.txt'
+leafargs_overridden=no
+{ grep -qx -- '--disallowedTools' "$leafargs_out" && ! grep -qx -- 'MultiEdit' "$leafargs_out"; } \
+  && leafargs_overridden=yes
+{ [[ "$leafargs_overridden" == yes ]] && [[ "$code" == 2 ]] && [[ "$out" == *src.txt* ]] \
+  && [[ -z "$delta" ]]; } && ok \
+  || no "VERIFY_LEAF_ARGS overriding the leaf's flags does not switch the tree check off (override reached the leaf=$leafargs_overridden want yes; code=$code want 2; stdout='$out' want src.txt named; delta='$delta' want empty)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
