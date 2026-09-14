@@ -282,6 +282,35 @@ $before
 --- after
 $after" ))"
 
+# 9. called from inside a *linked* worktree — a Claude session checkout, or any other second
+# working directory of the same repo — the issue worktree still lands under the **main** working
+# tree (issue #166). Every case above runs from the main working tree, where "the checkout we
+# were called from" and "the main working tree" are the same directory and the distinction
+# cannot show up.
+#
+# It has to be the main tree and not the caller's: a worktree nested inside a session checkout
+# dies with that checkout (taking the run's leaf logs with it), and a resume from the main clone
+# computes the un-nested path, fails to find it registered, and then refuses because the branch
+# is checked out "somewhere else".
+#
+# The seed is a linked worktree of the fixture repo on its own branch, which is what a session
+# checkout looks like from here. Both halves are asserted: the path printed is the main tree's
+# and git agrees a worktree is really there, and nothing was created under the linked worktree.
+repo="$work/from-linked"
+new_repo "$repo"
+linked="$(cd "$work" && pwd -P)/from-linked-session"
+git_q "$repo" worktree add -q -b session "$linked" main >/dev/null 2>&1
+want="$(wt_path "$repo" 27)"
+nested="$linked/.tdd/wt/27"
+
+out="$(cd "$linked" && "$WT" 27 from-linked 2>/dev/null)" && code=0 || code=$?
+
+top="$(git -C "$want" rev-parse --show-toplevel 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$top" == "$want" ]] \
+  && [[ ! -e "$nested" ]]; } \
+  && ok || no "called from a linked worktree: creates and prints the main working tree's .tdd/wt/27, not one nested inside the caller (exit=$code want 0, stdout='$out' want '$want', toplevel='$top' want '$want', '$nested' $( [[ -e "$nested" ]] && echo "was created inside the linked worktree" || echo "absent, good" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
