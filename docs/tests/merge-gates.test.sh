@@ -234,6 +234,18 @@ out="$(cd "$d" && VERI_GATES_BASE=base docs/merge-gates.sh 2>&1)" && code=0 || c
 if [[ "$code" == 0 && "$out" == *"nothing to run"* && "$out" != *"docs-fresh"* ]]; then pass=$((pass + 1)); else
   fail=$((fail + 1)); echo "FAIL - a Makefile-only branch runs no gate even against a stale page (exit $code)"; echo "$out" | sed 's/^/    | /'; fi
 
+# 11b. #164: and the carve-out case 11 makes stops at the Makefile itself. A branch that
+#      edits a recipe *and* a script under docs/ still owes the whole docs lane — the
+#      suites and the freshness check — because the docs script is a page input whatever
+#      travels with it. A carve-out written one step too wide (dropping every path once a
+#      Makefile change is seen, or exempting the branch rather than the file) takes this
+#      with it and a real pipeline change merges ungated, which is why the boundary gets a
+#      case of its own rather than being left implied by case 5b. Plan mode: the decision
+#      is the thing under test, and the reason must name the docs script, not the Makefile.
+plans "the Makefile plus a docs/ script still owes every docs suite and freshness" \
+  $'docs-test\ndocs-fresh\ndocs/docs-owed.sh' '' \
+  bash -c 'touch_file Makefile; touch_file docs/docs-owed.sh'
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
