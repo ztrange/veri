@@ -331,6 +331,82 @@ head_code=$code head_out="$out"
   && [[ "$head_code" == 2 ]] && [[ "$head_out" == *HEAD* ]]; } && ok \
   || no "a verifier leaf that left the tree changed exits 2 naming what changed (tracked file: code=$tracked_code want 2, stdout='$tracked_out' want src.txt named; untracked file: code=$untracked_code want 2, stdout='$untracked_out' want leftover.txt named; moved HEAD: code=$head_code want 2, stdout='$head_out' want HEAD named)"
 
+# 12. and after that exit 2 the repository is PUT BACK — the tree and HEAD exactly what they
+#     were when the verifier launched, the developer's uncommitted work included (issue #172).
+#     Detection alone still loses work: the bail is what the conductor acts on, and the tree it
+#     leaves behind is the one a human then inspects and a resumed run continues from. A step
+#     that bailed with the verifier's rewrite still in place has destroyed the developer's
+#     green code as surely as committing it would have.
+#
+#     The fixture's whole point is the uncommitted work, so every arm carries both kinds: a
+#     tracked file the developer has edited without committing, and a new untracked file. That
+#     is what makes `git checkout -- <file>` and `git reset --hard` wrong restores rather than
+#     merely blunt ones — verify-green and verify-red run while the developer's work is still
+#     uncommitted, so either one throws away the change the step exists to produce. The
+#     verifier's mutation in the tracked arm rewrites that same edited file, so a restore from
+#     HEAD comes back with the committed content and is caught here rather than looking right.
+#
+#     Three arms again, one per way the tree can come back different, because putting each one
+#     back is a different move: a rewritten file's content has to be restored, a created file
+#     has to be removed, and a commit has to be undone WITHOUT taking the uncommitted work with
+#     it. A check that handled only one of them would leave the other two behind.
+restore_work="$work/restore"
+
+# repo_state <dir> — everything this criterion says must come back unchanged, as one string:
+# the sha HEAD names, then the path and content hash of every tracked and untracked
+# non-ignored file, sorted. `ls-files -co --exclude-standard` is the same set the snapshot
+# covers, so the run's own scratch under the fixture's gitignored `.tdd/` is outside both and
+# no arm reads the supervisor's logs as a failure to restore. Content hashes rather than
+# `status --porcelain`: a file put back with the wrong bytes is still unmodified-looking to
+# status when the verifier's write matched what HEAD holds, which is exactly the bad restore
+# the tracked arm is about.
+repo_state() {
+  printf 'HEAD %s\n' "$(git -C "$1" rev-parse HEAD)"
+  ( cd "$1" && git ls-files -co --exclude-standard | LC_ALL=C sort \
+      | while read -r f; do printf '%s %s\n' "$f" "$(git hash-object "$f")"; done )
+}
+
+# restore_run <arm> <mutation> — a fresh repo at $restore_work/<arm> with one commit AND the
+# developer's uncommitted work on top, then one PASS verification in it whose leaf runs
+# <mutation> first. Sets $before/$after to repo_state either side of the launch and $code to
+# verify.sh's exit status.
+restore_run() {
+  local dir="$restore_work/$1"
+  git init -q -b main "$dir" >/dev/null 2>&1
+  git -C "$dir" config user.name veri
+  git -C "$dir" config user.email veri@example.test
+  printf 'the developer committed this\n' > "$dir/src.txt"
+  printf '.tdd/\n' > "$dir/.gitignore"
+  git -C "$dir" add -A >/dev/null 2>&1
+  git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
+  # The uncommitted half of the fixture, written after that commit so it is exactly what a
+  # developer leaf would have left in the tree when the conductor called for verification.
+  printf 'the developer is still editing this\n' > "$dir/src.txt"
+  printf 'the developer has not committed this yet\n' > "$dir/new.txt"
+  before="$(repo_state "$dir")"
+  out="$( FAKE_MUTATE="$2" verify_in "$dir" green 'VERDICT: PASS
+REASON: Target test and full suite are green.' "$stubdir/claude-mutate" 2>/dev/null )"
+  code=$?
+  after="$(repo_state "$dir")"
+}
+
+# state_delta <before> <after> — the difference between two repo_state strings on one line, so
+# a failing arm says which path came back wrong instead of printing two listings to compare by
+# eye. Empty when they match, which is what each arm asserts.
+state_delta() {
+  diff <(printf '%s\n' "$1") <(printf '%s\n' "$2") | tr '\n' ';'
+}
+
+restore_run tracked 'printf "the verifier rewrote this\n" > src.txt'
+r_tracked="$(state_delta "$before" "$after")" r_tracked_code=$code
+restore_run untracked 'printf "the verifier left this behind\n" > leftover.txt'
+r_untracked="$(state_delta "$before" "$after")" r_untracked_code=$code
+restore_run head 'git commit -q -a -m "the verifier committed the developer'"'"'s work"'
+r_head="$(state_delta "$before" "$after")" r_head_code=$code
+
+{ [[ -z "$r_tracked" ]] && [[ -z "$r_untracked" ]] && [[ -z "$r_head" ]]; } && ok \
+  || no "after the exit 2 the tree and HEAD are back to what the verifier was handed, uncommitted work included (rewritten tracked file: delta='$r_tracked' code=$r_tracked_code; created untracked file: delta='$r_untracked' code=$r_untracked_code; verifier commit: delta='$r_head' code=$r_head_code)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
