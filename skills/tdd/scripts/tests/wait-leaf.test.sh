@@ -172,21 +172,29 @@ rc_bare=$?
 #    would be the other failure: those terms scattered over three sections are not a warning.
 SKILL="$HERE/../../SKILL.md"
 launches=0 launch_misses=""
+
+# missed <token> — record one way the document fails this case, onto the space-separated
+# `launch_misses` string opened empty just above. Every probe below accumulates rather than
+# failing at the first one, because a document that has drifted has usually drifted at several
+# launches at once and the single `no` line is worth more when it names all of them; the tokens
+# carry their own line number for that reason.
+missed() { launch_misses="$launch_misses $1"; }
+
 while IFS= read -r hit; do
   launches=$(( launches + 1 ))
   n="${hit%%:*}" text="${hit#*:}"
   [[ "$text" == *detach-leaf.sh* ]] \
-    || launch_misses="$launch_misses line$n:not-detached"
+    || missed "line$n:not-detached"
   sed -n "${n},$(( n + 6 ))p" "$SKILL" | grep -q 'wait-leaf\.sh' \
-    || launch_misses="$launch_misses line$n:no-foreground-wait"
+    || missed "line$n:no-foreground-wait"
 done < <(grep -n -e '\$S/supervise\.sh' -e '\$S/verify\.sh' "$SKILL" | grep '\.tdd/')
 
 warning="$(awk 'BEGIN { RS = "" }
   tolower($0) ~ /background/ && tolower($0) ~ /notification/ &&
   tolower($0) ~ /print[ -]mode/ { print; exit }' "$SKILL")"
 
-[[ "$launches" -ge 5 ]] || launch_misses="$launch_misses enumeration:only-$launches-launch-sites"
-[[ -n "$warning" ]] || launch_misses="$launch_misses warning:no-paragraph-naming-background-notification-print-mode"
+[[ "$launches" -ge 5 ]] || missed "enumeration:only-$launches-launch-sites"
+[[ -n "$warning" ]] || missed "warning:no-paragraph-naming-background-notification-print-mode"
 
 [[ -z "$launch_misses" ]] && ok \
   || no "SKILL.md launches every leaf detached and waits for it with wait-leaf.sh in the foreground, and warns that a background call awaiting a notification never completes in print mode (launch sites=$launches, missing:$launch_misses)"
