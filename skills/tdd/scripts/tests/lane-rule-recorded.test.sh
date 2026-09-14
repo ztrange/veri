@@ -58,6 +58,14 @@ CLAUDE_MD="$ROOT/CLAUDE.md"
 TRAP_HEADING='## The one trap'
 IDIOM_HEADING='## Testing idiom'
 
+# Prose naming the other lane, as an ERE — the lane itself, a run in it, or the merge that
+# ends one. Both probes below ask for it, because both facts are the same claim about where
+# this work belongs seen from two sections, and written out twice the two lists drifted into
+# different orders while asking the identical question. Named once so the next fact that has
+# to name the lane asks it the same way, and so a wording this repository starts using is
+# added in one place rather than in whichever probe noticed first.
+DOCS_LANE='docs[ -]lane|documentation lane|docs issue|docs merge'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -138,7 +146,7 @@ probe_trap_sends_the_page_to_the_other_lane() {
   need_section "$TRAP_HEADING" || return
 
   says "that the page and its inputs are the other lane's work, and that a development run never runs the target that rebuilds them" \
-    'docs[ -]lane|documentation lane|docs issue|docs merge' \
+    "$DOCS_LANE" \
     'develop|leaf|veri run|tdd run' \
     'never|refus|exit 2'
 }
@@ -166,7 +174,7 @@ probe_idiom_records_the_rule_and_the_checks() {
   says "where the checks that catch prose lagging behind code live instead — docs-owed.sh, and docs-fresh at a documentation merge" \
     'docs-owed' \
     'docs-fresh' \
-    'docs merge|docs[ -]lane|documentation lane|docs issue'
+    "$DOCS_LANE"
 }
 
 # 1. One criterion, one case: the document records the rule, and where the checks it moves
