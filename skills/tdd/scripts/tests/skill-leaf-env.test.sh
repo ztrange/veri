@@ -376,9 +376,7 @@ run_case "every verifier $skill_md launches through verify.sh sees the run's tes
 #    detached leaf, ~0.6 s of the ~6 s this suite costs `make test` three times per step, and
 #    asking a second question of a run that already happened is free. Each tree carries the
 #    document line that made it, so a failure names the launch to edit.
-name="every leaf $skill_md launches leaves events carrying the run's issue and step"
-problems=()
-
+#
 # bad_context <events-log> — one `;`-joined complaint naming every event line in <log> whose
 # issue and step are not the sentinels the launch was given, or nothing at all when they all
 # carry them. python3 rather than jq, the dependency event.sh itself already execs.
@@ -407,30 +405,41 @@ elif bad:
 ' "$1" "$SENTINEL_ISSUE" "$SENTINEL_STEP" 2>/dev/null || echo '<<no event log>>'
 }
 
-# `$run/*` unquoted is the glob; with no match bash leaves the pattern itself, which is not a
-# directory — so the guard below reports that no launch ran at all rather than iterating over
-# a literal `*` or, worse, passing the case having examined nothing.
-trees=( "$run"/* )
-if [[ ! -d "${trees[0]}" ]]; then
-  problems+=("no launch line was run, so no leaf's events could be read")
-else
-  for tree in "${trees[@]}"; do
-    # Fail closed on a tree with no `origin`, rather than reading `$where` unset: under
-    # `set -u` bash 3.2 kills the script there and exits with the status of the command
-    # BEFORE it — routinely 0 — so the suite would stop mid-case and still look green to
-    # anything reading only its exit code (#157).
-    if [[ ! -f "$tree/origin" ]]; then
-      problems+=("${tree#$run/} was launched with no record of which line of $skill_md ran it")
-      continue
-    fi
-    IFS=$'\t' read -r where text < "$tree/origin"
-    complaint="$(bad_context "$tree/.tdd/events.jsonl")"
-    [[ -z "$complaint" ]] ||
-      problems+=("$where leaves events that do not carry issue=$SENTINEL_ISSUE step='$SENTINEL_STEP' ($complaint):$text")
-  done
-fi
+# The case as a whole, and a function for the reason `run_case` is one: `problems` is this
+# case's own local, so it cannot be handed a previous case's failures by a reset someone
+# forgot, and `report` reaches it from here exactly as it does from there — a bash function
+# seeing the locals of the functions that called it. The tree walk's working names stay
+# local with it rather than joining the globals the other two cases already share.
+run_context_case() {
+  local name="every leaf $skill_md launches leaves events carrying the run's issue and step"
+  local problems=()
+  local trees tree where text complaint
+  # `$run/*` unquoted is the glob; with no match bash leaves the pattern itself, which is not
+  # a directory — so the guard below reports that no launch ran at all rather than iterating
+  # over a literal `*` or, worse, passing the case having examined nothing.
+  trees=( "$run"/* )
+  if [[ ! -d "${trees[0]}" ]]; then
+    problems+=("no launch line was run, so no leaf's events could be read")
+  else
+    for tree in "${trees[@]}"; do
+      # Fail closed on a tree with no `origin`, rather than reading `$where` unset: under
+      # `set -u` bash 3.2 kills the script there and exits with the status of the command
+      # BEFORE it — routinely 0 — so the suite would stop mid-case and still look green to
+      # anything reading only its exit code (#157).
+      if [[ ! -f "$tree/origin" ]]; then
+        problems+=("${tree#$run/} was launched with no record of which line of $skill_md ran it")
+        continue
+      fi
+      IFS=$'\t' read -r where text < "$tree/origin"
+      complaint="$(bad_context "$tree/.tdd/events.jsonl")"
+      [[ -z "$complaint" ]] ||
+        problems+=("$where leaves events that do not carry issue=$SENTINEL_ISSUE step='$SENTINEL_STEP' ($complaint):$text")
+    done
+  fi
+  report "$name"
+}
 
-report "$name"
+run_context_case
 
 echo "----"
 echo "$pass passed, $fail failed"
