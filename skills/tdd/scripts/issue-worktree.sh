@@ -16,14 +16,32 @@ set -euo pipefail
 # git's own registry of worktrees — asked once here, questioned three times below. `worktree
 # list --porcelain` prints one block per registered worktree, blank-line separated: a
 # `worktree <absolute-path>` line first, then `HEAD <sha>`, then `branch <full-ref>` (absent
-# when that worktree is detached). The **main working tree is always the first block**, which is
-# the question we ask of it right here.
+# when that worktree is detached).
 #
 # Captured into a variable rather than piped into each reader: `set -o pipefail` above would
 # let git's exit code — including the SIGPIPE it takes when a reader stops early — decide the
 # answer instead of the reader's. Each question below feeds it back in with <<<, a here-string,
 # which hands one string to a command as its stdin without a pipeline.
 registry="$(git worktree list --porcelain)"
+
+# main_working_tree — the repository's main working tree, the one every other worktree is linked
+# to. The **main working tree is always the first block** of the registry, so the answer is that
+# block's `worktree <absolute-path>` line with the label taken off.
+#
+# ${registry%%$'\n'*} strips the longest match of "newline and everything after it" from the end,
+# leaving that first line, and ${first_line#worktree } then takes the label off the front. The
+# path git prints there is absolute and has its symlinks resolved (on macOS a /var/... path comes
+# back as /private/var/...), which is the property this needs: git reports every worktree path
+# that way, so the path we print matches what `git worktree list` will say about it.
+#
+# The two steps are a `local` and a print rather than two names in the script's own scope: what
+# the first step yields is still `worktree /path/...`, label and all, and no name outside here
+# should be able to hold that, because no name would be true of it. Behind the function there is
+# one name for the one answer, and it says what the answer is.
+main_working_tree() {
+  local first_line="${registry%%$'\n'*}"
+  printf '%s\n' "${first_line#worktree }"
+}
 
 # The issue worktree belongs to the repository's MAIN working tree, never to the checkout we
 # happen to have been called from. `git rev-parse --show-toplevel`, which this used to ask,
@@ -33,24 +51,11 @@ registry="$(git worktree list --porcelain)"
 # from the main clone computed the un-nested path, failed to find it registered, and then refused
 # because the branch was checked out "somewhere else" (issue #166).
 #
-# ${registry%%$'\n'*} strips the longest match of "newline and everything after it" from the end,
-# leaving the registry's first line — `worktree <absolute-path>` — and ${first_line#worktree }
-# then takes that label off the front. The path git prints there is absolute and has its symlinks
-# resolved (on macOS a /var/... path comes back as /private/var/...), which is the property this
-# needs: git reports every worktree path that way, so the path we print matches what
-# `git worktree list` will say about it.
-#
-# Two names rather than one variable assigned twice: what the first step yields is still
-# `worktree /path/...`, label and all, so a `main_tree` holding it would be a name saying
-# something untrue of its value for the length of a line. `main_tree` is only true once the
-# label is off, and it is named for what it holds when it is.
-#
 # Named `main_tree` and not `root`: every path below hangs off it, so the name is the one place
 # a reader learns *whose* root it is. `root` is what this held back when it was --show-toplevel,
 # and it reads equally true of the caller's checkout — which is exactly the reading that put the
 # run inside a session worktree.
-first_line="${registry%%$'\n'*}"
-main_tree="${first_line#worktree }"
+main_tree="$(main_working_tree)"
 
 # wt_path <n> — where issue <n>'s worktree lives. The layout is stated once, here, because both
 # halves of this script need it and a create that answered with a different path than the remove
