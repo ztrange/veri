@@ -521,9 +521,9 @@ $dirty_after" ), landed.txt $( [[ -e "$clone/landed.txt" ]] && echo "was written
 # base at all — against a repo with no remote the local fallback is taken and the assertion could
 # not fail. The assertion is git's own answer for the branch's upstream (`%(upstream:short)`,
 # which is what `git pull` and `git push` consult), and it must be empty.
-upstream="$work/no-upstream-upstream"
+upstream="$work/no-tracking-upstream"
 new_repo "$upstream"
-clone="$work/no-upstream-clone"
+clone="$work/no-tracking-clone"
 git clone -q "$upstream" "$clone" >/dev/null 2>&1
 want="$(wt_path "$clone" 39)"
 
