@@ -838,6 +838,43 @@ out="$(cd "$flight_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code
 { [[ "$code" == 0 ]] && [[ "$out" == 173 ]]; } \
   && ok || no "a bailed or killed run's issue — a dead conductor PID in its worktree's lock, no open PR — is listed again so a resume is still possible (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '173|'; dead pid=$dead_pid)"
 
+# 19. The signal cases 17 and 18 pin is a term of this project, so the glossary is where a
+# reader is told it exists: CONTEXT.md's **Solvable** entry is the one paragraph that
+# enumerates what makes an issue veri's to take right now, and it named a single claim — an
+# open PR saying `Closes #<n>`. Someone who finds only that there learns the wrong rule twice
+# over: that an issue with no PR is free (it is not — a run claims it from its first step), and
+# that the way to tell is to ask GitHub (it is not — the answer is on local disk). So the entry
+# has to name the lock, `conductor.pid`, and say that it counts only while the process it names
+# is alive, which is the half that keeps a bailed run's issue solvable (#170).
+#
+# The claim is read out of the **Solvable** entry ALONE rather than the whole document, for case
+# 12's reason: the glossary has other entries a sentence about a lock file could land in —
+# **Bail**, **Conductor**, **Ledger** — and prose parked in one of those would answer a
+# file-wide grep while leaving the definition of *solvable* still saying an open PR is the only
+# claim. The slice runs from the entry's own heading to the next bold heading, and is asserted
+# non-empty before it is read, so an entry renamed or moved reads as a failure here rather than
+# as greps over nothing finding nothing to complain about.
+#
+# The lock is matched as a fixed string because `conductor.pid` is the name a reader greps for
+# and the one both scripts write; the liveness is matched loosely, because whether the writer
+# says `kill -0` or "while that process is alive" is their sentence rather than this suite's —
+# case 11's protocol on this same question.
+context_md="CONTEXT.md"
+solvable_entry="$(awk '/^\*\*Solvable\*\*:/ { keep = 1; next } keep && /^\*\*/ { exit } keep' \
+  "$REPO_ROOT/$context_md")"
+
+entry_missing=""
+if [[ -z "${solvable_entry// /}" ]]; then
+  entry_missing=" the-Solvable-entry-itself"
+else
+  grep -qF 'conductor.pid' <<<"$solvable_entry" || entry_missing="$entry_missing the-lock-by-name"
+  grep -qiE 'kill -0|alive|still running|live (conductor|process|run)' <<<"$solvable_entry" \
+    || entry_missing="$entry_missing that-only-a-live-process-claims"
+fi
+
+[[ -z "$entry_missing" ]] \
+  && ok || no "CONTEXT.md's Solvable entry names the conductor PID lock, and a live holder, as what marks a run in flight (missing:$entry_missing)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
