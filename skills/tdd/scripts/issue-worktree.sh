@@ -197,7 +197,13 @@ default_base() {
       return 0
     fi
   done
-  return 1
+
+  # No origin/HEAD and no local main or master: nothing is left to cut from. Said here for the same
+  # reason the fetch's refusal is said where the fetch is — this is the only place that knows which
+  # of the two ways out was taken, and once each has named itself the caller does the same thing
+  # either way, so it needs no status to tell them apart.
+  echo "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)" >&2
+  return 2
 }
 
 # One `git worktree add`, in one of two shapes, and a single print of the path afterwards —
@@ -215,19 +221,11 @@ else
   # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
   # cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
   #
-  # Two ways out of default_base and they are different failures, so the status is kept rather
-  # than collapsed by a bare `||`: 2 is the fetch, which it has already named on stderr — saying
-  # anything more here would bury the one line that tells a human the remote was unreachable —
-  # and 1 is having no default branch to name at all. `base_status=0` first because `set -u`
-  # would kill the read below if the substitution succeeded and the `||` never ran.
-  base_status=0
-  base="$(default_base)" || base_status=$?
-  if [[ "$base_status" -eq 2 ]]; then
-    exit 2
-  elif [[ "$base_status" -ne 0 ]]; then
-    echo "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)" >&2
-    exit 2
-  fi
+  # Two ways out of default_base — the fetch failed, or there was no default branch to name at all —
+  # and both are that same exit. Each has already said which one it was on stderr, next to the
+  # condition that knows, so nothing here has to tell them apart: adding a second message would only
+  # bury the one line a human has to read.
+  base="$(default_base)" || exit 2
 
   # -b creates the branch at <base> and checks it out in the new worktree in one move; -q keeps
   # git's "Preparing worktree" chatter out of the way, and >&2 sends anything it still prints to
