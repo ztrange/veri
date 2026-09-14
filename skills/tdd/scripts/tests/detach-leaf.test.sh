@@ -97,10 +97,12 @@ chmod +x "$harness"
 pgid_of() { ps -o pgid= -p "$1" | tr -d ' '; }
 
 # appeared <file> <seconds> — true once <file> holds something, polled ten times a second up
-# to a budget. Both directions need it: the launcher's child has to have written within the
-# budget, and the control child has to still have written nothing once one has passed.
+# to a budget. Every wait in this suite is that one question: the harness has to say both
+# children are launched before the signal goes out, the launcher's child has to have written
+# within the budget, and the control child has to still have written nothing once one has
+# passed — the last of those reading the answer the other way round, as `! appeared`.
 appeared() {
-  local looks=0 cap=$(( ${2} * 10 ))
+  local looks=0 cap=$(( $2 * 10 ))
   while [[ "$looks" -lt "$cap" ]]; do
     [[ -s "$1" ]] && return 0
     looks=$((looks + 1))
@@ -130,12 +132,7 @@ probe_term_hit_the_launching_shells_group() {
     hpid=$!
     set +m
 
-    looks=0
-    while [[ ! -s "$work/launched" && "$looks" -lt 300 ]]; do
-      looks=$((looks + 1))
-      sleep 0.1
-    done
-    [[ -s "$work/launched" ]] || printf 'never-launched\n' > "$work/why-no-term"
+    appeared "$work/launched" 30 || printf 'never-launched\n' > "$work/why-no-term"
     # Half a second between the launcher handing control back and the signal. The child is
     # detached by the launcher and not by this suite, so there is a moment after the launch
     # returns in which it has not finished moving itself out of this group; signalling inside
