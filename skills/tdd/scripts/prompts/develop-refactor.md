@@ -38,8 +38,9 @@ which file it sits in:
 ### What to do
 
 1. Triage the candidates you see in those files into the two classes above, then apply the
-   structural ones, most valuable first, up to the budget you are given. Only a structural
-   candidate qualifies for a transform, never a cosmetic one.
+   structural ones, most valuable first, up to the budget of {{REFACTOR_BUDGET}} transforms
+   you are given. Only a structural candidate qualifies for a transform, never a cosmetic
+   one.
 2. Commit each transform on its own, as `refactor: <what changed> (#<issue>)`, never a
    batch, so a break stays attributable to one change. That attribution is the whole of
    what a leaf per transform used to buy, and it is what has to survive several transforms

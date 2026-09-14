@@ -676,6 +676,38 @@ says_both_ways "does not ask the report to name every transform it applied" \
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor applies the structural candidates up to its budget, one refactor: commit per transform, runs the touched suites after each reverting one that turns them red, and reports what it applied (${problems#; })"
 
+# 20. where the number behind case 19's bound comes from (issue #150). Case 19 tells the leaf
+#     to apply the structural candidates "up to the budget you are given", and nothing gives it
+#     one: the conductor asks `refactor-budget.sh` how many transforms this step may still
+#     spend and then builds a prompt that never mentions the answer. That was harmless while a
+#     leaf applied exactly one transform and the count lived in the loop around it — the leaf
+#     had no spending decision to make. One leaf per step moves the spending inside the leaf,
+#     so either the number travels with the prompt or the bound is a phrase with nothing behind
+#     it. `VERI_REFACTOR_BUDGET` is where every other reader of that number takes it from
+#     (`refactor-budget.sh:20`), so the builder reads the same variable rather than growing a
+#     second way to say the same thing.
+#
+#     Its own invocation, unlike cases 13 and 16–19, which share case 3's: what is pinned here
+#     is what the environment puts in the prompt, so the environment has to be set for the
+#     call, and this case owns the exit-0 check on it. Set explicitly rather than inherited,
+#     for hermetic-suites.test.sh's reason — a suite's answer must be a fact about the script,
+#     not about the shell that ran it.
+#
+#     A distinctive value, `37`, probed beside the word `budget` rather than anywhere in the
+#     prompt: the template already carries digits — its sub-step numbers, `#<issue>` — so a
+#     bare-number probe is answered by punctuation, and a number the leaf cannot tell is a
+#     budget is not a budget. `37` occurs nowhere in the prompt built without it, checked
+#     against the built prompt rather than the template. Both directions and one bounded
+#     `[^.]{0,N}` per alternation branch, for case 19's reasons; written out rather than
+#     through `says_both_ways`, which reads case 3's `$refactor` and not this call's prompt.
+problems=""
+budgeted="$(VERI_REFACTOR_BUDGET=37 "$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+prompt_says "$budgeted" "the prompt never names 37 as the budget" \
+  -iE -e 'budget[^.]{0,80}37|37[^.]{0,80}budget'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor carries VERI_REFACTOR_BUDGET into the prompt as the number of transforms the leaf may apply (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
