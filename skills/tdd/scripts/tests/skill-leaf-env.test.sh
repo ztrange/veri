@@ -242,11 +242,14 @@ runnable() {
   printf '%s\n' "$launch"
 }
 
-# scan_launches <pattern> <missing> <check> — find every launch line in the document matching
+# scan_launches <pattern> <shape> <check> — find every launch line in the document matching
 # <pattern> and hand each runnable one, substituted, to the shell function named <check>,
-# which asks of it whatever its case is about. <missing> is the complaint recorded when the
-# document holds no matching line at all, since a case that silently examined nothing would
-# otherwise pass while asserting about no launch.
+# which asks of it whatever its case is about. <shape> names the launch the pattern is looking
+# for, and is used only to complain when the document holds no matching line at all, since a
+# case that silently examined nothing would otherwise pass while asserting about no launch.
+# The complaint's frame is built here rather than spelled at each call: both cases report the
+# same fault and only the shape they were looking for differs, so kept per-case the two
+# spellings of that one message could drift apart.
 #
 # Both cases scan the same way and differ only in what they then ask, so the scan is written
 # once. Two halves of it are easy to lose in a copy and quiet when lost: the numbered-grep
@@ -256,11 +259,11 @@ runnable() {
 # from the check, which bash allows — a function sees the locals of the function that called
 # it — so they stay out of the global scope the two cases share.
 scan_launches() {
-  local pattern="$1" missing="$2" check="$3"
+  local pattern="$1" shape="$2" check="$3"
   local lines numbered lineno line launch
   lines="$(grep -nE "$pattern" "$md")"
   if [[ -z "$lines" ]]; then
-    problems+=("$missing")
+    problems+=("$skill_md has no line launching $shape — the launch this case is about could not be found")
     return
   fi
   while IFS= read -r numbered; do
@@ -338,7 +341,7 @@ check_developer_launch() {
 run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
   '\$S/supervise\.sh .*run-leaf\.sh' \
-  "$skill_md has no line launching a leaf through supervise.sh into run-leaf.sh — the launch this case is about could not be found" \
+  "a leaf through supervise.sh into run-leaf.sh" \
   check_developer_launch
 
 # 2. The same criterion, asked of the verifier launches. A verifier is a leaf too — `claude
@@ -372,7 +375,7 @@ check_verifier_launch() {
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
   '\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
-  "$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found" \
+  "a verifier through verify.sh against a spec file" \
   check_verifier_launch
 
 # 3. The second thing a leaf launch has to carry, and the one #163 measured missing: the run
