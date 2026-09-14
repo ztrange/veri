@@ -41,13 +41,18 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
-# The two directories the counts are counts OF, written repo-relative because that is how
-# CLAUDE.md itself names them and how the failure messages have to, then resolved at the
-# point of use. Globs rather than directories: what the sentences count is the scripts and
-# the suites, not everything that happens to sit beside them — `prompts/` and `tests/` are
-# in the first directory, and `fixtures/` is in the second.
+# The two trees the counts are counts OF, each one twice for the same reason the document
+# above is: repo-relative because that is how CLAUDE.md names them and how the failure
+# messages have to, and resolved for `how_many` to expand, so a message can never name a
+# tree the count was not taken from. Globs rather than directories: what the sentences count
+# is the scripts and the suites, not everything that happens to sit beside them —
+# `prompts/` and `tests/` are in the first directory, and `fixtures/` is in the second. The
+# `*` survives the assignment unexpanded: bash globs a word where it is used, not where it
+# is stored.
 scripts_glob="skills/tdd/scripts/*.sh"
+scripts_path="$ROOT/$scripts_glob"
 suites_glob="skills/tdd/scripts/tests/*.test.sh"
+suites_path="$ROOT/$suites_glob"
 
 # The section the second and third counts live in, named once: it is both an argument to
 # `section` and a name the failure messages spell, so renaming the heading in the document
@@ -179,8 +184,8 @@ check() {
 name="$claude_md's stated script and suite counts match the scripts and suites on disk"
 problems=()
 
-n_scripts="$(how_many "$ROOT/$scripts_glob")"
-n_suites="$(how_many "$ROOT/$suites_glob")"
+n_scripts="$(how_many "$scripts_path")"
+n_suites="$(how_many "$suites_path")"
 
 # Fail closed on an inventory of nothing: a glob that matched no file means the tree moved
 # out from under this suite, and zero must not quietly become the number every claim is
