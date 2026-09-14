@@ -462,12 +462,17 @@ exit_window=2
 # exit_run <arm> <heartbeat> <leaf> — supervise one leaf in its own directory under
 # $exit_work, named for the arm. The leaf is called `develop-red` in every arm: leaf-role.sh
 # has to be able to read the name or nothing is logged at all (supervise.sh:141-154), and
-# nothing in this case is about which name it is. The hard timeout is well clear of every
-# arm, so the stuck arm dies on the heartbeat and its cause says so.
+# nothing in this case is about which name it is.
+#
+# Through `sup_run` above, so the pinned watchdog quartet is written down once for every case
+# that reads the event log rather than a fifth time here — this arm-runner was the last copy of
+# it left. The one knob this case chooses for itself rides in front of `"$SUP"`, the same
+# calling convention case 15 uses for VERI_ISSUE/VERI_STEP: `env` applies leading assignments
+# left to right and the last of a repeated name wins, so a `VERI_HEARTBEAT` here overrides the
+# helper's. The helper's hard timeout is well clear of every arm — the stuck arm is killed a
+# `$exit_window` of seconds in — so that arm dies on the heartbeat and its cause says so.
 exit_run() {
-  mkdir -p "$exit_work/$1"
-  ( cd "$exit_work/$1" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$2" VERI_TIMEOUT=30 \
-      VERI_POLL=0.2 "$SUP" develop-red "$stub/$3" ) >/dev/null 2>&1
+  sup_run "$exit_work/$1" VERI_HEARTBEAT="$2" "$SUP" develop-red "$stub/$3"
 }
 
 exit_run ok    5              leaf-ok
