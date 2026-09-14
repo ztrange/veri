@@ -269,13 +269,15 @@ worktree_add() { git worktree add -q "$@" >&2; }
 # One `git worktree add`, in one of three shapes, and a single print of the path afterwards —
 # whichever shape ran, the caller parses the same line.
 #
-# A branch that already exists — a resume after the last run's worktree was removed, or one
-# fetched back from the remote — gets checked out, not cut again. `git worktree add -b` refuses
-# outright once the ref is there, and re-cutting it from the default branch would silently
-# abandon whatever the previous run committed on it. Naming the branch as `add`'s second
-# argument (no -b) is how git says "check this existing branch out here". The holder check above
-# already established no other worktree has it, so taking it steals nothing.
+# A branch that already exists gets checked out at its own tip, never cut again: re-cutting it
+# from the default branch would silently abandon whatever the previous run committed on it. Which
+# of the two namespaces it was found in decides the shape, and only the arm that ran knows, so
+# each says so where it is rather than here — this line is the rule both obey.
 if branch_exists "$branch"; then
+  # A local ref: a resume after the last run's worktree was removed. Naming the branch as `add`'s
+  # second argument (no -b) is how git says "check this existing branch out here"; -b refuses
+  # outright once the ref is there. The holder check above already established no other worktree
+  # has it, so taking it steals nothing.
   worktree_add "$path" "$branch"
 elif remote_branch_exists "$branch"; then
   # Only on the remote: make the local branch at the remote's tip, so the worktree arrives carrying
