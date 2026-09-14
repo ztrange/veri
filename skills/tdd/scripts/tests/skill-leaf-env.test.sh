@@ -143,6 +143,23 @@ wait" ) >/dev/null 2>&1
   cat "$seen" 2>/dev/null || echo '<no leaf ran>'
 }
 
+# expect_sentinel <leaf> <launch-line> <file>... — run one launch line and record a problem
+# unless the leaf at the far end saw the sentinel test command. The arguments are
+# `launched_test_cmd`'s, passed straight through.
+#
+# This is the assertion both cases make, and it is written once because it is **one**
+# criterion asked of two launch shapes: the shapes differ in how the line is spelled and what
+# its tree must hold, not in what is wanted of it. Kept per-case, the two copies could drift
+# into describing the same failure two ways — and the value they quote is the whole evidence a
+# reader gets, since `<unset>` (the prefix is missing) and `<no leaf ran>` (the line never
+# reached one) are different faults with the same verdict.
+expect_sentinel() {
+  local leaf="$1" got
+  got="$(launched_test_cmd "$@")"
+  [[ "$got" == "$SENTINEL" ]] ||
+    problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
+}
+
 # runnable <line> — echo one launch line as a conductor types it, with the document's
 # placeholders supplied; or echo nothing and return 1 when the line names one this probe
 # cannot supply.
@@ -224,16 +241,14 @@ problems=()
 # pointed at. Both are read from the substituted copy, since a leaf named `revise-<phase>-<k>`
 # in the document is `revise-red-1` when it runs.
 check_developer_launch() {
-  local launch="$1" leaf prompt got
+  local launch="$1" leaf prompt
   leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$launch")"
   prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$launch" | head -1)"
   if [[ -z "$prompt" ]]; then
     problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
     return
   fi
-  got="$(launched_test_cmd "$leaf" "$launch" "$prompt")"
-  [[ "$got" == "$SENTINEL" ]] ||
-    problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
+  expect_sentinel "$leaf" "$launch" "$prompt"
 }
 
 scan_launches '\$S/supervise\.sh .*run-leaf\.sh' \
@@ -267,11 +282,9 @@ problems=()
 # `<phase>` where a run says `red`. The two files named are spelled as `runnable`'s table
 # spells them, so the tree holds the spec and the test the line is about to hand verify.sh.
 check_verifier_launch() {
-  local launch="$1" leaf got
+  local launch="$1" leaf
   leaf="verify-$(sed -E 's/.*verify\.sh +([^ ]+).*/\1/' <<< "$launch")"
-  got="$(launched_test_cmd "$leaf" "$launch" ".tdd/issue-143-spec.md" "probe.test.sh")"
-  [[ "$got" == "$SENTINEL" ]] ||
-    problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
+  expect_sentinel "$leaf" "$launch" ".tdd/issue-143-spec.md" "probe.test.sh"
 }
 
 scan_launches 'nohup .*\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
