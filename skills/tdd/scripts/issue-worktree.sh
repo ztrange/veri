@@ -257,7 +257,16 @@ default_base() {
   printf '%s\n' "origin/$name"
 }
 
-# One `git worktree add`, in one of two shapes, and a single print of the path afterwards —
+# worktree_add <args…> — the `git worktree add` all three arms below run, carrying the two
+# things none of them may forget: -q, and git's own output on stderr. stdout here belongs to
+# the single line the caller parses — the worktree's path — so an arm that dropped either
+# would print "Preparing worktree" into that answer and the conductor would `cd` to it.
+# Written once, the flags cannot come to differ between the arm a test exercised and the arm
+# it did not, and the reason is read where it is enforced rather than at whichever arm
+# happened to state it.
+worktree_add() { git worktree add -q "$@" >&2; }
+
+# One `git worktree add`, in one of three shapes, and a single print of the path afterwards —
 # whichever shape ran, the caller parses the same line.
 #
 # A branch that already exists — a resume after the last run's worktree was removed, or one
@@ -267,7 +276,7 @@ default_base() {
 # argument (no -b) is how git says "check this existing branch out here". The holder check above
 # already established no other worktree has it, so taking it steals nothing.
 if branch_exists "$branch"; then
-  git worktree add -q "$path" "$branch" >&2
+  worktree_add "$path" "$branch"
 elif remote_branch_exists "$branch"; then
   # Only on the remote: make the local branch at the remote's tip, so the worktree arrives carrying
   # the previous run's commits and — the part that decides whether a resume is even recognised as
@@ -280,7 +289,7 @@ elif remote_branch_exists "$branch"; then
   # local branch — but that guess is off entirely under `checkout.guess=false` in a user's config,
   # and a behaviour this script depends on must not be one a config setting can take away without
   # a word.
-  git worktree add -q -b "$branch" "$path" "$(remote_branch_ref "$branch")" >&2
+  worktree_add -b "$branch" "$path" "$(remote_branch_ref "$branch")"
 else
   # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
   # cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
@@ -291,9 +300,7 @@ else
   # bury the one line a human has to read.
   base="$(default_base)" || exit 2
 
-  # -b creates the branch at <base> and checks it out in the new worktree in one move; -q keeps
-  # git's "Preparing worktree" chatter out of the way, and >&2 sends anything it still prints to
-  # stderr, because stdout here belongs to the one line the caller parses: the path.
+  # -b creates the branch at <base> and checks it out in the new worktree in one move.
   #
   # --no-track: with $base now a remote-tracking ref (`origin/main`), git's default
   # branch.autoSetupMerge would read the shape as "you presumably want to track it" and write
@@ -302,7 +309,7 @@ else
   # while a bare `git push` aimed at main on the remote. The branch that carries a PR points
   # nowhere by itself. This is a cost of the remote base, not of the old behaviour: a local `main`
   # set up no tracking at all, so the tracking arrives with the remote base and goes off with it.
-  git worktree add -q --no-track -b "$branch" "$path" "$base" >&2
+  worktree_add --no-track -b "$branch" "$path" "$base"
 fi
 
 printf '%s\n' "$path"
