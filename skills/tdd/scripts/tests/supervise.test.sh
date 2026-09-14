@@ -23,14 +23,14 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
 stub="$(mktemp -d)"
 work="$(mktemp -d)"
-# Every temp dir this suite makes is removed here, on the one path that runs however the
-# script ends — including the Ctrl-C or the `make test` timeout that an `rm` at the foot of
-# a case never reaches. `$launch_work`, `$retry_work`, `$exit_work`, `$ctx_work` and
-# `$usage_work` are cases 12 to 16's and are made 270 lines down, so they are named with
-# `${…:-}`: unset until then, and
-# `rm -rf ""` is a silent no-op (POSIX: `-f` ignores an operand that does not exist), so an
-# early exit cleans the ones that do exist.
-trap 'rm -rf "$stub" "$work" "${launch_work:-}" "${retry_work:-}" "${exit_work:-}" "${ctx_work:-}" "${usage_work:-}"' EXIT
+# Both temp dirs are removed here, on the one path that runs however the script ends —
+# including the Ctrl-C or the `make test` timeout that an `rm` at the foot of a case never
+# reaches. Cases 12 to 16 each need a run directory of their own (case 12's reason: the event
+# log accumulates across a run), and each takes a NAMED SUBDIRECTORY of `$work` rather than a
+# `mktemp -d` of its own — the shape harvest-usage.test.sh uses for its two. So this line does
+# not grow a name per case, and the next case that reads the event log is cleaned up by
+# existing rather than by remembering to add a sixth `${…:-}` here.
+trap 'rm -rf "$stub" "$work"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
@@ -280,8 +280,9 @@ explicit_window="$(killed_window hb-explicit 5)"
 #     payload it has to keep intact (event.sh:41). The expected value is that argv joined by
 #     spaces, the same spelling.
 #
-#     A work directory of its own: the event log accumulates across a whole run, and every
-#     case above shares `$work`, so a probe there would be reading whichever launch some
+#     A run directory of its own — a subdirectory of `$work`, so the trap at the top of the
+#     file covers it already: the event log accumulates across a whole run, and every case
+#     above works directly in `$work`, so a probe there would be reading whichever launch some
 #     earlier case happened to write last. For the same reason the probe picks the log's
 #     `launch` line rather than asserting on the file's only line — the `retry` and `exit`
 #     marks land in this same file and must not turn this case red.
@@ -336,8 +337,14 @@ else:
 # `env` applies leading `VAR=VALUE` words left to right and stops at the first word that is not
 # one, so a caller needing extra context in the child's environment — case 15's VERI_ISSUE and
 # VERI_STEP — puts it in front of `"$SUP"` and this helper needs no parameter for it.
+#
+# The directory is created here rather than by each caller because the callers name one under
+# `$work` instead of making one with `mktemp -d`, and a `cd` into a directory that does not
+# exist would fail silently into `>/dev/null 2>&1` — leaving the case reading an event log some
+# other run wrote.
 sup_run() {
   local dir="$1"; shift
+  mkdir -p "$dir"
   ( cd "$dir" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
       "$@" ) >/dev/null 2>&1
 }
@@ -345,7 +352,7 @@ sup_run() {
 # Every variable this case owns is prefixed with the event it is about, and case 13's with
 # its own — so the two read as the siblings they are, and each says at a glance which of
 # `event_field`'s two event arguments its assertions are about.
-launch_work="$(mktemp -d)"
+launch_work="$work/launch"
 # The name and the command are each written once, then used both to launch and to expect —
 # the shape `$launch_cmd` already had. Spelled a second time in the assertion instead, the
 # name could drift from the launched one and the case would go green on a leaf it never ran;
@@ -405,7 +412,10 @@ heartbeat_kill() { [[ "$1" == "no heartbeat for "*" (window ${2}s)" ]]; }
 #     one line it demands says as well that a budget of one retry wrote one mark, not one
 #     per attempt.
 
-retry_work="$(mktemp -d)"
+# This case launches the supervisor itself rather than through `sup_run`, so the directory
+# `sup_run` would have made is made here.
+retry_work="$work/retry"
+mkdir -p "$retry_work"
 retry_window=1
 ( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT="$retry_window" \
     VERI_TIMEOUT=30 VERI_POLL=0.2 \
@@ -446,7 +456,7 @@ retry_cause="$(event_field "$retry_work" retry cause)"
 #     of more than `$exit_window` seconds has to have elapsed before the kill (supervise.sh:120-127),
 #     so a hardcoded 0 or a field carrying something other than elapsed time fails there.
 
-exit_work="$(mktemp -d)"
+exit_work="$work/exit"
 exit_window=2
 
 # exit_run <arm> <heartbeat> <leaf> — supervise one leaf in its own directory under
@@ -507,7 +517,7 @@ exit_stuck_secs="$(event_field   "$exit_work/stuck" exit secs)"
 #
 #     A directory of its own, for case 12's reason: the event log accumulates across a run,
 #     and `event_field` demands exactly one line of the kind it is asked for.
-ctx_work="$(mktemp -d)"
+ctx_work="$work/ctx"
 ctx_issue=163
 ctx_step=4
 sup_run "$ctx_work" VERI_ISSUE="$ctx_issue" VERI_STEP="$ctx_step" \
@@ -546,7 +556,7 @@ ctx_exit_step="$(event_field    "$ctx_work" exit   step)"
 #     out: a leaf that finished clean must still report 0.
 #
 #     A directory of its own, for case 12's reason — the event log accumulates across a run.
-usage_work="$(mktemp -d)"
+usage_work="$work/usage"
 usage_turns=7
 # The closing record a finished leaf's log ends in, printed by a stub leaf of this suite's
 # usual shape. The heredoc is unquoted so `$usage_turns` expands into the JSON; nothing else
