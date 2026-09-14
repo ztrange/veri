@@ -89,12 +89,15 @@ TARGETS=(docs docs-test docs-check docs-fresh)
 # reading it is inside a run that never asked for a page.
 DEV_CMD='make test'
 
-# The variable the tripwires are told where to log through, and the word a stderr line has
-# to carry for the refusal to have said why. The second is the environment variable the
-# recipe refused over: a reader who sees it knows both what stopped the build and which
-# knob to reach for, where "refusing" alone sends them to read the Makefile.
+# The two environment variables this suite is written around, each spelled once. The first is
+# where the stand-ins are told to log. The second is the variable the recipes refuse over, and
+# it plays three parts at once: what a probe sets to make the run a development one, what a
+# probe unsets to ask the premise, and the word a stderr line has to carry for the refusal to
+# have said why. One name for all three because they are one string — a suite that set one
+# variable and looked for another on stderr would pass while the recipe named the wrong knob,
+# and "refusing" with no knob in it sends its reader to the Makefile to find out which.
 TRIPWIRE_VAR='VERI_TRIPWIRE_LOG'
-REASON='VERI_TEST_CMD'
+GUARD_VAR='VERI_TEST_CMD'
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem,
@@ -190,18 +193,18 @@ probe_runner_is_this_repositorys() {
 }
 
 # probe_tripwires_fire_when_the_variable_is_unset <tree> — the other premise, and the one
-# that makes "nothing ran" mean something: with VERI_TEST_CMD out of the environment, each of
-# the four targets over this same tree reaches a tripwire and comes back 0. A tree in which
+# that makes "nothing ran" mean something: with the guard variable out of the environment, each
+# of the four targets over this same tree reaches a tripwire and comes back 0. A tree in which
 # they could not — a stand-in at the wrong path, a glob that matched nothing — would answer
 # every probe below with a refusal it had nothing to do with.
 probe_tripwires_fire_when_the_variable_is_unset() {
   local target
   for target in "${TARGETS[@]}"; do
-    run_target "$1" "$target" env -u VERI_TEST_CMD
+    run_target "$1" "$target" env -u "$GUARD_VAR"
     [[ "$run_code" == 0 ]] ||
-      problems+=("the premise broke: with VERI_TEST_CMD unset, 'make $target' over the scratch tree exited $run_code, so a refusal below is not distinguishable from a tree that cannot run: $(flat "$run_err")")
+      problems+=("the premise broke: with $GUARD_VAR unset, 'make $target' over the scratch tree exited $run_code, so a refusal below is not distinguishable from a tree that cannot run: $(flat "$run_err")")
     [[ -s "$LOG" ]] ||
-      problems+=("the premise broke: with VERI_TEST_CMD unset, 'make $target' reached none of the stand-ins, so an empty log after a refusal says nothing")
+      problems+=("the premise broke: with $GUARD_VAR unset, 'make $target' reached none of the stand-ins, so an empty log after a refusal says nothing")
   done
 }
 
@@ -214,14 +217,14 @@ probe_tripwires_fire_when_the_variable_is_unset() {
 probe_targets_refuse() {
   local target
   for target in "${TARGETS[@]}"; do
-    run_target "$1" "$target" env "VERI_TEST_CMD=$DEV_CMD"
+    run_target "$1" "$target" env "$GUARD_VAR=$DEV_CMD"
 
     [[ "$run_code" == 2 ]] ||
-      problems+=("want 'make $target' to exit 2 under VERI_TEST_CMD='$DEV_CMD'; got $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$run_err")")
+      problems+=("want 'make $target' to exit 2 under $GUARD_VAR='$DEV_CMD'; got $run_code, stdout: $(flat "$run_out"), stderr: $(flat "$run_err")")
     [[ ! -s "$LOG" ]] ||
-      problems+=("'make $target' ran something under VERI_TEST_CMD='$DEV_CMD' — a development run must not pay for a page build: $(flat "$(cat "$LOG")")")
-    grep -q "$REASON" <<<"$run_err" ||
-      problems+=("nothing on stderr from 'make $target' named $REASON, so its refusal does not say why: $(flat "$run_err")")
+      problems+=("'make $target' ran something under $GUARD_VAR='$DEV_CMD' — a development run must not pay for a page build: $(flat "$(cat "$LOG")")")
+    grep -q "$GUARD_VAR" <<<"$run_err" ||
+      problems+=("nothing on stderr from 'make $target' named $GUARD_VAR, so its refusal does not say why: $(flat "$run_err")")
   done
 }
 
@@ -229,7 +232,7 @@ probe_targets_refuse() {
 #    refuse. Three probes, each asked of the whole target list: the two premises first —
 #    the runner is the real one, and the stand-ins the refusal is measured against really
 #    do fire — then the criterion.
-name="with VERI_TEST_CMD='$DEV_CMD', make docs, docs-test, docs-check and docs-fresh each exit 2 without running anything and say why on stderr"
+name="with $GUARD_VAR='$DEV_CMD', make docs, docs-test, docs-check and docs-fresh each exit 2 without running anything and say why on stderr"
 problems=()
 run_code=0
 run_out=""
