@@ -994,6 +994,55 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
   && [[ "$tip" == "$main_tip" ]]; } \
   && ok || no "a name in neither namespace, in a repo that has a remote: still cut from the default branch (exit=$code want 0, the clone's refs/heads/tdd/55-neither=$local_ref and refs/remotes/origin/tdd/55-neither=$remote_ref want both absent, stdout='$out' want '$want', branch='$branch' want 'tdd/55-neither', tip='$tip' want the default branch's $main_tip — not the other remote branch tdd/99-some-other-run's $other_tip)"
 
+# 25. the worktree is already there AND a live conductor holds it — the idempotent path must
+# refuse, not resume: exit 2, name the holder, and keep the live run's path off stdout (#170).
+#
+# Case 2 pins the other half, and that is what makes this one dangerous rather than merely
+# untidy: a second call answers with the path the first made, so a second conductor started
+# while the first is still running `cd`s into the live run's worktree, finds its ledger and
+# follows *Resume* — whose `git reset --hard HEAD` on a `⟂ refactor pending` step throws the
+# running leaf's uncommitted work away. The refusal at case 3 comes too late to stop it: the
+# idempotent answer returns before the holder check is ever reached.
+#
+# What says a run is live is the lock the conductor writes inside its own worktree,
+# `.tdd/conductor.pid`, probed with `kill -0` — the same file and the same probe
+# solvable-issues.sh uses to keep the issue out of the pool while the run is in flight, so the
+# two scripts agree about what "in flight" is observed from.
+#
+# The seed is the script's OWN first call, so what the second call meets is the worktree this
+# script makes rather than one the suite built to look like it; the lock then holds `$$`, this
+# suite's shell, which is the only pid a test can be certain is alive for exactly as long as
+# the case runs. `first_code` is asserted too: a seed whose first call failed would leave no
+# worktree, the second call would take the create arm, and the case would pass for the wrong
+# reason.
+#
+# Three things asserted together, because a refusal that still printed the path is not one:
+# stdout is the single line the conductor parses and acts on, so it must be empty; stderr must
+# carry the pid, since the path is derivable from the issue number and the process is the only
+# thing that tells a human which run is still going; and git's registry() must be unchanged,
+# because the live run's worktree is not ours to touch.
+repo="$work/live-holder"
+new_repo "$repo"
+live="$(wt_path "$repo" 61)"
+
+first="$(cd "$repo" && "$WT" 61 live-run 2>/dev/null)" && first_code=0 || first_code=$?
+mkdir -p "$live/.tdd"
+printf '%s\n' "$$" > "$live/.tdd/conductor.pid"
+before="$(registry "$repo")"
+
+errfile="$work/live-holder.err"
+out="$(cd "$repo" && "$WT" 61 live-run 2>"$errfile")" && code=0 || code=$?
+err="$(cat "$errfile")"
+after="$(registry "$repo")"
+
+{ [[ "$first_code" == 0 ]] && [[ "$first" == "$live" ]] && [[ "$code" == 2 ]] && [[ -z "$out" ]] \
+  && [[ "$err" == *"$$"* ]] && [[ "$after" == "$before" ]]; } \
+  && ok || no "a second call while the conductor that made the worktree is still alive: exits 2 naming the holder and prints no path (seed: first call exit=$first_code want 0, stdout='$first' want '$live'; second call exit=$code want 2, stdout='$out' want empty, stderr='$err' want it to name the live pid $$, git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo "changed:
+--- before
+$before
+--- after
+$after" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

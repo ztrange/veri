@@ -96,6 +96,25 @@ slug="${2:?missing <slug>}"
 branch="tdd/$n-$slug"
 path="$(wt_path "$n")"
 
+# live_conductor <worktree-path> — the pid of the conductor still running inside this worktree,
+# or nothing at all when none is. The lock is `.tdd/conductor.pid` inside the worktree, written
+# by the run at its first step; `kill -0` sends no signal and answers only whether the process
+# is there to send one to. solvable-issues.sh reads the same file with the same probe, so the
+# two scripts agree about what "a run is in flight" is observed from (#170).
+#
+# Every way of not finding a live pid — no lock file, an unreadable one, a lock holding
+# something that is not a number, a pid nothing answers for — is the same answer here: nobody
+# holds it. That fail-open reading is what keeps a bailed or killed run's worktree resumable,
+# which is the behaviour the idempotent path exists for in the first place.
+live_conductor() {
+  local pid
+  pid="$(cat "$1/.tdd/conductor.pid" 2>/dev/null || true)"
+  if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+    printf '%s\n' "$pid"
+  fi
+  return 0
+}
+
 # Idempotent: a second call for the same issue — a resume, or a conductor re-entering step 1 —
 # answers with the path it already made instead of dying on `git worktree add`'s "already
 # exists". grep -x -F asks the registry for that exact `worktree <path>` line, whole and
@@ -103,6 +122,18 @@ path="$(wt_path "$n")"
 # matters — a leftover directory git no longer knows about is not a worktree we can hand back,
 # and it must fall through to the add below.
 if grep -qxF "worktree $path" <<<"$registry"; then
+  # …but only when the run that made it is over. A worktree whose conductor is still alive is
+  # not ours to hand back: the caller `cd`s into it, finds that run's ledger and follows
+  # *Resume*, whose `git reset --hard HEAD` on a `⟂ refactor pending` step throws the live
+  # leaf's uncommitted work away. So refuse with exit 2 — no answer could be obtained — before
+  # the path is printed, and name the pid, because the path is derivable from the issue number
+  # while the process is the only thing that says which run is still going. The refusal below
+  # at checkout_holder is too late for this: it is never reached once this arm returns.
+  conductor_pid="$(live_conductor "$path")"
+  if [[ -n "$conductor_pid" ]]; then
+    echo "issue-worktree: $path is held by a live conductor (pid $conductor_pid) — refusing to hand back a run in flight" >&2
+    exit 2
+  fi
   printf '%s\n' "$path"
   exit 0
 fi
