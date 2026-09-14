@@ -603,8 +603,10 @@ actual_lines="$(awk 'END {print NR}' "$SOLVABLE")"
 # not exotic: it is what GitHub's own autocomplete inserts and what a pasted link leaves
 # behind, so `- https://github.com/ztrange/veri/issues/120` under `## Blocked by` is the same
 # claim as `- #120` and must gate the issue the same way. Case 2 pins that gate for the `#<n>`
-# spelling; this is the identical criterion observed through the other one, which is why the
-# fixture pair below is case 2's with the reference rewritten and nothing else changed.
+# spelling; this is the identical criterion observed through the other one, so the fixture pair
+# below is built to case 2's shape and differs from it only in how the blocker is spelled. The
+# numbers are the ones the miss was observed on — #125 carrying a URL-form blocker on #120,
+# 2026-09-12 — rather than case 2's, so the case carries the incident that motivated it.
 #
 # One criterion observed twice, for case 2's reason: "blocks exactly as `#<n>` does" is a claim
 # about both states, so the same two issues are fed in twice changing nothing but #120's. While
@@ -613,9 +615,9 @@ actual_lines="$(awk 'END {print NR}' "$SOLVABLE")"
 # for being closed. So the same fixture pair yields "120" then "125".
 #
 # The labelled blocker is what keeps both halves legible rather than collapsing one into the
-# empty-result criterion case 5 owns: stdout is a number either way, and today's script — whose
+# empty-result criterion case 5 owns: stdout is a number either way. A script that reads only
 # `#(\d+)` finds nothing in a URL, so the section reads as empty and the issue reads as
-# unblocked — prints "120\n125" on the first run, a different string rather than a reorder.
+# unblocked, and its first run prints "120\n125" — a different string, not a reorder.
 fx="$(fixture url-blocked)"
 url_issues() {  # url_issues <state-of-120>
   cat <<JSON
