@@ -91,6 +91,19 @@ smuggled='ran only tests/test_slugify.py, the suite I touched, because the rest 
 five="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases "$smuggled")"
 [[ "$five" == "$green" ]] && ok || no "a fifth argument reaches nothing (argument list unchanged)"
 
+# The probe the two per-phase cases below are built from, lifted from the same helper in
+# build-develop-prompt.test.sh, which carries its full reasoning. One claim, one miss: the
+# pattern stays at the call site, where the comment above it reasons about that claim, while
+# what every probe would otherwise repeat lives once — the fold to a single line and the
+# shape of the complaint appended to `problems`. The fold is not cosmetic: a prompt is
+# markdown wrapped at ~85 columns and grep only ever matches within one line, so any claim
+# long enough to be worth probing for reads as absent the moment a rewrap puts it across a
+# line break. `-e` because a pattern is data, not a flag.
+prompt_says() {  # prompt_says <prompt> <complaint> <grep argument…>
+  local prompt="$1" complaint="$2"; shift 2
+  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" || problems="$problems; $complaint"
+}
+
 # 12. every phase's built prompt carries the foreground rule. A verifier that puts its
 #     suite run in the background can end its turn before the run returns, printing no
 #     footer — so no `VERDICT:` line, so verify.sh exits 2 and the conductor must relaunch
@@ -108,18 +121,16 @@ five="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases "$smu
 #     cases 5, 6, 7 and 9's — same phases, same arguments — so this case invokes the
 #     builder not at all, and those cases keep the exit-status checks on them.
 #
-#     The fold to one line is that twin's `prompt_says` idiom, and is here for its reason:
-#     a prompt is markdown wrapped at ~85 columns and grep only ever matches within one
-#     line, so `end your turn` landing across a line break would read as absent. It matches
-#     today only because the wrap happens to fall elsewhere — one rewrap of `_shared.md`
-#     and the pin goes red over its own formatting.
+#     `prompt_says` folds to one line for the reason given at its definition, which bites
+#     here in particular: `end your turn` is three short words in a paragraph wrapped at ~85
+#     columns, so an unfolded probe would go red on a rewrap rather than on the rule going
+#     missing. It matches today only because the wrap happens to fall elsewhere.
 demands_foreground() {  # demands_foreground <phase label> <prompt>
-  local label="$1" prompt
-  prompt="$(tr '\n' ' ' <<<"$2")"
-  grep -qi 'foreground' <<<"$prompt" \
-    || problems="$problems; verify-$label never says to run test commands in the foreground"
-  grep -qiE 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn' <<<"$prompt" \
-    || problems="$problems; verify-$label never forbids ending the turn mid-run"
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "verify-$label never says to run test commands in the foreground" \
+    -i -e 'foreground'
+  prompt_says "$prompt" "verify-$label never forbids ending the turn mid-run" \
+    -iE -e 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn'
 }
 
 problems=""
@@ -148,16 +159,15 @@ demands_foreground pin "$pin"
 #     rather than covered for by its twin.
 #
 #     Reads cases 5, 6, 7 and 9's prompts and invokes the builder not at all, as case 12
-#     does, and folds newlines the same way and for the same reason: `git stash` is two
+#     does, and probes through the same `prompt_says` for the same reason: `git stash` is two
 #     short words in markdown wrapped at ~85 columns, and grep matches within one line, so
 #     an unfolded probe would go red on a rewrap rather than on the rule going missing.
 forbids_stash() {  # forbids_stash <phase label> <prompt>
-  local label="$1" prompt
-  prompt="$(tr '\n' ' ' <<<"$2")"
-  grep -qiE "(never|do not|don't|no)[^.]{0,60}stash" <<<"$prompt" \
-    || problems="$problems; verify-$label never forbids git stash"
-  grep -qE 'git show HEAD:|git worktree add' <<<"$prompt" \
-    || problems="$problems; verify-$label names no shared-ref-free way to see the committed version"
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "verify-$label never forbids git stash" \
+    -iE -e "(never|do not|don't|no)[^.]{0,60}stash"
+  prompt_says "$prompt" "verify-$label names no shared-ref-free way to see the committed version" \
+    -E -e 'git show HEAD:|git worktree add'
 }
 
 problems=""
