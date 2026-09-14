@@ -805,6 +805,59 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 { [[ "$code" == 0 ]] && [[ -z "$origin_head" ]] && [[ "$tip" == "$remote_tip" ]]; } \
   && ok || no "an origin remote but no refs/remotes/origin/HEAD: cuts tdd/47-no-origin-head from origin's freshly fetched tip (exit=$code want 0, stdout='$out' want '$want', the clone's refs/remotes/origin/HEAD $( [[ -z "$origin_head" ]] && echo "absent as seeded, good" || echo "was '$origin_head' — the seed did not remove it, so this case cannot tell the arms apart" ), tip='$tip' want origin's $remote_tip not the stale local main's $stale_tip)"
 
+# 21. the issue branch exists ONLY as refs/remotes/origin/<name> — a run made on another machine
+# and pushed, then fetched back here. It is checked out at its own tip, with its commits and its
+# committed ledger present in the new worktree (issue #186).
+#
+# Cases 5 and 18 pin the resume when the branch is a LOCAL ref, which is the only shape
+# `branch_exists` asks about (`show-ref --verify refs/heads/<name>`). A branch recovered from the
+# remote carries no local ref until something makes one, so the existing-branch arm is not taken
+# and the branch is cut afresh from the default branch — on top of a name the remote already uses,
+# discarding whatever the previous run committed on it. Observed 2026-09-14 on issue #163: fifteen
+# commits and a ledger with four of six steps ticked, and every script involved exited 0.
+#
+# The ledger is what makes that silent rather than merely wrong: the conductor's resume check asks
+# whether `.tdd/issue-<n>.md` exists *in the worktree*, so a freshly cut branch reads as a new run
+# and re-plans from scratch. So the case asserts the ledger's own bytes, not just the tip — a
+# worktree at the right commit whose ledger did not come with it would still send the run down the
+# wrong arm.
+#
+# The seed is upstream+clone like cases 13–18, with one difference that is the whole point: the
+# branch is created and committed in the UPSTREAM, so the clone learns it as a remote-tracking ref
+# and gets no refs/heads/ entry for it. `git clone` only makes a local branch for the remote's HEAD,
+# which the upstream is switched back to `main` before cloning so it is not this one. The absence of
+# the local ref is asserted from the clone before the call, because a git version that made local
+# branches for every remote one would otherwise turn this into case 5 and prove nothing.
+upstream="$work/remote-only-upstream"
+new_repo "$upstream"
+git_q "$upstream" switch -q -c tdd/49-remote-only >/dev/null 2>&1
+mkdir -p "$upstream/.tdd"
+printf -- '- [x] 1. the step the previous run finished\n' > "$upstream/.tdd/issue-49.md"
+git_q "$upstream" add .tdd/issue-49.md >/dev/null 2>&1
+git_q "$upstream" commit -q -m "plan: the previous run's ledger" >/dev/null 2>&1
+ledger_want="$(cat "$upstream/.tdd/issue-49.md")"
+remote_branch_tip="$(git_q "$upstream" rev-parse tdd/49-remote-only)"
+git_q "$upstream" switch -q main >/dev/null 2>&1
+clone="$work/remote-only-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+main_tip="$(git_q "$clone" rev-parse main)"
+want="$(wt_path "$clone" 49)"
+
+# The two halves of "only on the remote", asked of the clone as the script is handed it.
+local_ref="$(git_q "$clone" show-ref --verify --quiet refs/heads/tdd/49-remote-only && echo present || echo absent)"
+remote_ref="$(git_q "$clone" rev-parse --verify --quiet refs/remotes/origin/tdd/49-remote-only 2>/dev/null)"
+
+out="$(cd "$clone" && "$WT" 49 remote-only 2>/dev/null)" && code=0 || code=$?
+
+branch="$(git -C "$want" branch --show-current 2>/dev/null)"
+tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
+ledger_got="$(cat "$want/.tdd/issue-49.md" 2>/dev/null)"
+
+{ [[ "$code" == 0 ]] && [[ "$local_ref" == absent ]] && [[ "$remote_ref" == "$remote_branch_tip" ]] \
+  && [[ "$out" == "$want" ]] && [[ "$branch" == "tdd/49-remote-only" ]] \
+  && [[ "$tip" == "$remote_branch_tip" ]] && [[ "$ledger_got" == "$ledger_want" ]]; } \
+  && ok || no "a branch that exists only on the remote: checked out at its own tip with its ledger present, not re-cut from the default branch (exit=$code want 0, the clone's refs/heads/tdd/49-remote-only=$local_ref want absent, its refs/remotes/origin/tdd/49-remote-only='$remote_ref' want $remote_branch_tip, stdout='$out' want '$want', branch='$branch' want 'tdd/49-remote-only', tip='$tip' want the remote branch's $remote_branch_tip not main's $main_tip, .tdd/issue-49.md $( [[ "$ledger_got" == "$ledger_want" ]] && echo "present, good" || echo "read back as '$ledger_got' want '$ledger_want'" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
