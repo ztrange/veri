@@ -178,6 +178,16 @@ tree_with_tripwires() {
   printf '%s' "$tree"
 }
 
+# The three globals run_target leaves a run in, initialized once here rather than again at the
+# head of every case: they are one function's output, and each of them is written on every
+# path through it, so a case that re-blanked them was restating that rather than deciding it.
+# Initialized at all — instead of left to the first run — because `set -u` is declared above,
+# and a probe added later that reads a run it did not make should fail on its own assertion
+# rather than kill the suite at an unbound name.
+run_code=0
+run_out=""
+run_err=""
+
 # run_target <tree> <target> <env...> — one invocation of the recipe under test, with the log
 # emptied first and the two streams kept apart, leaving the exit status in `run_code`, stdout
 # in `run_out` and stderr in `run_err`. The streams are captured separately because "says why
@@ -245,9 +255,6 @@ probe_targets_refuse() {
 #    do fire — then the criterion.
 name="with $GUARD_VAR='$DEV_CMD', make docs, docs-test, docs-check and docs-fresh each exit 2 without running anything and say why on stderr"
 problems=()
-run_code=0
-run_out=""
-run_err=""
 
 tree="$(tree_with_tripwires)"
 probe_runner_is_this_repositorys "$tree"
@@ -292,9 +299,6 @@ probe_targets_run() {
 #    is. A premise that the criterion happens to share is not the criterion asserted.
 name="with $GUARD_VAR unset, or set to '$DOCS_CMD', make docs, docs-test, docs-check and docs-fresh each run as before"
 problems=()
-run_code=0
-run_out=""
-run_err=""
 
 tree="$(tree_with_tripwires)"
 probe_runner_is_this_repositorys "$tree"
