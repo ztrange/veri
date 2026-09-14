@@ -404,12 +404,12 @@ demands_foreground revise "$revise"
 #     leaf. Asked of all four built prompts for case 14's reason: a template that drops the
 #     clause is named rather than covered for by the other three.
 #
-#     The prompts read are cases 1–4's — same phases, same arguments, so there is one
-#     invocation each and those cases own the exit-0 checks. `prompt_says` folds to one line
-#     for its own reason, which bites here in particular: `end your turn` is three short words
-#     in a paragraph wrapped at ~85 columns, so an unfolded probe would go red on a rewrap
-#     rather than on the rule going missing. Matched tolerantly of the articles and of
-#     markdown emphasis between the words, but not of the phrase itself.
+#     Reads the four prompts case 14 reads, and adds no invocation, for the reason given
+#     there. `prompt_says` folds to one line for its own reason, which bites here in
+#     particular: `end your turn` is three short words in a paragraph wrapped at ~85 columns,
+#     so an unfolded probe would go red on a rewrap rather than on the rule going missing.
+#     Matched tolerantly of the articles and of markdown emphasis between the words, but not
+#     of the phrase itself.
 forbids_ending_mid_run() {  # forbids_ending_mid_run <phase label> <prompt>
   local label="$1" prompt="$2"
   prompt_says "$prompt" "develop-$label never forbids ending the turn mid-run" \
