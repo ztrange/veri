@@ -14,13 +14,16 @@
 # nothing to say why. `detach-leaf.sh` is the fix, and it fixes nothing while the document
 # ten call sites are spelled in still says `nohup`.
 #
-# Contract under test (this step only):
-#   Every developer and verifier leaf launch line in SKILL.md goes through
-#   `detach-leaf.sh`, and none of them uses `nohup`.
+# Contract under test — the launches, then the reason a conductor is given for them:
+#   1. Every developer and verifier leaf launch line in SKILL.md goes through
+#      `detach-leaf.sh`, and none of them uses `nohup`.
+#   2. *Launching a leaf* — the section those launches live in — says why `nohup` alone is
+#      not enough: it survives a hang-up, but not a signal to the launching call's process
+#      group.
 #
-# Scoped to the launch LINES, not to the file: *Launching a leaf* has to be free to explain
-# why `nohup` is not enough, and a suite that banned the word from the document would ban
-# the explanation with it.
+# Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
+# *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
+# banned the word from the document would ban the explanation with it.
 #
 # Run: scripts/tests/skill-leaf-launch.test.sh
 set -uo pipefail
@@ -58,8 +61,8 @@ report() {
   fi
 }
 
-# fault <description> — record one thing wrong with the launch line being read, onto the
-# `faults` string the loop below opens empty for each line. Joined rather than collected
+# fault <description> — record one thing wrong with the passage being read, onto the
+# `faults` string the caller opens empty before reading it. Joined rather than collected
 # because a line that both misses the detacher and still says `nohup` is one wrong launch,
 # and reads better as one problem naming both than as two problems naming the same line.
 fault() {
@@ -80,6 +83,20 @@ launch_lines() {
   awk '
     /^[[:space:]]*```/ { fence = !fence; next }
     fence && /supervise\.sh|verify\.sh/ { printf "%d\t%s\n", NR, $0 }
+  ' "$skill_path"
+}
+
+# section_prose <heading-prefix> — the prose of the `## ` section whose heading starts with
+# <heading-prefix>, with every fenced block dropped. From that heading to the next `## `,
+# so the section's own extent is read off the document rather than pinned to line numbers
+# that move. Prints nothing at all when no heading matches, which is what lets the caller
+# tell "the section does not explain it" from "the section is gone".
+section_prose() {
+  awk -v want="$1" '
+    /^## / { insec = (index($0, "## " want) == 1) }
+    !insec { next }
+    /^[[:space:]]*```/ { fence = !fence; next }
+    !fence
   ' "$skill_path"
 }
 
@@ -104,6 +121,38 @@ else
     [[ -z "$faults" ]] ||
       problems+=("$skill_md:$lineno $faults: $text")
   done <<< "$launches"
+fi
+
+report "$name"
+
+# 2. The same section, read as prose rather than as commands: a conductor that finds only
+#    `detach-leaf.sh` in the launch shape has been told WHAT to type and not why, and the
+#    next incident-driven edit to this document — or the next session improvising a launch
+#    the procedure does not spell out — puts `nohup` back. The reason is two halves and
+#    the case wants both: `nohup` DOES survive one thing (a hang-up, SIGHUP) and does NOT
+#    survive the other (a signal to the process group of the call that launched it). Half
+#    the reason is what made `nohup` look sufficient in the first place.
+#
+#    Read case-insensitively and with the fenced blocks dropped, because the subject is
+#    the explanation, not its capitalisation, and a command inside a fence explains
+#    nothing. The section runs from its own `##` heading to the next one.
+name="$skill_md's *Launching a leaf* says why nohup alone is not enough"
+problems=()
+
+prose="$(section_prose "Launching a leaf" | tr '[:upper:]' '[:lower:]')"
+if [[ -z "$prose" ]]; then
+  # Fail closed, as case 1 does: a section that could not be read is never an explanation
+  # that passed.
+  problems+=("$skill_md has no *Launching a leaf* section — the reason given for the launch shape could not be read")
+else
+  faults=""
+  [[ "$prose" == *nohup* ]] || fault "never names nohup"
+  [[ "$prose" == *sighup* || "$prose" == *hang-up* || "$prose" == *hangup* ]] ||
+    fault "does not say nohup survives a hang-up"
+  [[ "$prose" == *"process group"* ]] ||
+    fault "does not say nohup leaves the leaf in the launching call's process group"
+  [[ -z "$faults" ]] ||
+    problems+=("$skill_md *Launching a leaf* $faults")
 fi
 
 report "$name"
