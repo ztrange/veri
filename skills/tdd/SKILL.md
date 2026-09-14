@@ -83,10 +83,8 @@ machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
   timeout.
 - `$S/detach-leaf.sh <cmd> [args...]` — **the detaching half of a detached launch.** Runs
   `<cmd>` as the leader of a **new session**, and so of a new process group, then returns at
-  once. Every leaf launch below goes through it, and none uses `nohup`: `nohup` only makes the
-  child ignore SIGHUP and leaves it in the process group of the Bash call that launched it, so
-  a harness that signals that group when the call ends takes the leaf with it. Redirections go
-  on the call as usual — the launched process inherits them.
+  once. Every leaf launch below goes through it, and none uses `nohup` — *Launching a leaf*
+  says why. Redirections go on the call as usual — the launched process inherits them.
 - `$S/wait-leaf.sh <name> [max-seconds]` — **the foreground half of a detached launch.**
   Blocks polling for that completion file and exits with the code recorded in it as soon as
   it lands (0 / 1 / 2, the launcher's own contract), or **exit 3** — nothing to report yet —
