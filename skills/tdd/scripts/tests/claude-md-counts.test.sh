@@ -71,6 +71,18 @@ report() {
   fi
 }
 
+# unreadable <missing> <subject> — record the problem a probe that came back with NOTHING
+# leaves behind, onto the same `problems` array a mismatched count ends up in. Every
+# fail-closed path in this suite goes through here: the globs matching no file, the preamble
+# and the section coming back empty, a count pattern finding nothing. Each of those means an
+# input this suite compares against could not be read, and every one has to say so as its own
+# problem — never read as a count that agreed because there was nothing left to contradict.
+# One helper so no path can quietly stop doing it, and so the five messages cannot drift into
+# different shapes. Same idiom as skill-leaf-launch.test.sh's helper of the same name.
+unreadable() {
+  problems+=("$1 — $2 could not be read")
+}
+
 # how_many <glob> — how many files match it. The glob is left unquoted so the shell
 # expands it, and every match is checked to be a file, because bash leaves a pattern that
 # matched nothing standing as its own text: without the check an empty directory would
@@ -146,13 +158,13 @@ claimed() {
 
 # check <what> <claimed> <n> — one stated count against the fact on disk. Accepts either
 # spelling, case-folded because a count that opens a sentence is capitalised and that is
-# not a difference about the number. An empty <claimed> fails closed and says so as its
-# own problem: a pattern that found nothing means the document no longer states that count
-# where a reader is told to look, and must never read as a count that agreed.
+# not a difference about the number. An empty <claimed> fails closed through `unreadable`:
+# a pattern that found nothing means the document no longer states that count where a
+# reader is told to look.
 check() {
   local what="$1" claimed="$2" n="$3" words
   if [[ -z "$claimed" ]]; then
-    problems+=("$claude_md states no $what — the sentence that counts them could not be read")
+    unreadable "$claude_md states no $what" "the sentence that counts them"
     return
   fi
   claimed="$(tr '[:upper:]' '[:lower:]' <<< "$claimed")"
@@ -174,24 +186,24 @@ n_suites="$(how_many "$ROOT/$suites_glob")"
 # out from under this suite, and zero must not quietly become the number every claim is
 # checked against.
 if [[ "$n_scripts" -eq 0 ]]; then
-  problems+=("no script matched $scripts_glob — the tree the counts describe could not be read")
+  unreadable "no script matched $scripts_glob" "the tree the counts describe"
 fi
 if [[ "$n_suites" -eq 0 ]]; then
-  problems+=("no suite matched $suites_glob — the tree the counts describe could not be read")
+  unreadable "no suite matched $suites_glob" "the tree the counts describe"
 fi
 
 intro="$(preamble | flatten)"
 idiom="$(section "$section_name" | flatten)"
 
 if [[ -z "${intro// /}" ]]; then
-  problems+=("$claude_md has no prose above its first '## ' heading — the opening paragraph's script count could not be read")
+  unreadable "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"
 else
   check "opening paragraph's script count" \
     "$(claimed "$intro" ".*$BEFORE$NUM bash scripts.*" 1)" "$n_scripts"
 fi
 
 if [[ -z "${idiom// /}" ]]; then
-  problems+=("$claude_md has no '## $section_name' section — the suite and script counts it states could not be read")
+  unreadable "$claude_md has no '## $section_name' section" "the suite and script counts it states"
 else
   suite_claim=".*$BEFORE$NUM files for $NUM scripts.*"
   check "*$section_name* suite count" "$(claimed "$idiom" "$suite_claim" 1)" "$n_suites"
