@@ -129,6 +129,18 @@ report() {
 # output quoted inside an indented problem line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# target_list — TARGETS as a case name reads it: "docs, docs-test, docs-check and docs-fresh".
+# Derived from the array rather than spelled out again beside it, for the reason GUARD_VAR is
+# one name rather than three: both case names below claim the suite asked about that exact
+# set, and a target added to TARGETS would otherwise leave them naming a smaller one — a
+# suite reporting a claim it did not make is worse than one making no claim. The last element
+# is indexed rather than taken as `[-1]`, which bash 3.2 reads as a literal index of -1.
+target_list() {
+  local last=$(( ${#TARGETS[@]} - 1 )) joined
+  joined="$(printf '%s, ' "${TARGETS[@]:0:$last}")"
+  printf '%s and %s' "${joined%, }" "${TARGETS[$last]}"
+}
+
 # python_tripwire <path> <word> — one of the two python files the recipes name, written as a
 # stand-in: it appends <word> to the log and exits 0. The heredoc is unquoted so the log's
 # variable name comes from TRIPWIRE_VAR rather than being spelled again here — run_target sets
@@ -262,7 +274,7 @@ probe_targets_refuse() {
 #    refuse. Three probes, each asked of the whole target list: the two premises first —
 #    the runner is the real one, and the stand-ins the refusal is measured against really
 #    do fire — then the criterion.
-name="with $GUARD_VAR='$DEV_CMD', make docs, docs-test, docs-check and docs-fresh each exit 2 without running anything and say why on stderr"
+name="with $GUARD_VAR='$DEV_CMD', make $(target_list) each exit 2 without running anything and say why on stderr"
 problems=()
 
 tree="$(tree_with_tripwires)"
@@ -306,7 +318,7 @@ probe_targets_run() {
 #    there it is what makes an empty log mean something, and its failure says the scratch
 #    tree is broken. Here the same run is the claim itself, and its failure says the guard
 #    is. A premise that the criterion happens to share is not the criterion asserted.
-name="with $GUARD_VAR unset, or set to '$DOCS_CMD', make docs, docs-test, docs-check and docs-fresh each run as before"
+name="with $GUARD_VAR unset, or set to '$DOCS_CMD', make $(target_list) each run as before"
 problems=()
 
 tree="$(tree_with_tripwires)"
