@@ -24,6 +24,17 @@ scope, however tempting.
 
 {{TEST_CMD}}
 
+### The two classes of candidate
+
+What class a candidate falls into is decided by what the transform **changes**, never by
+which file it sits in:
+
+- **structural** — removes duplication, in code or in prose, extracts or inlines, deletes
+  dead code, renames an identifier that misleads, narrows a scope that leaks, or moves
+  logic to where it belongs.
+- **cosmetic** — rewords, re-cites, reflows or re-comments, without removing duplication
+  and without changing an identifier or a structure.
+
 ### What to do
 
 1. Pick **one** transformation that makes the code clearer — naming, duplication,
