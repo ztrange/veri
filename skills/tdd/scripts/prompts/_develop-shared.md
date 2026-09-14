@@ -13,11 +13,10 @@ case. Three rules hold in every phase:
    tidied-up one derails it.
 3. **Run every test command in the foreground, and report only after it has exited.**
    Never put a suite run in the background and then end your turn while that run is
-   still going — neither by writing your report over it nor by ending with no report
-   at all. A report written mid-run is read by the conductor as the suite's answer,
-   so it acts on a result nothing has produced yet; a turn that ends with no report
-   leaves it nothing to read. Either way it pays for the same run twice when it has
-   to go and get the real answer.
+   still going. A report written mid-run is read by the conductor as the suite's
+   answer, so it acts on a result nothing has produced yet; a turn that ends with no
+   report at all leaves it nothing to read. Either way it pays for the same run twice
+   when it has to go and get the real answer.
 
 Work inside the current repository. Keep your investigation tight and on-task, and change
 nothing this step does not require.
