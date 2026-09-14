@@ -95,6 +95,21 @@ report() {
 # line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# exempt <line> — true when a line naming a path in that tree is nonetheless allowed to,
+# which is the header's two cases and nothing else:
+#
+#   - a comment, by its first non-blank character. A comment cannot open anything.
+#   - fixture text: written out, and not read on the way.
+#
+# One predicate rather than two tests in the loop, because "may a line name one?" is a
+# single question the header answers once, and a third exemption belongs here rather than
+# as a third shape inside the sweep.
+exempt() {
+  local text="$1"
+  [[ "$text" =~ ^[[:space:]]*# ]] && return 0
+  [[ "$text" =~ $WRITES_OUT ]] && ! [[ "$text" =~ $READ_VERB ]]
+}
+
 # probe_no_suite_reaches_into_the_tree — the criterion. Every suite beside this one is asked
 # for the lines naming a path in that tree, and each of those for one of the two exemptions.
 # The suites are found by globbing this directory rather than by a list, because the list is
@@ -110,12 +125,7 @@ probe_no_suite_reaches_into_the_tree() {
     while IFS= read -r hit; do
       lineno="${hit%%:*}"
       text="${hit#*:}"
-      # A comment, by its first non-blank character.
-      [[ "$text" =~ ^[[:space:]]*# ]] && continue
-      # Fixture text: written out, and not read on the way.
-      if [[ "$text" =~ $WRITES_OUT ]] && ! [[ "$text" =~ $READ_VERB ]]; then
-        continue
-      fi
+      exempt "$text" && continue
       problems+=("$name:$lineno names a path in the generated-documentation tree outside a comment and outside fixture text, which puts that tree's prose on every leaf's critical path: $(flat "$text")")
     done < <(grep -nE "$DOCS_PATH" "$f")
   done
