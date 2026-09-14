@@ -115,6 +115,20 @@ report() {
 # output quoted inside an indented problem line stays one line.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# python_tripwire <path> <word> — one of the two python files the recipes name, written as a
+# stand-in: it appends <word> to the log and exits 0. The heredoc is unquoted so the log's
+# variable name comes from TRIPWIRE_VAR rather than being spelled again here — run_target sets
+# that same variable, and a stand-in reading a different one would never fire, which would make
+# every "nothing ran" observation below vacuous. Nothing in the python interpolates but those
+# two placeholders: it has no `$`, no backtick, and `\n` survives an unquoted heredoc intact.
+python_tripwire() {
+  cat > "$1" <<PY
+import os
+with open(os.environ["$TRIPWIRE_VAR"], "a") as log:
+    log.write("$2\n")
+PY
+}
+
 # tree_with_tripwires — a disposable tree holding the real Makefile and a stand-in for each
 # thing the four targets invoke, printed as a path. The page builder and the freshness check
 # are stood up as the two python files the recipes name; the suite the documentation target
@@ -126,16 +140,9 @@ tree_with_tripwires() {
   mkdir -p "$tree/$GENERATED_DIR/tests"
   cp "$MAKEFILE" "$tree/Makefile"
 
-  cat > "$tree/$GENERATED_DIR/build-walkthrough.py" <<'PY'
-import os
-with open(os.environ["VERI_TRIPWIRE_LOG"], "a") as log:
-    log.write("built the page\n")
-PY
-  cat > "$tree/$GENERATED_DIR/check-walkthrough.py" <<'PY'
-import os
-with open(os.environ["VERI_TRIPWIRE_LOG"], "a") as log:
-    log.write("checked the page is fresh\n")
-PY
+  python_tripwire "$tree/$GENERATED_DIR/build-walkthrough.py" "built the page"
+  python_tripwire "$tree/$GENERATED_DIR/check-walkthrough.py" "checked the page is fresh"
+
   cat > "$tree/$GENERATED_DIR/tests/tripwire.test.sh" <<'SH'
 #!/usr/bin/env bash
 set -uo pipefail
