@@ -17,9 +17,10 @@
 # Every Bash call a conductor makes is a fresh shell, so a one-off `export` in preflight
 # cannot carry the variable to a launch three steps later: only a prefix on the launch line
 # itself can. Whether the prefix is there is not a question about the text, because a prefix
-# can be spelled and still not arrive — it travels through `nohup`, `supervise.sh`'s own
-# process group and `run-leaf.sh` before anything reads it — so this suite runs the line
-# rather than grepping it.
+# can be spelled and still not arrive — it travels through `detach-leaf.sh` and the
+# python3 `setsid` + `execvp` that detaches the leaf into a session of its own (#161),
+# `supervise.sh`'s own process group and `run-leaf.sh` before anything reads it — so this
+# suite runs the line rather than grepping it.
 #
 # The variable travels in the ENVIRONMENT and not in a prompt, which is what keeps the
 # verifier blind: `build-verify-prompt.sh` takes no new argument, so there is still no
@@ -126,20 +127,30 @@ launched_test_cmd() {
   # What this launch's leaf saw, in the tree that launch ran in rather than in one file every
   # run rewrites — so each answer keeps the tree that produced it. Cleared first because two
   # launch lines naming the same leaf share a tree, and the second reaching no leaf at all
-  # would otherwise be answered with the first one's file.
+  # would otherwise be answered with the first one's file. The completion file the wait below
+  # polls for is cleared for the same reason, and it is the one SKILL.md's own `rm -f` clears
+  # before each launch: left by the first launch, it would end the second one's wait before
+  # its leaf had written anything.
   local seen="$dir/seen"
   mkdir -p "$dir/.tdd"
-  rm -f "$seen"
+  rm -f "$seen" "$dir/.tdd/$leaf.exit"
   local file
   for file in "$@"; do
     printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
   done
-  # The line ends in `&` — it is launched detached — so `wait` on the next line is what
-  # makes this probe foreground: without it the tree would be read while the leaf still ran.
+  # The line launches through `detach-leaf.sh`, which returns at once and leaves the leaf in
+  # a session of its own — so a shell `wait` has nothing to wait on, and the tree would be
+  # read while the leaf still ran. What makes this probe foreground is what makes the
+  # conductor's: `wait-leaf.sh` on the completion file the leaf's supervisor writes on every
+  # path, `.tdd/<leaf>.exit` — for a verifier too, since verify.sh supervises its leaf under
+  # that same `verify-<phase>` name. The stub writes `seen` before it exits, so the file
+  # landing means the answer is already there. Bounded by the supervisor's own ceiling
+  # (VERI_TIMEOUT), so a leaf that ran is never cut short, and a line that reached no
+  # supervisor at all still comes back as `<no leaf ran>` rather than hanging the suite.
   ( cd "$dir" && env -u VERI_TEST_CMD S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
       VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
       bash -c "$line
-wait" ) >/dev/null 2>&1
+\"$SCRIPTS/wait-leaf.sh\" \"$leaf\" 60" ) >/dev/null 2>&1
   cat "$seen" 2>/dev/null || echo '<no leaf ran>'
 }
 
@@ -250,7 +261,7 @@ run_case() {
 #    The lines are found by what they do rather than by which section they sit in — a line
 #    running supervise.sh over run-leaf.sh is a line a conductor copies as it stands. The
 #    generic shape at the head of the document (`supervise.sh <name> <cmd> [args...]`,
-#    SKILL.md:212) is deliberately not among them: it names no command to launch, so there
+#    SKILL.md:216) is deliberately not among them: it names no command to launch, so there
 #    is nothing to run and nothing a leaf could see.
 # The two fields the probe reads out of a developer launch: the leaf's name, which is also the
 # tree the launch runs in and how a failure names itself, and the prompt file the leaf is
@@ -277,7 +288,7 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 #    typeable there as in a developer leaf, and a guard the documentation targets carry is
 #    worth nothing in a process that cannot see the variable it reads. It is a second case
 #    rather than more lines in the first because it is a second wiring: the prefix goes on a
-#    `nohup bash -c "…"` whose command is verify.sh, and the variable then has one more
+#    `detach-leaf.sh bash -c "…"` whose command is verify.sh, and the variable then has one more
 #    process to cross — verify.sh itself — before supervise.sh and run-leaf.sh carry it the
 #    rest of the way.
 #
@@ -287,7 +298,7 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 #
 #    The lines are found by what they do, the way case 1 finds its own: a detached launch of
 #    verify.sh naming the spec file it judges against is a line a conductor copies as it
-#    stands. The shape at the head of the document (SKILL.md:237) spells its arguments as an
+#    stands. The shape at the head of the document (SKILL.md:247) spells its arguments as an
 #    ellipsis rather than naming a spec, so — like the generic `supervise.sh` shape above —
 #    there is nothing there to run and no leaf that could see anything.
 # The phase is verify.sh's first argument, and `verify-<phase>` is both the leaf's name and the
@@ -301,7 +312,7 @@ check_verifier_launch() {
 }
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
-  'nohup .*\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
+  '\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
   "$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found" \
   check_verifier_launch
 
