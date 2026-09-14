@@ -863,13 +863,23 @@ context_md="CONTEXT.md"
 solvable_entry="$(awk '/^\*\*Solvable\*\*:/ { keep = 1; next } keep && /^\*\*/ { exit } keep' \
   "$REPO_ROOT/$context_md")"
 
+# One claim, one miss, tagged — case 11's `doc_claims` for a slice already in hand rather than
+# a file under $REPO_ROOT. What it collapses is the same thing: the separator and the
+# accumulator are spelled once, so the three misses below cannot drift into being reported in
+# three shapes. The grep arguments stay at the call site, where the difference between the
+# literal name and the loosely-matched sentence is the point.
+entry_claims() {  # entry_claims <tag> <grep argument…>
+  local tag="$1"; shift
+  grep -q "$@" <<<"$solvable_entry" || entry_missing="$entry_missing $tag"
+}
+
 entry_missing=""
 if [[ -z "${solvable_entry// /}" ]]; then
-  entry_missing=" the-Solvable-entry-itself"
+  entry_missing="$entry_missing the-Solvable-entry-itself"
 else
-  grep -qF 'conductor.pid' <<<"$solvable_entry" || entry_missing="$entry_missing the-lock-by-name"
-  grep -qiE 'kill -0|alive|still running|live (conductor|process|run)' <<<"$solvable_entry" \
-    || entry_missing="$entry_missing that-only-a-live-process-claims"
+  entry_claims the-lock-by-name -F -e 'conductor.pid'
+  entry_claims that-only-a-live-process-claims -iE \
+    -e 'kill -0|alive|still running|live (conductor|process|run)'
 fi
 
 [[ -z "$entry_missing" ]] \
