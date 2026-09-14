@@ -104,14 +104,18 @@ prompt_says() {  # prompt_says <prompt> <complaint> <grep argument…>
   grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" || problems="$problems; $complaint"
 }
 
-# The other half of what the two per-phase cases share: the roster. Each asks the same claim
-# of all four built prompts and reports one accumulated miss list, so which phases "every
-# phase" means lives here rather than once per case — a fifth phase is one edit, not two.
-# The reset of `problems` belongs to the fan-out and not to its callers: a case that
-# inherited the previous case's misses would fail naming the wrong claim.
-every_phase() {  # every_phase <name of a check function taking <phase label> <prompt>>
-  problems=""
-  "$1" red "$red"; "$1" green "$green"; "$1" refactor "$refactor"; "$1" pin "$pin"
+# The other half of what the two per-phase cases share: the roster, and the verdict they reach
+# from it. Each asks the same claim of all four built prompts and reports one accumulated miss
+# list, so which phases "every phase" means lives here rather than once per case — a fifth phase
+# is one edit, not two — and so does the shape of the answer: green when nothing accumulated,
+# otherwise the case's own headline followed by every miss. The accumulator is a `local`, which
+# bash's dynamic scoping still puts in reach of the `prompt_says` calls two frames down; a case
+# that inherited the previous case's misses would fail naming the wrong claim, and now cannot
+# see them to inherit.
+every_phase() {  # every_phase <name of a check function taking <phase label> <prompt>> <headline>
+  local check="$1" headline="$2" problems=""
+  "$check" red "$red"; "$check" green "$green"; "$check" refactor "$refactor"; "$check" pin "$pin"
+  [[ -z "$problems" ]] && ok || no "$headline (${problems#; })"
 }
 
 # 12. every phase's built prompt carries the foreground rule. A verifier that puts its
@@ -143,9 +147,7 @@ demands_foreground() {  # demands_foreground <phase label> <prompt>
     -iE -e 'end(ing)?[^[:alnum:]]+(your|the|its)[^[:alnum:]]+turn'
 }
 
-every_phase demands_foreground
-[[ -z "$problems" ]] && ok \
-  || no "every phase's prompt carries the foreground rule (${problems#; })"
+every_phase demands_foreground "every phase's prompt carries the foreground rule"
 
 # 13. every phase's built prompt forbids `git stash` and names a way to read the committed
 #     version that touches no shared ref (issue #169). A leaf runs with
@@ -176,9 +178,7 @@ forbids_stash() {  # forbids_stash <phase label> <prompt>
     -E -e 'git show HEAD:|git worktree add'
 }
 
-every_phase forbids_stash
-[[ -z "$problems" ]] && ok \
-  || no "every phase's prompt forbids git stash and names a safe alternative (${problems#; })"
+every_phase forbids_stash "every phase's prompt forbids git stash and names a safe alternative"
 
 echo "----"
 echo "$pass passed, $fail failed"
