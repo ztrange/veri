@@ -246,6 +246,19 @@ plans "the Makefile plus a docs/ script still owes every docs suite and freshnes
   $'docs-test\ndocs-fresh\ndocs/docs-owed.sh' '' \
   bash -c 'touch_file Makefile; touch_file docs/docs-owed.sh'
 
+# 11c. #164: and the page keeps its own gate whatever travels with it. Case 3 pins the hand
+#      edit alone; what the carve-out puts at risk is the hand edit arriving on a branch that
+#      also touched the Makefile — the file that used to share the stale rule with it. A
+#      carve-out written at branch scope rather than at file scope (nothing runs once a
+#      Makefile change is seen) takes the page's own freshness check with it, and a hand
+#      edit — the one staleness a rebuild is guaranteed to catch, because the build that
+#      makes the page is unchanged — would merge unnoticed. Still docs-fresh only, and the
+#      reason still names the page rather than the Makefile: the Makefile now matches no
+#      rule, so it neither adds a gate nor removes one.
+plans "a hand-edited page travelling with a Makefile still owes freshness" \
+  $'docs-fresh\ndocs/walkthrough.html' 'docs-test' \
+  bash -c 'touch_file Makefile; touch_file docs/walkthrough.html'
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
