@@ -503,8 +503,16 @@ defines_class cosmetic 'reword|re-word|re-cite|recite|reflow|re-flow|re-comment'
 # The negative half of cosmetic's definition: rewording is cosmetic precisely because it
 # removes no duplication and changes no identifier or structure. Without it the two classes
 # overlap — a rename can be described as a rewording — and the sort stops being decidable.
+#
+# The gap is 30, not the 120 the other probes here spend, and the negation words are spelled
+# with the spaces around them. Both bounds are load-bearing, and were watched: at 120 the
+# probe passes with the clause deleted, matching the section's own lead-in — "never by which
+# file it sits in … removes duplication" — 55 characters apart, and `no` unspaced matches the
+# `no` inside `nothing`, `another` and `cannot`. What the clause has and those do not is a
+# negation governing its object directly: "without removing duplication" is 10 characters
+# between the two, "without changing an identifier" 13.
 prompt_says "$refactor" "does not say cosmetic leaves duplication, identifiers and structure alone" \
-  -iE -e '(without|not|no|never|leaves)[^.]{0,120}(duplication|identifier|structure)'
+  -iE -e ' (without|not|never|leaves) [^.]{0,30}(duplication|identifier|structure)'
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor defines structural and cosmetic candidates by what the transform changes (${problems#; })"
 
