@@ -504,6 +504,36 @@ dirty_after="$(git_q "$clone" status --porcelain --untracked-files=no)"
   && ok || no "creating the issue branch leaves the local default branch ref and the caller's working tree untouched (exit=$code want 0, stdout='$out' want '$want', refs/heads/main='$main_after' want the clone's own $main_before not origin's $remote_tip, HEAD='$head_after' want '$head_before', current branch='$branch_after' want '$branch_before', tracked files $( [[ -z "$dirty_after" ]] && echo "clean, good" || echo "modified:
 $dirty_after" ), landed.txt $( [[ -e "$clone/landed.txt" ]] && echo "was written into the caller's checkout" || echo "absent, good" ))"
 
+# 15. the new issue branch has no upstream (issue #174).
+#
+# Cutting from `origin/<default>` — what cases 13 and 14 pin — is exactly the shape git reads as
+# "and you presumably want to track it": with branch.autoSetupMerge at its default, a branch
+# created from a remote-tracking ref comes out with branch.<name>.remote/.merge already written,
+# so `tdd/<n>-<slug>` would arrive tracking the default branch. A bare `git pull` in the issue
+# worktree would then pull the default branch into the issue branch, and a bare `git push` would
+# aim at the default branch on the remote. The branch that carries a PR must point nowhere by
+# itself.
+#
+# This is a cost of the fix and not of the old behaviour: cutting from a *local* `main` set up no
+# tracking at all, so the tracking arrives with the remote base and has to be turned off with it.
+#
+# The seed is the upstream+clone pair cases 13 and 14 use, which is what makes `origin/main` the
+# base at all — against a repo with no remote the local fallback is taken and the assertion could
+# not fail. The assertion is git's own answer for the branch's upstream (`%(upstream:short)`,
+# which is what `git pull` and `git push` consult), and it must be empty.
+upstream="$work/no-upstream-upstream"
+new_repo "$upstream"
+clone="$work/no-upstream-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+want="$(wt_path "$clone" 39)"
+
+out="$(cd "$clone" && "$WT" 39 no-upstream 2>/dev/null)" && code=0 || code=$?
+
+tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/tdd/39-no-upstream)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ -z "$tracks" ]]; } \
+  && ok || no "the new issue branch has no upstream (exit=$code want 0, stdout='$out' want '$want', tdd/39-no-upstream's upstream=$( [[ -z "$tracks" ]] && echo "none, good" || echo "'$tracks' want none" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
