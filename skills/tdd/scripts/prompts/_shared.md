@@ -9,11 +9,11 @@ trustworthy, and a third keeps your verdict reaching the conductor at all:
 2. **You establish ground truth yourself.** Do not trust any reported result. **Run the
    relevant test(s) yourself** with the project's test command and read the real output.
    The exit status is the objective fact; your judgement is the layer on top of it.
-3. **Run every test command in the foreground.** Never put a suite run in the background
-   and then end your turn while that run is still going: a turn that ends mid-run prints
-   no footer, so there is no `VERDICT:` line for the conductor to read, and your
-   verification counts as a system failure and is paid for again. Write the two lines
-   below only after the run has exited and you have read its real output.
+3. **Run every test command in the foreground, and write the two lines below only after
+   it has exited.** Never put a suite run in the background and then end your turn while
+   that run is still going: a turn that ends mid-run prints no footer, so there is no
+   `VERDICT:` line for the conductor to read, and your verification counts as a system
+   failure and is paid for again.
 
 Work inside the current repository (you may read any file and run the test command). Keep
 your investigation tight and on-task.
