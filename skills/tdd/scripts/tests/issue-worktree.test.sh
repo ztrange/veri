@@ -454,6 +454,56 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ "$tip" == "$remote_tip" ]]; } \
   && ok || no "origin's default branch is ahead of the local one: cuts tdd/35-from-remote-tip from origin's tip (exit=$code want 0, stdout='$out' want '$want', tip='$tip' want origin's $remote_tip not the stale local main's $stale_tip)"
 
+# 14. cutting from origin's tip costs the caller's own checkout nothing: the local default branch
+# ref does not move and the main working tree is not touched (issue #174).
+#
+# Case 13 pins where the new branch is cut from; this one pins the price of getting there. The
+# obvious way to reach the remote's tip is to pull the primary clone first, and that is exactly what
+# must not happen: pulling it while a conductor is live changes the scripts running under it, which
+# is why the pull waits in the first place (#165). `git fetch origin <default>` refreshes
+# refs/remotes/origin/<default> and nothing else — no local branch ref moves, no file in the
+# caller's checkout does — so the two requirements stop being in tension.
+#
+# The seed is case 13's, with the upstream's extra commit adding a *file* rather than being empty:
+# the clone is taken first, so its local `main` is genuinely behind and a pull would have both a
+# commit to move the ref to and a file to write into the tree. Without that gap a script that pulled
+# and one that fetched would leave the same repository behind, and the case would prove nothing.
+#
+# Five things asserted together, because "unchanged" is not a property any one of them carries
+# alone: refs/heads/main still at the tip the clone was taken at, the checkout still on `main` and
+# still at that same commit, no tracked file modified, and the file only the remote carries still
+# absent from the caller's checkout — the last being the half asked of the tree's contents rather
+# than of refs, since a `checkout` and a `pull` leave different evidence.
+upstream="$work/untouched-upstream"
+new_repo "$upstream"
+clone="$work/untouched-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+printf 'landed while the clone was busy\n' > "$upstream/landed.txt"
+git_q "$upstream" add landed.txt >/dev/null 2>&1
+git_q "$upstream" commit -q -m "landed while the clone was busy" >/dev/null 2>&1
+remote_tip="$(git_q "$upstream" rev-parse main)"
+
+main_before="$(git_q "$clone" rev-parse refs/heads/main)"
+head_before="$(git_q "$clone" rev-parse HEAD)"
+branch_before="$(git_q "$clone" branch --show-current)"
+want="$(wt_path "$clone" 37)"
+
+out="$(cd "$clone" && "$WT" 37 leave-the-clone-alone 2>/dev/null)" && code=0 || code=$?
+
+main_after="$(git_q "$clone" rev-parse refs/heads/main)"
+head_after="$(git_q "$clone" rev-parse HEAD)"
+branch_after="$(git_q "$clone" branch --show-current)"
+# --untracked-files=no: the worktree the script was asked to create lands at .tdd/wt/37 *inside*
+# the fixture, which carries no .gitignore, so it shows up as untracked. That is the script's own
+# output, not a change to the caller's checkout. A pull or a checkout shows up in tracked files.
+dirty_after="$(git_q "$clone" status --porcelain --untracked-files=no)"
+
+{ [[ "$code" == 0 ]] && [[ "$main_after" == "$main_before" ]] && [[ "$head_after" == "$head_before" ]] \
+  && [[ "$branch_after" == "$branch_before" ]] && [[ -z "$dirty_after" ]] \
+  && [[ ! -e "$clone/landed.txt" ]]; } \
+  && ok || no "creating the issue branch leaves the local default branch ref and the caller's working tree untouched (exit=$code want 0, stdout='$out' want '$want', refs/heads/main='$main_after' want the clone's own $main_before not origin's $remote_tip, HEAD='$head_after' want '$head_before', current branch='$branch_after' want '$branch_before', tracked files $( [[ -z "$dirty_after" ]] && echo "clean, good" || echo "modified:
+$dirty_after" ), landed.txt $( [[ -e "$clone/landed.txt" ]] && echo "was written into the caller's checkout" || echo "absent, good" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
