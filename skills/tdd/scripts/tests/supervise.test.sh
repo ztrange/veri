@@ -647,6 +647,56 @@ killed_recorded="$(cat "$killed_work/.tdd/develop-red.exit" 2>/dev/null || echo 
   && [[ "$killed_code" == 2 ]] \
   && [[ "$killed_recorded" == 2 ]]; } && ok \
   || no "a killed leaf leaves no usage event and the supervisor still exits 2 and records 2 (usage lines=$killed_usage want 0, code=$killed_code want 2, .exit=$killed_recorded want 2)"
+
+# 18. a harvest that FAILS — not one that found nothing — still leaves the supervisor's own
+#     answer exactly as it was: exit 0, and 0 in the completion file `.tdd/<name>.exit`
+#     (issue #163). Case 17 is the harvester's clean negative, the exit 3 it reports on a
+#     killed leaf's truncated log; this is the other kind of non-zero, the one that says the
+#     harvester itself broke — a closing record that is there but missing one of the eight
+#     keys it reads, which harvest-usage.sh passes on rather than folding into its
+#     "nothing to do" arm (harvest-usage.sh:110-115).
+#
+#     That distinction is the whole of the case. The harvest runs on the supervisor's way
+#     out, between the last attempt and both of the things a caller reads the answer from, so
+#     a call written without discarding its status would let a bug in a reader of .log files
+#     decide a leaf's verdict: a leaf that passed would come back 1 and the conductor would
+#     record a red step that never happened. What a run is measured by must not be able to
+#     fail the run.
+#
+#     The leaf exits 0 so "unchanged" has something to be unchanged from, and so that the
+#     number asserted is not one the harvester could also have produced: against a killed
+#     leaf's 2 or a failing leaf's 1, a leaked status of the harvester's own would be
+#     indistinguishable from the supervisor's own answer.
+#
+#     `usage` lines are counted beside the two, at zero, as this case's guard on its own
+#     premise: the stub's log HOLDS a result record, so the harvester cannot be taking case
+#     17's nothing-to-do path, and a run that appended a line anyway would be one where
+#     nothing failed at all — leaving the two assertions above pinning nothing.
+#
+#     A directory of its own under `$work`, for case 12's reason.
+harvest_fail_work="$work/harvest-fail"
+# A closing record with no `usage` object — the shortest log that makes the harvester raise
+# rather than report. Written here rather than beside the leaf-* stubs at the top for case
+# 16's reason, next to the case whose premise it is; the heredoc is quoted, since unlike case
+# 16's nothing inside it has to expand.
+cat > "$stub/leaf-bad-result" <<'L'
+#!/usr/bin/env bash
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":91234,"duration_api_ms":40118,"num_turns":7,"result":"done","session_id":"4d1a","total_cost_usd":0.31}'
+exit 0
+L
+chmod +x "$stub/leaf-bad-result"
+sup_run "$harvest_fail_work" "$SUP" develop-red "$stub/leaf-bad-result"
+harvest_fail_code=$?
+# Each fact read once, into the variable the assertion and the failure message share — cases
+# 9, 11, 12, 13, 15, 16 and 17's shape.
+harvest_fail_usage="$(event_count "$harvest_fail_work" usage)"
+harvest_fail_recorded="$(cat "$harvest_fail_work/.tdd/develop-red.exit" 2>/dev/null || echo '<missing>')"
+{ [[ "$harvest_fail_usage" == 0 ]] \
+  && [[ "$harvest_fail_code" == 0 ]] \
+  && [[ "$harvest_fail_recorded" == 0 ]]; } && ok \
+  || no "a failing harvester leaves the supervisor's exit code and completion file unchanged (usage lines=$harvest_fail_usage want 0, code=$harvest_fail_code want 0, .exit=$harvest_fail_recorded want 0)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
