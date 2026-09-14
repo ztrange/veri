@@ -753,6 +753,17 @@ says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
 #     passed. What the probe means to reach across is that line's own value, `MATCHED |
 #     DIVERGED` — 18 characters, 11 of them before the DIVERGED — so 20 is the value plus room
 #     to reword it, and stops short of the 30 the leak needs.
+#
+#     Both shapes are written once and each caller names only its own token or verdict, for
+#     the reason `offers_class` gives: the pattern is then the thing the complaint names, and
+#     the two cannot disagree. `asks_for` is where `-F` lives — the whole of a protocol string
+#     is the pattern, so there is nothing in it to interpret — and `offers_verdict` where the
+#     bound does.
+asks_for() {  # asks_for <footer token, colon included>
+  local token="$1"
+  prompt_says "$red" "the report never asks for $token" -F -e "$token"
+}
+
 offers_verdict() {  # offers_verdict <verdict word>
   local verdict="$1"
   prompt_says "$red" "the report never offers $verdict on the PREDICTION: line" \
@@ -762,12 +773,10 @@ offers_verdict() {  # offers_verdict <verdict word>
 problems=""
 says_both_ways "$red" "does not require the prediction to be stated before the run" \
   60 'predict' 'before (you|issuing|any command)'
-prompt_says "$red" "the report never asks for PREDICTED_FAILURE:" \
-  -F -e 'PREDICTED_FAILURE:'
+asks_for 'PREDICTED_FAILURE:'
 offers_verdict MATCHED
 offers_verdict DIVERGED
-prompt_says "$red" "the report never asks for PREDICTION_NOTE:" \
-  -F -e 'PREDICTION_NOTE:'
+asks_for 'PREDICTION_NOTE:'
 [[ -z "$problems" ]] \
   && ok || no "develop-red requires the predicted failure before the run and carries PREDICTED_FAILURE:, PREDICTION: MATCHED | DIVERGED and PREDICTION_NOTE: in its report footer (${problems#; })"
 
