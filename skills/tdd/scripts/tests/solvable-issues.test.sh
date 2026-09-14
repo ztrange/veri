@@ -49,8 +49,14 @@ fixture() {  # fixture <name> -> path
 # in $code — the pair every case below asserts on. Neither is `local`, deliberately: the
 # assertion lives at the call site, which is where the expected values belong. stderr is
 # dropped; no case asserts on it.
-run() {  # run <fixture-dir>; sets $out and $code
-  out="$(VERI_GH_JSON="$1" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+#
+# Anything after the directory is forwarded to the script as its own argv, the way `gh_run`
+# below forwards its own: one case turns on `--repo owner/name`, and that flag belongs at its
+# call site rather than in a second copy of this invocation. Most cases pass nothing, and
+# `"$@"` then expands to no words at all.
+run() {  # run <fixture-dir> [script args…]; sets $out and $code
+  local fixture="$1"; shift
+  out="$(VERI_GH_JSON="$fixture" "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
 }
 
 # The same run, for the cases whose criterion is what VERI_LABEL says. The settings are handed
@@ -658,10 +664,10 @@ run "$fx"; url_once_closed="$out" url_closed_code="$code"
 # not decoration around the digits.
 #
 # Which repository "this one" IS has to be told to the script, and `--repo owner/name` is the
-# channel it already has — the flag case 6 pins onto both gh calls. It is spelled at the call site
-# here rather than run through the `run` helper for that reason: this is the only case whose
-# criterion turns on the script knowing which repository the numbers came from, and the two other
-# cases reading URL-form blockers must keep going through the helper untouched.
+# channel it already has — the flag case 6 pins onto both gh calls. It is spelled at this call
+# site, through `run`'s argv pass-through, for that reason: this is the only case whose criterion
+# turns on the script knowing which repository the numbers came from, and the two other cases
+# reading URL-form blockers name no repository, so they must keep reading any owner as local.
 #
 # #131 is open, labelled, and names a blocker in ANOTHER repository whose number is #120 — which
 # is also a real, open, labelled issue HERE. That collision is the whole of the case: a script
@@ -690,8 +696,7 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-foreign_out="$(VERI_GH_JSON="$fx" "$SOLVABLE" --repo ztrange/veri 2>/dev/null)" \
-  && foreign_code=0 || foreign_code=$?
+run "$fx" --repo ztrange/veri; foreign_out="$out" foreign_code="$code"
 
 { [[ "$foreign_code" == 0 ]] && [[ "$foreign_out" == $'120\n131' ]]; } \
   && ok || no "a URL naming another repository's issue is not read as a blocker in this one (exit=$foreign_code want 0, stdout='$foreign_out' want '120\\n131')"
