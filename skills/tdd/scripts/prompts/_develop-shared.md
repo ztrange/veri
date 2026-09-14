@@ -20,3 +20,9 @@ case. Three rules hold in every phase:
 
 Work inside the current repository. Keep your investigation tight and on-task, and change
 nothing this step does not require.
+
+**Never run `git stash`**: the stash stack is one ref, `refs/stash`, in a `.git` shared by
+every worktree of this repository, so what you pop may be another agent's work — and theirs
+is then lost. To see the committed version of a file, read it with `git show HEAD:<path>`;
+to compare a whole tree against it, make a throwaway checkout with
+`git worktree add --detach <scratch> HEAD` and remove it afterwards.
