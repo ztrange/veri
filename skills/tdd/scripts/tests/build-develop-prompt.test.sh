@@ -423,6 +423,42 @@ forbids_ending_mid_run revise "$revise"
 [[ -z "$problems" ]] \
   && ok || no "every built developer prompt forbids ending the turn while a suite run is still going (${problems#; })"
 
+# 16. every built developer prompt forbids `git stash` and names a way to read the committed
+#     version that touches no shared ref (issue #169). A leaf runs with
+#     `--permission-mode bypassPermissions`, and `refs/stash` is ONE ref in the shared `.git`
+#     that every worktree of the repository — the primary clone, every `.tdd/wt/<n>`, every
+#     human session — pushes onto and pops off. So a leaf that stashes to compare against the
+#     committed tree and pops afterwards pops whatever is on top *then*: another run's entry,
+#     dropped from under it, restored into this branch. Two develop-refactor leaves in
+#     `.tdd/wt/107` ran a bare `git stash … git stash pop -q` on 2026-09-13 to do exactly that.
+#
+#     The prohibition alone would leave the need unmet — wanting the tree without the change is
+#     legitimate, which is why leaves keep inventing this — so the alternative is half of the
+#     behaviour and gets its own miss: `git show HEAD:<path>` to read the committed version, or
+#     a throwaway `git worktree add --detach` to compare against it. Asked of all four prompts
+#     for case 14's reason, and each phase is its own miss, so a template that keeps one half is
+#     named rather than covered for by its twin.
+#
+#     Reads the four prompts cases 14 and 15 read, and adds no invocation, for the reason given
+#     there. `prompt_says` folds to one line for its own reason, which bites here in particular:
+#     `git stash` is two short words, and a rewrap putting them across a line break is all an
+#     unfolded probe needs to read them as absent.
+forbids_stash() {  # forbids_stash <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "develop-$label never forbids git stash" \
+    -iE -e "(never|do not|don't|no)[^.]{0,60}stash"
+  prompt_says "$prompt" "develop-$label names no shared-ref-free way to see the committed version" \
+    -E -e 'git show HEAD:|git worktree add'
+}
+
+problems=""
+forbids_stash red "$red"
+forbids_stash green "$green"
+forbids_stash refactor "$refactor"
+forbids_stash revise "$revise"
+[[ -z "$problems" ]] \
+  && ok || no "every built developer prompt forbids git stash and names a safe alternative (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
