@@ -17,12 +17,12 @@
 #             not a list of its parts (#137): docs/docs-owed.sh and this script matched no
 #             listed part and so got no gate at all, and since the docs suites left
 #             `make test` two of them ran in no gate anywhere.
-#   stale     docs/walkthrough.html itself (a hand edit), Makefile → the freshness check
-#             only: the page is the one thing under docs/ that is output, not input, so a
-#             hand edit to it can only make it stale — the build that makes it is unchanged.
+#   stale     docs/walkthrough.html itself (a hand edit) → the freshness check only: the
+#             page is the one thing under docs/ that is output, not input, so a hand edit
+#             to it can only make it stale — the build that makes it is unchanged.
 #   anything else → nothing. A README or test-only PR owes no page, and since #125 neither
 #             does anything under skills/ — a script or SKILL.md change included — nor,
-#             since #146, anything under docs/adr/.
+#             since #146, anything under docs/adr/, nor, since #164, the Makefile.
 # Tags are NOT a file, so a tag cut since the page was built is not seen here; that is
 # docs/hooks/reference-transaction's job, and docs-fresh names the missing tag if it runs.
 #
@@ -43,6 +43,14 @@
 # check, ~5 min — for a file the lane does not read. It is carved back out the same way
 # skills/ is. The docs lane's own runs still cover it: docs/tests/docs-gap-adr.test.sh runs
 # by existing under the docs-test glob, whatever this decision says.
+#
+# WHY Makefile OWES NOTHING (#164): a Makefile change can break a docs target, but it does
+# not make the committed page stale — the page goes stale by design on every tag and every
+# script change (#125). So the check on a development branch failed for what the base did
+# while the branch was open, whatever the recipe edit was: #160 changed only the `test`
+# recipe and still had to choose between regenerating the page on a development branch and
+# merging past a red gate. A Makefile change that breaks a docs target is the docs lane's
+# to catch on its own cadence (`make docs-check`, docs/docs-owed.sh) — not this merge's.
 #
 # EXIT CODES, the repo-wide four: 0 = every gate that ran passed (or none was owed);
 # 1 = a gate ran and failed — check-walkthrough's own output says which and, for a stale
