@@ -74,6 +74,13 @@ report() {
 # into a trailing slash on every message.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# lower <text> — lowercased, so a probe's regexes can be written in one case and still meet
+# prose that capitalises a sentence or a `Makefile`. `tr` and not `${text,,}` because that
+# expansion is bash 4 and this tree runs on the Mac's bash 3.2. Named once because both
+# probes that read prose start by doing this: says() over a whole piece, and
+# probe_no_stale_trigger over the clauses it splits one into.
+lower() { printf '%s' "$1" | tr 'A-Z' 'a-z'; }
+
 # roster <target> — the suite paths <target> would run, one per line. `make -n` prints the
 # recipe with the wildcard already expanded and executes none of it, so this is the
 # target's own list rather than a second copy of the glob written out here.
@@ -124,7 +131,7 @@ gate_header() { header "$ROOT/docs/merge-gates.sh"; }
 # the case pins what the docs say and not how they are phrased.
 says() {
   local where="$1" fact="$3" lc re
-  lc="$(printf '%s' "$2" | tr 'A-Z' 'a-z')"
+  lc="$(lower "$2")"
   shift 3
   for re in "$@"; do
     [[ "$lc" =~ $re ]] || { problems+=("$where does not say $fact"); return; }
@@ -229,7 +236,7 @@ probe_no_stale_trigger() {
     [[ "$clause" =~ $FRESH_GATE ]] || continue
     [[ "$clause" =~ $NEGATED    ]] && continue
     problems+=("$where still names a Makefile change as owing docs-fresh: $(flat "$clause")")
-  done <<< "$(printf '%s' "$2" | tr 'A-Z' 'a-z' | tr ',' '\n')"
+  done <<< "$(lower "$2" | tr ',' '\n')"
 }
 
 # probe_suite_home_prose — the lane's first half as a reader meets it: CLAUDE.md's Testing
