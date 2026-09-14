@@ -165,11 +165,12 @@ branch_exists() { git show-ref --verify --quiet "refs/heads/$1"; }
 #
 # What the symref answers with — `origin/main` — IS the base, so that is the name it is held
 # under, the same one both arms below answer with and the same one the caller binds. Only the
-# fetch wants the other reading of it: ${base#origin/} strips the prefix (# removes the shortest
-# match from the front) to name the branch on the remote side, which is what `git fetch` takes.
+# fetch wants the other reading of it.
 default_base() {
   local base candidate
   if base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
+    # ${base#origin/} strips the prefix (# removes the shortest match from the front) to name the
+    # branch on the remote side, which is the half of `origin/main` that `git fetch` takes.
     git fetch -q origin "${base#origin/}" >&2
     printf '%s\n' "$base"
     return 0
