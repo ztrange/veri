@@ -26,10 +26,18 @@
 # verifier blind: `build-verify-prompt.sh` takes no new argument, so there is still no
 # parameter through which the developer's rationale could leak.
 #
+# The same argument reaches a second variable, and issue #163 measured what its absence costs:
+# every `launch`, `exit` and `verdict` line a leaf leaves in the run's event log carried an
+# empty `issue` and an empty `step`, because event.sh reads those from VERI_ISSUE and VERI_STEP
+# and no launch line set them. That context cannot be derived downstream — `leaf-role.sh` reads
+# the actor, phase and attempt out of the leaf's NAME, and no name says which issue or which
+# step — so it travels the same way and for the same reason: on the launch, in the environment.
+#
 # Contract under test:
 #   Every launch line in SKILL.md that sends a leaf through supervise.sh into run-leaf.sh,
 #   run with the document's own variables supplied, gives the `claude` process at the far
-#   end VERI_TEST_CMD carrying the run's test command.
+#   end VERI_TEST_CMD carrying the run's test command — and leaves an event log whose every
+#   line carries the run's issue and step.
 #
 # Run: skills/tdd/scripts/tests/skill-leaf-env.test.sh
 set -uo pipefail
@@ -83,6 +91,19 @@ mkdir -p "$stub" "$run"
 # and one no recipe in this repository answers to, so nothing it reaches could act on it.
 SENTINEL='make sentinel-test-cmd'
 
+# The run context case 3 asks about, standing in for the conductor's own: the issue number the
+# document spells `<n>` and the plan step it spells `<STEP>`. Both are values `runnable`
+# substitutes into a launch line, so each is written once here and used both to run the line
+# and to expect what came out of it — spelled a second time in the assertion, the expectation
+# could drift off the launch and the case would go green against a value nothing supplied.
+#
+# The issue is the one this suite's own fixtures already name, so the spec file a verifier
+# launch is handed and the `<n>` its line carries stay the same number. The step is a phrase
+# with a space in it, for the reason SENTINEL is: `VERI_STEP` holds a ledger line, so a launch
+# line that carries it unquoted has to be caught here rather than in a real run.
+SENTINEL_ISSUE=143
+SENTINEL_STEP='pin the sentinel step'
+
 # The leaf, as far as run-leaf.sh can tell. Into the file its own launch names in `SEEN` it
 # records the one thing this suite asks about — what VERI_TEST_CMD says in the leaf's own
 # environment, or `<unset>` when it says nothing — and then emits the minimal stream-json for
@@ -111,29 +132,41 @@ chmod +x "$stub/claude"
 # come from here for the same reason the variable under test does: it can only reach the
 # leaf by being inherited.
 #
-# `env -u VERI_TEST_CMD` is the load-bearing part. Once this issue lands, every `make test`
-# of veri's own repository runs inside a development run and therefore already has the
-# variable in its environment — so a leaf inheriting it from this suite's own caller would
-# answer the question for a launch line that carries no prefix at all. A suite's answer must
-# be a fact about the thing under test, not about the shell that ran it (#87).
+# `env -u` on all three variables is the load-bearing part. Every `make test` of veri's own
+# repository runs inside a development run and therefore already has them in its environment —
+# so a leaf inheriting them from this suite's own caller would answer for a launch line that
+# carries no prefix at all. A suite's answer must be a fact about the thing under test, not
+# about the shell that ran it (#87). Watched happen, not reasoned about: run from a #163
+# development leaf before the unsets were added, case 3 read back `issue='163'` and this run's
+# own step text off launch lines that set neither.
 #
 # The supervisor's windows are shrunk the way supervise.test.sh shrinks them, so nothing
 # here waits on wall time; retries are pinned off because a stub leaf that failed to record
 # anything should be reported, not run again.
+# The runnable copy is bound as `launch`, the name `runnable` gives it, and not as `line`:
+# `line` is `scan_launches`'s, holding the document's own spelling, and a local of that name
+# here would shadow it — so the `origin` file below would record the substituted copy as
+# though it were what the document says.
 launched_test_cmd() {
-  local leaf="$1" line="$2"
+  local leaf="$1" launch="$2"
   shift 2
-  local dir="$run/$leaf"
+  # One tree per launch LINE, not per leaf: `$lineno` is `scan_launches`'s, read the way
+  # `problem` reads it. Two of the document's lines launch the same leaf — the revise loop's
+  # verifier says `verify.sh <phase>`, which is `verify red` once substituted, the same leaf
+  # the red cycle's own line launches — so a tree named for the leaf alone would hold what the
+  # SECOND of them did, and whatever the first one left there would be cleared or read as the
+  # second's. Everything a launch leaves behind is evidence about the line that ran it, and
+  # case 3 reads that evidence after both cases above are done, so each line keeps its own.
+  local dir="$run/$lineno-$leaf"
   # What this launch's leaf saw, in the tree that launch ran in rather than in one file every
-  # run rewrites — so each answer keeps the tree that produced it. Cleared first because two
-  # launch lines naming the same leaf share a tree, and the second reaching no leaf at all
-  # would otherwise be answered with the first one's file. The completion file the wait below
-  # polls for is cleared for the same reason, and it is the one SKILL.md's own `rm -f` clears
-  # before each launch: left by the first launch, it would end the second one's wait before
-  # its leaf had written anything.
+  # run rewrites — so each answer keeps the tree that produced it.
   local seen="$dir/seen"
   mkdir -p "$dir/.tdd"
-  rm -f "$seen" "$dir/.tdd/$leaf.exit"
+  # Which line of the document ran here, and what it says, so a case reading these trees later
+  # reports the launch a reader has to edit rather than the leaf it happened to name. Written
+  # from the two variables every failure message above quotes, so the message cannot name a
+  # line other than the one this tree came from.
+  printf '%s\t%s\n' "$skill_md:$lineno" "$line" > "$dir/origin"
   local file
   for file in "$@"; do
     printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
@@ -147,9 +180,10 @@ launched_test_cmd() {
   # landing means the answer is already there. Bounded by the supervisor's own ceiling
   # (VERI_TIMEOUT), so a leaf that ran is never cut short, and a line that reached no
   # supervisor at all still comes back as `<no leaf ran>` rather than hanging the suite.
-  ( cd "$dir" && env -u VERI_TEST_CMD S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
+  ( cd "$dir" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
+      S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
       VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
-      bash -c "$line
+      bash -c "$launch
 \"$SCRIPTS/wait-leaf.sh\" \"$leaf\" 60" ) >/dev/null 2>&1
   cat "$seen" 2>/dev/null || echo '<no leaf ran>'
 }
@@ -180,8 +214,8 @@ expect_sentinel() {
 # quotes, while what comes back from here is the runnable copy. The substitutions are one
 # table rather than one per case because a conductor supplies all of them from one place —
 # the run's test command, the phase and revise attempt that name one revise leaf, the issue
-# number, and the test under review with its target test id — and either launch shape is
-# free to name any of them.
+# number and the plan step it is on, and the test under review with its target test id — and
+# either launch shape is free to name any of them.
 #
 # The refusal is the load-bearing half. An unsubstituted `<…>` would be read by the shell as
 # a redirection, so a case that ran it would go green while answering about nothing; the
@@ -194,7 +228,8 @@ runnable() {
   launch="${launch//<test-cmd>/$SENTINEL}"
   launch="${launch//<phase>/red}"
   launch="${launch//<k>/1}"
-  launch="${launch//<n>/143}"
+  launch="${launch//<n>/$SENTINEL_ISSUE}"
+  launch="${launch//<STEP>/$SENTINEL_STEP}"
   launch="${launch//<test-path>/probe.test.sh}"
   launch="${launch//<target-test-id>/probe-target}"
   launch="${launch//\[target\]/probe-target}"
@@ -308,13 +343,94 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 check_verifier_launch() {
   local launch="$1" leaf
   leaf="verify-$(sed -E 's/.*verify\.sh +([^ ]+).*/\1/' <<< "$launch")"
-  expect_sentinel "$leaf" "$launch" ".tdd/issue-143-spec.md" "probe.test.sh"
+  expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
   '\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
   "$skill_md has no line launching a verifier through verify.sh against a spec file — the launch this case is about could not be found" \
   check_verifier_launch
+
+# 3. The second thing a leaf launch has to carry, and the one #163 measured missing: the run
+#    context the event log's `issue` and `step` keys are written from. `event.sh` reads them
+#    out of VERI_ISSUE and VERI_STEP (event.sh:47-50) and writes an unset one as `""`, so in
+#    #157's own run log every one of the 26 `launch`, 26 `exit` and 9 `verdict` lines carried
+#    an empty issue and an empty step, and a leaf could be attributed to a step only by
+#    interleaving its timestamp with the conductor's `step-start` marks.
+#
+#    Neither supervise.sh nor verify.sh can supply it: `leaf-role.sh` derives the actor, the
+#    phase and the attempt from the leaf's NAME, and nothing in a name says which issue is
+#    being solved or which step of its plan the leaf is on. Both already pass through whatever
+#    their environment holds (supervise.test.sh case 15, verify.test.sh case 11), so what is
+#    left is the launch putting it there — the same place, and the same two variables, the
+#    conductor's own mark lines already spell (SKILL.md:440, 622, 693, 722, 796, 844).
+#
+#    Asked of the events the launches LEFT, rather than of what the leaf saw. The leaf never
+#    reads VERI_ISSUE; event.sh does, from inside the supervisor, so the log is where the
+#    variable arriving is observable at all — and every line of it is asked, because a context
+#    that reached the `launch` mark is no evidence the `exit` or the `verdict` written after
+#    the leaf ran has it too.
+#
+#    These are the trees cases 1 and 2 already ran the document's lines in, read now that both
+#    are done rather than launched again: a launch here is a real supervisor over a real
+#    detached leaf, ~0.6 s of the ~6 s this suite costs `make test` three times per step, and
+#    asking a second question of a run that already happened is free. Each tree carries the
+#    document line that made it, so a failure names the launch to edit.
+name="every leaf $skill_md launches leaves events carrying the run's issue and step"
+problems=()
+
+# bad_context <events-log> — one `;`-joined complaint naming every event line in <log> whose
+# issue and step are not the sentinels the launch was given, or nothing at all when they all
+# carry them. python3 rather than jq, the dependency event.sh itself already execs.
+#
+# An empty or absent log is a complaint too, and a loud one: a launch that wrote no events is
+# a leaf nothing recorded, and a case that read past it would pass for having found no line to
+# contradict it.
+bad_context() {
+  python3 -c '
+import sys, json
+log, issue, step = sys.argv[1], sys.argv[2], sys.argv[3]
+bad = []
+lines = [l for l in open(log).read().splitlines() if l.strip()]
+for line in lines:
+    try:
+        obj = json.loads(line)
+    except Exception:
+        bad.append("unparseable event line")
+        continue
+    if obj.get("issue") != issue or obj.get("step") != step:
+        bad.append("%s issue=%r step=%r" % (obj.get("event"), obj.get("issue"), obj.get("step")))
+if not lines:
+    print("<<no event line written>>")
+elif bad:
+    print("; ".join(bad))
+' "$1" "$SENTINEL_ISSUE" "$SENTINEL_STEP" 2>/dev/null || echo '<<no event log>>'
+}
+
+# `$run/*` unquoted is the glob; with no match bash leaves the pattern itself, which is not a
+# directory — so the guard below reports that no launch ran at all rather than iterating over
+# a literal `*` or, worse, passing the case having examined nothing.
+trees=( "$run"/* )
+if [[ ! -d "${trees[0]}" ]]; then
+  problems+=("no launch line was run, so no leaf's events could be read")
+else
+  for tree in "${trees[@]}"; do
+    # Fail closed on a tree with no `origin`, rather than reading `$where` unset: under
+    # `set -u` bash 3.2 kills the script there and exits with the status of the command
+    # BEFORE it — routinely 0 — so the suite would stop mid-case and still look green to
+    # anything reading only its exit code (#157).
+    if [[ ! -f "$tree/origin" ]]; then
+      problems+=("${tree#$run/} was launched with no record of which line of $skill_md ran it")
+      continue
+    fi
+    IFS=$'\t' read -r where text < "$tree/origin"
+    complaint="$(bad_context "$tree/.tdd/events.jsonl")"
+    [[ -z "$complaint" ]] ||
+      problems+=("$where leaves events that do not carry issue=$SENTINEL_ISSUE step='$SENTINEL_STEP' ($complaint):$text")
+  done
+fi
+
+report "$name"
 
 echo "----"
 echo "$pass passed, $fail failed"
