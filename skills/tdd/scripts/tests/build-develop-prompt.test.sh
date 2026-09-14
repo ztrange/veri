@@ -483,8 +483,8 @@ every_phase forbids_stash \
 #     its own. Both directions because a definition reads either as `**structural**: removes
 #     duplication…` or as `removing duplication is structural`, and which one a writer picks is
 #     not the criterion. The class words themselves cannot be answered by what is already
-#     there: sub-step 1's "naming, duplication, structure" contains neither `structural` nor
-#     `cosmetic`.
+#     there: no other line of the template names either class — sub-step 1 asks for "one
+#     transformation that makes the code clearer" and stops there.
 problems=""
 prompt_says "$refactor" "does not define structural by what the transform changes" \
   -iE -e 'structural[^.]{0,160}(duplication|extract|inline|dead code|rename|scope)|(duplication|extract|inline|dead code|rename|scope)[^.]{0,160}structural'

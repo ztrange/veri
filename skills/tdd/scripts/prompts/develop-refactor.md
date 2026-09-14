@@ -37,8 +37,8 @@ which file it sits in:
 
 ### What to do
 
-1. Pick **one** transformation that makes the code clearer — naming, duplication,
-   structure — and apply it. Not a batch: one, so a break is attributable.
+1. Pick **one** transformation that makes the code clearer and apply it. Not a batch: one,
+   so a break is attributable.
 2. Run the suites covering the files you touched, not the full suite: they answer what one
    transform could plausibly break, and answer it in a fraction of the time. Those suites
    must stay green; revert the transform rather than leave a red suite behind. How this
