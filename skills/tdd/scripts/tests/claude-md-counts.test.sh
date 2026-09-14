@@ -88,6 +88,17 @@ unreadable() {
   problems+=("$1 — $2 could not be read")
 }
 
+# nonempty <what> <n> <glob> — fail closed on an inventory of nothing. A glob that matched
+# no file means the tree moved out from under this suite, and zero must not quietly become
+# the number every claim is checked against. One helper rather than the sentence once per
+# tree, for the reason `unreadable` above is one helper: two copies of a message are two
+# places for it to drift.
+nonempty() {
+  if [[ "$2" -eq 0 ]]; then
+    unreadable "no $1 matched $3" "the tree the counts describe"
+  fi
+}
+
 # how_many <glob> — how many files match it. The glob is left unquoted so the shell
 # expands it, and every match is checked to be a file, because bash leaves a pattern that
 # matched nothing standing as its own text: without the check an empty directory would
@@ -196,15 +207,8 @@ problems=()
 n_scripts="$(how_many "$scripts_path")"
 n_suites="$(how_many "$suites_path")"
 
-# Fail closed on an inventory of nothing: a glob that matched no file means the tree moved
-# out from under this suite, and zero must not quietly become the number every claim is
-# checked against.
-if [[ "$n_scripts" -eq 0 ]]; then
-  unreadable "no script matched $scripts_glob" "the tree the counts describe"
-fi
-if [[ "$n_suites" -eq 0 ]]; then
-  unreadable "no suite matched $suites_glob" "the tree the counts describe"
-fi
+nonempty script "$n_scripts" "$scripts_glob"
+nonempty suite "$n_suites" "$suites_glob"
 
 intro="$(preamble | flatten)"
 idiom="$(section "$section_name" | flatten)"
