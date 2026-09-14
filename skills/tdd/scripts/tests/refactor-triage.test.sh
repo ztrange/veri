@@ -9,10 +9,9 @@
 # `nothing left to tidy` and `refactor-budget.sh` exiting 3, and in practice only the
 # second fires — a leaf asked for one transform always finds one, so the loop spends its
 # whole budget on transforms that reword and re-cite. Since #149 every `CANDIDATES:` line
-# the leaf reports carries the class of the transform it names — `structural` for one that
-# removes duplication, extracts, inlines, deletes dead code, renames or moves logic, and
-# `cosmetic` for one that only rewords, re-cites, reflows or re-comments. This script is
-# what turns those classed lines into the loop's third stop condition.
+# the leaf reports carries the class of the transform it names, `structural` or `cosmetic`
+# as prompts/develop-refactor.md's *The two classes of candidate* defines them. This script
+# is what turns those classed lines into the loop's third stop condition.
 #
 # Contract under test, in the four-code convention (CLAUDE.md, *Exit codes are the API*):
 #   report on stdin → exit 0, printing the structural candidates, when at least one is
