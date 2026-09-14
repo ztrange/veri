@@ -63,8 +63,9 @@ report() {
 
 # problem <complaint> — record one launch line that failed the case. Every such message has
 # the same three parts, and they are here rather than at each call site so the three cannot
-# drift apart: where the line is, what is wrong with it, and the line itself, since a reader
-# who has the offending launch in front of them does not have to go and open the document.
+# drift apart: where the line is, what is wrong with it, and the line itself **as the
+# document spells it**, so a reader can find the text by searching for what the message
+# quoted, and what they fix is the document rather than the probe's substituted copy.
 # `lineno` and `line` are the loop's, the way `problems` above is `report`'s.
 problem() {
   problems+=("$skill_md:$lineno $1:$line")
@@ -150,27 +151,30 @@ while IFS= read -r numbered; do
   [[ -n "$numbered" ]] || continue
   lineno="${numbered%%:*}"
   line="${numbered#*:}"
-  # The document's placeholders, supplied as a conductor supplies them: the run's test
-  # command, and the phase and revise attempt that name one revise leaf. Any other one is
+  # Two spellings of the same launch, kept apart on purpose: `line` is what the document
+  # says, and is what every message quotes; `launch` is the runnable copy, with the
+  # document's placeholders supplied as a conductor supplies them — the run's test command,
+  # and the phase and revise attempt that name one revise leaf. Any other placeholder is
   # reported rather than run — an unsubstituted `<…>` would be read by the shell as a
   # redirection, and a case that went green on that would be answering about nothing.
-  line="${line//<test-cmd>/$SENTINEL}"
-  line="${line//<phase>/red}"
-  line="${line//<k>/1}"
-  if [[ "$line" == *'<'*'>'* ]]; then
+  launch="${line//<test-cmd>/$SENTINEL}"
+  launch="${launch//<phase>/red}"
+  launch="${launch//<k>/1}"
+  if [[ "$launch" == *'<'*'>'* ]]; then
     problem "names a placeholder this probe cannot supply, so its launch could not be run"
     continue
   fi
-  # The two fields the probe reads out of a line it has established is runnable: the leaf's
-  # name, which is also the tree the launch runs in and how a failure names itself, and the
-  # prompt file the leaf is pointed at.
-  leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$line")"
-  prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$line" | head -1)"
+  # The two fields the probe reads out of a launch it has established is runnable: the
+  # leaf's name, which is also the tree the launch runs in and how a failure names itself,
+  # and the prompt file the leaf is pointed at. Both are read from the substituted copy,
+  # since a leaf named `revise-<phase>-<k>` in the document is `revise-red-1` when it runs.
+  leaf="$(sed -E 's/.*supervise\.sh +([^ ]+).*/\1/' <<< "$launch")"
+  prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$launch" | head -1)"
   if [[ -z "$prompt" ]]; then
     problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
     continue
   fi
-  got="$(launched_test_cmd "$line" "$prompt" "$leaf")"
+  got="$(launched_test_cmd "$launch" "$prompt" "$leaf")"
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 done <<< "$launch_lines"
