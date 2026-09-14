@@ -534,6 +534,52 @@ tracks="$(git_q "$clone" for-each-ref --format='%(upstream:short)' refs/heads/td
 { [[ "$code" == 0 ]] && [[ "$out" == "$want" ]] && [[ -z "$tracks" ]]; } \
   && ok || no "the new issue branch has no upstream (exit=$code want 0, stdout='$out' want '$want', tdd/39-no-upstream's upstream=$( [[ -z "$tracks" ]] && echo "none, good" || echo "'$tracks' want none" ))"
 
+# 16. the fetch fails — the remote is unreachable — so the script refuses rather than falling back
+# to the stale local branch (issue #174).
+#
+# This is the failure path of cases 13–15. `refs/remotes/origin/main` is still there in the clone
+# and still points at the tip the clone was taken at, so a script that shrugged off `git fetch`'s
+# exit code would carry on and cut the branch from that ref: exit 0, a worktree, and a base that is
+# silently as stale as the local `main` the fetch was added to get away from. Whether the run is
+# built on the remote's tip would then depend on whether the network happened to be up, which is
+# the one thing a base must not depend on. Exit 2, "no answer could be obtained" — the remote we
+# were told to cut from could not be read, which is plumbing broken before any TDD cycle starts.
+#
+# The seed is the upstream+clone pair of cases 13–15 with the upstream deleted after the clone is
+# taken: origin/HEAD and origin/main survive in the clone (so the remote arm is genuinely the one
+# taken, not the local fallback), and the path they point at no longer exists, so `git fetch origin
+# main` comes back 128. Deleting the directory rather than pointing origin at a bad URL keeps the
+# clone's own refs exactly as a working clone's are.
+#
+# Four things asserted together, the way case 8 asks them, because a refusal that still printed a
+# path or still cut a branch would be worse than a crash: exit 2, nothing on stdout (the caller
+# `cd`s into whatever that line says), a diagnostic on stderr naming the fetch — git's own failure
+# text says "Could not read from remote repository" and never the word, so this pins the script's
+# own message and distinguishes the refusal from case 8's "default branch" — and git's registry
+# byte-identical either side, which is where a stray `tdd/41-...` branch would show up. The
+# worktree path's absence from disk is asserted too, since a directory git never registered would
+# not appear in the snapshot.
+upstream="$work/unreachable-upstream"
+new_repo "$upstream"
+clone="$work/unreachable-clone"
+git clone -q "$upstream" "$clone" >/dev/null 2>&1
+rm -rf "$upstream"
+want="$(wt_path "$clone" 41)"
+before="$(registry "$clone")"
+
+errfile="$work/unreachable.err"
+out="$(cd "$clone" && "$WT" 41 fetch-fails 2>"$errfile")" && code=0 || code=$?
+err="$(cat "$errfile")"
+after="$(registry "$clone")"
+
+{ [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ "$err" == *"fetch"* ]] && [[ ! -e "$want" ]] \
+  && [[ "$after" == "$before" ]]; } \
+  && ok || no "the fetch fails: exits 2 with a diagnostic on stderr, nothing on stdout, and no worktree or branch created (exit=$code want 2, stdout='$out' want empty, stderr='$err' want it to name the 'fetch', '$want' $( [[ -e "$want" ]] && echo "was created" || echo "absent, good" ), git's worktree+branch registry $( [[ "$after" == "$before" ]] && echo unchanged || echo "changed:
+--- before
+$before
+--- after
+$after" ))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

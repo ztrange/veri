@@ -171,7 +171,18 @@ default_base() {
   if base="$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
     # ${base#origin/} strips the prefix (# removes the shortest match from the front) to name the
     # branch on the remote side, which is the half of `origin/main` that `git fetch` takes.
-    git fetch -q origin "${base#origin/}" >&2
+    #
+    # A fetch that fails is a refusal, never a fallback. refs/remotes/origin/<default> is still
+    # there in the clone, pointing at whatever tip the last successful fetch left — so carrying on
+    # would cut the branch from a base as stale as the local one this fetch exists to get away
+    # from, and whether a run starts from the remote's tip would come to depend on whether the
+    # network happened to be up. Return 2, the script's "no answer could be obtained": the remote
+    # we were told to cut from could not be read. Said here, where the fetch is, because this is
+    # the only place that knows the fetch was what broke; git's own message never says the word.
+    if ! git fetch -q origin "${base#origin/}" >&2; then
+      echo "issue-worktree: git fetch origin ${base#origin/} failed — refusing to cut $branch from a stale $base" >&2
+      return 2
+    fi
     printf '%s\n' "$base"
     return 0
   fi
@@ -198,10 +209,20 @@ if branch_exists "$branch"; then
 else
   # Exit 2 — "no answer could be obtained" — rather than guessing: a repo whose default branch we
   # cannot name is plumbing broken before any TDD cycle starts, not a step that legitimately failed.
-  base="$(default_base)" || {
+  #
+  # Two ways out of default_base and they are different failures, so the status is kept rather
+  # than collapsed by a bare `||`: 2 is the fetch, which it has already named on stderr — saying
+  # anything more here would bury the one line that tells a human the remote was unreachable —
+  # and 1 is having no default branch to name at all. `base_status=0` first because `set -u`
+  # would kill the read below if the substitution succeeded and the `||` never ran.
+  base_status=0
+  base="$(default_base)" || base_status=$?
+  if [[ "$base_status" -eq 2 ]]; then
+    exit 2
+  elif [[ "$base_status" -ne 0 ]]; then
     echo "issue-worktree: cannot determine the default branch (no origin/HEAD, no local main or master)" >&2
     exit 2
-  }
+  fi
 
   # -b creates the branch at <base> and checks it out in the new worktree in one move; -q keeps
   # git's "Preparing worktree" chatter out of the way, and >&2 sends anything it still prints to
