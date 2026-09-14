@@ -997,17 +997,11 @@ tip="$(git -C "$want" rev-parse HEAD 2>/dev/null)"
 # 25. the worktree is already there AND a live conductor holds it — the idempotent path must
 # refuse, not resume: exit 2, name the holder, and keep the live run's path off stdout (#170).
 #
-# Case 2 pins the other half, and that is what makes this one dangerous rather than merely
-# untidy: a second call answers with the path the first made, so a second conductor started
-# while the first is still running `cd`s into the live run's worktree, finds its ledger and
-# follows *Resume* — whose `git reset --hard HEAD` on a `⟂ refactor pending` step throws the
-# running leaf's uncommitted work away. The refusal at case 3 comes too late to stop it: the
-# idempotent answer returns before the holder check is ever reached.
-#
-# What says a run is live is the lock the conductor writes inside its own worktree,
-# `.tdd/conductor.pid`, probed with `kill -0` — the same file and the same probe
-# solvable-issues.sh uses to keep the issue out of the pool while the run is in flight, so the
-# two scripts agree about what "in flight" is observed from.
+# Case 2 pins the other half — a second call is answered with the path the first made — and
+# case 3 the refusal that comes too late to stop it. What a live worktree handed back that way
+# costs, and why what says a run is live is the conductor's own pid in `.tdd/conductor.pid`
+# probed with `kill -0`, are argued once at issue-worktree.sh:99-108 and :125-131; a second
+# copy of that argument here is one that drifts.
 #
 # The seed is the script's OWN first call, so what the second call meets is the worktree this
 # script makes rather than one the suite built to look like it; the lock then holds `$$`, this
