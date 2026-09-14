@@ -76,16 +76,13 @@ printf '%s' "$prompt" > "$promptfile"
 # real index, and no ref is written (not `refs/stash`, see #169): only tree and blob objects,
 # which are unreachable garbage the next `git gc` collects. HEAD is read separately because a
 # commit can move it while leaving the working tree byte-identical.
-tree_snapshot() {  # prints the tree sha of the working tree, or fails where there is no repo
-  local dir tree
+tree_snapshot() {  # prints the tree sha of the working tree, or nothing where there is no repo
+  local dir tree=""
   dir="$(mktemp -d)"
   if GIT_INDEX_FILE="$dir/index" git add -A >/dev/null 2>&1; then
     tree="$(GIT_INDEX_FILE="$dir/index" git write-tree 2>/dev/null)" || tree=""
-  else
-    tree=""
   fi
   rm -rf "$dir"
-  [[ -n "$tree" ]] || return 1
   printf '%s' "$tree"
 }
 
@@ -94,7 +91,7 @@ tree_snapshot() {  # prints the tree sha of the working tree, or fails where the
 # `git rev-parse HEAD` fails the same way on a repo with no commits yet; an empty
 # $head_before then compares unequal to the sha a verifier commit would create, which is the
 # reading that reports it.
-tree_before="$(tree_snapshot)" || tree_before=""
+tree_before="$(tree_snapshot)"
 head_before="$(git rev-parse HEAD 2>/dev/null)" || head_before=""
 
 set +e
@@ -116,7 +113,7 @@ fi
 # suite was judged along with the code it was judging. stdout carries what changed instead,
 # because the paths are what a human needs to see to know what the leaf touched.
 if [[ -n "$tree_before" ]]; then
-  tree_after="$(tree_snapshot)" || tree_after=""
+  tree_after="$(tree_snapshot)"
   head_after="$(git rev-parse HEAD 2>/dev/null)" || head_after=""
   changed="$(git diff-tree -r --name-only --no-commit-id "$tree_before" "$tree_after" 2>/dev/null)" || changed=""
   [[ "$head_before" == "$head_after" ]] || changed="${changed:+$changed$'\n'}HEAD"
