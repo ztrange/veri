@@ -159,7 +159,13 @@ if [[ -z "$prose" ]]; then
 else
   faults=""
   [[ "$prose" == *nohup* ]] || fault "never names nohup"
-  [[ "$prose" == *sighup* || "$prose" == *hang-up* || "$prose" == *hangup* ]] ||
+  # One question, so one pattern: the three spellings a writer might reach for are the
+  # signal's name and the English word with or without its hyphen, and asking them as an
+  # alternation says that rather than making a reader diff three near-identical clauses to
+  # find it. `=~` for the same reason the sibling suites use it — skill-identity.test.sh's
+  # `claim` and skill-suite-runs.test.sh's `says` both pin "any wording that carries the
+  # fact" as one regex.
+  [[ "$prose" =~ (sighup|hang-?up) ]] ||
     fault "does not say nohup survives a hang-up"
   [[ "$prose" == *"process group"* ]] ||
     fault "does not say nohup leaves the leaf in the launching call's process group"
