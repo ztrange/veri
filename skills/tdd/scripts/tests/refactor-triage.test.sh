@@ -269,6 +269,12 @@ refactor_loop() {
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" | plain
 }
 
+# The section, read once, next to the path it is read from: cases 4 and 5 both probe it and
+# nothing between them writes to the document, so deriving it per case was the same awk over
+# the same file twice. Shared like `skill_path` and the helpers above, rather than each case
+# re-deriving it — `line_of` below already reads it as a global.
+loop_lines="$(refactor_loop)"
+
 # line_of <extended-regex> — the 1-based position of the first section line matching it, or
 # the empty string when none does. Position is what turns two "is it there?" probes into the
 # one question the ordering claim asks.
@@ -279,7 +285,6 @@ line_of() {
 name="$skill_md's refactor loop calls refactor-triage.sh on each committed transform and stops on exit 3 and exit 2"
 problems=()
 
-loop_lines="$(refactor_loop)"
 if [[ -z "${loop_lines// /}" ]]; then
   # Fail closed: a renamed or emptied section is reported as unreadable rather than probed as
   # an empty string, which would let "the loop is gone" read as "the loop is right".
@@ -335,8 +340,6 @@ report "$name"
 #    comment mentions neither.
 name="$skill_md's ### 🛠️ Refactor comment names which of the three stop conditions ended the loop and files the leftovers by class"
 problems=()
-
-loop_lines="$(refactor_loop)"
 
 # The narration sub-step as one line: from the section's first line that names a `###`
 # comment — the `### 🛠️ Refactor` heading this case is about — up to the `- PASS:` bullet,
