@@ -89,6 +89,13 @@ sleep 60
 H
 chmod +x "$harness"
 
+# pgid_of <pid> — the process group id <pid> belongs to, or empty if it has none (it exited,
+# or `ps` does not know it). `ps -o pgid=` prints that one column with no header, right-padded,
+# which is what the `tr` strips. Three questions in this suite are that same one: which group
+# is the suite in, which group did the harness get, and which group is named in the failure
+# message a reader has to be able to compare against the other two.
+pgid_of() { ps -o pgid= -p "$1" | tr -d ' '; }
+
 # appeared <file> <seconds> — true once <file> holds something, polled ten times a second up
 # to a budget. Both directions need it: the launcher's child has to have written within the
 # budget, and the control child has to still have written nothing once one has passed.
@@ -116,7 +123,7 @@ appeared() {
 # needs back therefore travels in files rather than in variables.
 probe_term_hit_the_launching_shells_group() {
   local suite_pgid
-  suite_pgid="$(ps -o pgid= -p $$ | tr -d ' ')"
+  suite_pgid="$(pgid_of $$)"
   (
     set -m
     "$harness" &
@@ -137,7 +144,7 @@ probe_term_hit_the_launching_shells_group() {
     # signal landing on a process that is still running.
     sleep 0.5
 
-    pg="$(ps -o pgid= -p "$hpid" | tr -d ' ')"
+    pg="$(pgid_of "$hpid")"
     printf '%s\n' "${pg:-none}" > "$work/harness.pgid"
     if [[ ! "$pg" =~ ^[0-9]+$ ]]; then
       printf 'no-pgid\n' > "$work/why-no-term"
@@ -152,7 +159,7 @@ probe_term_hit_the_launching_shells_group() {
   ) > /dev/null 2>&1
 
   [[ -s "$work/term.sent" ]] ||
-    problems+=("no TERM was sent to the launching shell's process group, so nothing below was asked: $(cat "$work/why-no-term" 2>/dev/null || echo unknown) (its pgid read back as $(cat "$work/harness.pgid" 2>/dev/null || echo none), this suite's is $(ps -o pgid= -p $$ | tr -d ' '))")
+    problems+=("no TERM was sent to the launching shell's process group, so nothing below was asked: $(cat "$work/why-no-term" 2>/dev/null || echo unknown) (its pgid read back as $(cat "$work/harness.pgid" 2>/dev/null || echo none), this suite's is $(pgid_of $$))")
 }
 
 # probe_the_signal_landed_on_a_running_child — the other premise, and the one that cost an
