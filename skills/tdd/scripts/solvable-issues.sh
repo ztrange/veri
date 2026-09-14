@@ -110,8 +110,17 @@ prs_json="$(gh_json prs.json pr list --json body,state)"
 # `|| true` because a caller outside any repository is not an error here: git says nothing, the
 # root comes out empty, and the liveness check below then finds no lock and claims nothing —
 # which is the right reading, since with no repository there is no worktree to hold a run.
-main_working_tree="$(git worktree list --porcelain 2>/dev/null | head -n 1 || true)"
-main_working_tree="${main_working_tree#worktree }"
+#
+# Taking the label off is inside the function, not a second assignment to a name in the script's
+# own scope, for the reason issue-worktree.sh:41 gives about the same two steps: what the first
+# step yields is still `worktree /path/...`, and no name a later line can read should be able to
+# hold that, because no name would be true of it. The one name outside says what the answer is.
+main_working_tree() {
+  local first_line
+  first_line="$(git worktree list --porcelain 2>/dev/null | head -n 1 || true)"
+  printf '%s\n' "${first_line#worktree }"
+}
+main_tree="$(main_working_tree)"
 
 exec python3 -c '
 import json, os, re, sys
@@ -120,7 +129,7 @@ issues = json.loads(sys.argv[1])
 prs = json.loads(sys.argv[2])
 label = sys.argv[3]
 this_repo = sys.argv[4]
-main_working_tree = sys.argv[5]
+main_tree = sys.argv[5]
 
 # Openness is the whole of what a state is read for, and it is read the same way on both
 # kinds of record: `gh` writes an issue state as OPEN/CLOSED and a PR state as
@@ -163,10 +172,10 @@ blocker_ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % slug_pattern
 # there to send one to. A process owned by another user answers PermissionError — it exists,
 # which is the whole question — while one that is gone answers ProcessLookupError.
 def in_flight(number):
-    if not main_working_tree:
+    if not main_tree:
         return False
     lock = os.path.join(
-        main_working_tree, ".tdd", "wt", str(number), ".tdd", "conductor.pid")
+        main_tree, ".tdd", "wt", str(number), ".tdd", "conductor.pid")
     try:
         with open(lock) as f:
             pid = int(f.read().strip())
@@ -207,4 +216,4 @@ for number in numbers:
 # learns it from the code rather than from having to notice that stdout was empty.
 if not numbers:
     sys.exit(3)
-' "$issues_json" "$prs_json" "$label" "$repo" "$main_working_tree"
+' "$issues_json" "$prs_json" "$label" "$repo" "$main_tree"
