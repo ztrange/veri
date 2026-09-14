@@ -14,6 +14,22 @@
 # inserts — and that URL blocks only when its `<owner>/<repo>` is this repository's, since
 # another project's #120 is not this one's.
 #
+# An open PR is not the only claim, because it is the LAST thing a run makes: the conductor
+# opens its draft PR after every step is green, so for the whole run before that — hours; #137
+# took about eleven — the issue would otherwise still read as takeable, and a second conductor
+# taking it lands in the live run's worktree and follows *Resume*, whose `git reset --hard
+# HEAD` throws the live leaf's uncommitted work away (#170). So a run also claims its issue
+# from its FIRST step, by writing its own pid into `.tdd/wt/<n>/.tdd/conductor.pid` under the
+# repository's main working tree, and an issue whose lock names a process that still answers
+# `kill -0` is left out here.
+#
+# A pid rather than a `veri:in-flight` label on the issue: a label is visible across machines,
+# but it outlives the process that set it, so a crashed or killed run leaves its issue claimed
+# until a human goes and un-claims it by hand. A pid that no longer answers reads as free on
+# the very next selection — which is what a bailed run needs, since its issue must stay
+# resumable. The cost is that the claim is local to one machine, and #102's parallel conductors
+# are local to one machine too.
+#
 # The repository's issues and pull requests are read as the JSON `gh` emits:
 #   gh issue list --json number,title,labels,body,state
 #   gh pr list    --json body,state
@@ -84,13 +100,27 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
 issues_json="$(gh_json issues.json issue list --json number,title,labels,body,state)"
 prs_json="$(gh_json prs.json pr list --json body,state)"
 
+# The directory the in-flight locks hang off: the repository's MAIN working tree, because that
+# is where issue-worktree.sh puts every run's worktree (`wt_path`, off `main_working_tree`) —
+# never the checkout this script happens to have been called from, which for a conductor
+# started inside a session worktree is a different directory entirely (#166). git's registry
+# prints the main working tree as the first block's `worktree <path>` line, so that first line
+# with its label taken off is the answer.
+#
+# `|| true` because a caller outside any repository is not an error here: git says nothing, the
+# root comes out empty, and the liveness check below then finds no lock and claims nothing —
+# which is the right reading, since with no repository there is no worktree to hold a run.
+main_working_tree="$(git worktree list --porcelain 2>/dev/null | head -n 1 || true)"
+main_working_tree="${main_working_tree#worktree }"
+
 exec python3 -c '
-import json, re, sys
+import json, os, re, sys
 
 issues = json.loads(sys.argv[1])
 prs = json.loads(sys.argv[2])
 label = sys.argv[3]
 this_repo = sys.argv[4]
+main_working_tree = sys.argv[5]
 
 # Openness is the whole of what a state is read for, and it is read the same way on both
 # kinds of record: `gh` writes an issue state as OPEN/CLOSED and a PR state as
@@ -122,6 +152,34 @@ claimed = {
 slug_pattern = re.escape(this_repo) if this_repo else r"[^/\s]+/[^/\s]+"
 blocker_ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % slug_pattern
 
+# The lock a run in flight leaves behind, and whether the conductor that wrote it is still
+# there. Everything about it is fail-open: no repository root, no worktree, no lock file, a
+# lock holding something that is not a number — each means nobody has claimed this issue, so
+# the issue stays takeable. A claim has to be POSITIVELY observed, because the cost of reading
+# a stale file as a live run is an issue nobody can take until a human deletes it, while the
+# cost of the opposite is the collision that was already there.
+#
+# `os.kill(pid, 0)` is `kill -0`: it sends no signal and answers only whether the process is
+# there to send one to. A process owned by another user answers PermissionError — it exists,
+# which is the whole question — while one that is gone answers ProcessLookupError.
+def in_flight(number):
+    if not main_working_tree:
+        return False
+    lock = os.path.join(
+        main_working_tree, ".tdd", "wt", str(number), ".tdd", "conductor.pid")
+    try:
+        with open(lock) as f:
+            pid = int(f.read().strip())
+    except (OSError, ValueError):
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except OSError:
+        return True
+    return True
+
 def blockers(body):
     """The issue numbers named under the `## Blocked by` heading, up to the next heading.
     A section reading `None.` names none, and so does a body with no such section."""
@@ -130,11 +188,14 @@ def blockers(body):
 
 def solvable(issue):
     """The four conditions the spec names, all of which must hold at once. They are named
-    here rather than run as early returns so the function reads as the definition it is."""
+    here rather than run as early returns so the function reads as the definition it is.
+    `unclaimed` is one condition observed two ways — an open PR saying `Closes #<n>`, and a
+    live conductor pid — because both say the same thing about the issue: somebody already
+    has it. Which of the two was seen changes nothing a caller does."""
     number = issue["number"]
     still_open = number in open_issues
     opted_in = any(l.get("name") == label for l in issue.get("labels", []))
-    unclaimed = number not in claimed
+    unclaimed = number not in claimed and not in_flight(number)
     unblocked = all(n not in open_issues for n in blockers(issue.get("body", "")))
     return still_open and opted_in and unclaimed and unblocked
 
@@ -146,4 +207,4 @@ for number in numbers:
 # learns it from the code rather than from having to notice that stdout was empty.
 if not numbers:
     sys.exit(3)
-' "$issues_json" "$prs_json" "$label" "$repo"
+' "$issues_json" "$prs_json" "$label" "$repo" "$main_working_tree"
