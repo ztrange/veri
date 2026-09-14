@@ -256,6 +256,74 @@ ctx_field_step="$(verdict_field ctx step)"
 { [[ "$ctx_field_issue" == "$ctx_issue" ]] && [[ "$ctx_field_step" == "$ctx_step" ]]; } && ok \
   || no "VERI_ISSUE/VERI_STEP in verify.sh's environment reach its verdict event (issue=$ctx_field_issue want $ctx_issue, step=$ctx_field_step want $ctx_step)"
 
+# 11. a verifier leaf that leaves the tree changed makes verify.sh exit 2 whatever its verdict,
+#     with what changed on stdout (issue #172). The verifier's sandbox is `--disallowedTools
+#     Write Edit MultiEdit NotebookEdit` (verify.sh:48-49): four editing TOOLS denied, and
+#     nothing said about Bash, through which a leaf can write any file. Nothing looked at the
+#     tree afterwards, and the conductor's next move after a PASS is `git add -A && git commit`
+#     (SKILL.md:526) — so whatever the verifier left was committed as the developer's work, and
+#     an edit made before the leaf ran the suite was judged along with the code it was judging.
+#
+#     Three arms, one per way the tree can come back different, because the criterion names all
+#     three and each is invisible to a check written for only one of the others: a tracked file
+#     rewritten, an untracked non-ignored file created, and a commit that moves HEAD while
+#     leaving the working tree byte-identical to the one the developer produced.
+#
+#     Every arm's leaf renders PASS, the exit code that must not survive the mutation. A REJECT
+#     arm would exit 1 for its own reasons and could not tell a working check from an absent one.
+#
+#     Each arm runs in a repo of its own under $work — one commit, one tracked file, and a
+#     .gitignore that ignores `.tdd/`, the rule ensure-run-state-ignored.sh installs in a real
+#     run. Without it the supervisor's own prompt, log and event lines under `.tdd/` are
+#     untracked non-ignored files and every arm would report the run's own scratch as the
+#     verifier's tampering.
+tamper_work="$work/tamper"
+
+# The tampering leaf: it runs $FAKE_MUTATE in the repo before rendering its verdict, the way a
+# verifier's Bash call does. The mutation's own output is dropped rather than printed, since
+# run-leaf.sh captures this stub's stdout and parse-verdict.sh reads the verdict out of it.
+cat > "$stubdir/claude-mutate" <<'STUB'
+#!/usr/bin/env bash
+eval "${FAKE_MUTATE:-}" >/dev/null 2>&1
+printf '%s' "${FAKE_OUT_TEXT:-}"
+exit 0
+STUB
+chmod +x "$stubdir/claude-mutate"
+
+# An identity for the arm that commits: a repo made by `git init` under a test has no user.name,
+# and git refuses to commit without one.
+git_t() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
+
+# tamper_run <arm> <mutation> — a fresh one-commit repo at $tamper_work/<arm>, then one PASS
+# verification in it whose leaf runs <mutation> first. Sets $out and $code to verify.sh's
+# stdout and exit status, so the assertion below reads whichever of the two it is about.
+tamper_run() {
+  local dir="$tamper_work/$1"
+  mkdir -p "$dir"
+  git init -q -b main "$dir" >/dev/null 2>&1
+  printf 'the developer wrote this\n' > "$dir/src.txt"
+  printf '.tdd/\n' > "$dir/.gitignore"
+  git_t "$dir" add -A >/dev/null 2>&1
+  git_t "$dir" commit -q -m "initial" >/dev/null 2>&1
+  out="$( cd "$dir" && env CLAUDE_BIN="$stubdir/claude-mutate" FAKE_MUTATE="$2" \
+            FAKE_OUT_TEXT='VERDICT: PASS
+REASON: Target test and full suite are green.' \
+            "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases 2>/dev/null )"
+  code=$?
+}
+
+tamper_run tracked 'printf "the verifier rewrote this\n" > src.txt'
+tracked_code=$code tracked_out="$out"
+tamper_run untracked 'printf "the verifier left this behind\n" > leftover.txt'
+untracked_code=$code untracked_out="$out"
+tamper_run head 'git -c user.name=veri -c user.email=veri@example.test commit -q --allow-empty -m "the verifier committed"'
+head_code=$code head_out="$out"
+
+{ [[ "$tracked_code" == 2 ]] && [[ "$tracked_out" == *src.txt* ]] \
+  && [[ "$untracked_code" == 2 ]] && [[ "$untracked_out" == *leftover.txt* ]] \
+  && [[ "$head_code" == 2 ]] && [[ "$head_out" == *HEAD* ]]; } && ok \
+  || no "a verifier leaf that left the tree changed exits 2 naming what changed (tracked file: code=$tracked_code want 2, stdout='$tracked_out' want src.txt named; untracked file: code=$untracked_code want 2, stdout='$untracked_out' want leftover.txt named; moved HEAD: code=$head_code want 2, stdout='$head_out' want HEAD named)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
