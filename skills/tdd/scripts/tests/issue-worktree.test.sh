@@ -706,21 +706,21 @@ $err" ))"
 # it is phrased is the writer's.
 SKILL="$HERE/../../SKILL.md"
 
-# skill_entry — SKILL.md's bullet for `issue-worktree.sh <n> <slug>`: the line that opens it, up
+# `entry` — SKILL.md's bullet for `issue-worktree.sh <n> <slug>`: the line that opens it, up
 # to the line before the next top-level bullet, heading or numbered step. Emphasis marks and
 # backticks are dropped and the case folded (`**default**` and "default" are the same word), and
 # the lines are joined onto one, so a sentence that wraps at the file's ~90 columns still reads
 # as one. Reading the bullet rather than the whole document is what makes the claim about *this*
 # script's description: SKILL.md is thousands of lines and a `git fetch` anywhere in it would
 # otherwise answer for the paragraph that has to carry it.
-skill_entry() {
-  awk '
-    !in_e && index($0, "- `$S/issue-worktree.sh <n> <slug>`") == 1 { in_e = 1; print; next }
-    in_e && /^([-#]|[0-9]+\.)/ { exit }
-    in_e { print }' "$SKILL" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
-}
-
-entry="$(skill_entry)"
+#
+# Cut inline rather than behind a function, the way build-develop-prompt.test.sh case 9 cuts its
+# own section: every helper in this suite is parameterised and called by case after case, and a
+# no-argument one invoked on the line below its own body is an indirection with a single reader.
+entry="$(awk '
+  !in_e && index($0, "- `$S/issue-worktree.sh <n> <slug>`") == 1 { in_e = 1; print; next }
+  in_e && /^([-#]|[0-9]+\.)/ { exit }
+  in_e { print }' "$SKILL" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' ')"
 
 # says <complaint> <regex> — one probe, written once: the entry has to carry <regex>, and
 # <complaint> is what the failure line says is missing when it does not. The accumulator shape
