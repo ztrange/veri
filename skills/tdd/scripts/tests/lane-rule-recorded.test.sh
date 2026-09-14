@@ -141,14 +141,14 @@ says() {
   done
 }
 
-# probe_trap_sends_the_page_to_the_other_lane — the half of the rule that lives where the
+# probe_trap_records_whose_work_the_page_is — the half of the rule that lives where the
 # contradiction is. This is the section that tells an agent which file to edit to change the
 # page and then to run the target that rebuilds it, so this is the section that has to say
 # whose work that is: the documentation lane's, and never a development run's. Three regexes
 # — the lane, who is being refused, and the refusal — because prose that named the lane
 # without saying a development run does not do it would read as a note about where the files
 # live rather than as the rule.
-probe_trap_sends_the_page_to_the_other_lane() {
+probe_trap_records_whose_work_the_page_is() {
   need_section "$TRAP_HEADING" || return
 
   says "that the page and its inputs are the other lane's work, and that a development run never runs the target that rebuilds them" \
@@ -191,7 +191,7 @@ probe_idiom_records_the_rule_and_the_checks() {
 name="CLAUDE.md states the lane rule in both sections an agent reads: the page is the other lane's work and a development run never runs a docs target, a suite here never reads the generated tree, and docs-owed.sh and docs-fresh are what catch prose lag"
 problems=()
 
-probe_trap_sends_the_page_to_the_other_lane
+probe_trap_records_whose_work_the_page_is
 probe_idiom_records_the_rule_and_the_checks
 
 report "$name"
