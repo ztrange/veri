@@ -87,6 +87,29 @@ figure() {
     problems+=("$what: want $3 on a line naming it, not found in the report")
 }
 
+# expect_split — the whole of what a cost case checks about `$out` and `$code`: the script
+# exited 0, and the report states the four figures the case computed into `want_*_cost`,
+# each on a line naming which it is. Every case here is that same assertion over a
+# different fixture, so it is written once — two spellings of it would let one case quietly
+# come to check three figures, and a case that checks three is the one worth least.
+#
+# The report itself is appended, once, when anything came out wrong: four "not found" lines
+# say nothing about WHAT the script printed, and that is the first thing a reader of a red
+# run needs. The case closes itself with `report` afterwards, since what it has to do in
+# between differs — case 2 has a fixture tree to take down.
+expect_split() {
+  [[ "$code" == 0 ]] ||
+    problems+=("want exit 0 from session-cost.sh, got $code")
+
+  figure "cache-read cost"  'cache.*read'  "$want_read_cost"
+  figure "cache-write cost" 'cache.*(write|creat)' "$want_write_cost"
+  figure "output cost"      'output'       "$want_output_cost"
+  figure "total cost"       'total'        "$want_total_cost"
+
+  [[ "${#problems[@]}" -eq 0 ]] ||
+    problems+=("the report was: $(printf '%q' "$out")")
+}
+
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -149,18 +172,7 @@ TRANSCRIPT
 out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$transcript" 2>&1)"
 code=$?
 
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from session-cost.sh, got $code")
-
-figure "cache-read cost"  'cache.*read'  "$want_read_cost"
-figure "cache-write cost" 'cache.*(write|creat)' "$want_write_cost"
-figure "output cost"      'output'       "$want_output_cost"
-figure "total cost"       'total'        "$want_total_cost"
-
-# The report itself, once, when anything above went wrong — four "not found" lines say
-# nothing about WHAT the script printed, and that is the first thing a reader needs.
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the report was: $(printf '%q' "$out")")
+expect_split
 
 report "$name"
 
@@ -248,16 +260,7 @@ OTHER
 out="$(cd "$root" && HOME="$home" TZ=UTC "$SESSION_COST" --since 2026-09-14 2>&1)"
 code=$?
 
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from session-cost.sh, got $code")
-
-figure "cache-read cost"  'cache.*read'  "$want_read_cost"
-figure "cache-write cost" 'cache.*(write|creat)' "$want_write_cost"
-figure "output cost"      'output'       "$want_output_cost"
-figure "total cost"       'total'        "$want_total_cost"
-
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the report was: $(printf '%q' "$out")")
+expect_split
 
 rm -rf "$tree"
 report "$name"
