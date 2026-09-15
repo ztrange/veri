@@ -12,14 +12,16 @@
 # a check written as a test of that name answers "launchable" under these cases and fails
 # them.
 #
-# Contract under test (this step only — the refusal, not the passing path and not what the
-# conductor does with it):
+# Contract under test (the script's own answer, not what the conductor does with it):
 #   leaf-launchable.sh, with the leaf binary failing
 #                             → exit 2, nothing on stdout, and a diagnostic on stderr that
 #                               names the cause (what the binary said) and the supported
 #                               invocation (a plain shell, `claude -p "/tdd <n>"`).
 #                             → and nothing else happens: no worktree created, no spec
 #                               written, no test command run, no issue comment posted.
+#   leaf-launchable.sh, with the leaf binary launching
+#                             → exit 0 and both streams empty: the healthy run, which is
+#                               every run, observes nothing of the check at all.
 #
 # `CLAUDE_BIN` is the seam the stub below is injected through, the same swap every other
 # suite makes to keep a real model off the wire.
@@ -140,6 +142,38 @@ left_behind="$(cd "$work" && ls -A)"
   problems+=("want no worktree, no issue comment and no test command — want nothing called, got: $(printf '%q' "$called")")
 [[ -z "$left_behind" ]] ||
   problems+=("want no spec written — want the run directory still empty, got: $(printf '%q' "$left_behind")")
+rm -rf "$tmp"
+report "$name"
+
+# 3. The passing path: a leaf binary that launches. This is the case for the run that has
+# nothing wrong with it, which is every run, so what it pins is that the check costs such a
+# run nothing it can observe — exit 0, and both streams empty. Silence on stdout is the
+# script's stated contract (a conductor reading it in a command substitution captures
+# nothing); silence on stderr is the same obligation one step further, since a diagnostic
+# printed on the healthy path is a preflight that cries wolf every run.
+#
+# The stub prints on both streams before succeeding, the way the real binary prints a version
+# string: a check that let its probe's own output through would fail here rather than at the
+# first operator who wondered what the extra line meant.
+name='leaf-launchable.sh passes when the leaf binary launches — exit 0, nothing on stdout, nothing on stderr'
+problems=()
+tmp="$(mktemp -d)"
+cat > "$tmp/claude" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' '1.2.3 (Claude Code)'
+printf '%s\n' 'some chatter the probe did not ask for' >&2
+exit 0
+STUB
+chmod +x "$tmp/claude"
+out="$tmp/out" err="$tmp/err"
+env -u CLAUDECODE CLAUDE_BIN="$tmp/claude" "$LAUNCHABLE" >"$out" 2>"$err" && code=0 || code=$?
+err_text="$(cat "$err")" out_text="$(cat "$out")"
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0, got $code")
+[[ -z "$out_text" ]] ||
+  problems+=("want nothing on stdout, got: $(printf '%q' "$out_text")")
+[[ -z "$err_text" ]] ||
+  problems+=("want nothing on stderr, got: $(printf '%q' "$err_text")")
 rm -rf "$tmp"
 report "$name"
 
