@@ -122,8 +122,10 @@ run_subject() {
 probe_fails_loudly() {
   [[ "$run_code" != 0 ]] ||
     problems+=("with $1, $SUBJECT_NAME exited 0: a plant that never ran reads as a checked guard. It said: $(flat "$run_out")")
-  [[ "$(tail -n 1 <<< "$run_out")" == '0 passed, 1 failed' ]] ||
-    problems+=("with $1, $SUBJECT_NAME did not count its one case as failed; its count line was: $(flat "$(tail -n 1 <<< "$run_out")")")
+  local count_line
+  count_line="$(tail -n 1 <<< "$run_out")"
+  [[ "$count_line" == '0 passed, 1 failed' ]] ||
+    problems+=("with $1, $SUBJECT_NAME did not count its one case as failed; its count line was: $(flat "$count_line")")
   grep -Eqi '^[[:space:]]+.*(plant|reader|mark)' <<< "$run_out" ||
     problems+=("with $1, $SUBJECT_NAME reported no problem line naming the broken premise, so its failure does not say what to fix. It said: $(flat "$run_out")")
 }
