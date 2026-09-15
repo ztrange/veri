@@ -514,13 +514,18 @@ env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" 
 
 # The document that carries the loop procedure, relative to $REPO_ROOT. Both of the two cases
 # below read it — case 11 for the knob it must document, case 12 for one bullet of it — so it
-# is spelled once here rather than in each: since #105 the loop is a section of the `/tdd`
-# skill, and a move like that one should have a single line to edit in this suite.
-skill_doc="skills/tdd/SKILL.md"
+# is spelled once here rather than in each: since #105 the loop is part of the `/tdd` skill,
+# and since #202 it is the sibling file `SCOPE-LOOP.md` rather than a section of `SKILL.md`,
+# read only when the argument resolves to a scope — a move like either one should have a
+# single line to edit in this suite.
+skill_doc="skills/tdd/SCOPE-LOOP.md"
+# The single-issue procedure, which stayed in SKILL.md when the loop left it: case 20 below
+# reads *its* step 1, not the loop's.
+procedure_doc="skills/tdd/SKILL.md"
 
 # 11. A knob nobody is told about is not a parameter, it is a secret, so the three documents a
 # human reads before launching a loop must carry it: the loop's own procedure
-# (`skills/tdd/SKILL.md`, which is where `--repo` and `VERI_MAX_ISSUES` are already
+# (`$skill_doc`, which is where `--repo` and `VERI_MAX_ISSUES` are already
 # written down), the README's rung-2 paragraph, and CONTEXT.md, where *solvable* and the
 # eligibility signal are defined. Each must name the variable AND say what it is for — one
 # label per loop, so two loops on one repo draw from different pools. The variable name alone
@@ -564,7 +569,7 @@ done
 # unconditionally, which is what it did while the label was hardcoded.
 #
 # The claim is read out of the exit-3 bullet alone, not the whole document: case 11 already
-# passes on `VERI_LABEL` appearing ANYWHERE in SKILL.md, and it appears in the Inputs section,
+# passes on `VERI_LABEL` appearing ANYWHERE in that document, and it appears in *Loop inputs*,
 # so a file-wide grep here would be green against a bullet that still said `ready-for-agent`
 # and pin nothing. The awk slice runs from the `- **Exit 3:**` line to the `- **Exit 0:**` that
 # ends it, and the case asserts the slice is non-empty before asserting what is in it — an
@@ -899,7 +904,7 @@ fi
 # from the run's FIRST step — still said nothing. The slice runs from the `### 1.` heading to the
 # next `### ` one and is asserted non-empty before it is read, so a renamed or moved step reads
 # as a failure here rather than as greps over nothing finding nothing to complain about.
-step1="$(awk '/^### 1\./ { keep = 1; next } keep && /^### / { exit } keep' "$REPO_ROOT/$skill_doc")"
+step1="$(awk '/^### 1\./ { keep = 1; next } keep && /^### / { exit } keep' "$REPO_ROOT/$procedure_doc")"
 
 # Two probes, and the second is not a spelling preference. `$PPID` inside a tool call is the
 # agent's own process, which lives as long as the run; `$$` is the shell of that one command,
@@ -920,7 +925,7 @@ else
 fi
 
 [[ -z "$step1_missing" ]] \
-  && ok || no "$skill_doc step 1 tells the conductor to write its own long-lived pid (\$PPID, not \$\$) into .tdd/conductor.pid, so the lock cases 17 and 18 read is one a real run leaves (missing:$step1_missing)"
+  && ok || no "$procedure_doc step 1 tells the conductor to write its own long-lived pid (\$PPID, not \$\$) into .tdd/conductor.pid, so the lock cases 17 and 18 read is one a real run leaves (missing:$step1_missing)"
 
 # 21. The branch a step's push puts on the remote is DURABILITY, not a claim, and the two must
 # not be confused: #191 makes the conductor push after every green commit, so from a run's first
