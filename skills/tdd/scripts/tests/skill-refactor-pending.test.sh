@@ -27,7 +27,7 @@
 #      re-enters that step's refactor loop with the files of its green commit (the last
 #      commit that changed the ledger) and the count of `refactor:` commits since it, then
 #      runs verify-refactor — with the draft PR behind both scripts exiting 3.
-#   3. SKILL.md's Draft PR step itself refuses to push or open the PR while
+#   3. SKILL.md's Draft PR step itself refuses to open the PR while
 #      `git status --porcelain` is non-empty or `next-pending-refactor.sh` still finds a
 #      pending step.
 #   4. SKILL.md's script reference list — the section a session reads a script's contract
@@ -539,27 +539,30 @@ report "$name"
 #    says a resumed run reaches the PR only when both scripts exit 3, but that is prose on one
 #    path *into* this step; the cycle loop walks into it too, and what #116 actually found was
 #    a worktree carrying a killed leaf's uncommitted transform. So the refusal has to live
-#    where the push is: the Draft PR step asks both questions itself — is the tree clean, is
-#    any step still only green — and stops before `git push` if either says otherwise.
-name="$skill_md's Draft PR step refuses to push or open the PR while git status --porcelain is non-empty or next-pending-refactor.sh finds a pending step"
+#    where the handover is: the Draft PR step asks both questions itself — is the tree clean,
+#    is any step still only green — and stops before `gh pr create` if either says otherwise.
+#    The anchor is that command rather than `git push` since #191: the branch reaches the
+#    remote after every green commit, so what this step still decides is whether a human is
+#    asked to look at it.
+name="$skill_md's Draft PR step refuses to open the PR while git status --porcelain is non-empty or next-pending-refactor.sh finds a pending step"
 problems=()
 if records_from draft_pr_instructions \
-    "$skill_md has no ### 4. Draft PR section to read — what guards the push could not be checked"; then
-  # The gate comes before the push, or it is not a gate: a check made after the branch is
-  # already on the remote cannot refuse anything.
-  precedes 'git status --porcelain' 'git push' \
-    "$skill_md's Draft PR step never checks git status --porcelain, so the transform a killed refactor leaf left uncommitted is pushed into the PR with no verifier having seen it" \
-    "$skill_md's Draft PR step no longer pushes the branch, so there is nothing for the check to guard" \
-    "$skill_md's Draft PR step checks the tree only after git push, so the dirty worktree is already on the remote by the time anything notices"
+    "$skill_md has no ### 4. Draft PR section to read — what guards the PR could not be checked"; then
+  # The gate comes before the PR is opened, or it is not a gate: a check made once a human
+  # has been asked to look cannot refuse anything.
+  precedes 'git status --porcelain' 'gh pr create' \
+    "$skill_md's Draft PR step never checks git status --porcelain, so the transform a killed refactor leaf left uncommitted reaches the PR with no verifier having seen it" \
+    "$skill_md's Draft PR step no longer opens the PR, so there is nothing for the check to guard" \
+    "$skill_md's Draft PR step checks the tree only after gh pr create, so the dirty worktree is already up for review by the time anything notices"
 
   # What that gate asks, and what it does with the answer. Both conditions belong to the one
   # instruction: a run stopped here is stopped for the same reason either way — the PR would
   # otherwise carry work no verifier has passed.
-  if reads 'checks the worktree is clean before the branch is pushed' 'git status --porcelain'; then
+  if reads 'checks the worktree is clean before the PR is opened' 'git status --porcelain'; then
     says 'next-pending-refactor\.sh' \
       "$skill_md's Draft PR step checks only that the tree is clean, so a ledger whose last step is committed but still marked refactor-pending opens a PR with that step's refactor never verified"
-    says 'refuse|do not push|does not push|stop|bail|must not|never' \
-      "$skill_md's Draft PR step names the checks but never says they can stop it, so a non-empty status or a pending step is read as information and the push goes ahead anyway"
+    says 'refuse|do not open|does not open|stop|bail|must not|never' \
+      "$skill_md's Draft PR step names the checks but never says they can stop it, so a non-empty status or a pending step is read as information and the PR is opened anyway"
   fi
 fi
 report "$name"
