@@ -143,6 +143,26 @@ def model_id(obj):
     """
     return obj["message"].get("model", "")
 
+# Which kinds a weighing covers: everything a request was BILLED for, and everything it
+# was HANDED, which is the same list less what came back. Derived from `KINDS` rather than
+# listed again, so a fifth kind of token joins both weighings by being added to the table.
+BILLED = tuple(kind for kind, _, _ in KINDS)
+CONTEXT = tuple(kind for kind in BILLED if kind != "output")
+
+def weigh(usage, kinds):
+    """The tokens of one request over `kinds`, read through `KINDS` and summed.
+
+    One spelling for the two questions asked of a single `usage` — what it weighed and
+    what it was billed for — because both have to read a cache write the way the money
+    does: through `cache_write_tokens`, which is what stops the flat
+    `cache_creation_input_tokens` being counted a second time beside the TTL split it is
+    the sum of. Two hand-rolled comprehensions would each be one `KINDS` entry away from
+    disagreeing with the bill.
+    """
+    return sum(count
+               for kind, read, _ in KINDS if kind in kinds
+               for count in read(usage).values())
+
 def family(model):
     """The price-table key for a model id like `claude-opus-4-1-20250805`."""
     for key in PRICES:
@@ -223,23 +243,17 @@ def unpriced(records):
         model = model_id(obj)
         if family(model):
             continue
-        usage = obj["message"]["usage"]
-        rows[model] = rows.get(model, 0) + sum(
-            count for _, read, _ in KINDS for count in read(usage).values())
+        rows[model] = rows.get(model, 0) + weigh(obj["message"]["usage"], BILLED)
     return rows
 
 def context(usage):
     """Everything the model was HANDED on one request: its input, what it read from the
     cache and what it wrote to it. Output is not context — it is what came back, and a
-    session is not long because it answered at length. Read through the same table as the
-    money split, so a session row and the day’s totals cannot disagree about what a
-    request weighed: `cache_write_tokens` is what keeps the flat
-    `cache_creation_input_tokens` from being counted a second time beside the TTL split it
-    is the sum of.
+    session is not long because it answered at length. Weighed through the same table as
+    the money split, so a session row and the day’s totals cannot disagree about what a
+    request weighed.
     """
-    return sum(count
-               for kind, read, _ in KINDS if kind != "output"
-               for count in read(usage).values())
+    return weigh(usage, CONTEXT)
 
 # How far past its own floor a session has to have read before the report says the word.
 # A session that is cleared re-reads about its preamble each request, so its total lands
