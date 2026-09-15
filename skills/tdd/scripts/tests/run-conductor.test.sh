@@ -12,11 +12,17 @@
 # Contract under test (this step only):
 #   `run-conductor.sh <issue>` launches the conductor binary in print mode — `-p` — with
 #   `--output-format stream-json --verbose`, and the issue it was asked for reaches the
-#   prompt that launch carries.
+#   prompt that launch carries; and the child it launches inherits none of the parent
+#   session's eight handles while still inheriting every `VERI_*` tunable.
 #
-# Not asked here: that the eight inherited session handles are absent from the child's
-# environment and `VERI_*` is not, that the child's exit status is the script's, and what
-# SKILL.md says about the two launch modes. Those are this issue's later steps.
+# The two halves of that second sentence are one criterion and not two: the severing is done
+# by editing the environment the child is given, so a script that drops the handles by
+# handing the child a scrubbed environment and one that drops them by handing it an empty one
+# are indistinguishable until something asks what survived. `VERI_MODEL_VERIFIER` is what
+# asks.
+#
+# Not asked here: that the child's exit status is the script's, and what SKILL.md says about
+# the two launch modes. Those are this issue's later steps.
 #
 # Run: scripts/tests/run-conductor.test.sh
 set -uo pipefail
@@ -38,6 +44,7 @@ trap 'rm -rf "$stubdir" "$work"' EXIT
 cat > "$stubdir/claude" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$ARGV_OUT"
+[[ -n "${ENV_OUT:-}" ]] && env > "$ENV_OUT"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit 0
@@ -94,6 +101,52 @@ else
   flag --verbose
   grep -q -- "$issue" "$argv" ||
     problems+=("issue $issue does not reach the prompt the launch carries")
+fi
+
+report "$name"
+
+# The eight handles a nested `claude` would otherwise inherit from the session that launched
+# it — the messaging socket and token most of all, which wire a second session into the
+# first one's IPC channel. Every one is set to a value below, so a probe that finds the name
+# gone has watched the script remove it rather than watched it never arrive.
+handles=(
+  CLAUDECODE
+  CLAUDE_CODE_SESSION_ID
+  CLAUDE_CODE_HOST_SESSION_ID
+  CLAUDE_CODE_MESSAGING_SOCKET
+  CLAUDE_CODE_MESSAGING_TOKEN
+  CLAUDE_PID
+  CLAUDE_CODE_CHILD_SESSION
+  CLAUDE_CODE_ENTRYPOINT
+)
+
+envfile="$work/env"
+
+# 2. The environment the child is handed: the session handles severed, the tunables intact.
+name="the launch severs the eight session handles and passes VERI_* through"
+problems=()
+
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$envfile" \
+    CLAUDECODE=1 \
+    CLAUDE_CODE_SESSION_ID=parent-session \
+    CLAUDE_CODE_HOST_SESSION_ID=parent-host-session \
+    CLAUDE_CODE_MESSAGING_SOCKET=/tmp/parent.sock \
+    CLAUDE_CODE_MESSAGING_TOKEN=parent-token \
+    CLAUDE_PID=4141 \
+    CLAUDE_CODE_CHILD_SESSION=1 \
+    CLAUDE_CODE_ENTRYPOINT=cli \
+    VERI_MODEL_VERIFIER=probe-verifier-model \
+    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
+
+if [[ ! -f "$envfile" ]]; then
+  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
+else
+  for handle in "${handles[@]}"; do
+    grep -q "^$handle=" "$envfile" &&
+      problems+=("$handle is still in the child's environment")
+  done
+  grep -qx -- 'VERI_MODEL_VERIFIER=probe-verifier-model' "$envfile" ||
+    problems+=("VERI_MODEL_VERIFIER did not reach the child's environment")
 fi
 
 report "$name"
