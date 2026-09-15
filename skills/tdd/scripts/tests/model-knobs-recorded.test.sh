@@ -114,27 +114,32 @@ MODEL_VER='veri_model_verifier'
 # lane-rule-recorded.test.sh's `section_` pair follows.
 passage_text="" passage_from=""
 
-# need_bullet <label> <regex> <problem> — one SKILL.md bullet into those globals, or the
-# <problem> and a non-zero return. Fail closed: an empty string matches no regex, so every
-# fact asked of a bullet that is not there would be reported missing — true, but it names
-# three edits when the repair is that one bullet moved.
-need_bullet() {
-  passage_from="$skill_md's $1"
-  passage_text="$(bullet "$2")"
+# need_supervise_bullet — SKILL.md's `supervise.sh` bullet into those globals, or one
+# problem naming it and a non-zero return. The reader and the fail-closed check are one
+# step, and the label and the problem are derived here rather than passed in, so no caller
+# can report a bullet under a name the probe did not read — the shape
+# lane-rule-recorded.test.sh's `need_section` has, for the same reason.
+#
+# Fail closed: an empty string matches no regex, so every fact asked of a bullet that is
+# not there would be reported missing — true, but it names three edits when the repair is
+# that one bullet moved.
+need_supervise_bullet() {
+  passage_from="$skill_md's supervise.sh bullet"
+  passage_text="$(bullet '^[-*] .*supervise\.sh')"
   [[ -n "${passage_text// /}" ]] && return 0
-  problems+=("$3")
+  problems+=("$skill_md has no top-level 'supervise.sh' bullet to read, so the tunables an operator looks up beside VERI_TIMEOUT could not be found")
   return 1
 }
 
-# need_records <label> <path> — a whole document's records into the same globals, for the
-# claims that are about what a document says rather than about where it says it. CLAUDE.md
-# is read this way on purpose: the step asks that the document name the variables and give
-# the reason, not that either sit under a heading this suite picked.
-need_records() {
-  passage_from="$2"
-  passage_text="$(records < "$1")"
+# need_claude_md_records — all of CLAUDE.md's records into the same globals, for the claims
+# that are about what a document says rather than about where it says it. CLAUDE.md is read
+# whole on purpose: the step asks that the document name the variables and give the reason,
+# not that either sit under a heading this suite picked.
+need_claude_md_records() {
+  passage_from="$claude_md"
+  passage_text="$(records < "$claude_path")"
   [[ -n "${passage_text// /}" ]] && return 0
-  problems+=("$2 could not be read, so nothing could be asked of what it records")
+  problems+=("$claude_md could not be read, so nothing could be asked of what it records")
   return 1
 }
 
@@ -168,9 +173,7 @@ names_all_three() {
 # is listed, and a fourth axis that is not in that list is one an operator has no way to
 # find: `VERI_HEARTBEAT`, `VERI_TIMEOUT` and `VERI_STUCK_RETRIES` are all read off it.
 probe_skill_bullet_lists_the_tunables() {
-  need_bullet 'supervise.sh bullet' '^[-*] .*supervise\.sh' \
-    "$skill_md has no top-level 'supervise.sh' bullet to read, so the tunables an operator looks up beside VERI_TIMEOUT could not be found" \
-    || return
+  need_supervise_bullet || return
 
   names_all_three "lists the three model tunables beside the ones it already lists"
 }
@@ -181,7 +184,7 @@ probe_skill_bullet_lists_the_tunables() {
 # side, more revise cycles on the other — because that is what makes the sentence load-
 # bearing rather than a restatement that there happen to be two variables.
 probe_claude_md_names_them_and_why() {
-  need_records "$claude_path" "$claude_md" || return
+  need_claude_md_records || return
 
   names_all_three "names the three model tunables"
 
