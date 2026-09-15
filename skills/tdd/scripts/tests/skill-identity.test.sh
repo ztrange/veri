@@ -16,9 +16,11 @@
 #   to /tdd, so a session already invoked on the old command keeps working.
 #   The skill's Inputs section resolves that forwarded argument three ways — an integer is
 #   the single-issue procedure, any other word is a scope, nothing at all is the scope
-#   `plain` — with the loop it now dispatches to living in the same document.
+#   `plain` — with the loop it dispatches to reachable from that section rather than
+#   resident in the document.
 #   A scope's selection label is `ready-for-agent` for the scope `plain` and
-#   `ready-for-agent:<scope>` for any other, with `VERI_LABEL` still overriding it.
+#   `ready-for-agent:<scope>` for any other, with `VERI_LABEL` still overriding it, read
+#   from the file the loop now lives in.
 #
 # Run: scripts/tests/skill-identity.test.sh
 set -uo pipefail
@@ -292,6 +294,32 @@ claim() {
   problems+=("$bullets_from: no bullet $what")
 }
 
+# inputs_text <skill-md> — the `## Inputs` section verbatim, cut the same way
+# inputs_bullets cuts it but left unfolded: the pointer cases 6 and 7 follow is a filename,
+# which is prose and not necessarily inside a bullet.
+inputs_text() {
+  awk '/^## Inputs$/ { inside = 1; next }
+       inside && /^## / { exit }
+       inside' "$1"
+}
+
+# loop_md_path <skill-md> — the repo-relative path of the sibling file `## Inputs` sends a
+# scope to, empty if that section names none. Any `.md` path in the section other than a
+# SKILL.md counts: the destination is what the criterion is about, not the words wrapped
+# around it or what the file is called. A pointer carrying a slash is repo-relative; a bare
+# filename sits beside the SKILL.md that names it — the two spellings a document can
+# reasonably use for its own sibling. Asked by case 6, which pins that the pointer leads
+# somewhere, and by case 7, which reads its bullets out of wherever it leads.
+loop_md_path() {
+  local p
+  p="$(inputs_text "$1" | grep -oE '[A-Za-z0-9_./-]+\.md' | grep -vE '(^|/)SKILL\.md$' | head -1)"
+  [[ -n "$p" ]] || return 0
+  case "$p" in
+    */*) printf '%s\n' "$p" ;;
+    *)   printf '%s\n' "$skill_dir/$p" ;;
+  esac
+}
+
 # 6. What the one command does with its argument. The move left a single skill where there
 #    were two, so the question that used to be "which command did the user type" is now "what
 #    does this one's argument say", and the answer is a three-way resolution: an integer is
@@ -301,11 +329,20 @@ claim() {
 #    still admits only an issue number is a `/tdd docs` that stops and asks for one.
 #
 #    The two structural halves of the same criterion ride along, and neither is covered
-#    elsewhere: the scope branch must have somewhere to send the reader, so the loop has to
-#    be a section of THIS document; and the path the loop used to reach its sibling skill's
-#    scripts must be gone, since a skill with no sibling cannot resolve it. Case 2 cannot
-#    see that path — it sweeps for the `skills/`-led spelling, which the `../` one does not
-#    contain — so it is asked here, of the one file that ever spelled it.
+#    elsewhere. First, the scope branch must have somewhere to send the reader, and that
+#    somewhere is no longer this document: the loop is procedure only the scope branch ever
+#    executes, and an integer argument takes *Procedure* and never comes back, so a loop
+#    resident here bills every single-issue conductor ~1,676 tokens it will not read (#202).
+#    So the pointer is pinned as the pair it has to be, since either half alone is a broken
+#    skill — the loop has left $skill_md, AND `## Inputs` names a file that exists and holds
+#    it. A pointer at nothing is not a destination: a scope that resolves to a failed Read is
+#    a run that cannot start, so the pointer is followed here rather than merely counted, and
+#    deleting it puts this case back in the red.
+#
+#    Second, the path the loop used to reach its sibling skill's scripts must be gone, since
+#    a skill with no sibling cannot resolve it. Case 2 cannot see that path — it sweeps for
+#    the `skills/`-led spelling, which the `../` one does not contain — so it is asked here,
+#    of the one file that ever spelled it.
 name="$skill_md resolves its argument: an integer is one issue, any other word a scope, bare is plain"
 problems=()
 bullets="$(inputs_bullets "$ROOT/$skill_md")"
@@ -322,8 +359,22 @@ else
   claim 'makes a bare invocation the scope plain' \
     'plain' 'bare|no argument|without an argument|omit|default|empty'
 fi
-grep -qE '^#+ .*[Ll]oop' "$ROOT/$skill_md" ||
-  problems+=("$skill_md has no loop section, so a scope argument resolves to nothing")
+grep -qE '^#+ .*[Dd]raining a scope' "$ROOT/$skill_md" &&
+  problems+=("$skill_md still holds the scope loop's own section, billed on every conductor request")
+loop_subs="$(grep -cE '^#+ Loop ' "$ROOT/$skill_md")"
+[[ "$loop_subs" -eq 0 ]] ||
+  problems+=("$skill_md still holds $loop_subs 'Loop *' sub-sections")
+loop_md="$(loop_md_path "$ROOT/$skill_md")"
+if [[ -z "$loop_md" ]]; then
+  problems+=("$skill_md '## Inputs' names no sibling .md file, so a scope argument resolves to nothing")
+elif [[ ! -f "$ROOT/$loop_md" ]]; then
+  problems+=("$skill_md Inputs points at $loop_md, which is not a file")
+else
+  grep -qE '^#+ .*[Dd]raining a scope' "$ROOT/$loop_md" ||
+    problems+=("$loop_md has no 'Draining a scope' section, so the pointer leads nowhere")
+  grep -qE '^#+ Loop ' "$ROOT/$loop_md" ||
+    problems+=("$loop_md has no 'Loop *' sub-sections, so the loop's steps did not move with it")
+fi
 # The sibling path assembled rather than written out, as in case 2: the probe greps this
 # skill's own document for the string, and spelling it here would make the suite's subject
 # and its first offender the same file.
@@ -332,11 +383,12 @@ grep -qF "$sibling_scripts" "$ROOT/$skill_md" &&
   problems+=("$skill_md still locates its scripts at $sibling_scripts, a sibling that is no longer there")
 report "$name"
 
-# md_bullets <skill-md> — every bullet in the document, with no section cut first. Case 6
-# reads only the `## Inputs` section because the words it looks for recur further down; case 7
-# reads the whole document on purpose — its criterion is that the document derive the label
-# from the scope, not that it say so under one heading, and each of its claims pairs the scope
-# with the label spelling, so no unrelated bullet can answer for one.
+# md_bullets <file> — every bullet in the file, with no section cut first. Case 6 reads only
+# the `## Inputs` section of $skill_md because the words it looks for recur further down;
+# case 7 reads the whole of the loop file on purpose — its criterion is that the derivation
+# be written down where the scope branch will read it, not that it sit under one heading, and
+# each of its claims pairs the scope with the label spelling, so no unrelated bullet can
+# answer for one.
 md_bullets() { fold_bullets < "$1"; }
 
 # 7. Which label a scope selects on. Case 6 pins that a non-integer argument is a scope; a
@@ -350,16 +402,25 @@ md_bullets() { fold_bullets < "$1"; }
 #
 #    Stated in prose and read here as prose, like case 6: `solvable-issues.sh` takes the
 #    label from the environment and knows nothing of scopes, so the derivation exists only
-#    in what this document tells the session to set. A document that names the scope and
-#    the label in different breaths leaves the session to guess the colon.
-name="$skill_md derives a scope's label: ready-for-agent for plain, ready-for-agent:<scope> otherwise, VERI_LABEL overriding"
+#    in what the skill tells the session to set. A document that names the scope and the
+#    label in different breaths leaves the session to guess the colon.
+#
+#    Read out of the file case 6 pins the pointer to, not out of $skill_md: these three
+#    bullets are the loop's own inputs, so they travel with it (#202), and asking $skill_md
+#    for them after the move would be asking the one document that no longer says it.
+name="the loop file derives a scope's label: ready-for-agent for plain, ready-for-agent:<scope> otherwise, VERI_LABEL overriding"
 problems=()
-bullets="$(md_bullets "$ROOT/$skill_md")"
+loop_md="$(loop_md_path "$ROOT/$skill_md")"
+bullets=""
 bullets_from="$skill_md"
+if [[ -n "$loop_md" && -f "$ROOT/$loop_md" ]]; then
+  bullets="$(md_bullets "$ROOT/$loop_md")"
+  bullets_from="$loop_md"
+fi
 if [[ -z "$bullets" ]]; then
-  # Fail closed, as case 6 does: no bullets means the document's shape changed and not one
-  # claim below was tested, which must not read as three passes.
-  problems+=("$skill_md has no bullets at all — how a scope's label is derived could not be read")
+  # Fail closed, as case 6 does: no readable loop file, or one with no bullets in it, means
+  # not one claim below was tested, which must not read as three passes.
+  problems+=("the loop file $skill_md Inputs points at could not be read for bullets — how a scope's label is derived was not tested")
 else
   # `plain` bounded by non-alphanumerics so `explain` and `plain text` cannot answer for the
   # scope's name; the other two are distinctive enough as substrings, the colon in
