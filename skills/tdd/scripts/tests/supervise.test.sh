@@ -697,6 +697,23 @@ harvest_fail_recorded="$(cat "$harvest_fail_work/.tdd/develop-red.exit" 2>/dev/n
   && [[ "$harvest_fail_recorded" == 0 ]]; } && ok \
   || no "a failing harvester leaves the supervisor's exit code and completion file unchanged (usage lines=$harvest_fail_usage want 0, code=$harvest_fail_code want 0, .exit=$harvest_fail_recorded want 0)"
 
+# sup_run_no_model <dir> <argv…> — `sup_run` above, with none of the run's three model
+# variables set: whatever the shell that typed `make test` chose, the child sees them unset
+# unless the caller puts its own assignment in front of `"$SUP"`. Issue #87's rule, and issue
+# #171's own — a suite's answer is a fact about the script, not about the caller's
+# environment — and cases 19 and 20 both need it, so it is written down here once rather than
+# in each arm-runner.
+#
+# The unsetting has to happen in a subshell rather than through `env -u`: `sup_run` applies its
+# pinned assignments through `env`, and BSD `env` reads a `-u` after those as the utility to
+# run. Inside that subshell the unsetting precedes `env`, so an arm's own value — riding in
+# front of `"$SUP"` the way case 17's heartbeat does — is applied after it and an ambient
+# `VERI_MODEL_DEVELOPER` cannot outrank the arm and turn a case red for the caller's shell.
+sup_run_no_model() {
+  ( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
+    sup_run "$@" )
+}
+
 # 19. the `launch` mark says which model the leaf ran on — the value leaf-model.sh resolves
 #     from the run's three model variables, or `""` when that run chose none (issue #171).
 #     The supervisor is where it is resolved, beside the role it already reads
@@ -725,23 +742,13 @@ model_work="$work/model"
 model_value=sonnet
 
 # model_run <arm> [assignment…] — supervise one `develop-red` leaf in its own directory under
-# $model_work, named for the arm, with none of the run's three model variables set unless this
-# arm sets one. Case 14's arm-runner shape, and for its reason: what the two arms share — the
-# leaf, the name, the directory scheme, and the unsetting below — is written down once, so the
-# arms differ by exactly the thing the case is about.
-#
-# The unsetting is this suite's own rather than the caller's to get right (issue #87's rule,
-# and this issue's own: a suite's answer is a fact about the script, not about the caller's
-# environment). It has to happen in a subshell: `sup_run` applies its pinned assignments
-# through `env`, and BSD `env` reads a `-u` after those as the utility to run.
-#
-# An arm's own value rides in front of `"$SUP"` the way case 17's heartbeat does, inside that
-# same subshell — so it is applied after the unsetting and an ambient `VERI_MODEL_DEVELOPER`
-# cannot outrank the arm and turn the case red for the caller's shell.
+# $model_work, named for the arm, through `sup_run_no_model` above so the arm sets the only
+# model variable the child sees. Case 14's arm-runner shape, and for its reason: what the two
+# arms share — the leaf, the name and the directory scheme — is written down once, so the arms
+# differ by exactly the thing the case is about.
 model_run() {
   local arm="$1"; shift
-  ( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
-    sup_run "$model_work/$arm" "$@" "$SUP" develop-red "$stub/leaf-ok" )
+  sup_run_no_model "$model_work/$arm" "$@" "$SUP" develop-red "$stub/leaf-ok"
 }
 
 model_run set VERI_MODEL="$model_value"
@@ -794,17 +801,13 @@ L
 chmod +x "$stub/claude-argv"
 
 # argv_run <arm> [assignment…] — supervise one `develop-red` leaf whose command is run-leaf.sh
-# against the recording stub, in its own directory under $argv_work, with none of the run's
-# three model variables set unless this arm sets one. Case 19's arm-runner, and for its
-# reasons: the unsetting is this suite's own rather than the caller's to get right (issue
-# #87), it happens in a subshell because BSD `env` would read a `-u` after its assignments as
-# the utility to run, and an arm's own value rides in front of `"$SUP"` so the unsetting
-# cannot outrank it.
+# against the recording stub, in its own directory under $argv_work, through
+# `sup_run_no_model` above for case 19's reason. The stub and the file it records into are
+# pinned in front of the arm's own assignment, which `env` therefore applies last.
 argv_run() {
   local arm="$1"; shift
-  ( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
-    sup_run "$argv_work/$arm" CLAUDE_BIN="$stub/claude-argv" ARGV_OUT="$argv_work/$arm.argv" \
-      "$@" "$SUP" develop-red "$HERE/../run-leaf.sh" "$argv_work/prompt.txt" )
+  sup_run_no_model "$argv_work/$arm" CLAUDE_BIN="$stub/claude-argv" ARGV_OUT="$argv_work/$arm.argv" \
+    "$@" "$SUP" develop-red "$HERE/../run-leaf.sh" "$argv_work/prompt.txt"
 }
 
 argv_run set VERI_MODEL="$argv_model"
