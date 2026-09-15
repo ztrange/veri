@@ -197,6 +197,13 @@ plant() {
   git -C "$tree" add -A >/dev/null 2>&1
 
   reader_line="$(grep -n "$MARK" "$reader_path" | cut -d: -f1)"
+  # Not the status of that assignment (#183). Under `set -uo pipefail` without `-e` a grep
+  # that found no mark — a renamed mark, a reader fixture that was never written — made
+  # `plant` return non-zero, the case skip all four probes, and `report` count an empty
+  # `problems` array as a pass: a guard suite saying the one thing it must never be able to
+  # say. The tree is planted; whether it is what it claims is `probe_plant_is_what_it_claims`'s
+  # question, and it names the broken premise when the answer is no.
+  return 0
 }
 
 # probe_guard_is_there — the premise every probe below rests on, and the one that answers
