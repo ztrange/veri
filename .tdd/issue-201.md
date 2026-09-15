@@ -7,5 +7,5 @@
 - [x] --since excludes a record outside the window and includes one inside it
 - [x] An sdk-cli session and an interactive session are attributed to their own rows, by entrypoint
 - [x] Per-session rows carry the preamble, the final context and the total context read, and a session dominated by an un-cleared ramp is named as such in words
-- [x] An unknown model's tokens are reported with no cost and named in a footer ⟂ refactor pending
+- [x] An unknown model's tokens are reported with no cost and named in a footer
 - [ ] --json emits the same totals as the text report
