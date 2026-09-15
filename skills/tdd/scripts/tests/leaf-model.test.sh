@@ -53,15 +53,16 @@ report() {
 # — nor disturbs — what the surrounding run exported.
 model_probe() {
   local model="$1" name="$2" want="$3" out err code label
+  local -a envargs
   out="$(mktemp)" err="$(mktemp)"
   label="VERI_MODEL=$model $name"
-  if [[ "$model" == unset ]]; then
-    env -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER \
-      "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
-  else
-    env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL="$model" \
-      "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
-  fi
+  # The three names are cleared for every probe, and the one under test is then set back
+  # for a probe that has a value to give: `env` applies its assignments after its `-u`s, so
+  # the pair says "this value, nothing ambient" in one list. One invocation either way, so
+  # the two branches cannot drift in how they call the script — only in what they export.
+  envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
+  [[ "$model" == unset ]] || envargs+=(VERI_MODEL="$model")
+  env "${envargs[@]}" "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
     problems+=("$label: want exit 0, got $code")
   # `$(cat …)` eats the trailing newline, so comparing against <want> is both "the right
