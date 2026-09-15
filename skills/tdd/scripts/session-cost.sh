@@ -94,9 +94,9 @@ PRICES = {
     "opus": {
         "input": 15.00,
         "cache_read": 1.50,
-        # A cache write has two prices, because it has two TTLs: 1.25x base input for the
-        # 5m tier, 2x for the 1h one. They are 1.6x apart, which is why the sum the record
-        # states as `cache_creation_input_tokens` cannot be priced on its own.
+        # A cache write has two prices, because it has two TTLs: 1.25x base input for
+        # the 5m tier, 2x for the 1h one — 1.6x apart. What follows for a record that
+        # states only their sum is at `cache_write_tokens`, which is where it is acted on.
         "cache_write_5m": 18.75,
         "cache_write_1h": 30.00,
         "output": 75.00,
