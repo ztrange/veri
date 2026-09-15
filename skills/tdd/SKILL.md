@@ -312,6 +312,20 @@ active sessions — and those are the operator's sessions, not veri's. Unsetting
 in a launcher would spend that risk on their behalf without their knowledge, so preflight
 refuses and says what to run instead, and leaves the decision where it belongs.
 
+**Three launch modes, and which one to pick.** `/tdd <n>` typed into an **interactive**
+Claude Code session is the one to use when you intend to watch the run and steer it — and
+only from a session that is not itself inside another one, per the guard above. The two
+unattended modes both run the conductor in **print mode**: `claude -p "/tdd <n>"` typed by
+hand, and `$S/run-conductor.sh <n>`, which builds that same command line — the procedure as
+the prompt, the streaming flags, `--permission-mode bypassPermissions`, and the parent
+session's handles severed — and is what an unattended or scheduled launch should call.
+
+**What print mode costs you: a print-mode conductor cannot be asked a question, redirected
+or interrupted mid-run.** There is no human on the other end of its turn, so every decision
+the procedure would put to an operator becomes a bail instead — it stops and says why, and
+you read that afterwards rather than answering it at the time. Pick the interactive mode
+when the run is one you want to be able to intervene in.
+
 ## Inputs
 
 There is one command, so what the user typed after it is what decides which of the two

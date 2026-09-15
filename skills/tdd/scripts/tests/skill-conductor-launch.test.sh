@@ -174,6 +174,61 @@ fi
 
 report "$name"
 
+# The launch modes, as the regexes any wording naming them would match. The set is the one
+# the document has to enumerate once #207 lands: the skill typed into a session the operator
+# is sitting in, and the two unattended shapes — `claude -p "/tdd <n>"` typed by hand, and
+# `run-conductor.sh <n>`, the script that builds that command line. `run-conductor` is asked
+# by name because it is the mode this issue adds: a passage listing modes that predates it
+# reads as complete and is the one an operator would act on.
+INTERACTIVE='interactive|chat session|inside a session|a session you|typed into a session'
+PRINT='print mode|print-mode|claude -p'
+
+# probe_says_which_launch_modes_exist — one record enumerating them. Asked of a record, not
+# the file, for the reason this suite's header gives: SKILL.md already spells `claude -p
+# "/tdd <n>"` and the word `interactive` in the paragraph about print-mode leaf orphaning
+# (SKILL.md:292-298), which is not a list of launch modes and must not be accepted as one.
+# `run-conductor` is what tells the two apart — that paragraph cannot name a script written
+# after it.
+probe_says_which_launch_modes_exist() {
+  says "which launch modes exist — no single passage names the interactive session, print mode, and run-conductor.sh" \
+    "$INTERACTIVE" \
+    "$PRINT" \
+    'run-conductor'
+}
+
+# probe_says_print_mode_cannot_be_asked — the trade. Three regexes: which mode, the thing
+# that cannot be done to it, and when.
+#
+# The negation and the verb are ONE regex, not two. Asked separately they matched the
+# preflight record (SKILL.md:345) — a ~200-word paragraph that happens to contain "ask the
+# user to commit", "no longer" and "while it" in three unrelated sentences. A record here is
+# long enough that three independent words co-occur by chance, so a fact spread over three
+# probes is not a fact; requiring the negation to sit ON the verb is what makes the claim the
+# sentence rather than the vocabulary.
+CANNOT_INTERVENE='(cannot|can not|no way to|nobody can|no one can|impossible to|never|not) (be )?(asked|answered|questioned|interrupted|redirected|steered|reached|stopped)'
+
+probe_says_print_mode_cannot_be_asked() {
+  says "that a print-mode conductor cannot be asked a question or redirected mid-run" \
+    "$PRINT|run-conductor|unattended" \
+    "$CANNOT_INTERVENE" \
+    'mid-run|mid run|while it is running|once it is running|once it has started|once running|during the run|after it start|under way|underway|in flight'
+}
+
+# 2. One criterion, one case: the operator choosing a mode reads what the modes are and what
+#    the unattended one costs them. One case rather than two, for the same reason as case 1 —
+#    a list of modes with no note of what print mode gives up is the list that makes the
+#    trade invisible, which is the half #207 says an operator should read rather than
+#    discover.
+name="$skill_md says which launch modes exist and that a print-mode conductor cannot be asked a question mid-run"
+problems=()
+
+if need_skill_records; then
+  probe_says_which_launch_modes_exist
+  probe_says_print_mode_cannot_be_asked
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
