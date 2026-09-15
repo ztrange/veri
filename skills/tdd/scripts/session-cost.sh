@@ -209,6 +209,56 @@ def families(records):
     """
     return [f for f in (family(obj["message"].get("model", "")) for obj in records) if f]
 
+def context(usage):
+    """Everything the model was HANDED on one request: its input, what it read from the
+    cache and what it wrote to it. Output is not context — it is what came back, and a
+    session is not long because it answered at length. Read through the same table as the
+    money split, so a session row and the day’s totals cannot disagree about what a
+    request weighed: `cache_write_tokens` is what keeps the flat
+    `cache_creation_input_tokens` from being counted a second time beside the TTL split it
+    is the sum of.
+    """
+    return sum(count
+               for kind, read, _ in KINDS if kind != "output"
+               for count in read(usage).values())
+
+# How far past its own floor a session has to have read before the report says the word.
+# A session that is cleared re-reads about its preamble each request, so its total lands
+# near 1x this product; the one #201 is named for read 3.55x it. Anything between is a
+# session someone let run, and 1.5 is the line: far enough above 1.0 that a cleared
+# session with a few long turns is not accused, far enough below 3.55 that the pattern the
+# issue measured cannot hide under it.
+RAMP_FACTOR = 1.5
+
+# Why a session is expensive, in words, on its own row. The arithmetic that answers it —
+# total read against request count times preamble — is exactly the arithmetic nobody did
+# on the day measured, so leaving it to the reader is leaving it undone.
+def verdict(requests, preamble, total):
+    floor = requests * preamble
+    return "un-cleared ramp" if floor and total > floor * RAMP_FACTOR else ""
+
+def sessions(records):
+    """Per session, in the order met: how many requests it made, its PREAMBLE (the first
+    request’s context, the fixed floor every later request pays again), its FINAL context
+    (how far it ran up) and the TOTAL it read.
+
+    Three figures rather than one because none of them answers alone: a total says how
+    much without saying whether that was many cheap requests or few enormous ones, and a
+    preamble says only how the session started.
+    """
+    rows = {}
+    for obj in records:
+        weight = context(obj["message"]["usage"])
+        key = obj.get("sessionId", "")
+        row = rows.get(key)
+        if row is None:
+            rows[key] = {"requests": 1, "preamble": weight, "final": weight, "total": weight}
+            continue
+        row["requests"] += 1
+        row["final"] = weight
+        row["total"] += weight
+    return rows
+
 # Which of the two ROLES a record belongs to. `entrypoint` is what Claude Code writes to
 # say how the session was started, and `sdk-cli` is the one veri launches: `claude -p`,
 # i.e. a leaf. Everything else — a terminal, the desktop app — is a human at a keyboard.
@@ -282,4 +332,13 @@ money_line("total", bill(tokens))
 for key, label in ROLES:
     theirs = totals(obj for obj in records if role(obj) == key)
     money_line(label, bill(theirs))
+
+# And then the same day one session at a time, because the split above says a day was
+# expensive without saying which session made it so. The row carries the three context
+# figures and, when they say it, the word.
+print("  per session")
+for key, row in sessions(records).items():
+    print("    %s  preamble %d  final %d  read %d  %s"
+          % (key, row["preamble"], row["final"], row["total"],
+             verdict(row["requests"], row["preamble"], row["total"])))
 ' "$since" "${transcripts[@]}"
