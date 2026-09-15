@@ -872,13 +872,10 @@ prompt_says "$red" "does not put that check before the restore" \
 #     rewritten test without ordering it answers the first and not the second, which is the
 #     transcription the discipline exists to rule out.
 #
-#     The ordering probe is case 21's `predicts_before_running`, and for case 21's reason:
-#     `before` alone is answered by a footer placeholder rather than by any instruction.
-#     `PREDICTED_FAILURE: <… as predicted before running>` is what the red footer carries, and
-#     a revise footer that inherits that line puts the two words adjacent with nothing anywhere
-#     telling the leaf when to act. What separates the instruction from the placeholder is who
-#     it addresses, so the alternation spells the phrasings an instruction uses and a
-#     provenance note does not.
+#     The ordering probe is case 21's `predicts_before_running`, and its `before you`
+#     alternation is load-bearing here for the reason written there: the placeholder that
+#     answers a bare `before`, `PREDICTED_FAILURE: <… as predicted before running>`, is one a
+#     revise footer can inherit as readily as the red footer carries it.
 problems=""
 says_both_ways "$revise" "never says a rewritten test owes a new prediction" \
   80 '(rewrit|rewrote|new test)' 'predict'
