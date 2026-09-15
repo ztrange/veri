@@ -846,11 +846,14 @@ parse=$?
 # numeric leaf whose path names <what> and whose value is <amount>. Both halves, for the
 # reason `figure` checks both: four unlabelled numbers are not a report a second program
 # can read, and four labelled wrong ones are worse than none.
+#
+# `figure`, `session_figure` and this one are the same probe over different lines, so all
+# three are `states` with the lines picked differently — which is what makes "the same
+# standard the text probes hold a label to", above, a fact about the code rather than a
+# claim in a comment. The amount goes through `printf` because the flattened document
+# states a leaf to the cent and a `want_*_cost` need not be spelled that way.
 json_figure() {
-  local what="$1" pattern="$2" amount
-  amount="$(printf '%.2f' "$3")"
-  grep -Ei "$pattern" <<< "$flat" | awk -v want="$amount" '$2 == want { hit = 1 } END { exit !hit }' ||
-    problems+=("$what: want $amount under a key naming it in the --json output, not found")
+  states "$1" "$(printf '%.2f' "$3")" "naming it in the --json output" "$(grep -Ei "$2" <<< "$flat")"
 }
 
 json_figure "the JSON cache-read total"  'cache.*read'          "$want_read_cost"
