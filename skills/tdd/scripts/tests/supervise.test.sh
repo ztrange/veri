@@ -16,7 +16,11 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SUP="$HERE/../supervise.sh"
+# The skill's script directory, named because cases 19 and 20 are about it and not about
+# `supervise.sh` alone: one asks git what commit it is at, the other copies it whole out of
+# any clone. Every script the supervisor reaches for lives in it.
+SCRIPTS="$HERE/.."
+SUP="$SCRIPTS/supervise.sh"
 pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
@@ -847,7 +851,7 @@ argv_unset_got="$(cat "$argv_work/unset.argv" 2>/dev/null || echo '<<no argv>>')
 #     A directory of its own under `$work`, for case 12's reason — the event log accumulates
 #     across a run, and `event_field` demands exactly one line of the kind it is asked for.
 skill_work="$work/skill"
-skill_want="$(git -C "$(dirname "$SUP")" rev-parse HEAD 2>/dev/null || echo '<no-sha>')"
+skill_want="$(git -C "$SCRIPTS" rev-parse HEAD 2>/dev/null || echo '<no-sha>')"
 sup_run "$skill_work" env -u VERI_SKILL_COMMIT "$SUP" develop-red "$stub/leaf-ok"
 skill_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11,
@@ -869,12 +873,12 @@ skill_got="$(event_field "$skill_work" launch skill_commit)"
 #     and leaves what an unresolvable commit should READ as to the resolver — this script is
 #     the resolver, the one place that knows where the running scripts live.
 #
-#     The skill is made unresolvable by moving it, not by breaking git: every `.sh` beside
-#     `$SUP` is copied into a directory under `$work`, which is a `mktemp -d` and so no git
+#     The skill is made unresolvable by moving it, not by breaking git: `$SCRIPTS`'s `.sh`
+#     files are copied into a directory under `$work`, which is a `mktemp -d` and so no git
 #     repository — and the copy is what runs, so `$HERE` inside it is the directory git is
-#     asked about. Every script the supervisor reaches for lives beside it (`leaf-role.sh`,
-#     `event.sh`, `harvest-usage.sh`), so copying the glob keeps the copy whole without this
-#     comment having to list them. `cp` preserves the execute bit.
+#     asked about. The glob is what keeps the copy whole as scripts are added to the skill,
+#     rather than a list of the ones this supervisor happens to reach for today. `cp`
+#     preserves the execute bit.
 #
 #     The precondition is asserted rather than assumed: if `$TMPDIR` ever sat inside a clone,
 #     git would resolve a sha there and the case would pass on a condition it never created.
@@ -885,7 +889,7 @@ skill_got="$(event_field "$skill_work" launch skill_commit)"
 #     across a run, and `event_field` demands exactly one line of the kind it is asked for.
 nogit_skill="$work/nogit-skill"
 mkdir -p "$nogit_skill"
-cp "$(dirname "$SUP")"/*.sh "$nogit_skill/"
+cp "$SCRIPTS"/*.sh "$nogit_skill/"
 nogit_resolves="$(git -C "$nogit_skill" rev-parse HEAD 2>/dev/null || echo '<none>')"
 nogit_work="$work/nogit-run"
 sup_run "$nogit_work" env -u VERI_SKILL_COMMIT "$nogit_skill/supervise.sh" develop-red "$stub/leaf-ok"
