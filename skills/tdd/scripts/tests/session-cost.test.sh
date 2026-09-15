@@ -304,17 +304,28 @@ want_write_cost=3.75
 want_output_cost=1.50
 want_total_cost=7.35
 
-# Six lines for the first request: `thinking`, then five tool calls, in the order and shape
-# Claude Code writes them. What matters is that `requestId` and `usage` are identical on
-# all six; the content differs only so the fixture reads like a transcript rather than a
-# copied line.
-cat > "$transcript" <<TRANSCRIPT
-{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"thinking","thinking":"work out the plan"}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
-{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
-{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat a"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
-{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat b"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
-{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat c"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
-{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat d"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+# Six records for the first request, written by a loop rather than by hand. What the case
+# turns on is that the `requestId` and the `usage` are IDENTICAL on all six: six copied
+# lines can drift into six that are not, and the case would then go green on something
+# weaker than its own criterion. Only the content block differs — `thinking`, then five
+# tool calls, in the order and shape Claude Code writes them — so that is the loop
+# variable, and it differs only so the fixture reads like a transcript.
+a_usage="{\"input_tokens\":$a_in,\"cache_creation_input_tokens\":$a_write,\"cache_creation\":{\"ephemeral_5m_input_tokens\":$a_write,\"ephemeral_1h_input_tokens\":0},\"cache_read_input_tokens\":$a_read,\"output_tokens\":$a_out}"
+
+: > "$transcript"
+for content in \
+  '{"type":"thinking","thinking":"work out the plan"}' \
+  '{"type":"tool_use","name":"Bash","input":{"command":"ls"}}' \
+  '{"type":"tool_use","name":"Bash","input":{"command":"cat a"}}' \
+  '{"type":"tool_use","name":"Bash","input":{"command":"cat b"}}' \
+  '{"type":"tool_use","name":"Bash","input":{"command":"cat c"}}' \
+  '{"type":"tool_use","name":"Bash","input":{"command":"cat d"}}' ; do
+  printf '%s\n' "{\"type\":\"assistant\",\"timestamp\":\"2026-09-14T10:02:11.004Z\",\"requestId\":\"req_011CS9dQ5sTuA1gWyE4rLn8z\",\"sessionId\":\"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a\",\"message\":{\"role\":\"assistant\",\"model\":\"claude-opus-4-1-20250805\",\"content\":[$content],\"usage\":$a_usage}}" >> "$transcript"
+done
+
+# The second request: its own single record, with a DIFFERENT id, which is what separates
+# deduplicating from reading the first record of the file and stopping.
+cat >> "$transcript" <<TRANSCRIPT
 {"type":"assistant","timestamp":"2026-09-14T10:09:47.663Z","requestId":"req_011CSAeR6tUvB2hXzF5sMo9a","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"text","text":"done"}],"usage":{"input_tokens":$b_in,"cache_creation_input_tokens":$b_write,"cache_creation":{"ephemeral_5m_input_tokens":$b_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$b_read,"output_tokens":$b_out}}}
 TRANSCRIPT
 
