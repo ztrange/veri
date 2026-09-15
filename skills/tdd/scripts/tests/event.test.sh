@@ -110,6 +110,16 @@ want_field() {
     problems+=("$key: want $(printf '%q' "$expected"), got $(printf '%q' "$got")")
 }
 
+# want_present <file> <key> — one probe, appended to the caller's `problems`: <key> is on the
+# line at all. The weaker half of `want_field`, and what a fixed key is asserted with when its
+# value is not this suite's to say — the whole of the promise there is that a reader never has
+# to tell an absent key from an unknown value, so presence is the pin and the value is not.
+want_present() {
+  local file="$1" key="$2"
+  [[ "$(jget "$file" "$key")" != "<<missing>>" ]] ||
+    problems+=("$key: want the key present anyway, got it missing")
+}
+
 # 1. The whole of this step's criterion, as one case: one call writes one parseable line
 #    that carries the run's context, the event's name and the caller's payload.
 #
@@ -195,8 +205,7 @@ if [[ ! -f "$noctx_log" ]]; then
   problems+=("want the line appended anyway, but no .tdd/events.jsonl under $noctx_work")
 elif want_parses "$noctx_log"; then
   for key in ts issue actor phase step event attempt; do
-    [[ "$(jget "$noctx_log" "$key")" != "<<missing>>" ]] ||
-      problems+=("want the key $key present anyway, got it missing")
+    want_present "$noctx_log" "$key"
   done
   want_field "$noctx_log" event resume
 fi
@@ -284,8 +293,7 @@ unset_log="$unset_work/.tdd/events.jsonl"
 if [[ ! -f "$unset_log" ]]; then
   problems+=("want the line appended anyway, but no .tdd/events.jsonl under $unset_work")
 elif want_parses "$unset_log"; then
-  [[ "$(jget "$unset_log" skill_commit)" != "<<missing>>" ]] ||
-    problems+=("skill_commit: want the key present anyway, got it missing")
+  want_present "$unset_log" skill_commit
 fi
 rm -rf "$sc_work" "$unset_work"
 report "$name"
