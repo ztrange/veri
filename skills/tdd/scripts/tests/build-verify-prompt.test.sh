@@ -194,6 +194,38 @@ base="$(env -u VERI_TEST_CMD "$BUILD" green "$work/spec.md" "$testpath" test_slu
 ambient="$(VERI_TEST_CMD='pytest -k leaked_channel' "$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases)"
 [[ "$ambient" == "$base" ]] && ok || no "VERI_TEST_CMD in the environment reaches nothing (arguments unchanged)"
 
+# 15. no verifier prompt carries the developer's prediction, through any channel. #193 has
+#     the red leaf state its predicted failure before it runs anything and report it as
+#     PREDICTED_FAILURE / PREDICTION — the newest piece of developer rationale, and the one
+#     most tempting to forward, since it says in advance exactly what the verifier is about to
+#     go and observe. That is why it must not arrive: verify-red establishes ground truth by
+#     running the test itself, and a verifier told what the developer expected is a verifier
+#     primed to agree, which is the whole of what ADR-0003 buys. The two channels the
+#     developer's world can reach the builder by are the ones cases 11 and 14 each close for
+#     one phase and one payload — a positional past the four documented ones, and the
+#     environment the conductor launches the leaf with — so the prediction is offered through
+#     both at once, to all four phases, and must appear in none of them.
+#
+#     Two misses, not one, because they fail differently: the prediction's own text appearing
+#     is a leak through a channel, while `PREDICTED_FAILURE` or `PREDICTION` appearing with no
+#     prediction supplied is a template that has grown a slot asking for one — the edit that
+#     would make the leak worth building. Each phase accumulates its own, for case 12's
+#     reason: a template that leaks is named rather than covered for by its three siblings.
+#     This case builds its own four prompts rather than reading cases 5-9's, since the payload
+#     is the point, and its payload carries no form of the word "predict", so the two misses
+#     stay independent.
+prediction='the second assert fires: want "hello-world-foo", got "Hello & World/Foo"'
+problems=""
+for phase in red green refactor pin; do
+  smuggled_prompt="$(VERI_PREDICTED_FAILURE="$prediction" \
+    "$BUILD" "$phase" "$work/spec.md" "$testpath" test_slugify_lowercases "$prediction")"
+  [[ "$smuggled_prompt" == *"$prediction"* ]] \
+    && problems="$problems; verify-$phase carries the prediction text"
+  grep -qiE 'PREDICTED_FAILURE|PREDICTION' <<<"$smuggled_prompt" \
+    && problems="$problems; verify-$phase asks for a prediction"
+done
+[[ -z "$problems" ]] && ok || no "no verifier prompt carries the prediction (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
