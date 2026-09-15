@@ -63,6 +63,18 @@ PRICES = {
     "opus": {"input": 15.00, "cache_read": 1.50, "cache_write_5m": 18.75, "output": 75.00},
 }
 
+# The four kinds of token a request is billed for: the name this script calls the kind by,
+# the `usage` field it is counted from, the PRICES key it is billed at, and the words the
+# report names it in. One table rather than the same four kinds listed once to be zeroed,
+# once to be summed, once to be priced and once to be printed — four listings that have to
+# be kept in step by hand, and the next steps add kinds to them (the 1h cache-write tier).
+KINDS = (
+    ("cache_read",  "cache_read_input_tokens",     "cache_read",     "cache read"),
+    ("cache_write", "cache_creation_input_tokens", "cache_write_5m", "cache write"),
+    ("output",      "output_tokens",               "output",         "output"),
+    ("input",       "input_tokens",                "input",          "input"),
+)
+
 def family(model):
     """The price-table key for a model id like `claude-opus-4-1-20250805`."""
     for key in PRICES:
@@ -104,15 +116,13 @@ def usage_records(path, since):
 
 def totals(records):
     """The four token counts, and the model families they were billed at, over `records`."""
-    tokens = {"cache_read": 0, "cache_write": 0, "output": 0, "input": 0}
+    tokens = {kind: 0 for kind, _, _, _ in KINDS}
     models = set()
     for obj in records:
         usage = obj["message"]["usage"]
         models.add(obj["message"].get("model", ""))
-        tokens["cache_read"] += usage.get("cache_read_input_tokens", 0)
-        tokens["cache_write"] += usage.get("cache_creation_input_tokens", 0)
-        tokens["output"] += usage.get("output_tokens", 0)
-        tokens["input"] += usage.get("input_tokens", 0)
+        for kind, field, _, _ in KINDS:
+            tokens[kind] += usage.get(field, 0)
     return tokens, models
 
 path, since = sys.argv[1], sys.argv[2]
@@ -126,21 +136,13 @@ if not known:
     sys.exit(2)
 price = PRICES[known[0]]
 
-cost = {
-    "cache_read":  tokens["cache_read"]  * price["cache_read"]     / 1e6,
-    "cache_write": tokens["cache_write"] * price["cache_write_5m"] / 1e6,
-    "output":      tokens["output"]      * price["output"]         / 1e6,
-    "input":       tokens["input"]       * price["input"]          / 1e6,
-}
+cost = {kind: tokens[kind] * price[rate] / 1e6 for kind, _, rate, _ in KINDS}
 
 # The labels are what a reader acts on, so each line names its figure in words and then
 # states the tokens it is a price for. The total is every kind, input included: it is the
 # bill, not a sum of the three interesting parts of it.
 print("since %s  %s" % (since, path))
-for key, label in (("cache_read",  "cache read"),
-                   ("cache_write", "cache write"),
-                   ("output",      "output"),
-                   ("input",       "input")):
-    print("  %-12s %12d tokens   $%.2f" % (label, tokens[key], cost[key]))
+for kind, _, _, label in KINDS:
+    print("  %-12s %12d tokens   $%.2f" % (label, tokens[kind], cost[kind]))
 print("  %-12s %12s           $%.2f" % ("total", "", sum(cost.values())))
 ' "$transcript" "$since"
