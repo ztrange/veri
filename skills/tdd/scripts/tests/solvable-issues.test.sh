@@ -922,6 +922,56 @@ fi
 [[ -z "$step1_missing" ]] \
   && ok || no "$skill_doc step 1 tells the conductor to write its own long-lived pid (\$PPID, not \$\$) into .tdd/conductor.pid, so the lock cases 17 and 18 read is one a real run leaves (missing:$step1_missing)"
 
+# 21. The branch a step's push puts on the remote is DURABILITY, not a claim, and the two must
+# not be confused: #191 makes the conductor push after every green commit, so from a run's first
+# step onwards `origin` carries `tdd/<n>-<slug>` for hours before any PR exists. What says an
+# issue is somebody's is the open PR saying `Closes #<n>` (case 4) and the live conductor pid
+# (case 17) — never the branch. A reading that took the branch for a claim would make every
+# interrupted run's issue permanently untakeable: the pid dies with the process, but a pushed
+# branch outlives it and only a human deleting a remote ref would put the issue back in the pool,
+# which is the one-way door case 18 exists to keep shut.
+#
+# The fixture is case 1's — one open, labelled issue with `None.` under `## Blocked by` and the
+# empty `prs.json` the helper seeds — plus exactly the state a pushed step leaves and nothing
+# else: the run's worktree, its branch, and that branch on a real remote. No lock is written, so
+# the branch is the ONLY thing separating this from case 1 and the assertion is about the branch
+# alone. The remote is a bare repo pushed to for real rather than a faked `refs/remotes/origin/*`
+# ref, because `git ls-remote` — what a reading would ask — answers the remote, not the cache;
+# and the push is asserted to have landed before the criterion is, so a push that quietly failed
+# reads as a broken fixture here instead of as this case passing over nothing.
+fx="$(fixture pushed-branch)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 191,
+    "title": "a run's commits live on one disk until the draft PR",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nThe conductor pushes the branch after each step's green commit.\n\n## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+pushed_repo="$work/pushed"
+pushed_remote="$work/pushed-remote.git"
+mkdir -p "$pushed_repo"
+git init -q -b main "$pushed_repo" >/dev/null 2>&1
+git -C "$pushed_repo" -c user.name=veri -c user.email=veri@example.test \
+  commit -q --allow-empty -m initial >/dev/null 2>&1
+git init -q --bare "$pushed_remote" >/dev/null 2>&1
+git -C "$pushed_repo" remote add origin "$pushed_remote"
+
+pushed_wt="$pushed_repo/.tdd/wt/191"
+git -C "$pushed_repo" worktree add -q -b tdd/191-slug "$pushed_wt" main >/dev/null 2>&1
+git -C "$pushed_wt" push -q --set-upstream origin HEAD >/dev/null 2>&1
+
+on_remote="$(git -C "$pushed_repo" ls-remote --heads origin tdd/191-slug 2>/dev/null)"
+
+out="$(cd "$pushed_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ -n "$on_remote" ]] && [[ "$code" == 0 ]] && [[ "$out" == 191 ]]; } \
+  && ok || no "a branch on the remote, with no open PR and no live conductor pid, leaves its issue takeable (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '191|'; ls-remote tdd/191-slug='$on_remote', want non-empty)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
