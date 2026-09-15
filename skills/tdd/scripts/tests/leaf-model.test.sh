@@ -45,6 +45,27 @@ report() {
   fi
 }
 
+# model_env <run-wide> <developer> <verifier> <leaf-name> — fill the caller's `envargs` and
+# `label` for one call: the argv that opens exactly the named variables for the child, and the
+# line every problem message is prefixed with. Each value is given as its value or as the word
+# `unset`. Both probes below need the identical list, and they need it to STAY identical — the
+# whole question this suite asks is which variable a leaf reads, so a probe that cleared one
+# name the other did not would answer about the caller's shell instead of about the script.
+# Written once here, it cannot drift.
+#
+# `env -u` on all three names clears them for the child only, so a probe never depends on — nor
+# disturbs — what the surrounding run exported; `env` applies its assignments after its `-u`s,
+# so the pair says "these values, nothing ambient" in one list. It writes into the caller's
+# locals rather than printing, because an array of assignments cannot survive a command
+# substitution intact: a value with a space in it is exactly what case 3 probes.
+model_env() {
+  label="VERI_MODEL=$1 VERI_MODEL_DEVELOPER=$2 VERI_MODEL_VERIFIER=$3 $4"
+  envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
+  [[ "$1" == unset ]] || envargs+=(VERI_MODEL="$1")
+  [[ "$2" == unset ]] || envargs+=(VERI_MODEL_DEVELOPER="$2")
+  [[ "$3" == unset ]] || envargs+=(VERI_MODEL_VERIFIER="$3")
+}
+
 # model_probe <run-wide> <developer> <verifier> <leaf-name> <want> — one call the script
 # must answer, under all three variables. Each is given as its value or as the word `unset`,
 # and <want> is the exact stdout expected — the empty string for a run that chose no model.
@@ -54,19 +75,11 @@ report() {
 # script. Separate files per stream, since the case is partly about which stream carries
 # what: a model resolved is not a diagnosable event, so stderr must stay empty in every
 # branch.
-#
-# `env -u` on all three names clears them for the child only, so the probe never depends on
-# — nor disturbs — what the surrounding run exported; `env` applies its assignments after
-# its `-u`s, so the pair says "these values, nothing ambient" in one list.
 model_probe() {
   local wide="$1" dev="$2" ver="$3" name="$4" want="$5" out err code label
   local -a envargs
   out="$(mktemp)" err="$(mktemp)"
-  label="VERI_MODEL=$wide VERI_MODEL_DEVELOPER=$dev VERI_MODEL_VERIFIER=$ver $name"
-  envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
-  [[ "$wide" == unset ]] || envargs+=(VERI_MODEL="$wide")
-  [[ "$dev" == unset ]] || envargs+=(VERI_MODEL_DEVELOPER="$dev")
-  [[ "$ver" == unset ]] || envargs+=(VERI_MODEL_VERIFIER="$ver")
+  model_env "$wide" "$dev" "$ver" "$name"
   env "${envargs[@]}" "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
     problems+=("$label: want exit 0, got $code")
@@ -87,16 +100,12 @@ model_probe() {
 # load-bearing one: supervise.sh reads this script in a command substitution and turns a
 # non-empty answer into `--model <value>`, so a refused value half-printed there would
 # reach the `claude` command line anyway, which is the failure the refusal exists to stop.
-# Arguments and `env -u` discipline are model_probe's, for the same reasons.
+# Arguments are model_probe's, and the environment is model_env's, for the same reasons.
 model_refuses() {
   local wide="$1" dev="$2" ver="$3" name="$4" out err code label
   local -a envargs
   out="$(mktemp)" err="$(mktemp)"
-  label="VERI_MODEL=$wide VERI_MODEL_DEVELOPER=$dev VERI_MODEL_VERIFIER=$ver $name"
-  envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
-  [[ "$wide" == unset ]] || envargs+=(VERI_MODEL="$wide")
-  [[ "$dev" == unset ]] || envargs+=(VERI_MODEL_DEVELOPER="$dev")
-  [[ "$ver" == unset ]] || envargs+=(VERI_MODEL_VERIFIER="$ver")
+  model_env "$wide" "$dev" "$ver" "$name"
   env "${envargs[@]}" "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
   [[ "$code" == 2 ]] ||
     problems+=("$label: want exit 2, got $code")
