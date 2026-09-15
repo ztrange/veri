@@ -284,15 +284,11 @@ def role(obj):
 
 since, paths = sys.argv[1], sys.argv[2:]
 
-def every_record():
-    """Every priced record of every transcript, so the report is one day and not one file.
-    The day is the repo’s, and the repo spends it across as many project directories as it
-    has worktrees."""
-    for path in paths:
-        for obj in usage_records(path, since):
-            yield obj
-
-records = list(every_record())
+# Every priced record of every transcript, so the report is one day and not one file. The
+# day is the repo’s, and the repo spends it across as many project directories as it has
+# worktrees. A list rather than a stream because the day is walked again per role and once
+# per session, and a generator would be empty by the second pass.
+records = [obj for path in paths for obj in usage_records(path, since)]
 tokens = totals(records)
 
 # One model family per report at this size, and it is the price table that has to know it:
