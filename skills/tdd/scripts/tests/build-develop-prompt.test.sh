@@ -836,6 +836,49 @@ prompt_says "$red" "does not put that check before the restore" \
 [[ -z "$problems" ]] \
   && ok || no "develop-red's pin path predicts what the temporary break should print and checks it before restoring (${problems#; })"
 
+# 23. what a revise of red inherits from it (issue #193). Cases 21 and 22 pin the prediction
+#     on the two paths through develop-red; this is the third way a red test reaches the
+#     pipeline. A verify-red REJECT sends a fresh leaf to the revise template, and what that
+#     leaf leaves on disk is a *different test* — rewritten to answer the objection, and so a
+#     test whose failure nobody has predicted. The rewrite is exactly where an assertion drifts
+#     onto the wrong value, since the leaf is editing to satisfy a complaint rather than to
+#     state the spec, and it is the one attempt whose prediction cannot be inherited: the leaf
+#     never saw the rejected attempt, so there is no old prediction for it to carry even if it
+#     wanted to. So the revise prompt asks for a new prediction for the rewritten test, and
+#     asks for it before the re-run — the ordering being the whole of what makes a prediction
+#     one rather than a transcription. Two faces of one criterion, so one case.
+#
+#     The prompt read is case 4's — same phase, same arguments, so there is one invocation and
+#     case 4 owns the exit-0 check on it, and it is the prompt built for `revise red`, the
+#     phase the criterion names. Built as cases 11, 19, 21 and 22 are and under the grep
+#     constraints reasoned about there: `prompt_says` folds the prompt to one line, so a claim
+#     wrapped at ~85 columns is still one string, and every alternation branch carries at most
+#     ONE bounded `[^.]{0,N}`. Both claims read as naturally either way round — "a rewritten
+#     test owes a new prediction" against "predict the failure of the test you rewrote" — so
+#     both go through `says_both_ways`.
+#
+#     `predict` occurs nowhere in the revise prompt built today, checked against the built
+#     prompt rather than the template, so either probe alone is red now. They are two because
+#     they fail on different wrong templates: one that says to predict before running, with
+#     nothing tying it to the rewrite, answers the second and not the first — a revise of green
+#     or refactor would then read it as work it owes — and one that ties a prediction to the
+#     rewritten test without ordering it answers the first and not the second, which is the
+#     transcription the discipline exists to rule out.
+#
+#     The ordering probe's second half is case 21's, and for case 21's reason: `before` alone
+#     is answered by a footer placeholder rather than by any instruction. `PREDICTED_FAILURE:
+#     <… as predicted before running>` is what the red footer carries, and a revise footer that
+#     inherits that line puts the two words adjacent with nothing anywhere telling the leaf
+#     when to act. What separates the instruction from the placeholder is who it addresses, so
+#     the alternation spells the phrasings an instruction uses and a provenance note does not.
+problems=""
+says_both_ways "$revise" "never says a rewritten test owes a new prediction" \
+  80 '(rewrit|rewrote|new test)' 'predict'
+says_both_ways "$revise" "does not require that prediction before the re-run" \
+  60 'predict' 'before (you|issuing|any command)'
+[[ -z "$problems" ]] \
+  && ok || no "develop-revise asks for a new prediction for the rewritten test, before the re-run (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
