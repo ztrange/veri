@@ -21,6 +21,13 @@
 # Exit status is the leaf's own — forwarded by supervise.sh.
 #
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
+#
+# VERI_LEAF_MODEL is the model this leaf runs on, resolved by leaf-model.sh and exported by
+# supervise.sh — the one choke point that knows the leaf's name, and so its role (issue
+# #171). It is read here rather than resolved here because the run's `launch` event must
+# report the very value the command line was built from, not a second reading of the
+# environment. Unset or empty means no `--model` flag at all, and the command line is then
+# byte-identical to the one this script built before the variable existed.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -41,7 +48,13 @@ trap 'rm -f "$stream_tmp"' EXIT
 # heartbeat) while teeing them aside for result extraction. set +e so pipefail can't abort
 # before we read the leaf's real exit status from PIPESTATUS.
 set +e
-"${CLAUDE_BIN:-claude}" -p "$prompt" --output-format stream-json --verbose "$@" | tee "$stream_tmp"
+# `--model` only when a model was chosen: an empty array expanded through the `[@]+` guard
+# (the same idiom solvable-issues.sh:54 explains) contributes NOTHING, where a quoted
+# `"$model"` would pass an empty argument the CLI would have to reject.
+model_args=()
+[[ -n "${VERI_LEAF_MODEL:-}" ]] && model_args=(--model "$VERI_LEAF_MODEL")
+"${CLAUDE_BIN:-claude}" -p "$prompt" --output-format stream-json --verbose \
+  "${model_args[@]+"${model_args[@]}"}" "$@" | tee "$stream_tmp"
 rc="${PIPESTATUS[0]}"
 set -e
 
