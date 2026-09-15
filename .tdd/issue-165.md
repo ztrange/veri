@@ -4,4 +4,4 @@
 - [x] supervise.sh resolves the skill commit at launch time and exports it for event.sh
 - [x] The plan comment names the skill commit the run started on
 - [x] An unresolvable commit is recorded as the literal string unknown, not an absent field
-- [x] SKILL.md documents that the skill may change under a running conductor and the event log records which commit each leaf used ⟂ refactor pending
+- [x] SKILL.md documents that the skill may change under a running conductor and the event log records which commit each leaf used
