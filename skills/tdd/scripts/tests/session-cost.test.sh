@@ -32,10 +32,11 @@
 # and not a presentation detail.
 #
 # The prices the expectations below are computed at are the public Opus rates, per million
-# tokens: $1.50 cache read, $18.75 cache write at the 5m TTL, $75.00 output, $15.00 input.
-# They are the rates the issue's own measurements resolve to — 286.6M reads for $430 is
-# $1.50/M, 1.55M output for $117 is $75.00/M — so the fixture and the numbers it is checked
-# against have the same provenance as the problem statement.
+# tokens: $1.50 cache read, $18.75 cache write at the 5m TTL, $30.00 at the 1h one,
+# $75.00 output, $15.00 input. They are the rates the issue's own measurements resolve
+# to — 286.6M reads for $430 is $1.50/M, 1.55M output for $117 is $75.00/M — so the
+# fixture and the numbers it is checked against have the same provenance as the problem
+# statement.
 #
 # What this case deliberately does NOT pin, because each is a step of its own:
 #   - deduplication by requestId: the two records below carry DIFFERENT ids, so they sum
@@ -338,8 +339,8 @@ report "$name"
 
 
 # 4. A cache write has two prices, and the record does not always say which. Claude bills a
-#    1h-TTL write at 2x base input and a 5m-TTL write at 1.25x — $30.00/M and $18.75/M
-#    against $15.00/M — and states the split in `usage.cache_creation` as
+#    1h-TTL write at 2x base input and a 5m-TTL write at 1.25x, the two rates in the
+#    header, and states the split in `usage.cache_creation` as
 #    `ephemeral_1h_input_tokens` and `ephemeral_5m_input_tokens`. The flat
 #    `cache_creation_input_tokens` beside them is their SUM, and a sum cannot be priced:
 #    the two rates are 1.6x apart, so charging the whole of it at either one is wrong by up
