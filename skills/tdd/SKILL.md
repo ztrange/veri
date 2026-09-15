@@ -70,7 +70,7 @@ under a running conductor — and you are still following the `SKILL.md` text yo
 start. Nothing here pins it; what it does instead is record it. Every launch `supervise.sh`
 makes writes the commit it ran under to the event log (`.tdd/events.jsonl`, key
 `skill_commit`), so a run whose skill moved mid-flight is the sha changing partway down that
-file, and a run's narration can be read against the version that actually produced it.
+file.
 
 - `$S/supervise.sh <name> <cmd> [args...]` — **the leaf launcher.** Spawns `<cmd>` under a
   heartbeat + hard-timeout watchdog, owns the `.tdd/<name>.log` progress log, and returns
