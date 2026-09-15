@@ -726,6 +726,9 @@ says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
 #     wrapped at ~85 columns is still one string, and every branch carries at most ONE bounded
 #     `[^.]{0,N}`. The ordering claim goes through `says_both_ways` because it reads as
 #     naturally either way round — "predict before you run" against "before you run, predict".
+#     Case 23 asks that same claim of the revise prompt, so the gap and both halves are spelled
+#     once in `predicts_before_running` below and each caller names only its prompt and its
+#     complaint — the `offers_verdict` reasoning below, across two cases rather than within one.
 #     Its second half is `before you`, and the `you` is load-bearing — watched, case 16's way.
 #     `before` alone is answered by the footer line another probe already pins: `PREDICTED_
 #     FAILURE: <… — as predicted before running>` puts the two words adjacent, so with sub-step
@@ -770,9 +773,13 @@ offers_verdict() {  # offers_verdict <verdict word>
     -E -e "PREDICTION:[^.]{0,20}$verdict"
 }
 
+predicts_before_running() {  # predicts_before_running <prompt> <complaint>
+  local prompt="$1" complaint="$2"
+  says_both_ways "$prompt" "$complaint" 60 'predict' 'before (you|issuing|any command)'
+}
+
 problems=""
-says_both_ways "$red" "does not require the prediction to be stated before the run" \
-  60 'predict' 'before (you|issuing|any command)'
+predicts_before_running "$red" "does not require the prediction to be stated before the run"
 asks_for 'PREDICTED_FAILURE:'
 offers_verdict MATCHED
 offers_verdict DIVERGED
@@ -865,17 +872,17 @@ prompt_says "$red" "does not put that check before the restore" \
 #     rewritten test without ordering it answers the first and not the second, which is the
 #     transcription the discipline exists to rule out.
 #
-#     The ordering probe's second half is case 21's, and for case 21's reason: `before` alone
-#     is answered by a footer placeholder rather than by any instruction. `PREDICTED_FAILURE:
-#     <… as predicted before running>` is what the red footer carries, and a revise footer that
-#     inherits that line puts the two words adjacent with nothing anywhere telling the leaf
-#     when to act. What separates the instruction from the placeholder is who it addresses, so
-#     the alternation spells the phrasings an instruction uses and a provenance note does not.
+#     The ordering probe is case 21's `predicts_before_running`, and for case 21's reason:
+#     `before` alone is answered by a footer placeholder rather than by any instruction.
+#     `PREDICTED_FAILURE: <… as predicted before running>` is what the red footer carries, and
+#     a revise footer that inherits that line puts the two words adjacent with nothing anywhere
+#     telling the leaf when to act. What separates the instruction from the placeholder is who
+#     it addresses, so the alternation spells the phrasings an instruction uses and a
+#     provenance note does not.
 problems=""
 says_both_ways "$revise" "never says a rewritten test owes a new prediction" \
   80 '(rewrit|rewrote|new test)' 'predict'
-says_both_ways "$revise" "does not require that prediction before the re-run" \
-  60 'predict' 'before (you|issuing|any command)'
+predicts_before_running "$revise" "does not require that prediction before the re-run"
 [[ -z "$problems" ]] \
   && ok || no "develop-revise asks for a new prediction for the rewritten test, before the re-run (${problems#; })"
 
