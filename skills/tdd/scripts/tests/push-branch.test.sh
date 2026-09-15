@@ -4,17 +4,19 @@
 # living on one disk until the draft PR is opened (issue #191).
 # Zero-dependency plain-shell asserts, same idiom as event.test.sh.
 #
-# Why a failed push is not a bail — and therefore why all three halves of the contract below
-# are about the run being untouched — is said in the script's header (push-branch.sh:12-19),
-# once.
+# Why a failed push is not a bail — and therefore why all three halves of the failing-push
+# contract below are about the run being untouched — is said in the script's header
+# (push-branch.sh:12-19), once.
 #
-# Contract under test (this step only — the failing push):
+# Contract under test:
 #   push-branch.sh, run from the worktree with an origin that cannot be reached
 #                       → exit 0, the exit status the conductor branches on.
 #                       → HEAD, the commit count and the ledger file are exactly what they
 #                         were before the call.
 #                       → one line appended to `.tdd/events.jsonl` whose `event` says the
 #                         push failed.
+#   push-branch.sh, run from the worktree with an origin it can reach
+#                       → the run's branch is on that remote, at the commit HEAD is on.
 #
 # The origin is a path that does not exist rather than an unreachable host: the failure has
 # to be the same failure on every machine and inside a sandbox with no network, and a real
@@ -133,6 +135,52 @@ else
   grep -qiE 'push.*fail|fail.*push' <<< "$events" ||
     problems+=("want an event whose name says the push failed, got: $(printf '%q' "$(tr '\n' ' ' <<< "$events")")")
 fi
+report "$name"
+
+# 2. The other half of the contract, and this cycle's criterion: a push that CAN land does,
+#    so that after a step's green commit and tick the branch exists on the remote at that
+#    commit. The fixture is the same shape as case 1 — an issue branch with a commit and a
+#    committed ledger — with the one difference that matters: `origin` is a bare repository
+#    that really is one, so the copy succeeds.
+#
+#    A bare repo on disk rather than a real host, for case 1's reason turned around: the
+#    push has to land the same way on every machine and inside a sandbox with no network.
+#
+#    The assertion is the sha, not the branch's mere existence. "The branch exists on the
+#    remote" is only worth anything if it is the run's work that is there: a remote branch
+#    sitting at an older commit would satisfy existence and still leave the step's commit on
+#    one disk, which is the whole of what #191 is about.
+name="push-branch.sh: a push that lands leaves the branch on the remote at the commit HEAD is on"
+problems=()
+repo="$work/landed"
+remote="$work/origin.git"
+mkdir -p "$repo/.tdd"
+git init -q --bare "$remote" >/dev/null 2>&1
+git init -q -b main "$repo" >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+branch=tdd/191-run-commits-live-on-one-disk
+git_q "$repo" checkout -q -b "$branch" >/dev/null 2>&1
+cat > "$repo/.tdd/issue-191.md" <<'LEDGER'
+# Plan for #191 — A run's commits live on one disk until the draft PR
+
+- [x] After a step's green commit and tick, the branch exists on the remote at that commit ⟂ refactor pending
+LEDGER
+git_q "$repo" add -A >/dev/null 2>&1
+git_q "$repo" commit -q -m "feat: a step's green commit (#191)" >/dev/null 2>&1
+git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+
+head_sha="$(git_q "$repo" rev-parse HEAD)"
+
+( cd "$repo" && env VERI_ISSUE=191 VERI_ACTOR=conductor \
+    VERI_STEP='the branch exists on the remote' "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+
+[[ "$code" == 0 ]] || problems+=("want exit 0 from a push that lands, got $code")
+
+# `<<absent>>` rather than an empty string when the ref is not there, so the report
+# distinguishes "no branch on the remote at all" from a branch at some other sha.
+remote_sha="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+[[ "$remote_sha" == "$head_sha" ]] ||
+  problems+=("want refs/heads/$branch on the remote at $head_sha (the commit HEAD is on), got $remote_sha")
 report "$name"
 
 echo "----"
