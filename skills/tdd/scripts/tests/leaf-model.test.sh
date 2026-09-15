@@ -195,34 +195,6 @@ model_probe 'opus[1m]' unset unset develop-red  'opus[1m]'
 model_probe unset unset 'opus[1m]' verify-green 'opus[1m]'
 report "$name"
 
-# preflight_section — the lines of SKILL.md's first `### ` section whose heading is a
-# numbered Preflight, up to the next `### `. Cut the section out rather than reading the
-# file: the document describes every script once more under `## The scripts`, and a
-# file-wide grep would answer "yes, leaf-model.sh is in there" for a procedure whose
-# preflight never runs it — which is the whole of what this case asks. Matched by the word
-# and not by its number, so renumbering the procedure does not fail the case; `[0-9]+\.` is
-# what tells it from `### Loop 0. Preflight — none of its own`, which delegates every check
-# back to here.
-preflight_section() {
-  awk '/^### [0-9]+\..*[Pp]reflight/ { inside = 1; print; next }
-       inside && /^### / { exit }
-       inside' "$ROOT/$skill_md"
-}
-
-# preflight_leaf_names — the argument of every `leaf-model.sh <name>` in that section, one
-# per line, stripped of the backticks, quotes and trailing punctuation a snippet in prose
-# wraps it in. A name given as a shell variable resolves to nothing a role can be read from
-# and so counts as no name at all: the point of the call is that preflight exercises BOTH
-# roles for real, which a document can only show by naming them.
-preflight_leaf_names() {
-  printf '%s\n' "$preflight" \
-    | grep -o 'leaf-model\.sh[[:space:]][^[:space:]]*' \
-    | awk '{ print $2 }' \
-    | tr -d '`"'"'"'' \
-    | sed 's/[),;:.]*$//' \
-    | grep -v '^$'
-}
-
 # 4. Where the script is called from. Cases 1-3 are the whole of what leaf-model.sh answers,
 #    and a resolver nobody calls until a leaf launches still costs a branch, a worktree, a
 #    plan and a cycle to tell a human that `VERI_MODEL="sonnet 5"` is not one model name —
@@ -236,12 +208,31 @@ preflight_leaf_names() {
 #    not spelled here either — each name found is handed to `leaf-role.sh`, the one place the
 #    name→role mapping lives, so the case asks what the roles ARE rather than what they are
 #    called.
+#
+#    Both cuts below are inline rather than behind a function, the way issue-worktree.test.sh
+#    cuts SKILL.md's bullet for its own script: a no-argument helper called once, on the line
+#    below its own body, is an indirection with a single reader — and the second of them read
+#    `preflight` out of its caller, which is that indirection paying a leaked scope for itself.
 name="$skill_md's preflight runs leaf-model.sh for a developer name and for a verifier name, and says its exit 2 stops the run"
 problems=()
-preflight="$(preflight_section)"
+# `preflight` — the lines of SKILL.md's first `### ` section whose heading is a numbered
+# Preflight, up to the next `### `. Cut the section out rather than reading the file: the
+# document describes every script once more under `## The scripts`, and a file-wide grep
+# would answer "yes, leaf-model.sh is in there" for a procedure whose preflight never runs
+# it — which is the whole of what this case asks. Matched by the word and not by its number,
+# so renumbering the procedure does not fail the case; `[0-9]+\.` is what tells it from
+# `### Loop 0. Preflight — none of its own`, which delegates every check back to here.
+preflight="$(awk '/^### [0-9]+\..*[Pp]reflight/ { inside = 1; print; next }
+                  inside && /^### / { exit }
+                  inside' "$ROOT/$skill_md")"
 if [[ -z "$preflight" ]]; then
   problems+=("$skill_md: no numbered '### … Preflight' section — what preflight runs could not be read")
 else
+  # The loop is fed (at its `done`) the argument of every `leaf-model.sh <name>` in that
+  # section, one per line, stripped of the backticks, quotes and trailing punctuation a
+  # snippet in prose wraps it in. A name given as a shell variable resolves to nothing a role
+  # can be read from and so counts as no name at all: the point of the call is that preflight
+  # exercises BOTH roles for real, which a document can only show by naming them.
   roles=""
   while IFS= read -r leaf; do
     # A section with no call at all reaches here once with an empty line, which is the
@@ -250,7 +241,12 @@ else
     role_line="$("$LEAF_ROLE" "$leaf" 2>/dev/null)" ||
       { problems+=("$skill_md preflight: leaf-model.sh is called with '$leaf', a name leaf-role.sh refuses"); continue; }
     roles="$roles $(printf '%s\n' "$role_line" | sed -n 's/.*VERI_ACTOR=\([a-z]*\).*/\1/p')"
-  done <<< "$(preflight_leaf_names)"
+  done <<< "$(printf '%s\n' "$preflight" \
+    | grep -o 'leaf-model\.sh[[:space:]][^[:space:]]*' \
+    | awk '{ print $2 }' \
+    | tr -d '`"'"'"'' \
+    | sed 's/[),;:.]*$//' \
+    | grep -v '^$')"
   for want in developer verifier; do
     [[ "$roles" == *" $want"* ]] ||
       problems+=("$skill_md preflight: no leaf-model.sh call with a $want leaf name (names found:${roles:-" none"})")
