@@ -332,7 +332,7 @@ unauthenticated baseline never gets a cycle.
    keeps the baseline and every later leaf on one command: detected after the baseline, the
    issue's line would arrive too late to be the command the baseline proved green. Note how
    long the run took and keep it as `baseline`, the elapsed wall time in whole seconds
-   (round up); step 6 sizes the run's hard timeout from it. This measurement is free — the
+   (round up); step 7 sizes the run's hard timeout from it. This measurement is free — the
    run happens anyway — and it is the only one taken, so a suite that gets slower mid-run
    does not move the timeout under a leaf.
 4. **Default branch.** Capture it for the PR base:
@@ -343,7 +343,18 @@ unauthenticated baseline never gets a cycle.
    decision, and catching it here is what lets the refactor loop treat exit 2 as impossible.
    Exit 0 and exit 3 both mean it parses (3 only says the budget is 0 — a run with the
    refactor loop switched off), so continue.
-6. **Size the run's hard timeout from the baseline.** Hand step 3's `baseline` to
+6. **Leaf models parse.** Run `$S/leaf-model.sh develop-red` and
+   `$S/leaf-model.sh verify-green` once each. Both roles, because the three variables do not
+   all reach both: `VERI_MODEL_DEVELOPER` is only ever read for a developer name and
+   `VERI_MODEL_VERIFIER` only for a verifier one, so a preflight that asked a single name
+   would let the other role's bad value through and kill every leaf of that half at launch.
+   **Exit 2** means the value cannot be a model name — whitespace in it, so `sonnet 5` is two
+   words where the CLI takes one — and is a preflight-class stop like step 5: report its
+   stderr diagnostic verbatim and do not start. The resolver is otherwise first called at
+   launch, by which time the branch, the worktree and the plan already exist and a typo costs
+   a bail to undo. An empty print is the normal answer for a run that chose no model, so exit
+   0 with nothing on stdout means continue.
+7. **Size the run's hard timeout from the baseline.** Hand step 3's `baseline` to
    `$S/leaf-timeout.sh` and **export** the result, so every leaf of the run is launched
    under it rather than under the supervisor's fixed 900 s default:
    ```
@@ -457,7 +468,7 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    ledger is the source of truth and each step will be blind-verified. The test command is
    in that comment so a wrong one is visible on the thread before the first leaf starts,
    rather than after a cycle has paid for it. The comment also states the hard timeout
-   preflight step 6 settled on and where it came from — `timeout 1200 s (6 × a 200 s
+   preflight step 7 settled on and where it came from — `timeout 1200 s (6 × a 200 s
    baseline)`, or `timeout 900 s (floor; 5 s baseline)`, or `timeout 900 s (VERI_TIMEOUT set
    by hand)` — so a reader of the thread can see which number every leaf of this run is
    under and why. On #71 that had to be reconstructed from the timestamps of two bails.

@@ -19,6 +19,13 @@
 #                              → the role variable wins for that role's leaves and for no
 #                                others: <y> for `verify-*`, <x> still for `develop-*` and
 #                                `revise-*`, and the mirror image for VERI_MODEL_DEVELOPER.
+
+#   And where the script is called from, which is the other half of "a bad value stops the
+#   run before any branch or leaf": skills/tdd/SKILL.md's preflight runs it once for a
+#   developer name and once for a verifier name, and says its exit 2 stops the run. That
+#   case reads the document as text, the way issue-worktree.test.sh's last case reads
+#   SKILL.md's entry for its own script — a resolver called for the first time at launch
+#   refuses a typo'd model only after the branch, the worktree and the plan already exist.
 #
 # The three names are cleared for every child below, for the reason hermetic-suites.test.sh
 # exists (issue #87): a suite's answer is a fact about the script, not about whatever the
@@ -29,6 +36,12 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF_MODEL="$HERE/../leaf-model.sh"
+LEAF_ROLE="$HERE/../leaf-role.sh"
+# The document twice — the path every failure message spells, and the same path resolved
+# for the probe to read — so a message can never name a file the probe did not open. The
+# suite sits at skills/<skill>/scripts/tests, so two levels up is the skill.
+skill_md="skills/tdd/SKILL.md"
+SKILL="$HERE/../../SKILL.md"
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -179,6 +192,79 @@ model_refuses sonnet unset unset frobnicate-red
 model_refuses unset unset unset frobnicate-red
 model_probe 'opus[1m]' unset unset develop-red  'opus[1m]'
 model_probe unset unset 'opus[1m]' verify-green 'opus[1m]'
+report "$name"
+
+# preflight_section — the lines of SKILL.md's first `### ` section whose heading is a
+# numbered Preflight, up to the next `### `. Cut the section out rather than reading the
+# file: the document describes every script once more under `## The scripts`, and a
+# file-wide grep would answer "yes, leaf-model.sh is in there" for a procedure whose
+# preflight never runs it — which is the whole of what this case asks. Matched by the word
+# and not by its number, so renumbering the procedure does not fail the case; `[0-9]+\.` is
+# what tells it from `### Loop 0. Preflight — none of its own`, which delegates every check
+# back to here.
+preflight_section() {
+  awk '/^### [0-9]+\..*[Pp]reflight/ { inside = 1; print; next }
+       inside && /^### / { exit }
+       inside' "$SKILL"
+}
+
+# preflight_leaf_names — the argument of every `leaf-model.sh <name>` in that section, one
+# per line, stripped of the backticks, quotes and trailing punctuation a snippet in prose
+# wraps it in. A name given as a shell variable resolves to nothing a role can be read from
+# and so counts as no name at all: the point of the call is that preflight exercises BOTH
+# roles for real, which a document can only show by naming them.
+preflight_leaf_names() {
+  printf '%s\n' "$preflight" \
+    | grep -o 'leaf-model\.sh[[:space:]][^[:space:]]*' \
+    | awk '{ print $2 }' \
+    | tr -d '`"'"'"'' \
+    | sed 's/[),;:.]*$//' \
+    | grep -v '^$'
+}
+
+# 4. Where the script is called from. Cases 1-3 are the whole of what leaf-model.sh answers,
+#    and a resolver nobody calls until a leaf launches still costs a branch, a worktree, a
+#    plan and a cycle to tell a human that `VERI_MODEL="sonnet 5"` is not one model name —
+#    which is the failure the exit 2 of case 3 exists to prevent. So the criterion is about
+#    the caller: preflight runs it, beside the `refactor-budget.sh 0` of step 5, before
+#    anything is created that a bail would have to revert.
+#
+#    Once for EACH role, because the three variables do not all reach both: a preflight that
+#    only asked a developer name would pass a run whose VERI_MODEL_VERIFIER is the bad value,
+#    and every verifier leaf of that run would then die at launch. Which role a name is, is
+#    not spelled here either — each name found is handed to `leaf-role.sh`, the one place the
+#    name→role mapping lives, so the case asks what the roles ARE rather than what they are
+#    called.
+name="$skill_md's preflight runs leaf-model.sh for a developer name and for a verifier name, and says its exit 2 stops the run"
+problems=()
+preflight="$(preflight_section)"
+if [[ -z "$preflight" ]]; then
+  problems+=("$skill_md: no numbered '### … Preflight' section — what preflight runs could not be read")
+else
+  roles=""
+  while IFS= read -r leaf; do
+    # A section with no call at all reaches here once with an empty line, which is the
+    # "never runs it" failure and not a refused name: let the two role probes below say so.
+    [[ -n "$leaf" ]] || continue
+    role_line="$("$LEAF_ROLE" "$leaf" 2>/dev/null)" ||
+      { problems+=("$skill_md preflight: leaf-model.sh is called with '$leaf', a name leaf-role.sh refuses"); continue; }
+    roles="$roles $(printf '%s\n' "$role_line" | sed -n 's/.*VERI_ACTOR=\([a-z]*\).*/\1/p')"
+  done <<< "$(preflight_leaf_names)"
+  for want in developer verifier; do
+    [[ "$roles" == *" $want"* ]] ||
+      problems+=("$skill_md preflight: no leaf-model.sh call with a $want leaf name (names found:${roles:-" none"})")
+  done
+  # The stop itself, in the section that makes the call: a preflight that ran the resolver
+  # and carried on would have paid for the answer and thrown it away. Case-folded once into
+  # a variable and matched with `[[ ]]`, so the sentence's own capitalisation is the
+  # writer's business and no pipeline's exit status is being read for an answer;
+  # `verbatim|diagnostic` because what the bad value was is only legible from the script's
+  # own stderr.
+  lowered="$(printf '%s\n' "$preflight" | tr '[:upper:]' '[:lower:]')"
+  [[ "$lowered" == *leaf-model.sh* && "$lowered" == *"exit 2"* \
+     && "$lowered" =~ (verbatim|diagnostic) ]] ||
+    problems+=("$skill_md preflight: does not say leaf-model.sh's exit 2 stops the run, reporting its stderr diagnostic")
+fi
 report "$name"
 
 echo "----"
