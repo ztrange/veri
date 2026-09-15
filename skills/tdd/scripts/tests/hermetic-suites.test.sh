@@ -11,6 +11,8 @@
 # Contract under test:
 #   VERI_STUCK_RETRIES=0 supervise-retry.test.sh → exit 0, "1 passed, 0 failed",
 #   exactly as with the variable unset.
+#   VERI_MODEL=<x> leaf-model.test.sh → the same exit and the same stdout as a run with
+#   the three model variables cleared.
 #
 # Run: scripts/tests/hermetic-suites.test.sh
 set -uo pipefail
@@ -41,6 +43,42 @@ out="$(VERI_STUCK_RETRIES=0 "$HERE/supervise-retry.test.sh" 2>/dev/null)" && cod
   problems+=("want exit 0, got $code")
 [[ "$out" == *'1 passed, 0 failed'* ]] ||
   problems+=("want '1 passed, 0 failed' on stdout, got: $(printf '%q' "$out")")
+report "$name"
+
+# 2. The same rule for the three model variables issue #171 adds, and the suite whose whole
+#    subject is them: leaf-model.sh answers `sonnet` or nothing depending on VERI_MODEL,
+#    VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER, so every case in leaf-model.test.sh that
+#    asserts the unset contract — "no variable set prints NOTHING, and the `claude` command
+#    line is byte-identical to today's" — is asserting it about whatever shell typed
+#    `make test`, unless that suite clears the three names for itself.
+#
+#    Asked as "the same answer both ways" rather than against a hardcoded count line, which
+#    is what case 1 above could do with a suite holding a single case: leaf-model.test.sh has
+#    four and will grow, and a count spelled here would then fail for a case added there
+#    rather than for a leak. The cleared run is also probed for being green at all, since two
+#    identically red runs agree on nothing worth pinning.
+#
+#    One ambient name, VERI_MODEL, because it is the one that reaches BOTH roles: a leak of
+#    the run-wide knob changes every probe in that suite, where a role variable could only
+#    change half of them. The two role names are cleared in both arms so that a shell which
+#    exported one cannot make the arms differ by something this case did not set.
+#
+#    leaf-model.test.sh (~0.3 s) and not supervise.test.sh, whose `sup_run_no_model` is the
+#    other guard of the same rule: this file runs inside `make test`, which three leaves of
+#    every step run, and supervising real leaves again as a child costs ~24 s of each of them
+#    — the cost issue #171 exists to cut. That guard is left to the suite that owns it.
+name="leaf-model.test.sh: an ambient VERI_MODEL gives the same exit and the same stdout as a cleared run"
+problems=()
+cleared_out="$(env -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER \
+  "$HERE/leaf-model.test.sh" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
+ambient_out="$(env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=sonnet \
+  "$HERE/leaf-model.test.sh" 2>/dev/null)" && ambient_code=0 || ambient_code=$?
+[[ "$cleared_code" == 0 ]] ||
+  problems+=("the cleared run is not green, so there is nothing to compare against: exit $cleared_code, stdout: $(printf '%q' "$cleared_out")")
+[[ "$ambient_code" == "$cleared_code" ]] ||
+  problems+=("want the cleared run's exit $cleared_code, got $ambient_code")
+[[ "$ambient_out" == "$cleared_out" ]] ||
+  problems+=("want the cleared run's stdout $(printf '%q' "$cleared_out"), got: $(printf '%q' "$ambient_out")")
 report "$name"
 
 echo "----"
