@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/leaf-model.sh — says which model one leaf runs on, so a run can
-# price the two leaf roles separately (issue #171). Today no leaf chooses: `run-leaf.sh`
-# passes no `--model`, so developer and verifier alike run on whatever the operator's
-# `~/.claude/settings.json` says, and an experiment that moves one role to a cheaper model
-# cannot be set up at all.
+# price the two leaf roles separately (issue #171). Why that is worth a script, and what
+# no leaf can choose today, is in leaf-model.sh's own header.
 # Zero-dependency plain-shell asserts, same idiom as leaf-timeout.test.sh.
 #
 # Contract under test (this step only):
