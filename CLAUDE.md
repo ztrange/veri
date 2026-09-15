@@ -108,6 +108,16 @@ Two traps, both already cost something once:
   in preflight, not mid-launch, which is why the refactor phase can treat
   `refactor-budget.sh` exit 2 as impossible. ADR-0017, superseding ADR-0010, is where one
   leaf for the step rather than one per transform is recorded.
+- **The developer's model and the verifier's are separate knobs**, for the same reason the
+  budgets above are never merged: the two roles fail differently. `VERI_MODEL` sets every
+  leaf's model, `VERI_MODEL_DEVELOPER` only a developer leaf's (`develop-*`, `revise-*`)
+  and `VERI_MODEL_VERIFIER` only a verifier's (`verify-*`), a role variable beating the
+  general one. A cheaper **verifier** is legible in the run log as a changed verdict
+  distribution; a cheaper **developer** shows up as more revise cycles and worse code, which
+  costs the saving back. One knob over both would make "cheaper developer" and "weaker
+  verifier" the same decision, and no run log could tell them apart afterwards. The measured
+  first experiment is `VERI_MODEL_VERIFIER`; all three ship unset, so a default run's
+  `claude` command line carries no `--model` at all.
 - **A walkthrough build asks git once per script, once per tag, and eight times besides.**
   `docs/tests/build-guards.test.sh` pins that as a budget. Every question is a process
   (~30 ms), so a question asked per commit or per blamed line — `tag --contains`, `show
@@ -122,7 +132,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — forty-eight files for twenty-seven scripts, all run by `make test`.
+`skills/tdd/scripts/tests/` — forty-nine files for twenty-seven scripts, all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
