@@ -532,6 +532,115 @@ figure "the interactive session's row" 'interactive'   "$want_human_cost"
 report "$name"
 
 
+# 7. A day's total, even split by role, cannot say WHY an interactive session was
+#    expensive. The one the issue is named for — `veri-progress-tdd-d2f962/b2061c86`, 357
+#    requests over 15 hours, $204, 24% of the day — was not expensive because of what it
+#    read: its tool output totals 47k tokens. It was expensive because nobody ever cleared
+#    it, so its context ramped 68,597 → 489,316 and every request re-read the whole of it.
+#    A session that is long but CLEARED re-reads roughly its preamble each time and costs
+#    what it does; the two look alike in a total and are fixed by different acts, so the
+#    report has to tell them apart.
+#
+#    Three figures per session say which it is, and this case pins all three because one
+#    alone answers nothing: the PREAMBLE (the first request's context, the fixed floor
+#    every request pays), the FINAL context (how far it ran up) and the TOTAL context read
+#    (what was actually billed for over the session). A row carrying the total alone cannot
+#    be read against anything; carrying the preamble alone says only how it started.
+#
+#    And the report says so IN WORDS. A reader who has to divide the total by the request
+#    count and the preamble to find the uncleared session is a reader who will not — that
+#    arithmetic is exactly what nobody did on the day measured. So the naming is the
+#    criterion too, and it needs both answers to be a predicate: the ramping session is
+#    named, and the flat one is NOT. A script that printed the word on every row would have
+#    said nothing.
+#
+#    The two fixture sessions are alike in everything else the script looks at — same
+#    model, same day, no `entrypoint`, so both are interactive — and differ only in the
+#    shape of their context:
+#
+#      ramp  3 requests, contexts  60004 → 180002 → 400002, total 640008
+#            (3 x 60004 = 180012 of preamble owed; 3.55x that was read)
+#      flat  2 requests, contexts  52001 → 52001,           total 104002
+#            (2 x 52001 = 104002 owed; 1.00x that was read — the whole of it is preamble)
+#
+#    The flat session's ratio is exactly 1.0 and the ramping one's is 3.55, so no threshold
+#    a reader might pick between them can put the two on the same side. Every figure is
+#    distinct across both sessions and none is round, so a row that printed the wrong one
+#    of the three lands on a number no probe matches.
+name="per-session rows: preamble, final and total context, and an un-cleared ramp named in words"
+problems=()
+
+ramp_transcript="$work/a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5.jsonl"
+flat_transcript="$work/5c72e0b4-9d18-4a36-b7e2-0f45c8a13d9e.jsonl"
+
+# Each request's context is its input plus what it read from cache plus what it wrote to
+# it: the whole of what the model was handed that turn. Written here once per request and
+# summed in the comment above, so fixture and expectation cannot drift apart.
+ramp_r1_in=4 ; ramp_r1_read=0      ; ramp_r1_write=60000
+ramp_r2_in=2 ; ramp_r2_read=60000  ; ramp_r2_write=120000
+ramp_r3_in=2 ; ramp_r3_read=180000 ; ramp_r3_write=220000
+
+flat_f1_in=1 ; flat_f1_read=0     ; flat_f1_write=52000
+flat_f2_in=1 ; flat_f2_read=52000 ; flat_f2_write=0
+
+want_ramp_preamble=60004 ; want_ramp_final=400002 ; want_ramp_total=640008
+want_flat_preamble=52001 ; want_flat_final=52001  ; want_flat_total=104002
+
+cat > "$ramp_transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T07:02:18.443Z","requestId":"req_011CSJmZ4bCdJ0pFhN3aUw7i","sessionId":"a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$ramp_r1_in,"cache_creation_input_tokens":$ramp_r1_write,"cache_creation":{"ephemeral_5m_input_tokens":$ramp_r1_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$ramp_r1_read,"output_tokens":900}}}
+{"type":"assistant","timestamp":"2026-09-14T09:26:51.207Z","requestId":"req_011CSKnA5cDeK1qGiO4bVx8j","sessionId":"a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$ramp_r2_in,"cache_creation_input_tokens":$ramp_r2_write,"cache_creation":{"ephemeral_5m_input_tokens":$ramp_r2_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$ramp_r2_read,"output_tokens":700}}}
+{"type":"assistant","timestamp":"2026-09-14T13:44:05.912Z","requestId":"req_011CSLoB6dEfL2rHjP5cWy9k","sessionId":"a8f3d1c6-4b27-4e50-9a83-7f0d2e6c19b5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$ramp_r3_in,"cache_creation_input_tokens":$ramp_r3_write,"cache_creation":{"ephemeral_5m_input_tokens":$ramp_r3_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$ramp_r3_read,"output_tokens":800}}}
+TRANSCRIPT
+
+cat > "$flat_transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T08:11:32.605Z","requestId":"req_011CSMpC7eFgM3sIkQ6dXz0l","sessionId":"5c72e0b4-9d18-4a36-b7e2-0f45c8a13d9e","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$flat_f1_in,"cache_creation_input_tokens":$flat_f1_write,"cache_creation":{"ephemeral_5m_input_tokens":$flat_f1_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$flat_f1_read,"output_tokens":600}}}
+{"type":"assistant","timestamp":"2026-09-14T08:39:14.881Z","requestId":"req_011CSNqD8fGhN4tJlR7eYa1m","sessionId":"5c72e0b4-9d18-4a36-b7e2-0f45c8a13d9e","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$flat_f2_in,"cache_creation_input_tokens":$flat_f2_write,"cache_creation":{"ephemeral_5m_input_tokens":$flat_f2_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$flat_f2_read,"output_tokens":500}}}
+TRANSCRIPT
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$ramp_transcript" "$flat_transcript" 2>&1)"
+code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from session-cost.sh, got $code")
+
+# A session's lines are the ones naming it. The id is matched on its first eight
+# characters, which is how the issue itself writes a session down and is a prefix of the
+# full uuid either way: whether the row prints the whole id or an abbreviation of it is the
+# script's business, not this suite's. Everything a session's row says is looked for among
+# those lines rather than on one line, so the report may lay a session out over as many
+# lines as it likes.
+session_figure() {
+  local what="$1" id="$2" amount="$3"
+  grep -F "$id" <<< "$out" | grep -Eq "(^|[^0-9])$amount([^0-9]|$)" ||
+    problems+=("$what: want $amount on a line naming session $id, not found in the report")
+}
+
+session_figure "the ramping session's preamble"      a8f3d1c6 "$want_ramp_preamble"
+session_figure "the ramping session's final context" a8f3d1c6 "$want_ramp_final"
+session_figure "the ramping session's context read"  a8f3d1c6 "$want_ramp_total"
+
+session_figure "the flat session's preamble"         5c72e0b4 "$want_flat_preamble"
+session_figure "the flat session's final context"    5c72e0b4 "$want_flat_final"
+session_figure "the flat session's context read"     5c72e0b4 "$want_flat_total"
+
+# And the verdict, in words, on the session that earned it and not on the one that did not.
+# Matched as a case-insensitive ERE over the wordings that would tell a reader what the
+# session did — which of them the report picks is the script's business; that it says
+# something rather than leaving the division to be done by hand is the criterion.
+ramp_words='un-?cleared|never cleared|not cleared|ramp'
+
+grep -F a8f3d1c6 <<< "$out" | grep -Eqi "$ramp_words" ||
+  problems+=("the ramping session: want its row to name it as un-cleared in words, matching /$ramp_words/, not found")
+
+! grep -F 5c72e0b4 <<< "$out" | grep -Eqi "$ramp_words" ||
+  problems+=("the flat session: its context read is exactly its preamble x its requests, so it must NOT be named as un-cleared, but a line naming it matches /$ramp_words/")
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$out")")
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
