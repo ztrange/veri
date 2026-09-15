@@ -187,20 +187,27 @@ def usage_records(path, since):
         yield obj
 
 def totals(records):
-    """Each kind of token counted PER RATE over `records`, and the model families billed.
+    """Each kind of token counted PER RATE over `records`.
 
     Per rate rather than per kind because one kind — the cache write — is billed at two,
     and a single figure for it could only be right if they were one price.
     """
     tokens = {kind: {} for kind, _, _ in KINDS}
-    models = set()
     for obj in records:
         usage = obj["message"]["usage"]
-        models.add(obj["message"].get("model", ""))
         for kind, read, _ in KINDS:
             for rate, count in read(usage).items():
                 tokens[kind][rate] = tokens[kind].get(rate, 0) + count
-    return tokens, models
+    return tokens
+
+def families(records):
+    """The price-table keys of the models billed in `records`, in the order met.
+
+    Its own pass rather than a second thing `totals` hands back: which prices to use is
+    asked once, of the whole day, while the counting is asked again of every role, and a
+    caller that wants one of two answers has to say which one it is discarding.
+    """
+    return [f for f in (family(obj["message"].get("model", "")) for obj in records) if f]
 
 # Which of the two ROLES a record belongs to. `entrypoint` is what Claude Code writes to
 # say how the session was started, and `sdk-cli` is the one veri launches: `claude -p`,
@@ -226,11 +233,11 @@ def every_record():
             yield obj
 
 records = list(every_record())
-tokens, models = totals(records)
+tokens = totals(records)
 
 # One model family per report at this size, and it is the price table that has to know it:
 # a model the table does not list must not be silently billed as one it does.
-known = [f for f in (family(m) for m in models) if f]
+known = families(records)
 if not known:
     print("session-cost.sh: no known model in any transcript", file=sys.stderr)
     sys.exit(2)
@@ -273,6 +280,6 @@ for kind, _, label in KINDS:
     print("  %-12s %12d tokens   $%.2f" % (label, counted[kind], cost[kind]))
 money_line("total", bill(tokens))
 for key, label in ROLES:
-    theirs, _ = totals(obj for obj in records if role(obj) == key)
+    theirs = totals(obj for obj in records if role(obj) == key)
     money_line(label, bill(theirs))
 ' "$since" "${transcripts[@]}"
