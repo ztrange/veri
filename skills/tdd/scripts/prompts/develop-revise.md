@@ -29,8 +29,14 @@ exactly what the reason objects to.
    that objection. Do not drift beyond what the criterion and the reason require: a fix
    that also changes something the verifier did not object to gives it new grounds to
    reject.
-2. Run the test command and confirm the result the phase you are redoing calls for.
-3. If the objection **cannot** be met — the criterion is already satisfied by existing
+2. **A rewritten test is a new test, and owes a new prediction**: predict its failure
+   before you issue any command — which assertion fires first against the unmodified
+   production code, the observed-versus-expected values it fires on, and the shape of the
+   message the suite will print — then run, and compare what it printed against that
+   prediction; never adjust the prediction to fit what you saw. The leaf whose attempt was
+   rejected predicted a different test, so there is nothing here for you to inherit.
+3. Run the test command and confirm the result the phase you are redoing calls for.
+4. If the objection **cannot** be met — the criterion is already satisfied by existing
    code, or the reason asks for something the step cannot deliver — report `IMPOSSIBLE`
    and say why. That is a legitimate outcome and the pipeline acts on it. Do not fake a
    pass, weaken a test, or invent work to look productive.
