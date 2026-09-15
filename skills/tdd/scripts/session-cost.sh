@@ -123,10 +123,19 @@ def local_date(stamp):
     return moment.astimezone().date().isoformat()
 
 def usage_records(path, since):
-    """Every record in the transcript at path that states a `usage` and falls on or after
+    """Every REQUEST in the transcript at path that states a `usage` and falls on or after
     `since`. Lines that are not JSON objects, and records carrying no usage — a `summary`,
     a `user` turn — are skipped, which is what keeps a reader of LINES from counting them.
+
+    A request is not a record: Claude Code writes one line per content block of an
+    assistant turn — the thinking, then each tool call — and every one of them repeats the
+    SAME `usage`, because all of them account for the one API request that produced the
+    turn. Runs of six were observed on the day #201 measured, where summing lines rather
+    than requests overstated the bill by ~40%. So `requestId` is the unit, and the second
+    record bearing one has already been paid for. A record carrying no id is its own
+    request: there is nothing to say it repeats another.
     """
+    seen = set()
     for line in open(path):
         s = line.strip()
         if not s.startswith("{"):
@@ -143,6 +152,11 @@ def usage_records(path, since):
             continue
         if local_date(stamp) < since:
             continue
+        request = obj.get("requestId")
+        if request is not None:
+            if request in seen:
+                continue
+            seen.add(request)
         yield obj
 
 def totals(records):
