@@ -4,4 +4,4 @@
 - [x] The eight inherited session handles are absent from the child's environment; `VERI_*` tunables are not
 - [x] The child's exit status is the script's
 - [x] `SKILL.md` says which launch modes exist and that a print-mode conductor cannot be asked a question mid-run
-- [ ] `CLAUDE.md`'s script and suite counts move with the added files
+- [x] `CLAUDE.md`'s script and suite counts move with the added files
