@@ -479,6 +479,11 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    baseline)`, or `timeout 900 s (floor; 5 s baseline)`, or `timeout 900 s (VERI_TIMEOUT set
    by hand)` — so a reader of the thread can see which number every leaf of this run is
    under and why. On #71 that had to be reconstructed from the timestamps of two bails.
+   Beside those two, the comment names the **skill commit** this run started on —
+   `git -C "$S" rev-parse HEAD`, the version of the procedure and scripts you are executing.
+   The thread is where a human reads a run back, so it is where the version has to be: a
+   `### 🛠️ Refactor` comment describing work the run never did is indistinguishable from a
+   true one without it, as #150's narration landing under #170's run was.
 
 ### 2b. Start comment
 
