@@ -12,8 +12,9 @@
 # Contract under test (this step only):
 #   `run-conductor.sh <issue>` launches the conductor binary in print mode — `-p` — with
 #   `--output-format stream-json --verbose`, and the issue it was asked for reaches the
-#   prompt that launch carries; and the child it launches inherits none of the parent
-#   session's eight handles while still inheriting every `VERI_*` tunable.
+#   prompt that launch carries; the child it launches inherits none of the parent session's
+#   eight handles while still inheriting every `VERI_*` tunable; and whatever status that
+#   child exits with is the status the script exits with.
 #
 # The two halves of that second sentence are one criterion and not two: the severing is done
 # by editing the environment the child is given, so a script that drops the handles by
@@ -21,8 +22,7 @@
 # are indistinguishable until something asks what survived. `VERI_MODEL_VERIFIER` is what
 # asks.
 #
-# Not asked here: that the child's exit status is the script's, and what SKILL.md says about
-# the two launch modes. Those are this issue's later steps.
+# Not asked here: what SKILL.md says about the two launch modes. That is a later step.
 #
 # Run: scripts/tests/run-conductor.test.sh
 set -uo pipefail
@@ -40,14 +40,15 @@ work="$(mktemp -d)"
 trap 'rm -rf "$stubdir" "$work"' EXIT
 
 # The stub `claude`: records its argv one argument per line to $ARGV_OUT, emits a minimal
-# stream-json stream, and exits 0. Same shape as run-leaf.test.sh's.
+# stream-json stream, and exits with $STUB_EXIT — 0 unless a case asks for another status,
+# which is the seam the exit-forwarding case below drives. Same shape as run-leaf.test.sh's.
 cat > "$stubdir/claude" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$ARGV_OUT"
 [[ -n "${ENV_OUT:-}" ]] && env > "$ENV_OUT"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-exit 0
+exit "${STUB_EXIT:-0}"
 STUB
 chmod +x "$stubdir/claude"
 
@@ -142,6 +143,22 @@ else
   grep -qx -- 'VERI_MODEL_VERIFIER=probe-verifier-model' "$envfile" ||
     problems+=("VERI_MODEL_VERIFIER did not reach the child's environment")
 fi
+
+report "$name"
+
+# 3. The status: a conductor that died is a conductor the caller must be able to see died,
+# so the child's status is the script's and not a status the script invents. 17 because it is
+# neither 0 nor one of the four codes this repository's scripts speak, so a script that
+# forwards it cannot be a script that happens to produce the same number some other way.
+name="a non-zero child exit is the script's exit"
+problems=()
+
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" STUB_EXIT=17 \
+    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
+status=$?
+
+[[ "$status" -eq 17 ]] ||
+  problems+=("the script exited $status, not the child's 17")
 
 report "$name"
 
