@@ -202,6 +202,19 @@ def totals(records):
                 tokens[kind][rate] = tokens[kind].get(rate, 0) + count
     return tokens, models
 
+# Which of the two ROLES a record belongs to. `entrypoint` is what Claude Code writes to
+# say how the session was started, and `sdk-cli` is the one veri launches: `claude -p`,
+# i.e. a leaf. Everything else — a terminal, the desktop app — is a human at a keyboard.
+# The split is worth a row each because the two are fixed by different acts: a leaf costs
+# what its phase costs, an interactive session costs what nobody cleared.
+ROLES = (
+    ("sdk-cli", "sdk-cli (leaf)"),
+    (None,      "interactive"),
+)
+
+def role(obj):
+    return "sdk-cli" if obj.get("entrypoint") == "sdk-cli" else None
+
 since, paths = sys.argv[1], sys.argv[2:]
 
 def every_record():
@@ -212,7 +225,8 @@ def every_record():
         for obj in usage_records(path, since):
             yield obj
 
-tokens, models = totals(every_record())
+records = list(every_record())
+tokens, models = totals(records)
 
 # One model family per report at this size, and it is the price table that has to know it:
 # a model the table does not list must not be silently billed as one it does.
@@ -222,10 +236,14 @@ if not known:
     sys.exit(2)
 price = PRICES[known[0]]
 
-cost = {
-    kind: sum(count * price[rate] for rate, count in tokens[kind].items()) / 1e6
-    for kind, _, _ in KINDS
-}
+def costed(tokens):
+    """What each kind of token in `tokens` comes to, at `price`."""
+    return {
+        kind: sum(count * price[rate] for rate, count in tokens[kind].items()) / 1e6
+        for kind, _, _ in KINDS
+    }
+
+cost = costed(tokens)
 counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 
 # The labels are what a reader acts on, so each line names its figure in words and then
@@ -236,4 +254,7 @@ print("since %s  %d transcript(s)" % (since, len(paths)))
 for kind, _, label in KINDS:
     print("  %-12s %12d tokens   $%.2f" % (label, counted[kind], cost[kind]))
 print("  %-12s %12s           $%.2f" % ("total", "", sum(cost.values())))
+for key, label in ROLES:
+    theirs, _ = totals(obj for obj in records if role(obj) == key)
+    print("  %-12s %12s           $%.2f" % (label, "", sum(costed(theirs).values())))
 ' "$since" "${transcripts[@]}"

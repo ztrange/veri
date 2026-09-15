@@ -463,6 +463,75 @@ expect_split
 report "$name"
 
 
+# 6. A day's total says what the day cost and not WHO spent it. The finding #201 exists for
+#    is that 52% of the spend was not a leaf at all — the conductors and the operator's own
+#    session — and no aggregate could have said so. So the report is attributed: a session
+#    gets its own row, and the row says which ROLE it was, because the two are acted on
+#    differently. A leaf is launched by veri and its cost is a run's cost; an interactive
+#    session is driven by a human and the only thing that brings its cost down is clearing
+#    it.
+#
+#    Role is read from `entrypoint`, which Claude Code writes at the TOP LEVEL of each
+#    record — beside `requestId` and `sessionId`, not inside `message`. A `claude -p` leaf
+#    writes `sdk-cli`; anything else (`claude-desktop`, `cli`) is a human at a terminal or
+#    an app, so anything-but-`sdk-cli` is interactive. That asymmetry is the rule: a role
+#    decided by listing the interactive entrypoints would file a new one silently under the
+#    leaves, and a leaf's row is the one a run is billed for.
+#
+#    The two fixture sessions are alike in everything the script prices — same model, same
+#    day, same shape, both single-request — and differ in `entrypoint` and in size alone.
+#    That is what leaves `entrypoint` as the only thing the split can have been made on: a
+#    reader that keyed on the model, the day or the file's directory puts both sessions in
+#    one row and fails here.
+#
+#    Their totals are the case's expectations, and they are distinct and unround: $2.40 for
+#    the leaf, $1.56 for the interactive one. A script that printed one row for the day
+#    states neither — their sum is $3.96 — so this case cannot go green on an unattributed
+#    report that happens to be labelled.
+name="roles: an sdk-cli session and an interactive session are attributed to their own rows"
+problems=()
+
+leaf_transcript="$work/3f6d9a71-0c58-4e29-b7a3-1d4e8f2c50b6.jsonl"
+human_transcript="$work/7a1c4e82-6b30-4d95-8f16-2e9b0a5d3c74.jsonl"
+
+# Each session's one request. At the rates in the header:
+#   leaf         read 400000 x $1.50/M = $0.60   write 80000 x $18.75/M = $1.50
+#                output  4000 x $75.00/M = $0.30                  total  $2.40
+#   interactive  read 200000 x $1.50/M = $0.30   write 40000 x $18.75/M = $0.75
+#                output  6800 x $75.00/M = $0.51                  total  $1.56
+#   (input is 1 token each, six ten-thousandths of a cent, below the printed cent)
+leaf_read=400000  ; leaf_write=80000  ; leaf_out=4000  ; leaf_in=1
+human_read=200000 ; human_write=40000 ; human_out=6800 ; human_in=1
+
+want_leaf_cost=2.40
+want_human_cost=1.56
+
+cat > "$leaf_transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T10:31:07.442Z","requestId":"req_011CSGkX2zAbH8nDfL1ySu5g","sessionId":"3f6d9a71-0c58-4e29-b7a3-1d4e8f2c50b6","entrypoint":"sdk-cli","userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$leaf_in,"cache_creation_input_tokens":$leaf_write,"cache_creation":{"ephemeral_5m_input_tokens":$leaf_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$leaf_read,"output_tokens":$leaf_out}}}
+TRANSCRIPT
+
+cat > "$human_transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T10:52:26.019Z","requestId":"req_011CSHlY3aBcI9oEgM2zTv6h","sessionId":"7a1c4e82-6b30-4d95-8f16-2e9b0a5d3c74","entrypoint":"claude-desktop","userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$human_in,"cache_creation_input_tokens":$human_write,"cache_creation":{"ephemeral_5m_input_tokens":$human_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$human_read,"output_tokens":$human_out}}}
+TRANSCRIPT
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$leaf_transcript" "$human_transcript" 2>&1)"
+code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from session-cost.sh, got $code")
+
+# The role words are matched as an ERE, case-insensitively, the way `figure` matches the
+# split's labels: whether the leaf row is spelled `sdk-cli` or `leaf` is the script's
+# business, and only that the row is identifiable AS that role is this suite's.
+figure "the sdk-cli session's row"     'sdk-cli|leaf'  "$want_leaf_cost"
+figure "the interactive session's row" 'interactive'   "$want_human_cost"
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$out")")
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
