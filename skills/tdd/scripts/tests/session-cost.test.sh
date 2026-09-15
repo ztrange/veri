@@ -39,8 +39,8 @@
 #
 # What this case deliberately does NOT pin, because each is a step of its own:
 #   - deduplication by requestId: the two records below carry DIFFERENT ids, so they sum
-#     whether or not the script deduplicates. A fixture that shared one id would make this
-#     case pass only on an implementation that already did the next-but-one step's work.
+#     whether or not the script deduplicates. That is case 3's subject, and keeping it out
+#     of here is what leaves case 1 about the arithmetic alone.
 #   - the 1h / 5m cache-write split: the fixture writes carry the 5m tier only, and carry
 #     it both as the `cache_creation` breakdown and as the `cache_creation_input_tokens`
 #     sum that a real record states alongside it. Both readings price to the same $6.15,
@@ -264,6 +264,67 @@ expect_split
 
 rm -rf "$tree"
 report "$name"
+
+# 3. A request is not a record. Claude Code writes one transcript line per CONTENT BLOCK
+#    of an assistant turn — the thinking, then each tool call — and every one of those
+#    lines carries the SAME `message.usage` object, because they are all accounting for the
+#    one API request that produced the turn. Runs of six were observed in the transcripts
+#    the issue measured, and summing lines rather than requests overstated the day by ~40%.
+#    So the unit of the bill is the `requestId`, and a record that repeats one has already
+#    been paid for.
+#
+#    The fixture is one six-block turn — six lines, one `requestId`, one identical usage —
+#    followed by a second turn of its own single record with a DIFFERENT id. Both halves
+#    are the criterion: the repeated id must be counted once, and the distinct one must
+#    still be counted, which is what separates deduplicating from reading the first record
+#    of the file and stopping.
+#
+#    Every expectation below is a figure a summing reader cannot land on: at six-fold the
+#    cache read is $8.85 against $2.10, the write $18.75 against $3.75, the output $6.15
+#    against $1.50 and the total $33.75 against $7.35 — no digits of a right answer sit
+#    inside a wrong one, so this case cannot go green on arithmetic that merely rounded.
+name="one request, six records: a repeated requestId is counted once, a distinct one still counts"
+problems=()
+
+transcript="$work/6b3e02f7-d914-4c85-a27e-8f01c6b45d3a.jsonl"
+
+# The two REQUESTS' usage — not the seven records'. The first is written into six lines
+# below, unchanged each time, which is the whole point of the case.
+a_read=900000 ; a_write=160000 ; a_out=12400 ; a_in=3
+b_read=500000 ; b_write=40000  ; b_out=7600  ; b_in=1
+
+# What the two requests come to, at the rates in the header:
+#   cache read   900000 + 500000 = 1400000 tokens x $1.50/M  = $2.10
+#   cache write  160000 +  40000 =  200000 tokens x $18.75/M = $3.75
+#   output        12400 +   7600 =   20000 tokens x $75.00/M = $1.50
+#   input             3 +      1 =       4 tokens x $15.00/M = $0.00 (below the printed cent)
+#   total                                                      $7.35
+want_read_cost=2.10
+want_write_cost=3.75
+want_output_cost=1.50
+want_total_cost=7.35
+
+# Six lines for the first request: `thinking`, then five tool calls, in the order and shape
+# Claude Code writes them. What matters is that `requestId` and `usage` are identical on
+# all six; the content differs only so the fixture reads like a transcript rather than a
+# copied line.
+cat > "$transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"thinking","thinking":"work out the plan"}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"ls"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat a"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat b"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat c"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T10:02:11.004Z","requestId":"req_011CS9dQ5sTuA1gWyE4rLn8z","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"tool_use","name":"Bash","input":{"command":"cat d"}}],"usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write,"cache_creation":{"ephemeral_5m_input_tokens":$a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T10:09:47.663Z","requestId":"req_011CSAeR6tUvB2hXzF5sMo9a","sessionId":"6b3e02f7-d914-4c85-a27e-8f01c6b45d3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","content":[{"type":"text","text":"done"}],"usage":{"input_tokens":$b_in,"cache_creation_input_tokens":$b_write,"cache_creation":{"ephemeral_5m_input_tokens":$b_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$b_read,"output_tokens":$b_out}}}
+TRANSCRIPT
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$transcript" 2>&1)"
+code=$?
+
+expect_split
+
+report "$name"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
