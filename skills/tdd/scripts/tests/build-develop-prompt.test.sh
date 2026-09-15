@@ -810,16 +810,27 @@ asks_for 'PREDICTION_NOTE:'
 #     neither `predict` nor any of check/compare/match inside 80 characters of it, checked
 #     against the built prompt rather than the template.
 #
+#     Two of the three probes share that anchor and that gap, so both are spelled once in
+#     `pin_path_says` and each caller names only its complaint and the half it is looking for
+#     — case 21's `offers_verdict` reasoning: an anchor or a bound edited on one probe and not
+#     the other is a drift no diff makes loud, and the two would then be asking different
+#     questions under one headline.
+#
 #     The ordering probe is the one claim that does NOT read both ways: "restore … before"
 #     says the opposite of the criterion. So its reversed branch spells the phrasings that put
 #     the restore last while leading with it — "restore only after", "do not restore until" —
 #     rather than swapping the halves, and it is written out here instead of through
-#     `says_both_ways`, which would build the branch that accepts the wrong order.
+#     `says_both_ways`, which would build the branch that accepts the wrong order, and outside
+#     `pin_path_says`, whose anchor it does not share.
+pin_path_says() {  # pin_path_says <complaint> <what to find beside the break>
+  local complaint="$1" pattern="$2"
+  says_both_ways "$red" "$complaint" 80 'break' "$pattern"
+}
+
 problems=""
-says_both_ways "$red" "the pin path never asks what the temporary break should print" \
-  80 'break' 'predict'
-says_both_ways "$red" "does not say what the break printed is checked against that prediction" \
-  80 'break' '(check|compar|match)'
+pin_path_says "the pin path never asks what the temporary break should print" 'predict'
+pin_path_says "does not say what the break printed is checked against that prediction" \
+  '(check|compar|match)'
 prompt_says "$red" "does not put that check before the restore" \
   -iE -e 'before[^.]{0,40}restor|restor[^.]{0,40}(only after|not until)'
 [[ -z "$problems" ]] \
