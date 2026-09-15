@@ -303,14 +303,18 @@ def costed(tokens):
         for kind, _, _ in KINDS
     }
 
-def money_line(label, amount):
-    """A row that is a label and a price and no token count: the total, and a role’s.
+def row(label, tally, amount):
+    """One row of the report, and the only place its layout is written.
 
-    One spelling of that layout, so the money column of every such row stays under the
-    money column of the split above it — a second spelling drifts by a space and the
-    report reads as two tables.
+    A row is a label, what the money is a price FOR, and the money. The split states a
+    token count in the middle field; the rows that are a single figure — the day’s total,
+    a role’s — leave it blank. Two spellings of this drifted by a space and the report read
+    as two tables: the total’s money column sat one character right of the split’s until
+    this became the one spelling. The label field is as wide as the widest label the report
+    prints, `sdk-cli (leaf)`, for the same reason — a label that overflows its field pushes
+    its own money column right.
     """
-    print("  %-12s %12s           $%.2f" % (label, "", amount))
+    print("  %-14s %19s   $%.2f" % (label, tally, amount))
 
 def bill(tokens):
     """What a bundle of tokens comes to in money, every kind of it summed.
@@ -330,11 +334,11 @@ counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 # included: it is the bill, not a sum of the three interesting parts of it.
 print("since %s  %d transcript(s)" % (since, len(paths)))
 for kind, _, label in KINDS:
-    print("  %-12s %12d tokens   $%.2f" % (label, counted[kind], cost[kind]))
-money_line("total", bill(tokens))
+    row(label, "%d tokens" % counted[kind], cost[kind])
+row("total", "", bill(tokens))
 for key, label in ROLES:
     theirs = totals(obj for obj in records if role(obj) == key)
-    money_line(label, bill(theirs))
+    row(label, "", bill(theirs))
 
 # And then the same day one session at a time, because the split above says a day was
 # expensive without saying which session made it so. The row carries the three context
