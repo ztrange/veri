@@ -2,7 +2,7 @@
 
 - [x] leaf-model.sh prints VERI_MODEL for a leaf of either role, and nothing when no variable is set
 - [x] A role variable beats VERI_MODEL for that role's leaves only — VERI_MODEL_DEVELOPER for develop-* and revise-*, VERI_MODEL_VERIFIER for verify-*
-- [x] leaf-model.sh exits 2 with a diagnostic on a value containing whitespace and on a leaf name leaf-role.sh refuses, while opus[1m] is accepted ⟂ refactor pending
+- [x] leaf-model.sh exits 2 with a diagnostic on a value containing whitespace and on a leaf name leaf-role.sh refuses, while opus[1m] is accepted
 - [ ] supervise.sh resolves the model once beside the role, and its launch event carries model= — the resolved value, or "" when none
 - [ ] A supervised leaf's claude argv carries --model only when the resolved model is non-empty, byte-identical to today when unset
 - [ ] SKILL.md preflight runs leaf-model.sh for a developer and a verifier name, so a bad value stops the run before any branch or leaf
