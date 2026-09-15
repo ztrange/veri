@@ -724,8 +724,8 @@ following step. The phase sub-steps are:
      ```
      A clear left uncommitted is not a clear: resume reads the **committed** ledger, so
      until that commit exists the step still says pending. The push copies the step's
-     finished state to the remote on the same terms as Green's: a fast-forward, no PR, and
-     a failure that is recorded as an event rather than bailed on. Then **mirror to the issue**:
+     finished state to the remote on the same terms as Green's above. Then **mirror to the
+     issue**:
      post a `### ✅ Step done` comment, and tick the matching acceptance criterion in the
      **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Mark
      the same moment in the log —
