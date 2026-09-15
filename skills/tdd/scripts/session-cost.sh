@@ -379,7 +379,6 @@ def bill(tokens):
     return sum(costed(tokens).values())
 
 cost = costed(tokens)
-counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 
 # Asked for machine output, the report is the document and nothing else: a text line
 # printed beside it would not be JSON, so the whole of stdout is the one `json.dumps` and
@@ -399,6 +398,12 @@ if as_json:
 # states the tokens it is a price for. A cache write is two rates and one line: what a
 # reader does about a write does not depend on its TTL. The total is every kind, input
 # included: it is the bill, not a sum of the three interesting parts of it.
+#
+# The token counts are folded back together HERE, a kind*s two rates into the one figure
+# its line states, because this report is the only reader that wants them that way: the
+# money keeps them apart all the way down, and the JSON document above never asks. Stated
+# above the branch, it was arithmetic every `--json` run did and threw away.
+counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 print("since %s  %d transcript(s)" % (since, len(paths)))
 for kind, _, label in KINDS:
     row(label, "%d tokens" % counted[kind], cost[kind])
