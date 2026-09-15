@@ -1006,6 +1006,98 @@ band sdk-cli "${want_leaf_preambles[@]}"
 report "$name"
 
 
+
+# 11. The harness of case 10 read one step further: a session whose record carries NO
+#     `entrypoint` key at all. That is what a conductor's transcript looks like — veri
+#     launches it from a `/tdd` run rather than from a harness of its own, so Claude Code
+#     writes no entrypoint on the record — and it is the reading the wrong conclusion of
+#     2026-09-15 was made of: 51,986 was taken for a desktop baseline when it was a
+#     conductor's, and a report that had folded the key's absence in with the terminal
+#     sessions that do carry one would have said the same wrong thing, only in print.
+#
+#     So an absent key is a KIND and not a missing value: it names the group `conductor`,
+#     and its preambles band apart from `cli`'s. The fixture is the two harnesses that
+#     collide — a conductor and a terminal session sit 350 tokens apart in one project
+#     directory, which is why these two and not the desktop app — three single-request
+#     sessions each, at the figures the issue measured on 2026-09-14 → 15:
+#
+#       conductor (no entrypoint key)  51986  53438  55994
+#       cli                            52500  53786  54800
+#
+#     The two groups INTERLEAVE, which is what stops a report that pooled them from
+#     answering here: pooled, the six preambles band as 51986 / 53786 / 55994 — the
+#     conductor's min and max with `cli`'s median between them — so the pooled band
+#     states neither group's three. A fold in the other direction, one that grouped
+#     correctly but called the absent key by the name of the harness beside it, fails on
+#     the rows and on the band naming `conductor`.
+name="an absent entrypoint is a conductor: its rows and its band are named as such, apart from cli's"
+problems=()
+
+# Same shape as case 10's table: <8-char id prefix> <input> <cache write>, preamble their
+# sum, read 0 because a preamble is a first request. Each group's preambles are listed
+# ascending, so the array is the band the report owes for it.
+conductor_ids=(1a842fb0-6d03-4e51-b7c2-8ef1a940d25e
+               2b953ec1-7e14-4f62-c8d3-9fa2b051e36f
+               3ca64fd2-8f25-4073-d9e4-0ab3c162f470)
+conductor_ins=(986 438 994)
+conductor_writes=(51000 53000 55000)
+want_conductor_preambles=(51986 53438 55994)
+
+cli_ids=(4db75063-9036-4184-e0f5-1bc4d273058a
+         5ec86174-0147-4295-f106-2cd5e384169b
+         6fd97285-1258-43a6-028f-3de6f495270c)
+cli_ins=(500 786 800)
+cli_writes=(52000 53000 54000)
+want_cli_preambles=(52500 53786 54800)
+
+# One writer taking the entrypoint field as JSON text rather than as a value, because what
+# this case is about is a record on which the key is not there at all: a writer that took
+# a value could only ever write the key with something in it, including the empty string,
+# which is a different record from the one a conductor leaves behind.
+transcripts=()
+write_keyed_session() {
+  local id="$1" entrypoint_field="$2" input="$3" write="$4" stamp="$5" out_tokens="$6"
+  local path="$work/$id.jsonl"
+  cat > "$path" <<TRANSCRIPT
+{"type":"assistant","timestamp":"$stamp","requestId":"req_$id","sessionId":"$id",${entrypoint_field}"userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$input,"cache_creation_input_tokens":$write,"cache_creation":{"ephemeral_5m_input_tokens":$write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":0,"output_tokens":$out_tokens}}}
+TRANSCRIPT
+  transcripts+=("$path")
+}
+
+for i in 0 1 2; do
+  write_keyed_session "${conductor_ids[$i]}" "" "${conductor_ins[$i]}" "${conductor_writes[$i]}" \
+    "2026-09-14T0$i:11:45.310Z" "$((3300 + i))"
+  write_keyed_session "${cli_ids[$i]}" '"entrypoint":"cli",' "${cli_ins[$i]}" "${cli_writes[$i]}" \
+    "2026-09-14T0$i:48:02.915Z" "$((4400 + i))"
+done
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "${transcripts[@]}" 2>&1)"
+code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from session-cost.sh, got $code")
+
+# The rows: each session is found by its id, as case 10 finds one, and has to be named by
+# the harness it belongs to. `conductor` and `cli` share no substring, so a fixed-string
+# match on either cannot be answered by the other.
+for i in 0 1 2; do
+  grep -F "${conductor_ids[$i]:0:8}" <<< "$out" | grep -Fq conductor ||
+    problems+=("session ${conductor_ids[$i]:0:8}: no entrypoint key, want its row to name it a conductor, it does not")
+  grep -F "${cli_ids[$i]:0:8}" <<< "$out" | grep -Fq cli ||
+    problems+=("session ${cli_ids[$i]:0:8}: want its row to name the entrypoint cli, it does not")
+done
+
+# And the two bands, through case 10's `band`: one line per group naming it and carrying
+# all three of its figures.
+band conductor "${want_conductor_preambles[@]}"
+band cli "${want_cli_preambles[@]}"
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$out")")
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
