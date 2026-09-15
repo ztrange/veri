@@ -243,6 +243,15 @@ def costed(tokens):
         for kind, _, _ in KINDS
     }
 
+def money_line(label, amount):
+    """A row that is a label and a price and no token count: the total, and a role’s.
+
+    One spelling of that layout, so the money column of every such row stays under the
+    money column of the split above it — a second spelling drifts by a space and the
+    report reads as two tables.
+    """
+    print("  %-12s %12s           $%.2f" % (label, "", amount))
+
 def bill(tokens):
     """What a bundle of tokens comes to in money, every kind of it summed.
 
@@ -262,8 +271,8 @@ counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 print("since %s  %d transcript(s)" % (since, len(paths)))
 for kind, _, label in KINDS:
     print("  %-12s %12d tokens   $%.2f" % (label, counted[kind], cost[kind]))
-print("  %-12s %12s           $%.2f" % ("total", "", bill(tokens)))
+money_line("total", bill(tokens))
 for key, label in ROLES:
     theirs, _ = totals(obj for obj in records if role(obj) == key)
-    print("  %-12s %12s           $%.2f" % (label, "", bill(theirs)))
+    money_line(label, bill(theirs))
 ' "$since" "${transcripts[@]}"
