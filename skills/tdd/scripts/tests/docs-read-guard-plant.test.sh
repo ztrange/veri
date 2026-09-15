@@ -17,7 +17,9 @@
 # Contract under test:
 #   When its plant fails after the scratch tree is made — the reader carries no line
 #   matching the mark, or the reader fixture was never written — docs-read-guard.test.sh
-#   fails, and says which premise broke.
+#   fails, and says which premise broke. And with that plant intact it still discriminates:
+#   it passes against the real no-docs-reads.test.sh and fails against a guard that always
+#   passes, so the fix for the first half did not buy a loud failure with a blind pass.
 #
 # The subject is run rather than read: whether a skipped probe reaches `report` with nothing
 # to say is a fact about what the suite does when it is run, and a check that read the file
@@ -172,6 +174,70 @@ SABOTAGES
 
 report "$name"
 
+# probe_plant_is_intact — the premise the case below rests on: the copy standing in the
+# scratch tree is the subject byte for byte, so the only thing that differs between the two
+# halves is which guard it meets. The rewrite handed to `plant_subject` is a no-op here, and
+# a `sed` that silently mangled a line would otherwise leave the half below reporting on a
+# subject nobody wrote.
+probe_plant_is_intact() {
+  cmp -s "$SUBJECT_PATH" "$subject_copy" ||
+    problems+=("the copy in the scratch tree is not $SUBJECT_NAME byte for byte, so what it reports is not about the subject")
+  return 0
+}
+
+# probe_passes_against_the_real_guard — half one, asked of the subject where it stands: run
+# in this repository it resolves the real no-docs-reads.test.sh, plants both fixtures, and
+# must report its one case as passed. This is the half a fix for #183 could have broken by
+# making an intact plant look like a failed one.
+probe_passes_against_the_real_guard() {
+  local out code
+  out="$("$SUBJECT_PATH" 2>&1)" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("against the real $GUARD_NAME with its plant intact, $SUBJECT_NAME exited $code; it said: $(flat "$out")")
+  local count_line
+  count_line="$(tail -n 1 <<< "$out")"
+  [[ "$count_line" == '1 passed, 0 failed' ]] ||
+    problems+=("against the real $GUARD_NAME with its plant intact, $SUBJECT_NAME did not count its one case as passed; its count line was: $(flat "$count_line")")
+}
+
+# probe_fails_against_a_passing_stub — half two, and the half that says the pass above was
+# earned rather than vacuous: met by a guard that checks nothing and passes, the same subject
+# with the same intact plant must fail. A suite that passed here would be reporting on
+# nothing, which is the whole of what #183 is about.
+probe_fails_against_a_passing_stub() {
+  [[ "$run_code" != 0 ]] ||
+    problems+=("against a guard that always passes, $SUBJECT_NAME exited 0 with its plant intact: it is not asking the guard anything. It said: $(flat "$run_out")")
+  local count_line
+  count_line="$(tail -n 1 <<< "$run_out")"
+  [[ "$count_line" == '0 passed, 1 failed' ]] ||
+    problems+=("against a guard that always passes, $SUBJECT_NAME did not count its one case as failed; its count line was: $(flat "$count_line")")
+}
+
+# 2. One criterion, one case: with the plant intact the subject still discriminates. Both
+#    halves are one criterion rather than two — a suite that passes against the real guard
+#    and a suite that fails against a stub are each satisfiable by a suite that answers the
+#    same way to everything, and only the pair says the answer came from the guard.
+#
+#    The stub half goes through `plant_subject` with a rewrite that changes nothing: the
+#    scratch tree is what puts a different guard in front of the subject, since the subject
+#    resolves the guard four directories up from itself.
+name="docs-read-guard.test.sh with its plant intact passes against the real no-docs-reads.test.sh and fails against a guard that always passes"
+problems=()
+tree=""
+subject_copy=""
+run_out=""
+run_code=0
+
+probe_passes_against_the_real_guard
+if plant_subject 's%^$%%'; then
+  probe_plant_is_intact
+  run_subject
+  probe_fails_against_a_passing_stub
+fi
+[[ -z "$tree" ]] || rm -rf "$tree"
+tree=""
+
+report "$name"
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
