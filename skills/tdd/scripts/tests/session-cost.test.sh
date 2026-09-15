@@ -939,8 +939,11 @@ leaf_ins=(321 1000 155)
 leaf_writes=(28000 30000 33000)
 want_leaf_preambles=(28321 31000 33155)
 
-want_desktop_band=(68597 69535 70436)   # min / median / max
-want_leaf_band=(28321 31000 33155)      # min / median / max
+# Each group's preambles are listed ascending, which makes the array the band the report
+# owes for it: first is the min, middle the median, last the max. One listing of the three
+# numbers per group rather than a second copy under a band-shaped name — two copies of a
+# figure the case is about are two things to keep in step, and the stale one would be
+# asserted against a fixture that no longer produces it.
 
 # One transcript per session, the way Claude Code writes them, each holding the session's
 # single request. Written from the tables above rather than spelled out six times: what
@@ -994,8 +997,8 @@ band() {
       problems+=("the $harness band: want one line naming $harness and stating min $2, median $3 and max $4 together, no line states all three")
 }
 
-band claude-desktop "${want_desktop_band[@]}"
-band sdk-cli "${want_leaf_band[@]}"
+band claude-desktop "${want_desktop_preambles[@]}"
+band sdk-cli "${want_leaf_preambles[@]}"
 
 [[ "${#problems[@]}" -eq 0 ]] ||
   problems+=("the report was: $(printf '%q' "$out")")
