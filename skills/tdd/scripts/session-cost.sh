@@ -383,13 +383,15 @@ counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 
 # Asked for machine output, the report is the document and nothing else: a text line
 # printed beside it would not be JSON, so the whole of stdout is the one `json.dumps` and
-# the text report below is not reached. The keys are `KINDS`* own names, so what the
-# document calls a figure and what the report labels it are the same list.
+# the text report below is not reached. The document states `cost` itself rather than a
+# copy of it assembled from `KINDS`: `costed` already keys that mapping by `KINDS`* own
+# names, in that order, so the copy could only ever be the same dict — and a second
+# listing of the kinds is a second thing to remember when a fifth one joins the table.
 if as_json:
     print(json.dumps({
         "since": since,
         "transcripts": len(paths),
-        "cost": dict({kind: cost[kind] for kind, _, _ in KINDS}, total=bill(tokens)),
+        "cost": dict(cost, total=bill(tokens)),
     }, indent=2))
     sys.exit(0)
 
