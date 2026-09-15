@@ -15,10 +15,14 @@
 #                                so any word printed here would put a flag on a command
 #                                line the issue requires to stay byte-identical to today's.
 #
-# The role variables `VERI_MODEL_DEVELOPER` / `VERI_MODEL_VERIFIER` are a later step's
-# criterion and are not asserted here. They are still cleared for every child below, for
-# the reason hermetic-suites.test.sh exists (issue #87): a suite's answer is a fact about
-# the script, not about whatever the shell that invoked `make test` had exported.
+#   VERI_MODEL=<x> VERI_MODEL_VERIFIER=<y> leaf-model.sh <leaf-name>
+#                              → the role variable wins for that role's leaves and for no
+#                                others: <y> for `verify-*`, <x> still for `develop-*` and
+#                                `revise-*`, and the mirror image for VERI_MODEL_DEVELOPER.
+#
+# The three names are cleared for every child below, for the reason hermetic-suites.test.sh
+# exists (issue #87): a suite's answer is a fact about the script, not about whatever the
+# shell that invoked `make test` had exported.
 #
 # Run: scripts/tests/leaf-model.test.sh
 set -uo pipefail
@@ -91,6 +95,48 @@ model_probe sonnet develop-red sonnet
 model_probe sonnet verify-green sonnet
 model_probe unset develop-red ""
 model_probe unset verify-green ""
+report "$name"
+
+# role_probe <run-wide> <developer> <verifier> <leaf-name> <want> — one call under all three
+# variables, each given as its value or as the word `unset`. Same probe as model_probe above
+# but with the two role names openable, since this case's whole subject is which of the three
+# a leaf reads: a probe that could only set the run-wide one could not pose the question.
+role_probe() {
+  local wide="$1" dev="$2" ver="$3" name="$4" want="$5" out err code label
+  local -a envargs
+  out="$(mktemp)" err="$(mktemp)"
+  label="VERI_MODEL=$wide VERI_MODEL_DEVELOPER=$dev VERI_MODEL_VERIFIER=$ver $name"
+  envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
+  [[ "$wide" == unset ]] || envargs+=(VERI_MODEL="$wide")
+  [[ "$dev" == unset ]] || envargs+=(VERI_MODEL_DEVELOPER="$dev")
+  [[ "$ver" == unset ]] || envargs+=(VERI_MODEL_VERIFIER="$ver")
+  env "${envargs[@]}" "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("$label: want exit 0, got $code")
+  [[ "$(cat "$out")" == "$want" ]] ||
+    problems+=("$label: want $(printf '%q' "$want") on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ ! -s "$err" ]] ||
+    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  rm -f "$out" "$err"
+}
+
+# 2. One role variable is set alongside VERI_MODEL, and the leaves of both roles are asked.
+#    Precedence alone would be half the criterion — a script that simply preferred whichever
+#    role variable was set would pass a probe that only ever asked the overridden role — so
+#    each half sets one role variable and asks all three launch shapes: the overridden role's
+#    leaves must answer the role value, and the other role's must still answer VERI_MODEL.
+#
+#    `revise-green-2` is asked because it is the developer name that does not begin with
+#    `develop`: it is a fresh developer answering the verifier, per leaf-role.sh's header, so
+#    VERI_MODEL_DEVELOPER must reach it too.
+name="a role variable beats VERI_MODEL for that role's leaves only"
+problems=()
+role_probe sonnet unset opus develop-red    sonnet
+role_probe sonnet unset opus revise-green-2 sonnet
+role_probe sonnet unset opus verify-green   opus
+role_probe sonnet opus unset develop-red    opus
+role_probe sonnet opus unset revise-green-2 opus
+role_probe sonnet opus unset verify-green   sonnet
 report "$name"
 
 echo "----"

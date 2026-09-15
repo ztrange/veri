@@ -11,24 +11,49 @@
 # Usage:   leaf-model.sh <leaf-name>
 #          VERI_MODEL=<x> leaf-model.sh <leaf-name>
 #
-# `VERI_MODEL` is the run-wide knob: it applies to every leaf, so a developer name and a
-# verifier name answer the same. Unset or empty prints NOTHING and still exits 0 — nothing,
-# not a default. The caller turns a non-empty answer into `--model <value>` and omits the
-# flag entirely on an empty one, so any word printed here for a run that chose no model
-# would put a flag on a command line that must stay byte-identical to today's.
+#          VERI_MODEL_DEVELOPER=<x> leaf-model.sh <leaf-name>
+#          VERI_MODEL_VERIFIER=<x> leaf-model.sh <leaf-name>
+#
+# `VERI_MODEL` is the run-wide knob: it applies to every leaf. `VERI_MODEL_DEVELOPER` and
+# `VERI_MODEL_VERIFIER` each apply to one role's leaves only, and beat the run-wide knob
+# there — which is the whole point of three variables rather than one: the two roles fail
+# differently when priced down, so moving the verifier to a cheaper model must not be the
+# same decision as moving the developer. All three unset or empty prints NOTHING and still
+# exits 0 — nothing, not a default. The caller turns a non-empty answer into
+# `--model <value>` and omits the flag entirely on an empty one, so any word printed here
+# for a run that chose no model would put a flag on a command line that must stay
+# byte-identical to today's.
 #
 # The value is printed verbatim: aliases (`sonnet`, `opus`, `opus[1m]`) and full ids
 # (`claude-sonnet-5`) are the `claude` CLI's vocabulary, not veri's, so this script neither
 # maps nor validates them against a list it would have to keep in step with the CLI.
 set -euo pipefail
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
 # `${1:?msg}` expands $1, but aborts the shell with msg on stderr if it is unset or empty.
-# The name is taken, and required, before anything is printed: every caller has one to give,
-# and the per-role variables that read it are the next cut's. Taking it now is what keeps
-# that cut a change to this script's body rather than to every call site's argv.
 name="${1:?usage: leaf-model.sh <leaf-name>}"
 
-model="${VERI_MODEL:-}"
+# The role comes from leaf-role.sh, the one place a leaf NAME is turned into the half of the
+# pipeline it belongs to (leaf-role.sh:18-22: `revise-*` is a developer too). Asking it, rather
+# than matching `develop-*|revise-*|verify-*` here, is what stops two scripts disagreeing about
+# what `revise-green-2` is — and it is also why the variable names end in the actor word: the
+# suffix IS leaf-role.sh's answer, uppercased, so the name→role mapping is spelled once.
+#
+# Its output is the `VERI_ACTOR=… VERI_PHASE=… VERI_ATTEMPT=…` line event.sh's callers
+# word-split into an environment; only the actor is wanted here, so it is read out of the
+# line rather than evaluated — this script chooses a variable to read, and must not be able to
+# set one. `tr` rather than `${var^^}`, which bash 3.2 does not have.
+role_line="$("$HERE/leaf-role.sh" "$name")"
+actor="${role_line#VERI_ACTOR=}"
+actor="${actor%% *}"
+role_var="VERI_MODEL_$(printf '%s' "$actor" | tr '[:lower:]' '[:upper:]')"
+
+# `${!role_var:-}` reads the variable whose NAME is in role_var. The role's own value is
+# taken first and the run-wide one is the fallback, so precedence is the order of this one
+# expansion: an empty or unset role variable falls through to `VERI_MODEL`, which is what
+# makes "set VERI_MODEL, override one role" the shape the issue asks for.
+model="${!role_var:-${VERI_MODEL:-}}"
 
 # The empty case exits without printing rather than echoing an empty line, so "no model
 # chosen" is the absence of output. A caller reading this in a command substitution gets
