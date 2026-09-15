@@ -297,7 +297,7 @@ unattended modes below), and in print mode that notification never arrives: the 
 is how #70 was lost). The detach-then-wait shape behaves identically interactively and
 unattended, so it is the only one this procedure uses.
 
-## Launching the conductor — a plain shell, outside any session
+## Launching the conductor
 
 `/tdd <n>` is a skill, so it can be typed inside an interactive Claude Code session — but
 that is not where a run belongs. Every leaf is a `claude -p` subprocess, and a session the
