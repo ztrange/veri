@@ -438,6 +438,39 @@ leafargs_overridden=no
   && [[ -z "$delta" ]]; } && ok \
   || no "VERIFY_LEAF_ARGS overriding the leaf's flags does not switch the tree check off (override reached the leaf=$leafargs_overridden want yes; code=$code want 2; stdout='$out' want src.txt named; delta='$delta' want empty)"
 
+# 15. VERIFY_LEAF_ARGS carrying its own `--model` alongside a role variable is refused, and the
+#     refusal is the STATED rule the pair is resolved by (issue #171). Two things name a model
+#     for the same leaf here: `VERI_MODEL_VERIFIER`, which supervise.sh resolves and run-leaf.sh
+#     turns into `--model sonnet`, and the caller's own flags, which verify.sh passes through
+#     verbatim. Both land on one `claude` command line, and which of the two the CLI honours is
+#     flag order — a rule veri never chose and cannot see, so a run could report `model=sonnet`
+#     in its `launch` mark while the leaf ran on the other one. That lie is the whole reason the
+#     mark exists: #171's experiment joins verdicts and cost on that field.
+#
+#     So the pair is not ranked, it is refused: exit 2 — the plumbing speaking, no answer could
+#     be obtained — with a diagnostic, and NO leaf launched, since a leaf paid for is the cost
+#     the refusal exists to save. The assertion is that no `claude` ran at all, not merely that
+#     the exit is 2: an implementation that launched the leaf and then rejected its verdict
+#     would satisfy an exit-code-only case while still paying for the run it must not make.
+#     Both streams are captured, so the diagnostic counts wherever the refusal writes it.
+#
+#     Its own directory under $work, because the evidence is the ABSENCE of the stub's argv
+#     dump, and the shared $work/argv is written by every case above.
+model_clash_dir="$work/model-clash"
+mkdir -p "$model_clash_dir"
+model_clash_argv="$model_clash_dir/argv"
+model_clash_out="$( cd "$model_clash_dir" && env CLAUDE_BIN="$stubdir/claude" \
+    ARGV_OUT="$model_clash_argv" FAKE_OUT_TEXT='VERDICT: PASS
+REASON: Target test and full suite are green.' VERI_MODEL_VERIFIER=sonnet \
+    VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --model opus' \
+    "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>&1 )"
+model_clash_code=$?
+model_clash_launched=no
+[[ -e "$model_clash_argv" ]] && model_clash_launched=yes
+{ [[ "$model_clash_code" == 2 ]] && [[ "$model_clash_launched" == no ]] \
+  && [[ "$model_clash_out" == *VERIFY_LEAF_ARGS* ]] && [[ "$model_clash_out" == *--model* ]]; } && ok \
+  || no "VERIFY_LEAF_ARGS carrying its own --model alongside a role model variable is refused before any leaf launches (code=$model_clash_code want 2; leaf launched=$model_clash_launched want no; output='$model_clash_out' want VERIFY_LEAF_ARGS and --model named)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
