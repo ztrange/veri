@@ -18,6 +18,8 @@
 #                             → exit 2, nothing on stdout, and a diagnostic on stderr that
 #                               names the cause (what the binary said) and the supported
 #                               invocation (a plain shell, `claude -p "/tdd <n>"`).
+#                             → and nothing else happens: no worktree created, no spec
+#                               written, no test command run, no issue comment posted.
 #
 # `CLAUDE_BIN` is the seam the stub below is injected through, the same swap every other
 # suite makes to keep a real model off the wire.
@@ -85,6 +87,59 @@ err_text="$(cat "$err")" out_text="$(cat "$out")"
   problems+=("want the cause on stderr — $(printf '%q' "$binary_said") — got: $(printf '%q' "$err_text")")
 [[ "$err_text" == *"$supported"* ]] ||
   problems+=("want the supported invocation on stderr — $(printf '%q' "$supported") — got: $(printf '%q' "$err_text")")
+rm -rf "$tmp"
+report "$name"
+
+# 2. The refusal's cost. A preflight-class stop is one a run pays nothing for, so the
+# obligation is stated as what did NOT happen rather than as what did: the four things the
+# prologue of a run does — enter a worktree, write the spec, run the baseline suite, post a
+# `### ▶️ Resuming` comment to the issue thread — are exactly what #187 observed a run doing
+# before it died at its first leaf.
+#
+# Three of them are observable as a process this script never starts, and the fourth as a
+# file it never leaves behind, so the case watches for both: `git`, `gh` and `make` are
+# shimmed onto PATH ahead of the real ones and record every call, and the script runs in an
+# empty directory of its own that is read back afterwards. A recorder that records nothing
+# and a directory that is still empty is the whole assertion.
+#
+# The shims are named rather than derived: these are the three binaries every side effect in
+# the list above goes through — `git worktree add`, `gh issue comment`, and the run's test
+# command, which in this repository is `make test`.
+name='leaf-launchable.sh refuses without a side effect — no worktree, no spec, no test command, no issue comment'
+problems=()
+tmp="$(mktemp -d)"
+failing_stub "$tmp/claude"
+
+stubdir="$tmp/bin"
+mkdir -p "$stubdir"
+for shim in git gh make; do
+  cat > "$stubdir/$shim" <<STUB
+#!/usr/bin/env bash
+printf '%s\n' "$shim \$*" >> "\$ARGV_OUT"
+STUB
+  chmod +x "$stubdir/$shim"
+done
+
+# The cwd the script is run from, empty at the start: a spec written relative to the run's
+# directory — which is how write-spec.sh puts one there — lands here and is read back below.
+work="$tmp/work"
+mkdir -p "$work"
+argv="$tmp/argv"
+: > "$argv"
+
+( cd "$work" && env -u CLAUDECODE PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
+    CLAUDE_BIN="$tmp/claude" "$LAUNCHABLE" >/dev/null 2>/dev/null ) && code=0 || code=$?
+called="$(cat "$argv")"
+left_behind="$(cd "$work" && ls -A)"
+
+# The refusal is this case's premise, not its claim: a probe that came back some other way
+# would make the two checks below true of a path nobody took.
+[[ "$code" == 2 ]] ||
+  problems+=("want the refusal (exit 2) to be what this case observed, got exit $code")
+[[ -z "$called" ]] ||
+  problems+=("want no worktree, no issue comment and no test command — want nothing called, got: $(printf '%q' "$called")")
+[[ -z "$left_behind" ]] ||
+  problems+=("want no spec written — want the run directory still empty, got: $(printf '%q' "$left_behind")")
 rm -rf "$tmp"
 report "$name"
 
