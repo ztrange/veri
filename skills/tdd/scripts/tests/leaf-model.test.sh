@@ -37,11 +37,12 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LEAF_MODEL="$HERE/../leaf-model.sh"
 LEAF_ROLE="$HERE/../leaf-role.sh"
-# The document twice — the path every failure message spells, and the same path resolved
-# for the probe to read — so a message can never name a file the probe did not open. The
-# suite sits at skills/<skill>/scripts/tests, so two levels up is the skill.
+# The document once, as the path every failure message spells, read as "$ROOT/$skill_md" —
+# the shape skill-event-marks.test.sh uses, and the one that makes a message unable to name
+# a file the probe did not open. The suite sits at skills/<skill>/scripts/tests, so four
+# levels up is the repo root.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
 skill_md="skills/tdd/SKILL.md"
-SKILL="$HERE/../../SKILL.md"
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -205,7 +206,7 @@ report "$name"
 preflight_section() {
   awk '/^### [0-9]+\..*[Pp]reflight/ { inside = 1; print; next }
        inside && /^### / { exit }
-       inside' "$SKILL"
+       inside' "$ROOT/$skill_md"
 }
 
 # preflight_leaf_names — the argument of every `leaf-model.sh <name>` in that section, one
