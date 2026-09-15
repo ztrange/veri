@@ -72,6 +72,24 @@ report() {
   fi
 }
 
+# states <what> <amount> <where> <lines> — complain into `problems` unless one of <lines>
+# states <amount>. The predicate both `figure` and `session_figure` are, written once,
+# because what is subtle about it is the matching and not the picking of the lines: a `.`
+# in the amount is escaped so it cannot stand for any character, and the amount is
+# anchored between non-digits, so `1.86` does not match inside `11.865` — an assertion
+# that accepted a substring would read a wrong figure as the right one. A leading `$`, or
+# trailing zeroes, still match: that is spelling, not the number.
+#
+# <lines> arrives as an argument rather than down a pipe on purpose. `problems+=` inside a
+# pipeline appends to an array in a subshell, which dies with the pipeline — so a probe
+# written that way loses every complaint it makes and its case goes green whatever the
+# script printed.
+states() {
+  local what="$1" amount="${2//./\\.}" where="$3" lines="$4"
+  grep -Eq "(^|[^0-9])$amount([^0-9]|$)" <<< "$lines" ||
+    problems+=("$what: want $2 on a line $where, not found in the report")
+}
+
 # figure <what> <label-regex> <amount> — complain into `problems` unless the report holds a
 # line that names <what> and states <amount> on it. Both halves matter: a report that
 # printed the four numbers unlabelled would not have split anything a reader can act on,
@@ -79,13 +97,9 @@ report() {
 #
 # The label is matched case-insensitively and as an ERE, so the wording of the report is
 # the script's business and only the WORDS that identify which figure it is are this
-# suite's. The amount is anchored between non-digits, so `1.86` does not match inside
-# `11.865`: an assertion that accepted a substring would read a wrong total as the right
-# one. A leading `$`, or trailing zeroes, still match — that is spelling, not the number.
+# suite's.
 figure() {
-  local what="$1" label="$2" amount="${3//./\\.}"
-  grep -Ei "$label" <<< "$out" | grep -Eq "(^|[^0-9])$amount([^0-9]|$)" ||
-    problems+=("$what: want $3 on a line naming it, not found in the report")
+  states "$1" "$3" "naming it" "$(grep -Ei "$2" <<< "$out")"
 }
 
 # expect_split — the whole of what a cost case checks about `$out` and `$code`: the script
@@ -610,9 +624,7 @@ code=$?
 # those lines rather than on one line, so the report may lay a session out over as many
 # lines as it likes.
 session_figure() {
-  local what="$1" id="$2" amount="$3"
-  grep -F "$id" <<< "$out" | grep -Eq "(^|[^0-9])$amount([^0-9]|$)" ||
-    problems+=("$what: want $amount on a line naming session $id, not found in the report")
+  states "$1" "$3" "naming session $2" "$(grep -F "$2" <<< "$out")"
 }
 
 session_figure "the ramping session's preamble"      a8f3d1c6 "$want_ramp_preamble"
