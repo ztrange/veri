@@ -4,4 +4,4 @@
 - [x] That refusal creates no worktree, writes no spec, runs no test command and posts no issue comment
 - [x] When a leaf can be launched, the check passes and the run proceeds exactly as it does today
 - [x] `SKILL.md` states the supported way to launch the conductor from an operator's own session, and records that veri never unsets the guard itself ⟂ refactor pending
-- [ ] `SKILL.md`'s preflight runs `leaf-launchable.sh` before the baseline, so the check the earlier steps built is the one a real run performs
+- [x] `SKILL.md`'s preflight runs `leaf-launchable.sh` before the baseline, so the check the earlier steps built is the one a real run performs ⟂ refactor pending

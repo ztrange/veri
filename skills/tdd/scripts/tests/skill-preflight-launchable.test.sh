@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# Unit test for where skills/tdd/SKILL.md's preflight runs `leaf-launchable.sh`. Like
+# skill-timeout.test.sh and skill-test-command.test.sh this suite belongs to no single
+# script: its subject is the procedure read as text, the way the conductor session that
+# follows it reads it. Zero-dependency plain-shell asserts, same idiom, picked up by
+# `make test`'s glob by existing.
+#
+# Why this exists (issue #187): `leaf-launchable.sh` is the check the earlier steps of this
+# issue built — it probes the leaf binary and refuses with exit 2 when a guard makes it
+# decline to start, the fault that on 2026-09-14 killed every leaf of a resume of #163 after
+# the run had already paid the 93 s baseline, entered a worktree, written the spec and posted
+# a public `### ▶️ Resuming` comment. A script nobody calls changes none of that. There is no
+# script that calls the conductor — the conductor is prose — so the wiring can only be pinned
+# as prose, the way skill-test-command.test.sh pins preflight's call to
+# `detect-test-command.sh`.
+#
+# Contract under test (this step only — the check's own behaviour is
+# leaf-launchable.test.sh's, and what the document tells an OPERATOR to type instead is
+# skill-conductor-launch.test.sh's):
+#   Some preflight check names `leaf-launchable.sh`, and it comes before the check that runs
+#   the baseline suite.
+#
+# Before the baseline is the whole point of the position, not a tidiness: the baseline is the
+# expensive half of preflight — minutes on a slow repo — and it is wasted either way when no
+# leaf can launch. A launchability check placed after it would still refuse the run, but only
+# once the run had paid for the answer it could have had for free.
+#
+# The two checks are located by the SCRIPT each one calls rather than by its number or its
+# wording: preflight's items are renumbered whenever one is inserted, and which sentence
+# announces a check is the author's. Where the call is written is what "before" is read off,
+# so moving a check within an item counts as moving it. `detect-test-command.sh` is what identifies the baseline
+# item because that is the call the baseline run is made from (SKILL.md preflight step 3), and
+# skill-test-command.test.sh already holds it to living in this section.
+#
+# Fail closed twice over: a preflight section that cannot be found, and a baseline item that
+# names no detection, are each reported as themselves rather than left to read as "nothing is
+# out of order".
+#
+# Not asked here: that CLAUDE.md's suite count moved when this file landed.
+# claude-md-counts.test.sh is the case that holds every count in that document to the files on
+# disk, and this suite arriving in the tree is what makes it answer.
+#
+# Run: scripts/tests/skill-preflight-launchable.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+
+# The document twice — the path as every failure message spells it, and the same path
+# resolved for the probes to read — so a message can never name a file the probes did not
+# open. The pairing skill-test-command.test.sh and skill-conductor-launch.test.sh both use.
+skill_md="skills/tdd/SKILL.md"
+md="$ROOT/$skill_md"
+
+# The two scripts an item is recognised by, and the heading the items live under, each
+# written down once: every one of them is both a pattern a probe searches for and a string a
+# failure message spells, so a message can never name something the probe never looked for.
+launchable="leaf-launchable.sh"
+detector="detect-test-command.sh"
+preflight='### 0. Preflight'
+
+pass=0 fail=0
+
+# report <name> — close a case whose probes collected into the `problems` array: an empty
+# array is a pass, otherwise one FAIL line for the case and one indented line per problem, so
+# the output says which half of the wiring is wrong rather than just that one is.
+report() {
+  local name="$1"
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    printf '    %s\n' "${problems[@]}"
+  fi
+}
+
+# section <heading> — the lines under the first heading STARTING WITH the literal <heading>,
+# up to the line before the next heading of any level, into `sec_start`/`sec_end`. Non-zero
+# when no such heading exists, so a renamed section is reported rather than probed as an
+# empty range. A line RANGE rather than the text, because the claim below is about order and
+# line numbers are what make "before" answerable. Same shape as skill-test-command.test.sh's.
+sec_start=0 sec_end=0
+section() {
+  sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
+  [[ -n "$sec_start" ]] || { sec_end=0; return 1; }
+  local next
+  next="$(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#' | head -1 | cut -d: -f1)"
+  if [[ -n "$next" ]]; then
+    sec_end=$((sec_start + next - 1))
+  else
+    sec_end=$(($(wc -l < "$md")))
+  fi
+  return 0
+}
+
+# call_at <script> — the line number the first mention of <script> inside the current
+# section is on, empty when the section never names it. A LINE, not the numbered item that
+# contains it: preflight's items are prose paragraphs and one of them can hold two calls, so
+# an item-granular position would read a launchability check buried in the baseline item's
+# last sentence as coming *before* the baseline call in that same item's first. The line is
+# also the position a reader sent to the failure message wants.
+#
+# One pattern rule and no END block, so `exit` cannot print twice: awk runs END after `exit`
+# as well as after the last record, and a two-line answer here would reach `-gt` below as a
+# bash syntax error — the ordering check would go quiet exactly when an item moved.
+call_at() {
+  awk -v s="$sec_start" -v e="$sec_end" -v want="$1" \
+    'NR >= s && NR <= e && index($0, want) { print NR; exit }' "$md"
+}
+
+# 1. One criterion, one case: the check the earlier steps built is the one a real run
+#    performs, and it runs before the run has paid for anything.
+name="$skill_md's preflight runs $launchable before the baseline suite"
+problems=()
+
+if ! section "$preflight"; then
+  problems+=("$skill_md has no '$preflight' section — where a launchability check would sit could not be read")
+else
+  launch_at="$(call_at "$launchable")"
+  baseline_at="$(call_at "$detector")"
+  [[ -n "$launch_at" ]] ||
+    problems+=("$skill_md's '$preflight' section never names $launchable, so a run performs no launchability check and still dies at its first leaf")
+  if [[ -z "$baseline_at" ]]; then
+    problems+=("$skill_md's '$preflight' section has no item naming $detector, so which check runs the baseline — the one a launchability check has to precede — could not be read")
+  elif [[ -n "$launch_at" ]] && [[ "$launch_at" -gt "$baseline_at" ]]; then
+    problems+=("$skill_md:$launch_at calls $launchable after the baseline's $detector call at line $baseline_at, so a run that cannot launch a leaf still pays the whole baseline suite first")
+  fi
+fi
+
+report "$name"
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]

@@ -351,6 +351,14 @@ unauthenticated baseline never gets a cycle.
    reports `"loggedIn": true`. Every leaf is a `claude -p` subprocess: with an expired
    session each one fails at launch (`supervise.sh` exit 1 before any work), which is
    neither a verdict nor a hang and so has no bail classification — catch it here.
+   Then run `$S/leaf-launchable.sh`, which asks the other half of the same question: not
+   whether the binary would be *allowed* to work, but whether it starts at all. **Exit 2**
+   means it does not — a guard refused it, the way a nested-session guard refuses a run
+   typed inside a Claude Code session (#187) — and is a preflight-class stop: report its
+   stderr diagnostic verbatim and do not start. It runs **here**, before step 3, because
+   the baseline is the expensive half of preflight and is wasted either way when no leaf
+   can launch; a run that discovers this later has already paid for the suite, the
+   worktree, the spec and a public `### ▶️ Resuming` comment on the issue thread.
 3. **Suite is green at baseline — and time it.** The issue may name its own test command,
    so read its body first — into a temp file, since the caller's checkout must stay clean:
    ```
