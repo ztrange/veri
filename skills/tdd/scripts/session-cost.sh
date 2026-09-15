@@ -2,7 +2,7 @@
 # session-cost.sh — what a day of Claude sessions cost, read from the session transcripts
 # (issue #201).
 #
-# Usage:   session-cost.sh --since <ISO date> [<transcript.jsonl> ...]
+# Usage:   session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]
 #
 # Why this reader exists at all: `harvest-usage.sh` picks up the closing accounting of a
 # LEAF, so `.tdd/events.jsonl` knows what the leaves cost and nothing else. On 2026-09-14
@@ -25,12 +25,13 @@
 set -euo pipefail
 
 since=""
+as_json=""
 transcripts=()
 
 # The call this script accepts, spelled once: three of the checks below quote it back, and
 # three spellings of one synopsis are three chances for the one a reader is shown to be the
 # stale one.
-USAGE="usage: session-cost.sh --since <ISO date> [<transcript.jsonl> ...]"
+USAGE="usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ...]"
 
 # `--since` is required. It has no default here on purpose: a default of "today" is a
 # decision about which day a report with no date means, and that is its own step.
@@ -39,6 +40,14 @@ while [[ $# -gt 0 ]]; do
     --since)
       since="${2:?$USAGE}"
       shift 2
+      ;;
+    # The same day, for a reader that is not a person: a dashboard, a weekly roll-up, the
+    # next script. It states the same figures the text report prints — the point of it is
+    # that the two agree — so it is one branch at the END of the arithmetic and not a
+    # second reading of the transcripts.
+    --json)
+      as_json=1
+      shift
       ;;
     *)
       transcripts+=("$1")
@@ -315,7 +324,7 @@ ROLES = (
 def role(obj):
     return "sdk-cli" if obj.get("entrypoint") == "sdk-cli" else None
 
-since, paths = sys.argv[1], sys.argv[2:]
+since, as_json, paths = sys.argv[1], bool(sys.argv[2]), sys.argv[3:]
 
 # Every priced record of every transcript, so the report is one day and not one file. The
 # day is the repo’s, and the repo spends it across as many project directories as it has
@@ -372,6 +381,18 @@ def bill(tokens):
 cost = costed(tokens)
 counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 
+# Asked for machine output, the report is the document and nothing else: a text line
+# printed beside it would not be JSON, so the whole of stdout is the one `json.dumps` and
+# the text report below is not reached. The keys are `KINDS`* own names, so what the
+# document calls a figure and what the report labels it are the same list.
+if as_json:
+    print(json.dumps({
+        "since": since,
+        "transcripts": len(paths),
+        "cost": dict({kind: cost[kind] for kind, _, _ in KINDS}, total=bill(tokens)),
+    }, indent=2))
+    sys.exit(0)
+
 # The labels are what a reader acts on, so each line names its figure in words and then
 # states the tokens it is a price for. A cache write is two rates and one line: what a
 # reader does about a write does not depend on its TTL. The total is every kind, input
@@ -399,4 +420,4 @@ if strangers:
     print("  not priced, no rate in the table for:")
     for model, count in strangers.items():
         print("    %s  %d tokens" % (model, count))
-' "$since" "${transcripts[@]}"
+' "$since" "$as_json" "${transcripts[@]}"
