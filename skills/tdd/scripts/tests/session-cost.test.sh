@@ -753,6 +753,117 @@ expect_split
 report "$name"
 
 
+# 9. The report has two readers, and only one of them is a person. `--json` exists so that
+#    a second thing — a dashboard, a weekly roll-up, the next script — can have the day's
+#    figures without parsing a layout that was designed to be read by eye. That is only
+#    worth having if the two agree: a machine output that states its own arithmetic is two
+#    reports of one day, and the day someone reconciles them by hand is the day both
+#    become suspect. So the criterion is not that `--json` emits JSON; it is that what it
+#    emits carries the SAME totals the text report prints.
+#
+#    Which is why this case runs the script TWICE over one fixture — once plain, once with
+#    `--json` — and holds both to the same four numbers. The text run goes through
+#    `expect_split`, the same assertion every cost case here makes, so "the same totals as
+#    the text report" is anchored to a text report this case has itself checked rather than
+#    to a comment. A case that only parsed the JSON and trusted it would pass against two
+#    reports that disagreed.
+#
+#    What it does NOT pin is the SHAPE of that JSON — which keys, nested how deep, in what
+#    order. That is the script's business, and a suite that fixed it would make every later
+#    rearrangement of the document a test failure about nothing. The probe flattens the
+#    document to one numeric leaf per line and asks only that a key whose NAME says which
+#    figure it is carries the figure: the same standard the text probes hold a label to.
+name="--json: the machine output states the same four totals as the text report"
+problems=()
+
+json_transcript="$work/6b19d4e7-3c05-42af-9d71-8e260a5fb3c7.jsonl"
+
+# Two requests of one session, numbers unlike every other fixture here, and none of them
+# round, so a figure assembled from the wrong records lands nowhere an expectation states.
+# At the rates in the header:
+#   cache read   700000 + 340000 = 1040000 tokens x $1.50/M  = $1.56
+#   cache write  160000 +  96000 =  256000 tokens x $18.75/M = $4.80
+#   output        12000 +   7600 =   19600 tokens x $75.00/M = $1.47
+#   input             3 +      1 =       4 tokens x $15.00/M = $0.00 (below the cent)
+#   total                                                      $7.83
+j_a_read=700000 ; j_a_write=160000 ; j_a_out=12000 ; j_a_in=3
+j_b_read=340000 ; j_b_write=96000  ; j_b_out=7600  ; j_b_in=1
+
+want_read_cost=1.56
+want_write_cost=4.80
+want_output_cost=1.47
+want_total_cost=7.83
+
+cat > "$json_transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T10:21:07.412Z","requestId":"req_011CSPrE9gHiO5uKmS8fZb2n","sessionId":"6b19d4e7-3c05-42af-9d71-8e260a5fb3c7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$j_a_in,"cache_creation_input_tokens":$j_a_write,"cache_creation":{"ephemeral_5m_input_tokens":$j_a_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$j_a_read,"output_tokens":$j_a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T11:58:33.276Z","requestId":"req_011CSQsF0hIjP6vLnT9gAc3o","sessionId":"6b19d4e7-3c05-42af-9d71-8e260a5fb3c7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$j_b_in,"cache_creation_input_tokens":$j_b_write,"cache_creation":{"ephemeral_5m_input_tokens":$j_b_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$j_b_read,"output_tokens":$j_b_out}}}
+TRANSCRIPT
+
+# The text run first: the numbers the JSON is held to are the ones this report is checked
+# to state, so it is checked before anything is compared against it.
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$json_transcript" 2>&1)"
+code=$?
+
+expect_split
+
+# And the same day again, asked for machine output. Stderr is kept OFF stdout here, unlike
+# every other case: a document is either the whole of what came out or it is not JSON, so
+# a warning folded into it would fail the parse for a reason that is not the criterion.
+json_err="$work/json.err"
+out_json="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 --json "$json_transcript" 2>"$json_err")"
+json_code=$?
+
+[[ "$json_code" == 0 ]] ||
+  problems+=("want exit 0 from session-cost.sh --json, got $json_code; stderr was: $(printf '%q' "$(cat "$json_err")")")
+
+# One line per numeric leaf of the document — `<dotted path> <amount to the cent>` — so
+# the probe below can ask about a key by name without this suite knowing how the document
+# is nested. Money is compared at the cent because that is the precision the text report
+# prints: holding the JSON to more would be holding the two to different questions.
+flat="$(python3 -c '
+import json, sys
+
+def walk(node, path):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            walk(value, (path + "." + str(key)) if path else str(key))
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            walk(value, "%s[%d]" % (path, index))
+    elif isinstance(node, bool):
+        pass
+    elif isinstance(node, (int, float)):
+        print("%s %.2f" % (path, node))
+
+walk(json.load(sys.stdin), "")
+' <<< "$out_json" 2>&1)"
+parse=$?
+
+[[ "$parse" == 0 ]] ||
+  problems+=("--json: want stdout to parse as one JSON document, it does not: $(printf '%q' "$flat")")
+
+# json_figure <what> <key-regex> <amount> — complain unless the flattened document holds a
+# numeric leaf whose path names <what> and whose value is <amount>. Both halves, for the
+# reason `figure` checks both: four unlabelled numbers are not a report a second program
+# can read, and four labelled wrong ones are worse than none.
+json_figure() {
+  local what="$1" pattern="$2" amount
+  amount="$(printf '%.2f' "$3")"
+  grep -Ei "$pattern" <<< "$flat" | awk -v want="$amount" '$2 == want { hit = 1 } END { exit !hit }' ||
+    problems+=("$what: want $amount under a key naming it in the --json output, not found")
+}
+
+json_figure "the JSON cache-read total"  'cache.*read'          "$want_read_cost"
+json_figure "the JSON cache-write total" 'cache.*(write|creat)' "$want_write_cost"
+json_figure "the JSON output total"      'output'               "$want_output_cost"
+json_figure "the JSON total"             'total'                "$want_total_cost"
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the --json output was: $(printf '%q' "$out_json")")
+
+report "$name"
+
+
 
 echo "----"
 echo "$pass passed, $fail failed"
