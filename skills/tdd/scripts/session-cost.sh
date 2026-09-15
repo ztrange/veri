@@ -24,13 +24,18 @@ set -euo pipefail
 since=""
 transcript=""
 
+# The call this script accepts, spelled once: three of the checks below quote it back, and
+# three spellings of one synopsis are three chances for the one a reader is shown to be the
+# stale one.
+USAGE="usage: session-cost.sh --since <ISO date> <transcript.jsonl>"
+
 # Both arguments are required. `--since` has no default here on purpose: a default of
 # "today" is a decision about which day a report with no date means, and that belongs with
 # the discovery this script does not yet do.
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --since)
-      since="${2:?usage: session-cost.sh --since <ISO date> <transcript.jsonl>}"
+      since="${2:?$USAGE}"
       shift 2
       ;;
     *)
@@ -40,8 +45,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n "$since" ]] || { echo "usage: session-cost.sh --since <ISO date> <transcript.jsonl>" >&2; exit 2; }
-[[ -n "$transcript" ]] || { echo "usage: session-cost.sh --since <ISO date> <transcript.jsonl>" >&2; exit 2; }
+[[ -n "$since" ]] || { echo "$USAGE" >&2; exit 2; }
+[[ -n "$transcript" ]] || { echo "$USAGE" >&2; exit 2; }
 [[ -f "$transcript" ]] || { echo "session-cost.sh: no such transcript: $transcript" >&2; exit 2; }
 
 # Note the apostrophe nobody may write inside the block below: it is a single-quoted shell
