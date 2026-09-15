@@ -244,7 +244,8 @@ def sessions(records):
 
     Three figures rather than one because none of them answers alone: a total says how
     much without saying whether that was many cheap requests or few enormous ones, and a
-    preamble says only how the session started.
+    preamble says only how the session started. And the VERDICT those three come to, in
+    words, which is the one thing on the row a reader does not have to do arithmetic for.
     """
     rows = {}
     for obj in records:
@@ -260,7 +261,13 @@ def sessions(records):
         row["requests"] += 1
         row["final"] = weight
         row["total"] += weight
-    return rows
+    # The verdict belongs to the row, not to whoever prints it: it is made of the request
+    # count and two of the three figures, and a print site that assembled it would be a
+    # format string with arithmetic behind it that the format does not show. The count
+    # stays on the row it is made from, so what the word was decided on can be read back
+    # off the report.
+    return {key: dict(row, verdict=verdict(row["requests"], row["preamble"], row["total"]))
+            for key, row in rows.items()}
 
 # Which of the two ROLES a record belongs to. `entrypoint` is what Claude Code writes to
 # say how the session was started, and `sdk-cli` is the one veri launches: `claude -p`,
@@ -346,6 +353,5 @@ for key, label in ROLES:
 print("  per session")
 for key, row in sessions(records).items():
     print("    %s  preamble %d  final %d  read %d  %s"
-          % (key, row["preamble"], row["final"], row["total"],
-             verdict(row["requests"], row["preamble"], row["total"])))
+          % (key, row["preamble"], row["final"], row["total"], row["verdict"]))
 ' "$since" "${transcripts[@]}"
