@@ -4,4 +4,4 @@
 - [x] Pin path in develop-red.md predicts what the temporary break should print and checks it before restoring
 - [x] revise red inherits prediction — a rewritten test owes a new prediction
 - [x] SKILL.md Red comment carries the prediction and whether it matched ⟂ refactor pending
-- [ ] No verifier prompt contains the prediction — build-verify-prompt.sh takes no rationale parameter, pinned by test
+- [x] No verifier prompt contains the prediction — build-verify-prompt.sh takes no rationale parameter, pinned by test
