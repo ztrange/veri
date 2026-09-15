@@ -71,10 +71,14 @@ section() {
 # need_section <heading> <consequence> — select the section under <heading>, or push one
 # problem naming it and return non-zero. One constant for both the pattern searched for and
 # the message about not finding it, so a message can never name a heading nothing looked for.
+# On success it also leaves the heading, stripped of its `#`s, in `sec_name`, which is how a
+# claim below names the section it failed in: the same rule one step further on, since a
+# claim that spelled the heading itself could name a section nothing had selected.
+sec_name=""
 need_section() {
-  section "$1" && return 0
-  problems+=("$skill_md has no '$1' section — $2")
-  return 1
+  section "$1" || { problems+=("$skill_md has no '$1' section — $2"); return 1; }
+  sec_name="${1##*# }"
+  return 0
 }
 
 # items — the current section's numbered list items, one per line and lowercased: a `N. `
@@ -148,7 +152,7 @@ claim() {
     done
     return 0
   done <<< "$paras"
-  problems+=("$skill_md's 'The scripts' prose: no paragraph $what")
+  problems+=("$skill_md's '$sec_name' prose: no paragraph $what")
 }
 
 # 2. What the document tells the conductor about the ground it is standing on. `$S` is the
