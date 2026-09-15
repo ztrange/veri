@@ -25,12 +25,13 @@
 #
 # Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (issue #107,
 # ADR-0014): one `launch` — the leaf's name, the command behind it, the model it runs on
-# (empty when the run chose none) and the attempt its name encodes — one `retry` per relaunch, carrying the cause the watchdog killed the previous
-# attempt for, and one `exit` — the 0/1/2 status above, the kill cause when there is one, and
-# how many wall seconds the last attempt took. `launch` and `exit` are written once per
-# supervision, not once per attempt: a second one would read as a second leaf, and the
-# relaunch is `retry`'s to report. A name leaf-role.sh cannot read leaves no line at all,
-# rather than one whose actor and attempt were invented.
+# (empty when the run chose none) and the attempt its name encodes — one `retry` per
+# relaunch, carrying the cause the watchdog killed the previous attempt for, and one `exit`
+# — the 0/1/2 status above, the kill cause when there is one, and how many wall seconds the
+# last attempt took. `launch` and `exit` are written once per supervision, not once per
+# attempt: a second one would read as a second leaf, and the relaunch is `retry`'s to
+# report. A name leaf-role.sh cannot read leaves no line at all, rather than one whose actor
+# and attempt were invented.
 #
 # Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
@@ -141,11 +142,11 @@ attempt_once() {
 role="$("$HERE/leaf-role.sh" "$name")" || role=""
 
 # The model this leaf runs on, resolved here beside the role and from the same name (issue
-# #171). Here because this is the choke point every leaf goes through, so the value the
-# `launch` mark reports below is the one the launch itself was decided by, rather than a
-# second reading of the environment that a caller could have changed in between. A refusal —
-# leaf-model.sh exits 2 on a value it can reject without a network — leaves this empty the
-# way `role` is left empty above; a bad value is preflight's to stop, before any leaf.
+# #171) — so the value the `launch` mark reports below is the one the launch itself was
+# decided by, rather than a second reading of the environment that a caller could have
+# changed in between. A refusal — leaf-model.sh exits 2 on a value it can reject without a
+# network — leaves this empty the way `role` is left empty above; a bad value is preflight's
+# to stop, before any leaf.
 model="$("$HERE/leaf-model.sh" "$name")" || model=""
 
 # mark <event> [key=value …] — append one line to the run's event log (issue #107,
@@ -164,15 +165,16 @@ mark() {
   env $role "$HERE/event.sh" "$@"
 }
 
-# The run's `launch` mark. Written here because this is the one choke point every leaf goes
-# through, so a log missing one is a leaf nothing recorded starting — and because the three
-# things the mark carries are exactly what this script was handed: the leaf's name, the
-# command behind it, and, through leaf-role.sh, the attempt that name encodes. `$*` joins
-# argv with a single space, the spelling event.sh's header quotes for a `cmd=` payload.
+# The run's `launch` mark, carrying the keys the header lists. Written here because this is
+# the one choke point every leaf goes through: a log missing one is a leaf nothing recorded
+# starting, and every key the mark carries is either what this script was handed — the name,
+# the argv — or what it resolved from that above. `$*` joins argv with a single space, the
+# spelling event.sh's header quotes for a `cmd=` payload.
 #
 # Once per supervision, not once per attempt — which is what its place here shows: outside
 # the loop below, so a retried attempt passes it by. That attempt is the `retry` mark's to
 # report, and a second `launch` would read as a second leaf.
+#
 # `model=` is written on every launch, empty when the run chose none: event.sh's rule for
 # context keys is that an absent key and a chosen-nothing key must not look alike, and a
 # per-model cost comparison joins verdicts and revise counts on exactly this field.
