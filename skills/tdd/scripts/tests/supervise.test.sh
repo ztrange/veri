@@ -697,6 +697,56 @@ harvest_fail_recorded="$(cat "$harvest_fail_work/.tdd/develop-red.exit" 2>/dev/n
   && [[ "$harvest_fail_recorded" == 0 ]]; } && ok \
   || no "a failing harvester leaves the supervisor's exit code and completion file unchanged (usage lines=$harvest_fail_usage want 0, code=$harvest_fail_code want 0, .exit=$harvest_fail_recorded want 0)"
 
+# 19. the `launch` mark says which model the leaf ran on — the value leaf-model.sh resolves
+#     from the run's three model variables, or `""` when that run chose none (issue #171).
+#     The supervisor is where it is resolved, beside the role it already reads
+#     (supervise.sh:141): that is the one choke point every leaf goes through, so a model
+#     recorded here cannot be missing from the leaves some other caller forgot, and the value
+#     the log reports is the same one the launch will carry rather than a second reading of
+#     the environment.
+#
+#     Without the key, a run log cannot compare verdicts, revise counts or cost between
+#     models at all — which is the whole point of the issue: the first experiment is moving
+#     verifier leaves to a cheaper model and keeping it only if the verdict distribution
+#     holds, and that comparison joins on this field.
+#
+#     Both halves are asserted in one case because the key's promise is that it is ALWAYS
+#     written (event.sh's rule for context keys): "no model" has to read as an empty value
+#     and not as an absent key, or a reader cannot tell a run that chose no model from a
+#     writer that forgot to say. `event_field` reports `<<missing>>` for a key the line does
+#     not carry, so the empty half is a real assertion and not a comparison that passes on
+#     absence.
+#
+#     The unset probe unsets all three names itself rather than trusting the shell that ran
+#     `make test` (issue #87's rule, and this issue's own: a suite's answer is a fact about
+#     the script, not about the caller's environment) — in a subshell, because `sup_run`
+#     applies its pinned assignments through `env` and BSD `env` reads a `-u` after those as
+#     the utility to run. The set probe is given its value the way case 17 gives its
+#     heartbeat, in front of `"$SUP"`, inside the same subshell so an ambient
+#     `VERI_MODEL_DEVELOPER` cannot outrank it and turn the case red for the caller's shell.
+#
+#     A `develop-red` leaf, and a value written once into a variable used both to launch and
+#     to expect — cases 12, 15 and 16's shape. A directory per probe, for case 12's reason:
+#     the event log accumulates across a run, and `event_field` demands exactly one line of
+#     the kind it is asked for.
+model_work="$work/model"
+model_value=sonnet
+( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
+  sup_run "$model_work/set" VERI_MODEL="$model_value" "$SUP" develop-red "$stub/leaf-ok" )
+model_set_code=$?
+( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
+  sup_run "$model_work/unset" "$SUP" develop-red "$stub/leaf-ok" )
+model_unset_code=$?
+# Each field read once, into a variable the assertion and the failure message share — cases
+# 9, 11, 12, 13, 15, 16, 17 and 18's shape.
+model_set_got="$(event_field   "$model_work/set"   launch model)"
+model_unset_got="$(event_field "$model_work/unset" launch model)"
+{ [[ "$model_set_code" == 0 ]] && [[ "$model_unset_code" == 0 ]] \
+  && [[ "$model_set_got"   == "$model_value" ]] \
+  && [[ "$model_unset_got" == "" ]]; } && ok \
+  || no "the launch event carries the resolved model, and an empty one when the run chose none (VERI_MODEL=$model_value: code=$model_set_code model=$model_set_got want $model_value; none set: code=$model_unset_code model=$(printf '%q' "$model_unset_got") want '')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
