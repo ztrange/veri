@@ -21,6 +21,9 @@
 #   A scope's selection label is `ready-for-agent` for the scope `plain` and
 #   `ready-for-agent:<scope>` for any other, with `VERI_LABEL` still overriding it, read
 #   from the file the loop now lives in.
+#   Only the scope branch is sent to that file — `## Inputs` is the one section of SKILL.md
+#   naming it, so a single-issue run keeps the tokens the move saved — while SKILL.md still
+#   holds Procedure and the loop delegates each issue back to it.
 #
 # Run: scripts/tests/skill-identity.test.sh
 set -uo pipefail
@@ -434,6 +437,49 @@ report "$name"
 #    since what it asked for was that somebody had run `make docs`, which is the docs lane's
 #    work by definition. Case 5 no longer needs its exemption as a result: its sweep does not
 #    enter that tree at all.
+
+# 9. Who pays for the loop, and what the scope branch still gets. Case 6 pins that the loop
+#    left $skill_md and that `## Inputs` leads somewhere real; neither half says the move
+#    saved a single-issue run anything, nor that a scope run still ends up in the same
+#    procedure. Both are the criterion this case is about (#202).
+#
+#    The saving first: a `Read` of the loop file written anywhere a single-issue run passes
+#    — a step of *Procedure*, a preamble, a "see also" — hands those ~1,676 tokens straight
+#    back, and case 6 stays green while it happens, because the section it cuts is still
+#    clean. So the loop file's name is pinned to `## Inputs` alone: that section is the one
+#    place the argument has not yet been resolved, and every line naming it elsewhere is a
+#    line an integer argument reaches. The offending line is quoted, as case 5 quotes its
+#    own, because the fix is always a line.
+#
+#    Then what did not change: the single-issue procedure is still resident here — a move
+#    that took *Procedure* with it would satisfy every probe above and leave the one command
+#    unable to solve an issue — and the loop still delegates to it rather than restating it,
+#    which is the whole of "a scope run reaches the same procedure it always did". A
+#    restated copy would drift from this file silently, and the first symptom would be two
+#    procedures disagreeing about a step.
+name="only the scope branch is sent to the loop file, $skill_md keeps Procedure, and the loop delegates back to it"
+problems=()
+loop_md="$(loop_md_path "$ROOT/$skill_md")"
+grep -qE '^#+ Procedure$' "$ROOT/$skill_md" ||
+  problems+=("$skill_md no longer holds a 'Procedure' section, so the single-issue path did not stay put")
+if [[ -z "$loop_md" || ! -f "$ROOT/$loop_md" ]]; then
+  # Fail closed, as cases 6 and 7 do: with no readable loop file neither claim below was
+  # tested, and that must not read as a pass.
+  problems+=("$skill_md '## Inputs' points at no readable loop file — who is sent to read it could not be tested")
+else
+  loop_base="$(basename "$loop_md")"
+  outside="$(awk -v base="$loop_base" '
+    /^## Inputs$/ { inside = 1; next }
+    inside && /^## / { inside = 0 }
+    !inside && index($0, base) { printf "%d: %s\n", NR, substr($0, 1, 90) }' "$ROOT/$skill_md")"
+  while IFS= read -r hit; do
+    [[ -n "$hit" ]] || continue
+    problems+=("$skill_md names $loop_base outside '## Inputs', so a single-issue run is sent to read it too — $hit")
+  done <<< "$outside"
+  grep -E 'Procedure' "$ROOT/$loop_md" | grep -qF 'SKILL.md' ||
+    problems+=("$loop_md never sends an issue back to $skill_md's Procedure, so a scope run no longer reaches the procedure it used to")
+fi
+report "$name"
 
 echo "----"
 echo "$pass passed, $fail failed"
