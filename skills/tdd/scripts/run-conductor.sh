@@ -23,6 +23,16 @@
 # call: without it the `gh`, the `make` and the nested `claude` a leaf needs are all denied,
 # and the conductor is a process that can read but cannot act.
 #
+# The child is handed the session's `VERI_*` tunables and none of its handles. A nested
+# `claude` otherwise inherits the parent's messaging socket and auth token, which is a
+# second session wired into the first one's IPC channel; the rest of the eight name the
+# parent's session, host session, pid, entrypoint and child-session flag, all of them
+# answers to "which session am I" that belong to a session this one is not. Unsetting them
+# here is enough: the child inherits this script's environment, so a name gone from it is a
+# name gone from the child's. Nothing `VERI_*` is touched, because a conductor launched in
+# print mode must resolve VERI_MODEL_VERIFIER, REVISE_BUDGET, VERI_STUCK_RETRIES and the
+# rest exactly as one started from a chat session does.
+#
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 set -euo pipefail
 
@@ -36,6 +46,15 @@ skill_file="$HERE/../SKILL.md"
 prompt="$(cat "$skill_file")
 
 Solve issue #$issue by the procedure above."
+
+unset CLAUDECODE \
+      CLAUDE_CODE_SESSION_ID \
+      CLAUDE_CODE_HOST_SESSION_ID \
+      CLAUDE_CODE_MESSAGING_SOCKET \
+      CLAUDE_CODE_MESSAGING_TOKEN \
+      CLAUDE_PID \
+      CLAUDE_CODE_CHILD_SESSION \
+      CLAUDE_CODE_ENTRYPOINT
 
 "${CLAUDE_BIN:-claude}" -p "$prompt" \
   --output-format stream-json --verbose \
