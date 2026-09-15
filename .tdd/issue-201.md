@@ -9,5 +9,5 @@
 - [x] Per-session rows carry the preamble, the final context and the total context read, and a session dominated by an un-cleared ramp is named as such in words
 - [x] An unknown model's tokens are reported with no cost and named in a footer
 - [x] --json emits the same totals as the text report
-- [x] Every session row names the entrypoint that opened it, and the report groups baselines by harness as min / median / max ⟂ refactor pending
+- [x] Every session row names the entrypoint that opened it, and the report groups baselines by harness as min / median / max
 - [ ] A session whose entrypoint key is absent is reported as a conductor, not folded in with interactive sessions that have one
