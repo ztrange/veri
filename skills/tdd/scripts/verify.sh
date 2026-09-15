@@ -50,30 +50,36 @@ default_leaf_args=(--permission-mode bypassPermissions \
 if [[ -n "${VERIFY_LEAF_ARGS:-}" ]]; then
   # shellcheck disable=SC2206  -- intentional word-split of caller-supplied flags
   leaf_args=( ${VERIFY_LEAF_ARGS} )
+
+  # Two things can name a model for this one leaf, and the pair is refused rather than ranked
+  # (issue #171). VERI_MODEL / VERI_MODEL_VERIFIER are resolved by leaf-model.sh in supervise.sh
+  # and become `--model <value>` in run-leaf.sh; the caller's own flags are passed through
+  # verbatim, so a `--model` among them lands on the SAME `claude` command line. Which of the two
+  # the CLI honours is flag order — a rule veri never chose and cannot see — so the run's `launch`
+  # mark would record one model while the leaf ran on the other, and that field is exactly what a
+  # per-model cost comparison joins on.
+  #
+  # The check belongs to this branch and not after the if/else: the default sandbox above
+  # carries no `--model`, so a run that set no VERIFY_LEAF_ARGS has nothing to clash and must
+  # not pay a leaf-model.sh process to be told so. It is also what makes the diagnostic below
+  # true of what it names — the array scanned IS the caller's flags, not whatever leaf_args
+  # ended up being.
+  #
+  # Refused before the leaf launches, because a leaf paid for is the cost the refusal exists to
+  # save. Exit 2: no answer could be obtained, the plumbing speaking rather than a verdict. A
+  # leaf-model.sh refusal (exit 2, whitespace) is read here as "no model chosen" and left to
+  # preflight, which runs the resolver once per role before any cycle and reports its diagnostic.
+  resolved_model="$("$HERE/leaf-model.sh" "$leaf_name")" || resolved_model=""
+  if [[ -n "$resolved_model" ]]; then
+    for arg in "${leaf_args[@]}"; do
+      if [[ "$arg" == "--model" ]]; then
+        echo "verify: VERIFY_LEAF_ARGS carries its own --model and a role model variable resolved '$resolved_model' — which one the leaf would run on is flag order; unset one of them" >&2
+        exit 2
+      fi
+    done
+  fi
 else
   leaf_args=( "${default_leaf_args[@]}" )
-fi
-
-# Two things can name a model for this one leaf, and the pair is refused rather than ranked
-# (issue #171). VERI_MODEL / VERI_MODEL_VERIFIER are resolved by leaf-model.sh in supervise.sh
-# and become `--model <value>` in run-leaf.sh; the caller's own flags above are passed through
-# verbatim, so a `--model` among them lands on the SAME `claude` command line. Which of the two
-# the CLI honours is flag order — a rule veri never chose and cannot see — so the run's `launch`
-# mark would record one model while the leaf ran on the other, and that field is exactly what a
-# per-model cost comparison joins on.
-#
-# Refused before the leaf launches, because a leaf paid for is the cost the refusal exists to
-# save. Exit 2: no answer could be obtained, the plumbing speaking rather than a verdict. A
-# leaf-model.sh refusal (exit 2, whitespace) is read here as "no model chosen" and left to
-# preflight, which runs the resolver once per role before any cycle and reports its diagnostic.
-resolved_model="$("$HERE/leaf-model.sh" "$leaf_name")" || resolved_model=""
-if [[ -n "$resolved_model" ]]; then
-  for arg in "${leaf_args[@]}"; do
-    if [[ "$arg" == "--model" ]]; then
-      echo "verify: VERIFY_LEAF_ARGS carries its own --model and a role model variable resolved '$resolved_model' — which one the leaf would run on is flag order; unset one of them" >&2
-      exit 2
-    fi
-  done
 fi
 
 # Build the blind prompt (exits 2 on unknown phase / unreadable files — propagated).
