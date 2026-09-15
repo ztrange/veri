@@ -19,7 +19,7 @@
 # run afterwards learns the branch is not on the remote.
 set -uo pipefail
 
-here="$(cd "$(dirname "$0")" && pwd)"
+HERE="$(cd "$(dirname "$0")" && pwd)"
 
 # `--set-upstream` so the first call creates the remote branch and later ones fast-forward
 # against it; `HEAD` rather than a branch name so the script reads the branch off the
@@ -27,5 +27,5 @@ here="$(cd "$(dirname "$0")" && pwd)"
 # The push's own output is kept: it is what says WHY the copy did not land, and a reader of
 # the event log gets no second chance to ask git.
 if ! out="$(git push --set-upstream origin HEAD 2>&1)"; then
-  "$here/event.sh" push-failed error="$out"
+  "$HERE/event.sh" push-failed error="$out"
 fi
