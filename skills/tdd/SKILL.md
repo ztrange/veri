@@ -290,8 +290,8 @@ killed-stuck. The reason is read back from `.tdd/verify-<phase>.reason`, the fil
 step takes as a path.
 
 **Never launch a leaf in a background Bash call and then wait for its notification.** The
-conductor often runs as a print-mode session (`claude -p "/tdd <n>"` — the only way
-to run it unattended), and in print mode that notification never arrives: the turn ends, the
+conductor often runs as a print-mode session (`claude -p "/tdd <n>"` — one of the two
+unattended modes below), and in print mode that notification never arrives: the turn ends, the
 `claude -p` process exits, and the leaf is orphaned. The supervisor keeps running it under
 `.tdd/`, but nothing will ever read its result, tick the ledger or narrate the outcome (this
 is how #70 was lost). The detach-then-wait shape behaves identically interactively and
@@ -303,8 +303,7 @@ unattended, so it is the only one this procedure uses.
 that is not where a run belongs. Every leaf is a `claude -p` subprocess, and a session the
 operator is already in is the situation a guard on nested launches refuses; when one fires,
 every leaf of the run dies at launch. Run the conductor from a plain shell **outside** any
-Claude Code session instead — `claude -p "/tdd <n>"` — which is also the only way to run it
-unattended.
+Claude Code session instead — `claude -p "/tdd <n>"`.
 
 **veri never unsets `CLAUDECODE`, or any other such guard, itself.** The binary's refusal
 names the risk it is declining — nested sessions share runtime resources and will crash all
