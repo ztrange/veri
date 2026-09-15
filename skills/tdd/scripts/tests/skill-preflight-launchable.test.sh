@@ -6,13 +6,11 @@
 # `make test`'s glob by existing.
 #
 # Why this exists (issue #187): `leaf-launchable.sh` is the check the earlier steps of this
-# issue built — it probes the leaf binary and refuses with exit 2 when a guard makes it
-# decline to start, the fault that on 2026-09-14 killed every leaf of a resume of #163 after
-# the run had already paid the 93 s baseline, entered a worktree, written the spec and posted
-# a public `### ▶️ Resuming` comment. A script nobody calls changes none of that. There is no
-# script that calls the conductor — the conductor is prose — so the wiring can only be pinned
-# as prose, the way skill-test-command.test.sh pins preflight's call to
-# `detect-test-command.sh`.
+# issue built. What fault it catches, and what a run that misses it has already paid for by
+# the time its first leaf dies, are said in its header (leaf-launchable.sh:4-22), once — and
+# a script nobody calls changes none of it. There is no script that calls the conductor — the
+# conductor is prose — so the wiring can only be pinned as prose, the way
+# skill-test-command.test.sh pins preflight's call to `detect-test-command.sh`.
 #
 # Contract under test (this step only — the check's own behaviour is
 # leaf-launchable.test.sh's, and what the document tells an OPERATOR to type instead is
