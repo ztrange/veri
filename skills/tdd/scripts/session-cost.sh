@@ -317,6 +317,14 @@ def sessions(records):
     return {key: dict(row, verdict=verdict(row["requests"], row["preamble"], row["total"]))
             for key, row in rows.items()}
 
+# What a session row’s harness is CALLED in the report. A record with no `entrypoint` is
+# a conductor — veri launches it with no harness of its own — and that name is a reading of
+# an absent key, not a formatting default, so it is stated once: the per-session rows and
+# the band below both print it, and two spellings would be two chances for the same session
+# to be a `conductor` on one line of the report and a blank on another.
+def harness_label(harness):
+    return harness or "conductor"
+
 def bands(rows):
     """Each harness*s preamble population as (min, median, max), in the order met.
 
@@ -441,7 +449,7 @@ session_rows = sessions(records)
 print("  per session")
 for key, session in session_rows.items():
     print("    %s  %s  preamble %d  final %d  read %d  %s"
-          % (key, session["harness"] or "conductor", session["preamble"],
+          % (key, harness_label(session["harness"]), session["preamble"],
              session["final"], session["total"], session["verdict"]))
 
 # And the preambles of that same list gathered by what opened the session. The rows above
@@ -449,7 +457,7 @@ for key, session in session_rows.items():
 # reader comparing one session against another can see whether they are comparable at all.
 print("  baselines by harness")
 for harness, (low, mid, high) in bands(session_rows).items():
-    print("    %-14s min %d  median %d  max %d" % (harness or "conductor", low, mid, high))
+    print("    %-14s min %d  median %d  max %d" % (harness_label(harness), low, mid, high))
 
 # And last, what this script could not price. A footer rather than a row: it is not a part
 # of the bill above, it is the part of the day the bill above does not cover.
