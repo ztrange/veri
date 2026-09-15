@@ -54,7 +54,7 @@ done
 # handed the rest as argv. Same trap harvest-usage.sh carries.
 python3 -c '
 import json, sys
-from datetime import datetime, timezone
+from datetime import datetime
 
 # Public per-million-token rates, keyed by model family. A table rather than four numbers
 # spelled into the arithmetic below, so the day the prices move there is one place to
