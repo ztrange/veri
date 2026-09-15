@@ -209,6 +209,24 @@ def families(records):
     """
     return [f for f in (family(obj["message"].get("model", "")) for obj in records) if f]
 
+def unpriced(records):
+    """Tokens billed to a model `PRICES` has no rate for, per model id, in the order met.
+
+    Reported rather than dropped, and reported in tokens rather than in money: the request
+    happened and was billed, so leaving it out understates the day as badly as pricing it
+    as a family that was never called. There is no honest third option — a $0.00 beside it
+    would be this script claiming the tokens were free.
+    """
+    rows = {}
+    for obj in records:
+        model = obj["message"].get("model", "")
+        if family(model):
+            continue
+        usage = obj["message"]["usage"]
+        rows[model] = rows.get(model, 0) + sum(
+            count for _, read, _ in KINDS for count in read(usage).values())
+    return rows
+
 def context(usage):
     """Everything the model was HANDED on one request: its input, what it read from the
     cache and what it wrote to it. Output is not context — it is what came back, and a
@@ -289,7 +307,13 @@ since, paths = sys.argv[1], sys.argv[2:]
 # worktrees. A list rather than a stream because the day is walked again per role and once
 # per session, and a generator would be empty by the second pass.
 records = [obj for path in paths for obj in usage_records(path, since)]
-tokens = totals(records)
+
+# The money is the PRICED records alone. A record whose family the table does not know has
+# no rate to be multiplied by, so it is held out of every figure below and named in a
+# footer instead: billing it at whichever family happened to be met first would move all
+# four figures by whatever it spent, and nothing on the page would say so.
+priced = [obj for obj in records if family(obj["message"].get("model", ""))]
+tokens = totals(priced)
 
 # One model family per report at this size, and it is the price table that has to know it:
 # a model the table does not list must not be silently billed as one it does.
@@ -340,7 +364,7 @@ for kind, _, label in KINDS:
     row(label, "%d tokens" % counted[kind], cost[kind])
 row("total", "", bill(tokens))
 for key, label in ROLES:
-    theirs = totals(obj for obj in records if role(obj) == key)
+    theirs = totals(obj for obj in priced if role(obj) == key)
     row(label, "", bill(theirs))
 
 # And then the same day one session at a time, because the split above says a day was
@@ -350,4 +374,12 @@ print("  per session")
 for key, row in sessions(records).items():
     print("    %s  preamble %d  final %d  read %d  %s"
           % (key, row["preamble"], row["final"], row["total"], row["verdict"]))
+
+# And last, what this script could not price. A footer rather than a row: it is not a part
+# of the bill above, it is the part of the day the bill above does not cover.
+strangers = unpriced(records)
+if strangers:
+    print("  not priced, no rate in the table for:")
+    for model, count in strangers.items():
+        print("    %s  %d tokens" % (model, count))
 ' "$since" "${transcripts[@]}"
