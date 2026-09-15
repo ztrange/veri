@@ -39,17 +39,18 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
 ROOT="$(cd "$HERE/../../../.." && pwd)"
 
-# The subject twice, and neither name substitutes for the other: repo-relative is what a
-# failure message quotes, absolute is what copying it into the scratch tree needs.
-SUBJECT='skills/tdd/scripts/tests/docs-read-guard.test.sh'
-SUBJECT_PATH="$ROOT/$SUBJECT"
-SUBJECT_NAME="$(basename "$SUBJECT")"
-
 # Where a suite lives, and so where the scratch tree puts both files: the subject resolves
 # its own repo root four directories up from itself and looks for the guard under this path,
 # so the copy only behaves like the original if it stands in the same shape of tree.
 TESTS_DIR='skills/tdd/scripts/tests'
 GUARD_NAME='no-docs-reads.test.sh'
+
+# The subject twice, and neither name substitutes for the other: bare is what the scratch
+# tree names its copy and what every failure message here says, absolute is what copying it
+# into that tree needs. Built onto TESTS_DIR above rather than spelled out, so the directory
+# a suite lives in is stated in one place.
+SUBJECT_NAME='docs-read-guard.test.sh'
+SUBJECT_PATH="$ROOT/$TESTS_DIR/$SUBJECT_NAME"
 
 pass=0 fail=0
 
