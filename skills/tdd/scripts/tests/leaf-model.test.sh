@@ -45,25 +45,28 @@ report() {
   fi
 }
 
-# model_probe <veri-model> <leaf-name> <want> — one call the script must answer. <veri-model>
-# is the value VERI_MODEL arrives with, or the word `unset` for a run that set none, and
-# <want> is the exact stdout expected — the empty string for the unset run. Separate files
-# per stream, since the case is partly about which stream carries what: a model resolved is
-# not a diagnosable event, so stderr must stay empty in both branches.
+# model_probe <run-wide> <developer> <verifier> <leaf-name> <want> — one call the script
+# must answer, under all three variables. Each is given as its value or as the word `unset`,
+# and <want> is the exact stdout expected — the empty string for a run that chose no model.
+# One probe for every case below: which of the three a leaf reads is the whole subject here,
+# so a probe that could only open one of them could not pose the question, and two probes
+# differing only in how many names they set would be free to drift in how they call the
+# script. Separate files per stream, since the case is partly about which stream carries
+# what: a model resolved is not a diagnosable event, so stderr must stay empty in every
+# branch.
 #
 # `env -u` on all three names clears them for the child only, so the probe never depends on
-# — nor disturbs — what the surrounding run exported.
+# — nor disturbs — what the surrounding run exported; `env` applies its assignments after
+# its `-u`s, so the pair says "these values, nothing ambient" in one list.
 model_probe() {
-  local model="$1" name="$2" want="$3" out err code label
+  local wide="$1" dev="$2" ver="$3" name="$4" want="$5" out err code label
   local -a envargs
   out="$(mktemp)" err="$(mktemp)"
-  label="VERI_MODEL=$model $name"
-  # The three names are cleared for every probe, and the one under test is then set back
-  # for a probe that has a value to give: `env` applies its assignments after its `-u`s, so
-  # the pair says "this value, nothing ambient" in one list. One invocation either way, so
-  # the two branches cannot drift in how they call the script — only in what they export.
+  label="VERI_MODEL=$wide VERI_MODEL_DEVELOPER=$dev VERI_MODEL_VERIFIER=$ver $name"
   envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
-  [[ "$model" == unset ]] || envargs+=(VERI_MODEL="$model")
+  [[ "$wide" == unset ]] || envargs+=(VERI_MODEL="$wide")
+  [[ "$dev" == unset ]] || envargs+=(VERI_MODEL_DEVELOPER="$dev")
+  [[ "$ver" == unset ]] || envargs+=(VERI_MODEL_VERIFIER="$ver")
   env "${envargs[@]}" "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
   [[ "$code" == 0 ]] ||
     problems+=("$label: want exit 0, got $code")
@@ -91,34 +94,11 @@ model_probe() {
 #    carries no `--model` at all.
 name="VERI_MODEL is printed for a leaf of either role; with no model variable set, nothing is printed and the exit is still 0"
 problems=()
-model_probe sonnet develop-red sonnet
-model_probe sonnet verify-green sonnet
-model_probe unset develop-red ""
-model_probe unset verify-green ""
+model_probe sonnet unset unset develop-red  sonnet
+model_probe sonnet unset unset verify-green sonnet
+model_probe unset unset unset develop-red  ""
+model_probe unset unset unset verify-green ""
 report "$name"
-
-# role_probe <run-wide> <developer> <verifier> <leaf-name> <want> — one call under all three
-# variables, each given as its value or as the word `unset`. Same probe as model_probe above
-# but with the two role names openable, since this case's whole subject is which of the three
-# a leaf reads: a probe that could only set the run-wide one could not pose the question.
-role_probe() {
-  local wide="$1" dev="$2" ver="$3" name="$4" want="$5" out err code label
-  local -a envargs
-  out="$(mktemp)" err="$(mktemp)"
-  label="VERI_MODEL=$wide VERI_MODEL_DEVELOPER=$dev VERI_MODEL_VERIFIER=$ver $name"
-  envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
-  [[ "$wide" == unset ]] || envargs+=(VERI_MODEL="$wide")
-  [[ "$dev" == unset ]] || envargs+=(VERI_MODEL_DEVELOPER="$dev")
-  [[ "$ver" == unset ]] || envargs+=(VERI_MODEL_VERIFIER="$ver")
-  env "${envargs[@]}" "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("$label: want exit 0, got $code")
-  [[ "$(cat "$out")" == "$want" ]] ||
-    problems+=("$label: want $(printf '%q' "$want") on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ ! -s "$err" ]] ||
-    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
-  rm -f "$out" "$err"
-}
 
 # 2. One role variable is set alongside VERI_MODEL, and the leaves of both roles are asked.
 #    Precedence alone would be half the criterion — a script that simply preferred whichever
@@ -131,12 +111,12 @@ role_probe() {
 #    VERI_MODEL_DEVELOPER must reach it too.
 name="a role variable beats VERI_MODEL for that role's leaves only"
 problems=()
-role_probe sonnet unset opus develop-red    sonnet
-role_probe sonnet unset opus revise-green-2 sonnet
-role_probe sonnet unset opus verify-green   opus
-role_probe sonnet opus unset develop-red    opus
-role_probe sonnet opus unset revise-green-2 opus
-role_probe sonnet opus unset verify-green   sonnet
+model_probe sonnet unset opus develop-red    sonnet
+model_probe sonnet unset opus revise-green-2 sonnet
+model_probe sonnet unset opus verify-green   opus
+model_probe sonnet opus unset develop-red    opus
+model_probe sonnet opus unset revise-green-2 opus
+model_probe sonnet opus unset verify-green   sonnet
 report "$name"
 
 echo "----"
