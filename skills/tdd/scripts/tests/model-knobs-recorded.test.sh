@@ -159,6 +159,7 @@ says() {
 # Written once because both documents owe it and a copy that drifted would leave one of
 # them held to a shorter list than the other.
 names_all_three() {
+  local what="$1"
   says "$what — it names no single passage carrying VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER" \
     "$MODEL_ANY" "$MODEL_DEV" "$MODEL_VER"
 }
@@ -171,8 +172,7 @@ probe_skill_bullet_lists_the_tunables() {
     "$skill_md has no top-level 'supervise.sh' bullet to read, so the tunables an operator looks up beside VERI_TIMEOUT could not be found" \
     || return
 
-  what="lists the three model tunables beside the ones it already lists"
-  names_all_three
+  names_all_three "lists the three model tunables beside the ones it already lists"
 }
 
 # probe_claude_md_names_them_and_why — the document an agent reads first, and the two facts
@@ -183,8 +183,7 @@ probe_skill_bullet_lists_the_tunables() {
 probe_claude_md_names_them_and_why() {
   need_records "$claude_path" "$claude_md" || return
 
-  what="names the three model tunables"
-  names_all_three
+  names_all_three "names the three model tunables"
 
   says "why the developer's and the verifier's models are separate knobs — the two roles named, that the knobs are not one, and how each one's regression shows up: a changed verdict distribution against more revise cycles" \
     'developer' \
@@ -201,7 +200,6 @@ probe_claude_md_names_them_and_why() {
 #    document.
 name="$skill_md's supervise.sh bullet and $claude_md name VERI_MODEL, VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER, and $claude_md says why developer and verifier are separate knobs"
 problems=()
-what=""
 
 probe_skill_bullet_lists_the_tunables
 probe_claude_md_names_them_and_why
