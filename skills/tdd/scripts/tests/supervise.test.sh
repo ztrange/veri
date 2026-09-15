@@ -717,25 +717,36 @@ harvest_fail_recorded="$(cat "$harvest_fail_work/.tdd/develop-red.exit" 2>/dev/n
 #     not carry, so the empty half is a real assertion and not a comparison that passes on
 #     absence.
 #
-#     The unset probe unsets all three names itself rather than trusting the shell that ran
-#     `make test` (issue #87's rule, and this issue's own: a suite's answer is a fact about
-#     the script, not about the caller's environment) — in a subshell, because `sup_run`
-#     applies its pinned assignments through `env` and BSD `env` reads a `-u` after those as
-#     the utility to run. The set probe is given its value the way case 17 gives its
-#     heartbeat, in front of `"$SUP"`, inside the same subshell so an ambient
-#     `VERI_MODEL_DEVELOPER` cannot outrank it and turn the case red for the caller's shell.
-#
 #     A `develop-red` leaf, and a value written once into a variable used both to launch and
 #     to expect — cases 12, 15 and 16's shape. A directory per probe, for case 12's reason:
 #     the event log accumulates across a run, and `event_field` demands exactly one line of
 #     the kind it is asked for.
 model_work="$work/model"
 model_value=sonnet
-( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
-  sup_run "$model_work/set" VERI_MODEL="$model_value" "$SUP" develop-red "$stub/leaf-ok" )
+
+# model_run <arm> [assignment…] — supervise one `develop-red` leaf in its own directory under
+# $model_work, named for the arm, with none of the run's three model variables set unless this
+# arm sets one. Case 14's arm-runner shape, and for its reason: what the two arms share — the
+# leaf, the name, the directory scheme, and the unsetting below — is written down once, so the
+# arms differ by exactly the thing the case is about.
+#
+# The unsetting is this suite's own rather than the caller's to get right (issue #87's rule,
+# and this issue's own: a suite's answer is a fact about the script, not about the caller's
+# environment). It has to happen in a subshell: `sup_run` applies its pinned assignments
+# through `env`, and BSD `env` reads a `-u` after those as the utility to run.
+#
+# An arm's own value rides in front of `"$SUP"` the way case 17's heartbeat does, inside that
+# same subshell — so it is applied after the unsetting and an ambient `VERI_MODEL_DEVELOPER`
+# cannot outrank the arm and turn the case red for the caller's shell.
+model_run() {
+  local arm="$1"; shift
+  ( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
+    sup_run "$model_work/$arm" "$@" "$SUP" develop-red "$stub/leaf-ok" )
+}
+
+model_run set VERI_MODEL="$model_value"
 model_set_code=$?
-( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
-  sup_run "$model_work/unset" "$SUP" develop-red "$stub/leaf-ok" )
+model_run unset
 model_unset_code=$?
 # Each field read once, into a variable the assertion and the failure message share — cases
 # 9, 11, 12, 13, 15, 16, 17 and 18's shape.
@@ -745,7 +756,6 @@ model_unset_got="$(event_field "$model_work/unset" launch model)"
   && [[ "$model_set_got"   == "$model_value" ]] \
   && [[ "$model_unset_got" == "" ]]; } && ok \
   || no "the launch event carries the resolved model, and an empty one when the run chose none (VERI_MODEL=$model_value: code=$model_set_code model=$model_set_got want $model_value; none set: code=$model_unset_code model=$(printf '%q' "$model_unset_got") want '')"
-
 
 echo "----"
 echo "$pass passed, $fail failed"
