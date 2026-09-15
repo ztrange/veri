@@ -7,13 +7,12 @@
 #
 # Why this exists (issue #187): `/tdd <n>` is a skill, so it can be typed inside an
 # interactive Claude Code session — and on 2026-09-14, resuming #163, that is what happened.
-# The binary refused every leaf launch with "cannot be launched inside another Claude Code
-# session … unset the CLAUDECODE environment variable", after the run had already paid the
-# 93 s baseline, entered a worktree, written the spec and posted a public `### ▶️ Resuming`
-# comment. `leaf-launchable.sh` now catches that class of fault before any of it — but a
-# check that refuses is only half an answer. The operator it refuses needs to be told what
-# to do instead, and that sentence has never been written down: every run to date was
-# launched from a plain shell by habit, not because the document said so.
+# What the binary then refused, and what the run had already paid for by then, are said in
+# `leaf-launchable.sh`'s header (leaf-launchable.sh:4-22), once; that script now catches the
+# class of fault before any of it — but a check that refuses is only half an answer. The
+# operator it refuses needs to be told what to do instead, and that sentence has never been
+# written down: every run to date was launched from a plain shell by habit, not because the
+# document said so.
 #
 # The second half is a decision, not a convenience. The binary's own message offers a way
 # out — unset the variable — and veri declining to take it is a choice that has to be on the
