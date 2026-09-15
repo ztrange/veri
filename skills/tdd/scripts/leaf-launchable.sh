@@ -31,16 +31,17 @@ set -uo pipefail
 #
 # stdout is discarded rather than shown: what the probe prints when it SUCCEEDS is a version
 # string nobody asked for, and this script's stdout is reserved for saying nothing.
+leaf_bin="${CLAUDE_BIN:-claude}"
 probe_err="$(mktemp)"
 trap 'rm -f "$probe_err"' EXIT
-"${CLAUDE_BIN:-claude}" --version >/dev/null 2>"$probe_err" && exit 0
+"$leaf_bin" --version >/dev/null 2>"$probe_err" && exit 0
 
 # The refusal quotes what the binary SAID rather than naming a cause of its own. A fixed
 # message here would report the fault veri guessed at; the binary's own words report the one
 # it hit, which is what keeps this a check about the capability when the next guard arrives
 # under a different name.
 {
-  echo "leaf-launchable: the leaf binary (${CLAUDE_BIN:-claude}) could not be launched, so every leaf of this run would die at launch. It said:"
+  echo "leaf-launchable: the leaf binary ($leaf_bin) could not be launched, so every leaf of this run would die at launch. It said:"
   sed 's/^/    /' "$probe_err"
   echo "Run the conductor from a plain shell instead — the supported invocation is:"
   echo '    claude -p "/tdd <issue-number>"'
