@@ -261,15 +261,19 @@ fold_bullets() {
        END { if (rec != "") print rec }' | tr '[:upper:]' '[:lower:]'
 }
 
-# inputs_bullets <skill-md> — the bullets of the `## Inputs` section alone. The section is cut
-# out first because the words the case below looks for all occur again further down, in the
-# loop the move folded in, so a file-wide read would answer "yes" for a section that still
-# said only "the issue number".
-inputs_bullets() {
+# inputs_text <skill-md> — the `## Inputs` section verbatim. The section is cut out because
+# the words the cases below look for all occur again further down, so a file-wide read would
+# answer "yes" for a section that still said only "the issue number".
+inputs_text() {
   awk '/^## Inputs$/ { inside = 1; next }
        inside && /^## / { exit }
-       inside' "$1" | fold_bullets
+       inside' "$1"
 }
+
+# inputs_bullets <skill-md> — the bullets of that section alone, folded. The section is read
+# both ways: as bullets, by case 6, for the three-way resolution; and unfolded, by
+# `loop_md_path`, for the pointer — a filename is prose, not necessarily inside a bullet.
+inputs_bullets() { inputs_text "$1" | fold_bullets; }
 
 # claim <what one bullet must say> <regex>… — assert that a single line of the global
 # `bullets` matches every <regex>, recording a problem naming <what> if none does. Each claim
@@ -292,15 +296,6 @@ claim() {
     return 0
   done <<< "$bullets"
   problems+=("$bullets_from: no bullet $what")
-}
-
-# inputs_text <skill-md> — the `## Inputs` section verbatim, cut the same way
-# inputs_bullets cuts it but left unfolded: the pointer cases 6 and 7 follow is a filename,
-# which is prose and not necessarily inside a bullet.
-inputs_text() {
-  awk '/^## Inputs$/ { inside = 1; next }
-       inside && /^## / { exit }
-       inside' "$1"
 }
 
 # loop_md_path <skill-md> — the repo-relative path of the sibling file `## Inputs` sends a
