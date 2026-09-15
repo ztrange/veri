@@ -409,6 +409,60 @@ expect_split
 report "$name"
 
 
+# 5. `--since` is a WINDOW, not a label. The report is read to answer "what did today
+#    cost", and a transcript is not one day: a session's file accumulates every request it
+#    ever made, and the long-lived operator session the issue is named for spans days. So a
+#    record whose local day falls before the date given is not this report's, and dropping
+#    it is the whole of what the flag does.
+#
+#    Both halves are pinned in one fixture, because a window needs both answers: a reader
+#    that let everything through and one that let nothing through would each satisfy half
+#    of this case on its own. One request on 2026-09-13 must be gone; one on 2026-09-14
+#    must be there, and its figures are what the report states.
+#
+#    The day is read LOCAL — `TZ=UTC` on the run below fixes which local day each UTC
+#    stamp falls on, so the case answers that question itself rather than inheriting the
+#    machine's zone. The two stamps sit mid-afternoon on their own days rather than either
+#    side of midnight: where exactly a local day starts is its own question, and this case
+#    takes no position on it.
+#
+#    The figures a reader that summed BOTH requests lands on are $1.50 read, $3.75 write,
+#    $1.20 output and $6.45 total — no digits in common with the four below in the places
+#    `figure` anchors on, so this case cannot go green on a window it never applied.
+name="--since: a record before the window is excluded, one inside it is counted"
+problems=()
+
+transcript="$work/c5a8f30d-9b71-42e6-8d04-5f71e9b2c6a7.jsonl"
+
+# The two requests' usage. `before` is the one that must not reach the arithmetic at all;
+# `inside` is the one the expectations below are computed from.
+before_read=300000 ; before_write=80000  ; before_out=6800 ; before_in=2
+inside_read=700000 ; inside_write=120000 ; inside_out=9200 ; inside_in=2
+
+# What the INSIDE request alone comes to, at the rates in the header:
+#   cache read   700000 tokens x $1.50/M  = $1.05
+#   cache write  120000 tokens x $18.75/M = $2.25
+#   output         9200 tokens x $75.00/M = $0.69
+#   input             2 tokens x $15.00/M = $0.00 (below the cent the report prints)
+#   total                                   $3.99
+want_read_cost=1.05
+want_write_cost=2.25
+want_output_cost=0.69
+want_total_cost=3.99
+
+cat > "$transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-13T16:22:40.118Z","requestId":"req_011CSEiV0xYzF6lBdJ9wQs3e","sessionId":"c5a8f30d-9b71-42e6-8d04-5f71e9b2c6a7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$before_in,"cache_creation_input_tokens":$before_write,"cache_creation":{"ephemeral_5m_input_tokens":$before_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$before_read,"output_tokens":$before_out}}}
+{"type":"assistant","timestamp":"2026-09-14T14:07:33.902Z","requestId":"req_011CSFjW1yZaG7mCeK0xRt4f","sessionId":"c5a8f30d-9b71-42e6-8d04-5f71e9b2c6a7","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$inside_in,"cache_creation_input_tokens":$inside_write,"cache_creation":{"ephemeral_5m_input_tokens":$inside_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$inside_read,"output_tokens":$inside_out}}}
+TRANSCRIPT
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$transcript" 2>&1)"
+code=$?
+
+expect_split
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
