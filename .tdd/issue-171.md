@@ -1,7 +1,7 @@
 # Plan for #171 — Each leaf role's model is a tunable, so a run can put developer leaves on Sonnet
 
 - [x] leaf-model.sh prints VERI_MODEL for a leaf of either role, and nothing when no variable is set
-- [x] A role variable beats VERI_MODEL for that role's leaves only — VERI_MODEL_DEVELOPER for develop-* and revise-*, VERI_MODEL_VERIFIER for verify-* ⟂ refactor pending
+- [x] A role variable beats VERI_MODEL for that role's leaves only — VERI_MODEL_DEVELOPER for develop-* and revise-*, VERI_MODEL_VERIFIER for verify-*
 - [ ] leaf-model.sh exits 2 with a diagnostic on a value containing whitespace and on a leaf name leaf-role.sh refuses, while opus[1m] is accepted
 - [ ] supervise.sh resolves the model once beside the role, and its launch event carries model= — the resolved value, or "" when none
 - [ ] A supervised leaf's claude argv carries --model only when the resolved model is non-empty, byte-identical to today when unset
