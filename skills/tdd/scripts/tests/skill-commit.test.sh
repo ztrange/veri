@@ -15,6 +15,9 @@
 # Contract under test (this step only):
 #   SKILL.md's plan-comment step says that comment names the skill commit the run started
 #   on, beside the test command and the timeout it already states.
+#   SKILL.md's own account of `$S` says the directory tracks the installed skill and so can
+#   change under a running conductor, and names the event log as what records which commit
+#   each leaf was launched under.
 #
 # Run: scripts/tests/skill-commit.test.sh
 set -uo pipefail
@@ -108,6 +111,65 @@ if need_section '### 2. Scope & plan' 'what the plan comment states could not be
       grep -qE "$re" <<< "$plan_item" ||
         problems+=("$skill_md's plan-comment item never says '$re', so the comment does not name the skill commit the run started on and the thread cannot say which version produced it: $(printf '%.120s' "$plan_item")")
     done
+  fi
+fi
+report "$name"
+
+# paragraphs — the current section's PROSE, one paragraph per line and lowercased: runs of
+# non-blank lines that are neither a heading nor part of a list item, joined. The list is
+# cut out on purpose. The `$S/event.sh` bullet already names the event log, describing what
+# that script appends; the claim below is about what the document tells a reader about the
+# directory `$S` points at, which is prose or it is nowhere — so a bullet must not be able
+# to answer for it. `in_item` is what carries a bullet's indented continuation lines, since
+# those are not blank and would otherwise read as prose.
+paragraphs() {
+  awk -v s="$sec_start" -v e="$sec_end" '
+    NR < s || NR > e { next }
+    /^#/ { next }
+    /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; in_item = 0; next }
+    /^([0-9]+\.|[-*]) / { in_item = 1; next }
+    in_item { next }
+    { rec = (rec == "" ? $0 : rec " " $0) }
+    END { if (rec != "") print rec }' "$md" | tr '[:upper:]' '[:lower:]'
+}
+
+# claim <what one paragraph must say> <regex>… — assert that a single line of the global
+# `paras` matches every <regex>, recording a problem naming <what> otherwise. All of a
+# claim's regexes are asked of ONE paragraph because a pair split across two is not a
+# statement: the fact only reaches the reader if the sentence that raises the risk is the
+# one that says where the answer is recorded. `continue 2` takes the next paragraph, so a
+# paragraph matching some but not all of a pair is simply not the one.
+claim() {
+  local what="$1" line re
+  shift
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return 0
+  done <<< "$paras"
+  problems+=("$skill_md's 'The scripts' prose: no paragraph $what")
+}
+
+# 2. What the document tells the conductor about the ground it is standing on. `$S` is the
+#    installed skill, which here is a symlink into a clone that `main` moves under it, so a
+#    run can execute one commit's scripts under another commit's prose. Nothing in the
+#    procedure prevents that — this cycle's decision was to record the version rather than
+#    pin it — so the document must say both halves: that the ground moves, and where a
+#    reader goes to find out whether it moved under their run. A session told only the
+#    first has been warned of a hazard it cannot check.
+name="$skill_md says \$S tracks the installed skill, may change mid-run, and that the event log records each leaf's commit"
+problems=()
+
+if need_section '## The scripts' 'what the document says about the directory $S points at could not be read'; then
+  paras="$(paragraphs)"
+  if [[ -z "$paras" ]]; then
+    problems+=("$skill_md's 'The scripts' section has no prose paragraphs — what it says about \$S could not be read")
+  else
+    claim 'says the installed skill can change under a running conductor' \
+      'chang|move|update' 'conductor|mid-run|running|under a run'
+    claim 'names the event log as what records which commit each leaf used' \
+      'event log|events\.jsonl' 'commit'
   fi
 fi
 report "$name"

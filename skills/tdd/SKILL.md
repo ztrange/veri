@@ -64,6 +64,14 @@ skill whether it lives in the target repo's `.claude/skills/` or is symlinked in
 `~/.claude/skills/` for use from any repo — never assume a repo-relative path. All leaf
 machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
 
+`$S` tracks the **installed** skill, not a snapshot of it: here that path is a symlink into
+a clone parked on `main`, so a PR landing while you work changes the scripts and templates
+under a running conductor — and you are still following the `SKILL.md` text you loaded at
+start. Nothing here pins it; what it does instead is record it. Every launch `supervise.sh`
+makes writes the commit it ran under to the event log (`.tdd/events.jsonl`, key
+`skill_commit`), so a run whose skill moved mid-flight is the sha changing partway down that
+file, and a run's narration can be read against the version that actually produced it.
+
 - `$S/supervise.sh <name> <cmd> [args...]` — **the leaf launcher.** Spawns `<cmd>` under a
   heartbeat + hard-timeout watchdog, owns the `.tdd/<name>.log` progress log, and returns
   the captured output on stdout. **Exit 0 = success, 1 = leaf-failure, 2 = killed-stuck**
