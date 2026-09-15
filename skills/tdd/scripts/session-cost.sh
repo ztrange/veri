@@ -298,8 +298,14 @@ def sessions(records):
         # request is the one whose figures a second spelling would get to state alone.
         # The PREAMBLE is the exception and the reason the default is written here: it is
         # the first request*s context and no later one touches it again.
+        # The HARNESS that opened the session, read off `entrypoint`, is the first
+        # request*s too: nothing else on a record says whether a preamble is a desktop
+        # app*s, a terminal*s or a leaf*s, and a baseline is only comparable against
+        # another of the same kind — a conductor and a terminal session sit 350 tokens
+        # apart in one project directory.
         row = rows.setdefault(obj.get("sessionId", ""),
-                              {"requests": 0, "preamble": weight, "final": 0, "total": 0})
+                              {"requests": 0, "preamble": weight, "final": 0, "total": 0,
+                               "harness": obj.get("entrypoint", "")})
         row["requests"] += 1
         row["final"] = weight
         row["total"] += weight
@@ -310,6 +316,22 @@ def sessions(records):
     # off the report.
     return {key: dict(row, verdict=verdict(row["requests"], row["preamble"], row["total"]))
             for key, row in rows.items()}
+
+def bands(rows):
+    """Each harness*s preamble population as (min, median, max), in the order met.
+
+    A band rather than one number because one number from a population of sessions is a
+    number that might be the outlier: the wrong conclusion this reports exists to prevent
+    was drawn by comparing two single baselines, one of which was not the harness it was
+    taken for. The median is the middle of the sorted preambles — for an even group, the
+    upper of the middle pair, which is a convention and not a measurement.
+    """
+    groups = {}
+    for row in rows.values():
+        groups.setdefault(row["harness"], []).append(row["preamble"])
+    return {harness: (seen[0], seen[len(seen) // 2], seen[-1])
+            for harness, seen in ((harness, sorted(seen))
+                                  for harness, seen in groups.items())}
 
 # Which of the two ROLES a record belongs to. `entrypoint` is what Claude Code writes to
 # say how the session was started, and `sdk-cli` is the one veri launches: `claude -p`,
@@ -415,10 +437,19 @@ for key, label in ROLES:
 # And then the same day one session at a time, because the split above says a day was
 # expensive without saying which session made it so. The row carries the three context
 # figures and, when they say it, the word.
+session_rows = sessions(records)
 print("  per session")
-for key, row in sessions(records).items():
-    print("    %s  preamble %d  final %d  read %d  %s"
-          % (key, row["preamble"], row["final"], row["total"], row["verdict"]))
+for key, session in session_rows.items():
+    print("    %s  %s  preamble %d  final %d  read %d  %s"
+          % (key, session["harness"] or "conductor", session["preamble"],
+             session["final"], session["total"], session["verdict"]))
+
+# And the preambles of that same list gathered by what opened the session. The rows above
+# say what each session*s floor was; this says what a floor of that KIND looks like, so a
+# reader comparing one session against another can see whether they are comparable at all.
+print("  baselines by harness")
+for harness, (low, mid, high) in bands(session_rows).items():
+    print("    %-14s min %d  median %d  max %d" % (harness or "conductor", low, mid, high))
 
 # And last, what this script could not price. A footer rather than a row: it is not a part
 # of the bill above, it is the part of the day the bill above does not cover.
