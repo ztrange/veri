@@ -243,6 +243,15 @@ def costed(tokens):
         for kind, _, _ in KINDS
     }
 
+def bill(tokens):
+    """What a bundle of tokens comes to in money, every kind of it summed.
+
+    The one arithmetic a row that is a single figure does — the day’s total, a role’s —
+    so it is spelled once: two spellings of it are two chances for one of the rows to come
+    to be a sum of three kinds while the other is a sum of four.
+    """
+    return sum(costed(tokens).values())
+
 cost = costed(tokens)
 counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 
@@ -253,8 +262,8 @@ counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 print("since %s  %d transcript(s)" % (since, len(paths)))
 for kind, _, label in KINDS:
     print("  %-12s %12d tokens   $%.2f" % (label, counted[kind], cost[kind]))
-print("  %-12s %12s           $%.2f" % ("total", "", sum(cost.values())))
+print("  %-12s %12s           $%.2f" % ("total", "", bill(tokens)))
 for key, label in ROLES:
     theirs, _ = totals(obj for obj in records if role(obj) == key)
-    print("  %-12s %12s           $%.2f" % (label, "", sum(costed(theirs).values())))
+    print("  %-12s %12s           $%.2f" % (label, "", bill(theirs)))
 ' "$since" "${transcripts[@]}"
