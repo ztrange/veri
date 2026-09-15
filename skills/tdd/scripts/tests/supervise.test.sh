@@ -757,6 +757,73 @@ model_unset_got="$(event_field "$model_work/unset" launch model)"
   && [[ "$model_unset_got" == "" ]]; } && ok \
   || no "the launch event carries the resolved model, and an empty one when the run chose none (VERI_MODEL=$model_value: code=$model_set_code model=$model_set_got want $model_value; none set: code=$model_unset_code model=$(printf '%q' "$model_unset_got") want '')"
 
+# 20. the resolved model reaches the leaf's own `claude` argv as `--model <value>` — and the
+#     argv is byte-identical to today's when the run chose no model (issue #171). Case 19
+#     pins what the run LOG says the leaf ran on; this one pins what the leaf was actually
+#     run with, and the two are not the same claim: a `model=sonnet` line over a `claude`
+#     invocation that never carried the flag would report an experiment nobody ran, and the
+#     verdict distribution it was kept or dropped on would be the old model's.
+#
+#     The unset arm is asserted against the WHOLE argv, not against the absence of a
+#     `--model` word: "no override" has to leave the command line exactly as it is today,
+#     and an extra flag, a reordering or a dropped `--verbose` would all be invisible to a
+#     grep for one word. The set arm is asserted as the adjacent pair instead — the flag and
+#     its value, in that order — because where in the line it lands is the implementation's
+#     business and pinning its position here would make a legal spelling red.
+#
+#     The leaf is `run-leaf.sh` itself rather than one of this file's stubs, since the argv
+#     under test is built there; the `claude` behind it is a stub recording its arguments,
+#     the shape run-leaf.test.sh already uses. A directory per arm, for case 12's reason,
+#     and a value written once and used both to launch and to expect — cases 12, 15, 16 and
+#     19's shape.
+argv_work="$work/argv"
+argv_model=sonnet
+argv_prompt='pin the argv'
+mkdir -p "$argv_work"
+printf '%s' "$argv_prompt" > "$argv_work/prompt.txt"
+
+# The recording `claude`: argv one word per line, then the minimal stream-json stream
+# run-leaf.sh's own suite emits, so extract-result.sh at the foot of run-leaf finds a result
+# to append and the supervision ends 0 rather than on a parse failure this case is not about.
+cat > "$stub/claude-argv" <<'L'
+#!/usr/bin/env bash
+printf '%s\n' "$@" > "$ARGV_OUT"
+printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+L
+chmod +x "$stub/claude-argv"
+
+# argv_run <arm> [assignment…] — supervise one `develop-red` leaf whose command is run-leaf.sh
+# against the recording stub, in its own directory under $argv_work, with none of the run's
+# three model variables set unless this arm sets one. Case 19's arm-runner, and for its
+# reasons: the unsetting is this suite's own rather than the caller's to get right (issue
+# #87), it happens in a subshell because BSD `env` would read a `-u` after its assignments as
+# the utility to run, and an arm's own value rides in front of `"$SUP"` so the unsetting
+# cannot outrank it.
+argv_run() {
+  local arm="$1"; shift
+  ( unset VERI_MODEL VERI_MODEL_DEVELOPER VERI_MODEL_VERIFIER
+    sup_run "$argv_work/$arm" CLAUDE_BIN="$stub/claude-argv" ARGV_OUT="$argv_work/$arm.argv" \
+      "$@" "$SUP" develop-red "$HERE/../run-leaf.sh" "$argv_work/prompt.txt" )
+}
+
+argv_run set VERI_MODEL="$argv_model"
+argv_set_code=$?
+argv_run unset
+argv_unset_code=$?
+# Today's argv, spelled out: what run-leaf.sh builds for a leaf no model was chosen for
+# (run-leaf.sh:44). Written as the same one-word-per-line rendering the stub records, so the
+# comparison is of the whole command line and not of a summary of it.
+argv_today="$(printf '%s\n' -p "$argv_prompt" --output-format stream-json --verbose)"
+# Each fact read once, into the variable the assertion and the failure message share — cases
+# 9, 11, 12, 13, 15, 16, 17, 18 and 19's shape.
+argv_set_got="$(cat   "$argv_work/set.argv"   2>/dev/null || echo '<<no argv>>')"
+argv_unset_got="$(cat "$argv_work/unset.argv" 2>/dev/null || echo '<<no argv>>')"
+{ [[ "$argv_set_code" == 0 ]] && [[ "$argv_unset_code" == 0 ]] \
+  && [[ "$argv_set_got"   == *"--model"$'\n'"$argv_model"* ]] \
+  && [[ "$argv_unset_got" == "$argv_today" ]]; } && ok \
+  || no "a supervised leaf's claude argv carries --model only when the run chose a model (VERI_MODEL=$argv_model: code=$argv_set_code argv=$(printf '%q' "$argv_set_got") want a --model/$argv_model pair; none set: code=$argv_unset_code argv=$(printf '%q' "$argv_unset_got") want $(printf '%q' "$argv_today"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -35,7 +35,10 @@
 #
 # Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
-# attempts after the first when a leaf is killed-stuck (default 1).
+# attempts after the first when a leaf is killed-stuck (default 1) · VERI_MODEL /
+# VERI_MODEL_DEVELOPER / VERI_MODEL_VERIFIER the model this leaf's role runs on, resolved
+# through leaf-model.sh and exported to the leaf as VERI_LEAF_MODEL (all unset by default,
+# which is no `--model` flag at all).
 set -uo pipefail
 
 name="${1:?usage: supervise.sh <name> <cmd> [args...]}"
@@ -148,6 +151,15 @@ role="$("$HERE/leaf-role.sh" "$name")" || role=""
 # network — leaves this empty the way `role` is left empty above; a bad value is preflight's
 # to stop, before any leaf.
 model="$("$HERE/leaf-model.sh" "$name")" || model=""
+
+# Exported, because the leaf is a command this script does not build: `supervise.sh <name>
+# <cmd> [args…]` is handed an argv and runs it verbatim, so the choice cannot be spliced into
+# it as a flag without this script knowing which of its callers' command lines would accept
+# one. The environment is the seam every leaf already inherits, and `run-leaf.sh` — the one
+# place a `claude` command line is built — turns a non-empty value into `--model <value>` and
+# an empty one into no flag at all. Empty is exported too rather than left unset, so a leaf
+# cannot inherit a stale value from the conductor's own shell.
+export VERI_LEAF_MODEL="$model"
 
 # mark <event> [key=value …] — append one line to the run's event log (issue #107,
 # ADR-0014), or nothing at all. Both marks below go through here, so what the two have in
