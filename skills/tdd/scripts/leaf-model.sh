@@ -55,6 +55,26 @@ role_var="VERI_MODEL_$(printf '%s' "$actor" | tr '[:lower:]' '[:upper:]')"
 # makes "set VERI_MODEL, override one role" the shape the issue asks for.
 model="${!role_var:-${VERI_MODEL:-}}"
 
+# Whitespace in the value is the one thing this script can refuse without asking a network
+# what a model id is: `claude --model "sonnet 5"` is a SINGLE argument, and no alias or id is
+# spelled with a space in it, so the value cannot be a model whatever the CLI's vocabulary
+# grows to hold. Refused here rather than at launch because preflight runs this script once
+# per role before any branch or leaf, so the run stops at the typo instead of paying a whole
+# leaf to discover it. The test is the resolved value, not each variable, since the refusal is
+# of what reached the command line — a role variable's whitespace is the same wrong argv as
+# VERI_MODEL's. Only whitespace: `opus[1m]` is what the development machine actually runs on,
+# so a guard written as "plain alphanumeric only" would take the brackets with the spaces and
+# break every leaf.
+#
+# Exit 2 — no answer could be obtained, the plumbing speaking rather than a clean negative —
+# with the diagnostic on stderr and stdout left empty, the same shape leaf-role.sh refuses in:
+# supervise.sh reads this in a command substitution, so a refused value half-printed on stdout
+# would reach `--model` anyway, which is the failure the refusal exists to stop.
+if [[ "$model" =~ [[:space:]] ]]; then
+  echo "leaf-model: model '$model' contains whitespace (a model id or alias is one word)" >&2
+  exit 2
+fi
+
 # The empty case exits without printing rather than echoing an empty line, so "no model
 # chosen" is the absence of output. A caller reading this in a command substitution gets
 # the same empty string either way, but one that pipes or tees it sees the difference.
