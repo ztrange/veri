@@ -11,17 +11,18 @@
 # tree carry every request of every session, leaf and interactive alike, and this script is
 # the reader of those.
 #
-# Contract under test, for this step:
-#   session-cost.sh --since <ISO date> <transcript.jsonl>
+# Contract under test, so far:
+#   session-cost.sh --since <ISO date> [<transcript.jsonl>]
 #     → exit 0, and a report on stdout whose money is split three ways — what the cache
-#       READS cost, what the cache WRITES cost, what the OUTPUT cost — and totalled.
+#       READS cost, what the cache WRITES cost, what the OUTPUT cost — and totalled. With
+#       a transcript named, that one file is the day; with none, the day is every project
+#       directory whose slug is prefixed by the repo root's (case 2).
 #
-# The transcript is named on the command line rather than discovered. Discovery is the
-# next step's criterion ("every project directory whose slug is prefixed by the repo
-# root's slug"), and a suite here may not read a path under the real `~/.claude/projects`
+# Case 1 names the transcript on the command line, which is what lets it be about the
+# ARITHMETIC alone: given these records, these three figures and their sum. Whichever way
+# the files are found, a suite here may not read a path under the real `~/.claude/projects`
 # — nothing in this tree is allowed to depend on what the operator's machine happens to
-# hold. Naming the file is what lets this case be about the ARITHMETIC alone: given these
-# records, these three figures and their sum.
+# hold — so case 2 points `HOME` at a projects tree it wrote itself.
 #
 # Why the three figures and not one: the day the issue measured was 51% cache read, 34%
 # cache write and 14% output, and the action each number implies is different — reads are
@@ -161,6 +162,104 @@ figure "total cost"       'total'        "$want_total_cost"
 [[ "${#problems[@]}" -eq 0 ]] ||
   problems+=("the report was: $(printf '%q' "$out")")
 
+report "$name"
+
+
+# 2. The repo's spend is not in one project directory. Claude Code names a project
+#    directory after the working directory it was started in, slugged — every `/` a `-` —
+#    so the main clone has one directory and EVERY worktree cut under it has its own:
+#    `…-ztrange-veri`, `…-ztrange-veri--tdd-wt-193`, `…-ztrange-veri--claude-worktrees-x`.
+#    A run happens in a worktree, so a reader that matched the repo root's slug exactly
+#    would report the operator's own session and miss the runs — most of the spend. The
+#    criterion is therefore the PREFIX: every project directory whose slug starts with the
+#    repo root's is this repo's, and they are summed into one report.
+#
+#    The three halves of that, all pinned here because the predicate is what is under test
+#    and a predicate needs both answers: the exact slug is in, a longer slug that extends
+#    it is in, and an unrelated repo's slug is OUT.
+#
+#    Hermetic by construction, and it has to be: a suite here may never read a path under
+#    the real `~/.claude/projects` — what that tree holds is whatever the operator's machine
+#    happened to do. So the case builds its own: `HOME` points at a scratch directory, and
+#    the repo root is a throwaway `git init` the script is invoked from, so the slug under
+#    test is one this case wrote rather than one it found.
+name="project directories: every slug prefixed by the repo root's is summed, an unrelated one is not"
+problems=()
+
+# A scratch tree with NO dot in its path — `mktemp -d`'s own default template is `tmp.XXXX`,
+# and a dot is exactly the character whose slugging this case has no business taking a
+# position on (the real worktree directories turn `.tdd` into `-tdd`). The repo root below
+# is spelled with `pwd -P` for the same reason git does: `git worktree list` answers with
+# the resolved path, so a `/var` that is really `/private/var` must be slugged as the
+# latter or the fixture directory this case creates is not the one the script looks for.
+tree="$(mktemp -d "${TMPDIR:-/tmp}/sessioncostXXXXXX")"
+root="$tree/repo"
+mkdir -p "$root"
+root="$(cd "$root" && pwd -P)"
+git -C "$root" init -q 2>/dev/null
+
+home="$tree/home"
+projects="$home/.claude/projects"
+
+# The slug, by the one rule this case is entitled to assume: every `/` becomes a `-`.
+slug="${root//\//-}"
+
+mkdir -p "$projects/$slug" \
+         "$projects/$slug--tdd-wt-999" \
+         "$projects/-Users-someone-else-anotherrepo"
+
+# Three transcripts, one per directory, each a single request of its own session. The
+# numbers are distinct and unround so a script that summed the wrong set of directories
+# lands on a figure no expectation matches; the unrelated repo's are an order of magnitude
+# larger than both of this repo's together, so including it cannot be mistaken for a
+# rounding difference in any of the three figures.
+#
+#   this repo, main clone   read 600000  write 100000  output 10000  input 2
+#   this repo, worktree     read 300000  write  60000  output  5600  input 1
+#   another repo           read 900000  write 900000  output 900000  input 900000
+#
+# What this repo's two come to, at the header's rates:
+#   cache read   600000 + 300000 = 900000 tokens x $1.50/M  = $1.35
+#   cache write  100000 +  60000 = 160000 tokens x $18.75/M = $3.00
+#   output        10000 +   5600 =  15600 tokens x $75.00/M = $1.17
+#   input             2 +      1 =      3 tokens x $15.00/M = $0.00 (below the printed cent)
+#   total                                                     $5.52
+want_read_cost=1.35
+want_write_cost=3.00
+want_output_cost=1.17
+want_total_cost=5.52
+
+cat > "$projects/$slug/8c1d2e4f-7a93-4b05-8e61-2d7f9a0c3b48.jsonl" <<'MAIN'
+{"type":"assistant","timestamp":"2026-09-14T09:12:44.512Z","requestId":"req_011CS6aM2pQrX8dTvB1nHk5w","sessionId":"8c1d2e4f-7a93-4b05-8e61-2d7f9a0c3b48","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":2,"cache_creation_input_tokens":100000,"cache_creation":{"ephemeral_5m_input_tokens":100000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":600000,"output_tokens":10000}}}
+MAIN
+
+cat > "$projects/$slug--tdd-wt-999/4e90b7c1-35da-4f27-a0b8-6c19d2e84f3a.jsonl" <<'WORKTREE'
+{"type":"assistant","timestamp":"2026-09-14T11:48:02.907Z","requestId":"req_011CS7bN3qRsY9eUwC2pJl6x","sessionId":"4e90b7c1-35da-4f27-a0b8-6c19d2e84f3a","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":1,"cache_creation_input_tokens":60000,"cache_creation":{"ephemeral_5m_input_tokens":60000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":300000,"output_tokens":5600}}}
+WORKTREE
+
+cat > "$projects/-Users-someone-else-anotherrepo/1a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9.jsonl" <<'OTHER'
+{"type":"assistant","timestamp":"2026-09-14T13:20:55.104Z","requestId":"req_011CS8cP4rStZ0fVxD3qKm7y","sessionId":"1a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":900000,"cache_creation_input_tokens":900000,"cache_creation":{"ephemeral_5m_input_tokens":900000,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":900000,"output_tokens":900000}}}
+OTHER
+
+# No transcript is named on the command line: which files this repo's day is in is the
+# script's question now, and the answer is what the case is about. The invocation runs
+# from the throwaway repo so the root the script slugs is that one, with `HOME` pointed at
+# the scratch projects tree beside it.
+out="$(cd "$root" && HOME="$home" TZ=UTC "$SESSION_COST" --since 2026-09-14 2>&1)"
+code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from session-cost.sh, got $code")
+
+figure "cache-read cost"  'cache.*read'  "$want_read_cost"
+figure "cache-write cost" 'cache.*(write|creat)' "$want_write_cost"
+figure "output cost"      'output'       "$want_output_cost"
+figure "total cost"       'total'        "$want_total_cost"
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$out")")
+
+rm -rf "$tree"
 report "$name"
 
 echo "----"
