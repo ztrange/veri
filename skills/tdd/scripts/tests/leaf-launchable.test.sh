@@ -1,24 +1,16 @@
 #!/usr/bin/env bash
 # Unit tests for scripts/leaf-launchable.sh — the preflight check that a leaf can actually
-# be LAUNCHED, beside the `claude auth status` check SKILL.md preflight 0.2 already makes
-# and for the same reason: a fault that makes every leaf die at launch is neither a verdict
-# nor a hang, so it has no bail classification and has to be caught before a cycle starts
-# (issue #187).
+# be LAUNCHED (issue #187).
 # Zero-dependency plain-shell asserts, same idiom as leaf-role.test.sh.
 #
-# Why this exists: a `/tdd <n>` run driven from inside an interactive Claude Code session
-# passed preflight in full — clean tree, both CLIs authenticated, a 93 s green baseline, a
-# worktree entered, the spec written, a resume comment posted to the issue thread — and then
-# lost its first leaf to the binary's own refusal. The cost of missing it is that whole
-# prologue, paid for a run that cannot take a single step.
+# Why the check exists, why it probes the capability instead of testing one variable's name,
+# and why its refusal is exit 2 with an empty stdout are all said in its header
+# (leaf-launchable.sh:4-22), once.
 #
-# The question is asked of the CAPABILITY, not of one variable's name: the check launches
-# the leaf binary and reads what happened. `CLAUDECODE` was the known cause on 2026-09-14
-# and, as of 2026-09-15, the binary no longer refuses on it — so a check spelled as "is
-# CLAUDECODE set" would today refuse a configuration that works, and would still miss the
-# next guard of the same kind. Every probe here therefore runs with `env -u CLAUDECODE`:
-# the refusal it pins is owed to the probe launch failing, and to nothing about the
-# environment the suite was called from.
+# What follows from that here: every probe below runs with `env -u CLAUDECODE`. The cause
+# under test is the probe launch failing, so the variable that once caused it is cleared —
+# a check written as a test of that name answers "launchable" under these cases and fails
+# them.
 #
 # Contract under test (this step only — the refusal, not the passing path and not what the
 # conductor does with it):
@@ -27,13 +19,8 @@
 #                               names the cause (what the binary said) and the supported
 #                               invocation (a plain shell, `claude -p "/tdd <n>"`).
 #
-# Exit 2 rather than 1: "no answer could be obtained" — the plumbing broke and no leaf can
-# run — not a clean negative any caller could act on. Nothing on stdout because a preflight
-# check that printed its refusal there would be captured by a conductor reading it in a
-# command substitution.
-#
-# `CLAUDE_BIN` is the injection seam run-leaf.sh already reads (run-leaf.sh:56), so the
-# stub below is the same swap every other suite makes to keep a real model off the wire.
+# `CLAUDE_BIN` is the seam the stub below is injected through, the same swap every other
+# suite makes to keep a real model off the wire.
 #
 # Run: scripts/tests/leaf-launchable.test.sh
 set -uo pipefail
@@ -82,9 +69,7 @@ STUB
   chmod +x "$bin"
 }
 
-# 1. The refusal itself. `env -u CLAUDECODE` for the reason in the header: the cause under
-#    test is the failing launch, so the variable that once caused it is cleared, and a check
-#    written as a test of that name answers "launchable" here and fails this case.
+# 1. The refusal itself, with `env -u CLAUDECODE` for the reason the header gives.
 name='leaf-launchable.sh refuses when the leaf binary cannot launch — exit 2, nothing on stdout, a diagnostic on stderr naming the cause and the supported invocation'
 problems=()
 tmp="$(mktemp -d)"
