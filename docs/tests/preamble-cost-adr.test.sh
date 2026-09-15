@@ -94,13 +94,15 @@ probe_preamble_price() {
 # miss, because "no ADR records this" and "the ADR forgot the volume" are different repairs
 # and the failure below has to tell them apart.
 #
-# Sets four globals the case reads: `found` (the file carrying the whole price, empty if
+# Sets five globals the case reads: `found` (the file carrying the whole price, empty if
 # none), `adr_seen` and `candidates` (how far the sweep got), and `best_file` /
-# `best_missing` (the closest miss and the facts it is short). `problems` is deliberately
-# local: inside here it is one file's scratch list, outside it is the case's own failure
-# list, and the two must not be the same array.
+# `best_missing` (the closest miss and the facts it is short). Everything else is local,
+# including the two names the probes above read out of this scope: `problems`, which inside
+# here is one file's scratch list and outside is the case's own failure list — the two must
+# not be the same array — and `lc`, the text of whichever file the sweep is on, which no
+# caller has any use for once the sweep has ended.
 find_price_record() {
-  local adr
+  local adr lc
   local -a problems
 
   adr_seen=0 candidates=0 found=""
