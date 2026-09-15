@@ -247,6 +247,38 @@ present() {
   fi
 }
 
+# moved_by <what> <claimed> <n> <added…> — `moved` for an issue that adds more than one
+# file to the same tree. `moved` measures against <n>-1 because #149 added exactly one
+# script and one suite; this issue adds one script and TWO suites, so the number nobody
+# edited when it landed is <n> minus as many files as are named, and <n>-1 is a count that
+# was never true of either tree. The two helpers catch different stale numbers rather than
+# the same one twice — with 58 suites on disk, `moved` goes red on 57 and this goes red on
+# 56 — which is why the case below is a case and not case 2 with other names. Either
+# spelling, case-folded, and an empty <claimed> fails closed, all for the reasons `check`
+# and `moved` give.
+moved_by() {
+  local what="$1" claimed="$2" n="$3" words
+  shift 3
+  local before="$(( n - $# ))" added
+  # The files named, in one phrase, so the message says which arrivals the count slept
+  # through rather than just that it did: "a.sh and b.sh", "a.sh, b.sh and c.sh".
+  if [[ "$#" -eq 1 ]]; then
+    added="$1"
+  else
+    added="$(printf '%s, ' "${@:1:$#-1}")"
+    added="${added%, } and ${!#}"
+  fi
+  if [[ -z "$claimed" ]]; then
+    unreadable "$claude_md states no $what" "the sentence that counts them"
+    return
+  fi
+  claimed="$(tr '[:upper:]' '[:lower:]' <<< "$claimed")"
+  words="$(in_words "$before")"
+  if [[ "$claimed" == "$before" ]] || [[ -n "$words" && "$claimed" == "$words" ]]; then
+    problems+=("$claude_md says the $what is '$claimed' — the count of the tree without $added")
+  fi
+}
+
 # 1. The criterion. The counts are read off the document and the files off the disk, and
 #    every one of them has to agree.
 name="$claude_md's stated script and suite counts match the scripts and suites on disk"
@@ -299,6 +331,42 @@ if [[ "${#problems[@]}" -eq 0 ]]; then
   if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
     moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$added_suite"
     moved "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$added_script"
+  fi
+fi
+
+report "$name"
+
+# 3. The counts moved with the files THIS issue adds. Case 2 asks the same question of
+#    #149's pair; this one asks it of #207's — `run-conductor.sh`, and the two suites that
+#    arrive with it, `run-conductor.test.sh` and `skill-conductor-launch.test.sh`. Two
+#    suites is the whole reason this is its own case: the suite count nobody edited when
+#    this issue landed is two below the tree on disk, and case 2's `moved` only ever looks
+#    one below, so a document still stating fifty-six suites reads to case 2 as one
+#    somebody moved. The reads are case 1's, taken once above — `n_scripts`, `n_suites`,
+#    `intro` and `idiom` — asked of this issue's arrivals.
+name="$claude_md's counts moved with run-conductor.sh and its suites"
+problems=()
+
+conductor_script="skills/tdd/scripts/run-conductor.sh"
+conductor_suites=(
+  "skills/tdd/scripts/tests/run-conductor.test.sh"
+  "skills/tdd/scripts/tests/skill-conductor-launch.test.sh"
+)
+
+present "$conductor_script"
+for suite in "${conductor_suites[@]}"; do present "$suite"; done
+
+# Only ask about the move when every one of them is on disk, for the reason case 2 gives:
+# `present` has already recorded the problem otherwise, and the subtraction would be
+# measuring against a tree that is not the one the sentences describe.
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
+    moved_by "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$conductor_script"
+  fi
+
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
+    moved_by "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "${conductor_suites[@]}"
+    moved_by "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$conductor_script"
   fi
 fi
 
