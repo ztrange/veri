@@ -107,17 +107,18 @@ report "$name"
 
 # The eight handles a nested `claude` would otherwise inherit from the session that launched
 # it — the messaging socket and token most of all, which wire a second session into the
-# first one's IPC channel. Every one is set to a value below, so a probe that finds the name
-# gone has watched the script remove it rather than watched it never arrive.
+# first one's IPC channel. Each carries the value it is set to, because the list that sets
+# them and the list that then looks for them gone must be the same list: a name set here but
+# probed under a second spelling is a probe that passes having watched nothing.
 handles=(
-  CLAUDECODE
-  CLAUDE_CODE_SESSION_ID
-  CLAUDE_CODE_HOST_SESSION_ID
-  CLAUDE_CODE_MESSAGING_SOCKET
-  CLAUDE_CODE_MESSAGING_TOKEN
-  CLAUDE_PID
-  CLAUDE_CODE_CHILD_SESSION
-  CLAUDE_CODE_ENTRYPOINT
+  CLAUDECODE=1
+  CLAUDE_CODE_SESSION_ID=parent-session
+  CLAUDE_CODE_HOST_SESSION_ID=parent-host-session
+  CLAUDE_CODE_MESSAGING_SOCKET=/tmp/parent.sock
+  CLAUDE_CODE_MESSAGING_TOKEN=parent-token
+  CLAUDE_PID=4141
+  CLAUDE_CODE_CHILD_SESSION=1
+  CLAUDE_CODE_ENTRYPOINT=cli
 )
 
 envfile="$work/env"
@@ -127,14 +128,7 @@ name="the launch severs the eight session handles and passes VERI_* through"
 problems=()
 
 ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$envfile" \
-    CLAUDECODE=1 \
-    CLAUDE_CODE_SESSION_ID=parent-session \
-    CLAUDE_CODE_HOST_SESSION_ID=parent-host-session \
-    CLAUDE_CODE_MESSAGING_SOCKET=/tmp/parent.sock \
-    CLAUDE_CODE_MESSAGING_TOKEN=parent-token \
-    CLAUDE_PID=4141 \
-    CLAUDE_CODE_CHILD_SESSION=1 \
-    CLAUDE_CODE_ENTRYPOINT=cli \
+    "${handles[@]}" \
     VERI_MODEL_VERIFIER=probe-verifier-model \
     "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
 
@@ -142,8 +136,8 @@ if [[ ! -f "$envfile" ]]; then
   problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
 else
   for handle in "${handles[@]}"; do
-    grep -q "^$handle=" "$envfile" &&
-      problems+=("$handle is still in the child's environment")
+    grep -q "^${handle%%=*}=" "$envfile" &&
+      problems+=("${handle%%=*} is still in the child's environment")
   done
   grep -qx -- 'VERI_MODEL_VERIFIER=probe-verifier-model' "$envfile" ||
     problems+=("VERI_MODEL_VERIFIER did not reach the child's environment")
