@@ -91,19 +91,46 @@ from datetime import datetime
 # spelled into the arithmetic below, so the day the prices move there is one place to
 # change and one place to read what they were. Last checked 2026-09-15.
 PRICES = {
-    "opus": {"input": 15.00, "cache_read": 1.50, "cache_write_5m": 18.75, "output": 75.00},
+    "opus": {
+        "input": 15.00,
+        "cache_read": 1.50,
+        # A cache write has two prices, because it has two TTLs: 1.25x base input for the
+        # 5m tier, 2x for the 1h one. They are 1.6x apart, which is why the sum the record
+        # states as `cache_creation_input_tokens` cannot be priced on its own.
+        "cache_write_5m": 18.75,
+        "cache_write_1h": 30.00,
+        "output": 75.00,
+    },
 }
 
+# How a kind of token is read out of one `usage` object: the answer is not a number but a
+# number PER RATE, because a cache write is billed at two. `cache_creation` states the
+# split by TTL and is what a write is priced from when it is there; the flat
+# `cache_creation_input_tokens` beside it is the sum of the two, so it is only readable
+# when the split is absent, and then only at the cheaper of the two rates — guessing 1h
+# would invent spend nobody was charged.
+def cache_write_tokens(usage):
+    split = usage.get("cache_creation")
+    if split:
+        return {
+            "cache_write_1h": split.get("ephemeral_1h_input_tokens", 0),
+            "cache_write_5m": split.get("ephemeral_5m_input_tokens", 0),
+        }
+    return {"cache_write_5m": usage.get("cache_creation_input_tokens", 0)}
+
+def one_rate(field, rate):
+    """A kind billed at a single rate: whatever `field` says, all of it at `rate`."""
+    return lambda usage: {rate: usage.get(field, 0)}
+
 # The four kinds of token a request is billed for: the name this script calls the kind by,
-# the `usage` field it is counted from, the PRICES key it is billed at, and the words the
-# report names it in. One table rather than the same four kinds listed once to be zeroed,
-# once to be summed, once to be priced and once to be printed — four listings that have to
-# be kept in step by hand, and the next steps add kinds to them (the 1h cache-write tier).
+# how its tokens are read and at which rate(s), and the words the report names it in. One
+# table rather than the same four kinds listed once to be zeroed, once to be summed, once
+# to be priced and once to be printed — four listings that have to be kept in step by hand.
 KINDS = (
-    ("cache_read",  "cache_read_input_tokens",     "cache_read",     "cache read"),
-    ("cache_write", "cache_creation_input_tokens", "cache_write_5m", "cache write"),
-    ("output",      "output_tokens",               "output",         "output"),
-    ("input",       "input_tokens",                "input",          "input"),
+    ("cache_read",  one_rate("cache_read_input_tokens", "cache_read"), "cache read"),
+    ("cache_write", cache_write_tokens,                                "cache write"),
+    ("output",      one_rate("output_tokens", "output"),               "output"),
+    ("input",       one_rate("input_tokens", "input"),                 "input"),
 )
 
 def family(model):
@@ -160,14 +187,19 @@ def usage_records(path, since):
         yield obj
 
 def totals(records):
-    """The four token counts, and the model families they were billed at, over `records`."""
-    tokens = {kind: 0 for kind, _, _, _ in KINDS}
+    """Each kind of token counted PER RATE over `records`, and the model families billed.
+
+    Per rate rather than per kind because one kind — the cache write — is billed at two,
+    and a single figure for it could only be right if they were one price.
+    """
+    tokens = {kind: {} for kind, _, _ in KINDS}
     models = set()
     for obj in records:
         usage = obj["message"]["usage"]
         models.add(obj["message"].get("model", ""))
-        for kind, field, _, _ in KINDS:
-            tokens[kind] += usage.get(field, 0)
+        for kind, read, _ in KINDS:
+            for rate, count in read(usage).items():
+                tokens[kind][rate] = tokens[kind].get(rate, 0) + count
     return tokens, models
 
 since, paths = sys.argv[1], sys.argv[2:]
@@ -190,13 +222,18 @@ if not known:
     sys.exit(2)
 price = PRICES[known[0]]
 
-cost = {kind: tokens[kind] * price[rate] / 1e6 for kind, _, rate, _ in KINDS}
+cost = {
+    kind: sum(count * price[rate] for rate, count in tokens[kind].items()) / 1e6
+    for kind, _, _ in KINDS
+}
+counted = {kind: sum(tokens[kind].values()) for kind, _, _ in KINDS}
 
 # The labels are what a reader acts on, so each line names its figure in words and then
-# states the tokens it is a price for. The total is every kind, input included: it is the
-# bill, not a sum of the three interesting parts of it.
+# states the tokens it is a price for. A cache write is two rates and one line: what a
+# reader does about a write does not depend on its TTL. The total is every kind, input
+# included: it is the bill, not a sum of the three interesting parts of it.
 print("since %s  %d transcript(s)" % (since, len(paths)))
-for kind, _, _, label in KINDS:
-    print("  %-12s %12d tokens   $%.2f" % (label, tokens[kind], cost[kind]))
+for kind, _, label in KINDS:
+    print("  %-12s %12d tokens   $%.2f" % (label, counted[kind], cost[kind]))
 print("  %-12s %12s           $%.2f" % ("total", "", sum(cost.values())))
 ' "$since" "${transcripts[@]}"

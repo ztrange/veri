@@ -337,6 +337,77 @@ expect_split
 report "$name"
 
 
+# 4. A cache write has two prices, and the record does not always say which. Claude bills a
+#    1h-TTL write at 2x base input and a 5m-TTL write at 1.25x — $30.00/M and $18.75/M
+#    against $15.00/M — and states the split in `usage.cache_creation` as
+#    `ephemeral_1h_input_tokens` and `ephemeral_5m_input_tokens`. The flat
+#    `cache_creation_input_tokens` beside them is their SUM, and a sum cannot be priced:
+#    the two rates are 1.6x apart, so charging the whole of it at either one is wrong by up
+#    to 60% of the write. On the day #201 measured, 9.45M of 9.96M writes were 1h, and
+#    pricing them all at the 5m rate understated the day by $105 — a figure larger than
+#    most of what the report is read for.
+#
+#    Three requests, and each is one half of the criterion:
+#      A  400000 tokens, 1h tier only     x $30.00/M = $12.00
+#      B  400000 tokens, 5m tier only     x $18.75/M =  $7.50
+#      C  200000 tokens, NO `cache_creation` at all — only the flat field, which is what a
+#         record written before the split existed, or by a client that does not report it,
+#         looks like. Nothing says which tier it was, so it is billed at the CHEAPER one,
+#         5m: a reader that guessed 1h would invent $2.25 of spend nobody was charged.
+#                                            x $18.75/M =  $3.75
+#
+#    A and B are deliberately the SAME SIZE, which is what makes the ratio the case's
+#    subject rather than the sizes: any reader that prices the two tiers alike lands on one
+#    number for both, and the only way to $23.25 is the documented 1.6x between them. Both
+#    also carry the flat `cache_creation_input_tokens` alongside their breakdown, the way a
+#    real record does — so a reader that takes the flat field when a breakdown is present
+#    prices A at the 5m rate and is caught here, rather than passing because the fixture
+#    only offered it one field to read.
+#
+#    The whole-report figures a tier-blind reader lands on are $18.75 of write and $19.89
+#    of total, against $23.25 and $24.39; neither wrong answer has any digits in common
+#    with the right one in the places `figure` anchors on.
+name="cache-write tiers: 1h and 5m are priced apart, and a bare cache_creation_input_tokens falls back to 5m"
+problems=()
+
+transcript="$work/9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5.jsonl"
+
+# The three requests' usage. The write of each is the tier named in the comment above; the
+# reads and outputs are along for the ride, distinct and unround, so that a reader which
+# crossed a wire between the write kinds and another kind lands on a figure no expectation
+# matches.
+a_read=200000 ; a_write_1h=400000 ; a_out=4000 ; a_in=1
+b_read=100000 ; b_write_5m=400000 ; b_out=2000 ; b_in=1
+c_read=60000  ; c_write_flat=200000 ; c_out=2000 ; c_in=1
+
+# What the three come to, at the rates in the header and the two tiers above:
+#   cache read   200000 + 100000 + 60000 =  360000 tokens x $1.50/M  =  $0.54
+#   cache write  400000 x $30.00/M + (400000 + 200000) x $18.75/M    = $23.25
+#   output         4000 +   2000 +  2000 =    8000 tokens x $75.00/M =  $0.60
+#   input              1 +      1 +     1 =        3 tokens x $15.00/M = $0.00 (below the
+#                                                            cent the report prints)
+#   total                                                              $24.39
+want_read_cost=0.54
+want_write_cost=23.25
+want_output_cost=0.60
+want_total_cost=24.39
+
+# Unquoted heredoc, so the token counts above expand into the JSON and are written once.
+# Note C's usage: `cache_creation_input_tokens` and no `cache_creation` object beside it.
+cat > "$transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T08:15:03.221Z","requestId":"req_011CSBfS7uVwC3iYaG6tNp0b","sessionId":"9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$a_in,"cache_creation_input_tokens":$a_write_1h,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":$a_write_1h},"cache_read_input_tokens":$a_read,"output_tokens":$a_out}}}
+{"type":"assistant","timestamp":"2026-09-14T08:41:19.508Z","requestId":"req_011CSCgT8vWxD4jZbH7uOq1c","sessionId":"9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$b_in,"cache_creation_input_tokens":$b_write_5m,"cache_creation":{"ephemeral_5m_input_tokens":$b_write_5m,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$b_read,"output_tokens":$b_out}}}
+{"type":"assistant","timestamp":"2026-09-14T09:03:55.740Z","requestId":"req_011CSDhU9wXyE5kAcI8vPr2d","sessionId":"9d4c71b0-2e86-4a13-b5f7-0c38e1d2a6f5","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$c_in,"cache_creation_input_tokens":$c_write_flat,"cache_read_input_tokens":$c_read,"output_tokens":$c_out}}}
+TRANSCRIPT
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$transcript" 2>&1)"
+code=$?
+
+expect_split
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
