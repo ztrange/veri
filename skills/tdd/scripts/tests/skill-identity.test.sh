@@ -378,14 +378,6 @@ grep -qF "$sibling_scripts" "$ROOT/$skill_md" &&
   problems+=("$skill_md still locates its scripts at $sibling_scripts, a sibling that is no longer there")
 report "$name"
 
-# md_bullets <file> — every bullet in the file, with no section cut first. Case 6 reads only
-# the `## Inputs` section of $skill_md because the words it looks for recur further down;
-# case 7 reads the whole of the loop file on purpose — its criterion is that the derivation
-# be written down where the scope branch will read it, not that it sit under one heading, and
-# each of its claims pairs the scope with the label spelling, so no unrelated bullet can
-# answer for one.
-md_bullets() { fold_bullets < "$1"; }
-
 # 7. Which label a scope selects on. Case 6 pins that a non-integer argument is a scope; a
 #    scope is only a pool once the document says which label names it, and the mapping is
 #    not the identity: the scope `plain` selects on the bare `ready-for-agent` label —
@@ -402,14 +394,18 @@ md_bullets() { fold_bullets < "$1"; }
 #
 #    Read out of the file case 6 pins the pointer to, not out of $skill_md: these three
 #    bullets are the loop's own inputs, so they travel with it (#202), and asking $skill_md
-#    for them after the move would be asking the one document that no longer says it.
+#    for them after the move would be asking the one document that no longer says it. Read
+#    out of the WHOLE of that file, too, with no section cut first as case 6 cuts one: the
+#    criterion is that the derivation be written where the scope branch will read it, not
+#    that it sit under some one heading, and each claim below pairs the scope with the label
+#    spelling, so no unrelated bullet can answer for one.
 name="the loop file derives a scope's label: ready-for-agent for plain, ready-for-agent:<scope> otherwise, VERI_LABEL overriding"
 problems=()
 loop_md="$(loop_md_path "$ROOT/$skill_md")"
 bullets=""
 bullets_from="$skill_md"
 if [[ -n "$loop_md" && -f "$ROOT/$loop_md" ]]; then
-  bullets="$(md_bullets "$ROOT/$loop_md")"
+  bullets="$(fold_bullets < "$ROOT/$loop_md")"
   bullets_from="$loop_md"
 fi
 if [[ -z "$bullets" ]]; then
