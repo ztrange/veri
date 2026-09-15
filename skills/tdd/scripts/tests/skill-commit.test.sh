@@ -5,15 +5,12 @@
 # the way the session that follows it reads it. Picked up by `make test`'s glob by existing.
 # Zero-dependency plain-shell asserts, same idiom as skill-test-command.test.sh.
 #
-# Why this exists (issue #165): `~/.claude/skills/tdd` is a symlink into the primary clone,
-# and `SKILL.md:61-62` sets `$S` from it — so every `$S/…` call of a run resolves into a
-# tree the `merge` skill pulls whenever a PR lands. A run whose skill moves under it is a
-# hybrid: prose from the commit the conductor loaded, scripts and templates from whatever
-# is on disk at the moment of each call. `supervise.sh` now records the sha per launch, but
-# a sha only in the event log answers a question nobody asks until something has already
-# gone wrong. The thread is where a human reads the run, and on the thread the version is
-# what tells a `### 🛠️ Refactor` comment describing a loop shape the run never used from a
-# true one — the observed case, #150's narration landing under #170's run.
+# Why this exists (issue #165): why a run needs the skill's commit recorded at all is
+# event.sh's header, the one place this cycle states it, and why the plan comment is where
+# a human needs it is the step under test itself. What is this suite's to say is that the
+# instruction is prose and so can only be pinned as prose: `supervise.sh` records the sha
+# per launch, but nothing launches the conductor — the comment it posts exists only because
+# SKILL.md tells it to, so a document that stops saying so is the whole of the regression.
 #
 # Contract under test (this step only):
 #   SKILL.md's plan-comment step says that comment names the skill commit the run started
