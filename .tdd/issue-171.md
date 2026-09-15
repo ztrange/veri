@@ -7,5 +7,5 @@
 - [x] A supervised leaf's claude argv carries --model only when the resolved model is non-empty, byte-identical to today when unset
 - [x] SKILL.md preflight runs leaf-model.sh for a developer and a verifier name, so a bad value stops the run before any branch or leaf
 - [x] An ambient VERI_MODEL in the calling shell does not change any suite's result, pinned by hermetic-suites.test.sh
-- [x] VERIFY_LEAF_ARGS carrying its own --model alongside a role variable is resolved by a stated rule, not by flag order ⟂ refactor pending
+- [x] VERIFY_LEAF_ARGS carrying its own --model alongside a role variable is resolved by a stated rule, not by flag order
 - [ ] SKILL.md's supervise.sh bullet and CLAUDE.md name the three tunables and why developer and verifier are separate knobs, with CLAUDE.md's script and suite counts moved
