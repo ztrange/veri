@@ -161,6 +161,15 @@ model="$("$HERE/leaf-model.sh" "$name")" || model=""
 # cannot inherit a stale value from the conductor's own shell.
 export VERI_LEAF_MODEL="$model"
 
+# The skill's own commit, resolved once per supervision and exported so every mark below
+# carries it in `skill_commit` (issue #165). Asked of `$HERE` — the directory the running
+# scripts live in — and not of the cwd, because the cwd is the issue's worktree and the
+# skill is whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone `main`
+# moves under a running conductor. The two are different repositories' HEADs, and the one a
+# reader needs is the code that ran. Exported rather than passed through `mark`'s `env` line,
+# which is leaf-role.sh's output verbatim and stays that.
+export VERI_SKILL_COMMIT="$(git -C "$HERE" rev-parse HEAD 2>/dev/null)"
+
 # mark <event> [key=value …] — append one line to the run's event log (issue #107,
 # ADR-0014), or nothing at all. Both marks below go through here, so what the two have in
 # common is said once rather than in each:

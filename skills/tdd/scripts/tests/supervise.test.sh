@@ -826,6 +826,40 @@ argv_unset_got="$(cat "$argv_work/unset.argv" 2>/dev/null || echo '<<no argv>>')
   && [[ "$argv_set_got"   == *"--model"$'\n'"$argv_model"* ]] \
   && [[ "$argv_unset_got" == "$argv_today" ]]; } && ok \
   || no "a supervised leaf's claude argv carries --model only when the run chose a model (VERI_MODEL=$argv_model: code=$argv_set_code argv=$(printf '%q' "$argv_set_got") want a --model/$argv_model pair; none set: code=$argv_unset_code argv=$(printf '%q' "$argv_unset_got") want $(printf '%q' "$argv_today"))"
+# 21. the `launch` line carries the commit of the SKILL that launched the leaf, in
+#     `skill_commit` — the eighth fixed key event.sh writes (issue #165). A run executes
+#     whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone that `main`
+#     moves under a running conductor, so which version a leaf ran under is a fact only the
+#     log can carry; event.sh reads it from `VERI_SKILL_COMMIT` and the supervisor is what
+#     has to put it there, because this is the one choke point every leaf goes through and
+#     the only place that knows where the running scripts live.
+#
+#     The expectation is read from the scripts' OWN directory — `git -C` on `$SUP`'s
+#     directory, not on the cwd — and the supervision runs in a temp directory under `$work`
+#     that is no git repository at all. So a resolution that asked the leaf's worktree
+#     instead of the skill's would answer with this repo only by accident of the suite living
+#     in it; run from `$work` it answers nothing, and the case is red.
+#
+#     A nested `env -u VERI_SKILL_COMMIT` clears the variable for the supervisor, the
+#     hermeticity cases 8 and 11 insist on: the sha must be one the supervisor resolved, not
+#     one the shell that ran `make test` happened to export. Nested rather than a `-u` handed
+#     to `sup_run`, because `env` stops reading options at the first `VAR=VALUE` word and the
+#     helper's pinned quartet comes first — a `-u` after it is read as the command to run.
+#
+#     A directory of its own under `$work`, for case 12's reason — the event log accumulates
+#     across a run, and `event_field` demands exactly one line of the kind it is asked for.
+skill_work="$work/skill"
+skill_want="$(git -C "$(dirname "$SUP")" rev-parse HEAD 2>/dev/null || echo '<no-sha>')"
+sup_run "$skill_work" env -u VERI_SKILL_COMMIT "$SUP" develop-red "$stub/leaf-ok"
+skill_code=$?
+# Read once, into the variable the assertion and the failure message share — cases 9, 11,
+# 12, 13, 15, 16, 17, 18, 19 and 20's shape.
+skill_got="$(event_field "$skill_work" launch skill_commit)"
+{ [[ "$skill_code" == 0 ]] \
+  && [[ "$skill_want" =~ ^[0-9a-f]{40}$ ]] \
+  && [[ "$skill_got" == "$skill_want" ]]; } && ok \
+  || no "a launch event carries the skill's own commit in skill_commit (code=$skill_code, skill_commit=$skill_got want $skill_want)"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
