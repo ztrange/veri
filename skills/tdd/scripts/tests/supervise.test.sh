@@ -861,14 +861,13 @@ skill_got="$(event_field "$skill_work" launch skill_commit)"
 # 20. a skill that is not in a git clone records the literal `unknown`, not an empty value
 #     (issue #165). Case 19 pins the sha when there is one; the skill need not be installed
 #     from a clone at all — a copied directory, a tarball, a vendored `scripts/` — and there
-#     the resolution has no answer to give. An empty `skill_commit` is the failure mode the
-#     key exists to prevent: a reader of a log full of shas cannot tell "this run's skill had
-#     no commit" from a writer that was handed nothing, so the absence has to be spelled.
+#     the resolution has no answer to give. Why the absence is spelled rather than left empty
+#     is supervise.sh's own header, at the assignment this case drives.
 #
-#     Which is why this is the SUPERVISOR's case and not event.sh's. event.test.sh's case 4
-#     pins that the key is on the line whatever the environment holds, and says in as many
-#     words that what an unresolvable commit should READ as is the resolver's question — this
-#     script is the resolver, the one place that knows where the running scripts live.
+#     What is this case's to say is why it is the SUPERVISOR's and not event.sh's:
+#     event.test.sh's case 4 pins that the key is on the line whatever the environment holds,
+#     and leaves what an unresolvable commit should READ as to the resolver — this script is
+#     the resolver, the one place that knows where the running scripts live.
 #
 #     The skill is made unresolvable by moving it, not by breaking git: every `.sh` beside
 #     `$SUP` is copied into a directory under `$work`, which is a `mktemp -d` and so no git
