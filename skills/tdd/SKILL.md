@@ -535,9 +535,13 @@ following step. The phase sub-steps are:
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
    overwrites it — the newest objection is the only one a revise leaf should answer.
-3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment with the test and
-   the failing output, followed by a `### 🔎 verify-red — PASS|REJECT` comment carrying the
-   verifier's reason.
+3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment with the test, the
+   failing output, the leaf's `PREDICTED_FAILURE:` and whether the prediction **matched or
+   diverged** — with its `PREDICTION_NOTE:` when it diverged. Both halves, always: the
+   prediction is what the failing output is read against, so a thread carrying only one of
+   them cannot be read for divergence, and on a repository where the two keep diverging
+   that thread is the evidence. Follow it with a `### 🔎 verify-red — PASS|REJECT` comment
+   carrying the verifier's reason.
    - **PASS (exit 0):** continue to Green.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. It
      returns either PASS (continue to Green) or budget-exhausted (**bail**, process failure).
