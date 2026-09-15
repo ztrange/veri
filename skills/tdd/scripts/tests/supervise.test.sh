@@ -858,6 +858,47 @@ skill_got="$(event_field "$skill_work" launch skill_commit)"
   && [[ "$skill_got" == "$skill_want" ]]; } && ok \
   || no "a launch event carries the skill's own commit in skill_commit (code=$skill_code, skill_commit=$skill_got want $skill_want)"
 
+# 20. a skill that is not in a git clone records the literal `unknown`, not an empty value
+#     (issue #165). Case 19 pins the sha when there is one; the skill need not be installed
+#     from a clone at all — a copied directory, a tarball, a vendored `scripts/` — and there
+#     the resolution has no answer to give. An empty `skill_commit` is the failure mode the
+#     key exists to prevent: a reader of a log full of shas cannot tell "this run's skill had
+#     no commit" from a writer that was handed nothing, so the absence has to be spelled.
+#
+#     Which is why this is the SUPERVISOR's case and not event.sh's. event.test.sh's case 4
+#     pins that the key is on the line whatever the environment holds, and says in as many
+#     words that what an unresolvable commit should READ as is the resolver's question — this
+#     script is the resolver, the one place that knows where the running scripts live.
+#
+#     The skill is made unresolvable by moving it, not by breaking git: every `.sh` beside
+#     `$SUP` is copied into a directory under `$work`, which is a `mktemp -d` and so no git
+#     repository — and the copy is what runs, so `$HERE` inside it is the directory git is
+#     asked about. Every script the supervisor reaches for lives beside it (`leaf-role.sh`,
+#     `event.sh`, `harvest-usage.sh`), so copying the glob keeps the copy whole without this
+#     comment having to list them. `cp` preserves the execute bit.
+#
+#     The precondition is asserted rather than assumed: if `$TMPDIR` ever sat inside a clone,
+#     git would resolve a sha there and the case would pass on a condition it never created.
+#     `nogit_resolves` records what git says of the copy, and `<none>` is the only value that
+#     makes the rest of the assertion mean what it claims.
+#
+#     A directory of its own for the run, for case 12's reason — the event log accumulates
+#     across a run, and `event_field` demands exactly one line of the kind it is asked for.
+nogit_skill="$work/nogit-skill"
+mkdir -p "$nogit_skill"
+cp "$(dirname "$SUP")"/*.sh "$nogit_skill/"
+nogit_resolves="$(git -C "$nogit_skill" rev-parse HEAD 2>/dev/null || echo '<none>')"
+nogit_work="$work/nogit-run"
+sup_run "$nogit_work" env -u VERI_SKILL_COMMIT "$nogit_skill/supervise.sh" develop-red "$stub/leaf-ok"
+nogit_code=$?
+# Read once, into the variable the assertion and the failure message share — cases 9, 11,
+# 12, 13, 15, 16, 17, 18 and 19's shape.
+nogit_got="$(event_field "$nogit_work" launch skill_commit)"
+{ [[ "$nogit_code" == 0 ]] \
+  && [[ "$nogit_resolves" == '<none>' ]] \
+  && [[ "$nogit_got" == unknown ]]; } && ok \
+  || no "a skill outside a git clone records skill_commit as the literal unknown (code=$nogit_code, git says=$nogit_resolves want <none>, skill_commit=$nogit_got want unknown)"
+
 
 echo "----"
 echo "$pass passed, $fail failed"

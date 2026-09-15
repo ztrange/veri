@@ -168,7 +168,14 @@ export VERI_LEAF_MODEL="$model"
 # worktree. The two are different repositories' HEADs, and the one a reader needs is the code
 # that ran. Exported rather than passed through `mark`'s `env` line, which is leaf-role.sh's
 # output verbatim and stays that.
-export VERI_SKILL_COMMIT="$(git -C "$HERE" rev-parse HEAD 2>/dev/null)"
+#
+# A skill installed from something other than a clone has no sha to give, and there the
+# resolution spells its absence as the literal `unknown` rather than leaving the key empty:
+# a reader of a log full of shas cannot tell an unresolvable commit from a writer that was
+# handed nothing. The default covers both ways git declines — a refusal (no repository) and
+# an empty answer — because the key's promise is a value, not an exit code.
+VERI_SKILL_COMMIT="$(git -C "$HERE" rev-parse HEAD 2>/dev/null)"
+export VERI_SKILL_COMMIT="${VERI_SKILL_COMMIT:-unknown}"
 
 # mark <event> [key=value …] — append one line to the run's event log (issue #107,
 # ADR-0014), or nothing at all. Both marks below go through here, so what the two have in
