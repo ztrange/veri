@@ -7,19 +7,25 @@
 #
 # One call writes one JSON object to `.tdd/events.jsonl`, relative to the directory it runs
 # in — the issue's worktree, the way supervise.sh already spells `.tdd/<name>.log`. The line
-# always carries the seven fixed keys `ts`, `issue`, `actor`, `phase`, `step`, `event` and
-# `attempt`, plus one key per `key=value` argument.
+# always carries the eight fixed keys `ts`, `issue`, `actor`, `phase`, `step`, `event`,
+# `attempt` and `skill_commit`, plus one key per `key=value` argument.
+#
+# `skill_commit` is the commit of the skill the line was written under (issue #165). A run
+# executes whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone that `main`
+# moves under a running conductor, so which version a leaf was launched with is a fact only
+# the log can carry — and because it is written per line rather than per run, a skill that
+# changed mid-flight shows up as the sha changing partway down the file.
 #
 # `ts` is seconds since the epoch, the unit supervise.sh's `now()` already reads out of
 # `date +%s`, so the log and the watchdog measure the same way and a reader subtracts two
 # marks without parsing a calendar.
 #
 # The run context is NOT on the command line: it arrives in the environment as VERI_ISSUE,
-# VERI_ACTOR, VERI_PHASE, VERI_STEP and VERI_ATTEMPT, the way SKILL.md's preflight already
-# exports VERI_TIMEOUT once for every child of the run. The payload stays the caller's to
-# choose; the context stays the run's. A variable that is not set writes its key anyway,
-# empty — the seven keys are the line's promise to a reader that groups by phase or counts
-# attempts, so "absent" must never be the spelling of "unknown".
+# VERI_ACTOR, VERI_PHASE, VERI_STEP, VERI_ATTEMPT and VERI_SKILL_COMMIT, the way SKILL.md's
+# preflight already exports VERI_TIMEOUT once for every child of the run. The payload stays
+# the caller's to choose; the context stays the run's. A variable that is not set writes its
+# key anyway, empty — the eight keys are the line's promise to a reader that groups by phase
+# or counts attempts, so "absent" must never be the spelling of "unknown".
 #
 # The line is composed by python3 (already a dependency here — extract-result.sh execs it)
 # rather than by concatenating strings: a payload holds a command with spaces and `=`, or a
@@ -50,6 +56,7 @@ line = {
     "step": os.environ.get("VERI_STEP", ""),
     "event": sys.argv[1],
     "attempt": os.environ.get("VERI_ATTEMPT", ""),
+    "skill_commit": os.environ.get("VERI_SKILL_COMMIT", ""),
 }
 for arg in sys.argv[2:]:
     key, _, value = arg.partition("=")

@@ -1,6 +1,6 @@
 # Plan for #165 — Nothing records which skill commit a run used
 
-- [ ] event.sh reads VERI_SKILL_COMMIT from the environment and writes it as a fixed key on every line
+- [x] event.sh reads VERI_SKILL_COMMIT from the environment and writes it as a fixed key on every line ⟂ refactor pending
 - [ ] supervise.sh resolves the skill commit at launch time and exports it for event.sh
 - [ ] The plan comment names the skill commit the run started on
 - [ ] An unresolvable commit is recorded as the literal string unknown, not an absent field
