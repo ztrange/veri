@@ -867,6 +867,135 @@ json_figure "the JSON total"             'total'                "$want_total_cos
 report "$name"
 
 
+# 10. A baseline is only comparable against another session of the SAME harness. The
+#     preamble a session pays on every request is fixed by what opened it — the desktop app
+#     carries a wider one than a terminal, a leaf a narrower one than either — and the
+#     transcript says which through `entrypoint` alone: nothing else on the record
+#     distinguishes a conductor from a terminal session sitting in the same project
+#     directory, 350 tokens apart.
+#
+#     This exists because the omission already cost a wrong conclusion. On 2026-09-15 a
+#     CLI session's 53,786-token baseline was compared against 51,986 from what was taken
+#     to be a desktop session. It was a conductor. The conclusion drawn — that moving off
+#     the desktop app saves nothing — was the reverse of the truth, which is 15,749 tokens
+#     a request. So the criterion has two halves and this case pins both:
+#       - every session row NAMES the entrypoint that opened it, so the reader of any one
+#         row knows what its preamble is a baseline for;
+#       - and the report GROUPS the baselines by harness, giving each group as min /
+#         median / max, so a population reads as a band rather than as one number that
+#         might be the outlier the wrong conclusion was drawn from.
+#
+#     The fixture is six single-request sessions, three per harness, and the preambles are
+#     the figures the issue measured on 2026-09-14 → 15:
+#
+#       claude-desktop  68597  69535  70436   → min 68597  median 69535  max 70436
+#       sdk-cli         28321  31000  33155   → min 28321  median 31000  max 33155
+#
+#     Three per group and not two, so the median is a question with one answer: for an
+#     even-sized group it would depend on whether the script averages the middle pair or
+#     takes the lower, which is a convention this suite has no business fixing. And two
+#     groups rather than one, because the whole criterion is the SPLIT: pooled, the six
+#     preambles band as 28321 / 50876 / 70436, so a report that ignored `entrypoint` and
+#     banded the day as one population states neither group's median nor the desktop
+#     group's min.
+#
+#     Each session's preamble is its one request's context — input plus cache read plus
+#     cache write — and every one of the six is distinct, so a band assembled from the
+#     wrong sessions lands on a number no probe here states.
+#
+#     The band is looked for on a line that names the harness and carries all THREE of its
+#     figures, which is what stops the per-session rows from answering for it: after the
+#     first half of this criterion those rows name the harness too, and each carries its
+#     own preamble — but no session row can carry all three of a group's, so a report that
+#     printed the rows and no band fails here rather than passing on them.
+name="harness baselines: every session row names its entrypoint, and the bands are min / median / max per harness"
+problems=()
+
+# <session id 8-char prefix> <entrypoint> <input> <cache write> <preamble = their sum>.
+# The read is 0 on every one of them: a preamble is a first request, and a first request
+# has nothing in the cache to read yet — which is also what makes the three figures on the
+# row the same number, so the band cannot be confused with a session that ran on.
+desktop_ids=(b2061c86-0d47-4e9a-8153-6fa2c70e91db
+             c93172d5-1e58-4f0b-9264-7ab3d81fa2ec
+             da4283e6-2f69-40c1-a375-8bc4e92b03fd)
+desktop_ins=(597 535 436)
+desktop_writes=(68000 69000 70000)
+want_desktop_preambles=(68597 69535 70436)
+
+leaf_ids=(eb5394f7-3a70-41d2-b486-9cd5fa3c14ae
+          fc64a508-4b81-42e3-c597-ade60b4d25bf
+          0d75b619-5c92-43f4-d6a8-bef71c5e36c0)
+leaf_ins=(321 1000 155)
+leaf_writes=(28000 30000 33000)
+want_leaf_preambles=(28321 31000 33155)
+
+want_desktop_band=(68597 69535 70436)   # min / median / max
+want_leaf_band=(28321 31000 33155)      # min / median / max
+
+# One transcript per session, the way Claude Code writes them, each holding the session's
+# single request. Written from the tables above rather than spelled out six times: what
+# this case is about is which of six preambles lands in which band, and six near-identical
+# literals are six chances for a digit to be the thing under test by accident.
+transcripts=()
+write_session() {
+  local id="$1" entrypoint="$2" input="$3" write="$4" stamp="$5" out_tokens="$6"
+  local path="$work/$id.jsonl"
+  cat > "$path" <<TRANSCRIPT
+{"type":"assistant","timestamp":"$stamp","requestId":"req_$id","sessionId":"$id","entrypoint":"$entrypoint","userType":"external","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$input,"cache_creation_input_tokens":$write,"cache_creation":{"ephemeral_5m_input_tokens":$write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":0,"output_tokens":$out_tokens}}}
+TRANSCRIPT
+  transcripts+=("$path")
+}
+
+for i in 0 1 2; do
+  write_session "${desktop_ids[$i]}" claude-desktop "${desktop_ins[$i]}" "${desktop_writes[$i]}" \
+    "2026-09-14T1$i:04:31.807Z" "$((1100 + i))"
+  write_session "${leaf_ids[$i]}" sdk-cli "${leaf_ins[$i]}" "${leaf_writes[$i]}" \
+    "2026-09-14T1$i:37:12.204Z" "$((2200 + i))"
+done
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "${transcripts[@]}" 2>&1)"
+code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from session-cost.sh, got $code")
+
+# First half: the row is identified by the session id, as case 7 identifies one, and has
+# to name the harness that opened it. `claude-desktop` and `sdk-cli` share no substring,
+# so a fixed-string match on either cannot be answered by the other.
+for i in 0 1 2; do
+  grep -F "${desktop_ids[$i]:0:8}" <<< "$out" | grep -Fq claude-desktop ||
+    problems+=("session ${desktop_ids[$i]:0:8}: want its row to name the entrypoint claude-desktop, it does not")
+  grep -F "${leaf_ids[$i]:0:8}" <<< "$out" | grep -Fq sdk-cli ||
+    problems+=("session ${leaf_ids[$i]:0:8}: want its row to name the entrypoint sdk-cli, it does not")
+done
+
+# Second half: the band. `anchored <n>` is `states`' own predicate as an ERE on its own —
+# the amount escaped and fenced between non-digits — so that chaining three of them picks
+# a line stating all three figures and not one stating 68597 inside 686597.
+anchored() {
+  printf '(^|[^0-9])%s([^0-9]|$)' "${1//./\\.}"
+}
+
+# band <harness> <min> <median> <max> — complain unless one line of the report names
+# <harness> and carries all three figures. Which of the three is labelled which is the
+# script's business; that the group is printed as a band and not as one number is this
+# suite's.
+band() {
+  local harness="$1"
+  grep -F "$harness" <<< "$out" |
+    grep -E "$(anchored "$2")" | grep -E "$(anchored "$3")" | grep -E "$(anchored "$4")" |
+    grep -q . ||
+      problems+=("the $harness band: want one line naming $harness and stating min $2, median $3 and max $4 together, no line states all three")
+}
+
+band claude-desktop "${want_desktop_band[@]}"
+band sdk-cli "${want_leaf_band[@]}"
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$out")")
+
+report "$name"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
