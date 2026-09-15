@@ -200,15 +200,6 @@ def totals(records):
                 tokens[kind][rate] = tokens[kind].get(rate, 0) + count
     return tokens
 
-def families(records):
-    """The price-table keys of the models billed in `records`, in the order met.
-
-    Its own pass rather than a second thing `totals` hands back: which prices to use is
-    asked once, of the whole day, while the counting is asked again of every role, and a
-    caller that wants one of two answers has to say which one it is discarding.
-    """
-    return [f for f in (family(obj["message"].get("model", "")) for obj in records) if f]
-
 def unpriced(records):
     """Tokens billed to a model `PRICES` has no rate for, per model id, in the order met.
 
@@ -316,12 +307,14 @@ priced = [obj for obj in records if family(obj["message"].get("model", ""))]
 tokens = totals(priced)
 
 # One model family per report at this size, and it is the price table that has to know it:
-# a model the table does not list must not be silently billed as one it does.
-known = families(records)
-if not known:
+# a model the table does not list must not be silently billed as one it does. Which family
+# that is, is read off `priced` rather than asked of the day a second time: `priced` IS the
+# records whose family the table keys, so a separate pass could only ever agree with it —
+# and a day with nothing priceable is exactly a day with nothing to bill.
+if not priced:
     print("session-cost.sh: no known model in any transcript", file=sys.stderr)
     sys.exit(2)
-price = PRICES[known[0]]
+price = PRICES[family(priced[0]["message"].get("model", ""))]
 
 def costed(tokens):
     """What each kind of token in `tokens` comes to, at `price`."""
