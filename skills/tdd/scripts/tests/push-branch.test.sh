@@ -4,19 +4,17 @@
 # living on one disk until the draft PR is opened (issue #191).
 # Zero-dependency plain-shell asserts, same idiom as event.test.sh.
 #
+# Why a failed push is not a bail — and therefore why all three halves of the contract below
+# are about the run being untouched — is said in the script's header (push-branch.sh:12-19),
+# once.
+#
 # Contract under test (this step only — the failing push):
 #   push-branch.sh, run from the worktree with an origin that cannot be reached
-#                       → exit 0, because a push failure is NOT a bail: a run whose network
-#                         is down is still a correct run, and the script's exit code is what
-#                         the conductor branches on, so anything but 0 here is the run's
-#                         exit status changing for a transport problem.
+#                       → exit 0, the exit status the conductor branches on.
 #                       → HEAD, the commit count and the ledger file are exactly what they
-#                         were before the call: the push is a copy, and a failed copy owes
-#                         the run nothing.
+#                         were before the call.
 #                       → one line appended to `.tdd/events.jsonl` whose `event` says the
-#                         push failed, so the run's log carries the fact that the branch is
-#                         not on the remote — the only record a human gets, since nothing
-#                         stops or is narrated as an error.
+#                         push failed.
 #
 # The origin is a path that does not exist rather than an unreachable host: the failure has
 # to be the same failure on every machine and inside a sandbox with no network, and a real
