@@ -297,6 +297,21 @@ to run it unattended), and in print mode that notification never arrives: the tu
 is how #70 was lost). The detach-then-wait shape behaves identically interactively and
 unattended, so it is the only one this procedure uses.
 
+## Launching the conductor — a plain shell, outside any session
+
+`/tdd <n>` is a skill, so it can be typed inside an interactive Claude Code session — but
+that is not where a run belongs. Every leaf is a `claude -p` subprocess, and a session the
+operator is already in is the situation a guard on nested launches refuses; when one fires,
+every leaf of the run dies at launch. Run the conductor from a plain shell **outside** any
+Claude Code session instead — `claude -p "/tdd <n>"` — which is also the only way to run it
+unattended.
+
+**veri never unsets `CLAUDECODE`, or any other such guard, itself.** The binary's refusal
+names the risk it is declining — nested sessions share runtime resources and will crash all
+active sessions — and those are the operator's sessions, not veri's. Unsetting the variable
+in a launcher would spend that risk on their behalf without their knowledge, so preflight
+refuses and says what to run instead, and leaves the decision where it belongs.
+
 ## Inputs
 
 There is one command, so what the user typed after it is what decides which of the two

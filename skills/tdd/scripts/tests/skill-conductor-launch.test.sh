@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# Unit test for what skills/tdd/SKILL.md tells an operator about launching the CONDUCTOR —
+# not a leaf. Like skill-leaf-launch.test.sh and skill-timeout.test.sh this suite belongs to
+# no single script: its subject is the procedure read as text, the way the person about to
+# type the command reads it. Zero-dependency plain-shell asserts, same idiom as
+# model-knobs-recorded.test.sh.
+#
+# Why this exists (issue #187): `/tdd <n>` is a skill, so it can be typed inside an
+# interactive Claude Code session — and on 2026-09-14, resuming #163, that is what happened.
+# The binary refused every leaf launch with "cannot be launched inside another Claude Code
+# session … unset the CLAUDECODE environment variable", after the run had already paid the
+# 93 s baseline, entered a worktree, written the spec and posted a public `### ▶️ Resuming`
+# comment. `leaf-launchable.sh` now catches that class of fault before any of it — but a
+# check that refuses is only half an answer. The operator it refuses needs to be told what
+# to do instead, and that sentence has never been written down: every run to date was
+# launched from a plain shell by habit, not because the document said so.
+#
+# The second half is a decision, not a convenience. The binary's own message offers a way
+# out — unset the variable — and veri declining to take it is a choice that has to be on the
+# page, because the risk it declines is the operator's: "will crash all active sessions" is
+# their sessions, and a tool that quietly unset the guard would be spending that risk on
+# their behalf without telling them. A document that recorded the refusal without the reason
+# would leave the next reader free to "fix" it by unsetting the variable in the launcher.
+#
+# Contract under test (this step only — the check itself is leaf-launchable.test.sh's):
+#   SKILL.md says, in one passage, how to run the conductor when the operator is already
+#   inside a session — a plain shell, outside it, `claude -p "/tdd <n>"` — and says, in one
+#   passage, that veri never unsets CLAUDECODE itself and why.
+#
+# Facts are asked as the regexes any wording carrying them would match, never as fixed
+# strings: what the document has to record is the claim, and how it is phrased belongs to
+# whoever writes it — the protocol lane-rule-recorded.test.sh and model-knobs-recorded.test.sh
+# both use on these documents.
+#
+# Asked of a RECORD — one paragraph or bullet — rather than of the file, because two
+# sentences sections apart that happen to share a word are not a statement. SKILL.md already
+# spells `claude -p "/tdd <n>"` once, in the paragraph about print-mode leaf orphaning; that
+# paragraph is not this instruction, and a file-wide read would accept it as one.
+#
+# Not asked here: that CLAUDE.md's script and suite counts moved when this suite landed.
+# claude-md-counts.test.sh is the case that holds every count in that document to the files
+# on disk, and this file arriving in the tree is what makes it answer.
+#
+# Run: scripts/tests/skill-conductor-launch.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+
+# The document twice — the path as every failure message spells it, and the same path
+# resolved for the probes to read — so a message can never name a file the probes did not
+# open. The pairing model-knobs-recorded.test.sh and skill-leaf-launch.test.sh both use.
+skill_md="skills/tdd/SKILL.md"
+skill_path="$ROOT/$skill_md"
+
+pass=0 fail=0
+
+# report <name> — close a case whose probes collected into the `problems` array: an empty
+# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
+# so the output says which half of the instruction is missing rather than just that one is.
+report() {
+  local name="$1"
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    printf '    %s\n' "${problems[@]}"
+  fi
+}
+
+# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
+# below is written one way and still matches prose that marked the same words up as
+# `CLAUDECODE` or **never**. The normalisation lane-rule-recorded.test.sh uses on these same
+# documents, for the same reason.
+plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
+
+# records — markdown on stdin, one line per paragraph or bullet, normalised through `plain`.
+# A record runs from a `- ` or a `* ` in column one, or from the first line after a blank, up
+# to the next such line or the next blank; joining it onto one line is what lets a claim ask
+# whether ONE passage carries a whole fact. SKILL.md wraps mid-sentence, so this is also what
+# keeps a claim split over a line break readable as one sentence. Same shape as
+# model-knobs-recorded.test.sh's `records`.
+records() {
+  awk '/^[-*] / { if (rec != "") print rec; rec = $0; next }
+       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+       rec == "" { rec = $0; next }
+       { rec = rec " " $0 }
+       END { if (rec != "") print rec }' | plain
+}
+
+# passage_text / passage_from — the passage a probe last read and the label a failure names
+# it by, filled by the reader below and read by `says`. Globals because bash has no way to
+# hand back a string; the `passage_` prefix is what marks the pair as one thing written by a
+# reader and read by a claim, the convention model-knobs-recorded.test.sh follows.
+passage_text="" passage_from=""
+
+# need_skill_records — all of SKILL.md's records into those globals, or one problem and a
+# non-zero return. The document is read whole on purpose: the step asks that it state the
+# invocation and the decision, not that either sit under a heading this suite picked — where
+# an instruction to an operator belongs is the author's call.
+#
+# Fail closed: an empty string matches no regex, so both facts would be reported missing —
+# true, but it names two edits when the repair is that the document could not be read.
+need_skill_records() {
+  passage_from="$skill_md"
+  passage_text="$(records < "$skill_path")"
+  # Asked as a regex rather than with `${passage_text// /}`, the idiom
+  # model-knobs-recorded.test.sh uses for this: that substitution is quadratic in bash 3.2
+  # and SKILL.md is ~40 kB of records, which is minutes rather than the milliseconds the
+  # same line costs on CLAUDE.md. One non-space character is the same question.
+  [[ "$passage_text" =~ [^[:space:]] ]] && return 0
+  problems+=("$skill_md could not be read, so nothing could be asked of what it tells an operator")
+  return 1
+}
+
+# says <fact> <regex>... — one fact the passage last read has to carry: some ONE record of it
+# has to match every <regex>, and one problem naming the passage and the fact is appended if
+# none does.
+says() {
+  local fact="$1" line re
+  shift
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return 0
+  done <<< "$passage_text"
+  problems+=("$passage_from does not say $fact")
+}
+
+# The nesting, as the regexes any wording naming it would match: the operator's own session,
+# an interactive one, the variable that once marked it, or a launch inside another session.
+# Both facts name it, because both are about that situation and neither is a general note
+# about how to invoke the skill.
+NESTED='claudecode|nested|inside (another|a) claude|interactive session|own session|already in'
+
+# probe_says_the_supported_invocation — the sentence the refusal sends the operator to. Four
+# regexes: the situation, the binary, the command, and the place it is typed. Prose that
+# named the situation and the binary without saying WHERE — a shell outside the session — is
+# the instruction that was already inferable and that #187 shows nobody inferred.
+probe_says_the_supported_invocation() {
+  says "how to launch the conductor when the operator is already inside a Claude Code session — no single passage names the nesting, the supported invocation claude -p \"/tdd <n>\", and that it is typed in a plain shell outside the session" \
+    "$NESTED" \
+    'claude -p' \
+    '/tdd' \
+    'plain shell|ordinary shell|normal shell|separate shell|own shell|a terminal|outside (the|that|this) session|outside claude code'
+}
+
+# probe_says_veri_never_unsets_the_guard — the decision, with the reason that keeps it from
+# being read as an oversight. The reason is asked in the terms the risk actually takes — a
+# crash, and whose sessions it is — because a passage that said "veri does not unset it"
+# without that is a note the next reader can undo in one line.
+probe_says_veri_never_unsets_the_guard() {
+  says "that veri never unsets CLAUDECODE itself, nor why — the guard's stated risk is the operator's to take knowingly" \
+    'claudecode' \
+    'unset' \
+    'never|does not|will not|refus|not veri|leaves it' \
+    'crash|risk|danger' \
+    'operator|user|you|human|their|yours'
+}
+
+# 1. One criterion, one case: the document tells an operator inside a session what to type,
+#    and what veri will not do for them. One case rather than two, because half of it is the
+#    same unusable record — an operator told the tool refuses but not what to run instead is
+#    as stuck as one told nothing, and the problem lines say which half is missing.
+name="$skill_md says how to launch the conductor when the operator is already inside a Claude Code session, and that veri never unsets CLAUDECODE itself"
+problems=()
+
+if need_skill_records; then
+  probe_says_the_supported_invocation
+  probe_says_veri_never_unsets_the_guard
+fi
+
+report "$name"
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
