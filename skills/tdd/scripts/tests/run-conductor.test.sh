@@ -4,26 +4,15 @@
 # leaf one. Same stub, same seam: `CLAUDE_BIN` swaps the binary and the stub records its
 # argv to $ARGV_OUT.
 #
-# Why this exists (issue #207): a conductor typed as `/tdd <n>` into an interactive session
-# is an interactive chat session, and pays ~25,000 tokens a request — measured across 1,481
-# conductor requests, median first-request context 53,438 against a bare `claude -p` floor
-# of 28,321 in this repo — for a harness surface it never touches: the skills roster, the
-# full tool schemas, the interactive system prompt. Everything a conductor does is Bash,
-# Read, Write, Edit and `gh`; it invokes no skill, because it *is* the skill. run-conductor.sh
-# is the conductor-level counterpart of run-leaf.sh: one conductor, one `claude -p`
-# subprocess.
+# Why a conductor is launched this way at all — the ~25,000 tokens of interactive harness
+# surface it never touches, and why the stream flags are part of the criterion rather than a
+# detail of how it is spelled — is run-conductor.sh's own header, which this suite does not
+# restate.
 #
 # Contract under test (this step only):
 #   `run-conductor.sh <issue>` launches the conductor binary in print mode — `-p` — with
 #   `--output-format stream-json --verbose`, and the issue it was asked for reaches the
 #   prompt that launch carries.
-#
-# Why the stream flags are part of the criterion and not a detail of how it is spelled:
-# print mode's default output format stays SILENT until the conductor finishes, so a run
-# that takes an hour is indistinguishable from one that died in its first minute — the same
-# reason run-leaf.sh:11-18 gives for a leaf. A conductor launched without them is a
-# conductor nobody can watch, which is why the step says "with a streamed event output"
-# rather than just "as `claude -p`".
 #
 # Not asked here: that the eight inherited session handles are absent from the child's
 # environment and `VERI_*` is not, that the child's exit status is the script's, and what
