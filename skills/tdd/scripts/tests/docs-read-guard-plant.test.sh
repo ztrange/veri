@@ -51,19 +51,6 @@ SUBJECT_NAME="$(basename "$SUBJECT")"
 TESTS_DIR='skills/tdd/scripts/tests'
 GUARD_NAME='no-docs-reads.test.sh'
 
-# The two ways the plant can fail after the scratch tree is made, each as the one `sed`
-# rewrite that causes it. The first stops the planted reader from carrying the mark the
-# plant then greps it for, which is the fixture edit the issue names; the second stops the
-# reader fixture from being written at all, so the grep has no file to read. Both leave
-# every other line of the subject as it is, because what is being asked about is the
-# subject, not a rewrite of it.
-#
-# The first rewrites what `plant_reader` prints rather than the `MARK` constant, and that is
-# not a detail: the constant is read twice — once to write the comment and once to find it
-# again — so renaming it renames both halves, the grep still matches, and the plant succeeds.
-NO_MARK_EDIT='s|"\$MARK" >> "\$reader_path"|"a-comment-that-is-not-the-mark" >> "\$reader_path"|'
-NO_READER_EDIT="s|^  plant_reader$|  : # sabotage: the reader fixture is never written|"
-
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -154,11 +141,20 @@ subject_copy=""
 run_out=""
 run_code=0
 
-for edit_label in 'no marked line in the planted reader' 'the reader fixture never written'; do
-  case "$edit_label" in
-    'no marked line'*) edit="$NO_MARK_EDIT" ;;
-    *) edit="$NO_READER_EDIT" ;;
-  esac
+# The two ways the plant can fail after the scratch tree is made, each as the one `sed`
+# rewrite that causes it, in the repository's `IFS='|' read` table idiom so the name of a
+# way and the rewrite that causes it are one row rather than two lists a `case` glob rejoins.
+# The first row stops the planted reader from carrying the mark the plant then greps it for,
+# which is the fixture edit the issue names; the second stops the reader fixture from being
+# written at all, so the grep has no file to read. Both leave every other line of the
+# subject as it is, because what is being asked about is the subject, not a rewrite of it.
+#
+# The first rewrites what `plant_reader` prints rather than the `MARK` constant, and that is
+# not a detail: the constant is read twice — once to write the comment and once to find it
+# again — so renaming it renames both halves, the grep still matches, and the plant succeeds.
+# Both rewrites delimit their `sed` with `%` so the row's own `|` stays the field separator.
+while IFS='|' read -r edit_label edit; do
+  [[ -n "$edit_label" ]] || continue
   if plant_subject "$edit"; then
     probe_sabotage_is_real "$edit_label"
     run_subject
@@ -166,7 +162,10 @@ for edit_label in 'no marked line in the planted reader' 'the reader fixture nev
   fi
   [[ -z "$tree" ]] || rm -rf "$tree"
   tree=""
-done
+done <<'SABOTAGES'
+no marked line in the planted reader|s%"\$MARK" >> "\$reader_path"%"a-comment-that-is-not-the-mark" >> "\$reader_path"%
+the reader fixture never written|s%^  plant_reader$%  : # sabotage: the reader fixture is never written%
+SABOTAGES
 
 report "$name"
 
