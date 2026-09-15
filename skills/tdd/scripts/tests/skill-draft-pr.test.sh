@@ -70,14 +70,23 @@ records_of() {
     END { flush() }' | tr '[:upper:]' '[:lower:]'
 }
 
-# draft_pr_instructions — the records of the `### 4. Draft PR` section, which a heading of
-# either level ends. Scoped, because the document pushes a branch on more than one path:
-# *Bailing* pushes deliberately, and the cycle loop now pushes after every green commit.
-# An unscoped read would answer this criterion with those, and fail a document that had
-# done exactly what this step asks.
+# section_records <heading prefix> <closer regex> — the records of the section whose
+# heading STARTS WITH <heading prefix>, where a line matching <closer regex> is what ends
+# one. Every read here is scoped to a section, because the document pushes a branch and
+# takes a PASS branch on several paths: an unscoped read would answer one criterion with
+# another path's instruction, and fail a document that had done exactly what was asked.
+# Which headings close a section is the caller's, since the levels differ by section. A
+# prefix rather than the whole heading because a heading may carry trailing prose after an
+# em dash; the prefix is what identifies it and is quotable in a problem message.
+section_records() {
+  awk -v h="$1" -v closers="$2" \
+    '$0 ~ closers { inside = (index($0, h) == 1); next } inside' "$skill_path" | records_of
+}
+
+# draft_pr_instructions — the records of the `### 4. Draft PR` step, which a heading of
+# either level ends.
 draft_pr_instructions() {
-  awk -v heading='### 4. Draft PR' -v closers='^## |^### ' \
-    '$0 ~ closers { inside = ($0 == heading); next } inside' "$skill_path" | records_of
+  section_records '### 4. Draft PR' '^## |^### '
 }
 
 # 1. The criterion, as one case: the step opens the PR for a branch that is already on the
@@ -102,15 +111,10 @@ fi
 report "$name"
 
 # pass_record <heading prefix> — the record of the PASS branch inside the `####` section
-# whose heading STARTS WITH <heading prefix>, or nothing when there is no such section or
-# no such branch in it. Scoped per section for the reason draft_pr_instructions is scoped:
-# the document takes a PASS branch on five paths, and an unscoped read would let Red's
-# answer for Green's. A literal prefix rather than the whole heading because both headings
-# here carry trailing prose after an em dash; the prefix is what identifies them and is
-# quotable in the message about not finding one.
+# whose heading starts with <heading prefix>, or nothing when there is no such section or
+# no such branch in it. Any heading ends one of these, the document's innermost level.
 pass_record() {
-  awk -v h="$1" 'index($0, h) == 1 { inside = 1; next } /^#/ { inside = 0 } inside' "$skill_path" \
-    | records_of | grep -E '^ *- \*\*pass' | head -1
+  section_records "$1" '^#' | grep -E '^ *- \*\*pass' | head -1
 }
 
 # 2. The criterion, as one case: the branch reaches the remote at both of the points that
