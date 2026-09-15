@@ -80,6 +80,33 @@ model_probe() {
   rm -f "$out" "$err"
 }
 
+# model_refuses <run-wide> <developer> <verifier> <leaf-name> — the other half of the
+# contract, and the only shape a refusal is allowed to take: exit 2 ("no answer could be
+# obtained" — the plumbing speaking, not a clean negative), NOTHING on stdout, and a
+# diagnostic on stderr so a human is told which value was wrong. Nothing on stdout is the
+# load-bearing one: supervise.sh reads this script in a command substitution and turns a
+# non-empty answer into `--model <value>`, so a refused value half-printed there would
+# reach the `claude` command line anyway, which is the failure the refusal exists to stop.
+# Arguments and `env -u` discipline are model_probe's, for the same reasons.
+model_refuses() {
+  local wide="$1" dev="$2" ver="$3" name="$4" out err code label
+  local -a envargs
+  out="$(mktemp)" err="$(mktemp)"
+  label="VERI_MODEL=$wide VERI_MODEL_DEVELOPER=$dev VERI_MODEL_VERIFIER=$ver $name"
+  envargs=(-u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER)
+  [[ "$wide" == unset ]] || envargs+=(VERI_MODEL="$wide")
+  [[ "$dev" == unset ]] || envargs+=(VERI_MODEL_DEVELOPER="$dev")
+  [[ "$ver" == unset ]] || envargs+=(VERI_MODEL_VERIFIER="$ver")
+  env "${envargs[@]}" "$LEAF_MODEL" "$name" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 2 ]] ||
+    problems+=("$label: want exit 2, got $code")
+  [[ ! -s "$out" ]] ||
+    problems+=("$label: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ -s "$err" ]] ||
+    problems+=("$label: want a diagnostic on stderr, got nothing")
+  rm -f "$out" "$err"
+}
+
 # 1. The whole of this step's criterion, as one case: VERI_MODEL is the run-wide knob, so
 #    it answers for a leaf of either role, and a run that set no model at all gets no model
 #    back.
@@ -117,6 +144,33 @@ model_probe sonnet unset opus verify-green   opus
 model_probe sonnet opus unset develop-red    opus
 model_probe sonnet opus unset revise-green-2 opus
 model_probe sonnet opus unset verify-green   sonnet
+report "$name"
+
+# 3. The two refusals this script can make without asking a network what a model id is, and
+#    the alias that must survive them. A value with whitespace in it cannot be one model
+#    name: `claude --model "sonnet 5"` is a single argument no alias matches, and left to
+#    run it costs a whole leaf to find out, so it is refused here — in preflight, before any
+#    branch or leaf — rather than at launch. Both variables are asked, because the refusal is
+#    of the value that WON, not of a particular name: whitespace reaching `--model` through
+#    the role variable is the same wrong command line as through VERI_MODEL.
+#
+#    A leaf name leaf-role.sh refuses is refused here too, and with no model variable set at
+#    all as well as with one: this script's first act is to ask leaf-role.sh what role the
+#    name is, so a name it cannot read leaves the role variable unreadable, and answering
+#    VERI_MODEL anyway would be answering for a leaf nobody could place.
+#
+#    `opus[1m]` is probed alongside them because it is the model the development machine
+#    actually runs on (issue #171): a guard written as "refuse anything not plain alphanumeric"
+#    would take the brackets with the spaces and break every leaf, so the accepted case is
+#    named here rather than left to be inferred from the two refusals.
+name="a value containing whitespace and a leaf name leaf-role.sh refuses each exit 2 with a diagnostic, while opus[1m] is accepted"
+problems=()
+model_refuses 'sonnet 5' unset unset develop-red
+model_refuses unset unset $'opus\t1m' verify-green
+model_refuses sonnet unset unset frobnicate-red
+model_refuses unset unset unset frobnicate-red
+model_probe 'opus[1m]' unset unset develop-red  'opus[1m]'
+model_probe unset unset 'opus[1m]' verify-green 'opus[1m]'
 report "$name"
 
 echo "----"
