@@ -50,6 +50,18 @@ report() {
   fi
 }
 
+# unchanged <label> <before> <after> — one probe of the "moved nothing" half of the
+# criterion, which the case makes three times over (HEAD, the commit count, the ledger).
+# Each measures its own before and after; what is the same every time is the comparison and
+# the shape of the problem it files, so it is written once here. `%q` on both values because
+# one of the three is a multi-line file: unquoted, a mismatching ledger would break the
+# report's one-problem-per-line shape and bury the other probes.
+unchanged() {
+  local label="$1" before="$2" after="$3"
+  [[ "$after" == "$before" ]] ||
+    problems+=("$label: want it unchanged at $(printf '%q' "$before"), got $(printf '%q' "$after")")
+}
+
 # git_q <repo> <args...> — git with an identity of its own, so the suite does not depend on
 # whatever user.name/user.email the machine running it happens to carry (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
@@ -111,17 +123,9 @@ ledger_before="$(cat "$ledger")"
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 — a failed push is not a bail, so the run's exit status is unchanged — got $code")
 
-head_after="$(git_q "$repo" rev-parse HEAD)"
-[[ "$head_after" == "$head_before" ]] ||
-  problems+=("HEAD: want it unchanged at $head_before, got $head_after")
-
-count_after="$(git_q "$repo" rev-list --count HEAD)"
-[[ "$count_after" == "$count_before" ]] ||
-  problems+=("commits: want the count unchanged at $count_before, got $count_after")
-
-ledger_after="$(cat "$ledger")"
-[[ "$ledger_after" == "$ledger_before" ]] ||
-  problems+=("ledger: want .tdd/issue-191.md unchanged, got: $(printf '%q' "$ledger_after")")
+unchanged "HEAD" "$head_before" "$(git_q "$repo" rev-parse HEAD)"
+unchanged "the commit count" "$count_before" "$(git_q "$repo" rev-list --count HEAD)"
+unchanged ".tdd/issue-191.md (the ledger)" "$ledger_before" "$(cat "$ledger")"
 
 log="$repo/.tdd/events.jsonl"
 if [[ ! -f "$log" ]]; then
