@@ -454,16 +454,17 @@ leafargs_overridden=no
 #     would satisfy an exit-code-only case while still paying for the run it must not make.
 #     Both streams are captured, so the diagnostic counts wherever the refusal writes it.
 #
-#     Its own directory under $work, because the evidence is the ABSENCE of the stub's argv
-#     dump, and the shared $work/argv is written by every case above.
+#     verify_in's, run in its OWN directory under $work, because the evidence is the ABSENCE of
+#     the stub's argv dump and the shared $work/argv is written by every case above. The two
+#     prefix assignments reach verify.sh the way case 14's do — verify_in's `env` has no `-i` —
+#     and are gone after the call, so no case sees them.
 model_clash_dir="$work/model-clash"
 mkdir -p "$model_clash_dir"
 model_clash_argv="$model_clash_dir/argv"
-model_clash_out="$( cd "$model_clash_dir" && env CLAUDE_BIN="$stubdir/claude" \
-    ARGV_OUT="$model_clash_argv" FAKE_OUT_TEXT='VERDICT: PASS
-REASON: Target test and full suite are green.' VERI_MODEL_VERIFIER=sonnet \
+model_clash_out="$( VERI_MODEL_VERIFIER=sonnet \
     VERIFY_LEAF_ARGS='--permission-mode bypassPermissions --model opus' \
-    "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases 2>&1 )"
+    verify_in "$model_clash_dir" red 'VERDICT: PASS
+REASON: Target test and full suite are green.' 2>&1 )"
 model_clash_code=$?
 model_clash_launched=no
 [[ -e "$model_clash_argv" ]] && model_clash_launched=yes
