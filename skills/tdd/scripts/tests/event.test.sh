@@ -238,6 +238,58 @@ fi
 rm -rf "$acc_work"
 report "$name"
 
+# 4. The skill commit is a fixed key, and it comes from the environment (issue #165). A run
+#    executes whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone that
+#    `main` moves under it, so which commit a leaf was launched under is a fact only the log
+#    can carry. It arrives the way the other run-wide context does — in the environment, as
+#    `VERI_SKILL_COMMIT` — and not on the command line, so no caller has to remember to pass
+#    it and every line of the run answers the question the same way.
+#
+#    `fixed` is the whole of the pin, and it is what makes the two halves below one case: a
+#    payload key is present when the caller passed it, while a fixed key is present on every
+#    line whatever the environment holds. So the call with the variable set must write that
+#    sha, and the call with it unset must still carry the key — a writer that emitted it only
+#    when set would leave a reader unable to tell a skill whose commit is not known from a
+#    line written before this key existed, which is exactly the ambiguity case 2 refuses for
+#    the other seven. The unset half probes presence only, not a value: what an unresolvable
+#    commit should read as is the resolver's question, not the writer's.
+#
+#    `env` sets and unsets for these children only, so the answer is a fact about the script
+#    rather than about whatever the shell running `make test` exported (hermetic-suites.test.sh's
+#    concern, and #87's bail). The sha is a real-looking 40 hex digits and distinct from every
+#    other value on the line, so a writer that put it under the wrong key is caught.
+name="event.sh writes VERI_SKILL_COMMIT from the environment as the fixed key skill_commit, present on every line whether or not the variable is set"
+problems=()
+sc_work="$(mktemp -d)"
+sc_log="$sc_work/.tdd/events.jsonl"
+sc_sha="9f3c1ab7d0e4f52618bc90a7de4415f0b2c83d61"
+
+( cd "$sc_work" && env VERI_ISSUE=165 VERI_ACTOR=conductor VERI_PHASE=red VERI_STEP=1 \
+    VERI_ATTEMPT=1 VERI_SKILL_COMMIT="$sc_sha" "$EVENT" launch ) >/dev/null 2>&1 ||
+  problems+=("want exit 0 from the call with VERI_SKILL_COMMIT set, got $?")
+
+if [[ ! -f "$sc_log" ]]; then
+  problems+=("want the line appended to .tdd/events.jsonl, but no such file under $sc_work")
+elif want_parses "$sc_log"; then
+  want_field "$sc_log" skill_commit "$sc_sha"
+fi
+
+# The second call goes to its own directory, so `jget`'s first line is the line this half
+# wrote rather than the one above it.
+unset_work="$(mktemp -d)"
+unset_log="$unset_work/.tdd/events.jsonl"
+( cd "$unset_work" && env -u VERI_SKILL_COMMIT "$EVENT" launch ) >/dev/null 2>&1 ||
+  problems+=("want exit 0 from the call with VERI_SKILL_COMMIT unset, got $?")
+
+if [[ ! -f "$unset_log" ]]; then
+  problems+=("want the line appended anyway, but no .tdd/events.jsonl under $unset_work")
+elif want_parses "$unset_log"; then
+  [[ "$(jget "$unset_log" skill_commit)" != "<<missing>>" ]] ||
+    problems+=("skill_commit: want the key present anyway, got it missing")
+fi
+rm -rf "$sc_work" "$unset_work"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
