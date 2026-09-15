@@ -827,11 +827,9 @@ argv_unset_got="$(cat "$argv_work/unset.argv" 2>/dev/null || echo '<<no argv>>')
   && [[ "$argv_unset_got" == "$argv_today" ]]; } && ok \
   || no "a supervised leaf's claude argv carries --model only when the run chose a model (VERI_MODEL=$argv_model: code=$argv_set_code argv=$(printf '%q' "$argv_set_got") want a --model/$argv_model pair; none set: code=$argv_unset_code argv=$(printf '%q' "$argv_unset_got") want $(printf '%q' "$argv_today"))"
 # 21. the `launch` line carries the commit of the SKILL that launched the leaf, in
-#     `skill_commit` — the eighth fixed key event.sh writes (issue #165). A run executes
-#     whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone that `main`
-#     moves under a running conductor, so which version a leaf ran under is a fact only the
-#     log can carry; event.sh reads it from `VERI_SKILL_COMMIT` and the supervisor is what
-#     has to put it there, because this is the one choke point every leaf goes through and
+#     `skill_commit` — the eighth fixed key event.sh writes, whose point that script's header
+#     states (issue #165). event.sh reads the sha from `VERI_SKILL_COMMIT`, and the supervisor
+#     is what has to put it there: this is the one choke point every leaf goes through, and
 #     the only place that knows where the running scripts live.
 #
 #     The expectation is read from the scripts' OWN directory — `git -C` on `$SUP`'s

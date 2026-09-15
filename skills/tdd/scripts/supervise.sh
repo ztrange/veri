@@ -162,12 +162,12 @@ model="$("$HERE/leaf-model.sh" "$name")" || model=""
 export VERI_LEAF_MODEL="$model"
 
 # The skill's own commit, resolved once per supervision and exported so every mark below
-# carries it in `skill_commit` (issue #165). Asked of `$HERE` — the directory the running
-# scripts live in — and not of the cwd, because the cwd is the issue's worktree and the
-# skill is whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone `main`
-# moves under a running conductor. The two are different repositories' HEADs, and the one a
-# reader needs is the code that ran. Exported rather than passed through `mark`'s `env` line,
-# which is leaf-role.sh's output verbatim and stays that.
+# carries it in `skill_commit` — what that key is for, and why a run needs it at all, is
+# event.sh's header (issue #165). What is this script's to say is where the sha is asked of:
+# `$HERE`, the directory the running scripts live in, and not the cwd, which is the issue's
+# worktree. The two are different repositories' HEADs, and the one a reader needs is the code
+# that ran. Exported rather than passed through `mark`'s `env` line, which is leaf-role.sh's
+# output verbatim and stays that.
 export VERI_SKILL_COMMIT="$(git -C "$HERE" rev-parse HEAD 2>/dev/null)"
 
 # mark <event> [key=value …] — append one line to the run's event log (issue #107,
