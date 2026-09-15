@@ -133,6 +133,16 @@ KINDS = (
     ("input",       one_rate("input_tokens", "input"),                 "input"),
 )
 
+def model_id(obj):
+    """The model a record was billed to, or "" for a record that does not say.
+
+    One spelling of the reach into the message, because the three places that ask — which
+    records are priceable, which family to price them at, and which unpriceable model owes
+    a footer line — must ask the same question. A second spelling that forgot the default
+    would raise on the one record the report exists to notice.
+    """
+    return obj["message"].get("model", "")
+
 def family(model):
     """The price-table key for a model id like `claude-opus-4-1-20250805`."""
     for key in PRICES:
@@ -210,7 +220,7 @@ def unpriced(records):
     """
     rows = {}
     for obj in records:
-        model = obj["message"].get("model", "")
+        model = model_id(obj)
         if family(model):
             continue
         usage = obj["message"]["usage"]
@@ -303,7 +313,7 @@ records = [obj for path in paths for obj in usage_records(path, since)]
 # no rate to be multiplied by, so it is held out of every figure below and named in a
 # footer instead: billing it at whichever family happened to be met first would move all
 # four figures by whatever it spent, and nothing on the page would say so.
-priced = [obj for obj in records if family(obj["message"].get("model", ""))]
+priced = [obj for obj in records if family(model_id(obj))]
 tokens = totals(priced)
 
 # One model family per report at this size, and it is the price table that has to know it:
@@ -314,7 +324,7 @@ tokens = totals(priced)
 if not priced:
     print("session-cost.sh: no known model in any transcript", file=sys.stderr)
     sys.exit(2)
-price = PRICES[family(priced[0]["message"].get("model", ""))]
+price = PRICES[family(model_id(priced[0]))]
 
 def costed(tokens):
     """What each kind of token in `tokens` comes to, at `price`."""
