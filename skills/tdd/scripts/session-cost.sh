@@ -249,11 +249,14 @@ def sessions(records):
     rows = {}
     for obj in records:
         weight = context(obj["message"]["usage"])
-        key = obj.get("sessionId", "")
-        row = rows.get(key)
-        if row is None:
-            rows[key] = {"requests": 1, "preamble": weight, "final": weight, "total": weight}
-            continue
+        # One update path, taken by the first request of a session as much as by the
+        # tenth: what the row starts as is only what nothing has been counted into yet.
+        # Two paths would say what `final` and `total` are twice over, and the first
+        # request is the one whose figures a second spelling would get to state alone.
+        # The PREAMBLE is the exception and the reason the default is written here: it is
+        # the first request*s context and no later one touches it again.
+        row = rows.setdefault(obj.get("sessionId", ""),
+                              {"requests": 0, "preamble": weight, "final": 0, "total": 0})
         row["requests"] += 1
         row["final"] = weight
         row["total"] += weight
