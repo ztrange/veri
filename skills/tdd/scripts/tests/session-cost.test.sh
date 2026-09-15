@@ -653,6 +653,107 @@ grep -F a8f3d1c6 <<< "$out" | grep -Eqi "$ramp_words" ||
 report "$name"
 
 
+# 8. A price table that does not know a model must not guess. Every figure in this report
+#    is a token count multiplied by a rate, and the rate comes from `PRICES`, keyed by
+#    model family. A model the table has never heard of — the next one Anthropic ships, a
+#    third-party endpoint, a renamed family — has no rate, and there are only two things to
+#    do with it: invent one, or say so. Inventing one is the failure that cannot be seen
+#    afterwards: the report still prints four tidy figures, the total still looks like
+#    money, and nothing on the page says that part of it was priced as a model that was
+#    never called. The day #201 measured was reconstructed by hand precisely because no
+#    number anywhere could be trusted to mean what it said; a silently mispriced family
+#    would put the new report in the same position.
+#
+#    So the criterion has three clauses and this case pins all three, because any two
+#    without the third is still a report that misleads:
+#      - the unknown model's TOKENS are reported — it was called, it was billed, and a
+#        report that dropped it would understate the day as badly as mispricing it;
+#      - its COST is left blank — not $0.00, which is a claim that it was free, but
+#        nothing, which is the truth: this script cannot say;
+#      - and it is NAMED in a footer, so the reader knows which model to go and price.
+#
+#    The fixture is one known session and one unknown one, rather than an unknown one
+#    alone, because the thing most likely to go wrong is not the footer but the
+#    arithmetic: a script that picks one family for the whole report and prices every
+#    record at it produces a total that is off by whatever the unknown model spent, and an
+#    unknown-only fixture could never catch that — there would be no known rate for it to
+#    be wrong about. Here the four money figures are the KNOWN session's alone: $0.90
+#    read, $0.75 write, $0.33 output, $1.98 total. If the unknown model's tokens are billed
+#    at the opus rates beside it, every one of the four moves.
+#
+#    The unknown session's `input_tokens` is 0, which no real record states, and it is 0 on
+#    purpose: the footer's token figure is then the same number whether the script counts
+#    the three kinds this report splits or all four it bills. Whether input belongs in a
+#    footer total is a question this case has no business answering, so the fixture is
+#    written so that it does not have to.
+name="an unknown model: its tokens are reported, its cost is blank, and it is named in a footer"
+problems=()
+
+known_transcript="$work/1d8b6f40-2a93-4c17-8e65-3b07d9a4f2e1.jsonl"
+unknown_transcript="$work/9e4a2c58-7f61-4b0d-a392-5c81e6b70d43.jsonl"
+
+# The known session's one request, at the rates in the header:
+#   cache read   600000 x $1.50/M  = $0.90
+#   cache write   40000 x $18.75/M = $0.75
+#   output         4400 x $75.00/M = $0.33
+#   input             2 x $15.00/M = $0.00 (three hundred-thousandths of a cent)
+#   total                            $1.98
+known_read=600000 ; known_write=40000 ; known_out=4400 ; known_in=2
+
+want_read_cost=0.90
+want_write_cost=0.75
+want_output_cost=0.33
+want_total_cost=1.98
+
+# The unknown session's one request. Its numbers are deliberately unlike the known
+# session's in every digit, so a figure that included them lands nowhere near one an
+# expectation above states: priced as opus, the four figures would read $1.67, $1.21,
+# $0.56 and $3.44 instead.
+unknown_model=claude-quasar-9-20260901
+unknown_read=512345 ; unknown_write=24680 ; unknown_out=3107 ; unknown_in=0
+want_unknown_tokens=540132   # 512345 + 24680 + 3107, and the input is 0
+
+cat > "$known_transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T09:12:44.518Z","requestId":"req_011CSJmZ4bCdJ0pFhN3aUw7i","sessionId":"1d8b6f40-2a93-4c17-8e65-3b07d9a4f2e1","message":{"role":"assistant","model":"claude-opus-4-1-20250805","usage":{"input_tokens":$known_in,"cache_creation_input_tokens":$known_write,"cache_creation":{"ephemeral_5m_input_tokens":$known_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$known_read,"output_tokens":$known_out}}}
+TRANSCRIPT
+
+cat > "$unknown_transcript" <<TRANSCRIPT
+{"type":"assistant","timestamp":"2026-09-14T09:48:02.907Z","requestId":"req_011CSKnA5cDeK1qGiO4bVx8j","sessionId":"9e4a2c58-7f61-4b0d-a392-5c81e6b70d43","message":{"role":"assistant","model":"$unknown_model","usage":{"input_tokens":$unknown_in,"cache_creation_input_tokens":$unknown_write,"cache_creation":{"ephemeral_5m_input_tokens":$unknown_write,"ephemeral_1h_input_tokens":0},"cache_read_input_tokens":$unknown_read,"output_tokens":$unknown_out}}}
+TRANSCRIPT
+
+out="$(TZ=UTC "$SESSION_COST" --since 2026-09-14 "$known_transcript" "$unknown_transcript" 2>&1)"
+code=$?
+
+# The footer first, and the money after, only because `expect_split` closes by appending
+# the report itself when anything has gone wrong: probing the footer ahead of it is what
+# puts that dump at the END of the complaints rather than in the middle of them, and makes
+# it appear for a footer-only failure too — which is the failure where seeing what the
+# script actually printed matters most.
+#
+# The footer is the line that names the model, states its tokens, and states no money.
+# Picked out by the model id because that is the one thing about the footer this suite is
+# entitled to fix — the wording around it is the script's business.
+footer="$(grep -F "$unknown_model" <<< "$out")"
+
+[[ -n "$footer" ]] ||
+  problems+=("the unknown model: want a line naming $unknown_model, the report names it nowhere")
+
+states "the unknown model's tokens" "$want_unknown_tokens" "naming $unknown_model" "$footer"
+
+# Blank, not zero: a `$0.00` beside the model would be this script claiming the tokens were
+# free, which is a different and worse answer than declining to price them.
+! grep -Eq '\$[0-9]' <<< "$footer" ||
+  problems+=("the unknown model: want no money on the line naming it, got $(printf '%q' "$footer")")
+
+# And the four money figures are the KNOWN session's alone — the same assertion every cost
+# case here makes, which is what makes "the unknown model was not priced" a statement about
+# the whole report rather than about one line of it.
+expect_split
+
+report "$name"
+
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
