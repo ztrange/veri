@@ -82,10 +82,9 @@ model_probe() {
 #    than a restatement: a script that only knew how to answer for one of them would print
 #    for one probe and refuse or fall silent on the other.
 #
-#    The unset probes are asked of both names for the same reason, and they are the case the
-#    issue's first acceptance criterion turns on — with nothing set, the `claude` argv must
-#    carry no `--model`, which only holds if this script's answer is empty rather than some
-#    default the caller would dutifully pass on.
+#    The unset probes are asked of both names for the same reason, and they are the case
+#    the issue's first acceptance criterion turns on: with nothing set, the `claude` argv
+#    carries no `--model` at all.
 name="VERI_MODEL is printed for a leaf of either role; with no model variable set, nothing is printed and the exit is still 0"
 problems=()
 model_probe sonnet develop-red sonnet
