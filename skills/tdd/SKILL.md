@@ -612,7 +612,13 @@ following step. The phase sub-steps are:
      ```
      $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md '<distinctive substring of STEP>'
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
+     $S/push-branch.sh
      ```
+     The push is what stops the run living on one disk until it is review-ready: the first
+     call creates the remote branch, later ones fast-forward, and no PR is opened, so
+     nothing asks for review before the run is ready. A push that fails is **not** a bail —
+     `push-branch.sh` exits 0 either way and records the failure as an event — so the tick
+     and the commit above stand whatever the network did.
      Continue to the Refactor loop.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
@@ -714,9 +720,12 @@ following step. The phase sub-steps are:
      ```
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
+     $S/push-branch.sh
      ```
      A clear left uncommitted is not a clear: resume reads the **committed** ledger, so
-     until that commit exists the step still says pending. Then **mirror to the issue**:
+     until that commit exists the step still says pending. The push copies the step's
+     finished state to the remote on the same terms as Green's: a fast-forward, no PR, and
+     a failure that is recorded as an event rather than bailed on. Then **mirror to the issue**:
      post a `### ✅ Step done` comment, and tick the matching acceptance criterion in the
      **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Mark
      the same moment in the log —
