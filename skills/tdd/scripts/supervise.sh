@@ -24,8 +24,8 @@
 # polling that file instead of by reading this script's stdout.
 #
 # Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (issue #107,
-# ADR-0014): one `launch` — the leaf's name, the command behind it, and the attempt its name
-# encodes — one `retry` per relaunch, carrying the cause the watchdog killed the previous
+# ADR-0014): one `launch` — the leaf's name, the command behind it, the model it runs on
+# (empty when the run chose none) and the attempt its name encodes — one `retry` per relaunch, carrying the cause the watchdog killed the previous
 # attempt for, and one `exit` — the 0/1/2 status above, the kill cause when there is one, and
 # how many wall seconds the last attempt took. `launch` and `exit` are written once per
 # supervision, not once per attempt: a second one would read as a second leaf, and the
@@ -140,6 +140,14 @@ attempt_once() {
 # to test.
 role="$("$HERE/leaf-role.sh" "$name")" || role=""
 
+# The model this leaf runs on, resolved here beside the role and from the same name (issue
+# #171). Here because this is the choke point every leaf goes through, so the value the
+# `launch` mark reports below is the one the launch itself was decided by, rather than a
+# second reading of the environment that a caller could have changed in between. A refusal —
+# leaf-model.sh exits 2 on a value it can reject without a network — leaves this empty the
+# way `role` is left empty above; a bad value is preflight's to stop, before any leaf.
+model="$("$HERE/leaf-model.sh" "$name")" || model=""
+
 # mark <event> [key=value …] — append one line to the run's event log (issue #107,
 # ADR-0014), or nothing at all. Both marks below go through here, so what the two have in
 # common is said once rather than in each:
@@ -165,7 +173,10 @@ mark() {
 # Once per supervision, not once per attempt — which is what its place here shows: outside
 # the loop below, so a retried attempt passes it by. That attempt is the `retry` mark's to
 # report, and a second `launch` would read as a second leaf.
-mark launch name="$name" cmd="$*"
+# `model=` is written on every launch, empty when the run chose none: event.sh's rule for
+# context keys is that an absent key and a chosen-nothing key must not look alike, and a
+# per-model cost comparison joins verdicts and revise counts on exactly this field.
+mark launch name="$name" cmd="$*" model="$model"
 
 # First attempt plus up to $retries extra attempts. A normal result (success/failure)
 # short-circuits; only killed-stuck is retried.
