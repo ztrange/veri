@@ -84,9 +84,19 @@ report() {
 # pipeline appends to an array in a subshell, which dies with the pipeline — so a probe
 # written that way loses every complaint it makes and its case goes green whatever the
 # script printed.
+
+# anchored <amount> — that predicate as an ERE on its own, for a probe that needs the
+# match without the complaint `states` makes: `band` chains three of them to pick a line
+# stating all three of a group's figures. One spelling of the pattern, so the escaping and
+# the fencing cannot come to differ between the probe that asserts one figure and the one
+# that asserts three.
+anchored() {
+  printf '(^|[^0-9])%s([^0-9]|$)' "${1//./\\.}"
+}
+
 states() {
-  local what="$1" amount="${2//./\\.}" where="$3" lines="$4"
-  grep -Eq "(^|[^0-9])$amount([^0-9]|$)" <<< "$lines" ||
+  local what="$1" where="$3" lines="$4"
+  grep -Eq "$(anchored "$2")" <<< "$lines" ||
     problems+=("$what: want $2 on a line $where, not found in the report")
 }
 
@@ -969,13 +979,9 @@ for i in 0 1 2; do
     problems+=("session ${leaf_ids[$i]:0:8}: want its row to name the entrypoint sdk-cli, it does not")
 done
 
-# Second half: the band. `anchored <n>` is `states`' own predicate as an ERE on its own —
-# the amount escaped and fenced between non-digits — so that chaining three of them picks
-# a line stating all three figures and not one stating 68597 inside 686597.
-anchored() {
-  printf '(^|[^0-9])%s([^0-9]|$)' "${1//./\\.}"
-}
-
+# Second half: the band, matched through the suite's own `anchored`: chaining three of
+# them picks a line stating all three figures and not one stating 68597 inside 686597.
+#
 # band <harness> <min> <median> <max> — complain unless one line of the report names
 # <harness> and carries all three figures. Which of the three is labelled which is the
 # script's business; that the group is printed as a band and not as one number is this
