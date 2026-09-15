@@ -337,9 +337,11 @@ def bands(rows):
     groups = {}
     for row in rows.values():
         groups.setdefault(row["harness"], []).append(row["preamble"])
-    return {harness: (seen[0], seen[len(seen) // 2], seen[-1])
-            for harness, seen in ((harness, sorted(seen))
-                                  for harness, seen in groups.items())}
+    banded = {}
+    for harness, preambles in groups.items():
+        preambles.sort()
+        banded[harness] = (preambles[0], preambles[len(preambles) // 2], preambles[-1])
+    return banded
 
 # Which of the two ROLES a record belongs to. `entrypoint` is what Claude Code writes to
 # say how the session was started, and `sdk-cli` is the one veri launches: `claude -p`,
