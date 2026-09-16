@@ -68,6 +68,21 @@ label_run() {  # label_run <fixture-dir> <env setting…>; sets $out and $code
   out="$(env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 }
 
+# The same run once more, for the cases whose criterion is WHICH STREAM carried what: a label
+# tunable set but empty is refused with a diagnostic on stderr and nothing on stdout, so the
+# two must not be merged and `label_run`, which drops stderr, cannot serve them. Each stream
+# goes to its own file inside the case's own fixture directory — the script reads only
+# `issues.json` and `prs.json` out of it, so nothing else there is in its way — leaving the two
+# paths in $refused_out and $refused_err and the exit code in $refused_code, all three asserted
+# at the call site. The settings are forwarded to `env` exactly as `label_run` forwards them,
+# so the one `VERI_…=` under test stays where it is the point.
+refused_run() {  # refused_run <fixture-dir> <env setting…>; sets $refused_out/$refused_err/$refused_code
+  local fixture="$1"; shift
+  refused_out="$fixture/refused.out" refused_err="$fixture/refused.err"
+  env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" >"$refused_out" 2>"$refused_err" \
+    && refused_code=0 || refused_code=$?
+}
+
 # 1. The base case, and the one the VERI_GH_JSON override exists to make testable: a single
 # open issue, carrying the ready-for-agent opt-in label, naming no blocker, with no open PR
 # claiming it. Nothing stands between veri and a run on it, so it is listed on its own line.
@@ -480,8 +495,7 @@ label_run "$fx" VERI_LABEL=ready-for-agent:docs; under_docs="$out" docs_code="$c
 # and unset alike — prints "67" and exits 0, while one that read the empty value as "any
 # label" prints "67\n68" and exits 0. Both are visible against exit 2 with stdout empty.
 #
-# The two streams go to separate files rather than through the `label_run` helper, which drops
-# stderr: which stream carries what IS the criterion here, so they must not be merged, and
+# `refused_run` rather than `label_run`: which stream carries what IS the criterion here, and
 # stdout's emptiness is asserted as well as stderr's content.
 fx="$(fixture empty-label)"
 cat > "$fx/issues.json" <<'JSON'
@@ -503,9 +517,7 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-refused_out="$work/empty-label.out" refused_err="$work/empty-label.err"
-env VERI_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$refused_out" 2>"$refused_err" \
-  && refused_code=0 || refused_code=$?
+refused_run "$fx" VERI_LABEL=
 
 { [[ "$refused_code" == 2 ]] \
   && [[ ! -s "$refused_out" ]] \
@@ -1218,11 +1230,10 @@ label_run "$fx" -u VERI_PRIORITY_LABEL
 # everything" prints "100\n200" — both ascending-by-number bands of one — and exits 0 too.
 # Either is visible against exit 2 with stdout empty.
 #
-# The empty run's two streams go to separate files rather than through the `label_run` helper,
-# which drops stderr: which stream carries what IS half the criterion, so they must not be
-# merged, and stdout's emptiness is asserted as well as stderr's content. The unset run keeps
-# the helper's `-u`, which guarantees the variable is ABSENT rather than merely unset by this
-# shell.
+# The empty run goes through `refused_run` rather than `label_run`: which stream carries what
+# is half the criterion here, so the two must not be merged, and stdout's emptiness is asserted
+# as well as stderr's content. The unset run keeps `label_run`'s `-u`, which guarantees the
+# variable is ABSENT rather than merely unset by this shell.
 fx="$(fixture priority-label-tunable)"
 cat > "$fx/issues.json" <<'JSON'
 [
@@ -1243,17 +1254,15 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-empty_out="$work/empty-priority-label.out" empty_err="$work/empty-priority-label.err"
-env VERI_PRIORITY_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$empty_out" 2>"$empty_err" \
-  && empty_code=0 || empty_code=$?
+refused_run "$fx" VERI_PRIORITY_LABEL=
 
 label_run "$fx" -u VERI_PRIORITY_LABEL
 
-{ [[ "$empty_code" == 2 ]] \
-  && [[ ! -s "$empty_out" ]] \
-  && [[ -s "$empty_err" ]] \
+{ [[ "$refused_code" == 2 ]] \
+  && [[ ! -s "$refused_out" ]] \
+  && [[ -s "$refused_err" ]] \
   && [[ "$code" == 0 ]] && [[ "$out" == $'200\n100' ]]; } \
-  && ok || no "VERI_PRIORITY_LABEL set to the empty string is refused with exit 2 and a diagnostic, while unset defaults to the priority label (set-but-empty: exit=$empty_code want 2, stdout='$(tr '\n' '|' < "$empty_out")' want empty, stderr='$(tr '\n' ' ' < "$empty_err")' want a diagnostic; unset: exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '200|100|')"
+  && ok || no "VERI_PRIORITY_LABEL set to the empty string is refused with exit 2 and a diagnostic, while unset defaults to the priority label (set-but-empty: exit=$refused_code want 2, stdout='$(tr '\n' '|' < "$refused_out")' want empty, stderr='$(tr '\n' ' ' < "$refused_err")' want a diagnostic; unset: exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '200|100|')"
 
 
 
