@@ -1,6 +1,6 @@
 # Plan for #232 — push-branch.sh exits 0 on a rejected push, so a rebased run pushes nothing for its whole length and says nothing
 
-- [x] Unreachable origin with VERI_PUSH_RETRIES=2 VERI_PUSH_BACKOFF=0: push attempted 3 times, exit 0, one stderr line naming the failure and attempt count, one push-failed event; HEAD, commit count and ledger unchanged ⟂ refactor pending
+- [x] Unreachable origin with VERI_PUSH_RETRIES=2 VERI_PUSH_BACKOFF=0: push attempted 3 times, exit 0, one stderr line naming the failure and attempt count, one push-failed event; HEAD, commit count and ledger unchanged
 - [ ] Unreachable origin with VERI_PUSH_RETRIES unset and VERI_PUSH_BACKOFF=0 is attempted 4 times, counted by a git stub on PATH
 - [ ] Origin failing the first attempt and succeeding on the second ends with exit 0, the remote branch at HEAD, and no push-failed event
 - [ ] Backoff is VERI_PUSH_BACKOFF seconds doubled per retry; with VERI_PUSH_BACKOFF=0 a 3-retry failure completes in under 2 s
