@@ -240,10 +240,13 @@ spent = {}
 # verdict written after them and on a `step-done` mark written after that.
 attempts_spent = {}
 
-# The attempts a verifier turned down, in the order they were judged, and the steps that
-# reached their closing mark. Rework is the intersection — a rejected attempt of a step that
-# recovered — and it cannot be computed line by line, so both are collected and the sum is
-# taken once the log has been read whole.
+# The attempts a verifier turned down, each as the step it belongs to, the phase it was
+# rejected in and its own bucket, and the steps that reached their closing mark. Rework is
+# the intersection — a rejected attempt of a step that recovered — and it cannot be computed
+# line by line, so both are collected and the sum is taken once the log has been read whole.
+# The bucket itself travels rather than the key it is filed under, because it is the same
+# dict the lines still to come go on adding into: by the end of the log it holds the whole of
+# what that attempt spent, and nothing has to go and look it up again.
 rejected = []
 recovered = set()
 
@@ -354,7 +357,7 @@ with open(path) as f:
             if line.get("actor") == "conductor":
                 conductor_counted = True
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
-            rejected.append((step, phase, line.get("attempt", "")))
+            rejected.append((step, phase, attempt))
         # The conductor budget marks next, and they fall through to nothing below: a
         # `revise` is not a leaf launch, so counting it as an attempt would double-count the
         # revise leaf that the mark is followed by.
@@ -395,11 +398,9 @@ with open(path) as f:
 for phase in counts:
     row_in(lost, phase, LOST_COLUMNS)
 
-for key in rejected:
-    step, phase, _ = key
+for step, phase, attempt in rejected:
     if step not in recovered:
         continue
-    attempt = attempts_spent[key]
     row_of = row_in(lost, phase, LOST_COLUMNS)
     row_of[REWORK_WALL] += attempt[WALL]
     row_of[REWORK_COST] += attempt[DOLLARS]
