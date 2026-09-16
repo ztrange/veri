@@ -1481,6 +1481,40 @@ outcome_says "$landed_out" pr
 
 report_on "$name" "$system_out"
 
+# A twelfth fixture: a log with no step mark in it at all. Its leaves ran, named their step and
+# spent what they spent, but the conductor's own `step-start` and `step-done` marks were never
+# written — the ADR-0014 case where a figure's input is missing rather than zero.
+#
+# The steps-done figure is read off `step-done` marks and off nothing else, so in this log it
+# has no input: `0 of 2` would claim the run finished none of its two steps, which is a
+# different claim from "nobody wrote it down" — the same distance `0/3` puts between "needed
+# no revise" and "unrecorded". The planned half is a number, off the ledger beside the log,
+# so a report reading `unknown of 2` is saying the missing half and only the missing half.
+fixture_work unmarked_work
+
+unmarked="a figure a missing conductor mark makes unreadable renders as unknown"
+second_planned="a second step the log's marks never mention"
+
+sv "$unmarked" 14000 developer red   launch 1 '"name": "develop-red", "cmd": "run-leaf.sh", "model": ""'
+sv "$unmarked" 14100 developer red   exit   1 '"status": "0", "secs": "100"'
+sv "$unmarked" 14110 verifier  red   launch 1 '"name": "verify-red", "cmd": "run-leaf.sh", "model": ""'
+sv "$unmarked" 14130 verifier  red   exit   1 '"status": "0", "secs": "20"'
+sv "$unmarked" 14130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails for the reason it was written to catch"'
+
+plan_of -- "$unmarked" "$second_planned"
+
+
+name="a steps-done figure no step mark in the log supplies says unknown, not zero"
+problems=()
+
+unmarked_out="$unmarked_work/report.md"
+render "$unmarked_work" "$unmarked_out"
+
+progress_says "$unmarked_out" unknown 2
+
+report_on "$name" "$unmarked_out"
+
+
 
 echo "----"
 echo "$pass passed, $fail failed"

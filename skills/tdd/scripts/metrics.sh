@@ -540,9 +540,14 @@ print("Wall time for the issue: %s s, from the first event of the log to the mar
 # mark — a step that took a revise to get there is one of them, since what the figure counts
 # is steps finished and not attempts — and the count of the plan comes off the ledger, which
 # is the only input that still names the steps a bailed run never reached.
+#
+# A log carrying no closing mark at all supplies the first number no more than a missing
+# ledger supplies the second, so it is unknown rather than 0 by the rule `known` applies:
+# `0 of 2` would claim the run finished none of its steps, which is a different claim from
+# nobody having written down which it finished.
 planned = planned_steps(ledger)
-print("Steps done: %d of %s planned."
-      % (len(recovered), known(planned)))
+print("Steps done: %s of %s planned."
+      % (known(len(recovered) or None), known(planned)))
 # And how the run ended, beside the two figures above: the same mark that closed the issue
 # wall, read for its payload rather than its timestamp. A bail names its classification
 # because system and process are two different things for a reader to do next.
