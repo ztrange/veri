@@ -1619,6 +1619,34 @@ progress_says "$unpinned_out" 2 3
 report_on "$name" "$unpinned_out"
 
 
+# A sixteenth fixture: one issue run twice in one log. The first run bailed on a poisoned
+# baseline and left its `bail` mark behind — `.tdd/events.jsonl` is per-worktree state that
+# survives into the next run — and the second run resumed and landed its draft PR. The mark
+# that ended the issue is the last one, so the outcome is the PR, not the earlier bail (#229).
+fixture_work rerun_work
+
+bailed_then_landed="a step whose first run bailed and whose resumed run landed"
+
+sv "$bailed_then_landed" 18000 conductor ""  step-start ""
+sv "$bailed_then_landed" 18100 conductor ""  bail       "" '"cause": "poisoned-baseline", "classification": "system"'
+sv "$bailed_then_landed" 18200 conductor ""  resume     ""
+sv "$bailed_then_landed" 18300 conductor ""  step-done  ""
+sv "$bailed_then_landed" 18400 conductor ""  done       "" '"pr": "https://github.com/ztrange/veri/pull/998"'
+
+plan_of "$bailed_then_landed"
+
+
+name="a log with a bail mark followed by a resume and a done reports the run as landed, naming the PR"
+problems=()
+
+rerun_out="$rerun_work/report.md"
+render "$rerun_work" "$rerun_out"
+
+outcome_says "$rerun_out" pr
+
+report_on "$name" "$rerun_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
