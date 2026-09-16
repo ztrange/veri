@@ -22,6 +22,10 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+# record <event> [key=value…] — append an event, or exit 2 if it cannot be written. A log
+# that cannot be written is a system failure, whichever push outcome it was recording.
+record() { "$HERE/event.sh" "$@" || exit 2; }
+
 # `--set-upstream` so the first call creates the remote branch and later ones fast-forward
 # against it; `HEAD` rather than a branch name so the script reads the branch off the
 # worktree it was run in instead of being told, the way every other conductor script does.
@@ -56,7 +60,7 @@ while (( attempt <= retries )); do
     branch="$(git rev-parse --abbrev-ref HEAD)"
     remote_sha="$(git ls-remote origin "refs/heads/$branch" | cut -f1)"
     echo "push rejected (non-fast-forward): origin/$branch is at $remote_sha" >&2
-    "$HERE/event.sh" push-rejected remote_sha="$remote_sha" error="$out" || exit 2
+    record push-rejected remote_sha="$remote_sha" error="$out"
     exit 1
   fi
   if (( attempt <= retries )); then
@@ -65,5 +69,4 @@ while (( attempt <= retries )); do
   fi
 done
 echo "push-branch.sh: push failed after $attempt attempts; the branch is not on the remote" >&2
-# A log that cannot be written is a system failure, whichever push outcome it was recording.
-"$HERE/event.sh" push-failed error="$out" attempts="$attempt" || exit 2
+record push-failed error="$out" attempts="$attempt"
