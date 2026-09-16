@@ -34,20 +34,26 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
-# The directory every helper below runs the script IN, and the reason it is not the suite's own
-# cwd: `solvable-issues.sh` reads a run's claim off local disk, out of the MAIN working tree of
-# the repository it is invoked in (`solvable-issues.sh:136-141, 202-212`). Invoked here, that is
+# The suite's own cwd from here down, and the reason it is not the one `make test` was typed in:
+# `solvable-issues.sh` reads a run's claim off local disk, out of the MAIN working tree of the
+# repository it is invoked in (`solvable-issues.sh:136-141, 202-212`). Invoked from here, that is
 # this repository — so on a machine where veri is solving one of the numbers a fixture names, the
 # live `.tdd/wt/<n>/.tdd/conductor.pid` of that run answers a question the case only asked of its
 # fixture, and the suite goes red for what the run did by claiming its issue (#226). A repository
 # the suite built and never claims anything in answers the same question with "nobody holds this",
-# which is the fixture's own answer. The cases that DO have claims to pin build their own
-# repository and cd into it (cases 17, 18, 21); this one is the floor under every other case.
+# which is the fixture's own answer. The cases that DO have claims to pin cd into a repository of
+# their own for the duration (cases 17, 18, 21); this is the floor under every other case.
+#
+# Done once here rather than per helper so that it holds for a case added later that invokes
+# `$SOLVABLE` directly, which is the shape of the case the leak was found in. Every path the
+# suite hands out is absolute — `$work` from `mktemp -d`, `$REPO_ROOT` and `$SOLVABLE` from
+# `$HERE` — so nothing else reads differently from in here.
 #
 # A `git init` with no commit is enough: `git worktree list` prints this directory as the main
 # tree, and there is no `.tdd` under it, so every lookup misses and `in_flight` is False.
 no_claims="$work/no-claims"
 git init -q -b main "$no_claims" >/dev/null 2>&1
+cd "$no_claims" || exit 2
 
 # A fixture directory for one case, printed so the caller can capture it. Both halves of
 # the override's contract are seeded here: the directory itself, and an empty `prs.json` —
@@ -71,7 +77,7 @@ fixture() {  # fixture <name> -> path
 # `"$@"` then expands to no words at all.
 run() {  # run <fixture-dir> [script args…]; sets $out and $code
   local fixture="$1"; shift
-  out="$(cd "$no_claims" && VERI_GH_JSON="$fixture" "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
+  out="$(VERI_GH_JSON="$fixture" "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
 }
 
 # The same run, for the cases whose criterion is what VERI_LABEL says. The settings are handed
@@ -80,7 +86,7 @@ run() {  # run <fixture-dir> [script args…]; sets $out and $code
 # those cases stays at the call site, where it is the point, and only the invocation is shared.
 label_run() {  # label_run <fixture-dir> <env setting…>; sets $out and $code
   local fixture="$1"; shift
-  out="$(cd "$no_claims" && env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+  out="$(env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
 }
 
 # The same run once more, for the cases whose criterion is WHICH STREAM carried what: a label
@@ -94,7 +100,7 @@ label_run() {  # label_run <fixture-dir> <env setting…>; sets $out and $code
 refused_run() {  # refused_run <fixture-dir> <env setting…>; sets $refused_out/$refused_err/$refused_code
   local fixture="$1"; shift
   refused_out="$fixture/refused.out" refused_err="$fixture/refused.err"
-  (cd "$no_claims" && env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE") >"$refused_out" 2>"$refused_err" \
+  env "$@" VERI_GH_JSON="$fixture" "$SOLVABLE" >"$refused_out" 2>"$refused_err" \
     && refused_code=0 || refused_code=$?
 }
 
@@ -364,7 +370,7 @@ chmod +x "$stubdir/gh"
 gh_run() {  # gh_run <argv-log> [script args...]; sets $out and $code
   local log="$1"; shift
   : > "$log"
-  out="$(cd "$no_claims" && env -u VERI_GH_JSON PATH="$stubdir:$PATH" ARGV_OUT="$log" \
+  out="$(env -u VERI_GH_JSON PATH="$stubdir:$PATH" ARGV_OUT="$log" \
          GH_ISSUES="$fx/issues.json" GH_PRS="$fx/prs.json" \
          "$SOLVABLE" "$@" 2>/dev/null)" && code=0 || code=$?
 }
