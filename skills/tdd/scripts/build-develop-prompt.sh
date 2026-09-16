@@ -12,6 +12,7 @@
 #   build-develop-prompt.sh green    <issue-spec-file> <step-text> <test-cmd> <test-path> <target>
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
+#   build-develop-prompt.sh reconcile <issue-spec-file> <step-text> <test-cmd> <branch> <remote-sha>
 #
 # `refactor` also reads VERI_REFACTOR_BUDGET (default 5) from the environment, the number of
 # transforms the leaf may apply.
@@ -37,7 +38,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 # 1, and a caller who passed nothing at all made no call whose result could be a negative
 # answer. It is the emptiest bad-arguments case there is, and bad arguments are exit 2.
 (( $# >= 1 )) || {
-  echo "build-develop-prompt: usage: red|green|refactor|revise <issue-spec-file> <step-text> <test-cmd> ..." >&2
+  echo "build-develop-prompt: usage: red|green|refactor|revise|reconcile <issue-spec-file> <step-text> <test-cmd> ..." >&2
   exit 2
 }
 phase="$1"
@@ -58,7 +59,8 @@ case "$phase" in
   green) want=6 ;;
   refactor) want=5 ;;
   revise) want=6 ;;
-  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise)" >&2; exit 2 ;;
+  reconcile) want=6 ;;
+  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise|reconcile)" >&2; exit 2 ;;
 esac
 (( $# >= want )) || {
   echo "build-develop-prompt: $phase needs $want arguments, got $#" >&2; exit 2
@@ -90,7 +92,7 @@ test_cmd="${4:?missing <test-cmd>}"
 # each branch names only those. Everything else stays empty, and an empty variable's
 # placeholder expands to nothing — which is why red, the phase that writes the test and so
 # has nothing yet to name, needs no branch body at all.
-test_path="" target="" touched="" reason_file="" refactor_budget=""
+test_path="" target="" touched="" reason_file="" refactor_budget="" branch="" remote_sha=""
 case "$phase" in
   red) ;;
   green)
@@ -110,6 +112,10 @@ case "$phase" in
     ;;
   revise)
     reason_file="${5:?missing <reason-file>}"
+    ;;
+  reconcile)
+    branch="${5:?missing <branch>}"
+    remote_sha="${6:?missing <remote-sha>}"
     ;;
 esac
 
@@ -140,5 +146,7 @@ out="${out//\{\{TOUCHED_FILES\}\}/$touched}"
 out="${out//\{\{REFACTOR_BUDGET\}\}/$refactor_budget}"
 out="${out//\{\{REVISE_PHASE\}\}/$revised_phase}"
 out="${out//\{\{REJECTION_REASON\}\}/$reason}"
+out="${out//\{\{BRANCH\}\}/$branch}"
+out="${out//\{\{REMOTE_SHA\}\}/$remote_sha}"
 
 printf '%s\n' "$out"

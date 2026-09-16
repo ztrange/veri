@@ -883,6 +883,39 @@ predicts_before_running "$revise" "does not require that prediction before the r
 [[ -z "$problems" ]] \
   && ok || no "develop-revise asks for a new prediction for the rewritten test, before the re-run (${problems#; })"
 
+# 24. the reconcile prompt (issue #232). A rejected push hands the branch to a leaf, and the
+#     one command that leaf can get badly wrong is the force-push: a bare `--force`, or a lease
+#     with no sha behind it, overwrites whatever the remote holds — someone else's commits
+#     included. So the prompt carries the lease pinned to the exact sha `push-branch.sh` read
+#     off the remote, spelled out literally for this branch, and the template never offers
+#     the flag any other way: every `--force` in it is the start of `--force-with-lease=`.
+#     A reconcile call short of its remote sha is refused like any other missing positional
+#     (case 5's `refuses`), because a prompt with an empty lease is exactly the unpinned one.
+#
+#     Signature: reconcile <spec-file> <step-text> <test-cmd> <branch> <remote-sha>. The branch
+#     carries a slash, as every run's `tdd/<n>-…` branch does, and the sha is a full 40 hex.
+rc_branch='tdd/232-zorblat-frob'
+rc_sha='3f9a1c0b7e2d4a6f8c1b3e5d7f9a0c2e4b6d8f01'
+problems=""
+reconcile="$("$BUILD" reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+[[ "$reconcile" == *"$rc_sha"* ]] || problems="$problems; no remote sha"
+[[ "$reconcile" == *"$rc_branch"* ]] || problems="$problems; no branch"
+[[ "$reconcile" == *"--force-with-lease=$rc_branch:$rc_sha"* ]] \
+  || problems="$problems; no literal --force-with-lease=<branch>:<sha>"
+rc_tpl="$HERE/../prompts/develop-reconcile.md"
+if [[ ! -r "$rc_tpl" ]]; then
+  problems="$problems; no template prompts/develop-reconcile.md"
+elif grep -Eq -e '--force($|[^-]|-($|[^w]))' "$rc_tpl" \
+  || grep -o -e '--force-with-lease[^[:space:]`]*' "$rc_tpl" | grep -vq -e '^--force-with-lease='; then
+  problems="$problems; template offers a --force that is not a pinned --force-with-lease="
+fi
+refusal_bad=""
+refuses "reconcile missing remote sha" "$BUILD" reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch"
+[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
+[[ -z "$problems" ]] \
+  && ok || no "develop-reconcile carries the remote sha, the branch and a pinned --force-with-lease=<branch>:<sha>, offers no bare --force, and refuses a missing argument with exit 2 (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
