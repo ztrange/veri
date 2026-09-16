@@ -153,6 +153,26 @@ else
 fi
 report "$name"
 
+# The criterion of issue #236, as one case: the Draft PR step closes the run's log with its
+# `done` mark — the one carrying the opened PR's URL — BEFORE it renders the report it
+# commits. metrics.sh reads that mark for both the Outcome line and the issue wall, so a
+# report rendered while the log holds no ending says `unknown` for both, as #228's committed
+# report and PR #234's body did. Asked of document order, the same way the commit-before-PR
+# half above is: the records come out in the order the conductor follows them. Both records
+# must exist first, so a step that dropped either fails closed rather than reading as ordered.
+name="$skill_md's Draft PR step writes the run's done mark, carrying the PR URL, before rendering the metrics report it commits"
+problems=()
+
+pr_records="$(section_records '### 4. Draft PR' '^## |^### ')"
+render_line="$(first_record_line "$pr_records" 'metrics.sh' '> .tdd/issue-<n>-metrics.md')" ||
+  problems+=("$skill_md's Draft PR step never renders metrics.sh into .tdd/issue-<n>-metrics.md, so there is no committed report to order against the done mark")
+done_line="$(first_record_line "$pr_records" 'event.sh done' 'pr=')" ||
+  problems+=("$skill_md's Draft PR step never writes event.sh done pr=<pr-url>, so the report can never name the landed PR")
+if [[ -n "${render_line:-}" && -n "${done_line:-}" && "$render_line" -lt "$done_line" ]]; then
+  problems+=("$skill_md renders the committed metrics report BEFORE event.sh done, so its Outcome reads unknown instead of naming the landed PR: $(printf '%.120s' "$(record_at "$pr_records" "$render_line")")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
