@@ -85,18 +85,36 @@ probe() {
   [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
 }
 
-# TABLES_IN — the python prelude both probes below open with, so the report is split into
-# tables in exactly one place. `tables_in(path)` returns every run of consecutive table lines
-# as a list of rows, each row a list of stripped cells, with the `---|---:` separator rows
-# dropped: a report with a per-phase section and a per-step section has two such runs, and a
-# blank line or a heading between them is what separates them.
+# PROBE_PRELUDE — what every probe below opens with, so the report is split into tables, a
+# row is found, a column is found and a disagreement is recorded in exactly one place each.
 #
-# It is a shell variable because that is the only way two `python3 -c` programs can share a
-# definition without a file of their own. Each call site concatenates its double-quoted
+# `tables_in(path)` returns every run of consecutive table lines as a list of rows, each row
+# a list of stripped cells, with the `---|---:` separator rows dropped: a report with a
+# per-phase section and a per-step section has two such runs, and a blank line or a heading
+# between them is what separates them.
+#
+# `complain(text)` puts one disagreement on `problems`, ignoring a repeat of one already
+# there: several rows of one table raise the same missing-column line, and the same sentence
+# twice says nothing the first did not.
+#
+# `table_with(tables, key)` is the first table holding a row for `key`, and `is_row` is what
+# a row for a key is — its first cell, matched outright, except `total`, which matches any
+# row LABELLED with the word and nothing else of substance so the report is free to head it
+# `total`, `Total`, `issue total` or `totals`. Matched as a whole label rather than as a
+# substring because a step name is a sentence, and a sentence that happens to say the word
+# would otherwise be picked up as the row of the whole run.
+#
+# `column(header, name, matches, key)` is the one column of a header whose cell satisfies
+# `matches`, complaining and returning None when the header gives it none or two. Locating a
+# table by its ROWS and its columns by their HEADINGS is what keeps these probes from pinning
+# either order.
+#
+# It is a shell variable because that is the only way several `python3 -c` programs can share
+# a definition without a file of their own. Each call site concatenates its double-quoted
 # expansion with the single-quoted rest of its program, so the rest keeps the quoting it
 # already had and no dollar sign of python reaches the shell: the one anchoring the separator
 # regex lives in here, inside single quotes, expanded by nobody.
-TABLES_IN='
+PROBE_PRELUDE='
 import re, sys
 
 SEPARATOR = re.compile(r"^:?-+:?$")
@@ -117,6 +135,34 @@ def tables_in(path):
     if current:
         tables.append(current)
     return tables
+
+problems = []
+
+def complain(text):
+    if text not in problems:
+        problems.append(text)
+
+TOTAL = re.compile(r"(issue |run |grand )?totals?")
+
+def is_row(row, key):
+    if not row:
+        return False
+    cell = row[0].strip()
+    return bool(TOTAL.fullmatch(cell.lower())) if key == "total" else cell == key
+
+def table_with(tables, key):
+    for t in tables:
+        if any(is_row(r, key) for r in t[1:]):
+            return t
+    return None
+
+def column(header, name, matches, key):
+    hit = [i for i, c in enumerate(header) if matches(c.lower())]
+    if len(hit) == 1:
+        return hit[0]
+    complain("want exactly one column heading saying %s, the table with a row for %r is headed: %s"
+             % (name, key, "|".join(header) or "nothing"))
+    return None
 '
 
 # counts_table_says <file> <noun> <columns> <key>=<n>,<n>,… — read a counts table out of the
@@ -140,7 +186,7 @@ def tables_in(path):
 # the interpreter is a dependency this repo has, and the parse is fail-closed in one place.
 counts_table_says() {
   local out_file="$1" noun="$2" columns="$3"; shift 3
-  probe "$TABLES_IN"'
+  probe "$PROBE_PRELUDE"'
 NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject",
           "kills": "kill", "retries": "retr"}
 
@@ -421,7 +467,7 @@ report_on "$name" "$step_out"
 # a `yes` under `stopped by budget`.
 budgets_say() {
   local out_file="$1" one="$2" two="$3"; shift 3
-  probe "$TABLES_IN"'
+  probe "$PROBE_PRELUDE"'
 path, steps = sys.argv[1], (sys.argv[2], sys.argv[3])
 tables = tables_in(path)
 
@@ -432,8 +478,6 @@ for arg in rest:
         wanted.append([])
     else:
         wanted[-1].append(arg.split("=", 1))
-
-problems = []
 
 def row_for(table, step):
     return next((r for r in table[1:] if r and r[0].strip() == step), None)
@@ -599,29 +643,9 @@ report_on "$name" "$budget_out"
 # line, and the same sentence twice says nothing the first did not.
 times_say() {
   local out_file="$1"; shift
-  probe "$TABLES_IN"'
+  probe "$PROBE_PRELUDE"'
 path = sys.argv[1]
 tables = tables_in(path)
-
-problems = []
-
-def complain(text):
-    if text not in problems:
-        problems.append(text)
-
-def table_with(key):
-    for t in tables:
-        if any(r and r[0].strip() == key for r in t[1:]):
-            return t
-    return None
-
-def column(header, word, key):
-    hit = [i for i, c in enumerate(header) if word in c.lower()]
-    if len(hit) == 1:
-        return hit[0]
-    complain("want exactly one column heading saying %s, the table with a row for %r is headed: %s"
-             % (word, key, "|".join(header) or "nothing"))
-    return None
 
 def seconds(cell):
     cell = cell.strip()
@@ -629,16 +653,16 @@ def seconds(cell):
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
-    section = table_with(key)
+    section = table_with(tables, key)
     if section is None:
         labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
         complain("want a table with a row for %r, the report has tables with rows: %s"
                  % (key, "; ".join(labels) or "nothing"))
         continue
     header = section[0]
-    row = next(r for r in section[1:] if r and r[0].strip() == key)
+    row = next(r for r in section[1:] if is_row(r, key))
     for word, number in zip(("wall", "api"), expected.split(",")):
-        i = column(header, word, key)
+        i = column(header, word, lambda c: word in c, key)
         if i is None:
             continue
         got = row[i] if i < len(row) else ""
@@ -797,7 +821,7 @@ report_on "$name" "$time_out"
 # same missing-column line, and the same sentence twice says nothing the first did not.
 costs_say() {
   local out_file="$1"; shift
-  probe "$TABLES_IN"'
+  probe "$PROBE_PRELUDE"'
 path = sys.argv[1]
 tables = tables_in(path)
 
@@ -816,39 +840,6 @@ WANTED = [("turns", turns), ("input tokens", input_), ("output tokens", output),
           ("cache read tokens", cache_read), ("cache creation tokens", cache_create),
           ("dollars", dollars)]
 
-problems = []
-
-def complain(text):
-    if text not in problems:
-        problems.append(text)
-
-# A row key matches its first cell outright, except `total`, which matches any row LABELLED
-# with the word and nothing else of substance: the report is free to head that row `total`,
-# `Total`, `issue total` or `totals`. Matched as a whole label rather than as a substring
-# because a step name is a sentence, and a sentence that happens to say the word total would
-# otherwise be picked up as the row of the whole run.
-TOTAL = re.compile(r"(issue |run |grand )?totals?")
-
-def is_row(row, key):
-    if not row:
-        return False
-    cell = row[0].strip()
-    return bool(TOTAL.fullmatch(cell.lower())) if key == "total" else cell == key
-
-def table_with(key):
-    for t in tables:
-        if any(is_row(r, key) for r in t[1:]):
-            return t
-    return None
-
-def column(header, name, matches, key):
-    hit = [i for i, c in enumerate(header) if matches(c.lower())]
-    if len(hit) == 1:
-        return hit[0]
-    complain("want exactly one column heading saying %s, the table with a row for %r is headed: %s"
-             % (name, key, "|".join(header) or "nothing"))
-    return None
-
 # `$`, thousands commas and a trailing unit are the report own to print or leave out, so the
 # comparison is of numbers and not of the text around them. A cell that is no number at all
 # comes back None and is complained about as it was printed.
@@ -861,7 +852,7 @@ def number(cell):
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
-    section = table_with(key)
+    section = table_with(tables, key)
     if section is None:
         labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
         complain("want a table with a row for %r, the report has tables with rows: %s"
