@@ -981,8 +981,7 @@ sup_direct() {
 #     reason.
 result_kill_work="$work/result-kill"
 result_hang_stub leaf-result-hang success false 'VERDICT: PASS'
-result_kill_window=1
-sup_run "$result_kill_work" VERI_HEARTBEAT="$result_kill_window" "$SUP" verify-red "$stub/leaf-result-hang"
+sup_run "$result_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-result-hang"
 result_kill_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
 # 13 and 15 to 22's shape.
@@ -1013,8 +1012,7 @@ error_kill_work="$work/error-kill"
 # `subtype` says `error_during_execution` beside `is_error: true`, the pair a `claude -p` run
 # that ended badly closes its stream with, so the record under test is one a real leaf writes.
 result_hang_stub leaf-error-hang error_during_execution true 'the suite did not finish'
-error_kill_window=1
-sup_run "$error_kill_work" VERI_HEARTBEAT="$error_kill_window" "$SUP" verify-red "$stub/leaf-error-hang"
+sup_run "$error_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-error-hang"
 error_kill_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
 # 13, 15 to 22 and 23's shape.
