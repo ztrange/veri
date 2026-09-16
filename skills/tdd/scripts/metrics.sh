@@ -230,12 +230,12 @@ def add_seconds(phase, step, column, seconds):
 def add_cost(phase, step, line):
     for heading, field in COSTS:
         reported = line.get(field) or 0
-        spent = float(reported) if heading == DOLLARS else int(reported)
+        amount = float(reported) if heading == DOLLARS else int(reported)
         if phase:
-            row_in(counts, phase, PHASE_COLUMNS)[heading] += spent
+            row_in(counts, phase, PHASE_COLUMNS)[heading] += amount
         if step:
-            row_in(steps, step, STEP_COLUMNS)[heading] += spent
-        totals["total"][heading] += spent
+            row_in(steps, step, STEP_COLUMNS)[heading] += amount
+        totals["total"][heading] += amount
 
 # The two ends of the whole run. `first` is the first line of the log whatever it is, since
 # the mark that opens a run is the conductor own and a log missing it still started
