@@ -7,5 +7,5 @@
 - [x] VERI_PRIORITY_LABEL set-but-empty exits 2 with a diagnostic; unset defaults to `priority`
 - [x] With no issue carrying either label, solvable-issues.sh output is byte-identical to today's
 - [x] The /tdd loop narration says when it took an issue ahead of a lower-numbered one, and which band did it
-- [x] CONTEXT.md, SKILL.md and CLAUDE.md record the three-band order and the VERI_PRIORITY_LABEL tunable ⟂ refactor pending
+- [x] CONTEXT.md, SKILL.md and CLAUDE.md record the three-band order and the VERI_PRIORITY_LABEL tunable
 - [ ] hermetic-suites.test.sh pins the suites' independence from an ambient VERI_PRIORITY_LABEL
