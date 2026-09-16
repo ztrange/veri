@@ -9,15 +9,21 @@
 # If the input contains no stream-json result event (e.g. a plain-text leaf, or a test
 # stub), the input is passed through unchanged — extraction is a no-op on non-stream data.
 #
+# A leaf re-invoked after it answered (a background task completing, issue #228) writes a
+# later result record with no verdict in it, so the newest record whose text carries a
+# `VERDICT:` line wins over a merely newer one; with none, the last record wins.
+#
 # Usage:   extract-result.sh < leaf-stream.jsonl
 #
 # Passed via `python3 -c` (not a heredoc) so the leaf stream stays on stdin.
 set -euo pipefail
 
 exec python3 -c '
-import sys, json
+import sys, json, re
 data = sys.stdin.read()
 result = None
+verdict = None
+verdict_re = re.compile(r"^[ \t]*verdict:", re.I | re.M)
 for line in data.splitlines():
     s = line.strip()
     if not s.startswith("{"):
@@ -28,6 +34,10 @@ for line in data.splitlines():
         continue
     if isinstance(obj, dict) and obj.get("type") == "result" and "result" in obj:
         result = obj["result"]          # last result event wins
+        if isinstance(result, str) and verdict_re.search(result):
+            verdict = result            # ...unless a later one carries no verdict
+if verdict is not None:
+    result = verdict
 if result is None:
     sys.stdout.write(data)              # not a stream-json result -> passthrough
 else:
