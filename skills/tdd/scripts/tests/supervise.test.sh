@@ -1145,6 +1145,39 @@ nores_cause="${nores_status#supervise\[verify-red\]: killed-stuck — }"
   && heartbeat_kill "$nores_cause" "$nores_window"; } && ok \
   || no "a killed leaf whose log holds no terminal result record is still exit 2 with its kill cause on stderr (code=$nores_code want 2, status line=$nores_status want a killed-stuck line whose cause reads 'no heartbeat for Ns (window ${nores_window}s)')"
 
+# 28. supervise.sh's HEADER records the mechanism behind cases 23 to 27, not just the rule
+#     (issue #212). The rule — a killed leaf whose log holds a terminal result record is
+#     reported with its own outcome — is already there; what a reader cannot get from it is
+#     WHY a kill and a rendered verdict can coexist at all, which is that the leaf's stream
+#     finishes before the subshell's `.tdd/<name>.rc` is written. The watchdog's only sensor
+#     for "the leaf is done" is that file, so the window between the two is one in which a
+#     finished leaf still looks unfinished, and a kill landing there is not proof that no
+#     answer was obtained.
+#
+#     Pinned as prose because prose is where it lives: nothing in the running script says it,
+#     and the recovery reads as a defensive coincidence without it — the next reader to find
+#     `recover_finished_leaf` surprising deletes it, and the run log goes back to reporting a
+#     rendered verdict as exit 2. Case 10's shape, one table of sites and a miss reported by
+#     name, with two differences: the header is extracted first, so a sentence added anywhere
+#     below it — in `recover_finished_leaf`'s own comment, say — does not answer for it, and
+#     the patterns ask for a statement rather than a figure, so a site is a hit or a miss and
+#     there is no number to compare.
+#
+#     The regexes are deliberately loose on wording and tight on the two claims, each bounded
+#     so it cannot span the whole header and match two unrelated sentences as one.
+header_text="$(awk 'NR > 1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$SUP" | tr '\n' ' ')"
+header_misses=""
+while IFS='|' read -r where regex; do
+  [[ -n "$where" ]] || continue
+  printf '%s' "$header_text" | grep -qE "$regex" || header_misses="$header_misses $where"
+done <<'CLAIMS'
+stream-finishes-before-rc|(finish|complete)[a-z]* .{0,120}before .{0,80}(rc file|rcfile|\.rc)
+kill-is-not-proof|kill.{0,160}not proof
+CLAIMS
+
+[[ -z "$header_misses" ]] && ok \
+  || no "supervise.sh's header records that a leaf's stream can finish before its rc file is written, so a kill is not proof that no answer was obtained (unstated:$header_misses)"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
