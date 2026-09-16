@@ -118,6 +118,13 @@ probe() {
 # section's money half of each pair — and a report free to head the column `$`, `cost`,
 # `dollars` or `usd` is a report whose headings only one list of those words can recognise.
 #
+# `located(tables, key, what, find)` is the pair a probe reads a row out of — the header of
+# the table `find` picked and the row in it for `key` — or `(None, None)` after complaining
+# that the report has no such table, listing the rows of the tables it does have. `find` is a
+# parameter because one probe looks for a table by its rows alone and another has to look for
+# a table by its rows AND its subject; everything after that search is the same three lines
+# in every probe, and they are here rather than three times over.
+#
 # It is a shell variable because that is the only way several `python3 -c` programs can share
 # a definition without a file of their own. Each call site concatenates its double-quoted
 # expansion with the single-quoted rest of its program, so the rest keeps the quoting it
@@ -182,6 +189,15 @@ def number(cell):
 
 def money(heading):
     return any(w in heading for w in ("$", "cost", "dollar", "usd"))
+
+def located(tables, key, what, find):
+    section = find(tables, key)
+    if section is None:
+        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
+        complain("want %s with a row for %r, the report has tables with rows: %s"
+                 % (what, key, "; ".join(labels) or "nothing"))
+        return None, None
+    return section[0], next(r for r in section[1:] if is_row(r, key))
 '
 
 # counts_table_says <file> <noun> <columns> <key>=<n>,<n>,… — read a counts table out of the
@@ -672,14 +688,9 @@ def seconds(cell):
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
-    section = table_with(tables, key)
-    if section is None:
-        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
-        complain("want a table with a row for %r, the report has tables with rows: %s"
-                 % (key, "; ".join(labels) or "nothing"))
+    header, row = located(tables, key, "a table", table_with)
+    if row is None:
         continue
-    header = section[0]
-    row = next(r for r in section[1:] if is_row(r, key))
     for word, number in zip(("wall", "api"), expected.split(",")):
         i = column(header, word, lambda c: word in c, key)
         if i is None:
@@ -860,14 +871,9 @@ WANTED = [("turns", turns), ("input tokens", input_), ("output tokens", output),
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
-    section = table_with(tables, key)
-    if section is None:
-        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
-        complain("want a table with a row for %r, the report has tables with rows: %s"
-                 % (key, "; ".join(labels) or "nothing"))
+    header, row = located(tables, key, "a table", table_with)
+    if row is None:
         continue
-    header = section[0]
-    row = next(r for r in section[1:] if is_row(r, key))
     for (name, matches), want in zip(WANTED, expected.split(",")):
         i = column(header, name, matches, key)
         if i is None:
@@ -1077,7 +1083,7 @@ rework_and_waste_say() {
 path = sys.argv[1]
 tables = tables_in(path)
 
-def lost_table(key):
+def lost_table(tables, key):
     for t in tables:
         if any("rework" in c.lower() for c in t[0]) and any(is_row(r, key) for r in t[1:]):
             return t
@@ -1105,14 +1111,9 @@ WANTED = [("rework", False, "rework wall seconds"),
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
-    section = lost_table(key)
-    if section is None:
-        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
-        complain("want a table reporting rework with a row for %r, the report has tables "
-                 "with rows: %s" % (key, "; ".join(labels) or "nothing"))
+    header, row = located(tables, key, "a table reporting rework", lost_table)
+    if row is None:
         continue
-    header = section[0]
-    row = next(r for r in section[1:] if is_row(r, key))
     for (kind, want_money, name), want in zip(WANTED, expected.split(",")):
         i = pick(header, kind, want_money, name, key)
         if i is None:
