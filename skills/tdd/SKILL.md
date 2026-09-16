@@ -185,6 +185,14 @@ file.
   (`VERI_ISSUE`, `VERI_ACTOR=conductor`, `VERI_STEP`, `VERI_PHASE`, `VERI_ATTEMPT`) rides on
   the call in the environment. The log is run state: it is ignored, never committed, and
   goes with the worktree.
+- `$S/metrics.sh <n>` — the event log's **reader**: prints on stdout one markdown
+  `### 📊 Metrics` report of what solving issue `<n>` cost — attempts, verdicts, kills,
+  retries and budgets spent, per phase and per step. Everything it knows comes from
+  `.tdd/events.jsonl` in the worktree you are in, so it is called there and at the end, once
+  the marks it reads have all been written. The conductor both commits its output beside the
+  ledger and pastes it into the issue thread (the *Draft PR* step, and *Bailing*): a run that
+  never calls it leaves the figures computable and uncomputed, which from the issue thread is
+  indistinguishable from not having them.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Writes the rule to **both** the worktree's `.gitignore` (committed, so the first
@@ -800,16 +808,31 @@ branch and its commits without any switching.
    pending step go to *Resume* sub-step 2, which resets the stray work and re-enters that
    step's refactor loop, and come back here only once both questions have gone quiet — an
    empty status, and `next-pending-refactor.sh` exiting 3.
-2. Open a **draft** PR linked to the issue; the body must contain `Closes #<n>`:
+2. **Render the run's metrics and commit them**, from inside the worktree and before the PR
+   is opened — so the branch a human is sent to already carries the file the body quotes,
+   rather than being one commit short of it:
+   ```
+   $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md
+   git add .tdd/issue-<n>-metrics.md
+   git commit -m "metrics: what solving #<n> cost (#<n>)"
+   ```
+   One `metrics:` commit, and the report sits beside the ledger it describes — the
+   `issue-<n>-metrics.md` name is already on the keep side of the run-state ignore rule, so
+   nothing else has to change for it to be tracked.
+3. Open a **draft** PR linked to the issue; the body must contain `Closes #<n>` and end with
+   the report's own `### 📊 Metrics` block, pasted verbatim from the file just committed:
    ```
    gh pr create --draft --base <default-branch> \
      --title "<type>: <criterion summary> (#<n>)" \
      --body "Closes #<n>
 
-   <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>"
+   <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>
+
+   <the contents of .tdd/issue-<n>-metrics.md>"
    ```
-3. **Never merge the PR.** Landing the code is always the human's deliberate act.
-4. Post a final `### ✅ Done — <pr-url>` comment, and close the run's log with the same URL:
+4. **Never merge the PR.** Landing the code is always the human's deliberate act.
+5. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
+   under it, and close the run's log with the same URL:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    ```
@@ -937,20 +960,26 @@ To bail:
 2. **Classify deterministically.** `classification="$($S/classify-bail.sh <cause>)"`
    (`<cause>` is one of the tokens above). This keeps the label consistent rather than
    ad-hoc; an unknown token makes it exit non-zero — pick the right token.
-3. **Push the branch** so completed steps and the leaf logs are recoverable, from inside the
-   worktree (where you already are): `git push -u origin tdd/<n>-<slug>` (best-effort; note
-   if it fails).
-4. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
-   carries the last reason (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the
-   kill cause otherwise), and points at the progress log (`.tdd/<phase>.log` or
+3. **Render and commit the metrics**, from inside the worktree and before the push, so the
+   branch carrying the progress carries the account of it too: `$S/metrics.sh <n> >
+   .tdd/issue-<n>-metrics.md`, then `git add .tdd/issue-<n>-metrics.md && git commit -m
+   "metrics: what bailing on #<n> cost (#<n>)"`. This is the ending the report is worth most
+   at — every attempt a bailed step spent is waste, and only the file says how much.
+4. **Push the branch** so completed steps, that metrics commit and the leaf logs are
+   recoverable, from inside the worktree (where you already are):
+   `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
+5. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
+   carries the `### 📊 Metrics` block just committed, carries the last reason
+   (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the kill cause otherwise),
+   and points at the progress log (`.tdd/<phase>.log` or
    `.tdd/revise-<phase>-*.log`) for forensics. Mark the stop in the log too, with the cause
    token and the classification step 2 derived from it:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
    ```
-5. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
+6. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
    failing step (see *Resume*).
-6. Report to the user: the phase, the **classification** (system vs process), the reason,
+7. Report to the user: the phase, the **classification** (system vs process), the reason,
    the branch name, and the **worktree path** — the logs named above are inside it, and it
    is where a re-run will resume. Leave it in place; only a merged PR retires it.
 
