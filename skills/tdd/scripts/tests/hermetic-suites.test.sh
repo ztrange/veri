@@ -81,6 +81,33 @@ ambient_out="$(env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=son
   problems+=("want the cleared run's stdout $(printf '%q' "$cleared_out"), got: $(printf '%q' "$ambient_out")")
 report "$name"
 
+# 3. The same rule for the label tunables issue #113 adds, and the suite that owns them:
+#    solvable-issues.sh reads `${VERI_PRIORITY_LABEL:-priority}` to decide which band an issue
+#    sorts in, so every case in solvable-issues.test.sh that asserts the DEFAULT band order is
+#    asserting it about whatever shell typed `make test`, unless that suite clears the name for
+#    itself. An operator steering a loop exports exactly this variable, and the inner `make
+#    test` of a run on veri's own repository inherits it — the shape of #87 again.
+#
+#    Asked as "the same answer both ways", like case 2 and for the same reason: the suite has
+#    twenty-odd cases and will grow, so a count line spelled here would fail for a case added
+#    there rather than for a leak. The cleared arm is also probed for being green at all, since
+#    two identically red runs agree on nothing.
+#
+#    The ambient value is `ready-for-agent` because it is the one label the fixtures actually
+#    carry: a name no fixture mentions renames the band to something nothing is in, changes no
+#    answer, and would make this case pass while the leak it exists for stayed open.
+name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
+problems=()
+cleared_out="$(env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
+ambient_out="$(VERI_PRIORITY_LABEL=ready-for-agent "$HERE/solvable-issues.test.sh" 2>/dev/null)" && ambient_code=0 || ambient_code=$?
+[[ "$cleared_code" == 0 ]] ||
+  problems+=("the cleared run is not green, so there is nothing to compare against: exit $cleared_code, stdout: $(printf '%q' "$cleared_out")")
+[[ "$ambient_code" == "$cleared_code" ]] ||
+  problems+=("want the cleared run's exit $cleared_code, got $ambient_code")
+[[ "$ambient_out" == "$cleared_out" ]] ||
+  problems+=("want the cleared run's stdout $(printf '%q' "$cleared_out"), got: $(printf '%q' "$ambient_out")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

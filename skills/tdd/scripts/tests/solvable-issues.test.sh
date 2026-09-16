@@ -1021,7 +1021,11 @@ out="$(cd "$pushed_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code
 #
 # Every one of the four is otherwise maximally takeable — open, opted in, `None.` under
 # `## Blocked by`, and the helper's empty `prs.json` — so the ONLY thing this case varies is
-# the `bug` label, and the only thing it can be observing is the order.
+# the `bug` label, and the only thing it can be observing is the order. `-u
+# VERI_PRIORITY_LABEL` guarantees the band in front of this one is named by the DEFAULT
+# rather than by whatever the calling shell exports: an operator steering a loop exports
+# exactly that name, and `VERI_PRIORITY_LABEL=ready-for-agent` would put all four issues in
+# the priority band and print them in plain ascending order.
 fx="$(fixture bug-band)"
 cat > "$fx/issues.json" <<'JSON'
 [
@@ -1056,7 +1060,7 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 
-run "$fx"
+label_run "$fx" -u VERI_PRIORITY_LABEL
 
 { [[ "$code" == 0 ]] && [[ "$out" == $'120\n124\n108\n117' ]]; } \
   && ok || no "a bug-labelled issue is printed ahead of a lower-numbered plain one, each band ascending by number (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '120|124|108|117|')"
