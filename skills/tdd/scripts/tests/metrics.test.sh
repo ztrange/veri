@@ -14,25 +14,17 @@
 # way event.sh writes it (event.sh:60) and the way supervise.sh already spells `.tdd/<name>.log`
 # — so the case below writes a hand-made log into a temp directory and runs the script there.
 #
-# Where each of the four counts comes from, since all four are read out of the same file and
-# a reader of this suite should not have to go and derive it:
-#   attempts — `launch` events. supervise.sh writes exactly one per leaf it supervises
-#              (supervise.sh:297), outside its retry loop, so a launch IS an attempt.
-#   PASS / REJECT — `verdict` events, whose `verdict` payload is the word verify.sh parsed
-#              out of the verifier's answer (verify.sh:239). Only a verifier writes one.
-#   kills    — `exit` events whose `status` payload is `2`. That is this codebase's
-#              no-answer-could-be-obtained code, and supervise.sh reaches it for exactly one
-#              reason: killed-stuck, the watchdog giving up on a leaf that never answered
-#              (supervise.sh:318, and the mark at supervise.sh:356). Counted apart from the
-#              verdicts on purpose — a kill is liveness, a verdict is methodology, and the
-#              issue's spec keeps them on separate axes for the same reason CLAUDE.md keeps
-#              exit 1 and exit 2 apart.
+# Which line of the log each of the four counts is read off, and why a kill is counted apart
+# from a verdict, is metrics.sh's own header — with the writer and line number for each. It
+# is not restated here: the same paragraph in two files is the same paragraph to keep
+# correct twice, and a `supervise.sh:297` that moves would go stale in whichever copy
+# nobody was editing.
 #
-# Why the row key is the log's own `phase` field and not the leaf's name: `phase` is a field
-# event.sh writes on every line (event.sh:52), so grouping by it invents nothing. A developer
-# leaf and the verifier that judged it carry the same phase, which is what makes all four
-# counts meaningful in one row — a row keyed by leaf name would have PASS and REJECT
-# structurally zero for every `develop-*` row.
+# What the header there does not say, because it is about this fixture: the row key is the
+# log's own `phase` field rather than the leaf's name, so a developer leaf and the verifier
+# that judged it land in one row. A table keyed by leaf name would have PASS and REJECT
+# structurally zero for every `develop-*` row, and the case below could not tell a script
+# that counted verdicts from one that did not.
 #
 # The fixture is built so no two columns can be confused for one another: red reads
 # 2/1/0/0 and green reads 9/1/2/3, so the four columns hold four distinct pairs of numbers
