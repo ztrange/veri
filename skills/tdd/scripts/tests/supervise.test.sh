@@ -1043,6 +1043,54 @@ result_once_retry="$(event_field "$result_once_work" retry cause)"
   || no "a leaf recovered from its terminal result record is launched exactly once, with no stuck-retry (code=$result_once_code want 0, attempts=$result_once_attempts want 1, retry=$result_once_retry want <<0 retry lines>>)"
 
 
+# 26. a recovered leaf's captured stdout ends with the CLEAN result text, so parse-verdict.sh
+#     reads its verdict off this supervisor's stdout (issue #212). Cases 23 to 25 pin the code
+#     the supervision ends on and what it cost; none of them looks at what it printed. But the
+#     code alone is not what a verify-* leaf is for — `verify.sh` pipes supervise.sh's stdout
+#     straight into parse-verdict.sh, so a recovery that reports exit 0 while printing a log
+#     parse-verdict.sh cannot read hands the conductor a leaf that succeeded with no verdict,
+#     which is exit 2 again by another route.
+#
+#     The gap is run-leaf.sh's: it appends the clean result text after the raw stream, so the
+#     captured output ends with a parseable VERDICT block — and a killed leaf never reaches
+#     that line. What survives in `.tdd/<name>.log` is stream-json only, where the verdict is
+#     a `\n`-escaped string INSIDE a `{"type":"result", …}` object on one line. parse-verdict.sh
+#     matches `VERDICT:` at the start of a line, so that line is invisible to it: the text is
+#     in the log and unreadable. The recovery therefore owes the same append the leaf would
+#     have made.
+#
+#     Asserted through parse-verdict.sh itself rather than by grepping the output for the
+#     word, because the criterion is that the real reader can read it — a `VERDICT:` the parser
+#     rejects would pass a grep. Its stderr is folded into the captured reason so a refusal
+#     ("no VERDICT: line found") reaches the failure message instead of being swallowed.
+#
+#     Same stub shape as case 23 — the record, then a sleep, so only the watchdog can end the
+#     supervision — with a two-line verdict block in the `result` field, the shape a real
+#     verifier closes its stream with. Launched directly rather than through `sup_run`, which
+#     sends stdout to /dev/null; the pinned VERI_STUCK_RETRIES=0 comes along by hand.
+result_text_work="$work/result-text"
+mkdir -p "$result_text_work"
+cat > "$stub/leaf-verdict-hang" <<'L'
+#!/usr/bin/env bash
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"VERDICT: PASS\nREASON: the new case fails on the eight session-handle checks","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+sleep 60
+L
+chmod +x "$stub/leaf-verdict-hang"
+result_text_out="$( cd "$result_text_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 \
+    VERI_TIMEOUT=30 VERI_POLL=0.2 \
+    "$SUP" verify-red "$stub/leaf-verdict-hang" 2>/dev/null )"
+# Read once, into the variables the assertion and the failure message share — cases 9, 11, 12,
+# 13, 15 to 25's shape. The verdict code is parse-verdict.sh's own contract: 0 PASS, 1 REJECT,
+# 2 nothing it could recognise.
+result_text_reason="$(printf '%s\n' "$result_text_out" | "$SCRIPTS/parse-verdict.sh" 2>&1)"
+result_text_code=$?
+{ [[ "$result_text_code" == 0 ]] \
+  && [[ "$result_text_reason" == *'eight session-handle checks'* ]]; } && ok \
+  || no "a recovered leaf's captured stdout ends with the clean result text, so parse-verdict.sh reads its verdict (verdict code=$result_text_code want 0, reason=$result_text_reason want the leaf's REASON text)"
+
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
