@@ -49,6 +49,40 @@ report() {
   fi
 }
 
+# TABLES_IN — the python prelude both probes below open with, so the report is split into
+# tables in exactly one place. `tables_in(path)` returns every run of consecutive table lines
+# as a list of rows, each row a list of stripped cells, with the `---|---:` separator rows
+# dropped: a report with a per-phase section and a per-step section has two such runs, and a
+# blank line or a heading between them is what separates them.
+#
+# It is a shell variable because that is the only way two `python3 -c` programs can share a
+# definition without a file of their own. Each call site concatenates its double-quoted
+# expansion with the single-quoted rest of its program, so the rest keeps the quoting it
+# already had and no dollar sign of python reaches the shell: the one anchoring the separator
+# regex lives in here, inside single quotes, expanded by nobody.
+TABLES_IN='
+import re, sys
+
+SEPARATOR = re.compile(r"^:?-+:?$")
+
+def cells(line):
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+def tables_in(path):
+    tables, current = [], []
+    for line in open(path).read().splitlines():
+        if line.strip().startswith("|"):
+            row = cells(line)
+            if not all(SEPARATOR.match(c) for c in row if c):
+                current.append(row)
+        elif current:
+            tables.append(current)
+            current = []
+    if current:
+        tables.append(current)
+    return tables
+'
+
 # counts_table_says <file> <noun> <columns> <key>=<n>,<n>,… — read a counts table out of the
 # rendered report and complain, one line per disagreement, onto the caller's `problems`.
 # <columns> is a comma-separated list of the counts the table must carry, in the order the
@@ -71,32 +105,12 @@ report() {
 counts_table_says() {
   local out_file="$1" noun="$2" columns="$3"; shift 3
   local said
-  said="$(python3 -c '
-import re, sys
-
+  said="$(python3 -c "$TABLES_IN"'
 NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject",
           "kills": "kill", "retries": "retr"}
-SEPARATOR = re.compile(r"^:?-+:?$")
 
 noun, wanted, path = sys.argv[1], sys.argv[2].split(","), sys.argv[3]
-
-def cells(line):
-    return [c.strip() for c in line.strip().strip("|").split("|")]
-
-# Every run of consecutive table lines is one table: a report with a per-phase section and a
-# per-step section has two, and a blank line or a heading between them is what separates
-# them.
-tables, current = [], []
-for line in open(path).read().splitlines():
-    if line.strip().startswith("|"):
-        row = cells(line)
-        if not all(SEPARATOR.match(c) for c in row if c):
-            current.append(row)
-    elif current:
-        tables.append(current)
-        current = []
-if current:
-    tables.append(current)
+tables = tables_in(path)
 
 def columns(header):
     found = {}
@@ -359,27 +373,9 @@ report "$name"
 budgets_say() {
   local out_file="$1" one="$2" two="$3"; shift 3
   local said
-  said="$(python3 -c '
-import re, sys
-
-SEPARATOR = re.compile(r"^:?-+:?$")
-
+  said="$(python3 -c "$TABLES_IN"'
 path, steps = sys.argv[1], (sys.argv[2], sys.argv[3])
-
-def cells(line):
-    return [c.strip() for c in line.strip().strip("|").split("|")]
-
-tables, current = [], []
-for line in open(path).read().splitlines():
-    if line.strip().startswith("|"):
-        row = cells(line)
-        if not all(SEPARATOR.match(c) for c in row if c):
-            current.append(row)
-    elif current:
-        tables.append(current)
-        current = []
-if current:
-    tables.append(current)
+tables = tables_in(path)
 
 # The expectations, one list per step, split on the literal `--` that separates them.
 wanted, rest = [[]], sys.argv[4:]
