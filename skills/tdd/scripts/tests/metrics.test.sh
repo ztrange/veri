@@ -772,6 +772,282 @@ issue_wall_says "$time_out" 1700
 
 report_on "$name" "$time_out"
 
+# costs_say <file> <key>=<turns>,<input>,<output>,<cache read>,<cache creation>,<dollars> …
+# — the fifth section's subject: what the run cost. Each expectation names a row — a phase
+# row, a step row or the total, the sections are searched alike, the way times_say searches
+# them — and the six figures that row must carry.
+#
+# The six are the ones the closing record of a leaf reports and harvest-usage.sh copies onto
+# the `usage` line (harvest-usage.sh:76-84): `num_turns`, the four `usage.*` token counts
+# under their own names, and `total_cost_usd`. Which line they are read off is the shape of
+# the log and not a choice of this suite; what a row of the report holds is the sum over the
+# attempts grouped into it.
+#
+# The table is located by the ROW and its columns by their HEADINGS, exactly one each, so
+# neither column order nor the wording around the words is pinned — only that each figure
+# has a column of its own and a heading that names it. The cells are compared as NUMBERS
+# after `$` and thousands commas are stripped, and dollars to the cent: `1.3`, `1.30` and
+# `$1.30` are the same figure, and which one the report prints is not this step.
+#
+# The total is the one row matched loosely — any row whose first cell says `total` — because
+# the word is the whole of what identifies it, where a phase row and a step row are named by
+# strings the log itself carries.
+#
+# Complaints are deduplicated for times_say's reason: several rows of one table raise the
+# same missing-column line, and the same sentence twice says nothing the first did not.
+costs_say() {
+  local out_file="$1"; shift
+  probe "$TABLES_IN"'
+path = sys.argv[1]
+tables = tables_in(path)
+
+# Each figure wanted, as the name it is complained about under and a predicate over one
+# heading cell. Predicates rather than substrings because two of the four token counts are
+# spelled with the same first word: a heading is the cache-read column when it says read,
+# and the plain input column only when it says input and none of the cache words.
+def turns(c):        return "turn" in c
+def input_(c):       return "input" in c and not any(w in c for w in ("cache", "read", "creat", "writ"))
+def output(c):       return "output" in c
+def cache_read(c):   return "read" in c
+def cache_create(c): return "creat" in c or "writ" in c
+def dollars(c):      return any(w in c for w in ("$", "cost", "dollar", "usd"))
+
+WANTED = [("turns", turns), ("input tokens", input_), ("output tokens", output),
+          ("cache read tokens", cache_read), ("cache creation tokens", cache_create),
+          ("dollars", dollars)]
+
+problems = []
+
+def complain(text):
+    if text not in problems:
+        problems.append(text)
+
+# A row key matches its first cell outright, except `total`, which matches any row LABELLED
+# with the word and nothing else of substance: the report is free to head that row `total`,
+# `Total`, `issue total` or `totals`. Matched as a whole label rather than as a substring
+# because a step name is a sentence, and a sentence that happens to say the word total would
+# otherwise be picked up as the row of the whole run.
+TOTAL = re.compile(r"(issue |run |grand )?totals?")
+
+def is_row(row, key):
+    if not row:
+        return False
+    cell = row[0].strip()
+    return bool(TOTAL.fullmatch(cell.lower())) if key == "total" else cell == key
+
+def table_with(key):
+    for t in tables:
+        if any(is_row(r, key) for r in t[1:]):
+            return t
+    return None
+
+def column(header, name, matches, key):
+    hit = [i for i, c in enumerate(header) if matches(c.lower())]
+    if len(hit) == 1:
+        return hit[0]
+    complain("want exactly one column heading saying %s, the table with a row for %r is headed: %s"
+             % (name, key, "|".join(header) or "nothing"))
+    return None
+
+# `$`, thousands commas and a trailing unit are the report own to print or leave out, so the
+# comparison is of numbers and not of the text around them. A cell that is no number at all
+# comes back None and is complained about as it was printed.
+def number(cell):
+    text = cell.strip().replace("$", "").replace(",", "").rstrip("s")
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+for arg in sys.argv[2:]:
+    key, expected = arg.split("=", 1)
+    section = table_with(key)
+    if section is None:
+        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
+        complain("want a table with a row for %r, the report has tables with rows: %s"
+                 % (key, "; ".join(labels) or "nothing"))
+        continue
+    header = section[0]
+    row = next(r for r in section[1:] if is_row(r, key))
+    for (name, matches), want in zip(WANTED, expected.split(",")):
+        i = column(header, name, matches, key)
+        if i is None:
+            continue
+        got = row[i] if i < len(row) else ""
+        said = number(got)
+        if said is None or abs(said - float(want)) > 0.005:
+            complain("%r %s: want %s, got %r" % (key, name, want, got))
+
+print("\n".join(problems))
+' "$out_file" "$@"
+}
+
+# conductor_says <report-without> <report-with> — the line that says whether the figures
+# above include the conductor own cost.
+#
+# It is looked for OUTSIDE the tables, the way the issue wall is: the claim is about every
+# figure in the report rather than about a row of it. Both reports are read at once because
+# a line saying "whether" is only observable as a line that says something ELSE when the
+# answer changes — a sentence printed unconditionally answers nothing, the same reason the
+# refactor `stopped` column above is read against two steps rather than one.
+#
+# The two reports differ in exactly one thing: whether the log holds a `usage` line of the
+# conductor own. That line exists only when the conductor ran in print mode, with a closing
+# record of its own to harvest, so a run driven from an interactive session leaves the leaf
+# cost complete and the conductor own missing — and the report has to say which of the two a
+# reader is holding.
+#
+# What is pinned is that the report has one such line, that the two answers are not the same
+# sentence, and that the one whose log has no conductor usage reads as a DENIAL while the one
+# whose log has it does not. The denial is recognised by a whole word — `not`, `no`,
+# `without`, `excluded`, `excluding`, `missing` — so the wording, the punctuation and the
+# order of the sentence stay the implementation own.
+conductor_says() {
+  probe '
+import re, sys
+
+DENIAL = re.compile(r"\b(not|no|without|excluded|excluding|missing)\b")
+
+problems = []
+
+def conductor_line(path, label):
+    said = [l.strip() for l in open(path).read().splitlines()
+            if l.strip() and not l.strip().startswith("|") and "conductor" in l.lower()]
+    if len(said) == 1:
+        return said[0]
+    problems.append(
+        "want exactly one line outside the tables saying whether the conductor own cost is "
+        "included, the report of the log %s has %d: %s"
+        % (label, len(said), ", ".join(repr(l) for l in said) or "nothing"))
+    return None
+
+without = conductor_line(sys.argv[1], "with no conductor usage line")
+with_ = conductor_line(sys.argv[2], "with one")
+
+if without is not None and with_ is not None:
+    if without == with_:
+        problems.append(
+            "the log with a conductor usage line and the log without one say the same thing: %r"
+            % without)
+    if not DENIAL.search(without.lower()):
+        problems.append(
+            "the log has no conductor usage, so its line must say the conductor own cost is "
+            "left out, it says: %r" % without)
+    if DENIAL.search(with_.lower()):
+        problems.append(
+            "the log has the conductor own usage, so its line must not deny it, it says: %r"
+            % with_)
+
+print("\n".join(problems))
+' "$@"
+}
+
+# A fifth fixture, in its own directory for the reason the others have one: each case keeps
+# the log it was written against.
+#
+# Two steps of two phases each, so a per-phase figure is observable as something other than a
+# per-step one and both as something other than the total. Every figure the case reads is a
+# distinct number, and no two rows share one, so a report that printed one token count in
+# another column, or one row in another row place, cannot pass.
+fixture_work cost_work
+
+# `cost_json <turns> <dollars> <input> <output> <cache-read> <cache-creation>` — the payload
+# of one `usage` line, in the shape harvest-usage.sh emits (harvest-usage.sh:76-84). It is a
+# writer of its own beside `usage_json` above rather than an argument added to it: that one
+# varies the API milliseconds its case reads and holds the rest constant, this one varies the
+# six its case reads and holds the two durations constant, and a single writer taking eight
+# arguments would make every call site of both spell the two figures its own case is not
+# about.
+cost_json() {
+  printf '"duration_ms": "0", "duration_api_ms": "0", "num_turns": "%s", "total_cost_usd": "%s", "input_tokens": "%s", "output_tokens": "%s", "cache_read_input_tokens": "%s", "cache_creation_input_tokens": "%s"' \
+    "$1" "$2" "$3" "$4" "$5" "$6"
+}
+
+cheap="the table reports turns, the four token counts and dollars per step"
+dear="a step recovered after a REJECT contributes its rejected attempts to rework"
+
+# Step one, the cheap one. Its red is 3+2 = 5 turns, 0.10+0.05 = 0.15 dollars, 150 input,
+# 230 output, 1500 cache read and 500 cache creation; its green 11 turns, 0.60 dollars, 420
+# input, 670 output, 4900 cache read and 1200 cache creation. The step is the two together:
+# 16 turns, 0.75 dollars, 570 input, 900 output, 6400 cache read, 1700 cache creation.
+sv "$cheap" 9000 conductor ""    step-start ""
+sv "$cheap" 9010 developer red   launch  1 '"name": "develop-red"'
+sv "$cheap" 9100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$cheap" 9100 developer red   usage   1 "$(cost_json 3 0.10 100 200 1000 400)"
+sv "$cheap" 9110 verifier  red   launch  1 '"name": "verify-red"'
+sv "$cheap" 9130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$cheap" 9130 verifier  red   usage   1 "$(cost_json 2 0.05 50 30 500 100)"
+sv "$cheap" 9130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$cheap" 9200 developer green launch  1 '"name": "develop-green"'
+sv "$cheap" 9300 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$cheap" 9300 developer green usage   1 "$(cost_json 7 0.40 300 600 4000 900)"
+sv "$cheap" 9310 verifier  green launch  1 '"name": "verify-green"'
+sv "$cheap" 9330 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$cheap" 9330 verifier  green usage   1 "$(cost_json 4 0.20 120 70 900 300)"
+sv "$cheap" 9330 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$cheap" 9400 conductor ""    step-done ""
+
+# Step two, the dear one: 8 turns, 0.30 dollars, 250 input, 400 output, 2900 cache read and
+# 800 cache creation in red; 12 turns, 0.70 dollars, 590 input, 910 output, 7100 cache read
+# and 1900 cache creation in green. The step is 20 turns, 1.00 dollars, 840 input, 1310
+# output, 10000 cache read, 2700 cache creation.
+#
+# Across the two steps, red is 13 turns, 0.45 dollars, 400 input, 630 output, 4400 cache read
+# and 1300 cache creation; green is 23 turns, 1.30 dollars, 1010 input, 1580 output, 12000
+# cache read and 3100 cache creation; and the whole run is 36 turns, 1.75 dollars, 1410
+# input, 2210 output, 16400 cache read and 4400 cache creation.
+sv "$dear" 9500 conductor ""    step-start ""
+sv "$dear" 9510 developer red   launch  1 '"name": "develop-red"'
+sv "$dear" 9600 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$dear" 9600 developer red   usage   1 "$(cost_json 6 0.25 210 340 2200 600)"
+sv "$dear" 9610 verifier  red   launch  1 '"name": "verify-red"'
+sv "$dear" 9630 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$dear" 9630 verifier  red   usage   1 "$(cost_json 2 0.05 40 60 700 200)"
+sv "$dear" 9630 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$dear" 9700 developer green launch  1 '"name": "develop-green"'
+sv "$dear" 9800 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$dear" 9800 developer green usage   1 "$(cost_json 9 0.55 500 800 6000 1500)"
+sv "$dear" 9810 verifier  green launch  1 '"name": "verify-green"'
+sv "$dear" 9830 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$dear" 9830 verifier  green usage   1 "$(cost_json 3 0.15 90 110 1100 400)"
+sv "$dear" 9830 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$dear" 9900 conductor ""    step-done ""
+sv "$dear" 9910 conductor ""    done      "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+
+# A sixth fixture, the same run driven in print mode: one leaf and, beside it, the
+# conductor own closing accounting as a `usage` line of its own — actor `conductor`, and no
+# phase and no step, because the conductor own spending belongs to the run rather than to any
+# leaf inside it. It is here only so the line the case reads has something to say the other
+# way round; what the figures do with it is a later step.
+fixture_work printed_work
+
+printed="the table reports turns, the four token counts and dollars per step"
+
+sv "$printed" 9000 conductor ""    step-start ""
+sv "$printed" 9010 developer red   launch  1 '"name": "develop-red"'
+sv "$printed" 9100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$printed" 9100 developer red   usage   1 "$(cost_json 3 0.10 100 200 1000 400)"
+sv "$printed" 9110 conductor ""    step-done ""
+event_line "$fixture_log" 9200 conductor "" "" usage "" "$(cost_json 12 0.90 800 400 20000 2500)"
+
+
+name="every phase row, step row and the total carry their turns, four token counts and dollars, and a line says whether the conductor own cost is in them"
+problems=()
+
+cost_out="$cost_work/report.md"
+printed_out="$printed_work/report.md"
+render "$cost_work" "$cost_out"
+render "$printed_work" "$printed_out"
+
+costs_say "$cost_out" \
+  red=13,400,630,4400,1300,0.45 \
+  green=23,1010,1580,12000,3100,1.30 \
+  "$cheap=16,570,900,6400,1700,0.75" \
+  "$dear=20,840,1310,10000,2700,1.00" \
+  total=36,1410,2210,16400,4400,1.75
+conductor_says "$cost_out" "$printed_out"
+
+report_on "$name" "$cost_out"
 
 echo "----"
 echo "$pass passed, $fail failed"
