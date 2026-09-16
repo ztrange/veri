@@ -6,7 +6,7 @@
 - [x] the table reports wall seconds and API seconds per phase and per step, and the issue's wall time from its first event to done or bail
 - [x] the table reports turns, the four token counts and dollars per phase, per step and in total, with a line saying whether the conductor's own cost is included
 - [x] a step recovered after a REJECT contributes its rejected attempts to rework per phase and nothing to waste
-- [ ] a bailed step contributes every attempt, PASS verdicts included, to waste per phase and nothing to rework
+- [x] a bailed step contributes every attempt, PASS verdicts included, to waste per phase and nothing to rework ⟂ refactor pending
 - [ ] the table reports steps done of planned and the issue's outcome, a bail split system or process
 - [ ] a figure a missing conductor mark makes unreadable renders as unknown, never as zero
 - [ ] SKILL.md has the conductor commit issue-<n>-metrics.md in one metrics: commit before the PR and append the 📊 Metrics block to the final comment and PR body, and on a bail commit it on the pushed branch with the block on the bail comment

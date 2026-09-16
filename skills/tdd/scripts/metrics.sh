@@ -405,6 +405,18 @@ for step, phase, attempt in rejected:
     row_of[REWORK_WALL] += attempt[WALL]
     row_of[REWORK_COST] += attempt[DOLLARS]
 
+# Waste, the other half of the same pair and the same one condition read the other way: a
+# step that never reached its closing mark is a step the run did not keep, so EVERY attempt
+# it made is waste — the PASSing ones too, since a Red nobody turned down is still a Red
+# nobody kept. It is read off `attempts_spent` rather than off `rejected` for exactly that
+# reason: a verdict says which attempts are rework, and nothing about which are waste.
+for (step, phase, _attempt_no), attempt in attempts_spent.items():
+    if step in recovered:
+        continue
+    row_of = row_in(lost, phase, LOST_COLUMNS)
+    row_of[WASTE_WALL] += attempt[WALL]
+    row_of[WASTE_COST] += attempt[DOLLARS]
+
 def row(cells):
     print("| " + " | ".join(cells) + " |")
 

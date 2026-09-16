@@ -1209,6 +1209,87 @@ rework_and_waste_say "$rework_out" red=0,0.00,0,0.00 green=120,0.50,0,0.00
 
 report_on "$name" "$rework_out"
 
+# An eighth fixture, in its own directory like the others: the half of the glossary the
+# seventh cannot show. It is a run of two steps of which the second BAILED — it never reached
+# a `step-done` mark and the log ends on the conductor's `bail` — so every figure it reports
+# is about a step the run did not keep.
+#
+# The bailed step's red PASSED before its green went wrong, and that is the point of the
+# case: waste is what the bailed step spent, PASS verdicts included, so the 120 seconds and
+# $0.50 of a red nobody ever turned down are waste all the same. A script reading waste off
+# the REJECTs would report red as empty.
+#
+# Its green was rejected twice — attempt 1 (60 + 20 seconds, $0.20 + $0.05) and the revise
+# after it (50 + 10 seconds, $0.10 + $0.05) — for 140 seconds and $0.40. Those REJECTs must
+# contribute NOTHING to rework: an attempt is rework only in a step that recovered, and this
+# one did not, so a script that counted every REJECT as rework would report green twice over.
+#
+# The step that landed first is in the log so that neither figure is "everything the run
+# spent": red spent 160 seconds across the two steps and green 190, and neither waste figure
+# is either number.
+fixture_work bail_work
+
+landed="the first step of the run reached its step-done mark"
+bailed="a bailed step contributes every attempt to waste"
+
+# The step that landed: one attempt per phase, both PASS, closed by `step-done`. It
+# contributes to neither figure.
+sv "$landed" 7000 conductor ""    step-start ""
+sv "$landed" 7010 developer red   launch  1 '"name": "develop-red"'
+sv "$landed" 7040 developer red   exit    1 '"status": "0", "secs": "30"'
+sv "$landed" 7040 developer red   usage   1 "$(cost_json 3 0.03 100 200 1000 400)"
+sv "$landed" 7050 verifier  red   launch  1 '"name": "verify-red"'
+sv "$landed" 7060 verifier  red   exit    1 '"status": "0", "secs": "10"'
+sv "$landed" 7060 verifier  red   usage   1 "$(cost_json 2 0.02 50 30 500 100)"
+sv "$landed" 7060 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$landed" 7100 developer green launch  1 '"name": "develop-green"'
+sv "$landed" 7140 developer green exit    1 '"status": "0", "secs": "40"'
+sv "$landed" 7140 developer green usage   1 "$(cost_json 4 0.05 120 70 900 300)"
+sv "$landed" 7150 verifier  green launch  1 '"name": "verify-green"'
+sv "$landed" 7160 verifier  green exit    1 '"status": "0", "secs": "10"'
+sv "$landed" 7160 verifier  green usage   1 "$(cost_json 2 0.01 60 40 600 200)"
+sv "$landed" 7160 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$landed" 7200 conductor ""    step-done ""
+
+# The step that bailed: a red that PASSED — 120 seconds and $0.50 of waste — and a green
+# rejected twice, 140 seconds and $0.40 of waste and no rework, since no `step-done` follows.
+sv "$bailed" 7300 conductor ""    step-start ""
+sv "$bailed" 7310 developer red   launch  1 '"name": "develop-red"'
+sv "$bailed" 7410 developer red   exit    1 '"status": "0", "secs": "100"'
+sv "$bailed" 7410 developer red   usage   1 "$(cost_json 6 0.40 300 600 4000 900)"
+sv "$bailed" 7420 verifier  red   launch  1 '"name": "verify-red"'
+sv "$bailed" 7440 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$bailed" 7440 verifier  red   usage   1 "$(cost_json 3 0.10 90 110 1100 400)"
+sv "$bailed" 7440 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$bailed" 7500 developer green launch  1 '"name": "develop-green"'
+sv "$bailed" 7560 developer green exit    1 '"status": "0", "secs": "60"'
+sv "$bailed" 7560 developer green usage   1 "$(cost_json 5 0.20 200 300 2000 700)"
+sv "$bailed" 7570 verifier  green launch  1 '"name": "verify-green"'
+sv "$bailed" 7590 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$bailed" 7590 verifier  green usage   1 "$(cost_json 2 0.05 60 40 600 200)"
+sv "$bailed" 7590 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+sv "$bailed" 7600 conductor green revise  1 '"budget": "3"'
+sv "$bailed" 7610 developer green launch  2 '"name": "revise-green-1"'
+sv "$bailed" 7660 developer green exit    2 '"status": "0", "secs": "50"'
+sv "$bailed" 7660 developer green usage   2 "$(cost_json 4 0.10 150 250 1700 600)"
+sv "$bailed" 7670 verifier  green launch  2 '"name": "verify-green"'
+sv "$bailed" 7680 verifier  green exit    2 '"status": "0", "secs": "10"'
+sv "$bailed" 7680 verifier  green usage   2 "$(cost_json 2 0.05 60 40 600 200)"
+sv "$bailed" 7680 verifier  green verdict 2 '"verdict": "REJECT", "reason": "the production change is still wider than the case asks for"'
+sv "$bailed" 7700 conductor green bail    "" '"cause": "revise-budget", "classification": "process"'
+
+
+name="a bailed step puts every attempt, PASS verdicts included, into its phase waste and nothing into rework"
+problems=()
+
+bail_out="$bail_work/report.md"
+render "$bail_work" "$bail_out"
+
+rework_and_waste_say "$bail_out" red=0,0.00,120,0.50 green=0,0.00,140,0.40
+
+report_on "$name" "$bail_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
