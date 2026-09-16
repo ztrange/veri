@@ -225,6 +225,20 @@ MONEY = {DOLLARS, REWORK_COST, WASTE_COST}
 # What a figure says when no mark in the log supplies it. Not "0": see the header.
 UNKNOWN = "unknown"
 
+# One figure of the report, as a whole number or as the word above when nothing supplied it.
+# Written once because the rule it applies is one rule — ADR-0014 degrades a missing mark to
+# unknown and never to zero — and three cells spelling it themselves are three places for one
+# of them to reach for "0" instead.
+def known(number):
+    return UNKNOWN if number is None else "%d" % number
+
+# The seconds between two marks of the log, or None when either is missing, which `known`
+# above then says is unknown. A stretch of the run is bracketed by two marks — the step by
+# its `step-start` and `step-done`, the issue by its first line and the mark that ended it —
+# so the arithmetic and the pair of conditions on it are the same for both.
+def span(start, end):
+    return None if start is None or end is None else end - start
+
 # A checkbox step of the ledger, ticked or not — the same grammar next-unchecked.sh reads
 # (next-unchecked.sh:16), matched leaving the state inside the box open, because what is
 # wanted is how many steps the plan HAS, not how many are still to do.
@@ -479,10 +493,7 @@ def figure(column, value):
 
 def step_wall(step):
     mark = spent.get(step, {})
-    start, done = mark.get("step-start"), mark.get("step-done")
-    if start is None or done is None:
-        return UNKNOWN
-    return "%d" % (done - start)
+    return known(span(mark.get("step-start"), mark.get("step-done")))
 
 def budget_cells(step):
     mark = spent.get(step, {})
@@ -523,8 +534,7 @@ print()
 # Outside the tables, because it is a figure of the whole run and not of a row in either.
 print("Wall time for the issue: %s s, from the first event of the log to the mark that "
       "ended the run."
-      % (UNKNOWN if first is None or ending is None
-         else "%d" % (ending["ts"] - first)))
+      % known(span(first, ending["ts"] if ending else None)))
 # Beside the line above, and outside the tables for the same reason: progress is a figure of
 # the run and of no row in either. The steps done are the ones that reached their closing
 # mark — a step that took a revise to get there is one of them, since what the figure counts
@@ -532,7 +542,7 @@ print("Wall time for the issue: %s s, from the first event of the log to the mar
 # is the only input that still names the steps a bailed run never reached.
 planned = planned_steps(ledger)
 print("Steps done: %d of %s planned."
-      % (len(recovered), UNKNOWN if planned is None else "%d" % planned))
+      % (len(recovered), known(planned)))
 # And how the run ended, beside the two figures above: the same mark that closed the issue
 # wall, read for its payload rather than its timestamp. A bail names its classification
 # because system and process are two different things for a reader to do next.
