@@ -56,7 +56,7 @@ while (( attempt <= retries )); do
     branch="$(git rev-parse --abbrev-ref HEAD)"
     remote_sha="$(git ls-remote origin "refs/heads/$branch" | cut -f1)"
     echo "push rejected (non-fast-forward): origin/$branch is at $remote_sha" >&2
-    "$HERE/event.sh" push-rejected remote_sha="$remote_sha" error="$out"
+    "$HERE/event.sh" push-rejected remote_sha="$remote_sha" error="$out" || exit 2
     exit 1
   fi
   if (( attempt <= retries )); then
@@ -65,4 +65,5 @@ while (( attempt <= retries )); do
   fi
 done
 echo "push-branch.sh: push failed after $attempt attempts; the branch is not on the remote" >&2
-"$HERE/event.sh" push-failed error="$out" attempts="$attempt"
+# A log that cannot be written is a system failure, whichever push outcome it was recording.
+"$HERE/event.sh" push-failed error="$out" attempts="$attempt" || exit 2

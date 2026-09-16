@@ -553,6 +553,52 @@ events_after="$( [[ -f "$log" ]] && grep -c . "$log" | tr -d ' ' || echo 0)"
   problems+=("want no event appended to .tdd/events.jsonl, got $((events_after - events_before)): $(printf '%q' "$(jevents "$log" | tr '\n' ' ')")")
 report "$name"
 
+# 10. Issue #232's eighth criterion: when the event log itself cannot be written, neither
+#    failing push is answered with its own code. The run's log is the only record either
+#    outcome leaves, so a write that fails is a system failure — exit 2, whether the push
+#    failed as unreachable (which would otherwise exit 0) or as a non-fast-forward rejection
+#    (which would otherwise exit 1). Two probes of one criterion, one per outcome, each
+#    with `.tdd` made unwritable (mode 555) after the fixture is committed, and made
+#    writable again before the case ends so the EXIT trap can remove it. The origins are
+#    case 1's path that is not a repository and case 8's amended-after-push bare repository.
+name="push-branch.sh: a failing event write exits 2 for both an unreachable origin and a non-fast-forward rejection"
+problems=()
+repo="$work/event-fails-unreachable"
+run_fixture "$repo" tdd/232-event-fails-unreachable 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] A failing event write exits 2
+LEDGER
+git_q "$repo" remote add origin "$work/no-such-origin-event-fails" >/dev/null 2>&1
+chmod 555 "$repo/.tdd"
+( cd "$repo" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A failing event write exits 2' \
+    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+chmod 755 "$repo/.tdd"
+[[ "$code" == 2 ]] ||
+  problems+=("unreachable origin: want exit 2 when the push-failed event cannot be written, got $code")
+
+repo="$work/event-fails-non-ff"
+remote="$work/origin-event-fails-non-ff.git"
+git init -q --bare "$remote" >/dev/null 2>&1
+branch=tdd/232-event-fails-non-ff
+run_fixture "$repo" "$branch" 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] A failing event write exits 2
+LEDGER
+git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
+git_q "$repo" commit -q --amend -m "feat: the step's green commit, rewritten (#232)" >/dev/null 2>&1
+chmod 555 "$repo/.tdd"
+( cd "$repo" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A failing event write exits 2' \
+    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+chmod 755 "$repo/.tdd"
+[[ "$code" == 2 ]] ||
+  problems+=("non-fast-forward rejection: want exit 2 when the push-rejected event cannot be written, got $code")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

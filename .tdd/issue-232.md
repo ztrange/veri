@@ -7,7 +7,7 @@
 - [x] Non-integer VERI_PUSH_RETRIES or VERI_PUSH_BACKOFF exits 2 without attempting a push
 - [x] Non-fast-forward rejection (remote holds a commit the local branch amended) exits 1 after exactly one attempt, stderr carries the remote branch's full sha, and a push-rejected event records remote_sha
 - [x] A successful push exits 0, writes nothing to stderr beyond git's own output, and appends no event
-- [ ] A failing event write (unwritable .tdd or failing event.sh) exits 2 for both an unreachable origin and a non-ff rejection
+- [x] A failing event write (unwritable .tdd or failing event.sh) exits 2 for both an unreachable origin and a non-ff rejection ⟂ refactor pending
 - [ ] build-develop-prompt.sh reconcile renders prompts/develop-reconcile.md with the remote sha, branch and literal --force-with-lease=<branch>:<sha>, no bare --force, and exits 2 on a missing argument
 - [ ] classify-bail.sh reconcile-failed prints system and exits 0
 - [ ] SKILL.md at both push-branch.sh call sites launches develop-reconcile through supervise.sh on exit 1, bails on exit 2, requires re-running push-branch.sh and checking ledger ticks and refactor pending marks, bails with reconcile-failed otherwise, and no longer says exits 0 either way
