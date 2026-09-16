@@ -1481,6 +1481,19 @@ outcome_says "$landed_out" pr
 
 report_on "$name" "$system_out"
 
+
+# The eleventh fixture again, read for its wall rather than its outcome: its log is exactly one
+# run, and that run ended on a `done` mark 400 seconds after its first event. The wall is read
+# off the same mark the outcome line is (issue #236), so a log that says the run landed must
+# also give the run a length — `unknown` there would be the report failing to read a mark the
+# log carries.
+name="a log of exactly one run that ended in a done mark renders its issue wall as a number, not unknown"
+problems=()
+
+issue_wall_says "$landed_out" 400
+
+report_on "$name" "$landed_out"
+
 # A twelfth fixture: a log with no step mark in it at all. Its leaves ran, named their step and
 # spent what they spent, but the conductor's own `step-start` and `step-done` marks were never
 # written — the ADR-0014 case where a figure's input is missing rather than zero.
