@@ -933,6 +933,27 @@ L
 }
 
 
+# sup_direct <dir> <leaf> <window> [env-arg…] — the supervisor launched STRAIGHT, in a run
+# directory of its own, on the compressed windows cases 25 to 27 share: a `$window`-second
+# heartbeat, a 30 s hard cap well past it, and `sup`'s 0.2 s poll. Its stdio is left alone,
+# which is why it is not `sup_run`: each of those cases wants a different one — /dev/null,
+# a captured stdout, a stderr file of its own — and `sup_run` sends both to /dev/null.
+#
+# The retry budget is the caller's word rather than a pinned one, passed through as the
+# leading arguments to `env`: `VERI_STUCK_RETRIES=0` where the case wants one attempt,
+# `-u VERI_STUCK_RETRIES` where it wants the DEFAULT budget to produce the retry it forbids
+# (case 25, case 13's spelling). That is the one axis those cases differ on, and pinning it
+# here would make case 25 vacuous.
+#
+# `verify-red` is the name throughout, the leaf #207 lost a rendered verdict on.
+sup_direct() {
+  local dir="$1" leaf="$2" window="$3"; shift 3
+  mkdir -p "$dir"
+  ( cd "$dir" && env "$@" VERI_HEARTBEAT="$window" VERI_TIMEOUT=30 VERI_POLL=0.2 \
+      "$SUP" verify-red "$stub/$leaf" )
+}
+
+
 # 23. a leaf the watchdog KILLS whose progress log already holds a terminal result record is
 #     reported with the leaf's own outcome — exit 0 for a record that says `is_error: false` —
 #     and not as killed-stuck (issue #212). Case 3 pins the other half, the hung leaf that
@@ -1019,8 +1040,8 @@ error_kill_rc="$(cat "$error_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '
 #     The DEFAULT budget is what runs here — `env -u VERI_STUCK_RETRIES`, case 13's spelling,
 #     so a value exported by the shell that ran `make test` can neither add the retry this
 #     case forbids nor suppress one the supervisor would have made. That is also why this
-#     case launches the supervisor directly rather than through `sup` or `sup_run`: both pin
-#     the budget to 0, which would make the assertion vacuous.
+#     case goes through `sup_direct` rather than `sup` or `sup_run`: both pin the budget to
+#     0, which would make the assertion vacuous.
 #
 #     Two observations, because "launched once" and "no retry" are the same fact seen from
 #     the leaf's side and from the run log's: the stub appends a line per invocation to a
@@ -1030,14 +1051,11 @@ error_kill_rc="$(cat "$error_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '
 #     is asserted beside them so a case that went green on a leaf which never recovered at all
 #     would still be caught.
 result_once_work="$work/result-once"
-mkdir -p "$result_once_work"
 # Case 23's stub plus the counter as its prelude, and the same sleep behind it: the leaf must
 # never write `.tdd/<name>.rc`, so only the watchdog can end each attempt and a second attempt
 # would be killed exactly like the first.
 result_hang_stub leaf-result-hang-counted success false 'VERDICT: PASS' 'echo attempt >> .attempts'
-( cd "$result_once_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 \
-    VERI_TIMEOUT=30 VERI_POLL=0.2 \
-    "$SUP" verify-red "$stub/leaf-result-hang-counted" ) >/dev/null 2>&1
+sup_direct "$result_once_work" leaf-result-hang-counted 1 -u VERI_STUCK_RETRIES >/dev/null 2>&1
 result_once_code=$?
 # Each read once, into the variable the assertion and the failure message share — cases 9,
 # 11, 12, 13, 15 to 24's shape. `wc -l` is fed on stdin and stripped of blanks because the
@@ -1073,14 +1091,11 @@ result_once_retry="$(event_field "$result_once_work" retry cause)"
 #
 #     Same stub shape as case 23 — the record, then a sleep, so only the watchdog can end the
 #     supervision — with a two-line verdict block in the `result` field, the shape a real
-#     verifier closes its stream with. Launched directly rather than through `sup_run`, which
-#     sends stdout to /dev/null; the pinned VERI_STUCK_RETRIES=0 comes along by hand.
+#     verifier closes its stream with. Through `sup_direct` rather than `sup_run`, which sends
+#     stdout to /dev/null; the pinned VERI_STUCK_RETRIES=0 is the budget it is handed.
 result_text_work="$work/result-text"
-mkdir -p "$result_text_work"
 result_hang_stub leaf-verdict-hang success false 'VERDICT: PASS\nREASON: the new case fails on the eight session-handle checks'
-result_text_out="$( cd "$result_text_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 \
-    VERI_TIMEOUT=30 VERI_POLL=0.2 \
-    "$SUP" verify-red "$stub/leaf-verdict-hang" 2>/dev/null )"
+result_text_out="$(sup_direct "$result_text_work" leaf-verdict-hang 1 VERI_STUCK_RETRIES=0 2>/dev/null)"
 # Read once, into the variables the assertion and the failure message share — cases 9, 11, 12,
 # 13, 15 to 25's shape. The verdict code is parse-verdict.sh's own contract: 0 PASS, 1 REJECT,
 # 2 nothing it could recognise.
@@ -1114,10 +1129,12 @@ result_text_code=$?
 #     `killed-stuck` with nothing saying what the watchdog saw. The wording is read through
 #     `heartbeat_kill` above, cases 13 and 14's probe, so a change to it is caught in one place.
 #
-#     Launched directly rather than through `sup`, whose single `$work/err` is shared with
-#     every other case that uses it; this case's stderr is its own file under its own
-#     directory, case 12's reason. VERI_STUCK_RETRIES=0 is pinned by hand the way `sup` pins
-#     it — one attempt, so the transcript holds exactly one status line.
+#     Through `sup_direct` rather than `sup`, whose single `$work/err` is shared with every
+#     other case that uses it; this case's stderr is its own file under its own directory,
+#     case 12's reason. VERI_STUCK_RETRIES=0 is the budget it is handed — one attempt, so the
+#     transcript holds exactly one status line. The `mkdir` stays here as well as in the
+#     helper because the shell opens that stderr file BEFORE the helper runs, so the
+#     directory has to exist a moment earlier than the helper would make it.
 nores_work="$work/no-result"
 mkdir -p "$nores_work"
 # The stream a leaf that hangs mid-run leaves behind: a system init record and an assistant
@@ -1131,9 +1148,8 @@ sleep 60
 L
 chmod +x "$stub/leaf-noresult-hang"
 nores_window=1
-( cd "$nores_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$nores_window" \
-    VERI_TIMEOUT=30 VERI_POLL=0.2 \
-    "$SUP" verify-red "$stub/leaf-noresult-hang" ) >/dev/null 2>"$nores_work/err"
+sup_direct "$nores_work" leaf-noresult-hang "$nores_window" VERI_STUCK_RETRIES=0 \
+  >/dev/null 2>"$nores_work/err"
 nores_code=$?
 # Each read once, into the variable the assertion and the failure message share — cases 9,
 # 11, 12, 13 and 15 to 26's shape. The cause is taken off the supervisor's own status line by
