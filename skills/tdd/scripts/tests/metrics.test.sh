@@ -1588,6 +1588,37 @@ progress_says "$two_pins_out" 3 3
 report_on "$name" "$two_pins_out"
 
 
+# A fifteenth fixture: a log with no `pin` mark in it, so the pin branch has nothing to read and
+# the figure is what `step-done` alone says. Two steps closed the ordinary way; the third was
+# started and ran a leaf but never reached a closing mark of either kind, so it is not done —
+# `2 of 3`, and `3 of 3` would be a closing mark counted that the log never wrote.
+fixture_work unpinned_work
+
+first_done="a first step that closed on its step-done mark"
+second_done="a second step that closed on its step-done mark"
+unclosed="a third step started and never closed"
+
+sv "$first_done"  17000 conductor ""  step-start ""
+sv "$first_done"  17100 conductor ""  step-done  ""
+sv "$second_done" 17200 conductor ""  step-start ""
+sv "$second_done" 17300 conductor ""  step-done  ""
+sv "$unclosed"    17400 conductor ""  step-start ""
+sv "$unclosed"    17500 developer red launch 1 '"name": "develop-red", "cmd": "run-leaf.sh", "model": ""'
+
+plan_of "$first_done" "$second_done" -- "$unclosed"
+
+
+name="a log whose steps end only in step-done marks, with no pin mark, counts only those steps as done"
+problems=()
+
+unpinned_out="$unpinned_work/report.md"
+render "$unpinned_work" "$unpinned_out"
+
+progress_says "$unpinned_out" 2 3
+
+report_on "$name" "$unpinned_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
