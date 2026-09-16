@@ -49,6 +49,19 @@ report() {
   fi
 }
 
+# probe <program> <arg>… — run one python probe over a rendered report and put every line it
+# prints onto the caller's `problems`, nothing when it prints nothing. Each probe below is a
+# program that reports its disagreements on stdout and says nothing when it has none, so
+# what differs between them is the program and its arguments; how the lines are captured,
+# that stderr counts as a complaint too, and that an empty answer adds no empty problem are
+# one rule, kept here once.
+probe() {
+  local program="$1"; shift
+  local said
+  said="$(python3 -c "$program" "$@" 2>&1)"
+  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+}
+
 # TABLES_IN — the python prelude both probes below open with, so the report is split into
 # tables in exactly one place. `tables_in(path)` returns every run of consecutive table lines
 # as a list of rows, each row a list of stripped cells, with the `---|---:` separator rows
@@ -104,8 +117,7 @@ def tables_in(path):
 # the interpreter is a dependency this repo has, and the parse is fail-closed in one place.
 counts_table_says() {
   local out_file="$1" noun="$2" columns="$3"; shift 3
-  local said
-  said="$(python3 -c "$TABLES_IN"'
+  probe "$TABLES_IN"'
 NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject",
           "kills": "kill", "retries": "retr"}
 
@@ -148,8 +160,7 @@ for arg in sys.argv[4:]:
             problems.append("%s %r %s: want %s, got %r" % (noun, key, want, number, got))
 
 print("\n".join(problems))
-' "$noun" "$columns" "$out_file" "$@" 2>&1)"
-  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+' "$noun" "$columns" "$out_file" "$@"
 }
 
 # table_says <file> <phase>=<attempts>,<pass>,<reject>,<kills> … — the per-phase section.
@@ -393,8 +404,7 @@ report "$name"
 # a `yes` under `stopped by budget`.
 budgets_say() {
   local out_file="$1" one="$2" two="$3"; shift 3
-  local said
-  said="$(python3 -c "$TABLES_IN"'
+  probe "$TABLES_IN"'
 path, steps = sys.argv[1], (sys.argv[2], sys.argv[3])
 tables = tables_in(path)
 
@@ -448,8 +458,7 @@ else:
             % (steps[1], header[i], said[1]))
 
 print("\n".join(problems))
-' "$out_file" "$one" "$two" "$@" 2>&1)"
-  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+' "$out_file" "$one" "$two" "$@"
 }
 
 # A third fixture, in its own directory for the same reason the second has one: the cases
@@ -586,8 +595,7 @@ report "$name"
 # line, and the same sentence twice says nothing the first did not.
 times_say() {
   local out_file="$1"; shift
-  local said
-  said="$(python3 -c "$TABLES_IN"'
+  probe "$TABLES_IN"'
 path = sys.argv[1]
 tables = tables_in(path)
 
@@ -634,8 +642,7 @@ for arg in sys.argv[2:]:
             complain("%r %s seconds: want %s, got %r" % (key, word, number, got))
 
 print("\n".join(problems))
-' "$out_file" "$@" 2>&1)"
-  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+' "$out_file" "$@"
 }
 
 # issue_wall_says <file> <seconds> — the one figure that belongs to no row: the whole issue
@@ -644,8 +651,7 @@ print("\n".join(problems))
 # the number alone — the prose around it is the implementation to word.
 issue_wall_says() {
   local out_file="$1" want="$2"
-  local said
-  said="$(python3 -c '
+  probe '
 import re, sys
 
 path, want = sys.argv[1], sys.argv[2]
@@ -657,8 +663,7 @@ if any(re.search(r"(?<![0-9.])%s(?![0-9.])" % re.escape(want), l) for l in lines
 
 print("want a line outside the tables reporting the issue wall of %s seconds, the report says outside them: %s"
       % (want, ", ".join(repr(l.strip()) for l in lines) or "nothing"))
-' "$out_file" "$want" 2>&1)"
-  [[ -z "$said" ]] || problems+=("$said")
+' "$out_file" "$want"
 }
 
 # A fourth fixture, in its own directory for the reason the others have one: each case keeps
