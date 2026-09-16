@@ -903,6 +903,54 @@ nogit_got="$(event_field "$nogit_work" launch skill_commit)"
   || no "a skill outside a git clone records skill_commit as the literal unknown (code=$nogit_code, git says=$nogit_resolves want <none>, skill_commit=$nogit_got want unknown)"
 
 
+# 23. a leaf the watchdog KILLS whose progress log already holds a terminal result record is
+#     reported with the leaf's own outcome — exit 0 for a record that says `is_error: false` —
+#     and not as killed-stuck (issue #212). Case 3 pins the other half, the hung leaf that
+#     produced nothing and is still exit 2; this is the leaf that worked, finished its stream
+#     and was killed anyway, which is what #207's `verify-red` did: 165 s of work, a complete
+#     `VERDICT: PASS` in the log, and an exit 2 the conductor could only read as "no answer
+#     could be obtained" and bail on.
+#
+#     The distinction the case defends is the load-bearing one in this codebase: exit 2 means
+#     the plumbing broke, exit 1 that the methodology spoke. A rendered verdict reported as
+#     killed-stuck puts a process answer under a system label, so every `no-verdict` bail in a
+#     run log becomes unreadable — nothing in it tells "the verifier never answered" from "the
+#     verifier answered and we killed it". Whatever the heartbeat window is, a finished stream
+#     is not a stuck one.
+#
+#     The stub prints the record and then sleeps, so the leaf's subshell never gets to write
+#     `.tdd/<name>.rc` and only the watchdog can end the supervision. That absent rc file is
+#     asserted beside the code as this case's guard on its own premise: with one there, the
+#     supervisor would have taken its ordinary success path and the case would be pinning
+#     nothing at all. `<missing>` is case 9's spelling for a file that was never written.
+#
+#     The window rides in front of `"$SUP"` — case 17's convention, where `env` takes the last
+#     of a repeated name — and is one second, well inside `sup_run`'s 10 s hard cap, so the
+#     kill is the heartbeat's and quick. A directory of its own under `$work`, for case 12's
+#     reason.
+result_kill_work="$work/result-kill"
+# A full closing record — the eight numbers included, so the harvest on the supervisor's way
+# out takes case 16's path rather than case 18's and nothing this case is not about can decide
+# the code it reads. Written here rather than beside the leaf-* stubs at the top of the file,
+# for case 16's reason: next to the case whose premise it is.
+cat > "$stub/leaf-result-hang" <<'L'
+#!/usr/bin/env bash
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"VERDICT: PASS","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+sleep 60
+L
+chmod +x "$stub/leaf-result-hang"
+result_kill_window=1
+sup_run "$result_kill_work" VERI_HEARTBEAT="$result_kill_window" "$SUP" verify-red "$stub/leaf-result-hang"
+result_kill_code=$?
+# Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
+# 13 and 15 to 22's shape.
+result_kill_rc="$(cat "$result_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>')"
+{ [[ "$result_kill_code" == 0 ]] \
+  && [[ "$result_kill_rc" == '<missing>' ]]; } && ok \
+  || no "a killed leaf whose log holds a terminal result record is reported with the leaf's own outcome, not killed-stuck (code=$result_kill_code want 0, .rc=$result_kill_rc want <missing>)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -9,7 +9,9 @@
 #   * hard timeout — a leaf that exceeds the wall-clock cap is killed even if still noisy.
 # A killed leaf is retried up to VERI_STUCK_RETRIES times (default 1) on a fresh attempt; if
 # it still can't recover it is reported as `killed-stuck`, which the conductor turns into a
-# clean bail.
+# clean bail — unless its log already holds the leaf's closing result record, in which case the
+# kill landed on a finished process and the leaf's own outcome is reported instead (issue
+# #212).
 #
 # Usage:
 #   supervise.sh <name> <cmd> [args...]
@@ -85,6 +87,40 @@ kill_tree() {
   kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
 }
 
+# The leaf's own outcome, read out of the closing `{"type":"result", …}` record its stream
+# ends with: `success` or `failure` on stdout, or nothing and a non-zero status when the log
+# holds no such record. This is the sensor behind the rule below — a leaf that finished is not
+# a stuck one, whatever the heartbeat window said (issue #212).
+#
+# The whole file is scanned and the last record wins, the reading extract-result.sh and
+# harvest-usage.sh already do and for their reason: the record is not the last line of the log
+# it lives in, because run-leaf.sh appends the extracted result text after the stream. Lines
+# that are not JSON objects are skipped rather than fatal, so a stub or a plain-text leaf
+# simply has no record and the caller keeps the watchdog's verdict.
+#
+# `is_error` is the record's own word for how the leaf ended, so the mapping needs no table:
+# it is the same true/false the leaf would have exited 1/0 on had it lived long enough to.
+terminal_outcome() {
+  python3 -c '
+import json, sys
+
+record = None
+for line in open(sys.argv[1]):
+    s = line.strip()
+    if not s.startswith("{"):
+        continue
+    try:
+        obj = json.loads(s)
+    except ValueError:
+        continue
+    if isinstance(obj, dict) and obj.get("type") == "result":
+        record = obj            # last result record wins
+if record is None:
+    sys.exit(1)
+print("failure" if record.get("is_error") else "success")
+' "$1"
+}
+
 # Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets three globals, and
 # those three are its answers: status/reason, and `$secs` — how many wall seconds this attempt
 # took, which the `exit` mark at the foot of this script reports. They are not `local` because
@@ -96,7 +132,7 @@ kill_tree() {
 # everything below speaks, so nothing down there reads the number itself. `$pid` is the one
 # non-answer that must stay global anyway: `kill_tree` is a separate function and reads it.
 attempt_once() {
-  local t0 t silence rc
+  local t0 t silence rc outcome
   : > "$log"
   rm -f "$rcfile"
 
@@ -131,6 +167,24 @@ attempt_once() {
     fi
     sleep "$poll"
   done
+
+  # A leaf whose stream already carried a terminal result record had answered before the
+  # watchdog reached it, so what was killed was a finished process and not a hung one. The
+  # code this supervision reports is then the leaf's own, not exit 2 (issue #212). The
+  # distinction is the load-bearing one in this codebase: exit 2 says no answer could be
+  # obtained and the conductor can only bail on it as a system failure, so a rendered verdict
+  # reported under that code makes every `no-verdict` bail in a run log unreadable — nothing
+  # in it tells "the verifier never answered" from "the verifier answered and we killed it".
+  #
+  # `reason` is cleared with the status, because it is the cause the `exit` mark and the
+  # status line report a kill under, and this supervision no longer reports one. What actually
+  # happened — a kill landing on a finished leaf — is said on its own line instead, since it
+  # is still worth a reader of .err knowing that the window was too tight for a leaf that
+  # worked.
+  if [[ "$status" == "killed-stuck" ]] && outcome="$(terminal_outcome "$log")"; then
+    echo "supervise[$name]: killed after the leaf had already written its result ($reason) — reporting the leaf's own $outcome" >&2
+    status="$outcome"; reason=""
+  fi
 
   wait "$pid" 2>/dev/null || true
   # Stopped here rather than where the mark is written, so the count is the attempt's own
