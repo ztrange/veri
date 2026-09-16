@@ -163,7 +163,7 @@ report "$name"
 name="$skill_md's Draft PR step writes the run's done mark, carrying the PR URL, before rendering the metrics report it commits"
 problems=()
 
-pr_records="$(section_records '### 4. Draft PR' '^## |^### ')"
+# pr_records is the first case's read of the same section, reused rather than read again.
 render_line="$(first_record_line "$pr_records" 'metrics.sh' '> .tdd/issue-<n>-metrics.md')" ||
   problems+=("$skill_md's Draft PR step never renders metrics.sh into .tdd/issue-<n>-metrics.md, so there is no committed report to order against the done mark")
 done_line="$(first_record_line "$pr_records" 'event.sh done' 'pr=')" ||
