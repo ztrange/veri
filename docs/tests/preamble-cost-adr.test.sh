@@ -135,22 +135,41 @@ find_record() {
   done
 }
 
+# check_record <name> <probe-fn> <unrecorded> <noun> — one whole case: sweep the ADR set for
+# the file that carries `probe-fn`'s contract, then close the case on what the sweep found.
+# Three outcomes, and they are three different repairs, so the failure says which: the set is
+# empty; no ADR is about the preamble at all, and then `unrecorded` names what nobody wrote
+# down; or one is close, and then `noun` names the contract it is short of and the facts it
+# misses follow it, one per line.
+#
+# The `problems` here is the case's own list, which is why find_record keeps its scratch one
+# local: they would otherwise be the same array and a file's near miss would leak into the
+# case's verdict.
+check_record() {
+  local name="$1" probe_fn="$2" unrecorded="$3" noun="$4"
+  local -a problems
+
+  find_record "$probe_fn"
+
+  problems=()
+  if [[ "$adr_seen" -eq 0 ]]; then
+    problems+=("no ADRs found under docs/adr/ — the sweep read nothing")
+  elif [[ -z "$found" && "$candidates" -eq 0 ]]; then
+    problems+=("no ADR of the $adr_seen under docs/adr/ is about the preamble at all — $unrecorded")
+  elif [[ -z "$found" ]]; then
+    problems+=("no ADR of the $adr_seen under docs/adr/ records the $noun; the closest, ${best_file##*/}:")
+    problems+=("${best_missing[@]}")
+  fi
+
+  report "$name"
+}
+
 # --- the price of a preamble token is on the record --------------------------------
-name="an ADR records what one preamble token costs per night, at the request volume measured on 2026-09-15"
-
-find_record probe_preamble_price
-
-problems=()
-if [[ "$adr_seen" -eq 0 ]]; then
-  problems+=("no ADRs found under docs/adr/ — the sweep read nothing")
-elif [[ -z "$found" && "$candidates" -eq 0 ]]; then
-  problems+=("no ADR of the $adr_seen under docs/adr/ is about the preamble at all — what a preamble token costs per night is unrecorded")
-elif [[ -z "$found" ]]; then
-  problems+=("no ADR of the $adr_seen under docs/adr/ records the price; the closest, ${best_file##*/}:")
-  problems+=("${best_missing[@]}")
-fi
-
-report "$name"
+check_record \
+  "an ADR records what one preamble token costs per night, at the request volume measured on 2026-09-15" \
+  probe_preamble_price \
+  "what a preamble token costs per night is unrecorded" \
+  "price"
 
 # probe_decline_record — the second contract, as the four facts the record of the *refusal*
 # has to carry. Step 1 of #202 tabled three candidate cuts in SKILL.md and the operator took
@@ -180,21 +199,11 @@ probe_decline_record() {
 }
 
 # --- the two cuts that were refused are on the record, and that half is closed ------
-name="an ADR records the two cuts #202 declined and the hazard that declines them, so that half of skills/tdd/SKILL.md is closed"
-
-find_record probe_decline_record
-
-problems=()
-if [[ "$adr_seen" -eq 0 ]]; then
-  problems+=("no ADRs found under docs/adr/ — the sweep read nothing")
-elif [[ -z "$found" && "$candidates" -eq 0 ]]; then
-  problems+=("no ADR of the $adr_seen under docs/adr/ is about the preamble at all — the ~7,800 tokens #202 refused to cut, and why, are unrecorded")
-elif [[ -z "$found" ]]; then
-  problems+=("no ADR of the $adr_seen under docs/adr/ records the decline; the closest, ${best_file##*/}:")
-  problems+=("${best_missing[@]}")
-fi
-
-report "$name"
+check_record \
+  "an ADR records the two cuts #202 declined and the hazard that declines them, so that half of skills/tdd/SKILL.md is closed" \
+  probe_decline_record \
+  "the ~7,800 tokens #202 refused to cut, and why, are unrecorded" \
+  "decline"
 
 echo "----"
 echo "$pass passed, $fail failed"
