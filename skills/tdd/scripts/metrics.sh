@@ -90,6 +90,21 @@
 #              to no phase and no step: the log's first event to the `done` or `bail` mark
 #              that ended the run.
 #
+# A fourth group is COST, in both sections and in a total of its own: the leaf's turns, the
+# four token counts and the dollars, all six read off the same `usage` line the API seconds
+# come from (harvest-usage.sh:76-84). Four token columns rather than one sum, because they
+# are four prices — a cache read costs a tenth of the input it stands in for — and a report
+# that added them would hide the figure a reader can act on.
+#
+# The total is a table of one row rather than a row appended to either section: a run total
+# is keyed by neither a phase nor a step, and in the per-step table it would be a step whose
+# name happened to be `total`, carrying a bracket and two budgets with nothing true to say.
+# It is also the only row the conductor's own spending can land in — that `usage` line
+# carries no phase and no step, what the conductor spends belonging to the run rather than
+# to any leaf inside it. That line exists only when the conductor ran in print mode, so a
+# line beside the issue wall says whether the figures have it or are the leaves alone: the
+# same claim the `unknown` cells make, about a figure that has no cell to make it in.
+#
 # The log is read relative to the directory this runs in, `.tdd/events.jsonl`, the way
 # event.sh writes it and the way supervise.sh already spells `.tdd/<name>.log` — the issue's
 # worktree, in other words, which is where the conductor calls this from.
@@ -131,6 +146,25 @@ BUDGETS = ["revise", "refactor", "stopped"]
 # unit so the cell stays a bare number a reader can compare down the column.
 TIMES = ["wall s", "API s"]
 
+# What a row COST, in both sections and in the total: the leaf turns, the four token counts
+# the stream record keeps apart, and the dollars. Each column heading travels paired with
+# the field harvest-usage.sh copies onto the `usage` line (harvest-usage.sh:76-84), so the
+# heading a reader sees and the number it is read off are written once, together, and cannot
+# come apart. The four token counts are four columns rather than one sum because they are
+# four prices: a cache read is an order of magnitude cheaper than the input it stands in
+# for, and a report that added them would hide the one figure a reader can act on.
+COSTS = [("turns", "num_turns"),
+         ("input", "input_tokens"),
+         ("output", "output_tokens"),
+         ("cache read", "cache_read_input_tokens"),
+         ("cache creation", "cache_creation_input_tokens"),
+         ("$", "total_cost_usd")]
+COST_COLUMNS = [heading for heading, _ in COSTS]
+
+# The one cost column that is money rather than a count, so the one printed to the cent and
+# summed as a float. Named once here because the renderer and the adder both ask.
+DOLLARS = "$"
+
 # What a figure says when no mark in the log supplies it. Not "0": see the header.
 UNKNOWN = "unknown"
 
@@ -146,8 +180,8 @@ steps = {}
 # The columns a row of either section carries: its counts and its seconds in one row, rather
 # than a second table on the same key kept beside the first — the same reason `spent` below is
 # one table and not one per kind of conductor mark.
-PHASE_COLUMNS = COUNTS + TIMES
-STEP_COLUMNS = STEP_COUNTS + TIMES
+PHASE_COLUMNS = COUNTS + TIMES + COST_COLUMNS
+STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
 
 # What the conductor own marks said about each step, keyed by step like `steps` and kept
 # beside it rather than inside it because these are read off marks rather than counted one
@@ -158,6 +192,19 @@ STEP_COLUMNS = STEP_COUNTS + TIMES
 # the LAST one its marks reported — the budget the run finished under, and the same number as
 # the first in every log where nobody re-exported the variable mid-run.
 spent = {}
+
+# The run own row, a table of one rather than a row of either section above: a total belongs
+# to neither key, and appended to the per-step table it would be a step whose name happened
+# to be `total`, carrying a bracket and two budgets with nothing true to say. It is also the
+# only row the conductor own spending can land in — that line carries no phase and no step,
+# because what the conductor spends belongs to the run rather than to any leaf inside it.
+totals = {"total": dict.fromkeys(COST_COLUMNS, 0)}
+
+# Whether the log holds the conductor own closing accounting. It exists only when the
+# conductor ran in print mode; a run driven from an interactive session leaves the leaf cost
+# complete and the conductor own missing, so the figures mean one of two different things
+# and the report says which — the same unknown-rather-than-silence rule as the cells above.
+conductor_counted = False
 
 # A row appears on first sight of its key with every column of its section at zero, so no cell
 # is ever missing and the insertion order is the order the run reached the key in.
@@ -175,6 +222,20 @@ def add_seconds(phase, step, column, seconds):
         row_in(counts, phase, PHASE_COLUMNS)[column] += seconds
     if step:
         row_in(steps, step, STEP_COLUMNS)[column] += seconds
+
+# What one `usage` line spent, into the row of its phase, the row of its step and the total.
+# The total is added to unconditionally where the other two are not: a line with neither —
+# the conductor own — is still spending of the run, and that is exactly the figure the line
+# below `conductor_counted` is about.
+def add_cost(phase, step, line):
+    for heading, field in COSTS:
+        reported = line.get(field) or 0
+        spent = float(reported) if heading == DOLLARS else int(reported)
+        if phase:
+            row_in(counts, phase, PHASE_COLUMNS)[heading] += spent
+        if step:
+            row_in(steps, step, STEP_COLUMNS)[heading] += spent
+        totals["total"][heading] += spent
 
 # The two ends of the whole run. `first` is the first line of the log whatever it is, since
 # the mark that opens a run is the conductor own and a log missing it still started
@@ -208,6 +269,9 @@ with open(path) as f:
         elif event == "usage":
             add_seconds(phase, step, "API s",
                         int(line.get("duration_api_ms") or 0) // 1000)
+            add_cost(phase, step, line)
+            if line.get("actor") == "conductor":
+                conductor_counted = True
         # The conductor budget marks next, and they fall through to nothing below: a
         # `revise` is not a leaf launch, so counting it as an attempt would double-count the
         # revise leaf that the mark is followed by.
@@ -243,6 +307,13 @@ with open(path) as f:
 
 def row(cells):
     print("| " + " | ".join(cells) + " |")
+
+# One cell of a counted column. Everything in both sections is a whole number of things
+# counted except the dollars, which are money and are printed to the cent — a run that spent
+# 1.75 dollars printed as `1` or as `1.75000000000000002` is a figure a reader has to go and
+# check somewhere else.
+def figure(column, value):
+    return "%.2f" % value if column == DOLLARS else "%d" % value
 
 # The seconds of one row, from whichever of the two tables holds the section own. Only the
 # wall cell differs between the sections — a phase is summed over its attempts, a step is
@@ -293,7 +364,7 @@ def section(heading, key_column, columns, table, text=None):
     row([key_column] + columns + headings)
     row(["---"] + ["---:"] * len(columns) + ["---"] * len(headings))
     for key, row_counts in table.items():
-        cells = [key] + ["%d" % row_counts[c] for c in columns]
+        cells = [key] + [figure(c, row_counts[c]) for c in columns]
         row(cells + (cells_for(key) if cells_for else []))
 
 print("### 📊 Metrics — issue %s" % issue)
@@ -302,6 +373,15 @@ print()
 print("Wall time for the issue: %s s, from the first event of the log to the mark that "
       "ended the run."
       % (UNKNOWN if first is None or last is None else "%d" % (last - first)))
-section("#### By phase", "phase", COUNTS, counts, (TIMES, time_cells(counts)))
-section("#### By step", "step", STEP_COUNTS, steps, (TIMES + BUDGETS, step_cells))
+# Outside the tables for the same reason as the line above, and beside it: it qualifies
+# every cost figure in the report rather than any one row of it.
+print("Cost is every leaf of the run, and the conductor own %s."
+      % ("closing accounting with them, which this log carries"
+         if conductor_counted else
+         "spending is not in it: this log carries no usage record of the conductor own"))
+section("#### By phase", "phase", COUNTS + COST_COLUMNS, counts,
+        (TIMES, time_cells(counts)))
+section("#### By step", "step", STEP_COUNTS + COST_COLUMNS, steps,
+        (TIMES + BUDGETS, step_cells))
+section("#### Total", "run", COST_COLUMNS, totals)
 ' "$issue" "$log"
