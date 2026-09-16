@@ -132,7 +132,7 @@ print("failure" if record.get("is_error") else "success")
 # everything below speaks, so nothing down there reads the number itself. `$pid` is the one
 # non-answer that must stay global anyway: `kill_tree` is a separate function and reads it.
 attempt_once() {
-  local t0 t silence rc outcome
+  local t0 t silence rc outcome result_tmp
   : > "$log"
   rm -f "$rcfile"
 
@@ -183,6 +183,23 @@ attempt_once() {
   # worked.
   if [[ "$status" == "killed-stuck" ]] && outcome="$(terminal_outcome "$log")"; then
     echo "supervise[$name]: killed after the leaf had already written its result ($reason) — reporting the leaf's own $outcome" >&2
+    # The kill also cost the leaf run-leaf.sh's closing act: it appends the clean result
+    # text after the raw stream, and a killed leaf never reaches that line. What survives in
+    # the log is stream-json only, where the verdict is a `\n`-escaped string INSIDE a
+    # one-line `{"type":"result", …}` object — and parse-verdict.sh matches `VERDICT:` at the
+    # start of a line, so the text is present and unreadable. The recovery therefore owes the
+    # same append, made with the same extract-result.sh, so this script's stdout (`cat "$log"`
+    # at the foot) ends in a parseable verdict block exactly as a live leaf's would.
+    #
+    # Through a temp file because the reader and the writer would otherwise be the same path:
+    # a redirection appending to `$log` truncates or races the read of it. A refusal leaves the
+    # log as it was — the recovered status above is the answer this step owes, and a missing
+    # tail is the caller's to notice, not a reason to turn a rendered verdict back into exit 2.
+    result_tmp="$(mktemp)"
+    if "$HERE/extract-result.sh" < "$log" > "$result_tmp" 2>/dev/null; then
+      { printf '\n'; cat "$result_tmp"; } >> "$log"
+    fi
+    rm -f "$result_tmp"
     status="$outcome"; reason=""
   fi
 
