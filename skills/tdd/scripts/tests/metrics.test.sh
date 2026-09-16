@@ -1040,6 +1040,176 @@ conductor_says "$cost_out" "$printed_out"
 
 report_on "$name" "$cost_out"
 
+# rework_and_waste_say <file> <phase>=<rework wall>,<rework $>,<waste wall>,<waste $> … —
+# the report section whose subject is what a phase spent that the run did not keep.
+#
+# Rework and waste are the glossary's two, and each is read here as the two figures the spec
+# pairs it with: the wall seconds of the attempts that went into it, and the dollars those
+# attempts cost.
+#
+# The table is located by its ROWS AND ITS SUBJECT — the first table that has a row for the
+# phase and a heading saying `rework` — where the probes above locate theirs by rows alone.
+# That is the one thing this case has to say about layout, and it says it because rework is
+# necessarily a SECOND figure about the same key: a report with a per-phase section already
+# has a table with a `red` row, so "the table with a red row" no longer names one table. What
+# stays unpinned is everything those probes leave unpinned — section headings, column order,
+# row order, and whether these figures ride in the phase table or a table of their own.
+#
+# Within it, which column is which is decided by the heading and not by position: of the
+# headings naming a kind, the money one is the one that says `$`, `cost`, `dollar` or `usd`,
+# and the time one is the rest — narrowed to a `wall` heading when there is more than one, so
+# a rework API column is a figure this case is not about rather than a reason to fail.
+#
+# The cells are compared as NUMBERS after `$`, thousands commas and a trailing unit are
+# stripped, and to the cent, for costs_say's reason: `0.5`, `0.50` and `$0.50` are one
+# figure, and which of them the report prints is not this step.
+rework_and_waste_say() {
+  local out_file="$1"; shift
+  probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+tables = tables_in(path)
+
+def money(c):
+    return any(w in c for w in ("$", "cost", "dollar", "usd"))
+
+def number(cell):
+    text = cell.strip().replace("$", "").replace(",", "").rstrip("s").strip()
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+def lost_table(key):
+    for t in tables:
+        if any("rework" in c.lower() for c in t[0]) and any(is_row(r, key) for r in t[1:]):
+            return t
+    return None
+
+def pick(header, kind, want_money, name, key):
+    hits = [i for i, c in enumerate(header) if kind in c.lower()]
+    monied = [i for i in hits if money(header[i].lower())]
+    if want_money:
+        chosen = monied
+    else:
+        rest = [i for i in hits if i not in monied]
+        walls = [i for i in rest if "wall" in header[i].lower()]
+        chosen = walls or rest
+    if len(chosen) == 1:
+        return chosen[0]
+    complain("want exactly one column heading saying %s, the table reporting rework with a "
+             "row for %r is headed: %s" % (name, key, "|".join(header) or "nothing"))
+    return None
+
+WANTED = [("rework", False, "rework wall seconds"),
+          ("rework", True,  "rework dollars"),
+          ("waste",  False, "waste wall seconds"),
+          ("waste",  True,  "waste dollars")]
+
+for arg in sys.argv[2:]:
+    key, expected = arg.split("=", 1)
+    section = lost_table(key)
+    if section is None:
+        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
+        complain("want a table reporting rework with a row for %r, the report has tables "
+                 "with rows: %s" % (key, "; ".join(labels) or "nothing"))
+        continue
+    header = section[0]
+    row = next(r for r in section[1:] if is_row(r, key))
+    for (kind, want_money, name), want in zip(WANTED, expected.split(",")):
+        i = pick(header, kind, want_money, name, key)
+        if i is None:
+            continue
+        got = row[i] if i < len(row) else ""
+        said = number(got)
+        if said is None or abs(said - float(want)) > 0.005:
+            complain("%r %s: want %s, got %r" % (key, name, want, got))
+
+print("\n".join(problems))
+' "$out_file" "$@"
+}
+
+# A seventh fixture, in its own directory for the reason the others have one: each case keeps
+# the log it was written against.
+#
+# It is a run of two steps that BOTH reached their `step-done` mark — nothing in it bailed —
+# so every figure it reports is about the half of the glossary this step pins: a step that
+# recovered. One of the two was never rejected and one was rejected once and then passed, so
+# the rework figure is observable as something other than "every attempt of the run" and the
+# waste figure as something other than "whatever rework is not".
+#
+# The rejected attempt of the recovered step is attempt 1 of its green: the developer leaf
+# that wrote the code (100 wall seconds, $0.40) and the blind verifier that turned it down
+# (20 seconds, $0.10). Those two are what the REJECT cost, so green's rework is 120 seconds
+# and $0.50 — and the revise that followed, which the run kept, is not in it. Red was never
+# rejected anywhere in the run, so its rework is 0 and $0.00.
+#
+# Waste is 0 everywhere, in both phases, because waste is what a BAILED step spent and this
+# log holds no bail: a step that recovered contributes nothing to it, PASS verdicts and
+# REJECTed attempts alike. That half of the case is the reason the fixture ends on a `done`
+# mark rather than simply stopping.
+fixture_work rework_work
+
+unrejected="rework and waste are both empty in a step nothing rejected"
+recovered="a step recovered after a REJECT contributes its rejected attempts to rework"
+
+# The step nothing rejected: two phases, one attempt each, both PASS.
+sv "$unrejected" 100 conductor ""    step-start ""
+sv "$unrejected" 110 developer red   launch  1 '"name": "develop-red"'
+sv "$unrejected" 200 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$unrejected" 200 developer red   usage   1 "$(cost_json 3 0.11 100 200 1000 400)"
+sv "$unrejected" 210 verifier  red   launch  1 '"name": "verify-red"'
+sv "$unrejected" 230 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$unrejected" 230 verifier  red   usage   1 "$(cost_json 2 0.07 50 30 500 100)"
+sv "$unrejected" 230 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$unrejected" 300 developer green launch  1 '"name": "develop-green"'
+sv "$unrejected" 380 developer green exit    1 '"status": "0", "secs": "80"'
+sv "$unrejected" 380 developer green usage   1 "$(cost_json 7 0.22 300 600 4000 900)"
+sv "$unrejected" 385 verifier  green launch  1 '"name": "verify-green"'
+sv "$unrejected" 395 verifier  green exit    1 '"status": "0", "secs": "10"'
+sv "$unrejected" 395 verifier  green usage   1 "$(cost_json 4 0.13 120 70 900 300)"
+sv "$unrejected" 395 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$unrejected" 400 conductor ""    step-done ""
+
+# The step that recovered: its red passed first time, its green was rejected once — the two
+# leaves of that attempt are green rework, 120 seconds and $0.50 — and the revise that
+# followed passed, so the step reached its `step-done` mark and wasted nothing.
+sv "$recovered" 500 conductor ""    step-start ""
+sv "$recovered" 510 developer red   launch  1 '"name": "develop-red"'
+sv "$recovered" 540 developer red   exit    1 '"status": "0", "secs": "30"'
+sv "$recovered" 540 developer red   usage   1 "$(cost_json 3 0.03 100 200 1000 400)"
+sv "$recovered" 550 verifier  red   launch  1 '"name": "verify-red"'
+sv "$recovered" 560 verifier  red   exit    1 '"status": "0", "secs": "10"'
+sv "$recovered" 560 verifier  red   usage   1 "$(cost_json 2 0.02 50 30 500 100)"
+sv "$recovered" 560 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$recovered" 600 developer green launch  1 '"name": "develop-green"'
+sv "$recovered" 700 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$recovered" 700 developer green usage   1 "$(cost_json 9 0.40 500 800 6000 1500)"
+sv "$recovered" 710 verifier  green launch  1 '"name": "verify-green"'
+sv "$recovered" 730 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$recovered" 730 verifier  green usage   1 "$(cost_json 3 0.10 90 110 1100 400)"
+sv "$recovered" 730 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+sv "$recovered" 740 conductor green revise  1 '"budget": "3"'
+sv "$recovered" 750 developer green launch  2 '"name": "revise-green-1"'
+sv "$recovered" 810 developer green exit    2 '"status": "0", "secs": "60"'
+sv "$recovered" 810 developer green usage   2 "$(cost_json 5 0.24 200 300 2000 700)"
+sv "$recovered" 820 verifier  green launch  2 '"name": "verify-green"'
+sv "$recovered" 840 verifier  green exit    2 '"status": "0", "secs": "20"'
+sv "$recovered" 840 verifier  green usage   2 "$(cost_json 2 0.06 60 40 600 200)"
+sv "$recovered" 840 verifier  green verdict 2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$recovered" 900 conductor ""    step-done ""
+sv "$recovered" 910 conductor ""    done      "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+
+
+name="a step recovered after a REJECT puts its rejected attempts into its phase rework and nothing into waste"
+problems=()
+
+rework_out="$rework_work/report.md"
+render "$rework_work" "$rework_out"
+
+rework_and_waste_say "$rework_out" red=0,0.00,0,0.00 green=120,0.50,0,0.00
+
+report_on "$name" "$rework_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

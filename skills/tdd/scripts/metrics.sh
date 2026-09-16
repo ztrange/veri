@@ -169,6 +169,35 @@ COST_COLUMNS = [heading for heading, _ in COSTS]
 # summed as a float. Named once here because the renderer and the adder both ask.
 DOLLARS = "$"
 
+# The two figures the glossary keeps apart from what a row simply spent: what the run PAID
+# and did not keep. Each is a pair of columns rather than one, because a reader asking how
+# much a phase threw away asks it of the clock and of the bill, and one figure cannot answer
+# both.
+#
+#   rework — what the REJECTed attempts of a step that then RECOVERED cost. A step recovered
+#            when it reached its `step-done` mark, however many revises it took, so the
+#            attempts the run kept are not in it: the rework of a phase is the attempts a
+#            verifier turned down and nothing else.
+#   waste  — what a BAILED step spent, PASS verdicts included. A step that recovered
+#            contributes nothing to it, which is the half of the pair this column is here to
+#            make observable: a report without it could not tell rework from everything.
+#
+# They are a SECTION of their own rather than four more columns of the phase section, and
+# both halves of that are load-bearing. They are not what a phase spent — they are the part
+# of it the run did not keep, a figure no line of the log carries and no other column of that
+# row is summed the same way — so a reader comparing a phase own bill down the `$` column
+# would be comparing it against two other columns of money that are subsets of it. Keeping
+# them apart is what leaves each table with exactly one column answering "what did this
+# cost", which is what makes either readable at all.
+REWORK_WALL, REWORK_COST = "rework wall s", "rework $"
+WASTE_WALL, WASTE_COST = "waste wall s", "waste $"
+LOST_COLUMNS = [REWORK_WALL, REWORK_COST, WASTE_WALL, WASTE_COST]
+
+# The columns that are money rather than a count of things, so the ones printed to the cent
+# and summed as floats. Named as a set because there are now three of them and the renderer
+# and the adders each ask.
+MONEY = {DOLLARS, REWORK_COST, WASTE_COST}
+
 # What a figure says when no mark in the log supplies it. Not "0": see the header.
 UNKNOWN = "unknown"
 
@@ -187,6 +216,13 @@ steps = {}
 PHASE_COLUMNS = COUNTS + TIMES + COST_COLUMNS
 STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
 
+# The rework-and-waste section own table, keyed by phase like `counts` and kept beside it
+# rather than inside it for the reason above the column names: these are not more of what the
+# phase row reports. Its rows are raised from `counts` once the log has been read whole, so
+# the two tables carry the same phases in the same order without either being consulted while
+# the lines are still going past.
+lost = {}
+
 # What the conductor own marks said about each step, keyed by step like `steps` and kept
 # beside it rather than inside it because these are read off marks rather than counted one
 # line per unit. One table rather than one per kind of mark: a revise attempt is counted from
@@ -196,6 +232,20 @@ STEP_COLUMNS = STEP_COUNTS + TIMES + COST_COLUMNS
 # the LAST one its marks reported — the budget the run finished under, and the same number as
 # the first in every log where nobody re-exported the variable mid-run.
 spent = {}
+
+# What each ATTEMPT cost, keyed by the three fields that identify one — its step, its phase
+# and its attempt number — so the developer leaf and the verifier that judged it land in one
+# bucket, which is what an attempt is. Kept beside the rows rather than added into them,
+# because whether an attempt is rework is not known when its lines are read: it turns on a
+# verdict written after them and on a `step-done` mark written after that.
+attempts_spent = {}
+
+# The attempts a verifier turned down, in the order they were judged, and the steps that
+# reached their closing mark. Rework is the intersection — a rejected attempt of a step that
+# recovered — and it cannot be computed line by line, so both are collected and the sum is
+# taken once the log has been read whole.
+rejected = []
+recovered = set()
 
 # The run own row, a table of one rather than a row of either section above: a total belongs
 # to neither key, and appended to the per-step table it would be a step whose name happened
@@ -238,6 +288,14 @@ def add_seconds(phase, step, column, seconds):
     for row_of in rows_for(phase, step):
         row_of[column] += seconds
 
+# One attempt own bucket, raised on first sight. An attempt with no phase or no step is not
+# one a verdict can be written about, so it gets no bucket and cannot become rework.
+def attempt_in(phase, step, attempt):
+    if not phase or not step:
+        return None
+    return attempts_spent.setdefault((step, phase, attempt),
+                                     {REWORK_WALL: 0, REWORK_COST: 0.0})
+
 # What one `usage` line spent, into the row of its phase, the row of its step and the total.
 # The total is in the list unconditionally where the other two are not: a line with neither
 # key — the conductor own — is still spending of the run, and that is exactly the figure the
@@ -246,7 +304,7 @@ def add_cost(phase, step, line):
     rows = rows_for(phase, step) + [totals["total"]]
     for heading, field in COSTS:
         reported = line.get(field) or 0
-        amount = float(reported) if heading == DOLLARS else int(reported)
+        amount = float(reported) if heading in MONEY else int(reported)
         for row_of in rows:
             row_of[heading] += amount
 
@@ -274,17 +332,27 @@ with open(path) as f:
         # neither is a leaf event and both would otherwise fall through to nothing.
         if event in ("step-start", "step-done") and step:
             spent.setdefault(step, {})[event] = ts
+            if event == "step-done":
+                recovered.add(step)
             continue
         # Time, off the two lines that carry it. An `exit` is also where a kill is counted
         # below, so this adds and lets the line fall through rather than classifying it.
+        attempt = attempt_in(phase, step, line.get("attempt", ""))
         if event == "exit":
-            add_seconds(phase, step, "wall s", int(line.get("secs") or 0))
+            seconds = int(line.get("secs") or 0)
+            add_seconds(phase, step, "wall s", seconds)
+            if attempt is not None:
+                attempt[REWORK_WALL] += seconds
         elif event == "usage":
             add_seconds(phase, step, "API s",
                         int(line.get("duration_api_ms") or 0) // 1000)
             add_cost(phase, step, line)
+            if attempt is not None:
+                attempt[REWORK_COST] += float(line.get("total_cost_usd") or 0)
             if line.get("actor") == "conductor":
                 conductor_counted = True
+        elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
+            rejected.append((step, phase, line.get("attempt", "")))
         # The conductor budget marks next, and they fall through to nothing below: a
         # `revise` is not a leaf launch, so counting it as an attempt would double-count the
         # revise leaf that the mark is followed by.
@@ -318,6 +386,22 @@ with open(path) as f:
         if step:
             tally(steps, step, STEP_COLUMNS, count)
 
+# Rework, once the log has been read whole: every rejected attempt of a step that reached its
+# closing mark, into the row of the phase it was rejected in. The two conditions are what the
+# glossary pairs — a REJECT is what makes an attempt rework, and recovering is what keeps it
+# out of waste — so neither can be applied while the lines are still going past.
+for phase in counts:
+    row_in(lost, phase, LOST_COLUMNS)
+
+for key in rejected:
+    step, phase, _ = key
+    if step not in recovered:
+        continue
+    attempt = attempts_spent[key]
+    row_of = row_in(lost, phase, LOST_COLUMNS)
+    row_of[REWORK_WALL] += attempt[REWORK_WALL]
+    row_of[REWORK_COST] += attempt[REWORK_COST]
+
 def row(cells):
     print("| " + " | ".join(cells) + " |")
 
@@ -326,7 +410,7 @@ def row(cells):
 # 1.75 dollars printed as `1` or as `1.75000000000000002` is a figure a reader has to go and
 # check somewhere else.
 def figure(column, value):
-    return "%.2f" % value if column == DOLLARS else "%d" % value
+    return "%.2f" % value if column in MONEY else "%d" % value
 
 def step_wall(step):
     mark = spent.get(step, {})
@@ -385,6 +469,9 @@ print("Cost is every leaf of the run, and the conductor own %s."
 # from the same list the row was raised with and needs no reader of its own. The step
 # section hands one in for its wall cell and its budgets, the three it cannot read off a row.
 section("#### By phase", "phase", PHASE_COLUMNS, counts)
+# Beside the phase section and after it, because every row it has is a row that one has:
+# a reader reaches "what did this phase throw away" by way of what it spent.
+section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
         ([WALL] + BUDGETS, step_cells))
 section("#### Total", "run", COST_COLUMNS, totals)
