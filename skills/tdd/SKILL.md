@@ -668,9 +668,12 @@ following step. The phase sub-steps are:
      ```
      The push is what stops the run living on one disk until it is review-ready: the first
      call creates the remote branch, later ones fast-forward, and no PR is opened, so
-     nothing asks for review before the run is ready. A push that fails is **not** a bail —
-     `push-branch.sh` exits 0 either way and records the failure as an event — so the tick
-     and the commit above stand whatever the network did.
+     nothing asks for review before the run is ready. An unreachable remote is **not** a
+     bail — `push-branch.sh` retries it, records a `push-failed` event and exits 0, so the
+     tick and the commit above stand whatever the network did. On exit **1** (the remote
+     rejected a non-fast-forward) launch the reconcile leaf — see
+     *Reconciling a rejected push*; on exit **2** (its
+     event could not be written) **bail**.
      Continue to the Refactor loop.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
@@ -776,8 +779,8 @@ following step. The phase sub-steps are:
      ```
      A clear left uncommitted is not a clear: resume reads the **committed** ledger, so
      until that commit exists the step still says pending. The push copies the step's
-     finished state to the remote on the same terms as Green's above. Then **mirror to the
-     issue**:
+     finished state to the remote on the same terms as Green's above: exit **1** launches
+     the reconcile leaf (*Reconciling a rejected push*), exit **2** is a **bail**. Then **mirror to the issue**:
      post a `### ✅ Step done` comment, and tick the matching acceptance criterion in the
      **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Mark
      the same moment in the log —
@@ -935,6 +938,34 @@ finished with a bad verdict, the second a leaf that never produced one, the thir
 transforms one step's tidying is worth. A `REJECT` is veri working as designed — the blind verifier
 refusing to rubber-stamp — so the bounded revise is a *correction*, never an excuse to keep
 hammering past the budget.
+
+## Reconciling a rejected push
+
+`push-branch.sh` exit **1** means the remote holds a branch the run's HEAD does not
+fast-forward — usually the run's own pre-rebase history, after a resume rebased onto
+`origin/main`. Its stderr names the remote's sha. Whether those remote commits are the run's
+own or someone else's is a judgement, so a leaf makes it, launched **through the
+supervisor** like every other:
+
+```
+cp .tdd/issue-<n>.md .tdd/reconcile-ledger.before
+$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
+rm -f .tdd/develop-reconcile.exit
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
+$S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
+```
+
+After the leaf exits 0, re-run `$S/push-branch.sh` — it must now exit 0 — and check the
+committed ledger `.tdd/issue-<n>.md` still carries every `[x]` tick and every
+` ⟂ refactor pending` mark `.tdd/reconcile-ledger.before` had:
+
+```
+diff <(grep -F -e '[x]' -e '⟂ refactor pending' .tdd/reconcile-ledger.before) <(git show HEAD:.tdd/issue-<n>.md | grep -F -e '[x]' -e '⟂ refactor pending')
+```
+
+Then continue where the push was called. A leaf exit 1 or 2, a second `push-branch.sh` exit
+other than 0, or a ledger whose ticks or marks changed → **bail** with cause
+`reconcile-failed` (a system failure: where the branch lives broke, not the methodology).
 
 ## Bailing
 
