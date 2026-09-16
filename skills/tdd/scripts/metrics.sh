@@ -143,8 +143,12 @@ STEP_COUNTS = COUNTS + ["retries"]
 BUDGETS = ["revise", "refactor", "stopped"]
 
 # The two time columns, printed in both sections, in this order. The heading carries the
-# unit so the cell stays a bare number a reader can compare down the column.
+# unit so the cell stays a bare number a reader can compare down the column. The wall column
+# is named apart because it is the one cell the two sections read differently: a phase is
+# summed over its attempts, so its row already carries the figure, where a step is bracketed
+# by the conductor two marks and has to be read off them.
 TIMES = ["wall s", "API s"]
+WALL, API = TIMES
 
 # What a row COST, in both sections and in the total: the leaf turns, the four token counts
 # the stream record keeps apart, and the dollars. Each column heading travels paired with
@@ -324,17 +328,6 @@ def row(cells):
 def figure(column, value):
     return "%.2f" % value if column == DOLLARS else "%d" % value
 
-# The seconds of one row, from whichever of the two tables holds the section own. Only the
-# wall cell differs between the sections — a phase is summed over its attempts, a step is
-# bracketed by two marks — so the reader is built with the wall it should print and the rest
-# is written once.
-def time_cells(table, wall=None):
-    def cells(key):
-        row_seconds = table.get(key, {})
-        return [wall(key) if wall else "%d" % row_seconds.get("wall s", 0),
-                "%d" % row_seconds.get("API s", 0)]
-    return cells
-
 def step_wall(step):
     mark = spent.get(step, {})
     start, done = mark.get("step-start"), mark.get("step-done")
@@ -355,7 +348,7 @@ def budget_cells(step):
 # `section` takes one reader for its text columns, and the step section has two groups of
 # them: this is the one, so the cells cannot come apart from the order the headings print in.
 def step_cells(step):
-    return time_cells(steps, step_wall)(step) + budget_cells(step)
+    return [step_wall(step)] + budget_cells(step)
 
 # `text` is a section of non-count columns, as the pair (headings, a function mapping a row
 # key to that rows cells under them). One parameter rather than two because headings with
@@ -388,9 +381,11 @@ print("Cost is every leaf of the run, and the conductor own %s."
       % ("closing accounting with them, which this log carries"
          if conductor_counted else
          "spending is not in it: this log carries no usage record of the conductor own"))
-section("#### By phase", "phase", COUNTS + COST_COLUMNS, counts,
-        (TIMES, time_cells(counts)))
-section("#### By step", "step", STEP_COUNTS + COST_COLUMNS, steps,
-        (TIMES + BUDGETS, step_cells))
+# Every column of the phase section is a figure its row already carries, so it is printed
+# from the same list the row was raised with and needs no reader of its own. The step
+# section hands one in for its wall cell and its budgets, the three it cannot read off a row.
+section("#### By phase", "phase", PHASE_COLUMNS, counts)
+section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
+        ([WALL] + BUDGETS, step_cells))
 section("#### Total", "run", COST_COLUMNS, totals)
 ' "$issue" "$log"
