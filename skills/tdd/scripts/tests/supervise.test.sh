@@ -989,6 +989,60 @@ error_kill_rc="$(cat "$error_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '
   || no "a killed leaf whose terminal result record is an error is reported exit 1, not exit 0 (code=$error_kill_code want 1, .rc=$error_kill_rc want <missing>)"
 
 
+# 25. the recovery of case 23 happens on the FIRST attempt, so the leaf is launched exactly
+#     once and no `retry` mark is written (issue #212). Cases 23 and 24 pin the code the
+#     supervision ends on; they cannot see how many leaves it cost to get there, because a
+#     recovery applied only after the retry loop had run its budget out would end on exactly
+#     the same code. This is the case that tells the two apart.
+#
+#     What is at stake is the price of the bug rather than its correctness: a verifier leaf
+#     that already rendered its verdict is relaunched from scratch, works for another two or
+#     three minutes and is killed again on the same too-tight window, and the answer the run
+#     finally reports was sitting in the first attempt's log. The retry budget exists for a
+#     leaf that never answered (VERI_STUCK_RETRIES is the liveness axis); spending it on one
+#     that did is spending it on the wrong axis.
+#
+#     The DEFAULT budget is what runs here — `env -u VERI_STUCK_RETRIES`, case 13's spelling,
+#     so a value exported by the shell that ran `make test` can neither add the retry this
+#     case forbids nor suppress one the supervisor would have made. That is also why this
+#     case launches the supervisor directly rather than through `sup` or `sup_run`: both pin
+#     the budget to 0, which would make the assertion vacuous.
+#
+#     Two observations, because "launched once" and "no retry" are the same fact seen from
+#     the leaf's side and from the run log's: the stub appends a line per invocation to a
+#     counter file in its cwd — which the supervisor preserves across attempts, case 13's
+#     leaf-flaky marker relies on the same — and `event_field` is asked for the `retry` mark,
+#     where a log holding none answers `<<0 retry lines>>` rather than a cause. The exit code
+#     is asserted beside them so a case that went green on a leaf which never recovered at all
+#     would still be caught.
+result_once_work="$work/result-once"
+mkdir -p "$result_once_work"
+# Case 23's stub plus the counter, and the same sleep behind it: the leaf must never write
+# `.tdd/<name>.rc`, so only the watchdog can end each attempt and a second attempt would be
+# killed exactly like the first.
+cat > "$stub/leaf-result-hang-counted" <<'L'
+#!/usr/bin/env bash
+echo attempt >> .attempts
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"VERDICT: PASS","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+sleep 60
+L
+chmod +x "$stub/leaf-result-hang-counted"
+( cd "$result_once_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 \
+    VERI_TIMEOUT=30 VERI_POLL=0.2 \
+    "$SUP" verify-red "$stub/leaf-result-hang-counted" ) >/dev/null 2>&1
+result_once_code=$?
+# Each read once, into the variable the assertion and the failure message share — cases 9,
+# 11, 12, 13, 15 to 24's shape. `wc -l` is fed on stdin and stripped of blanks because the
+# BSD spelling pads its count with leading spaces, and `[[ … == 1 ]]` would then miss.
+result_once_attempts="$(wc -l < "$result_once_work/.attempts" 2>/dev/null | tr -d ' ')"
+result_once_retry="$(event_field "$result_once_work" retry cause)"
+{ [[ "$result_once_code" == 0 ]] \
+  && [[ "$result_once_attempts" == 1 ]] \
+  && [[ "$result_once_retry" == '<<0 retry lines>>' ]]; } && ok \
+  || no "a leaf recovered from its terminal result record is launched exactly once, with no stuck-retry (code=$result_once_code want 0, attempts=$result_once_attempts want 1, retry=$result_once_retry want <<0 retry lines>>)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
