@@ -353,15 +353,15 @@ def add_cost(phase, step, line):
         for row_of in rows:
             row_of[heading] += amount
 
-# The two ends of the whole run. `first` is the first line of the log whatever it is, since
-# the mark that opens a run is the conductor own and a log missing it still started
-# somewhere; `last` is the mark that ended it, either outcome, and stays None in a log of a
-# run that has not ended.
-first, last = None, None
+# The first line of the log, whatever it is, since the mark that opens a run is the conductor
+# own and a log missing it still started somewhere. It is the opening end of the issue wall,
+# whose closing end is the mark below.
+first = None
 
-# The mark that ended the run, whole rather than just its timestamp: the outcome line reads
-# its payload — the PR a `done` carries, the cause and classification a `bail` does — and
-# stays None in the log of a run that has not ended.
+# The mark that ended the run, either outcome, and None in the log of a run that has not
+# ended. Kept whole rather than as its timestamp beside itself: the issue wall reads its `ts`
+# and the outcome line reads its payload — the PR a `done` carries, the cause and
+# classification a `bail` does — and two names for one mark is one of them going stale.
 ending = None
 
 with open(path) as f:
@@ -377,7 +377,6 @@ with open(path) as f:
         if first is None:
             first = ts
         if event in ("done", "bail"):
-            last = ts
             ending = line
         # The two brackets of a step, read before anything classifies the line below, since
         # neither is a leaf event and both would otherwise fall through to nothing.
@@ -524,7 +523,8 @@ print()
 # Outside the tables, because it is a figure of the whole run and not of a row in either.
 print("Wall time for the issue: %s s, from the first event of the log to the mark that "
       "ended the run."
-      % (UNKNOWN if first is None or last is None else "%d" % (last - first)))
+      % (UNKNOWN if first is None or ending is None
+         else "%d" % (ending["ts"] - first)))
 # Beside the line above, and outside the tables for the same reason: progress is a figure of
 # the run and of no row in either. The steps done are the ones that reached their closing
 # mark — a step that took a revise to get there is one of them, since what the figure counts
