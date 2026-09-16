@@ -435,6 +435,66 @@ LEDGER
 done
 report "$name"
 
+# 8. Issue #232's sixth criterion: a non-fast-forward rejection is not a blip. The remote is
+#    a bare repository holding the branch at a commit the local branch has since rewritten
+#    (pushed, then amended) — the shape a rebased run leaves behind. That rejection fails
+#    identically every time, so it is attempted exactly ONCE even with retries available
+#    (VERI_PUSH_RETRIES removed from the environment, so the default 3 would show as 4
+#    attempts), the call exits 1 — a clean negative the conductor reconciles — stderr names
+#    the remote branch's full sha, and a `push-rejected` event carries `remote_sha` equal to
+#    it. Attempts counted by case 3's kind of `git` stub.
+name="push-branch.sh: a non-fast-forward rejection exits 1 after exactly one attempt, names the remote branch's full sha on stderr, and records a push-rejected event with remote_sha"
+problems=()
+repo="$work/non-ff"
+remote="$work/origin-non-ff.git"
+git init -q --bare "$remote" >/dev/null 2>&1
+branch=tdd/232-push-non-ff
+run_fixture "$repo" "$branch" 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] Non-fast-forward rejection exits 1 after exactly one attempt
+LEDGER
+git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
+remote_before="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+git_q "$repo" commit -q --amend -m "feat: the step's green commit, rewritten (#232)" >/dev/null 2>&1
+
+stubdir="$work/stub-bin-non-ff"
+calls="$work/push-calls-non-ff"
+push_counting_git "$stubdir" "$calls"
+errfile="$work/non-ff.stderr"
+
+( cd "$repo" && env -u VERI_PUSH_RETRIES PATH="$stubdir:$PATH" VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Non-fast-forward rejection exits 1' \
+    "$PUSH" ) >/dev/null 2>"$errfile" && code=0 || code=$?
+
+[[ "$code" == 1 ]] ||
+  problems+=("want exit 1 — a non-fast-forward rejection is a clean negative — got $code")
+attempts="$(grep -c . "$calls" | tr -d ' ')"
+[[ "$attempts" == 1 ]] ||
+  problems+=("want exactly 1 push attempt — a rejection is never retried — got $attempts")
+grep -qF "$remote_before" "$errfile" ||
+  problems+=("want stderr to contain the remote branch's sha $remote_before, got: $(printf '%q' "$(cat "$errfile")")")
+
+log="$repo/.tdd/events.jsonl"
+if [[ ! -f "$log" ]]; then
+  problems+=("want a push-rejected event in .tdd/events.jsonl, but no such file under $repo")
+else
+  got_sha="$(python3 -c '
+import sys, json
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == "push-rejected":
+        print(obj.get("remote_sha", "<<missing>>"))
+' "$log" 2>/dev/null)"
+  [[ "$got_sha" == "$remote_before" ]] ||
+    problems+=("want one push-rejected event with remote_sha=$remote_before, got $(printf '%q' "$got_sha") among events: $(printf '%q' "$(jevents "$log" | tr '\n' ' ')")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
