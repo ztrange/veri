@@ -408,6 +408,10 @@ with open(path) as f:
             if event == "step-done":
                 recovered.add(step)
             continue
+        # A step whose criterion earlier work already satisfied is done on its `pin` mark and
+        # never writes `step-done` (SKILL.md, the verify-pin PASS branch).
+        if event == "pin" and step:
+            recovered.add(step)
         # Time, off the two lines that carry it. An `exit` is also where a kill is counted
         # below, so this adds and lets the line fall through rather than classifying it.
         attempt = attempt_in(phase, step, line.get("attempt", ""))
