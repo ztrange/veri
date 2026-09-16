@@ -495,6 +495,64 @@ for line in open(sys.argv[1]).read().splitlines():
 fi
 report "$name"
 
+# 9. Issue #232's seventh criterion: a push that lands says nothing of its own. The call
+#    exits 0, its stderr holds no line that git itself did not print, and `.tdd/events.jsonl`
+#    gains no line — a landed push owes the log nothing. The origin is a bare repository the
+#    push can reach, case 2's origin for case 2's reason.
+#
+#    "Beyond git's own output" is measured, not guessed: a `git` stub first on PATH runs the
+#    real git, replays its stdout and stderr unchanged, and also appends both to a log. Every
+#    stderr line the call produces must appear in that log, so the case holds whether the
+#    script keeps git's output or passes it through, and fails on any line the script adds.
+name="push-branch.sh: a push that lands exits 0, writes nothing to stderr beyond git's own output, and appends no event"
+problems=()
+repo="$work/quiet-success"
+remote="$work/origin-quiet-success.git"
+git init -q --bare "$remote" >/dev/null 2>&1
+branch=tdd/232-push-quiet-success
+run_fixture "$repo" "$branch" 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] A successful push exits 0, writes nothing to stderr beyond git's own output, and appends no event
+LEDGER
+git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+
+stubdir="$work/stub-bin-quiet"
+gitout="$work/git-own-output-quiet"
+mkdir -p "$stubdir"
+: > "$gitout"
+cat > "$stubdir/git" <<STUB
+#!/usr/bin/env bash
+o="\$(mktemp)" e="\$(mktemp)"
+"$(command -v git)" "\$@" >"\$o" 2>"\$e"; rc=\$?
+cat "\$o"; cat "\$e" >&2
+cat "\$o" "\$e" >> "$gitout"
+rm -f "\$o" "\$e"
+exit \$rc
+STUB
+chmod +x "$stubdir/git"
+
+log="$repo/.tdd/events.jsonl"
+events_before="$( [[ -f "$log" ]] && grep -c . "$log" | tr -d ' ' || echo 0)"
+errfile="$work/quiet-success.stderr"
+
+( cd "$repo" && env PATH="$stubdir:$PATH" VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A successful push is quiet' \
+    "$PUSH" ) >/dev/null 2>"$errfile" && code=0 || code=$?
+
+[[ "$code" == 0 ]] || problems+=("want exit 0 from a push that lands, got $code")
+
+while IFS= read -r line; do
+  [[ -z "$line" ]] && continue
+  grep -qxF -- "$line" "$gitout" ||
+    problems+=("want no stderr line beyond git's own output, got $(printf '%q' "$line")")
+done < "$errfile"
+
+events_after="$( [[ -f "$log" ]] && grep -c . "$log" | tr -d ' ' || echo 0)"
+[[ "$events_after" == "$events_before" ]] ||
+  problems+=("want no event appended to .tdd/events.jsonl, got $((events_after - events_before)): $(printf '%q' "$(jevents "$log" | tr '\n' ' ')")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
