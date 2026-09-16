@@ -33,6 +33,43 @@ report() {
   fi
 }
 
+# same_both_ways <suite> <cleared env setting…> -- <ambient env setting…> — run one suite twice
+# as a child process, once with the names cleared and once with one of them carrying an ambient
+# value, and collect the difference into `problems` for `report`.
+#
+# Asked as "the same answer both ways" rather than against a hardcoded count line, which is what
+# case 1 below can do with a suite holding a single case: a suite that has several cases and will
+# grow would fail a count spelled here for a case added there rather than for a leak. The cleared
+# arm is also probed for being green at all, since two identically red runs agree on nothing worth
+# pinning. The settings are forwarded to `env` verbatim, so `-u NAME` and `NAME=value` both reach
+# it as themselves and the one under test stays where it is the point.
+same_both_ways() {
+  local suite="$1"; shift
+  local arg seen=0
+  local cleared=() ambient=()
+  for arg in "$@"; do
+    if [[ "$arg" == "--" ]]; then
+      seen=1
+    elif [[ "$seen" == 0 ]]; then
+      cleared+=("$arg")
+    else
+      ambient+=("$arg")
+    fi
+  done
+
+  local cleared_out cleared_code ambient_out ambient_code
+  cleared_out="$(env "${cleared[@]}" "$HERE/$suite" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
+  ambient_out="$(env "${ambient[@]}" "$HERE/$suite" 2>/dev/null)" && ambient_code=0 || ambient_code=$?
+
+  problems=()
+  [[ "$cleared_code" == 0 ]] ||
+    problems+=("the cleared run is not green, so there is nothing to compare against: exit $cleared_code, stdout: $(printf '%q' "$cleared_out")")
+  [[ "$ambient_code" == "$cleared_code" ]] ||
+    problems+=("want the cleared run's exit $cleared_code, got $ambient_code")
+  [[ "$ambient_out" == "$cleared_out" ]] ||
+    problems+=("want the cleared run's stdout $(printf '%q' "$cleared_out"), got: $(printf '%q' "$ambient_out")")
+}
+
 # 1. The contract above, probed by running the whole suite as a child process: the leak is
 #    in how supervise-retry.test.sh spawns the supervisor, so only a real run of it walks
 #    that path — there is nothing to assert in-process.
@@ -68,17 +105,9 @@ report "$name"
 #    every step run, and supervising real leaves again as a child costs ~24 s of each of them
 #    — the cost issue #171 exists to cut. That guard is left to the suite that owns it.
 name="leaf-model.test.sh: an ambient VERI_MODEL gives the same exit and the same stdout as a cleared run"
-problems=()
-cleared_out="$(env -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER \
-  "$HERE/leaf-model.test.sh" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
-ambient_out="$(env -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=sonnet \
-  "$HERE/leaf-model.test.sh" 2>/dev/null)" && ambient_code=0 || ambient_code=$?
-[[ "$cleared_code" == 0 ]] ||
-  problems+=("the cleared run is not green, so there is nothing to compare against: exit $cleared_code, stdout: $(printf '%q' "$cleared_out")")
-[[ "$ambient_code" == "$cleared_code" ]] ||
-  problems+=("want the cleared run's exit $cleared_code, got $ambient_code")
-[[ "$ambient_out" == "$cleared_out" ]] ||
-  problems+=("want the cleared run's stdout $(printf '%q' "$cleared_out"), got: $(printf '%q' "$ambient_out")")
+same_both_ways leaf-model.test.sh \
+  -u VERI_MODEL -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER \
+  -- -u VERI_MODEL_DEVELOPER -u VERI_MODEL_VERIFIER VERI_MODEL=sonnet
 report "$name"
 
 # 3. The same rule for the label tunables issue #113 adds, and the suite that owns them:
@@ -97,15 +126,9 @@ report "$name"
 #    carry: a name no fixture mentions renames the band to something nothing is in, changes no
 #    answer, and would make this case pass while the leak it exists for stayed open.
 name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
-problems=()
-cleared_out="$(env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
-ambient_out="$(VERI_PRIORITY_LABEL=ready-for-agent "$HERE/solvable-issues.test.sh" 2>/dev/null)" && ambient_code=0 || ambient_code=$?
-[[ "$cleared_code" == 0 ]] ||
-  problems+=("the cleared run is not green, so there is nothing to compare against: exit $cleared_code, stdout: $(printf '%q' "$cleared_out")")
-[[ "$ambient_code" == "$cleared_code" ]] ||
-  problems+=("want the cleared run's exit $cleared_code, got $ambient_code")
-[[ "$ambient_out" == "$cleared_out" ]] ||
-  problems+=("want the cleared run's stdout $(printf '%q' "$cleared_out"), got: $(printf '%q' "$ambient_out")")
+same_both_ways solvable-issues.test.sh \
+  -u VERI_PRIORITY_LABEL \
+  -- VERI_PRIORITY_LABEL=ready-for-agent
 report "$name"
 
 echo "----"
