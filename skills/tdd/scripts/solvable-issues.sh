@@ -197,6 +197,14 @@ def blockers(body):
     section = re.search(r"^## Blocked by$(.*?)(?=^## |\Z)", body, re.M | re.S)
     return [int(n) for n in re.findall(blocker_ref, section.group(1))] if section else []
 
+# Whether an issue carries a label, asked the same way whoever is asking: the opt-in label
+# that decides whether an issue may be taken at all, and the `bug` label that decides where it
+# sorts, are two questions about one field, and `gh` writes that field as a list of objects
+# with a `name`. One reading of that shape, so a fixture missing `labels` entirely is handled
+# in one place rather than in each caller.
+def has_label(issue, name):
+    return any(l.get("name") == name for l in issue.get("labels", []))
+
 def solvable(issue):
     """The four conditions the spec names, all of which must hold at once. They are named
     here rather than run as early returns so the function reads as the definition it is.
@@ -205,7 +213,7 @@ def solvable(issue):
     has it. Which of the two was seen changes nothing a caller does."""
     number = issue["number"]
     still_open = number in open_issues
-    opted_in = any(l.get("name") == label for l in issue.get("labels", []))
+    opted_in = has_label(issue, label)
     unclaimed = number not in claimed and not in_flight(number)
     unblocked = all(n not in open_issues for n in blockers(issue.get("body", "")))
     return still_open and opted_in and unclaimed and unblocked
@@ -220,7 +228,7 @@ def solvable(issue):
 # The sort runs on what `solvable()` already let through, so order never enlarges the set: a
 # bug that is blocked, claimed or not opted in is still not printed.
 def order(issue):
-    is_bug = any(l.get("name") == "bug" for l in issue.get("labels", []))
+    is_bug = has_label(issue, "bug")
     return (not is_bug, issue["number"])
 
 numbers = [i["number"] for i in sorted((i for i in issues if solvable(i)), key=order)]
