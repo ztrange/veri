@@ -1092,6 +1092,60 @@ result_text_code=$?
 
 
 
+# 27. a leaf the watchdog kills whose log holds NO terminal result record is still killed and
+#     still reported exit 2, with the watchdog's kill cause on stderr (issue #212). Cases 23
+#     to 26 are the recovery; this is the boundary it must not cross. The leaf here has done
+#     everything a working one does except finish — it is a real `claude -p` stream, one
+#     stream-json record after another — and then it goes silent. That is exactly the hang the
+#     watchdog exists for, and the answer it owes is the one it always owed: no answer could be
+#     obtained.
+#
+#     Case 3 pins the same code on `leaf-hang`, whose log is one line of plain text, so it
+#     cannot see the sensor the recovery reads with: a no-op is what a script with no recovery
+#     at all does too. This leaf's log is a stream of well-formed JSON objects that any looser
+#     sensor — output present, valid JSON present, an assistant record present — would read as
+#     an answer, and the exit 0 that followed would report a leaf that never answered as one
+#     that succeeded. The only record it does not hold is the closing `{"type":"result", …}`,
+#     which is the whole of what "the leaf finished" means.
+#
+#     The kill cause is asserted beside the code because the code alone does not make a bail
+#     classifiable: `classify-bail.sh` turns the supervisor's stderr into the label a human
+#     reads, and a recovery that silently cleared `reason` on the way past would leave a bare
+#     `killed-stuck` with nothing saying what the watchdog saw. The wording is read through
+#     `heartbeat_kill` above, cases 13 and 14's probe, so a change to it is caught in one place.
+#
+#     Launched directly rather than through `sup`, whose single `$work/err` is shared with
+#     every other case that uses it; this case's stderr is its own file under its own
+#     directory, case 12's reason. VERI_STUCK_RETRIES=0 is pinned by hand the way `sup` pins
+#     it — one attempt, so the transcript holds exactly one status line.
+nores_work="$work/no-result"
+mkdir -p "$nores_work"
+# The stream a leaf that hangs mid-run leaves behind: a system init record and an assistant
+# record, both well-formed JSON, and then silence. No `{"type":"result", …}` line — the leaf
+# never got that far, which is the premise of the case.
+cat > "$stub/leaf-noresult-hang" <<'L'
+#!/usr/bin/env bash
+echo '{"type":"system","subtype":"init","session_id":"4d1a","model":"claude-opus-5"}'
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: reading the suite"}]}}'
+sleep 60
+L
+chmod +x "$stub/leaf-noresult-hang"
+nores_window=1
+( cd "$nores_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$nores_window" \
+    VERI_TIMEOUT=30 VERI_POLL=0.2 \
+    "$SUP" verify-red "$stub/leaf-noresult-hang" ) >/dev/null 2>"$nores_work/err"
+nores_code=$?
+# Each read once, into the variable the assertion and the failure message share — cases 9,
+# 11, 12, 13 and 15 to 26's shape. The cause is taken off the supervisor's own status line by
+# stripping its prefix, so a run that printed no such line at all leaves `<no status line>`
+# rather than an empty string that a loose pattern might still accept.
+nores_status="$(grep '^supervise\[verify-red\]: killed-stuck' "$nores_work/err" || echo '<no status line>')"
+nores_cause="${nores_status#supervise\[verify-red\]: killed-stuck — }"
+{ [[ "$nores_code" == 2 ]] \
+  && heartbeat_kill "$nores_cause" "$nores_window"; } && ok \
+  || no "a killed leaf whose log holds no terminal result record is still exit 2 with its kill cause on stderr (code=$nores_code want 2, status line=$nores_status want a killed-stuck line whose cause reads 'no heartbeat for Ns (window ${nores_window}s)')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
