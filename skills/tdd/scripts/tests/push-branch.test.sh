@@ -183,6 +183,80 @@ remote_sha="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/
   problems+=("want refs/heads/$branch on the remote at $head_sha (the commit HEAD is on), got $remote_sha")
 report "$name"
 
+# 3. Issue #232's first criterion: an unreachable origin is retried, not tried once. With
+#    VERI_PUSH_RETRIES=2 — two extra attempts after the first — the push is attempted 3
+#    times; when all three fail the call still exits 0, says so on ONE stderr line that
+#    names the failure and the attempt count, and records ONE `push-failed` event, however
+#    many attempts it took. VERI_PUSH_BACKOFF=0 so nothing waits on wall time.
+#
+#    The attempts are counted by a `git` stub first on PATH that logs each `push` it sees
+#    and then execs the real git, so the push still really fails against a path that is not
+#    a repository — case 1's origin, for case 1's reason.
+name="push-branch.sh: an unreachable origin with VERI_PUSH_RETRIES=2 is attempted 3 times, exits 0, prints one stderr line naming the failure and the attempt count, and records one push-failed event, leaving HEAD, the commit count and the ledger unchanged"
+problems=()
+repo="$work/retried"
+mkdir -p "$repo/.tdd"
+git init -q -b main "$repo" >/dev/null 2>&1
+git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+git_q "$repo" checkout -q -b tdd/232-push-retry >/dev/null 2>&1
+ledger="$repo/.tdd/issue-232.md"
+cat > "$ledger" <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [x] Unreachable origin is retried ⟂ refactor pending
+- [ ] Non-fast-forward rejection exits 1
+LEDGER
+git_q "$repo" add -A >/dev/null 2>&1
+git_q "$repo" commit -q -m "feat: a step's green commit (#232)" >/dev/null 2>&1
+git_q "$repo" remote add origin "$work/no-such-remote-232.git" >/dev/null 2>&1
+
+stubdir="$work/stub-bin"
+calls="$work/push-calls"
+mkdir -p "$stubdir"
+: > "$calls"
+cat > "$stubdir/git" <<STUB
+#!/usr/bin/env bash
+for a in "\$@"; do
+  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
+done
+exec "$(command -v git)" "\$@"
+STUB
+chmod +x "$stubdir/git"
+
+head_before="$(git_q "$repo" rev-parse HEAD)"
+count_before="$(git_q "$repo" rev-list --count HEAD)"
+ledger_before="$(cat "$ledger")"
+errfile="$work/retried.stderr"
+
+( cd "$repo" && env PATH="$stubdir:$PATH" VERI_PUSH_RETRIES=2 VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Unreachable origin is retried' \
+    "$PUSH" ) >/dev/null 2>"$errfile" && code=0 || code=$?
+
+attempts="$(grep -c . "$calls" | tr -d ' ')"
+[[ "$attempts" == 3 ]] ||
+  problems+=("want 3 push attempts (1 + VERI_PUSH_RETRIES=2), got $attempts")
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 — an unreachable origin is not a bail — got $code")
+
+failure_lines="$(grep -iE 'push' "$errfile" | grep -iE 'fail' | grep -c '3' | tr -d ' ')"
+[[ "$failure_lines" == 1 ]] ||
+  problems+=("want exactly one stderr line naming the push failure and the attempt count (3), got $failure_lines in: $(printf '%q' "$(cat "$errfile")")")
+
+unchanged "HEAD" "$head_before" "$(git_q "$repo" rev-parse HEAD)"
+unchanged "the commit count" "$count_before" "$(git_q "$repo" rev-list --count HEAD)"
+unchanged ".tdd/issue-232.md (the ledger)" "$ledger_before" "$(cat "$ledger")"
+
+log="$repo/.tdd/events.jsonl"
+if [[ ! -f "$log" ]]; then
+  problems+=("want one push-failed event in .tdd/events.jsonl, but no such file under $repo")
+else
+  events="$(jevents "$log")"
+  n_failed="$(grep -cx 'push-failed' <<< "$events" | tr -d ' ')"
+  [[ "$n_failed" == 1 ]] ||
+    problems+=("want exactly one push-failed event, got $n_failed among: $(printf '%q' "$(tr '\n' ' ' <<< "$events")")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

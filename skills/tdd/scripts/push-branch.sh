@@ -26,6 +26,18 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # worktree it was run in instead of being told, the way every other conductor script does.
 # The push's own output is kept: it is what says WHY the copy did not land, and a reader of
 # the event log gets no second chance to ask git.
-if ! out="$(git push --set-upstream origin HEAD 2>&1)"; then
-  "$HERE/event.sh" push-failed error="$out"
-fi
+#
+# A failed push is retried VERI_PUSH_RETRIES more times (extra attempts after the first,
+# the same semantics as VERI_STUCK_RETRIES): an unreachable origin is usually a blip. Only
+# when every attempt has failed does the run hear about it — one stderr line and one event,
+# however many attempts it took.
+retries="${VERI_PUSH_RETRIES:-3}"
+attempt=0
+while (( attempt <= retries )); do
+  attempt=$((attempt + 1))
+  if out="$(git push --set-upstream origin HEAD 2>&1)"; then
+    exit 0
+  fi
+done
+echo "push-branch.sh: push failed after $attempt attempts; the branch is not on the remote" >&2
+"$HERE/event.sh" push-failed error="$out" attempts="$attempt"
