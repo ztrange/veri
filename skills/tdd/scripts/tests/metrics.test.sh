@@ -1290,6 +1290,203 @@ rework_and_waste_say "$bail_out" red=0,0.00,120,0.50 green=0,0.00,140,0.40
 report_on "$name" "$bail_out"
 
 
+# progress_says <file> <done> <planned> — the progress figure: how many steps of the plan the
+# run finished. Looked for OUTSIDE the tables, the way the issue wall is, because it belongs
+# to no phase and no step: it is a figure of the whole run.
+#
+# The pair is matched as the two numbers in that order with nothing but non-digits between
+# them, on a line that names steps, so `1 of 3`, `1/3` and `steps done: 1 of 3` all read
+# alike and only the ORDER of the pair is pinned — which of the two is the numerator is the
+# whole of what the figure claims, and the wording around it is the implementation's own.
+#
+# The line has to say `step` because that is the noun the figure counts, not a choice of
+# words: without it, a report printing no progress at all could be passed by two numbers that
+# happened to fall side by side in some other sentence.
+progress_says() {
+  probe '
+import re, sys
+
+path, done, planned = sys.argv[1], sys.argv[2], sys.argv[3]
+pair = re.compile(r"(?<![0-9.])%s(?![0-9.])\D{1,20}(?<![0-9.])%s(?![0-9.])"
+                  % (re.escape(done), re.escape(planned)))
+lines = [l.strip() for l in open(path).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+
+if any(pair.search(l) and "step" in l.lower() for l in lines):
+    raise SystemExit(0)
+
+print("want a line outside the tables saying %s steps of %s planned were done, the report "
+      "says outside them: %s"
+      % (done, planned, ", ".join(repr(l) for l in lines) or "nothing"))
+' "$@"
+}
+
+# outcome_says <file> <outcome> — how the run ENDED, as the report says it outside the tables.
+# <outcome> is `system` or `process` for a bail of that classification — the word
+# classify-bail.sh decided and the conductor put on the `bail` mark (SKILL.md:949) — or `pr`
+# for a run that reached a draft PR, which is what issue success is.
+#
+# A bail report must carry a line calling the run a bail AND naming its classification, and
+# no line anywhere outside the tables may name the OTHER one. That second half is what makes
+# the split observable: a report printing one of the two constantly would pass a case that
+# only ever read the bail it was handed, and "a bail split system or process" is exactly the
+# claim such a report would not be making.
+#
+# A run that landed is read the other way round — no line may call it a bail, and some line
+# must name the PR — so the three answers are three different sentences rather than one
+# printed unconditionally.
+#
+# The words matched are the glossary's own nouns for the outcome — bail, system failure,
+# process failure, a draft PR — so what is pinned is which of them the report reaches for,
+# never how it words the sentence they sit in.
+outcome_says() {
+  probe '
+import re, sys
+
+path, want = sys.argv[1], sys.argv[2]
+lines = [l.strip() for l in open(path).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+
+def says(line, word):
+    return re.search(r"\b%s\b" % word, line.lower()) is not None
+
+def quoted(said):
+    return ", ".join(repr(l) for l in said) or "nothing"
+
+problems = []
+bails = [l for l in lines if says(l, "bail(ed|s)?")]
+
+if want == "pr":
+    if bails:
+        problems.append("the run reached a draft PR, so no line outside the tables may call "
+                        "it a bail, these do: %s" % quoted(bails))
+    if not any(re.search(r"\b(pr|pull request|draft)\b", l.lower()) for l in lines):
+        problems.append("want a line outside the tables naming the draft PR the run reached, "
+                        "the report says outside them: %s" % quoted(lines))
+else:
+    other = "process" if want == "system" else "system"
+    if not any(says(l, want) for l in bails):
+        problems.append("want a line outside the tables calling the run a bail and "
+                        "classifying it a %s failure, the report says outside them: %s"
+                        % (want, quoted(lines)))
+    wrong = [l for l in lines if says(l, other)]
+    if wrong:
+        problems.append("the bail was classified %s, so no line outside the tables may call "
+                        "it %s, these do: %s" % (want, other, quoted(wrong)))
+
+print("\n".join(problems))
+' "$@"
+}
+
+# plan_of <ticked step>… -- <open step>… — write the ledger beside the log of whichever
+# fixture was made last, in the checkbox grammar next-unchecked.sh reads (next-unchecked.sh:16),
+# with the steps before the `--` ticked and the ones after it still open.
+#
+# The ledger is a second input to the report, and the only one that can say how many steps
+# were PLANNED: a run that bailed never reached the steps after the one it died on, so its
+# log holds no line mentioning them at all, and a planned count read off the log would be
+# whatever the run got through — the one number a progress figure must not be. The file is
+# `.tdd/issue-108.md`, the ledger the conductor commits for this issue, which is the file the
+# issue number on the command line names.
+plan_of() {
+  local ledger="${fixture_log%events.jsonl}issue-108.md" box="[x]" step
+  : > "$ledger"
+  for step in "$@"; do
+    if [[ "$step" == "--" ]]; then
+      box="[ ]"
+      continue
+    fi
+    printf -- '- %s %s\n' "$box" "$step" >> "$ledger"
+  done
+}
+
+# A ninth fixture, in its own directory for the reason the others have one: each case keeps
+# the log it was written against. It, and the two after it, are the three answers this case's
+# one question has — a bail the plumbing caused, a bail the methodology caused, and a run that
+# landed — because a report that said the same thing about all three would be answering none
+# of them.
+#
+# This one is a plan of three steps whose first landed and whose second was killed stuck: the
+# conductor's `bail` mark carries the cause and the `system` classification classify-bail.sh
+# gave it (classify-bail.sh:15). One step reached its `step-done` mark, so the progress figure
+# is 1 of 3 — and the third step appears nowhere in the log, which is what the ledger is here
+# to supply.
+#
+# The log carries the conductor's marks and no leaf lines at all. Both figures this case reads
+# are read off those marks, so a fixture with attempts under them would only be adding rows to
+# tables no probe here looks at.
+fixture_work system_work
+
+landed_first="the table reports steps done of planned"
+killed="the table reports the issue outcome, a bail split system or process"
+
+sv "$landed_first" 11000 conductor ""    step-start ""
+sv "$landed_first" 11100 conductor ""    step-done  ""
+sv "$killed"       11200 conductor ""    step-start ""
+sv "$killed"       11300 conductor green bail       "" '"cause": "killed-stuck", "classification": "system"'
+
+plan_of "$landed_first" -- "$killed" "a third step the run never reached"
+
+# A tenth fixture: the other classification, and a second pair of progress numbers. Two of a
+# four-step plan landed and the third exhausted its revise budget, which classify-bail.sh
+# calls a `process` failure (classify-bail.sh:18) — the methodology spoke, where the fixture
+# above is the plumbing breaking. 2 of 4, so neither number this case reads is shared with the
+# fixture above and a report that hard-coded either cannot pass both.
+fixture_work process_work
+
+first_landed="the table reports steps done of planned, the first step"
+second_landed="the table reports steps done of planned, the second step"
+exhausted="the issue outcome is a bail split system or process"
+
+sv "$first_landed"  12000 conductor ""    step-start ""
+sv "$first_landed"  12100 conductor ""    step-done  ""
+sv "$second_landed" 12200 conductor ""    step-start ""
+sv "$second_landed" 12300 conductor ""    step-done  ""
+sv "$exhausted"     12400 conductor ""    step-start ""
+sv "$exhausted"     12500 conductor green bail       "" '"cause": "revise-exhausted", "classification": "process"'
+
+plan_of "$first_landed" "$second_landed" -- "$exhausted" "a fourth step the run never reached"
+
+# An eleventh fixture: the outcome that is not a bail. Every step of a two-step plan reached
+# its `step-done` mark and the run ended on the conductor's `done` mark carrying the draft PR,
+# which is what issue success is. Its progress figure is 2 of 2 — the one reading that says
+# the run finished — and its outcome line must name neither classification, since there was no
+# bail to classify.
+fixture_work landed_work
+
+opener="the table reports steps done of planned, of a run that landed"
+closer="the issue outcome of a run that landed is its draft PR"
+
+sv "$opener" 13000 conductor "" step-start ""
+sv "$opener" 13100 conductor "" step-done  ""
+sv "$closer" 13200 conductor "" step-start ""
+sv "$closer" 13300 conductor "" step-done  ""
+sv "$closer" 13400 conductor "" done       "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+
+plan_of "$opener" "$closer"
+
+
+name="the report says how many steps of the plan were done and how the run ended, naming a bail's classification and a landed run's PR"
+problems=()
+
+system_out="$system_work/report.md"
+process_out="$process_work/report.md"
+landed_out="$landed_work/report.md"
+render "$system_work" "$system_out"
+render "$process_work" "$process_out"
+render "$landed_work" "$landed_out"
+
+progress_says "$system_out" 1 3
+progress_says "$process_out" 2 4
+progress_says "$landed_out" 2 2
+
+outcome_says "$system_out" system
+outcome_says "$process_out" process
+outcome_says "$landed_out" pr
+
+report_on "$name" "$system_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

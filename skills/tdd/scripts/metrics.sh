@@ -90,6 +90,25 @@
 #              to no phase and no step: the log's first event to the `done` or `bail` mark
 #              that ended the run.
 #
+# Two more figures belong to no row, and print beside the issue wall for the reason it is
+# there: they are of the whole run.
+#
+#   progress — the steps that reached their `step-done` mark, of the steps the PLAN has. The
+#              first is read off the log; the second cannot be, because a run that bailed
+#              never reached the steps after the one it died on and their names appear
+#              nowhere in it. It is read off the ledger the conductor commits,
+#              `.tdd/issue-<n>.md`, counting the checkbox steps in the grammar
+#              next-unchecked.sh reads (next-unchecked.sh:16) — ticked or not, since what is
+#              wanted is how many were planned. A run with no ledger beside its log says
+#              `unknown` for the second number, by the rule above.
+#   outcome  — how the run ENDED, off the mark that ended it: a `done` carrying the draft PR,
+#              which is what issue success is, or a `bail` carrying the cause and the
+#              `system`/`process` classification classify-bail.sh gave it (SKILL.md:949).
+#              The two failures are never collapsed, for the reason CLAUDE.md keeps exit 1
+#              and exit 2 apart: a system failure is the plumbing breaking and a process one
+#              is the methodology speaking, and a reader deciding what to do next needs to
+#              know which. A log whose run has not ended says `unknown` rather than either.
+#
 # A fourth group is COST, in both sections and in a total of its own: the leaf's turns, the
 # four token counts and the dollars, all six read off the same `usage` line the API seconds
 # come from (harvest-usage.sh:76-84). Four token columns rather than one sum, because they
@@ -117,13 +136,18 @@ issue="${1:?usage: metrics.sh <issue-number>}"
 
 log=".tdd/events.jsonl"
 
+# The ledger of the same issue, beside the log, and the only input that can say how many
+# steps were PLANNED — see the header. Named here rather than built in python so both paths
+# this reads are spelled in one place.
+ledger=".tdd/issue-$issue.md"
+
 # Note the apostrophe nobody may write inside the block below: it is a single-quoted shell
 # string, so a `run's` in a comment or a docstring ends the program there and python is
 # handed the rest as argv. The same trap event.sh and harvest-usage.sh carry.
 exec python3 -c '
-import json, sys
+import json, re, sys
 
-issue, path = sys.argv[1], sys.argv[2]
+issue, path, ledger = sys.argv[1], sys.argv[2], sys.argv[3]
 
 # The four counts, in the order the table prints them, each with the column heading it is
 # printed under. One list so the headings and the arithmetic cannot come to disagree about
@@ -200,6 +224,22 @@ MONEY = {DOLLARS, REWORK_COST, WASTE_COST}
 
 # What a figure says when no mark in the log supplies it. Not "0": see the header.
 UNKNOWN = "unknown"
+
+# A checkbox step of the ledger, ticked or not — the same grammar next-unchecked.sh reads
+# (next-unchecked.sh:16), matched leaving the state inside the box open, because what is
+# wanted is how many steps the plan HAS, not how many are still to do.
+STEP_BOX = re.compile(r"^[ \t]*- \[[ xX]\] .")
+
+# How many steps the plan has, off the ledger beside the log, or None when there is no
+# ledger to read or it holds no checkbox step at all: a count of planned steps is a figure
+# nothing supplied, and by the rule above it is unknown rather than zero.
+def planned_steps(path):
+    try:
+        with open(path) as f:
+            found = sum(1 for line in f if STEP_BOX.match(line))
+    except OSError:
+        return None
+    return found or None
 
 # Row order in either section is the order its key first appears in the log, which is the
 # order the run went through them — red before green before refactor, step one before step
@@ -319,6 +359,11 @@ def add_cost(phase, step, line):
 # run that has not ended.
 first, last = None, None
 
+# The mark that ended the run, whole rather than just its timestamp: the outcome line reads
+# its payload — the PR a `done` carries, the cause and classification a `bail` does — and
+# stays None in the log of a run that has not ended.
+ending = None
+
 with open(path) as f:
     for raw in f:
         raw = raw.strip()
@@ -333,6 +378,7 @@ with open(path) as f:
             first = ts
         if event in ("done", "bail"):
             last = ts
+            ending = line
         # The two brackets of a step, read before anything classifies the line below, since
         # neither is a leaf event and both would otherwise fall through to nothing.
         if event in ("step-start", "step-done") and step:
@@ -479,7 +525,26 @@ print()
 print("Wall time for the issue: %s s, from the first event of the log to the mark that "
       "ended the run."
       % (UNKNOWN if first is None or last is None else "%d" % (last - first)))
-# Outside the tables for the same reason as the line above, and beside it: it qualifies
+# Beside the line above, and outside the tables for the same reason: progress is a figure of
+# the run and of no row in either. The steps done are the ones that reached their closing
+# mark — a step that took a revise to get there is one of them, since what the figure counts
+# is steps finished and not attempts — and the count of the plan comes off the ledger, which
+# is the only input that still names the steps a bailed run never reached.
+planned = planned_steps(ledger)
+print("Steps done: %d of %s planned."
+      % (len(recovered), UNKNOWN if planned is None else "%d" % planned))
+# And how the run ended, beside the two figures above: the same mark that closed the issue
+# wall, read for its payload rather than its timestamp. A bail names its classification
+# because system and process are two different things for a reader to do next.
+if ending is None:
+    print("Outcome: %s — the log carries no mark ending the run." % UNKNOWN)
+elif ending.get("event") == "done":
+    print("Outcome: the run landed — its draft PR is %s."
+          % (ending.get("pr") or UNKNOWN))
+else:
+    print("Outcome: the run bailed — %s, a %s failure."
+          % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))
+# Outside the tables for the same reason as the lines above, and beside them: it qualifies
 # every cost figure in the report rather than any one row of it.
 print("Cost is every leaf of the run, and the conductor own %s."
       % ("closing accounting with them, which this log carries"
@@ -495,4 +560,4 @@ section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
         ([WALL] + BUDGETS, step_cells))
 section("#### Total", "run", COST_COLUMNS, totals)
-' "$issue" "$log"
+' "$issue" "$log" "$ledger"
