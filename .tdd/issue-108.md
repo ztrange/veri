@@ -1,6 +1,6 @@
 # Plan for #108 — Per-issue metrics: a committed markdown summary beside the ledger and a 📊 block in the final comment and PR
 
-- [x] metrics.sh renders a markdown table of per-phase attempts, verdicts PASS/REJECT and kills from the event log ⟂ refactor pending
+- [x] metrics.sh renders a markdown table of per-phase attempts, verdicts PASS/REJECT and kills from the event log
 - [ ] the table carries a per-step section with the same counts, plus stuck retries used
 - [ ] the table reports revise attempts used of REVISE_BUDGET and refactor transforms used of VERI_REFACTOR_BUDGET, and whether the refactor loop stopped by budget
 - [ ] the table reports wall seconds and API seconds per phase and per step, and the issue's wall time from its first event to done or bail
