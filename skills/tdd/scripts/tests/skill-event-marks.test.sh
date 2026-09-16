@@ -133,6 +133,34 @@ else
 fi
 report "$name"
 
+# 2. The refactor mark (issue #230): `metrics.sh` reads a `refactor` mark's `transforms`,
+#    `budget` and `stopped` into the per-step `refactor` and `stopped` cells, and nothing
+#    wrote one, so every step read `unknown`. The three values are the ones the
+#    `### 🛠️ Refactor` comment already states, so the call belongs in the instruction that
+#    posts it and narrates the `git rev-list --count` figure (the plan comment lists that
+#    heading too, and is not where the count is known) — and a call carrying fewer than all three keys still leaves a cell unknown.
+name="$skill_md writes an event.sh refactor mark carrying transforms, budget and stopped, beside the Refactor comment"
+problems=()
+if [[ -z "$records" ]]; then
+  problems+=("$skill_md has no instructions to read — the refactor mark could not be checked")
+else
+  mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    call=""
+    while IFS= read -r line; do
+      [[ "$line" =~ '### '[^\ ]+' refactor'( |\`|$) && "$line" =~ post && "$line" =~ "rev-list --count" ]] || continue
+      [[ "$line" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]] || continue
+      call="${BASH_REMATCH[1]}"
+      break
+    done <<< "$records"
+    for key in transforms budget stopped; do
+      [[ "$call" =~ (^|[[:space:]])"$key"= ]] ||
+        problems+=("$skill_md calls \`$call\` without \`$key=\` — metrics.sh's cell stays unknown")
+    done
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

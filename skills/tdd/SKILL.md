@@ -768,7 +768,11 @@ following step. The phase sub-steps are:
    leftovers, which a follow-up owes, and the **cosmetic** ones, which nobody owes. Each
    list says **how many candidates** it holds and then **lists** them, one per line. A
    count with no items is not a backlog, and the two classes run together are a backlog
-   nobody can size.
+   nobody can size. Mark the same three figures in the log — the observed count, unclamped,
+   the budget, and why it stopped (`nothing-left`, `budget`, `malformed` or `triage`):
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
+   ```
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **clear the refactor-pending mark and commit the cleared ledger first**, before
      anything outside the repository says the step is done:
