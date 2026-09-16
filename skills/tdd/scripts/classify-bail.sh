@@ -10,7 +10,7 @@ set -euo pipefail
 cause="${1:-}"
 
 case "$cause" in
-  killed-stuck | no-verdict)
+  killed-stuck | no-verdict | reconcile-failed)
     echo system
     ;;
   revise-exhausted)
