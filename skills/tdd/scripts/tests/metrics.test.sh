@@ -572,6 +572,211 @@ budgets_say "$budget_out" "$frugal" "$spendthrift" \
 report "$name"
 
 
+# times_say <file> <key>=<wall>,<api> … — the fourth section's subject: how long the run
+# took. Each expectation names a row — a phase row or a step row, the two sections are
+# searched alike — and the wall seconds and API seconds that row must carry.
+#
+# The table is located by the ROW, not by a heading or a position: the first table holding a
+# row whose first cell is the key. Its wall column and its API column are then found by
+# their headings, exactly one each, so neither column order nor the wording around the two
+# words is pinned. A trailing `s` on a cell is accepted and stripped — `210` and `210s` are
+# the same figure, and which one the report prints is not this step.
+#
+# Complaints are deduplicated because two rows of one table raise the same missing-column
+# line, and the same sentence twice says nothing the first did not.
+times_say() {
+  local out_file="$1"; shift
+  local said
+  said="$(python3 -c "$TABLES_IN"'
+path = sys.argv[1]
+tables = tables_in(path)
+
+problems = []
+
+def complain(text):
+    if text not in problems:
+        problems.append(text)
+
+def table_with(key):
+    for t in tables:
+        if any(r and r[0].strip() == key for r in t[1:]):
+            return t
+    return None
+
+def column(header, word, key):
+    hit = [i for i, c in enumerate(header) if word in c.lower()]
+    if len(hit) == 1:
+        return hit[0]
+    complain("want exactly one column heading saying %s, the table with a row for %r is headed: %s"
+             % (word, key, "|".join(header) or "nothing"))
+    return None
+
+def seconds(cell):
+    cell = cell.strip()
+    return cell[:-1] if cell.endswith("s") else cell
+
+for arg in sys.argv[2:]:
+    key, expected = arg.split("=", 1)
+    section = table_with(key)
+    if section is None:
+        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
+        complain("want a table with a row for %r, the report has tables with rows: %s"
+                 % (key, "; ".join(labels) or "nothing"))
+        continue
+    header = section[0]
+    row = next(r for r in section[1:] if r and r[0].strip() == key)
+    for word, number in zip(("wall", "api"), expected.split(",")):
+        i = column(header, word, key)
+        if i is None:
+            continue
+        got = row[i] if i < len(row) else ""
+        if seconds(got) != number:
+            complain("%r %s seconds: want %s, got %r" % (key, word, number, got))
+
+print("\n".join(problems))
+' "$out_file" "$@" 2>&1)"
+  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+}
+
+# issue_wall_says <file> <seconds> — the one figure that belongs to no row: the whole issue
+# from its first event to the mark that ended it. It is looked for on a line OUTSIDE the
+# tables, since it is a total of the run rather than of a phase or a step, and matched on
+# the number alone — the prose around it is the implementation to word.
+issue_wall_says() {
+  local out_file="$1" want="$2"
+  local said
+  said="$(python3 -c '
+import re, sys
+
+path, want = sys.argv[1], sys.argv[2]
+lines = [l for l in open(path).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+
+if any(re.search(r"(?<![0-9.])%s(?![0-9.])" % re.escape(want), l) for l in lines):
+    raise SystemExit(0)
+
+print("want a line outside the tables reporting the issue wall of %s seconds, the report says outside them: %s"
+      % (want, ", ".join(repr(l.strip()) for l in lines) or "nothing"))
+' "$out_file" "$want" 2>&1)"
+  [[ -z "$said" ]] || problems+=("$said")
+}
+
+# A fourth fixture, in its own directory for the reason the others have one: each case keeps
+# the log it was written against.
+#
+# Two steps, so a per-step figure is observable as something other than the issue total, and
+# two phases in each, so a per-phase figure is observable as something other than a per-step
+# one. Every figure the case reads is a distinct number — 210, 155, 390, 240, 400, 175, 600,
+# 220, 1700 — so a report that printed wall where API belongs, or one row in the place of
+# the other, cannot pass.
+#
+# Which line each figure is read off is the shape of the log, not a choice of this suite:
+#
+#   wall per phase — the `secs` supervise.sh writes on every `exit` (supervise.sh:355), the
+#     wall seconds of one attempt. Summed over the phase. It is the `exit` and not the
+#     `usage` line because a killed leaf writes one and no usage at all — the 70-second kill
+#     in step two is in the fixture to say so, and a phase wall summed from `usage` is 70
+#     seconds short of the number below.
+#   API per phase — `duration_api_ms` off the leaf own closing record, which harvest-usage.sh
+#     turns into the `usage` line. Milliseconds there, seconds here.
+#   wall per step — `step-start` to `step-done`, the conductor two marks, which is the
+#     stretch of the run the step occupied rather than the sum of what ran inside it: step
+#     one spent 230 seconds of attempts inside a 400-second step.
+#   issue wall — the first event of the log to the `done` mark that closed the run.
+fixture_work time_work
+
+# `tv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` — `sv`s sibling over
+# the same writer, on this fixture log.
+tv() {
+  event_line "$time_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:-}"
+}
+
+# `usage_json <api-ms>` — the payload of one `usage` line, in the shape harvest-usage.sh
+# emits (harvest-usage.sh:76-84): the leaf own four numbers and its four token counts, under
+# the stream record own key names. Only `duration_api_ms` varies per call; the rest are
+# there because a reader of this fixture should see the line a real run writes, and because
+# a later step reads the other seven off the same line.
+usage_json() {
+  printf '"duration_ms": "0", "duration_api_ms": "%s", "num_turns": "9", "total_cost_usd": "0.5", "input_tokens": "1000", "output_tokens": "2000", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "4000"' "$1"
+}
+
+brisk="the table reports wall seconds and API seconds per phase and per step"
+slow="the table reports turns, the four token counts and dollars per phase"
+
+# Step one: red and green, each a developer leaf and a verifier, all four accounted for.
+# red 90+20 = 110 wall, 70+15 = 85 API. green 100+20 = 120 wall, 80+10 = 90 API.
+# The step itself ran 7000 to 7400 — 400 seconds — with 230 seconds of attempts inside it.
+tv "$brisk" 7000 conductor ""    step-start ""
+tv "$brisk" 7010 developer red   launch  1 '"name": "develop-red"'
+tv "$brisk" 7100 developer red   exit    1 '"status": "0", "secs": "90"'
+tv "$brisk" 7100 developer red   usage   1 "$(usage_json 70000)"
+tv "$brisk" 7110 verifier  red   launch  1 '"name": "verify-red"'
+tv "$brisk" 7130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+tv "$brisk" 7130 verifier  red   usage   1 "$(usage_json 15000)"
+tv "$brisk" 7130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+tv "$brisk" 7200 developer green launch  1 '"name": "develop-green"'
+tv "$brisk" 7300 developer green exit    1 '"status": "0", "secs": "100"'
+tv "$brisk" 7300 developer green usage   1 "$(usage_json 80000)"
+tv "$brisk" 7310 verifier  green launch  1 '"name": "verify-green"'
+tv "$brisk" 7330 verifier  green exit    1 '"status": "0", "secs": "20"'
+tv "$brisk" 7330 verifier  green usage   1 "$(usage_json 10000)"
+tv "$brisk" 7330 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+tv "$brisk" 7400 conductor ""    step-done ""
+
+# Step two: a rejected Green, a leaf the watchdog killed — 70 wall seconds and no usage line
+# at all, which is what makes the two sources of wall time tell apart — and a revise that
+# passed. red 80+20 = 100 wall, 60+10 = 70 API. green 100+20+70+60+20 = 270 wall,
+# 85+10+45+10 = 150 API. The step ran 8000 to 8600 — 600 seconds.
+tv "$slow" 8000 conductor ""    step-start ""
+tv "$slow" 8010 developer red   launch  1 '"name": "develop-red"'
+tv "$slow" 8100 developer red   exit    1 '"status": "0", "secs": "80"'
+tv "$slow" 8100 developer red   usage   1 "$(usage_json 60000)"
+tv "$slow" 8110 verifier  red   launch  1 '"name": "verify-red"'
+tv "$slow" 8130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+tv "$slow" 8130 verifier  red   usage   1 "$(usage_json 10000)"
+tv "$slow" 8130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+tv "$slow" 8200 developer green launch  1 '"name": "develop-green"'
+tv "$slow" 8300 developer green exit    1 '"status": "0", "secs": "100"'
+tv "$slow" 8300 developer green usage   1 "$(usage_json 85000)"
+tv "$slow" 8310 verifier  green launch  1 '"name": "verify-green"'
+tv "$slow" 8330 verifier  green exit    1 '"status": "0", "secs": "20"'
+tv "$slow" 8330 verifier  green usage   1 "$(usage_json 10000)"
+tv "$slow" 8330 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+tv "$slow" 8340 conductor green revise  1 '"budget": "3"'
+tv "$slow" 8350 developer green launch  2 '"name": "revise-green-1"'
+tv "$slow" 8420 developer green exit    2 '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "70"'
+tv "$slow" 8430 developer green launch  2 '"name": "revise-green-1"'
+tv "$slow" 8490 developer green exit    2 '"status": "0", "secs": "60"'
+tv "$slow" 8490 developer green usage   2 "$(usage_json 45000)"
+tv "$slow" 8500 verifier  green launch  2 '"name": "verify-green"'
+tv "$slow" 8520 verifier  green exit    2 '"status": "0", "secs": "20"'
+tv "$slow" 8520 verifier  green usage   2 "$(usage_json 10000)"
+tv "$slow" 8520 verifier  green verdict 2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+tv "$slow" 8600 conductor ""    step-done ""
+
+# The mark that closed the run, 1700 seconds after its first event.
+tv "$slow" 8700 conductor ""    done       "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+
+
+name="the phase and step rows carry their wall and API seconds, and the report gives the issue wall from its first event to done"
+problems=()
+
+time_out="$time_work/report.md"
+( cd "$time_work" && "$METRICS" 108 ) > "$time_out" 2>/dev/null
+status=$?
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("want metrics.sh to exit 0, it exited $status")
+
+times_say "$time_out" red=210,155 green=390,240 "$brisk=400,175" "$slow=600,220"
+issue_wall_says "$time_out" 1700
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$(cat "$time_out")")")
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -70,6 +70,26 @@
 # unknown, never to zero, because `0/3` reads as "this step needed no revise" and that is a
 # different claim from "nobody wrote it down".
 #
+# A third group of columns, in both sections, is TIME — the axis a reader reaches for before
+# money, and the one the other three counts are a proxy for:
+#
+#   wall / API per phase — summed over that phase's attempts. Wall is the `secs`
+#              supervise.sh writes on every `exit` (supervise.sh:355), the wall seconds of
+#              one attempt; API is `duration_api_ms` off the leaf's own closing record, which
+#              harvest-usage.sh copies into the `usage` line (harvest-usage.sh:80) —
+#              milliseconds there, seconds here. The two are read off two different lines on
+#              purpose: a killed leaf writes an `exit` and no `usage` at all, so a wall
+#              figure summed from `usage` would be short by exactly the attempts that went
+#              quiet, which are the ones a reader most wants to see.
+#   wall per step — the conductor's `step-start` to its `step-done`: the stretch of the run
+#              the step OCCUPIED, rather than the sum of what ran inside it. The gap between
+#              the two is the conductor's own reading, committing and narrating, which
+#              belongs to the step and to no attempt in it. A step whose log is missing
+#              either mark says `unknown`, by the rule above.
+#   issue wall — printed on a line of its own rather than in either table, because it belongs
+#              to no phase and no step: the log's first event to the `done` or `bail` mark
+#              that ended the run.
+#
 # The log is read relative to the directory this runs in, `.tdd/events.jsonl`, the way
 # event.sh writes it and the way supervise.sh already spells `.tdd/<name>.log` — the issue's
 # worktree, in other words, which is where the conductor calls this from.
@@ -107,6 +127,10 @@ STEP_COUNTS = COUNTS + ["retries"]
 # alignment.
 BUDGETS = ["revise", "refactor", "stopped"]
 
+# The two time columns, printed in both sections, in this order. The heading carries the
+# unit so the cell stays a bare number a reader can compare down the column.
+TIMES = ["wall s", "API s"]
+
 # What a figure says when no mark in the log supplies it. Not "0": see the header.
 UNKNOWN = "unknown"
 
@@ -119,19 +143,37 @@ UNKNOWN = "unknown"
 counts = {}
 steps = {}
 
-# What the conductor budget marks said about each step, keyed by step like `steps` and kept
+# What the conductor own marks said about each step, keyed by step like `steps` and kept
 # beside it rather than inside it because these are read off marks rather than counted one
-# line per unit. One table rather than two even though a revise attempt is counted from its
-# own marks while a refactor mark is read once, whole: both answer "what did this step spend",
-# both are keyed by step, and two tables on one key are two tables to keep in step with each
-# other. Each budget is the LAST one its marks reported — the budget the run finished under,
-# and the same number as the first in every log where nobody re-exported the variable mid-run.
-budgets = {}
+# line per unit. One table rather than one per kind of mark: a revise attempt is counted from
+# its own marks, a refactor mark is read once whole, and the two brackets of the step are two
+# timestamps — but all three answer "what did this step spend", all three are keyed by step,
+# and two tables on one key are two tables to keep in step with each other. Each budget is
+# the LAST one its marks reported — the budget the run finished under, and the same number as
+# the first in every log where nobody re-exported the variable mid-run.
+spent = {}
+
+# Seconds per phase and per step, keyed like `counts` and `steps` and summed over the
+# attempts in each. Apart from those two because these are not counts: a count rises by one
+# per line, these rise by whatever the line reports.
+times = {}
+step_times = {}
 
 def tally(table, key, columns, count):
     if key not in table:
         table[key] = dict.fromkeys(columns, 0)
     table[key][count] += 1
+
+def add_seconds(table, key, column, seconds):
+    if not key:
+        return
+    table.setdefault(key, dict.fromkeys(TIMES, 0))[column] += seconds
+
+# The two ends of the whole run. `first` is the first line of the log whatever it is, since
+# the mark that opens a run is the conductor own and a log missing it still started
+# somewhere; `last` is the mark that ended it, either outcome, and stays None in a log of a
+# run that has not ended.
+first, last = None, None
 
 with open(path) as f:
     for raw in f:
@@ -141,16 +183,37 @@ with open(path) as f:
         line = json.loads(raw)
         event = line.get("event", "")
         step = line.get("step", "")
-        # The conductor budget marks first, and they fall through to nothing below: a
+        phase = line.get("phase", "")
+        ts = line.get("ts")
+        if first is None:
+            first = ts
+        if event in ("done", "bail"):
+            last = ts
+        # The two brackets of a step, read before anything classifies the line below, since
+        # neither is a leaf event and both would otherwise fall through to nothing.
+        if event in ("step-start", "step-done") and step:
+            spent.setdefault(step, {})[event] = ts
+            continue
+        # Time, off the two lines that carry it. An `exit` is also where a kill is counted
+        # below, so this adds and lets the line fall through rather than classifying it.
+        if event == "exit":
+            secs = int(line.get("secs") or 0)
+            add_seconds(times, phase, "wall s", secs)
+            add_seconds(step_times, step, "wall s", secs)
+        elif event == "usage":
+            api = int(line.get("duration_api_ms") or 0) // 1000
+            add_seconds(times, phase, "API s", api)
+            add_seconds(step_times, step, "API s", api)
+        # The conductor budget marks next, and they fall through to nothing below: a
         # `revise` is not a leaf launch, so counting it as an attempt would double-count the
         # revise leaf that the mark is followed by.
         if event == "revise" and step:
-            mark = budgets.setdefault(step, {})
+            mark = spent.setdefault(step, {})
             mark["revises"] = mark.get("revises", 0) + 1
             mark["revise"] = line.get("budget", "")
             continue
         if event == "refactor" and step:
-            mark = budgets.setdefault(step, {})
+            mark = spent.setdefault(step, {})
             mark["transforms"] = line.get("transforms", "")
             mark["refactor"] = line.get("budget", "")
             mark["stopped"] = line.get("stopped", "")
@@ -169,7 +232,6 @@ with open(path) as f:
         # grouped, so reading `event` twice is the way the two sections come to disagree.
         # A phase-less line still raises no phase row, and a retry has no phase column to
         # land in.
-        phase = line.get("phase", "")
         if phase and count in COUNTS:
             tally(counts, phase, COUNTS, count)
         if step:
@@ -178,8 +240,26 @@ with open(path) as f:
 def row(cells):
     print("| " + " | ".join(cells) + " |")
 
+# The seconds of one row, from whichever of the two tables holds the section own. Only the
+# wall cell differs between the sections — a phase is summed over its attempts, a step is
+# bracketed by two marks — so the reader is built with the wall it should print and the rest
+# is written once.
+def time_cells(table, wall=None):
+    def cells(key):
+        row_seconds = table.get(key, {})
+        return [wall(key) if wall else "%d" % row_seconds.get("wall s", 0),
+                "%d" % row_seconds.get("API s", 0)]
+    return cells
+
+def step_wall(step):
+    mark = spent.get(step, {})
+    start, done = mark.get("step-start"), mark.get("step-done")
+    if start is None or done is None:
+        return UNKNOWN
+    return "%d" % (done - start)
+
 def budget_cells(step):
-    mark = budgets.get(step, {})
+    mark = spent.get(step, {})
     used = mark.get("revises")
     revise = "%d/%s" % (used, mark.get("revise") or "?") if used else UNKNOWN
     if mark.get("refactor"):
@@ -187,6 +267,11 @@ def budget_cells(step):
     else:
         refactor = UNKNOWN
     return [revise, refactor, mark.get("stopped") or UNKNOWN]
+
+# `section` takes one reader for its text columns, and the step section has two groups of
+# them: this is the one, so the cells cannot come apart from the order the headings print in.
+def step_cells(step):
+    return time_cells(step_times, step_wall)(step) + budget_cells(step)
 
 # `text` is a section of non-count columns, as the pair (headings, a function mapping a row
 # key to that rows cells under them). One parameter rather than two because headings with
@@ -208,6 +293,11 @@ def section(heading, key_column, columns, table, text=None):
         row(cells + (cells_for(key) if cells_for else []))
 
 print("### 📊 Metrics — issue %s" % issue)
-section("#### By phase", "phase", COUNTS, counts)
-section("#### By step", "step", STEP_COUNTS, steps, (BUDGETS, budget_cells))
+print()
+# Outside the tables, because it is a figure of the whole run and not of a row in either.
+print("Wall time for the issue: %s s, from the first event of the log to the mark that "
+      "ended the run."
+      % (UNKNOWN if first is None or last is None else "%d" % (last - first)))
+section("#### By phase", "phase", COUNTS, counts, (TIMES, time_cells(times)))
+section("#### By step", "step", STEP_COUNTS, steps, (TIMES + BUDGETS, step_cells))
 ' "$issue" "$log"
