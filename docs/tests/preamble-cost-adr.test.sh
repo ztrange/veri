@@ -25,6 +25,13 @@
 #   Which file, and how it is worded, are the author's — each probe below accepts any
 #   phrasing that carries its fact.
 #
+#   And a second record, of the cuts #202 refused to make: some file in that set names the
+#   once-per-run procedure and the contingent paths (pin, revise, bail, resume), says they
+#   were declined rather than deferred, gives the hazard that declines them — a conductor
+#   which must read a file before it can bail might not bail, on the path that runs when
+#   things are already broken — and says that half of SKILL.md is closed, with what would
+#   have to change to reopen it.
+#
 # Where this suite lives (issue #143, ADR 0016): here, with the rest of the docs lane's
 # suites, and not under the `make test` glob, because its subject is a record under docs/adr/
 # and `make test` is what preflight reads its baseline off, what every Green leaf runs and
@@ -136,6 +143,79 @@ elif [[ -z "$found" && "$candidates" -eq 0 ]]; then
   problems+=("no ADR of the $adr_seen under docs/adr/ is about the preamble at all — what a preamble token costs per night is unrecorded")
 elif [[ -z "$found" ]]; then
   problems+=("no ADR of the $adr_seen under docs/adr/ records the price; the closest, ${best_file##*/}:")
+  problems+=("${best_missing[@]}")
+fi
+
+report "$name"
+
+# probe_decline_record — the second contract, as the four facts the record of the *refusal*
+# has to carry. Step 1 of #202 tabled three candidate cuts in SKILL.md and the operator took
+# one; the other two — the once-per-run procedure (3,684 tokens) and the contingent paths the
+# conductor takes when something has already gone wrong: pin, revise, bail, resume (3,142
+# tokens) — are a real ~7,800-token saving that was refused. A saving that large, refused and
+# recorded nowhere, is one the next reader re-proposes from the same table and the same
+# arithmetic, because the arithmetic is the half that is written down. What is not is the
+# hazard: those paths are read on the turn something is already broken, and a conductor that
+# must `Read` a file before it can bail is a conductor that might not bail.
+#
+# So the record owes what it declined, that it declined it rather than deferred it, why, and
+# that the question is closed — with the one thing that would reopen it, since "closed" with
+# no way back is an invitation to reopen it by simply not knowing it was shut.
+#
+# Same shape as probe_preamble_price above and separate from the sweep for the same reason:
+# what the record must say is here, which file says it is below.
+probe_decline_record() {
+  probe "does not name the two cuts it declines — the once-per-run procedure, and the contingent paths the conductor takes when something has already gone wrong" \
+    'once[ -]per[ -]run' '(contingent|bail)'
+  probe "does not say they were declined rather than taken or deferred" \
+    '(declin|reject|refus|not cut)'
+  probe "does not give the hazard that declines them — that a conductor which must read a file before it can bail might not bail, on the path that runs when things are already broken" \
+    '(read|load)' 'bail' '((might|may|could) (not|fail)|fails? to)' 'already (broken|wrong|gone wrong|failing)'
+  probe "does not close that half of the file, nor name what would have to change to reopen it" \
+    '(closed|closes|shut|reopen)' 'skill\.md'
+}
+
+# find_decline_record — which file says it. The same per-file sweep as find_price_record,
+# asking probe_decline_record instead: one ADR has to carry the whole refusal, not two ADRs a
+# fact each, and only files about the preamble are candidates because no other record in the
+# set is about what is resident in a request. A file that misses some is kept as the closest
+# miss, because "no ADR records the refusal" and "the ADR forgot the hazard" are different
+# repairs. Sets the same five globals, which case 1 has finished reading by the time this runs.
+find_decline_record() {
+  local adr lc
+  local -a problems
+
+  adr_seen=0 candidates=0 found=""
+  best_file="" best_missing=()
+  for adr in "$ADR_DIR"/[0-9][0-9][0-9][0-9]-*.md; do
+    [[ -f "$adr" ]] || continue
+    adr_seen=$((adr_seen + 1))
+    lc="$(tr '[:upper:]' '[:lower:]' < "$adr")"
+    [[ "$lc" =~ preamble ]] || continue
+    candidates=$((candidates + 1))
+
+    problems=()
+    probe_decline_record
+
+    if [[ "${#problems[@]}" -eq 0 ]]; then found="$adr"; return; fi
+    if [[ -z "$best_file" || "${#problems[@]}" -lt "${#best_missing[@]}" ]]; then
+      best_file="$adr"; best_missing=("${problems[@]}")
+    fi
+  done
+}
+
+# --- the two cuts that were refused are on the record, and that half is closed ------
+name="an ADR records the two cuts #202 declined and the hazard that declines them, so that half of skills/tdd/SKILL.md is closed"
+
+find_decline_record
+
+problems=()
+if [[ "$adr_seen" -eq 0 ]]; then
+  problems+=("no ADRs found under docs/adr/ — the sweep read nothing")
+elif [[ -z "$found" && "$candidates" -eq 0 ]]; then
+  problems+=("no ADR of the $adr_seen under docs/adr/ is about the preamble at all — the ~7,800 tokens #202 refused to cut, and why, are unrecorded")
+elif [[ -z "$found" ]]; then
+  problems+=("no ADR of the $adr_seen under docs/adr/ records the decline; the closest, ${best_file##*/}:")
   problems+=("${best_missing[@]}")
 fi
 
