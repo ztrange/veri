@@ -1683,6 +1683,53 @@ outcome_says "$single_run_out" system
 report_on "$name" "$single_run_out"
 
 
+# An eighteenth fixture: one issue run twice again, but with leaves in both runs, so a figure
+# summed over the whole log is observable as something other than one summed over the last
+# run alone. Red was tried and rejected before the bail, and tried again and passed after the
+# resume. Over the whole log red is 4 attempts, 1 PASS, 1 REJECT, 210 wall seconds, 10 turns,
+# 1111/2222/3333/4444 tokens and $0.80; over the last run alone it would be 2, 1, 0, 90, 5,
+# 1001/2002/3003/4004 and $0.45 — no figure the same, so a report scoped to the last run cannot
+# pass (#229).
+fixture_work accrued_work
+
+accrued="a step whose leaves ran in both the bailed run and the resumed one"
+
+sv "$accrued" 20000 conductor ""  step-start ""
+sv "$accrued" 20010 developer red launch  1 '"name": "develop-red"'
+sv "$accrued" 20110 developer red exit    1 '"status": "0", "secs": "100"'
+sv "$accrued" 20110 developer red usage   1 "$(cost_json 3 0.25 100 200 300 400)"
+sv "$accrued" 20120 verifier  red launch  1 '"name": "verify-red"'
+sv "$accrued" 20140 verifier  red exit    1 '"status": "0", "secs": "20"'
+sv "$accrued" 20140 verifier  red usage   1 "$(cost_json 2 0.10 10 20 30 40)"
+sv "$accrued" 20140 verifier  red verdict 1 '"verdict": "REJECT", "reason": "the case fails for a reason it was not written to catch"'
+sv "$accrued" 20200 conductor ""  bail    "" '"cause": "poisoned-baseline", "classification": "system"'
+sv "$accrued" 20300 conductor ""  resume  ""
+sv "$accrued" 20310 developer red launch  2 '"name": "develop-red"'
+sv "$accrued" 20370 developer red exit    2 '"status": "0", "secs": "60"'
+sv "$accrued" 20370 developer red usage   2 "$(cost_json 4 0.40 1000 2000 3000 4000)"
+sv "$accrued" 20380 verifier  red launch  2 '"name": "verify-red"'
+sv "$accrued" 20410 verifier  red exit    2 '"status": "0", "secs": "30"'
+sv "$accrued" 20410 verifier  red usage   2 "$(cost_json 1 0.05 1 2 3 4)"
+sv "$accrued" 20410 verifier  red verdict 2 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$accrued" 20500 conductor ""  step-done ""
+sv "$accrued" 20600 conductor ""  done    "" '"pr": "https://github.com/ztrange/veri/pull/997"'
+
+plan_of "$accrued"
+
+
+name="on a log with a bail, a resume and a done the counts, wall seconds and costs are summed over both runs"
+problems=()
+
+accrued_out="$accrued_work/report.md"
+render "$accrued_work" "$accrued_out"
+
+table_says "$accrued_out" red=4,1,1,0
+times_say "$accrued_out" red=210
+costs_say "$accrued_out" red=10,1111,2222,3333,4444,0.80 total=10,1111,2222,3333,4444,0.80
+
+report_on "$name" "$accrued_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
