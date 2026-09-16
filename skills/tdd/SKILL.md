@@ -808,34 +808,31 @@ branch and its commits without any switching.
    pending step go to *Resume* sub-step 2, which resets the stray work and re-enters that
    step's refactor loop, and come back here only once both questions have gone quiet — an
    empty status, and `next-pending-refactor.sh` exiting 3.
-2. **Render the run's metrics and commit them**, from inside the worktree and before the PR
-   is opened — so the branch a human is sent to already carries the file the body quotes,
-   rather than being one commit short of it:
+2. **Open the draft PR, close the run's log with its URL, then render the metrics, commit
+   them and put them in the PR body** — one sub-step, in this order, from inside the worktree.
+   The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
+   and the issue's wall time: a report rendered before it exists says `unknown` for both, and
+   the mark carries the PR's URL, which only `gh pr create` hands back. The body is opened
+   without the `### 📊 Metrics` block and gets it only after the `metrics:` commit is pushed,
+   so the body never quotes a file the branch does not yet carry:
    ```
+   gh pr create --draft --base <default-branch> \
+     --title "<type>: <criterion summary> (#<n>)" \
+     --body "Closes #<n> — <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>"
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md
    git add .tdd/issue-<n>-metrics.md
    git commit -m "metrics: what solving #<n> cost (#<n>)"
+   $S/push-branch.sh
+   gh pr edit <pr-url> --body "<the body above, followed by the contents of .tdd/issue-<n>-metrics.md>"
    ```
    One `metrics:` commit, and the report sits beside the ledger it describes — the
    `issue-<n>-metrics.md` name is already on the keep side of the run-state ignore rule, so
    nothing else has to change for it to be tracked.
-3. Open a **draft** PR linked to the issue; the body must contain `Closes #<n>` and end with
-   the report's own `### 📊 Metrics` block, pasted verbatim from the file just committed:
-   ```
-   gh pr create --draft --base <default-branch> \
-     --title "<type>: <criterion summary> (#<n>)" \
-     --body "Closes #<n>
-
-   <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>
-
-   <the contents of .tdd/issue-<n>-metrics.md>"
-   ```
-4. **Never merge the PR.** Landing the code is always the human's deliberate act.
-5. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
-   under it, and close the run's log with the same URL:
-   ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
-   ```
+3. **Never merge the PR.** Landing the code is always the human's deliberate act.
+4. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
+   under it, pasted verbatim from the file just committed. It mirrors the
+   `$S/event.sh done pr=<pr-url>` mark sub-step 2 already wrote, so it writes no second one.
 
 **The worktree stays.** Do not remove it here: it holds the run's leaf logs and is where a
 resume would land if the PR comes back for more work. It is removed once the PR is **merged**
