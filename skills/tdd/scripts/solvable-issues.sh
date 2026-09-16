@@ -84,6 +84,12 @@ if [[ -z "${VERI_LABEL-x}" ]]; then
 fi
 label="${VERI_LABEL:-ready-for-agent}"
 
+# The label that says "take this one sooner", read like every other tunable. It names a band
+# in the print order and nothing else: an issue carrying it still has to pass all four
+# conditions above, so priority reorders the solvable set and never enlarges it. The default
+# is the `priority` label the repository already has.
+priority_label="${VERI_PRIORITY_LABEL:-priority}"
+
 # One document, from whichever of the two sources is in force. Both the override and the
 # `--repo` scoping are decided here rather than around the pair of fetches, so each document
 # is named exactly once — beside the gh call that produces it and the fixture that stands in
@@ -127,8 +133,9 @@ import json, os, re, sys
 issues = json.loads(sys.argv[1])
 prs = json.loads(sys.argv[2])
 label = sys.argv[3]
-this_repo = sys.argv[4]
-main_tree = sys.argv[5]
+priority_label = sys.argv[4]
+this_repo = sys.argv[5]
+main_tree = sys.argv[6]
 
 # Openness is the whole of what a state is read for, and it is read the same way on both
 # kinds of record: `gh` writes an issue state as OPEN/CLOSED and a PR state as
@@ -219,17 +226,26 @@ def solvable(issue):
     return still_open and opted_in and unclaimed and unblocked
 
 # The order the surviving set is printed in — the only thing the caller reads as "what to do
-# next", since the /tdd loop takes the first line. A `bug` label moves an issue ahead of every
-# plain one however much older that plain one is: what is BROKEN goes before what is merely
-# wanted (#113). Inside a band the old rule stands, ascending by number, so the queue is still
-# first-come-first-served among equals. One key, not two passes: `False` sorts before `True`,
-# so `not is_bug` puts the labelled band in front and `number` breaks every tie within it.
+# next", since the /tdd loop takes the first line. Three bands, one key read left to right:
+# the priority label says take this one sooner and beats everything, a `bug` label moves an
+# issue ahead of every plain one however much older that plain one is — what is BROKEN goes
+# before what is merely wanted — and inside a band the old rule stands, ascending by number,
+# so the queue is still first-come-first-served among equals (#113, folding in #215). One key
+# rather than three passes, and the band is ONE number rather than one term per label: an
+# issue carrying both labels belongs to the priority band and is then ordered by number among
+# the other priority issues, which a `(not is_priority, not is_bug, number)` key would get
+# wrong — it would sort the both-labelled issue ahead of a lower-numbered plain priority one.
 #
 # The sort runs on what `solvable()` already let through, so order never enlarges the set: a
-# bug that is blocked, claimed or not opted in is still not printed.
+# priority or bug issue that is blocked, claimed or not opted in is still not printed.
 def order(issue):
-    is_bug = has_label(issue, "bug")
-    return (not is_bug, issue["number"])
+    if has_label(issue, priority_label):
+        band = 0
+    elif has_label(issue, "bug"):
+        band = 1
+    else:
+        band = 2
+    return (band, issue["number"])
 
 numbers = [i["number"] for i in sorted((i for i in issues if solvable(i)), key=order)]
 for number in numbers:
@@ -239,4 +255,4 @@ for number in numbers:
 # learns it from the code rather than from having to notice that stdout was empty.
 if not numbers:
     sys.exit(3)
-' "$issues_json" "$prs_json" "$label" "$repo" "$main_tree"
+' "$issues_json" "$prs_json" "$label" "$priority_label" "$repo" "$main_tree"

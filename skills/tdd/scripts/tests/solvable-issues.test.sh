@@ -1032,6 +1032,57 @@ run "$fx"
 { [[ "$code" == 0 ]] && [[ "$out" == $'120\n124\n108\n117' ]]; } \
   && ok || no "a bug-labelled issue is printed ahead of a lower-numbered plain one, each band ascending by number (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '120|124|108|117|')"
 
+# 23. The band in FRONT of case 22's: `priority` says take this one sooner, and it beats `bug`
+# the way `bug` beats plain (#113, folding in #215). It is the whole of veri's queue-level
+# steering — `gh issue edit <n> --add-label priority` from a shell or a phone — so what it has
+# to buy is exactly this: an issue jumping a lower-numbered BUG, which is already jumping every
+# plain one. An issue carrying BOTH labels sorts in the priority band, because the bands are one
+# sort key read left to right, not two independent questions.
+#
+# Three issues, fed in so no reading can pass by luck: #120 `bug`, #160 `priority`+`bug`,
+# #150 `priority`, in that input order. The answer "150\n160\n120" says both halves at once —
+# #150 ahead of the lower-numbered #120 is the priority band beating the bug band, and #160
+# between them rather than last is the both-labelled issue landing in the priority band,
+# ascending after #150. Today's bug-band-only key prints "120\n160\n150"; a key that put the
+# both-labelled issue in the bug band prints "150\n120\n160"; the input order prints itself.
+#
+# Every one is otherwise maximally takeable — open, opted in, `None.` under `## Blocked by`,
+# the helper's empty `prs.json` — so the only thing varying is the labels. `-u
+# VERI_PRIORITY_LABEL` guarantees the label name is the DEFAULT rather than whatever the
+# calling shell exports, which is the hermeticity the other tunables' cases already keep.
+fx="$(fixture priority-band)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 120,
+    "title": "a thing that is broken",
+    "labels": [{"name": "ready-for-agent"}, {"name": "bug"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 160,
+    "title": "a thing that is broken and wanted today",
+    "labels": [{"name": "bug"}, {"name": "ready-for-agent"}, {"name": "priority"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 150,
+    "title": "a capability wanted today",
+    "labels": [{"name": "priority"}, {"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+label_run "$fx" -u VERI_PRIORITY_LABEL
+
+{ [[ "$code" == 0 ]] && [[ "$out" == $'150\n160\n120' ]]; } \
+  && ok || no "a priority-labelled issue is printed ahead of a lower-numbered bug, and one carrying both labels sorts in the priority band (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '150|160|120|')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
