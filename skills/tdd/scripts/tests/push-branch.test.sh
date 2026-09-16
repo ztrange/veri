@@ -394,8 +394,8 @@ start="$(python3 -c 'import time; print(time.time())')"
     VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Zero backoff waits on nothing' \
     "$PUSH" ) >/dev/null 2>&1
 end="$(python3 -c 'import time; print(time.time())')"
-elapsed="$(python3 -c "import sys; print('%.2f' % ($end - $start))")"
-python3 -c "import sys; sys.exit(0 if $end - $start < 2 else 1)" ||
+elapsed="$(python3 -c "print('%.2f' % ($end - $start))")"
+python3 -c "import sys; sys.exit(0 if $elapsed < 2 else 1)" ||
   problems+=("want a 3-retry failure with VERI_PUSH_BACKOFF=0 to complete in under 2 s, took ${elapsed} s")
 report "$name"
 
