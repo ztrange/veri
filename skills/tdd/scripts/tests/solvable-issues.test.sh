@@ -977,6 +977,61 @@ out="$(cd "$pushed_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code
 { [[ -n "$on_remote" ]] && [[ "$code" == 0 ]] && [[ "$out" == 191 ]]; } \
   && ok || no "a branch on the remote, with no open PR and no live conductor pid, leaves its issue takeable (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '191|'; ls-remote tdd/191-slug='$on_remote', want non-empty)"
 
+
+# 22. Order is not "ascending by number" alone: a `bug`-labelled issue is taken ahead of every
+# plain one, however much older the plain one is (#113). The thing that is BROKEN goes before
+# the things that are merely wanted, and the /tdd loop gets that for free because it already
+# takes the first line.
+#
+# Two issues per band, fed in so that neither band is in input order and the two bands
+# interleave by number (#117 plain, #120 bug, #108 plain, #124 bug): the answer "120\n124\n
+# 108\n117" is then the only string that says BOTH halves of the criterion at once. Today's
+# plain `sorted(numbers)` prints "108\n117\n120\n124"; a sort that put bugs first but lost
+# the ascending order inside a band prints "124\n120\n…"; a sort that read the input order
+# prints it back. Each is a different string rather than a reorder that could pass by luck.
+#
+# Every one of the four is otherwise maximally takeable — open, opted in, `None.` under
+# `## Blocked by`, and the helper's empty `prs.json` — so the ONLY thing this case varies is
+# the `bug` label, and the only thing it can be observing is the order.
+fx="$(fixture bug-band)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 117,
+    "title": "a capability somebody wants",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 120,
+    "title": "a thing that is broken",
+    "labels": [{"name": "ready-for-agent"}, {"name": "bug"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 108,
+    "title": "an older capability somebody wants",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 124,
+    "title": "a second thing that is broken",
+    "labels": [{"name": "bug"}, {"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+run "$fx"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == $'120\n124\n108\n117' ]]; } \
+  && ok || no "a bug-labelled issue is printed ahead of a lower-numbered plain one, each band ascending by number (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '120|124|108|117|')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

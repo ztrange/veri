@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # solvable-issues.sh — print the numbers of the issues veri may take right now, one per
-# line, lowest first.
+# line: the `bug`-labelled ones first, then the rest, each band ascending by number.
 #
 # An issue is solvable when it is open, carries the opt-in label (`ready-for-agent`, or the
 # name `VERI_LABEL` gives instead — the human's explicit opt-in, since nothing is taken
@@ -210,7 +210,20 @@ def solvable(issue):
     unblocked = all(n not in open_issues for n in blockers(issue.get("body", "")))
     return still_open and opted_in and unclaimed and unblocked
 
-numbers = sorted(i["number"] for i in issues if solvable(i))
+# The order the surviving set is printed in — the only thing the caller reads as "what to do
+# next", since the /tdd loop takes the first line. A `bug` label moves an issue ahead of every
+# plain one however much older that plain one is: what is BROKEN goes before what is merely
+# wanted (#113). Inside a band the old rule stands, ascending by number, so the queue is still
+# first-come-first-served among equals. One key, not two passes: `False` sorts before `True`,
+# so `not is_bug` puts the labelled band in front and `number` breaks every tie within it.
+#
+# The sort runs on what `solvable()` already let through, so order never enlarges the set: a
+# bug that is blocked, claimed or not opted in is still not printed.
+def order(issue):
+    is_bug = any(l.get("name") == "bug" for l in issue.get("labels", []))
+    return (not is_bug, issue["number"])
+
+numbers = [i["number"] for i in sorted((i for i in issues if solvable(i)), key=order)]
 for number in numbers:
     print(number)
 
