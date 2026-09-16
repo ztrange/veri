@@ -214,28 +214,37 @@ def row_in(table, key, columns):
 def tally(table, key, columns, count):
     row_in(table, key, columns)[count] += 1
 
+# The rows one leaf line belongs to: the row of its phase and the row of its step, each
+# raised on first sight. Which table goes with which set of columns is written here once, so
+# the two additions below cannot come to disagree about it, and a line missing either key —
+# a phase-less conductor mark, and the conductor own usage, which carries neither — simply
+# lands in one row or in none.
+def rows_for(phase, step):
+    rows = []
+    if phase:
+        rows.append(row_in(counts, phase, PHASE_COLUMNS))
+    if step:
+        rows.append(row_in(steps, step, STEP_COLUMNS))
+    return rows
+
 # Seconds land in both sections from one call, the way a count does below: the line is the
 # same attempt whichever way it is grouped. A count rises by one per line, these rise by
-# whatever the line reports. A phase-less line still raises no phase row.
+# whatever the line reports.
 def add_seconds(phase, step, column, seconds):
-    if phase:
-        row_in(counts, phase, PHASE_COLUMNS)[column] += seconds
-    if step:
-        row_in(steps, step, STEP_COLUMNS)[column] += seconds
+    for row_of in rows_for(phase, step):
+        row_of[column] += seconds
 
 # What one `usage` line spent, into the row of its phase, the row of its step and the total.
-# The total is added to unconditionally where the other two are not: a line with neither —
-# the conductor own — is still spending of the run, and that is exactly the figure the line
-# below `conductor_counted` is about.
+# The total is in the list unconditionally where the other two are not: a line with neither
+# key — the conductor own — is still spending of the run, and that is exactly the figure the
+# line below `conductor_counted` is about.
 def add_cost(phase, step, line):
+    rows = rows_for(phase, step) + [totals["total"]]
     for heading, field in COSTS:
         reported = line.get(field) or 0
         amount = float(reported) if heading == DOLLARS else int(reported)
-        if phase:
-            row_in(counts, phase, PHASE_COLUMNS)[heading] += amount
-        if step:
-            row_in(steps, step, STEP_COLUMNS)[heading] += amount
-        totals["total"][heading] += amount
+        for row_of in rows:
+            row_of[heading] += amount
 
 # The two ends of the whole run. `first` is the first line of the log whatever it is, since
 # the mark that opens a run is the conductor own and a log missing it still started
