@@ -11,10 +11,10 @@
 #
 # Contract under test (this step only):
 #   `run-conductor.sh <issue>` launches the conductor binary in print mode — `-p` — with
-#   `--output-format stream-json --verbose`, and the issue it was asked for reaches the
-#   prompt that launch carries; the child it launches inherits none of the parent session's
-#   eight handles while still inheriting every `VERI_*` tunable; and whatever status that
-#   child exits with is the status the script exits with.
+#   `--output-format stream-json --verbose` and `--permission-mode bypassPermissions`, and
+#   the issue it was asked for reaches the prompt that launch carries; the child it launches
+#   inherits none of the parent session's eight handles while still inheriting every `VERI_*`
+#   tunable; and whatever status that child exits with is the status the script exits with.
 #
 # The two halves of that second sentence are one criterion and not two: the severing is done
 # by editing the environment the child is given, so a script that drops the handles by
@@ -205,6 +205,25 @@ elif [[ "$(cat "$prompt")" != "$(cat "$SKILL")"* ]]; then
   # from applying a size verb to SKILL.md. The tail the prefix leaves is the issue line,
   # which case 1 is the one that asserts on.
   problems+=("what reached the binary does not begin with $SKILL verbatim")
+fi
+
+report "$name"
+
+# 5. Print mode has nobody to approve a tool call, so without this flag the `gh`, the `make`
+# and the nested `claude` a conductor needs are all denied and it is a process that can read
+# but cannot act. Asserted as a flag-with-value rather than as two words found anywhere,
+# because `--permission-mode` reads whatever argument follows it: the pair landing at
+# opposite ends of the command line is a different launch from this one.
+name="the launch carries --permission-mode bypassPermissions"
+problems=()
+
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
+    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
+
+if [[ ! -f "$argv" ]]; then
+  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no argv")
+else
+  valued --permission-mode bypassPermissions
 fi
 
 report "$name"
