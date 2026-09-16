@@ -131,30 +131,33 @@ NOT_ENLARGE='enlarge|reorder|re-order|only.*order|never.*solvable|not.*solvable|
 # reader and read by a claim, the convention model-knobs-recorded.test.sh follows.
 passage_text="" passage_from=""
 
-# need_entry <term> — that CONTEXT.md entry into those globals, or one problem naming it and
-# a non-zero return. The reader and the fail-closed check are one step, and the label is
-# derived here rather than passed in, so no caller can report an entry under a name the probe
-# did not read.
+# need_passage <label> <text> <problem> — the three readers below are one shape: put a
+# passage and the name a failure calls it by into the globals, and fail closed when the
+# passage is not there. Written once here so the fail-closed check cannot come to mean
+# three different things; each reader still derives its own label and its own problem, so
+# no caller can report a passage under a name the probe did not read.
 #
-# Fail closed: an empty string matches no regex, so every fact asked of an entry that is not
-# there would be reported missing — true, but it names two edits when the repair is that one
-# entry was renamed.
-need_entry() {
-  passage_from="$context_md's $1 entry"
-  passage_text="$(entry "$1")"
+# Fail closed rather than letting the claims run: an empty string matches no regex, so
+# every fact asked of a passage that is not there would be reported missing — true, but it
+# names several edits when the repair is that one entry was renamed.
+need_passage() {
+  passage_from="$1"
+  passage_text="$2"
   [[ -n "${passage_text// /}" ]] && return 0
-  problems+=("$context_md has no '$1' glossary entry to read, so the order is unstated where every other document defers to it")
+  problems+=("$3")
   return 1
 }
 
-# need_solvable_bullet — SKILL.md's `solvable-issues.sh` bullet into the same globals, or one
-# problem naming it and a non-zero return.
+# need_entry <term> — that CONTEXT.md entry into those globals.
+need_entry() {
+  need_passage "$context_md's $1 entry" "$(entry "$1")" \
+    "$context_md has no '$1' glossary entry to read, so the order is unstated where every other document defers to it"
+}
+
+# need_solvable_bullet — SKILL.md's `solvable-issues.sh` bullet into the same globals.
 need_solvable_bullet() {
-  passage_from="$skill_md's solvable-issues.sh bullet"
-  passage_text="$(bullet '^[-*] .*solvable-issues\.sh')"
-  [[ -n "${passage_text// /}" ]] && return 0
-  problems+=("$skill_md has no top-level 'solvable-issues.sh' bullet to read, so the order and the tunable an operator looks up beside VERI_GH_JSON could not be found")
-  return 1
+  need_passage "$skill_md's solvable-issues.sh bullet" "$(bullet '^[-*] .*solvable-issues\.sh')" \
+    "$skill_md has no top-level 'solvable-issues.sh' bullet to read, so the order and the tunable an operator looks up beside VERI_GH_JSON could not be found"
 }
 
 # need_claude_md_records — all of CLAUDE.md's records into the same globals, for the claims
@@ -162,11 +165,8 @@ need_solvable_bullet() {
 # whole on purpose: the step asks that the document record the order and the tunable, not
 # that either sit under a heading this suite picked.
 need_claude_md_records() {
-  passage_from="$claude_md"
-  passage_text="$(records < "$claude_path")"
-  [[ -n "${passage_text// /}" ]] && return 0
-  problems+=("$claude_md could not be read, so nothing could be asked of what it records")
-  return 1
+  need_passage "$claude_md" "$(records < "$claude_path")" \
+    "$claude_md could not be read, so nothing could be asked of what it records"
 }
 
 # says <fact> <regex>... — one fact the passage last read has to carry: some ONE record of
