@@ -1,6 +1,6 @@
 # Plan for #113 — Selection order: priority first, then bugs, then the rest — ascending within each band
 
-- [ ] solvable-issues.sh prints a `bug`-labelled issue ahead of a lower-numbered plain one, each band ascending by number
+- [x] solvable-issues.sh prints a `bug`-labelled issue ahead of a lower-numbered plain one, each band ascending by number ⟂ refactor pending
 - [ ] solvable-issues.sh prints a priority-labelled issue ahead of a lower-numbered bug, and an issue carrying both labels sorts in the priority band
 - [ ] The priority label without the opt-in label never makes an issue solvable
 - [ ] A priority or bug issue that is blocked, claimed or closed is still not printed
