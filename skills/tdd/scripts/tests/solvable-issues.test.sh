@@ -1198,6 +1198,65 @@ label_run "$fx" -u VERI_PRIORITY_LABEL
   && ok || no "a priority or bug issue that is blocked, claimed or closed is still not printed (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '195|')"
 
 
+# 26. `VERI_PRIORITY_LABEL` names the band label, and it is read the way every other tunable
+# here is read — but the one expansion that supplies a default cannot tell EMPTY from UNSET,
+# so the two answers it owes are one criterion observed twice (#113). Set but empty is a
+# misconfigured run, not a choice — a launcher writing `VERI_PRIORITY_LABEL="$some_unset_var"`
+# is how it gets there — and an empty name matching every issue would put the whole solvable
+# set in the priority band, which is the ordering equivalent of the failure case 10 prevents
+# for the opt-in label. So it refuses in the same fail-closed shape: exit 2, veri's "no answer
+# could be obtained", a diagnostic on stderr and nothing on stdout for a caller to read as a
+# queue. Unset, on the same fixture, must still band on the default name `priority` — which is
+# what says the refusal came from the emptiness rather than from the knob being consulted at
+# all.
+#
+# The same two issues are fed in both times, so the only thing varying is the variable. #200
+# carries `priority` and the opt-in label, #100 is plain and opted in and LOWER-numbered, so
+# the default's answer is "200\n100" — the band visibly beating the number. That pair is also
+# what tells the empty run's failure modes apart in the message: a script quietly falling back
+# to the default prints "200\n100" and exits 0, and one reading the empty value as "matches
+# everything" prints "100\n200" — both ascending-by-number bands of one — and exits 0 too.
+# Either is visible against exit 2 with stdout empty.
+#
+# The empty run's two streams go to separate files rather than through the `label_run` helper,
+# which drops stderr: which stream carries what IS half the criterion, so they must not be
+# merged, and stdout's emptiness is asserted as well as stderr's content. The unset run keeps
+# the helper's `-u`, which guarantees the variable is ABSENT rather than merely unset by this
+# shell.
+fx="$(fixture priority-label-tunable)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 100,
+    "title": "a capability veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 200,
+    "title": "a capability wanted today",
+    "labels": [{"name": "ready-for-agent"}, {"name": "priority"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+empty_out="$work/empty-priority-label.out" empty_err="$work/empty-priority-label.err"
+env VERI_PRIORITY_LABEL= VERI_GH_JSON="$fx" "$SOLVABLE" >"$empty_out" 2>"$empty_err" \
+  && empty_code=0 || empty_code=$?
+
+label_run "$fx" -u VERI_PRIORITY_LABEL
+
+{ [[ "$empty_code" == 2 ]] \
+  && [[ ! -s "$empty_out" ]] \
+  && [[ -s "$empty_err" ]] \
+  && [[ "$code" == 0 ]] && [[ "$out" == $'200\n100' ]]; } \
+  && ok || no "VERI_PRIORITY_LABEL set to the empty string is refused with exit 2 and a diagnostic, while unset defaults to the priority label (set-but-empty: exit=$empty_code want 2, stdout='$(tr '\n' '|' < "$empty_out")' want empty, stderr='$(tr '\n' ' ' < "$empty_err")' want a diagnostic; unset: exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '200|100|')"
+
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
