@@ -12,27 +12,13 @@
 #
 # The log is read relative to the directory the script runs in — `.tdd/events.jsonl`, the
 # way event.sh writes it (event.sh:60) and the way supervise.sh already spells `.tdd/<name>.log`
-# — so the case below writes a hand-made log into a temp directory and runs the script there.
+# — so each case below writes a hand-made log into a temp directory and runs the script there.
 #
 # Which line of the log each of the four counts is read off, and why a kill is counted apart
 # from a verdict, is metrics.sh's own header — with the writer and line number for each. It
 # is not restated here: the same paragraph in two files is the same paragraph to keep
 # correct twice, and a `supervise.sh:297` that moves would go stale in whichever copy
 # nobody was editing.
-#
-# What the header there does not say, because it is about this fixture: the row key is the
-# log's own `phase` field rather than the leaf's name, so a developer leaf and the verifier
-# that judged it land in one row. A table keyed by leaf name would have PASS and REJECT
-# structurally zero for every `develop-*` row, and the case below could not tell a script
-# that counted verdicts from one that did not.
-#
-# The fixture is built so no two columns can be confused for one another: red reads
-# 2/1/0/0 and green reads 9/1/2/3, so the four columns hold four distinct pairs of numbers
-# across the two rows. A script that swapped two of them cannot pass this case.
-#
-# The conductor's own `step-start` and `step-done` marks are in the fixture too, carrying an
-# empty phase. They are neither launches nor verdicts nor exits, so they must contribute to
-# nothing and must not raise a row of their own.
 #
 # What is not pinned here is whatever `.tdd/issue-108.md` still has unchecked — budgets,
 # time, cost, rework and waste, progress, the unknown-rather-than-zero rule. That list is not
@@ -181,6 +167,21 @@ ev() {
   event_line "$work/.tdd/events.jsonl" "$1" "$2" "$3" "$step" "$4" "$5" "${6:-}"
 }
 
+# The first fixture: one step, two phases — a run whose Green was rejected twice and whose
+# leaves were killed three times. Its case reads the per-phase section.
+#
+# The row key there is the log's own `phase` field rather than the leaf's name, so a
+# developer leaf and the verifier that judged it land in one row. A table keyed by leaf name
+# would have PASS and REJECT structurally zero for every `develop-*` row, and this case could
+# not tell a script that counted verdicts from one that did not.
+#
+# The fixture is built so no two columns can be confused for one another: red reads 2/1/0/0
+# and green reads 9/1/2/3, so the four columns hold four distinct pairs of numbers across the
+# two rows. A script that swapped two of them cannot pass this case.
+#
+# The conductor's own `step-start` and `step-done` marks are in it too, carrying an empty
+# phase. They are neither launches nor verdicts nor exits, so they must contribute to nothing
+# and must not raise a row of their own.
 mkdir -p "$work/.tdd"
 
 # The conductor's own marks, phase-less: neither launch nor verdict nor exit, so they must
