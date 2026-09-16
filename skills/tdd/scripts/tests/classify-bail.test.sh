@@ -7,6 +7,7 @@
 #   classify-bail.sh killed-stuck     → first stdout line `system`,  exit 0
 #   classify-bail.sh no-verdict       → first stdout line `system`,  exit 0
 #   classify-bail.sh revise-exhausted → first stdout line `process`, exit 0
+#   classify-bail.sh reconcile-failed → first stdout line `system`,  exit 0
 #   classify-bail.sh <unrecognised>   → error on stderr, exit non-zero
 #
 # Run: scripts/tests/classify-bail.test.sh
@@ -54,6 +55,10 @@ check "revise-exhausted is process" revise-exhausted 0 process
 
 # 4. an unrecognised cause is an error, not a silent/default classification
 check_nonzero "unknown cause exits non-zero" wat
+
+# 5. a reconcile-failed cause classifies as system (issue #232): where the branch lives
+#    broke, not the methodology
+check "reconcile-failed is system" reconcile-failed 0 system
 
 echo "----"
 echo "$pass passed, $fail failed"
