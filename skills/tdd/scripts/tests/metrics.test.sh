@@ -49,6 +49,17 @@ report() {
   fi
 }
 
+# report_on <name> <out-file> — close a case, quoting the whole report as a last problem when
+# the case failed. The report is attached after the probes have had their say, so the output
+# reads as the disagreements first and the document they were read out of last, and it is
+# attached only on a failure, since a passing case has nothing to read.
+report_on() {
+  local name="$1" out_file="$2"
+  [[ "${#problems[@]}" -eq 0 ]] ||
+    problems+=("the report was: $(printf '%q' "$(cat "$out_file")")")
+  report "$name"
+}
+
 # render <dir> <out-file> — run the script in a fixture directory, catch its report, and put
 # a non-zero exit onto the caller's `problems`. Every case opens with this: the script reads
 # `.tdd/events.jsonl` relative to where it runs, so a case is a directory to run in, and an
@@ -304,10 +315,7 @@ render "$work" "$out_file"
 
 table_says "$out_file" red=2,1,0,0 green=9,1,2,3
 
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the report was: $(printf '%q' "$(cat "$out_file")")")
-
-report "$name"
+report_on "$name" "$out_file"
 
 
 # step_table_says <file> <step>=<attempts>,<pass>,<reject>,<kills>,<retries> … — the
@@ -390,10 +398,7 @@ render "$step_work" "$step_out"
 
 step_table_says "$step_out" "$one=4,2,0,0,0" "$two=9,1,2,3,4"
 
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the report was: $(printf '%q' "$(cat "$step_out")")")
-
-report "$name"
+report_on "$name" "$step_out"
 
 
 # budgets_say <file> <step-one> <step-two> <label>=<cell> … — the third section's subject:
@@ -577,10 +582,7 @@ render "$budget_work" "$budget_out"
 budgets_say "$budget_out" "$frugal" "$spendthrift" \
   revise=1/3 refactor=2/5 -- revise=3/3 refactor=5/5
 
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the report was: $(printf '%q' "$(cat "$budget_out")")")
-
-report "$name"
+report_on "$name" "$budget_out"
 
 
 # times_say <file> <key>=<wall>,<api> … — the fourth section's subject: how long the run
@@ -768,10 +770,7 @@ render "$time_work" "$time_out"
 times_say "$time_out" red=210,155 green=390,240 "$brisk=400,175" "$slow=600,220"
 issue_wall_says "$time_out" 1700
 
-[[ "${#problems[@]}" -eq 0 ]] ||
-  problems+=("the report was: $(printf '%q' "$(cat "$time_out")")")
-
-report "$name"
+report_on "$name" "$time_out"
 
 
 echo "----"
