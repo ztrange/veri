@@ -954,6 +954,15 @@ sup_direct() {
 }
 
 
+# leaf_rc <dir> — the LEAF subshell's own exit code, as recorded in `<dir>/.tdd/verify-red.rc`,
+# or `<missing>` when nothing wrote one (case 9's spelling for a file that was never written).
+# Cases 23 and 24 both read it as the guard on their own premise: their stub sleeps forever, so
+# only the watchdog can end the supervision, and a `.rc` present at all would mean the
+# supervisor took its ordinary success/failure path and the case pinned nothing about the
+# recovery. `verify-red` is the leaf name throughout, `sup_direct`'s reason.
+leaf_rc() { cat "$1/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>'; }
+
+
 # 23. a leaf the watchdog KILLS whose progress log already holds a terminal result record is
 #     reported with the leaf's own outcome — exit 0 for a record that says `is_error: false` —
 #     and not as killed-stuck (issue #212). Case 3 pins the other half, the hung leaf that
@@ -971,9 +980,9 @@ sup_direct() {
 #
 #     The stub prints the record and then sleeps, so the leaf's subshell never gets to write
 #     `.tdd/<name>.rc` and only the watchdog can end the supervision. That absent rc file is
-#     asserted beside the code as this case's guard on its own premise: with one there, the
+#     read through `leaf_rc` above as this case's guard on its own premise: with one there, the
 #     supervisor would have taken its ordinary success path and the case would be pinning
-#     nothing at all. `<missing>` is case 9's spelling for a file that was never written.
+#     nothing at all.
 #
 #     The window rides in front of `"$SUP"` — case 17's convention, where `env` takes the last
 #     of a repeated name — and is one second, well inside `sup_run`'s 10 s hard cap, so the
@@ -985,7 +994,7 @@ sup_run "$result_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-resul
 result_kill_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
 # 13 and 15 to 22's shape.
-result_kill_rc="$(cat "$result_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>')"
+result_kill_rc="$(leaf_rc "$result_kill_work")"
 { [[ "$result_kill_code" == 0 ]] \
   && [[ "$result_kill_rc" == '<missing>' ]]; } && ok \
   || no "a killed leaf whose log holds a terminal result record is reported with the leaf's own outcome, not killed-stuck (code=$result_kill_code want 0, .rc=$result_kill_rc want <missing>)"
@@ -1004,7 +1013,7 @@ result_kill_rc="$(cat "$result_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo
 #
 #     Same stub shape as case 23 — print the record, then sleep, so the leaf's subshell never
 #     writes `.tdd/<name>.rc` and only the watchdog can end the supervision — and the absent
-#     rc file is asserted beside the code for case 23's reason: with one there, the supervisor
+#     rc file is read through `leaf_rc` for case 23's reason: with one there, the supervisor
 #     would have taken its ordinary failure path and the case would pin nothing. A directory
 #     of its own under `$work`, for case 12's reason, and the one-second window in front of
 #     `"$SUP"` for case 17's.
@@ -1016,7 +1025,7 @@ sup_run "$error_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-error-
 error_kill_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
 # 13, 15 to 22 and 23's shape.
-error_kill_rc="$(cat "$error_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>')"
+error_kill_rc="$(leaf_rc "$error_kill_work")"
 { [[ "$error_kill_code" == 1 ]] \
   && [[ "$error_kill_rc" == '<missing>' ]]; } && ok \
   || no "a killed leaf whose terminal result record is an error is reported exit 1, not exit 0 (code=$error_kill_code want 1, .rc=$error_kill_rc want <missing>)"
