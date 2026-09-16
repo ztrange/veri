@@ -288,13 +288,15 @@ def add_seconds(phase, step, column, seconds):
     for row_of in rows_for(phase, step):
         row_of[column] += seconds
 
-# One attempt own bucket, raised on first sight. An attempt with no phase or no step is not
-# one a verdict can be written about, so it gets no bucket and cannot become rework.
+# One attempt own bucket, raised on first sight, keyed by the two columns a row carries the
+# same figures under: what a bucket holds is what the attempt SPENT, which is what it will
+# contribute if it later turns out to be rework, and naming it `rework` here would have said
+# it already was. An attempt with no phase or no step is not one a verdict can be written
+# about, so it gets no bucket and cannot become rework.
 def attempt_in(phase, step, attempt):
     if not phase or not step:
         return None
-    return attempts_spent.setdefault((step, phase, attempt),
-                                     {REWORK_WALL: 0, REWORK_COST: 0.0})
+    return attempts_spent.setdefault((step, phase, attempt), {WALL: 0, DOLLARS: 0.0})
 
 # What one `usage` line spent, into the row of its phase, the row of its step and the total.
 # The total is in the list unconditionally where the other two are not: a line with neither
@@ -342,13 +344,13 @@ with open(path) as f:
             seconds = int(line.get("secs") or 0)
             add_seconds(phase, step, "wall s", seconds)
             if attempt is not None:
-                attempt[REWORK_WALL] += seconds
+                attempt[WALL] += seconds
         elif event == "usage":
             add_seconds(phase, step, "API s",
                         int(line.get("duration_api_ms") or 0) // 1000)
             add_cost(phase, step, line)
             if attempt is not None:
-                attempt[REWORK_COST] += float(line.get("total_cost_usd") or 0)
+                attempt[DOLLARS] += float(line.get("total_cost_usd") or 0)
             if line.get("actor") == "conductor":
                 conductor_counted = True
         elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
@@ -399,8 +401,8 @@ for key in rejected:
         continue
     attempt = attempts_spent[key]
     row_of = row_in(lost, phase, LOST_COLUMNS)
-    row_of[REWORK_WALL] += attempt[REWORK_WALL]
-    row_of[REWORK_COST] += attempt[REWORK_COST]
+    row_of[REWORK_WALL] += attempt[WALL]
+    row_of[REWORK_COST] += attempt[DOLLARS]
 
 def row(cells):
     print("| " + " | ".join(cells) + " |")
