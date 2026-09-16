@@ -1657,6 +1657,32 @@ issue_wall_says "$rerun_out" 200
 report_on "$name" "$rerun_out"
 
 
+# A seventeenth fixture: one run and no `resume` in its log, so nothing moves the opening end
+# of the wall off the first event (19000) and the one `bail` mark (19250) is the whole of the
+# outcome. The wall is 250 s and the outcome a system bail, as it was before #229.
+fixture_work single_run_work
+
+only_run="a step of a log that holds one run and no resume"
+
+sv "$only_run" 19000 conductor ""    step-start ""
+sv "$only_run" 19150 conductor ""    step-done  ""
+sv "$only_run" 19250 conductor green bail       "" '"cause": "killed-stuck", "classification": "system"'
+
+plan_of "$only_run"
+
+
+name="a log with no resume walls the issue from its first event and takes its outcome from its single ending mark"
+problems=()
+
+single_run_out="$single_run_work/report.md"
+render "$single_run_work" "$single_run_out"
+
+issue_wall_says "$single_run_out" 250
+outcome_says "$single_run_out" system
+
+report_on "$name" "$single_run_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
