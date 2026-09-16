@@ -1647,6 +1647,16 @@ outcome_says "$rerun_out" pr
 report_on "$name" "$rerun_out"
 
 
+# The same log, read for its wall: the run the `done` mark ends began at the last `resume`
+# (18200), not at the log's first event (18000), so the issue wall is 200 s, not 400 (#229).
+name="on a log with a bail, a resume and a done the issue wall runs from the last resume to the done mark"
+problems=()
+
+issue_wall_says "$rerun_out" 200
+
+report_on "$name" "$rerun_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

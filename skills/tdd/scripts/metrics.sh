@@ -397,7 +397,7 @@ with open(path) as f:
         step = line.get("step", "")
         phase = line.get("phase", "")
         ts = line.get("ts")
-        if first is None:
+        if first is None or event == "resume":
             first = ts
         if event in ("done", "bail"):
             ending = line
