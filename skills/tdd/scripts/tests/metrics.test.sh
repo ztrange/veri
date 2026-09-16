@@ -163,14 +163,22 @@ table_says() {
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# ev <ts> <actor> <phase> <event> <attempt> [<trailing-json>] — one hand-written line of the
-# fixture log, in the shape event.sh emits: the eight fixed context keys, then the payload.
-# Hand-written rather than produced by running event.sh, so this suite's subject stays the
-# reader and a change to the writer cannot quietly rewrite the input being read.
+# event_line <log> <ts> <actor> <phase> <step> <event> <attempt> [<trailing-json>] — one
+# hand-written line of a fixture log, in the shape event.sh emits: the eight fixed context
+# keys, then the payload. Hand-written rather than produced by running event.sh, so this
+# suite's subject stays the reader and a change to the writer cannot quietly rewrite the
+# input being read. The trailing json arrives with its own leading comma, or empty.
+event_line() {
+  local log="$1"; shift
+  printf '{"ts": %s, "issue": "108", "actor": "%s", "phase": "%s", "step": "%s", "event": "%s", "attempt": "%s", "skill_commit": "c0ffee1"%s}\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "${7:-}" >> "$log"
+}
+
+# ev <ts> <actor> <phase> <event> <attempt> [<trailing-json>] — a line of the first fixture,
+# whose step never varies.
 step="metrics.sh renders a markdown table of per-phase counts"
 ev() {
-  printf '{"ts": %s, "issue": "108", "actor": "%s", "phase": "%s", "step": "%s", "event": "%s", "attempt": "%s", "skill_commit": "c0ffee1"%s}\n' \
-    "$1" "$2" "$3" "$step" "$4" "$5" "${6:-}" >> "$work/.tdd/events.jsonl"
+  event_line "$work/.tdd/events.jsonl" "$1" "$2" "$3" "$step" "$4" "$5" "${6:-}"
 }
 
 mkdir -p "$work/.tdd"
@@ -244,16 +252,16 @@ step_table_says() {
 # against. Two steps, because one step could not tell a per-step section from a per-issue
 # total: the two rows are what make the section's key observable.
 #
-# `sv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` is `ev` with the step
-# as its first argument, since the step is the thing this fixture varies. Same line shape,
-# hand-written for the same reason.
+# `sv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` is `ev`'s sibling over
+# the same `event_line`, taking the step as its first argument since the step is the thing
+# this fixture varies — and passing its trailing json the comma `ev`'s callers spell
+# themselves, which is the only way the two differ.
 step_work="$(mktemp -d)"
 trap 'rm -rf "$work" "$step_work"' EXIT
 mkdir -p "$step_work/.tdd"
 
 sv() {
-  printf '{"ts": %s, "issue": "108", "actor": "%s", "phase": "%s", "step": "%s", "event": "%s", "attempt": "%s", "skill_commit": "c0ffee1"%s}\n' \
-    "$2" "$3" "$4" "$1" "$5" "$6" "${7:+, ${7}}" >> "$step_work/.tdd/events.jsonl"
+  event_line "$step_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:+, ${7}}"
 }
 
 one="metrics.sh renders a markdown table of per-phase counts"
