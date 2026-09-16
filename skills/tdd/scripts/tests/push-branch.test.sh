@@ -254,6 +254,43 @@ else
 fi
 report "$name"
 
+# 4. Issue #232's second criterion: the retry count has a default. With VERI_PUSH_RETRIES
+#    unset — removed from the environment, not set empty, so an ambient value in the shell
+#    running the suite cannot stand in for the default — an unreachable origin is attempted
+#    4 times: the first attempt plus the default 3 retries. Counted by the same kind of
+#    `git` stub as case 3, with a call log of its own.
+name="push-branch.sh: an unreachable origin with VERI_PUSH_RETRIES unset is attempted 4 times (the default 3 retries)"
+problems=()
+repo="$work/default-retries"
+run_fixture "$repo" tdd/232-push-default-retries 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] Unreachable origin with VERI_PUSH_RETRIES unset is attempted 4 times
+LEDGER
+git_q "$repo" remote add origin "$work/no-such-remote-232-default.git" >/dev/null 2>&1
+
+stubdir="$work/stub-bin-default"
+calls="$work/push-calls-default"
+mkdir -p "$stubdir"
+: > "$calls"
+cat > "$stubdir/git" <<STUB
+#!/usr/bin/env bash
+for a in "\$@"; do
+  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
+done
+exec "$(command -v git)" "\$@"
+STUB
+chmod +x "$stubdir/git"
+
+( cd "$repo" && env -u VERI_PUSH_RETRIES PATH="$stubdir:$PATH" VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Unreachable origin uses the default retries' \
+    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+
+attempts="$(grep -c . "$calls" | tr -d ' ')"
+[[ "$attempts" == 4 ]] ||
+  problems+=("want 4 push attempts (1 + the default 3 retries), got $attempts")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
