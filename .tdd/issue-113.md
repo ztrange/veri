@@ -3,7 +3,7 @@
 - [x] solvable-issues.sh prints a `bug`-labelled issue ahead of a lower-numbered plain one, each band ascending by number
 - [x] solvable-issues.sh prints a priority-labelled issue ahead of a lower-numbered bug, and an issue carrying both labels sorts in the priority band
 - [x] The priority label without the opt-in label never makes an issue solvable
-- [ ] A priority or bug issue that is blocked, claimed or closed is still not printed
+- [x] A priority or bug issue that is blocked, claimed or closed is still not printed
 - [ ] VERI_PRIORITY_LABEL set-but-empty exits 2 with a diagnostic; unset defaults to `priority`
 - [ ] With no issue carrying either label, solvable-issues.sh output is byte-identical to today's
 - [ ] The /tdd loop narration says when it took an issue ahead of a lower-numbered one, and which band did it
