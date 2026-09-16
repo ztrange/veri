@@ -79,6 +79,9 @@ instructions() {
 # The event name is bounded on the right so a mark cannot answer for one whose name it is a
 # prefix of — `event.sh bailed` is not `event.sh bail`, and the hyphen is excluded for the
 # same reason `done` must not be satisfied by `step-done`.
+#
+# On a pass, the global `marked` holds the instruction that carried the call, so a case
+# asking more of the call than its name reads it from there rather than re-matching anchors.
 mark() {
   local event="$1" what="$2" line re anchored=""
   shift 2
@@ -89,7 +92,7 @@ mark() {
     # The first anchored instruction, kept for the message; the loop goes on because a
     # later one may be the instruction that carries the call.
     [[ -n "$anchored" ]] || anchored="$line"
-    [[ "$line" =~ event\.sh[[:space:]]+"$event"([^a-z0-9-]|$) ]] && return 0
+    [[ "$line" =~ event\.sh[[:space:]]+"$event"([^a-z0-9-]|$) ]] && { marked="$line"; return 0; }
   done <<< "$records"
   if [[ -z "$anchored" ]]; then
     problems+=("$skill_md no longer $what — where \`event.sh $event\` belongs could not be read")
@@ -146,13 +149,8 @@ if [[ -z "$records" ]]; then
 else
   mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
   if [[ "${#problems[@]}" -eq 0 ]]; then
-    call=""
-    while IFS= read -r line; do
-      [[ "$line" =~ '### '[^\ ]+' refactor'( |\`|$) && "$line" =~ post && "$line" =~ "rev-list --count" ]] || continue
-      [[ "$line" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]] || continue
-      call="${BASH_REMATCH[1]}"
-      break
-    done <<< "$records"
+    [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
+    call="${BASH_REMATCH[1]}"
     for key in transforms budget stopped; do
       [[ "$call" =~ (^|[[:space:]])"$key"= ]] ||
         problems+=("$skill_md calls \`$call\` without \`$key=\` — metrics.sh's cell stays unknown")
