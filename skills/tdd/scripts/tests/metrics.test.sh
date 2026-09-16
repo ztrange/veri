@@ -160,8 +160,31 @@ table_says() {
   counts_table_says "$out_file" phase attempts,pass,reject,kills "$@"
 }
 
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
+# fixture_work <var> — make a temp directory with the `.tdd/` a fixture log lives in, and
+# bind <var> to it. Each fixture gets one of its own so every case keeps the log it was
+# written against, and each is registered here for the one trap that removes them all: the
+# array is what lets a fixture added later be cleaned up by existing, where a trap restated
+# per fixture was a list of directories to keep in sync by hand, three deep by the third one.
+#
+# It takes the variable's NAME and assigns it, rather than printing the directory for a
+# `$(...)` to catch: a command substitution runs in a subshell, so the append below would
+# happen in a shell that exits immediately and the trap here would find an empty list and
+# remove nothing.
+#
+# The guard before `rm` is the fail-closed half — an empty array under `set -u` is not a
+# reason to run `rm -rf` on an unexpanded word.
+fixture_works=()
+trap '[[ "${#fixture_works[@]}" -eq 0 ]] || rm -rf "${fixture_works[@]}"' EXIT
+
+fixture_work() {
+  local dir
+  dir="$(mktemp -d)"
+  mkdir -p "$dir/.tdd"
+  fixture_works+=("$dir")
+  printf -v "$1" '%s' "$dir"
+}
+
+fixture_work work
 
 # event_line <log> <ts> <actor> <phase> <step> <event> <attempt> [<trailing-json>] — one
 # hand-written line of a fixture log, in the shape event.sh emits: the eight fixed context
@@ -196,7 +219,6 @@ ev() {
 # The conductor's own `step-start` and `step-done` marks are in it too, carrying an empty
 # phase. They are neither launches nor verdicts nor exits, so they must contribute to nothing
 # and must not raise a row of their own.
-mkdir -p "$work/.tdd"
 
 # The conductor's own marks, phase-less: neither launch nor verdict nor exit, so they must
 # raise no row and change no count.
@@ -271,9 +293,7 @@ step_table_says() {
 # the same `event_line`, taking the step as its first argument since the step is the thing
 # this fixture varies — and passing its trailing json the comma `ev`'s callers spell
 # themselves, which is the only way the two differ.
-step_work="$(mktemp -d)"
-trap 'rm -rf "$work" "$step_work"' EXIT
-mkdir -p "$step_work/.tdd"
+fixture_work step_work
 
 sv() {
   event_line "$step_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:+, ${7}}"
@@ -454,9 +474,7 @@ print("\n".join(problems))
 #   the log as well as to the thread). A run whose conductor never writes it has no figure
 #   to report, which is the unknown-rather-than-zero rule a later step of the ledger owns —
 #   this case is about a run that did write it.
-budget_work="$(mktemp -d)"
-trap 'rm -rf "$work" "$step_work" "$budget_work"' EXIT
-mkdir -p "$budget_work/.tdd"
+fixture_work budget_work
 
 # `bv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` — `sv`'s sibling over
 # the same writer, on this fixture's log.
