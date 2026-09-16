@@ -119,13 +119,13 @@ UNKNOWN = "unknown"
 counts = {}
 steps = {}
 
-# The budget readings, keyed by step like `steps` and kept beside it rather than inside it
-# because a revise attempt is counted from its own marks while a refactor mark is read once,
-# whole. `revises` counts the marks, `budgets` holds the last budget each kind of mark
-# reported for the step — last rather than first because it is the budget the run finished
-# under, and the two are the same number in every log where nobody re-exported the variable
-# mid-run.
-revises = {}
+# What the conductor budget marks said about each step, keyed by step like `steps` and kept
+# beside it rather than inside it because these are read off marks rather than counted one
+# line per unit. One table rather than two even though a revise attempt is counted from its
+# own marks while a refactor mark is read once, whole: both answer "what did this step spend",
+# both are keyed by step, and two tables on one key are two tables to keep in step with each
+# other. Each budget is the LAST one its marks reported — the budget the run finished under,
+# and the same number as the first in every log where nobody re-exported the variable mid-run.
 budgets = {}
 
 def tally(table, key, columns, count):
@@ -145,8 +145,9 @@ with open(path) as f:
         # `revise` is not a leaf launch, so counting it as an attempt would double-count the
         # revise leaf that the mark is followed by.
         if event == "revise" and step:
-            revises[step] = revises.get(step, 0) + 1
-            budgets.setdefault(step, {})["revise"] = line.get("budget", "")
+            mark = budgets.setdefault(step, {})
+            mark["revises"] = mark.get("revises", 0) + 1
+            mark["revise"] = line.get("budget", "")
             continue
         if event == "refactor" and step:
             mark = budgets.setdefault(step, {})
@@ -179,7 +180,7 @@ def row(cells):
 
 def budget_cells(step):
     mark = budgets.get(step, {})
-    used = revises.get(step)
+    used = mark.get("revises")
     revise = "%d/%s" % (used, mark.get("revise") or "?") if used else UNKNOWN
     if mark.get("refactor"):
         refactor = "%s/%s" % (mark.get("transforms") or "?", mark["refactor"])
