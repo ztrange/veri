@@ -5,10 +5,10 @@
 # event.test.sh and harvest-usage.test.sh, its two nearest neighbours: all three are about
 # lines somebody else wrote into `.tdd/events.jsonl`.
 #
-# Contract under test (this step only — the counts, per phase, and nothing else):
-#   metrics.sh <n>  → exit 0, and on stdout a markdown table with one row per phase of the
-#                     run, carrying that phase's attempts, its PASS verdicts, its REJECT
-#                     verdicts and its kills.
+# Contract under test, one case per section of the report:
+#   metrics.sh <n>  → exit 0, and on stdout a row per phase of the run carrying that phase's
+#                     attempts, PASS verdicts, REJECT verdicts and kills, and a row per step
+#                     carrying the same four plus the stuck retries that step used.
 #
 # The log is read relative to the directory the script runs in — `.tdd/events.jsonl`, the
 # way event.sh writes it (event.sh:60) and the way supervise.sh already spells `.tdd/<name>.log`
@@ -34,12 +34,12 @@
 # empty phase. They are neither launches nor verdicts nor exits, so they must contribute to
 # nothing and must not raise a row of their own.
 #
-# What this case deliberately does NOT pin, because each is a step of its own in the plan:
-# the per-step section, retries and budgets, time, cost, rework and waste, progress, and the
-# unknown-rather-than-zero rule for a missing conductor mark. And one thing this step moves
-# that is pinned elsewhere: CLAUDE.md's suite count, which claude-md-counts.test.sh case 1
-# holds to the files on disk and which goes red by itself the moment this file lands
-# uncounted.
+# What is not pinned here is whatever `.tdd/issue-108.md` still has unchecked — budgets,
+# time, cost, rework and waste, progress, the unknown-rather-than-zero rule. That list is not
+# copied here: the ledger is where it is kept correct, and a copy would go stale on the step
+# after the one that wrote it. And one thing this file moves that is pinned elsewhere:
+# CLAUDE.md's suite count, which claude-md-counts.test.sh case 1 holds to the files on disk
+# and which goes red by itself the moment this file lands uncounted.
 #
 # Run: skills/tdd/scripts/tests/metrics.test.sh
 set -uo pipefail
