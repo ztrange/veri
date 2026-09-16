@@ -33,6 +33,11 @@
 # print mode must resolve VERI_MODEL_VERIFIER, REVISE_BUDGET, VERI_STUCK_RETRIES and the
 # rest exactly as one started from a chat session does.
 #
+# The procedure goes in on STDIN, not as the argument to `-p`. SKILL.md's first line is the
+# YAML frontmatter fence `---`, and the CLI parses a leading-dash argument as an option, so
+# passing it by argv died on `unknown option '---` before any conductor existed (issue #221).
+# Nothing parses options on stdin, so the fence — and any future first line — arrives intact.
+#
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 set -euo pipefail
 
@@ -56,6 +61,6 @@ unset CLAUDECODE \
       CLAUDE_CODE_CHILD_SESSION \
       CLAUDE_CODE_ENTRYPOINT
 
-"${CLAUDE_BIN:-claude}" -p "$prompt" \
+printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
   --output-format stream-json --verbose \
   --permission-mode bypassPermissions
