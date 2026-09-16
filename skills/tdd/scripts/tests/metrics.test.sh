@@ -109,6 +109,10 @@ probe() {
 # table by its ROWS and its columns by their HEADINGS is what keeps these probes from pinning
 # either order.
 #
+# `number(cell)` is what a cell says as a figure, or None when it says no figure at all: a
+# `$`, thousands commas and a trailing unit are the report's own to print or leave out, so
+# every probe comparing money or seconds compares numbers and not the text around them.
+#
 # It is a shell variable because that is the only way several `python3 -c` programs can share
 # a definition without a file of their own. Each call site concatenates its double-quoted
 # expansion with the single-quoted rest of its program, so the rest keeps the quoting it
@@ -163,6 +167,13 @@ def column(header, name, matches, key):
     complain("want exactly one column heading saying %s, the table with a row for %r is headed: %s"
              % (name, key, "|".join(header) or "nothing"))
     return None
+
+def number(cell):
+    text = cell.strip().replace("$", "").replace(",", "").rstrip("s").strip()
+    try:
+        return float(text)
+    except ValueError:
+        return None
 '
 
 # counts_table_says <file> <noun> <columns> <key>=<n>,<n>,… — read a counts table out of the
@@ -840,16 +851,6 @@ WANTED = [("turns", turns), ("input tokens", input_), ("output tokens", output),
           ("cache read tokens", cache_read), ("cache creation tokens", cache_create),
           ("dollars", dollars)]
 
-# `$`, thousands commas and a trailing unit are the report own to print or leave out, so the
-# comparison is of numbers and not of the text around them. A cell that is no number at all
-# comes back None and is complained about as it was printed.
-def number(cell):
-    text = cell.strip().replace("$", "").replace(",", "").rstrip("s")
-    try:
-        return float(text)
-    except ValueError:
-        return None
-
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
     section = table_with(tables, key)
@@ -1071,13 +1072,6 @@ tables = tables_in(path)
 
 def money(c):
     return any(w in c for w in ("$", "cost", "dollar", "usd"))
-
-def number(cell):
-    text = cell.strip().replace("$", "").replace(",", "").rstrip("s").strip()
-    try:
-        return float(text)
-    except ValueError:
-        return None
 
 def lost_table(key):
     for t in tables:
