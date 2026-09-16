@@ -2,7 +2,7 @@
 # Tests for scripts/run-conductor.sh — the CONDUCTOR invocation, driven against a stub
 # `claude` on PATH (no real subprocess, no model call), the way run-leaf.test.sh drives the
 # leaf one. Same stub, same seam: `CLAUDE_BIN` swaps the binary and the stub records its
-# argv to $ARGV_OUT.
+# argv to $ARGV_OUT and its stdin to $PROMPT_OUT.
 #
 # Why a conductor is launched this way at all — the ~25,000 tokens of interactive harness
 # surface it never touches, and why the stream flags are part of the criterion rather than a
@@ -39,12 +39,15 @@ stubdir="$(mktemp -d)"
 work="$(mktemp -d)"
 trap 'rm -rf "$stubdir" "$work"' EXIT
 
-# The stub `claude`: records its argv one argument per line to $ARGV_OUT, emits a minimal
-# stream-json stream, and exits with $STUB_EXIT — 0 unless a case asks for another status,
-# which is the seam the exit-forwarding case below drives. Same shape as run-leaf.test.sh's.
+# The stub `claude`: records its argv one argument per line to $ARGV_OUT and whatever
+# arrives on stdin to $PROMPT_OUT, emits a minimal stream-json stream, and exits with
+# $STUB_EXIT — 0 unless a case asks for another status, which is the seam the exit-forwarding
+# case below drives. Same shape as run-leaf.test.sh's. Stdin is drained in every case, not
+# only the ones that probe it: a prompt nobody reads fills the pipe and stalls the writer.
 cat > "$stubdir/claude" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$ARGV_OUT"
+cat > "${PROMPT_OUT:-/dev/null}"
 [[ -n "${ENV_OUT:-}" ]] && env > "$ENV_OUT"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
@@ -53,6 +56,7 @@ STUB
 chmod +x "$stubdir/claude"
 
 argv="$work/argv"
+prompt="$work/prompt"
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem,
@@ -89,7 +93,7 @@ valued() {
 name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
 problems=()
 
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
+( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
     "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
 
 # Fail closed: no argv file means the stub was never reached, so every probe below would be
@@ -100,7 +104,9 @@ else
   flag -p
   valued --output-format stream-json
   flag --verbose
-  grep -q -- "$issue" "$argv" ||
+  # The prompt travels on stdin, not argv — case 4 is why — so the issue is looked for where
+  # it now goes.
+  grep -q -- "$issue" "$prompt" 2>/dev/null ||
     problems+=("issue $issue does not reach the prompt the launch carries")
 fi
 
@@ -159,6 +165,53 @@ status=$?
 
 [[ "$status" -eq 17 ]] ||
   problems+=("the script exited $status, not the child's 17")
+
+report "$name"
+
+# 4. The procedure's first line is the frontmatter fence `---`, and to a real `claude` a
+# word beginning with a dash is an option, not a prompt: the launch dies on `unknown option`
+# before a conductor exists. The stub above cannot see that — it records argv and parses
+# nothing — so this case drives a stub that refuses an argv the binary would have refused,
+# and then asks whether the whole procedure arrived anyway.
+name="a frontmatter-fenced procedure launches and reaches the binary whole"
+problems=()
+
+SKILL="$HERE/../../SKILL.md"
+received="$work/received"
+rm -f "$received"
+
+cat > "$stubdir/strict-claude" <<'STUB'
+#!/usr/bin/env bash
+# Option parsing the way the binary does it: a word beginning with a dash is an option, and
+# an unknown one is fatal. Everything that is not an option is left alone, so a value like
+# `stream-json` still passes.
+for arg in "$@"; do
+  case "$arg" in
+    -p|--verbose|--output-format|--permission-mode) ;;
+    -*) echo "error: unknown option '$arg'" >&2; exit 1 ;;
+  esac
+done
+cat > "$RECEIVED_OUT"
+printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+chmod +x "$stubdir/strict-claude"
+
+( cd "$work" && env CLAUDE_BIN="$stubdir/strict-claude" RECEIVED_OUT="$received" \
+    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
+status=$?
+
+if [[ "$status" -ne 0 ]]; then
+  problems+=("the launch exited $status — the binary rejected the procedure it was handed")
+elif [[ ! -f "$received" ]]; then
+  problems+=("the launch started but no procedure reached the binary")
+elif [[ "$(cat "$received")" != "$(cat "$SKILL")"* ]]; then
+  # Verbatim-prefix, compared as text rather than by taking the procedure's first N lines
+  # off the front of what arrived: a line count is a size, and #202 forbids any suite here
+  # from applying a size verb to SKILL.md. The tail the prefix leaves is the issue line,
+  # which case 1 is the one that asserts on.
+  problems+=("what reached the binary does not begin with $SKILL verbatim")
+fi
 
 report "$name"
 
