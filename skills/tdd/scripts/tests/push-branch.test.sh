@@ -561,6 +561,18 @@ report "$name"
 #    with `.tdd` made unwritable (mode 555) after the fixture is committed, and made
 #    writable again before the case ends so the EXIT trap can remove it. The origins are
 #    case 1's path that is not a repository and case 8's amended-after-push bare repository.
+
+# push_unwritable_tdd <repo> — run push-branch.sh in <repo> with its `.tdd` unwritable,
+# leaving the exit status in `code` and `.tdd` writable again.
+push_unwritable_tdd() {
+  local repo="$1"
+  chmod 555 "$repo/.tdd"
+  ( cd "$repo" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 \
+      VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A failing event write exits 2' \
+      "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+  chmod 755 "$repo/.tdd"
+}
+
 name="push-branch.sh: a failing event write exits 2 for both an unreachable origin and a non-fast-forward rejection"
 problems=()
 repo="$work/event-fails-unreachable"
@@ -570,11 +582,7 @@ run_fixture "$repo" tdd/232-event-fails-unreachable 232 <<'LEDGER'
 - [ ] A failing event write exits 2
 LEDGER
 git_q "$repo" remote add origin "$work/no-such-origin-event-fails" >/dev/null 2>&1
-chmod 555 "$repo/.tdd"
-( cd "$repo" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 \
-    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A failing event write exits 2' \
-    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
-chmod 755 "$repo/.tdd"
+push_unwritable_tdd "$repo"
 [[ "$code" == 2 ]] ||
   problems+=("unreachable origin: want exit 2 when the push-failed event cannot be written, got $code")
 
@@ -590,11 +598,7 @@ LEDGER
 git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
 git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
 git_q "$repo" commit -q --amend -m "feat: the step's green commit, rewritten (#232)" >/dev/null 2>&1
-chmod 555 "$repo/.tdd"
-( cd "$repo" && env VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 \
-    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A failing event write exits 2' \
-    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
-chmod 755 "$repo/.tdd"
+push_unwritable_tdd "$repo"
 [[ "$code" == 2 ]] ||
   problems+=("non-fast-forward rejection: want exit 2 when the push-rejected event cannot be written, got $code")
 report "$name"
