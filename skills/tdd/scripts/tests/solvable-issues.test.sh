@@ -535,6 +535,24 @@ skill_doc="skills/tdd/SCOPE-LOOP.md"
 # reads *its* step 1, not the loop's.
 procedure_doc="skills/tdd/SKILL.md"
 
+# Two cases read one bullet out of `$skill_doc` rather than the whole document — case 12 the
+# exit-3 instruction, case 28 the exit-0 one — for the same reason each states: a file-wide
+# grep goes green on the words appearing anywhere else and pins nothing. They slice it the
+# same way, so the slice is spelled once here: keep from the line that opens the bullet until
+# the line that ends it. The regexes arrive as arguments and are therefore dynamic, which is
+# why a caller writes `[*]` where a literal awk pattern would write `\*` — a backslash escape
+# inside `awk -v` is the shell-to-awk string's, not the regex's, and what survives it differs
+# between awks. The variables are `opens`/`ends` rather than the obvious `close`,
+# which is an awk builtin and a syntax error as a variable name in the BSD awk this repository
+# has to run under.
+loop_bullet() {  # loop_bullet <opening-line regex> <line that ends it>
+  awk -v opens="$1" -v ends="$2" '
+    $0 ~ opens { keep = 1 }
+    $0 ~ ends  { keep = 0 }
+    keep
+  ' "$REPO_ROOT/$skill_doc"
+}
+
 # 11. A knob nobody is told about is not a parameter, it is a secret, so the three documents a
 # human reads before launching a loop must carry it: the loop's own procedure
 # (`$skill_doc`, which is where `--repo` and `VERI_MAX_ISSUES` are already
@@ -587,8 +605,7 @@ done
 # ends it, and the case asserts the slice is non-empty before asserting what is in it — an
 # empty slice means the headings moved and the claim was never checked, which must read as a
 # failure rather than as a pass.
-skill="$REPO_ROOT/$skill_doc"
-exit3="$(awk '/^- \*\*Exit 3:/{keep = 1} /^- \*\*Exit 0:/{keep = 0} keep' "$skill")"
+exit3="$(loop_bullet '^- [*][*]Exit 3:' '^- [*][*]Exit 0:')"
 
 { [[ -n "$exit3" ]] && grep -q 'VERI_LABEL' <<<"$exit3"; } \
   && ok || no "the exit-3 instruction in $skill_doc names the label it drained (bullet='$(tr '\n' ' ' <<<"$exit3")' want a non-empty slice naming VERI_LABEL)"
@@ -1383,7 +1400,7 @@ refused_run "$fx" -u VERI_PRIORITY_LABEL
 # order was not by number. The variable name `VERI_PRIORITY_LABEL` is deliberately not what is
 # matched — case 11 covers the knobs a launcher needs documented; this is about what one run
 # tells the human reading it afterwards.
-narration="$(awk '/^- \*\*Exit 0:/{keep = 1} /^### /{keep = 0} keep' "$REPO_ROOT/$skill_doc")"
+narration="$(loop_bullet '^- [*][*]Exit 0:' '^### ')"
 
 { [[ -n "$narration" ]] \
   && grep -qiE 'lower[ -]numbered' <<<"$narration" \
