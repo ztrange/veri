@@ -1360,6 +1360,38 @@ refused_run "$fx" -u VERI_PRIORITY_LABEL
   && ok || no "with no issue carrying either band label the output is byte-identical to today's (exit=$refused_code want 0, stdout='$(tr '\n' '|' < "$refused_out")' want '208|210|')"
 
 
+# 28. The order is only half of the steering; the other half is the loop SAYING it steered.
+# A band jump is invisible in the loop's own report — `#150` on a line looks exactly like
+# `#150` would have looked as the lowest number — so an operator who labelled #150 `priority`
+# an hour ago cannot tell from the run whether the label was read, whether the label name was
+# the one the run was configured with, or whether #150 simply came up next. The loop must
+# therefore narrate the jump where it makes it: when the number it took is not the lowest one
+# `solvable-issues.sh` printed, say so and name the band that did it — `#220 (priority) before
+# #108`, `#120 (bug) before #117` (#113).
+#
+# The claim is read out of the exit-0 instruction alone, for case 12's reason: that bullet is
+# where the loop takes the first number, so it is where the narration is owed, and a file-wide
+# grep would go green on the words appearing in *Loop inputs* or in a guardrail and pin
+# nothing. The awk slice runs from the `- **Exit 0:**` line to the `###` heading that ends the
+# list, and the case asserts the slice is non-empty before asserting what is in it — an empty
+# slice means the headings moved and the claim was never checked, which must read as a failure
+# rather than as a pass.
+#
+# Three claims, matched loosely because the sentence is the writer's: the jump is described
+# against a *lower-numbered* issue (spaces or hyphens between the two words), and both band
+# names appear, since "which band did it" is unanswerable from a narration that only says the
+# order was not by number. The variable name `VERI_PRIORITY_LABEL` is deliberately not what is
+# matched — case 11 covers the knobs a launcher needs documented; this is about what one run
+# tells the human reading it afterwards.
+narration="$(awk '/^- \*\*Exit 0:/{keep = 1} /^### /{keep = 0} keep' "$REPO_ROOT/$skill_doc")"
+
+{ [[ -n "$narration" ]] \
+  && grep -qiE 'lower[ -]numbered' <<<"$narration" \
+  && grep -qE 'priority' <<<"$narration" \
+  && grep -qE 'bug' <<<"$narration"; } \
+  && ok || no "the exit-0 instruction in $skill_doc says when it took an issue ahead of a lower-numbered one and which band did it (bullet='$(tr '\n' ' ' <<<"$narration")' want a non-empty slice naming a lower-numbered issue and both bands, priority and bug)"
+
+
 
 echo "----"
 echo "$pass passed, $fail failed"
