@@ -41,9 +41,14 @@ report() {
   fi
 }
 
+# plain — stdin with emphasis and code markup (`*`, backticks) dropped and lowercased, so
+# `exit **1**` and `Exit 1` read the same to every probe.
+plain() {
+  tr -d '*`' | tr '[:upper:]' '[:lower:]'
+}
+
 # records — the document's numbered steps, bullets and paragraphs, one per line, the same
-# grammar skill-event-marks.test.sh reads with. Emphasis and code markup (`*`, backticks)
-# are dropped too, so `exit **1**` and `exit 1` read the same.
+# grammar skill-event-marks.test.sh reads with, put through plain.
 records() {
   awk '
     function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
@@ -51,14 +56,14 @@ records() {
     /^[[:space:]]*$/ { flush(); next }
     rec == "" { rec = $0; next }
     { rec = rec " " $0 }
-    END { flush() }' "$skill_path" | tr -d '*`' | tr '[:upper:]' '[:lower:]'
+    END { flush() }' "$skill_path" | plain
 }
 
 # reconcile_section — the records under any heading that names reconciling, up to the next
 # heading. Empty when the document keeps its reconcile instructions under no such heading.
 reconcile_section() {
   awk '/^#/ { inside = (tolower($0) ~ /reconcil/); next } inside' "$skill_path" \
-    | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr -s '[:space:]' ' '
+    | plain | tr -s '[:space:]' ' '
 }
 
 # ---------------------------------------------------------------------------
