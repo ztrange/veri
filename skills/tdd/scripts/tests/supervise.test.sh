@@ -951,6 +951,44 @@ result_kill_rc="$(cat "$result_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo
   || no "a killed leaf whose log holds a terminal result record is reported with the leaf's own outcome, not killed-stuck (code=$result_kill_code want 0, .rc=$result_kill_rc want <missing>)"
 
 
+# 24. the same killed-but-finished leaf whose terminal result record says the run FAILED is
+#     reported exit 1, not exit 0 (issue #212). Case 23 pins the `is_error: false` half; this
+#     is the other side of the same record, and the two together are what "the leaf's own
+#     outcome" means — a recovery that reported every finished leaf as a success would turn a
+#     verifier's REJECT, or a developer leaf that blew up, into a green the conductor carries
+#     on from.
+#
+#     Exit 1 is a clean negative in this repository's contract — the leaf ran and failed, a
+#     real answer — and it is the code the leaf itself would have exited on had the watchdog
+#     let it live: `is_error` is the record's own word for how the run ended.
+#
+#     Same stub shape as case 23 — print the record, then sleep, so the leaf's subshell never
+#     writes `.tdd/<name>.rc` and only the watchdog can end the supervision — and the absent
+#     rc file is asserted beside the code for case 23's reason: with one there, the supervisor
+#     would have taken its ordinary failure path and the case would pin nothing. A directory
+#     of its own under `$work`, for case 12's reason, and the one-second window in front of
+#     `"$SUP"` for case 17's.
+error_kill_work="$work/error-kill"
+# `subtype` says `error_during_execution` beside `is_error: true`, the pair a `claude -p` run
+# that ended badly closes its stream with, so the record under test is one a real leaf writes.
+cat > "$stub/leaf-error-hang" <<'L'
+#!/usr/bin/env bash
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+echo '{"type":"result","subtype":"error_during_execution","is_error":true,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"the suite did not finish","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+sleep 60
+L
+chmod +x "$stub/leaf-error-hang"
+error_kill_window=1
+sup_run "$error_kill_work" VERI_HEARTBEAT="$error_kill_window" "$SUP" verify-red "$stub/leaf-error-hang"
+error_kill_code=$?
+# Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
+# 13, 15 to 22 and 23's shape.
+error_kill_rc="$(cat "$error_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>')"
+{ [[ "$error_kill_code" == 1 ]] \
+  && [[ "$error_kill_rc" == '<missing>' ]]; } && ok \
+  || no "a killed leaf whose terminal result record is an error is reported exit 1, not exit 0 (code=$error_kill_code want 1, .rc=$error_kill_rc want <missing>)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
