@@ -65,39 +65,42 @@ if [[ "${1:-}" == "--repo" ]]; then
   repo_args=(--repo "$repo")
 fi
 
+# A label tunable set but EMPTY is a misconfigured run, not a choice — a launcher writing
+# `VERI_LABEL="$some_unset_var"` is how it gets there — so refuse before anything is fetched
+# rather than guess which name was meant. The two expansions each tunable is read through
+# differ by one character and that difference is the whole of it: `${VAR-x}` yields the value
+# when the variable is set and the literal `x` when it is not, so it is empty in exactly the
+# set-but-empty case, whereas the `${VAR:-…}` that supplies the default cannot tell empty from
+# unset and would quietly take one for the other. Fail closed like refactor-budget.sh does on a
+# malformed budget: a diagnostic on stderr, exit 2 — no answer could be obtained — and nothing
+# on stdout for a caller to mistake for a pool.
+#
+# Both labels refuse in that one shape, so it is written once and asked by name: `${!var-x}` is
+# the same expansion read indirectly. The function is called as a statement rather than in a
+# command substitution, so its `exit` is this script's exit and not a subshell's.
+refuse_if_empty() {  # refuse_if_empty <var-name> — exit 2 if that variable is set but empty
+  local var="$1"
+  if [[ -z "${!var-x}" ]]; then
+    echo "solvable-issues: $var is set but empty: name a label or leave it unset" >&2
+    exit 2
+  fi
+}
+
 # The opt-in label, read the way every other tunable in this suite is read. Setting it moves
 # the gate rather than widening it: the pool becomes exactly the issues carrying that name,
 # and `ready-for-agent` stops being special. That is what lets two loops on one repository
-# drain two disjoint pools instead of racing for the same issues.
-#
-# Set but EMPTY is a misconfigured run, not a choice — a launcher writing
-# `VERI_LABEL="$some_unset_var"` is how it gets there — so refuse before anything is fetched
-# rather than guess which label was meant. The two expansions below differ by one character
-# and that difference is the whole of it: `${VERI_LABEL-x}` yields the value when the variable
-# is set and the literal `x` when it is not, so it is empty in exactly the set-but-empty case,
-# whereas the `${VERI_LABEL:-…}` that supplies the default cannot tell empty from unset and
-# would quietly take one for the other. Fail closed like refactor-budget.sh does on a
-# malformed budget: a diagnostic on stderr, exit 2 — no answer could be obtained — and
-# nothing on stdout for a caller to mistake for a pool.
-if [[ -z "${VERI_LABEL-x}" ]]; then
-  echo "solvable-issues: VERI_LABEL is set but empty: name a label or leave it unset" >&2
-  exit 2
-fi
+# drain two disjoint pools instead of racing for the same issues. Empty, it would match every
+# issue — the opt-in gate gone, which is the failure the refusal above prevents.
+refuse_if_empty VERI_LABEL
 label="${VERI_LABEL:-ready-for-agent}"
 
 # The label that says "take this one sooner", read like every other tunable. It names a band
 # in the print order and nothing else: an issue carrying it still has to pass all four
 # conditions above, so priority reorders the solvable set and never enlarges it. The default
-# is the `priority` label the repository already has.
-#
-# Set but EMPTY refuses exactly as VERI_LABEL above does, and for the same `${VAR-x}` reason:
-# an empty name matches every issue, which would put the whole solvable set in the priority
-# band — the ordering equivalent of an empty opt-in label matching everything. A diagnostic on
-# stderr, exit 2, nothing on stdout for a caller to read as a queue.
-if [[ -z "${VERI_PRIORITY_LABEL-x}" ]]; then
-  echo "solvable-issues: VERI_PRIORITY_LABEL is set but empty: name a label or leave it unset" >&2
-  exit 2
-fi
+# is the `priority` label the repository already has. Empty, it would put the whole solvable
+# set in the priority band — the ordering equivalent of an empty opt-in label — so it refuses
+# the same way.
+refuse_if_empty VERI_PRIORITY_LABEL
 priority_label="${VERI_PRIORITY_LABEL:-priority}"
 
 # One document, from whichever of the two sources is in force. Both the override and the
