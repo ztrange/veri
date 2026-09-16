@@ -1125,6 +1125,78 @@ label_run "$fx" -u VERI_PRIORITY_LABEL
   && ok || no "the priority label alone never opts an issue in (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '180|')"
 
 
+# 25. Order never overrides the graph. Cases 22–24 pin where a `priority` or `bug` issue sorts;
+# this one pins that sorting is ALL either label buys (#113). The four conditions run first and
+# the sort runs on what survives, so a band is a position in the print order and never a way
+# into it — the wrong implementation this catches is the one where the band computation decides
+# membership, or where the sort is asked of every issue and the filter of only the plain ones.
+#
+# One fixture, the three ways an issue can be withheld, each carried by an issue that would
+# otherwise sort FIRST: #190 `priority` blocked by the still-open #189, #191 `bug` claimed by an
+# open PR saying `Closes #191`, #192 `priority` and CLOSED. Each is otherwise maximally takeable
+# — opted in, and #191 and #192 name `None.` under `## Blocked by` — so the only thing
+# withholding each is the one condition it fails. #189 is the blocker and carries no opt-in
+# label, so it is not in the pool itself and cannot be mistaken for the answer. #195 is the
+# opted-in plain control: it keeps stdout non-empty and the exit 0, isolating this case from the
+# empty-result criterion, and it is the HIGHEST-numbered of the lot, so any issue that leaked
+# through a band shows up ahead of it — the miss is an extra first line, not a reorder.
+#
+# `-u VERI_PRIORITY_LABEL` guarantees the label name is the DEFAULT rather than whatever the
+# calling shell exports, the same hermeticity cases 23 and 24 keep.
+fx="$(fixture band-never-enlarges)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 189,
+    "title": "the open blocker",
+    "labels": [],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 190,
+    "title": "a capability wanted today, waiting on another",
+    "labels": [{"name": "ready-for-agent"}, {"name": "priority"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\n#189\n"
+  },
+  {
+    "number": 191,
+    "title": "a thing that is broken, already in flight",
+    "labels": [{"name": "ready-for-agent"}, {"name": "bug"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 192,
+    "title": "a capability wanted today, already done",
+    "labels": [{"name": "ready-for-agent"}, {"name": "priority"}],
+    "state": "CLOSED",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 195,
+    "title": "a capability veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+cat > "$fx/prs.json" <<'JSON'
+[
+  {
+    "state": "OPEN",
+    "body": "Closes #191\n"
+  }
+]
+JSON
+
+label_run "$fx" -u VERI_PRIORITY_LABEL
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "195" ]]; } \
+  && ok || no "a priority or bug issue that is blocked, claimed or closed is still not printed (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '195|')"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
