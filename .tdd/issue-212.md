@@ -1,6 +1,6 @@
 # Plan for #212 — A verifier that rendered its verdict was reported killed-stuck, and the verdict was thrown away
 
-- [ ] A leaf the watchdog kills whose progress log holds a terminal result event is reported with the leaf's own outcome, exit 0, not exit 2 killed-stuck
+- [x] A leaf the watchdog kills whose progress log holds a terminal result event is reported with the leaf's own outcome, exit 0, not exit 2 killed-stuck ⟂ refactor pending
 - [ ] A killed leaf whose terminal result event is an error is reported exit 1, not exit 0
 - [ ] A leaf recovered from its terminal result event is launched exactly once, with no stuck-retry
 - [ ] A recovered leaf's captured stdout ends with the clean result text, so parse-verdict.sh reads its verdict
