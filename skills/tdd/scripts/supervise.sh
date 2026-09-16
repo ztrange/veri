@@ -11,7 +11,11 @@
 # it still can't recover it is reported as `killed-stuck`, which the conductor turns into a
 # clean bail — unless its log already holds the leaf's closing result record, in which case the
 # kill landed on a finished process and the leaf's own outcome is reported instead (issue
-# #212).
+# #212). A kill and a rendered verdict can coexist because the watchdog's only sensor for
+# "the leaf is done" is the subshell's rc file, and the leaf's stream finishes before the
+# subshell writes `.tdd/<name>.rc` — so between the last line of output and that file
+# landing there is a window in which a finished leaf is indistinguishable from a silent
+# one, and a kill is not proof that no answer was obtained.
 #
 # Usage:
 #   supervise.sh <name> <cmd> [args...]
