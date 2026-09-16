@@ -120,6 +120,46 @@ same_both_ways solvable-issues.test.sh \
   -- VERI_PRIORITY_LABEL=ready-for-agent
 report "$name"
 
+# 4. The same rule for ambient state that is not an environment variable at all: the lock a run
+#    in flight leaves at <main_tree>/.tdd/wt/<n>/.tdd/conductor.pid. solvable-issues.sh reads it
+#    out of the MAIN working tree of the repository the SCRIPT runs in (#166), and the
+#    band-ordering cases invoke the script in the suite's own cwd, so on a machine where veri is
+#    solving one of the numbers those fixtures name the live lock answers a question the case only
+#    asked of its fixture — the suite goes red for what the run itself did by claiming its issue
+#    (#226).
+#
+#    Probed by cwd rather than by `env`, because this ambient value is a file in a repository
+#    rather than a name in the environment: both arms run the suite inside a scratch repository
+#    built here, and the arms differ only by the locks under it. Nothing is written into the
+#    surrounding repository, so the case cannot itself become the ambient state it is about.
+#
+#    The numbers locked are 108, 117, 120 and 124, the ones the band-ordering fixtures carry: a
+#    number no fixture names claims nothing, changes no answer, and would make this case pass
+#    while the leak it exists for stayed open — the same trap case 3 records for its label. The
+#    pid written is this suite's own, which is alive by construction, since `in_flight` is
+#    fail-open and a stale lock would likewise change nothing.
+name="solvable-issues.test.sh: a live conductor lock in the surrounding repository gives the same exit and the same stdout as a run with none"
+lock_work="$(mktemp -d)"
+trap 'rm -rf "$lock_work"' EXIT
+git init -q -b main "$lock_work/no-lock" >/dev/null 2>&1
+git init -q -b main "$lock_work/locked" >/dev/null 2>&1
+for n in 108 117 120 124; do
+  mkdir -p "$lock_work/locked/.tdd/wt/$n/.tdd"
+  printf '%s\n' "$$" > "$lock_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
+done
+
+unlocked_out="$(cd "$lock_work/no-lock" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && unlocked_code=0 || unlocked_code=$?
+locked_out="$(cd "$lock_work/locked" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && locked_code=0 || locked_code=$?
+
+problems=()
+[[ "$unlocked_code" == 0 ]] ||
+  problems+=("the no-lock run is not green, so there is nothing to compare against: exit $unlocked_code, stdout: $(printf '%q' "$unlocked_out")")
+[[ "$locked_code" == "$unlocked_code" ]] ||
+  problems+=("want the no-lock run's exit $unlocked_code, got $locked_code")
+[[ "$locked_out" == "$unlocked_out" ]] ||
+  problems+=("want the no-lock run's stdout $(printf '%q' "$unlocked_out"), got: $(printf '%q' "$locked_out")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
