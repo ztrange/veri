@@ -167,6 +167,41 @@ locked_out="$(cd "$lock_work/locked" && "$HERE/solvable-issues.test.sh" 2>/dev/n
 same_answer no-lock "$unlocked_code" "$unlocked_out" "$locked_code" "$locked_out"
 report "$name"
 
+# 5. The same lock, asked of EVERY number the fixtures in solvable-issues.test.sh name rather than
+#    the four the report in #226 happened to catch. Case 4 pins the numbers a live run had claimed
+#    on the day the leak was found; this one pins the rule underneath them — no case in that suite
+#    reads a conductor lock outside a repository the case itself built — for the fixture numbers it
+#    carries TODAY, which is the only list that stays true as cases are added.
+#
+#    The numbers are read out of the suite's own text, the way workflow-timeouts.test.sh reads
+#    ci.yml as text (#99): a hand-kept list here would be one edit behind the next case that
+#    invents a number, and the leak this case exists for reopens for exactly that number with the
+#    case still green. A fixture number is a `"number": <n>` field, since that is the key the
+#    VERI_GH_JSON fixtures use to say which issue they describe.
+#
+#    That derivation is itself probed — a pattern that matched nothing would lock nothing, make
+#    both arms identical and report a pass about a machine that was never put under the condition.
+#    It is the trap cases 3 and 4 record for their label and their numbers, one level up: here the
+#    thing that can silently name nothing is the pattern rather than the value.
+name="solvable-issues.test.sh: a live conductor lock for every number its own fixtures name gives the same exit and the same stdout as a run with none"
+every_work="$(mktemp -d)"
+trap 'rm -rf "$lock_work" "$every_work"' EXIT
+git init -q -b main "$every_work/no-lock" >/dev/null 2>&1
+git init -q -b main "$every_work/locked" >/dev/null 2>&1
+fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -u))
+for n in "${fixture_numbers[@]+"${fixture_numbers[@]}"}"; do
+  mkdir -p "$every_work/locked/.tdd/wt/$n/.tdd"
+  printf '%s\n' "$$" > "$every_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
+done
+
+every_unlocked_out="$(cd "$every_work/no-lock" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && every_unlocked_code=0 || every_unlocked_code=$?
+every_locked_out="$(cd "$every_work/locked" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && every_locked_code=0 || every_locked_code=$?
+
+same_answer no-lock "$every_unlocked_code" "$every_unlocked_out" "$every_locked_code" "$every_locked_out"
+[[ "${#fixture_numbers[@]}" -gt 0 ]] ||
+  problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the two arms cannot differ")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
