@@ -1082,6 +1082,49 @@ label_run "$fx" -u VERI_PRIORITY_LABEL
 { [[ "$code" == 0 ]] && [[ "$out" == $'150\n160\n120' ]]; } \
   && ok || no "a priority-labelled issue is printed ahead of a lower-numbered bug, and one carrying both labels sorts in the priority band (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '150|160|120|')"
 
+# 24. `priority` says take this one SOONER; it never says take this one AT ALL. The two labels
+# answer different questions — `VERI_LABEL` is the human's explicit opt-in, `priority` only
+# names a band in the print order — so an issue carrying the priority label and not the opt-in
+# one is not solvable, and priority reorders the solvable set without ever enlarging it (#113).
+# This is the case most likely to be got wrong, because the obvious wrong implementation is the
+# tempting one: reading the priority label anywhere the opt-in label is read, or letting the
+# band computation decide membership rather than order.
+#
+# #170 is fed in at its most takeable except for the one thing — open, `None.` under
+# `## Blocked by`, no PR, and carrying `priority` — so the ONLY thing withholding it is the
+# missing opt-in label. #180 is the opted-in control: it keeps stdout non-empty and the exit 0,
+# isolating this case from the empty-result criterion, and it is PLAIN and higher-numbered, so
+# an implementation that let `priority` opt an issue in prints "170\n180" — the miss shows up
+# as an extra first line rather than a reorder that could be read two ways.
+#
+# `-u VERI_PRIORITY_LABEL` guarantees the label name is the DEFAULT rather than whatever the
+# calling shell exports, the same hermeticity the other tunables' cases keep.
+fx="$(fixture priority-without-opt-in)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 170,
+    "title": "an unvetted idea somebody flagged as urgent",
+    "labels": [{"name": "priority"}],
+    "state": "OPEN",
+    "body": "## What to build\n\nSomething, urgently.\n\n## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 180,
+    "title": "a capability veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+
+label_run "$fx" -u VERI_PRIORITY_LABEL
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "180" ]]; } \
+  && ok || no "the priority label alone never opts an issue in (exit=$code want 0, stdout='$(tr '\n' '|' <<<"$out")' want '180|')"
+
+
 
 echo "----"
 echo "$pass passed, $fail failed"
