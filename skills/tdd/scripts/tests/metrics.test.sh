@@ -63,76 +63,101 @@ report() {
   fi
 }
 
-# table_says <file> <phase> <attempts> <pass> <reject> <kills> … — read the rendered table
-# out of <file> and complain, one line per disagreement, onto the caller's `problems`.
-# Takes any number of five-word row expectations after the file.
+# counts_table_says <file> <noun> <columns> <key>=<n>,<n>,… — read a counts table out of the
+# rendered report and complain, one line per disagreement, onto the caller's `problems`.
+# <columns> is a comma-separated list of the counts the table must carry, in the order the
+# expectations spell them; <noun> is what one of its rows is, for the diagnostics.
 #
-# The columns are located by reading the HEADER row rather than by position, because which
-# order the four counts are printed in is a presentation choice this step does not pin —
-# what it pins is that each count is there and is right. Ambiguity is a problem rather than
-# a guess: a header cell matching two of the four words means the table did not give the
-# four counts four columns, which is the thing being asserted, so it fails rather than
-# silently reading one column as two.
+# The table is located by what it CARRIES rather than by a heading or a position: the first
+# table in the report whose header gives every wanted count a column of its own. That leaves
+# the implementation free to head its sections however it likes and to order the columns
+# however it likes — what this pins is that the counts exist and are right, which is the
+# step. A count named in two header cells at once gives that count no column of its own, so
+# such a table is not the section and the search moves on: ambiguity is a failure rather
+# than a guess.
+#
+# The columns are then located by reading the header row rather than by position, and rows
+# are matched on their first cell against the key, so neither the column order nor the row
+# order is pinned.
 #
 # python3 rather than awk: extract-result.sh and event.sh already exec it in production, so
 # the interpreter is a dependency this repo has, and the parse is fail-closed in one place.
-table_says() {
-  local out_file="$1"; shift
+counts_table_says() {
+  local out_file="$1" noun="$2" columns="$3"; shift 3
   local said
   said="$(python3 -c '
 import re, sys
 
-WANTED = ["attempts", "pass", "reject", "kills"]
-NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject", "kills": "kill"}
+NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject",
+          "kills": "kill", "retries": "retr"}
 SEPARATOR = re.compile(r"^:?-+:?$")
+
+noun, wanted, path = sys.argv[1], sys.argv[2].split(","), sys.argv[3]
 
 def cells(line):
     return [c.strip() for c in line.strip().strip("|").split("|")]
 
-text = open(sys.argv[1]).read()
-rows = [cells(l) for l in text.splitlines() if l.strip().startswith("|")]
-rows = [r for r in rows if not all(SEPARATOR.match(c) for c in r if c)]
+# Every run of consecutive table lines is one table: a report with a per-phase section and a
+# per-step section has two, and a blank line or a heading between them is what separates
+# them.
+tables, current = [], []
+for line in open(path).read().splitlines():
+    if line.strip().startswith("|"):
+        row = cells(line)
+        if not all(SEPARATOR.match(c) for c in row if c):
+            current.append(row)
+    elif current:
+        tables.append(current)
+        current = []
+if current:
+    tables.append(current)
+
+def columns(header):
+    found = {}
+    for i, cell in enumerate(header):
+        hit = [w for w in wanted if NEEDLE[w] in cell.lower()]
+        if len(hit) == 1:
+            found.setdefault(hit[0], i)
+    return found
 
 problems = []
-if not rows:
-    problems.append("want a markdown table in the output, found no line beginning with |")
+section = next((t for t in tables if len(columns(t[0])) == len(wanted)), None)
+if section is None:
+    headers = ["|".join(t[0]) for t in tables]
+    problems.append(
+        "want a table giving each of %s a column of its own, the report has tables headed: %s"
+        % (", ".join(wanted), ", ".join(repr(h) for h in headers) or "nothing"))
     print("\n".join(problems))
     raise SystemExit(0)
 
-header, body = rows[0], rows[1:]
-
-column = {}
-for i, cell in enumerate(header):
-    hit = [w for w in WANTED if NEEDLE[w] in cell.lower()]
-    if len(hit) > 1:
-        problems.append(
-            "header cell %r names %s at once, want one column each" % (cell, " and ".join(hit)))
-    elif hit:
-        column.setdefault(hit[0], i)
-for want in WANTED:
-    if want not in column:
-        problems.append(
-            "want a %s column, the header row is %r" % (want, " | ".join(header)))
+header, body = section[0], section[1:]
+column = columns(header)
 
 labels = [r[0] for r in body if r]
-for arg in sys.argv[2:]:
-    phase, expected = arg.split("=", 1)
-    row = next((r for r in body if r and r[0].strip().lower() == phase), None)
+for arg in sys.argv[4:]:
+    key, expected = arg.split("=", 1)
+    row = next((r for r in body if r and r[0].strip().lower() == key.lower()), None)
     if row is None:
-        problems.append("want a row for phase %r, the table has rows for: %s"
-                        % (phase, ", ".join(repr(l) for l in labels) or "nothing"))
+        problems.append("want a row for %s %r, the table has rows for: %s"
+                        % (noun, key, ", ".join(repr(l) for l in labels) or "nothing"))
         continue
-    for want, number in zip(WANTED, expected.split(",")):
-        if want not in column:
-            continue
+    for want, number in zip(wanted, expected.split(",")):
         i = column[want]
         got = row[i] if i < len(row) else ""
         if got != number:
-            problems.append("phase %r %s: want %s, got %r" % (phase, want, number, got))
+            problems.append("%s %r %s: want %s, got %r" % (noun, key, want, number, got))
 
 print("\n".join(problems))
-' "$out_file" "$@" 2>&1)"
+' "$noun" "$columns" "$out_file" "$@" 2>&1)"
   [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+}
+
+# table_says <file> <phase>=<attempts>,<pass>,<reject>,<kills> … — the per-phase section.
+# It is the first table in the report carrying those four counts; the per-step section
+# carries them too, but comes second and is reached by its retries column instead.
+table_says() {
+  local out_file="$1"; shift
+  counts_table_says "$out_file" phase attempts,pass,reject,kills "$@"
 }
 
 work="$(mktemp -d)"
@@ -206,103 +231,13 @@ table_says "$out_file" red=2,1,0,0 green=9,1,2,3
 report "$name"
 
 
-# step_table_says <file> <step>=<attempts>,<pass>,<reject>,<kills>,<retries> … — read the
-# PER-STEP section out of the rendered report and complain, one line per disagreement, onto
-# the caller's `problems`.
-#
-# The section is located by what it carries rather than by a heading or a position: the
-# report's tables are searched for one that has a stuck-retries column, since only the
-# per-step section has those counts. That leaves the implementation free to head the section
-# however it likes and to order the columns however it likes — what this pins is that the
-# per-step counts exist and are right, which is the step. Rows are then matched on their
-# first cell against the step's own name, the string event.sh writes into every line's
-# `step` field.
-#
-# Same shape, same fail-closed parse, and the same reason for python3 over awk, as
-# table_says above.
+# step_table_says <file> <step>=<attempts>,<pass>,<reject>,<kills>,<retries> … — the
+# per-step section, located by its stuck-retries column, since only that section has those
+# counts. Rows are matched on their first cell against the step's own name, the string
+# event.sh writes into every line's `step` field.
 step_table_says() {
   local out_file="$1"; shift
-  local said
-  said="$(python3 -c '
-import re, sys
-
-WANTED = ["attempts", "pass", "reject", "kills", "retries"]
-NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject",
-          "kills": "kill", "retries": "retr"}
-SEPARATOR = re.compile(r"^:?-+:?$")
-
-def cells(line):
-    return [c.strip() for c in line.strip().strip("|").split("|")]
-
-# Every run of consecutive table lines is one table: a report with a per-phase section and a
-# per-step section has two, and a blank line or a heading between them is what separates
-# them.
-tables, current = [], []
-for line in open(sys.argv[1]).read().splitlines():
-    if line.strip().startswith("|"):
-        row = cells(line)
-        if not all(SEPARATOR.match(c) for c in row if c):
-            current.append(row)
-    elif current:
-        tables.append(current)
-        current = []
-if current:
-    tables.append(current)
-
-def columns(header):
-    found = {}
-    for i, cell in enumerate(header):
-        hit = [w for w in WANTED if NEEDLE[w] in cell.lower()]
-        if len(hit) == 1:
-            found.setdefault(hit[0], i)
-    return found
-
-problems = []
-section = None
-for table in tables:
-    if "retries" in columns(table[0]):
-        section = table
-        break
-
-if section is None:
-    headers = ["|".join(t[0]) for t in tables]
-    problems.append(
-        "want a table with a stuck-retries column, the report has tables headed: %s"
-        % (", ".join(repr(h) for h in headers) or "nothing"))
-    print("\n".join(problems))
-    raise SystemExit(0)
-
-header, body = section[0], section[1:]
-column = columns(header)
-for i, cell in enumerate(header):
-    hit = [w for w in WANTED if NEEDLE[w] in cell.lower()]
-    if len(hit) > 1:
-        problems.append(
-            "header cell %r names %s at once, want one column each" % (cell, " and ".join(hit)))
-for want in WANTED:
-    if want not in column:
-        problems.append("want a %s column in the per-step section, its header row is %r"
-                        % (want, " | ".join(header)))
-
-labels = [r[0] for r in body if r]
-for arg in sys.argv[2:]:
-    step, expected = arg.split("=", 1)
-    row = next((r for r in body if r and r[0].strip().lower() == step.lower()), None)
-    if row is None:
-        problems.append("want a row for step %r in the per-step section, its rows are: %s"
-                        % (step, ", ".join(repr(l) for l in labels) or "nothing"))
-        continue
-    for want, number in zip(WANTED, expected.split(",")):
-        if want not in column:
-            continue
-        i = column[want]
-        got = row[i] if i < len(row) else ""
-        if got != number:
-            problems.append("step %r %s: want %s, got %r" % (step, want, number, got))
-
-print("\n".join(problems))
-' "$out_file" "$@" 2>&1)"
-  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+  counts_table_says "$out_file" step attempts,pass,reject,kills,retries "$@"
 }
 
 # A second fixture, in a directory of its own so the case above keeps the log it was written
