@@ -51,10 +51,13 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 # conductor is handed, in the harness's own words, which is where SKILL.md reads `S` from —
 # after the procedure, never before it, whose first line must stay the frontmatter fence.
 # The snapshot is of the commit, not of the working tree, so an uncommitted edit in the clone
-# is not in it. A skill that is not in a git clone runs from where it is, as before.
+# is not in it. A skill that is not in a git clone runs from where it is, as before. The
+# snapshot is removed on exit, as run-leaf.sh:46 removes its stream file: nothing reads it
+# once the synchronous `claude -p` below has returned.
 base="$(cd "$HERE/.." && pwd)"
 if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
   snapshot="$(mktemp -d)"
+  trap 'rm -rf "$snapshot"' EXIT
   git -C "$base" archive "$commit" . | tar -x -C "$snapshot"
   base="$snapshot"
 fi
