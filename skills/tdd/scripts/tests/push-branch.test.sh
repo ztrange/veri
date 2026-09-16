@@ -62,6 +62,21 @@ unchanged() {
     problems+=("$label: want it unchanged at $(printf '%q' "$before"), got $(printf '%q' "$after")")
 }
 
+# run_fixture <repo> <branch> <issue> — a run in the shape the conductor leaves behind at a
+# green step: <branch> cut from an initial commit on main, carrying one commit that adds the
+# ledger `.tdd/issue-<issue>.md`, whose content is read from stdin. No origin: which remote
+# the run pushes to is what each case is about, so each case adds its own.
+run_fixture() {
+  local repo="$1" branch="$2" issue="$3"
+  mkdir -p "$repo/.tdd"
+  git init -q -b main "$repo" >/dev/null 2>&1
+  git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
+  git_q "$repo" checkout -q -b "$branch" >/dev/null 2>&1
+  cat > "$repo/.tdd/issue-$issue.md"
+  git_q "$repo" add -A >/dev/null 2>&1
+  git_q "$repo" commit -q -m "feat: a step's green commit (#$issue)" >/dev/null 2>&1
+}
+
 # git_q <repo> <args...> — git with an identity of its own, so the suite does not depend on
 # whatever user.name/user.email the machine running it happens to carry (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
@@ -96,19 +111,13 @@ for line in open(sys.argv[1]).read().splitlines():
 name="push-branch.sh: a failing push exits 0 and leaves HEAD, the commit count and the ledger unchanged, recording an event that says the push failed"
 problems=()
 repo="$work/run"
-mkdir -p "$repo/.tdd"
-git init -q -b main "$repo" >/dev/null 2>&1
-git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
-git_q "$repo" checkout -q -b tdd/191-run-commits-live-on-one-disk >/dev/null 2>&1
 ledger="$repo/.tdd/issue-191.md"
-cat > "$ledger" <<'LEDGER'
+run_fixture "$repo" tdd/191-run-commits-live-on-one-disk 191 <<'LEDGER'
 # Plan for #191 — A run's commits live on one disk until the draft PR
 
 - [x] A push that fails leaves the run's exit status, ledger and commits unchanged ⟂ refactor pending
 - [ ] After a step's green commit and tick, the branch exists on the remote at that commit
 LEDGER
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: a step's green commit (#191)" >/dev/null 2>&1
 # An origin that is not a repository: the push fails locally, identically everywhere, with
 # no network involved.
 git_q "$repo" remote add origin "$work/no-such-remote.git" >/dev/null 2>&1
@@ -154,19 +163,13 @@ name="push-branch.sh: a push that lands leaves the branch on the remote at the c
 problems=()
 repo="$work/landed"
 remote="$work/origin.git"
-mkdir -p "$repo/.tdd"
 git init -q --bare "$remote" >/dev/null 2>&1
-git init -q -b main "$repo" >/dev/null 2>&1
-git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
 branch=tdd/191-run-commits-live-on-one-disk
-git_q "$repo" checkout -q -b "$branch" >/dev/null 2>&1
-cat > "$repo/.tdd/issue-191.md" <<'LEDGER'
+run_fixture "$repo" "$branch" 191 <<'LEDGER'
 # Plan for #191 — A run's commits live on one disk until the draft PR
 
 - [x] After a step's green commit and tick, the branch exists on the remote at that commit ⟂ refactor pending
 LEDGER
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: a step's green commit (#191)" >/dev/null 2>&1
 git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
 
 head_sha="$(git_q "$repo" rev-parse HEAD)"
@@ -195,19 +198,13 @@ report "$name"
 name="push-branch.sh: an unreachable origin with VERI_PUSH_RETRIES=2 is attempted 3 times, exits 0, prints one stderr line naming the failure and the attempt count, and records one push-failed event, leaving HEAD, the commit count and the ledger unchanged"
 problems=()
 repo="$work/retried"
-mkdir -p "$repo/.tdd"
-git init -q -b main "$repo" >/dev/null 2>&1
-git_q "$repo" commit -q --allow-empty -m "initial" >/dev/null 2>&1
-git_q "$repo" checkout -q -b tdd/232-push-retry >/dev/null 2>&1
 ledger="$repo/.tdd/issue-232.md"
-cat > "$ledger" <<'LEDGER'
+run_fixture "$repo" tdd/232-push-retry 232 <<'LEDGER'
 # Plan for #232 — push-branch.sh exits 0 on a rejected push
 
 - [x] Unreachable origin is retried ⟂ refactor pending
 - [ ] Non-fast-forward rejection exits 1
 LEDGER
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: a step's green commit (#232)" >/dev/null 2>&1
 git_q "$repo" remote add origin "$work/no-such-remote-232.git" >/dev/null 2>&1
 
 stubdir="$work/stub-bin"
