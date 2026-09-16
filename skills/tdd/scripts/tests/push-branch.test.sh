@@ -81,6 +81,23 @@ run_fixture() {
 # whatever user.name/user.email the machine running it happens to carry (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
+# push_counting_git <stubdir> <calls> — a `git` stub in <stubdir> that appends one line to
+# <calls> for every `push` it sees and hands every call, push or not, to the real git. Put
+# <stubdir> first on PATH and `grep -c . <calls>` is the number of push attempts made.
+push_counting_git() {
+  local stubdir="$1" calls="$2"
+  mkdir -p "$stubdir"
+  : > "$calls"
+  cat > "$stubdir/git" <<STUB
+#!/usr/bin/env bash
+for a in "\$@"; do
+  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
+done
+exec "$(command -v git)" "\$@"
+STUB
+  chmod +x "$stubdir/git"
+}
+
 # jevents <file> — the `event` value of every line in the file, in file order, one per line:
 # the log read the way a reader of a whole run reads it. A line that is not a JSON object
 # prints `<<unparseable>>` and one without the key prints `<<missing>>`, so a broken line is
@@ -209,16 +226,7 @@ git_q "$repo" remote add origin "$work/no-such-remote-232.git" >/dev/null 2>&1
 
 stubdir="$work/stub-bin"
 calls="$work/push-calls"
-mkdir -p "$stubdir"
-: > "$calls"
-cat > "$stubdir/git" <<STUB
-#!/usr/bin/env bash
-for a in "\$@"; do
-  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
-done
-exec "$(command -v git)" "\$@"
-STUB
-chmod +x "$stubdir/git"
+push_counting_git "$stubdir" "$calls"
 
 head_before="$(git_q "$repo" rev-parse HEAD)"
 count_before="$(git_q "$repo" rev-list --count HEAD)"
@@ -271,16 +279,7 @@ git_q "$repo" remote add origin "$work/no-such-remote-232-default.git" >/dev/nul
 
 stubdir="$work/stub-bin-default"
 calls="$work/push-calls-default"
-mkdir -p "$stubdir"
-: > "$calls"
-cat > "$stubdir/git" <<STUB
-#!/usr/bin/env bash
-for a in "\$@"; do
-  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
-done
-exec "$(command -v git)" "\$@"
-STUB
-chmod +x "$stubdir/git"
+push_counting_git "$stubdir" "$calls"
 
 ( cd "$repo" && env -u VERI_PUSH_RETRIES PATH="$stubdir:$PATH" VERI_PUSH_BACKOFF=0 \
     VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Unreachable origin uses the default retries' \
@@ -421,16 +420,7 @@ LEDGER
 
   stubdir="$work/stub-bin-bad-$var"
   calls="$work/push-calls-bad-$var"
-  mkdir -p "$stubdir"
-  : > "$calls"
-  cat > "$stubdir/git" <<STUB
-#!/usr/bin/env bash
-for a in "\$@"; do
-  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
-done
-exec "$(command -v git)" "\$@"
-STUB
-  chmod +x "$stubdir/git"
+  push_counting_git "$stubdir" "$calls"
 
   ( cd "$repo" && env -u VERI_PUSH_RETRIES -u VERI_PUSH_BACKOFF PATH="$stubdir:$PATH" \
       VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 "$bad" \
