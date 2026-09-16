@@ -206,6 +206,194 @@ table_says "$out_file" red=2,1,0,0 green=9,1,2,3
 report "$name"
 
 
+# step_table_says <file> <step>=<attempts>,<pass>,<reject>,<kills>,<retries> … — read the
+# PER-STEP section out of the rendered report and complain, one line per disagreement, onto
+# the caller's `problems`.
+#
+# The section is located by what it carries rather than by a heading or a position: the
+# report's tables are searched for one that has a stuck-retries column, since only the
+# per-step section has those counts. That leaves the implementation free to head the section
+# however it likes and to order the columns however it likes — what this pins is that the
+# per-step counts exist and are right, which is the step. Rows are then matched on their
+# first cell against the step's own name, the string event.sh writes into every line's
+# `step` field.
+#
+# Same shape, same fail-closed parse, and the same reason for python3 over awk, as
+# table_says above.
+step_table_says() {
+  local out_file="$1"; shift
+  local said
+  said="$(python3 -c '
+import re, sys
+
+WANTED = ["attempts", "pass", "reject", "kills", "retries"]
+NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject",
+          "kills": "kill", "retries": "retr"}
+SEPARATOR = re.compile(r"^:?-+:?$")
+
+def cells(line):
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+# Every run of consecutive table lines is one table: a report with a per-phase section and a
+# per-step section has two, and a blank line or a heading between them is what separates
+# them.
+tables, current = [], []
+for line in open(sys.argv[1]).read().splitlines():
+    if line.strip().startswith("|"):
+        row = cells(line)
+        if not all(SEPARATOR.match(c) for c in row if c):
+            current.append(row)
+    elif current:
+        tables.append(current)
+        current = []
+if current:
+    tables.append(current)
+
+def columns(header):
+    found = {}
+    for i, cell in enumerate(header):
+        hit = [w for w in WANTED if NEEDLE[w] in cell.lower()]
+        if len(hit) == 1:
+            found.setdefault(hit[0], i)
+    return found
+
+problems = []
+section = None
+for table in tables:
+    if "retries" in columns(table[0]):
+        section = table
+        break
+
+if section is None:
+    headers = ["|".join(t[0]) for t in tables]
+    problems.append(
+        "want a table with a stuck-retries column, the report has tables headed: %s"
+        % (", ".join(repr(h) for h in headers) or "nothing"))
+    print("\n".join(problems))
+    raise SystemExit(0)
+
+header, body = section[0], section[1:]
+column = columns(header)
+for i, cell in enumerate(header):
+    hit = [w for w in WANTED if NEEDLE[w] in cell.lower()]
+    if len(hit) > 1:
+        problems.append(
+            "header cell %r names %s at once, want one column each" % (cell, " and ".join(hit)))
+for want in WANTED:
+    if want not in column:
+        problems.append("want a %s column in the per-step section, its header row is %r"
+                        % (want, " | ".join(header)))
+
+labels = [r[0] for r in body if r]
+for arg in sys.argv[2:]:
+    step, expected = arg.split("=", 1)
+    row = next((r for r in body if r and r[0].strip().lower() == step.lower()), None)
+    if row is None:
+        problems.append("want a row for step %r in the per-step section, its rows are: %s"
+                        % (step, ", ".join(repr(l) for l in labels) or "nothing"))
+        continue
+    for want, number in zip(WANTED, expected.split(",")):
+        if want not in column:
+            continue
+        i = column[want]
+        got = row[i] if i < len(row) else ""
+        if got != number:
+            problems.append("step %r %s: want %s, got %r" % (step, want, number, got))
+
+print("\n".join(problems))
+' "$out_file" "$@" 2>&1)"
+  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+}
+
+# A second fixture, in a directory of its own so the case above keeps the log it was written
+# against. Two steps, because one step could not tell a per-step section from a per-issue
+# total: the two rows are what make the section's key observable.
+#
+# `sv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` is `ev` with the step
+# as its first argument, since the step is the thing this fixture varies. Same line shape,
+# hand-written for the same reason.
+step_work="$(mktemp -d)"
+trap 'rm -rf "$work" "$step_work"' EXIT
+mkdir -p "$step_work/.tdd"
+
+sv() {
+  printf '{"ts": %s, "issue": "108", "actor": "%s", "phase": "%s", "step": "%s", "event": "%s", "attempt": "%s", "skill_commit": "c0ffee1"%s}\n' \
+    "$2" "$3" "$4" "$1" "$5" "$6" "${7:+, ${7}}" >> "$step_work/.tdd/events.jsonl"
+}
+
+one="metrics.sh renders a markdown table of per-phase counts"
+two="the table carries a per-step section with the same counts"
+
+# Step one, clean: red and green each a developer leaf, a verifier and a PASS.
+# 4 attempts, 2 PASS, 0 REJECT, 0 kills, 0 stuck retries.
+sv "$one" 2000 conductor ""    step-start ""
+sv "$one" 2010 developer red   launch  1 '"name": "develop-red"'
+sv "$one" 2100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$one" 2110 verifier  red   launch  1 '"name": "verify-red"'
+sv "$one" 2130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$one" 2130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$one" 2200 developer green launch  1 '"name": "develop-green"'
+sv "$one" 2300 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$one" 2310 verifier  green launch  1 '"name": "verify-green"'
+sv "$one" 2330 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$one" 2330 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$one" 2340 conductor ""    step-done ""
+
+# Step two, the expensive one: a rejected Green, three leaves the watchdog killed — two of
+# them after retrying, one of them twice — and a second REJECT at the end.
+# 9 attempts, 1 PASS, 2 REJECT, 3 kills, 4 stuck retries.
+#
+# The `retry` marks are supervise.sh's own (supervise.sh:311): one per relaunch of a leaf
+# that went quiet, written INSIDE its retry loop where `launch` is written outside it. That
+# is what makes retries a count of their own rather than a second reading of attempts or of
+# kills — and why the five numbers above are five distinct pairs across the two rows, so a
+# section that printed any one column in another's place cannot pass.
+sv "$two" 2400 conductor ""    step-start ""
+sv "$two" 2410 developer red   launch  1 '"name": "develop-red"'
+sv "$two" 2500 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$two" 2510 verifier  red   launch  1 '"name": "verify-red"'
+sv "$two" 2530 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$two" 2530 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$two" 2600 developer green launch  1 '"name": "develop-green"'
+sv "$two" 2700 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$two" 2710 verifier  green launch  1 '"name": "verify-green"'
+sv "$two" 2730 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$two" 2730 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+sv "$two" 2740 developer green launch  2 '"name": "revise-green-2"'
+sv "$two" 2800 developer green retry   2 '"cause": "no heartbeat for 300s (window 120s)"'
+sv "$two" 2860 developer green exit    2 '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "120"'
+sv "$two" 2870 developer green launch  2 '"name": "revise-green-2"'
+sv "$two" 2930 developer green retry   2 '"cause": "no heartbeat for 300s (window 120s)"'
+sv "$two" 2990 developer green retry   2 '"cause": "hard timeout 1200s exceeded"'
+sv "$two" 3050 developer green exit    2 '"status": "2", "cause": "hard timeout 1200s exceeded", "secs": "180"'
+sv "$two" 3060 developer green launch  2 '"name": "revise-green-2"'
+sv "$two" 3120 developer green retry   2 '"cause": "no heartbeat for 300s (window 120s)"'
+sv "$two" 3180 developer green exit    2 '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "120"'
+sv "$two" 3190 developer green launch  2 '"name": "revise-green-2"'
+sv "$two" 3250 developer green exit    2 '"status": "0", "secs": "60"'
+sv "$two" 3260 verifier  green launch  2 '"name": "verify-green"'
+sv "$two" 3280 verifier  green exit    2 '"status": "0", "secs": "20"'
+sv "$two" 3280 verifier  green verdict 2 '"verdict": "REJECT", "reason": "a second criterion was pinned in passing"'
+
+
+name="a two-step log renders a per-step section with each step's counts and stuck retries"
+problems=()
+
+step_out="$step_work/report.md"
+( cd "$step_work" && "$METRICS" 108 ) > "$step_out" 2>/dev/null
+status=$?
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("want metrics.sh to exit 0, it exited $status")
+
+step_table_says "$step_out" "$one=4,2,0,0,0" "$two=9,1,2,3,4"
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$(cat "$step_out")")")
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -29,6 +29,20 @@
 # line with no phase — the conductor's own `step-start` and `step-done` marks — is none of
 # the three events counted here and raises no row.
 #
+# A second section prints the same counts keyed by the log's `step` field instead, plus one
+# count the phase section has no column for:
+#
+#   retries  — `retry` events. supervise.sh writes one per relaunch of a leaf that went
+#              quiet, INSIDE its retry loop (supervise.sh:311) where `launch` is written
+#              outside it. So retries are neither a second reading of attempts nor of kills:
+#              a leaf retried twice and then killed is one attempt, two retries, one kill.
+#              It is the liveness budget spent, `VERI_STUCK_RETRIES`, and that is a per-step
+#              question — which step cost the watchdog its patience — which is why the
+#              column is here and not in the phase section.
+#
+# Every line carries a step, the conductor's marks included, so the section is keyed by
+# something always present; a phase, by contrast, is absent on exactly those marks.
+#
 # The log is read relative to the directory this runs in, `.tdd/events.jsonl`, the way
 # event.sh writes it and the way supervise.sh already spells `.tdd/<name>.log` — the issue's
 # worktree, in other words, which is where the conductor calls this from.
@@ -54,17 +68,24 @@ issue, path = sys.argv[1], sys.argv[2]
 # how many columns there are.
 COUNTS = ["attempts", "PASS", "REJECT", "kills"]
 
-# Phase order is the order the phases first appear in the log, which is the order the run
-# went through them — red before green before refactor. Sorting the names instead would
-# print the run backwards for no reason a reader could act on. A dict preserves the order
-# its keys were first inserted in, so `counts` IS that order and no second list is kept
+# The per-step section prints those four and retries, in that order, for the reason in the
+# header: retries answer a per-step question. Written as an extension of COUNTS rather than
+# as a list of its own, so the two sections cannot come to disagree about what a kill is.
+STEP_COUNTS = COUNTS + ["retries"]
+
+# Row order in either section is the order its key first appears in the log, which is the
+# order the run went through them — red before green before refactor, step one before step
+# two. Sorting the names instead would print the run backwards for no reason a reader could
+# act on, and would sort a step by the wording of its criterion. A dict preserves the order
+# its keys were first inserted in, so each of these IS that order and no second list is kept
 # beside it that could come to disagree with it.
 counts = {}
+steps = {}
 
-def tally(phase, count):
-    if phase not in counts:
-        counts[phase] = dict.fromkeys(COUNTS, 0)
-    counts[phase][count] += 1
+def tally(table, key, columns, count):
+    if key not in table:
+        table[key] = dict.fromkeys(columns, 0)
+    table[key][count] += 1
 
 with open(path) as f:
     for raw in f:
@@ -72,24 +93,41 @@ with open(path) as f:
         if not raw:
             continue
         line = json.loads(raw)
-        phase = line.get("phase", "")
-        if not phase:
-            continue
         event = line.get("event", "")
         if event == "launch":
-            tally(phase, "attempts")
+            count = "attempts"
         elif event == "verdict" and line.get("verdict") in ("PASS", "REJECT"):
-            tally(phase, line["verdict"])
+            count = line["verdict"]
         elif event == "exit" and line.get("status") == "2":
-            tally(phase, "kills")
+            count = "kills"
+        elif event == "retry":
+            count = "retries"
+        else:
+            continue
+        # One classification, two tables: the line is the same event whichever way it is
+        # grouped, so reading `event` twice is the way the two sections come to disagree.
+        # A phase-less line still raises no phase row, and a retry has no phase column to
+        # land in.
+        phase = line.get("phase", "")
+        if phase and count in COUNTS:
+            tally(counts, phase, COUNTS, count)
+        step = line.get("step", "")
+        if step:
+            tally(steps, step, STEP_COUNTS, count)
 
 def row(cells):
     print("| " + " | ".join(cells) + " |")
 
+def section(heading, key_column, columns, table):
+    print()
+    print(heading)
+    print()
+    row([key_column] + columns)
+    row(["---"] + ["---:"] * len(columns))
+    for key, row_counts in table.items():
+        row([key] + ["%d" % row_counts[c] for c in columns])
+
 print("### 📊 Metrics — issue %s" % issue)
-print()
-row(["phase"] + COUNTS)
-row(["---"] + ["---:"] * len(COUNTS))
-for phase, row_counts in counts.items():
-    row([phase] + ["%d" % row_counts[c] for c in COUNTS])
+section("#### By phase", "phase", COUNTS, counts)
+section("#### By step", "step", STEP_COUNTS, steps)
 ' "$issue" "$log"
