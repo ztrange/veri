@@ -143,6 +143,12 @@ UNKNOWN = "unknown"
 counts = {}
 steps = {}
 
+# The columns a row of either section carries: its counts and its seconds in one row, rather
+# than a second table on the same key kept beside the first — the same reason `spent` below is
+# one table and not one per kind of conductor mark.
+PHASE_COLUMNS = COUNTS + TIMES
+STEP_COLUMNS = STEP_COUNTS + TIMES
+
 # What the conductor own marks said about each step, keyed by step like `steps` and kept
 # beside it rather than inside it because these are read off marks rather than counted one
 # line per unit. One table rather than one per kind of mark: a revise attempt is counted from
@@ -153,21 +159,22 @@ steps = {}
 # the first in every log where nobody re-exported the variable mid-run.
 spent = {}
 
-# Seconds per phase and per step, keyed like `counts` and `steps` and summed over the
-# attempts in each. Apart from those two because these are not counts: a count rises by one
-# per line, these rise by whatever the line reports.
-times = {}
-step_times = {}
+# A row appears on first sight of its key with every column of its section at zero, so no cell
+# is ever missing and the insertion order is the order the run reached the key in.
+def row_in(table, key, columns):
+    return table.setdefault(key, dict.fromkeys(columns, 0))
 
 def tally(table, key, columns, count):
-    if key not in table:
-        table[key] = dict.fromkeys(columns, 0)
-    table[key][count] += 1
+    row_in(table, key, columns)[count] += 1
 
-def add_seconds(table, key, column, seconds):
-    if not key:
-        return
-    table.setdefault(key, dict.fromkeys(TIMES, 0))[column] += seconds
+# Seconds land in both sections from one call, the way a count does below: the line is the
+# same attempt whichever way it is grouped. A count rises by one per line, these rise by
+# whatever the line reports. A phase-less line still raises no phase row.
+def add_seconds(phase, step, column, seconds):
+    if phase:
+        row_in(counts, phase, PHASE_COLUMNS)[column] += seconds
+    if step:
+        row_in(steps, step, STEP_COLUMNS)[column] += seconds
 
 # The two ends of the whole run. `first` is the first line of the log whatever it is, since
 # the mark that opens a run is the conductor own and a log missing it still started
@@ -197,13 +204,10 @@ with open(path) as f:
         # Time, off the two lines that carry it. An `exit` is also where a kill is counted
         # below, so this adds and lets the line fall through rather than classifying it.
         if event == "exit":
-            secs = int(line.get("secs") or 0)
-            add_seconds(times, phase, "wall s", secs)
-            add_seconds(step_times, step, "wall s", secs)
+            add_seconds(phase, step, "wall s", int(line.get("secs") or 0))
         elif event == "usage":
-            api = int(line.get("duration_api_ms") or 0) // 1000
-            add_seconds(times, phase, "API s", api)
-            add_seconds(step_times, step, "API s", api)
+            add_seconds(phase, step, "API s",
+                        int(line.get("duration_api_ms") or 0) // 1000)
         # The conductor budget marks next, and they fall through to nothing below: a
         # `revise` is not a leaf launch, so counting it as an attempt would double-count the
         # revise leaf that the mark is followed by.
@@ -233,9 +237,9 @@ with open(path) as f:
         # A phase-less line still raises no phase row, and a retry has no phase column to
         # land in.
         if phase and count in COUNTS:
-            tally(counts, phase, COUNTS, count)
+            tally(counts, phase, PHASE_COLUMNS, count)
         if step:
-            tally(steps, step, STEP_COUNTS, count)
+            tally(steps, step, STEP_COLUMNS, count)
 
 def row(cells):
     print("| " + " | ".join(cells) + " |")
@@ -271,7 +275,7 @@ def budget_cells(step):
 # `section` takes one reader for its text columns, and the step section has two groups of
 # them: this is the one, so the cells cannot come apart from the order the headings print in.
 def step_cells(step):
-    return time_cells(step_times, step_wall)(step) + budget_cells(step)
+    return time_cells(steps, step_wall)(step) + budget_cells(step)
 
 # `text` is a section of non-count columns, as the pair (headings, a function mapping a row
 # key to that rows cells under them). One parameter rather than two because headings with
@@ -298,6 +302,6 @@ print()
 print("Wall time for the issue: %s s, from the first event of the log to the mark that "
       "ended the run."
       % (UNKNOWN if first is None or last is None else "%d" % (last - first)))
-section("#### By phase", "phase", COUNTS, counts, (TIMES, time_cells(times)))
+section("#### By phase", "phase", COUNTS, counts, (TIMES, time_cells(counts)))
 section("#### By step", "step", STEP_COUNTS, steps, (TIMES + BUDGETS, step_cells))
 ' "$issue" "$log"
