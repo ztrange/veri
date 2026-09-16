@@ -494,6 +494,16 @@ err17="$(cat "$work/err17")"
 { [[ "$code" == 2 ]] && [[ -z "$out" ]] && [[ "$err17" == *'parse-verdict: no VERDICT: line found'* ]]; } && ok \
   || no "a log with no VERDICT: line in any result record still exits 2 with the same diagnostic (code=$code want 2; output='$out' want empty; stderr='$err17' want 'parse-verdict: no VERDICT: line found')"
 
+# 18. more than one result record carries a verdict (issue #228) — a REJECT answered, the leaf was
+#     re-invoked and answered again with PASS, then a task-notification turn said nothing was left.
+#     The newest verdict is the answer, not the first one found.
+verify '{"type":"system","subtype":"init","session_id":"s"}
+{"type":"result","subtype":"success","is_error":false,"num_turns":4,"result":"VERDICT: REJECT\nREASON: Missing edge case."}
+{"type":"result","subtype":"success","is_error":false,"num_turns":2,"result":"VERDICT: PASS\nREASON: Revised: target and full suite green."}
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"duration_ms":1500,"duration_api_ms":1400,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"origin":{"kind":"task-notification"},"result":"No action needed — verdict already delivered for this verification."}' green
+{ [[ "$code" == 0 ]] && [[ "$out" == 'Revised: target and full suite green.' ]]; } && ok \
+  || no "the newest VERDICT: wins when more than one result record carries one (code=$code want 0; output='$out' want 'Revised: target and full suite green.')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
