@@ -90,6 +90,37 @@ roster() {
   make -C "$ROOT" -n test 2>/dev/null | grep -oE "$suites_dir/[A-Za-z0-9_.-]*\.test\.sh"
 }
 
+# probe_every_guard_is_rostered_and_green — the four against the roster and against the
+# document, in one sweep. The roster is read once for all four: it is a fact about the
+# baseline, not about any one guard, so a roster that could not be read is said once and
+# the membership question is then not asked at all, rather than answered "missing" four
+# times for a reason that is about this probe.
+probe_every_guard_is_rostered_and_green() {
+  local rost guard out code last cases
+  rost="$(roster)"
+
+  if [[ -z "$rost" ]]; then
+    # Fail closed: with no roster read, every membership question below would answer
+    # "missing" for a reason that is about this probe rather than about the tree.
+    problems+=("\`make -n test\` named no suite in $suites_dir, so the roster a green run covers could not be read")
+  fi
+
+  for guard in "${GUARDS[@]}"; do
+    if [[ -n "$rost" ]] && ! grep -qxF "$suites_dir/$guard" <<< "$rost"; then
+      problems+=("$suites_dir/$guard is not in the roster \`make test\` runs, so a green baseline says nothing about it")
+    fi
+
+    out="$("$HERE/$guard" 2>&1)" && code=0 || code=$?
+    last="$(tail -n 1 <<< "$out")"
+    # The suite's own FAIL lines, joined onto one line with `|`, so the message says which
+    # claim about the document the guard withheld rather than only that it withheld one.
+    cases="$(grep '^FAIL - ' <<< "$out" | tr '\n' '|')"
+    if [[ "$code" -ne 0 ]] || ! [[ "$last" =~ $COUNT_LINE ]]; then
+      problems+=("$guard is not green against $claude_md: exit $code, last line '$last'${cases:+ — ${cases%|}}")
+    fi
+  done
+}
+
 # 1. One criterion, one case: the four guards #202 names as its acceptance test are all in
 #    the baseline's roster and all green against the committed document. One case rather
 #    than one per guard, because what an accepted trim needs is not four verdicts but one —
@@ -97,27 +128,7 @@ roster() {
 name="the four suites that hold $claude_md are in \`make test\`'s roster and green against the committed document"
 problems=()
 
-rost="$(roster)"
-if [[ -z "$rost" ]]; then
-  # Fail closed: with no roster read, every membership question below would answer "missing"
-  # for a reason that is about this probe rather than about the tree, so it is said once.
-  problems+=("\`make -n test\` named no suite in $suites_dir, so the roster a green run covers could not be read")
-fi
-
-for guard in "${GUARDS[@]}"; do
-  if [[ -n "$rost" ]] && ! grep -qxF "$suites_dir/$guard" <<< "$rost"; then
-    problems+=("$suites_dir/$guard is not in the roster \`make test\` runs, so a green baseline says nothing about it")
-  fi
-
-  out="$("$HERE/$guard" 2>&1)" && code=0 || code=$?
-  last="$(tail -n 1 <<< "$out")"
-  # The suite's own FAIL lines, joined onto one line with `|`, so the message says which
-  # claim about the document the guard withheld rather than only that it withheld one.
-  cases="$(grep '^FAIL - ' <<< "$out" | tr '\n' '|')"
-  if [[ "$code" -ne 0 ]] || ! [[ "$last" =~ $COUNT_LINE ]]; then
-    problems+=("$guard is not green against $claude_md: exit $code, last line '$last'${cases:+ — ${cases%|}}")
-  fi
-done
+probe_every_guard_is_rostered_and_green
 
 report "$name"
 
