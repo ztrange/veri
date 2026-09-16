@@ -1266,6 +1266,101 @@ label_run "$fx" -u VERI_PRIORITY_LABEL
 
 
 
+# 27. The three bands are an addition to the order, not a replacement for it: a repository
+# where NO issue carries either band label must get exactly the queue it got before #113 —
+# plain ascending by number over the four conditions' survivors. That is the compatibility
+# half of the change, and it is what says the band computation is inert when there is nothing
+# to band rather than a second thing that can go wrong; the wrong implementations it catches
+# are the one that groups the unlabelled issues into a band of its own and prints it out of
+# turn, and the one that reorders whenever it sorts at all.
+#
+# The fixture is the whole selection layer with the labels taken away, so "unchanged" means
+# unchanged about all four conditions and not just about two numbers: #208 and #210 are
+# takeable and fed in out of order; #207 is claimed by an open PR saying `Closes #207`; #209
+# is blocked by #212, which is open; #211 carries no opt-in label; #213 is opted in but
+# CLOSED. None of the seven carries `priority` or `bug`. The survivors are #208 and #210, in
+# that order.
+#
+# BYTE-identical is the criterion, so the comparison is against bytes on disk rather than a
+# shell string: `$(…)` strips the trailing newline, and the final newline after the last
+# number is part of what a caller reading this a line at a time depends on. `refused_run` is
+# the one helper that keeps each stream in a file of its own — its name is about the case that
+# first needed that, not about what it does — so it serves here, and `-u VERI_PRIORITY_LABEL`
+# forwards through it exactly as it does through `label_run`, guaranteeing the band label is
+# the default rather than whatever the calling shell exports.
+fx="$(fixture no-band-labels)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 210,
+    "title": "a capability veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 208,
+    "title": "another capability veri may take",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 207,
+    "title": "a capability already in flight",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 209,
+    "title": "a capability waiting on another",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\n#212\n"
+  },
+  {
+    "number": 211,
+    "title": "an idea nobody has vetted for veri yet",
+    "labels": [],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 212,
+    "title": "the open blocker",
+    "labels": [],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  },
+  {
+    "number": 213,
+    "title": "a capability already done",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "CLOSED",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+cat > "$fx/prs.json" <<'JSON'
+[
+  {
+    "state": "OPEN",
+    "body": "Closes #207\n"
+  }
+]
+JSON
+
+printf '208\n210\n' > "$work/no-band-labels.expected"
+
+refused_run "$fx" -u VERI_PRIORITY_LABEL
+
+{ [[ "$refused_code" == 0 ]] \
+  && cmp -s "$refused_out" "$work/no-band-labels.expected"; } \
+  && ok || no "with no issue carrying either band label the output is byte-identical to today's (exit=$refused_code want 0, stdout='$(tr '\n' '|' < "$refused_out")' want '208|210|')"
+
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
