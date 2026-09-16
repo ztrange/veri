@@ -173,6 +173,61 @@ if [[ -n "${render_line:-}" && -n "${done_line:-}" && "$render_line" -lt "$done_
 fi
 report "$name"
 
+# The third criterion of issue #236: the report a human reads — pasted into the PR body and
+# into the closing `✅ Done` comment — is the one rendered AFTER `done` was written, taken
+# from the committed file rather than from an earlier render. The step's command block is a
+# single record, so record numbers cannot order its lines; this case orders by character
+# offset in the section's records joined in document order instead. Every anchor must exist
+# first, so a step that dropped one fails closed rather than reading as ordered.
+name="$skill_md pastes into the PR body and the ✅ Done comment the committed report rendered after event.sh done"
+problems=()
+
+# offset_of <text> <fixed string> — the 0-based character offset of the first occurrence, or
+# nothing (exit 1) when the string is absent.
+offset_of() {
+  [[ "$1" == *"$2"* ]] || return 1
+  local before="${1%%"$2"*}"
+  echo "${#before}"
+}
+
+pr_text="$pr_records"
+done_at="$(offset_of "$pr_text" 'event.sh done pr=')" ||
+  problems+=("$skill_md's Draft PR step never writes event.sh done pr=<pr-url>, so no report can be rendered after it")
+render_at="$(offset_of "$pr_text" 'metrics.sh <n> > .tdd/issue-<n>-metrics.md')" ||
+  problems+=("$skill_md's Draft PR step never renders metrics.sh <n> > .tdd/issue-<n>-metrics.md, so there is no committed report to paste")
+if [[ -n "${done_at:-}" && -n "${render_at:-}" && "$render_at" -lt "$done_at" ]]; then
+  problems+=("$skill_md renders the report at offset $render_at, BEFORE event.sh done at offset $done_at, so every pasted copy reads unknown")
+fi
+
+# The PR body: the first `--body` that carries the committed file's contents, inside a
+# `gh pr` command, after the render.
+body_at="$(offset_of "$pr_text" 'contents of .tdd/issue-<n>-metrics.md')" ||
+  problems+=("$skill_md's Draft PR step never puts the contents of .tdd/issue-<n>-metrics.md into the PR body")
+if [[ -n "${body_at:-}" ]]; then
+  body_cmd="${pr_text:0:$body_at}"
+  body_cmd="gh pr ${body_cmd##*gh pr }"
+  [[ "$body_cmd" == *"--body"* ]] ||
+    problems+=("$skill_md mentions the contents of .tdd/issue-<n>-metrics.md outside a gh pr --body, so the PR body never gets the committed report")
+  if [[ -n "${render_at:-}" && "$body_at" -lt "$render_at" ]]; then
+    problems+=("$skill_md pastes the report into the PR body at offset $body_at, BEFORE it is rendered after done at offset $render_at: $(printf '%.120s' "$body_cmd")")
+  fi
+fi
+
+# The closing comment: the `✅ Done` record carrying the 📊 block, after the render, and
+# pasted from the committed file.
+done_comment_line="$(first_record_line "$pr_records" '✅ done' '📊 metrics')" ||
+  problems+=("$skill_md's Draft PR step has no ✅ Done comment carrying the 📊 Metrics block")
+if [[ -n "${done_comment_line:-}" ]]; then
+  done_comment="$(record_at "$pr_records" "$done_comment_line")"
+  comment_at="$(offset_of "$pr_text" "$done_comment")"
+  if [[ -n "${render_at:-}" && -n "${comment_at:-}" && "$comment_at" -lt "$render_at" ]]; then
+    problems+=("$skill_md posts the ✅ Done comment's report at offset $comment_at, BEFORE it is rendered after done at offset $render_at")
+  fi
+  [[ "$done_comment" == *"issue-<n>-metrics.md"* || "$done_comment" == *"file just committed"* ]] ||
+    problems+=("$skill_md's ✅ Done comment does not paste the report from the committed file, so it may differ from what the branch carries: $(printf '%.120s' "$done_comment")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
