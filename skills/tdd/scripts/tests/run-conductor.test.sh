@@ -61,6 +61,7 @@ done
 printf '%s\n' "$@" > "$ARGV_OUT"
 cat > "${PROMPT_OUT:-/dev/null}"
 [[ -n "${ENV_OUT:-}" ]] && env > "$ENV_OUT"
+[[ -n "${BASE_OUT:-}" ]] && cp -R "$(sed -n 's/^Base directory for this skill: //p' "$PROMPT_OUT" | head -n 1)/." "$BASE_OUT"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit "${STUB_EXIT:-0}"
@@ -254,8 +255,12 @@ caller="$work/caller"
 mkdir -p "$caller"
 git -C "$caller" init -q
 rm -f "$prompt"
+# The snapshot is the launch's to remove once the conductor returns, so its files are copied
+# out by the stub while the conductor is still running, and compared from that copy.
+live="$work/live-base"
+mkdir -p "$live"
 
-( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$live" \
     "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
 
 base="$(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1)"
@@ -264,8 +269,10 @@ if [[ -z "$base" ]]; then
 elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" == "$(cd "$clone/skills/tdd" && pwd -P)" ]]; then
   problems+=("the base directory is the clone's own skills/tdd: $base")
 elif ! diff_out="$(cd "$committed/skills/tdd" && find . -type f | while read -r f; do
-    cmp -s "$f" "$base/$f" || echo "$f"; done)" || [[ -n "$diff_out" ]]; then
+    cmp -s "$f" "$live/$f" || echo "$f"; done)" || [[ -n "$diff_out" ]]; then
   problems+=("the base directory's files differ from skill commit $commit: ${diff_out//$'\n'/ }")
+elif [[ -e "$base" ]]; then
+  problems+=("the snapshot is still on disk after the launch returned: $base")
 fi
 
 report "$name"
