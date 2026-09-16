@@ -7,12 +7,12 @@ name: Pages
 # in the PR that changed the page. The repo is private; the Pages site is public by
 # choice (the source it quotes is the point of the page), decided once, deliberately.
 #
-# MANUAL ONLY, and disabled in the repo's Actions settings on top of that. It used to
-# deploy on every push to main that touched the page, which with a page that every
-# docs PR regenerates meant a deploy per merge. A deploy is a publishing decision, not a
-# side effect of landing a commit: run it by hand when a version is worth reading —
-# `gh workflow enable pages.yml && gh workflow run pages.yml && gh workflow disable
-# pages.yml`.
+# MANUAL ONLY, and the trigger below is what makes it so. It used to deploy on every
+# push to main that touched the page, which with a page that every docs PR regenerates
+# meant a deploy per merge. A deploy is a publishing decision, not a side effect of
+# landing a commit, so `on:` holds `workflow_dispatch:` and nothing else: no push,
+# schedule or pull_request path exists by which a merge could deploy. Keep it that way.
+# Run it by hand when a version is worth reading — `gh workflow run pages.yml`.
 on:
   workflow_dispatch:
 
