@@ -49,6 +49,18 @@ report() {
   fi
 }
 
+# render <dir> <out-file> — run the script in a fixture directory, catch its report, and put
+# a non-zero exit onto the caller's `problems`. Every case opens with this: the script reads
+# `.tdd/events.jsonl` relative to where it runs, so a case is a directory to run in, and an
+# exit other than 0 is a complaint before any probe of what was printed.
+render() {
+  local dir="$1" out_file="$2" status
+  ( cd "$dir" && "$METRICS" 108 ) > "$out_file" 2>/dev/null
+  status=$?
+  [[ "$status" -eq 0 ]] ||
+    problems+=("want metrics.sh to exit 0, it exited $status")
+}
+
 # probe <program> <arg>… — run one python probe over a rendered report and put every line it
 # prints onto the caller's `problems`, nothing when it prints nothing. Each probe below is a
 # program that reports its disagreements on stdout and says nothing when it has none, so
@@ -288,11 +300,7 @@ name="a two-phase log renders one row per phase with its attempts, PASS, REJECT 
 problems=()
 
 out_file="$work/report.md"
-( cd "$work" && "$METRICS" 108 ) > "$out_file" 2>/dev/null
-status=$?
-
-[[ "$status" -eq 0 ]] ||
-  problems+=("want metrics.sh to exit 0, it exited $status")
+render "$work" "$out_file"
 
 table_says "$out_file" red=2,1,0,0 green=9,1,2,3
 
@@ -378,11 +386,7 @@ name="a two-step log renders a per-step section with each step's counts and stuc
 problems=()
 
 step_out="$step_work/report.md"
-( cd "$step_work" && "$METRICS" 108 ) > "$step_out" 2>/dev/null
-status=$?
-
-[[ "$status" -eq 0 ]] ||
-  problems+=("want metrics.sh to exit 0, it exited $status")
+render "$step_work" "$step_out"
 
 step_table_says "$step_out" "$one=4,2,0,0,0" "$two=9,1,2,3,4"
 
@@ -568,11 +572,7 @@ name="each step's row says the revise attempts and refactor transforms it used o
 problems=()
 
 budget_out="$budget_work/report.md"
-( cd "$budget_work" && "$METRICS" 108 ) > "$budget_out" 2>/dev/null
-status=$?
-
-[[ "$status" -eq 0 ]] ||
-  problems+=("want metrics.sh to exit 0, it exited $status")
+render "$budget_work" "$budget_out"
 
 budgets_say "$budget_out" "$frugal" "$spendthrift" \
   revise=1/3 refactor=2/5 -- revise=3/3 refactor=5/5
@@ -763,11 +763,7 @@ name="the phase and step rows carry their wall and API seconds, and the report g
 problems=()
 
 time_out="$time_work/report.md"
-( cd "$time_work" && "$METRICS" 108 ) > "$time_out" 2>/dev/null
-status=$?
-
-[[ "$status" -eq 0 ]] ||
-  problems+=("want metrics.sh to exit 0, it exited $status")
+render "$time_work" "$time_out"
 
 times_say "$time_out" red=210,155 green=390,240 "$brisk=400,175" "$slow=600,220"
 issue_wall_says "$time_out" 1700
