@@ -190,11 +190,13 @@ fixture_work work
 # hand-written line of a fixture log, in the shape event.sh emits: the eight fixed context
 # keys, then the payload. Hand-written rather than produced by running event.sh, so this
 # suite's subject stays the reader and a change to the writer cannot quietly rewrite the
-# input being read. The trailing json arrives with its own leading comma, or empty.
+# input being read. The trailing json is the payload's own `"key": "value"` pairs and nothing
+# else: the comma joining them to the context keys is added here, once, so no caller spells
+# a piece of json syntax and none of the three wrappers below carries a rule of its own.
 event_line() {
   local log="$1"; shift
   printf '{"ts": %s, "issue": "108", "actor": "%s", "phase": "%s", "step": "%s", "event": "%s", "attempt": "%s", "skill_commit": "c0ffee1"%s}\n' \
-    "$1" "$2" "$3" "$4" "$5" "$6" "${7:-}" >> "$log"
+    "$1" "$2" "$3" "$4" "$5" "$6" "${7:+, ${7}}" >> "$log"
 }
 
 # ev <ts> <actor> <phase> <event> <attempt> [<trailing-json>] — a line of the first fixture,
@@ -225,35 +227,35 @@ ev() {
 ev 990 conductor "" step-start ""
 
 # Red: one developer leaf, one verifier, one PASS. 2 attempts, 1 PASS, 0 REJECT, 0 kills.
-ev 1000 developer red launch 1 ', "name": "develop-red", "cmd": "run-leaf.sh", "model": ""'
-ev 1100 developer red exit   1 ', "status": "0", "secs": "100"'
-ev 1110 verifier  red launch 1 ', "name": "verify-red", "cmd": "run-leaf.sh", "model": ""'
-ev 1130 verifier  red exit   1 ', "status": "0", "secs": "20"'
-ev 1130 verifier  red verdict 1 ', "verdict": "PASS", "reason": "the case fails for the reason it was written to catch"'
+ev 1000 developer red launch 1 '"name": "develop-red", "cmd": "run-leaf.sh", "model": ""'
+ev 1100 developer red exit   1 '"status": "0", "secs": "100"'
+ev 1110 verifier  red launch 1 '"name": "verify-red", "cmd": "run-leaf.sh", "model": ""'
+ev 1130 verifier  red exit   1 '"status": "0", "secs": "20"'
+ev 1130 verifier  red verdict 1 '"verdict": "PASS", "reason": "the case fails for the reason it was written to catch"'
 
 # Green: two REJECTs and the revises that answered them, three killed leaves in the middle,
 # and a PASS at the end. 9 attempts, 1 PASS, 2 REJECT, 3 kills.
-ev 1200 developer green launch 1 ', "name": "develop-green", "cmd": "run-leaf.sh", "model": ""'
-ev 1300 developer green exit   1 ', "status": "0", "secs": "100"'
-ev 1310 verifier  green launch 1 ', "name": "verify-green", "cmd": "run-leaf.sh", "model": ""'
-ev 1330 verifier  green exit   1 ', "status": "0", "secs": "20"'
-ev 1330 verifier  green verdict 1 ', "verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
-ev 1340 developer green launch 2 ', "name": "revise-green-2", "cmd": "run-leaf.sh", "model": ""'
-ev 1400 developer green exit   2 ', "status": "0", "secs": "60"'
-ev 1410 verifier  green launch 2 ', "name": "verify-green", "cmd": "run-leaf.sh", "model": ""'
-ev 1430 verifier  green exit   2 ', "status": "0", "secs": "20"'
-ev 1430 verifier  green verdict 2 ', "verdict": "REJECT", "reason": "a second criterion was pinned in passing"'
-ev 1440 developer green launch 3 ', "name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
-ev 1500 developer green exit   3 ', "status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "60"'
-ev 1510 developer green launch 3 ', "name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
-ev 1570 developer green exit   3 ', "status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "60"'
-ev 1580 developer green launch 3 ', "name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
-ev 1640 developer green exit   3 ', "status": "2", "cause": "hard timeout 1200s exceeded", "secs": "60"'
-ev 1650 developer green launch 3 ', "name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
-ev 1700 developer green exit   3 ', "status": "0", "secs": "50"'
-ev 1710 verifier  green launch 3 ', "name": "verify-green", "cmd": "run-leaf.sh", "model": ""'
-ev 1730 verifier  green exit   3 ', "status": "0", "secs": "20"'
-ev 1730 verifier  green verdict 3 ', "verdict": "PASS", "reason": "the step is now pinned and no wider"'
+ev 1200 developer green launch 1 '"name": "develop-green", "cmd": "run-leaf.sh", "model": ""'
+ev 1300 developer green exit   1 '"status": "0", "secs": "100"'
+ev 1310 verifier  green launch 1 '"name": "verify-green", "cmd": "run-leaf.sh", "model": ""'
+ev 1330 verifier  green exit   1 '"status": "0", "secs": "20"'
+ev 1330 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+ev 1340 developer green launch 2 '"name": "revise-green-2", "cmd": "run-leaf.sh", "model": ""'
+ev 1400 developer green exit   2 '"status": "0", "secs": "60"'
+ev 1410 verifier  green launch 2 '"name": "verify-green", "cmd": "run-leaf.sh", "model": ""'
+ev 1430 verifier  green exit   2 '"status": "0", "secs": "20"'
+ev 1430 verifier  green verdict 2 '"verdict": "REJECT", "reason": "a second criterion was pinned in passing"'
+ev 1440 developer green launch 3 '"name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
+ev 1500 developer green exit   3 '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "60"'
+ev 1510 developer green launch 3 '"name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
+ev 1570 developer green exit   3 '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "60"'
+ev 1580 developer green launch 3 '"name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
+ev 1640 developer green exit   3 '"status": "2", "cause": "hard timeout 1200s exceeded", "secs": "60"'
+ev 1650 developer green launch 3 '"name": "revise-green-3", "cmd": "run-leaf.sh", "model": ""'
+ev 1700 developer green exit   3 '"status": "0", "secs": "50"'
+ev 1710 verifier  green launch 3 '"name": "verify-green", "cmd": "run-leaf.sh", "model": ""'
+ev 1730 verifier  green exit   3 '"status": "0", "secs": "20"'
+ev 1730 verifier  green verdict 3 '"verdict": "PASS", "reason": "the step is now pinned and no wider"'
 
 ev 1740 conductor "" step-done ""
 
@@ -290,13 +292,12 @@ step_table_says() {
 # total: the two rows are what make the section's key observable.
 #
 # `sv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` is `ev`'s sibling over
-# the same `event_line`, taking the step as its first argument since the step is the thing
-# this fixture varies — and passing its trailing json the comma `ev`'s callers spell
-# themselves, which is the only way the two differ.
+# the same `event_line`, differing only in taking the step as its first argument, since the
+# step is the thing this fixture varies.
 fixture_work step_work
 
 sv() {
-  event_line "$step_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:+, ${7}}"
+  event_line "$step_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:-}"
 }
 
 one="metrics.sh renders a markdown table of per-phase counts"
@@ -479,7 +480,7 @@ fixture_work budget_work
 # `bv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` — `sv`'s sibling over
 # the same writer, on this fixture's log.
 bv() {
-  event_line "$budget_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:+, ${7}}"
+  event_line "$budget_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:-}"
 }
 
 frugal="the table reports revise attempts used of REVISE_BUDGET and refactor transforms used"
