@@ -33,16 +33,35 @@ report() {
   fi
 }
 
-# same_both_ways <suite> <cleared env setting…> -- <ambient env setting…> — run one suite twice
-# as a child process, once with the names cleared and once with one of them carrying an ambient
-# value, and collect the difference into `problems` for `report`.
+# same_answer <baseline arm> <baseline exit> <baseline stdout> <other exit> <other stdout> —
+# the comparison every case below makes, once: the two arms agreed on their exit and on their
+# stdout, and the baseline arm was green at all. `<baseline arm>` names the arm in the failure
+# lines ("cleared", "no-lock"), since what makes an arm the baseline differs per case — a name
+# the case cleared, or a lock it did not write.
 #
 # Asked as "the same answer both ways" rather than against a hardcoded count line, which is what
 # case 1 below can do with a suite holding a single case: a suite that has several cases and will
-# grow would fail a count spelled here for a case added there rather than for a leak. The cleared
+# grow would fail a count spelled here for a case added there rather than for a leak. The baseline
 # arm is also probed for being green at all, since two identically red runs agree on nothing worth
-# pinning. The settings are forwarded to `env` verbatim, so `-u NAME` and `NAME=value` both reach
-# it as themselves and the one under test stays where it is the point.
+# pinning.
+same_answer() {
+  local baseline="$1" base_code="$2" base_out="$3" other_code="$4" other_out="$5"
+
+  problems=()
+  [[ "$base_code" == 0 ]] ||
+    problems+=("the $baseline run is not green, so there is nothing to compare against: exit $base_code, stdout: $(printf '%q' "$base_out")")
+  [[ "$other_code" == "$base_code" ]] ||
+    problems+=("want the $baseline run's exit $base_code, got $other_code")
+  [[ "$other_out" == "$base_out" ]] ||
+    problems+=("want the $baseline run's stdout $(printf '%q' "$base_out"), got: $(printf '%q' "$other_out")")
+}
+
+# same_both_ways <suite> <cleared env setting…> -- <ambient env setting…> — run one suite twice
+# as a child process, once with the names cleared and once with one of them carrying an ambient
+# value, and compare the two arms with `same_answer`.
+#
+# The settings are forwarded to `env` verbatim, so `-u NAME` and `NAME=value` both reach it as
+# themselves and the one under test stays where it is the point.
 same_both_ways() {
   local suite="$1"; shift
   local arg seen=0
@@ -61,13 +80,7 @@ same_both_ways() {
   cleared_out="$(env "${cleared[@]}" "$HERE/$suite" 2>/dev/null)" && cleared_code=0 || cleared_code=$?
   ambient_out="$(env "${ambient[@]}" "$HERE/$suite" 2>/dev/null)" && ambient_code=0 || ambient_code=$?
 
-  problems=()
-  [[ "$cleared_code" == 0 ]] ||
-    problems+=("the cleared run is not green, so there is nothing to compare against: exit $cleared_code, stdout: $(printf '%q' "$cleared_out")")
-  [[ "$ambient_code" == "$cleared_code" ]] ||
-    problems+=("want the cleared run's exit $cleared_code, got $ambient_code")
-  [[ "$ambient_out" == "$cleared_out" ]] ||
-    problems+=("want the cleared run's stdout $(printf '%q' "$cleared_out"), got: $(printf '%q' "$ambient_out")")
+  same_answer cleared "$cleared_code" "$cleared_out" "$ambient_code" "$ambient_out"
 }
 
 # 1. The contract above, probed by running the whole suite as a child process: the leak is
@@ -151,13 +164,7 @@ done
 unlocked_out="$(cd "$lock_work/no-lock" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && unlocked_code=0 || unlocked_code=$?
 locked_out="$(cd "$lock_work/locked" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && locked_code=0 || locked_code=$?
 
-problems=()
-[[ "$unlocked_code" == 0 ]] ||
-  problems+=("the no-lock run is not green, so there is nothing to compare against: exit $unlocked_code, stdout: $(printf '%q' "$unlocked_out")")
-[[ "$locked_code" == "$unlocked_code" ]] ||
-  problems+=("want the no-lock run's exit $unlocked_code, got $locked_code")
-[[ "$locked_out" == "$unlocked_out" ]] ||
-  problems+=("want the no-lock run's stdout $(printf '%q' "$unlocked_out"), got: $(printf '%q' "$locked_out")")
+same_answer no-lock "$unlocked_code" "$unlocked_out" "$locked_code" "$locked_out"
 report "$name"
 
 echo "----"
