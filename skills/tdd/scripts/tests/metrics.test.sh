@@ -113,6 +113,11 @@ probe() {
 # `$`, thousands commas and a trailing unit are the report's own to print or leave out, so
 # every probe comparing money or seconds compares numbers and not the text around them.
 #
+# `money(heading)` is whether a lowercased heading cell names money rather than a count. Two
+# probes ask it of two different tables — the cost section's one `$` column, and the rework
+# section's money half of each pair — and a report free to head the column `$`, `cost`,
+# `dollars` or `usd` is a report whose headings only one list of those words can recognise.
+#
 # It is a shell variable because that is the only way several `python3 -c` programs can share
 # a definition without a file of their own. Each call site concatenates its double-quoted
 # expansion with the single-quoted rest of its program, so the rest keeps the quoting it
@@ -174,6 +179,9 @@ def number(cell):
         return float(text)
     except ValueError:
         return None
+
+def money(heading):
+    return any(w in heading for w in ("$", "cost", "dollar", "usd"))
 '
 
 # counts_table_says <file> <noun> <columns> <key>=<n>,<n>,… — read a counts table out of the
@@ -845,11 +853,10 @@ def input_(c):       return "input" in c and not any(w in c for w in ("cache", "
 def output(c):       return "output" in c
 def cache_read(c):   return "read" in c
 def cache_create(c): return "creat" in c or "writ" in c
-def dollars(c):      return any(w in c for w in ("$", "cost", "dollar", "usd"))
 
 WANTED = [("turns", turns), ("input tokens", input_), ("output tokens", output),
           ("cache read tokens", cache_read), ("cache creation tokens", cache_create),
-          ("dollars", dollars)]
+          ("dollars", money)]
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
@@ -1069,9 +1076,6 @@ rework_and_waste_say() {
   probe "$PROBE_PRELUDE"'
 path = sys.argv[1]
 tables = tables_in(path)
-
-def money(c):
-    return any(w in c for w in ("$", "cost", "dollar", "usd"))
 
 def lost_table(key):
     for t in tables:
