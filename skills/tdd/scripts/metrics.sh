@@ -398,12 +398,20 @@ with open(path) as f:
 for phase in counts:
     row_in(lost, phase, LOST_COLUMNS)
 
-for step, phase, attempt in rejected:
-    if step not in recovered:
-        continue
+# What one attempt the run did not keep contributes, under whichever pair of columns is
+# losing it. The pair travels as a parameter rather than the kind of loss, because what the
+# two kinds disagree about is which attempts they are told about — the condition each loop
+# below applies — and not what an attempt contributes once told: both are the wall seconds
+# and the dollars of the same bucket. Written once so the two can never come to disagree
+# about that, leaving each loop as its own condition and nothing else.
+def lose(phase, attempt, wall_column, cost_column):
     row_of = row_in(lost, phase, LOST_COLUMNS)
-    row_of[REWORK_WALL] += attempt[WALL]
-    row_of[REWORK_COST] += attempt[DOLLARS]
+    row_of[wall_column] += attempt[WALL]
+    row_of[cost_column] += attempt[DOLLARS]
+
+for step, phase, attempt in rejected:
+    if step in recovered:
+        lose(phase, attempt, REWORK_WALL, REWORK_COST)
 
 # Waste, the other half of the same pair and the same one condition read the other way: a
 # step that never reached its closing mark is a step the run did not keep, so EVERY attempt
@@ -411,11 +419,8 @@ for step, phase, attempt in rejected:
 # nobody kept. It is read off `attempts_spent` rather than off `rejected` for exactly that
 # reason: a verdict says which attempts are rework, and nothing about which are waste.
 for (step, phase, _attempt_no), attempt in attempts_spent.items():
-    if step in recovered:
-        continue
-    row_of = row_in(lost, phase, LOST_COLUMNS)
-    row_of[WASTE_WALL] += attempt[WALL]
-    row_of[WASTE_COST] += attempt[DOLLARS]
+    if step not in recovered:
+        lose(phase, attempt, WASTE_WALL, WASTE_COST)
 
 def row(cells):
     print("| " + " | ".join(cells) + " |")
