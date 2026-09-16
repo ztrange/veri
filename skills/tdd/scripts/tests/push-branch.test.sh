@@ -291,6 +291,68 @@ attempts="$(grep -c . "$calls" | tr -d ' ')"
   problems+=("want 4 push attempts (1 + the default 3 retries), got $attempts")
 report "$name"
 
+# 5. Issue #232's third criterion: a blip that clears is recovered by the retry. The `git`
+#    stub first on PATH fails the FIRST `push` it sees without running it, and hands every
+#    later call to the real git, so the second attempt really lands on a bare repository —
+#    case 2's origin, for case 2's reason. The call ends with exit 0, the branch on the
+#    remote at the commit HEAD is on, and no `push-failed` event: a push that landed owes
+#    the log nothing, whichever attempt it landed on. VERI_PUSH_RETRIES is removed from the
+#    environment so the default is what gives the second attempt, and VERI_PUSH_BACKOFF=0
+#    so nothing waits on wall time.
+name="push-branch.sh: an origin that fails the first push attempt and accepts the second exits 0, leaves the branch on the remote at HEAD, and records no push-failed event"
+problems=()
+repo="$work/second-attempt"
+remote="$work/origin-second-attempt.git"
+git init -q --bare "$remote" >/dev/null 2>&1
+branch=tdd/232-push-second-attempt
+run_fixture "$repo" "$branch" 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] Origin failing the first attempt and succeeding on the second ends with exit 0
+LEDGER
+git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+
+stubdir="$work/stub-bin-second"
+calls="$work/push-calls-second"
+mkdir -p "$stubdir"
+: > "$calls"
+cat > "$stubdir/git" <<STUB
+#!/usr/bin/env bash
+for a in "\$@"; do
+  if [[ "\$a" == push ]]; then
+    echo push >> "$calls"
+    if [[ "\$(grep -c . "$calls")" -eq 1 ]]; then
+      echo "fatal: unable to access origin: simulated blip" >&2
+      exit 128
+    fi
+    break
+  fi
+done
+exec "$(command -v git)" "\$@"
+STUB
+chmod +x "$stubdir/git"
+
+head_sha="$(git_q "$repo" rev-parse HEAD)"
+
+( cd "$repo" && env -u VERI_PUSH_RETRIES PATH="$stubdir:$PATH" VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='A blip that clears is recovered' \
+    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+
+[[ "$code" == 0 ]] || problems+=("want exit 0 from a push that lands on its second attempt, got $code")
+
+remote_sha="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+[[ "$remote_sha" == "$head_sha" ]] ||
+  problems+=("want refs/heads/$branch on the remote at $head_sha (the commit HEAD is on), got $remote_sha")
+
+log="$repo/.tdd/events.jsonl"
+if [[ -f "$log" ]]; then
+  events="$(jevents "$log")"
+  n_failed="$(grep -cx 'push-failed' <<< "$events" | tr -d ' ')"
+  [[ "$n_failed" == 0 ]] ||
+    problems+=("want no push-failed event, got $n_failed among: $(printf '%q' "$(tr '\n' ' ' <<< "$events")")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
