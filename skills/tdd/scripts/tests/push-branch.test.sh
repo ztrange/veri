@@ -399,6 +399,52 @@ python3 -c "import sys; sys.exit(0 if $elapsed < 2 else 1)" ||
   problems+=("want a 3-retry failure with VERI_PUSH_BACKOFF=0 to complete in under 2 s, took ${elapsed} s")
 report "$name"
 
+# 7. Issue #232's fifth criterion: a non-integer VERI_PUSH_RETRIES or VERI_PUSH_BACKOFF is
+#    bad arguments — exit 2, before any push is attempted. One probe per variable, each with
+#    the other left at a valid value. The origin is a bare repository the push CAN reach, so
+#    a script that ignored the bad value would land the push and exit 0 rather than fail for
+#    some unrelated reason; the attempts are counted by case 3's kind of `git` stub, with a
+#    call log per probe.
+name="push-branch.sh: a non-integer VERI_PUSH_RETRIES or VERI_PUSH_BACKOFF exits 2 without attempting a push"
+problems=()
+for bad in VERI_PUSH_RETRIES=abc VERI_PUSH_BACKOFF=1.5; do
+  var="${bad%%=*}"
+  repo="$work/bad-$var"
+  remote="$work/origin-bad-$var.git"
+  git init -q --bare "$remote" >/dev/null 2>&1
+  run_fixture "$repo" tdd/232-push-bad-arguments 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] Non-integer VERI_PUSH_RETRIES or VERI_PUSH_BACKOFF exits 2 without attempting a push
+LEDGER
+  git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+
+  stubdir="$work/stub-bin-bad-$var"
+  calls="$work/push-calls-bad-$var"
+  mkdir -p "$stubdir"
+  : > "$calls"
+  cat > "$stubdir/git" <<STUB
+#!/usr/bin/env bash
+for a in "\$@"; do
+  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
+done
+exec "$(command -v git)" "\$@"
+STUB
+  chmod +x "$stubdir/git"
+
+  ( cd "$repo" && env -u VERI_PUSH_RETRIES -u VERI_PUSH_BACKOFF PATH="$stubdir:$PATH" \
+      VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 "$bad" \
+      VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Bad push tunables exit 2' \
+      "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+
+  [[ "$code" == 2 ]] ||
+    problems+=("$bad: want exit 2 — a non-integer value is bad arguments — got $code")
+  attempts="$(grep -c . "$calls" | tr -d ' ')"
+  [[ "$attempts" == 0 ]] ||
+    problems+=("$bad: want no push attempt, got $attempts")
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
