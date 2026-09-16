@@ -228,6 +228,48 @@ fi
 
 report "$name"
 
+# 6. The run pins its skill (issue #237). A conductor in print mode is not handed a base
+# directory by a harness, so it is handed one in its prompt, in the harness's own words —
+# `Base directory for this skill: …` — which is the phrase SKILL.md tells it to read `S` from.
+# The fixture is a clone of this skill with one committed state and one uncommitted edit on
+# top: a base directory that is the clone's own `skills/tdd` fails the first probe, and one
+# that is a copy of the working tree rather than of the commit fails the second, on the edit.
+name="the conductor's base directory is a snapshot of the skill commit, not the clone"
+problems=()
+
+clone="$work/clone"
+mkdir -p "$clone/skills"
+cp -R "$HERE/../.." "$clone/skills/tdd"
+git -C "$clone" init -q
+git -C "$clone" add -A
+git -C "$clone" -c user.name=t -c user.email=t@t commit -qm skill
+commit="$(git -C "$clone" rev-parse HEAD)"
+echo "# uncommitted edit after the skill commit" >> "$clone/skills/tdd/scripts/supervise.sh"
+
+committed="$work/committed"
+mkdir -p "$committed"
+git -C "$clone" archive "$commit" skills/tdd | tar -x -C "$committed"
+
+caller="$work/caller"
+mkdir -p "$caller"
+git -C "$caller" init -q
+rm -f "$prompt"
+
+( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+    "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+
+base="$(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1)"
+if [[ -z "$base" ]]; then
+  problems+=("the prompt names no 'Base directory for this skill: <dir>' line")
+elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" == "$(cd "$clone/skills/tdd" && pwd -P)" ]]; then
+  problems+=("the base directory is the clone's own skills/tdd: $base")
+elif ! diff_out="$(cd "$committed/skills/tdd" && find . -type f | while read -r f; do
+    cmp -s "$f" "$base/$f" || echo "$f"; done)" || [[ -n "$diff_out" ]]; then
+  problems+=("the base directory's files differ from skill commit $commit: ${diff_out//$'\n'/ }")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

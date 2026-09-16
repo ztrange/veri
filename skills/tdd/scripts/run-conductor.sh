@@ -45,10 +45,26 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 issue="${1:?usage: run-conductor.sh <issue>}"
 
-skill_file="$HERE/../SKILL.md"
+# The run pins its skill (issue #237): the commit the skill directory is checked out at is
+# materialised with `git archive` into a directory of the run's own, and that snapshot — not
+# the clone, which a `git pull` in another thread can move mid-run — is the base directory the
+# conductor is handed, in the harness's own words, which is where SKILL.md reads `S` from —
+# after the procedure, never before it, whose first line must stay the frontmatter fence.
+# The snapshot is of the commit, not of the working tree, so an uncommitted edit in the clone
+# is not in it. A skill that is not in a git clone runs from where it is, as before.
+base="$(cd "$HERE/.." && pwd)"
+if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
+  snapshot="$(mktemp -d)"
+  git -C "$base" archive "$commit" . | tar -x -C "$snapshot"
+  base="$snapshot"
+fi
+
+skill_file="$base/SKILL.md"
 [[ -r "$skill_file" ]] || { echo "run-conductor: cannot read '$skill_file'" >&2; exit 2; }
 
 prompt="$(cat "$skill_file")
+
+Base directory for this skill: $base
 
 Solve issue #$issue by the procedure above."
 
