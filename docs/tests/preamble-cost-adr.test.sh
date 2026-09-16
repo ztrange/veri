@@ -92,23 +92,27 @@ probe_preamble_price() {
     '2026-09-15'
 }
 
-# find_price_record — which file says it, the other half of the split above. One ADR has to
-# carry the whole price, not three ADRs a fact each: the point of the record is that a reader
+# find_record <probe-fn> — which file says it, the other half of the split above. One ADR has
+# to carry a whole contract, not three ADRs a fact each: the point of a record is that a reader
 # who finds it can stop looking. So the sweep is per file — every probe against one file's
 # text — and it stops at the first file that misses none. Only files about the preamble are
 # candidates; the rest of the set is about the conductor and would otherwise turn up as a
 # near miss on a shared word like "request". A file that misses some is kept as the closest
 # miss, because "no ADR records this" and "the ADR forgot the volume" are different repairs
-# and the failure below has to tell them apart.
+# and the failures below have to tell them apart.
 #
-# Sets five globals the case reads: `found` (the file carrying the whole price, empty if
+# The contract to ask for is the argument, so that both cases below share one sweep: what a
+# record must say lives in a probe_* function, which file says it lives here, once.
+#
+# Sets five globals the cases read: `found` (the file carrying the whole contract, empty if
 # none), `adr_seen` and `candidates` (how far the sweep got), and `best_file` /
 # `best_missing` (the closest miss and the facts it is short). Everything else is local,
-# including the two names the probes above read out of this scope: `problems`, which inside
-# here is one file's scratch list and outside is the case's own failure list — the two must
-# not be the same array — and `lc`, the text of whichever file the sweep is on, which no
-# caller has any use for once the sweep has ended.
-find_price_record() {
+# including the two names the probes read out of this scope: `problems`, which inside here is
+# one file's scratch list and outside is a case's own failure list — the two must not be the
+# same array — and `lc`, the text of whichever file the sweep is on, which no caller has any
+# use for once the sweep has ended.
+find_record() {
+  local probe_fn="$1"
   local adr lc
   local -a problems
 
@@ -122,7 +126,7 @@ find_price_record() {
     candidates=$((candidates + 1))
 
     problems=()
-    probe_preamble_price
+    "$probe_fn"
 
     if [[ "${#problems[@]}" -eq 0 ]]; then found="$adr"; return; fi
     if [[ -z "$best_file" || "${#problems[@]}" -lt "${#best_missing[@]}" ]]; then
@@ -134,7 +138,7 @@ find_price_record() {
 # --- the price of a preamble token is on the record --------------------------------
 name="an ADR records what one preamble token costs per night, at the request volume measured on 2026-09-15"
 
-find_price_record
+find_record probe_preamble_price
 
 problems=()
 if [[ "$adr_seen" -eq 0 ]]; then
@@ -162,8 +166,8 @@ report "$name"
 # that the question is closed — with the one thing that would reopen it, since "closed" with
 # no way back is an invitation to reopen it by simply not knowing it was shut.
 #
-# Same shape as probe_preamble_price above and separate from the sweep for the same reason:
-# what the record must say is here, which file says it is below.
+# Same shape as probe_preamble_price above, and handed to the same find_record sweep: what
+# this record must say is here, which file says it is that sweep's business, not this one's.
 probe_decline_record() {
   probe "does not name the two cuts it declines — the once-per-run procedure, and the contingent paths the conductor takes when something has already gone wrong" \
     'once[ -]per[ -]run' '(contingent|bail)'
@@ -175,39 +179,10 @@ probe_decline_record() {
     '(closed|closes|shut|reopen)' 'skill\.md'
 }
 
-# find_decline_record — which file says it. The same per-file sweep as find_price_record,
-# asking probe_decline_record instead: one ADR has to carry the whole refusal, not two ADRs a
-# fact each, and only files about the preamble are candidates because no other record in the
-# set is about what is resident in a request. A file that misses some is kept as the closest
-# miss, because "no ADR records the refusal" and "the ADR forgot the hazard" are different
-# repairs. Sets the same five globals, which case 1 has finished reading by the time this runs.
-find_decline_record() {
-  local adr lc
-  local -a problems
-
-  adr_seen=0 candidates=0 found=""
-  best_file="" best_missing=()
-  for adr in "$ADR_DIR"/[0-9][0-9][0-9][0-9]-*.md; do
-    [[ -f "$adr" ]] || continue
-    adr_seen=$((adr_seen + 1))
-    lc="$(tr '[:upper:]' '[:lower:]' < "$adr")"
-    [[ "$lc" =~ preamble ]] || continue
-    candidates=$((candidates + 1))
-
-    problems=()
-    probe_decline_record
-
-    if [[ "${#problems[@]}" -eq 0 ]]; then found="$adr"; return; fi
-    if [[ -z "$best_file" || "${#problems[@]}" -lt "${#best_missing[@]}" ]]; then
-      best_file="$adr"; best_missing=("${problems[@]}")
-    fi
-  done
-}
-
 # --- the two cuts that were refused are on the record, and that half is closed ------
 name="an ADR records the two cuts #202 declined and the hazard that declines them, so that half of skills/tdd/SKILL.md is closed"
 
-find_decline_record
+find_record probe_decline_record
 
 problems=()
 if [[ "$adr_seen" -eq 0 ]]; then
