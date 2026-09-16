@@ -6,4 +6,4 @@
 - [x] Findings 2 and 3 of the step-1 table are recorded as declined, with the hazard that declines them, and that half of `SKILL.md` is closed
 - [x] Every rule that was in `CLAUDE.md` is still discoverable from it — stated, or stated in one sentence with a pointer to the ADR or issue now carrying the reasoning
 - [x] `make test` passes, with `claude-md-counts.test.sh`, `lane-rule-recorded.test.sh`, `count-line-guard.test.sh` and `docs-targets-refuse.test.sh` green against the edited `CLAUDE.md`
-- [ ] No test asserts a maximum size for either file
+- [x] No test asserts a maximum size for either file
