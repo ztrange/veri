@@ -30,13 +30,19 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # A failed push is retried VERI_PUSH_RETRIES more times (extra attempts after the first,
 # the same semantics as VERI_STUCK_RETRIES): an unreachable origin is usually a blip. Only
 # when every attempt has failed does the run hear about it — one stderr line and one event,
-# however many attempts it took.
+# however many attempts it took. Between attempts the script waits VERI_PUSH_BACKOFF
+# seconds, doubled after each wait (2, 4, 8 by default); none follows the last attempt.
 retries="${VERI_PUSH_RETRIES:-3}"
+backoff="${VERI_PUSH_BACKOFF:-2}"
 attempt=0
 while (( attempt <= retries )); do
   attempt=$((attempt + 1))
   if out="$(git push --set-upstream origin HEAD 2>&1)"; then
     exit 0
+  fi
+  if (( attempt <= retries )); then
+    sleep "$backoff"
+    backoff=$((backoff * 2))
   fi
 done
 echo "push-branch.sh: push failed after $attempt attempts; the branch is not on the remote" >&2
