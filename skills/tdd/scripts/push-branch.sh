@@ -34,6 +34,14 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # seconds, doubled after each wait (2, 4, 8 by default); none follows the last attempt.
 retries="${VERI_PUSH_RETRIES:-3}"
 backoff="${VERI_PUSH_BACKOFF:-2}"
+# A non-integer tunable is bad arguments, caught before any push: `(( attempt <= retries ))`
+# would otherwise read a word as a variable name and a fraction as a syntax error.
+for tunable in "VERI_PUSH_RETRIES=$retries" "VERI_PUSH_BACKOFF=$backoff"; do
+  if [[ ! "${tunable#*=}" =~ ^[0-9]+$ ]]; then
+    echo "push-branch.sh: ${tunable%%=*} must be a non-negative integer, got '${tunable#*=}'" >&2
+    exit 2
+  fi
+done
 attempt=0
 while (( attempt <= retries )); do
   attempt=$((attempt + 1))
