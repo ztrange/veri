@@ -37,8 +37,12 @@ shopt -u patsub_replacement 2>/dev/null || true
 # reason every other refusal below avoids `:?`: that expansion aborts the shell with status
 # 1, and a caller who passed nothing at all made no call whose result could be a negative
 # answer. It is the emptiest bad-arguments case there is, and bad arguments are exit 2.
+#
+# The phase list is spelled once, here, so the usage line and the unknown-phase refusal
+# below cannot name different sets.
+phases="red|green|refactor|revise|reconcile"
 (( $# >= 1 )) || {
-  echo "build-develop-prompt: usage: red|green|refactor|revise|reconcile <issue-spec-file> <step-text> <test-cmd> ..." >&2
+  echo "build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..." >&2
   exit 2
 }
 phase="$1"
@@ -60,7 +64,7 @@ case "$phase" in
   refactor) want=5 ;;
   revise) want=6 ;;
   reconcile) want=6 ;;
-  *) echo "build-develop-prompt: unknown phase '$phase' (want red|green|refactor|revise|reconcile)" >&2; exit 2 ;;
+  *) echo "build-develop-prompt: unknown phase '$phase' (want $phases)" >&2; exit 2 ;;
 esac
 (( $# >= want )) || {
   echo "build-develop-prompt: $phase needs $want arguments, got $#" >&2; exit 2
