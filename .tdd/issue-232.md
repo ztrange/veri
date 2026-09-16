@@ -10,4 +10,4 @@
 - [x] A failing event write (unwritable .tdd or failing event.sh) exits 2 for both an unreachable origin and a non-ff rejection
 - [x] build-develop-prompt.sh reconcile renders prompts/develop-reconcile.md with the remote sha, branch and literal --force-with-lease=<branch>:<sha>, no bare --force, and exits 2 on a missing argument
 - [x] classify-bail.sh reconcile-failed prints system and exits 0
-- [ ] SKILL.md at both push-branch.sh call sites launches develop-reconcile through supervise.sh on exit 1, bails on exit 2, requires re-running push-branch.sh and checking ledger ticks and refactor pending marks, bails with reconcile-failed otherwise, and no longer says exits 0 either way
+- [x] SKILL.md at both push-branch.sh call sites launches develop-reconcile through supervise.sh on exit 1, bails on exit 2, requires re-running push-branch.sh and checking ledger ticks and refactor pending marks, bails with reconcile-failed otherwise, and no longer says exits 0 either way ⟂ refactor pending
