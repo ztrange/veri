@@ -903,6 +903,36 @@ nogit_got="$(event_field "$nogit_work" launch skill_commit)"
   || no "a skill outside a git clone records skill_commit as the literal unknown (code=$nogit_code, git says=$nogit_resolves want <none>, skill_commit=$nogit_got want unknown)"
 
 
+# result_hang_stub <stub-name> <subtype> <is_error> <result-text> [prelude] — the one leaf
+# shape cases 23 to 26 are all driven by: print an assistant line, print the closing result
+# record the case is about, then sleep. The sleep is the premise those cases share and assert
+# on — the leaf's subshell never gets to write `.tdd/<name>.rc`, so only the watchdog can end
+# the supervision and the kill always lands on a stream that already finished.
+#
+# Written here rather than beside the leaf-* stubs at the top of the file, for case 16's
+# reason: next to the cases whose premise it is. What each case varies is the record alone,
+# so that is what it passes — the subtype and `is_error` pair a real `claude -p` closes with,
+# and the result text the recovery has to carry through. The eight numbers around them are
+# held here once: a full record, so the harvest on the supervisor's way out takes case 16's
+# path rather than case 18's and nothing these cases are not about can decide the code they
+# read. `prelude` is a line run before the stream, which only case 25 needs.
+#
+# The heredoc is unquoted so those four expand into the JSON, case 16's spelling; nothing
+# else inside it is a shell expansion, and a `\n` in the result text reaches the file as the
+# two characters a stream-json string escapes a newline with.
+result_hang_stub() {
+  local name="$1" subtype="$2" is_error="$3" text="$4" prelude="${5:-}"
+  cat > "$stub/$name" <<L
+#!/usr/bin/env bash
+$prelude
+echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+echo '{"type":"result","subtype":"$subtype","is_error":$is_error,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"$text","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+sleep 60
+L
+  chmod +x "$stub/$name"
+}
+
+
 # 23. a leaf the watchdog KILLS whose progress log already holds a terminal result record is
 #     reported with the leaf's own outcome — exit 0 for a record that says `is_error: false` —
 #     and not as killed-stuck (issue #212). Case 3 pins the other half, the hung leaf that
@@ -929,17 +959,7 @@ nogit_got="$(event_field "$nogit_work" launch skill_commit)"
 #     kill is the heartbeat's and quick. A directory of its own under `$work`, for case 12's
 #     reason.
 result_kill_work="$work/result-kill"
-# A full closing record — the eight numbers included, so the harvest on the supervisor's way
-# out takes case 16's path rather than case 18's and nothing this case is not about can decide
-# the code it reads. Written here rather than beside the leaf-* stubs at the top of the file,
-# for case 16's reason: next to the case whose premise it is.
-cat > "$stub/leaf-result-hang" <<'L'
-#!/usr/bin/env bash
-echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
-echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"VERDICT: PASS","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
-sleep 60
-L
-chmod +x "$stub/leaf-result-hang"
+result_hang_stub leaf-result-hang success false 'VERDICT: PASS'
 result_kill_window=1
 sup_run "$result_kill_work" VERI_HEARTBEAT="$result_kill_window" "$SUP" verify-red "$stub/leaf-result-hang"
 result_kill_code=$?
@@ -971,13 +991,7 @@ result_kill_rc="$(cat "$result_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo
 error_kill_work="$work/error-kill"
 # `subtype` says `error_during_execution` beside `is_error: true`, the pair a `claude -p` run
 # that ended badly closes its stream with, so the record under test is one a real leaf writes.
-cat > "$stub/leaf-error-hang" <<'L'
-#!/usr/bin/env bash
-echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
-echo '{"type":"result","subtype":"error_during_execution","is_error":true,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"the suite did not finish","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
-sleep 60
-L
-chmod +x "$stub/leaf-error-hang"
+result_hang_stub leaf-error-hang error_during_execution true 'the suite did not finish'
 error_kill_window=1
 sup_run "$error_kill_work" VERI_HEARTBEAT="$error_kill_window" "$SUP" verify-red "$stub/leaf-error-hang"
 error_kill_code=$?
@@ -1017,17 +1031,10 @@ error_kill_rc="$(cat "$error_kill_work/.tdd/verify-red.rc" 2>/dev/null || echo '
 #     would still be caught.
 result_once_work="$work/result-once"
 mkdir -p "$result_once_work"
-# Case 23's stub plus the counter, and the same sleep behind it: the leaf must never write
-# `.tdd/<name>.rc`, so only the watchdog can end each attempt and a second attempt would be
-# killed exactly like the first.
-cat > "$stub/leaf-result-hang-counted" <<'L'
-#!/usr/bin/env bash
-echo attempt >> .attempts
-echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
-echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"VERDICT: PASS","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
-sleep 60
-L
-chmod +x "$stub/leaf-result-hang-counted"
+# Case 23's stub plus the counter as its prelude, and the same sleep behind it: the leaf must
+# never write `.tdd/<name>.rc`, so only the watchdog can end each attempt and a second attempt
+# would be killed exactly like the first.
+result_hang_stub leaf-result-hang-counted success false 'VERDICT: PASS' 'echo attempt >> .attempts'
 ( cd "$result_once_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 \
     VERI_TIMEOUT=30 VERI_POLL=0.2 \
     "$SUP" verify-red "$stub/leaf-result-hang-counted" ) >/dev/null 2>&1
@@ -1070,13 +1077,7 @@ result_once_retry="$(event_field "$result_once_work" retry cause)"
 #     sends stdout to /dev/null; the pinned VERI_STUCK_RETRIES=0 comes along by hand.
 result_text_work="$work/result-text"
 mkdir -p "$result_text_work"
-cat > "$stub/leaf-verdict-hang" <<'L'
-#!/usr/bin/env bash
-echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
-echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"VERDICT: PASS\nREASON: the new case fails on the eight session-handle checks","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
-sleep 60
-L
-chmod +x "$stub/leaf-verdict-hang"
+result_hang_stub leaf-verdict-hang success false 'VERDICT: PASS\nREASON: the new case fails on the eight session-handle checks'
 result_text_out="$( cd "$result_text_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=1 \
     VERI_TIMEOUT=30 VERI_POLL=0.2 \
     "$SUP" verify-red "$stub/leaf-verdict-hang" 2>/dev/null )"
