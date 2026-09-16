@@ -118,6 +118,15 @@ Two traps, both already cost something once:
   verifier" the same decision, and no run log could tell them apart afterwards. The measured
   first experiment is `VERI_MODEL_VERIFIER`; all three ship unset, so a default run's
   `claude` command line carries no `--model` at all.
+- **Selection is three bands, one sort key.** `solvable-issues.sh` prints its scope as the
+  issues labelled `priority` first, then the `bug`s, then the rest, each band ascending by
+  number; `VERI_PRIORITY_LABEL` names the first band's label (default `priority`,
+  set-but-empty is exit 2) and the second band's is GitHub's own `bug`. The band reorders
+  the solvable set and never enlarges it: the four conditions — open, opted in, unblocked,
+  unclaimed — run first and the sort runs on what survives, so `priority` says *take it
+  sooner* where only `VERI_LABEL` says *may veri take this at all*. Labelling `priority`
+  alone must never make an issue takeable, which is the whole reason the sentence is here
+  and not just in the script.
 - **A walkthrough build asks git once per script, once per tag, and eight times besides.**
   `docs/tests/build-guards.test.sh` pins that as a budget. Every question is a process
   (~30 ms), so a question asked per commit or per blamed line — `tag --contains`, `show
@@ -132,7 +141,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — sixty-two files for thirty-one scripts, all run by `make test`.
+`skills/tdd/scripts/tests/` — sixty-three files for thirty-one scripts, all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on

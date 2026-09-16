@@ -152,15 +152,19 @@ therefore relative to *one* label: `VERI_LABEL` names it and `ready-for-agent` i
 default, so the same issue can be solvable for one loop and invisible to another. That is
 the intended use — **one label per loop** when more than one loop runs against a repository,
 partitioning the backlog into disjoint pools rather than having both take the lowest number
-off one list.
+off one list. The print order — `priority`, then `bug`, then the rest — runs over the set the
+four conditions leave and never enlarges it: a `priority` or `bug` issue that is blocked,
+claimed or not carrying the opt-in label is still not printed, because a band says *sooner*
+and only `VERI_LABEL` says *at all*.
 _Avoid_: eligible, ready, available, unblocked (that is only one of the four)
 
 **Selection layer**:
 The part of veri that decides *which* issue is next, and the only part that changes per
 rung of the scope ladder. Everything below it — conductor, leaves, supervisor, blind
 verification, ledger — is identical at every rung. At rung 2 it is `solvable-issues.sh`,
-which prints the solvable numbers of one scope, bugs first and then ascending (exit 3 when
-there are none).
+which prints the solvable numbers of one scope in three bands — the issues labelled
+`priority` first, then the `bug`s, then the rest, each band ascending by number (exit 3 when
+there are none). `VERI_PRIORITY_LABEL` names the first band's label.
 _Avoid_: scheduler, picker, queue
 
 **Scope**:

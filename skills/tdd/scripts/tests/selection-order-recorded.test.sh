@@ -1,0 +1,259 @@
+#!/usr/bin/env bash
+# Unit tests for the three root documents' record of the selection order — which band an
+# issue is taken in, and the tunable that names the label putting it in the first one. Like
+# model-knobs-recorded.test.sh and lane-rule-recorded.test.sh this suite's subject is a
+# document rather than a script: what an operator and the next agent are told before any
+# issue is selected. Zero-dependency plain-shell asserts, same idiom as
+# model-knobs-recorded.test.sh.
+#
+# Why this exists (issue #113): `solvable-issues.sh` now prints its scope as priority
+# first, then `bug`, then the rest, each band ascending — and the whole steering mechanism
+# the band buys is `gh issue edit <n> --add-label priority` typed from a shell or a phone.
+# An operator who cannot find the label's name, or who reads three documents still saying
+# the order is plain ascending, has a knob that exists and a record that denies it. The two
+# places the order is stated are CONTEXT.md's *Selection layer* and *Solvable* entries —
+# the glossary every other document defers to — and SKILL.md's `solvable-issues.sh` bullet,
+# which is where the script's own contract and its `VERI_GH_JSON` tunable already live.
+# CLAUDE.md is the first thing an agent reads.
+#
+# And the sentence that stops the band being read as a fifth condition is not decoration:
+# priority reorders the solvable set, it never enlarges it. The four conditions run first
+# and the sort runs on what survives, so a priority issue that is blocked, claimed or not
+# opted in is still not printed. A document naming the label without that sentence invites
+# exactly the change the spec calls the case most likely to be got wrong — a label that
+# opts an issue in by accident.
+#
+# Contract under test:
+#   CONTEXT.md's *Selection layer* entry states the three-band order — priority, then bug,
+#   then the rest, ascending within a band; its *Solvable* entry names the bands and says
+#   the order never enlarges the set; SKILL.md's `solvable-issues.sh` bullet states the
+#   order and names `VERI_PRIORITY_LABEL`; and CLAUDE.md names the tunable, the order, and
+#   carries the reorders-not-enlarges sentence.
+#
+# Facts are asked as the regexes any wording carrying them would match, never as fixed
+# strings: what a document has to record is the claim, and how it is phrased belongs to
+# whoever writes it — the protocol model-knobs-recorded.test.sh and lane-rule-recorded.test.sh
+# both use on these documents.
+#
+# Not asked here: that CLAUDE.md's script and suite counts moved when this suite landed.
+# claude-md-counts.test.sh is the case that holds every count in that document to the files
+# on disk, and this file arriving in the tree is what makes it answer.
+#
+# Run: skills/tdd/scripts/tests/selection-order-recorded.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+
+# The three documents. Each twice — the path as a failure message spells it, and the same
+# path resolved for the probes to read — so a message can never name a file the probes did
+# not open. The pairing model-knobs-recorded.test.sh uses, for the same reason.
+context_md="CONTEXT.md"
+context_path="$ROOT/$context_md"
+skill_md="skills/tdd/SKILL.md"
+skill_path="$ROOT/$skill_md"
+claude_md="CLAUDE.md"
+claude_path="$ROOT/$claude_md"
+
+pass=0 fail=0
+
+# report <name> — close a case whose probes collected into the `problems` array: an empty
+# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
+# so the output says which document is missing which sentence rather than just that one is.
+report() {
+  local name="$1"
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    printf '    %s\n' "${problems[@]}"
+  fi
+}
+
+# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
+# below is written one way and still matches prose that marked the same words up as
+# `priority` or **first**. The normalisation model-knobs-recorded.test.sh uses on these
+# same documents.
+plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
+
+# records — markdown on stdin, one line per paragraph or bullet, normalised through
+# `plain`. A record runs from a `- ` or a `* ` in column one, or from the first line after
+# a blank, up to the next such line or the next blank; joining it onto one line is what
+# lets a claim ask whether ONE passage carries a whole fact, rather than two sentences
+# sections apart that happen to share a word. Same shape as model-knobs-recorded.test.sh.
+records() {
+  awk '/^[-*] / { if (rec != "") print rec; rec = $0; next }
+       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+       rec == "" { rec = $0; next }
+       { rec = rec " " $0 }
+       END { if (rec != "") print rec }' | plain
+}
+
+# entry <term> — one CONTEXT.md glossary entry as a single normalised line: from its
+# `**<term>**:` heading to the `_Avoid_` line that closes it, the next entry's heading or
+# the next `## `. Read by term rather than file-wide because each fact below has a place it
+# belongs: the order stated under *Bug* would answer for a glossary whose *Selection layer*
+# entry — the one every other document defers to for what selection does — still says the
+# scope is printed ascending. One line because CONTEXT.md wraps mid-sentence.
+entry() {
+  awk -v want="^\\\\*\\\\*$1\\\\*\\\\*:" '
+    $0 ~ want { inside = 1; next }
+    inside && (/^_Avoid_/ || /^\*\*/ || /^## /) { exit }
+    inside' "$context_path" | plain | tr '\n' ' '
+}
+
+# bullet <regex> — the one top-level `- ` bullet of SKILL.md whose first line matches, as
+# one normalised line. The tunable belongs in the bullet that documents the script that
+# reads it: a file-wide read would answer "yes, it is in there" for a document that named
+# the label only in a narration example, which is not where an operator looking up a
+# tunable is reading.
+bullet() {
+  awk -v want="$1" '
+    $0 ~ want { inside = 1; print; next }
+    inside && /^([-*] |#)/ { exit }
+    inside' "$skill_path" | plain | tr '\n' ' '
+}
+
+# The claims, as the regexes that carry them. Written once each because four passages ask
+# for the same things, and four copies would drift into asking four different questions.
+PRIORITY_BAND='priority'                                  # the band, and the label naming it
+BUG_BAND='bug'                                            # the band that already existed
+ASCENDING='ascending|by number|lowest number|increasing|numeric'
+ORDERED='first|before|then|band|ahead'                    # that the bands are an order at all
+TUNABLE='veri_priority_label'
+NOT_ENLARGE='enlarge|reorder|re-order|only.*order|never.*solvable|not.*solvable|still.*not printed'
+
+# passage_text / passage_from — the passage a probe last read and the label a failure names
+# it by, filled by the readers below and read by `says`. Globals because bash has no way to
+# hand back a string; the `passage_` prefix is what marks the pair as one thing written by a
+# reader and read by a claim, the convention model-knobs-recorded.test.sh follows.
+passage_text="" passage_from=""
+
+# need_entry <term> — that CONTEXT.md entry into those globals, or one problem naming it and
+# a non-zero return. The reader and the fail-closed check are one step, and the label is
+# derived here rather than passed in, so no caller can report an entry under a name the probe
+# did not read.
+#
+# Fail closed: an empty string matches no regex, so every fact asked of an entry that is not
+# there would be reported missing — true, but it names two edits when the repair is that one
+# entry was renamed.
+need_entry() {
+  passage_from="$context_md's $1 entry"
+  passage_text="$(entry "$1")"
+  [[ -n "${passage_text// /}" ]] && return 0
+  problems+=("$context_md has no '$1' glossary entry to read, so the order is unstated where every other document defers to it")
+  return 1
+}
+
+# need_solvable_bullet — SKILL.md's `solvable-issues.sh` bullet into the same globals, or one
+# problem naming it and a non-zero return.
+need_solvable_bullet() {
+  passage_from="$skill_md's solvable-issues.sh bullet"
+  passage_text="$(bullet '^[-*] .*solvable-issues\.sh')"
+  [[ -n "${passage_text// /}" ]] && return 0
+  problems+=("$skill_md has no top-level 'solvable-issues.sh' bullet to read, so the order and the tunable an operator looks up beside VERI_GH_JSON could not be found")
+  return 1
+}
+
+# need_claude_md_records — all of CLAUDE.md's records into the same globals, for the claims
+# that are about what a document says rather than about where it says it. CLAUDE.md is read
+# whole on purpose: the step asks that the document record the order and the tunable, not
+# that either sit under a heading this suite picked.
+need_claude_md_records() {
+  passage_from="$claude_md"
+  passage_text="$(records < "$claude_path")"
+  [[ -n "${passage_text// /}" ]] && return 0
+  problems+=("$claude_md could not be read, so nothing could be asked of what it records")
+  return 1
+}
+
+# says <fact> <regex>... — one fact the passage last read has to carry: some ONE record of
+# it has to match every <regex>, and one problem naming the passage and the fact is appended
+# if none does. A pair split across two records is not a statement — it is two sentences that
+# happen to share a word — which is why the regexes are asked of a record and not of the
+# passage as a whole.
+says() {
+  local fact="$1" line re
+  shift
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return 0
+  done <<< "$passage_text"
+  problems+=("$passage_from does not say $fact")
+}
+
+# states_the_order <what> — the three-band order in one record of the passage last read:
+# both bands named, that they are an order, and that a band is walked ascending. Written
+# once because three of the four passages owe it.
+states_the_order() {
+  says "$1 — priority, then bug, then the rest, each band ascending by number" \
+    "$PRIORITY_BAND" "$BUG_BAND" "$ORDERED" "$ASCENDING"
+}
+
+# probe_context_selection_layer_states_the_order — the entry that says what the selection
+# layer prints. It already says "bugs first and then ascending", which is now the middle
+# band described as the first one.
+probe_context_selection_layer_states_the_order() {
+  need_entry "Selection layer" || return
+
+  states_the_order "states the three-band order"
+}
+
+# probe_context_solvable_bounds_the_order — the entry that defines the four conditions, and
+# therefore the one place the band has to be bounded: it names the bands and says the order
+# runs on what the conditions leave rather than adding to it. Asked here rather than of the
+# *Selection layer* entry because this is the entry a reader is in when they ask whether the
+# label makes an issue takeable.
+probe_context_solvable_bounds_the_order() {
+  need_entry "Solvable" || return
+
+  says "that the order runs over the solvable set and never enlarges it — a priority or bug issue still has to pass the four conditions" \
+    "$PRIORITY_BAND" "$BUG_BAND" "$NOT_ENLARGE"
+}
+
+# probe_skill_bullet_states_order_and_tunable — the bullet that carries the script's
+# contract, where `VERI_GH_JSON` is already listed and where the word "ascending" stands
+# today with nothing in front of it.
+probe_skill_bullet_states_order_and_tunable() {
+  need_solvable_bullet || return
+
+  states_the_order "states the three-band order"
+
+  says "which tunable names the priority label — VERI_PRIORITY_LABEL" "$TUNABLE"
+}
+
+# probe_claude_md_names_the_tunable_and_the_bound — the document an agent reads first, and
+# the two facts it owes: the order with the variable that names its first band, and the
+# sentence that keeps the band from being read as a fifth condition.
+probe_claude_md_names_the_tunable_and_the_bound() {
+  need_claude_md_records || return
+
+  says "the three-band order and the tunable that names the priority label — VERI_PRIORITY_LABEL" \
+    "$TUNABLE" "$PRIORITY_BAND" "$BUG_BAND" "$ORDERED" "$ASCENDING"
+
+  says "that priority reorders the solvable set and does not enlarge it" \
+    "$PRIORITY_BAND" "$NOT_ENLARGE"
+}
+
+# 1. One criterion, one case: the order and its tunable are recorded in the three documents
+#    that are read before an issue is selected. One case rather than four, because a reader
+#    given the order without the variable, or the variable without the bound on it, has been
+#    handed the same unusable record — and the problem lines say which sentence is missing
+#    from which document.
+name="$context_md's Selection layer and Solvable entries, $skill_md's solvable-issues.sh bullet and $claude_md record the three-band order and VERI_PRIORITY_LABEL, and say priority reorders the solvable set without enlarging it"
+problems=()
+
+probe_context_selection_layer_states_the_order
+probe_context_solvable_bounds_the_order
+probe_skill_bullet_states_order_and_tunable
+probe_claude_md_names_the_tunable_and_the_bound
+
+report "$name"
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
