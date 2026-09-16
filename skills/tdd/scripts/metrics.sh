@@ -56,13 +56,13 @@ COUNTS = ["attempts", "PASS", "REJECT", "kills"]
 
 # Phase order is the order the phases first appear in the log, which is the order the run
 # went through them — red before green before refactor. Sorting the names instead would
-# print the run backwards for no reason a reader could act on.
-phases = []
+# print the run backwards for no reason a reader could act on. A dict preserves the order
+# its keys were first inserted in, so `counts` IS that order and no second list is kept
+# beside it that could come to disagree with it.
 counts = {}
 
 def tally(phase, count):
     if phase not in counts:
-        phases.append(phase)
         counts[phase] = dict.fromkeys(COUNTS, 0)
     counts[phase][count] += 1
 
@@ -90,6 +90,6 @@ print("### 📊 Metrics — issue %s" % issue)
 print()
 row(["phase"] + COUNTS)
 row(["---"] + ["---:"] * len(COUNTS))
-for phase in phases:
-    row([phase] + ["%d" % counts[phase][c] for c in COUNTS])
+for phase, row_counts in counts.items():
+    row([phase] + ["%d" % row_counts[c] for c in COUNTS])
 ' "$issue" "$log"
