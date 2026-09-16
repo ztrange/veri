@@ -353,6 +353,52 @@ if [[ -f "$log" ]]; then
 fi
 report "$name"
 
+# 6. Issue #232's fourth criterion: the wait between attempts is VERI_PUSH_BACKOFF seconds,
+#    doubled each retry, and a zero backoff costs no wall time. Two probes of one criterion.
+#
+#    The doubling is observed through a `sleep` stub first on PATH that logs its argument
+#    and returns at once, so VERI_PUSH_BACKOFF=1 with VERI_PUSH_RETRIES=3 must log waits of
+#    1, 2 and 4 — one per retry, none after the last attempt — without the suite waiting 7 s.
+#    The zero-backoff half runs with no stub at all, the real `sleep`, and times the whole
+#    call with python3's clock: under 2 s for a 3-retry failure against case 1's origin.
+name="push-branch.sh: backoff is VERI_PUSH_BACKOFF seconds doubled per retry, and with VERI_PUSH_BACKOFF=0 a 3-retry failure completes in under 2 s"
+problems=()
+repo="$work/backoff"
+run_fixture "$repo" tdd/232-push-backoff 232 <<'LEDGER'
+# Plan for #232 — push-branch.sh exits 0 on a rejected push
+
+- [ ] Backoff is VERI_PUSH_BACKOFF seconds doubled per retry
+LEDGER
+git_q "$repo" remote add origin "$work/no-such-remote-232-backoff.git" >/dev/null 2>&1
+
+stubdir="$work/stub-bin-sleep"
+sleeps="$work/sleep-calls"
+mkdir -p "$stubdir"
+: > "$sleeps"
+cat > "$stubdir/sleep" <<STUB
+#!/usr/bin/env bash
+echo "\$*" >> "$sleeps"
+STUB
+chmod +x "$stubdir/sleep"
+
+( cd "$repo" && env PATH="$stubdir:$PATH" VERI_PUSH_RETRIES=3 VERI_PUSH_BACKOFF=1 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Backoff doubles per retry' \
+    "$PUSH" ) >/dev/null 2>&1
+
+got_sleeps="$(tr '\n' ' ' < "$sleeps" | sed 's/ *$//')"
+[[ "$got_sleeps" == "1 2 4" ]] ||
+  problems+=("want sleeps of '1 2 4' seconds between 4 attempts with VERI_PUSH_BACKOFF=1, got $(printf '%q' "$got_sleeps")")
+
+start="$(python3 -c 'import time; print(time.time())')"
+( cd "$repo" && env VERI_PUSH_RETRIES=3 VERI_PUSH_BACKOFF=0 \
+    VERI_ISSUE=232 VERI_ACTOR=conductor VERI_STEP='Zero backoff waits on nothing' \
+    "$PUSH" ) >/dev/null 2>&1
+end="$(python3 -c 'import time; print(time.time())')"
+elapsed="$(python3 -c "import sys; print('%.2f' % ($end - $start))")"
+python3 -c "import sys; sys.exit(0 if $end - $start < 2 else 1)" ||
+  problems+=("want a 3-retry failure with VERI_PUSH_BACKOFF=0 to complete in under 2 s, took ${elapsed} s")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
