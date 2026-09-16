@@ -89,12 +89,6 @@ report "$name"
 #    line is byte-identical to today's" — is asserting it about whatever shell typed
 #    `make test`, unless that suite clears the three names for itself.
 #
-#    Asked as "the same answer both ways" rather than against a hardcoded count line, which
-#    is what case 1 above could do with a suite holding a single case: leaf-model.test.sh has
-#    four and will grow, and a count spelled here would then fail for a case added there
-#    rather than for a leak. The cleared run is also probed for being green at all, since two
-#    identically red runs agree on nothing worth pinning.
-#
 #    One ambient name, VERI_MODEL, because it is the one that reaches BOTH roles: a leak of
 #    the run-wide knob changes every probe in that suite, where a role variable could only
 #    change half of them. The two role names are cleared in both arms so that a shell which
@@ -116,11 +110,6 @@ report "$name"
 #    asserting it about whatever shell typed `make test`, unless that suite clears the name for
 #    itself. An operator steering a loop exports exactly this variable, and the inner `make
 #    test` of a run on veri's own repository inherits it — the shape of #87 again.
-#
-#    Asked as "the same answer both ways", like case 2 and for the same reason: the suite has
-#    twenty-odd cases and will grow, so a count line spelled here would fail for a case added
-#    there rather than for a leak. The cleared arm is also probed for being green at all, since
-#    two identically red runs agree on nothing.
 #
 #    The ambient value is `ready-for-agent` because it is the one label the fixtures actually
 #    carry: a name no fixture mentions renames the band to something nothing is in, changes no
