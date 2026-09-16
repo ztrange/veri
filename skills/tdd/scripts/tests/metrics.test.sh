@@ -1558,6 +1558,36 @@ progress_says "$pinned_out" 2 2
 report_on "$name" "$pinned_out"
 
 
+# A fourteenth fixture: issue #228's own run, in the shape it had. Two of its three steps were
+# already satisfied and closed on their `pin` marks, and the third closed on `step-done`, so all
+# three are done — the committed report said `1 of 3`, the one mark it counted.
+fixture_work two_pins_work
+
+first_pin="a first step already satisfied, closed on its pin mark"
+second_pin="a second step already satisfied, closed on its pin mark"
+last_done="a third step that closed on its step-done mark"
+
+sv "$first_pin"  16000 conductor ""  step-start ""
+sv "$first_pin"  16100 conductor pin pin        ""
+sv "$second_pin" 16200 conductor ""  step-start ""
+sv "$second_pin" 16300 conductor pin pin        ""
+sv "$last_done"  16400 conductor ""  step-start ""
+sv "$last_done"  16500 conductor ""  step-done  ""
+
+plan_of "$first_pin" "$second_pin" "$last_done"
+
+
+name="a log with two pin marks and one step-done mark for three ledger steps reports 3 of 3 planned"
+problems=()
+
+two_pins_out="$two_pins_work/report.md"
+render "$two_pins_work" "$two_pins_out"
+
+progress_says "$two_pins_out" 3 3
+
+report_on "$name" "$two_pins_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
