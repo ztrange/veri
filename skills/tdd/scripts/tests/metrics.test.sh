@@ -338,6 +338,225 @@ step_table_says "$step_out" "$one=4,2,0,0,0" "$two=9,1,2,3,4"
 report "$name"
 
 
+# budgets_say <file> <step-one> <step-two> <label>=<cell> … — the third section's subject:
+# the two budgets a step spends, and whether the refactor loop stopped because it ran out of
+# one. The expectations are read against BOTH steps' rows, `<label>` naming which figure is
+# wanted for the diagnostics and `<cell>` the exact cell text; the arguments for the second
+# step follow a literal `--`.
+#
+# The `used/budget` spelling is the house's own, not this suite's invention:
+# refactor-budget.sh prints `refactor 2/5` and SKILL.md narrates a revise as
+# `attempt <k>/<REVISE_BUDGET>`, so the pair travels as one cell. What is NOT pinned is
+# where that cell sits: the row is found by its step name in any table carrying both steps,
+# and each value by scanning that row's cells, so neither column order nor the heading is
+# fixed.
+#
+# Whether the loop stopped by budget is pinned as a column whose heading says `stop`, and
+# only in the two ways it can be observed at all: the two steps must not say the same thing
+# — a constant is not a report — and the step that did run out must mention the budget in
+# its heading-plus-cell, which passes both a `budget` cell under a `stopped by` heading and
+# a `yes` under `stopped by budget`.
+budgets_say() {
+  local out_file="$1" one="$2" two="$3"; shift 3
+  local said
+  said="$(python3 -c '
+import re, sys
+
+SEPARATOR = re.compile(r"^:?-+:?$")
+
+path, steps = sys.argv[1], (sys.argv[2], sys.argv[3])
+
+def cells(line):
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+tables, current = [], []
+for line in open(path).read().splitlines():
+    if line.strip().startswith("|"):
+        row = cells(line)
+        if not all(SEPARATOR.match(c) for c in row if c):
+            current.append(row)
+    elif current:
+        tables.append(current)
+        current = []
+if current:
+    tables.append(current)
+
+# The expectations, one list per step, split on the literal `--` that separates them.
+wanted, rest = [[]], sys.argv[4:]
+for arg in rest:
+    if arg == "--":
+        wanted.append([])
+    else:
+        wanted[-1].append(arg.split("=", 1))
+
+problems = []
+
+def row_for(table, step):
+    return next((r for r in table[1:] if r and r[0].strip() == step), None)
+
+section = next((t for t in tables
+                if all(row_for(t, s) is not None for s in steps)), None)
+if section is None:
+    labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
+    problems.append(
+        "want one table with a row for each of %s, the report has tables with rows: %s"
+        % (" and ".join(repr(s) for s in steps), "; ".join(labels) or "nothing"))
+    print("\n".join(problems))
+    raise SystemExit(0)
+
+header = section[0]
+rows = [row_for(section, s) for s in steps]
+
+for step, row, expectations in zip(steps, rows, wanted):
+    for label, value in expectations:
+        if value not in [c.strip() for c in row[1:]]:
+            problems.append("step %r %s: want a cell %r, the row has cells: %s"
+                            % (step, label, value,
+                               ", ".join(repr(c) for c in row[1:]) or "nothing"))
+
+stop = [i for i, c in enumerate(header) if "stop" in c.lower()]
+if len(stop) != 1:
+    problems.append(
+        "want exactly one column heading saying whether the refactor loop stopped, the table is headed: %s"
+        % ("|".join(header) or "nothing"))
+else:
+    i = stop[0]
+    said = [r[i].strip() if i < len(r) else "" for r in rows]
+    if said[0] == said[1]:
+        problems.append(
+            "the two steps stopped differently, the column says %r for both" % said[0])
+    if "budget" not in ("%s %s" % (header[i], said[1])).lower():
+        problems.append(
+            "step %r spent its refactor budget, its %r cell says %r — neither mentions the budget"
+            % (steps[1], header[i], said[1]))
+
+print("\n".join(problems))
+' "$out_file" "$one" "$two" "$@" 2>&1)"
+  [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
+}
+
+# A third fixture, in its own directory for the same reason the second has one: the cases
+# above keep the logs they were written against.
+#
+# Two steps again, and here they are what makes the figures observable at all — a report
+# that printed one constant per column would satisfy a one-step fixture. The first step is
+# revised once of a budget of three and its refactor stops with work left undone; the second
+# spends both budgets to the last unit and stops because the refactor budget ran out.
+#
+# The four cells are four distinct strings — 1/3, 2/5, 3/3, 5/5 — so a report that printed
+# the revise figure in the refactor column, or one step's row in the other's place, cannot
+# pass. `3` rather than the default `2` for REVISE_BUDGET, and both budgets read off the log
+# line rather than the environment: the report is rendered wherever the file is committed,
+# which is not necessarily the shell the run was configured in.
+#
+# Two marks in the fixture are the conductor's, and only one of them exists today:
+#   `revise budget=<REVISE_BUDGET>` is prescribed at SKILL.md:875, one per revise attempt,
+#   carrying the budget that attempt was counted against.
+#   `refactor transforms=<n> budget=<VERI_REFACTOR_BUDGET> stopped=<why>` is the mark the
+#   refactor narration owes (SKILL.md's "Narrate + branch" already tells the conductor to
+#   say all three, against `git rev-list --count`, so the mark is that sentence written to
+#   the log as well as to the thread). A run whose conductor never writes it has no figure
+#   to report, which is the unknown-rather-than-zero rule a later step of the ledger owns —
+#   this case is about a run that did write it.
+budget_work="$(mktemp -d)"
+trap 'rm -rf "$work" "$step_work" "$budget_work"' EXIT
+mkdir -p "$budget_work/.tdd"
+
+# `bv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` — `sv`'s sibling over
+# the same writer, on this fixture's log.
+bv() {
+  event_line "$budget_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:+, ${7}}"
+}
+
+frugal="the table reports revise attempts used of REVISE_BUDGET and refactor transforms used"
+spendthrift="the table reports wall seconds and API seconds per phase and per step"
+
+# Step one: one REJECT answered by one revise of three, then a refactor that applied two
+# transforms of five and stopped with nothing structural left to tidy.
+bv "$frugal" 4000 conductor ""       step-start ""
+bv "$frugal" 4010 developer red      launch  1 '"name": "develop-red"'
+bv "$frugal" 4100 developer red      exit    1 '"status": "0", "secs": "90"'
+bv "$frugal" 4110 verifier  red      launch  1 '"name": "verify-red"'
+bv "$frugal" 4130 verifier  red      exit    1 '"status": "0", "secs": "20"'
+bv "$frugal" 4130 verifier  red      verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+bv "$frugal" 4200 developer green    launch  1 '"name": "develop-green"'
+bv "$frugal" 4300 developer green    exit    1 '"status": "0", "secs": "100"'
+bv "$frugal" 4310 verifier  green    launch  1 '"name": "verify-green"'
+bv "$frugal" 4330 verifier  green    exit    1 '"status": "0", "secs": "20"'
+bv "$frugal" 4330 verifier  green    verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+bv "$frugal" 4340 conductor green    revise  1 '"budget": "3"'
+bv "$frugal" 4350 developer green    launch  2 '"name": "revise-green-1"'
+bv "$frugal" 4410 developer green    exit    2 '"status": "0", "secs": "60"'
+bv "$frugal" 4420 verifier  green    launch  2 '"name": "verify-green"'
+bv "$frugal" 4440 verifier  green    exit    2 '"status": "0", "secs": "20"'
+bv "$frugal" 4440 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+bv "$frugal" 4450 developer refactor launch  1 '"name": "develop-refactor"'
+bv "$frugal" 4600 developer refactor exit    1 '"status": "0", "secs": "150"'
+bv "$frugal" 4610 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing left to tidy"'
+bv "$frugal" 4620 verifier  refactor launch  1 '"name": "verify-refactor"'
+bv "$frugal" 4640 verifier  refactor exit    1 '"status": "0", "secs": "20"'
+bv "$frugal" 4640 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
+bv "$frugal" 4650 conductor ""       step-done ""
+
+# Step two: three REJECTs and the three revises that answered them — the whole budget — and
+# a refactor that applied five transforms of five and stopped because that budget was spent.
+bv "$spendthrift" 5000 conductor ""       step-start ""
+bv "$spendthrift" 5010 developer red      launch  1 '"name": "develop-red"'
+bv "$spendthrift" 5100 developer red      exit    1 '"status": "0", "secs": "90"'
+bv "$spendthrift" 5110 verifier  red      launch  1 '"name": "verify-red"'
+bv "$spendthrift" 5130 verifier  red      exit    1 '"status": "0", "secs": "20"'
+bv "$spendthrift" 5130 verifier  red      verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+bv "$spendthrift" 5200 developer green    launch  1 '"name": "develop-green"'
+bv "$spendthrift" 5300 developer green    exit    1 '"status": "0", "secs": "100"'
+bv "$spendthrift" 5310 verifier  green    launch  1 '"name": "verify-green"'
+bv "$spendthrift" 5330 verifier  green    exit    1 '"status": "0", "secs": "20"'
+bv "$spendthrift" 5330 verifier  green    verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+bv "$spendthrift" 5340 conductor green    revise  1 '"budget": "3"'
+bv "$spendthrift" 5350 developer green    launch  2 '"name": "revise-green-1"'
+bv "$spendthrift" 5410 developer green    exit    2 '"status": "0", "secs": "60"'
+bv "$spendthrift" 5420 verifier  green    launch  2 '"name": "verify-green"'
+bv "$spendthrift" 5440 verifier  green    exit    2 '"status": "0", "secs": "20"'
+bv "$spendthrift" 5440 verifier  green    verdict 2 '"verdict": "REJECT", "reason": "a second criterion was pinned in passing"'
+bv "$spendthrift" 5450 conductor green    revise  2 '"budget": "3"'
+bv "$spendthrift" 5460 developer green    launch  3 '"name": "revise-green-2"'
+bv "$spendthrift" 5520 developer green    exit    3 '"status": "0", "secs": "60"'
+bv "$spendthrift" 5530 verifier  green    launch  3 '"name": "verify-green"'
+bv "$spendthrift" 5550 verifier  green    exit    3 '"status": "0", "secs": "20"'
+bv "$spendthrift" 5550 verifier  green    verdict 3 '"verdict": "REJECT", "reason": "the case was weakened rather than answered"'
+bv "$spendthrift" 5560 conductor green    revise  3 '"budget": "3"'
+bv "$spendthrift" 5570 developer green    launch  4 '"name": "revise-green-3"'
+bv "$spendthrift" 5630 developer green    exit    4 '"status": "0", "secs": "60"'
+bv "$spendthrift" 5640 verifier  green    launch  4 '"name": "verify-green"'
+bv "$spendthrift" 5660 verifier  green    exit    4 '"status": "0", "secs": "20"'
+bv "$spendthrift" 5660 verifier  green    verdict 4 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+bv "$spendthrift" 5670 developer refactor launch  1 '"name": "develop-refactor"'
+bv "$spendthrift" 5900 developer refactor exit    1 '"status": "0", "secs": "230"'
+bv "$spendthrift" 5910 conductor refactor refactor "" '"transforms": "5", "budget": "5", "stopped": "budget"'
+bv "$spendthrift" 5920 verifier  refactor launch  1 '"name": "verify-refactor"'
+bv "$spendthrift" 5940 verifier  refactor exit    1 '"status": "0", "secs": "20"'
+bv "$spendthrift" 5940 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
+bv "$spendthrift" 5950 conductor ""       step-done ""
+
+
+name="each step's row says the revise attempts and refactor transforms it used of their budgets, and whether the refactor loop stopped by budget"
+problems=()
+
+budget_out="$budget_work/report.md"
+( cd "$budget_work" && "$METRICS" 108 ) > "$budget_out" 2>/dev/null
+status=$?
+
+[[ "$status" -eq 0 ]] ||
+  problems+=("want metrics.sh to exit 0, it exited $status")
+
+budgets_say "$budget_out" "$frugal" "$spendthrift" \
+  revise=1/3 refactor=2/5 -- revise=3/3 refactor=5/5
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$(cat "$budget_out")")")
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

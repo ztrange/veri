@@ -43,6 +43,33 @@
 # Every line carries a step, the conductor's marks included, so the section is keyed by
 # something always present; a phase, by contrast, is absent on exactly those marks.
 #
+# That same per-step section carries the two BUDGETS a step spent, for the same reason
+# retries are there: which budget a step ran through is a question about the step. Both are
+# printed as one `used/budget` cell, the spelling the house already uses —
+# refactor-budget.sh prints `refactor 2/5`, SKILL.md narrates a revise as
+# `attempt <k>/<REVISE_BUDGET>` — so a reader sees the pair rather than two numbers to
+# divide.
+#
+#   revise   — `revise` events, one written by the conductor per revise attempt
+#              (SKILL.md:875), each carrying the budget that attempt was counted against.
+#              Counting the marks is what makes this a reading of the VERDICT axis and not
+#              of the liveness one: a leaf relaunched by the watchdog writes `retry`, never
+#              `revise`.
+#   refactor — the conductor's single `refactor` mark for the step, carrying the transforms
+#              applied, the budget, and why the loop stopped. One refactor leaf spends the
+#              whole budget of the step (ADR-0017), so the transforms are what that leaf
+#              reported applying rather than a count of launches, and there is exactly one
+#              such mark per step.
+#
+# Each budget travels in its own mark rather than being read out of the environment: the
+# report is rendered wherever the file is committed, which need not be the shell the run was
+# configured in.
+#
+# A step whose log carries neither mark spent nothing the log recorded, and its cells say
+# `unknown` rather than `0` — ADR-0014: a missing conductor mark degrades a figure to
+# unknown, never to zero, because `0/3` reads as "this step needed no revise" and that is a
+# different claim from "nobody wrote it down".
+#
 # The log is read relative to the directory this runs in, `.tdd/events.jsonl`, the way
 # event.sh writes it and the way supervise.sh already spells `.tdd/<name>.log` — the issue's
 # worktree, in other words, which is where the conductor calls this from.
@@ -73,6 +100,16 @@ COUNTS = ["attempts", "PASS", "REJECT", "kills"]
 # as a list of its own, so the two sections cannot come to disagree about what a kill is.
 STEP_COUNTS = COUNTS + ["retries"]
 
+# The per-step section closes with three columns that are not counts but text: the two
+# `used/budget` pairs and the reason the refactor loop stopped. They are listed apart from
+# STEP_COUNTS because they are tallied from a different shape of line — one mark carrying
+# the numbers, rather than one line per unit counted — and rendered with a different
+# alignment.
+BUDGETS = ["revise", "refactor", "stopped"]
+
+# What a figure says when no mark in the log supplies it. Not "0": see the header.
+UNKNOWN = "unknown"
+
 # Row order in either section is the order its key first appears in the log, which is the
 # order the run went through them — red before green before refactor, step one before step
 # two. Sorting the names instead would print the run backwards for no reason a reader could
@@ -81,6 +118,15 @@ STEP_COUNTS = COUNTS + ["retries"]
 # beside it that could come to disagree with it.
 counts = {}
 steps = {}
+
+# The budget readings, keyed by step like `steps` and kept beside it rather than inside it
+# because a revise attempt is counted from its own marks while a refactor mark is read once,
+# whole. `revises` counts the marks, `budgets` holds the last budget each kind of mark
+# reported for the step — last rather than first because it is the budget the run finished
+# under, and the two are the same number in every log where nobody re-exported the variable
+# mid-run.
+revises = {}
+budgets = {}
 
 def tally(table, key, columns, count):
     if key not in table:
@@ -94,6 +140,20 @@ with open(path) as f:
             continue
         line = json.loads(raw)
         event = line.get("event", "")
+        step = line.get("step", "")
+        # The conductor budget marks first, and they fall through to nothing below: a
+        # `revise` is not a leaf launch, so counting it as an attempt would double-count the
+        # revise leaf that the mark is followed by.
+        if event == "revise" and step:
+            revises[step] = revises.get(step, 0) + 1
+            budgets.setdefault(step, {})["revise"] = line.get("budget", "")
+            continue
+        if event == "refactor" and step:
+            mark = budgets.setdefault(step, {})
+            mark["transforms"] = line.get("transforms", "")
+            mark["refactor"] = line.get("budget", "")
+            mark["stopped"] = line.get("stopped", "")
+            continue
         if event == "launch":
             count = "attempts"
         elif event == "verdict" and line.get("verdict") in ("PASS", "REJECT"):
@@ -111,23 +171,34 @@ with open(path) as f:
         phase = line.get("phase", "")
         if phase and count in COUNTS:
             tally(counts, phase, COUNTS, count)
-        step = line.get("step", "")
         if step:
             tally(steps, step, STEP_COUNTS, count)
 
 def row(cells):
     print("| " + " | ".join(cells) + " |")
 
-def section(heading, key_column, columns, table):
+def budget_cells(step):
+    mark = budgets.get(step, {})
+    used = revises.get(step)
+    revise = "%d/%s" % (used, mark.get("revise") or "?") if used else UNKNOWN
+    if mark.get("refactor"):
+        refactor = "%s/%s" % (mark.get("transforms") or "?", mark["refactor"])
+    else:
+        refactor = UNKNOWN
+    return [revise, refactor, mark.get("stopped") or UNKNOWN]
+
+def section(heading, key_column, columns, table, extra=()):
+    extra = list(extra)
     print()
     print(heading)
     print()
-    row([key_column] + columns)
-    row(["---"] + ["---:"] * len(columns))
+    row([key_column] + columns + extra)
+    row(["---"] + ["---:"] * len(columns) + ["---"] * len(extra))
     for key, row_counts in table.items():
-        row([key] + ["%d" % row_counts[c] for c in columns])
+        cells = [key] + ["%d" % row_counts[c] for c in columns]
+        row(cells + (budget_cells(key) if extra else []))
 
 print("### 📊 Metrics — issue %s" % issue)
 section("#### By phase", "phase", COUNTS, counts)
-section("#### By step", "step", STEP_COUNTS, steps)
+section("#### By step", "step", STEP_COUNTS, steps, BUDGETS)
 ' "$issue" "$log"
