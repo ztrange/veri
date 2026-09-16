@@ -188,18 +188,26 @@ def budget_cells(step):
         refactor = UNKNOWN
     return [revise, refactor, mark.get("stopped") or UNKNOWN]
 
-def section(heading, key_column, columns, table, extra=()):
-    extra = list(extra)
+# `text` is a section of non-count columns, as the pair (headings, a function mapping a row
+# key to that rows cells under them). One parameter rather than two because headings with
+# nothing filling them is a table of blanks and cells with no heading land nowhere, so the
+# pair is what makes it impossible to pass one and forget the other. It is also what keeps
+# this renderer from naming a budget: the section that has such columns hands in its own
+# reader, where before the headings doubled as a flag for whether to call a function this
+# function reached out of the module for by name.
+def section(heading, key_column, columns, table, text=None):
+    headings, cells_for = text or ((), None)
+    headings = list(headings)
     print()
     print(heading)
     print()
-    row([key_column] + columns + extra)
-    row(["---"] + ["---:"] * len(columns) + ["---"] * len(extra))
+    row([key_column] + columns + headings)
+    row(["---"] + ["---:"] * len(columns) + ["---"] * len(headings))
     for key, row_counts in table.items():
         cells = [key] + ["%d" % row_counts[c] for c in columns]
-        row(cells + (budget_cells(key) if extra else []))
+        row(cells + (cells_for(key) if cells_for else []))
 
 print("### 📊 Metrics — issue %s" % issue)
 section("#### By phase", "phase", COUNTS, counts)
-section("#### By step", "step", STEP_COUNTS, steps, BUDGETS)
+section("#### By step", "step", STEP_COUNTS, steps, (BUDGETS, budget_cells))
 ' "$issue" "$log"
