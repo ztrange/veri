@@ -9,7 +9,8 @@
 #
 # Usage:   push-branch.sh          # run from the issue's worktree
 #
-# **A push failure is not a bail, so this script's exit status is 0 either way.** A run
+# **An unreachable remote is not a bail, so that failure exits 0.** (A non-fast-forward
+# rejection is different, and exits 1: see the loop below.) A run
 # whose network is down is still a correct run, and the conductor branches on the exit
 # code: anything but 0 would stop a methodology that is working for a transport problem.
 # The push is a copy, so a failed one owes the run nothing — HEAD, the commit count and the
@@ -47,6 +48,16 @@ while (( attempt <= retries )); do
   attempt=$((attempt + 1))
   if out="$(git push --set-upstream origin HEAD 2>&1)"; then
     exit 0
+  fi
+  # A ref rejection is not a blip: the remote holds commits HEAD does not, so every retry
+  # would fail identically. Name the remote's sha and exit 1 — whether to force or rebase
+  # is a judgement, and it belongs to a leaf, not to this script.
+  if [[ "$out" == *"[rejected]"* && ( "$out" == *non-fast-forward* || "$out" == *"fetch first"* || "$out" == *"stale info"* ) ]]; then
+    branch="$(git rev-parse --abbrev-ref HEAD)"
+    remote_sha="$(git ls-remote origin "refs/heads/$branch" | cut -f1)"
+    echo "push rejected (non-fast-forward): origin/$branch is at $remote_sha" >&2
+    "$HERE/event.sh" push-rejected remote_sha="$remote_sha" error="$out"
+    exit 1
   fi
   if (( attempt <= retries )); then
     sleep "$backoff"
