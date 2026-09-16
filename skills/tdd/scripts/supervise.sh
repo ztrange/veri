@@ -121,6 +121,49 @@ print("failure" if record.get("is_error") else "success")
 ' "$1"
 }
 
+# Turn a kill that landed on a finished leaf into the leaf's own outcome — reading `$status`
+# and `$reason`, and rewriting both. A no-op on any status but `killed-stuck`, and on a log
+# `terminal_outcome` finds no record in, so the watchdog's verdict stands wherever the leaf
+# really did go silent.
+#
+# A leaf whose stream already carried a terminal result record had answered before the
+# watchdog reached it, so what was killed was a finished process and not a hung one. The code
+# this supervision reports is then the leaf's own, not exit 2 (issue #212). The distinction is
+# the load-bearing one in this codebase: exit 2 says no answer could be obtained and the
+# conductor can only bail on it as a system failure, so a rendered verdict reported under that
+# code makes every `no-verdict` bail in a run log unreadable — nothing in it tells "the
+# verifier never answered" from "the verifier answered and we killed it".
+#
+# `reason` is cleared with the status, because it is the cause the `exit` mark and the status
+# line report a kill under, and this supervision no longer reports one. What actually happened
+# — a kill landing on a finished leaf — is said on its own line instead, since it is still
+# worth a reader of .err knowing that the window was too tight for a leaf that worked.
+recover_finished_leaf() {
+  local outcome result_tmp
+  [[ "$status" == "killed-stuck" ]] || return 0
+  outcome="$(terminal_outcome "$log")" || return 0
+
+  echo "supervise[$name]: killed after the leaf had already written its result ($reason) — reporting the leaf's own $outcome" >&2
+  # The kill also cost the leaf run-leaf.sh's closing act: it appends the clean result text
+  # after the raw stream, and a killed leaf never reaches that line. What survives in the log
+  # is stream-json only, where the verdict is a `\n`-escaped string INSIDE a one-line
+  # `{"type":"result", …}` object — and parse-verdict.sh matches `VERDICT:` at the start of a
+  # line, so the text is present and unreadable. The recovery therefore owes the same append,
+  # made with the same extract-result.sh, so this script's stdout (`cat "$log"` at the foot)
+  # ends in a parseable verdict block exactly as a live leaf's would.
+  #
+  # Through a temp file because the reader and the writer would otherwise be the same path: a
+  # redirection appending to `$log` truncates or races the read of it. A refusal leaves the log
+  # as it was — the recovered status above is the answer this step owes, and a missing tail is
+  # the caller's to notice, not a reason to turn a rendered verdict back into exit 2.
+  result_tmp="$(mktemp)"
+  if "$HERE/extract-result.sh" < "$log" > "$result_tmp" 2>/dev/null; then
+    { printf '\n'; cat "$result_tmp"; } >> "$log"
+  fi
+  rm -f "$result_tmp"
+  status="$outcome"; reason=""
+}
+
 # Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets three globals, and
 # those three are its answers: status/reason, and `$secs` — how many wall seconds this attempt
 # took, which the `exit` mark at the foot of this script reports. They are not `local` because
@@ -132,7 +175,7 @@ print("failure" if record.get("is_error") else "success")
 # everything below speaks, so nothing down there reads the number itself. `$pid` is the one
 # non-answer that must stay global anyway: `kill_tree` is a separate function and reads it.
 attempt_once() {
-  local t0 t silence rc outcome result_tmp
+  local t0 t silence rc
   : > "$log"
   rm -f "$rcfile"
 
@@ -168,40 +211,9 @@ attempt_once() {
     sleep "$poll"
   done
 
-  # A leaf whose stream already carried a terminal result record had answered before the
-  # watchdog reached it, so what was killed was a finished process and not a hung one. The
-  # code this supervision reports is then the leaf's own, not exit 2 (issue #212). The
-  # distinction is the load-bearing one in this codebase: exit 2 says no answer could be
-  # obtained and the conductor can only bail on it as a system failure, so a rendered verdict
-  # reported under that code makes every `no-verdict` bail in a run log unreadable — nothing
-  # in it tells "the verifier never answered" from "the verifier answered and we killed it".
-  #
-  # `reason` is cleared with the status, because it is the cause the `exit` mark and the
-  # status line report a kill under, and this supervision no longer reports one. What actually
-  # happened — a kill landing on a finished leaf — is said on its own line instead, since it
-  # is still worth a reader of .err knowing that the window was too tight for a leaf that
-  # worked.
-  if [[ "$status" == "killed-stuck" ]] && outcome="$(terminal_outcome "$log")"; then
-    echo "supervise[$name]: killed after the leaf had already written its result ($reason) — reporting the leaf's own $outcome" >&2
-    # The kill also cost the leaf run-leaf.sh's closing act: it appends the clean result
-    # text after the raw stream, and a killed leaf never reaches that line. What survives in
-    # the log is stream-json only, where the verdict is a `\n`-escaped string INSIDE a
-    # one-line `{"type":"result", …}` object — and parse-verdict.sh matches `VERDICT:` at the
-    # start of a line, so the text is present and unreadable. The recovery therefore owes the
-    # same append, made with the same extract-result.sh, so this script's stdout (`cat "$log"`
-    # at the foot) ends in a parseable verdict block exactly as a live leaf's would.
-    #
-    # Through a temp file because the reader and the writer would otherwise be the same path:
-    # a redirection appending to `$log` truncates or races the read of it. A refusal leaves the
-    # log as it was — the recovered status above is the answer this step owes, and a missing
-    # tail is the caller's to notice, not a reason to turn a rendered verdict back into exit 2.
-    result_tmp="$(mktemp)"
-    if "$HERE/extract-result.sh" < "$log" > "$result_tmp" 2>/dev/null; then
-      { printf '\n'; cat "$result_tmp"; } >> "$log"
-    fi
-    rm -f "$result_tmp"
-    status="$outcome"; reason=""
-  fi
+  # A kill that landed on a leaf which had already answered is not a stuck one: the rule and
+  # its reasons are `recover_finished_leaf`'s, above, and it is a no-op on every other status.
+  recover_finished_leaf
 
   wait "$pid" 2>/dev/null || true
   # Stopped here rather than where the mark is written, so the count is the attempt's own
