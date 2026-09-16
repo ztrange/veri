@@ -1528,6 +1528,35 @@ progress_says "$unmarked_out" unknown 2
 report_on "$name" "$unmarked_out"
 
 
+# A thirteenth fixture: a step whose criterion earlier work already satisfied. Such a step takes
+# the pin path (SKILL.md, the verify-pin PASS branch): the conductor marks it `pin` and the step
+# is done with no Green and no Refactor, so no `step-done` mark is ever written for it. The first
+# step of this two-step plan closed the ordinary way and the second closed on its pin, so both
+# are done and the figure is 2 of 2 — `1 of 2` would be the report counting only one of the two
+# marks a step can finish on.
+fixture_work pinned_work
+
+closed="a step that closed on its step-done mark"
+pinned="a step that closed on its pin mark, already satisfied"
+
+sv "$closed" 15000 conductor ""  step-start ""
+sv "$closed" 15100 conductor ""  step-done  ""
+sv "$pinned" 15200 conductor ""  step-start ""
+sv "$pinned" 15300 conductor pin pin        ""
+
+plan_of "$closed" "$pinned"
+
+
+name="a step that ended in a pin mark and no step-done mark counts as done in the steps-done figure"
+problems=()
+
+pinned_out="$pinned_work/report.md"
+render "$pinned_work" "$pinned_out"
+
+progress_says "$pinned_out" 2 2
+
+report_on "$name" "$pinned_out"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
