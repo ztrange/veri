@@ -193,6 +193,7 @@ fixture_work() {
   mkdir -p "$dir/.tdd"
   fixture_works+=("$dir")
   printf -v "$1" '%s' "$dir"
+  fixture_log="$dir/.tdd/events.jsonl"
 }
 
 fixture_work work
@@ -203,18 +204,30 @@ fixture_work work
 # suite's subject stays the reader and a change to the writer cannot quietly rewrite the
 # input being read. The trailing json is the payload's own `"key": "value"` pairs and nothing
 # else: the comma joining them to the context keys is added here, once, so no caller spells
-# a piece of json syntax and none of the three wrappers below carries a rule of its own.
+# a piece of json syntax and the writer below carries no rule of its own.
 event_line() {
   local log="$1"; shift
   printf '{"ts": %s, "issue": "108", "actor": "%s", "phase": "%s", "step": "%s", "event": "%s", "attempt": "%s", "skill_commit": "c0ffee1"%s}\n' \
     "$1" "$2" "$3" "$4" "$5" "$6" "${7:+, ${7}}" >> "$log"
 }
 
+# sv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>] — a line of whichever
+# fixture was made last, since `fixture_work` points `fixture_log` at the log it just made and
+# each fixture below is filled in immediately after it is made. The step comes first because
+# it is what a multi-step fixture varies line by line.
+#
+# One writer rather than one per fixture: a fixture named its own log, so a fixture added
+# later owed a wrapper of its own that differed from the last only in that name, and four
+# copies of one argument order were four places for it to go wrong.
+sv() {
+  event_line "$fixture_log" "$2" "$3" "$4" "$1" "$5" "$6" "${7:-}"
+}
+
 # ev <ts> <actor> <phase> <event> <attempt> [<trailing-json>] — a line of the first fixture,
 # whose step never varies.
 step="metrics.sh renders a markdown table of per-phase counts"
 ev() {
-  event_line "$work/.tdd/events.jsonl" "$1" "$2" "$3" "$step" "$4" "$5" "${6:-}"
+  sv "$step" "$@"
 }
 
 # The first fixture: one step, two phases — a run whose Green was rejected twice and whose
@@ -302,14 +315,9 @@ step_table_says() {
 # against. Two steps, because one step could not tell a per-step section from a per-issue
 # total: the two rows are what make the section's key observable.
 #
-# `sv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` is `ev`'s sibling over
-# the same `event_line`, differing only in taking the step as its first argument, since the
-# step is the thing this fixture varies.
+# The lines are written with `sv`, which takes the step as its first argument since the step
+# is the thing this fixture varies.
 fixture_work step_work
-
-sv() {
-  event_line "$step_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:-}"
-}
 
 one="metrics.sh renders a markdown table of per-phase counts"
 two="the table carries a per-step section with the same counts"
@@ -486,80 +494,74 @@ print("\n".join(problems))
 #   this case is about a run that did write it.
 fixture_work budget_work
 
-# `bv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` — `sv`'s sibling over
-# the same writer, on this fixture's log.
-bv() {
-  event_line "$budget_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:-}"
-}
-
 frugal="the table reports revise attempts used of REVISE_BUDGET and refactor transforms used"
 spendthrift="the table reports wall seconds and API seconds per phase and per step"
 
 # Step one: one REJECT answered by one revise of three, then a refactor that applied two
 # transforms of five and stopped with nothing structural left to tidy.
-bv "$frugal" 4000 conductor ""       step-start ""
-bv "$frugal" 4010 developer red      launch  1 '"name": "develop-red"'
-bv "$frugal" 4100 developer red      exit    1 '"status": "0", "secs": "90"'
-bv "$frugal" 4110 verifier  red      launch  1 '"name": "verify-red"'
-bv "$frugal" 4130 verifier  red      exit    1 '"status": "0", "secs": "20"'
-bv "$frugal" 4130 verifier  red      verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
-bv "$frugal" 4200 developer green    launch  1 '"name": "develop-green"'
-bv "$frugal" 4300 developer green    exit    1 '"status": "0", "secs": "100"'
-bv "$frugal" 4310 verifier  green    launch  1 '"name": "verify-green"'
-bv "$frugal" 4330 verifier  green    exit    1 '"status": "0", "secs": "20"'
-bv "$frugal" 4330 verifier  green    verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
-bv "$frugal" 4340 conductor green    revise  1 '"budget": "3"'
-bv "$frugal" 4350 developer green    launch  2 '"name": "revise-green-1"'
-bv "$frugal" 4410 developer green    exit    2 '"status": "0", "secs": "60"'
-bv "$frugal" 4420 verifier  green    launch  2 '"name": "verify-green"'
-bv "$frugal" 4440 verifier  green    exit    2 '"status": "0", "secs": "20"'
-bv "$frugal" 4440 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
-bv "$frugal" 4450 developer refactor launch  1 '"name": "develop-refactor"'
-bv "$frugal" 4600 developer refactor exit    1 '"status": "0", "secs": "150"'
-bv "$frugal" 4610 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing left to tidy"'
-bv "$frugal" 4620 verifier  refactor launch  1 '"name": "verify-refactor"'
-bv "$frugal" 4640 verifier  refactor exit    1 '"status": "0", "secs": "20"'
-bv "$frugal" 4640 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
-bv "$frugal" 4650 conductor ""       step-done ""
+sv "$frugal" 4000 conductor ""       step-start ""
+sv "$frugal" 4010 developer red      launch  1 '"name": "develop-red"'
+sv "$frugal" 4100 developer red      exit    1 '"status": "0", "secs": "90"'
+sv "$frugal" 4110 verifier  red      launch  1 '"name": "verify-red"'
+sv "$frugal" 4130 verifier  red      exit    1 '"status": "0", "secs": "20"'
+sv "$frugal" 4130 verifier  red      verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$frugal" 4200 developer green    launch  1 '"name": "develop-green"'
+sv "$frugal" 4300 developer green    exit    1 '"status": "0", "secs": "100"'
+sv "$frugal" 4310 verifier  green    launch  1 '"name": "verify-green"'
+sv "$frugal" 4330 verifier  green    exit    1 '"status": "0", "secs": "20"'
+sv "$frugal" 4330 verifier  green    verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+sv "$frugal" 4340 conductor green    revise  1 '"budget": "3"'
+sv "$frugal" 4350 developer green    launch  2 '"name": "revise-green-1"'
+sv "$frugal" 4410 developer green    exit    2 '"status": "0", "secs": "60"'
+sv "$frugal" 4420 verifier  green    launch  2 '"name": "verify-green"'
+sv "$frugal" 4440 verifier  green    exit    2 '"status": "0", "secs": "20"'
+sv "$frugal" 4440 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$frugal" 4450 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$frugal" 4600 developer refactor exit    1 '"status": "0", "secs": "150"'
+sv "$frugal" 4610 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing left to tidy"'
+sv "$frugal" 4620 verifier  refactor launch  1 '"name": "verify-refactor"'
+sv "$frugal" 4640 verifier  refactor exit    1 '"status": "0", "secs": "20"'
+sv "$frugal" 4640 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$frugal" 4650 conductor ""       step-done ""
 
 # Step two: three REJECTs and the three revises that answered them — the whole budget — and
 # a refactor that applied five transforms of five and stopped because that budget was spent.
-bv "$spendthrift" 5000 conductor ""       step-start ""
-bv "$spendthrift" 5010 developer red      launch  1 '"name": "develop-red"'
-bv "$spendthrift" 5100 developer red      exit    1 '"status": "0", "secs": "90"'
-bv "$spendthrift" 5110 verifier  red      launch  1 '"name": "verify-red"'
-bv "$spendthrift" 5130 verifier  red      exit    1 '"status": "0", "secs": "20"'
-bv "$spendthrift" 5130 verifier  red      verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
-bv "$spendthrift" 5200 developer green    launch  1 '"name": "develop-green"'
-bv "$spendthrift" 5300 developer green    exit    1 '"status": "0", "secs": "100"'
-bv "$spendthrift" 5310 verifier  green    launch  1 '"name": "verify-green"'
-bv "$spendthrift" 5330 verifier  green    exit    1 '"status": "0", "secs": "20"'
-bv "$spendthrift" 5330 verifier  green    verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
-bv "$spendthrift" 5340 conductor green    revise  1 '"budget": "3"'
-bv "$spendthrift" 5350 developer green    launch  2 '"name": "revise-green-1"'
-bv "$spendthrift" 5410 developer green    exit    2 '"status": "0", "secs": "60"'
-bv "$spendthrift" 5420 verifier  green    launch  2 '"name": "verify-green"'
-bv "$spendthrift" 5440 verifier  green    exit    2 '"status": "0", "secs": "20"'
-bv "$spendthrift" 5440 verifier  green    verdict 2 '"verdict": "REJECT", "reason": "a second criterion was pinned in passing"'
-bv "$spendthrift" 5450 conductor green    revise  2 '"budget": "3"'
-bv "$spendthrift" 5460 developer green    launch  3 '"name": "revise-green-2"'
-bv "$spendthrift" 5520 developer green    exit    3 '"status": "0", "secs": "60"'
-bv "$spendthrift" 5530 verifier  green    launch  3 '"name": "verify-green"'
-bv "$spendthrift" 5550 verifier  green    exit    3 '"status": "0", "secs": "20"'
-bv "$spendthrift" 5550 verifier  green    verdict 3 '"verdict": "REJECT", "reason": "the case was weakened rather than answered"'
-bv "$spendthrift" 5560 conductor green    revise  3 '"budget": "3"'
-bv "$spendthrift" 5570 developer green    launch  4 '"name": "revise-green-3"'
-bv "$spendthrift" 5630 developer green    exit    4 '"status": "0", "secs": "60"'
-bv "$spendthrift" 5640 verifier  green    launch  4 '"name": "verify-green"'
-bv "$spendthrift" 5660 verifier  green    exit    4 '"status": "0", "secs": "20"'
-bv "$spendthrift" 5660 verifier  green    verdict 4 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
-bv "$spendthrift" 5670 developer refactor launch  1 '"name": "develop-refactor"'
-bv "$spendthrift" 5900 developer refactor exit    1 '"status": "0", "secs": "230"'
-bv "$spendthrift" 5910 conductor refactor refactor "" '"transforms": "5", "budget": "5", "stopped": "budget"'
-bv "$spendthrift" 5920 verifier  refactor launch  1 '"name": "verify-refactor"'
-bv "$spendthrift" 5940 verifier  refactor exit    1 '"status": "0", "secs": "20"'
-bv "$spendthrift" 5940 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
-bv "$spendthrift" 5950 conductor ""       step-done ""
+sv "$spendthrift" 5000 conductor ""       step-start ""
+sv "$spendthrift" 5010 developer red      launch  1 '"name": "develop-red"'
+sv "$spendthrift" 5100 developer red      exit    1 '"status": "0", "secs": "90"'
+sv "$spendthrift" 5110 verifier  red      launch  1 '"name": "verify-red"'
+sv "$spendthrift" 5130 verifier  red      exit    1 '"status": "0", "secs": "20"'
+sv "$spendthrift" 5130 verifier  red      verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$spendthrift" 5200 developer green    launch  1 '"name": "develop-green"'
+sv "$spendthrift" 5300 developer green    exit    1 '"status": "0", "secs": "100"'
+sv "$spendthrift" 5310 verifier  green    launch  1 '"name": "verify-green"'
+sv "$spendthrift" 5330 verifier  green    exit    1 '"status": "0", "secs": "20"'
+sv "$spendthrift" 5330 verifier  green    verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+sv "$spendthrift" 5340 conductor green    revise  1 '"budget": "3"'
+sv "$spendthrift" 5350 developer green    launch  2 '"name": "revise-green-1"'
+sv "$spendthrift" 5410 developer green    exit    2 '"status": "0", "secs": "60"'
+sv "$spendthrift" 5420 verifier  green    launch  2 '"name": "verify-green"'
+sv "$spendthrift" 5440 verifier  green    exit    2 '"status": "0", "secs": "20"'
+sv "$spendthrift" 5440 verifier  green    verdict 2 '"verdict": "REJECT", "reason": "a second criterion was pinned in passing"'
+sv "$spendthrift" 5450 conductor green    revise  2 '"budget": "3"'
+sv "$spendthrift" 5460 developer green    launch  3 '"name": "revise-green-2"'
+sv "$spendthrift" 5520 developer green    exit    3 '"status": "0", "secs": "60"'
+sv "$spendthrift" 5530 verifier  green    launch  3 '"name": "verify-green"'
+sv "$spendthrift" 5550 verifier  green    exit    3 '"status": "0", "secs": "20"'
+sv "$spendthrift" 5550 verifier  green    verdict 3 '"verdict": "REJECT", "reason": "the case was weakened rather than answered"'
+sv "$spendthrift" 5560 conductor green    revise  3 '"budget": "3"'
+sv "$spendthrift" 5570 developer green    launch  4 '"name": "revise-green-3"'
+sv "$spendthrift" 5630 developer green    exit    4 '"status": "0", "secs": "60"'
+sv "$spendthrift" 5640 verifier  green    launch  4 '"name": "verify-green"'
+sv "$spendthrift" 5660 verifier  green    exit    4 '"status": "0", "secs": "20"'
+sv "$spendthrift" 5660 verifier  green    verdict 4 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$spendthrift" 5670 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$spendthrift" 5900 developer refactor exit    1 '"status": "0", "secs": "230"'
+sv "$spendthrift" 5910 conductor refactor refactor "" '"transforms": "5", "budget": "5", "stopped": "budget"'
+sv "$spendthrift" 5920 verifier  refactor launch  1 '"name": "verify-refactor"'
+sv "$spendthrift" 5940 verifier  refactor exit    1 '"status": "0", "secs": "20"'
+sv "$spendthrift" 5940 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$spendthrift" 5950 conductor ""       step-done ""
 
 
 name="each step's row says the revise attempts and refactor transforms it used of their budgets, and whether the refactor loop stopped by budget"
@@ -690,12 +692,6 @@ print("want a line outside the tables reporting the issue wall of %s seconds, th
 #   issue wall — the first event of the log to the `done` mark that closed the run.
 fixture_work time_work
 
-# `tv <step> <ts> <actor> <phase> <event> <attempt> [<trailing-json>]` — `sv`s sibling over
-# the same writer, on this fixture log.
-tv() {
-  event_line "$time_work/.tdd/events.jsonl" "$2" "$3" "$4" "$1" "$5" "$6" "${7:-}"
-}
-
 # `usage_json <api-ms>` — the payload of one `usage` line, in the shape harvest-usage.sh
 # emits (harvest-usage.sh:76-84): the leaf own four numbers and its four token counts, under
 # the stream record own key names. Only `duration_api_ms` varies per call; the rest are
@@ -711,56 +707,56 @@ slow="the table reports turns, the four token counts and dollars per phase"
 # Step one: red and green, each a developer leaf and a verifier, all four accounted for.
 # red 90+20 = 110 wall, 70+15 = 85 API. green 100+20 = 120 wall, 80+10 = 90 API.
 # The step itself ran 7000 to 7400 — 400 seconds — with 230 seconds of attempts inside it.
-tv "$brisk" 7000 conductor ""    step-start ""
-tv "$brisk" 7010 developer red   launch  1 '"name": "develop-red"'
-tv "$brisk" 7100 developer red   exit    1 '"status": "0", "secs": "90"'
-tv "$brisk" 7100 developer red   usage   1 "$(usage_json 70000)"
-tv "$brisk" 7110 verifier  red   launch  1 '"name": "verify-red"'
-tv "$brisk" 7130 verifier  red   exit    1 '"status": "0", "secs": "20"'
-tv "$brisk" 7130 verifier  red   usage   1 "$(usage_json 15000)"
-tv "$brisk" 7130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
-tv "$brisk" 7200 developer green launch  1 '"name": "develop-green"'
-tv "$brisk" 7300 developer green exit    1 '"status": "0", "secs": "100"'
-tv "$brisk" 7300 developer green usage   1 "$(usage_json 80000)"
-tv "$brisk" 7310 verifier  green launch  1 '"name": "verify-green"'
-tv "$brisk" 7330 verifier  green exit    1 '"status": "0", "secs": "20"'
-tv "$brisk" 7330 verifier  green usage   1 "$(usage_json 10000)"
-tv "$brisk" 7330 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
-tv "$brisk" 7400 conductor ""    step-done ""
+sv "$brisk" 7000 conductor ""    step-start ""
+sv "$brisk" 7010 developer red   launch  1 '"name": "develop-red"'
+sv "$brisk" 7100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$brisk" 7100 developer red   usage   1 "$(usage_json 70000)"
+sv "$brisk" 7110 verifier  red   launch  1 '"name": "verify-red"'
+sv "$brisk" 7130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$brisk" 7130 verifier  red   usage   1 "$(usage_json 15000)"
+sv "$brisk" 7130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$brisk" 7200 developer green launch  1 '"name": "develop-green"'
+sv "$brisk" 7300 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$brisk" 7300 developer green usage   1 "$(usage_json 80000)"
+sv "$brisk" 7310 verifier  green launch  1 '"name": "verify-green"'
+sv "$brisk" 7330 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$brisk" 7330 verifier  green usage   1 "$(usage_json 10000)"
+sv "$brisk" 7330 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$brisk" 7400 conductor ""    step-done ""
 
 # Step two: a rejected Green, a leaf the watchdog killed — 70 wall seconds and no usage line
 # at all, which is what makes the two sources of wall time tell apart — and a revise that
 # passed. red 80+20 = 100 wall, 60+10 = 70 API. green 100+20+70+60+20 = 270 wall,
 # 85+10+45+10 = 150 API. The step ran 8000 to 8600 — 600 seconds.
-tv "$slow" 8000 conductor ""    step-start ""
-tv "$slow" 8010 developer red   launch  1 '"name": "develop-red"'
-tv "$slow" 8100 developer red   exit    1 '"status": "0", "secs": "80"'
-tv "$slow" 8100 developer red   usage   1 "$(usage_json 60000)"
-tv "$slow" 8110 verifier  red   launch  1 '"name": "verify-red"'
-tv "$slow" 8130 verifier  red   exit    1 '"status": "0", "secs": "20"'
-tv "$slow" 8130 verifier  red   usage   1 "$(usage_json 10000)"
-tv "$slow" 8130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
-tv "$slow" 8200 developer green launch  1 '"name": "develop-green"'
-tv "$slow" 8300 developer green exit    1 '"status": "0", "secs": "100"'
-tv "$slow" 8300 developer green usage   1 "$(usage_json 85000)"
-tv "$slow" 8310 verifier  green launch  1 '"name": "verify-green"'
-tv "$slow" 8330 verifier  green exit    1 '"status": "0", "secs": "20"'
-tv "$slow" 8330 verifier  green usage   1 "$(usage_json 10000)"
-tv "$slow" 8330 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
-tv "$slow" 8340 conductor green revise  1 '"budget": "3"'
-tv "$slow" 8350 developer green launch  2 '"name": "revise-green-1"'
-tv "$slow" 8420 developer green exit    2 '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "70"'
-tv "$slow" 8430 developer green launch  2 '"name": "revise-green-1"'
-tv "$slow" 8490 developer green exit    2 '"status": "0", "secs": "60"'
-tv "$slow" 8490 developer green usage   2 "$(usage_json 45000)"
-tv "$slow" 8500 verifier  green launch  2 '"name": "verify-green"'
-tv "$slow" 8520 verifier  green exit    2 '"status": "0", "secs": "20"'
-tv "$slow" 8520 verifier  green usage   2 "$(usage_json 10000)"
-tv "$slow" 8520 verifier  green verdict 2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
-tv "$slow" 8600 conductor ""    step-done ""
+sv "$slow" 8000 conductor ""    step-start ""
+sv "$slow" 8010 developer red   launch  1 '"name": "develop-red"'
+sv "$slow" 8100 developer red   exit    1 '"status": "0", "secs": "80"'
+sv "$slow" 8100 developer red   usage   1 "$(usage_json 60000)"
+sv "$slow" 8110 verifier  red   launch  1 '"name": "verify-red"'
+sv "$slow" 8130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$slow" 8130 verifier  red   usage   1 "$(usage_json 10000)"
+sv "$slow" 8130 verifier  red   verdict 1 '"verdict": "PASS", "reason": "the case fails as written"'
+sv "$slow" 8200 developer green launch  1 '"name": "develop-green"'
+sv "$slow" 8300 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$slow" 8300 developer green usage   1 "$(usage_json 85000)"
+sv "$slow" 8310 verifier  green launch  1 '"name": "verify-green"'
+sv "$slow" 8330 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$slow" 8330 verifier  green usage   1 "$(usage_json 10000)"
+sv "$slow" 8330 verifier  green verdict 1 '"verdict": "REJECT", "reason": "the production change is wider than the case asks for"'
+sv "$slow" 8340 conductor green revise  1 '"budget": "3"'
+sv "$slow" 8350 developer green launch  2 '"name": "revise-green-1"'
+sv "$slow" 8420 developer green exit    2 '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "70"'
+sv "$slow" 8430 developer green launch  2 '"name": "revise-green-1"'
+sv "$slow" 8490 developer green exit    2 '"status": "0", "secs": "60"'
+sv "$slow" 8490 developer green usage   2 "$(usage_json 45000)"
+sv "$slow" 8500 verifier  green launch  2 '"name": "verify-green"'
+sv "$slow" 8520 verifier  green exit    2 '"status": "0", "secs": "20"'
+sv "$slow" 8520 verifier  green usage   2 "$(usage_json 10000)"
+sv "$slow" 8520 verifier  green verdict 2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$slow" 8600 conductor ""    step-done ""
 
 # The mark that closed the run, 1700 seconds after its first event.
-tv "$slow" 8700 conductor ""    done       "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+sv "$slow" 8700 conductor ""    done       "" '"pr": "https://github.com/ztrange/veri/pull/999"'
 
 
 name="the phase and step rows carry their wall and API seconds, and the report gives the issue wall from its first event to done"
