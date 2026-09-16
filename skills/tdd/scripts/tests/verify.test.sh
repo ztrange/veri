@@ -472,6 +472,17 @@ model_clash_launched=no
   && [[ "$model_clash_out" == *VERIFY_LEAF_ARGS* ]] && [[ "$model_clash_out" == *--model* ]]; } && ok \
   || no "VERIFY_LEAF_ARGS carrying its own --model alongside a role model variable is refused before any leaf launches (code=$model_clash_code want 2; leaf launched=$model_clash_launched want no; output='$model_clash_out' want VERIFY_LEAF_ARGS and --model named)"
 
+# 16. a verifier leaf re-invoked after it answered (issue #228) writes a later result record with
+#     no verdict in it — the stream below is #108's step-1 log in shape: a turn that ended waiting
+#     on a background suite, the turn that rendered the verdict, and a task-notification turn that
+#     said there was nothing left to do. The verdict in the middle record is the answer.
+verify '{"type":"system","subtype":"init","session_id":"s"}
+{"type":"result","subtype":"success","is_error":false,"num_turns":16,"result":"Waiting for the `make test` background task and its Monitor to report completion — will post the verdict once it finishes."}
+{"type":"result","subtype":"success","is_error":false,"num_turns":2,"result":"VERDICT: PASS\nREASON: Target test and full suite are green."}
+{"type":"result","subtype":"success","is_error":false,"num_turns":1,"duration_ms":1500,"duration_api_ms":1400,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0},"origin":{"kind":"task-notification"},"result":"No action needed — verdict already delivered for this verification."}' green
+{ [[ "$code" == 0 ]] && [[ "$out" == 'Target test and full suite are green.' ]]; } && ok \
+  || no "a verdict in an earlier result record is read when the last result record carries none (code=$code want 0; output='$out' want 'Target test and full suite are green.')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
