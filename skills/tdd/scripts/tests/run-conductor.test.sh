@@ -62,6 +62,7 @@ printf '%s\n' "$@" > "$ARGV_OUT"
 cat > "${PROMPT_OUT:-/dev/null}"
 [[ -n "${ENV_OUT:-}" ]] && env > "$ENV_OUT"
 [[ -n "${BASE_OUT:-}" ]] && cp -R "$(sed -n 's/^Base directory for this skill: //p' "$PROMPT_OUT" | head -n 1)/." "$BASE_OUT"
+[[ -n "${CONDUCTOR_HOOK:-}" ]] && "$CONDUCTOR_HOOK" "$(sed -n 's/^Base directory for this skill: //p' "$PROMPT_OUT" | head -n 1)"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit "${STUB_EXIT:-0}"
@@ -273,6 +274,75 @@ elif ! diff_out="$(cd "$committed/skills/tdd" && find . -type f | while read -r 
   problems+=("the base directory's files differ from skill commit $commit: ${diff_out//$'\n'/ }")
 elif [[ -e "$base" ]]; then
   problems+=("the snapshot is still on disk after the launch returned: $base")
+fi
+
+report "$name"
+
+# 7. The pin holds for what a leaf executes, not only for what the conductor is told. While
+# the conductor is running, the hook sabotages the clone the skill was launched from — its
+# supervise.sh replaced by one that exits 42, its run-leaf.sh deleted, its develop-red
+# template rewritten — and only then launches a leaf the way SKILL.md does, from the base
+# directory's scripts: the prompt built by build-develop-prompt.sh, the leaf run by
+# supervise.sh over run-leaf.sh. A leaf that runs, and is handed the committed template
+# rather than the rewritten one, is a leaf that read none of the three from the clone.
+name="a leaf launched mid-run executes the snapshot's supervise.sh, run-leaf.sh and template, not the clone's"
+problems=()
+
+clone2="$work/clone2"
+mkdir -p "$clone2/skills"
+cp -R "$HERE/../.." "$clone2/skills/tdd"
+git -C "$clone2" init -q
+git -C "$clone2" add -A
+git -C "$clone2" -c user.name=t -c user.email=t@t commit -qm skill
+
+leafdir="$work/leaf"
+mkdir -p "$leafdir"
+echo "spec" > "$leafdir/spec.md"
+
+# The leaf's own `claude`: records the prompt it is handed with `-p` and emits a result.
+cat > "$stubdir/leaf-claude" <<'STUB'
+#!/usr/bin/env bash
+while [[ $# -gt 0 ]]; do
+  [[ "$1" == "-p" ]] && { printf '%s\n' "$2" > "$LEAF_PROMPT_OUT"; shift; }
+  shift
+done
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+STUB
+chmod +x "$stubdir/leaf-claude"
+
+cat > "$stubdir/hook" <<HOOK
+#!/usr/bin/env bash
+base="\$1"
+src="$clone2/skills/tdd/scripts"
+printf '#!/usr/bin/env bash\necho SABOTAGED; exit 42\n' > "\$src/supervise.sh"
+rm -f "\$src/run-leaf.sh"
+echo "SABOTAGED-TEMPLATE" > "\$src/prompts/develop-red.md"
+cd "$leafdir" || exit 1
+"\$base/scripts/build-develop-prompt.sh" red spec.md "the step" "make test" > leaf.prompt 2> build.err
+env CLAUDE_BIN="$stubdir/leaf-claude" LEAF_PROMPT_OUT="$leafdir/leaf-received" \
+  "\$base/scripts/supervise.sh" develop-red "\$base/scripts/run-leaf.sh" leaf.prompt > supervise.out 2> supervise.err
+echo \$? > supervise.rc
+HOOK
+chmod +x "$stubdir/hook"
+
+( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+    CONDUCTOR_HOOK="$stubdir/hook" \
+    "$clone2/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+
+leaf_rc="$(cat "$leafdir/supervise.rc" 2>/dev/null)"
+if [[ -z "$leaf_rc" ]]; then
+  problems+=("the conductor never launched a leaf — no supervise.rc in $leafdir")
+else
+  [[ "$leaf_rc" == 0 ]] ||
+    problems+=("the leaf launch through the base directory's supervise.sh exited $leaf_rc, not 0")
+  if [[ ! -f "$leafdir/leaf-received" ]]; then
+    problems+=("the leaf never received a prompt")
+  else
+    grep -q 'SABOTAGED-TEMPLATE' "$leafdir/leaf-received" &&
+      problems+=("the leaf was handed the clone's rewritten develop-red template")
+    grep -q '## Phase: develop-red' "$leafdir/leaf-received" ||
+      problems+=("the leaf's prompt is not built from the committed develop-red template")
+  fi
 fi
 
 report "$name"
