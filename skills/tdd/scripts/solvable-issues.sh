@@ -46,8 +46,8 @@
 # Usage:   solvable-issues.sh [--repo owner/name]
 #          VERI_GH_JSON=<dir> solvable-issues.sh
 #          VERI_LABEL=<name>  solvable-issues.sh
-# Exit:    0 one or more numbers printed; 2 no answer could be obtained — VERI_LABEL is set
-#          but empty; 3 nothing to do — no issue is takeable
+# Exit:    0 one or more numbers printed; 2 no answer could be obtained — VERI_LABEL or
+#          VERI_PRIORITY_LABEL is set but empty; 3 nothing to do — no issue is takeable
 set -euo pipefail
 
 # `--repo owner/name` is forwarded to gh verbatim and nothing is invented in its absence:
@@ -89,6 +89,15 @@ label="${VERI_LABEL:-ready-for-agent}"
 # in the print order and nothing else: an issue carrying it still has to pass all four
 # conditions above, so priority reorders the solvable set and never enlarges it. The default
 # is the `priority` label the repository already has.
+#
+# Set but EMPTY refuses exactly as VERI_LABEL above does, and for the same `${VAR-x}` reason:
+# an empty name matches every issue, which would put the whole solvable set in the priority
+# band — the ordering equivalent of an empty opt-in label matching everything. A diagnostic on
+# stderr, exit 2, nothing on stdout for a caller to read as a queue.
+if [[ -z "${VERI_PRIORITY_LABEL-x}" ]]; then
+  echo "solvable-issues: VERI_PRIORITY_LABEL is set but empty: name a label or leave it unset" >&2
+  exit 2
+fi
 priority_label="${VERI_PRIORITY_LABEL:-priority}"
 
 # One document, from whichever of the two sources is in force. Both the override and the
