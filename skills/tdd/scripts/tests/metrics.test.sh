@@ -190,6 +190,13 @@ def number(cell):
 def money(heading):
     return any(w in heading for w in ("$", "cost", "dollar", "usd"))
 
+def outside_tables(path):
+    return [l.strip() for l in open(path).read().splitlines()
+            if l.strip() and not l.strip().startswith("|")]
+
+def quoted(said):
+    return ", ".join(repr(l) for l in said) or "nothing"
+
 def located(tables, key, what, find):
     section = find(tables, key)
     if section is None:
@@ -1303,21 +1310,17 @@ report_on "$name" "$bail_out"
 # words: without it, a report printing no progress at all could be passed by two numbers that
 # happened to fall side by side in some other sentence.
 progress_says() {
-  probe '
-import re, sys
-
+  probe "$PROBE_PRELUDE"'
 path, done, planned = sys.argv[1], sys.argv[2], sys.argv[3]
 pair = re.compile(r"(?<![0-9.])%s(?![0-9.])\D{1,20}(?<![0-9.])%s(?![0-9.])"
                   % (re.escape(done), re.escape(planned)))
-lines = [l.strip() for l in open(path).read().splitlines()
-         if l.strip() and not l.strip().startswith("|")]
+lines = outside_tables(path)
 
-if any(pair.search(l) and "step" in l.lower() for l in lines):
-    raise SystemExit(0)
+if not any(pair.search(l) and "step" in l.lower() for l in lines):
+    complain("want a line outside the tables saying %s steps of %s planned were done, the "
+             "report says outside them: %s" % (done, planned, quoted(lines)))
 
-print("want a line outside the tables saying %s steps of %s planned were done, the report "
-      "says outside them: %s"
-      % (done, planned, ", ".join(repr(l) for l in lines) or "nothing"))
+print("\n".join(problems))
 ' "$@"
 }
 
@@ -1340,39 +1343,31 @@ print("want a line outside the tables saying %s steps of %s planned were done, t
 # process failure, a draft PR — so what is pinned is which of them the report reaches for,
 # never how it words the sentence they sit in.
 outcome_says() {
-  probe '
-import re, sys
-
+  probe "$PROBE_PRELUDE"'
 path, want = sys.argv[1], sys.argv[2]
-lines = [l.strip() for l in open(path).read().splitlines()
-         if l.strip() and not l.strip().startswith("|")]
+lines = outside_tables(path)
 
 def says(line, word):
     return re.search(r"\b%s\b" % word, line.lower()) is not None
 
-def quoted(said):
-    return ", ".join(repr(l) for l in said) or "nothing"
-
-problems = []
 bails = [l for l in lines if says(l, "bail(ed|s)?")]
 
 if want == "pr":
     if bails:
-        problems.append("the run reached a draft PR, so no line outside the tables may call "
-                        "it a bail, these do: %s" % quoted(bails))
+        complain("the run reached a draft PR, so no line outside the tables may call it a "
+                 "bail, these do: %s" % quoted(bails))
     if not any(re.search(r"\b(pr|pull request|draft)\b", l.lower()) for l in lines):
-        problems.append("want a line outside the tables naming the draft PR the run reached, "
-                        "the report says outside them: %s" % quoted(lines))
+        complain("want a line outside the tables naming the draft PR the run reached, the "
+                 "report says outside them: %s" % quoted(lines))
 else:
     other = "process" if want == "system" else "system"
     if not any(says(l, want) for l in bails):
-        problems.append("want a line outside the tables calling the run a bail and "
-                        "classifying it a %s failure, the report says outside them: %s"
-                        % (want, quoted(lines)))
+        complain("want a line outside the tables calling the run a bail and classifying it "
+                 "a %s failure, the report says outside them: %s" % (want, quoted(lines)))
     wrong = [l for l in lines if says(l, other)]
     if wrong:
-        problems.append("the bail was classified %s, so no line outside the tables may call "
-                        "it %s, these do: %s" % (want, other, quoted(wrong)))
+        complain("the bail was classified %s, so no line outside the tables may call it %s, "
+                 "these do: %s" % (want, other, quoted(wrong)))
 
 print("\n".join(problems))
 ' "$@"
