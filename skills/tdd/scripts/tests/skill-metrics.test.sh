@@ -135,9 +135,9 @@ else
   # The block, in the two places a human reads a finished run: the PR body and the final
   # comment. Each is asked of the record carrying that instruction's own command, so a
   # mention of the block anywhere in the step cannot answer for either.
-  block_line="$(first_record_line "$pr_records" 'gh pr create' '📊 metrics')" ||
+  first_record_line "$pr_records" 'gh pr create' '📊 metrics' >/dev/null ||
     problems+=("$skill_md's gh pr create instruction does not put the ### 📊 Metrics block in the PR body, so a reviewer reads the PR without what the run cost")
-  done_line="$(first_record_line "$pr_records" '✅ done' '📊 metrics')" ||
+  first_record_line "$pr_records" '✅ done' '📊 metrics' >/dev/null ||
     problems+=("$skill_md's final ✅ Done comment does not carry the ### 📊 Metrics block, so the issue thread ends without the run's figures")
 fi
 
