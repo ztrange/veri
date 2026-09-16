@@ -232,6 +232,15 @@ UNKNOWN = "unknown"
 def known(number):
     return UNKNOWN if number is None else "%d" % number
 
+# A count that came out zero, turned into the figure it actually is. Nothing in this log
+# raised the thing being counted — no step-done mark, no checkbox step — and a total of zero
+# is what "nothing to count" and "nothing counted" look like alike, so the two callers that
+# count marks hand their total through here and `known` then says unknown. Written once for
+# the reason `known` is: it is the same reading of ADR-0014 twice, and a caller spelling it
+# itself is a place for one of them to print `0` instead.
+def counted(total):
+    return total or None
+
 # The seconds between two marks of the log, or None when either is missing, which `known`
 # above then says is unknown. A stretch of the run is bracketed by two marks — the step by
 # its `step-start` and `step-done`, the issue by its first line and the mark that ended it —
@@ -245,15 +254,15 @@ def span(start, end):
 STEP_BOX = re.compile(r"^[ \t]*- \[[ xX]\] .")
 
 # How many steps the plan has, off the ledger beside the log, or None when there is no
-# ledger to read or it holds no checkbox step at all: a count of planned steps is a figure
-# nothing supplied, and by the rule above it is unknown rather than zero.
+# ledger to read or it holds no checkbox step at all — both of them a count nothing supplied,
+# which `counted` above is what says so for the second.
 def planned_steps(path):
     try:
         with open(path) as f:
             found = sum(1 for line in f if STEP_BOX.match(line))
     except OSError:
         return None
-    return found or None
+    return counted(found)
 
 # Row order in either section is the order its key first appears in the log, which is the
 # order the run went through them — red before green before refactor, step one before step
@@ -542,12 +551,11 @@ print("Wall time for the issue: %s s, from the first event of the log to the mar
 # is the only input that still names the steps a bailed run never reached.
 #
 # A log carrying no closing mark at all supplies the first number no more than a missing
-# ledger supplies the second, so it is unknown rather than 0 by the rule `known` applies:
-# `0 of 2` would claim the run finished none of its steps, which is a different claim from
-# nobody having written down which it finished.
+# ledger supplies the second, which is why the count of the steps that reached one goes
+# through `counted` on its way to `known`, exactly as the count off the ledger does.
 planned = planned_steps(ledger)
 print("Steps done: %s of %s planned."
-      % (known(len(recovered) or None), known(planned)))
+      % (known(counted(len(recovered))), known(planned)))
 # And how the run ended, beside the two figures above: the same mark that closed the issue
 # wall, read for its payload rather than its timestamp. A bail names its classification
 # because system and process are two different things for a reader to do next.
