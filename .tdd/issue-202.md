@@ -4,6 +4,6 @@
 - [x] A `/tdd <n>` run's `SKILL.md` is ~1,676 tokens smaller and a `/tdd <scope>` run reaches the same procedure it always did, with the single-issue path untouched
 - [x] A new ADR records what a preamble token costs per night at the observed request volume, with the 2026-09-15 measurement
 - [x] Findings 2 and 3 of the step-1 table are recorded as declined, with the hazard that declines them, and that half of `SKILL.md` is closed
-- [ ] Every rule that was in `CLAUDE.md` is still discoverable from it — stated, or stated in one sentence with a pointer to the ADR or issue now carrying the reasoning
+- [x] Every rule that was in `CLAUDE.md` is still discoverable from it — stated, or stated in one sentence with a pointer to the ADR or issue now carrying the reasoning
 - [ ] `make test` passes, with `claude-md-counts.test.sh`, `lane-rule-recorded.test.sh`, `count-line-guard.test.sh` and `docs-targets-refuse.test.sh` green against the edited `CLAUDE.md`
 - [ ] No test asserts a maximum size for either file

@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# Unit test for CLAUDE.md as a record of its own rules — every rule the document carried is
+# still findable in it after prose is moved out. Like claude-md-counts.test.sh,
+# lane-rule-recorded.test.sh and model-knobs-recorded.test.sh this suite belongs to no
+# single script: its subject is the document an agent reads before it opens a file.
+# Zero-dependency plain-shell asserts, same idiom as model-knobs-recorded.test.sh.
+#
+# Why this exists (issue #202): CLAUDE.md is re-sent and re-billed on every request of every
+# session in this repository, leaves included — 3,607 tokens × 1,285 requests on the night of
+# 2026-09-14, priced in ADR-0018. The saving is in moving the reasoning out: a case history a
+# leaf cannot act on belongs in its issue, a decision a human needs belongs in an ADR, and
+# what stays behind is the rule and a pointer. The hazard of that edit is not that it removes
+# too little — it is that a rule leaves with the paragraph that explained it, and nothing
+# fires, because the only thing that was holding that rule to this repository was the
+# sentence being here. A trim that drops a rule reads exactly like a trim that tightened it.
+#
+# Contract under test:
+#   Every rule in the roster below is carried by SOME ONE record of CLAUDE.md — one
+#   paragraph, one bullet or one table row. A rule stated in full and a rule stated in one
+#   sentence with a pointer to the ADR or the issue now holding its reasoning both satisfy
+#   that; a rule that left with its paragraph does not.
+#
+# Asked of a record and never of the whole document, because a document-wide match would
+# answer "yes, those words are in here" for two surviving fragments sections apart that
+# never state the rule together — which is the exact wreckage a trim leaves and the only
+# thing this suite is here to see.
+#
+# The roster is the rules this document is the only record of. Four rules are deliberately
+# not in it, each because another suite already holds the document to it and a second copy
+# here would drift: the counts (claude-md-counts.test.sh), the two-lane rule
+# (lane-rule-recorded.test.sh), the count-line rule (count-line-guard.test.sh) and the
+# per-role model knobs (model-knobs-recorded.test.sh).
+#
+# Each rule is asked as the regexes any wording carrying it would match — the identifiers a
+# reader would have to act on, never a fixed sentence — because the trim's whole purpose is
+# to reword, and a suite that pinned today's phrasing would fail the edit it exists to
+# protect. The protocol lane-rule-recorded.test.sh and model-knobs-recorded.test.sh both use
+# on this same document.
+#
+# No line of code below names a path in the generated tree: the rules that are about the
+# page are asked by the names that are not paths — walkthrough.html, docs-fresh, docs-check
+# — which is the rule no-docs-reads.test.sh enforces on this directory.
+#
+# Run: skills/tdd/scripts/tests/claude-md-rules-recorded.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+
+# The document twice — the path as every failure message spells it, and the same path
+# resolved for the probe to read — so a message can never name a file the probe did not
+# open. The pairing claude-md-counts.test.sh and model-knobs-recorded.test.sh both use.
+claude_md="CLAUDE.md"
+claude_path="$ROOT/$claude_md"
+
+pass=0 fail=0
+
+# report <name> — close a case whose probe collected into the `problems` array: an empty
+# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
+# so the output says which rule is no longer recorded rather than just that one is not.
+report() {
+  local name="$1"
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    printf '    %s\n' "${problems[@]}"
+  fi
+}
+
+# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
+# below is written one way and still matches prose that marked the same words up as
+# `make docs` or **never merged**. The normalisation lane-rule-recorded.test.sh and
+# model-knobs-recorded.test.sh both use on this document.
+plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
+
+# records — the document as one line per record, normalised through `plain`. A record runs
+# from a `- `, a `* ` or a `| ` in column one, or from the first line after a blank, up to
+# the next such line or the next blank. Table rows start one of their own because half this
+# document's rules are a row of the commands table, and a table read as a single record
+# would let a rule be answered by the row below it. CLAUDE.md wraps mid-sentence, so joining
+# a record onto one line is also what keeps a claim split over a line break readable as one
+# sentence. Same shape as model-knobs-recorded.test.sh's `records`.
+records() {
+  awk '/^([-*] |\| )/ { if (rec != "") print rec; rec = $0; next }
+       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+       rec == "" { rec = $0; next }
+       { rec = rec " " $0 }
+       END { if (rec != "") print rec }' "$claude_path" | plain
+}
+
+# The roster: one rule per line, `;`-separated — the rule as a failure message names it,
+# then every regex a record carrying it has to match. A semicolon rather than a pipe because
+# the regexes alternate. Read from a heredoc rather than written as a function call each, so
+# the rules read as the list of claims they are and a rule is added as a line.
+#
+# No apostrophe appears in a roster line: bash 3.2 parses a `$(…)` by scanning for the
+# closing paren and reads a lone quote inside the heredoc as one that was opened, which is a
+# syntax error at the end of the file rather than at the line that caused it.
+#
+# Two or three regexes per rule, and they are the parts a reader could not act without: the
+# identifier (`supervise.sh`, `GIT_COMMITTER_DATE`, `--sort=-v:refname`) and the verb that
+# makes it a rule rather than a mention (`never`, `refuse`, `not tested`). A rule cut down to
+# one sentence and a pointer still carries both; a rule that left does not.
+ROSTER=$(cat <<'ROWS'
+make test is the baseline, and a red one stops a run before it starts;make test;baseline|stay green;refuse|refus
+make docs publishes the page by hand only, never on a merge;make docs;by hand|disabled;publish|deploy
+make install-hooks installs the tag hook once per clone and refuses to clobber a foreign one;install-hooks;reference-transaction;refus|clobber
+make merge-gates runs before a merge and which gates a change owes, including what is exempt;merge-gates;before merging|merging any pr;nothing for;skills/;adr;makefile
+docs-check is not part of make test, nor in CI, so documentation lag never blocks a run;docs-check;not.*part of;block|never
+CONTEXT.md is where the glossary lives;context.md;glossar|terms
+walkthrough.html is generated and never hand-edited;walkthrough;generat;never edit|by hand
+the page build fails on a bad reference but only reports a line no commentary claims;fail;chunk|commentary;owed
+exit code 1 is a clean negative — a real answer;clean negative|1 ;reject|leaf ran and failed
+exit code 2 is no answer obtained;no answer;killed-stuck|unparseable|bad argument
+exit code 3 is nothing to do, and not an error;nothing to do;not an error
+1 and 2 are never collapsed — a process failure is not a system failure;never collapse|not collapse;process;system
+a version is an annotated tag whose message is the capability, and nothing else keeps it;annotated;capability;changelog|version file
+git tag is sorted with -v:refname, never plain sort;sort=-v:refname;lexical|v0.9
+a backfilled tag needs GIT_COMMITTER_DATE;git_committer_date;backfill|retro
+a regen commit built at the tag is not the fixpoint — build, commit, rebuild, amend;amend;unreleased;docs-check|fixpoint
+every leaf is launched through supervise.sh and nothing bypasses it;supervise.sh;never|only|bypass
+the verifier is blind by construction — the prompt builder takes no rationale;blind;build-verify-prompt.sh;rationale|leak
+the committed ledger is the source of truth, and the refactor-pending mark is what a resumed run reads;ledger;source of truth;refactor pending
+the three budgets are three axes and are never merged;veri_stuck_retries;revise_budget;veri_refactor_budget;never merged|one knob
+the git questions a walkthrough build asks are a pinned budget;once per script;budget|pins;git
+a tag changes the page without a commit, and the hook only notices;tag;hook;notice|never rebuild
+a test injects rather than waiting on a real model or a real clock, which is why every tunable has a default;claude_bin;veri_heartbeat;:-default
+a guard never watched to fail is not tested;guard|failure path;not tested|watched;break
+ROWS
+)
+
+# probe_every_rule_is_carried_by_one_record — the roster against the document. The records
+# are read once and every rule asked of them, so a document that could not be read at all
+# reports every rule missing from the same empty text; that is fail-closed by construction,
+# since there is no way to read CLAUDE.md as blank and have a rule answer.
+probe_every_rule_is_carried_by_one_record() {
+  local text row rule line re found
+  text="$(records)"
+
+  if [[ -z "${text// /}" ]]; then
+    problems+=("$claude_md could not be read, so no rule could be looked for in it")
+    return
+  fi
+
+  while IFS= read -r row; do
+    [[ -n "$row" ]] || continue
+    IFS=';' read -r -a fields <<< "$row"
+    rule="${fields[0]}"
+    found=0
+    while IFS= read -r line; do
+      for re in "${fields[@]:1}"; do
+        [[ "$line" =~ $re ]] || continue 2
+      done
+      found=1
+      break
+    done <<< "$text"
+    [[ "$found" -eq 1 ]] ||
+      problems+=("$claude_md has no single record stating that $rule")
+  done <<< "$ROSTER"
+}
+
+# 1. One criterion, one case: every rule the document carried is still discoverable from it.
+#    One case rather than one per rule, because what the next agent needs is not a count of
+#    surviving sentences but a document that still holds every rule it is the record of — and
+#    the problem lines say which rule left with its paragraph.
+name="$claude_md still states every rule it is the only record of, in full or in one sentence with a pointer"
+problems=()
+
+probe_every_rule_is_carried_by_one_record
+
+report "$name"
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
