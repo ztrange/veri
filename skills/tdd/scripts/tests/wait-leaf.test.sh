@@ -269,6 +269,32 @@ l_nopid="$(timed no-pid-yet 2)"
   [[ "${l_nopid%% *}" == 3 ]] && [[ "${l_nopid#* }" -ge 2 ]]; } && ok \
   || no "still exits 3 once the budget is spent while the recorded supervise.sh for that leaf is alive, and when no pid file exists yet (got '<code> <secs>': live supervisor=$l_live want '3 >=2'; no pid file=$l_nopid want '3 >=2')"
 
+# 8. a completion file that lands just before the supervisor exits → the recorded code, not
+#    the dead-supervisor 2 (#173). The supervisor writes its file as its last act and then
+#    exits, so a wait can miss the file on one look and find the process gone on the next;
+#    that supervisor did record a status, and reading its exit as a death would throw it away.
+#
+#    The race is made deterministic rather than hoped for: a stub `ps` earlier on PATH — the
+#    tool the liveness check asks — writes the completion file at the moment it is asked and
+#    then answers "no such process". So the wait's first look at the file finds nothing, the
+#    supervisor is gone by the time it checks, and the file is there all the same. The code
+#    recorded is 1, so it cannot be mistaken for the 2 a dead supervisor would give.
+racebin="$work/racebin"; mkdir -p "$racebin"
+cat > "$racebin/ps" <<'P'
+#!/usr/bin/env bash
+# The supervisor records its status and exits in the instant between two looks.
+printf '1\n' > .tdd/race-sup.exit
+exit 1
+P
+chmod +x "$racebin/ps"
+printf '%s\n' "$dead_pid" > "$work/.tdd/race-sup.pid"
+t0="$(date +%s)"
+( cd "$work" && env VERI_POLL=0.2 PATH="$racebin:$PATH" "$WAIT" race-sup 20 >/dev/null 2>&1 )
+rc_race=$?
+x_race="$rc_race $(( $(date +%s) - t0 ))"
+promptly "$x_race" 1 && ok \
+  || no "returns the recorded code when the completion file lands just before the supervisor exits, not the dead-supervisor 2 (got '<code> <secs>'=$x_race want '1 <=10')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
