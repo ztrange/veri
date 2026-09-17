@@ -127,6 +127,13 @@ skill_clone() {
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
 }
 
+# caller_repo <dir> — an empty git repository at <dir>: the checkout a snapshot case launches
+# run-conductor.sh from, whose `.tdd/` holds the run state the launch records.
+caller_repo() {
+  mkdir -p "$1"
+  git -C "$1" init -q
+}
+
 # skill_archive <clone> <commit> <dir> — <commit>'s skills/tdd, extracted under <dir>, so
 # <dir>/skills/tdd is what a snapshot of that commit must hold file for file.
 skill_archive() {
@@ -279,8 +286,7 @@ committed="$work/committed"
 skill_archive "$clone" "$commit" "$committed"
 
 caller="$work/caller"
-mkdir -p "$caller"
-git -C "$caller" init -q
+caller_repo "$caller"
 rm -f "$prompt"
 # The snapshot is the launch's to remove once the conductor returns, so its files are copied
 # out by the stub while the conductor is still running, and compared from that copy.
@@ -385,8 +391,7 @@ pinned="$work/pinned"
 skill_archive "$clone3" "$recorded" "$pinned"
 
 caller3="$work/caller3"
-mkdir -p "$caller3"
-git -C "$caller3" init -q
+caller_repo "$caller3"
 
 first_base="$work/first-base"
 mkdir -p "$first_base"
@@ -430,8 +435,7 @@ clone4="$work/clone4"
 skill_clone "$clone4"
 
 caller4="$work/caller4"
-mkdir -p "$caller4"
-git -C "$caller4" init -q
+caller_repo "$caller4"
 
 ( cd "$caller4" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
     "$clone4/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
