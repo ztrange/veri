@@ -203,6 +203,35 @@ port_problem() {  # port_problem <port>
   fi
 }
 
+# fetch_endpoint <repo> <tag> <path> <bodyfile> — start dashboard.sh in <repo> on a port the
+# kernel says is free, GET <path> from it, leave the response body on <bodyfile>, and stop the
+# server again; print the reason there is no body to assert on, or nothing. Every endpoint
+# case below is that shape and differs only in the run fixtures it fabricates and in what it
+# then asks of the body, so the scaffolding between the two is written once here. The port is
+# asked of the kernel per case rather than being the default, so a case is never answered by
+# another case's server.
+fetch_endpoint() {  # fetch_endpoint <repo> <tag> <path> <bodyfile>
+  local dir="$1" log="$work/$2.log" path="$3" out="$4"
+  local port url answer problem pid
+  port="$(free_port)"
+  problem="$(port_problem "$port")"
+  if [[ -n "$problem" ]]; then
+    echo "$problem"
+    return
+  fi
+  launch "$dir" "$log" "$port"
+  pid=$!
+  url="http://127.0.0.1:$port$path"
+  answer="$(serve_until_up "$url")"
+  problem="$(answer_problem "$url" "$log" "$answer")"
+  if [[ -n "$problem" ]]; then
+    echo "$problem"
+  else
+    http_body "$answer" > "$out"
+  fi
+  stop "$pid" || :
+}
+
 # stop <pid> — interrupt a launched server and reap it, returning the status it exited
 # with. SIGINT rather than SIGTERM because that is the stop the script documents, and the
 # status is returned rather than swallowed because for the first case it IS half the
@@ -331,31 +360,17 @@ cat > "$runs_run/.tdd/events.jsonl" <<EOF
 {"ts": $((now - 110)), "issue": "21", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
 {"ts": $((now - 60)), "issue": "21", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "0.25", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500"}
 EOF
-runs_log="$work/runsendpoint.log"
-runs_port="$(free_port)"
-
-problem="$(port_problem "$runs_port")"
+problem="$(fetch_endpoint "$runs_repo" runsendpoint /api/runs "$work/runs-endpoint.json")"
 if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
-  launch "$runs_repo" "$runs_log" "$runs_port"
-  runs_pid=$!
-
-  runs_url="http://127.0.0.1:$runs_port/api/runs"
-  runs_answer="$(serve_until_up "$runs_url")"
-  problem="$(answer_problem "$runs_url" "$runs_log" "$runs_answer")"
-
-  if [[ -n "$problem" ]]; then
-    problems+=("$problem")
-  else
-    http_body "$runs_answer" > "$work/runs-endpoint.json"
-    # status.sh's own answer to the same question, asked from the same repository and with
-    # the same environment the launch gave the server, so any difference is the endpoint's.
-    (cd "$runs_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
-      > "$work/runs-status.json" 2>/dev/null
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && problems+=("$line")
-    done < <(python3 -c '
+  # status.sh's own answer to the same question, asked from the same repository and with
+  # the same environment the launch gave the server, so any difference is the endpoint's.
+  (cd "$runs_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
+    > "$work/runs-status.json" 2>/dev/null
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && problems+=("$line")
+  done < <(python3 -c '
 import json, sys
 
 
@@ -399,9 +414,6 @@ for i, (g, w) in enumerate(zip(got["runs"], want["runs"])):
               "more than the 10 s the two calls can be apart"
               % (i, g["elapsed_seconds"], w["elapsed_seconds"]))
 ' "$work/runs-endpoint.json" "$work/runs-status.json")
-  fi
-
-  stop "$runs_pid" || :
 fi
 
 report "$name"
@@ -470,31 +482,17 @@ cat > "$met_done/.tdd/issue-32-metrics.md" <<'EOF'
 | green | 1 |
 EOF
 
-met_log="$work/metricsendpoint.log"
-met_port="$(free_port)"
-
-problem="$(port_problem "$met_port")"
+problem="$(fetch_endpoint "$met_repo" metricsendpoint /api/metrics "$work/metrics-endpoint.json")"
 if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
-  launch "$met_repo" "$met_log" "$met_port"
-  met_pid=$!
-
-  met_url="http://127.0.0.1:$met_port/api/metrics"
-  met_answer="$(serve_until_up "$met_url")"
-  problem="$(answer_problem "$met_url" "$met_log" "$met_answer")"
-
-  if [[ -n "$problem" ]]; then
-    problems+=("$problem")
-  else
-    http_body "$met_answer" > "$work/metrics-endpoint.json"
-    # metrics.sh's own answer for the running run, asked from that run's worktree the way
-    # the conductor asks it, so a difference is the endpoint's and not the fixture's.
-    (cd "$met_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
-      > "$work/metrics-live.md" 2>/dev/null
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && problems+=("$line")
-    done < <(python3 -c '
+  # metrics.sh's own answer for the running run, asked from that run's worktree the way
+  # the conductor asks it, so a difference is the endpoint's and not the fixture's.
+  (cd "$met_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
+    > "$work/metrics-live.md" 2>/dev/null
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && problems+=("$line")
+  done < <(python3 -c '
 import json, sys
 
 body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -527,9 +525,6 @@ if issues["32"] != committed:
           ".tdd/issue-32-metrics.md: the endpoint returned %r, and the committed file holds "
           "%r" % (issues["32"][:300], committed[:300]))
 ' "$work/metrics-endpoint.json" "$work/metrics-live.md" "$met_done/.tdd/issue-32-metrics.md")
-  fi
-
-  stop "$met_pid" || :
 fi
 
 report "$name"
@@ -582,27 +577,14 @@ cat > "$ev_other/.tdd/events.jsonl" <<EOF
 {"ts": $((ev_now - 100)), "issue": "42", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
 EOF
 
-ev_log="$work/eventsendpoint.log"
-ev_port="$(free_port)"
-
-problem="$(port_problem "$ev_port")"
+problem="$(fetch_endpoint "$ev_repo" eventsendpoint "/api/events?issue=41" \
+  "$work/events-endpoint.json")"
 if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
-  launch "$ev_repo" "$ev_log" "$ev_port"
-  ev_pid=$!
-
-  ev_url="http://127.0.0.1:$ev_port/api/events?issue=41"
-  ev_answer="$(serve_until_up "$ev_url")"
-  problem="$(answer_problem "$ev_url" "$ev_log" "$ev_answer")"
-
-  if [[ -n "$problem" ]]; then
-    problems+=("$problem")
-  else
-    http_body "$ev_answer" > "$work/events-endpoint.json"
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && problems+=("$line")
-    done < <(python3 -c '
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && problems+=("$line")
+  done < <(python3 -c '
 import json, sys
 
 body, log_path = sys.argv[1], sys.argv[2]
@@ -633,9 +615,6 @@ if events != tail:
     print("the last %d lines of the run’s log, newest last, are %s"
           % (len(events), json.dumps(tail, sort_keys=True)[:400]))
 ' "$work/events-endpoint.json" "$ev_sel/.tdd/events.jsonl")
-  fi
-
-  stop "$ev_pid" || :
 fi
 
 report "$name"
