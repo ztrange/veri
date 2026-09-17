@@ -53,21 +53,14 @@ repo() {  # repo <name> -> path
   echo "$dir"
 }
 
-# listening <port> — true when something already accepts a connection there. Asked BEFORE
-# the server is launched, and it fails the case closed: with a stranger's server on 8765 the
-# fetch below would succeed without dashboard.sh having bound anything, and a case that
-# cannot tell the two apart must not report a pass.
-listening() {
-  python3 -c 'import socket, sys
-s = socket.socket(); s.settimeout(0.5)
-sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)' "$1"
-}
-
-# reachable <host> <port> — true when something accepts a connection at that address. The
-# generalisation of `listening` above to a host, and what asks the second half of the
-# criterion: a server bound to 0.0.0.0 answers on this machine's LAN address as readily as
-# on 127.0.0.1, and one bound to 127.0.0.1 refuses there. Asking it of the loopback alone
-# could never tell the two apart.
+# reachable <host> <port> — true when something accepts a connection at that address. Both
+# questions this suite asks of a socket are this one. Of another host it asks the second half
+# of the criterion: a server bound to 0.0.0.0 answers on this machine's LAN address as
+# readily as on 127.0.0.1, and one bound to 127.0.0.1 refuses there, so asking it of the
+# loopback alone could never tell the two apart. Of the loopback BEFORE a launch it fails the
+# case closed: with a stranger's server on the port, the fetch below would succeed without
+# dashboard.sh having bound anything, and a case that cannot tell the two apart must not
+# report a pass.
 reachable() {  # reachable <host> <port>
   python3 -c 'import socket, sys
 s = socket.socket(); s.settimeout(1.0)
@@ -98,7 +91,7 @@ for a in sorted(x for x in found if not x.startswith("127.")):
 
 # free_port — a port the kernel says is free right now: bind 0, read back what it chose,
 # close. A hard-coded second port would collide with whatever else this machine is running,
-# and the case would then blame dashboard.sh for a stranger. The `listening` probe below is
+# and the case would then blame dashboard.sh for a stranger. The `reachable` probe below is
 # still asked, because "free a moment ago" and "free now" are not the same claim.
 free_port() {
   python3 -c 'import socket
@@ -152,7 +145,7 @@ problems=()
 served="$(repo served)"
 log="$work/served.log"
 
-if listening "$PORT"; then
+if reachable 127.0.0.1 "$PORT"; then
   problems+=("port $PORT was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
 else
   (cd "$served" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" >"$log" 2>&1) &
@@ -202,7 +195,7 @@ if [[ -z "$arg_port" ]]; then
   problems+=("could not get a free port from the kernel, so there was nothing to pass dashboard.sh")
 elif [[ "$arg_port" == "$PORT" ]]; then
   problems+=("the kernel handed out $arg_port, which is the default port: a server ignoring its argument would look right, so this case cannot run on it")
-elif listening "$arg_port"; then
+elif reachable 127.0.0.1 "$arg_port"; then
   problems+=("port $arg_port was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
 else
   (cd "$arg_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" "$arg_port" >"$arg_log" 2>&1) &
