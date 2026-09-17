@@ -109,6 +109,12 @@ def metrics_json():
     return json.dumps({"issues": issues}).encode()
 
 
+# One entry per JSON pane: the path it is polled at, and the reader that answers it. A
+# pane is a line here rather than a branch below, so the only thing adding one decides is
+# what it serves — that every endpoint is JSON, and how JSON is sent, is settled once.
+endpoints = {"/api/runs": runs_json, "/api/metrics": metrics_json}
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     # Every 200 this server sends is the same five calls over a different body and type, so
     # they are written once: a pane added later declares what it serves, not how to serve it.
@@ -124,10 +130,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
             self.respond("text/html; charset=utf-8", page)
-        elif self.path == "/api/runs":
-            self.respond("application/json; charset=utf-8", runs_json())
-        elif self.path == "/api/metrics":
-            self.respond("application/json; charset=utf-8", metrics_json())
+        elif self.path in endpoints:
+            self.respond("application/json; charset=utf-8", endpoints[self.path]())
         else:
             self.send_error(404)
 
