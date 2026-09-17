@@ -103,6 +103,17 @@ valued() {
     problems+=("the launch does not carry $1 $2")
 }
 
+# skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
+# once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
+# resolves is one the case controls. Prints nothing; read the commit with rev-parse.
+skill_clone() {
+  mkdir -p "$1/skills"
+  cp -R "$HERE/../.." "$1/skills/tdd"
+  git -C "$1" init -q
+  git -C "$1" add -A
+  git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
+}
+
 # 1. The criterion: one conductor, launched as `claude -p` for the issue, streaming events.
 name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
 problems=()
@@ -240,11 +251,7 @@ name="the conductor's base directory is a snapshot of the skill commit, not the 
 problems=()
 
 clone="$work/clone"
-mkdir -p "$clone/skills"
-cp -R "$HERE/../.." "$clone/skills/tdd"
-git -C "$clone" init -q
-git -C "$clone" add -A
-git -C "$clone" -c user.name=t -c user.email=t@t commit -qm skill
+skill_clone "$clone"
 commit="$(git -C "$clone" rev-parse HEAD)"
 echo "# uncommitted edit after the skill commit" >> "$clone/skills/tdd/scripts/supervise.sh"
 
@@ -289,11 +296,7 @@ name="a leaf launched mid-run executes the snapshot's supervise.sh, run-leaf.sh 
 problems=()
 
 clone2="$work/clone2"
-mkdir -p "$clone2/skills"
-cp -R "$HERE/../.." "$clone2/skills/tdd"
-git -C "$clone2" init -q
-git -C "$clone2" add -A
-git -C "$clone2" -c user.name=t -c user.email=t@t commit -qm skill
+skill_clone "$clone2"
 
 leafdir="$work/leaf"
 mkdir -p "$leafdir"
@@ -357,11 +360,7 @@ name="a resume of the run is handed a re-materialised snapshot of the recorded c
 problems=()
 
 clone3="$work/clone3"
-mkdir -p "$clone3/skills"
-cp -R "$HERE/../.." "$clone3/skills/tdd"
-git -C "$clone3" init -q
-git -C "$clone3" add -A
-git -C "$clone3" -c user.name=t -c user.email=t@t commit -qm skill
+skill_clone "$clone3"
 recorded="$(git -C "$clone3" rev-parse HEAD)"
 
 pinned="$work/pinned"
