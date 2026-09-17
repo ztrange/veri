@@ -666,6 +666,59 @@ grep -qi 'fetch' "$launch_err" ||
 
 report "$name"
 
+# 15. The pin is on the record (issue #251). The clone is behind a remote that moved, so the
+# commit the run pinned is origin's tip and not the clone's HEAD. While the conductor runs, the
+# hook does what a conductor does from its base directory — writes a mark through event.sh and
+# launches a leaf through supervise.sh — in the caller's checkout; every line either writes to
+# `.tdd/events.jsonl` must carry the tip as `skill_commit`, and the prompt the conductor was
+# handed must name the tip for its plan comment. A sha asked of the snapshot's own git is no
+# answer: the snapshot has none, so it reads empty or `unknown` rather than the commit pinned.
+name="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
+problems=()
+
+remote9="$work/remote9"
+clone9="$work/clone9"
+cloned_skill "$remote9" "$clone9"
+advance_clone "$remote9" "# a commit that landed on the remote after the clone was cut"
+tip9="$(git -C "$remote9" rev-parse HEAD)"
+
+caller9="$work/caller9"
+caller_repo "$caller9"
+
+cat > "$stubdir/record-hook" <<HOOK
+#!/usr/bin/env bash
+base="\$1"
+cd "$caller9" || exit 1
+"\$base/scripts/event.sh" conductor-mark
+"\$base/scripts/supervise.sh" develop-red echo ok > /dev/null 2>&1
+HOOK
+chmod +x "$stubdir/record-hook"
+
+rm -f "$prompt"
+# Launched with no VERI_SKILL_COMMIT of its own, so the sha a line carries is the one the launch
+# put there and not one inherited from whatever session runs this suite.
+( unset VERI_SKILL_COMMIT; launch_from "$caller9" "$clone9" CONDUCTOR_HOOK="$stubdir/record-hook" )
+
+if [[ ! -s "$caller9/.tdd/events.jsonl" ]]; then
+  problems+=("the run wrote no events: $(cat "$launch_err")")
+else
+  wrong="$(python3 - "$caller9/.tdd/events.jsonl" "$tip9" <<'PY'
+import json, sys
+for l in open(sys.argv[1]):
+    if l.strip():
+        e = json.loads(l)
+        if e.get("skill_commit") != sys.argv[2]:
+            print("%s=%r" % (e.get("event"), e.get("skill_commit")))
+PY
+)"
+  [[ -z "$wrong" ]] ||
+    problems+=("events whose skill_commit is not origin's tip $tip9: ${wrong//$'\n'/ }")
+fi
+grep -q -- "$tip9" "$prompt" 2>/dev/null ||
+  problems+=("the conductor's prompt does not name the pinned skill commit $tip9")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

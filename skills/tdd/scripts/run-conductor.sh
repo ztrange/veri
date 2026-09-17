@@ -78,6 +78,7 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 base="$(cd "$HERE/.." && pwd)"
 record=".tdd/issue-$issue-skill-commit"
 head_rev=HEAD
+pinned=""
 if git -C "$base" remote get-url origin >/dev/null 2>&1; then
   git -C "$base" fetch -q origin ||
     { echo "run-conductor: fetch of origin failed in '$base' — refusing to run a skill that may be stale" >&2; exit 2; }
@@ -99,6 +100,10 @@ if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
   trap 'rm -rf "$snapshot"' EXIT
   git -C "$base" archive "$commit" . | tar -x -C "$snapshot"
   base="$snapshot"
+  # The snapshot has no git to ask, so the pin travels in the environment every event.sh and
+  # supervise.sh of the run inherits, and the prompt names it for the plan comment.
+  export VERI_SKILL_COMMIT="$commit"
+  pinned="$commit"
 else
   echo "run-conductor: no skill commit resolvable from '$base' — running unpinned" >&2
 fi
@@ -109,7 +114,9 @@ skill_file="$base/SKILL.md"
 prompt="$(cat "$skill_file")
 
 Base directory for this skill: $base
-
+${pinned:+
+Pinned skill commit (name it in the plan comment): $pinned
+}
 Solve issue #$issue by the procedure above."
 
 unset CLAUDECODE \
