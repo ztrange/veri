@@ -869,6 +869,50 @@ PY
 
 report "$name"
 
+# 19. The re-pin is logged where the run's other events are (issue #253). A re-pin is a resume,
+# so the run's worktree `.tdd/wt/<n>` already exists; the `skill-repin` line must land in that
+# worktree's `.tdd/events.jsonl` — the log metrics.sh reads — and not in the log of the
+# directory the operator happened to launch from, which no reader of the run ever opens.
+name="the skill-repin event lands in the run worktree's .tdd/wt/<n>/.tdd/events.jsonl, never the caller's .tdd/events.jsonl"
+problems=()
+
+clone13="$work/clone13"
+skill_clone "$clone13"
+
+caller13="$work/caller13"
+caller_repo "$caller13"
+launch_from "$caller13" "$clone13"
+
+advance_clone "$clone13" "# a commit the operator asks the run to take"
+head13="$(git -C "$clone13" rev-parse HEAD)"
+
+mkdir -p "$caller13/.tdd/wt/$issue"
+launch_from "$caller13" "$clone13" VERI_NEW_SKILL=1
+
+wt_log13="$caller13/.tdd/wt/$issue/.tdd/events.jsonl"
+caller_log13="$caller13/.tdd/events.jsonl"
+
+# repin_in <log> — exit 0 when <log> holds a `skill-repin` line naming $head13.
+repin_in() {
+  python3 - "$1" "$head13" <<'PY2'
+import json, sys
+try:
+    lines = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+except OSError:
+    sys.exit(1)
+sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[2] in l.values()
+                  for l in lines) else 1)
+PY2
+}
+
+repin_in "$wt_log13" ||
+  problems+=("no skill-repin event naming $head13 in the run worktree's $wt_log13")
+if repin_in "$caller_log13"; then
+  problems+=("the skill-repin event landed in the caller's $caller_log13")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
