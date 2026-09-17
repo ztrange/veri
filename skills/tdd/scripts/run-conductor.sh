@@ -88,17 +88,17 @@ fi
 if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
   mkdir -p .tdd
   [[ -e .tdd/.gitignore ]] || printf '%s\n' '.gitignore' 'issue-*-skill-commit' > .tdd/.gitignore
-  if [[ "${VERI_NEW_SKILL:-}" == 1 && -r "$record" ]]; then
+  if [[ ! -r "$record" ]]; then
+    printf '%s\n' "$commit" > "$record"
+  elif [[ "${VERI_NEW_SKILL:-}" == 1 ]]; then
     printf '%s\n' "$commit" > "$record"
     VERI_ISSUE="$issue" "$HERE/event.sh" skill-repin commit="$commit" || exit 2
-  elif [[ -r "$record" ]] && recorded="$(cat "$record")" &&
+  elif recorded="$(cat "$record")" &&
      git -C "$base" cat-file -e "$recorded^{commit}" 2>/dev/null; then
     commit="$recorded"
-  elif [[ -r "$record" ]]; then
-    echo "run-conductor: recorded skill commit '$(cat "$record")' is not in '$base' — refusing to re-pin; set VERI_NEW_SKILL=1 to take the new skill" >&2
-    exit 2
   else
-    printf '%s\n' "$commit" > "$record"
+    echo "run-conductor: recorded skill commit '$recorded' is not in '$base' — refusing to re-pin; set VERI_NEW_SKILL=1 to take the new skill" >&2
+    exit 2
   fi
   snapshot="$(mktemp -d)"
   trap 'rm -rf "$snapshot"' EXIT
