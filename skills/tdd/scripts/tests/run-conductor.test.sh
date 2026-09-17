@@ -556,6 +556,42 @@ fi
 
 report "$name"
 
+# 12. The pin is origin's tip, not the clone's HEAD (issue #251). The skill's clone is cut
+# from a remote at commit A, then the remote moves to commit B — a PR landing on the default
+# branch — and nobody pulls the clone. A launch from that clone is handed B's files: the
+# base directory holding A's supervise.sh is a run executing a skill the remote has already
+# replaced, which is the 50-commits-behind primary this issue was filed over.
+name="a launch from a clone behind origin/<default> is handed a snapshot of origin's tip"
+problems=()
+
+remote6="$work/remote6"
+skill_clone "$remote6"
+clone6="$work/clone6"
+git clone -q "$remote6" "$clone6"
+advance_clone "$remote6" "# a commit that landed on the remote after the clone was cut"
+tip="$(git -C "$remote6" rev-parse HEAD)"
+
+tipdir="$work/tip6"
+skill_archive "$remote6" "$tip" "$tipdir"
+
+caller6="$work/caller6"
+caller_repo "$caller6"
+
+tip_base="$work/tip-base"
+mkdir -p "$tip_base"
+rm -f "$prompt"
+launch_from "$caller6" "$clone6" BASE_OUT="$tip_base"
+
+if [[ ! -f "$tip_base/SKILL.md" ]]; then
+  problems+=("the launch's base directory held no skill while the conductor ran: $(cat "$launch_err")")
+else
+  diff_out="$(differing_files "$tipdir/skills/tdd" "$tip_base")"
+  [[ -z "$diff_out" ]] ||
+    problems+=("the base directory differs from origin's tip $tip: ${diff_out//$'\n'/ }")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -69,9 +69,19 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 # itself, so `git status --porcelain` stays empty. It names only those two, never `*`, because
 # a `*` there would also ignore the ledger (.tdd/issue-<n>.md) that a run must commit. An
 # existing `.tdd/.gitignore` is left as it is.
+#
+# The commit pinned is the default branch's tip on `origin` as just fetched (issue #251), not
+# the clone's HEAD: a clone nobody pulls runs behind every PR that has landed since, and the
+# clone's working tree and branch are never touched to fix that — the fetch moves only
+# refs/remotes/origin/*. origin/HEAD is git's own record of which branch is the default one.
 base="$(cd "$HERE/.." && pwd)"
 record=".tdd/issue-$issue-skill-commit"
-if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
+head_rev=HEAD
+if git -C "$base" remote get-url origin >/dev/null 2>&1; then
+  git -C "$base" fetch -q origin
+  head_rev=refs/remotes/origin/HEAD
+fi
+if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
   mkdir -p .tdd
   [[ -e .tdd/.gitignore ]] || printf '%s\n' '.gitignore' 'issue-*-skill-commit' > .tdd/.gitignore
   if [[ "${VERI_NEW_SKILL:-}" == 1 && -r "$record" ]]; then
