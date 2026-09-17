@@ -260,6 +260,19 @@ probe_base too-long 3f9a1c07e2b43f9a1c07e2b43f9a1c07e2b43f9a1
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor refuses a missing or malformed base sha with exit 2 and a stderr diagnostic (${problems#; })"
 
+# 18. the sha is there to be diffed from, and the diff is all the range may say (#151). The
+#     refactor verifier reviews `git diff <base-sha>..HEAD` with the sha case 16 passed filled
+#     in, and is told not to read the range's commit messages: `git log` and `git show` on
+#     the range would carry the author's rationale, the one input ADR-0003 keeps out. Each
+#     half is its own miss, for case 12's reason, and both are probed through `prompt_says`,
+#     whose fold keeps a rewrap from splitting `commit messages` across a line.
+problems=""
+prompt_says "$with_base" "never names git diff $base_sha..HEAD" -F -e "git diff $base_sha..HEAD"
+prompt_says "$with_base" "never forbids reading the range's commit messages" \
+  -iE -e "(never|not|don't|no)[^.]{0,80}commit messages"
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor reviews git diff <base-sha>..HEAD and not the range's commit messages (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
