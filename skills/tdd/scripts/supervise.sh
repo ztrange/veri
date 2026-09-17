@@ -65,13 +65,15 @@ retries="${VERI_STUCK_RETRIES:-1}"
 # tunable silently reporting a supervised success. The refusal is exit 2, the code for "no
 # answer could be obtained", and it is checked for all three windows because a check written
 # for one says nothing about the other two.
-is_seconds() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]; }
-for window in "VERI_HEARTBEAT=$heartbeat" "VERI_TIMEOUT=$timeout" "VERI_POLL=$poll"; do
-  is_seconds "${window#*=}" || {
-    echo "supervise: ${window%%=*} must be a count of seconds, got '${window#*=}'" >&2
+require_seconds() {  # <env-name> <value>
+  [[ "$2" =~ ^[0-9]+(\.[0-9]+)?$ ]] || {
+    echo "supervise: $1 must be a count of seconds, got '$2'" >&2
     exit 2
   }
-done
+}
+require_seconds VERI_HEARTBEAT "$heartbeat"
+require_seconds VERI_TIMEOUT "$timeout"
+require_seconds VERI_POLL "$poll"
 
 mkdir -p .tdd
 log=".tdd/$name.log"
@@ -94,7 +96,7 @@ case "$heartbeat$timeout" in *.*) fine=1 ;; esac
 
 # num_expr <expr> [name=value …] — evaluate one arithmetic expression over numbers that may be
 # fractional, which bash's own `$(( ))` cannot hold. Prints the value; a comparison's value is
-# 1 or 0. Only ever called on the fine path, where both operands have passed `is_seconds`.
+# 1 or 0. Only ever called on the fine path, where both operands have passed `require_seconds`.
 num_expr() {
   local expr="$1"; shift
   local -a vars=()
