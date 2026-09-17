@@ -91,6 +91,21 @@ records() {
        END { if (rec != "") print rec }' "$claude_path" | plain
 }
 
+# one_record_matches <text> <regex>... — exit 0 when one line of <text> (a record, as
+# `records` prints them) matches every regex, 1 otherwise. Asked of one record at a time for
+# the reason the header gives: fragments of a rule sections apart must not answer for it.
+one_record_matches() {
+  local text="$1" line re
+  shift
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return 0
+  done <<< "$text"
+  return 1
+}
+
 # The roster: one rule per line, `;`-separated — the rule as a failure message names it,
 # then every regex a record carrying it has to match. A semicolon rather than a pipe because
 # the regexes alternate. Read from a heredoc rather than written as a function call each, so
@@ -137,7 +152,7 @@ ROWS
 # reports every rule missing from the same empty text; that is fail-closed by construction,
 # since there is no way to read CLAUDE.md as blank and have a rule answer.
 probe_every_rule_is_carried_by_one_record() {
-  local text row rule line re found
+  local text row rule
   text="$(records)"
 
   if [[ -z "${text// /}" ]]; then
@@ -149,15 +164,7 @@ probe_every_rule_is_carried_by_one_record() {
     [[ -n "$row" ]] || continue
     IFS=';' read -r -a fields <<< "$row"
     rule="${fields[0]}"
-    found=0
-    while IFS= read -r line; do
-      for re in "${fields[@]:1}"; do
-        [[ "$line" =~ $re ]] || continue 2
-      done
-      found=1
-      break
-    done <<< "$text"
-    [[ "$found" -eq 1 ]] ||
+    one_record_matches "$text" "${fields[@]:1}" ||
       problems+=("$claude_md has no single record stating that $rule")
   done <<< "$ROSTER"
 }
@@ -183,17 +190,8 @@ report "$name"
 # be merged with, that there are now four, the two failures each answers, and the verb that
 # keeps them apart.
 probe_budgets_invariant_names_the_fourth_axis() {
-  local text line re
-  text="$(records)"
-  local -a want=('veri_no_verdict_retries' 'veri_stuck_retries' 'four' 'liveness'
-                 'protocol|contract|compliance' 'never merged|not merged|one knob')
-
-  while IFS= read -r line; do
-    for re in "${want[@]}"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    return
-  done <<< "$text"
+  one_record_matches "$(records)" 'veri_no_verdict_retries' 'veri_stuck_retries' 'four' \
+    'liveness' 'protocol|contract|compliance' 'never merged|not merged|one knob' && return
   problems+=("$claude_md has no single record naming VERI_NO_VERDICT_RETRIES as a fourth budget axis beside VERI_STUCK_RETRIES, liveness against protocol compliance, never merged")
 }
 
