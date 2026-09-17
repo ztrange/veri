@@ -44,6 +44,20 @@ else
   pass=$((pass + 1))
 fi
 
+# 2. a ticked step with no criterion token finishes nothing: criterion 2, served by no step,
+#    is not finished even when every step in the ledger is ticked and verified → 3
+name="a step serving no criterion makes no criterion finished: criterion 2 served by no step exits 3"
+all_done='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [x] reject an empty title'
+got_unserved="$(code_for 2 "$all_done")"
+if [[ "$got_unserved" != 3 ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (criterion 2 served by no step: want exit 3, got $got_unserved)"
+else
+  pass=$((pass + 1))
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
