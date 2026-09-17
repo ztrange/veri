@@ -38,8 +38,9 @@ esac
 
 # For refactor, the 4th slot is the step's green commit, and only a sha may arrive in it:
 # a slot that accepted free text would be a channel for the developer's rationale (#151).
-if [[ "$phase" == refactor && ! "${4:-}" =~ ^[0-9a-f]{7,40}$ ]]; then
-  echo "build-verify-prompt: refactor needs <base-sha> as 7-40 lowercase hex characters, got '${4:-}'" >&2
+base_sha="${4:-}"
+if [[ "$phase" == refactor && ! "$base_sha" =~ ^[0-9a-f]{7,40}$ ]]; then
+  echo "build-verify-prompt: refactor needs <base-sha> as 7-40 lowercase hex characters, got '$base_sha'" >&2
   exit 2
 fi
 
@@ -61,6 +62,6 @@ out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
-out="${out//\{\{BASE_SHA\}\}/$target}"
+out="${out//\{\{BASE_SHA\}\}/$base_sha}"
 
 printf '%s\n' "$out"
