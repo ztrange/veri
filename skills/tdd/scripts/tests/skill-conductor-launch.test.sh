@@ -114,19 +114,38 @@ need_skill_records() {
   return 1
 }
 
+# matches_all <record> <regex>... — whether ONE record matches every <regex>, the question
+# `says` and `never_says` both ask of each record of the passage.
+matches_all() {
+  local record="$1" re
+  shift
+  for re in "$@"; do
+    [[ "$record" =~ $re ]] || return 1
+  done
+}
+
 # says <fact> <regex>... — one fact the passage last read has to carry: some ONE record of it
 # has to match every <regex>, and one problem naming the passage and the fact is appended if
 # none does.
 says() {
-  local fact="$1" line re
+  local fact="$1" line
   shift
   while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    return 0
+    matches_all "$line" "$@" && return 0
   done <<< "$passage_text"
   problems+=("$passage_from does not say $fact")
+}
+
+# never_says <claim> <regex>... — the converse of `says`: a claim the passage last read must NO
+# LONGER carry. Every record matching all of <regex> is a problem, and the problem quotes the
+# start of the record, so the failure points at the sentence to rewrite rather than at the file.
+never_says() {
+  local claim="$1" line
+  shift
+  while IFS= read -r line; do
+    matches_all "$line" "$@" || continue
+    problems+=("$passage_from still says $claim: \"${line:0:120}...\"")
+  done <<< "$passage_text"
 }
 
 # The nesting, as the regexes any wording naming it would match: the operator's own session,
@@ -228,20 +247,6 @@ if need_skill_records; then
 fi
 
 report "$name"
-
-# never_says <claim> <regex>... — the converse of `says`: a claim the passage last read must NO
-# LONGER carry. Every record matching all of <regex> is a problem, and the problem quotes the
-# start of the record, so the failure points at the sentence to rewrite rather than at the file.
-never_says() {
-  local claim="$1" line re
-  shift
-  while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    problems+=("$passage_from still says $claim: \"${line:0:120}...\"")
-  done <<< "$passage_text"
-}
 
 # probe_never_says_a_pull_swaps_live_scripts — the operating rule #251 retires. Once a run
 # executes the skill pinned from origin/<default> as just fetched, the primary clone's working
