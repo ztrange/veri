@@ -507,25 +507,26 @@ verify '{"type":"system","subtype":"init","session_id":"s"}
 # 19. a verifier leaf that exited cleanly — not killed — with no VERDICT: line is relaunched, and
 #     the relaunched attempt's verdict is the answer (issue #219). #212's step 1 bailed on exactly
 #     this: the leaf backgrounded `make test`, ended its turn to wait, and printed no verdict. The
-#     stub counts its launches in its own directory and prints no verdict on the first, a PASS on
-#     the second, so the case reads both the verdict returned and that it took two launches.
-cat > "$stubdir/claude-verdict-second" <<'STUB'
+#     stub counts its launches in its own directory and prints a PASS only on the launch
+#     VERDICT_ON_LAUNCH names (never, when unset) and no verdict on every other, so the case reads
+#     both the verdict returned and that it took two launches.
+cat > "$stubdir/claude-counting" <<'STUB'
 #!/usr/bin/env bash
 n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$LAUNCH_COUNT"
-if [[ "$n" -eq 1 ]]; then
-  printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
-else
+if [[ "$n" -eq "${VERDICT_ON_LAUNCH:-0}" ]]; then
   printf '%s' 'VERDICT: PASS
 REASON: Target test and full suite are green.'
+else
+  printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
 fi
 exit 0
 STUB
-chmod +x "$stubdir/claude-verdict-second"
+chmod +x "$stubdir/claude-counting"
 no_verdict_dir="$work/no-verdict-relaunch"
 mkdir -p "$no_verdict_dir"
-no_verdict_out="$( LAUNCH_COUNT="$no_verdict_dir/launches" \
-    verify_in "$no_verdict_dir" green '' "$stubdir/claude-verdict-second" 2>/dev/null )"
+no_verdict_out="$( LAUNCH_COUNT="$no_verdict_dir/launches" VERDICT_ON_LAUNCH=2 \
+    verify_in "$no_verdict_dir" green '' "$stubdir/claude-counting" 2>/dev/null )"
 no_verdict_code=$?
 no_verdict_launches="$(cat "$no_verdict_dir/launches" 2>/dev/null || echo 0)"
 { [[ "$no_verdict_code" == 0 ]] && [[ "$no_verdict_launches" == 2 ]] \
@@ -536,19 +537,11 @@ no_verdict_launches="$(cat "$no_verdict_dir/launches" 2>/dev/null || echo 0)"
 #     never prints a verdict is exit 2 after exactly 1 + VERI_NO_VERDICT_RETRIES launches. Read at
 #     the default (the variable unset, not inherited from the caller), at 0 (one launch, no
 #     relaunch) and at 2, so a budget hardcoded to the default cannot pass for the knob.
-cat > "$stubdir/claude-never-verdict" <<'STUB'
-#!/usr/bin/env bash
-n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
-echo "$n" > "$LAUNCH_COUNT"
-printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
-exit 0
-STUB
-chmod +x "$stubdir/claude-never-verdict"
 never_verdict() {  # never_verdict <label> [<retries>] -> prints "<code> <launches>"
   local dir="$work/never-verdict-$1"
   mkdir -p "$dir"
   ( if [[ $# -ge 2 ]]; then export VERI_NO_VERDICT_RETRIES="$2"; else unset VERI_NO_VERDICT_RETRIES; fi
-    LAUNCH_COUNT="$dir/launches" verify_in "$dir" green '' "$stubdir/claude-never-verdict" >/dev/null 2>&1
+    LAUNCH_COUNT="$dir/launches" verify_in "$dir" green '' "$stubdir/claude-counting" >/dev/null 2>&1
     echo "$? $(cat "$dir/launches" 2>/dev/null || echo 0)" )
 }
 budget_default="$(never_verdict default)"
