@@ -517,9 +517,13 @@ report "$name"
 #    it starts late. Both suites run with a `bash` first on PATH that holds any leaf stub — the
 #    `leaf-*` scripts supervise.test.sh writes, the `claude*` binaries verify.test.sh hands
 #    run-leaf.sh — for 3 s before running it, whenever the leaf was given a window under 6 s:
-#    case 8's 5 s of margin over a first line. Every other script runs undelayed, so the two
-#    suites still take their own time and no more. A shim that saw no leaf at all would pass
-#    about nothing, so that is probed too.
+#    case 8's 5 s of margin over a first line. Every other script runs undelayed. A shim that
+#    saw no leaf at all would pass about nothing, so that is probed too.
+#
+#    Neither suite runs whole (case 10): each runs as a copy holding its preamble, every helper
+#    and stub its cases define, and only the cases #200 widened — supervise.test.sh 4, 13 and
+#    23 to 26, verify.test.sh 22 and 23. A second full pass of both would cost ~2.5 min of a
+#    `make test` CI cuts at 3.
 name="supervise.test.sh and verify.test.sh: a leaf started 3 s late under a window short of 6 s still leaves both suites green"
 problems=()
 late_work="$(mktemp -d)"
@@ -535,9 +539,31 @@ esac
 exec "$(command -v bash)" "\$@"
 SHIM
 chmod +x "$late_work/bin/bash"
+# late_cases <cases> — stdin's suite cut down to <cases> (space-separated case numbers): the
+# lines before its `# 1.` header, the selected cases whole, and the count line on. From every
+# other case only what a selected one may lean on survives — a function definition, a stub
+# written by heredoc, its `chmod`. `HERE` is pinned to this directory, since the copy runs
+# from `$late_work` and the suite finds its scripts relative to itself.
+late_cases() {
+  awk -v want=" $1 " -v here="$HERE" '
+    /^HERE=/ { print "HERE=\"" here "\""; next }
+    /^# [0-9]+\. / { n = $2; sub(/\.$/, "", n); started = 1; on = index(want, " " n " ") > 0 }
+    /^echo "----"$/ { on = 1 }
+    !started || on { print; next }
+    fn { print; if ($0 ~ /^}/) fn = 0; next }
+    doc != "" { print; if ($0 == doc) doc = ""; next }
+    /^[a-z_]+\(\) *\{/ { print; if ($0 !~ /}[^{}]*$/) fn = 1; next }
+    /^cat > .*<<\047[A-Z]+\047$/ { print; doc = $NF; gsub(/<<|\047/, "", doc); next }
+    /^chmod / { print }
+  '
+}
 late_suites=(supervise.test.sh verify.test.sh)
-for suite in "${late_suites[@]}"; do
-  ( env PATH="$late_work/bin:$PATH" "$HERE/$suite" > "$late_work/$suite.out" 2>/dev/null
+late_want=("4 13 23 24 25 26" "22 23")
+for i in "${!late_suites[@]}"; do
+  suite="${late_suites[$i]}"
+  ( cd "$HERE" && late_cases "${late_want[$i]}" < "$suite" ) > "$late_work/$suite"
+  chmod +x "$late_work/$suite"
+  ( env PATH="$late_work/bin:$PATH" "$late_work/$suite" > "$late_work/$suite.out" 2>/dev/null
     echo $? > "$late_work/$suite.code" ) &
 done
 wait
@@ -549,6 +575,35 @@ for suite in "${late_suites[@]}"; do
 done
 [[ -s "$late_work/leaves" ]] ||
   problems+=("the bash shim saw no leaf launched, so no leaf was started late")
+report "$name"
+
+# 10. Case 9's cost, which is every `make test`'s (#200): run as whole suites, supervise.test.sh
+#     and verify.test.sh take a full second pass of ~2.5 min between them, delays on top, and CI
+#     cuts the job at `timeout-minutes: 3`. Case 9 protects only the cases whose windows #200
+#     widened, so those are all it may run — never either suite end to end.
+#
+#     Read as text, the way cases 5 and 6 read theirs: observing case 9 by running it would be
+#     the second pass this case exists to take out of `make test`. Case 9 is the lines from its
+#     `# 9.` header to the first `report "$name"` after it, a command is a run of lines joined by
+#     trailing backslashes, and a command runs a suite whole when it executes `$HERE/` followed by
+#     either suite's name or a `$suite` variable. A case 9 that could not be found, or that no
+#     longer starts a leaf late, would pass about nothing, so both are probed too.
+name="hermetic-suites.test.sh case 9: the late-start check runs only the protected cases, never supervise.test.sh or verify.test.sh as a whole suite"
+problems=()
+case9="$(awk '/^# 9\. /{on=1} on{print} on && /^report "\$name"/{exit}' "$HERE/hermetic-suites.test.sh")"
+[[ -n "$case9" ]] ||
+  problems+=("no '# 9.' case was found in hermetic-suites.test.sh, so there is nothing to check")
+[[ "$case9" == *'sleep 3'* ]] ||
+  problems+=("case 9 no longer starts a leaf 3 s late, so it is not the late-start check this case is about")
+while IFS= read -r whole; do
+  [[ -n "$whole" ]] && problems+=("case 9 runs a whole suite: $whole")
+done < <(printf '%s\n' "$case9" | awk '
+  { if (!joining) cmd = ""
+    if ($0 ~ /\\$/) { cmd = cmd substr($0, 1, length($0) - 1) " "; joining = 1; next }
+    cmd = cmd $0; joining = 0 }
+  cmd ~ /^[[:space:]]*#/ { next }
+  cmd ~ /\$HERE\/(\$suite|\$\{suite\}|supervise\.test\.sh|verify\.test\.sh)/ { gsub(/^[[:space:]]+/, "", cmd); print cmd }
+')
 report "$name"
 
 echo "----"
