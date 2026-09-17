@@ -1,6 +1,6 @@
 # Plan for #110 — Local web dashboard, part 1: dashboard.sh serving the Runs, Metrics and Events panes
 
-- [x] dashboard.sh starts a stdlib-only Python server on default port 8765 serving the one HTML page at / and exits 0 when sent SIGINT ⟦criterion 1⟧ ⟂ refactor pending
+- [x] dashboard.sh starts a stdlib-only Python server on default port 8765 serving the one HTML page at / and exits 0 when sent SIGINT ⟦criterion 1⟧
 - [ ] dashboard.sh binds the port given as its argument, and binds 127.0.0.1 only — never another interface ⟦criterion 1⟧
 - [ ] The Runs endpoint returns what status.sh --json returns ⟦criterion 2⟧
 - [ ] The Metrics endpoint returns the per-issue table, recomputed from the event log for a running run and read from the committed report for a finished one ⟦criterion 2⟧
