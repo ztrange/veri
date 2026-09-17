@@ -27,6 +27,15 @@ repo() {  # repo <name> -> path
   echo "$dir"
 }
 
+# A fabricated run, not a real worktree: .tdd/wt/<n> under <repo> is a repository of its own
+# whose unborn branch is the issue branch, with an empty .tdd/ for the ledger and event log.
+fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
+  local dir="$1/.tdd/wt/$2"
+  git init -q -b "$3" "$dir" >/dev/null 2>&1
+  mkdir -p "$dir/.tdd"
+  echo "$dir"
+}
+
 # Run the script from inside <dir>, leaving stdout in $out and the exit code in $code.
 run_in() {  # run_in <dir> [script args…]; sets $out and $code
   local dir="$1"; shift
@@ -56,9 +65,7 @@ fi
 # unborn branch is the issue branch, and its ledger has one of three steps ticked — so the
 # step the run is on is the second.
 one="$(repo one)"
-run="$one/.tdd/wt/7"
-git init -q -b tdd/7-widgets-spin "$run" >/dev/null 2>&1
-mkdir -p "$run/.tdd"
+run="$(fabricate_run "$one" 7 tdd/7-widgets-spin)"
 cat > "$run/.tdd/issue-7.md" <<'EOF'
 # Plan for #7 — widgets spin when clicked
 
@@ -78,9 +85,7 @@ expect_nothing_missing "a run under .tdd/wt/* is listed with its issue number, t
 # current one has launched develop-green twice (a stuck retry), the second 100 s ago — so the
 # run is in green, driven by the developer, on leaf develop-green for ~100 s, attempt 2.
 live="$(repo live)"
-run="$live/.tdd/wt/8"
-git init -q -b tdd/8-gears-turn "$run" >/dev/null 2>&1
-mkdir -p "$run/.tdd"
+run="$(fabricate_run "$live" 8 tdd/8-gears-turn)"
 cat > "$run/.tdd/issue-8.md" <<'EOF'
 # Plan for #8 — gears turn
 
@@ -115,9 +120,7 @@ expect_nothing_missing "a run shows its current phase, actor, leaf name, leaf el
 # each, every value a string as event.sh writes it). $0.50 + $1.25 is $1.75; the four token
 # kinds of both leaves, 4700 + 6300, are 11000 tokens. Lines that are not `usage` carry no cost.
 spent="$(repo spent)"
-run="$spent/.tdd/wt/9"
-git init -q -b tdd/9-cogs-mesh "$run" >/dev/null 2>&1
-mkdir -p "$run/.tdd"
+run="$(fabricate_run "$spent" 9 tdd/9-cogs-mesh)"
 cat > "$run/.tdd/issue-9.md" <<'EOF'
 # Plan for #9 — cogs mesh
 
