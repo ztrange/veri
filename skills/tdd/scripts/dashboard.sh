@@ -97,6 +97,14 @@ def issue_report(run, issue):
     return capture([metrics_sh, issue], cwd=run).decode("utf-8", "replace")
 
 
+# Every run of this repository, in a stable order: `.tdd/wt/*` under the main working tree,
+# which is the set status.sh reports on. Both readers below walk it — one to collect every
+# issue, one to find the run holding a named issue's ledger — so where a run lives is spelled
+# here and not in either of them.
+def runs():
+    return sorted(glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*")))
+
+
 # The Metrics pane: every issue every run holds a ledger for, and its report. The walk is
 # all this is — which run and which issue, never how one is read.
 #
@@ -104,8 +112,7 @@ def issue_report(run, issue):
 # directory under a name the looser glob also matches, and `31-metrics` is not an issue.
 def metrics_json(query):
     issues = {}
-    tree = main_working_tree()
-    for run in sorted(glob.glob(os.path.join(tree, ".tdd", "wt", "*"))):
+    for run in runs():
         for ledger in sorted(glob.glob(os.path.join(run, ".tdd", "issue-*.md"))):
             found = re.match(r"^issue-([0-9]+)\.md$", os.path.basename(ledger))
             if found:
@@ -118,8 +125,7 @@ def metrics_json(query):
 # keys `issues` by the same number. The run is the one holding that issue's ledger, which is
 # how metrics_json above already decides which issue a run is for, read the other way round.
 def run_for_issue(issue):
-    tree = main_working_tree()
-    for run in sorted(glob.glob(os.path.join(tree, ".tdd", "wt", "*"))):
+    for run in runs():
         if issue and os.path.exists(os.path.join(run, ".tdd", "issue-%s.md" % issue)):
             return run
     return ""
