@@ -759,6 +759,47 @@ fi
 
 report "$name"
 
+# 17. Asking for the new skill takes origin's tip, not the clone's HEAD (issue #251). The run is
+# first launched from a clone whose origin is at commit A. Then the remote moves to B — a PR
+# landing — while the clone moves to a commit C of its own that origin never saw, so the two
+# answers a re-pin could give are different files. The same issue is launched again with
+# VERI_NEW_SKILL=1, and that launch must be handed B's files and name B in its prompt: a re-pin
+# to the clone's HEAD is the operator asking for the new skill and getting a stale one.
+name="a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD"
+problems=()
+
+remote11="$work/remote11"
+clone11="$work/clone11"
+cloned_skill "$remote11" "$clone11"
+
+caller11="$work/caller11"
+caller_repo "$caller11"
+
+launch_from "$caller11" "$clone11"
+
+advance_clone "$remote11" "# a commit that landed on the remote after the run started"
+tip11="$(git -C "$remote11" rev-parse HEAD)"
+advance_clone "$clone11" "# a commit of the clone's own that origin never saw"
+head11="$(git -C "$clone11" rev-parse HEAD)"
+
+tipdir11="$work/tip11"
+skill_archive "$remote11" "$tip11" "$tipdir11"
+
+repinned11="$work/repinned11"
+mkdir -p "$repinned11"
+rm -f "$prompt"
+launch_from "$caller11" "$clone11" BASE_OUT="$repinned11" VERI_NEW_SKILL=1
+
+if [[ -z "$(prompt_base)" ]]; then
+  problems+=("the re-pinned launch's prompt names no base directory: $(cat "$launch_err")")
+else
+  holds_skill "$repinned11" "$tipdir11/skills/tdd" "re-pinned launch's" "origin's tip $tip11 (clone HEAD $head11)"
+  grep -q -- "$tip11" "$prompt" ||
+    problems+=("the re-pinned launch's prompt does not name origin's tip $tip11")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
