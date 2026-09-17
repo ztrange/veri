@@ -81,10 +81,6 @@ if is_seconds "$heartbeat" && is_seconds "$timeout"; then
   case "$heartbeat$timeout" in *.*) fine=1 ;; esac
 fi
 
-now() {
-  if (( fine )); then python3 -c 'import time; print("%.3f" % time.time())'; else date +%s; fi
-}
-
 # num_expr <expr> [name=value …] — evaluate one arithmetic expression over numbers that may be
 # fractional, which bash's own `$(( ))` cannot hold. Prints the value; a comparison's value is
 # 1 or 0. Only ever called on the fine path, where both operands have passed `is_seconds`.
@@ -96,16 +92,18 @@ num_expr() {
   awk "${vars[@]}" "BEGIN { print ($expr) }"
 }
 
-# The watch loop's four pieces of arithmetic, bound once to the clock in force. The coarse
-# definitions are character-for-character the expressions this script has always used; the fine
-# ones are their awk equivalents. Choosing here rather than branching per reading keeps the loop
-# below reading as the policy it is, and keeps `fine` out of it entirely.
+# The clock reading and the watch loop's four pieces of arithmetic, bound once to the clock in
+# force. The coarse definitions are character-for-character the expressions this script has
+# always used; the fine ones are their awk equivalents. Choosing here rather than branching per
+# reading keeps the loop below reading as the policy it is, and keeps `fine` out of it entirely.
 if (( fine )); then
+  now() { python3 -c 'import time; print("%.3f" % time.time())'; }
   past_timeout() { (( $(num_expr 't - t0 >= timeout' t="$1" t0="$2" timeout="$timeout") )); }
   silence_since() { num_expr 't - m' t="$1" m="$2"; }
   past_window() { (( $(num_expr 's > heartbeat' s="$1" heartbeat="$heartbeat") )); }
   elapsed() { num_expr 'int(t - t0)' t="$1" t0="$2"; }
 else
+  now() { date +%s; }
   past_timeout() { (( $1 - $2 >= timeout )); }
   silence_since() { printf '%s\n' "$(( $1 - $2 ))"; }
   past_window() { (( $1 > heartbeat )); }
