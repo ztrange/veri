@@ -63,7 +63,54 @@ log=".tdd/$name.log"
 rcfile=".tdd/$name.rc"
 exitfile=".tdd/$name.exit"
 
-now() { date +%s; }
+# The clock's resolution follows the windows it has to measure (issue #282). The fine clock is
+# switched on only when VERI_HEARTBEAT and VERI_TIMEOUT are *both* plainly numeric and at least
+# one of them is fractional — a window finer than `date +%s` and the log's whole-second mtime can
+# resolve on BSD, so both readings then come from python3, to the millisecond. That is what lets
+# a suite run a window in tenths of a second instead of paying whole seconds per case.
+#
+# The strict numeric test is the load-bearing half. Everything else — whole-second windows, and
+# any value that is not a number at all — keeps the original clock *and* the original bash
+# arithmetic below, so a malformed `VERI_HEARTBEAT=abc` still dies loudly on `set -u`'s unbound
+# variable rather than reaching awk, where `>` falls back to comparing strings against a
+# non-numeric operand and would quietly answer "no silence" forever — a disabled watchdog, in
+# the one file whose whole job is that it cannot be disabled.
+is_seconds() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]; }
+fine=0
+if is_seconds "$heartbeat" && is_seconds "$timeout"; then
+  case "$heartbeat$timeout" in *.*) fine=1 ;; esac
+fi
+
+now() {
+  if (( fine )); then python3 -c 'import time; print("%.3f" % time.time())'; else date +%s; fi
+}
+
+# num_expr <expr> [name=value …] — evaluate one arithmetic expression over numbers that may be
+# fractional, which bash's own `$(( ))` cannot hold. Prints the value; a comparison's value is
+# 1 or 0. Only ever called on the fine path, where both operands have passed `is_seconds`.
+num_expr() {
+  local expr="$1"; shift
+  local -a vars=()
+  local kv
+  for kv in "$@"; do vars+=(-v "$kv"); done
+  awk "${vars[@]}" "BEGIN { print ($expr) }"
+}
+
+# The watch loop's four pieces of arithmetic, bound once to the clock in force. The coarse
+# definitions are character-for-character the expressions this script has always used; the fine
+# ones are their awk equivalents. Choosing here rather than branching per reading keeps the loop
+# below reading as the policy it is, and keeps `fine` out of it entirely.
+if (( fine )); then
+  past_timeout() { (( $(num_expr 't - t0 >= timeout' t="$1" t0="$2" timeout="$timeout") )); }
+  silence_since() { num_expr 't - m' t="$1" m="$2"; }
+  past_window() { (( $(num_expr 's > heartbeat' s="$1" heartbeat="$heartbeat") )); }
+  elapsed() { num_expr 'int(t - t0)' t="$1" t0="$2"; }
+else
+  past_timeout() { (( $1 - $2 >= timeout )); }
+  silence_since() { printf '%s\n' "$(( $1 - $2 ))"; }
+  past_window() { (( $1 > heartbeat )); }
+  elapsed() { printf '%s\n' "$(( $1 - $2 ))"; }
+fi
 
 # Seconds-since-epoch of $1's last modification — the heartbeat sensor. There is no portable
 # `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two
@@ -76,11 +123,15 @@ now() { date +%s; }
 # of appending, and the digit test rejects anything that is not a plain count of seconds.
 mtime_of() {
   local m
-  m="$(stat -c %Y "$1" 2>/dev/null)" || m="$(stat -f %m "$1" 2>/dev/null)" || m=""
+  if (( fine )); then
+    m="$(python3 -c 'import os, sys; print("%.3f" % os.stat(sys.argv[1]).st_mtime)' "$1" 2>/dev/null)" || m=""
+  else
+    m="$(stat -c %Y "$1" 2>/dev/null)" || m="$(stat -f %m "$1" 2>/dev/null)" || m=""
+  fi
   # No readable mtime (neither spelling, or the log vanished) → report "just touched". The
   # heartbeat then never fires and the hard timeout, which needs only `date`, still bounds
   # the leaf. The opposite default (0) would read as decades of silence and kill every leaf.
-  case "$m" in ''|*[!0-9]*) m="$(now)" ;; esac
+  case "$m" in ''|*[!0-9.]*) m="$(now)" ;; esac
   printf '%s\n' "$m"
 }
 
@@ -201,14 +252,14 @@ attempt_once() {
       break
     fi
     t="$(now)"
-    if (( t - t0 >= timeout )); then
+    if past_timeout "$t" "$t0"; then
       status="killed-stuck"; reason="hard timeout ${timeout}s exceeded"; kill_tree; break
     fi
-    silence=$(( t - $(mtime_of "$log") ))
+    silence="$(silence_since "$t" "$(mtime_of "$log")")"
     # Strict '>' so the whole-second clock's ±1s over-read at a second boundary (see the
     # slow-leaf note in supervise.test.sh) can't spuriously kill an active/just-relaunched
     # leaf; a genuine hang keeps climbing past the window and is still killed.
-    if (( silence > heartbeat )); then
+    if past_window "$silence"; then
       status="killed-stuck"; reason="no heartbeat for ${silence}s (window ${heartbeat}s)"
       kill_tree; break
     fi
@@ -222,7 +273,7 @@ attempt_once() {
   wait "$pid" 2>/dev/null || true
   # Stopped here rather than where the mark is written, so the count is the attempt's own
   # wall time and not that plus whatever the retry loop and the status line cost after it.
-  secs=$(( $(now) - t0 ))
+  secs="$(elapsed "$(now)" "$t0")"
 }
 
 # The three assignments every mark below is written under, read once. A refusal leaves this

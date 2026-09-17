@@ -1202,6 +1202,52 @@ CLAIMS
   || no "supervise.sh's header records that a leaf's stream can finish before its rc file is written, so a kill is not proof that no answer was obtained (unstated:$header_misses)"
 
 
+# 29. the watchdog runs on a sub-second clock when its tunables are fractional (#282): with a
+#     0.9s heartbeat window, a 4.5s hard cap and a 0.05s poll, a leaf that stops writing is
+#     killed as stuck on its heartbeat — not on the hard cap, and on a window the whole-second
+#     `date +%s` clock and whole-second mtime cannot express at all — while a leaf that writes
+#     every 0.1s for about a second outlives several polls and finishes. Both arms in one case
+#     because the criterion is the pair: a clock that kills everything, or nothing, passes one
+#     arm alone. Wall time is measured with python3, the only sub-second clock this suite's BSD
+#     tools have.
+#
+#     The two margins are wide on purpose, because this box runs other suites while this one
+#     runs: the alive stub's 0.1s gap is a ninth of its window, so a fork that takes ten times
+#     as long as it should still does not read as silence; and the hang stub sleeps 4s, so its
+#     three ways out — heartbeat kill (~1s), natural exit (4s), hard cap (4.5s) — are far
+#     enough apart that the 3s bound below can only be met by the heartbeat.
+cat > "$stub/leaf-hang-brief" <<'L'
+#!/usr/bin/env bash
+echo "leaf: starting"; sleep 4; echo "unreachable"
+L
+cat > "$stub/leaf-alive-brief" <<'L'
+#!/usr/bin/env bash
+for i in 1 2 3 4 5 6 7 8 9 10; do echo "leaf: tick $i"; sleep 0.1; done
+echo "leaf: done"; exit 0
+L
+chmod +x "$stub/leaf-hang-brief" "$stub/leaf-alive-brief"
+wall_now() { python3 -c 'import time; print("%.3f" % time.time())'; }
+fast_sup() {
+  local name="$1" leaf="$2"
+  out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=0.9 VERI_TIMEOUT=4.5 VERI_POLL=0.05 \
+            "$SUP" "$name" "$stub/$leaf" 2>"$work/err" )"
+  code=$?
+}
+fast_t0="$(wall_now)"
+fast_sup fast-hang leaf-hang-brief
+fast_hang_code="$code"
+fast_hang_took="$(python3 -c 'import sys; print("%.2f" % (float(sys.argv[2]) - float(sys.argv[1])))' "$fast_t0" "$(wall_now)")"
+fast_hang_line="$(grep 'supervise\[fast-hang\]:' "$work/err" | tail -n 1)"
+fast_sup fast-alive leaf-alive-brief
+fast_alive_code="$code"
+fast_alive_out="$out"
+{ [[ "$fast_hang_code" == 2 ]] \
+  && [[ "$fast_hang_line" == *"no heartbeat for "*"(window 0.9s)"* ]] \
+  && python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) < 3.0 else 1)' "$fast_hang_took" \
+  && [[ "$fast_alive_code" == 0 ]] && [[ "$fast_alive_out" == *'leaf: done'* ]]; } && ok \
+  || no "sub-second clock: a silent leaf is killed on a 0.9s heartbeat in under 3s and a leaf writing every 0.1s finishes (hang code=$fast_hang_code want 2, hang status=$fast_hang_line, hang took=${fast_hang_took}s want <3; alive code=$fast_alive_code want 0)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
