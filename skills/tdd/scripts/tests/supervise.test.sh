@@ -1228,6 +1228,44 @@ pid_seen="$(tr -d '[:space:]' < "$pid_work/pid-seen" 2>/dev/null || echo '<no le
   || no "supervise.sh records its own pid in .tdd/<name>.pid before it launches the leaf (leaf saw=$pid_seen want $pid_sup)"
 
 
+# 30. supervise.sh sent TERM writes 2 to its completion file, exits 2 and leaves no leaf
+#     process behind (issue #173). The leaf runs in a process group of its own (`set -m`), so a
+#     signal addressed to the supervisor never reaches it: without a handler the supervisor
+#     dies wherever it is, `.tdd/<name>.exit` is never written, and the leaf keeps running
+#     with no watchdog at all. TERM stands for the three signals the handler covers.
+#
+#     The stub records its own pid and `exec`s into a long sleep, so the recorded pid IS the
+#     leaf process for its whole life. The supervisor is `exec`ed in the background, case 29's
+#     shape, so `$!` is supervise.sh itself and TERM is addressed to it alone. Every wait is
+#     bounded, and a leaf that did survive is killed here so the suite leaves nothing behind.
+term_work="$work/term-handler"
+mkdir -p "$term_work"
+cat > "$stub/leaf-term-sleep" <<'L'
+#!/usr/bin/env bash
+echo $$ > leaf-pid
+echo "leaf: started"
+exec sleep 60
+L
+chmod +x "$stub/leaf-term-sleep"
+( cd "$term_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
+    "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+term_sup=$!
+for _ in $(seq 1 50); do [[ -s "$term_work/leaf-pid" ]] && break; sleep 0.1; done
+term_leaf="$(tr -d '[:space:]' < "$term_work/leaf-pid" 2>/dev/null)"
+kill -TERM "$term_sup" 2>/dev/null
+wait "$term_sup"
+term_code=$?
+term_exit="$({ tr -d '[:space:]' < "$term_work/.tdd/develop-red.exit"; } 2>/dev/null || echo '<missing>')"
+term_alive="no"
+if [[ -n "$term_leaf" ]]; then
+  for _ in $(seq 1 20); do kill -0 "$term_leaf" 2>/dev/null || break; sleep 0.1; done
+  if kill -0 "$term_leaf" 2>/dev/null; then term_alive="yes"; kill -KILL "$term_leaf" 2>/dev/null; fi
+else
+  term_alive="<leaf never started>"
+fi
+{ [[ "$term_code" == 2 ]] && [[ "$term_exit" == 2 ]] && [[ "$term_alive" == no ]]; } && ok \
+  || no "supervise.sh sent TERM writes 2 to its completion file, exits 2 and leaves no leaf process behind (code=$term_code want 2, exit file=$term_exit want 2, leaf alive=$term_alive want no)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
