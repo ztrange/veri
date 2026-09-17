@@ -338,6 +338,22 @@ the procedure would put to an operator becomes a bail instead — it stops and s
 you read that afterwards rather than answering it at the time. Pick the interactive mode
 when the run is one you want to be able to intervene in.
 
+**The skill snapshot: a run executes one skill from its first launch to its last.**
+`$S/run-conductor.sh <n>` does not run the skill as it sits in the clone. It fetches `origin`,
+records the default branch's tip in `.tdd/issue-<n>-skill-commit` on a run's first launch,
+and runs every launch — the first and each resume — from a snapshot of that commit
+(`git archive` into a temporary directory), so a pull between two launches never changes the
+skill mid-run. The record is run state and is git-ignored. Two cases refuse rather than guess:
+
+- **A recorded commit the launching clone cannot resolve** (a second clone, a shallow one, a
+  pruned branch) is exit 2, never a silent re-pin to whatever the clone holds.
+- **Taking the new skill is an explicit act:** `VERI_NEW_SKILL=1` on a resume replaces the
+  recorded commit with the fresh tip and writes a `skill-repin` event to the run worktree's
+  `.tdd/events.jsonl`, where `metrics.sh` reads it.
+
+When no commit can be resolved at all the launch runs unpinned, says so on stderr, and hands
+the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.3).
+
 ## Inputs
 
 There is one command, so what the user typed after it is what decides which of the two

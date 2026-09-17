@@ -88,6 +88,11 @@ Two traps, both already cost something once:
 
 ## Invariants worth not breaking
 
+- **A run executes one skill snapshot.** `run-conductor.sh` pins the skill to the commit in
+  `.tdd/issue-<n>-skill-commit` and refuses (exit 2) a recorded commit the clone cannot
+  resolve; only `VERI_NEW_SKILL=1` re-pins, logged as a `skill-repin` event. The mechanism is
+  documented under *Launching the conductor* in `skills/tdd/SKILL.md`.
+
 - **Every leaf is launched through `supervise.sh`** — never `run-leaf.sh` or `claude`
   directly. Stuck-detection policy lives in exactly one place only because nothing
   bypasses it.
