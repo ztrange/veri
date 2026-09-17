@@ -45,6 +45,13 @@ skill_path="$ROOT/$skill_md"
 # for the ledger's step text everywhere else.
 flag="--step '<STEP>'"
 
+# The one pattern the probe below matches a launch line with, built from that same `flag` so
+# the two cannot drift: nothing in the flag's spelling is an ERE metacharacter, so it goes in
+# as it stands. The phase alternation after it is what pins the POSITION — `--step` has to
+# sit between `verify.sh` and the phase the call judges, which is a word in a concrete launch
+# and the `<phase>` placeholder in the revise loop's.
+call_re="verify\.sh $flag (red|green|refactor|pin|<phase>)"
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -87,10 +94,7 @@ else
     [[ -n "$numbered" ]] || continue
     lineno="${numbered%%:*}"
     line="${numbered#*:}"
-    # The phase alternation after the flag is what pins the POSITION: `--step '<STEP>'`
-    # has to sit between `verify.sh` and the phase the call judges, which is a word in a
-    # concrete launch and the `<phase>` placeholder in the revise loop's.
-    [[ "$line" =~ verify\.sh\ --step\ \'\<STEP\>\'\ (red|green|refactor|pin|\<phase\>) ]] ||
+    [[ "$line" =~ $call_re ]] ||
       problems+=("$skill_md:$lineno does not pass $flag before verify.sh's positionals: $line")
   done <<< "$calls"
 fi
