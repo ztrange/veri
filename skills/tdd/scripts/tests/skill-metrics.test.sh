@@ -304,9 +304,9 @@ report "$name"
 # Issue #240, the 📊-in-PR-body probe asked of the right command: since #236 the block reaches
 # the PR body through `gh pr edit`, and a record-level probe would be answered by the whole
 # command block, which holds `gh pr create` and a 📊 mention in the prose above it whether or
-# not the edit carries the report (#267 removed that probe). This case reads the fenced `gh pr edit` line itself and
-# asks that its `--body` carries the contents of the committed report — the file metrics.sh
-# writes, whose first line is the `### 📊 Metrics` heading.
+# not the edit carries the report (#267 removed that probe). This case reads the fenced `gh pr
+# edit` line itself and asks that its `--body` carries the contents of the committed report —
+# the file metrics.sh writes, whose first line is the `### 📊 Metrics` heading.
 name="$skill_md's Draft PR gh pr edit command puts the committed 📊 metrics report in the PR body"
 problems=()
 
