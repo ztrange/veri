@@ -685,6 +685,40 @@ ambient_seen="$(grep -c 'AMBIENT-STEP-must-not-appear' "$step_dir/argv" 2>/dev/n
   || no "verify.sh --step '<STEP>' reaches the verifier prompt and ambient VERI_STEP does not (code=$step_code; step in prompt: ${step_seen:-0}; ambient in prompt: ${ambient_seen:-0}; stderr: $(head -1 "$step_dir/err"))"
 rm -rf "$step_dir"
 
+# An existing run resumes unchanged: a conductor that passes no `--step` still gets a valid
+# verifier prompt (#223). The flag is optional, and the run that most needs it to be is the one
+# resumed from a ledger written before it existed — its conductor spells the four positionals and
+# nothing else. What must then not happen is the template's `{{STEP}}` reaching the leaf as
+# literal text where a heading belongs: an unfilled placeholder is what an edit that fills the
+# slot only on the flagged path leaves behind, and the verifier would read it as part of the
+# issue. Probed for all four phases off the stub's recorded argv — the prompt the leaf was
+# actually handed — so both scripts on the path are asked at once: verify.sh built the call and
+# build-verify-prompt.sh rendered it.
+#
+# `valid` is three claims, each its own miss, for the reason build-verify-prompt.test.sh case 12
+# gives: a phase whose template kept the placeholder is named rather than covered for by its
+# siblings. The exit status says a prompt was built at all, the placeholder probe is the
+# criterion's own words, and the spec-plus-`VERDICT:` pair is what keeps an empty prompt from
+# satisfying the placeholder probe by having nothing in it — grep matches no `{{…}}` in an empty
+# file just as readily as in a fully substituted one.
+problems=""
+for phase in red green refactor pin; do
+  nostep_dir="$work/nostep-$phase"
+  mkdir -p "$nostep_dir"
+  verify_in "$nostep_dir" "$phase" 'VERDICT: PASS
+REASON: ok' >/dev/null 2>"$nostep_dir/err"
+  nostep_code=$?
+  [[ "$nostep_code" == 0 ]] \
+    || problems="$problems; verify-$phase exits $nostep_code ($(head -1 "$nostep_dir/err"))"
+  unfilled="$(grep -o '{{[A-Z_]*}}' "$nostep_dir/argv" 2>/dev/null | sort -u | tr '\n' ' ')"
+  [[ -z "$unfilled" ]] || problems="$problems; verify-$phase leaves ${unfilled% } unfilled"
+  { grep -q 'slugify must lowercase' "$nostep_dir/argv" 2>/dev/null \
+    && grep -q 'VERDICT:' "$nostep_dir/argv" 2>/dev/null; } \
+    || problems="$problems; verify-$phase carries no spec or no VERDICT: contract"
+done
+[[ -z "$problems" ]] && ok \
+  || no "with no --step every phase still builds a valid verifier prompt with no unfilled step placeholder (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
