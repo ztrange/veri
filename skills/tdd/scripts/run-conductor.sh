@@ -79,6 +79,8 @@ if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
   trap 'rm -rf "$snapshot"' EXIT
   git -C "$base" archive "$commit" . | tar -x -C "$snapshot"
   base="$snapshot"
+else
+  echo "run-conductor: no skill commit resolvable from '$base' — running unpinned" >&2
 fi
 
 skill_file="$base/SKILL.md"

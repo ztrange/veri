@@ -482,6 +482,36 @@ PY
 
 report "$name"
 
+# 10. A skill that is not in a git clone has no commit to pin. The run still proceeds, from
+# the skill directory as it is, and says so on stderr: an unpinned run nobody was told about is
+# the silent drift the pin exists to end. GIT_CEILING_DIRECTORIES stops git from finding a
+# repository above the fixture, so "no resolvable commit" does not depend on where the
+# scratch directory happens to live.
+name="with no resolvable skill commit the run proceeds unpinned and warns on stderr"
+problems=()
+
+loose="$work/loose"
+mkdir -p "$loose/skills"
+cp -R "$HERE/../.." "$loose/skills/tdd"
+rm -f "$prompt"
+errfile="$work/unpinned.err"
+
+( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+    GIT_CEILING_DIRECTORIES="$work" \
+    "$loose/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>"$errfile"
+status=$?
+
+base="$(prompt_base)"
+if [[ "$status" -ne 0 ]]; then
+  problems+=("the unpinned launch exited $status, not 0: $(cat "$errfile")")
+elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" != "$(cd "$loose/skills/tdd" && pwd -P)" ]]; then
+  problems+=("the unpinned run's base directory is not the skill directory itself: '$base'")
+elif ! grep -qi 'unpinned' "$errfile"; then
+  problems+=("no warning on stderr that the run is unpinned — stderr was: '$(cat "$errfile")'")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
