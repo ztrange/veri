@@ -123,22 +123,12 @@ else
   # The commit, as the acceptance criterion spells it: one `metrics:` commit of the file
   # beside the ledger. Both strings of one record, because a commit verb in one instruction
   # and a filename in another is not an instruction to commit that file.
-  commit_line="$(first_record_line "$pr_records" 'metrics:' 'metrics.md')" ||
+  first_record_line "$pr_records" 'metrics:' 'metrics.md' >/dev/null ||
     problems+=("$skill_md's Draft PR step has no instruction committing .tdd/issue-<n>-metrics.md in a metrics: commit, so the report is never beside the ledger it describes")
 
-  # …and it lands BEFORE the PR is opened, which is what keeps the branch the human is
-  # asked to look at from being one commit short of the report its body quotes.
-  pr_line="$(first_record_line "$pr_records" 'gh pr create')" ||
-    problems+=("$skill_md's Draft PR step never runs gh pr create, so there is no PR for the metrics commit to precede")
-  if [[ -n "${commit_line:-}" && -n "${pr_line:-}" && "$commit_line" -gt "$pr_line" ]]; then
-    problems+=("$skill_md commits the metrics report AFTER gh pr create, so the PR is opened on a branch missing the file its body quotes: $(printf '%.120s' "$(record_at "$pr_records" "$commit_line")")")
-  fi
-
-  # The block, in the two places a human reads a finished run: the PR body and the final
-  # comment. Each is asked of the record carrying that instruction's own command, so a
-  # mention of the block anywhere in the step cannot answer for either.
-  first_record_line "$pr_records" 'gh pr create' '📊 metrics' >/dev/null ||
-    problems+=("$skill_md's gh pr create instruction does not put the ### 📊 Metrics block in the PR body, so a reviewer reads the PR without what the run cost")
+  # The block in the final comment, asked of the record carrying that comment's own marker.
+  # The PR body's copy is asked of the gh pr edit command line by line further down, since
+  # a record here is a whole sub-step and cannot say which command carries it.
   first_record_line "$pr_records" '✅ done' '📊 metrics' >/dev/null ||
     problems+=("$skill_md's final ✅ Done comment does not carry the ### 📊 Metrics block, so the issue thread ends without the run's figures")
 fi
@@ -159,8 +149,8 @@ report "$name"
 # `done` mark — the one carrying the opened PR's URL — BEFORE it renders the report it
 # commits. metrics.sh reads that mark for both the Outcome line and the issue wall, so a
 # report rendered while the log holds no ending says `unknown` for both, as #228's committed
-# report and PR #234's body did. Asked of document order, the same way the commit-before-PR
-# half above is: the records come out in the order the conductor follows them. Both records
+# report and PR #234's body did. Asked of document order: the records come out in the order the
+# conductor follows them. Both records
 # must exist first, so a step that dropped either fails closed rather than reading as ordered.
 name="$skill_md's Draft PR step writes the run's done mark, carrying the PR URL, before rendering the metrics report it commits"
 problems=()
@@ -356,6 +346,21 @@ else
     prev_anchor="$anchor" prev_at="$at"
   done
 fi
+report "$name"
+
+# Issue #267, the suite's own source again: since #236 `gh pr create` and the `metrics:`
+# commit share one Draft PR sub-step, so a record-level comparison of the two returns the
+# same record number and can never fail. The comparison and the comment that justified it
+# must be gone. Each needle is spelled in two pieces, so this case's own text never matches it.
+name="skill-metrics.test.sh no longer compares commit_line against pr_line at record level, nor keeps the comment claiming the metrics commit precedes the PR"
+problems=()
+
+gt_needle='"$commit_line" -g''t "$pr_line"'
+grep -Fq -- "$gt_needle" "$ROOT/$suite_md" &&
+  problems+=("$suite_md still compares commit_line -gt pr_line, which two calls into the same sub-step record can never make true")
+lands_needle='lands BEFORE the PR'' is opened'
+grep -Fq -- "$lands_needle" "$ROOT/$suite_md" &&
+  problems+=("$suite_md still carries the comment claiming the metrics commit precedes the opened PR, which #236 made false")
 report "$name"
 
 echo "----"
