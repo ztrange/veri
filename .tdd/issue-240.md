@@ -2,6 +2,6 @@
 
 - [x] The ordering case reads the Draft PR step's fenced command block line by line and fails when the `metrics:` commit line precedes the `gh pr create` line
 - [x] The ordering case fails when the `gh pr edit` line precedes the `metrics:` commit or `push-branch.sh`
-- [ ] The ordering case passes on SKILL.md's current order (gh pr create → event.sh done → metrics.sh → metrics: commit → push-branch.sh → gh pr edit)
+- [x] The ordering case passes on SKILL.md's current order (gh pr create → event.sh done → metrics.sh → metrics: commit → push-branch.sh → gh pr edit)
 - [ ] The 📊-in-PR-body probe asks the `gh pr edit` command, not a record that merely also contains `gh pr create`
 - [ ] The suite's header comment describes the post-#236 Draft PR order

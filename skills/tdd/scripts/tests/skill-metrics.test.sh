@@ -287,6 +287,28 @@ if [[ -n "${block_edit_line:-}" && -n "${block_push_line:-}" && "$block_edit_lin
 fi
 report "$name"
 
+# Issue #240, the whole order at once: the two cases above each pin one pair, and this one
+# walks the Draft PR command block's six commands in the order SKILL.md gives them — open the
+# PR, write its done mark, render, commit, push, then put the report in the body — and asks
+# that each sits on a later SKILL.md line than the one before it. Every anchor must exist
+# first, so a step that dropped one fails closed rather than reading as ordered.
+name="$skill_md's Draft PR command block runs gh pr create, event.sh done, metrics.sh, the metrics: commit, push-branch.sh and gh pr edit in that order"
+problems=()
+
+prev_anchor="" prev_line=""
+for anchor in 'gh pr create' 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' 'gh pr edit'; do
+  if ! line="$(first_fenced_line "$anchor")"; then
+    problems+=("$skill_md's Draft PR command block never runs $anchor")
+    prev_anchor="" prev_line=""
+    continue
+  fi
+  if [[ -n "$prev_line" && "$line" -le "$prev_line" ]]; then
+    problems+=("$skill_md runs $anchor at SKILL.md:$line, not after $prev_anchor at SKILL.md:$prev_line")
+  fi
+  prev_anchor="$anchor" prev_line="$line"
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
