@@ -1526,6 +1526,48 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$blockdir:
   && ok || no "an issue blocked by an open issue older than gh's default page of 30 is not printed (40 open issues, #140 opted in and blocked by the oldest #101: exit=$code want 3, stdout='$out' want '')"
 
 
+# 31. The same page on the pull requests (#244): an open PR saying `Closes #<n>` is what claims an
+# issue, and gh answers `pr list` with its newest 30 unless told `--limit`, so a claiming PR older
+# than that is never read and its issue reads as free. The paging stub again, with PRs as the
+# paged list: one issue, #7, open, opted in and unblocked, and forty open PRs, newest first,
+# of which only the OLDEST — the one a 30-item page drops — says `Closes #7`. A script that reads
+# every open PR sees the claim and prints nothing (exit 3); one that took the default page prints
+# "7".
+prpagedir="$work/paging-prs-bin"
+mkdir -p "$prpagedir"
+cat > "$prpagedir/gh" <<'STUB'
+#!/usr/bin/env bash
+limit=30
+prev=""
+for arg in "$@"; do
+  case "$prev" in --limit|-L) limit="$arg" ;; esac
+  case "$arg" in --limit=*) limit="${arg#--limit=}" ;; esac
+  prev="$arg"
+done
+case "$1 $2" in
+  "issue list")
+    echo '[{"number": 7, "title": "issue 7", "state": "OPEN", "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\nNone.\n"}]' ;;
+  "pr list")
+    python3 -c '
+import json, sys
+limit = int(sys.argv[1])
+prs = [
+    {"state": "OPEN", "body": "Closes #7" if i == 39 else "Closes #%d" % (1000 + i)}
+    for i in range(40)
+]
+print(json.dumps(prs[:limit]))
+' "$limit" ;;
+esac
+STUB
+chmod +x "$prpagedir/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$prpagedir:$PATH" \
+       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 3 && -z "$out" ]]; } \
+  && ok || no "an open PR older than gh's default page of 30 saying Closes #<n> still claims its issue (40 open PRs, only the oldest says Closes #7: exit=$code want 3, stdout='$out' want '')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
