@@ -7,15 +7,16 @@
 # the `dashboard.html` sitting beside this script, so a foreign repo gets both through
 # the installed symlink.
 #
-# Usage:   dashboard.sh
-#          Serves http://127.0.0.1:8765/ until interrupted. Ctrl-C (SIGINT) is how it is
-#          meant to be stopped, so that is a clean stop and not a failure.
+# Usage:   dashboard.sh [port]
+#          Serves http://127.0.0.1:<port>/ (default 8765) until interrupted. Ctrl-C
+#          (SIGINT) is how it is meant to be stopped, so that is a clean stop and not a
+#          failure.
 # Exit:    0 served and was interrupted
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-exec python3 - "$HERE/dashboard.html" 8765 <<'PY'
+exec python3 - "$HERE/dashboard.html" "${1:-8765}" <<'PY'
 import http.server
 import signal
 import sys
