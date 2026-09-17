@@ -532,6 +532,31 @@ no_verdict_launches="$(cat "$no_verdict_dir/launches" 2>/dev/null || echo 0)"
   && [[ "$no_verdict_out" == *'full suite are green'* ]]; } && ok \
   || no "a verifier leaf that exited cleanly with no VERDICT: line is relaunched and its second verdict returned (code=$no_verdict_code want 0; launches=$no_verdict_launches want 2; output='$no_verdict_out' want the PASS reason)"
 
+# 20. no-verdict relaunches stop after VERI_NO_VERDICT_RETRIES (default 1), issue #219: a leaf that
+#     never prints a verdict is exit 2 after exactly 1 + VERI_NO_VERDICT_RETRIES launches. Read at
+#     the default (the variable unset, not inherited from the caller), at 0 (one launch, no
+#     relaunch) and at 2, so a budget hardcoded to the default cannot pass for the knob.
+cat > "$stubdir/claude-never-verdict" <<'STUB'
+#!/usr/bin/env bash
+n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
+echo "$n" > "$LAUNCH_COUNT"
+printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
+exit 0
+STUB
+chmod +x "$stubdir/claude-never-verdict"
+never_verdict() {  # never_verdict <label> [<retries>] -> prints "<code> <launches>"
+  local dir="$work/never-verdict-$1"
+  mkdir -p "$dir"
+  ( if [[ $# -ge 2 ]]; then export VERI_NO_VERDICT_RETRIES="$2"; else unset VERI_NO_VERDICT_RETRIES; fi
+    LAUNCH_COUNT="$dir/launches" verify_in "$dir" green '' "$stubdir/claude-never-verdict" >/dev/null 2>&1
+    echo "$? $(cat "$dir/launches" 2>/dev/null || echo 0)" )
+}
+budget_default="$(never_verdict default)"
+budget_zero="$(never_verdict zero 0)"
+budget_two="$(never_verdict two 2)"
+{ [[ "$budget_default" == '2 2' ]] && [[ "$budget_zero" == '2 1' ]] && [[ "$budget_two" == '2 3' ]]; } && ok \
+  || no "no-verdict relaunches stop after VERI_NO_VERDICT_RETRIES (default 1): exit 2 after 1 + retries launches (code launches — default: '$budget_default' want '2 2'; =0: '$budget_zero' want '2 1'; =2: '$budget_two' want '2 3')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

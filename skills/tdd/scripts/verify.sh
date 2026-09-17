@@ -163,6 +163,9 @@ restore_head() {  # points HEAD back at the sha $1 names, where it moved from it
 tree_before="$(tree_snapshot)"
 head_before="$(head_snapshot)"
 
+# How many times a leaf that exited cleanly with no VERDICT: line is relaunched (issue #219).
+no_verdict_retries="${VERI_NO_VERDICT_RETRIES:-1}"
+
 parse_err="$(mktemp)"
 trap 'rm -f "$parse_err"' EXIT
 attempt=0
@@ -217,7 +220,7 @@ while :; do
   # contract rather than the plumbing (issue #219): it is relaunched on a fresh attempt instead of
   # bailed. The verifier is blind and re-runs the suite itself, so the relaunch judges the same
   # tree from scratch with the same prompt file.
-  if [[ "$vcode" -eq 2 && "$attempt" -lt 1 ]] && grep -q 'no VERDICT: line found' "$parse_err"; then
+  if [[ "$vcode" -eq 2 && "$attempt" -lt "$no_verdict_retries" ]] && grep -q 'no VERDICT: line found' "$parse_err"; then
     attempt=$(( attempt + 1 ))
     continue
   fi
