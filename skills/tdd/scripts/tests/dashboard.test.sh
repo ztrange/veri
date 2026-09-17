@@ -175,6 +175,17 @@ port_problem() {  # port_problem <port>
   fi
 }
 
+# stop <pid> — interrupt a launched server and reap it, returning the status it exited
+# with. SIGINT rather than SIGTERM because that is the stop the script documents, and the
+# status is returned rather than swallowed because for the first case it IS half the
+# criterion: a server killed by the signal it is meant to shut down on comes back 130.
+# Both `kill` and `wait` are quiet: a server that already died has no pid to signal, and the
+# case's own probes are what should say so, not a stray shell message.
+stop() {  # stop <pid>
+  kill -INT "$1" 2>/dev/null
+  wait "$1" 2>/dev/null
+}
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
@@ -210,8 +221,7 @@ else
   # The other half of the criterion: SIGINT, and an exit status of 0 — a server killed by
   # the signal it is meant to shut down on comes back 130, and that is a distinct failure
   # from never having served the page.
-  kill -INT "$dash_pid" 2>/dev/null
-  wait "$dash_pid" 2>/dev/null && int_code=0 || int_code=$?
+  stop "$dash_pid" && int_code=0 || int_code=$?
   [[ "$int_code" -eq 0 ]] || problems+=("exited $int_code after SIGINT, want 0")
 fi
 
@@ -257,8 +267,7 @@ else
     problems+=("the server answered on $elsewhere:$arg_port as well, so it is bound to every interface; want 127.0.0.1 only")
   fi
 
-  kill -INT "$arg_pid" 2>/dev/null
-  wait "$arg_pid" 2>/dev/null || :
+  stop "$arg_pid" || :
 fi
 
 report "$name"
@@ -368,8 +377,7 @@ for i, (g, w) in enumerate(zip(got["runs"], want["runs"])):
     fi
   fi
 
-  kill -INT "$runs_pid" 2>/dev/null
-  wait "$runs_pid" 2>/dev/null || :
+  stop "$runs_pid" || :
 fi
 
 report "$name"
