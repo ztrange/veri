@@ -11,6 +11,9 @@
 #                           127.0.0.1 only — never on another interface.
 #   GET /api/runs           return what `status.sh --json` returns, for the repository the
 #                           server was started from.
+#   GET /api/metrics        return the per-issue report: recomputed from the event log for a
+#                           run still going, and the committed `.tdd/issue-<n>-metrics.md`
+#                           verbatim for one that ended.
 #
 # The server is the one script here that cannot be asked a question and answered in the
 # same process: it runs until it is told to stop. So the case launches it in the
@@ -23,6 +26,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 DASH="$HERE/../dashboard.sh"
 STATUS="$HERE/../status.sh"
+METRICS="$HERE/../metrics.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
@@ -385,6 +389,137 @@ for i, (g, w) in enumerate(zip(got["runs"], want["runs"])):
   fi
 
   stop "$runs_pid" || :
+fi
+
+report "$name"
+
+# --- the Metrics endpoint: live for a running run, the committed report for a finished one ---
+# The pane is a reader of metrics.sh and of the report the conductor commits beside the
+# ledger (`.tdd/issue-<n>-metrics.md`, SKILL.md:858), so the criterion is two equalities over
+# two runs: a run still going has its figures RECOMPUTED from `.tdd/events.jsonl`, and a run
+# that ended has the committed file handed back verbatim — the account of the run as it was
+# written, not a reading of a log that may since have been pushed and pruned.
+#
+# What makes the two distinguishable is that BOTH fabricated runs carry a committed report,
+# and neither file is what metrics.sh would print for its log. So an endpoint that read the
+# file for everything fails on the running run, and one that recomputed everything fails on
+# the finished one; only the split the criterion names passes. metrics.sh reads the log and
+# the ledger and asks no clock, so its live answer here is a stable string to compare with.
+#
+# `done`/`bail` is what ends a run — the mark status.sh already reads for its `state`
+# (status.sh:76) — so the finished run's log carries a `done` and the running run's newest
+# event is seconds old with no such mark.
+name="the Metrics endpoint recomputes a running run and returns the committed report for a finished one"
+problems=()
+met_repo="$(repo metricsendpoint)"
+
+# The running run: two steps, the first ticked, newest event seconds old, no `done`.
+met_live="$(fabricate_run "$met_repo" 31 tdd/31-lamps-glow)"
+cat > "$met_live/.tdd/issue-31.md" <<'EOF'
+# Plan for #31 — lamps glow
+
+- [x] a lamp exists
+- [ ] a lamp glows
+EOF
+met_now="$(date +%s)"
+cat > "$met_live/.tdd/events.jsonl" <<EOF
+{"ts": $((met_now - 120)), "issue": "31", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((met_now - 110)), "issue": "31", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((met_now - 60)), "issue": "31", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "0.25", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500", "num_turns": "7", "duration_api_ms": "12000"}
+EOF
+# A committed report the running run must NOT be answered with: the run is still spending, so
+# a file written when the step before it ended is exactly the stale reading the criterion
+# splits on. Its heading is one metrics.sh never prints, so the two can never be confused.
+cat > "$met_live/.tdd/issue-31-metrics.md" <<'EOF'
+# a stale committed report for #31 that metrics.sh would never print
+EOF
+
+# The finished run: a log that ends in `done`, and the committed report that is the answer.
+met_done="$(fabricate_run "$met_repo" 32 tdd/32-lamps-dim)"
+cat > "$met_done/.tdd/issue-32.md" <<'EOF'
+# Plan for #32 — lamps dim
+
+- [x] a lamp exists
+- [x] a lamp dims
+EOF
+cat > "$met_done/.tdd/events.jsonl" <<EOF
+{"ts": $((met_now - 9000)), "issue": "32", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((met_now - 8900)), "issue": "32", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green"}
+{"ts": $((met_now - 8800)), "issue": "32", "actor": "verifier", "phase": "green", "step": "a lamp dims", "event": "verdict", "attempt": "1", "skill_commit": "abc", "verdict": "PASS"}
+{"ts": $((met_now - 8700)), "issue": "32", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-done", "attempt": "", "skill_commit": "abc"}
+{"ts": $((met_now - 8600)), "issue": "32", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://example.invalid/pr/2"}
+EOF
+cat > "$met_done/.tdd/issue-32-metrics.md" <<'EOF'
+# What solving #32 cost — the committed report, verbatim
+
+| phase | attempts |
+|---|---|
+| green | 1 |
+EOF
+
+met_log="$work/metricsendpoint.log"
+met_port="$(free_port)"
+
+problem="$(port_problem "$met_port")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
+else
+  launch "$met_repo" "$met_log" "$met_port"
+  met_pid=$!
+
+  met_answer="$(serve_until_up "http://127.0.0.1:$met_port/api/metrics")"
+
+  if [[ -z "$met_answer" ]]; then
+    problems+=("no answer from http://127.0.0.1:$met_port/api/metrics after 10 s; the server left: $(printf '%q' "$(cat "$met_log" 2>/dev/null)")")
+  else
+    met_status="$(http_status "$met_answer")"
+    if [[ "$met_status" != 200 ]]; then
+      problems+=("GET /api/metrics answered $met_status, want 200")
+    else
+      http_body "$met_answer" > "$work/metrics-endpoint.json"
+      # metrics.sh's own answer for the running run, asked from that run's worktree the way
+      # the conductor asks it, so a difference is the endpoint's and not the fixture's.
+      (cd "$met_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
+        > "$work/metrics-live.md" 2>/dev/null
+      while IFS= read -r line; do
+        [[ -n "$line" ]] && problems+=("$line")
+      done < <(python3 -c '
+import json, sys
+
+body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
+    print("the endpoint returned %s; want an object with an \"issues\" object keyed by "
+          "issue number" % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+issues = got["issues"]
+if sorted(issues) != ["31", "32"]:
+    print("the endpoint reports issues %s; want the two runs 31 and 32"
+          % json.dumps(sorted(issues)))
+    sys.exit()
+with open(live_path) as f:
+    live = f.read()
+with open(committed_path) as f:
+    committed = f.read()
+if issues["31"] != live:
+    print("issue 31 is running, so its report has to be recomputed from the event log: the "
+          "endpoint returned %r, and metrics.sh 31 prints %r"
+          % (issues["31"][:300], live[:300]))
+if issues["32"] != committed:
+    print("issue 32 ended with a done mark, so its report has to be the committed "
+          ".tdd/issue-32-metrics.md: the endpoint returned %r, and the committed file holds "
+          "%r" % (issues["32"][:300], committed[:300]))
+' "$work/metrics-endpoint.json" "$work/metrics-live.md" "$met_done/.tdd/issue-32-metrics.md")
+    fi
+  fi
+
+  stop "$met_pid" || :
 fi
 
 report "$name"
