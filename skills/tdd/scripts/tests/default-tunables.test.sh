@@ -60,6 +60,13 @@ intervals() {
   printf '%s\n' "${joined:-<no-sleep-recorded>}"
 }
 
+# want_exit <want> <got> <what> [context] — record a mismatched exit code in `problems`, in the
+# one wording every probe below reports one in. Seven probes assert an exit code and only the
+# code and the subject differ, so the comparison and its message live here once.
+want_exit() {
+  [[ "$2" == "$1" ]] || problems+=("$3: want exit $1, got $2${4:+ ($4)}")
+}
+
 # sup_code <dir> <env setting…> — supervise the brief leaf in a run directory of its own and
 # echo supervise.sh's exit code. The settings are forwarded to `env` verbatim, so `-u NAME` and
 # `NAME=value` both reach it as themselves. VERI_STUCK_RETRIES=0 is pinned, not inherited: a
@@ -103,8 +110,8 @@ problems=()
 sup_poll_code="$(sup_code poll-sup -u VERI_POLL -u VERI_HEARTBEAT -u VERI_TIMEOUT \
   PATH="$stub:$PATH" SLEEP_LOG="$work/sleep-sup.log")"
 sup_poll_grid="$(intervals "$work/sleep-sup.log")"
-[[ "$sup_poll_code" == 0 ]] ||
-  problems+=("supervise.sh with no tunables set did not supervise the brief leaf cleanly: want exit 0, got $sup_poll_code ($(cat "$work/poll-sup.err" 2>/dev/null))")
+want_exit 0 "$sup_poll_code" "supervise.sh with no tunables set supervising the brief leaf" \
+  "$(cat "$work/poll-sup.err" 2>/dev/null)"
 [[ "$sup_poll_grid" == '1,' ]] ||
   problems+=("supervise.sh with VERI_POLL unset polls on intervals '$sup_poll_grid', want '1,' — the documented whole-second default")
 
@@ -118,8 +125,7 @@ mkdir -p "$work/poll-wait/.tdd"
 wait_poll_code=$?
 wait
 wait_poll_grid="$(intervals "$work/sleep-wait.log")"
-[[ "$wait_poll_code" == 1 ]] ||
-  problems+=("wait-leaf.sh with no tunables set did not return the recorded code: want exit 1, got $wait_poll_code")
+want_exit 1 "$wait_poll_code" "wait-leaf.sh with no tunables set returning the leaf's recorded code"
 [[ "$wait_poll_grid" == '1,' ]] ||
   problems+=("wait-leaf.sh with VERI_POLL unset polls on intervals '$wait_poll_grid', want '1,' — the documented whole-second default")
 
@@ -128,19 +134,15 @@ wait_poll_grid="$(intervals "$work/sleep-wait.log")"
 bad_hb="$(sup_code bad-hb   VERI_HEARTBEAT=abc VERI_TIMEOUT=3   VERI_POLL=0.05)"
 bad_to="$(sup_code bad-to   VERI_HEARTBEAT=3   VERI_TIMEOUT=abc VERI_POLL=0.05)"
 bad_poll="$(sup_code bad-poll VERI_HEARTBEAT=3 VERI_TIMEOUT=3   VERI_POLL=abc)"
-[[ "$bad_hb" == 2 ]] ||
-  problems+=("supervise.sh with VERI_HEARTBEAT=abc: want exit 2, got $bad_hb")
-[[ "$bad_to" == 2 ]] ||
-  problems+=("supervise.sh with VERI_TIMEOUT=abc: want exit 2, got $bad_to")
-[[ "$bad_poll" == 2 ]] ||
-  problems+=("supervise.sh with VERI_POLL=abc: want exit 2, got $bad_poll")
+want_exit 2 "$bad_hb" "supervise.sh with VERI_HEARTBEAT=abc"
+want_exit 2 "$bad_to" "supervise.sh with VERI_TIMEOUT=abc"
+want_exit 2 "$bad_poll" "supervise.sh with VERI_POLL=abc"
 
 # wait-leaf.sh, asked to wait in a directory with no completion file at all and a one-second
 # budget: a refusal is exit 2, and the budget is what bounds the probe if there is none.
 ( cd "$work" && env VERI_POLL=abc "$WAIT" absent 1 >/dev/null 2>&1 )
 bad_wait=$?
-[[ "$bad_wait" == 2 ]] ||
-  problems+=("wait-leaf.sh with VERI_POLL=abc: want exit 2, got $bad_wait")
+want_exit 2 "$bad_wait" "wait-leaf.sh with VERI_POLL=abc"
 
 # verify.sh's own budget, refused before any leaf is launched (verify.sh:167-172), and the
 # absence of a window default of its own.
@@ -148,8 +150,7 @@ printf 'slugify must lowercase the title and join words with hyphens.' > "$work/
 ( cd "$work" && env VERI_NO_VERDICT_RETRIES=abc "$VERIFY" green "$work/spec.md" \
     tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 bad_verify=$?
-[[ "$bad_verify" == 2 ]] ||
-  problems+=("verify.sh with VERI_NO_VERDICT_RETRIES=abc: want exit 2, got $bad_verify")
+want_exit 2 "$bad_verify" "verify.sh with VERI_NO_VERDICT_RETRIES=abc"
 for window in VERI_HEARTBEAT VERI_TIMEOUT VERI_POLL; do
   grep -q "\${$window" "$VERIFY" &&
     problems+=("verify.sh reads \${$window…} itself, so it now has a window default of its own and owes a probe here")
