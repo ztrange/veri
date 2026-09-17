@@ -7,6 +7,6 @@
 - [x] status.sh shows each run's state: running, done with its PR url, bailed with phase and classification, or stale when no event is newer than `VERI_TIMEOUT` and its conductor.pid does not answer `kill -0`
 - [x] status.sh --scope <name> (or VERI_LABEL when no --scope) adds scope totals: issues attempted, done, bailed, total wall time and dollars
 - [x] status.sh with no --scope but VERI_LABEL set adds the same scope totals line for the scope VERI_LABEL names
-- [ ] status.sh scope totals include the count still solvable, from solvable-issues.sh for that scope, tested with VERI_GH_JSON fixtures and no network
+- [x] status.sh scope totals include the count still solvable, from solvable-issues.sh for that scope, tested with VERI_GH_JSON fixtures and no network ⟂ refactor pending
 - [ ] status.sh --json emits the same per-run and scope data as one JSON document
 - [ ] status.sh --watch [seconds] redraws in place, recomputing everything from disk on every render
