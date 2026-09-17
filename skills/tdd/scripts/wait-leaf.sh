@@ -23,6 +23,7 @@ max="${2:-540}"
 poll="${VERI_POLL:-1}"
 
 exitfile=".tdd/$name.exit"
+pidfile=".tdd/$name.pid"
 deadline=$(( $(date +%s) + max ))
 
 # recorded_code — echo the supervisor's final code, or fail when the file holds no status
@@ -39,6 +40,16 @@ recorded_code() {
 
 while :; do
   ec="$(recorded_code)" && exit "$ec"
+  # A supervisor that died never writes its completion file, so a recorded pid that no
+  # longer runs ends the wait with 2 — after one last look, in case it wrote just before.
+  if [[ -f "$pidfile" ]]; then
+    read -r pid < "$pidfile" 2>/dev/null || true
+    if [[ "${pid:-}" =~ ^[0-9]+$ ]] && ! kill -0 "$pid" 2>/dev/null; then
+      ec="$(recorded_code)" && exit "$ec"
+      echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
+      exit 2
+    fi
+  fi
   (( $(date +%s) >= deadline )) && break
   sleep "$poll"
 done

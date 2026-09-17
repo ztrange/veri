@@ -205,6 +205,28 @@ warning="$(awk 'BEGIN { RS = "" }
 [[ -z "$launch_misses" ]] && ok \
   || no "SKILL.md launches every leaf detached and waits for it with wait-leaf.sh in the foreground, and warns that a background call awaiting a notification never completes in print mode (launch sites=$launches, missing:$launch_misses)"
 
+# 5. a supervisor that died without writing its completion file → exit 2, long before the
+#    budget runs out, and stderr names the leaf and the dead pid (#173). A KILL cannot be
+#    trapped, so the supervisor's recorded pid is the only thing that tells a dead supervisor
+#    from a slow one; without it every 3 looks alike and the conductor calls again forever.
+#
+#    The dead pid is a real one: a background `sleep 0` that has been reaped, so it names a
+#    process that existed and has exited. The budget is 20 seconds so that "gave up when the
+#    budget ran out" reads as 20 and cannot pass for "noticed the death" at <=10.
+( sleep 0 ) &
+dead_pid=$!
+wait "$dead_pid"
+printf '%s\n' "$dead_pid" > "$work/.tdd/dead-sup.pid"
+d_err="$work/dead-sup.err"
+d_t0="$(date +%s)"
+( cd "$work" && env VERI_POLL=0.2 "$WAIT" dead-sup 20 >/dev/null 2>"$d_err" )
+d_rc=$?
+d_secs=$(( $(date +%s) - d_t0 ))
+d_stderr="$(cat "$d_err")"
+{ [[ "$d_rc" == 2 ]] && [[ "$d_secs" -le 10 ]] &&
+  [[ "$d_stderr" == *dead-sup* ]] && [[ "$d_stderr" == *"$dead_pid"* ]]; } && ok \
+  || no "exits 2 well before its budget, naming the leaf and the dead pid on stderr, when the recorded supervisor has exited and no completion file exists (got code=$d_rc secs=$d_secs want '2 <=10'; stderr='$d_stderr' want it to name dead-sup and $dead_pid)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
