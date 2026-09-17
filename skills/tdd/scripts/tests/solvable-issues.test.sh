@@ -1454,6 +1454,11 @@ STUB
   chmod +x "$1/gh"
 }
 
+paged_run() {  # paged_run <dir of a paging_gh stub>; the real gh path, sets $out and $code
+  out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$1:$PATH" \
+         "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+}
+
 # 29. `gh` does not return a repository's issues; it returns a PAGE of them — 30 by default,
 # newest first, unless the caller says `--limit` (#244). On 2026-09-16 veri's own repo had 39
 # open issues, and the 9 oldest were invisible to selection: #109 and #110 were opted in and
@@ -1485,8 +1490,7 @@ print(json.dumps(issues[:limit]))
 esac
 STUB
 
-out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$pagedir:$PATH" \
-       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+paged_run "$pagedir"
 
 { [[ "$code" == 0 && "$out" == "101" ]]; } \
   && ok || no "an opted-in, unblocked issue older than gh's default page of 30 is printed (40 open issues, only the oldest #101 opted in: exit=$code want 0, stdout='$out' want '101')"
@@ -1518,8 +1522,7 @@ print(json.dumps(issues[:limit]))
 esac
 STUB
 
-out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$blockdir:$PATH" \
-       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+paged_run "$blockdir"
 
 { [[ "$code" == 3 && -z "$out" ]]; } \
   && ok || no "an issue blocked by an open issue older than gh's default page of 30 is not printed (40 open issues, #140 opted in and blocked by the oldest #101: exit=$code want 3, stdout='$out' want '')"
@@ -1550,8 +1553,7 @@ print(json.dumps(prs[:limit]))
 esac
 STUB
 
-out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$prpagedir:$PATH" \
-       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+paged_run "$prpagedir"
 
 { [[ "$code" == 3 && -z "$out" ]]; } \
   && ok || no "an open PR older than gh's default page of 30 saying Closes #<n> still claims its issue (40 open PRs, only the oldest says Closes #7: exit=$code want 3, stdout='$out' want '')"
