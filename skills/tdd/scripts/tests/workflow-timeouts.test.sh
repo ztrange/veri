@@ -11,9 +11,10 @@
 # is why the comment is part of the contract and not decoration.
 #
 # Contract under test:
-#   .github/workflows/ci.yml, the `gates` job: `timeout-minutes: 3` at job level, and the
-#   comment beside it names the 6-hour ceiling it protects against, cites the ~40 s the
-#   job observably takes and the ~230 s it took while the docs gates ran in CI, and says
+#   .github/workflows/ci.yml, the `gates` job: `timeout-minutes: 5` at job level, and the
+#   comment beside it names the 6-hour ceiling it protects against, cites the ~160-175 s the
+#   job observably takes and the ~230 s it took while the docs gates ran in CI, says the 5 is
+#   temporary until #282 and #290 land, and says
 #   the budget assumes those gates stay out of CI.
 #
 #   .github/workflows/pages.yml, the `deploy` job: `timeout-minutes: 10` at job level, and
@@ -149,13 +150,15 @@ timeout_comment() {
 # 1. The contract above. The four facts in the comment are one criterion — the number is
 #    only defensible with its reasoning beside it — so they report as one case, with
 #    `problems` naming whichever fact is missing.
-name="ci.yml gates: timeout-minutes 3, with a comment citing the 6-hour ceiling, ~40 s, ~230 s, and docs gates staying out of CI"
+name="ci.yml gates: timeout-minutes 5, with a comment citing the 6-hour ceiling, the measured 160-175 s, ~230 s, the temporary raise, and docs gates staying out of CI"
 problems=()
 
-if timeout_comment "$CI_YML" gates 3; then
+if timeout_comment "$CI_YML" gates 5; then
   probe_ceiling
-  probe "comment does not cite the ~40 s the job observably takes" \
-    '(^|[^0-9])(3[0-9]|4[0-9])[ -]?s'
+  probe "comment does not cite the measured 160-175 s the job takes" \
+    '(^|[^0-9])(1[5-9][0-9])[ -]?s'
+  probe "comment does not say the 5 is temporary, naming what has to land first" \
+    'temporar' '(#282|#290)'
   probe "comment does not cite the ~230 s the job took when the docs gates ran in CI" \
     '(2[0-9][0-9][ -]?s|3\.8[ -]?min)'
   probe "comment does not say the budget assumes the docs gates stay out of CI" \
