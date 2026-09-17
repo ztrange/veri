@@ -176,6 +176,7 @@ parse_err="$(mktemp)"
 trap 'rm -f "$parse_err"' EXIT
 relaunches=0
 while :; do
+  cause=""
   set +e
   out="$("$HERE/supervise.sh" "$leaf_name" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
   scode=$?
@@ -226,9 +227,20 @@ while :; do
   # contract rather than the plumbing (issue #219): it is relaunched on a fresh attempt instead of
   # bailed. The verifier is blind and re-runs the suite itself, so the relaunch judges the same
   # tree from scratch with the same prompt file.
-  if [[ "$vcode" -eq 2 && "$relaunches" -lt "$no_verdict_retries" ]] && grep -q 'no VERDICT: line found' "$parse_err"; then
-    relaunches=$(( relaunches + 1 ))
-    continue
+  #
+  # Both the relaunch and the final exit 2 carry `cause=no-verdict` in the event log, a cause
+  # supervise.sh never writes: its causes name the watchdog's kill, and this leaf was not killed.
+  if [[ "$vcode" -eq 2 ]] && grep -q 'no VERDICT: line found' "$parse_err"; then
+    cause=no-verdict
+    if [[ "$relaunches" -lt "$no_verdict_retries" ]]; then
+      relaunches=$(( relaunches + 1 ))
+      role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
+      if [[ -n "$role" ]]; then
+        # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+        env $role "$HERE/event.sh" relaunch cause="$cause"
+      fi
+      continue
+    fi
   fi
   break
 
@@ -264,7 +276,7 @@ reason_line="${reason%%$'\n'*}"
 role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
 if [[ -n "$role" ]]; then
   # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
-  env $role "$HERE/event.sh" verdict verdict="$word" reason="$reason_line"
+  env $role "$HERE/event.sh" verdict verdict="$word" reason="$reason_line" ${cause:+cause="$cause"}
 fi
 
 printf '%s\n' "$reason"

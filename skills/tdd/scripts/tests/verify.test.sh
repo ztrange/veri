@@ -593,6 +593,41 @@ axes_stuck="$? $(cat "$axes_dir/stuck/launches" 2>/dev/null || echo 0)"
 { [[ "$axes_no_verdict" == '2 2' ]] && [[ "$axes_stuck" == '2 1' ]]; } && ok \
   || no "VERI_STUCK_RETRIES does not change the no-verdict relaunch count and VERI_NO_VERDICT_RETRIES does not change supervise.sh's stuck retry count (code launches — never-verdict leaf, VERI_STUCK_RETRIES=3: '$axes_no_verdict' want '2 2'; hung leaf, VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3: '$axes_stuck' want '2 1')"
 
+# 24. a clean exit with no VERDICT: line is recorded in the event log under a cause of its own,
+#     issue #219: on each relaunch and on the final exit 2, a line carrying a `cause` — and that
+#     cause is none of the ones a verifier killed before rendering a verdict is recorded under. A
+#     run log showing only the exit code cannot tell the two apart; the cause is what does. The
+#     never-verdict leaf at the default budget makes one relaunch and one final exit 2, so its log
+#     must hold exactly two lines with a non-empty `cause`, both the same. supervise.sh writes
+#     `cause=` only for a kill, so on this clean-exiting leaf it contributes none of the two. The
+#     killed half is a hung leaf with no retries, whose causes are whatever supervise.sh wrote.
+causes_in() {  # causes_in <dir> -> every non-empty `cause` in <dir>'s event log, one per line
+  python3 -c '
+import sys, json
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("cause"):
+        print(obj["cause"])
+' "$1/.tdd/events.jsonl" 2>/dev/null
+}
+cause_dir="$work/no-verdict-cause"
+mkdir -p "$cause_dir/no-verdict" "$cause_dir/killed"
+( cd "$cause_dir/no-verdict" && unset VERI_NO_VERDICT_RETRIES \
+  && env CLAUDE_BIN="$stubdir/claude-counting" LAUNCH_COUNT="$cause_dir/no-verdict/launches" ARGV_OUT="$cause_dir/argv" \
+      "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+( cd "$cause_dir/killed" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
+    VERI_HEARTBEAT=1 VERI_POLL=0.2 "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+no_verdict_causes="$(causes_in "$cause_dir/no-verdict")"
+killed_causes="$(causes_in "$cause_dir/killed")"
+no_verdict_cause_count="$(printf '%s' "$no_verdict_causes" | grep -c '^' || true)"
+no_verdict_distinct="$(printf '%s\n' "$no_verdict_causes" | sort -u)"
+{ [[ "$no_verdict_cause_count" -eq 2 ]] && [[ "$(printf '%s\n' "$no_verdict_distinct" | grep -c '^')" -eq 1 ]] \
+  && [[ -n "$killed_causes" ]] && ! printf '%s\n' "$killed_causes" | grep -qxF "$no_verdict_distinct"; } && ok \
+  || no "a clean exit with no VERDICT: line is logged under a cause distinct from a killed verifier's, on the relaunch and on the final exit 2 (no-verdict causes: $no_verdict_cause_count lines '${no_verdict_causes//$'\n'/|}' want 2 lines of one cause; killed causes: '${killed_causes//$'\n'/|}' must be non-empty and not contain it)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
