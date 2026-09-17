@@ -261,8 +261,12 @@ export VERI_LEAF_MODEL="$model"
 # a reader of a log full of shas cannot tell an unresolvable commit from a writer that was
 # handed nothing. The default covers both ways git declines — a refusal (no repository) and
 # an empty answer — because the key's promise is a value, not an exit code.
-VERI_SKILL_COMMIT="$(git -C "$HERE" rev-parse HEAD 2>/dev/null)"
-export VERI_SKILL_COMMIT="${VERI_SKILL_COMMIT:-unknown}"
+#
+# A skill run from run-conductor.sh's pinned snapshot is no clone either, but its commit is
+# known: the launch exports it as VERI_SKILL_COMMIT (issue #251), and that is the answer
+# when git has none of its own.
+skill_commit="$(git -C "$HERE" rev-parse HEAD 2>/dev/null)" || skill_commit=""
+export VERI_SKILL_COMMIT="${skill_commit:-${VERI_SKILL_COMMIT:-unknown}}"
 
 # mark <event> [key=value …] — append one line to the run's event log (issue #107,
 # ADR-0014), or nothing at all. Both marks below go through here, so what the two have in
