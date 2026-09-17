@@ -165,6 +165,12 @@ head_before="$(head_snapshot)"
 
 # How many times a leaf that exited cleanly with no VERDICT: line is relaunched (issue #219).
 no_verdict_retries="${VERI_NO_VERDICT_RETRIES:-1}"
+# Refused before the leaf launches: under `set -u` a word inside the `-lt` below is read as a
+# variable name, so a bad value would otherwise surface only after a leaf had been paid for.
+if [[ ! "$no_verdict_retries" =~ ^[0-9]+$ ]]; then
+  echo "verify: VERI_NO_VERDICT_RETRIES must be a non-negative integer, got '$no_verdict_retries'" >&2
+  exit 2
+fi
 
 parse_err="$(mktemp)"
 trap 'rm -f "$parse_err"' EXIT
