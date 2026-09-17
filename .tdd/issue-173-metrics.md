@@ -1,6 +1,6 @@
 ### 📊 Metrics — issue 173
 
-Wall time for the issue: 10651 s, from the first event of the log to the mark that ended the run.
+Wall time for the issue: 2912 s, from the first event of the log to the mark that ended the run.
 Steps done: 6 of 8 planned.
 Outcome: the run bailed — no-verdict, a system failure.
 Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
@@ -9,8 +9,8 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 
 | phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| red | 12 | 5 | 0 | 0 | 1967 | 503 | 83 | 164 | 40018 | 4072064 | 483864 | 5.66 |
-| green | 10 | 4 | 0 | 0 | 5604 | 302 | 76 | 148 | 21695 | 3512642 | 343395 | 3.90 |
+| red | 14 | 6 | 0 | 0 | 2414 | 616 | 99 | 196 | 48974 | 4873607 | 569668 | 6.62 |
+| green | 12 | 4 | 0 | 0 | 7994 | 512 | 124 | 244 | 38682 | 6687642 | 451892 | 5.56 |
 | refactor | 8 | 4 | 0 | 0 | 2485 | 394 | 46 | 92 | 16233 | 2373242 | 245512 | 3.67 |
 | pin | 2 | 2 | 0 | 0 | 237 | 106 | 28 | 46 | 8462 | 1207026 | 72750 | 0.62 |
 
@@ -18,8 +18,8 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 
 | phase | rework wall s | rework $ | waste wall s | waste $ |
 | --- | ---: | ---: | ---: | ---: |
-| red | 0 | 0.00 | 447 | 0.97 |
-| green | 0 | 0.00 | 2133 | 0.65 |
+| red | 0 | 0.00 | 894 | 1.94 |
+| green | 0 | 0.00 | 4523 | 2.32 |
 | refactor | 0 | 0.00 | 0 | 0.00 |
 | pin | 0 | 0.00 | 0 | 0.00 |
 
@@ -33,10 +33,10 @@ Cost is every leaf of the run, and the conductor own spending is not in it: this
 | wait-leaf.sh returns the recorded code when the completion file lands just before the supervisor exits | 2 | 1 | 0 | 0 | 0 | 88 | 19 | 30 | 6978 | 724935 | 76746 | 0.88 | unknown | unknown | unknown | unknown |
 | supervise.sh records its own pid in .tdd/<name>.pid before it launches the leaf | 6 | 3 | 0 | 0 | 0 | 324 | 64 | 128 | 22251 | 3462597 | 262196 | 2.99 | 2414 | unknown | 0/5 | nothing-left |
 | supervise.sh sent TERM, INT or HUP writes 2 to its completion file, exits 2 and leaves no leaf process behind | 6 | 3 | 0 | 0 | 0 | 274 | 35 | 68 | 13148 | 1715908 | 205129 | 2.73 | 1743 | unknown | 0/5 | nothing-left |
-| A pid file left by an earlier leaf of the same name cannot end a later wait early: SKILL.md's launch lines clear .tdd/<name>.pid together with .tdd/<name>.exit | 4 | 1 | 0 | 0 | 0 | 134 | 27 | 54 | 10269 | 1252775 | 122311 | 1.63 | unknown | unknown | unknown | unknown |
+| A pid file left by an earlier leaf of the same name cannot end a later wait early: SKILL.md's launch lines clear .tdd/<name>.pid together with .tdd/<name>.exit | 8 | 2 | 0 | 0 | 0 | 457 | 91 | 182 | 36212 | 5229318 | 316612 | 4.25 | unknown | unknown | unknown | unknown |
 
 #### Total
 
 | run | turns | input | output | cache read | cache creation | $ |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| total | 233 | 450 | 86408 | 11164974 | 1145521 | 13.84 |
+| total | 297 | 578 | 112351 | 15141517 | 1339822 | 16.47 |
