@@ -7,8 +7,10 @@
 # blindness guarantee is structural, not a matter of the conductor remembering to omit it.
 #
 # Usage:
-#   build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#   build-verify-prompt.sh [--step '<STEP>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #     phase = red | green | refactor | pin
+#     --step = the ledger's own line for the step under judgement (#223): it scopes the
+#              verdict to that criterion, and carries the conductor's words, not the leaf's
 #
 # Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown
 # phase or a missing template/spec file.
@@ -25,6 +27,14 @@ set -euo pipefail
 # option fails; there is nothing to disable there, so discarding that failure makes the
 # line a no-op on 3.2 while it does the real work on 5.2+.
 shopt -u patsub_replacement 2>/dev/null || true
+
+# The step is a flag, never read from ambient VERI_STEP, so only the caller can scope a
+# verdict. Without it the prompt is what it always was: a resumed run passes no step.
+step=""
+if [[ "${1:-}" == --step ]]; then
+  step="${2:?--step needs the step text}"
+  shift 2
+fi
 
 phase="${1:?usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
 spec_file="${2:?missing <issue-spec-file>}"
@@ -59,6 +69,18 @@ spec="$(cat "$spec_file")"
 # patsub_replacement guard above holding, so &, \, / and {} in the spec are carried
 # through verbatim.
 out="${tpl//\{\{SHARED\}\}/$shared}"
+step_block=""
+if [[ -n "$step" ]]; then
+  step_block="### The step under judgement
+
+$step
+
+Your verdict is about this criterion only: the spec below is the whole issue, and its other
+criteria belong to other steps of the plan.
+
+"
+fi
+out="${out//\{\{STEP\}\}/$step_block}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"

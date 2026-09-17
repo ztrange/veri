@@ -5,7 +5,7 @@
 A developer agent has written the implementation intended to make the target test
 `{{TARGET_TEST}}` at `{{TEST_PATH}}` pass. Confirm the Green step is a genuine pass.
 
-### The issue's behavior spec
+{{STEP}}### The issue's behavior spec
 
 {{ISSUE_SPEC}}
 

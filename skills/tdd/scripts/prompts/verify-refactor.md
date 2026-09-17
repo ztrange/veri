@@ -9,7 +9,7 @@ Review what the refactor changed with `git diff {{BASE_SHA}}..HEAD`, and do not 
 range's commit messages: `git log` and `git show` on the range carry the author's rationale.
 Render one verdict on the settled result.
 
-### The issue's behavior spec
+{{STEP}}### The issue's behavior spec
 
 {{ISSUE_SPEC}}
 

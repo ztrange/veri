@@ -293,6 +293,26 @@ prompt_says "$with_base" "never says an empty range is not a REJECT by itself" \
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor rejects a weakened assertion by name, names cosmetic hunks without rejecting, and does not reject an empty range (${problems#; })"
 
+# 20. every verifier is told which criterion it is judging (#223). The spec is the whole issue
+#     body, so a nine-step issue hands every verifier all nine criteria, and a refactor verdict
+#     on step 2 once demanded step 5's behaviour (#113). An optional `--step '<STEP>'` before
+#     the positionals carries the ledger's own line: every phase exits 0 with it, shows the
+#     step text, and says the verdict is about that criterion only. The step text appears in
+#     neither the spec nor the test path, so only the flag can have put it there. Each phase
+#     accumulates its own misses, for case 12's reason.
+step='frobnicate --dry-run prints the plan and writes nothing ⟦criterion 3⟧'
+problems=""
+for phase in red green refactor pin; do
+  slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
+  stepped="$("$BUILD" --step "$step" "$phase" "$work/spec.md" "$testpath" "$slot4" 2>/dev/null)"; code=$?
+  [[ "$code" -eq 0 ]] || problems="$problems; verify-$phase exits $code"
+  [[ "$stepped" == *"$step"* ]] || problems="$problems; verify-$phase never shows the step"
+  prompt_says "$stepped" "verify-$phase never says the verdict is about that criterion only" \
+    -iE -e 'verdict[^.]{0,160}(criterion|step)[^.]{0,40}only|verdict[^.]{0,160}only[^.]{0,40}(criterion|step)'
+done
+[[ -z "$problems" ]] && ok \
+  || no "--step shows the step in every verifier prompt and scopes the verdict to it (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

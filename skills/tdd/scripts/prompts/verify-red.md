@@ -5,7 +5,7 @@
 A developer agent has written **one new failing test** at `{{TEST_PATH}}` (the target
 test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 
-### The issue's behavior spec
+{{STEP}}### The issue's behavior spec
 
 {{ISSUE_SPEC}}
 
