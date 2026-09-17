@@ -117,6 +117,19 @@ differing_files() {
     cmp -s "$f" "$2/$f" || echo "$f"; done)
 }
 
+# holds_skill <base> <expected> <what> <detail> — <base>, the directory a launch was handed,
+# holds a skill, and it is <expected>'s files byte for byte; <what> names the launch and
+# <detail> the commit in the problem recorded otherwise.
+holds_skill() {
+  if [[ ! -f "$1/SKILL.md" ]]; then
+    problems+=("the $3 base directory held no skill while the conductor ran: $4")
+  else
+    diff_out="$(differing_files "$2" "$1")"
+    [[ -z "$diff_out" ]] ||
+      problems+=("the $3 base directory differs from $4: ${diff_out//$'\n'/ }")
+  fi
+}
+
 # skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
 # once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
 # resolves is one the case controls. Prints nothing; read the commit with rev-parse.
@@ -426,12 +439,8 @@ if [[ -z "$base" ]]; then
   problems+=("the resumed launch's prompt names no 'Base directory for this skill: <dir>' line")
 elif [[ -n "$first_snapshot" && -e "$first_snapshot" ]]; then
   problems+=("the first launch's snapshot was never removed, so nothing was re-materialised: $first_snapshot")
-elif [[ ! -f "$resumed_base/SKILL.md" ]]; then
-  problems+=("the resumed launch's base directory held no skill while the conductor ran: $base")
 else
-  diff_out="$(differing_files "$pinned/skills/tdd" "$resumed_base")"
-  [[ -z "$diff_out" ]] ||
-    problems+=("the resumed run's base directory differs from recorded skill commit $recorded: ${diff_out//$'\n'/ }")
+  holds_skill "$resumed_base" "$pinned/skills/tdd" "resumed launch's" "recorded skill commit $recorded"
 fi
 
 report "$name"
@@ -463,13 +472,7 @@ mkdir -p "$repinned_base"
 rm -f "$prompt"
 launch_from "$caller4" "$clone4" BASE_OUT="$repinned_base" VERI_NEW_SKILL=1
 
-if [[ ! -f "$repinned_base/SKILL.md" ]]; then
-  problems+=("the re-pinned launch's base directory held no skill while the conductor ran")
-else
-  diff_out="$(differing_files "$taken/skills/tdd" "$repinned_base")"
-  [[ -z "$diff_out" ]] ||
-    problems+=("the re-pinned run's base directory differs from current skill commit $current: ${diff_out//$'\n'/ }")
-fi
+holds_skill "$repinned_base" "$taken/skills/tdd" "re-pinned launch's" "current skill commit $current"
 
 python3 - "$caller4/.tdd/events.jsonl" "$current" <<'PY' ||
 import json, sys
@@ -582,13 +585,7 @@ mkdir -p "$tip_base"
 rm -f "$prompt"
 launch_from "$caller6" "$clone6" BASE_OUT="$tip_base"
 
-if [[ ! -f "$tip_base/SKILL.md" ]]; then
-  problems+=("the launch's base directory held no skill while the conductor ran: $(cat "$launch_err")")
-else
-  diff_out="$(differing_files "$tipdir/skills/tdd" "$tip_base")"
-  [[ -z "$diff_out" ]] ||
-    problems+=("the base directory differs from origin's tip $tip: ${diff_out//$'\n'/ }")
-fi
+holds_skill "$tip_base" "$tipdir/skills/tdd" "launch's" "origin's tip $tip: $(cat "$launch_err")"
 
 report "$name"
 
