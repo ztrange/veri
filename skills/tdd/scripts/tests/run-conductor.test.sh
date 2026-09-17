@@ -161,6 +161,11 @@ loose_skill() {
 # resolves is one the case controls. Prints nothing; read the commit with rev-parse.
 skill_clone() {
   loose_skill "$1"
+  commit_once "$1"
+}
+
+# commit_once <dir> — <dir> made a git repository whose one commit holds everything under it.
+commit_once() {
   git -C "$1" init -q
   git -C "$1" add -A
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
@@ -217,9 +222,7 @@ tree_clone() {
   prefix="$(cd "$HERE/../.." && git rev-parse --show-prefix)"
   mkdir -p "$1"
   git -C "$root" archive --prefix=skills/tdd/ "HEAD:$prefix" | tar -x -C "$1"
-  git -C "$1" init -q
-  git -C "$1" add -A
-  git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
+  commit_once "$1"
   cp -R "$HERE/../../." "$1/skills/tdd"
 }
 
