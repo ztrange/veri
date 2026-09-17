@@ -9,6 +9,8 @@
 #                           at /; exit 0 when sent SIGINT.
 #   dashboard.sh <port>     bind the port named on the command line, and bind it on
 #                           127.0.0.1 only — never on another interface.
+#   GET /api/runs           return what `status.sh --json` returns, for the repository the
+#                           server was started from.
 #
 # The server is the one script here that cannot be asked a question and answered in the
 # same process: it runs until it is told to stop. So the case launches it in the
@@ -20,6 +22,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 DASH="$HERE/../dashboard.sh"
+STATUS="$HERE/../status.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
@@ -50,6 +53,17 @@ report() {
 repo() {  # repo <name> -> path
   local dir="$work/$1"
   git init -q -b main "$dir" >/dev/null 2>&1
+  echo "$dir"
+}
+
+# A fabricated run, not a real worktree: .tdd/wt/<n> under <repo> is a repository of its own
+# whose unborn branch is the issue branch, with an empty .tdd/ for the ledger and event log.
+# Same helper as status.test.sh's, because a run is what status.sh reads and what the endpoint
+# under test has to answer with.
+fabricate_run() {  # fabricate_run <repo> <n> <branch> -> path
+  local dir="$1/.tdd/wt/$2"
+  git init -q -b "$3" "$dir" >/dev/null 2>&1
+  mkdir -p "$dir/.tdd"
   echo "$dir"
 }
 
@@ -232,6 +246,118 @@ else
 
   kill -INT "$arg_pid" 2>/dev/null
   wait "$arg_pid" 2>/dev/null || :
+fi
+
+report "$name"
+
+# --- the Runs endpoint: what status.sh --json returns ---
+# The pane is a reader of a script that already exists, so the criterion is an equality and
+# not a shape: whatever `status.sh --json` says of the repository the server was started
+# from, GET /api/runs has to say too. Asking it that way means no field of that document is
+# spelled twice — a run's issue, title, branch, step, phase, actor, cost and state, and the
+# scope object beside them — so the case cannot drift from status.sh as status.sh grows.
+#
+# One fabricated run so the answer is not the empty one: a ledger of two steps with the first
+# ticked, and an event log whose newest events are seconds old, so both readings agree the run
+# is running rather than one of them calling it stale.
+#
+# `elapsed_seconds` is the one field that cannot be equal: it is `now` minus the leaf's launch
+# timestamp, measured once when the endpoint answers and again when this case runs status.sh
+# itself, so it counts the gap between the two calls. It is compared as a number seconds apart
+# rather than dropped, because dropping it would let an endpoint that never reports elapsed
+# time at all pass.
+name="the Runs endpoint returns what status.sh --json returns"
+problems=()
+runs_repo="$(repo runsendpoint)"
+runs_run="$(fabricate_run "$runs_repo" 21 tdd/21-lamps-glow)"
+cat > "$runs_run/.tdd/issue-21.md" <<'EOF'
+# Plan for #21 — lamps glow
+
+- [x] a lamp exists
+- [ ] a lamp glows
+EOF
+now="$(date +%s)"
+cat > "$runs_run/.tdd/events.jsonl" <<EOF
+{"ts": $((now - 120)), "issue": "21", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((now - 110)), "issue": "21", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((now - 60)), "issue": "21", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "0.25", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500"}
+EOF
+runs_log="$work/runsendpoint.log"
+runs_port="$(free_port)"
+
+if [[ -z "$runs_port" ]]; then
+  problems+=("could not get a free port from the kernel, so there was nothing to pass dashboard.sh")
+elif reachable 127.0.0.1 "$runs_port"; then
+  problems+=("port $runs_port was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
+else
+  launch "$runs_repo" "$runs_log" "$runs_port"
+  runs_pid=$!
+
+  runs_answer="$(serve_until_up "http://127.0.0.1:$runs_port/api/runs")"
+
+  if [[ -z "$runs_answer" ]]; then
+    problems+=("no answer from http://127.0.0.1:$runs_port/api/runs after 10 s; the server left: $(printf '%q' "$(cat "$runs_log" 2>/dev/null)")")
+  else
+    runs_status="$(sed -n 1p <<< "$runs_answer")"
+    if [[ "$runs_status" != 200 ]]; then
+      problems+=("GET /api/runs answered $runs_status, want 200")
+    else
+      sed -n '3,$p' <<< "$runs_answer" > "$work/runs-endpoint.json"
+      # status.sh's own answer to the same question, asked from the same repository and with
+      # the same environment the launch gave the server, so any difference is the endpoint's.
+      (cd "$runs_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
+        > "$work/runs-status.json" 2>/dev/null
+      while IFS= read -r line; do
+        [[ -n "$line" ]] && problems+=("$line")
+      done < <(python3 -c '
+import json, sys
+
+
+def load(path):
+    with open(path) as f:
+        return json.load(f)
+
+
+try:
+    got = load(sys.argv[1])
+except ValueError:
+    with open(sys.argv[1]) as f:
+        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])
+    sys.exit()
+want = load(sys.argv[2])
+if not isinstance(got, dict):
+    print("the endpoint returned a %s; status.sh --json returns an object"
+          % type(got).__name__)
+    sys.exit()
+
+
+def without_elapsed(doc):
+    out = json.loads(json.dumps(doc))
+    for run in out.get("runs", []) if isinstance(out.get("runs"), list) else []:
+        if isinstance(run, dict):
+            run.pop("elapsed_seconds", None)
+    return out
+
+
+bare_got, bare_want = without_elapsed(got), without_elapsed(want)
+if bare_got != bare_want:
+    print("the endpoint returned %s" % json.dumps(bare_got, sort_keys=True))
+    print("status.sh --json returns %s" % json.dumps(bare_want, sort_keys=True))
+    sys.exit()
+for i, (g, w) in enumerate(zip(got["runs"], want["runs"])):
+    if "elapsed_seconds" not in g:
+        print("run %d has no elapsed_seconds from the endpoint; status.sh --json "
+              "reports %s" % (i, w.get("elapsed_seconds")))
+    elif abs(int(g["elapsed_seconds"]) - int(w["elapsed_seconds"])) > 10:
+        print("run %d elapsed_seconds is %s from the endpoint and %s from status.sh --json, "
+              "more than the 10 s the two calls can be apart"
+              % (i, g["elapsed_seconds"], w["elapsed_seconds"]))
+' "$work/runs-endpoint.json" "$work/runs-status.json")
+    fi
+  fi
+
+  kill -INT "$runs_pid" 2>/dev/null
+  wait "$runs_pid" 2>/dev/null || :
 fi
 
 report "$name"

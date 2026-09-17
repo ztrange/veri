@@ -16,9 +16,10 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-exec python3 - "$HERE/dashboard.html" "${1:-8765}" <<'PY'
+exec python3 - "$HERE/dashboard.html" "${1:-8765}" "$HERE/status.sh" <<'PY'
 import http.server
 import signal
+import subprocess
 import sys
 
 # SIGINT back to the handler that raises KeyboardInterrupt, explicitly. A non-interactive
@@ -30,6 +31,19 @@ signal.signal(signal.SIGINT, signal.default_int_handler)
 
 page = open(sys.argv[1], "rb").read()
 port = int(sys.argv[2])
+status_sh = sys.argv[3]
+
+
+# The Runs pane is a reader of status.sh, not a second implementation of it: the endpoint
+# runs the script and hands back its document verbatim, so no field of it is spelled twice
+# and the pane cannot drift as status.sh grows. Run from the server's own working
+# directory, which is the target repo dashboard.sh was started from. `check=False` because
+# status.sh exits 3 for "no runs", which is an answer (the empty document) and not a
+# failure.
+def runs_json():
+    done = subprocess.run([status_sh, "--json"], stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL, check=False)
+    return done.stdout
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -40,6 +54,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(page)))
             self.end_headers()
             self.wfile.write(page)
+        elif self.path == "/api/runs":
+            body = runs_json()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
         else:
             self.send_error(404)
 
