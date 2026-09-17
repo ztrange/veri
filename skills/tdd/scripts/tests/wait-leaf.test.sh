@@ -29,7 +29,8 @@ trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/.tdd"
 
 # timed <name> <budget> — wait for <name> in the foreground with a <budget>-second budget,
-# and echo "<wait-leaf's exit code> <seconds the wait took>".
+# and echo "<wait-leaf's exit code> <seconds the wait took>". Its stderr is kept in
+# $work/<name>.err for the cases that assert on the diagnostic.
 #
 # Both numbers are what a case needs, whichever way it is pointed: the code is the answer,
 # and the elapsed time separates the two ways of arriving at it — "returned when the file
@@ -42,7 +43,7 @@ mkdir -p "$work/.tdd"
 timed() {
   local t0 rc
   t0="$(date +%s)"
-  ( cd "$work" && env VERI_POLL=0.2 "$WAIT" "$1" "$2" >/dev/null 2>&1 )
+  ( cd "$work" && env VERI_POLL=0.2 "$WAIT" "$1" "$2" >/dev/null 2>"$work/$1.err" )
   rc=$?
   printf '%s %s\n' "$rc" "$(( $(date +%s) - t0 ))"
 }
@@ -217,15 +218,11 @@ warning="$(awk 'BEGIN { RS = "" }
 dead_pid=$!
 wait "$dead_pid"
 printf '%s\n' "$dead_pid" > "$work/.tdd/dead-sup.pid"
-d_err="$work/dead-sup.err"
-d_t0="$(date +%s)"
-( cd "$work" && env VERI_POLL=0.2 "$WAIT" dead-sup 20 >/dev/null 2>"$d_err" )
-d_rc=$?
-d_secs=$(( $(date +%s) - d_t0 ))
-d_stderr="$(cat "$d_err")"
-{ [[ "$d_rc" == 2 ]] && [[ "$d_secs" -le 10 ]] &&
+d_dead="$(timed dead-sup 20)"
+d_stderr="$(cat "$work/dead-sup.err")"
+{ promptly "$d_dead" 2 &&
   [[ "$d_stderr" == *dead-sup* ]] && [[ "$d_stderr" == *"$dead_pid"* ]]; } && ok \
-  || no "exits 2 well before its budget, naming the leaf and the dead pid on stderr, when the recorded supervisor has exited and no completion file exists (got code=$d_rc secs=$d_secs want '2 <=10'; stderr='$d_stderr' want it to name dead-sup and $dead_pid)"
+  || no "exits 2 well before its budget, naming the leaf and the dead pid on stderr, when the recorded supervisor has exited and no completion file exists (got '<code> <secs>'=$d_dead want '2 <=10'; stderr='$d_stderr' want it to name dead-sup and $dead_pid)"
 
 # 6. a recorded pid that is alive but is not a supervise.sh for that name → the same exit 2 as
 #    a dead one (#173). Pids are reused, so after the supervisor dies its number can come back
@@ -238,16 +235,12 @@ d_stderr="$(cat "$d_err")"
 sleep 60 &
 imp_pid=$!
 printf '%s\n' "$imp_pid" > "$work/.tdd/reused-sup.pid"
-r_err="$work/reused-sup.err"
-r_t0="$(date +%s)"
-( cd "$work" && env VERI_POLL=0.2 "$WAIT" reused-sup 20 >/dev/null 2>"$r_err" )
-r_rc=$?
-r_secs=$(( $(date +%s) - r_t0 ))
-r_stderr="$(cat "$r_err")"
+r_reused="$(timed reused-sup 20)"
+r_stderr="$(cat "$work/reused-sup.err")"
 kill "$imp_pid" 2>/dev/null; wait "$imp_pid" 2>/dev/null
-{ [[ "$r_rc" == 2 ]] && [[ "$r_secs" -le 10 ]] &&
+{ promptly "$r_reused" 2 &&
   [[ "$r_stderr" == *reused-sup* ]] && [[ "$r_stderr" == *"$imp_pid"* ]]; } && ok \
-  || no "exits 2 well before its budget when the recorded pid is alive but is not a supervise.sh for that leaf (pid reuse), naming the leaf and the pid on stderr (got code=$r_rc secs=$r_secs want '2 <=10'; stderr='$r_stderr' want it to name reused-sup and $imp_pid)"
+  || no "exits 2 well before its budget when the recorded pid is alive but is not a supervise.sh for that leaf (pid reuse), naming the leaf and the pid on stderr (got '<code> <secs>'=$r_reused want '2 <=10'; stderr='$r_stderr' want it to name reused-sup and $imp_pid)"
 
 echo "----"
 echo "$pass passed, $fail failed"
