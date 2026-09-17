@@ -245,5 +245,43 @@ missing=()
 [[ "$(lamps_scope_line)" == *"solvable 2"* ]] || missing+=("solvable 2")
 expect_nothing_missing "--scope <name> totals include the count still solvable, from solvable-issues.sh for that scope"
 
+# --- --json: the same per-run and scope data, as one JSON document ---
+# The same three runs and the same solvable fixture as the case above. The whole of stdout must
+# parse as one JSON document, and its values — never its key names — must carry what the text
+# lines do: each run's issue number, title, branch and PR url and a bail's classification, and
+# the scope's name, wall seconds, dollars and solvable count, as values of their own rather than
+# fragments of a rendered line ("360", not "wall 360s").
+VERI_GH_JSON="$solvable_gh" VERI_TIMEOUT=600 run_in "$scoped" --json --scope lamps-label
+missing=()
+while IFS= read -r want; do
+  [[ -n "$want" ]] && missing+=("$want")
+done < <(printf '%s' "$out" | python3 -c '
+import json, sys
+wanted = ["21", "22", "23", "lamps glow", "tdd/21-lamps", "tdd/22-lamps", "tdd/23-lamps",
+          "https://github.com/o/r/pull/22", "system", "lamps-label", "360", "2.25", "2"]
+try:
+    doc = json.loads(sys.stdin.read())
+except ValueError:
+    print("one JSON document")
+    sys.exit()
+leaves = set()
+def walk(node):
+    if isinstance(node, dict):
+        for value in node.values():
+            walk(value)
+    elif isinstance(node, list):
+        for value in node:
+            walk(value)
+    elif isinstance(node, float) and node.is_integer():
+        leaves.add(str(int(node)))
+    else:
+        leaves.add(str(node))
+walk(doc)
+for want in wanted:
+    if want not in leaves:
+        print(want)
+')
+expect_nothing_missing "--json emits the same per-run and scope data as one JSON document"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

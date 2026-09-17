@@ -5,7 +5,8 @@
 # solvable-issues.sh resolves it (#166): the first `worktree <path>` line of git's registry,
 # never the checkout this script was called from.
 #
-# Usage:   status.sh [--scope <name>]   (no --scope: VERI_LABEL, when set, names the scope)
+# Usage:   status.sh [--json] [--scope <name>]   (no --scope: VERI_LABEL, when set, names the scope)
+#          --json prints the same runs and scope totals as one JSON document.
 # Exit:    0 one or more runs printed; 3 nothing to do — "no runs"
 set -euo pipefail
 
@@ -32,6 +33,7 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 # run's cost so far: every `usage` line's dollars and its four token kinds, summed — and the
 # run's state. A `done` or `bail` event ends a run; otherwise it is stale when its newest event
 # is older than <timeout> seconds and <conductor.pid> does not answer `kill -0`, else running.
+# With STATUS_JSON=1 the same fields print as one JSON object instead.
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
   python3 - "$1" "$2" "$3" <<'PY'
 import json, os, sys, time
@@ -78,7 +80,15 @@ elif newest is not None and now - int(newest["ts"]) > int(sys.argv[3]) \
     state = "stale"
 else:
     state = "running"
-if last is not None:
+if last is not None and os.environ.get("STATUS_JSON") == "1":
+    print(json.dumps({"phase": last.get("phase", ""), "actor": last.get("actor", ""),
+                      "leaf": last.get("name", ""), "elapsed_seconds": now - int(last["ts"]),
+                      "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
+                      "state": state.split(" ")[0],
+                      "pr": ended.get("pr", "") if ended is not None else "",
+                      "bail_phase": ended.get("phase", "") if ended is not None else "",
+                      "classification": ended.get("classification", "") if ended is not None else ""}))
+elif last is not None:
     print("%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (last.get("phase", ""),
           last.get("actor", ""), last.get("name", ""), now - int(last["ts"]),
           attempts, dollars, tokens, state))
@@ -87,9 +97,10 @@ PY
 
 # A scope's totals over every run's event log: runs attempted, how many ended done and how many
 # bailed, wall time as each run's first-to-last event span summed, and every usage line's dollars.
+# With STATUS_JSON=1 the same totals print as one JSON object instead.
 scope_totals() {  # scope_totals <name> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>"
   python3 - "$@" <<'PY'
-import json, sys
+import json, os, sys
 attempted = done = bailed = wall = 0
 dollars = 0.0
 for path in sys.argv[2:]:
@@ -111,6 +122,10 @@ for path in sys.argv[2:]:
                 bailed += 1
     if first is not None:
         wall += int(last["ts"]) - int(first["ts"])
+if os.environ.get("STATUS_JSON") == "1":
+    print(json.dumps({"name": sys.argv[1], "attempted": attempted, "done": done,
+                      "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2)}))
+    sys.exit()
 print("scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f"
       % (sys.argv[1], attempted, done, bailed, wall, dollars))
 PY
@@ -129,9 +144,15 @@ solvable_count() {  # solvable_count <name> -> "<count>", or "?" when solvable-i
 }
 
 scope="${VERI_LABEL:-}"
-if [[ "${1:-}" == "--scope" ]]; then
-  scope="${2:-}"
-fi
+json=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --json) json=1; shift ;;
+    --scope) scope="${2:-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
+    *) shift ;;
+  esac
+done
+export STATUS_JSON="$json"
 
 timeout="${VERI_TIMEOUT:-900}"
 main_tree="$(main_working_tree)"
@@ -148,13 +169,15 @@ if [[ ${#runs[@]} -eq 0 ]]; then
 fi
 
 events=()
+run_objects=()
 for run in "${runs[@]}"; do
   run="${run%/}"
   branch="$(git -C "$run" symbolic-ref --short HEAD 2>/dev/null || true)"
   activity=""
   if [[ -f "$run/.tdd/events.jsonl" ]]; then
     events+=("$run/.tdd/events.jsonl")
-    activity="  $(run_activity "$run/.tdd/events.jsonl" "$run/.tdd/conductor.pid" "$timeout")"
+    activity="$(run_activity "$run/.tdd/events.jsonl" "$run/.tdd/conductor.pid" "$timeout")"
+    [[ "$json" -eq 1 ]] || activity="  $activity"
   fi
   for ledger in "$run"/.tdd/issue-*.md; do
     # The heading is `# Plan for #<n> — <title>`.
@@ -162,9 +185,29 @@ for run in "${runs[@]}"; do
     heading="${heading#\# Plan for #}"
     issue="${heading%% — *}"
     title="${heading#* — }"
+    if [[ "$json" -eq 1 ]]; then
+      # One object per run: the ledger's fields, merged with run_activity's object when there is one.
+      run_objects+=("$(python3 -c '
+import json, sys
+run = {"issue": sys.argv[1], "title": sys.argv[2], "branch": sys.argv[3], "step": sys.argv[4]}
+run.update(json.loads(sys.argv[5]) if sys.argv[5] else {})
+print(json.dumps(run))' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity")")
+      continue
+    fi
     printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity"
   done
 done
+
+if [[ "$json" -eq 1 ]]; then
+  scope_object="null"
+  if [[ -n "$scope" ]]; then
+    scope_object="$(scope_totals "$scope" ${events[@]+"${events[@]}"})"
+    scope_object="${scope_object%\}}, \"solvable\": \"$(solvable_count "$scope")\"}"
+  fi
+  runs_array="$(IFS=,; printf '%s' "${run_objects[*]:-}")"
+  printf '{"runs": [%s], "scope": %s}\n' "$runs_array" "$scope_object"
+  exit 0
+fi
 
 if [[ -n "$scope" ]]; then
   printf '%s  solvable %s\n' "$(scope_totals "$scope" ${events[@]+"${events[@]}"})" "$(solvable_count "$scope")"
