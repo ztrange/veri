@@ -54,8 +54,20 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 # is not in it. A skill that is not in a git clone runs from where it is, as before. The
 # snapshot is removed on exit, as run-leaf.sh:46 removes its stream file: nothing reads it
 # once the synchronous `claude -p` below has returned.
+#
+# A resume keeps its pin: the commit is recorded as run state in the caller's `.tdd/`, keyed
+# by issue, and a later launch for the same issue materialises the recorded commit rather than
+# the clone's HEAD — so a pull between the two launches does not change the run's skill. A
+# recorded commit this clone does not hold cannot be materialised, and is replaced by HEAD.
 base="$(cd "$HERE/.." && pwd)"
+record=".tdd/issue-$issue-skill-commit"
 if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
+  if [[ -r "$record" ]] && recorded="$(cat "$record")" &&
+     git -C "$base" cat-file -e "$recorded^{commit}" 2>/dev/null; then
+    commit="$recorded"
+  else
+    mkdir -p .tdd && printf '%s\n' "$commit" > "$record"
+  fi
   snapshot="$(mktemp -d)"
   trap 'rm -rf "$snapshot"' EXIT
   git -C "$base" archive "$commit" . | tar -x -C "$snapshot"

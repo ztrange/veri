@@ -347,6 +347,62 @@ fi
 
 report "$name"
 
+# 8. A resume keeps its pin. The issue is launched once from a clone at commit A, then the
+# clone moves to commit B — a `git pull` in another thread, as far as the run can tell — and
+# the same issue is launched again from the same caller, which is a resume of that run. The
+# first launch's snapshot is gone by then (the launch removes it on exit), so the second
+# launch has to re-materialise one, and it has to be A's: a base directory holding B's
+# supervise.sh is a resume that took the new skill as a side effect of the pull.
+name="a resume of the run is handed a re-materialised snapshot of the recorded commit, not the clone's new HEAD"
+problems=()
+
+clone3="$work/clone3"
+mkdir -p "$clone3/skills"
+cp -R "$HERE/../.." "$clone3/skills/tdd"
+git -C "$clone3" init -q
+git -C "$clone3" add -A
+git -C "$clone3" -c user.name=t -c user.email=t@t commit -qm skill
+recorded="$(git -C "$clone3" rev-parse HEAD)"
+
+pinned="$work/pinned"
+mkdir -p "$pinned"
+git -C "$clone3" archive "$recorded" skills/tdd | tar -x -C "$pinned"
+
+caller3="$work/caller3"
+mkdir -p "$caller3"
+git -C "$caller3" init -q
+
+first_base="$work/first-base"
+mkdir -p "$first_base"
+( cd "$caller3" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$first_base" \
+    "$clone3/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+first_snapshot="$(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1)"
+
+echo "# a commit pulled into the clone after the run started" >> "$clone3/skills/tdd/scripts/supervise.sh"
+git -C "$clone3" -c user.name=t -c user.email=t@t commit -qam pulled
+
+resumed_base="$work/resumed-base"
+mkdir -p "$resumed_base"
+rm -f "$prompt"
+( cd "$caller3" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$resumed_base" \
+    "$clone3/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+
+base="$(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1)"
+if [[ -z "$base" ]]; then
+  problems+=("the resumed launch's prompt names no 'Base directory for this skill: <dir>' line")
+elif [[ -n "$first_snapshot" && -e "$first_snapshot" ]]; then
+  problems+=("the first launch's snapshot was never removed, so nothing was re-materialised: $first_snapshot")
+elif [[ ! -f "$resumed_base/SKILL.md" ]]; then
+  problems+=("the resumed launch's base directory held no skill while the conductor ran: $base")
+else
+  diff_out="$(cd "$pinned/skills/tdd" && find . -type f | while read -r f; do
+    cmp -s "$f" "$resumed_base/$f" || echo "$f"; done)"
+  [[ -z "$diff_out" ]] ||
+    problems+=("the resumed run's base directory differs from recorded skill commit $recorded: ${diff_out//$'\n'/ }")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
