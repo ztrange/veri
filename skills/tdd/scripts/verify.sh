@@ -168,7 +168,7 @@ no_verdict_retries="${VERI_NO_VERDICT_RETRIES:-1}"
 
 parse_err="$(mktemp)"
 trap 'rm -f "$parse_err"' EXIT
-attempt=0
+relaunches=0
 while :; do
   set +e
   out="$("$HERE/supervise.sh" "$leaf_name" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
@@ -220,8 +220,8 @@ while :; do
   # contract rather than the plumbing (issue #219): it is relaunched on a fresh attempt instead of
   # bailed. The verifier is blind and re-runs the suite itself, so the relaunch judges the same
   # tree from scratch with the same prompt file.
-  if [[ "$vcode" -eq 2 && "$attempt" -lt "$no_verdict_retries" ]] && grep -q 'no VERDICT: line found' "$parse_err"; then
-    attempt=$(( attempt + 1 ))
+  if [[ "$vcode" -eq 2 && "$relaunches" -lt "$no_verdict_retries" ]] && grep -q 'no VERDICT: line found' "$parse_err"; then
+    relaunches=$(( relaunches + 1 ))
     continue
   fi
   break
