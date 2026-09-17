@@ -5,4 +5,4 @@
 - [x] A resume of that run uses the recorded commit, re-materialising the snapshot if it was removed
 - [x] A resume on which the operator explicitly asks for the new skill pins the current commit instead, and records that re-pin as an event in the run's event log
 - [x] With no resolvable commit the run proceeds unpinned and a warning is printed on stderr
-- [x] The snapshot is ignored run state: `git status --porcelain` in the worktree and in the caller's checkout stays empty ⟂ refactor pending
+- [x] The snapshot is ignored run state: `git status --porcelain` in the worktree and in the caller's checkout stays empty
