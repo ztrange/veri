@@ -127,6 +127,13 @@ skill_clone() {
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
 }
 
+# advance_clone <clone> <line> — a second skill commit on <clone>, appending <line> to its
+# supervise.sh: the clone moving under a run, so the commit a launch pins is no longer HEAD.
+advance_clone() {
+  echo "$2" >> "$1/skills/tdd/scripts/supervise.sh"
+  git -C "$1" -c user.name=t -c user.email=t@t commit -qam pulled
+}
+
 # launch_from <caller> <clone> [VAR=value…] — run <clone>'s run-conductor.sh for the issue from
 # inside <caller>, against the stub, with any extra VAR=value in its environment: the one way
 # every snapshot case launches, so the cases differ only in what they add.
@@ -405,8 +412,7 @@ mkdir -p "$first_base"
 launch_from "$caller3" "$clone3" BASE_OUT="$first_base"
 first_snapshot="$(prompt_base)"
 
-echo "# a commit pulled into the clone after the run started" >> "$clone3/skills/tdd/scripts/supervise.sh"
-git -C "$clone3" -c user.name=t -c user.email=t@t commit -qam pulled
+advance_clone "$clone3" "# a commit pulled into the clone after the run started"
 
 resumed_base="$work/resumed-base"
 mkdir -p "$resumed_base"
@@ -444,8 +450,7 @@ caller_repo "$caller4"
 
 launch_from "$caller4" "$clone4"
 
-echo "# a commit the operator asks the run to take" >> "$clone4/skills/tdd/scripts/supervise.sh"
-git -C "$clone4" -c user.name=t -c user.email=t@t commit -qam pulled
+advance_clone "$clone4" "# a commit the operator asks the run to take"
 current="$(git -C "$clone4" rev-parse HEAD)"
 
 taken="$work/taken"
