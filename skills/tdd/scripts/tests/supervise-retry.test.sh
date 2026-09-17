@@ -39,11 +39,12 @@ echo "leaf: starting"; : > .retry-marker; sleep 60; echo "unreachable"
 L
 chmod +x "$stub"/leaf-*
 
-# Drive it through the supervisor with a tight heartbeat window and the DEFAULT retry
+# Drive it through the supervisor with a 6 s heartbeat window — 5 s over the recovered
+# attempt's first output, so a loaded CPU (#200) cannot kill it too — and the DEFAULT retry
 # budget: `env -u VERI_STUCK_RETRIES` clears the variable for the child, so the default of
 # 1 must suffice and a value exported by the shell that ran `make test` cannot change the
 # answer.
-out="$( cd "$work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.2 \
+out="$( cd "$work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=6 VERI_TIMEOUT=30 VERI_POLL=0.2 \
           "$SUP" flaky "$stub/leaf-flaky" 2>"$work/err" )"
 code=$?
 

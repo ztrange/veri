@@ -451,6 +451,62 @@ busy_pids=()
   problems+=("want '1 passed, 0 failed' on stdout under load, got: $(printf '%q' "$loaded_out")")
 report "$name"
 
+# 8. The same load, answered by margin rather than by one lucky run (#200): case 7 shows the
+#    recovered attempt passing beside busy loops once, which a window only just wide enough
+#    passes as often as not. This pins the width. The window the suite hands supervise.sh must
+#    exceed the recovered attempt's first output by at least 5 s, and exceed today's 1-second
+#    window by no more than 5 s — the first attempt is killed only once that window has passed
+#    in silence, so every second added to it is a second added to every `make test`.
+#
+#    Observed rather than read as text: the suite is copied into a scratch tree whose
+#    `../supervise.sh` is a recorder. It writes down the VERI_HEARTBEAT it was given, wraps the
+#    leaf so each attempt logs how many seconds passed before its first line, and execs the real
+#    supervisor, so the suite still runs end to end. Seconds, because that is the clock
+#    supervise.sh measures silence with. An attempt log that never reached a second attempt
+#    would measure nothing, so that is probed too.
+name="supervise-retry.test.sh: its heartbeat window leaves at least 5 s over the recovered attempt's first output, and adds no more than 5 s to the suite"
+problems=()
+margin_work="$(mktemp -d)"
+trap 'kill "${busy_pids[@]+"${busy_pids[@]}"}" 2>/dev/null; rm -rf "$lock_work" "$every_work" "$margin_work"' EXIT
+mkdir -p "$margin_work/tree/tests" "$margin_work/log"
+cp "$HERE/supervise-retry.test.sh" "$margin_work/tree/tests/"
+cat > "$margin_work/tree/supervise.sh" <<SHIM
+#!/usr/bin/env bash
+log="$margin_work/log"
+printf '%s\n' "\${VERI_HEARTBEAT-unset}" > "\$log/heartbeat"
+name="\$1"; shift
+cat > "\$log/wrap" <<'WRAP'
+#!/usr/bin/env bash
+log="\$1"; shift
+n=\$(( \$(cat "\$log/attempts" 2>/dev/null || echo 0) + 1 )); echo "\$n" > "\$log/attempts"
+start=\$(date +%s)
+"\$@" | { seen=0; while IFS= read -r line; do
+  [[ "\$seen" == 1 ]] || { echo "\$n \$(( \$(date +%s) - start ))" >> "\$log/first-output"; seen=1; }
+  printf '%s\n' "\$line"; done; }
+exit "\${PIPESTATUS[0]}"
+WRAP
+chmod +x "\$log/wrap"
+exec "$HERE/../supervise.sh" "\$name" "\$log/wrap" "\$log" "\$@"
+SHIM
+chmod +x "$margin_work/tree/supervise.sh"
+margin_out="$(env -u VERI_STUCK_RETRIES -u VERI_HEARTBEAT "$margin_work/tree/tests/supervise-retry.test.sh" 2>/dev/null)" && margin_code=0 || margin_code=$?
+window="$(cat "$margin_work/log/heartbeat" 2>/dev/null)"
+recovered="$(awk '$1 > 1 { d = $2 } END { print d }' "$margin_work/log/first-output" 2>/dev/null)"
+[[ "$margin_code" == 0 && "$margin_out" == *'1 passed, 0 failed'* ]] ||
+  problems+=("want the suite green through the recorder, got exit $margin_code, stdout: $(printf '%q' "$margin_out")")
+case "$window" in ''|*[!0-9]*) problems+=("want a whole-second VERI_HEARTBEAT handed to supervise.sh, got: $(printf '%q' "$window")") ; window="" ;; esac
+[[ -n "$recovered" ]] ||
+  problems+=("no second attempt wrote a first line, so there is no recovered attempt to measure a margin over")
+if [[ -n "$window" && -n "$recovered" ]]; then
+  [[ $((window - recovered)) -ge 5 ]] ||
+    problems+=("want at least 5 s of margin, got a ${window}s window over a first output after ${recovered}s (margin $((window - recovered))s)")
+fi
+if [[ -n "$window" ]]; then
+  [[ $((window - 1)) -le 5 ]] ||
+    problems+=("want the window no more than 5 s wider than the 1 s it replaces, got ${window}s (+$((window - 1))s per make test)")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
