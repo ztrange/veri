@@ -313,6 +313,33 @@ done
 [[ -z "$problems" ]] && ok \
   || no "--step shows the step in every verifier prompt and scopes the verdict to it (${problems#; })"
 
+# 21. the step arrives by flag and by nothing else (#223). `VERI_STEP` rides on every leaf
+#     launch, so from the builder's point of view the step under judgement is already in the
+#     environment and reading it there would save the conductor a flag — and would hand every
+#     verifier a scope no caller asked for, including a resumed run whose conductor passes
+#     none. It is the same shape of leak cases 11, 14 and 15 close: a channel into the prompt
+#     that the four documented positionals and the one documented flag do not account for. So
+#     with `VERI_STEP` set and no `--step`, every phase builds the prompt it builds with the
+#     variable unset — byte-identical, and carrying none of the variable's text.
+#
+#     The probe's value is a step no ledger here would write, so a leak reading it cannot
+#     coincide with anything the templates already say. Two misses per phase, for case 12's
+#     reason: the text appearing is a leak through the environment, while a prompt that
+#     merely differs is the variable reaching the output some other way.
+ambient_step='frobnicate --dry-run prints the plan and writes nothing ⟦criterion 9⟧'
+problems=""
+for phase in red green refactor pin; do
+  slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
+  unset_arm="$(env -u VERI_STEP "$BUILD" "$phase" "$work/spec.md" "$testpath" "$slot4")"
+  ambient_arm="$(VERI_STEP="$ambient_step" "$BUILD" "$phase" "$work/spec.md" "$testpath" "$slot4")"
+  [[ "$ambient_arm" == *"$ambient_step"* ]] \
+    && problems="$problems; verify-$phase carries the ambient VERI_STEP text"
+  [[ "$ambient_arm" == "$unset_arm" ]] \
+    || problems="$problems; verify-$phase differs from the prompt built with VERI_STEP unset"
+done
+[[ -z "$problems" ]] && ok \
+  || no "VERI_STEP in the environment with no --step reaches nothing (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
