@@ -58,7 +58,8 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 # A resume keeps its pin: the commit is recorded as run state in the caller's `.tdd/`, keyed
 # by issue, and a later launch for the same issue materialises the recorded commit rather than
 # the clone's HEAD — so a pull between the two launches does not change the run's skill. A
-# recorded commit this clone does not hold cannot be materialised, and is replaced by HEAD.
+# recorded commit this clone does not hold cannot be materialised, and is refused with exit 2
+# (issue #253) rather than silently replaced: only VERI_NEW_SKILL=1 re-pins it.
 #
 # Taking the new skill is the operator's explicit act: VERI_NEW_SKILL=1 on a resume replaces
 # the recorded commit with HEAD, and says so as a `skill-repin` event in the run's event log,
@@ -93,6 +94,9 @@ if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
   elif [[ -r "$record" ]] && recorded="$(cat "$record")" &&
      git -C "$base" cat-file -e "$recorded^{commit}" 2>/dev/null; then
     commit="$recorded"
+  elif [[ -r "$record" ]]; then
+    echo "run-conductor: recorded skill commit '$(cat "$record")' is not in '$base' — refusing to re-pin; set VERI_NEW_SKILL=1 to take the new skill" >&2
+    exit 2
   else
     printf '%s\n' "$commit" > "$record"
   fi

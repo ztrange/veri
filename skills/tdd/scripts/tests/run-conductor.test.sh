@@ -400,7 +400,11 @@ echo \$? > supervise.rc
 HOOK
 chmod +x "$stubdir/hook"
 
-launch_from "$caller" "$clone2" CONDUCTOR_HOOK="$stubdir/hook"
+# A caller of its own: the shared one already holds a pin from case 6's clone, which clone2
+# cannot resolve, and a resume over an unresolvable pin refuses (issue #253).
+caller2="$work/caller2"
+caller_repo "$caller2"
+launch_from "$caller2" "$clone2" CONDUCTOR_HOOK="$stubdir/hook"
 
 leaf_rc="$(cat "$leafdir/supervise.rc" 2>/dev/null)"
 if [[ -z "$leaf_rc" ]]; then
@@ -807,6 +811,61 @@ else
   grep -q -- "$tip11" "$prompt" ||
     problems+=("the re-pinned launch's prompt does not name origin's tip $tip11")
 fi
+
+report "$name"
+
+# 18. A recorded pin this clone cannot resolve is not a licence to re-pin (issue #253). The run
+# is launched once, then its record is made to name a commit from another repository — what a
+# second clone, a shallow one or a pruned branch looks like to `git cat-file -e`. A plain resume
+# must refuse with exit 2 before any conductor exists; the same resume with VERI_NEW_SKILL=1 is
+# the operator taking the new skill, and is re-pinned to HEAD with a `skill-repin` event naming
+# it. Both logs a run may write are read, because which one holds the line is a later step's.
+name="an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event"
+problems=()
+
+clone12="$work/clone12"
+skill_clone "$clone12"
+head12="$(git -C "$clone12" rev-parse HEAD)"
+
+foreign12="$work/foreign12"
+caller_repo "$foreign12"
+git -C "$foreign12" -c user.name=t -c user.email=t@t commit -q --allow-empty -m elsewhere
+missing12="$(git -C "$foreign12" rev-parse HEAD)"
+
+caller12="$work/caller12"
+caller_repo "$caller12"
+launch_from "$caller12" "$clone12"
+
+printf '%s\n' "$missing12" > "$caller12/.tdd/issue-$issue-skill-commit"
+rm -f "$argv"
+launch_from "$caller12" "$clone12"
+rc12=$?
+[[ "$rc12" == 2 ]] ||
+  problems+=("the launch without VERI_NEW_SKILL=1 exited $rc12, not 2")
+[[ ! -f "$argv" ]] ||
+  problems+=("the conductor was launched anyway over unresolvable recorded commit $missing12")
+
+printf '%s\n' "$missing12" > "$caller12/.tdd/issue-$issue-skill-commit"
+rm -f "$argv"
+launch_from "$caller12" "$clone12" VERI_NEW_SKILL=1
+rc12=$?
+[[ "$rc12" == 0 ]] ||
+  problems+=("the launch with VERI_NEW_SKILL=1 exited $rc12, not 0: $(cat "$launch_err")")
+grep -qx -- "$head12" "$caller12/.tdd/issue-$issue-skill-commit" ||
+  problems+=("the launch with VERI_NEW_SKILL=1 did not record HEAD $head12 as the pin")
+
+python3 - "$head12" "$caller12/.tdd/events.jsonl" "$caller12/.tdd/wt/$issue/.tdd/events.jsonl" <<'PY' ||
+import json, sys
+lines = []
+for path in sys.argv[2:]:
+    try:
+        lines += [json.loads(l) for l in open(path) if l.strip()]
+    except OSError:
+        pass
+sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[1] in l.values()
+                  for l in lines) else 1)
+PY
+  problems+=("no skill-repin event naming $head12 in the run's event log")
 
 report "$name"
 
