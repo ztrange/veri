@@ -1435,6 +1435,54 @@ narration="$(loop_bullet '^- [*][*]Exit 0:' '^### ')"
 
 
 
+# 29. `gh` does not return a repository's issues; it returns a PAGE of them — 30 by default,
+# newest first, unless the caller says `--limit` (#244). On 2026-09-16 veri's own repo had 39
+# open issues, and the 9 oldest were invisible to selection: #109 and #110 were opted in and
+# unblocked, and no drain could ever take them. The VERI_GH_JSON fixtures hide that, because a
+# fixture is complete by construction, so this case drives the real gh path against a stub that
+# pages the way gh does: it answers `issue list` with the newest `--limit` issues (30 when no
+# limit is given) and `pr list` with no PRs.
+#
+# Forty open issues, #101–#140. Only #101 — the OLDEST, so the one a 30-item page drops —
+# carries `ready-for-agent`; every issue names no blocker and no PR claims any of them. So the
+# script prints "101" only if it asked gh for more than the default page, and a script that
+# took the default gets #111–#140, finds nothing opted in, and exits 3 with empty stdout.
+pagedir="$work/paging-bin"
+mkdir -p "$pagedir"
+cat > "$pagedir/gh" <<'STUB'
+#!/usr/bin/env bash
+limit=30
+prev=""
+for arg in "$@"; do
+  case "$prev" in --limit|-L) limit="$arg" ;; esac
+  case "$arg" in --limit=*) limit="${arg#--limit=}" ;; esac
+  prev="$arg"
+done
+case "$1 $2" in
+  "issue list")
+    python3 -c '
+import json, sys
+limit = int(sys.argv[1])
+issues = [
+    {"number": n, "title": "issue %d" % n, "state": "OPEN",
+     "labels": [{"name": "ready-for-agent"}] if n == 101 else [],
+     "body": "## Blocked by\n\nNone.\n"}
+    for n in range(140, 100, -1)
+]
+print(json.dumps(issues[:limit]))
+' "$limit" ;;
+  "pr list") echo '[]' ;;
+esac
+STUB
+chmod +x "$pagedir/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$pagedir:$PATH" \
+       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 0 && "$out" == "101" ]]; } \
+  && ok || no "an opted-in, unblocked issue older than gh's default page of 30 is printed (40 open issues, only the oldest #101 opted in: exit=$code want 0, stdout='$out' want '101')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

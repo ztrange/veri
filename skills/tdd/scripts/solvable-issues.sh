@@ -32,8 +32,10 @@
 # are local to one machine too.
 #
 # The repository's issues and pull requests are read as the JSON `gh` emits:
-#   gh issue list --json number,title,labels,body,state
+#   gh issue list --limit 10000 --json number,title,labels,body,state
 #   gh pr list    --json body,state
+# gh returns a page, not the repository — 30 items unless told `--limit` (#244) — and has no
+# "all", so the limit is a number no repository here comes near.
 # VERI_GH_JSON overrides both calls at once: it names a directory holding `issues.json` and
 # `prs.json` fixtures with those exact shapes, which is what makes this testable with no
 # network. Selection itself never learns which of the two it got — the documents are read
@@ -116,7 +118,7 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
   fi
 }
 
-issues_json="$(gh_json issues.json issue list --json number,title,labels,body,state)"
+issues_json="$(gh_json issues.json issue list --limit 10000 --json number,title,labels,body,state)"
 prs_json="$(gh_json prs.json pr list --json body,state)"
 
 # The directory the in-flight locks hang off: the repository's MAIN working tree, because that
