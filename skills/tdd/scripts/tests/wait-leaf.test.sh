@@ -227,6 +227,28 @@ d_stderr="$(cat "$d_err")"
   [[ "$d_stderr" == *dead-sup* ]] && [[ "$d_stderr" == *"$dead_pid"* ]]; } && ok \
   || no "exits 2 well before its budget, naming the leaf and the dead pid on stderr, when the recorded supervisor has exited and no completion file exists (got code=$d_rc secs=$d_secs want '2 <=10'; stderr='$d_stderr' want it to name dead-sup and $dead_pid)"
 
+# 6. a recorded pid that is alive but is not a supervise.sh for that name → the same exit 2 as
+#    a dead one (#173). Pids are reused, so after the supervisor dies its number can come back
+#    as any other process, and `kill -0` alone would then read the dead supervisor as alive and
+#    wait out the budget — the forever-loop case 5 exists to prevent, one pid reuse away.
+#
+#    The impostor is a live background `sleep`: a real process, owned by this user so `kill -0`
+#    succeeds on it, and plainly not `supervise.sh reused-sup`. Same 20-second budget as case 5,
+#    for the same reason. It is killed afterwards so the suite leaves nothing running.
+sleep 60 &
+imp_pid=$!
+printf '%s\n' "$imp_pid" > "$work/.tdd/reused-sup.pid"
+r_err="$work/reused-sup.err"
+r_t0="$(date +%s)"
+( cd "$work" && env VERI_POLL=0.2 "$WAIT" reused-sup 20 >/dev/null 2>"$r_err" )
+r_rc=$?
+r_secs=$(( $(date +%s) - r_t0 ))
+r_stderr="$(cat "$r_err")"
+kill "$imp_pid" 2>/dev/null; wait "$imp_pid" 2>/dev/null
+{ [[ "$r_rc" == 2 ]] && [[ "$r_secs" -le 10 ]] &&
+  [[ "$r_stderr" == *reused-sup* ]] && [[ "$r_stderr" == *"$imp_pid"* ]]; } && ok \
+  || no "exits 2 well before its budget when the recorded pid is alive but is not a supervise.sh for that leaf (pid reuse), naming the leaf and the pid on stderr (got code=$r_rc secs=$r_secs want '2 <=10'; stderr='$r_stderr' want it to name reused-sup and $imp_pid)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

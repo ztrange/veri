@@ -41,11 +41,20 @@ number_in() {
 # yet. Only a plain code ends the wait.
 recorded_code() { number_in "$exitfile"; }
 
+# supervising <pid> — succeed when that pid runs `supervise.sh <name> …`. Pids are reused, so
+# a process merely being alive under the recorded number does not make it this leaf's
+# supervisor.
+supervising() {
+  local args
+  args="$(ps -p "$1" -o args= 2>/dev/null)" || return 1
+  [[ "$args" == *"supervise.sh $name "* ]]
+}
+
 while :; do
   ec="$(recorded_code)" && exit "$ec"
   # A supervisor that died never writes its completion file, so a recorded pid that no
-  # longer runs ends the wait with 2 — after one last look, in case it wrote just before.
-  if pid="$(number_in "$pidfile")" && ! kill -0 "$pid" 2>/dev/null; then
+  # longer runs this leaf's supervisor ends the wait with 2 — after one last look, in case it wrote just before.
+  if pid="$(number_in "$pidfile")" && ! supervising "$pid"; then
     ec="$(recorded_code)" && exit "$ec"
     echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
     exit 2
