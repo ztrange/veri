@@ -108,5 +108,36 @@ if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
   printf 'output:\n%s\nexit %s\n' "$out" "$code"
 fi
 
+# --- one run: cost so far in dollars and tokens, summed from the event log's usage lines ---
+# Two leaves have closed with their own accounting (harvest-usage.sh writes one `usage` line
+# each, every value a string as event.sh writes it). $0.50 + $1.25 is $1.75; the four token
+# kinds of both leaves, 4700 + 6300, are 11000 tokens. Lines that are not `usage` carry no cost.
+spent="$(repo spent)"
+run="$spent/.tdd/wt/9"
+git init -q -b tdd/9-cogs-mesh "$run" >/dev/null 2>&1
+mkdir -p "$run/.tdd"
+cat > "$run/.tdd/issue-9.md" <<'EOF'
+# Plan for #9 — cogs mesh
+
+- [x] a cog exists
+- [ ] two cogs mesh
+EOF
+now="$(date +%s)"
+cat > "$run/.tdd/events.jsonl" <<EOF
+{"ts": $((now - 300)), "issue": "9", "actor": "developer", "phase": "red", "step": "a cog exists", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((now - 250)), "issue": "9", "actor": "developer", "phase": "red", "step": "a cog exists", "event": "usage", "attempt": "1", "skill_commit": "abc", "duration_ms": "50000", "duration_api_ms": "40000", "num_turns": "7", "total_cost_usd": "0.50", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500"}
+{"ts": $((now - 200)), "issue": "9", "actor": "developer", "phase": "green", "step": "two cogs mesh", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green"}
+{"ts": $((now - 100)), "issue": "9", "actor": "developer", "phase": "green", "step": "two cogs mesh", "event": "usage", "attempt": "1", "skill_commit": "abc", "duration_ms": "90000", "duration_api_ms": "80000", "num_turns": "9", "total_cost_usd": "1.25", "input_tokens": "2000", "output_tokens": "300", "cache_read_input_tokens": "4000", "cache_creation_input_tokens": "0"}
+EOF
+run_in "$spent"
+missing=()
+[[ "$out" == *'$1.75'* ]] || missing+=('$1.75')
+[[ "$out" =~ (^|[^0-9])11,?000\ tokens ]] || missing+=("11000 tokens")
+if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
+  no "a run shows its cost so far in dollars and tokens, summed from its event log"
+  printf 'missing: %s\n' "${missing[@]:-}"
+  printf 'output:\n%s\nexit %s\n' "$out" "$code"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -28,11 +28,15 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
   printf '%s of %s\n' "$step" "$total"
 }
 
-# The latest leaf launch in the event log, and how many launches the current step has had.
-leaf_now() {  # leaf_now <events.jsonl> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>"
+# The latest leaf launch in the event log, how many launches the current step has had, and the
+# run's cost so far: every `usage` line's dollars and its four token kinds, summed.
+leaf_now() {  # leaf_now <events.jsonl> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens"
   python3 - "$1" <<'PY'
 import json, sys, time
 last, attempts, step = None, 0, None
+dollars, tokens = 0.0, 0
+TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
+               "cache_creation_input_tokens")
 with open(sys.argv[1]) as f:
     for raw in f:
         raw = raw.strip()
@@ -44,9 +48,13 @@ with open(sys.argv[1]) as f:
         if line.get("event") == "launch":
             last = line
             attempts += 1
+        elif line.get("event") == "usage":
+            dollars += float(line.get("total_cost_usd") or 0)
+            tokens += sum(int(line.get(kind) or 0) for kind in TOKEN_KINDS)
 if last is not None:
-    print("%s  %s  %s %ds  attempt %d" % (last.get("phase", ""), last.get("actor", ""),
-          last.get("name", ""), int(time.time()) - int(last["ts"]), attempts))
+    print("%s  %s  %s %ds  attempt %d  $%.2f  %d tokens" % (last.get("phase", ""),
+          last.get("actor", ""), last.get("name", ""), int(time.time()) - int(last["ts"]),
+          attempts, dollars, tokens))
 PY
 }
 
