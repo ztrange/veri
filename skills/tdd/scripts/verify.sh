@@ -172,6 +172,12 @@ if [[ ! "$no_verdict_retries" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
+# The context every event below is logged under — the relaunch marks and the verdict — comes from
+# leaf-role.sh, the same derivation supervise.sh marks under (supervise.sh:141-157), so both halves
+# of one verification file under the same actor and phase; a refusal leaves $role empty and nothing
+# is logged, rather than a line whose actor was invented. $leaf_name never changes, so it is asked once.
+role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
+
 parse_err="$(mktemp)"
 trap 'rm -f "$parse_err"' EXIT
 relaunches=0
@@ -234,7 +240,6 @@ while :; do
     cause=no-verdict
     if [[ "$relaunches" -lt "$no_verdict_retries" ]]; then
       relaunches=$(( relaunches + 1 ))
-      role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
       if [[ -n "$role" ]]; then
         # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
         env $role "$HERE/event.sh" relaunch cause="$cause"
@@ -269,11 +274,6 @@ esac
 # is the empty string it actually has.
 reason_line="${reason%%$'\n'*}"
 
-# The context comes from leaf-role.sh, the same derivation supervise.sh marks under
-# (supervise.sh:141-157), so both halves of one verification file under the same actor and
-# phase; a refusal leaves $role empty and nothing is logged, rather than a line whose actor
-# was invented.
-role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
 if [[ -n "$role" ]]; then
   # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
   env $role "$HERE/event.sh" verdict verdict="$word" reason="$reason_line" ${cause:+cause="$cause"}
