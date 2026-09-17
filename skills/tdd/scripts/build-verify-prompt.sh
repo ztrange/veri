@@ -64,11 +64,6 @@ done
 tpl="$(cat "$tpl_file")"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
-
-# Literal substitution via bash parameter expansion — no sed, and with the
-# patsub_replacement guard above holding, so &, \, / and {} in the spec are carried
-# through verbatim.
-out="${tpl//\{\{SHARED\}\}/$shared}"
 step_block=""
 if [[ -n "$step" ]]; then
   step_block="### The step under judgement
@@ -80,6 +75,11 @@ criteria belong to other steps of the plan.
 
 "
 fi
+
+# Literal substitution via bash parameter expansion — no sed, and with the
+# patsub_replacement guard above holding, so &, \, / and {} in the spec are carried
+# through verbatim.
+out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{STEP\}\}/$step_block}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
