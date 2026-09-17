@@ -114,6 +114,8 @@ if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
   pinned="$commit"
 else
   echo "run-conductor: no skill commit resolvable from '$base' — running unpinned" >&2
+  # stderr is the operator's terminal; the conductor, which writes the plan comment, reads this.
+  export VERI_SKILL_UNPINNED=1
 fi
 
 skill_file="$base/SKILL.md"

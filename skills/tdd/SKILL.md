@@ -544,6 +544,8 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    The thread is where a human reads a run back, so it is where the version has to be: a
    `### 🛠️ Refactor` comment describing work the run never did is indistinguishable from a
    true one without it, as #150's narration landing under #170's run was.
+   When `VERI_SKILL_UNPINNED=1` is in your environment the launch found no skill commit to
+   pin, and the comment says `unpinned` in place of a commit rather than naming none.
 
 ### 2b. Start comment
 
