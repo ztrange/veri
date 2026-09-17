@@ -576,6 +576,23 @@ killed_launches="$(cat "$killed_dir/launches" 2>/dev/null || echo 0)"
 { [[ "$killed_code" == 2 ]] && [[ "$killed_launches" == 2 ]]; } && ok \
   || no "a verifier killed by supervise.sh is not relaunched by verify.sh, whatever VERI_NO_VERDICT_RETRIES is (code=$killed_code want 2; launches=$killed_launches want 2 — supervise.sh's own attempts only)"
 
+# 23. the two relaunch budgets are separate knobs, issue #219: VERI_STUCK_RETRIES does not change
+#     how many times a clean exit with no verdict is relaunched, and VERI_NO_VERDICT_RETRIES does
+#     not change how many attempts supervise.sh makes on a hung leaf. Each half sets the OTHER
+#     knob high and pins the count its own knob — at its default, or at 0 — decides.
+axes_dir="$work/budget-axes"
+mkdir -p "$axes_dir/no-verdict" "$axes_dir/stuck"
+( cd "$axes_dir/no-verdict" && unset VERI_NO_VERDICT_RETRIES \
+  && env CLAUDE_BIN="$stubdir/claude-counting" LAUNCH_COUNT="$axes_dir/no-verdict/launches" ARGV_OUT="$axes_dir/argv" \
+      VERI_STUCK_RETRIES=3 "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+axes_no_verdict="$? $(cat "$axes_dir/no-verdict/launches" 2>/dev/null || echo 0)"
+( cd "$axes_dir/stuck" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$axes_dir/stuck/launches" \
+    VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+    "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+axes_stuck="$? $(cat "$axes_dir/stuck/launches" 2>/dev/null || echo 0)"
+{ [[ "$axes_no_verdict" == '2 2' ]] && [[ "$axes_stuck" == '2 1' ]]; } && ok \
+  || no "VERI_STUCK_RETRIES does not change the no-verdict relaunch count and VERI_NO_VERDICT_RETRIES does not change supervise.sh's stuck retry count (code launches — never-verdict leaf, VERI_STUCK_RETRIES=3: '$axes_no_verdict' want '2 2'; hung leaf, VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3: '$axes_stuck' want '2 1')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
