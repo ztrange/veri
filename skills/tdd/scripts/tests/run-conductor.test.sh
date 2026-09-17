@@ -267,17 +267,27 @@ report "$name"
 name="a frontmatter-fenced procedure launches and reaches the binary whole"
 problems=()
 
-SKILL="$HERE/../../SKILL.md"
-rm -f "$prompt"
+# The procedure compared against is the SKILL.md in the directory the launch was handed, not
+# the one beside this script: the run pins origin/<default>'s commit (#251), so a working
+# tree whose SKILL.md differs from that commit — any branch that edits it — would otherwise
+# fail here for a launch that handed over its own procedure whole.
+handed="$work/handed-skill"
+rm -rf "$prompt" "$handed"
+mkdir -p "$handed"
+SKILL="$handed/SKILL.md"
 
 ( cd "$work" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
+    BASE_OUT="$handed" "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
 status=$?
 
 if [[ "$status" -ne 0 ]]; then
   problems+=("the launch exited $status — the binary rejected the procedure it was handed")
 elif [[ ! -f "$prompt" ]]; then
   problems+=("the launch started but no procedure reached the binary")
+elif [[ ! -f "$SKILL" ]]; then
+  problems+=("the directory the launch was handed holds no SKILL.md")
+elif ! IFS= read -r fence < "$SKILL" || [[ "$fence" != "---" ]]; then
+  problems+=("the procedure handed over does not open with the frontmatter fence this case is about")
 elif [[ "$(cat "$prompt")" != "$(cat "$SKILL")"* ]]; then
   # Verbatim-prefix, compared as text rather than by taking the procedure's first N lines
   # off the front of what arrived: a line count is a size, and #202 forbids any suite here

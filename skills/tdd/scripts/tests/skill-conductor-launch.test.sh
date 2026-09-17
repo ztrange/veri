@@ -229,6 +229,47 @@ fi
 
 report "$name"
 
+# never_says <claim> <regex>... — the converse of `says`: a claim the passage last read must NO
+# LONGER carry. Every record matching all of <regex> is a problem, and the problem quotes the
+# start of the record, so the failure points at the sentence to rewrite rather than at the file.
+never_says() {
+  local claim="$1" line re
+  shift
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    problems+=("$passage_from still says $claim: \"${line:0:120}...\"")
+  done <<< "$passage_text"
+}
+
+# probe_never_says_a_pull_swaps_live_scripts — the operating rule #251 retires. Once a run
+# executes the skill pinned from origin/<default> as just fetched, the primary clone's working
+# tree is not what any leaf runs, so a passage warning that pulling it changes the scripts
+# under a live run is false, and it is the passage that kept the primary 50 commits behind.
+# Four regexes, one record: the act (pulling), its object (the primary clone), the claimed
+# effect (changing or swapping the scripts), and when (a live or running run). A record saying
+# pulling the primary is now cosmetic names the act and the object but not the effect, and is
+# not caught.
+probe_never_says_a_pull_swaps_live_scripts() {
+  never_says "that pulling the primary clone changes the scripts under a live run" \
+    'pull' \
+    'primary' \
+    '(chang|swap|replac|mov)[a-z]* (the )?script' \
+    'live|running|in flight|under (it|a run|the run)'
+}
+
+# 3. One criterion, one case (#251): SKILL.md no longer carries the "don't pull the primary
+#    while a run is live" rationale, because the run no longer executes the primary's scripts.
+name="$skill_md no longer says pulling the primary clone changes the scripts under a live run"
+problems=()
+
+if need_skill_records; then
+  probe_never_says_a_pull_swaps_live_scripts
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
