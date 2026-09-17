@@ -41,5 +41,31 @@ if [[ "$out" == "no runs" && "$code" -eq 3 ]]; then ok; else
   diff <(printf 'no runs\nexit 3\n') <(printf '%s\nexit %s\n' "$out" "$code")
 fi
 
+# --- one run: issue number and title from the ledger heading, branch, step n of m ---
+# A fabricated run, not a real worktree: the run's directory is a repository of its own whose
+# unborn branch is the issue branch, and its ledger has one of three steps ticked — so the
+# step the run is on is the second.
+one="$(repo one)"
+run="$one/.tdd/wt/7"
+git init -q -b tdd/7-widgets-spin "$run" >/dev/null 2>&1
+mkdir -p "$run/.tdd"
+cat > "$run/.tdd/issue-7.md" <<'EOF'
+# Plan for #7 — widgets spin when clicked
+
+- [x] a widget exists
+- [ ] a clicked widget spins
+- [ ] a spinning widget stops
+EOF
+run_in "$one"
+missing=()
+for want in "#7" "widgets spin when clicked" "tdd/7-widgets-spin" "step 2 of 3"; do
+  [[ "$out" == *"$want"* ]] || missing+=("$want")
+done
+if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
+  no "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m"
+  printf 'missing: %s\n' "${missing[@]:-}"
+  printf 'output:\n%s\nexit %s\n' "$out" "$code"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

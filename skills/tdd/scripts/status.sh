@@ -26,3 +26,25 @@ if [[ ${#runs[@]} -eq 0 ]]; then
   echo "no runs"
   exit 3
 fi
+
+for run in "${runs[@]}"; do
+  run="${run%/}"
+  for ledger in "$run"/.tdd/issue-*.md; do
+    # The heading is `# Plan for #<n> — <title>`.
+    heading="$(head -n 1 "$ledger")"
+    heading="${heading#\# Plan for #}"
+    issue="${heading%% — *}"
+    title="${heading#* — }"
+    branch="$(git -C "$run" symbolic-ref --short HEAD 2>/dev/null || true)"
+    # Step n is the first unticked step; m is every step the ledger has.
+    total=0 step=0
+    while IFS= read -r line; do
+      case "$line" in
+        "- [x] "*) total=$((total + 1)) ;;
+        "- [ ] "*) total=$((total + 1)); [[ "$step" -eq 0 ]] && step="$total" ;;
+      esac
+    done < "$ledger"
+    [[ "$step" -eq 0 ]] && step="$total"
+    printf '#%s  %s  %s  step %s of %s\n' "$issue" "$title" "$branch" "$step" "$total"
+  done
+done
