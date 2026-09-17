@@ -302,9 +302,9 @@ done
 report "$name"
 
 # Issue #240, the 📊-in-PR-body probe asked of the right command: since #236 the block reaches
-# the PR body through `gh pr edit`, and the first case's record probe is answered by the whole
+# the PR body through `gh pr edit`, and a record-level probe would be answered by the whole
 # command block, which holds `gh pr create` and a 📊 mention in the prose above it whether or
-# not the edit carries the report. This case reads the fenced `gh pr edit` line itself and
+# not the edit carries the report (#267 removed that probe). This case reads the fenced `gh pr edit` line itself and
 # asks that its `--body` carries the contents of the committed report — the file metrics.sh
 # writes, whose first line is the `### 📊 Metrics` heading.
 name="$skill_md's Draft PR gh pr edit command puts the committed 📊 metrics report in the PR body"
@@ -361,6 +361,20 @@ grep -Fq -- "$gt_needle" "$ROOT/$suite_md" &&
 lands_needle='lands BEFORE the PR'' is opened'
 grep -Fq -- "$lands_needle" "$ROOT/$suite_md" &&
   problems+=("$suite_md still carries the comment claiming the metrics commit precedes the opened PR, which #236 made false")
+report "$name"
+
+# Issue #267, the other record-level probe: asking one Draft PR record for both `gh pr create`
+# and the 📊 block only says both appear somewhere in the sub-step, which they do in any order.
+# The probe must be gone, and so must any comment that still describes it as asked.
+name="skill-metrics.test.sh no longer asks the record-level gh pr create / 📊 metrics presence probe, nor describes it as still asked"
+problems=()
+
+probe_needle="first_record_line \"\$pr_records\" 'gh pr create'"" '📊 metrics'"
+grep -Fq -- "$probe_needle" "$ROOT/$suite_md" &&
+  problems+=("$suite_md still asks first_record_line \"\$pr_records\" 'gh pr create' '📊 metrics', which any command order in the sub-step satisfies")
+probe_comment_needle="the first case's record"" probe"
+grep -Fq -- "$probe_comment_needle" "$ROOT/$suite_md" &&
+  problems+=("$suite_md still has a comment describing the first case's record-level 📊 probe, which no longer exists")
 report "$name"
 
 echo "----"
