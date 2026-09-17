@@ -29,13 +29,13 @@ fi
 
 for run in "${runs[@]}"; do
   run="${run%/}"
+  branch="$(git -C "$run" symbolic-ref --short HEAD 2>/dev/null || true)"
   for ledger in "$run"/.tdd/issue-*.md; do
     # The heading is `# Plan for #<n> — <title>`.
     heading="$(head -n 1 "$ledger")"
     heading="${heading#\# Plan for #}"
     issue="${heading%% — *}"
     title="${heading#* — }"
-    branch="$(git -C "$run" symbolic-ref --short HEAD 2>/dev/null || true)"
     # Step n is the first unticked step; m is every step the ledger has.
     total=0 step=0
     while IFS= read -r line; do
