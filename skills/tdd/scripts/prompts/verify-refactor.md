@@ -5,6 +5,8 @@
 A developer agent has finished the **refactor** pass for this cycle (the code and test
 around `{{TEST_PATH}}`). The refactor is meant to be **behavior-preserving** tidy-up.
 The step's green commit, where the refactor started, is `{{BASE_SHA}}`.
+Review what the refactor changed with `git diff {{BASE_SHA}}..HEAD`, and do not read the
+range's commit messages: `git log` and `git show` on the range carry the author's rationale.
 Render one verdict on the settled result.
 
 ### The issue's behavior spec
