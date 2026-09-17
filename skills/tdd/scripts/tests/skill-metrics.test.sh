@@ -17,9 +17,11 @@
 # Draft PR step AND in the Bailing section, and each contributes its own problem line.
 #
 # Contract under test (one criterion, one case):
-#   SKILL.md's `### 4. Draft PR` step runs `metrics.sh`, commits `.tdd/issue-<n>-metrics.md`
-#   in a `metrics:` commit BEFORE `gh pr create`, and carries the `### 📊 Metrics` block into
-#   both the PR body and the final `✅ Done` comment; SKILL.md's `## Bailing` section commits
+#   SKILL.md's `### 4. Draft PR` step runs, in this order (since #236), `gh pr create`,
+#   `event.sh done pr=<pr-url>`, `metrics.sh`, a `metrics:` commit of
+#   `.tdd/issue-<n>-metrics.md`, `push-branch.sh`, and `gh pr edit`, which carries the
+#   `### 📊 Metrics` block into the PR body; the same block goes into the final `✅ Done`
+#   comment; SKILL.md's `## Bailing` section commits
 #   the same file on the pushed branch and puts the block on the `⛔ Bailed` comment.
 #
 # Run: scripts/tests/skill-metrics.test.sh
@@ -324,6 +326,35 @@ else
   edit_cmd="$(sed -n "${edit_line}p" "$skill_path")"
   [[ "$edit_cmd" == *"--body"*".tdd/issue-<n>-metrics.md"* ]] ||
     problems+=("$skill_md's gh pr edit at SKILL.md:$edit_line does not put the contents of .tdd/issue-<n>-metrics.md in its --body, so the PR body never gets the 📊 block: $(printf '%.120s' "$edit_cmd")")
+fi
+report "$name"
+
+# Issue #240, the suite's own statement of the contract: the header's `Contract under test`
+# paragraph is what a reader takes the cases to pin, so it must name the post-#236 Draft PR
+# order rather than the commit-before-PR order #236 replaced. The paragraph is read as text,
+# its comment markers stripped and its wrapped lines joined, and its commands must appear in
+# the order the step runs them. A missing anchor is a problem of its own and leaves the last
+# found one in place, so an old paragraph still reports what it orders wrongly.
+name="skill-metrics.test.sh's header comment states the Draft PR order gh pr create, event.sh done, metrics.sh, the metrics: commit, push-branch.sh, gh pr edit"
+problems=()
+
+suite_md="skills/tdd/scripts/tests/skill-metrics.test.sh"
+contract="$(awk '/^# Contract under test/ { on = 1 } on && !/^#/ { exit } on && /^#[[:space:]]*$/ { exit }
+  on { sub(/^#[[:space:]]*/, ""); printf "%s ", $0 }' "$ROOT/$suite_md")"
+if [[ -z "$contract" ]]; then
+  problems+=("$suite_md has no Contract under test paragraph in its header to read")
+else
+  prev_anchor="" prev_at=""
+  for anchor in 'gh pr create' 'event.sh done' 'metrics.sh' 'metrics:' 'push-branch.sh' 'gh pr edit'; do
+    if ! at="$(offset_of "$contract" "$anchor")"; then
+      problems+=("$suite_md's Contract under test never names $anchor")
+      continue
+    fi
+    if [[ -n "$prev_at" && "$at" -le "$prev_at" ]]; then
+      problems+=("$suite_md's Contract under test names $anchor at offset $at, not after $prev_anchor at offset $prev_at")
+    fi
+    prev_anchor="$anchor" prev_at="$at"
+  done
 fi
 report "$name"
 
