@@ -719,6 +719,46 @@ grep -q -- "$tip9" "$prompt" 2>/dev/null ||
 
 report "$name"
 
+# 16. A resume keeps its pin when origin moves (issue #251). The run is first launched from a
+# clone whose origin is at commit A, so A is the pin recorded. Then the remote moves to B — a
+# PR landing between the two launches — and the same issue is launched again from the same
+# caller. That launch fetches and sees B as origin's tip, and must still be handed A's files
+# and name A in its prompt: a resume that follows origin's tip is a run whose skill changed
+# mid-run without anyone asking for it.
+name="a resumed run keeps its recorded pin when origin/<default> has moved since the first launch"
+problems=()
+
+remote10="$work/remote10"
+clone10="$work/clone10"
+cloned_skill "$remote10" "$clone10"
+first10="$(git -C "$remote10" rev-parse HEAD)"
+
+pinned10="$work/pinned10"
+skill_archive "$remote10" "$first10" "$pinned10"
+
+caller10="$work/caller10"
+caller_repo "$caller10"
+
+launch_from "$caller10" "$clone10"
+
+advance_clone "$remote10" "# a commit that landed on the remote after the run started"
+moved10="$(git -C "$remote10" rev-parse HEAD)"
+
+resumed10="$work/resumed10"
+mkdir -p "$resumed10"
+rm -f "$prompt"
+launch_from "$caller10" "$clone10" BASE_OUT="$resumed10"
+
+if [[ -z "$(prompt_base)" ]]; then
+  problems+=("the resumed launch's prompt names no base directory: $(cat "$launch_err")")
+else
+  holds_skill "$resumed10" "$pinned10/skills/tdd" "resumed launch's" "recorded pin $first10 (origin moved to $moved10)"
+  grep -q -- "$first10" "$prompt" ||
+    problems+=("the resumed launch's prompt does not name the recorded pin $first10")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
