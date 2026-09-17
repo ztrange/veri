@@ -557,6 +557,12 @@ budget_two="$(never_verdict two 2)"
 { [[ "$budget_default" == '2 2' ]] && [[ "$budget_zero" == '2 1' ]] && [[ "$budget_two" == '2 3' ]]; } && ok \
   || no "no-verdict relaunches stop after VERI_NO_VERDICT_RETRIES (default 1): exit 2 after 1 + retries launches (code launches — default: '$budget_default' want '2 2'; =0: '$budget_zero' want '2 1'; =2: '$budget_two' want '2 3')"
 
+# 21. a non-integer VERI_NO_VERDICT_RETRIES is refused before any leaf is paid for, issue #219:
+#     exit 2 (no answer could be obtained — bad configuration) with zero launches.
+budget_bad="$(never_verdict bad many)"
+[[ "$budget_bad" == '2 0' ]] && ok \
+  || no "a non-integer VERI_NO_VERDICT_RETRIES makes verify.sh exit 2 without launching any verifier leaf (code launches: '$budget_bad' want '2 0')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

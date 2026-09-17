@@ -2,7 +2,7 @@
 
 - [x] verify.sh relaunches a verifier leaf that exited without being killed and printed no VERDICT: line, and returns the relaunched attempt's verdict (stub prints no verdict first, VERDICT: PASS second → exit 0, two launches)
 - [x] no-verdict relaunches stop after VERI_NO_VERDICT_RETRIES (default 1): a stub that never prints a verdict yields exit 2 after exactly 1 + VERI_NO_VERDICT_RETRIES launches, and VERI_NO_VERDICT_RETRIES=0 yields exit 2 after one launch
-- [ ] a non-integer VERI_NO_VERDICT_RETRIES makes verify.sh exit 2 without launching any verifier leaf
+- [x] a non-integer VERI_NO_VERDICT_RETRIES makes verify.sh exit 2 without launching any verifier leaf ⟂ refactor pending
 - [ ] a verifier killed by supervise.sh (exit 2, stuck or hard timeout) is not relaunched by verify.sh: exit 2 after supervise.sh's own attempts, whatever VERI_NO_VERDICT_RETRIES is
 - [ ] VERI_STUCK_RETRIES does not change the no-verdict relaunch count, and VERI_NO_VERDICT_RETRIES does not change supervise.sh's stuck retry count
 - [ ] a clean exit with no VERDICT: line is recorded in the event log under a cause distinct from a leaf killed before rendering one, on each relaunch and on the final exit 2
