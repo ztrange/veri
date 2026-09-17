@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Tests for scripts/criterion-finished.sh — whether an issue acceptance criterion is done.
+# Given a ledger (checkbox markdown) on stdin and a criterion number k, exit 0 when every
+# step ending in ` ⟦criterion k⟧` is ticked with no ` ⟂ refactor pending` mark, and exit 3
+# when some step serving k is still open or pending.
+#
+# Run: scripts/tests/criterion-finished.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+FINISHED="$HERE/../criterion-finished.sh"
+pass=0 fail=0
+code_for() {  # code_for <criterion> <ledger> — print the script's exit code
+  local code
+  printf '%s' "$2" | "$FINISHED" "$1" >/dev/null && code=0 || code=$?
+  echo "$code"
+}
+
+# 1. two steps serve criterion 1: only the first done → 3; second ticked but refactor
+#    pending → 3; both done → 0
+name="two steps serve criterion 1: exits 3 until both are ticked and verified, then 0"
+half='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧'
+both='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [x] collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧'
+pending='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [x] collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧ ⟂ refactor pending'
+got_half="$(code_for 1 "$half")"
+got_pending="$(code_for 1 "$pending")"
+got_both="$(code_for 1 "$both")"
+if [[ "$got_half" != 3 ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (half-ticked: want exit 3, got $got_half)"
+elif [[ "$got_pending" != 3 ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (both ticked, second refactor pending: want exit 3, got $got_pending)"
+elif [[ "$got_both" != 0 ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (both ticked: want exit 0, got $got_both)"
+else
+  pass=$((pass + 1))
+fi
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
