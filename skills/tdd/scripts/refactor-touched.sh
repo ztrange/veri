@@ -19,4 +19,10 @@ commit="${1:?usage: refactor-touched.sh <commit>}"
 git rev-parse --verify --quiet "$commit^{commit}" >/dev/null ||
   { echo "refactor-touched: cannot resolve commit '$commit'" >&2; exit 2; }
 
-git diff --name-only "$commit^" "$commit" | grep -v '^\.tdd/' | paste -sd, -
+# A commit whose files are all under `.tdd/` leaves a refactor nothing to tidy. That is an
+# answer, not a failure, so it is the "nothing to do" code with an empty stdout: `grep`
+# finding no line exits 1, and under `pipefail` that 1 would otherwise be the script's.
+touched="$(git diff --name-only "$commit^" "$commit" | grep -v '^\.tdd/' || true)"
+[[ -n "$touched" ]] || exit 3
+
+printf '%s\n' "$touched" | paste -sd, -
