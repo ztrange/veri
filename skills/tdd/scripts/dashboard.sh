@@ -25,6 +25,7 @@ import re
 import signal
 import subprocess
 import sys
+import urllib.parse
 
 # SIGINT back to the handler that raises KeyboardInterrupt, explicitly. A non-interactive
 # shell starts a background child with SIGINT ignored, `exec` keeps that disposition, and
@@ -54,7 +55,7 @@ def capture(argv, cwd=None):
 # The Runs pane is a reader of status.sh, not a second implementation of it: the endpoint
 # runs the script and hands back its document verbatim, so no field of it is spelled twice
 # and the pane cannot drift as status.sh grows.
-def runs_json():
+def runs_json(query):
     return capture([status_sh, "--json"])
 
 
@@ -101,7 +102,7 @@ def issue_report(run, issue):
 #
 # `issue-<digits>.md` rather than `issue-*.md`: the committed report sits in the same
 # directory under a name the looser glob also matches, and `31-metrics` is not an issue.
-def metrics_json():
+def metrics_json(query):
     issues = {}
     tree = main_working_tree()
     for run in sorted(glob.glob(os.path.join(tree, ".tdd", "wt", "*"))):
@@ -112,10 +113,44 @@ def metrics_json():
     return json.dumps({"issues": issues}).encode()
 
 
+# Which run a pane was asked about, by issue number — the name a run goes by everywhere
+# else the page reads: status.sh keys each run object by `issue` and the Metrics endpoint
+# keys `issues` by the same number. The run is the one holding that issue's ledger, which is
+# how metrics_json above already decides which issue a run is for, read the other way round.
+def run_for_issue(issue):
+    tree = main_working_tree()
+    for run in sorted(glob.glob(os.path.join(tree, ".tdd", "wt", "*"))):
+        if issue and os.path.exists(os.path.join(run, ".tdd", "issue-%s.md" % issue)):
+            return run
+    return ""
+
+
+# The Events pane: the selected run's log, one parsed object per line, in the order the file
+# has them — a log is appended to, so that order is oldest first and newest last, and the
+# pane's promise is that it is not reordered. An issue no run holds a ledger for, or a run
+# that has not logged anything yet, is the empty list and not an error: the page polls this
+# every two seconds while a run is still being born.
+def events_json(query):
+    events = []
+    run = run_for_issue(query.get("issue", [""])[0])
+    log = os.path.join(run, ".tdd", "events.jsonl") if run else ""
+    if log and os.path.exists(log):
+        with open(log) as f:
+            for raw in f:
+                raw = raw.strip()
+                if raw:
+                    events.append(json.loads(raw))
+    return json.dumps({"events": events}).encode()
+
+
 # One entry per JSON pane: the path it is polled at, and the reader that answers it. A
 # pane is a line here rather than a branch below, so the only thing adding one decides is
-# what it serves — that every endpoint is JSON, and how JSON is sent, is settled once.
-endpoints = {"/api/runs": runs_json, "/api/metrics": metrics_json}
+# what it serves — that every endpoint is JSON, and how JSON is sent, is settled once. Every
+# reader takes the request's parsed query string, whether or not it reads anything out of
+# it, so that which panes take a parameter stays the readers' business and not the
+# dispatcher's.
+endpoints = {"/api/runs": runs_json, "/api/metrics": metrics_json,
+             "/api/events": events_json}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -130,11 +165,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    # The query string is split off before the path is matched: an endpoint is named by its
+    # path, and `?issue=41` selects what it answers about rather than naming a second
+    # endpoint.
     def do_GET(self):
-        if self.path == "/":
+        path, _, query = self.path.partition("?")
+        if path == "/":
             self.respond("text/html; charset=utf-8", page)
-        elif self.path in endpoints:
-            self.respond("application/json; charset=utf-8", endpoints[self.path]())
+        elif path in endpoints:
+            self.respond("application/json; charset=utf-8",
+                         endpoints[path](urllib.parse.parse_qs(query)))
         else:
             self.send_error(404)
 

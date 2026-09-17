@@ -14,6 +14,8 @@
 #   GET /api/metrics        return the per-issue report: recomputed from the event log for a
 #                           run still going, and the committed `.tdd/issue-<n>-metrics.md`
 #                           verbatim for one that ended.
+#   GET /api/events?issue=<n>
+#                           return that run's `.tdd/events.jsonl` tail, parsed, newest last.
 #
 # The server is the one script here that cannot be asked a question and answered in the
 # same process: it runs until it is told to stop. So the case launches it in the
@@ -531,6 +533,113 @@ if issues["32"] != committed:
 fi
 
 report "$name"
+
+# --- the Events endpoint: the selected run's log, newest last ---
+# The pane is a reader of `.tdd/events.jsonl`, so the criterion is the log itself: the lines
+# of the SELECTED run, parsed, in the order the file has them — which is oldest first and so
+# newest last. Selected by issue number, because that is what names a run everywhere else the
+# page already reads: `status.sh --json` keys each run object by `issue`, and the Metrics
+# endpoint keys its `issues` object by the same number.
+#
+# Two fabricated runs, and only one of them asked for: an endpoint that returned every run's
+# events, or the wrong run's, fails here rather than looking right against a lone fixture.
+# The other run's log carries a mark no line of the selected one does, so the two can never
+# be confused for one another.
+#
+# A "tail" is a suffix, and how long a one is the endpoint's to choose: the case asserts that
+# what comes back IS a contiguous suffix of the log ending at its newest line, which is what
+# "newest last" means and what a reversed answer breaks, and says nothing about how many
+# lines a tail is. The log is thirty events so that both a cap shorter than it and no cap at
+# all satisfy that, and neither is read as this step's business.
+name="the Events endpoint returns the selected run's events.jsonl tail, newest last"
+problems=()
+ev_repo="$(repo eventsendpoint)"
+
+ev_sel="$(fabricate_run "$ev_repo" 41 tdd/41-lamps-flicker)"
+cat > "$ev_sel/.tdd/issue-41.md" <<'EOF'
+# Plan for #41 — lamps flicker
+
+- [x] a lamp exists
+- [ ] a lamp flickers
+EOF
+ev_now="$(date +%s)"
+: > "$ev_sel/.tdd/events.jsonl"
+for i in $(seq 1 30); do
+  printf '{"ts": %s, "issue": "41", "actor": "developer", "phase": "red", "step": "a lamp flickers", "event": "launch", "attempt": "%s", "skill_commit": "abc", "name": "develop-red", "seq": %s}\n' \
+    "$((ev_now - 3000 + i * 10))" "$i" "$i" >> "$ev_sel/.tdd/events.jsonl"
+done
+
+# The run that must NOT be answered with. Its every line carries `"issue": "42"`, so a single
+# line of it in the answer is visible as such.
+ev_other="$(fabricate_run "$ev_repo" 42 tdd/42-lamps-dim)"
+cat > "$ev_other/.tdd/issue-42.md" <<'EOF'
+# Plan for #42 — lamps dim
+
+- [ ] a lamp dims
+EOF
+cat > "$ev_other/.tdd/events.jsonl" <<EOF
+{"ts": $((ev_now - 200)), "issue": "42", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
+{"ts": $((ev_now - 100)), "issue": "42", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
+EOF
+
+ev_log="$work/eventsendpoint.log"
+ev_port="$(free_port)"
+
+problem="$(port_problem "$ev_port")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
+else
+  launch "$ev_repo" "$ev_log" "$ev_port"
+  ev_pid=$!
+
+  ev_url="http://127.0.0.1:$ev_port/api/events?issue=41"
+  ev_answer="$(serve_until_up "$ev_url")"
+  problem="$(answer_problem "$ev_url" "$ev_log" "$ev_answer")"
+
+  if [[ -n "$problem" ]]; then
+    problems+=("$problem")
+  else
+    http_body "$ev_answer" > "$work/events-endpoint.json"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && problems+=("$line")
+    done < <(python3 -c '
+import json, sys
+
+body, log_path = sys.argv[1], sys.argv[2]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("events"), list):
+    print("the endpoint returned %s; want an object with an \"events\" array"
+          % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+events = got["events"]
+with open(log_path) as f:
+    want = [json.loads(raw) for raw in f if raw.strip()]
+if not events:
+    print("the endpoint returned no events; the selected run’s log has %d" % len(want))
+    sys.exit()
+if len(events) > len(want):
+    print("the endpoint returned %d events; the selected run’s log has only %d"
+          % (len(events), len(want)))
+    sys.exit()
+tail = want[len(want) - len(events):]
+if events != tail:
+    print("the endpoint returned %s" % json.dumps(events, sort_keys=True)[:400])
+    print("the last %d lines of the run’s log, newest last, are %s"
+          % (len(events), json.dumps(tail, sort_keys=True)[:400]))
+' "$work/events-endpoint.json" "$ev_sel/.tdd/events.jsonl")
+  fi
+
+  stop "$ev_pid" || :
+fi
+
+report "$name"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
