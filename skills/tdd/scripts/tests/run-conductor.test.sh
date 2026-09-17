@@ -141,6 +141,13 @@ skill_clone() {
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
 }
 
+# cloned_skill <remote> <clone> — a skill_clone at <remote> and a plain `git clone` of it at
+# <clone>: a clone with an `origin`, which is what makes a launch fetch before it pins.
+cloned_skill() {
+  skill_clone "$1"
+  git clone -q "$1" "$2"
+}
+
 # advance_clone <clone> <line> — a second skill commit on <clone>, appending <line> to its
 # supervise.sh: the clone moving under a run, so the commit a launch pins is no longer HEAD.
 advance_clone() {
@@ -568,9 +575,8 @@ name="a launch from a clone behind origin/<default> is handed a snapshot of orig
 problems=()
 
 remote6="$work/remote6"
-skill_clone "$remote6"
 clone6="$work/clone6"
-git clone -q "$remote6" "$clone6"
+cloned_skill "$remote6" "$clone6"
 advance_clone "$remote6" "# a commit that landed on the remote after the clone was cut"
 tip="$(git -C "$remote6" rev-parse HEAD)"
 
@@ -599,9 +605,8 @@ name="a launch leaves the skill clone's HEAD, branch and working tree unchanged"
 problems=()
 
 remote7="$work/remote7"
-skill_clone "$remote7"
 clone7="$work/clone7"
-git clone -q "$remote7" "$clone7"
+cloned_skill "$remote7" "$clone7"
 advance_clone "$remote7" "# a commit that landed on the remote after the clone was cut"
 echo "# an uncommitted edit in the clone" >> "$clone7/skills/tdd/SKILL.md"
 
@@ -641,9 +646,8 @@ name="a failed fetch of origin exits 2 before any conductor is launched and name
 problems=()
 
 remote8="$work/remote8"
-skill_clone "$remote8"
 clone8="$work/clone8"
-git clone -q "$remote8" "$clone8"
+cloned_skill "$remote8" "$clone8"
 rm -rf "$remote8"
 
 caller8="$work/caller8"
