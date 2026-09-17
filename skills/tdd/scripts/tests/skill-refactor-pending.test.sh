@@ -81,6 +81,13 @@ context_path="$ROOT/$context_md"
 # independent literals here would let this suite drift exactly that way itself.
 mark='⟂ refactor pending'
 
+# The call case 7 is about, spelled once for the same reason: `verify.sh refactor`, with the
+# optional `--step '<STEP>'` flag the conductor now types between the script and its phase
+# (#223). Three probes ask for that shape — the read that finds the cycle loop's call, and
+# the two that ask what each call site hands it — and a third independent spelling would let
+# one of them go on matching a call SKILL.md no longer makes.
+verify_refactor='verify\.sh (--step [^ ]+ )?refactor'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -675,15 +682,15 @@ name="$skill_md passes the step's green commit sha to verify.sh refactor in the 
 problems=()
 if records_from instructions \
     "$skill_md has no instructions to read — what verify-refactor is handed could not be checked"; then
-  if reads 'runs verify.sh refactor in the cycle loop' 'verify\.sh (--step [^ ]+ )?refactor'; then
-    says 'verify\.sh (--step [^ ]+ )?refactor [^ ]+ [^ ]+ <green-sha>' \
+  if reads 'runs verify.sh refactor in the cycle loop' "$verify_refactor"; then
+    says "$verify_refactor [^ ]+ [^ ]+ <green-sha>" \
       "$skill_md's cycle loop runs verify.sh refactor without the step's <green-sha>, so verify-refactor has no range to diff and exits 2"
   fi
 fi
 if records_from resume_instructions \
     "$skill_md has no ## Resume section to read — what a resumed verify-refactor is handed could not be checked"; then
   if reads 'runs next-pending-refactor.sh on a resume' 'next-pending-refactor\.sh'; then
-    says 'verify\.sh (--step [^ ]+ )?refactor [^ ]+ [^ ]+ "?\$green' \
+    says "$verify_refactor"' [^ ]+ [^ ]+ "?\$green' \
       "$skill_md's Resume never runs verify.sh refactor with \$green, so the resumed step's verify-refactor is handed no base sha and exits 2"
   fi
 fi
