@@ -29,11 +29,14 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 }
 
 # The latest leaf launch in the event log, how many launches the current step has had, and the
-# run's cost so far: every `usage` line's dollars and its four token kinds, summed.
-run_activity() {  # run_activity <events.jsonl> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens"
-  python3 - "$1" <<'PY'
-import json, sys, time
+# run's cost so far: every `usage` line's dollars and its four token kinds, summed — and the
+# run's state. A `done` or `bail` event ends a run; otherwise it is stale when its newest event
+# is older than <timeout> seconds and <conductor.pid> does not answer `kill -0`, else running.
+run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
+  python3 - "$1" "$2" "$3" <<'PY'
+import json, os, sys, time
 last, attempts, step = None, 0, None
+newest, ended = None, None
 dollars, tokens = 0.0, 0
 TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
                "cache_creation_input_tokens")
@@ -43,6 +46,7 @@ with open(sys.argv[1]) as f:
         if not raw:
             continue
         line = json.loads(raw)
+        newest = line
         if line.get("step") != step:
             step, attempts = line.get("step"), 0
         if line.get("event") == "launch":
@@ -51,13 +55,37 @@ with open(sys.argv[1]) as f:
         elif line.get("event") == "usage":
             dollars += float(line.get("total_cost_usd") or 0)
             tokens += sum(int(line.get(kind) or 0) for kind in TOKEN_KINDS)
+        elif line.get("event") in ("done", "bail"):
+            ended = line
+
+
+def conductor_answers(pid_file):
+    try:
+        with open(pid_file) as f:
+            os.kill(int(f.read().strip()), 0)
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+now = int(time.time())
+if ended is not None and ended.get("event") == "done":
+    state = "done %s" % ended.get("pr", "")
+elif ended is not None:
+    state = "bailed %s %s" % (ended.get("phase", ""), ended.get("classification", ""))
+elif newest is not None and now - int(newest["ts"]) > int(sys.argv[3]) \
+        and not conductor_answers(sys.argv[2]):
+    state = "stale"
+else:
+    state = "running"
 if last is not None:
-    print("%s  %s  %s %ds  attempt %d  $%.2f  %d tokens" % (last.get("phase", ""),
-          last.get("actor", ""), last.get("name", ""), int(time.time()) - int(last["ts"]),
-          attempts, dollars, tokens))
+    print("%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (last.get("phase", ""),
+          last.get("actor", ""), last.get("name", ""), now - int(last["ts"]),
+          attempts, dollars, tokens, state))
 PY
 }
 
+timeout="${VERI_TIMEOUT:-900}"
 main_tree="$(main_working_tree)"
 
 shopt -s nullglob
@@ -75,7 +103,7 @@ for run in "${runs[@]}"; do
   run="${run%/}"
   branch="$(git -C "$run" symbolic-ref --short HEAD 2>/dev/null || true)"
   activity=""
-  [[ -f "$run/.tdd/events.jsonl" ]] && activity="  $(run_activity "$run/.tdd/events.jsonl")"
+  [[ -f "$run/.tdd/events.jsonl" ]] && activity="  $(run_activity "$run/.tdd/events.jsonl" "$run/.tdd/conductor.pid" "$timeout")"
   for ledger in "$run"/.tdd/issue-*.md; do
     # The heading is `# Plan for #<n> — <title>`.
     heading="$(head -n 1 "$ledger")"
