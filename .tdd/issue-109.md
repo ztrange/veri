@@ -9,4 +9,4 @@
 - [x] status.sh with no --scope but VERI_LABEL set adds the same scope totals line for the scope VERI_LABEL names
 - [x] status.sh scope totals include the count still solvable, from solvable-issues.sh for that scope, tested with VERI_GH_JSON fixtures and no network
 - [x] status.sh --json emits the same per-run and scope data as one JSON document
-- [x] status.sh --watch [seconds] redraws in place, recomputing everything from disk on every render ⟂ refactor pending
+- [x] status.sh --watch [seconds] redraws in place, recomputing everything from disk on every render
