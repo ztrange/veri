@@ -74,11 +74,13 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 # the clone's HEAD: a clone nobody pulls runs behind every PR that has landed since, and the
 # clone's working tree and branch are never touched to fix that — the fetch moves only
 # refs/remotes/origin/*. origin/HEAD is git's own record of which branch is the default one.
+# A fetch that fails is exit 2, never a fallback to HEAD: a stale skill is the defect.
 base="$(cd "$HERE/.." && pwd)"
 record=".tdd/issue-$issue-skill-commit"
 head_rev=HEAD
 if git -C "$base" remote get-url origin >/dev/null 2>&1; then
-  git -C "$base" fetch -q origin
+  git -C "$base" fetch -q origin ||
+    { echo "run-conductor: fetch of origin failed in '$base' — refusing to run a skill that may be stale" >&2; exit 2; }
   head_rev=refs/remotes/origin/HEAD
 fi
 if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
