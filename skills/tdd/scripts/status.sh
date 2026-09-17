@@ -81,13 +81,13 @@ elif newest is not None and now - int(newest["ts"]) > int(sys.argv[3]) \
 else:
     state = "running"
 if last is not None and os.environ.get("STATUS_JSON") == "1":
+    end = ended or {}
     print(json.dumps({"phase": last.get("phase", ""), "actor": last.get("actor", ""),
                       "leaf": last.get("name", ""), "elapsed_seconds": now - int(last["ts"]),
                       "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
-                      "state": state.split(" ")[0],
-                      "pr": ended.get("pr", "") if ended is not None else "",
-                      "bail_phase": ended.get("phase", "") if ended is not None else "",
-                      "classification": ended.get("classification", "") if ended is not None else ""}))
+                      "state": state.split(" ")[0], "pr": end.get("pr", ""),
+                      "bail_phase": end.get("phase", ""),
+                      "classification": end.get("classification", "")}))
 elif last is not None:
     print("%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (last.get("phase", ""),
           last.get("actor", ""), last.get("name", ""), now - int(last["ts"]),
