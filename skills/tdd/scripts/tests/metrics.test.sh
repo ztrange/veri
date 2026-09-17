@@ -230,7 +230,7 @@ counts_table_says() {
   local out_file="$1" noun="$2" columns="$3"; shift 3
   probe "$PROBE_PRELUDE"'
 NEEDLE = {"attempts": "attempt", "pass": "pass", "reject": "reject",
-          "kills": "kill", "retries": "retr"}
+          "kills": "kill", "retries": "retr", "no-verdict": "verdict"}
 
 noun, wanted, path = sys.argv[1], sys.argv[2].split(","), sys.argv[3]
 tables = tables_in(path)
@@ -1728,6 +1728,49 @@ times_say "$accrued_out" red=210
 costs_say "$accrued_out" red=10,1111,2222,3333,4444,0.80 total=10,1111,2222,3333,4444,0.80
 
 report_on "$name" "$accrued_out"
+
+
+# A fixture for the no-verdict relaunch count (issue #219). verify.sh writes a `relaunch` mark
+# with `cause=no-verdict` each time a verifier leaf exited cleanly with no VERDICT: line and is
+# launched again — neither supervise.sh's `retry` (a leaf that never answered) nor a `revise`
+# (a verdict that was REJECT). The step below spends all three, as three distinct figures: two
+# no-verdict relaunches, one stuck retry, one revise of three, so a report that counted a
+# relaunch as a retry, or printed one figure in another's column, cannot pass.
+# 6 attempts, 1 PASS, 1 REJECT, 0 kills, 1 stuck retry, 2 no-verdict relaunches.
+fixture_work relaunch_work
+
+relaunched="a verifier that ended its turn without a verdict is relaunched"
+sv "$relaunched" 30000 conductor ""    step-start ""
+sv "$relaunched" 30010 developer green launch   1 '"name": "develop-green"'
+sv "$relaunched" 30100 developer green exit     1 '"status": "0", "secs": "90"'
+sv "$relaunched" 30110 verifier  green launch   1 '"name": "verify-green"'
+sv "$relaunched" 30130 verifier  green exit     1 '"status": "0", "secs": "20"'
+sv "$relaunched" 30130 verifier  green relaunch 1 '"cause": "no-verdict"'
+sv "$relaunched" 30140 verifier  green launch   1 '"name": "verify-green"'
+sv "$relaunched" 30160 verifier  green exit     1 '"status": "0", "secs": "20"'
+sv "$relaunched" 30160 verifier  green relaunch 1 '"cause": "no-verdict"'
+sv "$relaunched" 30170 verifier  green launch   1 '"name": "verify-green"'
+sv "$relaunched" 30190 verifier  green exit     1 '"status": "0", "secs": "20"'
+sv "$relaunched" 30190 verifier  green verdict  1 '"verdict": "REJECT", "reason": "the change is wider than the case"'
+sv "$relaunched" 30200 conductor green revise   1 '"budget": "3"'
+sv "$relaunched" 30210 developer green launch   2 '"name": "revise-green-2"'
+sv "$relaunched" 30270 developer green retry    2 '"cause": "no heartbeat for 300s (window 120s)"'
+sv "$relaunched" 30330 developer green exit     2 '"status": "0", "secs": "120"'
+sv "$relaunched" 30340 verifier  green launch   2 '"name": "verify-green"'
+sv "$relaunched" 30360 verifier  green exit     2 '"status": "0", "secs": "20"'
+sv "$relaunched" 30360 verifier  green verdict  2 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$relaunched" 30370 conductor ""    step-done ""
+
+
+name="a step whose verifier was relaunched for no verdict reports those relaunches as their own count, apart from its retries and revises"
+problems=()
+
+relaunch_out="$relaunch_work/report.md"
+render "$relaunch_work" "$relaunch_out"
+
+counts_table_says "$relaunch_out" step attempts,pass,reject,kills,retries,no-verdict "$relaunched=6,1,1,0,1,2"
+
+report_on "$name" "$relaunch_out"
 
 
 echo "----"

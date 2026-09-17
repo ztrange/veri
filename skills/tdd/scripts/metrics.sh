@@ -39,6 +39,10 @@
 #              It is the liveness budget spent, `VERI_STUCK_RETRIES`, and that is a per-step
 #              question — which step cost the watchdog its patience — which is why the
 #              column is here and not in the phase section.
+#   no-verdict — `relaunch` events carrying `cause=no-verdict`. verify.sh writes one each time
+#              a verifier leaf exited cleanly with no VERDICT: line and is launched again
+#              (issue #219): protocol compliance, `VERI_NO_VERDICT_RETRIES`, so neither a
+#              retry (liveness) nor a revise (verdict).
 #
 # Every line carries a step, the conductor's marks included, so the section is keyed by
 # something always present; a phase, by contrast, is absent on exactly those marks.
@@ -154,10 +158,10 @@ issue, path, ledger = sys.argv[1], sys.argv[2], sys.argv[3]
 # how many columns there are.
 COUNTS = ["attempts", "PASS", "REJECT", "kills"]
 
-# The per-step section prints those four and retries, in that order, for the reason in the
+# The per-step section prints those four, retries and no-verdict relaunches, in that order, for the reason in the
 # header: retries answer a per-step question. Written as an extension of COUNTS rather than
 # as a list of its own, so the two sections cannot come to disagree about what a kill is.
-STEP_COUNTS = COUNTS + ["retries"]
+STEP_COUNTS = COUNTS + ["retries", "no-verdict"]
 
 # The per-step section closes with three columns that are not counts but text: the two
 # `used/budget` pairs and the reason the refactor loop stopped. They are listed apart from
@@ -453,6 +457,8 @@ with open(path) as f:
             count = "kills"
         elif event == "retry":
             count = "retries"
+        elif event == "relaunch" and line.get("cause") == "no-verdict":
+            count = "no-verdict"
         else:
             continue
         # One classification, two tables: the line is the same event whichever way it is
