@@ -206,6 +206,27 @@ skill_archive() {
   git -C "$1" archive "$2" skills/tdd | tar -x -C "$3"
 }
 
+# tree_clone <dir> — a git repository at <dir> whose one commit is the skill as the tree under
+# test has it committed, with the tree's working copy laid over it uncommitted: the tree under
+# test as cases 1–5 ask about it, minus its origin. They launch from here rather than from the
+# run-conductor.sh beside this suite (issue #258), because a launch there fetches this
+# checkout's real origin over the network and pins whatever origin/main holds. Committed and
+# uncommitted stay apart because cases 21 and 22 ask about exactly that difference.
+tree_clone() {
+  local root prefix
+  root="$(cd "$HERE/../.." && git rev-parse --show-toplevel)"
+  prefix="$(cd "$HERE/../.." && git rev-parse --show-prefix)"
+  mkdir -p "$1"
+  git -C "$root" archive --prefix=skills/tdd/ "HEAD:$prefix" | tar -x -C "$1"
+  git -C "$1" init -q
+  git -C "$1" add -A
+  git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
+  cp -R "$HERE/../../." "$1/skills/tdd"
+}
+
+tree_clone "$work/tree"
+CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
+
 # 1. The criterion: one conductor, launched as `claude -p` for the issue, streaming events.
 name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
 problems=()
@@ -1010,6 +1031,36 @@ else
   elif ! grep -q 'does not begin with .*SKILL.md verbatim' <<< "$out22"; then
     problems+=("case 4 failed, but not on the comparison: ${out22//$'\n'/ | }")
   fi
+fi
+
+report "$name"
+
+# 23. Cases 1–5 need no network and no particular origin/main (issue #258). Since #251 a launch
+# fetches the skill clone's `origin` before it pins, so a case that launches the run-conductor.sh
+# beside this suite fetches whatever origin this checkout has — the real repository, over the
+# network — and case 4 then holds only for what origin/main happens to point at. The fixture is
+# a skill clone whose origin is a URL nothing listens on; cases 1–5 are cut out of that clone's
+# copy of this suite — the preamble through case 5, and the count line — and run there, the way
+# case 21 runs case 4, so a case that still launches from the tree it sits in fetches that dead
+# origin and fails, and one that launches from a fixture it controls does not.
+name="cases 1-5 pass when the checkout under test has an unreachable origin"
+problems=()
+
+clone23="$work/clone23"
+skill_clone "$clone23"
+git -C "$clone23" remote add origin "https://127.0.0.1:1/veri.git"
+
+suite23="$clone23/skills/tdd/scripts/tests/cases1-5-only.test.sh"
+awk '/^# 6\. / {exit} 1' "$clone23/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite23"
+printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite23"
+chmod +x "$suite23"
+
+if [[ "$(grep -c '^name=' "$suite23")" -ne 5 ]]; then
+  problems+=("cases 1-5 could not be cut out of the clone's run-conductor.test.sh")
+else
+  out23="$(GIT_TERMINAL_PROMPT=0 "$suite23" 2>&1)"
+  [[ "$(tail -n 1 <<< "$out23")" == "5 passed, 0 failed" ]] ||
+    problems+=("cases 1-5 did not all pass with origin unreachable: ${out23//$'\n'/ | }")
 fi
 
 report "$name"
