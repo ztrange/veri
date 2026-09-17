@@ -675,15 +675,15 @@ name="$skill_md passes the step's green commit sha to verify.sh refactor in the 
 problems=()
 if records_from instructions \
     "$skill_md has no instructions to read — what verify-refactor is handed could not be checked"; then
-  if reads 'runs verify.sh refactor in the cycle loop' 'verify\.sh refactor'; then
-    says 'verify\.sh refactor [^ ]+ [^ ]+ <green-sha>' \
+  if reads 'runs verify.sh refactor in the cycle loop' 'verify\.sh (--step [^ ]+ )?refactor'; then
+    says 'verify\.sh (--step [^ ]+ )?refactor [^ ]+ [^ ]+ <green-sha>' \
       "$skill_md's cycle loop runs verify.sh refactor without the step's <green-sha>, so verify-refactor has no range to diff and exits 2"
   fi
 fi
 if records_from resume_instructions \
     "$skill_md has no ## Resume section to read — what a resumed verify-refactor is handed could not be checked"; then
   if reads 'runs next-pending-refactor.sh on a resume' 'next-pending-refactor\.sh'; then
-    says 'verify\.sh refactor [^ ]+ [^ ]+ "?\$green' \
+    says 'verify\.sh (--step [^ ]+ )?refactor [^ ]+ [^ ]+ "?\$green' \
       "$skill_md's Resume never runs verify.sh refactor with \$green, so the resumed step's verify-refactor is handed no base sha and exits 2"
   fi
 fi
