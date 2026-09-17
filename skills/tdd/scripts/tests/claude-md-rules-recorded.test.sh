@@ -204,6 +204,28 @@ probe_budgets_invariant_names_the_fourth_axis
 
 report "$name"
 
+# probe_blind_invariant_names_the_base_sha — issue #151 gave the refactor verifier a 4th
+# positional, `<base-sha>`, the step's green commit, so it can review what the refactor
+# changed. The blind-verifier invariant is where the document says no parameter can carry the
+# developer's rationale, so a new parameter it does not name — and does not say why it cannot
+# leak — reads as the silent end of the guarantee that invariant warns about. Asked of ONE
+# record, like the roster above: the invariant, the builder, the parameter, the phase it
+# belongs to, what shape confines it (hex), and that it cannot carry rationale.
+probe_blind_invariant_names_the_base_sha() {
+  one_record_matches "$(records)" 'blind' 'build-verify-prompt\.sh' 'base.sha' 'refactor' \
+    'hex|0-9a-f' 'rationale|leak' && return
+  problems+=("$claude_md has no single record naming <base-sha> as the refactor phase parameter of build-verify-prompt.sh in the blind-verifier invariant, and why a hex sha cannot leak rationale")
+}
+
+# 3. One criterion, one case: the blind-verifier invariant names the base-sha parameter and
+#    why a sha cannot leak rationale (#151).
+name="$claude_md's blind-verifier invariant names the refactor base-sha parameter and why a sha cannot leak rationale"
+problems=()
+
+probe_blind_invariant_names_the_base_sha
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -98,7 +98,11 @@ Two traps, both already cost something once:
   bypasses it.
 - **The verifier is blind by construction.** `build-verify-prompt.sh` takes only a phase,
   the spec file, the test path and a test id. There is no parameter for the developer's
-  rationale, so it cannot leak. Adding one would silently end the guarantee.
+  rationale, so it cannot leak. Adding one would silently end the guarantee. The `refactor`
+  phase takes `<base-sha>`, the step's green commit, in place of the test id (#151): it must
+  match `^[0-9a-f]{7,40}$` or the builder exits 2, so the only thing that parameter can carry
+  is a hex commit name, never the developer's rationale — and the verifier reads
+  `git diff <base-sha>..HEAD`, not the range's commit messages.
 - **The committed ledger is the source of truth** for which steps are done, ticked
   atomically with each step's green commit; the GitHub issue only mirrors it. That tick
   also appends `⟂ refactor pending`, which only that step's verify-refactor PASS takes off
