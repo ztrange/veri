@@ -667,6 +667,22 @@ sha_code=$?
   || no "verify.sh refactor passes the base sha through to the verifier prompt (code=$sha_code; prompt lines naming a sha: $(grep -o 'git diff [^ ]*' "$sha_dir/argv" 2>/dev/null | head -1); stderr: $(head -1 "$sha_dir/err"))"
 rm -rf "$sha_dir"
 
+# verify.sh --step '<STEP>' hands the step to the verifier prompt, and only the flag does (#223).
+# The flag comes before the positionals; an ambient VERI_STEP naming a different step is exported
+# alongside it, and what reaches the leaf is read off the stub's recorded argv — so a verify.sh that
+# dropped the flag, or scoped the verdict by reading the environment, is what fails here.
+step_dir="$(mktemp -d)"
+( cd "$step_dir" && env VERI_STEP='AMBIENT-STEP-must-not-appear' CLAUDE_BIN="$stubdir/claude" \
+    ARGV_OUT="$step_dir/argv" FAKE_OUT_TEXT='VERDICT: PASS
+REASON: ok' "$VERIFY" --step 'FLAG-STEP slugify joins words with hyphens' green "$work/spec.md" \
+    tests/test_slugify.py test_lowercases >/dev/null 2>"$step_dir/err" )
+step_code=$?
+step_seen="$(grep -c 'FLAG-STEP slugify joins words with hyphens' "$step_dir/argv" 2>/dev/null)"
+ambient_seen="$(grep -c 'AMBIENT-STEP-must-not-appear' "$step_dir/argv" 2>/dev/null)"
+{ [[ "$step_code" == 0 ]] && [[ "${step_seen:-0}" -ge 1 ]] && [[ "${ambient_seen:-0}" -eq 0 ]]; } && ok \
+  || no "verify.sh --step '<STEP>' reaches the verifier prompt and ambient VERI_STEP does not (code=$step_code; step in prompt: ${step_seen:-0}; ambient in prompt: ${ambient_seen:-0}; stderr: $(head -1 "$step_dir/err"))"
+rm -rf "$step_dir"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
