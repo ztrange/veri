@@ -9,4 +9,4 @@
 - [x] metrics.sh reports no-verdict relaunches per run as their own count, distinct from retries and revise
 - [x] a relaunch's verifier prompt is byte-identical to the first attempt's, and build-verify-prompt.sh gains no parameter
 - [x] SKILL.md's exit-2 branch says a clean exit with no verdict is relaunched rather than bailed, and a new ADR docs/adr/0020-*.md records it, naming ADR-0011 and SKILL.md's exit-2 branch as what it narrows
-- [ ] CLAUDE.md's budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth axis and why it is not merged with VERI_STUCK_RETRIES
+- [x] CLAUDE.md's budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth axis and why it is not merged with VERI_STUCK_RETRIES ⟂ refactor pending

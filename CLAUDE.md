@@ -99,12 +99,16 @@ Two traps, both already cost something once:
   also appends `⟂ refactor pending`, which only that step's verify-refactor PASS takes off
   again — so a ticked step is green, not finished, and the mark is what tells a resumed run
   which of the two it is.
-- **Three budgets on three axes, never merged**: `VERI_STUCK_RETRIES` (liveness — the leaf
-  never answered), `REVISE_BUDGET` (verdict — it answered and was rejected) and
-  `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's tidying is worth, since one
-  refactor leaf now spends the whole step's budget and a leaf given a number will find that
-  many). One knob over any two of them would trade a plumbing failure against a methodology
-  one, or against how much a step is allowed to cost. A bad `VERI_REFACTOR_BUDGET` is caught
+- **Four budgets on four axes, never merged**: `VERI_STUCK_RETRIES` (liveness — the leaf
+  never answered), `VERI_NO_VERDICT_RETRIES` (protocol compliance — the verifier finished
+  cleanly and ignored the output contract, no `VERDICT:` line), `REVISE_BUDGET` (verdict — it
+  answered and was rejected) and `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's
+  tidying is worth, since one refactor leaf now spends the whole step's budget and a leaf
+  given a number will find that many). One knob over any two of them would trade a plumbing
+  failure against a methodology one, or against how much a step is allowed to cost; over the
+  first two, "retry more hangs" (a hung tool, fixed in the supervisor's windows) and
+  "tolerate more contract breaches" (a model choice, fixed in the prompt) would be the same
+  decision (ADR-0020). A bad `VERI_REFACTOR_BUDGET` is caught
   in preflight, not mid-launch, which is why the refactor phase can treat
   `refactor-budget.sh` exit 2 as impossible. ADR-0017, superseding ADR-0010, is where one
   leaf for the step rather than one per transform is recorded.
