@@ -69,17 +69,24 @@ def main_working_tree():
     return first[0][len("worktree "):] if first else ""
 
 
+# One run's event log, parsed, in the order the file has them — a log is appended to, so that
+# order is oldest first and newest last. A run that has not logged anything yet, or that has
+# no log at all, is the empty list and not an error: both readers below are polled every two
+# seconds while a run is still being born. Where the log lives and how a line of it becomes an
+# object is settled here, so neither of them spells it.
+def events_of(run):
+    log = os.path.join(run, ".tdd", "events.jsonl") if run else ""
+    if not log or not os.path.exists(log):
+        return []
+    with open(log) as f:
+        return [json.loads(raw) for raw in f if raw.strip()]
+
+
 # A run has ENDED when its log carries the mark that ends one — `done` or `bail`, the same
 # pair status.sh reads for its `state` (status.sh:76). That, and not a clock, is what splits
 # the two readings below: a run still going is recomputed, an ended one is quoted.
-def run_ended(log):
-    ended = False
-    with open(log) as f:
-        for raw in f:
-            raw = raw.strip()
-            if raw and json.loads(raw).get("event") in ("done", "bail"):
-                ended = True
-    return ended
+def run_ended(run):
+    return any(e.get("event") in ("done", "bail") for e in events_of(run))
 
 
 # One issue's report, which is the whole of the split the criterion names. For a run still
@@ -90,9 +97,8 @@ def run_ended(log):
 # outlives a log that may since have been pruned; a run that ended without one leaves the
 # empty string rather than a recomputation of the same log the file was written from.
 def issue_report(run, issue):
-    log = os.path.join(run, ".tdd", "events.jsonl")
     committed = os.path.join(run, ".tdd", "issue-%s-metrics.md" % issue)
-    if os.path.exists(log) and run_ended(log):
+    if run_ended(run):
         return open(committed).read() if os.path.exists(committed) else ""
     return capture([metrics_sh, issue], cwd=run).decode("utf-8", "replace")
 
@@ -131,21 +137,11 @@ def run_for_issue(issue):
     return ""
 
 
-# The Events pane: the selected run's log, one parsed object per line, in the order the file
-# has them — a log is appended to, so that order is oldest first and newest last, and the
-# pane's promise is that it is not reordered. An issue no run holds a ledger for, or a run
-# that has not logged anything yet, is the empty list and not an error: the page polls this
-# every two seconds while a run is still being born.
+# The Events pane: the selected run's log, oldest first and so newest last — the pane's
+# promise is that the order the file has is not reordered. An issue no run holds a ledger for
+# is the empty list, which is what events_of makes of the empty run name.
 def events_json(query):
-    events = []
-    run = run_for_issue(query.get("issue", [""])[0])
-    log = os.path.join(run, ".tdd", "events.jsonl") if run else ""
-    if log and os.path.exists(log):
-        with open(log) as f:
-            for raw in f:
-                raw = raw.strip()
-                if raw:
-                    events.append(json.loads(raw))
+    events = events_of(run_for_issue(query.get("issue", [""])[0]))
     return json.dumps({"events": events}).encode()
 
 
