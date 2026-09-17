@@ -33,6 +33,16 @@ run_in() {  # run_in <dir> [script args…]; sets $out and $code
   out="$(cd "$dir" && "$STATUS" "$@" 2>/dev/null)" && code=0 || code=$?
 }
 
+# Pass when every wanted piece was found in $out and the script exited 0; otherwise name the
+# case, the pieces missing and what the script did print.
+expect_nothing_missing() {  # expect_nothing_missing <case name>; reads $missing, $out, $code
+  if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
+    no "$1"
+    printf 'missing: %s\n' "${missing[@]:-}"
+    printf 'output:\n%s\nexit %s\n' "$out" "$code"
+  fi
+}
+
 # --- no .tdd/wt/* runs under the main working tree: "no runs", exit 3 ---
 empty="$(repo empty)"
 run_in "$empty"
@@ -61,11 +71,7 @@ missing=()
 for want in "#7" "widgets spin when clicked" "tdd/7-widgets-spin" "step 2 of 3"; do
   [[ "$out" == *"$want"* ]] || missing+=("$want")
 done
-if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
-  no "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m"
-  printf 'missing: %s\n' "${missing[@]:-}"
-  printf 'output:\n%s\nexit %s\n' "$out" "$code"
-fi
+expect_nothing_missing "a run under .tdd/wt/* is listed with its issue number, title, branch and step n of m"
 
 # --- one run mid-Green: phase, actor, current leaf and its elapsed seconds, attempts in step ---
 # The event log is what these are read from. The previous step launched three leaves; the
@@ -102,11 +108,7 @@ for want in "green" "developer" "develop-green" "attempt 2"; do
   [[ "$out" == *"$want"* ]] || missing+=("$want")
 done
 [[ "$out" =~ (^|[^0-9])10[0-5]s([^0-9a-z]|$) ]] || missing+=("elapsed 100s-105s")
-if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
-  no "a run shows its current phase, actor, leaf name, leaf elapsed seconds and attempts in the step, from its event log"
-  printf 'missing: %s\n' "${missing[@]:-}"
-  printf 'output:\n%s\nexit %s\n' "$out" "$code"
-fi
+expect_nothing_missing "a run shows its current phase, actor, leaf name, leaf elapsed seconds and attempts in the step, from its event log"
 
 # --- one run: cost so far in dollars and tokens, summed from the event log's usage lines ---
 # Two leaves have closed with their own accounting (harvest-usage.sh writes one `usage` line
@@ -133,11 +135,7 @@ run_in "$spent"
 missing=()
 [[ "$out" == *'$1.75'* ]] || missing+=('$1.75')
 [[ "$out" =~ (^|[^0-9])11,?000\ tokens ]] || missing+=("11000 tokens")
-if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
-  no "a run shows its cost so far in dollars and tokens, summed from its event log"
-  printf 'missing: %s\n' "${missing[@]:-}"
-  printf 'output:\n%s\nexit %s\n' "$out" "$code"
-fi
+expect_nothing_missing "a run shows its cost so far in dollars and tokens, summed from its event log"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
