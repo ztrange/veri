@@ -109,6 +109,13 @@ prompt_base() {
   sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1
 }
 
+# differing_files <expected> <copy> — the files under <expected>, one path per line, that
+# <copy> does not hold byte for byte. Fails when <expected> cannot be entered.
+differing_files() {
+  (cd "$1" && find . -type f | while read -r f; do
+    cmp -s "$f" "$2/$f" || echo "$f"; done)
+}
+
 # skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
 # once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
 # resolves is one the case controls. Prints nothing; read the commit with rev-parse.
@@ -282,8 +289,7 @@ if [[ -z "$base" ]]; then
   problems+=("the prompt names no 'Base directory for this skill: <dir>' line")
 elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" == "$(cd "$clone/skills/tdd" && pwd -P)" ]]; then
   problems+=("the base directory is the clone's own skills/tdd: $base")
-elif ! diff_out="$(cd "$committed/skills/tdd" && find . -type f | while read -r f; do
-    cmp -s "$f" "$live/$f" || echo "$f"; done)" || [[ -n "$diff_out" ]]; then
+elif ! diff_out="$(differing_files "$committed/skills/tdd" "$live")" || [[ -n "$diff_out" ]]; then
   problems+=("the base directory's files differ from skill commit $commit: ${diff_out//$'\n'/ }")
 elif [[ -e "$base" ]]; then
   problems+=("the snapshot is still on disk after the launch returned: $base")
@@ -400,8 +406,7 @@ elif [[ -n "$first_snapshot" && -e "$first_snapshot" ]]; then
 elif [[ ! -f "$resumed_base/SKILL.md" ]]; then
   problems+=("the resumed launch's base directory held no skill while the conductor ran: $base")
 else
-  diff_out="$(cd "$pinned/skills/tdd" && find . -type f | while read -r f; do
-    cmp -s "$f" "$resumed_base/$f" || echo "$f"; done)"
+  diff_out="$(differing_files "$pinned/skills/tdd" "$resumed_base")"
   [[ -z "$diff_out" ]] ||
     problems+=("the resumed run's base directory differs from recorded skill commit $recorded: ${diff_out//$'\n'/ }")
 fi
