@@ -10,8 +10,10 @@
 #       → parse-verdict.sh   extract PASS|REJECT + reason from the leaf's output
 #
 # Usage:
-#   verify.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#   verify.sh [--step '<STEP>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #     phase = red | green | refactor | pin
+#     --step = the ledger's own line for the step under judgement (#223), passed straight
+#              through to build-verify-prompt.sh
 #
 # stdout: the verifier's reason (mirror it to the issue thread).
 # exit:   0 PASS · 1 REJECT · 2 malformed verdict or build error.
@@ -29,7 +31,15 @@
 # permissions. CLAUDE_BIN (read by run-leaf.sh) overrides the binary for tests.
 set -euo pipefail
 
-phase="${1:?usage: verify.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
+# The step is a flag and only a flag: an ambient VERI_STEP is never read here, so nothing
+# but this call site can scope a verdict (#223). Without it the prompt is what it always was.
+step_args=()
+if [[ "${1:-}" == --step ]]; then
+  step_args=( --step "${2:?--step needs the step text}" )
+  shift 2
+fi
+
+phase="${1:?usage: verify.sh [--step '<STEP>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
 spec_file="${2:?missing <issue-spec-file>}"
 test_path="${3:?missing <test-path>}"
 target="${4:-}"
@@ -83,7 +93,7 @@ else
 fi
 
 # Build the blind prompt (exits 2 on unknown phase / unreadable files — propagated).
-prompt="$("$HERE/build-verify-prompt.sh" "$phase" "$spec_file" "$test_path" "$target")"
+prompt="$("$HERE/build-verify-prompt.sh" "${step_args[@]+"${step_args[@]}"}" "$phase" "$spec_file" "$test_path" "$target")"
 
 # Launch the verifier leaf THROUGH THE SUPERVISOR (no leaf is launched directly, #4).
 # supervise.sh owns the .tdd/verify-<phase>.log progress log and returns the captured
