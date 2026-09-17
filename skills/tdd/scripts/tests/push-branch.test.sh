@@ -194,7 +194,7 @@ git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
 
 head_sha="$(git_q "$repo" rev-parse HEAD)"
 
-( cd "$repo" && env VERI_ISSUE=191 VERI_ACTOR=conductor \
+( cd "$repo" && env VERI_ISSUE=191 VERI_ACTOR=conductor VERI_PUSH_BACKOFF=0 \
     VERI_STEP='the branch exists on the remote' "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
 
 [[ "$code" == 0 ]] || problems+=("want exit 0 from a push that lands, got $code")
