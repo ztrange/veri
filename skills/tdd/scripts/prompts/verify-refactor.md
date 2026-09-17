@@ -4,6 +4,7 @@
 
 A developer agent has finished the **refactor** pass for this cycle (the code and test
 around `{{TEST_PATH}}`). The refactor is meant to be **behavior-preserving** tidy-up.
+The step's green commit, where the refactor started, is `{{BASE_SHA}}`.
 Render one verdict on the settled result.
 
 ### The issue's behavior spec
