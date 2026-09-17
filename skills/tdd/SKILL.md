@@ -205,8 +205,8 @@ file.
 - `$S/issue-worktree.sh <n> <slug>` — the **linked worktree the issue branch lives in**.
   Creates (or hands back) `<repo-root>/.tdd/wt/<n>` on branch `tdd/<n>-<slug>`, cut from
   **`origin/<default>` as just fetched** — never from the caller's `HEAD`, and never from the
-  **local** branch of that name: that one **lags the remote by design**, since pulling the
-  primary clone while a run is live would change the scripts running under it, so a branch cut
+  **local** branch of that name: that one **lags the remote by design**, since a run executes the skill pinned from
+  `origin/<default>` and nothing obliges anyone to pull the primary clone, so a branch cut
   from it starts **stale** and its PR then owes a rebase over everything that landed meanwhile.
   The fetch moves no local branch and touches no working tree. A local `main`/`master` is the
   fallback on two separate axes: it supplies `<default>`'s **name** when the clone records no
