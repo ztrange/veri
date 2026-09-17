@@ -30,7 +30,7 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 
 # The latest leaf launch in the event log, how many launches the current step has had, and the
 # run's cost so far: every `usage` line's dollars and its four token kinds, summed.
-leaf_now() {  # leaf_now <events.jsonl> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens"
+run_activity() {  # run_activity <events.jsonl> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens"
   python3 - "$1" <<'PY'
 import json, sys, time
 last, attempts, step = None, 0, None
@@ -74,14 +74,14 @@ fi
 for run in "${runs[@]}"; do
   run="${run%/}"
   branch="$(git -C "$run" symbolic-ref --short HEAD 2>/dev/null || true)"
-  leaf=""
-  [[ -f "$run/.tdd/events.jsonl" ]] && leaf="  $(leaf_now "$run/.tdd/events.jsonl")"
+  activity=""
+  [[ -f "$run/.tdd/events.jsonl" ]] && activity="  $(run_activity "$run/.tdd/events.jsonl")"
   for ledger in "$run"/.tdd/issue-*.md; do
     # The heading is `# Plan for #<n> — <title>`.
     heading="$(head -n 1 "$ledger")"
     heading="${heading#\# Plan for #}"
     issue="${heading%% — *}"
     title="${heading#* — }"
-    printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$leaf"
+    printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity"
   done
 done
