@@ -71,6 +71,7 @@ chmod +x "$stubdir/claude"
 
 argv="$work/argv"
 prompt="$work/prompt"
+launch_err="$work/launch.err"
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem,
@@ -136,12 +137,13 @@ advance_clone() {
 
 # launch_from <caller> <clone> [VAR=value…] — run <clone>'s run-conductor.sh for the issue from
 # inside <caller>, against the stub, with any extra VAR=value in its environment: the one way
-# every snapshot case launches, so the cases differ only in what they add.
+# every snapshot case launches, so the cases differ only in what they add. The launch's stderr
+# lands in $launch_err, and its exit status is the function's.
 launch_from() {
   local caller="$1" clone="$2"
   shift 2
   ( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" "$@" \
-      "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+      "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>"$launch_err"
 }
 
 # caller_repo <dir> — an empty git repository at <dir>: the checkout a snapshot case launches
@@ -494,20 +496,17 @@ loose="$work/loose"
 mkdir -p "$loose/skills"
 cp -R "$HERE/../.." "$loose/skills/tdd"
 rm -f "$prompt"
-errfile="$work/unpinned.err"
 
-( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-    GIT_CEILING_DIRECTORIES="$work" \
-    "$loose/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>"$errfile"
+launch_from "$caller" "$loose" GIT_CEILING_DIRECTORIES="$work"
 status=$?
 
 base="$(prompt_base)"
 if [[ "$status" -ne 0 ]]; then
-  problems+=("the unpinned launch exited $status, not 0: $(cat "$errfile")")
+  problems+=("the unpinned launch exited $status, not 0: $(cat "$launch_err")")
 elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" != "$(cd "$loose/skills/tdd" && pwd -P)" ]]; then
   problems+=("the unpinned run's base directory is not the skill directory itself: '$base'")
-elif ! grep -qi 'unpinned' "$errfile"; then
-  problems+=("no warning on stderr that the run is unpinned — stderr was: '$(cat "$errfile")'")
+elif ! grep -qi 'unpinned' "$launch_err"; then
+  problems+=("no warning on stderr that the run is unpinned — stderr was: '$(cat "$launch_err")'")
 fi
 
 report "$name"
