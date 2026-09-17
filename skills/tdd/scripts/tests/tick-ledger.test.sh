@@ -46,6 +46,26 @@ seed
   && grep -q '^- \[x\] strip edge hyphens$' "$led"; } \
   && ok || no "--refactor-pending marks the ticked line, plain tick does not (marked=$marked plain=$plain)"
 
+# 5. the step-to-criterion notation rides along as step text through all four ledger
+#    scripts: next-unchecked.sh prints it, tick-ledger.sh ticks and marks the line it ends,
+#    next-pending-refactor.sh prints the same text back, clear-refactor-pending.sh strips
+#    only the mark
+S="$HERE/.."
+printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [ ] collapse to single hyphen ⟦criterion 1⟧\n- [ ] strip edge hyphens\n' > "$led"
+want_step='collapse to single hyphen ⟦criterion 1⟧'
+next="$("$S/next-unchecked.sh" < "$led")"; c_next=$?
+"$TICK" --refactor-pending "$led" "$next"; c_tick=$?
+marked_line="$(sed -n 2p "$led")"
+pending="$("$S/next-pending-refactor.sh" < "$led")"; c_pend=$?
+"$S/clear-refactor-pending.sh" "$led" "$pending"; c_clear=$?
+want_led="$(printf -- '- [x] add lowercasing ⟦criterion 1⟧\n- [x] collapse to single hyphen ⟦criterion 1⟧\n- [ ] strip edge hyphens')"
+{ [[ "$c_next$c_tick$c_pend$c_clear" == 0000 ]] \
+  && [[ "$next" == "$want_step" ]] \
+  && [[ "$marked_line" == "- [x] $want_step ⟂ refactor pending" ]] \
+  && [[ "$pending" == "$want_step" ]] \
+  && [[ "$(cat "$led")" == "$want_led" ]]; } \
+  && ok || no "criterion notation: the four ledger scripts match and print step text as without it (codes=$c_next$c_tick$c_pend$c_clear next='$next' marked='$marked_line' pending='$pending' ledger='$(cat "$led")')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
