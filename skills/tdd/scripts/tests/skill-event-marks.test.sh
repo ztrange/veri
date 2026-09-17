@@ -113,6 +113,13 @@ comment_mark() {
   mark "$event" "posts the \`$heading\` comment" "$@" 'comment'
 }
 
+# refactor_mark — the `mark` every refactor case starts from: the instruction that posts the
+# `### 🛠️ Refactor` comment and narrates the `git rev-list --count` figure (the plan comment
+# lists that heading too, and is not where the count is known).
+refactor_mark() {
+  mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
+}
+
 # 1. The whole of this step's criterion, as one case: seven marks, each beside the comment
 #    it mirrors. They are one case because they are one wiring — an event log missing any
 #    one of them cannot answer when a step started, why a run stopped, or what it cost —
@@ -147,7 +154,7 @@ problems=()
 if [[ -z "$records" ]]; then
   problems+=("$skill_md has no instructions to read — the refactor mark could not be checked")
 else
-  mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
+  refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
     [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
     call="${BASH_REMATCH[1]}"
@@ -171,7 +178,7 @@ problems=()
 if [[ -z "$records" ]]; then
   problems+=("$skill_md has no instructions to read — the refactor mark's count could not be checked")
 else
-  mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
+  refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
     # The sentence that introduces the call: everything before `event.sh refactor`, from
     # the last sentence break on — the narration's own sentences do not count for the mark.
@@ -251,7 +258,7 @@ problems=()
 if [[ -z "$records" ]]; then
   problems+=("$skill_md has no instructions to read — the refactor mark's stop reasons could not be checked")
 else
-  mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
+  refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
     for pair in '3|nothing-structural' '0|structural-owed'; do
       IFS='|' read -r code value <<< "$pair"
