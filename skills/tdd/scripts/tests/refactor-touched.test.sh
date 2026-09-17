@@ -40,11 +40,18 @@ commit_all() {
   git_q "$1" commit -q -m "$2" >/dev/null 2>&1
 }
 
+# new_repo <name> -> path — a repository of the case's own under $work, so the answer never
+# depends on the repository `make test` was typed in.
+new_repo() {
+  local dir="$work/$1"
+  git init -q -b main "$dir" >/dev/null 2>&1
+  echo "$dir"
+}
+
 # 1. a green commit touching the ledger and two source files → exactly the two source files,
 #    in git diff order. The source files are written zeta-first so creation order and diff
 #    order disagree, and the ledger sorts first so a list that kept it would lead with it.
-repo="$work/green"
-git init -q -b main "$repo" >/dev/null 2>&1
+repo="$(new_repo green)"
 mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
 printf -- '- [ ] a step\n' > "$repo/.tdd/issue-7.md"
 commit_all "$repo" "plan: scope #7"
@@ -64,8 +71,7 @@ fi
 # 2. a commit name the repository cannot resolve → exit 2, the code for "no answer could be
 #    obtained", and a stderr diagnostic naming the commit. The failure is the plumbing's, not
 #    the methodology's: a 1 here would reach the refactor prompt as a clean empty answer.
-repo="$work/unresolvable"
-git init -q -b main "$repo" >/dev/null 2>&1
+repo="$(new_repo unresolvable)"
 printf 'alpha\n' > "$repo/alpha.sh"
 commit_all "$repo" "feat: alpha"
 missing="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
@@ -78,8 +84,7 @@ fi
 #    stdout. There is nothing for a refactor to tidy, which is an answer, not a failure: under
 #    `pipefail` the filtering `grep` used to make that case exit 1, indistinguishable from the
 #    leaf having run and failed.
-repo="$work/ledger-only"
-git init -q -b main "$repo" >/dev/null 2>&1
+repo="$(new_repo ledger-only)"
 mkdir -p "$repo/.tdd"
 printf 'alpha\n' > "$repo/alpha.sh"
 commit_all "$repo" "feat: alpha"
