@@ -1435,6 +1435,25 @@ narration="$(loop_bullet '^- [*][*]Exit 0:' '^### ')"
 
 
 
+# A `gh` stub that pages the way gh does: `paging_gh <dir>` writes <dir>/gh, which reads
+# `--limit` (or `-L`, or `--limit=<n>`) into $limit — 30 when none is given — and then runs the
+# `case` on "$1 $2" read from stdin, which answers each list with at most $limit items.
+paging_gh() {  # paging_gh <dir> < <case body>
+  mkdir -p "$1"
+  { cat <<'STUB'
+#!/usr/bin/env bash
+limit=30
+prev=""
+for arg in "$@"; do
+  case "$prev" in --limit|-L) limit="$arg" ;; esac
+  case "$arg" in --limit=*) limit="${arg#--limit=}" ;; esac
+  prev="$arg"
+done
+STUB
+    cat; } > "$1/gh"
+  chmod +x "$1/gh"
+}
+
 # 29. `gh` does not return a repository's issues; it returns a PAGE of them — 30 by default,
 # newest first, unless the caller says `--limit` (#244). On 2026-09-16 veri's own repo had 39
 # open issues, and the 9 oldest were invisible to selection: #109 and #110 were opted in and
@@ -1448,16 +1467,7 @@ narration="$(loop_bullet '^- [*][*]Exit 0:' '^### ')"
 # script prints "101" only if it asked gh for more than the default page, and a script that
 # took the default gets #111–#140, finds nothing opted in, and exits 3 with empty stdout.
 pagedir="$work/paging-bin"
-mkdir -p "$pagedir"
-cat > "$pagedir/gh" <<'STUB'
-#!/usr/bin/env bash
-limit=30
-prev=""
-for arg in "$@"; do
-  case "$prev" in --limit|-L) limit="$arg" ;; esac
-  case "$arg" in --limit=*) limit="${arg#--limit=}" ;; esac
-  prev="$arg"
-done
+paging_gh "$pagedir" <<'STUB'
 case "$1 $2" in
   "issue list")
     python3 -c '
@@ -1474,7 +1484,6 @@ print(json.dumps(issues[:limit]))
   "pr list") echo '[]' ;;
 esac
 STUB
-chmod +x "$pagedir/gh"
 
 out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$pagedir:$PATH" \
        "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
@@ -1491,16 +1500,7 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$pagedir:$
 # that reads every issue sees #101 open and prints nothing (exit 3); one that took the default
 # page never sees #101 and prints "140".
 blockdir="$work/paging-blocker-bin"
-mkdir -p "$blockdir"
-cat > "$blockdir/gh" <<'STUB'
-#!/usr/bin/env bash
-limit=30
-prev=""
-for arg in "$@"; do
-  case "$prev" in --limit|-L) limit="$arg" ;; esac
-  case "$arg" in --limit=*) limit="${arg#--limit=}" ;; esac
-  prev="$arg"
-done
+paging_gh "$blockdir" <<'STUB'
 case "$1 $2" in
   "issue list")
     python3 -c '
@@ -1517,7 +1517,6 @@ print(json.dumps(issues[:limit]))
   "pr list") echo '[]' ;;
 esac
 STUB
-chmod +x "$blockdir/gh"
 
 out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$blockdir:$PATH" \
        "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
@@ -1534,16 +1533,7 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$blockdir:
 # every open PR sees the claim and prints nothing (exit 3); one that took the default page prints
 # "7".
 prpagedir="$work/paging-prs-bin"
-mkdir -p "$prpagedir"
-cat > "$prpagedir/gh" <<'STUB'
-#!/usr/bin/env bash
-limit=30
-prev=""
-for arg in "$@"; do
-  case "$prev" in --limit|-L) limit="$arg" ;; esac
-  case "$arg" in --limit=*) limit="${arg#--limit=}" ;; esac
-  prev="$arg"
-done
+paging_gh "$prpagedir" <<'STUB'
 case "$1 $2" in
   "issue list")
     echo '[{"number": 7, "title": "issue 7", "state": "OPEN", "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\nNone.\n"}]' ;;
@@ -1559,7 +1549,6 @@ print(json.dumps(prs[:limit]))
 ' "$limit" ;;
 esac
 STUB
-chmod +x "$prpagedir/gh"
 
 out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$prpagedir:$PATH" \
        "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
