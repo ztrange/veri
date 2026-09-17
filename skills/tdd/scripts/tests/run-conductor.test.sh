@@ -103,6 +103,12 @@ valued() {
     problems+=("the launch does not carry $1 $2")
 }
 
+# prompt_base — the base directory the last launch's prompt handed the conductor, or
+# nothing when the prompt names none.
+prompt_base() {
+  sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1
+}
+
 # skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
 # once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
 # resolves is one the case controls. Prints nothing; read the commit with rev-parse.
@@ -271,7 +277,7 @@ mkdir -p "$live"
 ( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$live" \
     "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
 
-base="$(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1)"
+base="$(prompt_base)"
 if [[ -z "$base" ]]; then
   problems+=("the prompt names no 'Base directory for this skill: <dir>' line")
 elif [[ "$(cd "$base" 2>/dev/null && pwd -P)" == "$(cd "$clone/skills/tdd" && pwd -P)" ]]; then
@@ -375,7 +381,7 @@ first_base="$work/first-base"
 mkdir -p "$first_base"
 ( cd "$caller3" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$first_base" \
     "$clone3/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
-first_snapshot="$(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1)"
+first_snapshot="$(prompt_base)"
 
 echo "# a commit pulled into the clone after the run started" >> "$clone3/skills/tdd/scripts/supervise.sh"
 git -C "$clone3" -c user.name=t -c user.email=t@t commit -qam pulled
@@ -386,7 +392,7 @@ rm -f "$prompt"
 ( cd "$caller3" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$resumed_base" \
     "$clone3/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
 
-base="$(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1)"
+base="$(prompt_base)"
 if [[ -z "$base" ]]; then
   problems+=("the resumed launch's prompt names no 'Base directory for this skill: <dir>' line")
 elif [[ -n "$first_snapshot" && -e "$first_snapshot" ]]; then
