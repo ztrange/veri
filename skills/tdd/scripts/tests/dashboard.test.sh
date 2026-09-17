@@ -124,6 +124,23 @@ except Exception as e:
     print(e, file=sys.stderr); sys.exit(1)' "$1"
 }
 
+# serve_until_up <url> — poll <url> until it answers, up to 10 s, and print what `fetch`
+# returned; print nothing at all when it never answered, which is what a case reads as "the
+# server never came up". Ten seconds is generous because a cold python3 start is the slowest
+# thing here, and a poll that gave up early would report "no page" for a server that was
+# merely still starting.
+serve_until_up() {  # serve_until_up <url>
+  local page i=0
+  while [[ "$i" -lt 100 ]]; do
+    if page="$(fetch "$1" 2>/dev/null)"; then
+      printf '%s' "$page"
+      return
+    fi
+    sleep 0.1
+    i=$((i + 1))
+  done
+}
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 # The server is launched with `exec` in the subshell so the pid the case holds is the
 # server's own and not a shell wrapping it — the SIGINT has to reach the thing that is
@@ -141,16 +158,7 @@ else
   (cd "$served" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" >"$log" 2>&1) &
   dash_pid=$!
 
-  # Up to 10 s for it to come up — generous because a cold python3 start is the slowest
-  # thing here, and a poll that gave up early would report "no page" for a server that
-  # was merely still starting.
-  page="" ; i=0
-  while [[ "$i" -lt 100 ]]; do
-    if page="$(fetch "http://127.0.0.1:$PORT/" 2>/dev/null)"; then break; fi
-    page=""
-    sleep 0.1
-    i=$((i + 1))
-  done
+  page="$(serve_until_up "http://127.0.0.1:$PORT/")"
 
   if [[ -z "$page" ]]; then
     problems+=("no answer from http://127.0.0.1:$PORT/ after 10 s; the server left: $(printf '%q' "$(cat "$log" 2>/dev/null)")")
@@ -200,13 +208,7 @@ else
   (cd "$arg_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" "$arg_port" >"$arg_log" 2>&1) &
   arg_pid=$!
 
-  arg_page="" ; i=0
-  while [[ "$i" -lt 100 ]]; do
-    if arg_page="$(fetch "http://127.0.0.1:$arg_port/" 2>/dev/null)"; then break; fi
-    arg_page=""
-    sleep 0.1
-    i=$((i + 1))
-  done
+  arg_page="$(serve_until_up "http://127.0.0.1:$arg_port/")"
 
   if [[ -z "$arg_page" ]]; then
     problems+=("no answer from http://127.0.0.1:$arg_port/ after 10 s, so the port named on the command line was not bound; the server left: $(printf '%q' "$(cat "$arg_log" 2>/dev/null)")")
