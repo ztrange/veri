@@ -535,12 +535,13 @@ esac
 exec "$(command -v bash)" "\$@"
 SHIM
 chmod +x "$late_work/bin/bash"
-for suite in supervise.test.sh verify.test.sh; do
+late_suites=(supervise.test.sh verify.test.sh)
+for suite in "${late_suites[@]}"; do
   ( env PATH="$late_work/bin:$PATH" "$HERE/$suite" > "$late_work/$suite.out" 2>/dev/null
     echo $? > "$late_work/$suite.code" ) &
 done
 wait
-for suite in supervise.test.sh verify.test.sh; do
+for suite in "${late_suites[@]}"; do
   late_code="$(cat "$late_work/$suite.code" 2>/dev/null)"
   late_count="$(tail -n 1 "$late_work/$suite.out" 2>/dev/null)"
   [[ "$late_code" == 0 && "$late_count" == *' passed, 0 failed' ]] ||
