@@ -5,7 +5,7 @@
 # solvable-issues.sh resolves it (#166): the first `worktree <path>` line of git's registry,
 # never the checkout this script was called from.
 #
-# Usage:   status.sh [--scope <name>]
+# Usage:   status.sh [--scope <name>]   (no --scope: VERI_LABEL, when set, names the scope)
 # Exit:    0 one or more runs printed; 3 nothing to do — "no runs"
 set -euo pipefail
 
@@ -116,7 +116,7 @@ print("scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f"
 PY
 }
 
-scope=""
+scope="${VERI_LABEL:-}"
 if [[ "${1:-}" == "--scope" ]]; then
   scope="${2:-}"
 fi
