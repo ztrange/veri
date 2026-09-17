@@ -5,7 +5,7 @@
 # solvable-issues.sh resolves it (#166): the first `worktree <path>` line of git's registry,
 # never the checkout this script was called from.
 #
-# Usage:   status.sh
+# Usage:   status.sh [--scope <name>]
 # Exit:    0 one or more runs printed; 3 nothing to do — "no runs"
 set -euo pipefail
 
@@ -85,6 +85,42 @@ if last is not None:
 PY
 }
 
+# A scope's totals over every run's event log: runs attempted, how many ended done and how many
+# bailed, wall time as each run's first-to-last event span summed, and every usage line's dollars.
+scope_totals() {  # scope_totals <name> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>"
+  python3 - "$@" <<'PY'
+import json, sys
+attempted = done = bailed = wall = 0
+dollars = 0.0
+for path in sys.argv[2:]:
+    attempted += 1
+    first = last = None
+    with open(path) as f:
+        for raw in f:
+            raw = raw.strip()
+            if not raw:
+                continue
+            line = json.loads(raw)
+            first = line if first is None else first
+            last = line
+            if line.get("event") == "usage":
+                dollars += float(line.get("total_cost_usd") or 0)
+            elif line.get("event") == "done":
+                done += 1
+            elif line.get("event") == "bail":
+                bailed += 1
+    if first is not None:
+        wall += int(last["ts"]) - int(first["ts"])
+print("scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f"
+      % (sys.argv[1], attempted, done, bailed, wall, dollars))
+PY
+}
+
+scope=""
+if [[ "${1:-}" == "--scope" ]]; then
+  scope="${2:-}"
+fi
+
 timeout="${VERI_TIMEOUT:-900}"
 main_tree="$(main_working_tree)"
 
@@ -113,3 +149,11 @@ for run in "${runs[@]}"; do
     printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity"
   done
 done
+
+if [[ -n "$scope" ]]; then
+  events=()
+  for run in "${runs[@]}"; do
+    [[ -f "${run%/}/.tdd/events.jsonl" ]] && events+=("${run%/}/.tdd/events.jsonl")
+  done
+  scope_totals "$scope" ${events[@]+"${events[@]}"}
+fi
