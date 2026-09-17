@@ -147,8 +147,8 @@ report "$name"
 #    `budget` and `stopped` into the per-step `refactor` and `stopped` cells, and nothing
 #    wrote one, so every step read `unknown`. The three values are the ones the
 #    `### 🛠️ Refactor` comment already states, so the call belongs in the instruction that
-#    posts it and narrates the `git rev-list --count` figure (the plan comment lists that
-#    heading too, and is not where the count is known) — and a call carrying fewer than all three keys still leaves a cell unknown.
+#    posts it (see `refactor_mark`) — and a call carrying fewer than all three keys still
+#    leaves a cell unknown.
 name="$skill_md writes an event.sh refactor mark carrying transforms, budget and stopped, beside the Refactor comment"
 problems=()
 if [[ -z "$records" ]]; then
