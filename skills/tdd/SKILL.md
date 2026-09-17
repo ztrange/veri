@@ -807,8 +807,11 @@ following step. The phase sub-steps are:
      until that commit exists the step still says pending. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
      the reconcile leaf (*Reconciling a rejected push*), exit **2** is a **bail**. Then **mirror to the issue**:
-     post a `### ✅ Step done` comment, and tick the matching acceptance criterion in the
-     **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`, the human mirror). Mark
+     post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
+     (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
+     on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
+     '<substring>'`, the human mirror); on exit **3** tick nothing, since a step serving it is
+     still open or pending. Mark
      the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-done` — then
      loop back to the top of **step 3** for the next unchecked ledger step.
@@ -890,8 +893,10 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
-  verifier's reason, tick the matching acceptance criterion in the **issue body**
-  (`$S/tick-issue-criterion.sh <n> '<substring>'`), and mark it in the log —
+  verifier's reason, ask whether the step's criterion is finished
+  (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
+  **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`) — on exit **3** tick
+  nothing — and mark it in the log —
   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=pin $S/event.sh pin`.
   The step is **done** — **no Green and no Refactor**, since there is no new production
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked

@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Unit tests for when the conductor ticks an acceptance criterion in the issue body — like
+# skill-refactor-pending.test.sh this suite belongs to no single script: its subject is
+# prose, skills/tdd/SKILL.md, read as text the way the session that follows it reads it.
+# Zero-dependency plain-shell asserts, same idiom as skill-refactor-pending.test.sh.
+#
+# Why this exists (issue #168): a plan is made of steps, not criteria, and one criterion is
+# routinely built across several steps. Ticking the issue's criterion at every step's end
+# told a reader a behaviour existed two steps before its code did (#116), and a bail in
+# between left the tick standing. `criterion-finished.sh` answers whether every step serving
+# a criterion is done; the tick is only honest if the two places that tick — the *Step done*
+# mirror after verify-refactor's PASS and the pin's mirror — ask it first.
+#
+# Contract under test:
+#   1. In both SKILL.md's cycle loop and its pin path, the instruction that runs
+#      `tick-issue-criterion.sh` also runs `criterion-finished.sh`, ticks on its exit 0 and
+#      ticks nothing on its exit 3; the cycle loop's instruction still posts `### ✅ Step done`.
+#
+# The gate is asked of the SAME instruction as the tick it guards, for the reason
+# skill-refactor-pending.test.sh gives for its clear: a condition prescribed in some other
+# section drifts away from the branch it belongs to the first time either is reworded.
+#
+# Run: scripts/tests/skill-criterion-finished.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+skill_md="skills/tdd/SKILL.md"
+skill_path="$ROOT/$skill_md"
+
+pass=0 fail=0
+
+# report <name> — close a case whose probes collected into the `problems` array: an empty
+# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
+report() {
+  local name="$1"
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    printf '    %s\n' "${problems[@]}"
+  fi
+}
+
+# records_of — the lines on stdin as records, lowercased, whitespace collapsed: a record runs
+# from a `N. ` or a `- ` (indented or not), or from the first line after a blank, up to the
+# next such line or blank. A fenced block inside a bullet stays part of that bullet's record.
+# Same grammar as skill-refactor-pending.test.sh's reader of the same name.
+records_of() {
+  awk '
+    function flush() { if (rec != "") { gsub(/[[:space:]]+/, " ", rec); print rec } rec = "" }
+    /^[0-9]+\. / || /^[[:space:]]*- / { flush(); rec = $0; next }
+    /^[[:space:]]*$/ { flush(); next }
+    rec == "" { rec = $0; next }
+    { rec = rec " " $0 }
+    END { flush() }' | tr '[:upper:]' '[:lower:]'
+}
+
+# section_records <heading-line> — the records of the section headed exactly <heading-line>,
+# up to the next heading of the same or a higher level.
+section_records() {
+  awk -v head="$1" '
+    $0 == head { inside = 1; level = index(head, " "); next }
+    inside && /^#+ / && index($0, " ") <= level { exit }
+    inside' "$skill_path" | records_of
+}
+
+# gated_tick <label> <heading-line> <extra-regex> — find the record in that section that runs
+# tick-issue-criterion.sh and require it to run criterion-finished.sh, tick on exit 0 and tick
+# nothing on exit 3, plus <extra-regex> if non-empty. Fails closed when no record ticks at all.
+gated_tick() {
+  local label="$1" head="$2" extra="$3" rec
+  rec="$(section_records "$head" | grep -F 'tick-issue-criterion.sh' | head -1)"
+  if [[ -z "$rec" ]]; then
+    problems+=("$label: no instruction under '$head' runs tick-issue-criterion.sh — the gate could not be checked")
+    return
+  fi
+  [[ "$rec" == *criterion-finished.sh* ]] ||
+    problems+=("$label: the instruction that ticks the issue criterion never runs criterion-finished.sh")
+  [[ "$rec" =~ exit\ \*?\*?0 ]] ||
+    problems+=("$label: the tick is not tied to criterion-finished.sh's exit 0")
+  [[ "$rec" =~ exit\ \*?\*?3 && "$rec" =~ (nothing|no criterion|not tick|without ticking|skip) ]] ||
+    problems+=("$label: the instruction never says exit 3 ticks nothing")
+  if [[ -n "$extra" ]]; then
+    [[ "$rec" =~ $extra ]] ||
+      problems+=("$label: the instruction no longer posts the comment matching /$extra/")
+  fi
+}
+
+# 1. One criterion — the issue criterion is ticked only when its every step is done — asked
+#    of both places that tick it.
+name="$skill_md's Step done and pin paths tick an issue criterion only on criterion-finished.sh exit 0, ticking nothing on exit 3"
+problems=()
+gated_tick 'Step done (cycle loop)' '### 3. The cycle loop' '### ✅ step done'
+gated_tick 'pin path' '## Already satisfied — the pin' ''
+report "$name"
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
