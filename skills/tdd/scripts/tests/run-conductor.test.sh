@@ -589,6 +589,49 @@ holds_skill "$tip_base" "$tipdir/skills/tdd" "launch's" "origin's tip $tip: $(ca
 
 report "$name"
 
+# 13. Reaching origin's tip never moves the clone (issue #251). The clone is the primary other
+# live runs share, so the launch that pins origin's tip must not get there by pulling or
+# checking out: the clone is left behind the remote, on its branch, with an uncommitted edit
+# to a file the remote's new commit does not touch — so a fast-forward pull would succeed and
+# move HEAD rather than refusing — and its HEAD, branch and working tree are read before the
+# launch and again after it.
+name="a launch leaves the skill clone's HEAD, branch and working tree unchanged"
+problems=()
+
+remote7="$work/remote7"
+skill_clone "$remote7"
+clone7="$work/clone7"
+git clone -q "$remote7" "$clone7"
+advance_clone "$remote7" "# a commit that landed on the remote after the clone was cut"
+echo "# an uncommitted edit in the clone" >> "$clone7/skills/tdd/SKILL.md"
+
+# clone_state <clone> — the clone's HEAD commit, its branch, its porcelain status and the
+# bytes of every file it tracks as they sit in the working tree, one block.
+clone_state() {
+  git -C "$1" rev-parse HEAD
+  git -C "$1" symbolic-ref -q HEAD || echo "detached"
+  git -C "$1" status --porcelain
+  git -C "$1" ls-files -z | (cd "$1" && xargs -0 cksum)
+}
+
+before7="$(clone_state "$clone7")"
+
+caller7="$work/caller7"
+caller_repo "$caller7"
+
+rm -f "$argv"
+launch_from "$caller7" "$clone7"
+
+if [[ ! -f "$argv" ]]; then
+  problems+=("the conductor was never launched: $(cat "$launch_err")")
+else
+  after7="$(clone_state "$clone7")"
+  [[ "$after7" == "$before7" ]] ||
+    problems+=("the clone changed across the launch: $(diff <(echo "$before7") <(echo "$after7") | grep '^[<>]' | tr '\n' ' ')")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
