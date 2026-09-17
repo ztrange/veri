@@ -163,48 +163,67 @@ restore_head() {  # points HEAD back at the sha $1 names, where it moved from it
 tree_before="$(tree_snapshot)"
 head_before="$(head_snapshot)"
 
-set +e
-out="$("$HERE/supervise.sh" "$leaf_name" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
-scode=$?
-set -e
+parse_err="$(mktemp)"
+trap 'rm -f "$parse_err"' EXIT
+attempt=0
+while :; do
+  set +e
+  out="$("$HERE/supervise.sh" "$leaf_name" "$HERE/run-leaf.sh" "$promptfile" "${leaf_args[@]}")"
+  scode=$?
+  set -e
 
-# A killed-stuck verifier yields no verdict — surface it as malformed (the conductor
-# stops, just as it would on an unparseable verdict).
-if [[ "$scode" -eq 2 ]]; then
-  echo "verifier leaf killed-stuck — no verdict rendered (see .tdd/$leaf_name.log)"
-  exit 2
-fi
-
-# Compare the tree back (issue #172). A verifier that left anything behind is a SYSTEM failure
-# — exit 2 — whatever it decided, and its reason is not printed: the conductor's next move
-# after a PASS is `git add -A && git commit` (SKILL.md:526), so a verdict accepted here would
-# commit the verifier's edit as the developer's work, and an edit made before the leaf ran the
-# suite was judged along with the code it was judging. stdout carries what changed instead,
-# because the paths are what a human needs to see to know what the leaf touched.
-if [[ -n "$tree_before" ]]; then
-  tree_after="$(tree_snapshot)"
-  head_after="$(head_snapshot)"
-  changed="$(git diff-tree -r --name-only --no-commit-id "$tree_before" "$tree_after" 2>/dev/null)" || changed=""
-  [[ "$head_before" == "$head_after" ]] || changed="${changed:+$changed$'\n'}HEAD"
-  if [[ -n "$changed" ]]; then
-    # Put it back before bailing. Detecting the tampering and leaving it in place would still
-    # lose the step: the conductor stops here, and the tree a human then inspects — and a
-    # resumed run continues from — is whatever the verifier left. The two restores are the two
-    # snapshots run backwards, in that order: HEAD is pointed back last so it moves against the
-    # tree the first one has already put right.
-    restore_tree "$tree_before"
-    restore_head "$head_before" "$head_after"
-    echo "verifier leaf modified the repository — verdict not accepted (see .tdd/$leaf_name.log); changed:"
-    printf '%s\n' "$changed"
+  # A killed-stuck verifier yields no verdict — surface it as malformed (the conductor
+  # stops, just as it would on an unparseable verdict).
+  if [[ "$scode" -eq 2 ]]; then
+    echo "verifier leaf killed-stuck — no verdict rendered (see .tdd/$leaf_name.log)"
     exit 2
   fi
-fi
 
-# The verdict is the parse result of the captured output, not the leaf's process status.
-set +e
-reason="$(printf '%s' "$out" | "$HERE/parse-verdict.sh")"
-vcode=$?
-set -e
+  # Compare the tree back (issue #172). A verifier that left anything behind is a SYSTEM failure
+  # — exit 2 — whatever it decided, and its reason is not printed: the conductor's next move
+  # after a PASS is `git add -A && git commit` (SKILL.md:526), so a verdict accepted here would
+  # commit the verifier's edit as the developer's work, and an edit made before the leaf ran the
+  # suite was judged along with the code it was judging. stdout carries what changed instead,
+  # because the paths are what a human needs to see to know what the leaf touched.
+  if [[ -n "$tree_before" ]]; then
+    tree_after="$(tree_snapshot)"
+    head_after="$(head_snapshot)"
+    changed="$(git diff-tree -r --name-only --no-commit-id "$tree_before" "$tree_after" 2>/dev/null)" || changed=""
+    [[ "$head_before" == "$head_after" ]] || changed="${changed:+$changed$'\n'}HEAD"
+    if [[ -n "$changed" ]]; then
+      # Put it back before bailing. Detecting the tampering and leaving it in place would still
+      # lose the step: the conductor stops here, and the tree a human then inspects — and a
+      # resumed run continues from — is whatever the verifier left. The two restores are the two
+      # snapshots run backwards, in that order: HEAD is pointed back last so it moves against the
+      # tree the first one has already put right.
+      restore_tree "$tree_before"
+      restore_head "$head_before" "$head_after"
+      echo "verifier leaf modified the repository — verdict not accepted (see .tdd/$leaf_name.log); changed:"
+      printf '%s\n' "$changed"
+      exit 2
+    fi
+  fi
+
+  # The verdict is the parse result of the captured output, not the leaf's process status.
+  # parse-verdict.sh's diagnostic is kept rather than streamed, because it is what tells a leaf
+  # that rendered no VERDICT: line at all apart from one that rendered a malformed one.
+  set +e
+  reason="$(printf '%s' "$out" | "$HERE/parse-verdict.sh" 2>"$parse_err")"
+  vcode=$?
+  set -e
+  cat "$parse_err" >&2
+
+  # A leaf that exited without being killed and printed no VERDICT: line at all broke the output
+  # contract rather than the plumbing (issue #219): it is relaunched on a fresh attempt instead of
+  # bailed. The verifier is blind and re-runs the suite itself, so the relaunch judges the same
+  # tree from scratch with the same prompt file.
+  if [[ "$vcode" -eq 2 && "$attempt" -lt 1 ]] && grep -q 'no VERDICT: line found' "$parse_err"; then
+    attempt=$(( attempt + 1 ))
+    continue
+  fi
+  break
+
+done
 
 # The `verdict` mark (issue #107, ADR-0014). This script is the only place that holds the
 # phase and the verdict at once: supervise.sh watched a leaf called `verify-<phase>` succeed

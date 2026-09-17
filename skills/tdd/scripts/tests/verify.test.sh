@@ -504,6 +504,34 @@ verify '{"type":"system","subtype":"init","session_id":"s"}
 { [[ "$code" == 0 ]] && [[ "$out" == 'Revised: target and full suite green.' ]]; } && ok \
   || no "the newest VERDICT: wins when more than one result record carries one (code=$code want 0; output='$out' want 'Revised: target and full suite green.')"
 
+# 19. a verifier leaf that exited cleanly — not killed — with no VERDICT: line is relaunched, and
+#     the relaunched attempt's verdict is the answer (issue #219). #212's step 1 bailed on exactly
+#     this: the leaf backgrounded `make test`, ended its turn to wait, and printed no verdict. The
+#     stub counts its launches in its own directory and prints no verdict on the first, a PASS on
+#     the second, so the case reads both the verdict returned and that it took two launches.
+cat > "$stubdir/claude-verdict-second" <<'STUB'
+#!/usr/bin/env bash
+n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
+echo "$n" > "$LAUNCH_COUNT"
+if [[ "$n" -eq 1 ]]; then
+  printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
+else
+  printf '%s' 'VERDICT: PASS
+REASON: Target test and full suite are green.'
+fi
+exit 0
+STUB
+chmod +x "$stubdir/claude-verdict-second"
+no_verdict_dir="$work/no-verdict-relaunch"
+mkdir -p "$no_verdict_dir"
+no_verdict_out="$( LAUNCH_COUNT="$no_verdict_dir/launches" \
+    verify_in "$no_verdict_dir" green '' "$stubdir/claude-verdict-second" 2>/dev/null )"
+no_verdict_code=$?
+no_verdict_launches="$(cat "$no_verdict_dir/launches" 2>/dev/null || echo 0)"
+{ [[ "$no_verdict_code" == 0 ]] && [[ "$no_verdict_launches" == 2 ]] \
+  && [[ "$no_verdict_out" == *'full suite are green'* ]]; } && ok \
+  || no "a verifier leaf that exited cleanly with no VERDICT: line is relaunched and its second verdict returned (code=$no_verdict_code want 0; launches=$no_verdict_launches want 2; output='$no_verdict_out' want the PASS reason)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
