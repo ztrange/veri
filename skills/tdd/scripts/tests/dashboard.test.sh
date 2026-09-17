@@ -163,14 +163,27 @@ launch() {  # launch <repo> <log> [port]
   (cd "$dir" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" "$@" >"$out" 2>&1) &
 }
 
+# port_problem <port> — the reason this case cannot be asked of that port, or nothing. Every
+# case here has the same two: the kernel had none to give, and somebody else is already on the
+# one it did. Both fail the case closed rather than skipping it, because a fetch answered by a
+# stranger's server looks exactly like a fetch answered by dashboard.sh.
+port_problem() {  # port_problem <port>
+  if [[ -z "$1" ]]; then
+    echo "could not get a free port from the kernel, so there was nothing to pass dashboard.sh"
+  elif reachable 127.0.0.1 "$1"; then
+    echo "port $1 was already in use before dashboard.sh was started, so nothing this case fetches would be its answer"
+  fi
+}
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
 served="$(repo served)"
 log="$work/served.log"
 
-if reachable 127.0.0.1 "$PORT"; then
-  problems+=("port $PORT was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
+problem="$(port_problem "$PORT")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
 else
   launch "$served" "$log"
   dash_pid=$!
@@ -215,12 +228,12 @@ arg_repo="$(repo argport)"
 arg_log="$work/argport.log"
 arg_port="$(free_port)"
 
-if [[ -z "$arg_port" ]]; then
-  problems+=("could not get a free port from the kernel, so there was nothing to pass dashboard.sh")
-elif [[ "$arg_port" == "$PORT" ]]; then
-  problems+=("the kernel handed out $arg_port, which is the default port: a server ignoring its argument would look right, so this case cannot run on it")
-elif reachable 127.0.0.1 "$arg_port"; then
-  problems+=("port $arg_port was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
+problem="$(port_problem "$arg_port")"
+if [[ -z "$problem" && "$arg_port" == "$PORT" ]]; then
+  problem="the kernel handed out $arg_port, which is the default port: a server ignoring its argument would look right, so this case cannot run on it"
+fi
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
 else
   launch "$arg_repo" "$arg_log" "$arg_port"
   arg_pid=$!
@@ -285,10 +298,9 @@ EOF
 runs_log="$work/runsendpoint.log"
 runs_port="$(free_port)"
 
-if [[ -z "$runs_port" ]]; then
-  problems+=("could not get a free port from the kernel, so there was nothing to pass dashboard.sh")
-elif reachable 127.0.0.1 "$runs_port"; then
-  problems+=("port $runs_port was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
+problem="$(port_problem "$runs_port")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
 else
   launch "$runs_repo" "$runs_log" "$runs_port"
   runs_pid=$!
