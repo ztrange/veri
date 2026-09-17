@@ -55,6 +55,20 @@ if [[ "$code" == 0 && "$got" == "$expected" ]]; then ok; else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
 
+# 2. a commit name the repository cannot resolve → exit 2, the code for "no answer could be
+#    obtained", and a stderr diagnostic naming the commit. The failure is the plumbing's, not
+#    the methodology's: a 1 here would reach the refactor prompt as a clean empty answer.
+repo="$work/unresolvable"
+git init -q -b main "$repo" >/dev/null 2>&1
+printf 'alpha\n' > "$repo/alpha.sh"
+git_q "$repo" add -A >/dev/null 2>&1
+git_q "$repo" commit -q -m "feat: alpha" >/dev/null 2>&1
+missing="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+err="$(cd "$repo" && "$TOUCHED" "$missing" 2>&1 >/dev/null)"; code=$?
+if [[ "$code" == 2 && "$err" == *"$missing"* ]]; then ok; else
+  no "unresolvable commit → exit 2 with a stderr diagnostic naming it (code=$code, stderr=$err)"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -13,4 +13,10 @@ set -euo pipefail
 
 commit="${1:?usage: refactor-touched.sh <commit>}"
 
+# A commit the repository cannot resolve is a plumbing failure, not an empty answer: without
+# this check `git diff` fails, `grep -v` then reads no input and returns 1 under `pipefail`,
+# and the refactor prompt reads that 1 as a clean "nothing touched".
+git rev-parse --verify --quiet "$commit^{commit}" >/dev/null ||
+  { echo "refactor-touched: cannot resolve commit '$commit'" >&2; exit 2; }
+
 git diff --name-only "$commit^" "$commit" | grep -v '^\.tdd/' | paste -sd, -
