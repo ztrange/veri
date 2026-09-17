@@ -127,6 +127,13 @@ skill_clone() {
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
 }
 
+# skill_archive <clone> <commit> <dir> — <commit>'s skills/tdd, extracted under <dir>, so
+# <dir>/skills/tdd is what a snapshot of that commit must hold file for file.
+skill_archive() {
+  mkdir -p "$3"
+  git -C "$1" archive "$2" skills/tdd | tar -x -C "$3"
+}
+
 # 1. The criterion: one conductor, launched as `claude -p` for the issue, streaming events.
 name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
 problems=()
@@ -269,8 +276,7 @@ commit="$(git -C "$clone" rev-parse HEAD)"
 echo "# uncommitted edit after the skill commit" >> "$clone/skills/tdd/scripts/supervise.sh"
 
 committed="$work/committed"
-mkdir -p "$committed"
-git -C "$clone" archive "$commit" skills/tdd | tar -x -C "$committed"
+skill_archive "$clone" "$commit" "$committed"
 
 caller="$work/caller"
 mkdir -p "$caller"
@@ -376,8 +382,7 @@ skill_clone "$clone3"
 recorded="$(git -C "$clone3" rev-parse HEAD)"
 
 pinned="$work/pinned"
-mkdir -p "$pinned"
-git -C "$clone3" archive "$recorded" skills/tdd | tar -x -C "$pinned"
+skill_archive "$clone3" "$recorded" "$pinned"
 
 caller3="$work/caller3"
 mkdir -p "$caller3"
@@ -436,8 +441,7 @@ git -C "$clone4" -c user.name=t -c user.email=t@t commit -qam pulled
 current="$(git -C "$clone4" rev-parse HEAD)"
 
 taken="$work/taken"
-mkdir -p "$taken"
-git -C "$clone4" archive "$current" skills/tdd | tar -x -C "$taken"
+skill_archive "$clone4" "$current" "$taken"
 
 repinned_base="$work/repinned-base"
 mkdir -p "$repinned_base"
