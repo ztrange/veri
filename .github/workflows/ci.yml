@@ -22,13 +22,29 @@ jobs:
     # A job that declares no timeout-minutes inherits GitHub's default ceiling of 6
     # hours, and while it burns those minutes it looks exactly like a slow run. This
     # job cannot legitimately be slow: `make test` is plain-shell suites over local
-    # files, with the model stubbed via CLAUDE_BIN and no network call anywhere, and it
-    # observably takes ~40 s. So a gates job still running at three minutes is stuck,
-    # not slow, and the cap turns a six-hour silent bill into a red tick that says so.
-    # The number assumes the docs gates stay out of CI (#90): while they ran here the
-    # job took ~230 s, which this budget would cut off. Putting them back means raising
-    # this, deliberately, rather than discovering it as a failure.
-    timeout-minutes: 3
+    # files, with the model stubbed via CLAUDE_BIN and no network call anywhere. So a
+    # gates job still running past this cap is stuck, not slow, and the cap turns a
+    # six-hour silent bill into a red tick that says so.
+    #
+    # The number is a measurement, not a guess, and it has moved. The ~40 s this comment
+    # claimed until 2026-09-17 was stale by a factor of four (#273): the last six runs on
+    # `main` took 160, 161, 162, 162, 168 and 175 s, because the suites spend most of
+    # their time asleep — `supervise.sh` polls and measures heartbeats in whole seconds,
+    # and `verify.test.sh` plus `supervise.test.sh` alone are ~87 s of the 155 s the 71
+    # suites take (#282). At 3 minutes `main` had 5 s of headroom and two finished PRs
+    # (#272, #286) were cancelled mid-run rather than failed.
+    #
+    # So this is **5 minutes, deliberately and temporarily**, to keep a green branch from
+    # being cancelled while the suites are made fast. It costs nothing on a green run and
+    # raises the ceiling on a STUCK job from 3 to 5 minutes — about 1.2 cents on
+    # ubuntu-latest at $0.006/min. **Put it back to 3 once #282 (sub-second clock) and
+    # #290 (the per-supervision python3 starts) have landed**, which should take the job
+    # to well under 2 minutes.
+    #
+    # The number still assumes the docs gates stay out of CI (#90): while they ran here
+    # the job took ~230 s, which even this budget would cut off. Putting them back means
+    # raising this, deliberately, rather than discovering it as a failure.
+    timeout-minutes: 5
 
     steps:
       - uses: actions/checkout@v4
