@@ -772,7 +772,8 @@ following step. The phase sub-steps are:
    list says **how many candidates** it holds and then **lists** them, one per line. A
    count with no items is not a backlog, and the two classes run together are a backlog
    nobody can size. Mark the same three figures in the log — the observed count, unclamped,
-   the budget, and why it stopped (`nothing-left`, `budget`, `malformed` or `triage`):
+   the budget, and why it stopped (`nothing-left`, `budget`, `malformed`, `nothing-structural` for triage exit **3** or
+   `structural-owed` for triage exit **0**):
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
    ```

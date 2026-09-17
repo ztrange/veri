@@ -239,6 +239,37 @@ else
 fi
 report "$name"
 
+# 5. The refactor mark's stop reason (issue #250): `refactor-triage.sh` gives two real
+#    answers — exit 3, nothing structural is left and the tidying owes nothing; exit 0,
+#    structural candidates remain and a follow-up owes them — and one `stopped=triage` value
+#    for both leaves a log reader unable to tell them apart. So the record that prescribes
+#    the mark must name `nothing-structural` against exit 3 and `structural-owed` against
+#    exit 0, each within a short clause of its exit so a swapped pairing cannot pass, must no
+#    longer offer `triage`, and must still offer the three reasons that did not change.
+name="$skill_md names stopped=nothing-structural for refactor-triage.sh exit 3 and stopped=structural-owed for exit 0, no stopped=triage, and keeps malformed, nothing-left and budget"
+problems=()
+if [[ -z "$records" ]]; then
+  problems+=("$skill_md has no instructions to read — the refactor mark's stop reasons could not be checked")
+else
+  mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    for pair in '3|nothing-structural' '0|structural-owed'; do
+      IFS='|' read -r code value <<< "$pair"
+      exit_re="exit \**${code}\**"
+      value_re="\`(stopped=)?${value}\`"
+      [[ "$marked" =~ ${exit_re}[^\;,.\`]{0,40}${value_re} || "$marked" =~ ${value_re}[^\;,.\`]{0,40}${exit_re} ]] ||
+        problems+=("$skill_md does not name \`stopped=$value\` against refactor-triage.sh exit $code")
+    done
+    [[ "$marked" =~ \`(stopped=)?triage\` ]] &&
+      problems+=("$skill_md still offers \`stopped=triage\`, which cannot tell exit 3 from exit 0")
+    for value in nothing-left budget malformed; do
+      [[ "$marked" =~ \`(stopped=)?${value}\` ]] ||
+        problems+=("$skill_md no longer offers \`stopped=$value\` for the refactor mark")
+    done
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
