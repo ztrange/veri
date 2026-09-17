@@ -39,16 +39,23 @@ status_sh = sys.argv[3]
 metrics_sh = sys.argv[4]
 
 
-# The Runs pane is a reader of status.sh, not a second implementation of it: the endpoint
-# runs the script and hands back its document verbatim, so no field of it is spelled twice
-# and the pane cannot drift as status.sh grows. Run from the server's own working
-# directory, which is the target repo dashboard.sh was started from. `check=False` because
-# status.sh exits 3 for "no runs", which is an answer (the empty document) and not a
-# failure.
-def runs_json():
-    done = subprocess.run([status_sh, "--json"], stdout=subprocess.PIPE,
+# What every reader here does to the script it reads: run it, keep its stdout, and let its
+# exit status alone. `check=False` throughout because a non-zero status is an answer and
+# not a failure — status.sh exits 3 for "no runs", which is the empty document — and
+# stderr is discarded because the page is the only reader and a diagnostic on it would
+# only garble the body. `cwd=None` runs it in the server's own working directory, which is
+# the target repo dashboard.sh was started from.
+def capture(argv, cwd=None):
+    done = subprocess.run(argv, cwd=cwd, stdout=subprocess.PIPE,
                           stderr=subprocess.DEVNULL, check=False)
     return done.stdout
+
+
+# The Runs pane is a reader of status.sh, not a second implementation of it: the endpoint
+# runs the script and hands back its document verbatim, so no field of it is spelled twice
+# and the pane cannot drift as status.sh grows.
+def runs_json():
+    return capture([status_sh, "--json"])
 
 
 # The runs the Metrics pane reports on are the ones status.sh reports on, and they are
@@ -56,9 +63,8 @@ def runs_json():
 # first line and never the checkout this was called from (status.sh:16). The server runs in
 # the target repo, so that is the question git is asked here.
 def main_working_tree():
-    done = subprocess.run(["git", "worktree", "list", "--porcelain"],
-                          stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
-    first = done.stdout.decode("utf-8", "replace").splitlines()[:1]
+    out = capture(["git", "worktree", "list", "--porcelain"])
+    first = out.decode("utf-8", "replace").splitlines()[:1]
     return first[0][len("worktree "):] if first else ""
 
 
@@ -98,10 +104,8 @@ def metrics_json():
                 issues[issue] = (open(committed).read()
                                  if os.path.exists(committed) else "")
             else:
-                done = subprocess.run([metrics_sh, issue], cwd=run,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.DEVNULL, check=False)
-                issues[issue] = done.stdout.decode("utf-8", "replace")
+                issues[issue] = capture([metrics_sh, issue],
+                                        cwd=run).decode("utf-8", "replace")
     return json.dumps({"issues": issues}).encode()
 
 
