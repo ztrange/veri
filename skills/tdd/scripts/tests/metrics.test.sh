@@ -8,7 +8,9 @@
 # Contract under test, one case per section of the report:
 #   metrics.sh <n>  → exit 0, and on stdout a row per phase of the run carrying that phase's
 #                     attempts, PASS verdicts, REJECT verdicts and kills, and a row per step
-#                     carrying the same four plus the stuck retries that step used.
+#                     carrying the same four plus the stuck retries that step used and the
+#                     no-verdict relaunches its verifiers spent (#219) — a count of its own,
+#                     neither a retry nor a revise.
 #
 # The log is read relative to the directory the script runs in — `.tdd/events.jsonl`, the
 # way event.sh writes it (event.sh:60) and the way supervise.sh already spells `.tdd/<name>.log`
