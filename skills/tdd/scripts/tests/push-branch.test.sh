@@ -143,8 +143,11 @@ head_before="$(git_q "$repo" rev-parse HEAD)"
 count_before="$(git_q "$repo" rev-list --count HEAD)"
 ledger_before="$(cat "$ledger")"
 
-( cd "$repo" && env VERI_ISSUE=191 VERI_ACTOR=conductor \
+# Wall time of the push to a missing origin, read by case 11 (#242).
+unreachable_started="$SECONDS"
+( cd "$repo" && env VERI_ISSUE=191 VERI_ACTOR=conductor VERI_PUSH_BACKOFF=0 \
     VERI_STEP='A push that fails leaves the run unchanged' "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+unreachable_seconds=$((SECONDS - unreachable_started))
 
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 — a failed push is not a bail, so the run's exit status is unchanged — got $code")
@@ -601,6 +604,21 @@ git_q "$repo" commit -q --amend -m "feat: the step's green commit, rewritten (#2
 push_unwritable_tdd "$repo"
 [[ "$code" == 2 ]] ||
   problems+=("non-fast-forward rejection: want exit 2 when the push-rejected event cannot be written, got $code")
+report "$name"
+
+# 11. Issue #242: a case of this suite that pushes to an origin that cannot be reached
+#     completes in under 5 s of wall time. push-branch.sh waits VERI_PUSH_BACKOFF seconds
+#     (default 2), doubled per retry, between attempts, so a case that leaves the knob unset
+#     waits 2 + 4 + 8 = 14 s of real time for no coverage — the retry and backoff behaviour
+#     is pinned by cases 3-6, which inject it. Case 1 is the one push to a missing origin
+#     that does not set the knob by construction, so its push is the window measured, with
+#     bash's own SECONDS. The bound is on that push rather than the whole suite because
+#     every case here costs about a second of git and process start-up on its own: a
+#     whole-suite bound would measure the machine, not the backoff.
+name="push-branch.test.sh: case 1's push to a missing origin completes in under 5 s of wall time"
+problems=()
+[[ "$unreachable_seconds" -lt 5 ]] ||
+  problems+=("want the push to a missing origin to complete in under 5 s — a case pushing to a missing origin sets VERI_PUSH_BACKOFF=0 — took ${unreachable_seconds} s")
 report "$name"
 
 echo "----"
