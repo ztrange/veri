@@ -144,12 +144,18 @@ sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[2] in l.values()
 PY
 }
 
+# loose_skill <dir> — this skill copied under <dir>/skills/tdd, with no git of its own: the
+# fixture an unpinned case launches from, and what skill_clone commits.
+loose_skill() {
+  mkdir -p "$1/skills"
+  cp -R "$HERE/../.." "$1/skills/tdd"
+}
+
 # skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
 # once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
 # resolves is one the case controls. Prints nothing; read the commit with rev-parse.
 skill_clone() {
-  mkdir -p "$1/skills"
-  cp -R "$HERE/../.." "$1/skills/tdd"
+  loose_skill "$1"
   git -C "$1" init -q
   git -C "$1" add -A
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
@@ -523,8 +529,7 @@ name="with no resolvable skill commit the run proceeds unpinned and warns on std
 problems=()
 
 loose="$work/loose"
-mkdir -p "$loose/skills"
-cp -R "$HERE/../.." "$loose/skills/tdd"
+loose_skill "$loose"
 rm -f "$prompt"
 
 launch_from "$caller" "$loose" GIT_CEILING_DIRECTORIES="$work"
@@ -908,8 +913,7 @@ name="an unpinned launch hands the conductor VERI_SKILL_UNPINNED=1, and SKILL.md
 problems=()
 
 loose14="$work/loose14"
-mkdir -p "$loose14/skills"
-cp -R "$HERE/../.." "$loose14/skills/tdd"
+loose_skill "$loose14"
 env14="$work/env14"
 rm -f "$env14"
 
