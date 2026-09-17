@@ -178,6 +178,31 @@ if need_section '## The scripts' 'what the document says about the directory $S 
 fi
 report "$name"
 
+# 3. The skill snapshot itself (issue #253): run-conductor.sh pins the skill a run executes
+#    to the commit recorded in `.tdd/issue-<n>-skill-commit`, and taking a newer skill is
+#    the explicit act `VERI_NEW_SKILL=1`. A mechanism that refuses a launch is one an
+#    operator has to be able to look up, so SKILL.md documents it and CLAUDE.md — the first
+#    thing an agent reads — points at it. Asked of each whole document, backticks and emphasis
+#    dropped and case folded: where in the file the terms sit, and how they are phrased, is
+#    the writer's; that all three are there is the claim. The file name is accepted with any
+#    placeholder for the issue number, since `<n>` and `N` are both spellings of the same path.
+claude_md="CLAUDE.md"
+name="$skill_md documents the skill snapshot, VERI_NEW_SKILL and .tdd/issue-<n>-skill-commit, and $claude_md cross-references them"
+problems=()
+
+for doc in "$skill_md" "$claude_md"; do
+  text="$(tr -d '*`' < "$ROOT/$doc" | tr '[:upper:]' '[:lower:]')"
+  if [[ -z "$text" ]]; then
+    problems+=("$doc could not be read, so nothing could be asked of what it records")
+    continue
+  fi
+  for term in 'skill snapshot' 'veri_new_skill' 'issue-[^[:space:]/]+-skill-commit'; do
+    grep -qE "$term" <<< "$text" ||
+      problems+=("$doc never mentions /$term/, so a reader cannot find the skill snapshot a launch pins or refuses on")
+  done
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
