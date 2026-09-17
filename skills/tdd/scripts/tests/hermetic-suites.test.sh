@@ -202,6 +202,58 @@ same_answer no-lock "$every_unlocked_code" "$every_unlocked_out" "$every_locked_
   problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the two arms cannot differ")
 report "$name"
 
+# 6. The same rule for a window rather than a name (#242): push-branch.sh waits
+#    `${VERI_PUSH_BACKOFF:-2}` seconds, doubled per retry, before each retry of an unreachable
+#    remote, so a suite that runs it without the knob pays that wait on real wall time — 14 s
+#    on every `make test` for the #191 case, which three leaves of every step run. The testing
+#    idiom injects every window a test would otherwise wait on; this pins that for every suite
+#    here that invokes the script, including ones not written yet.
+#
+#    Read as text, the way case 5 reads its fixture numbers: a command is a run of lines joined
+#    by trailing backslashes and named by the line it starts on, and it invokes the script when
+#    it expands a variable some assignment in that suite sets to a path ending in /push-branch.sh, or spells the
+#    script's path in quotes. "In its environment" is a `VERI_PUSH_BACKOFF=` setting on that
+#    command; an `-u` alone clears the name, it does not set it. A sweep that recognised no
+#    invocation at all would pass about nothing, so that is probed too.
+name="every suite that invokes push-branch.sh sets VERI_PUSH_BACKOFF in its environment"
+problems=()
+push_invocations=0
+for suite in "$HERE"/*.test.sh; do
+  while IFS= read -r row; do
+    case "$row" in
+      invoked) push_invocations=$((push_invocations + 1)) ;;
+      *) problems+=("$(basename "$suite"):$row invokes push-branch.sh without VERI_PUSH_BACKOFF in its environment, so a push to an unreachable origin waits the default backoff on wall time") ;;
+    esac
+  done < <(awk '
+    NR == FNR {
+      if ($0 ~ /^[[:space:]]*(local[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=.*\/push-branch\.sh["'"'"']?[[:space:]]*$/) {
+        v = $0
+        sub(/^[[:space:]]*(local[[:space:]]+)?/, "", v)
+        sub(/=.*/, "", v)
+        vars[v] = 1
+      }
+      next
+    }
+    {
+      if (!joining) start = FNR
+      if ($0 ~ /\\$/) { cmd = cmd substr($0, 1, length($0) - 1) " "; joining = 1; next }
+      cmd = cmd $0; joining = 0
+      line = cmd; cmd = ""
+      if (line ~ /^[[:space:]]*#/) next
+      if (line ~ /^[[:space:]]*(local[[:space:]]+)?[A-Za-z_][A-Za-z0-9_]*=.*\/push-branch\.sh["'"'"']?[[:space:]]*$/) next
+      invokes = (line ~ /\/push-branch\.sh"/)
+      for (v in vars)
+        if (index(line, "\"$" v "\"") || index(line, "${" v "}")) invokes = 1
+      if (!invokes) next
+      print "invoked"
+      if (line !~ /VERI_PUSH_BACKOFF=/) print start
+    }
+  ' "$suite" "$suite")
+done
+[[ "$push_invocations" -gt 0 ]] ||
+  problems+=("no suite here was recognised as invoking push-branch.sh, so nothing was checked")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
