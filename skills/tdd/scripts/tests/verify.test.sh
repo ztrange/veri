@@ -556,6 +556,26 @@ budget_bad="$(never_verdict bad many)"
 [[ "$budget_bad" == '2 0' ]] && ok \
   || no "a non-integer VERI_NO_VERDICT_RETRIES makes verify.sh exit 2 without launching any verifier leaf (code launches: '$budget_bad' want '2 0')"
 
+# 22. a verifier killed by supervise.sh is not relaunched by verify.sh, issue #219: supervise.sh
+#     already spent its own VERI_STUCK_RETRIES relaunches, so a no-verdict budget on top would be a
+#     second liveness layer. The stub counts its launches and then hangs; with VERI_STUCK_RETRIES=1
+#     supervise.sh makes two attempts, and a VERI_NO_VERDICT_RETRIES of 3 must add none to them.
+cat > "$stubdir/claude-counting-hang" <<'STUB'
+#!/usr/bin/env bash
+echo $(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 )) > "$LAUNCH_COUNT"
+echo "thinking..."; sleep 60
+STUB
+chmod +x "$stubdir/claude-counting-hang"
+killed_dir="$work/killed-no-relaunch"
+mkdir -p "$killed_dir"
+( cd "$killed_dir" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$killed_dir/launches" \
+    VERI_STUCK_RETRIES=1 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+    "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+killed_code=$?
+killed_launches="$(cat "$killed_dir/launches" 2>/dev/null || echo 0)"
+{ [[ "$killed_code" == 2 ]] && [[ "$killed_launches" == 2 ]]; } && ok \
+  || no "a verifier killed by supervise.sh is not relaunched by verify.sh, whatever VERI_NO_VERDICT_RETRIES is (code=$killed_code want 2; launches=$killed_launches want 2 — supervise.sh's own attempts only)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
