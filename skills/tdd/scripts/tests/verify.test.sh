@@ -38,8 +38,9 @@ printf 'slugify must lowercase the title and join words with hyphens.' > "$work/
 # hands that stub the caller's own environment too, which is how the mutating stub below gets
 # its mutation.
 verify_in() {
+  local slot4=test_lowercases; [[ "$2" == refactor ]] && slot4=0123abc  # refactor's is a base sha (#151)
   ( cd "$1" && env CLAUDE_BIN="${4:-$stubdir/claude}" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$3" \
-      "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py test_lowercases )
+      "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py "$slot4" )
 }
 
 verify() {  # verify <fake-out-text> <phase> -> runs in $work, sets $out/$code

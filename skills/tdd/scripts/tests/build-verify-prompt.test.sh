@@ -50,7 +50,7 @@ grep -qi 'full' <<<"$green" && grep -qi 'suite' <<<"$green" \
   && ok || no "verify-green checks the full suite"
 
 # 7. verify-refactor judges up-to-standard (conventions/typing/robustness) + still green
-refactor="$("$BUILD" refactor "$work/spec.md" "$testpath")"
+refactor="$("$BUILD" refactor "$work/spec.md" "$testpath" 0123abc)"  # refactor's 4th slot is a base sha (#151)
 grep -qiE 'standard|convention|typing|robust' <<<"$refactor" \
   && grep -qi 'green' <<<"$refactor" && ok || no "verify-refactor judges standard + green"
 
@@ -217,8 +217,9 @@ ambient="$(VERI_TEST_CMD='pytest -k leaked_channel' "$BUILD" green "$work/spec.m
 prediction='the second assert fires: want "hello-world-foo", got "Hello & World/Foo"'
 problems=""
 for phase in red green refactor pin; do
+  slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
   smuggled_prompt="$(VERI_PREDICTED_FAILURE="$prediction" \
-    "$BUILD" "$phase" "$work/spec.md" "$testpath" test_slugify_lowercases "$prediction")"
+    "$BUILD" "$phase" "$work/spec.md" "$testpath" "$slot4" "$prediction")"
   [[ "$smuggled_prompt" == *"$prediction"* ]] \
     && problems="$problems; verify-$phase carries the prediction text"
   grep -qiE 'PREDICTED_FAILURE|PREDICTION' <<<"$smuggled_prompt" \
@@ -236,6 +237,28 @@ base_sha='3f9a1c07e2b4'
 with_base="$("$BUILD" refactor "$work/spec.md" "$testpath" "$base_sha")"; code=$?
 [[ "$code" -eq 0 ]] && [[ "$with_base" == *"$base_sha"* ]] \
   && ok || no "verify-refactor carries the base sha from its 4th argument into the prompt (exit $code)"
+
+# 17. only a sha can arrive in that slot (#151). The argument must match ^[0-9a-f]{7,40}$;
+#     anything else is exit 2 with a diagnostic on stderr, because a slot that accepted free
+#     text would be exactly the rationale channel ADR-0003 refuses. Each bad value probes one
+#     edge of the pattern — absent, too short, uppercase, a sha with prose after it, too long —
+#     and each accumulates its own miss, for case 12's reason.
+problems=""
+probe_base() {  # probe_base <label> [<base-sha>]
+  local label="$1"; shift
+  local err="$work/base-sha.err" rc
+  "$BUILD" refactor "$work/spec.md" "$testpath" "$@" >/dev/null 2>"$err"; rc=$?
+  if [[ "$rc" -ne 2 || ! -s "$err" ]]; then
+    problems="$problems; $label: exit $rc, stderr $([[ -s "$err" ]] && echo present || echo empty)"
+  fi
+}
+probe_base missing
+probe_base short abc123
+probe_base uppercase 3F9A1C07E2B4
+probe_base with-text '3f9a1c07e2b4 because it tidies'
+probe_base too-long 3f9a1c07e2b43f9a1c07e2b43f9a1c07e2b43f9a1
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor refuses a missing or malformed base sha with exit 2 and a stderr diagnostic (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"

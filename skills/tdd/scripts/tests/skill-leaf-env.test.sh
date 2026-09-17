@@ -237,6 +237,7 @@ runnable() {
   launch="${launch//<STEP>/$SENTINEL_STEP}"
   launch="${launch//<test-path>/probe.test.sh}"
   launch="${launch//<target-test-id>/probe-target}"
+  launch="${launch//<green-sha>/0123abc}"  # refactor's 4th slot must be a sha (#151)
   launch="${launch//\[target\]/probe-target}"
   [[ "$launch" != *'<'*'>'* ]] || return 1
   printf '%s\n' "$launch"
