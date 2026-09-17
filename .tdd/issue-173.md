@@ -1,6 +1,6 @@
 # Plan for #173 — A supervisor that dies writes no completion file, so wait-leaf.sh answers 'still running' forever
 
-- [x] wait-leaf.sh exits 2, well before max-seconds, with a diagnostic on stderr naming the leaf and the dead pid, when no completion file exists and the pid file names a process that has exited ⟂ refactor pending
+- [x] wait-leaf.sh exits 2, well before max-seconds, with a diagnostic on stderr naming the leaf and the dead pid, when no completion file exists and the pid file names a process that has exited
 - [ ] wait-leaf.sh treats a recorded pid that is alive but is not a supervise.sh for that name (pid reuse) as a dead supervisor
 - [ ] wait-leaf.sh still exits 3 while the recorded supervise.sh for that name is alive, and a missing pid file is not dead
 - [ ] wait-leaf.sh returns the recorded code when the completion file lands just before the supervisor exits
