@@ -131,6 +131,13 @@ except Exception as e:
     print(e, file=sys.stderr); sys.exit(1)' "$1"
 }
 
+# The three parts of what `fetch` printed, read back by name. Which line carries the status
+# and which the Content-Type is the envelope `fetch` above writes, so it is known here beside
+# it rather than in every case that reads one: a case asks for the status, not for line 1.
+http_status() { sed -n 1p <<< "$1"; }
+http_ctype()  { sed -n 2p <<< "$1"; }
+http_body()   { sed -n '3,$p' <<< "$1"; }
+
 # serve_until_up <url> — poll <url> until it answers, up to 10 s, and print what `fetch`
 # returned; print nothing at all when it never answered, which is what a case reads as "the
 # server never came up". Ten seconds is generous because a cold python3 start is the slowest
@@ -204,9 +211,9 @@ else
   if [[ -z "$page" ]]; then
     problems+=("no answer from http://127.0.0.1:$PORT/ after 10 s; the server left: $(printf '%q' "$(cat "$log" 2>/dev/null)")")
   else
-    status="$(sed -n 1p <<< "$page")"
-    ctype="$(sed -n 2p <<< "$page")"
-    body="$(sed -n '3,$p' <<< "$page")"
+    status="$(http_status "$page")"
+    ctype="$(http_ctype "$page")"
+    body="$(http_body "$page")"
     [[ "$status" == 200 ]] || problems+=("GET / answered $status, want 200")
     [[ "$ctype" == text/html* ]] || problems+=("GET / is Content-Type '$ctype', want text/html")
     # The one HTML page, asked of it as the two things any HTML document has and a JSON
@@ -253,7 +260,7 @@ else
   if [[ -z "$arg_page" ]]; then
     problems+=("no answer from http://127.0.0.1:$arg_port/ after 10 s, so the port named on the command line was not bound; the server left: $(printf '%q' "$(cat "$arg_log" 2>/dev/null)")")
   else
-    arg_status="$(sed -n 1p <<< "$arg_page")"
+    arg_status="$(http_status "$arg_page")"
     [[ "$arg_status" == 200 ]] || problems+=("GET / on the given port $arg_port answered $arg_status, want 200")
   fi
 
@@ -319,11 +326,11 @@ else
   if [[ -z "$runs_answer" ]]; then
     problems+=("no answer from http://127.0.0.1:$runs_port/api/runs after 10 s; the server left: $(printf '%q' "$(cat "$runs_log" 2>/dev/null)")")
   else
-    runs_status="$(sed -n 1p <<< "$runs_answer")"
+    runs_status="$(http_status "$runs_answer")"
     if [[ "$runs_status" != 200 ]]; then
       problems+=("GET /api/runs answered $runs_status, want 200")
     else
-      sed -n '3,$p' <<< "$runs_answer" > "$work/runs-endpoint.json"
+      http_body "$runs_answer" > "$work/runs-endpoint.json"
       # status.sh's own answer to the same question, asked from the same repository and with
       # the same environment the launch gave the server, so any difference is the endpoint's.
       (cd "$runs_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
