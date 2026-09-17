@@ -62,6 +62,7 @@ mkdir -p .tdd
 log=".tdd/$name.log"
 rcfile=".tdd/$name.rc"
 exitfile=".tdd/$name.exit"
+pidfile=".tdd/$name.pid"
 
 now() { date +%s; }
 
@@ -298,6 +299,11 @@ mark() {
 # context keys is that an absent key and a chosen-nothing key must not look alike, and a
 # per-model cost comparison joins verdicts and revise counts on exactly this field.
 mark launch name="$name" cmd="$*" model="$model"
+
+# This supervisor's own pid, recorded before any leaf is launched (issue #173), so
+# wait-leaf.sh can tell a supervisor that died without writing `$exitfile` from one still
+# watching a slow leaf. `$$` rather than `$BASHPID`: this is the top-level shell.
+echo $$ > "$pidfile"
 
 # First attempt plus up to $retries extra attempts. A normal result (success/failure)
 # short-circuits; only killed-stuck is retried.

@@ -1201,6 +1201,32 @@ CLAIMS
 [[ -z "$header_misses" ]] && ok \
   || no "supervise.sh's header records that a leaf's stream can finish before its rc file is written, so a kill is not proof that no answer was obtained (unstated:$header_misses)"
 
+# 29. supervise.sh records its OWN pid in .tdd/<name>.pid before it launches the leaf (issue
+#     #173), so wait-leaf.sh can tell a supervisor that died without writing its completion
+#     file from one that is still watching a slow leaf. "Before the launch" is observed from
+#     inside the leaf: the stub copies whatever `.tdd/develop-red.pid` holds at the moment it
+#     runs into a file of its own, or `<missing>` when there is none — so a pid file written
+#     after the leaf started, or never, reads as absent.
+#
+#     The supervisor is started in the background and `exec`ed, so `$!` is the pid of
+#     supervise.sh itself rather than of a wrapping subshell, and that is the value the leaf
+#     must have seen. A directory of its own under `$work`, for case 12's reason.
+pid_work="$work/pid-record"
+mkdir -p "$pid_work"
+cat > "$stub/leaf-pid-seen" <<'L'
+#!/usr/bin/env bash
+cat .tdd/develop-red.pid 2>/dev/null > pid-seen || echo '<missing>' > pid-seen
+exit 0
+L
+chmod +x "$stub/leaf-pid-seen"
+( cd "$pid_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+    "$SUP" develop-red "$stub/leaf-pid-seen" ) >/dev/null 2>&1 &
+pid_sup=$!
+wait "$pid_sup"
+pid_seen="$(tr -d '[:space:]' < "$pid_work/pid-seen" 2>/dev/null || echo '<no leaf run>')"
+[[ "$pid_seen" == "$pid_sup" ]] && ok \
+  || no "supervise.sh records its own pid in .tdd/<name>.pid before it launches the leaf (leaf saw=$pid_seen want $pid_sup)"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
