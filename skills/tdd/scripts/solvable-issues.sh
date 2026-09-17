@@ -33,7 +33,7 @@
 #
 # The repository's issues and pull requests are read as the JSON `gh` emits:
 #   gh issue list --limit 10000 --json number,title,labels,body,state
-#   gh pr list    --json body,state
+#   gh pr list    --limit 10000 --json body,state
 # gh returns a page, not the repository — 30 items unless told `--limit` (#244) — and has no
 # "all", so the limit is a number no repository here comes near.
 # VERI_GH_JSON overrides both calls at once: it names a directory holding `issues.json` and
@@ -119,7 +119,7 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
 }
 
 issues_json="$(gh_json issues.json issue list --limit 10000 --json number,title,labels,body,state)"
-prs_json="$(gh_json prs.json pr list --json body,state)"
+prs_json="$(gh_json prs.json pr list --limit 10000 --json body,state)"
 
 # The directory the in-flight locks hang off: the repository's MAIN working tree, because that
 # is where issue-worktree.sh puts every run's worktree (`wt_path`, off `main_working_tree`) —
