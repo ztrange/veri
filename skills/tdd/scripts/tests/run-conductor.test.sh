@@ -934,6 +934,36 @@ fi
 
 report "$name"
 
+# 21. Case 4 holds in a tree whose SKILL.md carries an uncommitted edit (issue #256). A green
+# leaf edits SKILL.md before it commits, so a case 4 that compared against the working tree's
+# SKILL.md rather than the committed one the launch hands over would make every such step red.
+# The fixture is a skill clone committed once, then edited; case 4 is cut out of that clone's
+# copy of this suite — the preamble, case 4, and the count line — and run there, so it is case
+# 4 as written that is asked, against a launch pinned to the clone's commit. Cut rather than
+# the whole suite run, which would run this case again inside itself.
+name="case 4 passes with an uncommitted edit to SKILL.md in the tree under test"
+problems=()
+
+clone21="$work/clone21"
+skill_clone "$clone21"
+echo "uncommitted edit to the procedure" >> "$clone21/skills/tdd/SKILL.md"
+
+suite21="$clone21/skills/tdd/scripts/tests/case4-only.test.sh"
+awk '/^# 1\. / {skip=1} /^# 4\. / {skip=0} /^# 5\. / {skip=1} !skip' \
+  "$clone21/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite21"
+printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite21"
+chmod +x "$suite21"
+
+if ! grep -q '^name="a frontmatter-fenced procedure launches and reaches the binary whole"$' "$suite21"; then
+  problems+=("case 4 could not be cut out of the clone's run-conductor.test.sh")
+else
+  out21="$("$suite21" 2>&1)"
+  [[ "$(tail -n 1 <<< "$out21")" == "1 passed, 0 failed" ]] ||
+    problems+=("case 4 did not pass with SKILL.md edited and uncommitted: ${out21//$'\n'/ | }")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
