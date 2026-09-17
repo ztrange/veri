@@ -692,7 +692,7 @@ following step. The phase sub-steps are:
    **through the supervisor** (exit **2** → **bail**):
    ```
    $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 3
-   touched="$(git diff --name-only HEAD~1 HEAD | paste -sd, -)"
+   touched="$($S/refactor-touched.sh HEAD)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
@@ -705,7 +705,7 @@ following step. The phase sub-steps are:
    transforms took 49 minutes between them.
    `<touched-files>` is the **bounds of the tidy-up**: the files this cycle produced, as one
    comma-separated line. Compute it **once**, right after the step's atomic green commit —
-   `git diff --name-only HEAD~1 HEAD` is exactly that commit's files at that moment — adding
+   `$S/refactor-touched.sh HEAD` is exactly that commit's files at that moment — adding
    anything still uncommitted (`git diff --name-only HEAD`) if an interrupted run left work
    on disk.
    The template owns the rules — the leaf triages what it sees in those files into
@@ -1043,12 +1043,13 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    ```
    git reset --hard HEAD
    green="$(git log -1 --format=%H -- .tdd/issue-<n>.md)"
-   touched="$(git diff --name-only "$green^" "$green" | paste -sd, -)"
+   touched="$($S/refactor-touched.sh "$green")"
    count="$(git log --format=%s "$green"..HEAD | grep -c '^refactor:')"
    left=$(( ${VERI_REFACTOR_BUDGET:-5} - count )); (( left < 0 )) && left=0
    ```
    `$green` is the step's **green commit** — the last commit that changed the ledger, since
    the tick is atomic with it and the clear that would follow never happened. So `$touched`
+   — that commit's `git diff --name-only`, through the same script the cycle loop calls —
    is the same bounds the interrupted loop had, and `$count` the transforms it already
    committed. Run the **Refactor loop** (the cycle loop's sub-section) with `$touched` as
    its bounds and **`VERI_REFACTOR_BUDGET=$left`** in the environment of every call that
