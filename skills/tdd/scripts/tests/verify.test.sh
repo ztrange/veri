@@ -628,6 +628,32 @@ no_verdict_distinct="$(printf '%s\n' "$no_verdict_causes" | sort -u)"
   && [[ -n "$killed_causes" ]] && ! printf '%s\n' "$killed_causes" | grep -qxF "$no_verdict_distinct"; } && ok \
   || no "a clean exit with no VERDICT: line is logged under a cause distinct from a killed verifier's, on the relaunch and on the final exit 2 (no-verdict causes: $no_verdict_cause_count lines '${no_verdict_causes//$'\n'/|}' want 2 lines of one cause; killed causes: '${killed_causes//$'\n'/|}' must be non-empty and not contain it)"
 
+# 25. a relaunch leaves the blind-verifier guarantee where it was, issue #219: the relaunched
+#     leaf's prompt is byte-identical to the first attempt's, and both are exactly what
+#     build-verify-prompt.sh prints for the four arguments it already takes — so nothing the
+#     failed attempt said, and no new parameter, reached the second one. The stub records the
+#     prompt each launch was handed (the argument after `-p`), one file per launch.
+cat > "$stubdir/claude-prompt-recording" <<'STUB'
+#!/usr/bin/env bash
+n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
+echo "$n" > "$LAUNCH_COUNT"
+printf '%s' "$2" > "$PROMPT_DIR/prompt.$n"
+printf '%s' 'Waiting for the background `make test` run to complete before rendering a verdict.'
+exit 0
+STUB
+chmod +x "$stubdir/claude-prompt-recording"
+prompt_dir="$work/no-verdict-prompt"
+mkdir -p "$prompt_dir"
+( unset VERI_NO_VERDICT_RETRIES
+  LAUNCH_COUNT="$prompt_dir/launches" PROMPT_DIR="$prompt_dir" \
+    verify_in "$prompt_dir" green '' "$stubdir/claude-prompt-recording" >/dev/null 2>&1 )
+printf '%s' "$("$HERE/../build-verify-prompt.sh" green "$work/spec.md" tests/test_slugify.py test_lowercases)" \
+  > "$prompt_dir/expected"
+prompt_launches="$(cat "$prompt_dir/launches" 2>/dev/null || echo 0)"
+{ [[ "$prompt_launches" == 2 ]] && cmp -s "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" \
+  && cmp -s "$prompt_dir/expected" "$prompt_dir/prompt.1"; } && ok \
+  || no "a relaunched verifier's prompt is byte-identical to the first attempt's and to build-verify-prompt.sh's four-argument output (launches=$prompt_launches want 2; diff first→relaunch: $(diff "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" 2>&1 | head -5 | tr '\n' '|'); diff builder→first: $(diff "$prompt_dir/expected" "$prompt_dir/prompt.1" 2>&1 | head -5 | tr '\n' '|'))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

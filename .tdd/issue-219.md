@@ -7,6 +7,6 @@
 - [x] VERI_STUCK_RETRIES does not change the no-verdict relaunch count, and VERI_NO_VERDICT_RETRIES does not change supervise.sh's stuck retry count
 - [x] a clean exit with no VERDICT: line is recorded in the event log under a cause distinct from a leaf killed before rendering one, on each relaunch and on the final exit 2
 - [x] metrics.sh reports no-verdict relaunches per run as their own count, distinct from retries and revise
-- [ ] a relaunch's verifier prompt is byte-identical to the first attempt's, and build-verify-prompt.sh gains no parameter
+- [x] a relaunch's verifier prompt is byte-identical to the first attempt's, and build-verify-prompt.sh gains no parameter
 - [ ] SKILL.md's exit-2 branch says a clean exit with no verdict is relaunched rather than bailed, and a new ADR docs/adr/0020-*.md records it, naming ADR-0011 and SKILL.md's exit-2 branch as what it narrows
 - [ ] CLAUDE.md's budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth axis and why it is not merged with VERI_STUCK_RETRIES
