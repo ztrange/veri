@@ -6,4 +6,4 @@
 - [x] The pinned skill commit reaches the run: every event a launched run writes carries it as `skill_commit`, and the conductor's prompt names it for the plan comment, equal to `origin/<default>`'s commit at launch
 - [x] A resumed run keeps its recorded pin even when `origin/<default>` has moved since the first launch
 - [x] A resume on which the operator explicitly asks for the new skill (`VERI_NEW_SKILL=1`) re-pins to `origin/<default>` as just fetched, not to the clone's `HEAD`
-- [x] `SKILL.md` no longer says pulling the primary clone changes the scripts under a live run ⟂ refactor pending
+- [x] `SKILL.md` no longer says pulling the primary clone changes the scripts under a live run
