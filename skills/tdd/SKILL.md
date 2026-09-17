@@ -544,7 +544,7 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    wording where it maps cleanly to one cycle. End each step's line with ` ⟦criterion k⟧`,
    where k is the 1-based position of the acceptance criterion it serves, and leave a gap
    step without one: `criterion-finished.sh` reads that notation to decide when the issue's
-   criterion may be ticked, and a gap step serves no criterion.
+   criterion may be ticked.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
