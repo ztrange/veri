@@ -61,8 +61,14 @@ done
 printf '%s\n' "$@" > "$ARGV_OUT"
 cat > "${PROMPT_OUT:-/dev/null}"
 [[ -n "${ENV_OUT:-}" ]] && env > "$ENV_OUT"
-[[ -n "${BASE_OUT:-}" ]] && cp -R "$(sed -n 's/^Base directory for this skill: //p' "$PROMPT_OUT" | head -n 1)/." "$BASE_OUT"
-[[ -n "${CONDUCTOR_HOOK:-}" ]] && "$CONDUCTOR_HOOK" "$(sed -n 's/^Base directory for this skill: //p' "$PROMPT_OUT" | head -n 1)"
+# A case that asks for the base directory and gets a prompt naming none is refused loudly:
+# an empty base would make the copy below `cp -R /.` — the whole filesystem (issue #256).
+if [[ -n "${BASE_OUT:-}" || -n "${CONDUCTOR_HOOK:-}" ]]; then
+  base="$(sed -n 's/^Base directory for this skill: //p' "${PROMPT_OUT:-/dev/null}" 2>/dev/null | head -n 1)"
+  [[ -n "$base" && -d "$base" ]] || { echo "stub: the prompt names no base directory" >&2; exit 2; }
+fi
+[[ -n "${BASE_OUT:-}" ]] && cp -R "$base/." "$BASE_OUT"
+[[ -n "${CONDUCTOR_HOOK:-}" ]] && "$CONDUCTOR_HOOK" "$base"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit "${STUB_EXIT:-0}"
