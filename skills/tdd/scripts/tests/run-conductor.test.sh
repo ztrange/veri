@@ -632,6 +632,36 @@ fi
 
 report "$name"
 
+# 14. A fetch that fails is a launch that fails (issue #251). The clone's origin is a path
+# that no longer holds a repository — a remote nobody can reach — so the tip the pin needs
+# cannot be learned. The launch exits 2 without starting a conductor, and says on stderr that
+# it was the fetch that failed: falling back to the clone's HEAD would be a run on a stale
+# skill that nobody was told about, which is the defect this issue exists to end.
+name="a failed fetch of origin exits 2 before any conductor is launched and names the fetch on stderr"
+problems=()
+
+remote8="$work/remote8"
+skill_clone "$remote8"
+clone8="$work/clone8"
+git clone -q "$remote8" "$clone8"
+rm -rf "$remote8"
+
+caller8="$work/caller8"
+caller_repo "$caller8"
+
+rm -f "$argv"
+launch_from "$caller8" "$clone8"
+status=$?
+
+[[ "$status" -eq 2 ]] ||
+  problems+=("the launch exited $status, not 2")
+[[ ! -f "$argv" ]] ||
+  problems+=("a conductor was launched although the fetch failed")
+grep -qi 'fetch' "$launch_err" ||
+  problems+=("stderr does not name the fetch — stderr was: '$(cat "$launch_err")'")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
