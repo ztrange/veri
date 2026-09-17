@@ -47,20 +47,22 @@ def runs_json():
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
+    # Every 200 this server sends is the same five calls over a different body and type, so
+    # they are written once: a pane added later declares what it serves, not how to serve it.
+    # Content-Length explicitly because the default is a chunked-less HTTP/1.0 close, and a
+    # client then cannot tell a truncated answer from a complete one.
+    def respond(self, ctype, body):
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         if self.path == "/":
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(page)))
-            self.end_headers()
-            self.wfile.write(page)
+            self.respond("text/html; charset=utf-8", page)
         elif self.path == "/api/runs":
-            body = runs_json()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            self.respond("application/json; charset=utf-8", runs_json())
         else:
             self.send_error(404)
 
