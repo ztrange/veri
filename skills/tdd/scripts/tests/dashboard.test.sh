@@ -274,14 +274,13 @@ else
   launch "$arg_repo" "$arg_log" "$arg_port"
   arg_pid=$!
 
-  arg_page="$(serve_until_up "http://127.0.0.1:$arg_port/")"
-
-  if [[ -z "$arg_page" ]]; then
-    problems+=("no answer from http://127.0.0.1:$arg_port/ after 10 s, so the port named on the command line was not bound; the server left: $(printf '%q' "$(cat "$arg_log" 2>/dev/null)")")
-  else
-    arg_status="$(http_status "$arg_page")"
-    [[ "$arg_status" == 200 ]] || problems+=("GET / on the given port $arg_port answered $arg_status, want 200")
-  fi
+  # The URL is the port the argument named, so anything wrong with the fetch of it is the
+  # first half of the criterion failing: the server did not bind the port it was given.
+  # Nothing here reads the body — that the page is served at / is the case above.
+  arg_url="http://127.0.0.1:$arg_port/"
+  arg_page="$(serve_until_up "$arg_url")"
+  problem="$(answer_problem "$arg_url" "$arg_log" "$arg_page")"
+  [[ -z "$problem" ]] || problems+=("$problem")
 
   # The other interface. Fails closed when this machine has no non-loopback address: a case
   # that quietly skipped the half it exists to ask would report a pass for a server bound to
