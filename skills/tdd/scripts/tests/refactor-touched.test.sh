@@ -32,6 +32,14 @@ trap 'rm -rf "$work"' EXIT
 # user.name/user.email of the machine running the suite (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
+# commit_all <repo> <message> — stage everything in <repo> and commit it. Every case here
+# builds its fixture the same way, and the noise of the two quieted calls is not the point
+# of any of them.
+commit_all() {
+  git_q "$1" add -A >/dev/null 2>&1
+  git_q "$1" commit -q -m "$2" >/dev/null 2>&1
+}
+
 # 1. a green commit touching the ledger and two source files → exactly the two source files,
 #    in git diff order. The source files are written zeta-first so creation order and diff
 #    order disagree, and the ledger sorts first so a list that kept it would lead with it.
@@ -39,13 +47,11 @@ repo="$work/green"
 git init -q -b main "$repo" >/dev/null 2>&1
 mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
 printf -- '- [ ] a step\n' > "$repo/.tdd/issue-7.md"
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "plan: scope #7" >/dev/null 2>&1
+commit_all "$repo" "plan: scope #7"
 printf 'zeta\n' > "$repo/src/zeta.sh"
 printf 'alpha\n' > "$repo/lib/alpha.test.sh"
 printf -- '- [x] a step ⟂ refactor pending\n' > "$repo/.tdd/issue-7.md"
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: a step (#7)" >/dev/null 2>&1
+commit_all "$repo" "feat: a step (#7)"
 green="$(git -C "$repo" rev-parse HEAD)"
 expected="$(printf 'lib/alpha.test.sh\nsrc/zeta.sh')"
 out="$(cd "$repo" && "$TOUCHED" "$green" 2>&1)"; code=$?
@@ -61,8 +67,7 @@ fi
 repo="$work/unresolvable"
 git init -q -b main "$repo" >/dev/null 2>&1
 printf 'alpha\n' > "$repo/alpha.sh"
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: alpha" >/dev/null 2>&1
+commit_all "$repo" "feat: alpha"
 missing="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
 err="$(cd "$repo" && "$TOUCHED" "$missing" 2>&1 >/dev/null)"; code=$?
 if [[ "$code" == 2 && "$err" == *"$missing"* ]]; then ok; else
@@ -77,11 +82,9 @@ repo="$work/ledger-only"
 git init -q -b main "$repo" >/dev/null 2>&1
 mkdir -p "$repo/.tdd"
 printf 'alpha\n' > "$repo/alpha.sh"
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: alpha" >/dev/null 2>&1
+commit_all "$repo" "feat: alpha"
 printf -- '- [x] a step ⟂ refactor pending\n' > "$repo/.tdd/issue-9.md"
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "chore: tick the ledger (#9)" >/dev/null 2>&1
+commit_all "$repo" "chore: tick the ledger (#9)"
 ledger_only="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && "$TOUCHED" "$ledger_only" 2>/dev/null)"; code=$?
 if [[ "$code" == 3 && -z "$out" ]]; then ok; else
