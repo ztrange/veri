@@ -185,6 +185,60 @@ else
 fi
 report "$name"
 
+# 4. The refactor mark reaches the report (issue #230): cases 2 and 3 read the call as text,
+#    and a call that reads right can still write a line `metrics.sh` does not read — a key
+#    spelled differently, a quoted value — and every cell would stay `unknown` exactly as it
+#    did before the mark existed. So this case runs the call SKILL.md prescribes, verbatim
+#    but for its placeholders, through the real `event.sh` into a fixture log, beside a
+#    second step that writes no refactor mark, and reads both rows of the real report: the
+#    marked step says `7/5` (an overrun, so a clamp would show) and `budget`, the unmarked
+#    one still says `unknown` in both cells rather than a borrowed or zero figure.
+name="a run whose SKILL.md refactor mark is present renders real refactor and stopped cells for that step, and unknown for a step without one"
+problems=()
+S="$(cd "$HERE/.." && pwd)"
+call="$(grep -m1 'event\.sh refactor ' "$ROOT/$skill_md" | sed 's/^[[:space:]]*//')"
+if [[ -z "$call" ]]; then
+  problems+=("$skill_md has no \`event.sh refactor\` call line to run — the report could not be checked")
+else
+  fixture="$(mktemp -d)"
+  tidied="the step whose refactor mark was written"
+  untidied="the step that wrote no refactor mark"
+  call="${call//\$S/$S}"
+  call="${call//<n>/230}"
+  call="${call//<STEP>/$tidied}"
+  call="${call//<count>/7}"
+  call="${call//<VERI_REFACTOR_BUDGET>/5}"
+  call="${call//<reason>/budget}"
+  for s in "$tidied" "$untidied"; do
+    ( cd "$fixture" && VERI_ISSUE=230 VERI_ACTOR=developer VERI_STEP="$s" VERI_PHASE=refactor \
+        VERI_ATTEMPT=1 "$S/event.sh" launch name=develop-refactor ) ||
+      problems+=("event.sh could not write the fixture's launch line for step: $s")
+  done
+  ( cd "$fixture" && bash -c "$call" ) ||
+    problems+=("the call $skill_md prescribes did not run: $call")
+  report_out="$( cd "$fixture" && "$S/metrics.sh" 230 2>&1 )" ||
+    problems+=("want metrics.sh to exit 0, it did not: $report_out")
+  # cell_of <step> <heading> — the cell under <heading> in the row for <step>, read from the
+  # header of the table that row sits in.
+  cell_of() {
+    awk -F'|' -v step="$1" -v want="$2" '
+      function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+      !/^\|/ { seen = 0; col = 0; next }
+      !seen { seen = 1; for (i = 2; i < NF; i++) if (trim($i) == want) col = i; next }
+      col && trim($2) == step { print trim($col); exit }' <<< "$report_out"
+  }
+  for probe in "$tidied|refactor|7/5" "$tidied|stopped|budget" \
+               "$untidied|refactor|unknown" "$untidied|stopped|unknown"; do
+    IFS='|' read -r s heading want <<< "$probe"
+    got="$(cell_of "$s" "$heading")"
+    [[ "$got" == "$want" ]] ||
+      problems+=("step \"$s\": want its $heading cell to say \`$want\`, it says \`$got\`")
+  done
+  [[ "${#problems[@]}" -eq 0 ]] || problems+=("the report was: $(printf '%q' "$report_out")")
+  rm -rf "$fixture"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
