@@ -205,6 +205,45 @@ warning="$(awk 'BEGIN { RS = "" }
 [[ -z "$launch_misses" ]] && ok \
   || no "SKILL.md launches every leaf detached and waits for it with wait-leaf.sh in the foreground, and warns that a background call awaiting a notification never completes in print mode (launch sites=$launches, missing:$launch_misses)"
 
+# 5. a fractional VERI_POLL is honoured, and the answer comes back within tens of milliseconds
+#    of the completion file landing (#282). `make test` spends most of its wall clock waiting,
+#    and this script's share of it is the poll grid: at the default second, a conductor that
+#    could have been told at 0.4 s is told at 1.0 s, and every suite driving a detached leaf
+#    pays that rounding once per wait.
+#
+#    Measured as LAG — the gap between the moment the file landed and the moment the wait
+#    returned — not as total elapsed, because total elapsed also carries the writer's own delay
+#    and bash's startup, and neither is the thing under test. The writer stamps the clock into a
+#    variable and *then* creates the file, so the stamp precedes the write by one `printf`; the
+#    caller reads the clock the instant the wait returns. Both readings come from python3, since
+#    `date +%s` is whole seconds on BSD and cannot see a gap this size at all — the same reason
+#    supervise.sh reaches for python3 on its fine clock.
+#
+#    The bound is 0.3 s rather than the tens of milliseconds the lag actually is, because the
+#    number this case exists to exclude is one whole poll of the default grid: a second-grained
+#    sleep answering a file that landed 0.4 s in returns at ~1.0 s, a lag of ~0.6 s, and the
+#    gap between that and the ~0.05 s a fractional poll gives leaves room for a loaded runner
+#    without leaving room for the behaviour being ruled out.
+#
+#    The code is asserted alongside the lag: returning *fast* is only half of it, and a script
+#    that raced back with the wrong status would be worse than one that was slow.
+nowf() { python3 -c 'import time; print("%.3f" % time.time())'; }
+
+stamp="$work/fine-poll.wrote"
+( sleep 0.4
+  t="$(nowf)"
+  printf '1\n' > "$work/.tdd/fine-poll.exit"
+  printf '%s\n' "$t" > "$stamp" ) &
+( cd "$work" && env VERI_POLL=0.05 "$WAIT" fine-poll 20 >/dev/null 2>&1 )
+rc_fine=$?
+ret_fine="$(nowf)"
+wait
+lag_fine="$(awk -v a="$ret_fine" -v b="$(cat "$stamp" 2>/dev/null)" 'BEGIN { printf "%.3f", a - b }')"
+
+{ [[ "$rc_fine" == 1 ]] &&
+  [[ "$(awk -v l="$lag_fine" 'BEGIN { print (l >= 0 && l <= 0.3) }')" == 1 ]]; } && ok \
+  || no "honours a fractional VERI_POLL, returning the recorded code within tens of milliseconds of the completion file landing (code=$rc_fine want 1, lag=${lag_fine}s want 0<=lag<=0.3)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
