@@ -1659,6 +1659,33 @@ issue_wall_says "$rerun_out" 200
 report_on "$name" "$rerun_out"
 
 
+# The same log, read for the words around that figure: the sentence has to say where the wall
+# starts, and on a resumed run that is the last `resume` — not "the first event of the log",
+# which the figure stopped being on #229 while the sentence went on claiming it (#248).
+name="on a resumed run the issue-wall sentence says the wall starts at the last resume, not at the log's first event"
+problems=()
+
+probe '
+import sys
+
+path = sys.argv[1]
+walls = [l.strip() for l in open(path).read().splitlines()
+         if l.strip().startswith("Wall time for the issue:")]
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+    raise SystemExit(0)
+
+wall = walls[0]
+if "the last `resume`" not in wall:
+    print("want the issue-wall sentence to name the last `resume` as where the wall starts, it says: %r" % wall)
+if "from the first event of the log" in wall:
+    print("want the issue-wall sentence to stop claiming the wall runs \"from the first event of the log\", it says: %r" % wall)
+' "$rerun_out"
+
+report_on "$name" "$rerun_out"
+
+
 # A seventeenth fixture: one run and no `resume` in its log, so nothing moves the opening end
 # of the wall off the first event (19000) and the one `bail` mark (19250) is the whole of the
 # outcome. The wall is 250 s and the outcome a system bail, as it was before #229.

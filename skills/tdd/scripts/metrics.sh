@@ -552,8 +552,8 @@ def section(heading, key_column, columns, table, text=None):
 print("### 📊 Metrics — issue %s" % issue)
 print()
 # Outside the tables, because it is a figure of the whole run and not of a row in either.
-print("Wall time for the issue: %s s, from the first event of the log to the mark that "
-      "ended the run."
+print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
+      "there is none, to the mark that ended the run."
       % known(span(opening, ending["ts"] if ending else None)))
 # Beside the line above, and outside the tables for the same reason: progress is a figure of
 # the run and of no row in either. The steps done are the ones that reached their closing
