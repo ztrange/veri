@@ -1203,13 +1203,14 @@ CLAIMS
 
 
 # 29. the watchdog runs on a sub-second clock when its tunables are fractional (#282): with a
-#     0.9s heartbeat window, a 4.5s hard cap and a 0.05s poll, a leaf that stops writing is
-#     killed as stuck on its heartbeat — not on the hard cap, and on a window the whole-second
-#     `date +%s` clock and whole-second mtime cannot express at all — while a leaf that writes
-#     every 0.1s for about a second outlives several polls and finishes. Both arms in one case
-#     because the criterion is the pair: a clock that kills everything, or nothing, passes one
-#     arm alone. Wall time is measured with python3, the only sub-second clock this suite's BSD
-#     tools have.
+#     0.9s heartbeat window and a 4.5s hard cap — handed to the same `sup` helper every case
+#     above uses, whose 0.2s poll is already finer than that window — a leaf that stops
+#     writing is killed as stuck on its heartbeat — not on the hard cap, and on a window the
+#     whole-second `date +%s` clock and whole-second mtime cannot express at all — while a
+#     leaf that writes every 0.1s for about a second outlives several polls and finishes.
+#     Both arms in one case because the criterion is the pair: a clock that kills everything,
+#     or nothing, passes one arm alone. Wall time is measured with python3, the only
+#     sub-second clock this suite's BSD tools have.
 #
 #     The two margins are wide on purpose, because this box runs other suites while this one
 #     runs: the alive stub's 0.1s gap is a ninth of its window, so a fork that takes ten times
@@ -1227,18 +1228,12 @@ echo "leaf: done"; exit 0
 L
 chmod +x "$stub/leaf-hang-brief" "$stub/leaf-alive-brief"
 wall_now() { python3 -c 'import time; print("%.3f" % time.time())'; }
-fast_sup() {
-  local name="$1" leaf="$2"
-  out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=0.9 VERI_TIMEOUT=4.5 VERI_POLL=0.05 \
-            "$SUP" "$name" "$stub/$leaf" 2>"$work/err" )"
-  code=$?
-}
 fast_t0="$(wall_now)"
-fast_sup fast-hang leaf-hang-brief
+sup fast-hang 0.9 4.5 leaf-hang-brief
 fast_hang_code="$code"
 fast_hang_took="$(python3 -c 'import sys; print("%.2f" % (float(sys.argv[2]) - float(sys.argv[1])))' "$fast_t0" "$(wall_now)")"
 fast_hang_line="$(grep 'supervise\[fast-hang\]:' "$work/err" | tail -n 1)"
-fast_sup fast-alive leaf-alive-brief
+sup fast-alive 0.9 4.5 leaf-alive-brief
 fast_alive_code="$code"
 fast_alive_out="$out"
 { [[ "$fast_hang_code" == 2 ]] \
