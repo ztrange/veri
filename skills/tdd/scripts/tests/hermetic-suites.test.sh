@@ -507,6 +507,49 @@ if [[ -n "$window" ]]; then
 fi
 report "$name"
 
+# 9. The same load, asked of the other suites that hand supervise.sh a leaf under a short window
+#    (#200): `supervise.test.sh` and `verify.test.sh` both launch leaves under 1- and 2-second
+#    heartbeat windows. A leaf those cases expect to be killed survives a loaded CPU — the kill
+#    only comes later — but one they expect to answer first (a recovered retry, a result record
+#    printed before the hang, a launch counted before it) is the #200 collision all over again.
+#
+#    A loaded CPU is stood in for by the one thing it does to such a leaf, deterministically:
+#    it starts late. Both suites run with a `bash` first on PATH that holds any leaf stub — the
+#    `leaf-*` scripts supervise.test.sh writes, the `claude*` binaries verify.test.sh hands
+#    run-leaf.sh — for 3 s before running it, whenever the leaf was given a window under 6 s:
+#    case 8's 5 s of margin over a first line. Every other script runs undelayed, so the two
+#    suites still take their own time and no more. A shim that saw no leaf at all would pass
+#    about nothing, so that is probed too.
+name="supervise.test.sh and verify.test.sh: a leaf started 3 s late under a window short of 6 s still leaves both suites green"
+problems=()
+late_work="$(mktemp -d)"
+trap 'kill "${busy_pids[@]+"${busy_pids[@]}"}" 2>/dev/null; rm -rf "$lock_work" "$every_work" "$margin_work" "$late_work"' EXIT
+mkdir -p "$late_work/bin"
+cat > "$late_work/bin/bash" <<SHIM
+#!$(command -v bash)
+case "\${1##*/}" in
+  leaf-*|claude*)
+    echo "\${1##*/} \${VERI_HEARTBEAT-unset}" >> "$late_work/leaves"
+    case "\${VERI_HEARTBEAT-}" in [0-5]) sleep 3 ;; esac ;;
+esac
+exec "$(command -v bash)" "\$@"
+SHIM
+chmod +x "$late_work/bin/bash"
+for suite in supervise.test.sh verify.test.sh; do
+  ( env PATH="$late_work/bin:$PATH" "$HERE/$suite" > "$late_work/$suite.out" 2>/dev/null
+    echo $? > "$late_work/$suite.code" ) &
+done
+wait
+for suite in supervise.test.sh verify.test.sh; do
+  late_code="$(cat "$late_work/$suite.code" 2>/dev/null)"
+  late_count="$(tail -n 1 "$late_work/$suite.out" 2>/dev/null)"
+  [[ "$late_code" == 0 && "$late_count" == *' passed, 0 failed' ]] ||
+    problems+=("$suite with late leaves: want exit 0 and '<n> passed, 0 failed', got exit ${late_code:-<none>}, $(grep '^FAIL - ' "$late_work/$suite.out" | tr '\n' '|')count line: $(printf '%q' "$late_count")")
+done
+[[ -s "$late_work/leaves" ]] ||
+  problems+=("the bash shim saw no leaf launched, so no leaf was started late")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

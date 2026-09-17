@@ -570,7 +570,7 @@ chmod +x "$stubdir/claude-counting-hang"
 killed_dir="$work/killed-no-relaunch"
 mkdir -p "$killed_dir"
 ( cd "$killed_dir" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$killed_dir/launches" \
-    VERI_STUCK_RETRIES=1 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+    VERI_STUCK_RETRIES=1 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=6 VERI_POLL=0.2 \
     "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 killed_code=$?
 killed_launches="$(cat "$killed_dir/launches" 2>/dev/null || echo 0)"
@@ -588,7 +588,7 @@ mkdir -p "$axes_dir/no-verdict" "$axes_dir/stuck"
       VERI_STUCK_RETRIES=3 "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 axes_no_verdict="$? $(cat "$axes_dir/no-verdict/launches" 2>/dev/null || echo 0)"
 ( cd "$axes_dir/stuck" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$axes_dir/stuck/launches" \
-    VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+    VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=6 VERI_POLL=0.2 \
     "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 axes_stuck="$? $(cat "$axes_dir/stuck/launches" 2>/dev/null || echo 0)"
 { [[ "$axes_no_verdict" == '2 2' ]] && [[ "$axes_stuck" == '2 1' ]]; } && ok \

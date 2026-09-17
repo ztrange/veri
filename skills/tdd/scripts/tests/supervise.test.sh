@@ -104,10 +104,11 @@ sup hang 1 30 leaf-hang
   || no "hung leaf → killed-stuck via heartbeat (code=$code, err=$(cat "$work/err"))"
 
 # 4. a slow-but-alive leaf keeps its heartbeat and is allowed to finish → success.
-#    Window is 2s, not 1s: the supervisor's clock is whole-second (`date +%s`), so a leaf
-#    emitting every 0.3s can read as 1s "silent" at a second boundary. Real windows are
-#    tens of seconds, where this granularity is irrelevant; the test honours it.
-sup slow 2 30 leaf-slow
+#    Window is 6s, not 1s: the supervisor's clock is whole-second (`date +%s`), so a leaf
+#    emitting every 0.3s can read as 1s "silent" at a second boundary, and a loaded CPU can
+#    start the leaf seconds late (#200) — 6s leaves 5s of margin over a 1s gap. The leaf
+#    exits on its own, so the wider window costs no wall time.
+sup slow 6 30 leaf-slow
 { [[ "$code" == 0 ]] && [[ "$out" == *'done'* ]]; } && ok \
   || no "slow-but-alive leaf survives heartbeat → success (code=$code)"
 
@@ -420,7 +421,7 @@ heartbeat_kill() { [[ "$1" == "no heartbeat for "*" (window ${2}s)" ]]; }
 # `sup_run` would have made is made here.
 retry_work="$work/retry"
 mkdir -p "$retry_work"
-retry_window=1
+retry_window=6
 ( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT="$retry_window" \
     VERI_TIMEOUT=30 VERI_POLL=0.2 \
     "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
@@ -985,12 +986,12 @@ leaf_rc() { cat "$1/.tdd/verify-red.rc" 2>/dev/null || echo '<missing>'; }
 #     nothing at all.
 #
 #     The window rides in front of `"$SUP"` — case 17's convention, where `env` takes the last
-#     of a repeated name — and is one second, well inside `sup_run`'s 10 s hard cap, so the
-#     kill is the heartbeat's and quick. A directory of its own under `$work`, for case 12's
+#     of a repeated name — and is six seconds, inside `sup_run`'s 10 s hard cap, so the kill
+#     is the heartbeat's, and a leaf a loaded CPU starts late still prints its record first (#200). A directory of its own under `$work`, for case 12's
 #     reason.
 result_kill_work="$work/result-kill"
 result_hang_stub leaf-result-hang success false 'VERDICT: PASS'
-sup_run "$result_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-result-hang"
+sup_run "$result_kill_work" VERI_HEARTBEAT=6 "$SUP" verify-red "$stub/leaf-result-hang"
 result_kill_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
 # 13 and 15 to 22's shape.
@@ -1015,13 +1016,13 @@ result_kill_rc="$(leaf_rc "$result_kill_work")"
 #     writes `.tdd/<name>.rc` and only the watchdog can end the supervision — and the absent
 #     rc file is read through `leaf_rc` for case 23's reason: with one there, the supervisor
 #     would have taken its ordinary failure path and the case would pin nothing. A directory
-#     of its own under `$work`, for case 12's reason, and the one-second window in front of
+#     of its own under `$work`, for case 12's reason, and the six-second window in front of
 #     `"$SUP"` for case 17's.
 error_kill_work="$work/error-kill"
 # `subtype` says `error_during_execution` beside `is_error: true`, the pair a `claude -p` run
 # that ended badly closes its stream with, so the record under test is one a real leaf writes.
 result_hang_stub leaf-error-hang error_during_execution true 'the suite did not finish'
-sup_run "$error_kill_work" VERI_HEARTBEAT=1 "$SUP" verify-red "$stub/leaf-error-hang"
+sup_run "$error_kill_work" VERI_HEARTBEAT=6 "$SUP" verify-red "$stub/leaf-error-hang"
 error_kill_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11, 12,
 # 13, 15 to 22 and 23's shape.
@@ -1062,7 +1063,7 @@ result_once_work="$work/result-once"
 # never write `.tdd/<name>.rc`, so only the watchdog can end each attempt and a second attempt
 # would be killed exactly like the first.
 result_hang_stub leaf-result-hang-counted success false 'VERDICT: PASS' 'echo attempt >> .attempts'
-sup_direct "$result_once_work" leaf-result-hang-counted 1 -u VERI_STUCK_RETRIES >/dev/null 2>&1
+sup_direct "$result_once_work" leaf-result-hang-counted 6 -u VERI_STUCK_RETRIES >/dev/null 2>&1
 result_once_code=$?
 # Each read once, into the variable the assertion and the failure message share — cases 9,
 # 11, 12, 13, 15 to 24's shape. `wc -l` is fed on stdin and stripped of blanks because the
@@ -1102,7 +1103,7 @@ result_once_retry="$(event_field "$result_once_work" retry cause)"
 #     stdout to /dev/null; the pinned VERI_STUCK_RETRIES=0 is the budget it is handed.
 result_text_work="$work/result-text"
 result_hang_stub leaf-verdict-hang success false 'VERDICT: PASS\nREASON: the new case fails on the eight session-handle checks'
-result_text_out="$(sup_direct "$result_text_work" leaf-verdict-hang 1 VERI_STUCK_RETRIES=0 2>/dev/null)"
+result_text_out="$(sup_direct "$result_text_work" leaf-verdict-hang 6 VERI_STUCK_RETRIES=0 2>/dev/null)"
 # Read once, into the variables the assertion and the failure message share — cases 9, 11, 12,
 # 13, 15 to 25's shape. The verdict code is parse-verdict.sh's own contract: 0 PASS, 1 REJECT,
 # 2 nothing it could recognise.
