@@ -40,6 +40,8 @@
 #   6. SKILL.md's Resume branch for a pending step resets what the killed leaf left
 #      uncommitted and relaunches the refactor leaf with `VERI_REFACTOR_BUDGET` reduced by
 #      the `refactor:` commits that step already has.
+#   7. SKILL.md passes the step's green commit sha to `verify.sh refactor` at both call
+#      sites: the cycle loop's `<green-sha>` and Resume's `$green`.
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -659,6 +661,30 @@ if records_from resume_instructions \
     "$skill_md has no ## Resume section to read — what budget a relaunched refactor leaf is given could not be checked"; then
   if reads 'runs next-pending-refactor.sh on a resume' 'next-pending-refactor\.sh'; then
     says_reset_and_reduced_budget
+  fi
+fi
+report "$name"
+
+# 7. One criterion — the base sha verify-refactor is handed, at both places the conductor runs
+#    it — and so one case. `verify.sh refactor` now takes the step's green commit as its 4th
+#    argument (#151) and exits 2 without one, so a call site that omits it is not a weaker
+#    check but no verdict at all. There are two: the cycle loop's, which names it
+#    `<green-sha>`, and Resume sub-step 2's, which has already bound that same commit to
+#    `$green`. Both are one wiring, so both are one case.
+name="$skill_md passes the step's green commit sha to verify.sh refactor in the cycle loop and in Resume's pending branch"
+problems=()
+if records_from instructions \
+    "$skill_md has no instructions to read — what verify-refactor is handed could not be checked"; then
+  if reads 'runs verify.sh refactor in the cycle loop' 'verify\.sh refactor'; then
+    says 'verify\.sh refactor [^ ]+ [^ ]+ <green-sha>' \
+      "$skill_md's cycle loop runs verify.sh refactor without the step's <green-sha>, so verify-refactor has no range to diff and exits 2"
+  fi
+fi
+if records_from resume_instructions \
+    "$skill_md has no ## Resume section to read — what a resumed verify-refactor is handed could not be checked"; then
+  if reads 'runs next-pending-refactor.sh on a resume' 'next-pending-refactor\.sh'; then
+    says 'verify\.sh refactor [^ ]+ [^ ]+ "?\$green' \
+      "$skill_md's Resume never runs verify.sh refactor with \$green, so the resumed step's verify-refactor is handed no base sha and exits 2"
   fi
 fi
 report "$name"

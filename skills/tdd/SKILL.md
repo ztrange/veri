@@ -1086,7 +1086,9 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    on the ambient number the interrupted step pays for its tidying twice over, which is the
    cost the budget exists to bound. A `$left` of 0 is a budget already spent, and
    `refactor-budget.sh 0` then skips the leaf — the step is tidied as far as it was funded
-   to be. Run its **verify-refactor** after it — the check the interruption skipped. Its
+   to be. Run its **verify-refactor** after it — the check the interruption skipped — with
+   `$green` as the cycle loop's `<green-sha>`:
+   `verify.sh refactor <spec-file> <test-path> "$green"`, launched as there. Its
    PASS clears the mark and commits the cleared ledger exactly as in the cycle loop; then
    come back here and ask sub-step 2 again.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
