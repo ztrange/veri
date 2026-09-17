@@ -159,6 +159,32 @@ else
 fi
 report "$name"
 
+# 3. The refactor mark's count (issue #230): the figure is only worth logging if it is the
+#    one `git rev-list --count` observed, and a count over the budget is the leaf ignoring
+#    it — so an overrun clamped to the budget is exactly the event the log exists to show,
+#    erased. The narration already says both about the comment; this case asks the sentence
+#    that prescribes the *mark* to say them, because a mark instruction that only says
+#    `transforms=<count>` leaves the session free to write the leaf's own account, or
+#    `min(count, budget)`, and every cell downstream would still read as a real number.
+name="$skill_md prescribes the refactor mark's transforms as the observed git rev-list count, unclamped on an overrun"
+problems=()
+if [[ -z "$records" ]]; then
+  problems+=("$skill_md has no instructions to read — the refactor mark's count could not be checked")
+else
+  mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    # The sentence that introduces the call: everything before `event.sh refactor`, from
+    # the last sentence break on — the narration's own sentences do not count for the mark.
+    before="${marked%%event.sh refactor*}"
+    sentence="${before##*. }"
+    [[ "$sentence" =~ observed|rev-list ]] ||
+      problems+=("$skill_md introduces the refactor mark without saying its count is the observed one: $(printf '%.160s' "$sentence")")
+    [[ "$sentence" =~ unclamped|never\ clamped ]] ||
+      problems+=("$skill_md introduces the refactor mark without saying an overrun is recorded unclamped: $(printf '%.160s' "$sentence")")
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
