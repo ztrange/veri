@@ -22,6 +22,16 @@ name="${1:?usage: wait-leaf.sh <name> [max-seconds]}"
 max="${2:-540}"
 poll="${VERI_POLL:-1}"
 
+# The poll interval is a count of seconds, whole or fractional; anything else is refused with
+# exit 2 — "no answer could be obtained" — rather than tolerated (#282 criterion 4). Left to
+# run, `sleep abc` fails on every turn of the loop below, the wait spins at full speed until
+# the budget runs out, and this script then answers exit 3: "nothing to report yet, call
+# again", which is a clean negative the conductor acts on and not the plumbing failure it is.
+[[ "$poll" =~ ^[0-9]+(\.[0-9]+)?$ ]] || {
+  echo "wait-leaf: VERI_POLL must be a count of seconds, got '$poll'" >&2
+  exit 2
+}
+
 exitfile=".tdd/$name.exit"
 deadline=$(( $(date +%s) + max ))
 

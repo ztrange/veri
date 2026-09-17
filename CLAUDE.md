@@ -154,11 +154,14 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — seventy-one files for thirty-five scripts, all run by `make test`.
-`supervise.sh` has a second suite for its retry axis, and two suites belong to no single
+`skills/tdd/scripts/tests/` — seventy-two files for thirty-five scripts, all run by `make test`.
+`supervise.sh` has a second suite for its retry axis, and three suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
-from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
-something outside `skills/` at all — it reads `.github/workflows/ci.yml` as text, the way
+from ambient `VERI_*` tunables, `default-tunables.test.sh` pins the other side of that same
+line — with nothing set, `supervise.sh`, `wait-leaf.sh` and `verify.sh` still wait the
+documented defaults and still refuse a malformed value with exit 2 (#282), so the suites are
+free to compress their windows and a production run is not — and `workflow-timeouts.test.sh`
+is the first to assert on something outside `skills/` at all — it reads `.github/workflows/ci.yml` as text, the way
 GitHub Actions does, and pins what the `gates` job declares and why (issue #99). All
 keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.

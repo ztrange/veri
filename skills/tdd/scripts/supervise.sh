@@ -58,6 +58,21 @@ timeout="${VERI_TIMEOUT:-900}"
 poll="${VERI_POLL:-1}"
 retries="${VERI_STUCK_RETRIES:-1}"
 
+# A window is a count of seconds, whole or fractional. Nothing else gets past this point
+# (#282 criterion 4): a value like `abc` reaching the arithmetic below is read by `set -u` as
+# a variable name, the unbound name kills the script, and in a script file bash 3.2 then exits
+# with the status of the command *before* the comparison — routinely 0, i.e. a malformed
+# tunable silently reporting a supervised success. The refusal is exit 2, the code for "no
+# answer could be obtained", and it is checked for all three windows because a check written
+# for one says nothing about the other two.
+is_seconds() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]; }
+for window in "VERI_HEARTBEAT=$heartbeat" "VERI_TIMEOUT=$timeout" "VERI_POLL=$poll"; do
+  is_seconds "${window#*=}" || {
+    echo "supervise: ${window%%=*} must be a count of seconds, got '${window#*=}'" >&2
+    exit 2
+  }
+done
+
 mkdir -p .tdd
 log=".tdd/$name.log"
 rcfile=".tdd/$name.rc"
@@ -69,17 +84,13 @@ exitfile=".tdd/$name.exit"
 # resolve on BSD, so both readings then come from python3, to the millisecond. That is what lets
 # a suite run a window in tenths of a second instead of paying whole seconds per case.
 #
-# The strict numeric test is the load-bearing half. Everything else — whole-second windows, and
-# any value that is not a number at all — keeps the original clock *and* the original bash
-# arithmetic below, so a malformed `VERI_HEARTBEAT=abc` still dies loudly on `set -u`'s unbound
-# variable rather than reaching awk, where `>` falls back to comparing strings against a
-# non-numeric operand and would quietly answer "no silence" forever — a disabled watchdog, in
-# the one file whose whole job is that it cannot be disabled.
-is_seconds() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]; }
+# Whole-second windows keep the original clock and the original bash arithmetic below. A value
+# that is not a count of seconds reaches neither: the refusal above already sent it away with
+# exit 2, so nothing here has to consider what awk would make of a non-numeric operand, where
+# `>` falls back to comparing strings and would quietly answer "no silence" forever — a
+# disabled watchdog, in the one file whose whole job is that it cannot be disabled.
 fine=0
-if is_seconds "$heartbeat" && is_seconds "$timeout"; then
-  case "$heartbeat$timeout" in *.*) fine=1 ;; esac
-fi
+case "$heartbeat$timeout" in *.*) fine=1 ;; esac
 
 # num_expr <expr> [name=value …] — evaluate one arithmetic expression over numbers that may be
 # fractional, which bash's own `$(( ))` cannot hold. Prints the value; a comparison's value is
