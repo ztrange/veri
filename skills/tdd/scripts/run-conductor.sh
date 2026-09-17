@@ -63,9 +63,17 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 # Taking the new skill is the operator's explicit act: VERI_NEW_SKILL=1 on a resume replaces
 # the recorded commit with HEAD, and says so as a `skill-repin` event in the run's event log,
 # so a change of skill mid-run is a line a reader can find rather than a side effect of a pull.
+#
+# The record is run state, and run state is ignored even in a caller whose own .gitignore
+# says nothing about `.tdd/`: the launch drops a `.tdd/.gitignore` naming the record and
+# itself, so `git status --porcelain` stays empty. It names only those two, never `*`, because
+# a `*` there would also ignore the ledger (.tdd/issue-<n>.md) that a run must commit. An
+# existing `.tdd/.gitignore` is left as it is.
 base="$(cd "$HERE/.." && pwd)"
 record=".tdd/issue-$issue-skill-commit"
 if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
+  mkdir -p .tdd
+  [[ -e .tdd/.gitignore ]] || printf '%s\n' '.gitignore' 'issue-*-skill-commit' > .tdd/.gitignore
   if [[ "${VERI_NEW_SKILL:-}" == 1 && -r "$record" ]]; then
     printf '%s\n' "$commit" > "$record"
     VERI_ISSUE="$issue" "$HERE/event.sh" skill-repin commit="$commit" || exit 2
@@ -73,7 +81,7 @@ if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
      git -C "$base" cat-file -e "$recorded^{commit}" 2>/dev/null; then
     commit="$recorded"
   else
-    mkdir -p .tdd && printf '%s\n' "$commit" > "$record"
+    printf '%s\n' "$commit" > "$record"
   fi
   snapshot="$(mktemp -d)"
   trap 'rm -rf "$snapshot"' EXIT
