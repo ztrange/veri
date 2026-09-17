@@ -1483,6 +1483,49 @@ out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$pagedir:$
   && ok || no "an opted-in, unblocked issue older than gh's default page of 30 is printed (40 open issues, only the oldest #101 opted in: exit=$code want 0, stdout='$out' want '101')"
 
 
+# 30. The other half of the same page (#244): a blocker is read as closed when it is merely
+# absent from the list, so an open blocker older than gh's newest 30 lets the issue it blocks be
+# taken early — #118 was selectable while blocked by open #71. The same paging stub shape as the
+# case above, with the roles moved: forty open issues, #101–#140, and only #140 — the NEWEST, so
+# on every page — carries `ready-for-agent`, blocked by #101, the oldest and still open. A script
+# that reads every issue sees #101 open and prints nothing (exit 3); one that took the default
+# page never sees #101 and prints "140".
+blockdir="$work/paging-blocker-bin"
+mkdir -p "$blockdir"
+cat > "$blockdir/gh" <<'STUB'
+#!/usr/bin/env bash
+limit=30
+prev=""
+for arg in "$@"; do
+  case "$prev" in --limit|-L) limit="$arg" ;; esac
+  case "$arg" in --limit=*) limit="${arg#--limit=}" ;; esac
+  prev="$arg"
+done
+case "$1 $2" in
+  "issue list")
+    python3 -c '
+import json, sys
+limit = int(sys.argv[1])
+issues = [
+    {"number": n, "title": "issue %d" % n, "state": "OPEN",
+     "labels": [{"name": "ready-for-agent"}] if n == 140 else [],
+     "body": "## Blocked by\n\n- #101\n" if n == 140 else "## Blocked by\n\nNone.\n"}
+    for n in range(140, 100, -1)
+]
+print(json.dumps(issues[:limit]))
+' "$limit" ;;
+  "pr list") echo '[]' ;;
+esac
+STUB
+chmod +x "$blockdir/gh"
+
+out="$(env -u VERI_GH_JSON -u VERI_LABEL -u VERI_PRIORITY_LABEL PATH="$blockdir:$PATH" \
+       "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 3 && -z "$out" ]]; } \
+  && ok || no "an issue blocked by an open issue older than gh's default page of 30 is not printed (40 open issues, #140 opted in and blocked by the oldest #101: exit=$code want 3, stdout='$out' want '')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
