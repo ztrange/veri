@@ -28,7 +28,6 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CONDUCTOR="$HERE/../run-conductor.sh"
 pass=0 fail=0
 
 # The issue asked for. A number nothing else in an argv would carry, so a probe that finds
