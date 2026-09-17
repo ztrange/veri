@@ -135,11 +135,15 @@ if [[ ${#runs[@]} -eq 0 ]]; then
   exit 3
 fi
 
+events=()
 for run in "${runs[@]}"; do
   run="${run%/}"
   branch="$(git -C "$run" symbolic-ref --short HEAD 2>/dev/null || true)"
   activity=""
-  [[ -f "$run/.tdd/events.jsonl" ]] && activity="  $(run_activity "$run/.tdd/events.jsonl" "$run/.tdd/conductor.pid" "$timeout")"
+  if [[ -f "$run/.tdd/events.jsonl" ]]; then
+    events+=("$run/.tdd/events.jsonl")
+    activity="  $(run_activity "$run/.tdd/events.jsonl" "$run/.tdd/conductor.pid" "$timeout")"
+  fi
   for ledger in "$run"/.tdd/issue-*.md; do
     # The heading is `# Plan for #<n> — <title>`.
     heading="$(head -n 1 "$ledger")"
@@ -151,9 +155,5 @@ for run in "${runs[@]}"; do
 done
 
 if [[ -n "$scope" ]]; then
-  events=()
-  for run in "${runs[@]}"; do
-    [[ -f "${run%/}/.tdd/events.jsonl" ]] && events+=("${run%/}/.tdd/events.jsonl")
-  done
   scope_totals "$scope" ${events[@]+"${events[@]}"}
 fi
