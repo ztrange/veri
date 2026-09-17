@@ -142,6 +142,21 @@ http_status() { sed -n 1p <<< "$1"; }
 http_ctype()  { sed -n 2p <<< "$1"; }
 http_body()   { sed -n '3,$p' <<< "$1"; }
 
+# answer_problem <url> <log> <answer> — why <answer> is not this server's 200, or nothing.
+# The two ways a fetch can fail before a case has a body to assert on are the same in every
+# case here: nothing ever answered, and something answered with the wrong status. The
+# server's own output is quoted for the first, because a server that died has said why on
+# <log> and nothing else will.
+answer_problem() {  # answer_problem <url> <log> <answer>
+  local url="$1" log="$2" answer="$3" status
+  if [[ -z "$answer" ]]; then
+    echo "no answer from $url after 10 s; the server left: $(printf '%q' "$(cat "$log" 2>/dev/null)")"
+    return
+  fi
+  status="$(http_status "$answer")"
+  [[ "$status" == 200 ]] || echo "GET $url answered $status, want 200"
+}
+
 # serve_until_up <url> — poll <url> until it answers, up to 10 s, and print what `fetch`
 # returned; print nothing at all when it never answered, which is what a case reads as "the
 # server never came up". Ten seconds is generous because a cold python3 start is the slowest
@@ -210,15 +225,15 @@ else
   launch "$served" "$log"
   dash_pid=$!
 
-  page="$(serve_until_up "http://127.0.0.1:$PORT/")"
+  url="http://127.0.0.1:$PORT/"
+  page="$(serve_until_up "$url")"
+  problem="$(answer_problem "$url" "$log" "$page")"
 
-  if [[ -z "$page" ]]; then
-    problems+=("no answer from http://127.0.0.1:$PORT/ after 10 s; the server left: $(printf '%q' "$(cat "$log" 2>/dev/null)")")
+  if [[ -n "$problem" ]]; then
+    problems+=("$problem")
   else
-    status="$(http_status "$page")"
     ctype="$(http_ctype "$page")"
     body="$(http_body "$page")"
-    [[ "$status" == 200 ]] || problems+=("GET / answered $status, want 200")
     [[ "$ctype" == text/html* ]] || problems+=("GET / is Content-Type '$ctype', want text/html")
     # The one HTML page, asked of it as the two things any HTML document has and a JSON
     # body or an error page does not. Not the page's contents: what it holds is the later
@@ -325,23 +340,21 @@ else
   launch "$runs_repo" "$runs_log" "$runs_port"
   runs_pid=$!
 
-  runs_answer="$(serve_until_up "http://127.0.0.1:$runs_port/api/runs")"
+  runs_url="http://127.0.0.1:$runs_port/api/runs"
+  runs_answer="$(serve_until_up "$runs_url")"
+  problem="$(answer_problem "$runs_url" "$runs_log" "$runs_answer")"
 
-  if [[ -z "$runs_answer" ]]; then
-    problems+=("no answer from http://127.0.0.1:$runs_port/api/runs after 10 s; the server left: $(printf '%q' "$(cat "$runs_log" 2>/dev/null)")")
+  if [[ -n "$problem" ]]; then
+    problems+=("$problem")
   else
-    runs_status="$(http_status "$runs_answer")"
-    if [[ "$runs_status" != 200 ]]; then
-      problems+=("GET /api/runs answered $runs_status, want 200")
-    else
-      http_body "$runs_answer" > "$work/runs-endpoint.json"
-      # status.sh's own answer to the same question, asked from the same repository and with
-      # the same environment the launch gave the server, so any difference is the endpoint's.
-      (cd "$runs_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
-        > "$work/runs-status.json" 2>/dev/null
-      while IFS= read -r line; do
-        [[ -n "$line" ]] && problems+=("$line")
-      done < <(python3 -c '
+    http_body "$runs_answer" > "$work/runs-endpoint.json"
+    # status.sh's own answer to the same question, asked from the same repository and with
+    # the same environment the launch gave the server, so any difference is the endpoint's.
+    (cd "$runs_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
+      > "$work/runs-status.json" 2>/dev/null
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && problems+=("$line")
+    done < <(python3 -c '
 import json, sys
 
 
@@ -385,7 +398,6 @@ for i, (g, w) in enumerate(zip(got["runs"], want["runs"])):
               "more than the 10 s the two calls can be apart"
               % (i, g["elapsed_seconds"], w["elapsed_seconds"]))
 ' "$work/runs-endpoint.json" "$work/runs-status.json")
-    fi
   fi
 
   stop "$runs_pid" || :
@@ -467,23 +479,21 @@ else
   launch "$met_repo" "$met_log" "$met_port"
   met_pid=$!
 
-  met_answer="$(serve_until_up "http://127.0.0.1:$met_port/api/metrics")"
+  met_url="http://127.0.0.1:$met_port/api/metrics"
+  met_answer="$(serve_until_up "$met_url")"
+  problem="$(answer_problem "$met_url" "$met_log" "$met_answer")"
 
-  if [[ -z "$met_answer" ]]; then
-    problems+=("no answer from http://127.0.0.1:$met_port/api/metrics after 10 s; the server left: $(printf '%q' "$(cat "$met_log" 2>/dev/null)")")
+  if [[ -n "$problem" ]]; then
+    problems+=("$problem")
   else
-    met_status="$(http_status "$met_answer")"
-    if [[ "$met_status" != 200 ]]; then
-      problems+=("GET /api/metrics answered $met_status, want 200")
-    else
-      http_body "$met_answer" > "$work/metrics-endpoint.json"
-      # metrics.sh's own answer for the running run, asked from that run's worktree the way
-      # the conductor asks it, so a difference is the endpoint's and not the fixture's.
-      (cd "$met_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
-        > "$work/metrics-live.md" 2>/dev/null
-      while IFS= read -r line; do
-        [[ -n "$line" ]] && problems+=("$line")
-      done < <(python3 -c '
+    http_body "$met_answer" > "$work/metrics-endpoint.json"
+    # metrics.sh's own answer for the running run, asked from that run's worktree the way
+    # the conductor asks it, so a difference is the endpoint's and not the fixture's.
+    (cd "$met_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
+      > "$work/metrics-live.md" 2>/dev/null
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && problems+=("$line")
+    done < <(python3 -c '
 import json, sys
 
 body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -516,7 +526,6 @@ if issues["32"] != committed:
           ".tdd/issue-32-metrics.md: the endpoint returned %r, and the committed file holds "
           "%r" % (issues["32"][:300], committed[:300]))
 ' "$work/metrics-endpoint.json" "$work/metrics-live.md" "$met_done/.tdd/issue-32-metrics.md")
-    fi
   fi
 
   stop "$met_pid" || :
