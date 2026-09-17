@@ -69,6 +69,25 @@ if [[ "$code" == 2 && "$err" == *"$missing"* ]]; then ok; else
   no "unresolvable commit → exit 2 with a stderr diagnostic naming it (code=$code, stderr=$err)"
 fi
 
+# 3. a commit that touches only `.tdd/` → exit 3, the code for "nothing to do", and nothing on
+#    stdout. There is nothing for a refactor to tidy, which is an answer, not a failure: under
+#    `pipefail` the filtering `grep` used to make that case exit 1, indistinguishable from the
+#    leaf having run and failed.
+repo="$work/ledger-only"
+git init -q -b main "$repo" >/dev/null 2>&1
+mkdir -p "$repo/.tdd"
+printf 'alpha\n' > "$repo/alpha.sh"
+git_q "$repo" add -A >/dev/null 2>&1
+git_q "$repo" commit -q -m "feat: alpha" >/dev/null 2>&1
+printf -- '- [x] a step ⟂ refactor pending\n' > "$repo/.tdd/issue-9.md"
+git_q "$repo" add -A >/dev/null 2>&1
+git_q "$repo" commit -q -m "chore: tick the ledger (#9)" >/dev/null 2>&1
+ledger_only="$(git -C "$repo" rev-parse HEAD)"
+out="$(cd "$repo" && "$TOUCHED" "$ledger_only" 2>/dev/null)"; code=$?
+if [[ "$code" == 3 && -z "$out" ]]; then ok; else
+  no "commit touching only .tdd/ → exit 3 and nothing on stdout (code=$code, stdout=$out)"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
