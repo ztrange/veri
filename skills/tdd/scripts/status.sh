@@ -14,6 +14,20 @@ main_working_tree() {
   first_line="$(git worktree list --porcelain 2>/dev/null | head -n 1 || true)"
   printf '%s\n' "${first_line#worktree }"
 }
+
+# Step n is the first unticked step; m is every step the ledger has.
+ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
+  local line total=0 step=0
+  while IFS= read -r line; do
+    case "$line" in
+      "- [x] "*) total=$((total + 1)) ;;
+      "- [ ] "*) total=$((total + 1)); [[ "$step" -eq 0 ]] && step="$total" ;;
+    esac
+  done < "$1"
+  [[ "$step" -eq 0 ]] && step="$total"
+  printf '%s of %s\n' "$step" "$total"
+}
+
 main_tree="$(main_working_tree)"
 
 shopt -s nullglob
@@ -36,15 +50,6 @@ for run in "${runs[@]}"; do
     heading="${heading#\# Plan for #}"
     issue="${heading%% — *}"
     title="${heading#* — }"
-    # Step n is the first unticked step; m is every step the ledger has.
-    total=0 step=0
-    while IFS= read -r line; do
-      case "$line" in
-        "- [x] "*) total=$((total + 1)) ;;
-        "- [ ] "*) total=$((total + 1)); [[ "$step" -eq 0 ]] && step="$total" ;;
-      esac
-    done < "$ledger"
-    [[ "$step" -eq 0 ]] && step="$total"
-    printf '#%s  %s  %s  step %s of %s\n' "$issue" "$title" "$branch" "$step" "$total"
+    printf '#%s  %s  %s  step %s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")"
   done
 done
