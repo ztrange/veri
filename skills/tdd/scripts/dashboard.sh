@@ -81,11 +81,23 @@ def run_ended(log):
     return ended
 
 
-# The Metrics pane, per issue. For a run still going the report is RECOMPUTED by running
-# metrics.sh in that run's worktree, the way the conductor calls it, because a run that is
-# still spending has a committed report that stopped being true when the step after it
-# started. For a run that ended it is `.tdd/issue-<n>-metrics.md` verbatim — the account of
-# the run as it was written, which outlives a log that may since have been pruned.
+# One issue's report, which is the whole of the split the criterion names. For a run still
+# going it is RECOMPUTED by running metrics.sh in that run's worktree, the way the conductor
+# calls it, because a run that is still spending has a committed report that stopped being
+# true when the step after it started. For a run that ended it is
+# `.tdd/issue-<n>-metrics.md` verbatim — the account of the run as it was written, which
+# outlives a log that may since have been pruned; a run that ended without one leaves the
+# empty string rather than a recomputation of the same log the file was written from.
+def issue_report(run, issue):
+    log = os.path.join(run, ".tdd", "events.jsonl")
+    committed = os.path.join(run, ".tdd", "issue-%s-metrics.md" % issue)
+    if os.path.exists(log) and run_ended(log):
+        return open(committed).read() if os.path.exists(committed) else ""
+    return capture([metrics_sh, issue], cwd=run).decode("utf-8", "replace")
+
+
+# The Metrics pane: every issue every run holds a ledger for, and its report. The walk is
+# all this is — which run and which issue, never how one is read.
 #
 # `issue-<digits>.md` rather than `issue-*.md`: the committed report sits in the same
 # directory under a name the looser glob also matches, and `31-metrics` is not an issue.
@@ -93,19 +105,10 @@ def metrics_json():
     issues = {}
     tree = main_working_tree()
     for run in sorted(glob.glob(os.path.join(tree, ".tdd", "wt", "*"))):
-        log = os.path.join(run, ".tdd", "events.jsonl")
         for ledger in sorted(glob.glob(os.path.join(run, ".tdd", "issue-*.md"))):
             found = re.match(r"^issue-([0-9]+)\.md$", os.path.basename(ledger))
-            if not found:
-                continue
-            issue = found.group(1)
-            committed = os.path.join(run, ".tdd", "issue-%s-metrics.md" % issue)
-            if os.path.exists(log) and run_ended(log):
-                issues[issue] = (open(committed).read()
-                                 if os.path.exists(committed) else "")
-            else:
-                issues[issue] = capture([metrics_sh, issue],
-                                        cwd=run).decode("utf-8", "replace")
+            if found:
+                issues[found.group(1)] = issue_report(run, found.group(1))
     return json.dumps({"issues": issues}).encode()
 
 
