@@ -116,6 +116,18 @@ print("scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f"
 PY
 }
 
+# The count still solvable is solvable-issues.sh's for the scope's label, so the same four
+# conditions; its exit 3 (nothing takeable) is a count of 0, and any other failure is no answer.
+solvable_count() {  # solvable_count <name> -> "<count>", or "?" when solvable-issues.sh gave no answer
+  local listed code=0
+  listed="$(VERI_LABEL="$1" "$(dirname "$0")/solvable-issues.sh")" || code=$?
+  case "$code" in
+    0) printf '%s\n' "$listed" | grep -c . ;;
+    3) echo 0 ;;
+    *) echo "?" ;;
+  esac
+}
+
 scope="${VERI_LABEL:-}"
 if [[ "${1:-}" == "--scope" ]]; then
   scope="${2:-}"
@@ -154,15 +166,6 @@ for run in "${runs[@]}"; do
   done
 done
 
-# The count still solvable is solvable-issues.sh's for the scope's label, so the same four
-# conditions; its exit 3 (nothing takeable) is a count of 0, and any other failure is no answer.
 if [[ -n "$scope" ]]; then
-  solvable_code=0
-  solvable="$(VERI_LABEL="$scope" "$(dirname "$0")/solvable-issues.sh")" || solvable_code=$?
-  case "$solvable_code" in
-    0) solvable_count="$(printf '%s\n' "$solvable" | grep -c .)" ;;
-    3) solvable_count=0 ;;
-    *) solvable_count="?" ;;
-  esac
-  printf '%s  solvable %s\n' "$(scope_totals "$scope" ${events[@]+"${events[@]}"})" "$solvable_count"
+  printf '%s  solvable %s\n' "$(scope_totals "$scope" ${events[@]+"${events[@]}"})" "$(solvable_count "$scope")"
 fi
