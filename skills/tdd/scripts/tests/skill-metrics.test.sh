@@ -228,6 +228,43 @@ if [[ -n "${done_comment_line:-}" ]]; then
 fi
 report "$name"
 
+# Issue #240: since #236 the Draft PR step's commands share one fenced block, which
+# records_of folds into a single record, so the first case's record comparison can no longer
+# tell the metrics commit from `gh pr create`. This case reads the step's fenced command lines
+# one by one, with their line numbers in SKILL.md, and orders those instead: the PR is opened
+# first, and the `metrics:` commit follows it. Both anchors must exist first, so a step that
+# dropped either fails closed rather than reading as ordered.
+name="$skill_md's Draft PR command block runs gh pr create before the metrics: commit, ordered line by line"
+problems=()
+
+# fenced_lines — `<line number> <line>` for every line inside a ``` fence of the Draft PR
+# section, in document order; the fence markers themselves are not printed.
+fenced_lines() {
+  awk '/^## |^### / { inside = (index($0, "### 4. Draft PR") == 1); fence = 0; next }
+    !inside { next }
+    /^[[:space:]]*```/ { fence = !fence; next }
+    fence { print NR " " $0 }' "$skill_path"
+}
+
+# first_fenced_line <fixed string> — the SKILL.md line number of the first fenced line
+# containing the string, or nothing (exit 1).
+first_fenced_line() {
+  local n rest
+  while IFS=' ' read -r n rest; do
+    [[ "$rest" == *"$1"* ]] && { echo "$n"; return 0; }
+  done <<< "$(fenced_lines)"
+  return 1
+}
+
+block_pr_line="$(first_fenced_line 'gh pr create')" ||
+  problems+=("$skill_md's Draft PR command block never runs gh pr create")
+block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
+  problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
+if [[ -n "${block_pr_line:-}" && -n "${block_commit_line:-}" && "$block_commit_line" -lt "$block_pr_line" ]]; then
+  problems+=("$skill_md commits the metrics report at SKILL.md:$block_commit_line, BEFORE gh pr create at SKILL.md:$block_pr_line, so the report is rendered and committed with no PR for the done mark to name")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
