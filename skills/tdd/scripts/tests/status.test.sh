@@ -177,5 +177,43 @@ for want in "11 running" "12 done" "12 https://github.com/o/r/pull/12" "13 baile
 done
 expect_nothing_missing "a run shows its state: running, done with its PR url, bailed with phase and classification, or stale"
 
+# --- --scope <name>: the scope's totals — attempted, done, bailed, wall time, dollars ---
+# Three runs in one repository. Wall time is each run's span from its first event to its last,
+# summed, so it is read from the files alone and never drifts with the clock: #21 is running,
+# 60 s from launch to its last usage line, $0.25; #22 is done, 200 s, $1.50; #23 bailed, 100 s,
+# $0.50. The scope has attempted 3, done 1, bailed 1, wall 360 s and $2.25 — a total no single
+# run's line carries. VERI_GH_JSON points at an empty fixture so nothing reaches the network.
+scoped="$(repo scoped)"
+now="$(date +%s)"
+scope_run() {  # scope_run <n> <launch ts> <usage ts> <dollars> -> path
+  local dir
+  dir="$(fabricate_run "$scoped" "$1" "tdd/$1-bells")"
+  printf '# Plan for #%s — bells ring\n\n- [ ] a bell rings\n' "$1" > "$dir/.tdd/issue-$1.md"
+  {
+    printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a bell rings", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}\n' "$2" "$1"
+    printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a bell rings", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "%s", "input_tokens": "10", "output_tokens": "0", "cache_read_input_tokens": "0", "cache_creation_input_tokens": "0"}\n' "$3" "$1" "$4"
+  } > "$dir/.tdd/events.jsonl"
+  echo "$dir"
+}
+run="$(scope_run 21 $((now - 100)) $((now - 40)) 0.25)"
+echo "$$" > "$run/.tdd/conductor.pid"
+run="$(scope_run 22 $((now - 500)) $((now - 350)) 1.50)"
+printf '{"ts": %s, "issue": "22", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://github.com/o/r/pull/22"}\n' \
+  "$((now - 300))" >> "$run/.tdd/events.jsonl"
+run="$(scope_run 23 $((now - 1000)) $((now - 950)) 0.50)"
+printf '{"ts": %s, "issue": "23", "actor": "conductor", "phase": "red", "step": "a bell rings", "event": "bail", "attempt": "", "skill_commit": "abc", "cause": "stuck", "classification": "system"}\n' \
+  "$((now - 900))" >> "$run/.tdd/events.jsonl"
+gh_json="$work/scoped-gh"
+mkdir -p "$gh_json"
+echo '[]' > "$gh_json/issues.json"
+echo '[]' > "$gh_json/prs.json"
+VERI_GH_JSON="$gh_json" VERI_TIMEOUT=600 run_in "$scoped" --scope lamps-label
+scope_line="$(printf '%s\n' "$out" | grep 'lamps-label' || true)"
+missing=()
+for want in "scope lamps-label" "attempted 3" "done 1" "bailed 1" "wall 360s" '$2.25'; do
+  [[ "$scope_line" == *"$want"* ]] || missing+=("$want")
+done
+expect_nothing_missing "--scope <name> adds the scope's totals: issues attempted, done, bailed, total wall time and dollars"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
