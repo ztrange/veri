@@ -318,6 +318,104 @@ for suite in ${launchers[@]+"${launchers[@]}"}; do
 done
 report "$name"
 
+# 8. The whole of #258's promise rather than the one remote case 7 names: `make test` passes with
+#    the network unreachable. Every suite that exercises a script which can reach the network is
+#    run here with the network cut off, and has to come back green and never have tried.
+#
+#    "Can reach the network" is read as text, the way cases 5 and 6 read theirs: a script beside
+#    this directory whose uncommented lines run a remote git verb (fetch, pull, push, clone,
+#    ls-remote), `gh` or `curl`; a suite exercises it when its text names that script. A hand-kept
+#    list would be one script behind the next one that learns to fetch. Every other suite runs no
+#    such script, so running the whole roster again here would double what `make test` costs the
+#    three leaves of every step for suites that cannot answer differently offline.
+#
+#    Cut off twice over. `git`, `gh` and `curl` on PATH in front of the real ones: a remote git verb
+#    whose target is a URL rather than a path on this filesystem, and any `gh` or `curl` at all, is
+#    written to a log and refused with exit 128, so the probe never reaches the network. A suite that
+#    stubs `gh` itself puts its stub in front of these, which is the stub the suite meant. And
+#    http.proxy and HTTP(S)_PROXY point at a port nothing listens on, for anything that gets past
+#    the shims. A selection that found no script, or no suite, would pass about nothing, so both are
+#    probed.
+name="every suite exercising a network-capable script passes with the network unreachable, and never tries it"
+problems=()
+offline_work="$(mktemp -d)"
+trap 'rm -rf "$lock_work" "$every_work" "$fetch_work" "$offline_work"' EXIT
+offline_log="$offline_work/reaches"
+mkdir -p "$offline_work/bin"
+: > "$offline_log"
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'real_git=%q offline_log=%q\n' "$real_git" "$offline_log"
+  cat <<'SHIM'
+remote_url() { [[ "$1" =~ ^[A-Za-z][A-Za-z0-9+.-]*:// || "$1" =~ ^[^/:]+@[^/:]+: ]]; }
+pre=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    fetch|pull|push|clone|ls-remote)
+      verb="$1"; target=""
+      for arg in "${@:2}"; do
+        [[ "$arg" == -* ]] && continue
+        target="$arg"; break
+      done
+      [[ -z "$target" ]] && target=origin
+      url="$target"
+      if ! remote_url "$url"; then
+        url="$("$real_git" ${pre[@]+"${pre[@]}"} remote get-url "$target" 2>/dev/null || printf '%s' "$target")"
+      fi
+      if remote_url "$url"; then
+        printf '%s\n' "git $verb $url (cwd $PWD)" >> "$offline_log"
+        echo "git shim: network unreachable ($url)" >&2
+        exit 128
+      fi
+      break ;;
+    -C|-c|--git-dir|--work-tree) pre+=("$1" "$2"); shift 2; continue ;;
+    -*) pre+=("$1"); shift; continue ;;
+    *) break ;;
+  esac
+done
+exec "$real_git" ${pre[@]+"${pre[@]}"} "$@"
+SHIM
+} > "$offline_work/bin/git"
+for tool in gh curl; do
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf 'offline_log=%q\n' "$offline_log"
+    printf 'printf "%%s\\n" "%s $* (cwd $PWD)" >> "$offline_log"\n' "$tool"
+    printf 'echo "%s shim: network unreachable" >&2\nexit 128\n' "$tool"
+  } > "$offline_work/bin/$tool"
+done
+chmod +x "$offline_work/bin/git" "$offline_work/bin/gh" "$offline_work/bin/curl"
+
+net_scripts=()
+for script in "$HERE"/../*.sh; do
+  grep -qE '^[^#]*git[^#]*[[:space:]](fetch|pull|push|clone|ls-remote)([[:space:]]|$)|^[^#]*(^|[[:space:]])(gh|curl)[[:space:]]' "$script" &&
+    net_scripts+=("$(basename "$script")")
+done
+offline_suites=()
+for suite in "$HERE"/*.test.sh; do
+  [[ "$suite" == "$HERE/$(basename "$0")" ]] && continue
+  for script in ${net_scripts[@]+"${net_scripts[@]}"}; do
+    if grep -qF "$script" "$suite"; then offline_suites+=("$suite"); break; fi
+  done
+done
+[[ "${#net_scripts[@]}" -gt 0 ]] ||
+  problems+=("no script beside this directory was recognised as reaching the network, so nothing was selected")
+[[ "${#offline_suites[@]}" -gt 0 ]] ||
+  problems+=("no suite here names a network-capable script, so nothing was run")
+for suite in ${offline_suites[@]+"${offline_suites[@]}"}; do
+  : > "$offline_log"
+  offline_out="$(PATH="$offline_work/bin:$PATH" \
+    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://127.0.0.1:1 \
+    HTTP_PROXY=http://127.0.0.1:1 HTTPS_PROXY=http://127.0.0.1:1 \
+    "$suite" 2>/dev/null)" && offline_code=0 || offline_code=$?
+  [[ "$offline_code" == 0 ]] ||
+    problems+=("$(basename "$suite") offline: want exit 0, got $offline_code; last line: $(printf '%q' "$(printf '%s\n' "$offline_out" | tail -n 1)")")
+  while IFS= read -r reached; do
+    problems+=("$(basename "$suite") tried the network: $reached")
+  done < "$offline_log"
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
