@@ -265,6 +265,28 @@ if [[ -n "${block_pr_line:-}" && -n "${block_commit_line:-}" && "$block_commit_l
 fi
 report "$name"
 
+# Issue #240, second half of the order: the 📊 block reaches the PR body through `gh pr edit`,
+# and that edit must come after the `metrics:` commit AND after `push-branch.sh`, or the body
+# quotes a file the pushed branch does not yet carry. Ordered by SKILL.md line number, the
+# way the case above orders gh pr create against the commit. Every anchor must exist first,
+# so a step that dropped one fails closed rather than reading as ordered.
+name="$skill_md's Draft PR command block runs gh pr edit after the metrics: commit and push-branch.sh, ordered line by line"
+problems=()
+
+block_edit_line="$(first_fenced_line 'gh pr edit')" ||
+  problems+=("$skill_md's Draft PR command block never runs gh pr edit, so the PR body never gets the 📊 block")
+block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
+  problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
+block_push_line="$(first_fenced_line 'push-branch.sh')" ||
+  problems+=("$skill_md's Draft PR command block never runs push-branch.sh")
+if [[ -n "${block_edit_line:-}" && -n "${block_commit_line:-}" && "$block_edit_line" -lt "$block_commit_line" ]]; then
+  problems+=("$skill_md runs gh pr edit at SKILL.md:$block_edit_line, BEFORE the metrics: commit at SKILL.md:$block_commit_line, so the PR body quotes a report the branch does not carry")
+fi
+if [[ -n "${block_edit_line:-}" && -n "${block_push_line:-}" && "$block_edit_line" -lt "$block_push_line" ]]; then
+  problems+=("$skill_md runs gh pr edit at SKILL.md:$block_edit_line, BEFORE push-branch.sh at SKILL.md:$block_push_line, so the PR body quotes a report the pushed branch does not carry")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
