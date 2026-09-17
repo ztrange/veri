@@ -340,6 +340,28 @@ done
 [[ -z "$problems" ]] && ok \
   || no "VERI_STEP in the environment with no --step reaches nothing (${problems#; })"
 
+# 22. a shortfall against a criterion OUTSIDE the step under judgement is a note, not a
+#     REJECT (#223). This is the half of the fix case 20 cannot reach: telling the verifier
+#     which criterion is in scope leaves it free to reject for one that is not, which is the
+#     chain that bailed #113 step 2 — verdict 2 demanded the spec's later guard, verdict 3
+#     rejected the code that added it as new behaviour in a refactor, and no revise leaf could
+#     satisfy both. So verify-refactor must route that shortfall the way case 19 routes a
+#     cosmetic hunk: named in REASON:, and not a REJECT by itself. Each half is its own miss,
+#     for case 12's reason — a template that mentions out-of-scope work without saying it
+#     stops short of a REJECT leaves the loop exactly where it was — and both are probed
+#     within one sentence (`[^.]`) through `prompt_says`, whose fold keeps a rewrap from
+#     splitting `out of scope` across a line. The prompt read is the stepped one, since a
+#     verifier with no step in scope has no outside to speak of; its step text carries no form
+#     of the words probed for, so only the template can match.
+scoped_refactor="$("$BUILD" --step "$step" refactor "$work/spec.md" "$testpath" "$base_sha")"
+problems=""
+prompt_says "$scoped_refactor" "never sends a shortfall against a criterion outside the step to REASON: as out of scope" \
+  -iE -e "out of scope[^.]{0,200}REASON:|REASON:[^.]{0,200}out of scope"
+prompt_says "$scoped_refactor" "never says an out-of-scope shortfall is not by itself a REJECT" \
+  -iE -e "outside[^.]{0,240}(not|never|no)[^.]{0,80}REJECT|out of scope[^.]{0,240}(not|never|no)[^.]{0,80}REJECT"
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor notes an out-of-scope shortfall in REASON: rather than rejecting for it (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
