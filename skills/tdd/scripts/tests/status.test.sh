@@ -224,5 +224,25 @@ expect_lamps_totals "--scope <name> adds the scope's totals: issues attempted, d
 VERI_GH_JSON="$gh_json" VERI_TIMEOUT=600 VERI_LABEL=lamps-label run_in "$scoped"
 expect_lamps_totals "with no --scope, VERI_LABEL names the scope and adds the same totals line"
 
+# --- --scope <name>: the totals include the count still solvable, from solvable-issues.sh ---
+# The same three runs, with a VERI_GH_JSON fixture of three open, unblocked, unclaimed issues:
+# #31 and #32 carry lamps-label, #33 another label. solvable-issues.sh for that scope lists
+# #31 and #32, so the totals line says `solvable 2` — read from the fixture, never the network.
+solvable_gh="$work/solvable-gh"
+mkdir -p "$solvable_gh"
+cat > "$solvable_gh/issues.json" <<'JSON'
+[
+  {"number": 31, "title": "a lamp dims", "labels": [{"name": "lamps-label"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"},
+  {"number": 32, "title": "a lamp flickers", "labels": [{"name": "lamps-label"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"},
+  {"number": 33, "title": "a gear slips", "labels": [{"name": "other-label"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+echo '[]' > "$solvable_gh/prs.json"
+VERI_GH_JSON="$solvable_gh" VERI_TIMEOUT=600 run_in "$scoped" --scope lamps-label
+scope_line="$(printf '%s\n' "$out" | grep 'lamps-label' || true)"
+missing=()
+[[ "$scope_line" == *"solvable 2"* ]] || missing+=("solvable 2")
+expect_nothing_missing "--scope <name> totals include the count still solvable, from solvable-issues.sh for that scope"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

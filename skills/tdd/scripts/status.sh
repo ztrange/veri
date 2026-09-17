@@ -154,6 +154,15 @@ for run in "${runs[@]}"; do
   done
 done
 
+# The count still solvable is solvable-issues.sh's for the scope's label, so the same four
+# conditions; its exit 3 (nothing takeable) is a count of 0, and any other failure is no answer.
 if [[ -n "$scope" ]]; then
-  scope_totals "$scope" ${events[@]+"${events[@]}"}
+  solvable_code=0
+  solvable="$(VERI_LABEL="$scope" "$(dirname "$0")/solvable-issues.sh")" || solvable_code=$?
+  case "$solvable_code" in
+    0) solvable_count="$(printf '%s\n' "$solvable" | grep -c .)" ;;
+    3) solvable_count=0 ;;
+    *) solvable_count="?" ;;
+  esac
+  printf '%s  solvable %s\n' "$(scope_totals "$scope" ${events[@]+"${events[@]}"})" "$solvable_count"
 fi
