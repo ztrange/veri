@@ -7,6 +7,8 @@
 # Contract under test (issue #110), this suite's first case:
 #   dashboard.sh            with no argument, bind port 8765 and serve the one HTML page
 #                           at /; exit 0 when sent SIGINT.
+#   dashboard.sh <port>     bind the port named on the command line, and bind it on
+#                           127.0.0.1 only — never on another interface.
 #
 # The server is the one script here that cannot be asked a question and answered in the
 # same process: it runs until it is told to stop. So the case launches it in the
@@ -59,6 +61,48 @@ listening() {
   python3 -c 'import socket, sys
 s = socket.socket(); s.settimeout(0.5)
 sys.exit(0 if s.connect_ex(("127.0.0.1", int(sys.argv[1]))) == 0 else 1)' "$1"
+}
+
+# reachable <host> <port> — true when something accepts a connection at that address. The
+# generalisation of `listening` above to a host, and what asks the second half of the
+# criterion: a server bound to 0.0.0.0 answers on this machine's LAN address as readily as
+# on 127.0.0.1, and one bound to 127.0.0.1 refuses there. Asking it of the loopback alone
+# could never tell the two apart.
+reachable() {  # reachable <host> <port>
+  python3 -c 'import socket, sys
+s = socket.socket(); s.settimeout(1.0)
+sys.exit(0 if s.connect_ex((sys.argv[1], int(sys.argv[2]))) == 0 else 1)' "$1" "$2"
+}
+
+# other_addr — one IPv4 address of this machine that is NOT loopback, or nothing. The UDP
+# "connect" sends no packet: it only asks the routing table which local address would be used
+# to reach a documentation-range address (RFC 5737, never routed anywhere), which is how a
+# host's own address is had without a name server or a live network. `gethostname` is the
+# fallback for a machine with no default route.
+other_addr() {
+  python3 -c 'import socket
+found = set()
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("192.0.2.1", 9)); found.add(s.getsockname()[0]); s.close()
+except Exception:
+    pass
+try:
+    for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+        found.add(info[4][0])
+except Exception:
+    pass
+for a in sorted(x for x in found if not x.startswith("127.")):
+    print(a); break'
+}
+
+# free_port — a port the kernel says is free right now: bind 0, read back what it chose,
+# close. A hard-coded second port would collide with whatever else this machine is running,
+# and the case would then blame dashboard.sh for a stranger. The `listening` probe below is
+# still asked, because "free a moment ago" and "free now" are not the same claim.
+free_port() {
+  python3 -c 'import socket
+s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
 }
 
 # fetch <url> — GET it with python3, printing the status code on the first line, the
@@ -131,6 +175,58 @@ else
   kill -INT "$dash_pid" 2>/dev/null
   wait "$dash_pid" 2>/dev/null && int_code=0 || int_code=$?
   [[ "$int_code" -eq 0 ]] || problems+=("exited $int_code after SIGINT, want 0")
+fi
+
+report "$name"
+
+# --- an argument: that port, and no interface but loopback ---
+# Both halves of one criterion, asked of one running server: the page has to answer on the
+# port the argument named (not the default), and the same port has to refuse a connection
+# made to this machine's other address. Two servers could not answer the second question
+# together — a second one on the same port would fail to bind — so it is one launch.
+name="dashboard.sh with a port argument serves the page on that port and binds 127.0.0.1 only"
+problems=()
+arg_repo="$(repo argport)"
+arg_log="$work/argport.log"
+arg_port="$(free_port)"
+
+if [[ -z "$arg_port" ]]; then
+  problems+=("could not get a free port from the kernel, so there was nothing to pass dashboard.sh")
+elif [[ "$arg_port" == "$PORT" ]]; then
+  problems+=("the kernel handed out $arg_port, which is the default port: a server ignoring its argument would look right, so this case cannot run on it")
+elif listening "$arg_port"; then
+  problems+=("port $arg_port was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
+else
+  (cd "$arg_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" "$arg_port" >"$arg_log" 2>&1) &
+  arg_pid=$!
+
+  arg_page="" ; i=0
+  while [[ "$i" -lt 100 ]]; do
+    if arg_page="$(fetch "http://127.0.0.1:$arg_port/" 2>/dev/null)"; then break; fi
+    arg_page=""
+    sleep 0.1
+    i=$((i + 1))
+  done
+
+  if [[ -z "$arg_page" ]]; then
+    problems+=("no answer from http://127.0.0.1:$arg_port/ after 10 s, so the port named on the command line was not bound; the server left: $(printf '%q' "$(cat "$arg_log" 2>/dev/null)")")
+  else
+    arg_status="$(sed -n 1p <<< "$arg_page")"
+    [[ "$arg_status" == 200 ]] || problems+=("GET / on the given port $arg_port answered $arg_status, want 200")
+  fi
+
+  # The other interface. Fails closed when this machine has no non-loopback address: a case
+  # that quietly skipped the half it exists to ask would report a pass for a server bound to
+  # 0.0.0.0.
+  elsewhere="$(other_addr)"
+  if [[ -z "$elsewhere" ]]; then
+    problems+=("this machine has no non-loopback IPv4 address, so 'binds 127.0.0.1 only' could not be asked of it")
+  elif reachable "$elsewhere" "$arg_port"; then
+    problems+=("the server answered on $elsewhere:$arg_port as well, so it is bound to every interface; want 127.0.0.1 only")
+  fi
+
+  kill -INT "$arg_pid" 2>/dev/null
+  wait "$arg_pid" 2>/dev/null || :
 fi
 
 report "$name"
