@@ -511,6 +511,55 @@ fi
 
 report "$name"
 
+# 11. The snapshot is run state, and run state is ignored. The caller is a checkout with one
+# commit and nothing else, so `git status --porcelain` there is empty before the launch; the
+# clone the skill is launched from is the same. Both are asked while the conductor is still
+# running — the snapshot and the recorded commit exist then, whatever the launch removes on
+# exit — and again once it has returned. Any line either prints is something the pin left
+# behind in a tree a later `git add -A` would sweep up.
+name="the snapshot leaves git status --porcelain empty in the caller's checkout and in the skill clone"
+problems=()
+
+clone5="$work/clone5"
+skill_clone "$clone5"
+
+caller5="$work/caller5"
+caller_repo "$caller5"
+echo "target" > "$caller5/README"
+git -C "$caller5" add -A
+git -C "$caller5" -c user.name=t -c user.email=t@t commit -qm target
+
+statusdir="$work/status5"
+mkdir -p "$statusdir"
+
+cat > "$stubdir/status-hook" <<HOOK
+#!/usr/bin/env bash
+git -C "$caller5" status --porcelain > "$statusdir/caller-during" 2>&1
+git -C "$clone5" status --porcelain > "$statusdir/clone-during" 2>&1
+HOOK
+chmod +x "$stubdir/status-hook"
+
+launch_from "$caller5" "$clone5" CONDUCTOR_HOOK="$stubdir/status-hook"
+
+if [[ ! -f "$statusdir/caller-during" ]]; then
+  problems+=("the conductor never ran — no status was taken while it was running")
+else
+  for when in during after; do
+    for tree in caller clone; do
+      if [[ "$when" == after ]]; then
+        dir="$caller5"; [[ "$tree" == clone ]] && dir="$clone5"
+        out="$(git -C "$dir" status --porcelain 2>&1)"
+      else
+        out="$(cat "$statusdir/$tree-$when")"
+      fi
+      [[ -z "$out" ]] ||
+        problems+=("git status --porcelain in the $tree is not empty $when the run: ${out//$'\n'/ }")
+    done
+  done
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
