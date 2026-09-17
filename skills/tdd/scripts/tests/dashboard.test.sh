@@ -210,6 +210,12 @@ port_problem() {  # port_problem <port>
 # then asks of the body, so the scaffolding between the two is written once here. The port is
 # asked of the kernel per case rather than being the default, so a case is never answered by
 # another case's server.
+#
+# A body that does not parse is one of those reasons and not one case's business: every
+# endpoint here answers JSON, so an unparseable body is the same failure whichever pane
+# returned it, reported once with the beginning of what did come back. Each case's own script
+# is then free to load the file and assert on the document, rather than opening with the same
+# seven lines of try/except.
 fetch_endpoint() {  # fetch_endpoint <repo> <tag> <path> <bodyfile>
   local dir="$1" log="$work/$2.log" path="$3" out="$4"
   local port url answer problem pid
@@ -228,6 +234,13 @@ fetch_endpoint() {  # fetch_endpoint <repo> <tag> <path> <bodyfile>
     echo "$problem"
   else
     http_body "$answer" > "$out"
+    python3 -c 'import json, sys
+try:
+    with open(sys.argv[1]) as f:
+        json.load(f)
+except ValueError:
+    with open(sys.argv[1]) as f:
+        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])' "$out"
   fi
   stop "$pid" || :
 }
@@ -379,13 +392,7 @@ def load(path):
         return json.load(f)
 
 
-try:
-    got = load(sys.argv[1])
-except ValueError:
-    with open(sys.argv[1]) as f:
-        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])
-    sys.exit()
-want = load(sys.argv[2])
+got, want = load(sys.argv[1]), load(sys.argv[2])
 if not isinstance(got, dict):
     print("the endpoint returned a %s; status.sh --json returns an object"
           % type(got).__name__)
@@ -496,13 +503,8 @@ else
 import json, sys
 
 body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
-try:
-    with open(body) as f:
-        got = json.load(f)
-except ValueError:
-    with open(body) as f:
-        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])
-    sys.exit()
+with open(body) as f:
+    got = json.load(f)
 if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
     print("the endpoint returned %s; want an object with an \"issues\" object keyed by "
           "issue number" % json.dumps(got, sort_keys=True)[:300])
@@ -588,13 +590,8 @@ else
 import json, sys
 
 body, log_path = sys.argv[1], sys.argv[2]
-try:
-    with open(body) as f:
-        got = json.load(f)
-except ValueError:
-    with open(body) as f:
-        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])
-    sys.exit()
+with open(body) as f:
+    got = json.load(f)
 if not isinstance(got, dict) or not isinstance(got.get("events"), list):
     print("the endpoint returned %s; want an object with an \"events\" array"
           % json.dumps(got, sort_keys=True)[:300])
