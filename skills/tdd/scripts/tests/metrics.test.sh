@@ -1712,6 +1712,30 @@ outcome_says "$single_run_out" system
 report_on "$name" "$single_run_out"
 
 
+# The same log, read for the words around its figure: with no `resume` to move it, the wall
+# starts at the log's first event, and the sentence has to say so (#248).
+name="on a run with no resume the issue-wall sentence says the wall starts at the log's first event"
+problems=()
+
+probe '
+import sys
+
+path = sys.argv[1]
+walls = [l.strip() for l in open(path).read().splitlines()
+         if l.strip().startswith("Wall time for the issue:")]
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+    raise SystemExit(0)
+
+wall = walls[0]
+if "the first event of the log" not in wall:
+    print("want the issue-wall sentence to name the first event of the log as where the wall starts, it says: %r" % wall)
+' "$single_run_out"
+
+report_on "$name" "$single_run_out"
+
+
 # An eighteenth fixture: one issue run twice again, but with leaves in both runs, so a figure
 # summed over the whole log is observable as something other than one summed over the last
 # run alone. Red was tried and rejected before the bail, and tried again and passed after the
