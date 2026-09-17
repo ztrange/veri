@@ -171,13 +171,10 @@ echo "$dead_pid" > "$run/.tdd/conductor.pid"
 VERI_TIMEOUT=600 run_in "$states"
 line_of() { printf '%s\n' "$out" | grep "^#$1 " || true; }
 missing=()
-[[ "$(line_of 11)" == *running* ]] || missing+=("#11 running")
-[[ "$(line_of 12)" == *done* ]] || missing+=("#12 done")
-[[ "$(line_of 12)" == *"https://github.com/o/r/pull/12"* ]] || missing+=("#12 https://github.com/o/r/pull/12")
-[[ "$(line_of 13)" == *bailed* ]] || missing+=("#13 bailed")
-[[ "$(line_of 13)" == *green* ]] || missing+=("#13 green")
-[[ "$(line_of 13)" == *system* ]] || missing+=("#13 system")
-[[ "$(line_of 14)" == *stale* ]] || missing+=("#14 stale")
+for want in "11 running" "12 done" "12 https://github.com/o/r/pull/12" "13 bailed" "13 green" \
+    "13 system" "14 stale"; do
+  [[ "$(line_of "${want%% *}")" == *"${want#* }"* ]] || missing+=("#$want")
+done
 expect_nothing_missing "a run shows its state: running, done with its PR url, bailed with phase and classification, or stale"
 
 echo "$pass passed, $fail failed"
