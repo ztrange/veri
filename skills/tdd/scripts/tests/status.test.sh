@@ -150,14 +150,15 @@ states="$(repo states)"
 now="$(date +%s)"
 sleep 0 & dead_pid=$!
 wait "$dead_pid" 2>/dev/null
-state_run() {  # state_run <n> <ts> -> path; a one-step ledger and one develop-red launch at <ts>
+launched_run() {  # launched_run <repo> <n> <ts> -> path; a one-step ledger and one develop-red launch at <ts>
   local dir
-  dir="$(fabricate_run "$states" "$1" "tdd/$1-lamps")"
-  printf '# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n' "$1" > "$dir/.tdd/issue-$1.md"
+  dir="$(fabricate_run "$1" "$2" "tdd/$2-lamps")"
+  printf '# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n' "$2" > "$dir/.tdd/issue-$2.md"
   printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}\n' \
-    "$2" "$1" > "$dir/.tdd/events.jsonl"
+    "$3" "$2" > "$dir/.tdd/events.jsonl"
   echo "$dir"
 }
+state_run() { launched_run "$states" "$@"; }  # state_run <n> <ts> -> path
 run="$(state_run 11 $((now - 10)))"
 echo "$$" > "$run/.tdd/conductor.pid"
 run="$(state_run 12 $((now - 20)))"
@@ -187,12 +188,9 @@ scoped="$(repo scoped)"
 now="$(date +%s)"
 scope_run() {  # scope_run <n> <launch ts> <usage ts> <dollars> -> path
   local dir
-  dir="$(fabricate_run "$scoped" "$1" "tdd/$1-bells")"
-  printf '# Plan for #%s — bells ring\n\n- [ ] a bell rings\n' "$1" > "$dir/.tdd/issue-$1.md"
-  {
-    printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a bell rings", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}\n' "$2" "$1"
-    printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a bell rings", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "%s", "input_tokens": "10", "output_tokens": "0", "cache_read_input_tokens": "0", "cache_creation_input_tokens": "0"}\n' "$3" "$1" "$4"
-  } > "$dir/.tdd/events.jsonl"
+  dir="$(launched_run "$scoped" "$1" "$2")"
+  printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "%s", "input_tokens": "10", "output_tokens": "0", "cache_read_input_tokens": "0", "cache_creation_input_tokens": "0"}\n' \
+    "$3" "$1" "$4" >> "$dir/.tdd/events.jsonl"
   echo "$dir"
 }
 run="$(scope_run 21 $((now - 100)) $((now - 40)) 0.25)"
@@ -201,7 +199,7 @@ run="$(scope_run 22 $((now - 500)) $((now - 350)) 1.50)"
 printf '{"ts": %s, "issue": "22", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://github.com/o/r/pull/22"}\n' \
   "$((now - 300))" >> "$run/.tdd/events.jsonl"
 run="$(scope_run 23 $((now - 1000)) $((now - 950)) 0.50)"
-printf '{"ts": %s, "issue": "23", "actor": "conductor", "phase": "red", "step": "a bell rings", "event": "bail", "attempt": "", "skill_commit": "abc", "cause": "stuck", "classification": "system"}\n' \
+printf '{"ts": %s, "issue": "23", "actor": "conductor", "phase": "red", "step": "a lamp glows", "event": "bail", "attempt": "", "skill_commit": "abc", "cause": "stuck", "classification": "system"}\n' \
   "$((now - 900))" >> "$run/.tdd/events.jsonl"
 gh_json="$work/scoped-gh"
 mkdir -p "$gh_json"
