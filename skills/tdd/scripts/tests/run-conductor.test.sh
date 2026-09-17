@@ -130,6 +130,20 @@ holds_skill() {
   fi
 }
 
+# repin_in <log> <commit> — exit 0 when the event log <log> holds a `skill-repin` line naming
+# <commit>; exit 1 when it holds none, or cannot be read.
+repin_in() {
+  python3 - "$1" "$2" <<'PY'
+import json, sys
+try:
+    lines = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+except OSError:
+    sys.exit(1)
+sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[2] in l.values()
+                  for l in lines) else 1)
+PY
+}
+
 # skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
 # once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
 # resolves is one the case controls. Prints nothing; read the commit with rev-parse.
@@ -495,15 +509,7 @@ launch_from "$caller4" "$clone4" BASE_OUT="$repinned_base" VERI_NEW_SKILL=1
 
 holds_skill "$repinned_base" "$taken/skills/tdd" "re-pinned launch's" "current skill commit $current"
 
-python3 - "$caller4/.tdd/events.jsonl" "$current" <<'PY' ||
-import json, sys
-try:
-    lines = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
-except OSError:
-    sys.exit(1)
-sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[2] in l.values()
-                  for l in lines) else 1)
-PY
+repin_in "$caller4/.tdd/events.jsonl" "$current" ||
   problems+=("no skill-repin event naming $current in $caller4/.tdd/events.jsonl")
 
 report "$name"
@@ -854,17 +860,8 @@ rc12=$?
 grep -qx -- "$head12" "$caller12/.tdd/issue-$issue-skill-commit" ||
   problems+=("the launch with VERI_NEW_SKILL=1 did not record HEAD $head12 as the pin")
 
-python3 - "$head12" "$caller12/.tdd/events.jsonl" "$caller12/.tdd/wt/$issue/.tdd/events.jsonl" <<'PY' ||
-import json, sys
-lines = []
-for path in sys.argv[2:]:
-    try:
-        lines += [json.loads(l) for l in open(path) if l.strip()]
-    except OSError:
-        pass
-sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[1] in l.values()
-                  for l in lines) else 1)
-PY
+repin_in "$caller12/.tdd/events.jsonl" "$head12" ||
+  repin_in "$caller12/.tdd/wt/$issue/.tdd/events.jsonl" "$head12" ||
   problems+=("no skill-repin event naming $head12 in the run's event log")
 
 report "$name"
@@ -892,22 +889,9 @@ launch_from "$caller13" "$clone13" VERI_NEW_SKILL=1
 wt_log13="$caller13/.tdd/wt/$issue/.tdd/events.jsonl"
 caller_log13="$caller13/.tdd/events.jsonl"
 
-# repin_in <log> — exit 0 when <log> holds a `skill-repin` line naming $head13.
-repin_in() {
-  python3 - "$1" "$head13" <<'PY2'
-import json, sys
-try:
-    lines = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
-except OSError:
-    sys.exit(1)
-sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[2] in l.values()
-                  for l in lines) else 1)
-PY2
-}
-
-repin_in "$wt_log13" ||
+repin_in "$wt_log13" "$head13" ||
   problems+=("no skill-repin event naming $head13 in the run worktree's $wt_log13")
-if repin_in "$caller_log13"; then
+if repin_in "$caller_log13" "$head13"; then
   problems+=("the skill-repin event landed in the caller's $caller_log13")
 fi
 
