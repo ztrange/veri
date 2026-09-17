@@ -205,10 +205,12 @@ gh_json="$work/scoped-gh"
 mkdir -p "$gh_json"
 echo '[]' > "$gh_json/issues.json"
 echo '[]' > "$gh_json/prs.json"
-# The totals the three runs above add up to, looked for on the one line naming lamps-label.
+# The one line of $out naming lamps-label: the scope's totals line.
+lamps_scope_line() { printf '%s\n' "$out" | grep 'lamps-label' || true; }
+# The totals the three runs above add up to, looked for on that line.
 expect_lamps_totals() {  # expect_lamps_totals <case name>; reads $out, $code
   local scope_line want
-  scope_line="$(printf '%s\n' "$out" | grep 'lamps-label' || true)"
+  scope_line="$(lamps_scope_line)"
   missing=()
   for want in "scope lamps-label" "attempted 3" "done 1" "bailed 1" "wall 360s" '$2.25'; do
     [[ "$scope_line" == *"$want"* ]] || missing+=("$want")
@@ -239,9 +241,8 @@ cat > "$solvable_gh/issues.json" <<'JSON'
 JSON
 echo '[]' > "$solvable_gh/prs.json"
 VERI_GH_JSON="$solvable_gh" VERI_TIMEOUT=600 run_in "$scoped" --scope lamps-label
-scope_line="$(printf '%s\n' "$out" | grep 'lamps-label' || true)"
 missing=()
-[[ "$scope_line" == *"solvable 2"* ]] || missing+=("solvable 2")
+[[ "$(lamps_scope_line)" == *"solvable 2"* ]] || missing+=("solvable 2")
 expect_nothing_missing "--scope <name> totals include the count still solvable, from solvable-issues.sh for that scope"
 
 echo "$pass passed, $fail failed"
