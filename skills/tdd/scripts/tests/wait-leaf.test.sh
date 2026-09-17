@@ -242,6 +242,33 @@ kill "$imp_pid" 2>/dev/null; wait "$imp_pid" 2>/dev/null
   [[ "$r_stderr" == *reused-sup* ]] && [[ "$r_stderr" == *"$imp_pid"* ]]; } && ok \
   || no "exits 2 well before its budget when the recorded pid is alive but is not a supervise.sh for that leaf (pid reuse), naming the leaf and the pid on stderr (got '<code> <secs>'=$r_reused want '2 <=10'; stderr='$r_stderr' want it to name reused-sup and $imp_pid)"
 
+# 7. a recorded supervisor that is still running → still exit 3 once the budget is spent, and a
+#    missing pid file is not a dead supervisor either (#173). The liveness check must end only
+#    the wait on a supervisor that is gone: a slow leaf is the normal case, and the detached
+#    launch returns before supervise.sh has written its pid, so the first wait of every leaf
+#    begins with no pid file at all.
+#
+#    The live supervisor is a stub script named supervise.sh, run as `supervise.sh live-sup x`
+#    so its command line is exactly what a real launch's is. It loops on short sleeps rather
+#    than one long one, so killing it afterwards leaves no child running past the suite. Both
+#    arms get a 2-second budget, and must sit it out: a 3 that came back before the budget was
+#    spent would be some other answer.
+stubsup="$work/stubsup"; mkdir -p "$stubsup"
+cat > "$stubsup/supervise.sh" <<'S'
+#!/usr/bin/env bash
+while :; do sleep 0.2; done
+S
+chmod +x "$stubsup/supervise.sh"
+bash "$stubsup/supervise.sh" live-sup x &
+live_pid=$!
+printf '%s\n' "$live_pid" > "$work/.tdd/live-sup.pid"
+l_live="$(timed live-sup 2)"
+kill "$live_pid" 2>/dev/null; wait "$live_pid" 2>/dev/null
+l_nopid="$(timed no-pid-yet 2)"
+{ [[ "${l_live%% *}" == 3 ]] && [[ "${l_live#* }" -ge 2 ]] &&
+  [[ "${l_nopid%% *}" == 3 ]] && [[ "${l_nopid#* }" -ge 2 ]]; } && ok \
+  || no "still exits 3 once the budget is spent while the recorded supervise.sh for that leaf is alive, and when no pid file exists yet (got '<code> <secs>': live supervisor=$l_live want '3 >=2'; no pid file=$l_nopid want '3 >=2')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
