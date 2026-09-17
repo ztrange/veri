@@ -134,12 +134,22 @@ serve_until_up() {  # serve_until_up <url>
   done
 }
 
+# launch <repo> <log> [port] — start dashboard.sh in the background from <repo>, its output
+# on <log>, and leave its pid in `$!` for the caller to interrupt and wait on. `exec` inside
+# the subshell so that pid is the server's own and not a shell wrapping it — the SIGINT has
+# to reach the thing that is serving. PYTHONPATH cleared and PYTHONNOUSERSITE set so an
+# importable package in the caller's environment cannot be what makes it work: "stdlib-only"
+# is part of the criterion, and a server that needed a third-party module would have it to
+# hand otherwise. Started here rather than in a command substitution because a pid the
+# calling shell is not the parent of cannot be `wait`ed on, and the exit status after SIGINT
+# is half of what the first case asks.
+launch() {  # launch <repo> <log> [port]
+  local dir="$1" out="$2"
+  shift 2
+  (cd "$dir" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" "$@" >"$out" 2>&1) &
+}
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
-# The server is launched with `exec` in the subshell so the pid the case holds is the
-# server's own and not a shell wrapping it — the SIGINT has to reach the thing that is
-# serving. PYTHONPATH cleared and PYTHONNOUSERSITE set so an importable package in the
-# caller's environment cannot be what makes it work: "stdlib-only" is part of the criterion,
-# and a server that needed a third-party module would have it to hand otherwise.
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
 served="$(repo served)"
@@ -148,7 +158,7 @@ log="$work/served.log"
 if reachable 127.0.0.1 "$PORT"; then
   problems+=("port $PORT was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
 else
-  (cd "$served" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" >"$log" 2>&1) &
+  launch "$served" "$log"
   dash_pid=$!
 
   page="$(serve_until_up "http://127.0.0.1:$PORT/")"
@@ -198,7 +208,7 @@ elif [[ "$arg_port" == "$PORT" ]]; then
 elif reachable 127.0.0.1 "$arg_port"; then
   problems+=("port $arg_port was already in use before dashboard.sh was started, so nothing this case fetches would be its answer")
 else
-  (cd "$arg_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" "$arg_port" >"$arg_log" 2>&1) &
+  launch "$arg_repo" "$arg_log" "$arg_port"
   arg_pid=$!
 
   arg_page="$(serve_until_up "http://127.0.0.1:$arg_port/")"
