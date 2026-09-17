@@ -155,14 +155,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --watch)
       watch=2; shift
-      if [[ "${1:-}" =~ ^[0-9]+$ ]]; then watch="$1"; shift; fi
-      continue ;;
-  esac
-  render_args+=("$1")
-  case "$1" in
-    --json) json=1; shift ;;
-    --scope) scope="${2:-}"; render_args+=("$scope"); shift $(( $# > 1 ? 2 : 1 )) ;;
-    *) shift ;;
+      if [[ "${1:-}" =~ ^[0-9]+$ ]]; then watch="$1"; shift; fi ;;
+    --json) json=1; render_args+=("$1"); shift ;;
+    --scope) scope="${2:-}"; render_args+=("$1" "$scope"); shift $(( $# > 1 ? 2 : 1 )) ;;
+    *) render_args+=("$1"); shift ;;
   esac
 done
 
