@@ -140,5 +140,45 @@ missing=()
 [[ "$out" =~ (^|[^0-9])11,?000\ tokens ]] || missing+=("11000 tokens")
 expect_nothing_missing "a run shows its cost so far in dollars and tokens, summed from its event log"
 
+# --- each run's state: running, done with its PR url, bailed with phase and classification, stale ---
+# Four runs in one repository. #11's last event is 10 s old and its conductor.pid is this
+# suite's own shell, which answers `kill -0`: running. #12's log ends in `done pr=<url>`. #13's
+# ends in a `bail` in phase green, classified system — its only launch was in red, so "green"
+# on its line can come from the bail alone. #14's last event is 1000 s old, past a VERI_TIMEOUT
+# of 600, and its conductor.pid names a process that has already exited: stale.
+states="$(repo states)"
+now="$(date +%s)"
+sleep 0 & dead_pid=$!
+wait "$dead_pid" 2>/dev/null
+state_run() {  # state_run <n> <ts> -> path; a one-step ledger and one develop-red launch at <ts>
+  local dir
+  dir="$(fabricate_run "$states" "$1" "tdd/$1-lamps")"
+  printf '# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n' "$1" > "$dir/.tdd/issue-$1.md"
+  printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}\n' \
+    "$2" "$1" > "$dir/.tdd/events.jsonl"
+  echo "$dir"
+}
+run="$(state_run 11 $((now - 10)))"
+echo "$$" > "$run/.tdd/conductor.pid"
+run="$(state_run 12 $((now - 20)))"
+printf '{"ts": %s, "issue": "12", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://github.com/o/r/pull/12"}\n' \
+  "$((now - 15))" >> "$run/.tdd/events.jsonl"
+run="$(state_run 13 $((now - 30)))"
+printf '{"ts": %s, "issue": "13", "actor": "conductor", "phase": "green", "step": "a lamp glows", "event": "bail", "attempt": "", "skill_commit": "abc", "cause": "stuck", "classification": "system"}\n' \
+  "$((now - 25))" >> "$run/.tdd/events.jsonl"
+run="$(state_run 14 $((now - 1000)))"
+echo "$dead_pid" > "$run/.tdd/conductor.pid"
+out="$(cd "$states" && VERI_TIMEOUT=600 "$STATUS" 2>/dev/null)" && code=0 || code=$?
+line_of() { printf '%s\n' "$out" | grep "^#$1 " || true; }
+missing=()
+[[ "$(line_of 11)" == *running* ]] || missing+=("#11 running")
+[[ "$(line_of 12)" == *done* ]] || missing+=("#12 done")
+[[ "$(line_of 12)" == *"https://github.com/o/r/pull/12"* ]] || missing+=("#12 https://github.com/o/r/pull/12")
+[[ "$(line_of 13)" == *bailed* ]] || missing+=("#13 bailed")
+[[ "$(line_of 13)" == *green* ]] || missing+=("#13 green")
+[[ "$(line_of 13)" == *system* ]] || missing+=("#13 system")
+[[ "$(line_of 14)" == *stale* ]] || missing+=("#14 stale")
+expect_nothing_missing "a run shows its state: running, done with its PR url, bailed with phase and classification, or stale"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
