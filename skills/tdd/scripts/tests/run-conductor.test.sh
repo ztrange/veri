@@ -413,6 +413,60 @@ fi
 
 report "$name"
 
+# 9. Taking the new skill is an explicit act, and a recorded one. The run is launched from a
+# clone at commit A, the clone moves to commit B, and the same issue is launched again with
+# VERI_NEW_SKILL=1 — the operator asking for the new skill on this resume. That launch is
+# handed B's files, not the recorded A's, and the caller's event log carries a `skill-repin`
+# line naming B: a re-pin nobody can find in the log is the side effect the pin exists to stop.
+name="a resume with VERI_NEW_SKILL=1 is re-pinned to the clone's current commit and logs a skill-repin event"
+problems=()
+
+clone4="$work/clone4"
+skill_clone "$clone4"
+
+caller4="$work/caller4"
+mkdir -p "$caller4"
+git -C "$caller4" init -q
+
+( cd "$caller4" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+    "$clone4/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+
+echo "# a commit the operator asks the run to take" >> "$clone4/skills/tdd/scripts/supervise.sh"
+git -C "$clone4" -c user.name=t -c user.email=t@t commit -qam pulled
+current="$(git -C "$clone4" rev-parse HEAD)"
+
+taken="$work/taken"
+mkdir -p "$taken"
+git -C "$clone4" archive "$current" skills/tdd | tar -x -C "$taken"
+
+repinned_base="$work/repinned-base"
+mkdir -p "$repinned_base"
+rm -f "$prompt"
+( cd "$caller4" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$repinned_base" \
+    VERI_NEW_SKILL=1 \
+    "$clone4/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+
+if [[ ! -f "$repinned_base/SKILL.md" ]]; then
+  problems+=("the re-pinned launch's base directory held no skill while the conductor ran")
+else
+  diff_out="$(differing_files "$taken/skills/tdd" "$repinned_base")"
+  [[ -z "$diff_out" ]] ||
+    problems+=("the re-pinned run's base directory differs from current skill commit $current: ${diff_out//$'\n'/ }")
+fi
+
+python3 - "$caller4/.tdd/events.jsonl" "$current" <<'PY' ||
+import json, sys
+try:
+    lines = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+except OSError:
+    sys.exit(1)
+sys.exit(0 if any(l.get("event") == "skill-repin" and sys.argv[2] in l.values()
+                  for l in lines) else 1)
+PY
+  problems+=("no skill-repin event naming $current in $caller4/.tdd/events.jsonl")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

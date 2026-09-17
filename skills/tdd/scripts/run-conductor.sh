@@ -59,10 +59,17 @@ issue="${1:?usage: run-conductor.sh <issue>}"
 # by issue, and a later launch for the same issue materialises the recorded commit rather than
 # the clone's HEAD — so a pull between the two launches does not change the run's skill. A
 # recorded commit this clone does not hold cannot be materialised, and is replaced by HEAD.
+#
+# Taking the new skill is the operator's explicit act: VERI_NEW_SKILL=1 on a resume replaces
+# the recorded commit with HEAD, and says so as a `skill-repin` event in the run's event log,
+# so a change of skill mid-run is a line a reader can find rather than a side effect of a pull.
 base="$(cd "$HERE/.." && pwd)"
 record=".tdd/issue-$issue-skill-commit"
 if commit="$(git -C "$base" rev-parse HEAD 2>/dev/null)"; then
-  if [[ -r "$record" ]] && recorded="$(cat "$record")" &&
+  if [[ "${VERI_NEW_SKILL:-}" == 1 && -r "$record" ]]; then
+    printf '%s\n' "$commit" > "$record"
+    VERI_ISSUE="$issue" "$HERE/event.sh" skill-repin commit="$commit" || exit 2
+  elif [[ -r "$record" ]] && recorded="$(cat "$record")" &&
      git -C "$base" cat-file -e "$recorded^{commit}" 2>/dev/null; then
     commit="$recorded"
   else
