@@ -30,6 +30,10 @@ Render one verdict on the settled result.
    costs a revise leaf.
 5. **Empty range.** An empty range, which a reset of the leaf's commits leaves, is not a
    REJECT by itself: judge the settled result as it stands.
+6. **Out of scope.** A shortfall against a criterion outside the step under judgement is
+   named in REASON: as out of scope and is not by itself a REJECT: a behavior-preserving
+   refactor may not add another step's work, so demanding it here is a demand no revise
+   leaf can satisfy.
 
 PASS if the suite is green and the code is up to standard. REJECT, naming the specific
 weakness, if the tidy-up left the code below standard or altered behavior.
