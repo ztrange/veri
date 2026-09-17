@@ -127,6 +127,16 @@ skill_clone() {
   git -C "$1" -c user.name=t -c user.email=t@t commit -qm skill
 }
 
+# launch_from <caller> <clone> [VAR=value…] — run <clone>'s run-conductor.sh for the issue from
+# inside <caller>, against the stub, with any extra VAR=value in its environment: the one way
+# every snapshot case launches, so the cases differ only in what they add.
+launch_from() {
+  local caller="$1" clone="$2"
+  shift 2
+  ( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" "$@" \
+      "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+}
+
 # caller_repo <dir> — an empty git repository at <dir>: the checkout a snapshot case launches
 # run-conductor.sh from, whose `.tdd/` holds the run state the launch records.
 caller_repo() {
@@ -293,8 +303,7 @@ rm -f "$prompt"
 live="$work/live-base"
 mkdir -p "$live"
 
-( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$live" \
-    "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+launch_from "$caller" "$clone" BASE_OUT="$live"
 
 base="$(prompt_base)"
 if [[ -z "$base" ]]; then
@@ -352,9 +361,7 @@ echo \$? > supervise.rc
 HOOK
 chmod +x "$stubdir/hook"
 
-( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-    CONDUCTOR_HOOK="$stubdir/hook" \
-    "$clone2/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+launch_from "$caller" "$clone2" CONDUCTOR_HOOK="$stubdir/hook"
 
 leaf_rc="$(cat "$leafdir/supervise.rc" 2>/dev/null)"
 if [[ -z "$leaf_rc" ]]; then
@@ -395,8 +402,7 @@ caller_repo "$caller3"
 
 first_base="$work/first-base"
 mkdir -p "$first_base"
-( cd "$caller3" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$first_base" \
-    "$clone3/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+launch_from "$caller3" "$clone3" BASE_OUT="$first_base"
 first_snapshot="$(prompt_base)"
 
 echo "# a commit pulled into the clone after the run started" >> "$clone3/skills/tdd/scripts/supervise.sh"
@@ -405,8 +411,7 @@ git -C "$clone3" -c user.name=t -c user.email=t@t commit -qam pulled
 resumed_base="$work/resumed-base"
 mkdir -p "$resumed_base"
 rm -f "$prompt"
-( cd "$caller3" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$resumed_base" \
-    "$clone3/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+launch_from "$caller3" "$clone3" BASE_OUT="$resumed_base"
 
 base="$(prompt_base)"
 if [[ -z "$base" ]]; then
@@ -437,8 +442,7 @@ skill_clone "$clone4"
 caller4="$work/caller4"
 caller_repo "$caller4"
 
-( cd "$caller4" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-    "$clone4/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+launch_from "$caller4" "$clone4"
 
 echo "# a commit the operator asks the run to take" >> "$clone4/skills/tdd/scripts/supervise.sh"
 git -C "$clone4" -c user.name=t -c user.email=t@t commit -qam pulled
@@ -450,9 +454,7 @@ skill_archive "$clone4" "$current" "$taken"
 repinned_base="$work/repinned-base"
 mkdir -p "$repinned_base"
 rm -f "$prompt"
-( cd "$caller4" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" BASE_OUT="$repinned_base" \
-    VERI_NEW_SKILL=1 \
-    "$clone4/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>&1
+launch_from "$caller4" "$clone4" BASE_OUT="$repinned_base" VERI_NEW_SKILL=1
 
 if [[ ! -f "$repinned_base/SKILL.md" ]]; then
   problems+=("the re-pinned launch's base directory held no skill while the conductor ran")
