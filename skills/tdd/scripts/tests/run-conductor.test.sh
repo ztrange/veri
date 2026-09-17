@@ -897,6 +897,39 @@ fi
 
 report "$name"
 
+# 20. The unpinned case reaches the conductor, and the plan comment says so (issue #253). A run
+# with no resolvable skill commit warns on stderr, but stderr is the operator's terminal, not the
+# thread a run is read back from: the conductor must be told in its environment — the one channel
+# every process of the run inherits — as VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step
+# (2.3, the `### 🗺️ Plan` item) must name that variable, so the comment that names a pinned
+# commit says "unpinned" instead of naming none. Launched with no VERI_SKILL_UNPINNED of its own,
+# so a value the child holds is one the launch put there.
+name="an unpinned launch hands the conductor VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step names it"
+problems=()
+
+loose14="$work/loose14"
+mkdir -p "$loose14/skills"
+cp -R "$HERE/../.." "$loose14/skills/tdd"
+env14="$work/env14"
+rm -f "$env14"
+
+( unset VERI_SKILL_UNPINNED; launch_from "$caller" "$loose14" GIT_CEILING_DIRECTORIES="$work" ENV_OUT="$env14" )
+
+if [[ ! -f "$env14" ]]; then
+  problems+=("the unpinned launch never reached the conductor: $(cat "$launch_err")")
+elif ! grep -qx 'VERI_SKILL_UNPINNED=1' "$env14"; then
+  problems+=("the unpinned launch handed the conductor no VERI_SKILL_UNPINNED=1 in its environment")
+fi
+
+plan_step14="$(awk '/^3\. \*\*Mirror the plan\*\*/ {on=1} on && /^$/ {exit} on' "$HERE/../../SKILL.md")"
+if [[ -z "$plan_step14" ]]; then
+  problems+=("SKILL.md has no plan-comment step (2.3, **Mirror the plan**) to read")
+elif ! grep -q 'VERI_SKILL_UNPINNED' <<< "$plan_step14"; then
+  problems+=("SKILL.md's plan-comment step (2.3) does not name VERI_SKILL_UNPINNED")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
