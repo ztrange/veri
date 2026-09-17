@@ -1,7 +1,7 @@
 # Plan for #251 — A run executes the primary clone's skill, which nothing keeps current, so merged fixes are not live — pin the fetched origin tip instead
 
 - [x] A run launched by `run-conductor.sh` while the skill's clone is behind `origin/<default>` executes the skill at `origin/<default>`'s tip: a script changed only on the remote is the version in the base directory the conductor is handed
-- [ ] Launching a run leaves the skill clone's `HEAD`, branch and working tree unchanged — no pull, no checkout
+- [x] Launching a run leaves the skill clone's `HEAD`, branch and working tree unchanged — no pull, no checkout
 - [ ] A failed fetch of `origin` exits 2 before any conductor is launched, with a stderr diagnostic naming the fetch
 - [ ] The pinned skill commit reaches the run: every event a launched run writes carries it as `skill_commit`, and the conductor's prompt names it for the plan comment, equal to `origin/<default>`'s commit at launch
 - [ ] A resumed run keeps its recorded pin even when `origin/<default>` has moved since the first launch
