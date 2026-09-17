@@ -655,6 +655,18 @@ prompt_launches="$(cat "$prompt_dir/launches" 2>/dev/null || echo 0)"
   && cmp -s "$prompt_dir/expected" "$prompt_dir/prompt.1"; } && ok \
   || no "a relaunched verifier's prompt is byte-identical to the first attempt's and to build-verify-prompt.sh's four-argument output (launches=$prompt_launches want 2; diff first→relaunch: $(diff "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" 2>&1 | head -5 | tr '\n' '|'); diff builder→first: $(diff "$prompt_dir/expected" "$prompt_dir/prompt.1" 2>&1 | head -5 | tr '\n' '|'))"
 
+# verify.sh refactor passes the base sha through to the verifier prompt (#151). The sha is the
+# 4th positional, and what reaches the leaf is read off the stub's recorded argv — the prompt the
+# verifier was actually handed — rather than off the builder, so a verify.sh that dropped or
+# replaced the argument on its way to build-verify-prompt.sh is what fails here.
+sha_dir="$(mktemp -d)"
+verify_in "$sha_dir" refactor 'VERDICT: PASS
+REASON: behaviour preserved.' >/dev/null 2>"$sha_dir/err"
+sha_code=$?
+{ [[ "$sha_code" == 0 ]] && grep -qF 'git diff 0123abc..HEAD' "$sha_dir/argv" 2>/dev/null; } && ok \
+  || no "verify.sh refactor passes the base sha through to the verifier prompt (code=$sha_code; prompt lines naming a sha: $(grep -o 'git diff [^ ]*' "$sha_dir/argv" 2>/dev/null | head -1); stderr: $(head -1 "$sha_dir/err"))"
+rm -rf "$sha_dir"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
