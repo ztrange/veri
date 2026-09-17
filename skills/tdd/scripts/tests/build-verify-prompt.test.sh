@@ -273,6 +273,26 @@ prompt_says "$with_base" "never forbids reading the range's commit messages" \
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor reviews git diff <base-sha>..HEAD and not the range's commit messages (${problems#; })"
 
+# 19. what the diff is read for (#151). A test assertion the range removed or weakened is a
+#     REJECT that names the assertion — the suite stays green while it loosens, so the diff is
+#     the only place it shows. A hunk that is only cosmetic is named in REASON: and is not a
+#     REJECT by itself, since a REJECT costs a revise leaf. And an empty range, which a reset
+#     of the leaf's commits leaves, is not a REJECT by itself either. Each claim is its own
+#     miss, for case 12's reason, probed within one sentence (`[^.]`) through `prompt_says`.
+problems=""
+prompt_says "$with_base" "never makes a removed or weakened test assertion a REJECT" \
+  -iE -e "(removed|weakened)[^.]{0,80}assertion[^.]{0,120}REJECT|REJECT[^.]{0,120}(removed|weakened)[^.]{0,80}assertion"
+prompt_says "$with_base" "never has the REJECT name the assertion" \
+  -iE -e "REJECT[^.]{0,120}nam(e|es|ing)[^.]{0,40}assertion"
+prompt_says "$with_base" "never names cosmetic-only hunks in REASON:" \
+  -iE -e "cosmetic[^.]{0,160}REASON:"
+prompt_says "$with_base" "never says a cosmetic-only hunk is not a REJECT by itself" \
+  -iE -e "cosmetic[^.]{0,200}(not|never|no)[^.]{0,60}REJECT"
+prompt_says "$with_base" "never says an empty range is not a REJECT by itself" \
+  -iE -e "empty (range|diff)[^.]{0,160}(not|never|no)[^.]{0,60}REJECT"
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor rejects a weakened assertion by name, names cosmetic hunks without rejecting, and does not reject an empty range (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

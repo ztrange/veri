@@ -22,6 +22,14 @@ Render one verdict on the settled result.
    does, names things clearly, and is reasonably **robust** (no obvious unhandled edge
    case the spec implies). It must not have smuggled in untested generality — generality
    is only earned through triangulation, not hand-written here.
+3. **No assertion loosened.** A removed or weakened test assertion in the range is a REJECT,
+   and the REJECT names that assertion: the suite stays green while it loosens, so the diff
+   is the only place it shows.
+4. **Cosmetic hunks.** A hunk that is only cosmetic (whitespace, reflowed prose, a rename
+   with no other effect) is named in REASON: but is not a REJECT by itself, since a REJECT
+   costs a revise leaf.
+5. **Empty range.** An empty range, which a reset of the leaf's commits leaves, is not a
+   REJECT by itself: judge the settled result as it stands.
 
 PASS if the suite is green and the code is up to standard. REJECT, naming the specific
 weakness, if the tidy-up left the code below standard or altered behavior.
