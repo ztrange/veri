@@ -255,6 +255,69 @@ done
   problems+=("no suite here was recognised as invoking push-branch.sh, so nothing was checked")
 report "$name"
 
+# 7. The same rule for a remote rather than a name or a file (#258): since #251 run-conductor.sh
+#    fetches `origin` in the clone its skill sits in before it pins, so a suite that launches the
+#    script beside it fetches whatever origin this checkout has — the real repository, over the
+#    network — and its answer then depends on the network and on what origin/main holds that day.
+#    Every fetch-and-pin launch has to come from a fixture clone whose origin the case controls.
+#
+#    Probed by running each suite here that names run-conductor.sh, with a `git` on PATH in front
+#    of the real one: a `fetch` in a repository whose origin is this checkout's own origin is
+#    written to a log and refused rather than performed, so the probe itself never reaches the
+#    network. The origin and the real git are written into the shim as text rather than passed in
+#    the environment, since a case that severs its child's environment would otherwise hand the
+#    shim an empty origin to compare against — and every repository with no origin matches that.
+#    A sweep that selected no suite, or an origin this checkout does not have, would pass about
+#    nothing, so both are probed.
+name="no suite that names run-conductor.sh fetches this checkout's own origin"
+problems=()
+fetch_work="$(mktemp -d)"
+trap 'rm -rf "$lock_work" "$every_work" "$fetch_work"' EXIT
+own_origin="$(git -C "$HERE" remote get-url origin 2>/dev/null)"
+real_git="$(command -v git)"
+fetch_log="$fetch_work/fetches"
+mkdir -p "$fetch_work/bin"
+: > "$fetch_log"
+{
+  printf '#!/usr/bin/env bash\n'
+  printf 'own_origin=%q real_git=%q fetch_log=%q\n' "$own_origin" "$real_git" "$fetch_log"
+  cat <<'SHIM'
+pre=()
+for arg in "$@"; do
+  if [[ "$arg" == fetch ]]; then
+    url="$("$real_git" ${pre[@]+"${pre[@]}"} remote get-url origin 2>/dev/null)"
+    if [[ -n "$own_origin" && "$url" == "$own_origin" ]]; then
+      printf '%s\n' "git $* (cwd $PWD)" >> "$fetch_log"
+      echo "git shim: refused a fetch of $own_origin" >&2
+      exit 128
+    fi
+    break
+  fi
+  pre+=("$arg")
+done
+exec "$real_git" "$@"
+SHIM
+} > "$fetch_work/bin/git"
+chmod +x "$fetch_work/bin/git"
+
+launchers=()
+for suite in "$HERE"/*.test.sh; do
+  [[ "$suite" == "$HERE/$(basename "$0")" ]] && continue
+  grep -q 'run-conductor\.sh' "$suite" && launchers+=("$suite")
+done
+[[ -n "$own_origin" ]] ||
+  problems+=("this checkout has no origin, so there is no own origin a fetch could reach and nothing was checked")
+[[ "${#launchers[@]}" -gt 0 ]] ||
+  problems+=("no suite here names run-conductor.sh, so nothing was run")
+for suite in ${launchers[@]+"${launchers[@]}"}; do
+  : > "$fetch_log"
+  PATH="$fetch_work/bin:$PATH" "$suite" >/dev/null 2>&1
+  while IFS= read -r fetched; do
+    problems+=("$(basename "$suite") fetched this checkout's own origin: $fetched")
+  done < "$fetch_log"
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
