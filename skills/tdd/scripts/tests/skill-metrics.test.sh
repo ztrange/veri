@@ -309,6 +309,24 @@ for anchor in 'gh pr create' 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m
 done
 report "$name"
 
+# Issue #240, the 📊-in-PR-body probe asked of the right command: since #236 the block reaches
+# the PR body through `gh pr edit`, and the first case's record probe is answered by the whole
+# command block, which holds `gh pr create` and a 📊 mention in the prose above it whether or
+# not the edit carries the report. This case reads the fenced `gh pr edit` line itself and
+# asks that its `--body` carries the contents of the committed report — the file metrics.sh
+# writes, whose first line is the `### 📊 Metrics` heading.
+name="$skill_md's Draft PR gh pr edit command puts the committed 📊 metrics report in the PR body"
+problems=()
+
+if ! edit_line="$(first_fenced_line 'gh pr edit')"; then
+  problems+=("$skill_md's Draft PR command block never runs gh pr edit, so no command puts the 📊 block in the PR body")
+else
+  edit_cmd="$(sed -n "${edit_line}p" "$skill_path")"
+  [[ "$edit_cmd" == *"--body"*".tdd/issue-<n>-metrics.md"* ]] ||
+    problems+=("$skill_md's gh pr edit at SKILL.md:$edit_line does not put the contents of .tdd/issue-<n>-metrics.md in its --body, so the PR body never gets the 📊 block: $(printf '%.120s' "$edit_cmd")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
