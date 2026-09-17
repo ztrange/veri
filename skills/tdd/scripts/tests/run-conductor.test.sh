@@ -964,6 +964,50 @@ fi
 
 report "$name"
 
+# 22. Case 4 still fails when what reaches the binary is not the committed SKILL.md (issue
+# #256). Case 21 is the half where passing is right; this is the half where it is not, so a
+# case 4 made to pass by comparing against whatever arrived cannot pass both. The fixture is
+# case 21's — a skill clone committed once, its SKILL.md then edited — with the clone's
+# run-conductor.sh reading the procedure from that edited working tree while it still hands
+# over the committed snapshot as the base. The edit is a line put before the fence rather
+# than after the end, because committed text followed by more text still begins with the
+# committed text and case 4's prefix check would rightly pass it. Case 4 must fail on the
+# comparison itself, not on a launch that never happened.
+name="case 4 fails when what reaches the binary differs from the committed SKILL.md"
+problems=()
+
+clone22="$work/clone22"
+skill_clone "$clone22"
+skill22="$clone22/skills/tdd/SKILL.md"
+{ echo "uncommitted edit to the procedure"; cat "$skill22"; } > "$work/skill22.edited"
+cat "$work/skill22.edited" > "$skill22"
+
+conductor22="$clone22/skills/tdd/scripts/run-conductor.sh"
+sed 's|^skill_file="\$base/SKILL.md"$|skill_file="$HERE/../SKILL.md"|' "$conductor22" \
+  > "$work/conductor22.edited"
+cat "$work/conductor22.edited" > "$conductor22"
+
+suite22="$clone22/skills/tdd/scripts/tests/case4-only.test.sh"
+awk '/^# 1\. / {skip=1} /^# 4\. / {skip=0} /^# 5\. / {skip=1} !skip' \
+  "$clone22/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite22"
+printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite22"
+chmod +x "$suite22"
+
+if ! grep -qx 'skill_file="$HERE/../SKILL.md"' "$conductor22"; then
+  problems+=("the clone's run-conductor.sh could not be made to read the working tree's SKILL.md")
+elif ! grep -q '^name="a frontmatter-fenced procedure launches and reaches the binary whole"$' "$suite22"; then
+  problems+=("case 4 could not be cut out of the clone's run-conductor.test.sh")
+else
+  out22="$("$suite22" 2>&1)"
+  if [[ "$(tail -n 1 <<< "$out22")" != "0 passed, 1 failed" ]]; then
+    problems+=("case 4 did not fail when the binary got an edited SKILL.md: ${out22//$'\n'/ | }")
+  elif ! grep -q 'does not begin with .*SKILL.md verbatim' <<< "$out22"; then
+    problems+=("case 4 failed, but not on the comparison: ${out22//$'\n'/ | }")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
