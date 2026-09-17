@@ -283,5 +283,39 @@ for want in wanted:
 ')
 expect_nothing_missing "--json emits the same per-run and scope data as one JSON document"
 
+# --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
+# One running run, watched every 1 s with stdout to a file. Once its first render is on screen,
+# a `done` event is appended to the run's log. The watcher must still be going, must have moved
+# the cursor back to redraw in place (an ESC [ or ESC c sequence), and a later render must say
+# #41 is done — read from the file it changed, not remembered from the first render.
+watched="$(repo watched)"
+now="$(date +%s)"
+run="$(launched_run "$watched" 41 $((now - 10)))"
+echo "$$" > "$run/.tdd/conductor.pid"
+watch_out="$work/watch.out"
+(cd "$watched" && exec "$STATUS" --watch 1 > "$watch_out" 2>/dev/null) &
+watch_pid=$!
+wait_for() {  # wait_for <text>; polls $watch_out for up to 5 s
+  local i
+  for i in $(seq 50); do
+    grep -q -- "$1" "$watch_out" 2>/dev/null && return 0
+    sleep 0.1
+  done
+  return 1
+}
+missing=()
+wait_for "#41" || missing+=("a first render listing #41")
+printf '{"ts": %s, "issue": "41", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://github.com/o/r/pull/41"}\n' \
+  "$(date +%s)" >> "$run/.tdd/events.jsonl"
+wait_for "done https://github.com/o/r/pull/41" || true
+kill -0 "$watch_pid" 2>/dev/null || missing+=("still watching after its first render")
+kill "$watch_pid" 2>/dev/null
+wait "$watch_pid" 2>/dev/null
+out="$(cat "$watch_out")"
+code=0
+[[ "$out" == *$'\e['* || "$out" == *$'\ec'* ]] || missing+=("a redraw-in-place escape")
+[[ "$out" == *"done https://github.com/o/r/pull/41"* ]] || missing+=("#41 done after its event log changed")
+expect_nothing_missing "--watch [seconds] redraws in place, recomputing every run from disk on each render"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

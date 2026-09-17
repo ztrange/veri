@@ -5,8 +5,10 @@
 # solvable-issues.sh resolves it (#166): the first `worktree <path>` line of git's registry,
 # never the checkout this script was called from.
 #
-# Usage:   status.sh [--json] [--scope <name>]   (no --scope: VERI_LABEL, when set, names the scope)
+# Usage:   status.sh [--json] [--scope <name>] [--watch [seconds]]   (no --scope: VERI_LABEL, when set, names the scope)
 #          --json prints the same runs and scope totals as one JSON document.
+#          --watch redraws in place every <seconds> (default 2), each render a fresh run of this
+#          script without --watch, so everything is recomputed from disk and nothing is kept.
 # Exit:    0 one or more runs printed; 3 nothing to do — "no runs"
 set -euo pipefail
 
@@ -147,13 +149,31 @@ solvable_count() {  # solvable_count <name> -> "<count>", or "?" when solvable-i
 
 scope="${VERI_LABEL:-}"
 json=0
+watch=""
+render_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --watch)
+      watch=2; shift
+      if [[ "${1:-}" =~ ^[0-9]+$ ]]; then watch="$1"; shift; fi
+      continue ;;
+  esac
+  render_args+=("$1")
+  case "$1" in
     --json) json=1; shift ;;
-    --scope) scope="${2:-}"; shift $(( $# > 1 ? 2 : 1 )) ;;
+    --scope) scope="${2:-}"; render_args+=("$scope"); shift $(( $# > 1 ? 2 : 1 )) ;;
     *) shift ;;
   esac
 done
+
+if [[ -n "$watch" ]]; then
+  while :; do
+    # ESC[H moves the cursor home and ESC[2J clears the screen, so each render replaces the last.
+    rendered="$("$0" ${render_args[@]+"${render_args[@]}"})" || true
+    printf '\033[H\033[2J%s\n' "$rendered"
+    sleep "$watch"
+  done
+fi
 export STATUS_JSON="$json"
 
 timeout="${VERI_TIMEOUT:-900}"
