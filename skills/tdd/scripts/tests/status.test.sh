@@ -168,7 +168,7 @@ printf '{"ts": %s, "issue": "13", "actor": "conductor", "phase": "green", "step"
   "$((now - 25))" >> "$run/.tdd/events.jsonl"
 run="$(state_run 14 $((now - 1000)))"
 echo "$dead_pid" > "$run/.tdd/conductor.pid"
-out="$(cd "$states" && VERI_TIMEOUT=600 "$STATUS" 2>/dev/null)" && code=0 || code=$?
+VERI_TIMEOUT=600 run_in "$states"
 line_of() { printf '%s\n' "$out" | grep "^#$1 " || true; }
 missing=()
 [[ "$(line_of 11)" == *running* ]] || missing+=("#11 running")
