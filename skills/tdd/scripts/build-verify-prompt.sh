@@ -36,6 +36,13 @@ case "$phase" in
   *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin)" >&2; exit 2 ;;
 esac
 
+# For refactor, the 4th slot is the step's green commit, and only a sha may arrive in it:
+# a slot that accepted free text would be a channel for the developer's rationale (#151).
+if [[ "$phase" == refactor && ! "${4:-}" =~ ^[0-9a-f]{7,40}$ ]]; then
+  echo "build-verify-prompt: refactor needs <base-sha> as 7-40 lowercase hex characters, got '${4:-}'" >&2
+  exit 2
+fi
+
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/verify-$phase.md"
 shared_file="$HERE/prompts/_shared.md"
