@@ -6,7 +6,7 @@ A developer agent has written **one new test** at `{{TEST_PATH}}` (the target te
 `{{TARGET_TEST}}`) for a criterion the code **already satisfies**, so there is nothing to
 make fail. Confirm the test is a genuine **regression pin** worth committing.
 
-### The issue's behavior spec
+{{STEP}}### The issue's behavior spec
 
 {{ISSUE_SPEC}}
 
