@@ -681,7 +681,7 @@ following step. The phase sub-steps are:
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
      **bail**.
-   - **Malformed / killed-stuck (exit 2):** **bail** (a clean exit with no verdict was already relaunched by `verify.sh`, ADR-0020) — see *Bailing*.
+   - **Malformed / killed-stuck (exit 2):** **bail** — see *Bailing*.
 
 #### Refactor loop — one leaf applies the step's transforms, then verify-refactor (blind, once)
 
@@ -795,7 +795,7 @@ following step. The phase sub-steps are:
      loop back to the top of **step 3** for the next unchecked ledger step.
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
-   - **Malformed / killed-stuck (exit 2):** **bail** (a clean exit with no verdict was already relaunched by `verify.sh`, ADR-0020). (Earlier steps' commits are preserved.)
+   - **Malformed / killed-stuck (exit 2):** **bail**. (Earlier steps' commits are preserved.)
 
 ### 4. Draft PR
 
@@ -888,7 +888,7 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   test.) On a recovered `PASS` from `pin`, do the tick-and-commit above; from `red`,
   continue to Green. On budget-exhausted, **bail** as a **process** failure.
 - **Malformed / killed-stuck (exit 2):** **bail** as a **system** failure (`no-verdict`) —
-  see *Bailing*; a clean exit with no verdict was already relaunched by `verify.sh` (ADR-0020).
+  see *Bailing*.
 
 ## Revising on a REJECT
 
@@ -933,7 +933,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
      with the reason, and resume the cycle from where that phase's PASS would continue.
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
-   - **Malformed / killed-stuck (exit 2):** **bail** (a clean exit with no verdict was already relaunched by `verify.sh`, ADR-0020) (system failure).
+   - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
 If all `REVISE_BUDGET` attempts are still `REJECT`, **bail the step** as a **process
 failure** (the methodology could not satisfy the blind verifier within budget), recording
