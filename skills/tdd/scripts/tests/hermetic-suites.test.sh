@@ -416,6 +416,41 @@ for suite in ${offline_suites[@]+"${offline_suites[@]}"}; do
 done
 report "$name"
 
+# 9. The same rule for ambient state that is neither a name nor a file: how busy the machine is
+#    (#200). supervise-retry.test.sh recovers a leaf on its second attempt under a 1-second
+#    heartbeat window, and a preflight `make test` run beside several live conductors bailed on
+#    exactly that attempt being killed as stuck (`code=2`) on a tree that was green a minute later.
+#    A suite's answer must not depend on what else the CPU is doing when it runs.
+#
+#    Probed by running the suite beside N busy-loop processes, N being four per online CPU so the
+#    load outnumbers the cores on any machine that runs this. The loops are this case's children
+#    and killed before the report, so no other case runs under them. That they were still alive
+#    when the suite finished is probed too: a loop that died at once would load nothing and make
+#    this a pass about an idle machine.
+name="supervise-retry.test.sh: the recovered attempt still gives 1 passed, 0 failed beside a busy-loop per CPU four times over"
+problems=()
+cpus="$(getconf _NPROCESSORS_ONLN 2>/dev/null)"
+case "$cpus" in ''|*[!0-9]*) cpus=4 ;; esac
+busy_pids=()
+trap 'kill "${busy_pids[@]+"${busy_pids[@]}"}" 2>/dev/null; rm -rf "$lock_work" "$every_work" "$fetch_work" "$offline_work"' EXIT
+for ((i = 0; i < cpus * 4; i++)); do
+  ( while :; do :; done ) &
+  busy_pids+=("$!")
+done
+loaded_out="$(env -u VERI_STUCK_RETRIES "$HERE/supervise-retry.test.sh" 2>/dev/null)" && loaded_code=0 || loaded_code=$?
+for pid in "${busy_pids[@]}"; do
+  kill -0 "$pid" 2>/dev/null ||
+    problems+=("busy loop $pid was gone before the suite finished, so the machine was not loaded as claimed")
+done
+kill "${busy_pids[@]}" 2>/dev/null
+wait "${busy_pids[@]}" 2>/dev/null
+busy_pids=()
+[[ "$loaded_code" == 0 ]] ||
+  problems+=("want exit 0 under load, got $loaded_code")
+[[ "$loaded_out" == *'1 passed, 0 failed'* ]] ||
+  problems+=("want '1 passed, 0 failed' on stdout under load, got: $(printf '%q' "$loaded_out")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
