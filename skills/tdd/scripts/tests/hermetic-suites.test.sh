@@ -451,7 +451,7 @@ busy_pids=()
   problems+=("want '1 passed, 0 failed' on stdout under load, got: $(printf '%q' "$loaded_out")")
 report "$name"
 
-# 8. The same load, answered by margin rather than by one lucky run (#200): case 7 shows the
+# 10. The same load, answered by margin rather than by one lucky run (#200): case 9 shows the
 #    recovered attempt passing beside busy loops once, which a window only just wide enough
 #    passes as often as not. This pins the width. The window the suite hands supervise.sh must
 #    exceed the recovered attempt's first output by at least 5 s, and exceed today's 1-second
@@ -507,7 +507,7 @@ if [[ -n "$window" ]]; then
 fi
 report "$name"
 
-# 9. The same load, asked of the other suites that hand supervise.sh a leaf under a short window
+# 11. The same load, asked of the other suites that hand supervise.sh a leaf under a short window
 #    (#200): `supervise.test.sh` and `verify.test.sh` both launch leaves under 1- and 2-second
 #    heartbeat windows. A leaf those cases expect to be killed survives a loaded CPU — the kill
 #    only comes later — but one they expect to answer first (a recovered retry, a result record
@@ -517,10 +517,10 @@ report "$name"
 #    it starts late. Both suites run with a `bash` first on PATH that holds any leaf stub — the
 #    `leaf-*` scripts supervise.test.sh writes, the `claude*` binaries verify.test.sh hands
 #    run-leaf.sh — for 3 s before running it, whenever the leaf was given a window under 6 s:
-#    case 8's 5 s of margin over a first line. Every other script runs undelayed. A shim that
+#    case 10's 5 s of margin over a first line. Every other script runs undelayed. A shim that
 #    saw no leaf at all would pass about nothing, so that is probed too.
 #
-#    Neither suite runs whole (case 10): each runs as a copy holding its preamble, every helper
+#    Neither suite runs whole (case 12): each runs as a copy holding its preamble, every helper
 #    and stub its cases define, and only the cases #200 widened — supervise.test.sh 4, 13 and
 #    23 to 26, verify.test.sh 22 and 23. A second full pass of both would cost ~2.5 min of a
 #    `make test` CI cuts at 3.
@@ -577,27 +577,27 @@ done
   problems+=("the bash shim saw no leaf launched, so no leaf was started late")
 report "$name"
 
-# 10. Case 9's cost, which is every `make test`'s (#200): run as whole suites, supervise.test.sh
+# 12. Case 11's cost, which is every `make test`'s (#200): run as whole suites, supervise.test.sh
 #     and verify.test.sh take a full second pass of ~2.5 min between them, delays on top, and CI
-#     cuts the job at `timeout-minutes: 3`. Case 9 protects only the cases whose windows #200
+#     cuts the job at `timeout-minutes: 3`. Case 11 protects only the cases whose windows #200
 #     widened, so those are all it may run — never either suite end to end.
 #
-#     Read as text, the way cases 5 and 6 read theirs: observing case 9 by running it would be
-#     the second pass this case exists to take out of `make test`. Case 9 is the lines from its
-#     `# 9.` header to the first `report "$name"` after it, a command is a run of lines joined by
+#     Read as text, the way cases 5 and 6 read theirs: observing case 11 by running it would be
+#     the second pass this case exists to take out of `make test`. Case 11 is the lines from its
+#     `# 11.` header to the first `report "$name"` after it, a command is a run of lines joined by
 #     trailing backslashes, and a command runs a suite whole when it executes `$HERE/` followed by
 #     either suite's name or a `$suite` variable. A case 9 that could not be found, or that no
 #     longer starts a leaf late, would pass about nothing, so both are probed too.
-name="hermetic-suites.test.sh case 9: the late-start check runs only the protected cases, never supervise.test.sh or verify.test.sh as a whole suite"
+name="hermetic-suites.test.sh case 11: the late-start check runs only the protected cases, never supervise.test.sh or verify.test.sh as a whole suite"
 problems=()
-case9="$(awk '/^# 9\. /{on=1} on{print} on && /^report "\$name"/{exit}' "$HERE/hermetic-suites.test.sh")"
-[[ -n "$case9" ]] ||
-  problems+=("no '# 9.' case was found in hermetic-suites.test.sh, so there is nothing to check")
-[[ "$case9" == *'sleep 3'* ]] ||
-  problems+=("case 9 no longer starts a leaf 3 s late, so it is not the late-start check this case is about")
+case11="$(awk '/^# 11\. /{on=1} on{print} on && /^report "\$name"/{exit}' "$HERE/hermetic-suites.test.sh")"
+[[ -n "$case11" ]] ||
+  problems+=("no '# 11.' case was found in hermetic-suites.test.sh, so there is nothing to check")
+[[ "$case11" == *'sleep 3'* ]] ||
+  problems+=("case 11 no longer starts a leaf 3 s late, so it is not the late-start check this case is about")
 while IFS= read -r whole; do
-  [[ -n "$whole" ]] && problems+=("case 9 runs a whole suite: $whole")
-done < <(printf '%s\n' "$case9" | awk '
+  [[ -n "$whole" ]] && problems+=("case 11 runs a whole suite: $whole")
+done < <(printf '%s\n' "$case11" | awk '
   { if (!joining) cmd = ""
     if ($0 ~ /\\$/) { cmd = cmd substr($0, 1, length($0) - 1) " "; joining = 1; next }
     cmd = cmd $0; joining = 0 }
