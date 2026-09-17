@@ -54,5 +54,6 @@ out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
+out="${out//\{\{BASE_SHA\}\}/$target}"
 
 printf '%s\n' "$out"

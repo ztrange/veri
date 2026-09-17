@@ -226,6 +226,17 @@ for phase in red green refactor pin; do
 done
 [[ -z "$problems" ]] && ok || no "no verifier prompt carries the prediction (${problems#; })"
 
+# 16. verify-refactor is given a range, as a sha and nothing else (#151). It judged only the
+#     settled state, so churn and improvement looked the same and a loosened test was
+#     invisible. For the refactor phase the 4th positional is <base-sha>, the step's green
+#     commit, and it must reach the prompt so the verifier can read the diff from it. The sha
+#     is one that appears in neither the spec nor the test path, so only the argument can
+#     have put it there.
+base_sha='3f9a1c07e2b4'
+with_base="$("$BUILD" refactor "$work/spec.md" "$testpath" "$base_sha")"; code=$?
+[[ "$code" -eq 0 ]] && [[ "$with_base" == *"$base_sha"* ]] \
+  && ok || no "verify-refactor carries the base sha from its 4th argument into the prompt (exit $code)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
