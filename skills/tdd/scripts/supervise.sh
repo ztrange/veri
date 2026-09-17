@@ -305,6 +305,18 @@ mark launch name="$name" cmd="$*" model="$model"
 # watching a slow leaf. `$$` rather than `$BASHPID`: this is the top-level shell.
 echo $$ > "$pidfile"
 
+# A supervisor sent TERM, INT or HUP must still leave an answer (issue #173). The leaf runs in
+# a process group of its own (`set -m` in attempt_once), so the signal never reaches it: the
+# handler takes the leaf's tree down with `kill_tree`, then records 2 in the completion file —
+# no answer could be obtained — so a detached wait ends instead of polling forever. KILL
+# cannot be trapped; wait-leaf.sh's liveness check is what covers that one.
+on_signal() {
+  [[ -z "${pid:-}" ]] || kill_tree
+  printf '2\n' > "$exitfile"
+  exit 2
+}
+trap on_signal TERM INT HUP
+
 # First attempt plus up to $retries extra attempts. A normal result (success/failure)
 # short-circuits; only killed-stuck is retried.
 tries=0
