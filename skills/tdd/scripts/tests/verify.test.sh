@@ -29,18 +29,21 @@ chmod +x "$stubdir/claude"
 
 printf 'slugify must lowercase the title and join words with hyphens.' > "$work/spec.md"
 
-# verify_in <dir> <phase> <fake-out-text> [<stub-claude>] — one verification of $work/spec.md
+# verify_in <dir> <phase> <fake-out-text> [<stub-claude>] [<step>] — one verification of $work/spec.md
 # against a stub claude, run in <dir> with the stub's argv recorded at <dir>/argv. stdout is the
 # verifier's reason and the exit status is verify.sh's, so a caller reads whichever of the two it
 # is about. Every helper below is this call, so the stub wiring and the fixture arguments — the
 # spec, the test path, the test id — are spelled once rather than once per helper. The stub
 # defaults to the canned-verdict one; a caller wanting another passes it, and `env` (no `-i`)
 # hands that stub the caller's own environment too, which is how the mutating stub below gets
-# its mutation.
+# its mutation. A non-empty <step> is passed as `--step '<step>'` before the positionals (#223),
+# which is the only way a step reaches verify.sh; an absent one leaves the call exactly what it
+# was, so every caller written before the flag existed still spells the unscoped verification.
 verify_in() {
   local slot4=test_lowercases; [[ "$2" == refactor ]] && slot4=0123abc  # refactor's is a base sha (#151)
+  local step_args=(); [[ -n "${5:-}" ]] && step_args=( --step "$5" )
   ( cd "$1" && env CLAUDE_BIN="${4:-$stubdir/claude}" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$3" \
-      "$VERIFY" "$2" "$work/spec.md" tests/test_slugify.py "$slot4" )
+      "$VERIFY" "${step_args[@]+"${step_args[@]}"}" "$2" "$work/spec.md" tests/test_slugify.py "$slot4" )
 }
 
 verify() {  # verify <fake-out-text> <phase> -> runs in $work, sets $out/$code
@@ -672,10 +675,9 @@ rm -rf "$sha_dir"
 # alongside it, and what reaches the leaf is read off the stub's recorded argv — so a verify.sh that
 # dropped the flag, or scoped the verdict by reading the environment, is what fails here.
 step_dir="$(mktemp -d)"
-( cd "$step_dir" && env VERI_STEP='AMBIENT-STEP-must-not-appear' CLAUDE_BIN="$stubdir/claude" \
-    ARGV_OUT="$step_dir/argv" FAKE_OUT_TEXT='VERDICT: PASS
-REASON: ok' "$VERIFY" --step 'FLAG-STEP slugify joins words with hyphens' green "$work/spec.md" \
-    tests/test_slugify.py test_lowercases >/dev/null 2>"$step_dir/err" )
+( export VERI_STEP='AMBIENT-STEP-must-not-appear'
+  verify_in "$step_dir" green 'VERDICT: PASS
+REASON: ok' '' 'FLAG-STEP slugify joins words with hyphens' >/dev/null 2>"$step_dir/err" )
 step_code=$?
 step_seen="$(grep -c 'FLAG-STEP slugify joins words with hyphens' "$step_dir/argv" 2>/dev/null)"
 ambient_seen="$(grep -c 'AMBIENT-STEP-must-not-appear' "$step_dir/argv" 2>/dev/null)"
