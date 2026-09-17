@@ -26,29 +26,29 @@ exitfile=".tdd/$name.exit"
 pidfile=".tdd/$name.pid"
 deadline=$(( $(date +%s) + max ))
 
-# recorded_code — echo the supervisor's final code, or fail when the file holds no status
-# yet. A file seen between its creation and its write reads back empty, and an empty read is
-# not a status, so that case fails here too and the caller keeps polling. Only a plain code
-# ends the wait.
-recorded_code() {
-  local ec=""
-  [[ -f "$exitfile" ]] || return 1
-  read -r ec < "$exitfile" 2>/dev/null || true
-  [[ "$ec" =~ ^[0-9]+$ ]] || return 1
-  printf '%s\n' "$ec"
+# number_in <file> — echo the plain number on the file's first line, or fail when there is
+# none. A file seen between its creation and its write reads back empty, and an empty read is
+# not a number, so that case fails too and the caller keeps polling.
+number_in() {
+  local n=""
+  [[ -f "$1" ]] || return 1
+  read -r n < "$1" 2>/dev/null || true
+  [[ "$n" =~ ^[0-9]+$ ]] || return 1
+  printf '%s\n' "$n"
 }
+
+# recorded_code — echo the supervisor's final code, or fail when the file holds no status
+# yet. Only a plain code ends the wait.
+recorded_code() { number_in "$exitfile"; }
 
 while :; do
   ec="$(recorded_code)" && exit "$ec"
   # A supervisor that died never writes its completion file, so a recorded pid that no
   # longer runs ends the wait with 2 — after one last look, in case it wrote just before.
-  if [[ -f "$pidfile" ]]; then
-    read -r pid < "$pidfile" 2>/dev/null || true
-    if [[ "${pid:-}" =~ ^[0-9]+$ ]] && ! kill -0 "$pid" 2>/dev/null; then
-      ec="$(recorded_code)" && exit "$ec"
-      echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
-      exit 2
-    fi
+  if pid="$(number_in "$pidfile")" && ! kill -0 "$pid" 2>/dev/null; then
+    ec="$(recorded_code)" && exit "$ec"
+    echo "wait-leaf.sh: supervisor for leaf '$name' (pid $pid) exited without recording a status" >&2
+    exit 2
   fi
   (( $(date +%s) >= deadline )) && break
   sleep "$poll"
