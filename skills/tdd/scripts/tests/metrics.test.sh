@@ -1826,6 +1826,66 @@ counts_table_says "$relaunch_out" step attempts,pass,reject,kills,retries,no-ver
 report_on "$name" "$relaunch_out"
 
 
+# stopped_says <file> <step>=<cell> … — the one refactor figure that is a word rather than a
+# pair: why the loop stopped. Each expectation names a step row and the exact text its
+# `stop` column must carry. The table is found by the row and the column by its heading, as
+# everywhere above, so neither order is pinned.
+stopped_says() {
+  local out_file="$1"; shift
+  probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+tables = tables_in(path)
+
+for arg in sys.argv[2:]:
+    key, expected = arg.split("=", 1)
+    header, row = located(tables, key, "a table", table_with)
+    if row is None:
+        continue
+    i = column(header, "why the refactor loop stopped", lambda c: "stop" in c, key)
+    if i is None:
+        continue
+    got = row[i].strip() if i < len(row) else ""
+    if got != expected:
+        complain("step %r stopped: want %r, got %r" % (key, expected, got))
+
+print("\n".join(problems))
+' "$out_file" "$@"
+}
+
+# A fixture for the two ways refactor-triage.sh lets the loop end without an error (#250):
+# exit 3, nothing structural left, is `stopped=nothing-structural`; exit 0, structural
+# candidates remain and a follow-up owes them, is `stopped=structural-owed`. Two steps, one
+# of each, so a report that collapsed both into one word — the `triage` #250 split — or put
+# one step's reason in the other's row cannot pass. Each step launches one refactor leaf, since a
+# step with no leaf launched raises no row to read.
+fixture_work triage_work
+
+tidied="a refactor whose triage found nothing structural left"
+owing="a refactor whose triage left structural candidates owed"
+
+sv "$tidied" 40000 conductor ""       step-start ""
+sv "$tidied" 40002 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$tidied" 40008 developer refactor exit    1 '"status": "0", "secs": "6"'
+sv "$tidied" 40010 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "nothing-structural"'
+sv "$tidied" 40020 conductor ""       step-done ""
+sv "$owing"  41000 conductor ""       step-start ""
+sv "$owing"  41002 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$owing"  41008 developer refactor exit    1 '"status": "0", "secs": "6"'
+sv "$owing"  41010 conductor refactor refactor "" '"transforms": "3", "budget": "5", "stopped": "structural-owed"'
+sv "$owing"  41020 conductor ""       step-done ""
+
+
+name="a step whose triage found nothing structural and one that owes structural candidates each report their own stopped value"
+problems=()
+
+triage_out="$triage_work/report.md"
+render "$triage_work" "$triage_out"
+
+stopped_says "$triage_out" "$tidied=nothing-structural" "$owing=structural-owed"
+
+report_on "$name" "$triage_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
