@@ -67,5 +67,46 @@ if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
   printf 'output:\n%s\nexit %s\n' "$out" "$code"
 fi
 
+# --- one run mid-Green: phase, actor, current leaf and its elapsed seconds, attempts in step ---
+# The event log is what these are read from. The previous step launched three leaves; the
+# current one has launched develop-green twice (a stuck retry), the second 100 s ago — so the
+# run is in green, driven by the developer, on leaf develop-green for ~100 s, attempt 2.
+live="$(repo live)"
+run="$live/.tdd/wt/8"
+git init -q -b tdd/8-gears-turn "$run" >/dev/null 2>&1
+mkdir -p "$run/.tdd"
+cat > "$run/.tdd/issue-8.md" <<'EOF'
+# Plan for #8 — gears turn
+
+- [x] a gear exists
+- [ ] a gear turns
+EOF
+now="$(date +%s)"
+ev() {  # ev <ts> <actor> <phase> <step> <event> <attempt> [name]
+  printf '{"ts": %s, "issue": "8", "actor": "%s", "phase": "%s", "step": "%s", "event": "%s", "attempt": "%s", "skill_commit": "abc"%s}\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "${7:+, \"name\": \"$7\"}"
+}
+{
+  ev $((now - 900)) conductor ""     "a gear exists" step-start ""
+  ev $((now - 890)) developer red    "a gear exists" launch     1 develop-red
+  ev $((now - 800)) developer green  "a gear exists" launch     1 develop-green
+  ev $((now - 700)) verifier  green  "a gear exists" launch     1 verify-green
+  ev $((now - 600)) conductor ""     "a gear exists" step-done  ""
+  ev $((now - 500)) conductor ""     "a gear turns"  step-start ""
+  ev $((now - 400)) developer green  "a gear turns"  launch     1 develop-green
+  ev $((now - 100)) developer green  "a gear turns"  launch     2 develop-green
+} > "$run/.tdd/events.jsonl"
+run_in "$live"
+missing=()
+for want in "green" "developer" "develop-green" "attempt 2"; do
+  [[ "$out" == *"$want"* ]] || missing+=("$want")
+done
+[[ "$out" =~ (^|[^0-9])10[0-5]s([^0-9a-z]|$) ]] || missing+=("elapsed 100s-105s")
+if [[ ${#missing[@]} -eq 0 && "$code" -eq 0 ]]; then ok; else
+  no "a run shows its current phase, actor, leaf name, leaf elapsed seconds and attempts in the step, from its event log"
+  printf 'missing: %s\n' "${missing[@]:-}"
+  printf 'output:\n%s\nexit %s\n' "$out" "$code"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -28,6 +28,28 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
   printf '%s of %s\n' "$step" "$total"
 }
 
+# The latest leaf launch in the event log, and how many launches the current step has had.
+leaf_now() {  # leaf_now <events.jsonl> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>"
+  python3 - "$1" <<'PY'
+import json, sys, time
+last, attempts, step = None, 0, None
+with open(sys.argv[1]) as f:
+    for raw in f:
+        raw = raw.strip()
+        if not raw:
+            continue
+        line = json.loads(raw)
+        if line.get("step") != step:
+            step, attempts = line.get("step"), 0
+        if line.get("event") == "launch":
+            last = line
+            attempts += 1
+if last is not None:
+    print("%s  %s  %s %ds  attempt %d" % (last.get("phase", ""), last.get("actor", ""),
+          last.get("name", ""), int(time.time()) - int(last["ts"]), attempts))
+PY
+}
+
 main_tree="$(main_working_tree)"
 
 shopt -s nullglob
@@ -50,6 +72,8 @@ for run in "${runs[@]}"; do
     heading="${heading#\# Plan for #}"
     issue="${heading%% — *}"
     title="${heading#* — }"
-    printf '#%s  %s  %s  step %s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")"
+    leaf=""
+    [[ -f "$run/.tdd/events.jsonl" ]] && leaf="  $(leaf_now "$run/.tdd/events.jsonl")"
+    printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$leaf"
   done
 done
