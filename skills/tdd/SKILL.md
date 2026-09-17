@@ -536,12 +536,15 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    ```
    # Plan for #<n> — <issue title>
 
-   - [ ] <step 1: a behaviour-level criterion, one cycle's worth>
-   - [ ] <step 2: …>
+   - [ ] <step 1: a behaviour-level criterion, one cycle's worth> ⟦criterion 1⟧
+   - [ ] <step 2: a gap step no criterion covers>
    ```
    Each step's text should be a distinctive, behaviour-level description — it doubles as the
    substring you will pass to `tick-ledger.sh`. Prefer the issue's own acceptance-criteria
-   wording where it maps cleanly to one cycle.
+   wording where it maps cleanly to one cycle. End each step's line with ` ⟦criterion k⟧`,
+   where k is the 1-based position of the acceptance criterion it serves, and leave a gap
+   step without one: `criterion-finished.sh` reads that notation to decide when the issue's
+   criterion may be ticked, and a gap step serves no criterion.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`

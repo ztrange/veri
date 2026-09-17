@@ -15,6 +15,9 @@
 #   1. In both SKILL.md's cycle loop and its pin path, the instruction that runs
 #      `tick-issue-criterion.sh` also runs `criterion-finished.sh`, ticks on its exit 0 and
 #      ticks nothing on its exit 3; the cycle loop's instruction still posts `### ✅ Step done`.
+#   2. SKILL.md step 2's plan-writing guidance tells the conductor to end each ledger step with
+#      ` ⟦criterion k⟧` for the criterion it serves, and to leave a gap step without one — the
+#      gate in 1 can only answer for a criterion the ledger records.
 #
 # The gate is asked of the SAME instruction as the tick it guards, for the reason
 # skill-refactor-pending.test.sh gives for its clear: a condition prescribed in some other
@@ -95,6 +98,16 @@ name="$skill_md's Step done and pin paths tick an issue criterion only on criter
 problems=()
 gated_tick 'Step done (cycle loop)' '### 3. The cycle loop' '### ✅ step done'
 gated_tick 'pin path' '## Already satisfied — the pin' ''
+report "$name"
+
+# 2. One criterion — the plan the gate reads is written with the notation it reads.
+name="$skill_md's step 2 tells the conductor to end each ledger step with ⟦criterion k⟧ and to leave a gap step without one"
+problems=()
+plan_recs="$(section_records '### 2. Scope & plan → the ledger')"
+grep -F '⟦criterion k⟧' <<<"$plan_recs" | grep -Eq '(^| )end(s|ing)? ' ||
+  problems+=("plan guidance: no instruction in step 2 tells the conductor to end a ledger step with ⟦criterion k⟧")
+grep -F '⟦criterion' <<<"$plan_recs" | grep -F 'gap' | grep -Eq '(without|no |none|omit)' ||
+  problems+=("plan guidance: no instruction in step 2 says a gap step carries no ⟦criterion k⟧")
 report "$name"
 
 echo "----"
