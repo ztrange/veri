@@ -173,6 +173,39 @@ probe_every_rule_is_carried_by_one_record
 
 report "$name"
 
+# probe_budgets_invariant_names_the_fourth_axis — issue #219 gave the verifier a relaunch
+# budget of its own, `VERI_NO_VERDICT_RETRIES`, for a leaf that exited cleanly without a
+# `VERDICT:` line. It is not `VERI_STUCK_RETRIES`: that one answers liveness (the process
+# never finished), this one protocol compliance (the process finished and ignored the output
+# contract). The budgets invariant is where the document says why budgets are never merged,
+# so a fourth axis it does not name is one the next reader is free to fold into the stuck
+# retries. Asked of ONE record, like the roster above: the new variable, the one it must not
+# be merged with, that there are now four, the two failures each answers, and the verb that
+# keeps them apart.
+probe_budgets_invariant_names_the_fourth_axis() {
+  local text line re
+  text="$(records)"
+  local -a want=('veri_no_verdict_retries' 'veri_stuck_retries' 'four' 'liveness'
+                 'protocol|contract|compliance' 'never merged|not merged|one knob')
+
+  while IFS= read -r line; do
+    for re in "${want[@]}"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return
+  done <<< "$text"
+  problems+=("$claude_md has no single record naming VERI_NO_VERDICT_RETRIES as a fourth budget axis beside VERI_STUCK_RETRIES, liveness against protocol compliance, never merged")
+}
+
+# 2. One criterion, one case: the budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth
+#    axis and why it is not merged with VERI_STUCK_RETRIES (#219).
+name="$claude_md's budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth axis and why it is not merged with VERI_STUCK_RETRIES"
+problems=()
+
+probe_budgets_invariant_names_the_fourth_axis
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
