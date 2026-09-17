@@ -177,6 +177,12 @@ fi
 # of one verification file under the same actor and phase; a refusal leaves $role empty and nothing
 # is logged, rather than a line whose actor was invented. $leaf_name never changes, so it is asked once.
 role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
+mark() {  # mark <event> [key=value …] -> event.sh under $role, or nothing when leaf-role.sh refused
+  if [[ -n "$role" ]]; then
+    # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+    env $role "$HERE/event.sh" "$@"
+  fi
+}
 
 parse_err="$(mktemp)"
 trap 'rm -f "$parse_err"' EXIT
@@ -240,10 +246,7 @@ while :; do
     cause=no-verdict
     if [[ "$relaunches" -lt "$no_verdict_retries" ]]; then
       relaunches=$(( relaunches + 1 ))
-      if [[ -n "$role" ]]; then
-        # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
-        env $role "$HERE/event.sh" relaunch cause="$cause"
-      fi
+      mark relaunch cause="$cause"
       continue
     fi
   fi
@@ -274,10 +277,7 @@ esac
 # is the empty string it actually has.
 reason_line="${reason%%$'\n'*}"
 
-if [[ -n "$role" ]]; then
-  # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
-  env $role "$HERE/event.sh" verdict verdict="$word" reason="$reason_line" ${cause:+cause="$cause"}
-fi
+mark verdict verdict="$word" reason="$reason_line" ${cause:+cause="$cause"}
 
 printf '%s\n' "$reason"
 exit "$vcode"
