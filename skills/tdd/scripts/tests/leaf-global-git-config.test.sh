@@ -88,6 +88,29 @@ cmp -s "$work/gitconfig.before" "$home/.gitconfig" ||
   problems+=("want the leaf to read its own write back (read-back: wrote-it), got: $(printf '%q' "$out")")
 report "$name"
 
+# 2. Criterion 2. Private must not mean empty: the leaf's copy starts as the operator's
+#    global config, so what the operator configured for git — a credential helper,
+#    `url.*.insteadOf` — still works inside the leaf. A run-leaf that handed every leaf a
+#    blank file would pass case 1 while breaking every authenticated push a leaf makes.
+#    The probe is a key the operator's file holds and the leaf only reads, so the answer
+#    is about what the copy started with, not about what the leaf wrote into it.
+cat > "$stubdir/claude-reader" <<'STUB'
+#!/usr/bin/env bash
+seen="$(git config --global --get credential.helper 2>/dev/null)" || seen="<unset>"
+printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
+printf '{"type":"result","subtype":"success","is_error":false,"result":"sees: %s"}\n' "$seen"
+STUB
+chmod +x "$stubdir/claude-reader"
+printf '[user]\n\tname = Operator\n[credential]\n\thelper = veri-test-helper\n' > "$home/.gitconfig"
+
+name="a leaf's private global git config starts as a copy of the operator's, so a key present there is visible to the leaf"
+problems=()
+out="$( cd "$work" && env -u GIT_CONFIG_GLOBAL HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+    CLAUDE_BIN="$stubdir/claude-reader" "$LEAF" "$work/prompt.txt" 2>&1 )"
+[[ "$out" == *'sees: veri-test-helper'* ]] ||
+  problems+=("want the leaf to see the operator's credential.helper (sees: veri-test-helper), got: $(printf '%q' "$out")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
