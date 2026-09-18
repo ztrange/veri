@@ -893,8 +893,11 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
 - **PASS (exit 0) — commit the test as the pin, ticking the ledger atomically.** Same
   tick-and-commit shape as Green, but the commit carries the **test alone** and the `test:`
   type, because no production code was written (the verifier reverted its own mutation, so
-  the tree holds only the new test and the ticked ledger):
+  the tree holds only the new test and the ticked ledger). First run the **full suite**, the
+  run's `<test-cmd>`: neither the red leaf nor verify-pin ran more than the target's suite,
+  so this is the one place the pin path sees a pin that breaks another suite (#275):
   ```
+  <test-cmd>
   $S/tick-ledger.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```

@@ -162,6 +162,35 @@ grep -qE 'develop-green|verify-green|verifier' <<<"$full_suite_paragraphs" ||
 
 report "$name"
 
+# 2. The pin path's one full-suite run (issue #275). A pin commits straight off verify-pin's
+#    PASS, and neither the red leaf nor verify-pin runs more than the suite holding the new
+#    case — so a pin that breaks another suite (#256's case 22 hung `make test` for 17
+#    minutes through a shared stub) landed with nothing in the path having seen it. The
+#    conductor's PASS branch is where the full suite has to run: after the verdict, before
+#    the ledger tick and the `test: pin` commit that make the step done.
+#    Read raw, line by line, because the claim is about order: the run's <test-cmd> has to
+#    appear in the PASS branch above its tick-ledger.sh line, not anywhere in the section.
+name="$skill_md's pin PASS branch runs the full suite before it ticks and commits the pin"
+problems=()
+pin_heading='## Already satisfied — the pin'
+pass_branch="$(awk -v h="$pin_heading" '
+  !in_s && index($0, h) == 1 { in_s = 1; next }
+  in_s && /^#/ { exit }
+  in_s && /PASS \(exit 0\)/ { want = 1 }
+  in_s && want { print }' "$skill_path")"
+if [[ -z "${pass_branch//[[:space:]]/}" ]]; then
+  problems+=("$skill_md has no PASS (exit 0) branch under '$pin_heading' — what the pin path runs before it commits could not be established")
+else
+  grep -q 'tick-ledger\.sh' <<<"$pass_branch" ||
+    problems+=("$skill_md's pin PASS branch has no tick-ledger.sh line to order the full-suite run against")
+  grep -q 'git commit -m "test: pin' <<<"$pass_branch" ||
+    problems+=("$skill_md's pin PASS branch has no \`git commit -m \"test: pin\` line to order the full-suite run against")
+  before_tick="$(awk '/tick-ledger\.sh/ { exit } { print }' <<<"$pass_branch")"
+  grep -q '<test-cmd>' <<<"$before_tick" ||
+    problems+=("$skill_md's pin PASS branch never runs the full suite (<test-cmd>) before tick-ledger.sh and the \`test: pin\` commit, so a pin that breaks another suite commits unseen")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
