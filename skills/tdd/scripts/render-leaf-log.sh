@@ -8,7 +8,7 @@
 #                                     with `…` marking that something was cut
 #
 # Everything else — the system init, thinking blocks, the terminal result record —
-# prints nothing.
+# prints nothing. A line that is not JSON exits 2: no rendering can be given.
 #
 # Usage:   render-leaf-log.sh < .tdd/<leaf>.out
 #
@@ -28,7 +28,11 @@ def truncated(text, limit):
 
 out = []
 for line in sys.stdin:
-    obj = json.loads(line)
+    try:
+        obj = json.loads(line)
+    except ValueError:
+        sys.stderr.write("render-leaf-log.sh: not JSON: %s" % line)
+        sys.exit(2)
     content = (obj.get("message") or {}).get("content") or []
     for block in content:
         kind = block.get("type")

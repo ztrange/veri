@@ -40,6 +40,16 @@ check "renders text, tool calls and truncated results one per line" \
 < 3 passed, 0 failed
 The case is added and fails as predicted.'
 
+# 2. a line that is not JSON is no answer the renderer can give — exit 2, not a traceback's 1
+name="exits 2 on a line that is not JSON"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}' \
+  'not json at all' | "$RENDER" >/dev/null 2>&1
+rc=$?
+if [[ "$rc" -eq 2 ]]; then pass=$((pass + 1)); else
+  fail=$((fail + 1)); echo "FAIL - $name"
+  echo "    expected exit 2, got $rc"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
