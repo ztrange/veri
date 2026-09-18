@@ -261,9 +261,6 @@ report "$name"
 #    with a per-suite reach log, and fails naming the suite and what it tried. count-line-guard
 #    pins both — a fetch of a remote URL and a fetch of this checkout's own origin. Asking again
 #    here ran about a third of the suites twice on every `make test`.
-#
-#    The two scratch names stay set, empty, because case 9's cleanup trap still names them.
-fetch_work="" offline_work=""
 
 # 9. This suite runs no other suite a second time for the offline or own-origin checks (#301):
 #    `make test` already runs every suite once under the offline shim with a per-suite reach log,
@@ -280,7 +277,7 @@ name="hermetic-suites.test.sh re-runs no suite for the offline or own-origin cas
 if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
   rerun_work="$(mktemp -d)"
-  trap 'rm -rf "$lock_work" "$every_work" "$fetch_work" "$offline_work" "$rerun_work"' EXIT
+  trap 'rm -rf "$lock_work" "$every_work" "$rerun_work"' EXIT
   rerun_log="$rerun_work/runs"
   mkdir -p "$rerun_work/scripts/tests"
   : > "$rerun_log"
