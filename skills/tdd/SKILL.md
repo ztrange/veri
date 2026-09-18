@@ -106,7 +106,9 @@ file.
   once `max-seconds` pass with no completion file. The default is 540 s, comfortably inside
   Claude Code's 10-minute cap on a single foreground Bash call. On a **3, call it again**:
   the leaf is still running. A 3 with no leaf running means no result was ever recorded —
-  never success.
+  never success. A **2** also means the supervisor died without recording a status: no
+  completion file, and the pid in `.tdd/<name>.pid` no longer runs a supervisor for that
+  name. It takes the killed-stuck branch like any other 2.
 - `$S/run-leaf.sh <prompt-file|-> [claude args...]` — the inner leaf invocation. Runs
   `claude -p --output-format stream-json` so the leaf **streams events as it works** (that
   is the supervisor's heartbeat), then appends the clean final result. You always run it
