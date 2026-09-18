@@ -255,19 +255,15 @@ done
   problems+=("no suite here was recognised as invoking push-branch.sh, so nothing was checked")
 report "$name"
 
-# 7 and 8. Which suites reach the network, and whether one fetches this checkout's own origin
-#    (#258), are no longer asked by re-running every suite that names a network-capable script
-#    here (#301): `make test` runs every suite once under the offline shims in tests/offline/,
-#    with a per-suite reach log, and fails naming the suite and what it tried. count-line-guard
-#    pins both — a fetch of a remote URL and a fetch of this checkout's own origin. Asking again
-#    here ran about a third of the suites twice on every `make test`.
-
-# 9. This suite runs no other suite a second time for the offline or own-origin checks (#301):
-#    `make test` already runs every suite once under the offline shim with a per-suite reach log,
-#    so a re-run here only doubles what three leaves of every step pay for the same answer.
+# 7 and 8, which asked which suites reach the network and whether one fetches this checkout's
+#    own origin (#258), are gone: this suite now runs no other suite a second time for either
+#    (#301). `make test` runs every suite once under the offline shims in tests/offline/, with a
+#    per-suite reach log, and fails naming the suite and what it tried; count-line-guard pins both
+#    — a fetch of a remote URL and a fetch of this checkout's own origin. Asking again here ran
+#    about a third of the suites twice on every `make test`, for the same answer.
 #
-#    Probed by running a copy of this file in a scratch tree beside a stand-in for each kind of
-#    script cases 7 and 8 select on — one that fetches and pushes, named run-conductor.sh and
+# 9. Probed by running a copy of this file in a scratch tree beside a stand-in for each kind of
+#    script cases 7 and 8 selected on — one that fetches and pushes, named run-conductor.sh and
 #    push-branch.sh — and one probe suite that names both and appends a line to a log each time it
 #    runs. Cases 1 to 5 name their subjects by file, and the probe is none of them, so any line in
 #    the log is a re-run by some other case. The copy is run with HERMETIC_RERUN_PROBE set, which
