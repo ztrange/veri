@@ -38,17 +38,17 @@ trap 'rm -rf "$stub" "$work"' EXIT
 
 # exit-0: writes progress, finishes cleanly.
 cat > "$stub/leaf-ok" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 echo "leaf: starting"; echo "leaf: did the work"; exit 0
 L
 # exit-nonzero: writes progress, fails.
 cat > "$stub/leaf-fail" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 echo "leaf: starting"; echo "leaf: blew up"; exit 3
 L
 # hang: one line of progress, then silent forever (no heartbeat).
 cat > "$stub/leaf-hang" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 echo "leaf: starting"; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60; echo "unreachable"
 L
 # slow-but-alive: six ticks, each followed by a second of injected silence, so the leaf lives
@@ -56,7 +56,7 @@ L
 # for more than one. It waits for the supervisor to read the clock after every tick, so every
 # tick is watched rather than raced past.
 cat > "$stub/leaf-slow" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 : > .test-clock-reads
 for i in 1 2 3 4 5 6; do echo "leaf: tick $i"; clock-jump 1; await-poll; done
 echo "leaf: done"; exit 0
@@ -64,7 +64,7 @@ L
 # runaway: stays alive AND keeps emitting (heartbeat fresh) but never exits — only the
 # hard timeout can stop it. Each line lands a second later on the injected clock.
 cat > "$stub/leaf-runaway" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 : > .test-clock-reads
 while true; do echo "leaf: busy"; clock-jump 1; await-poll; done
 L
@@ -74,8 +74,8 @@ L
 # earlier run already flaked in would succeed straight away and never be relaunched: case 13
 # gives it a directory of its own for that reason as much as for the event log's.
 cat > "$stub/leaf-flaky" <<'L'
-#!/usr/bin/env bash
-if [[ -e .retry-marker ]]; then
+#!/bin/sh
+if [ -e .retry-marker ]; then
   echo "leaf: recovered on retry"; exit 0
 fi
 echo "leaf: starting"; : > .retry-marker; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60; echo "unreachable"
@@ -103,9 +103,9 @@ chmod +x "$stub"/leaf-*
 realdate="$(command -v date)"
 realstat="$(command -v stat)"
 cat > "$stub/date" <<D
-#!/usr/bin/env bash
-if [[ "\$*" == "+%s" ]]; then
-  [[ -e .test-clock-reads ]] && echo r >> .test-clock-reads
+#!/bin/sh
+if [ "\$*" = "+%s" ]; then
+  [ -e .test-clock-reads ] && echo r >> .test-clock-reads
   offset="\$(tail -n 1 .test-clock 2>/dev/null | cut -d' ' -f2)"
   printf '%s\n' "\$(( \$("$realdate" +%s) + \${offset:-0} ))"
 else
@@ -113,9 +113,10 @@ else
 fi
 D
 cat > "$stub/stat" <<D
-#!/usr/bin/env bash
-if [[ \$# -eq 3 && ( "\$1 \$2" == "-c %Y" || "\$1 \$2" == "-f %m" ) ]]; then
-  exec python3 -c '
+#!/bin/sh
+if [ "\$#" -eq 3 ]; then
+  if [ "\$1 \$2" = "-c %Y" ] || [ "\$1 \$2" = "-f %m" ]; then
+    exec python3 -c '
 import os, sys
 try:
     m = os.stat(sys.argv[1]).st_mtime
@@ -130,11 +131,12 @@ try:
 except OSError:
     pass
 print(int(m) + offset)' "\$3"
+  fi
 fi
 exec "$realstat" "\$@"
 D
 cat > "$stub/clock-jump" <<'C'
-#!/usr/bin/env bash
+#!/bin/sh
 exec python3 -c '
 import sys, time
 offset = 0
@@ -146,9 +148,9 @@ with open(".test-clock", "a") as f:
     f.write("%r %d\n" % (time.time(), offset + int(sys.argv[1])))' "$1"
 C
 cat > "$stub/await-poll" <<'C'
-#!/usr/bin/env bash
+#!/bin/sh
 n="$(wc -l < .test-clock-reads)"
-for _ in $(seq 1 500); do (( $(wc -l < .test-clock-reads) > n )) && exit 0; sleep 0.01; done
+for _ in $(seq 1 500); do [ "$(wc -l < .test-clock-reads)" -gt "$n" ] && exit 0; sleep 0.01; done
 exit 1
 C
 chmod +x "$stub/date" "$stub/stat" "$stub/clock-jump" "$stub/await-poll"
@@ -628,7 +630,7 @@ usage_turns=7
 # usual shape. The heredoc is unquoted so `$usage_turns` expands into the JSON; nothing else
 # inside it is a shell expansion.
 cat > "$stub/leaf-result" <<L
-#!/usr/bin/env bash
+#!/bin/sh
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
 echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":91234,"duration_api_ms":40118,"num_turns":$usage_turns,"result":"done","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
 exit 0
@@ -741,7 +743,7 @@ harvest_fail_work="$work/harvest-fail"
 # 16's reason, next to the case whose premise it is; the heredoc is quoted, since unlike case
 # 16's nothing inside it has to expand.
 cat > "$stub/leaf-bad-result" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
 echo '{"type":"result","subtype":"success","is_error":false,"duration_ms":91234,"duration_api_ms":40118,"num_turns":7,"result":"done","session_id":"4d1a","total_cost_usd":0.31}'
 exit 0
@@ -854,7 +856,7 @@ printf '%s' "$argv_prompt" > "$argv_work/prompt.txt"
 # run-leaf.sh's own suite emits, so extract-result.sh at the foot of run-leaf finds a result
 # to append and the supervision ends 0 rather than on a parse failure this case is not about.
 cat > "$stub/claude-argv" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' "$@" > "$ARGV_OUT"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
@@ -980,10 +982,10 @@ nogit_got="$(event_field "$nogit_work" launch skill_commit)"
 result_hang_stub() {
   local name="$1" subtype="$2" is_error="$3" text="$4" prelude="${5:-}"
   cat > "$stub/$name" <<L
-#!/usr/bin/env bash
+#!/bin/sh
 $prelude
-echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
-echo '{"type":"result","subtype":"$subtype","is_error":$is_error,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"$text","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
+printf '%s\n' '{"type":"result","subtype":"$subtype","is_error":$is_error,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"$text","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
 clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
 sleep 60
 L
@@ -1206,7 +1208,7 @@ mkdir -p "$nores_work"
 # record, both well-formed JSON, and then silence. No `{"type":"result", …}` line — the leaf
 # never got that far, which is the premise of the case.
 cat > "$stub/leaf-noresult-hang" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 echo '{"type":"system","subtype":"init","session_id":"4d1a","model":"claude-opus-5"}'
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: reading the suite"}]}}'
 clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
@@ -1273,7 +1275,7 @@ CLAIMS
 pid_work="$work/pid-record"
 mkdir -p "$pid_work"
 cat > "$stub/leaf-pid-seen" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 cat .tdd/develop-red.pid 2>/dev/null > pid-seen || echo '<missing>' > pid-seen
 exit 0
 L
@@ -1300,7 +1302,7 @@ pid_seen="$(tr -d '[:space:]' < "$pid_work/pid-seen" 2>/dev/null || echo '<no le
 term_work="$work/term-handler"
 mkdir -p "$term_work"
 cat > "$stub/leaf-term-sleep" <<'L'
-#!/usr/bin/env bash
+#!/bin/sh
 echo $$ > leaf-pid
 echo "leaf: started"
 exec sleep 60

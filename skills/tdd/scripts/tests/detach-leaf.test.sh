@@ -109,8 +109,8 @@ harness="$work/harness.sh"
 cat > "$harness" <<H
 #!/usr/bin/env bash
 set -uo pipefail
-nohup bash "$LEAF" "$CONTROL_EXIT" "$CONTROL_PID" > /dev/null 2>&1 &
-"$DETACH" bash "$LEAF" "$DETACHED_EXIT" "$DETACHED_PID" > /dev/null 2>&1
+nohup sh "$LEAF" "$CONTROL_EXIT" "$CONTROL_PID" > /dev/null 2>&1 &
+"$DETACH" sh "$LEAF" "$DETACHED_EXIT" "$DETACHED_PID" > /dev/null 2>&1
 printf '%s\n' launched > "$LAUNCHED_MARKER"
 sleep 60
 H
