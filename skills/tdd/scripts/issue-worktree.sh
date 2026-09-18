@@ -297,6 +297,20 @@ default_base() {
 # happened to state it.
 worktree_add() { git worktree add -q "$@" >&2; }
 
+# A path that holds only a seeded event log (issue #265): run-conductor.sh writes a
+# VERI_NEW_SKILL=1 re-pin's `skill-repin` line to `<path>/.tdd/events.jsonl` before this script
+# has made <path>, so that the event lands in the run's own log. `git worktree add` refuses a
+# directory that is not empty, so the log is set aside, the directory removed, and the log put
+# back by the EXIT trap — whether the add below succeeded or not, so a refused add loses no line.
+# Anything else in the directory is left alone for git to refuse, as before.
+if [[ -f "$path/.tdd/events.jsonl" ]] &&
+   [[ "$(ls -A "$path")" == .tdd ]] && [[ "$(ls -A "$path/.tdd")" == events.jsonl ]]; then
+  seeded_log="$(mktemp)"
+  mv "$path/.tdd/events.jsonl" "$seeded_log"
+  rmdir "$path/.tdd" "$path"
+  trap 'mkdir -p "$path/.tdd" && cat "$seeded_log" >> "$path/.tdd/events.jsonl" && rm -f "$seeded_log"' EXIT
+fi
+
 # One `git worktree add`, in one of three shapes, and a single print of the path afterwards —
 # whichever shape ran, the caller parses the same line.
 #

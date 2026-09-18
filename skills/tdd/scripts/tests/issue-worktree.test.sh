@@ -1037,6 +1037,26 @@ $before
 --- after
 $after" ))"
 
+# 26. a worktree path that already holds a seeded event log and nothing else (issue #265). A
+# VERI_NEW_SKILL=1 re-pin that runs before the run has a worktree writes its `skill-repin` line
+# to `.tdd/wt/<n>/.tdd/events.jsonl` ahead of this script, and `git worktree add` refuses a
+# directory that is not empty — so the worktree must still be made there, and the line must
+# still be in its log afterwards rather than lost with the directory git refused.
+repo="$work/seeded-log"
+new_repo "$repo"
+seeded="$(wt_path "$repo" 62)"
+mkdir -p "$seeded/.tdd"
+line='{"event": "skill-repin", "commit": "0123456"}'
+printf '%s\n' "$line" > "$seeded/.tdd/events.jsonl"
+
+errfile="$work/seeded-log.err"
+out="$(cd "$repo" && "$WT" 62 seeded 2>"$errfile")" && code=0 || code=$?
+top="$(cd "$seeded" 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null || true)"
+log="$(cat "$seeded/.tdd/events.jsonl" 2>/dev/null || true)"
+
+{ [[ "$code" == 0 ]] && [[ "$out" == "$seeded" ]] && [[ "$top" == "$seeded" ]] && [[ "$log" == *"$line"* ]]; } \
+  && ok || no "a path holding only a seeded .tdd/events.jsonl: the worktree is made there and the log survives (exit=$code want 0, stdout='$out' want '$seeded', git toplevel there='$top' want '$seeded', log='$log' want it to hold '$line', stderr='$(cat "$errfile")')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
