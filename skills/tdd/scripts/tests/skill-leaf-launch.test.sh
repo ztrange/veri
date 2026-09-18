@@ -20,6 +20,9 @@
 #   2. *Launching a leaf* — the section those launches live in — says why `nohup` alone is
 #      not enough: it survives a hang-up, but not a signal to the launching call's process
 #      group.
+#   3. Every launch that clears a leaf's completion file `.tdd/<name>.exit` clears its pid
+#      file `.tdd/<name>.pid` on the same line (issue #173), so a pid file left by an
+#      earlier leaf of the same name cannot end a later wait early.
 #
 # Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
 # *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
@@ -171,6 +174,39 @@ else
     fault "does not say nohup leaves the leaf in the launching call's process group"
   [[ -z "$faults" ]] ||
     problems+=("$skill_md *$section* $faults")
+fi
+
+report "$name"
+
+# clear_lines — the lines inside a fenced block that clear a completion file, each prefixed
+# with its line number: every `rm -f` naming a `.tdd/<name>.exit`. Those are the first of a
+# launch's three parts, and the only place the procedure resets a leaf's state before it.
+clear_lines() {
+  awk '
+    /^[[:space:]]*```/ { fence = !fence; next }
+    fence && /rm -f/ && /\.tdd\/[^ ]*\.exit/ { printf "%d\t%s\n", NR, $0 }
+  ' "$skill_path"
+}
+
+# 3. A pid file left by an earlier leaf of the same name cannot end a later wait early
+#    (issue #173). Names are reused on every step, and `wait-leaf.sh` exits 2 when the pid
+#    `.tdd/<name>.pid` records is no longer a supervisor — so the previous step's pid file,
+#    naming a supervisor long gone, would end the next wait before the new supervisor has
+#    written its own. The launch has to clear it together with `.tdd/<name>.exit`: the same
+#    `rm -f` line, for the same name, so the two can never be reset apart.
+name="$skill_md clears .tdd/<name>.pid together with .tdd/<name>.exit on every launch"
+problems=()
+
+clears="$(clear_lines)"
+if [[ -z "$clears" ]]; then
+  unreadable "line clearing a completion file inside a fenced block" "how a launch resets a leaf"
+else
+  while IFS=$'\t' read -r lineno text; do
+    exitfile="$(printf '%s\n' "$text" | grep -o '\.tdd/[^ ]*\.exit' | head -n 1)"
+    pidfile="${exitfile%.exit}.pid"
+    [[ "$text" == *"$pidfile"* ]] ||
+      problems+=("$skill_md:$lineno clears $exitfile but not $pidfile: $text")
+  done <<< "$clears"
 fi
 
 report "$name"
