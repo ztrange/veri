@@ -89,21 +89,29 @@ unreadable() {
   problems+=("$skill_md has no $1 — $2 could not be read")
 }
 
+# fenced_lines <ERE> — the lines of SKILL.md INSIDE a fenced block that match <ERE>, each
+# prefixed with its line number. The fence is what tells a command the conductor runs from
+# prose about it, so every probe of the commands reads through here. The fence regex allows
+# leading space because a phase's block is indented into its numbered step. The pattern
+# goes in through the environment, not `awk -v`, because `-v` would process its backslash
+# escapes and a `\.` would reach awk as a bare `.`.
+fenced_lines() {
+  PAT="$1" awk '
+    /^[[:space:]]*```/ { fence = !fence; next }
+    fence && $0 ~ ENVIRON["PAT"] { printf "%d\t%s\n", NR, $0 }
+  ' "$skill_path"
+}
+
 # launch_lines — the leaf launch lines of SKILL.md, each prefixed with its line number.
 #
-# A launch line is a line INSIDE a fenced block that names `supervise.sh` or `verify.sh`:
-# the fence is what tells a command the conductor runs from prose about it, and those two
+# A launch line is a fenced line that names `supervise.sh` or `verify.sh`: those two
 # scripts are what a leaf is launched as — a developer leaf through the supervisor, a
 # verifier through the `bash -c` wrapper that records the verdict. `wait-leaf.sh` and
 # `build-develop-prompt.sh` share those fences and launch nothing, so they are not matched;
 # the script inventory's `$S/supervise.sh <name> <cmd> [args...]` and *Bailing*'s
-# `verify.sh exited 2` are prose, so they are not either. The fence regex allows leading
-# space because a phase's block is indented into its numbered step.
+# `verify.sh exited 2` are prose, so they are not either.
 launch_lines() {
-  awk '
-    /^[[:space:]]*```/ { fence = !fence; next }
-    fence && /supervise\.sh|verify\.sh/ { printf "%d\t%s\n", NR, $0 }
-  ' "$skill_path"
+  fenced_lines 'supervise\.sh|verify\.sh'
 }
 
 # section_prose <heading-prefix> — the prose of the `## ` section whose heading starts with
@@ -182,10 +190,7 @@ report "$name"
 # with its line number: every `rm -f` naming a `.tdd/<name>.exit`. Those are the first of a
 # launch's three parts, and the only place the procedure resets a leaf's state before it.
 clear_lines() {
-  awk '
-    /^[[:space:]]*```/ { fence = !fence; next }
-    fence && /rm -f/ && /\.tdd\/[^ ]*\.exit/ { printf "%d\t%s\n", NR, $0 }
-  ' "$skill_path"
+  fenced_lines 'rm -f .*\.tdd/[^ ]*\.exit'
 }
 
 # 3. A pid file left by an earlier leaf of the same name cannot end a later wait early
