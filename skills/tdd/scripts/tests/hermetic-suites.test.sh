@@ -310,6 +310,49 @@ same_both_ways run-conductor.test.sh \
   -- VERI_NEW_SKILL=1
 report "$name"
 
+# 10. Cases 1 to 5 still fail, named, on a suite that leaks (#301). Probed the way case 9 is: a copy
+#     of this file runs in a scratch tree beside a stand-in for each suite those cases name, and
+#     every stand-in is green when run clean but goes red on exactly the ambient value its case
+#     sets — VERI_STUCK_RETRIES, VERI_MODEL, VERI_PRIORITY_LABEL, or a conductor lock under its
+#     cwd. A stand-in that were red either way would make its case fail for "nothing to compare
+#     against", which is a failure but not the one this pins, so each is green clean by
+#     construction. The copy is run with HERMETIC_LEAK_PROBE and HERMETIC_RERUN_PROBE set, which
+#     this case and case 9 read to skip themselves in the child.
+name="a suite whose answer changes with an ambient VERI_* value or a live conductor lock fails hermetic-suites.test.sh, named"
+if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
+  problems=()
+  leak_work="$(mktemp -d)"
+  trap 'rm -rf "$lock_work" "$every_work" "${rerun_work:-}" "$leak_work"' EXIT
+  mkdir -p "$leak_work/scripts/tests"
+  for stand_in in \
+    'supervise-retry:[[ -z "${VERI_STUCK_RETRIES:-}" ]]' \
+    'leaf-model:[[ -z "${VERI_MODEL:-}" ]]' \
+    'solvable-issues:[[ -z "${VERI_PRIORITY_LABEL:-}" ]] && ! ls .tdd/wt/*/.tdd/conductor.pid'; do
+    {
+      printf '#!/usr/bin/env bash\n'
+      printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
+      printf 'if %s >/dev/null 2>&1; then echo "1 passed, 0 failed"; exit 0; fi\n' "${stand_in#*:}"
+      printf 'echo "0 passed, 1 failed"; exit 1\n'
+    } > "$leak_work/scripts/tests/${stand_in%%:*}.test.sh"
+  done
+  cp "$HERE/$(basename "$0")" "$leak_work/scripts/tests/"
+  chmod +x "$leak_work/scripts/tests/"*.test.sh
+  leak_out="$(HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 "$leak_work/scripts/tests/$(basename "$0")" 2>/dev/null)" &&
+    leak_code=0 || leak_code=$?
+  [[ "$leak_code" != 0 ]] ||
+    problems+=("want the copy to exit non-zero with every stand-in leaking, got 0: $(printf '%q' "$leak_out")")
+  for leaked in \
+    "supervise-retry.test.sh: ambient VERI_STUCK_RETRIES=0" \
+    "leaf-model.test.sh: an ambient VERI_MODEL" \
+    "solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL" \
+    "solvable-issues.test.sh: a live conductor lock in the surrounding repository" \
+    "solvable-issues.test.sh: a live conductor lock for every number"; do
+    [[ "$leak_out" == *"FAIL - $leaked"* ]] ||
+      problems+=("want a FAIL line naming '$leaked', got: $(printf '%q' "$leak_out")")
+  done
+  report "$name"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
