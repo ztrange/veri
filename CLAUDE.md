@@ -218,11 +218,19 @@ causes are Mac-only, and none of them is the suites' own work:
 - **bash 3.2** — `/bin/bash` is the one macOS ships, and it is slow where the suites are busy:
   a pattern substitution over CLAUDE.md's 17.5 kB took 3.86 s on it and ~0.2 s on bash 5.
   veri now requires bash 5 (`brew install bash`) and refuses to run a suite without it.
-- **Locale, stdin and xcrun's git** — the `test` recipe fixes all three for every suite
-  (`LC_ALL=C`, `< /dev/null`, `xcrun -f git`), and `make-test-env.test.sh` pins them. BSD
-  text tools run ~12× slower in UTF-8; an inherited stdin let a stub `claude`'s `cat` block
-  a leaf's backgrounded `make test` for 28 minutes; `/usr/bin/git` is a shim costing ~21 ms a
-  call.
+- **Locale, stdin and git** — the `test` recipe fixes all three for every suite (`LC_ALL=C`,
+  `< /dev/null`, a resolved-and-symlinked `git`), and `make-test-env.test.sh` pins them. BSD
+  text tools run ~12× slower in UTF-8; an inherited stdin let a stub `claude`'s `cat` block a
+  leaf's backgrounded `make test` for 28 minutes; `/usr/bin/git` is xcrun's own shim, costing
+  ~21 ms a call on top of the real binary, so the recipe resolves it once with `xcrun -f git`
+  and puts a plain symlink to the answer first on every suite's PATH. That symlink used to be
+  a bash wrapper instead — `tests/offline/git`, refusing a remote URL by pattern-matching the
+  git verb — and cost ~26 ms/call against ~8 ms for the real binary, 1,820 of a run's 4,834
+  bash starts (measured 2026-09-18). It is gone: refusing a remote reach is now git's own
+  `protocol.allow=never` / `protocol.file.allow=always` (set via the same GIT_CONFIG_COUNT
+  mechanism as `http.proxy`), and a suite whose fetch is refused no longer gets a named
+  "tried the network: …" line the way one that calls gh or curl still does — those two stay
+  bash shims, since they are not the hot path. `count-line-guard.test.sh` pins both halves.
 - **The first run of a new executable** — macOS checks every newly written or copied
   executable the first time it runs: ~330 ms each, against ~5 ms afterwards. The suites write
   stubs and copy the skill per case. The fix is a machine setting, not code: run
