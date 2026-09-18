@@ -203,3 +203,31 @@ is why every tunable is read as `${VAR:-default}`.
 
 A guard or a failure path that has never been watched to fail is not tested. Break it on
 purpose, see the test go red, put it back.
+
+## `make test` on the development Mac
+
+It measured 393–515 s here against 176 s on CI (2026-09-18, the same 76 suites). Four
+causes are Mac-only, and none of them is the suites' own work:
+
+- **Locale, stdin and xcrun's git** — the `test` recipe fixes all three for every suite
+  (`LC_ALL=C`, `< /dev/null`, `xcrun -f git`), and `make-test-env.test.sh` pins them. BSD
+  text tools run ~12× slower in UTF-8; an inherited stdin let a stub `claude`'s `cat` block
+  a leaf's backgrounded `make test` for 28 minutes; `/usr/bin/git` is a shim costing ~21 ms a
+  call.
+- **The first run of a new executable** — macOS checks every newly written or copied
+  executable the first time it runs: ~330 ms each, against ~5 ms afterwards. The suites write
+  stubs and copy the skill per case. The fix is a machine setting, not code: run
+  `sudo spctl developer-mode enable-terminal`, then enable the terminal that launches veri
+  under System Settings → Privacy & Security → Developer Tools, and restart it. Ghostty is
+  enabled here, measured at 5 ms, including for a child detached with `setsid` as
+  `detach-leaf.sh` does. **A Claude desktop session is not covered**: the app launches
+  commands through a `disclaimer` helper that makes a versioned `claude.app` under
+  `~/Library/Application Support/Claude/claude-code/` responsible, and that path changes on
+  every update. Launch conductors from the enabled terminal.
+
+What is left of the gap to CI is the four suites that wait on a real clock (`verify`,
+`supervise`, `wait-leaf`, `detach-leaf`: 144 s here, 115 s on CI) and `run-conductor.test.sh`
+running up to four times a run. Neither is fixed by an acceptance criterion measured in
+seconds on this machine — #282 bailed twice on exactly that — so a veri issue about speed
+states a deterministic proxy (seconds of `sleep` requested, runs made), and CI's
+`timeout-minutes` stays the only wall-clock gate.

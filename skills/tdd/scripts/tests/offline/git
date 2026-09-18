@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # git on make test's PATH (#301): a remote verb whose target resolves to a URL rather than a path
 # on this filesystem is written to $OFFLINE_REACH_LOG and refused with exit 128, so no suite
-# reaches the network; everything else goes to the git that was on PATH before this one,
-# $OFFLINE_REAL_GIT. The same shim hermetic-suites.test.sh used to install for its second run.
+# reaches the network; everything else goes to $OFFLINE_REAL_GIT, the real git the recipe resolved
+# (xcrun's answer on a Mac, the git on PATH elsewhere). The same shim hermetic-suites.test.sh used
+# to install for its second run.
 real_git="${OFFLINE_REAL_GIT:?}"
 remote_url() { [[ "$1" =~ ^[A-Za-z][A-Za-z0-9+.-]*:// || "$1" =~ ^[^/:]+@[^/:]+: ]]; }
 pre=()
