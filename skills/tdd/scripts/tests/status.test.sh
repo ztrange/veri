@@ -178,6 +178,22 @@ for want in "11 running" "12 done" "12 https://github.com/o/r/pull/12" "13 baile
 done
 expect_nothing_missing "a run shows its state: running, done with its PR url, bailed with phase and classification, or stale"
 
+# --- a done run keeps its last step's attempt count (#278) ---
+# #15's one step launched develop-red twice, then the run ended. `event.sh done` runs with no
+# VERI_STEP, so the trailing done line's step is "" — it closes the run, it starts no step, and
+# the line must still say attempt 2, not attempt 0.
+finished="$(repo finished)"
+now="$(date +%s)"
+run="$(launched_run "$finished" 15 $((now - 40)))"
+printf '{"ts": %s, "issue": "15", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "2", "skill_commit": "abc", "name": "develop-red"}\n' \
+  "$((now - 30))" >> "$run/.tdd/events.jsonl"
+printf '{"ts": %s, "issue": "15", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://github.com/o/r/pull/15"}\n' \
+  "$((now - 20))" >> "$run/.tdd/events.jsonl"
+run_in "$finished"
+missing=()
+[[ "$out" == *"attempt 2 "* ]] || missing+=("attempt 2")
+expect_nothing_missing "a finished run's line reports its last step's attempt count, not attempt 0, when the done event carries an empty step"
+
 # --- --scope <name>: the scope's totals — attempted, done, bailed, wall time, dollars ---
 # Three runs in one repository. Wall time is each run's span from its first event to its last,
 # summed, so it is read from the files alone and never drifts with the clock: #21 is running,

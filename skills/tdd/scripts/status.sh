@@ -51,9 +51,9 @@ with open(sys.argv[1]) as f:
             continue
         line = json.loads(raw)
         newest = line
-        if line.get("step") != step:
-            step, attempts = line.get("step"), 0
         if line.get("event") == "launch":
+            if line.get("step") != step:
+                step, attempts = line.get("step"), 0
             last = line
             attempts += 1
         elif line.get("event") == "usage":
