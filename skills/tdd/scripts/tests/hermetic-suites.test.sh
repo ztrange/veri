@@ -83,6 +83,15 @@ same_both_ways() {
   same_answer cleared "$cleared_code" "$cleared_out" "$ambient_code" "$ambient_out"
 }
 
+# solvable_in <dir> <env setting…> — solvable-issues.test.sh's stdout, run with <dir> as its cwd
+# and the settings forwarded to `env` verbatim; its exit status is the suite's. Cases 3, 4 and 5
+# run every arm through here, so an arm can differ from the reference only by its cwd or its
+# settings.
+solvable_in() {
+  local dir="$1"; shift
+  (cd "$dir" && env "$@" "$HERE/solvable-issues.test.sh" 2>/dev/null)
+}
+
 # 1. The contract above, probed by running the whole suite as a child process: the leak is
 #    in how supervise-retry.test.sh spawns the supervisor, so only a real run of it walks
 #    that path — there is nothing to assert in-process.
@@ -134,10 +143,10 @@ report "$name"
 lock_work="$(mktemp -d)"
 trap 'rm -rf "$lock_work"' EXIT
 git init -q -b main "$lock_work/no-lock" >/dev/null 2>&1
-unlocked_out="$(cd "$lock_work/no-lock" && env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && unlocked_code=0 || unlocked_code=$?
+unlocked_out="$(solvable_in "$lock_work/no-lock" -u VERI_PRIORITY_LABEL)" && unlocked_code=0 || unlocked_code=$?
 
 name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
-label_out="$(cd "$lock_work/no-lock" && VERI_PRIORITY_LABEL=ready-for-agent "$HERE/solvable-issues.test.sh" 2>/dev/null)" && label_code=0 || label_code=$?
+label_out="$(solvable_in "$lock_work/no-lock" VERI_PRIORITY_LABEL=ready-for-agent)" && label_code=0 || label_code=$?
 same_answer cleared "$unlocked_code" "$unlocked_out" "$label_code" "$label_out"
 report "$name"
 
@@ -166,7 +175,7 @@ for n in 108 117 120 124; do
   printf '%s\n' "$$" > "$lock_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
 done
 
-locked_out="$(cd "$lock_work/locked" && env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && locked_code=0 || locked_code=$?
+locked_out="$(solvable_in "$lock_work/locked" -u VERI_PRIORITY_LABEL)" && locked_code=0 || locked_code=$?
 
 same_answer no-lock "$unlocked_code" "$unlocked_out" "$locked_code" "$locked_out"
 report "$name"
@@ -197,7 +206,7 @@ for n in "${fixture_numbers[@]+"${fixture_numbers[@]}"}"; do
   printf '%s\n' "$$" > "$every_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
 done
 
-every_locked_out="$(cd "$every_work/locked" && env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && every_locked_code=0 || every_locked_code=$?
+every_locked_out="$(solvable_in "$every_work/locked" -u VERI_PRIORITY_LABEL)" && every_locked_code=0 || every_locked_code=$?
 
 same_answer no-lock "$unlocked_code" "$unlocked_out" "$every_locked_code" "$every_locked_out"
 [[ "${#fixture_numbers[@]}" -gt 0 ]] ||
