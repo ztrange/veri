@@ -315,6 +315,24 @@ if [[ "$solvable" == "2" && "$code" -eq 0 ]]; then ok; else
   diff <(printf '2\nexit 0\n') <(printf '%s\nexit %s\n' "$solvable" "$code")
 fi
 
+# --- --json: a bailed run's bail_phase is the bail event's phase, not its last launch's ---
+# The four runs of the state case above. #13's only launch was in red and its bail in green,
+# so the two keys disagree: phase must say red, from the launch, and bail_phase green, from
+# the bail — a bail_phase read off the launch would say red twice.
+VERI_TIMEOUT=600 run_in "$states" --json
+phases="$(printf '%s' "$out" | python3 -c '
+import json, sys
+try:
+    run = [r for r in json.loads(sys.stdin.read())["runs"] if r["issue"] == "13"][0]
+    print("phase=%s bail_phase=%s" % (run["phase"], run["bail_phase"]))
+except (ValueError, KeyError, TypeError, IndexError) as err:
+    print("no run #13 with phase and bail_phase: %r" % err)
+')"
+if [[ "$phases" == "phase=red bail_phase=green" && "$code" -eq 0 ]]; then ok; else
+  no "--json reports bail_phase from the bail event's own phase, not the last launch's"
+  diff <(printf 'phase=red bail_phase=green\nexit 0\n') <(printf '%s\nexit %s\n' "$phases" "$code")
+fi
+
 # --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
 # One running run, watched every 1 s with stdout to a file. Once its first render is on screen,
 # a `done` event is appended to the run's log. The watcher must still be going, must have moved
