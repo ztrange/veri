@@ -45,6 +45,8 @@ test_path="${3:?missing <test-path>}"
 target="${4:-}"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/leaf-model.sh
+source "$HERE/lib/leaf-model.sh"
 
 # The verifier leaf's name, spelled once. Four things below are derived from it and must agree
 # — the name supervise.sh supervises under, the `.tdd/<name>.prompt` and `.tdd/<name>.log`
@@ -79,7 +81,9 @@ if [[ -n "${VERIFY_LEAF_ARGS:-}" ]]; then
   # save. Exit 2: no answer could be obtained, the plumbing speaking rather than a verdict. A
   # leaf-model.sh refusal (exit 2, whitespace) is read here as "no model chosen" and left to
   # preflight, which runs the resolver once per role before any cycle and reports its diagnostic.
-  resolved_model="$("$HERE/leaf-model.sh" "$leaf_name")" || resolved_model=""
+  # $(...) still forks a subshell to run leaf_model in, so its `return 2` reaches this
+  # `||` exactly the way the old subprocess's exit 2 did.
+  resolved_model="$(leaf_model "$leaf_name")" || resolved_model=""
   if [[ -n "$resolved_model" ]]; then
     for arg in "${leaf_args[@]}"; do
       if [[ "$arg" == "--model" ]]; then
@@ -197,10 +201,10 @@ fi
 # leaf-role.sh, the same derivation supervise.sh marks under (supervise.sh:141-157), so both halves
 # of one verification file under the same actor and phase; a refusal leaves $role empty and nothing
 # is logged, rather than a line whose actor was invented. $leaf_name never changes, so it is asked once.
-role="$("$HERE/leaf-role.sh" "$leaf_name")" || role=""
-mark() {  # mark <event> [key=value …] -> event.sh under $role, or nothing when leaf-role.sh refused
+role="$(leaf_role "$leaf_name")" || role=""
+mark() {  # mark <event> [key=value …] -> event.sh under $role, or nothing when leaf_role refused
   if [[ -n "$role" ]]; then
-    # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+    # shellcheck disable=SC2086  -- intentional word-split of leaf_role's assignments
     env $role "$HERE/event.sh" "$@"
   fi
 }
