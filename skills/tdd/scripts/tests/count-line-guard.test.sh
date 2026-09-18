@@ -476,6 +476,62 @@ probe_reaching_suite_is_refused_and_named
 
 report "$name"
 
+# probe_own_origin_fetch_is_refused_and_named — the criterion. hermetic-suites.test.sh used to
+# answer "no suite fetches this checkout's own origin" by re-running every suite that names
+# run-conductor.sh under a shim of its own; this asks the recipe's single run instead. The suite
+# handed to it is written into a scratch directory and is green in every other respect — exits 0,
+# ends in its count line — and does what run-conductor.sh does since #251: fetches `origin` in the
+# clone the skill sits in, which is this checkout, naming the remote rather than its URL. The
+# origin is written into the suite as text, the way case 7 there writes it into its shim, so a
+# recipe that severs the suite's environment cannot hand it an empty one. `--dry-run` so that if
+# the recipe lets the fetch through, it still writes no ref into the shared `.git`. A checkout
+# with no origin has no own origin to fetch, and would pass about nothing — so that is probed.
+probe_own_origin_fetch_is_refused_and_named() {
+  local tree suite own_origin tried
+  own_origin="$(git -C "$ROOT" remote get-url origin 2>/dev/null)"
+  [[ -n "$own_origin" ]] || {
+    problems+=("this checkout has no origin, so there is no own origin a fetch could reach and nothing was checked")
+    return
+  }
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch tree to hold a suite that fetches its own origin, so the criterion went unasked")
+    return
+  }
+  suite="$tree/fetches-own-origin.test.sh"
+  {
+    printf '#!/usr/bin/env bash\nset -uo pipefail\n'
+    printf 'root=%q\n' "$ROOT"
+    cat <<'SUITE'
+GIT_TERMINAL_PROMPT=0 git -C "$root" fetch --dry-run --quiet >/dev/null 2>&1
+echo "1 passed, 0 failed"
+exit 0
+SUITE
+  } > "$suite"
+  chmod +x "$suite"
+
+  recipe "$suite"
+  [[ "$recipe_code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite that fetched this checkout's own origin; it exited 0 and said: $(flat "$recipe_out")")
+  tried="$(grep -F 'fetches-own-origin.test.sh' <<< "$recipe_out" | grep -F "$own_origin")"
+  [[ -n "$tried" ]] ||
+    problems+=("no line of the run names fetches-own-origin.test.sh together with $own_origin, so the refusal does not say which suite fetched this checkout's own origin")
+
+  rm -rf "$tree"
+}
+
+# 7. Issue #301: the own-origin guarantee (#258) holds from the recipe's own run of every suite,
+#    not from hermetic-suites.test.sh re-running the ones that name run-conductor.sh. A suite that
+#    fetches this checkout's own origin fails `make test`, and the failure names the suite and the
+#    origin it fetched.
+name="make test fails a suite that fetches this checkout's own origin, naming the suite and the origin"
+problems=()
+recipe_out=""
+recipe_code=0
+
+probe_own_origin_fetch_is_refused_and_named
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
