@@ -916,6 +916,31 @@ refuses "reconcile missing remote sha" "$BUILD" reconcile "$work/spec.md" "$step
 [[ -z "$problems" ]] \
   && ok || no "develop-reconcile carries the remote sha, the branch and a pinned --force-with-lease=<branch>:<sha>, offers no bare --force, and refuses a missing argument with exit 2 (${problems#; })"
 
+# 25. every built developer prompt forbids changing global or user-level configuration, and
+#     names environment variables and throwaway directories as the way to simulate a condition
+#     instead (issue #276). build-verify-prompt.test.sh's case 20 asks this of the verifier
+#     prompts, after a verify-refactor leaf's `git config --global http.proxy …` outlived the
+#     `trap` meant to undo it on 2026-09-17; a developer leaf runs with the same
+#     `--permission-mode bypassPermissions` and the same `$HOME`, so its reach is the same and
+#     so is the rule. The alternative is half of the behaviour for case 16's reason — the need to
+#     simulate a condition is legitimate — and each phase is its own miss for case 14's.
+#
+#     Reads the four prompts cases 14–16 read and adds no invocation. The probes are that case
+#     20's, word for word: the prohibition held within one sentence, and "throwaway" asked to
+#     come with a directory, since the stash rule's "throwaway checkout" already carries the word.
+forbids_global_config() {  # forbids_global_config <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "develop-$label never forbids changing global or user-level configuration" \
+    -iE -e "(never|do not|don't|not)[^.]{0,80}(global|user-level)[^.]{0,60}config"
+  prompt_says "$prompt" "develop-$label never names environment variables as the way to simulate a condition" \
+    -iE -e 'environment variables?'
+  prompt_says "$prompt" "develop-$label never names throwaway directories as the way to simulate a condition" \
+    -iE -e '(throwaway|temporary|scratch)[^.]{0,20}director(y|ies)'
+}
+
+every_phase forbids_global_config \
+  "every built developer prompt forbids changing global or user-level configuration and names environment variables and throwaway directories instead"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
