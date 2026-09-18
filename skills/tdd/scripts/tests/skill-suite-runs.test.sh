@@ -65,24 +65,30 @@ plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# doc_text <file> <heading-prefix> <from-regex> — the text of the first section of <file>
-# whose heading STARTS WITH the literal <heading-prefix>, up to the line before the next
-# heading of any level; from the first line matching <from-regex> when one is given, so a
-# claim about one sub-step is not answered by a sentence three sub-steps above it. The text
-# is normalised through `plain` and its lines are then joined onto one, so a claim split
-# over a line break still reads as one sentence.
+# section_lines <file> <heading-prefix> <from-regex> — the raw lines of the first section of
+# <file> whose heading STARTS WITH the literal <heading-prefix>, up to the line before the
+# next heading of any level; from the first line matching <from-regex> when one is given, so
+# a claim about one sub-step is not answered by a sentence three sub-steps above it. Raw, one
+# line per line, for a probe whose claim is about the order of lines.
 #
 # A literal prefix rather than a regex: the phase headings carry trailing prose after an em
 # dash, so the prefix is what identifies them, and a literal is what lets `need_text` below
 # quote the same string it searched for.
-doc_text() {
+section_lines() {
   awk -v h="$2" -v from="$3" '
     !in_s && index($0, h) == 1 { in_s = 1; want = (from == "" ? 1 : 0); next }
     in_s && /^#/ { exit }
     in_s {
       if (!want && $0 ~ from) want = 1
       if (want) print
-    }' "$1" | plain | tr '\n' ' '
+    }' "$1"
+}
+
+# doc_text <file> <heading-prefix> <from-regex> — the same section as `section_lines`,
+# normalised through `plain` and its lines then joined onto one, so a claim split over a
+# line break still reads as one sentence.
+doc_text() {
+  section_lines "$@" | plain | tr '\n' ' '
 }
 
 # need_text <heading-prefix> [from-regex] — the SKILL.md section under <heading-prefix> into
@@ -173,11 +179,7 @@ report "$name"
 name="$skill_md's pin PASS branch runs the full suite before it ticks and commits the pin"
 problems=()
 pin_heading='## Already satisfied — the pin'
-pass_branch="$(awk -v h="$pin_heading" '
-  !in_s && index($0, h) == 1 { in_s = 1; next }
-  in_s && /^#/ { exit }
-  in_s && /PASS \(exit 0\)/ { want = 1 }
-  in_s && want { print }' "$skill_path")"
+pass_branch="$(section_lines "$skill_path" "$pin_heading" 'PASS [(]exit 0[)]')"
 if [[ -z "${pass_branch//[[:space:]]/}" ]]; then
   problems+=("$skill_md has no PASS (exit 0) branch under '$pin_heading' — what the pin path runs before it commits could not be established")
 else
