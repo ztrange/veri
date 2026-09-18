@@ -354,7 +354,7 @@ JSON
 stubdir="$work/bin"
 mkdir -p "$stubdir"
 cat > "$stubdir/gh" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' "$*" >> "$ARGV_OUT"
 case "$1 $2" in
   "issue list") cat "$GH_ISSUES" ;;
@@ -1441,7 +1441,7 @@ narration="$(loop_bullet '^- [*][*]Exit 0:' '^### ')"
 paging_gh() {  # paging_gh <dir> < <case body>
   mkdir -p "$1"
   { cat <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 limit=30
 prev=""
 for arg in "$@"; do
@@ -1539,7 +1539,7 @@ prpagedir="$work/paging-prs-bin"
 paging_gh "$prpagedir" <<'STUB'
 case "$1 $2" in
   "issue list")
-    echo '[{"number": 7, "title": "issue 7", "state": "OPEN", "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\nNone.\n"}]' ;;
+    printf '%s\n' '[{"number": 7, "title": "issue 7", "state": "OPEN", "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\nNone.\n"}]' ;;
   "pr list")
     python3 -c '
 import json, sys

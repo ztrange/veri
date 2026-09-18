@@ -89,9 +89,9 @@ push_counting_git() {
   mkdir -p "$stubdir"
   : > "$calls"
   cat > "$stubdir/git" <<STUB
-#!/usr/bin/env bash
+#!/bin/sh
 for a in "\$@"; do
-  if [[ "\$a" == push ]]; then echo push >> "$calls"; break; fi
+  if [ "\$a" = push ]; then echo push >> "$calls"; break; fi
 done
 exec "$(command -v git)" "\$@"
 STUB
@@ -319,11 +319,11 @@ calls="$work/push-calls-second"
 mkdir -p "$stubdir"
 : > "$calls"
 cat > "$stubdir/git" <<STUB
-#!/usr/bin/env bash
+#!/bin/sh
 for a in "\$@"; do
-  if [[ "\$a" == push ]]; then
+  if [ "\$a" = push ]; then
     echo push >> "$calls"
-    if [[ "\$(grep -c . "$calls")" -eq 1 ]]; then
+    if [ "\$(grep -c . "$calls")" -eq 1 ]; then
       echo "fatal: unable to access origin: simulated blip" >&2
       exit 128
     fi
@@ -378,7 +378,7 @@ sleeps="$work/sleep-calls"
 mkdir -p "$stubdir"
 : > "$sleeps"
 cat > "$stubdir/sleep" <<STUB
-#!/usr/bin/env bash
+#!/bin/sh
 echo "\$*" >> "$sleeps"
 STUB
 chmod +x "$stubdir/sleep"
@@ -525,7 +525,7 @@ gitout="$work/git-own-output-quiet"
 mkdir -p "$stubdir"
 : > "$gitout"
 cat > "$stubdir/git" <<STUB
-#!/usr/bin/env bash
+#!/bin/sh
 o="\$(mktemp)" e="\$(mktemp)"
 "$(command -v git)" "\$@" >"\$o" 2>"\$e"; rc=\$?
 cat "\$o"; cat "\$e" >&2

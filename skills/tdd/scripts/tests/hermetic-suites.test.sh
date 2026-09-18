@@ -317,12 +317,12 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   trap 'rm -rf "$lock_work" "${rerun_work:-}" "$leak_work"' EXIT
   mkdir -p "$leak_work/scripts/tests"
   for stand_in in \
-    'supervise-retry:[[ -z "${VERI_STUCK_RETRIES:-}" ]]' \
-    'leaf-model:[[ -z "${VERI_MODEL:-}" ]]' \
-    'solvable-issues:[[ -z "${VERI_PRIORITY_LABEL:-}" ]] && ! ls .tdd/wt/*/.tdd/conductor.pid' \
-    'run-conductor:[[ -z "${VERI_NEW_SKILL:-}" ]]'; do
+    'supervise-retry:[ -z "${VERI_STUCK_RETRIES:-}" ]' \
+    'leaf-model:[ -z "${VERI_MODEL:-}" ]' \
+    'solvable-issues:[ -z "${VERI_PRIORITY_LABEL:-}" ] && ! ls .tdd/wt/*/.tdd/conductor.pid' \
+    'run-conductor:[ -z "${VERI_NEW_SKILL:-}" ]'; do
     {
-      printf '#!/usr/bin/env bash\n'
+      printf '#!/bin/sh\n'
       printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
       printf 'if %s >/dev/null 2>&1; then echo "1 passed, 0 failed"; exit 0; fi\n' "${stand_in#*:}"
       printf 'echo "0 passed, 1 failed"; exit 1\n'
@@ -369,9 +369,9 @@ if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${H
   mkdir -p "$share_work/scripts/tests" "$share_work/cwd"
   : > "$share_log"
   {
-    printf '#!/usr/bin/env bash\n'
+    printf '#!/bin/sh\n'
     printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
-    printf 'if [[ -z "${VERI_PRIORITY_LABEL:-}" ]] && ! ls .tdd/wt/*/.tdd/conductor.pid >/dev/null 2>&1; then\n'
+    printf 'if [ -z "${VERI_PRIORITY_LABEL:-}" ] && ! ls .tdd/wt/*/.tdd/conductor.pid >/dev/null 2>&1; then\n'
     printf '  printf "%%s\\n" reference >> %q\n' "$share_log"
     printf 'fi\n'
     printf 'echo "1 passed, 0 failed"\n'
