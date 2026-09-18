@@ -218,15 +218,16 @@ fi
 
 report "$name"
 
-# inventory_entry <script> — the script inventory's bullet for <script>, as one lowercased
-# line: from the `- `$S/<script>` bullet up to the next bullet, heading or blank line.
-# Prints nothing when no bullet names <script>, so the caller can fail closed.
+# inventory_entry <script> — the script inventory's bullet for <script>, as one line: from
+# the `- `$S/<script>` bullet up to the next bullet, heading or blank line. Prints nothing
+# when no bullet names <script>, so the caller can fail closed. Case is the caller's to fold,
+# as it is for `section_prose`.
 inventory_entry() {
   awk -v want="- \`\$S/$1" '
     index($0, want) == 1 { inentry = 1; print; next }
     inentry && (/^- / || /^#/ || /^[[:space:]]*$/) { inentry = 0 }
     inentry
-  ' "$skill_path" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]'
+  ' "$skill_path" | tr '\n' ' '
 }
 
 # 4. A 2 from `wait-leaf.sh` also means the supervisor died without recording a status
@@ -238,7 +239,7 @@ waiter="wait-leaf.sh"
 name="$skill_md's $waiter entry says a 2 also means the supervisor died without recording a status, and takes the killed-stuck branch"
 problems=()
 
-entry="$(inventory_entry "$waiter")"
+entry="$(inventory_entry "$waiter" | tr '[:upper:]' '[:lower:]')"
 if [[ -z "$entry" ]]; then
   unreadable "script inventory entry for $waiter" "what its exit codes mean"
 else
