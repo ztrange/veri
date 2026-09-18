@@ -668,13 +668,14 @@ with open(sys.argv[1]) as f:
 QUOTED = "\"\x27\x60"
 
 
-# The index just past the ")" that closes a call whose "(" is at src[i - 1], or -1 when the
-# page has no such ")". A regex cannot be asked this: an arrow function passed to setInterval
-# carries parentheses and commas of its own, and the delay this case reads is the argument
-# AFTER them.
-def balanced(src, i):
-    depth, quote = 1, ""
-    while i < len(src) and depth:
+# Every character of src from index i on that sits outside a string literal, as (index,
+# character, depth), depth being how many brackets are open once that character is read and
+# starting from the depth given. A regex cannot be asked where a call ends or where its last
+# argument starts: an arrow function passed to setInterval carries parentheses and commas of
+# its own, and only one at the right depth and outside a string counts.
+def code_chars(src, i, depth):
+    quote = ""
+    while i < len(src):
         c = src[i]
         if quote:
             if c == "\\":
@@ -683,12 +684,22 @@ def balanced(src, i):
                 quote = ""
         elif c in QUOTED:
             quote = c
-        elif c in "([{":
-            depth += 1
-        elif c in ")]}":
-            depth -= 1
+        else:
+            if c in "([{":
+                depth += 1
+            elif c in ")]}":
+                depth -= 1
+            yield i, c, depth
         i += 1
-    return i if depth == 0 else -1
+
+
+# The index just past the ")" that closes a call whose "(" is at src[i - 1], or -1 when the
+# page has no such ")".
+def balanced(src, i):
+    for j, c, depth in code_chars(src, i, 1):
+        if depth == 0:
+            return j + 1
+    return -1
 
 
 # The argument text of every call of <name> on the page, the "(" and ")" left off.
@@ -701,26 +712,12 @@ def calls(src, name):
     return out
 
 
-# The last top-level argument of one such list — setInterval s delay. Same scan as balanced,
-# for the same reason: only a comma at depth zero and outside a string separates arguments.
+# The last top-level argument of one such list — setInterval s delay.
 def last_arg(args):
-    depth, quote, cut, i = 0, "", 0, 0
-    while i < len(args):
-        c = args[i]
-        if quote:
-            if c == "\\":
-                i += 1
-            elif c == quote:
-                quote = ""
-        elif c in QUOTED:
-            quote = c
-        elif c in "([{":
-            depth += 1
-        elif c in ")]}":
-            depth -= 1
-        elif c == "," and depth == 0:
-            cut = i + 1
-        i += 1
+    cut = 0
+    for j, c, depth in code_chars(args, 0, 0):
+        if c == "," and depth == 0:
+            cut = j + 1
     return args[cut:].strip()
 
 
