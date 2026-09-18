@@ -315,6 +315,31 @@ if [[ "$solvable" == "2" && "$code" -eq 0 ]]; then ok; else
   diff <(printf '2\nexit 0\n') <(printf '%s\nexit %s\n' "$solvable" "$code")
 fi
 
+# --- solvable-issues.sh gives no answer: the count renders as ?, in text and in JSON ---
+# The same three runs, with an issues.json that is not JSON: solvable-issues.sh dies parsing it
+# (exit 1, neither a list nor exit 3's "nothing takeable"), so the count is unknown. It must
+# say so — `solvable ?` on the text line, "solvable": "?" in the JSON — never 0, never a crash.
+broken_gh="$work/broken-gh"
+mkdir -p "$broken_gh"
+echo 'not json' > "$broken_gh/issues.json"
+echo '[]' > "$broken_gh/prs.json"
+missing=()
+VERI_GH_JSON="$broken_gh" VERI_TIMEOUT=600 run_in "$scoped" --scope lamps-label
+text_out="$out" text_code="$code"
+[[ "$(lamps_scope_line)" == *"solvable ?"* ]] || missing+=("solvable ?")
+VERI_GH_JSON="$broken_gh" VERI_TIMEOUT=600 run_in "$scoped" --json --scope lamps-label
+solvable="$(printf '%s' "$out" | python3 -c '
+import json, sys
+try:
+    print(json.dumps(json.loads(sys.stdin.read())["scope"]["solvable"]))
+except (ValueError, KeyError, TypeError) as err:
+    print("no scope.solvable: %r" % err)
+')"
+[[ "$solvable" == '"?"' ]] || missing+=('"solvable": "?"')
+out="$text_out"$'\n'"$out"
+[[ "$text_code" -eq 0 ]] || code="$text_code"
+expect_nothing_missing "solvable-issues.sh exiting other than 0 or 3 renders the solvable count as ?, in text and JSON"
+
 # --- --json: a bailed run's bail_phase is the bail event's phase, not its last launch's ---
 # The four runs of the state case above. #13's only launch was in red and its bail in green,
 # so the two keys disagree: phase must say red, from the launch, and bail_phase green, from
