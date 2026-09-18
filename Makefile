@@ -36,13 +36,25 @@ COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 # is exempt, because a suite that serves a page on 127.0.0.1 (dashboard.test.sh) asks it there. A suite
 # that runs this recipe itself inherits the outer run's real git: `command -v git` would name the
 # shim, and the shim would exec itself forever.
+#
+# Three more things are fixed for every suite rather than inherited from whoever typed `make test`
+# (make-test-env.test.sh pins all three). Each cost the development Mac time CI never paid:
+#   - LC_ALL=C. macOS's BSD awk, tr, grep and sed run ~12x slower over text in a UTF-8 locale,
+#     and the terminal a conductor runs in sets one: 121 s of a 440 s run, measured 2026-09-18.
+#     Python still reads UTF-8 under it (PEP 538 coerces the C locale).
+#   - stdin is /dev/null. A suite inherited make's, and under a leaf's backgrounded `make test`
+#     that is a socket that never closes: the stub claude's `cat` in run-conductor.test.sh
+#     waited on it for 28 minutes.
+#   - The real git. /usr/bin/git on macOS is xcrun's shim, ~21 ms a call on top of git's own,
+#     over ~1,900 calls a run. `xcrun -f git` names the binary it forwards to; where there is
+#     no xcrun (Linux, CI) the git on PATH is already the real one.
 OFFLINE_BIN := $(CURDIR)/skills/tdd/scripts/tests/offline
 OFFLINE_PROXY := http://127.0.0.1:1
 
 test:
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"' EXIT; \
-	real_git="$${OFFLINE_REAL_GIT:-$$(command -v git)}"; \
+	real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
 	for t in $(TESTS); do \
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
@@ -50,7 +62,7 @@ test:
 	  { PATH="$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
 	    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
 	    HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
-	    "$$t"; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
+	    LC_ALL=C "$$t" < /dev/null; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
 	    printf '%s: never reached its count line\n' "$$suite_name"; fail=1; \
