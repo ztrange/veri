@@ -59,7 +59,7 @@ trap 'rm -rf "$work"' EXIT
 # A stub `claude` that answers `--version` and records that it was run at all, so a case can
 # ask whether a refusal came before anything was launched.
 cat > "$work/claude" <<'C'
-#!/usr/bin/env bash
+#!/bin/sh
 : > "$LAUNCHED"
 echo "2.1.0 (Claude Code)"
 C

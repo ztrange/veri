@@ -111,7 +111,7 @@ SENTINEL_STEP='pin the sentinel step'
 # environment, or `<unset>` when it says nothing — and then emits the minimal stream-json for
 # extract-result.sh to find a result in, the same shape run-leaf.test.sh's stub emits.
 cat > "$stub/claude" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 STUB
