@@ -64,13 +64,13 @@ skill whether it lives in the target repo's `.claude/skills/` or is symlinked in
 `~/.claude/skills/` for use from any repo — never assume a repo-relative path. All leaf
 machinery lives there and is unit-tested (`$S/tests/*.test.sh`):
 
-`$S` tracks the **installed** skill, not a snapshot of it: here that path is a symlink into
-a clone parked on `main`, so a PR landing while you work changes the scripts and templates
-under a running conductor — and you are still following the `SKILL.md` text you loaded at
-start. Nothing here pins it; what it does instead is record it. Every launch `supervise.sh`
-makes writes the commit it ran under to the event log (`.tdd/events.jsonl`, key
-`skill_commit`), so a run whose skill moved mid-flight is the sha changing partway down that
-file.
+`$S` is pinned: a run launched through `$S/run-conductor.sh` executes the skill snapshot —
+the commit recorded in `.tdd/issue-<n>-skill-commit` and exported to every leaf as
+`VERI_SKILL_COMMIT` — not the clone's current tip, so a PR landing on `main` while you work
+does not change the scripts and templates under a running conductor (see *The skill
+snapshot* below). Every launch `supervise.sh` makes also writes the commit it ran under to
+the event log (`.tdd/events.jsonl`, key `skill_commit`), so a run that took a newer skill
+with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
 
 - `$S/supervise.sh <name> <cmd> [args...]` — **the leaf launcher.** Spawns `<cmd>` under a
   heartbeat + hard-timeout watchdog, owns the `.tdd/<name>.log` progress log, and returns

@@ -203,6 +203,30 @@ for doc in "$skill_md" "$claude_md"; do
 done
 report "$name"
 
+# 4. Case 2's paragraph, reconciled with case 3's mechanism (issue #265): once #253 made
+#    run-conductor.sh pin every launch to a recorded commit, "Nothing here pins it" in the
+#    `$S` paragraph became false, and a conductor reading the two sections was told both.
+#    So the stale sentence must be gone from the section's prose, and a paragraph that talks
+#    about `$S` must name what does pin it — the exported `VERI_SKILL_COMMIT` and the
+#    `.tdd/issue-<n>-skill-commit` record — in the same statement as the word "pin". Asked of
+#    one paragraph for the reason `claim` gives; the file name takes any issue placeholder.
+name="$skill_md's \$S paragraph no longer says nothing pins it, and says the skill snapshot (VERI_SKILL_COMMIT, .tdd/issue-<n>-skill-commit) pins the commit a run executes under"
+problems=()
+
+if need_section '## The scripts' 'what the document says about the directory $S points at could not be read'; then
+  paras="$(paragraphs)"
+  if [[ -z "$paras" ]]; then
+    problems+=("$skill_md's 'The scripts' section has no prose paragraphs — what it says about \$S could not be read")
+  else
+    stale="$(grep -F 'nothing here pins it' <<< "$paras")"
+    [[ -z "$stale" ]] ||
+      problems+=("$skill_md's '$sec_name' prose still says 'nothing here pins it', contradicting the skill snapshot run-conductor.sh enforces: $(printf '%.120s' "$stale")")
+    claim 'about $S says the skill snapshot (VERI_SKILL_COMMIT, .tdd/issue-<n>-skill-commit) pins the commit a run executes under' \
+      '\$s' 'pin' 'veri_skill_commit' 'issue-[^[:space:]/]+-skill-commit'
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
