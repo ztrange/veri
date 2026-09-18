@@ -421,15 +421,13 @@ probe_idiom_records_the_check
 
 report "$name"
 
-# probe_reaching_suite_is_refused_and_named — the criterion. The suite handed to the recipe is
-# written here into a scratch directory rather than kept under fixtures/, and it is green in
-# every other respect: it exits 0 and ends in its count line, so the only thing that can fail it
-# is the recipe noticing what it tried. It tries all three reaches the criterion names — a
-# `git fetch` of a URL, a `gh` call and a `curl` — each at an `.invalid` host (RFC 2606), so a
-# recipe that does not cut them off pays a failed DNS lookup and nothing more. Each attempt
-# carries a token no other line would, and the refusal has to put that token on one line with the
-# suite's name: a suite named on one line and an attempt on another would not say which suite
-# tried what once a whole `make test` of seventy suites is on screen.
+# probe_reaching_suite_is_refused_and_named — the criterion for the two shims that remain
+# bash scripts. gh and curl are not the hot path (a run makes ~1,900 git calls against a
+# handful of gh/curl calls total), so they still go through tests/offline/{gh,curl}, which
+# still log every attempt to the reach log the recipe reads. The suite handed to the recipe
+# tries both at an `.invalid` host (RFC 2606), so a recipe that does not cut them off pays a
+# failed DNS lookup and nothing more. Each attempt carries a token no other line would, and
+# the refusal has to put that token on one line with the suite's name.
 probe_reaching_suite_is_refused_and_named() {
   local tree suite reach tried
   tree="$(mktemp -d)" || {
@@ -440,12 +438,8 @@ probe_reaching_suite_is_refused_and_named() {
   cat > "$suite" <<'SUITE'
 #!/usr/bin/env bash
 set -uo pipefail
-repo="$(mktemp -d)"
-git init -q "$repo" >/dev/null 2>&1
-GIT_TERMINAL_PROMPT=0 git -C "$repo" fetch https://example.invalid/veri-fetch-probe.git >/dev/null 2>&1
 gh api --hostname example.invalid veri-gh-probe >/dev/null 2>&1
 curl -s --max-time 2 https://example.invalid/veri-curl-probe >/dev/null 2>&1
-rm -rf "$repo"
 echo "1 passed, 0 failed"
 exit 0
 SUITE
@@ -454,7 +448,7 @@ SUITE
   recipe "$suite"
   [[ "$recipe_code" != 0 ]] ||
     problems+=("want 'make test' to fail a suite that tried the network; it exited 0 and said: $(flat "$recipe_out")")
-  for reach in veri-fetch-probe veri-gh-probe veri-curl-probe; do
+  for reach in veri-gh-probe veri-curl-probe; do
     tried="$(grep -F 'reaches-network.test.sh' <<< "$recipe_out" | grep -F "$reach")"
     [[ -n "$tried" ]] ||
       problems+=("no line of the run names reaches-network.test.sh together with the attempt carrying $reach, so the refusal does not say which suite tried what")
@@ -463,11 +457,11 @@ SUITE
   rm -rf "$tree"
 }
 
-# 6. Issue #301: the offline guarantee lives in the recipe's own run of every suite, not in a
-#    second run hermetic-suites.test.sh makes of a third of them. A suite that runs `git fetch`
-#    against a remote URL, `gh` or `curl` fails `make test`, and the failure names the suite and
-#    what it tried.
-name="make test fails a suite that runs git fetch of a URL, gh or curl, naming the suite and what it tried"
+# 6. gh and curl keep the bash-script shim and its reach log: a suite that calls either still
+#    fails `make test`, and the failure names the suite and what it tried. git is no longer part
+#    of this contract (case 7 below) — it dropped out of `probe_reaching_suite_is_refused_and_named`
+#    when the git shim did.
+name="make test fails a suite that runs gh or curl, naming the suite and what it tried"
 problems=()
 recipe_out=""
 recipe_code=0
@@ -476,59 +470,151 @@ probe_reaching_suite_is_refused_and_named
 
 report "$name"
 
-# probe_own_origin_fetch_is_refused_and_named — the criterion. hermetic-suites.test.sh used to
-# answer "no suite fetches this checkout's own origin" by re-running every suite that names
-# run-conductor.sh under a shim of its own; this asks the recipe's single run instead. The suite
-# handed to it is written into a scratch directory and is green in every other respect — exits 0,
-# ends in its count line — and does what run-conductor.sh does since #251: fetches `origin` in the
-# clone the skill sits in, which is this checkout, naming the remote rather than its URL. The
-# origin is written into the suite as text, the way case 7 there writes it into its shim, so a
-# recipe that severs the suite's environment cannot hand it an empty one. `--dry-run` so that if
-# the recipe lets the fetch through, it still writes no ref into the shared `.git`. A checkout
-# with no origin has no own origin to fetch, and would pass about nothing — so that is probed.
-probe_own_origin_fetch_is_refused_and_named() {
-  local tree suite own_origin tried
-  own_origin="$(git -C "$ROOT" remote get-url origin 2>/dev/null)"
-  [[ -n "$own_origin" ]] || {
-    problems+=("this checkout has no origin, so there is no own origin a fetch could reach and nothing was checked")
-    return
-  }
+# probe_git_transport_allowlist — the criterion for git. Measured 2026-09-18: the bash shim that
+# used to stand in front of every git call cost ~26 ms/call against ~8 ms for the real binary, and
+# a `make test` run makes ~1,900 of them — 1,820 of the run's 4,834 bash starts were that one
+# script. It is gone; `git` on the recipe's PATH is now a symlink straight to the real binary (no
+# wrapper, no bash start at all — case 8 pins that), and what used to be the shim's job — refusing
+# a remote reach — is now git's own transport allowlist: `protocol.allow=never` with
+# `protocol.file.allow=always`, set the same way the recipe already sets `http.proxy`, via
+# GIT_CONFIG_COUNT/KEY/VALUE.
+#
+# The accepted trade-off is the reach log's "tried the network: …" line, which named the suite and
+# the URL on one line of `make test`'s own output. Nothing forwards a git reach into that log any
+# more, so a suite whose fetch fails silently (its own exit code unchecked, its own output
+# discarded) is refused but not specially reported — the failure is git's, on stderr, wherever the
+# suite sends stderr. What is still true, and what this probe and case 8 below pin instead:
+#   - every non-file transport is refused, for every URL shape (https, ssh://, git://, and the
+#     scp-style `user@host:path` git treats as ssh) — verified against a real local remote for
+#     each, not by pattern-matching git's own error text;
+#   - a local remote (a bare path, or `file://`) is unaffected, since many suites here clone,
+#     fetch and push between scratch repos on disk;
+#   - this checkout's own origin, fetched with no scheme (as run-conductor.sh does since #251), is
+#     refused by the same general rule rather than by a rule of its own; and
+#   - a suite that DOES check the exit code — the well-behaved shape, not the fire-and-forget one
+#     the old shim's reach log existed to catch — still fails `make test`, visibly: git's own
+#     "not allowed" text reaches the run's output rather than a manufactured line.
+probe_git_transport_allowlist() {
+  local tree suite own_origin
   tree="$(mktemp -d)" || {
-    problems+=("could not make a scratch tree to hold a suite that fetches its own origin, so the criterion went unasked")
+    problems+=("could not make a scratch tree to hold the git-allowlist probe, so the criterion went unasked")
     return
   }
-  suite="$tree/fetches-own-origin.test.sh"
+  git init -q -b main "$tree/src" >/dev/null 2>&1
+  ( cd "$tree/src" && : > f && git add f && git -c user.email=a@b.c -c user.name=a commit -q -m init ) \
+    >/dev/null 2>&1
+  git init -q -b main "$tree/dest" >/dev/null 2>&1
+  own_origin="$(git -C "$ROOT" remote get-url origin 2>/dev/null)"
+
+  suite="$tree/checks-transport-allowlist.test.sh"
   {
     printf '#!/usr/bin/env bash\nset -uo pipefail\n'
-    printf 'root=%q\n' "$ROOT"
+    printf 'dest=%q\n' "$tree/dest"
+    printf 'own_origin=%q\n' "$own_origin"
     cat <<'SUITE'
-GIT_TERMINAL_PROMPT=0 git -C "$root" fetch --dry-run --quiet >/dev/null 2>&1
-echo "1 passed, 0 failed"
-exit 0
+problems=()
+blocked() {
+  local label="$1" url="$2" err rc
+  err="$(GIT_TERMINAL_PROMPT=0 git -C "$dest" fetch "$url" 2>&1 >/dev/null)"; rc=$?
+  [[ "$rc" -ne 0 ]] || problems+=("$label was not refused (exit 0)")
+  grep -qi 'not allowed' <<< "$err" ||
+    problems+=("$label's refusal carried no 'not allowed' message: $err")
+}
+for pair in \
+  "https:https://example.invalid/veri-https-probe.git" \
+  "ssh-scheme:ssh://example.invalid/veri-ssh-probe.git" \
+  "git-scheme:git://example.invalid/veri-git-scheme-probe.git" \
+  "scp-style:git@example.invalid:veri-scp-probe.git"; do
+  blocked "${pair%%:*}" "${pair#*:}"
+done
+if [[ -n "$own_origin" ]]; then
+  blocked "own-origin" "$own_origin"
+fi
+err="$(GIT_TERMINAL_PROMPT=0 git -C "$dest" fetch --quiet ../src 2>&1 >/dev/null)"; rc=$?
+[[ "$rc" -eq 0 ]] || problems+=("a local relative fetch was refused: $err")
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  echo "1 passed, 0 failed"
+  exit 0
+else
+  printf 'PROBLEM: %s\n' "${problems[@]}"
+  echo "0 passed, 1 failed"
+  exit 1
+fi
+SUITE
+  } > "$suite"
+  chmod +x "$suite"
+
+  recipe "$suite"
+  [[ "$recipe_code" == 0 ]] ||
+    problems+=("want 'make test' to pass a suite whose every remote git form was refused and whose local fetch still worked; got exit $recipe_code: $(flat "$recipe_out")")
+  [[ -n "$own_origin" ]] ||
+    problems+=("this checkout has no origin, so the own-origin form of the probe checked nothing")
+
+  rm -rf "$tree"
+}
+
+# 7. git's own transport allowlist, not a bash shim, is what keeps a suite off the network: every
+#    non-file remote form is refused (https, ssh://, git://, scp-style, and this checkout's own
+#    origin), and a local fetch (a bare path) still works, since suites here rely on that between
+#    scratch repos.
+name="make test's git allows only local remotes: https, ssh, git and scp-style forms are refused, a local path still fetches"
+problems=()
+recipe_out=""
+recipe_code=0
+
+probe_git_transport_allowlist
+
+report "$name"
+
+# probe_unswallowed_git_reach_fails_visibly — the other half of the accepted trade-off: a suite
+# that does not discard git's exit code still fails `make test`, and git's own refusal reaches the
+# run's output — there is just no manufactured "tried the network: …" line for it any more, since
+# nothing forwards a git reach into the reach log now that gh and curl are the only shims left.
+probe_unswallowed_git_reach_fails_visibly() {
+  local tree suite
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch tree to hold the unswallowed-reach probe, so the criterion went unasked")
+    return
+  }
+  git init -q -b main "$tree/dest" >/dev/null 2>&1
+  suite="$tree/reach-not-swallowed.test.sh"
+  {
+    printf '#!/usr/bin/env bash\nset -uo pipefail\n'
+    printf 'dest=%q\n' "$tree/dest"
+    cat <<'SUITE'
+GIT_TERMINAL_PROMPT=0 git -C "$dest" fetch https://example.invalid/veri-visible-probe.git
+rc=$?
+if [[ "$rc" -eq 0 ]]; then
+  echo "1 passed, 0 failed"
+  exit 0
+else
+  echo "0 passed, 1 failed"
+  exit 1
+fi
 SUITE
   } > "$suite"
   chmod +x "$suite"
 
   recipe "$suite"
   [[ "$recipe_code" != 0 ]] ||
-    problems+=("want 'make test' to fail a suite that fetched this checkout's own origin; it exited 0 and said: $(flat "$recipe_out")")
-  tried="$(grep -F 'fetches-own-origin.test.sh' <<< "$recipe_out" | grep -F "$own_origin")"
-  [[ -n "$tried" ]] ||
-    problems+=("no line of the run names fetches-own-origin.test.sh together with $own_origin, so the refusal does not say which suite fetched this checkout's own origin")
+    problems+=("want 'make test' to fail a suite whose git fetch of a remote URL it did not swallow; it exited 0 and said: $(flat "$recipe_out")")
+  grep -qi 'not allowed' <<< "$recipe_out" ||
+    problems+=("want git's own refusal text ('transport … not allowed') visible in the run's output; got: $(flat "$recipe_out")")
+  ! grep -qF 'tried the network' <<< "$recipe_out" ||
+    problems+=("a git reach is no longer caught by the reach log (that mechanism now covers only gh and curl); want no manufactured 'tried the network' line, got: $(flat "$recipe_out")")
 
   rm -rf "$tree"
 }
 
-# 7. Issue #301: the own-origin guarantee (#258) holds from the recipe's own run of every suite,
-#    not from hermetic-suites.test.sh re-running the ones that name run-conductor.sh. A suite that
-#    fetches this checkout's own origin fails `make test`, and the failure names the suite and the
-#    origin it fetched.
-name="make test fails a suite that fetches this checkout's own origin, naming the suite and the origin"
+# 8. The accepted trade-off, named: a suite that surfaces a git remote reach as its own failure
+#    still fails `make test`, and git's refusal is visible in the run's output — but the run no
+#    longer manufactures a "tried the network: …" line for git the way it does for gh and curl.
+name="make test fails a suite whose unswallowed git fetch of a remote URL is refused, visibly, with no manufactured reach-log line"
 problems=()
 recipe_out=""
 recipe_code=0
 
-probe_own_origin_fetch_is_refused_and_named
+probe_unswallowed_git_reach_fails_visibly
 
 report "$name"
 
