@@ -28,14 +28,25 @@ COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 # travels in a second file because a pipeline's status is its last command's — tee's — and
 # PIPESTATUS is bash's, not the /bin/sh make runs recipes with.
 #
-# Every suite also runs offline (#301), in this same run rather than a second one: the shims in
-# OFFLINE_BIN stand in front of git, gh and curl, refuse a remote git verb aimed at a URL and any
-# gh or curl, and write each attempt to a reach log the recipe empties before every suite. A suite
-# whose log is not empty afterwards fails, one line per attempt naming the suite and what it tried.
+# Every suite also runs offline (#301), in this same run rather than a second one. gh and curl are
+# not the hot path — a run makes a handful of calls to each, against ~1,900 git calls — so they
+# still go through bash shims in OFFLINE_BIN that refuse any call and write it to a reach log the
+# recipe empties before every suite; a suite whose log is not empty afterwards fails, one line per
+# attempt naming the suite and what it tried. git does not go through a shim any more (measured
+# 2026-09-18: that wrapper cost ~26 ms/call against ~8 ms for the real binary, and was 1,820 of a
+# run's 4,834 bash starts). Instead, `git` on every suite's PATH is a plain symlink straight to the
+# real binary (the recipe's git_bin directory — a symlink costs no bash start at all, unlike a wrapper script), and
+# what used to be the shim's job — refusing a remote reach — is now git's own transport allowlist:
+# protocol.allow=never with protocol.file.allow=always, set the same way the recipe already sets
+# http.proxy, via GIT_CONFIG_COUNT/KEY/VALUE. That refuses every non-file transport (https, ssh,
+# git://, and the scp-style user@host:path git treats as ssh) and leaves a local remote — a bare
+# path, or file:// — untouched, since suites here clone, fetch and push between scratch repos on
+# disk. The trade-off, accepted: a suite whose git reach is refused is no longer named on a "tried
+# the network: …" line the way a gh or curl reach still is — the failure is git's own "transport …
+# not allowed", on stderr, wherever the suite sends it. count-line-guard.test.sh pins both halves.
+#
 # The proxies point at a port nothing listens on, for anything that gets past the shims; loopback
-# is exempt, because a suite that serves a page on 127.0.0.1 (dashboard.test.sh) asks it there. A suite
-# that runs this recipe itself inherits the outer run's real git: `command -v git` would name the
-# shim, and the shim would exec itself forever.
+# is exempt, because a suite that serves a page on 127.0.0.1 (dashboard.test.sh) asks it there.
 #
 # Three more things are fixed for every suite rather than inherited from whoever typed `make test`
 # (make-test-env.test.sh pins all three). Each cost the development Mac time CI never paid:
@@ -47,7 +58,11 @@ COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 #     waited on it for 28 minutes.
 #   - The real git. /usr/bin/git on macOS is xcrun's shim, ~21 ms a call on top of git's own,
 #     over ~1,900 calls a run. `xcrun -f git` names the binary it forwards to; where there is
-#     no xcrun (Linux, CI) the git on PATH is already the real one.
+#     no xcrun (Linux, CI) the git on PATH is already the real one. A suite that runs this
+#     recipe itself inherits the outer run's resolved OFFLINE_REAL_GIT rather than re-asking
+#     xcrun, since xcrun's answer does not depend on PATH and a nested `command -v git` would
+#     otherwise name the outer run's own symlink — harmless (a symlink to a symlink still
+#     resolves to the real binary with no extra process), but pointless to redo.
 OFFLINE_BIN := $(CURDIR)/skills/tdd/scripts/tests/offline
 OFFLINE_PROXY := http://127.0.0.1:1
 
@@ -67,15 +82,18 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 
 test:
 	@$(BASH_GUARD)
-	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; \
-	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"' EXIT; \
+	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
+	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
+	ln -sf "$$real_git" "$$git_bin/git"; \
 	for t in $(TESTS); do \
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
 	  : > "$$reach_log"; \
-	  { PATH="$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
-	    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
+	  { PATH="$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
+	    GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
+	    GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
+	    GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
 	    HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
 	    LC_ALL=C "$$t" < /dev/null; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
