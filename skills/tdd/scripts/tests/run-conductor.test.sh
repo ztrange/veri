@@ -606,8 +606,9 @@ report "$name"
 # 9. Taking the new skill is an explicit act, and a recorded one. The run is launched from a
 # clone at commit A, the clone moves to commit B, and the same issue is launched again with
 # VERI_NEW_SKILL=1 — the operator asking for the new skill on this resume. That launch is
-# handed B's files, not the recorded A's, and the caller's event log carries a `skill-repin`
-# line naming B: a re-pin nobody can find in the log is the side effect the pin exists to stop.
+# handed B's files, not the recorded A's, and the run worktree's event log carries a
+# `skill-repin` line naming B (issue #265: never the caller's, although no worktree exists yet):
+# a re-pin nobody can find in the log is the side effect the pin exists to stop.
 name="a resume with VERI_NEW_SKILL=1 is re-pinned to the clone's current commit and logs a skill-repin event"
 problems=()
 
@@ -632,8 +633,8 @@ launch_from "$caller4" "$clone4" BASE_OUT="$repinned_base" VERI_NEW_SKILL=1
 
 holds_skill "$repinned_base" "$taken/skills/tdd" "re-pinned launch's" "current skill commit $current"
 
-repin_in "$caller4/.tdd/events.jsonl" "$current" ||
-  problems+=("no skill-repin event naming $current in $caller4/.tdd/events.jsonl")
+repin_in "$caller4/.tdd/wt/$issue/.tdd/events.jsonl" "$current" ||
+  problems+=("no skill-repin event naming $current in $caller4/.tdd/wt/$issue/.tdd/events.jsonl")
 
 report "$name"
 
@@ -1186,7 +1187,7 @@ env24="$work/env24"
 rm -f "$env24"
 launch_from "$caller24" "$clone24" ENV_OUT="$env24" VERI_NEW_SKILL=1
 
-if ! repin_in "$caller24/.tdd/events.jsonl" "$current24"; then
+if ! repin_in "$caller24/.tdd/wt/$issue/.tdd/events.jsonl" "$current24"; then
   problems+=("the launch with VERI_NEW_SKILL=1 did not re-pin to $current24: $(cat "$launch_err")")
 elif [[ ! -f "$env24" ]]; then
   problems+=("the re-pinning launch never reached the conductor: $(cat "$launch_err")")
@@ -1287,6 +1288,39 @@ done
 bare25="$(cat "$tiers/verify-refactor-bare.exit" 2>/dev/null)"
 if [[ "$bare25" != 2 || -e "$tiers/verify-refactor-bare.received" ]]; then
   problems+=("verify-refactor launched without --fast-cmd exited ${bare25:-nothing} and its leaf $([[ -e "$tiers/verify-refactor-bare.received" ]] && echo received || echo "never received") a prompt, want exit 2 and no prompt")
+fi
+
+report "$name"
+
+# 26. The re-pin is the run's event even before the run has a worktree (issue #265). Case 19
+# re-pins a resume whose `.tdd/wt/<n>` already exists; here the first launch never got as far
+# as creating one, so the re-pin runs with no worktree directory at all. The `skill-repin` line
+# still belongs in the worktree's `.tdd/events.jsonl` — the log metrics.sh reads — and never in
+# the caller's, which no reader of the run opens: a fallback to the caller's log is the gap.
+name="a VERI_NEW_SKILL=1 re-pin that runs before .tdd/wt/<n> exists writes its skill-repin event to the run worktree's .tdd/events.jsonl and never to the caller's"
+problems=()
+
+clone26="$work/clone26"
+skill_clone "$clone26"
+
+caller26="$work/caller26"
+caller_repo "$caller26"
+launch_from "$caller26" "$clone26"
+
+advance_clone "$clone26" "# a commit the operator asks the run to take"
+head26="$(git -C "$clone26" rev-parse HEAD)"
+
+[[ ! -e "$caller26/.tdd/wt/$issue" ]] ||
+  problems+=("fixture: $caller26/.tdd/wt/$issue exists before the re-pin, so this is case 19")
+launch_from "$caller26" "$clone26" VERI_NEW_SKILL=1
+
+wt_log26="$caller26/.tdd/wt/$issue/.tdd/events.jsonl"
+caller_log26="$caller26/.tdd/events.jsonl"
+
+repin_in "$wt_log26" "$head26" ||
+  problems+=("no skill-repin event naming $head26 in the run worktree's $wt_log26")
+if repin_in "$caller_log26" "$head26"; then
+  problems+=("the skill-repin event landed in the caller's $caller_log26")
 fi
 
 report "$name"

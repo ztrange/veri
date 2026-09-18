@@ -107,11 +107,11 @@ if commit="$(git -C "$base" rev-parse "$head_rev" 2>/dev/null)"; then
     printf '%s\n' "$commit" > "$record"
   elif [[ "${VERI_NEW_SKILL:-}" == 1 ]]; then
     printf '%s\n' "$commit" > "$record"
-    # The run's own log is its worktree's (issue #253), where metrics.sh reads it; the caller's
-    # log only when no worktree exists yet to hold it.
-    log_dir=.
-    [[ -d ".tdd/wt/$issue" ]] && log_dir=".tdd/wt/$issue"
-    (cd "$log_dir" && VERI_ISSUE="$issue" "$HERE/event.sh" skill-repin commit="$commit") || exit 2
+    # The run's own log is its worktree's (issue #253), where metrics.sh reads it — never the
+    # caller's, even when no worktree exists yet (issue #265): the directory is made here, and
+    # issue-worktree.sh carries a path holding only this log over its `git worktree add`.
+    mkdir -p ".tdd/wt/$issue"
+    (cd ".tdd/wt/$issue" && VERI_ISSUE="$issue" "$HERE/event.sh" skill-repin commit="$commit") || exit 2
   elif recorded="$(cat "$record")" &&
      git -C "$base" cat-file -e "$recorded^{commit}" 2>/dev/null; then
     commit="$recorded"
