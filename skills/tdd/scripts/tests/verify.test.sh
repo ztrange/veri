@@ -719,6 +719,26 @@ done
 [[ -z "$problems" ]] && ok \
   || no "with no --step every phase still builds a valid verifier prompt with no unfilled step placeholder (${problems#; })"
 
+# 26. a verifier leaf that changed the operator's global git config exits 2 naming the file,
+#     whatever its verdict (issue #276). The repository check of case 11 cannot see it: the file
+#     lives under $HOME, outside the tree. #258's verify-refactor leaf set `http.proxy` in
+#     ~/.gitconfig and its cleanup trap never fired, breaking every network git operation on the
+#     machine. run-leaf.sh hands the leaf a private GIT_CONFIG_GLOBAL, so a `git config --global`
+#     no longer reaches the operator's file — which is why the mutation here writes it by path,
+#     `git config --file`, the one route a leaf still has to it.
+#
+#     The arm is tamper_run's, so the tree is left untouched and the only thing that moved is the
+#     operator's file. HOME is a fixture directory holding that file, passed through verify_in's
+#     `env` like the prefix assignments of cases 14 and 15, so no real ~/.gitconfig is read or
+#     written.
+gitconfig_home="$work/operator-home"
+mkdir -p "$gitconfig_home"
+printf '[credential]\n\thelper = store\n' > "$gitconfig_home/.gitconfig"
+HOME="$gitconfig_home" \
+  tamper_run gitconfig 'git config --file "$HOME/.gitconfig" http.proxy http://127.0.0.1:1'
+{ [[ "$code" == 2 ]] && [[ "$out" == *.gitconfig* ]]; } && ok \
+  || no "a verifier leaf that changed the operator's global git config exits 2 naming the file (code=$code want 2; stdout='$out' want .gitconfig named)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
