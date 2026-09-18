@@ -901,9 +901,10 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   $S/tick-ledger.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
-  If that `<test-cmd>` run is red, **bail** as a **system** failure — see *Bailing* — and
-  do not tick or commit the step: the verifier already found the pin sound, so a red full
-  suite is the plumbing's answer, and a pin that breaks another suite must not land.
+  If that `<test-cmd>` run is red, **bail** as a **system** failure — see *Bailing* — with
+  cause `pin-suite-red`, and do not tick or commit the step: the verifier already found the
+  pin sound, so a red full suite is the plumbing's answer, and a pin that breaks another
+  suite must not land.
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
@@ -1019,6 +1020,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   stuck-retry budget → **system** failure (plumbing broke).
 - `no-verdict` — `verify.sh` exited **2** (unparseable verdict, or the verifier leaf was
   killed) → **system** failure.
+- `pin-suite-red` — on the pin's PASS branch, the full suite (`<test-cmd>`) ran red after
+  `verify.sh pin` passed → **system** failure.
 - `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
   `REJECT` → **process** failure (methodology spoke).
 

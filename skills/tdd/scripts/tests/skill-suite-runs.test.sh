@@ -245,6 +245,34 @@ else
 fi
 report "$name"
 
+# 5. The red-suite bail's cause token (issue #275). Case 3 pins that a red full suite on the
+#    pin PASS branch bails as a system failure, but a bail is classified by its cause token
+#    through classify-bail.sh, and the tokens that already exist each name a different
+#    failure: `no-verdict` would tell the reader of the ⛔ comment that a verifier's answer
+#    was unreadable, when the verifier answered PASS and the suite went red. So the PASS
+#    branch names a token of its own, classify-bail.sh classifies it `system`, and the
+#    *Bailing* list — the one place a reader looks up what a cause means — names it. The
+#    token is read off the PASS bullet rather than dictated here: which word it is is the
+#    writer's; that the three places agree on one is the contract.
+name="$skill_md's pin PASS branch names its own red-suite bail cause, classified system and listed under Bailing"
+problems=()
+known_causes=' killed-stuck no-verdict revise-exhausted reconcile-failed '
+pass_raw="$(awk '/^- [*][*]REJECT/ { exit } { print }' <<<"$pass_branch")"
+cause=""
+for token in $(grep -oE '`[a-z]+(-[a-z]+)+`' <<<"$pass_raw" | tr -d '`'); do
+  [[ "$known_causes" == *" $token "* ]] || { cause="$token"; break; }
+done
+if [[ -z "$cause" ]]; then
+  problems+=("$skill_md's pin PASS branch names no bail cause token of its own (a backticked hyphenated word other than$known_causes), so a red full suite there bails under a cause that means something else")
+else
+  classified="$("$ROOT/skills/tdd/scripts/classify-bail.sh" "$cause" 2>&1)"
+  [[ "$classified" == system ]] ||
+    problems+=("classify-bail.sh $cause printed '$classified', not 'system', so the pin's red-suite bail is not classed as the system failure $skill_md says it is")
+  grep -qF -- "- \`$cause\`" <<<"$(section_lines "$skill_path" '## Bailing' '')" ||
+    problems+=("$skill_md's Bailing list never names \`$cause\`, so the cause the pin PASS branch bails with is defined nowhere a reader looks it up")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
