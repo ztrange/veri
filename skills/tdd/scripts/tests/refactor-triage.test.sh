@@ -285,7 +285,7 @@ line_of() {
 name="$skill_md's refactor loop calls refactor-triage.sh on each committed transform and stops on exit 3 and exit 2"
 problems=()
 
-if [[ -z "${loop_lines// /}" ]]; then
+if [[ "$loop_lines" != *[!\ ]* ]]; then
   # Fail closed: a renamed or emptied section is reported as unreadable rather than probed as
   # an empty string, which would let "the loop is gone" read as "the loop is right".
   problems+=("$skill_md has no '#### Refactor loop' section to read — where the conductor calls refactor-triage.sh could not be established")
@@ -351,7 +351,7 @@ narration="$(awk '!inside && /###/ && /refactor/ { inside = 1 }
                   inside && /^ *- pass:/ { exit }
                   inside' <<<"$loop_lines" | tr '\n' ' ')"
 
-if [[ -z "${narration// /}" ]]; then
+if [[ "$narration" != *[!\ ]* ]]; then
   # Fail closed, as case 4 does: a narration sub-step that names no comment at all is
   # reported as unreadable rather than probed as an empty string.
   problems+=("$skill_md's refactor loop names no ### comment to post, so what the ### 🛠️ Refactor comment must say could not be established")

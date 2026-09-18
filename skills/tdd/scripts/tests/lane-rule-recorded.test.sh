@@ -120,7 +120,7 @@ section_heading="" section_text=""
 need_section() {
   section_heading="$1"
   section_text="$(section "$section_heading")"
-  [[ -n "${section_text// /}" ]] && return 0
+  [[ "$section_text" == *[!\ ]* ]] && return 0
   problems+=("CLAUDE.md has no '$section_heading' section to read, so nothing states the lane rule where the agent reading that section would find it")
   return 1
 }

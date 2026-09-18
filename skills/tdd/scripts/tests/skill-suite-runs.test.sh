@@ -92,7 +92,7 @@ doc_text() {
 text=""
 need_text() {
   text="$(doc_text "$skill_path" "$1" "${2-}")"
-  [[ -n "${text// /}" ]] && return 0
+  [[ "$text" == *[!\ ]* ]] && return 0
   problems+=("$skill_md has no '$1' section to read — what that phase's leaf runs could not be established")
   return 1
 }

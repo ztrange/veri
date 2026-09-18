@@ -87,7 +87,7 @@ problems=()
 # The narrate sub-step: the one that posts the comment, found by the heading it posts
 # rather than by its number, which a reordering would move.
 text="$(doc_text '#### Red' '### 🔴 Red')"
-if [[ -z "${text// /}" ]]; then
+if [[ "$text" != *[!\ ]* ]]; then
   # Fail closed: no narrate sub-step means the section was renamed or the comment moved,
   # and neither probe below ran — which must not read as two passes.
   problems+=("$skill_md's Red section has no instruction posting the \`### 🔴 Red\` comment — what that comment carries could not be read")

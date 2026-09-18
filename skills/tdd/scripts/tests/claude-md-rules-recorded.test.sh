@@ -155,7 +155,7 @@ probe_every_rule_is_carried_by_one_record() {
   local text row rule
   text="$(records)"
 
-  if [[ -z "${text// /}" ]]; then
+  if [[ "$text" != *[!\ ]* ]]; then
     problems+=("$claude_md could not be read, so no rule could be looked for in it")
     return
   fi

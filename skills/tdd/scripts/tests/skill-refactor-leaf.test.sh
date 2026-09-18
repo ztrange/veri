@@ -135,7 +135,7 @@ refusal='refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not c
 name="$skill_md's Refactor section launches one leaf per step and refuses verify-refactor over a dirty tree or a non-refactor: commit since the green commit, narrating the count against the budget"
 problems=()
 
-if [[ -z "${section// /}" ]]; then
+if [[ "$section" != *[!\ ]* ]]; then
   # Fail closed: a renamed or emptied section is reported as unreadable rather than probed
   # as an empty string, which would let "the phase is gone" read as "the phase is right".
   problems+=("$skill_md has no '#### Refactor' section to read — how the refactor leaf is launched and what is asked of its result could not be established")

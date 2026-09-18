@@ -126,7 +126,7 @@ passage_text="" passage_from=""
 need_supervise_bullet() {
   passage_from="$skill_md's supervise.sh bullet"
   passage_text="$(bullet '^[-*] .*supervise\.sh')"
-  [[ -n "${passage_text// /}" ]] && return 0
+  [[ "$passage_text" == *[!\ ]* ]] && return 0
   problems+=("$skill_md has no top-level 'supervise.sh' bullet to read, so the tunables an operator looks up beside VERI_TIMEOUT could not be found")
   return 1
 }
@@ -138,7 +138,7 @@ need_supervise_bullet() {
 need_claude_md_records() {
   passage_from="$claude_md"
   passage_text="$(records < "$claude_path")"
-  [[ -n "${passage_text// /}" ]] && return 0
+  [[ "$passage_text" == *[!\ ]* ]] && return 0
   problems+=("$claude_md could not be read, so nothing could be asked of what it records")
   return 1
 }

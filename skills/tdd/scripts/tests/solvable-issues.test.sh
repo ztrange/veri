@@ -929,7 +929,7 @@ entry_claims() {  # entry_claims <tag> <grep argument…>
 }
 
 entry_missing=""
-if [[ -z "${solvable_entry// /}" ]]; then
+if [[ "$solvable_entry" != *[!\ ]* ]]; then
   entry_missing="$entry_missing the-Solvable-entry-itself"
 else
   entry_claims the-lock-by-name -F -e 'conductor.pid'
@@ -965,7 +965,7 @@ step1="$(awk '/^### 1\./ { keep = 1; next } keep && /^### / { exit } keep' "$REP
 # variable (`> .tdd/conductor.pid`, quoted or not, spaced or not) because how the line is
 # written is the author's; that it writes THAT pid THERE is this suite's.
 step1_missing=""
-if [[ -z "${step1// /}" ]]; then
+if [[ "$step1" != *[!\ ]* ]]; then
   step1_missing="$step1_missing step-1-itself"
 else
   grep -qE '> *"?\.tdd/conductor\.pid' <<<"$step1" \

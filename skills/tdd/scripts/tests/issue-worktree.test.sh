@@ -748,7 +748,7 @@ says() {
 }
 
 problems=""
-if [[ -z "${entry// /}" ]]; then
+if [[ "$entry" != *[!\ ]* ]]; then
   problems="; no bullet for '\$S/issue-worktree.sh <n> <slug>' found in $SKILL — what the conductor is told about the base could not be established"
 else
   # The fetch itself: the base is the remote branch as it is *now*, which is a question asked of

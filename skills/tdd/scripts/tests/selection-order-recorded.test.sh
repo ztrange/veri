@@ -143,7 +143,7 @@ passage_text="" passage_from=""
 need_passage() {
   passage_from="$1"
   passage_text="$2"
-  [[ -n "${passage_text// /}" ]] && return 0
+  [[ "$passage_text" == *[!\ ]* ]] && return 0
   problems+=("$3")
   return 1
 }

@@ -106,7 +106,7 @@ need_skill_records() {
   passage_from="$skill_md"
   passage_text="$(records < "$skill_path")"
   # Asked as a regex rather than with `${passage_text// /}`, the idiom
-  # model-knobs-recorded.test.sh uses for this: that substitution is quadratic in bash 3.2
+  # no-quadratic-blank-check.test.sh now keeps out of every suite: that substitution is quadratic in bash 3.2
   # and SKILL.md is ~40 kB of records, which is minutes rather than the milliseconds the
   # same line costs on CLAUDE.md. One non-space character is the same question.
   [[ "$passage_text" =~ [^[:space:]] ]] && return 0
