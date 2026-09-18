@@ -37,6 +37,7 @@ COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 # that runs this recipe itself inherits the outer run's real git: `command -v git` would name the
 # shim, and the shim would exec itself forever.
 OFFLINE_BIN := $(CURDIR)/skills/tdd/scripts/tests/offline
+OFFLINE_PROXY := http://127.0.0.1:1
 
 test:
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; \
@@ -47,8 +48,8 @@ test:
 	  printf '== %s\n' "$$suite_name"; \
 	  : > "$$reach_log"; \
 	  { PATH="$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
-	    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://127.0.0.1:1 \
-	    HTTP_PROXY=http://127.0.0.1:1 HTTPS_PROXY=http://127.0.0.1:1 NO_PROXY=127.0.0.1,localhost \
+	    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
+	    HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
 	    "$$t"; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
