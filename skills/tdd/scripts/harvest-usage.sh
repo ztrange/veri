@@ -32,6 +32,8 @@ name="${1:?usage: harvest-usage.sh <leaf-name>}"
 log=".tdd/$name.log"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/leaf-role.sh
+source "$HERE/lib/leaf-role.sh"
 
 # The eight numbers, as the `key=value` arguments event.sh takes, one per line.
 #
@@ -126,10 +128,13 @@ while IFS= read -r pair; do
   payload+=("$pair")
 done <<< "$pairs"
 
-# The context comes from leaf-role.sh, the same derivation supervise.sh and verify.sh mark
-# under, so every event of one leaf files under the same actor, phase and attempt. `$role` is
-# deliberately unquoted: it is the `VERI_ACTOR=… VERI_PHASE=… VERI_ATTEMPT=…` line that script
-# prints for `env` to word-split into event.sh's environment.
-role="$("$HERE/leaf-role.sh" "$name")"
-# shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+# The context comes from leaf_role (lib/leaf-role.sh), the same derivation supervise.sh and
+# verify.sh mark under, so every event of one leaf files under the same actor, phase and
+# attempt. `$role` is deliberately unquoted: it is the `VERI_ACTOR=… VERI_PHASE=… VERI_ATTEMPT=…`
+# line that function prints for `env` to word-split into event.sh's environment. No `||` guard
+# here, same as before this was inlined: a name leaf_role refuses returns 2 from the `$(...)`
+# subshell it runs in, and this script's `set -e` stops it there, before the payload is
+# appended — a refusal is not a harvest that quietly filed under nothing.
+role="$(leaf_role "$name")"
+# shellcheck disable=SC2086  -- intentional word-split of leaf_role's assignments
 env $role "$HERE/event.sh" usage "${payload[@]}"
