@@ -139,7 +139,7 @@ print(n)
 launch_leaf() {
   local stub_dir="$1" work_dir="$2" leaf="$3"
   cat > "$stub_dir/claude" <<STUB
-#!/usr/bin/env bash
+#!/bin/sh
 cat "$stub_dir/stream.jsonl"
 exit 0
 STUB

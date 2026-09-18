@@ -65,7 +65,7 @@ supported='claude -p "/tdd'
 failing_stub() {
   local bin="$1"
   cat > "$bin" <<STUB
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' '$binary_said' >&2
 printf '%s\n' 'Nested sessions share runtime resources and will crash all active sessions.' >&2
 exit 1
@@ -116,7 +116,7 @@ stubdir="$tmp/bin"
 mkdir -p "$stubdir"
 for shim in git gh make; do
   cat > "$stubdir/$shim" <<STUB
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' "$shim \$*" >> "\$ARGV_OUT"
 STUB
   chmod +x "$stubdir/$shim"
@@ -159,7 +159,7 @@ name='leaf-launchable.sh passes when the leaf binary launches — exit 0, nothin
 problems=()
 tmp="$(mktemp -d)"
 cat > "$tmp/claude" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' '1.2.3 (Claude Code)'
 printf '%s\n' 'some chatter the probe did not ask for' >&2
 exit 0

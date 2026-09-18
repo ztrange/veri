@@ -48,7 +48,7 @@ trap 'rm -rf "$stubdir" "$work"' EXIT
 # drained in every case, not only the ones that probe it: a prompt nobody reads fills the
 # pipe and stalls the writer.
 cat > "$stubdir/claude" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 # A word beginning with a dash is an option, and an unknown one is fatal. Everything that is
 # not an option is left alone, so a value like `stream-json` still passes.
 for arg in "$@"; do
@@ -59,15 +59,15 @@ for arg in "$@"; do
 done
 printf '%s\n' "$@" > "$ARGV_OUT"
 cat > "${PROMPT_OUT:-/dev/null}"
-[[ -n "${ENV_OUT:-}" ]] && env > "$ENV_OUT"
+[ -n "${ENV_OUT:-}" ] && env > "$ENV_OUT"
 # A case that asks for the base directory and gets a prompt naming none is refused loudly:
 # an empty base would make the copy below `cp -R /.` — the whole filesystem (issue #256).
-if [[ -n "${BASE_OUT:-}" || -n "${CONDUCTOR_HOOK:-}" ]]; then
+if [ -n "${BASE_OUT:-}" ] || [ -n "${CONDUCTOR_HOOK:-}" ]; then
   base="$(sed -n 's/^Base directory for this skill: //p' "${PROMPT_OUT:-/dev/null}" 2>/dev/null | head -n 1)"
-  [[ -n "$base" && -d "$base" ]] || { echo "stub: the prompt names no base directory" >&2; exit 2; }
+  [ -n "$base" ] && [ -d "$base" ] || { echo "stub: the prompt names no base directory" >&2; exit 2; }
 fi
-[[ -n "${BASE_OUT:-}" ]] && cp -R "$base/." "$BASE_OUT"
-[[ -n "${CONDUCTOR_HOOK:-}" ]] && "$CONDUCTOR_HOOK" "$base"
+[ -n "${BASE_OUT:-}" ] && cp -R "$base/." "$BASE_OUT"
+[ -n "${CONDUCTOR_HOOK:-}" ] && "$CONDUCTOR_HOOK" "$base"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit "${STUB_EXIT:-0}"
@@ -430,9 +430,9 @@ echo "spec" > "$leafdir/spec.md"
 
 # The leaf's own `claude`: records the prompt it is handed with `-p` and emits a result.
 cat > "$stubdir/leaf-claude" <<'STUB'
-#!/usr/bin/env bash
-while [[ $# -gt 0 ]]; do
-  [[ "$1" == "-p" ]] && { printf '%s\n' "$2" > "$LEAF_PROMPT_OUT"; shift; }
+#!/bin/sh
+while [ "$#" -gt 0 ]; do
+  [ "$1" = "-p" ] && { printf '%s\n' "$2" > "$LEAF_PROMPT_OUT"; shift; }
   shift
 done
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
@@ -440,7 +440,7 @@ STUB
 chmod +x "$stubdir/leaf-claude"
 
 cat > "$stubdir/hook" <<HOOK
-#!/usr/bin/env bash
+#!/bin/sh
 base="\$1"
 src="$clone2/skills/tdd/scripts"
 printf '#!/usr/bin/env bash\necho SABOTAGED; exit 42\n' > "\$src/supervise.sh"
@@ -602,7 +602,7 @@ statusdir="$work/status5"
 mkdir -p "$statusdir"
 
 cat > "$stubdir/status-hook" <<HOOK
-#!/usr/bin/env bash
+#!/bin/sh
 git -C "$caller5" status --porcelain > "$statusdir/caller-\${STATUS_WHEN:-during}" 2>&1
 git -C "$clone5" status --porcelain > "$statusdir/clone-\${STATUS_WHEN:-during}" 2>&1
 HOOK
@@ -745,7 +745,7 @@ caller9="$work/caller9"
 caller_repo "$caller9"
 
 cat > "$stubdir/record-hook" <<HOOK
-#!/usr/bin/env bash
+#!/bin/sh
 base="\$1"
 cd "$caller9" || exit 1
 "\$base/scripts/event.sh" conductor-mark

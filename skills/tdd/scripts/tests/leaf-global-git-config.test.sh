@@ -49,7 +49,7 @@ trap 'rm -rf "$stubdir" "$work" "$home"' EXIT
 # stream-json result event run-leaf appends via extract-result.sh. Both halves of the
 # criterion are observable from outside — the file on disk, and this line of output.
 cat > "$stubdir/claude" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 git config --global veri.probe wrote-it 2>/dev/null || true
 readback="$(git config --global --get veri.probe 2>/dev/null)" || readback="<unset>"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
@@ -100,7 +100,7 @@ report "$name"
 #    The probe is a key the operator's file holds and the leaf only reads, so the answer
 #    is about what the copy started with, not about what the leaf wrote into it.
 cat > "$stubdir/claude-reader" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 seen="$(git config --global --get credential.helper 2>/dev/null)" || seen="<unset>"
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
 printf '{"type":"result","subtype":"success","is_error":false,"result":"sees: %s"}\n' "$seen"

@@ -21,7 +21,7 @@ stubdir="$(mktemp -d)"
 work="$(mktemp -d)"
 trap 'rm -rf "$stubdir" "$work"' EXIT
 cat > "$stubdir/claude" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' "$@" > "$ARGV_OUT"
 # A minimal stream-json stream: a system event, an assistant event, then the result.
 printf '%s\n' '{"type":"system","subtype":"init","session_id":"x"}'
