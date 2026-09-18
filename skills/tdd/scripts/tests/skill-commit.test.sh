@@ -155,6 +155,18 @@ claim() {
   problems+=("$skill_md's '$sec_name' prose: no paragraph $what")
 }
 
+# need_scripts_prose — select '## The scripts' and load its prose into `paras`, or push one
+# problem and return non-zero: the section is missing, or it has no prose paragraph to ask.
+# Cases 2 and 4 both ask what that prose says about the directory `$S` points at.
+need_scripts_prose() {
+  need_section '## The scripts' 'what the document says about the directory $S points at could not be read' ||
+    return 1
+  paras="$(paragraphs)"
+  [[ -n "$paras" ]] && return 0
+  problems+=("$skill_md's 'The scripts' section has no prose paragraphs — what it says about \$S could not be read")
+  return 1
+}
+
 # 2. What the document tells the conductor about the ground it is standing on. `$S` is the
 #    installed skill, which here is a symlink into a clone that `main` moves under it, so a
 #    run can execute one commit's scripts under another commit's prose. Nothing in the
@@ -165,16 +177,11 @@ claim() {
 name="$skill_md says \$S tracks the installed skill, may change mid-run, and that the event log records each leaf's commit"
 problems=()
 
-if need_section '## The scripts' 'what the document says about the directory $S points at could not be read'; then
-  paras="$(paragraphs)"
-  if [[ -z "$paras" ]]; then
-    problems+=("$skill_md's 'The scripts' section has no prose paragraphs — what it says about \$S could not be read")
-  else
-    claim 'says the installed skill can change under a running conductor' \
-      'chang|move|update' 'conductor|mid-run|running|under a run'
-    claim 'names the event log as what records which commit each leaf used' \
-      'event log|events\.jsonl' 'commit'
-  fi
+if need_scripts_prose; then
+  claim 'says the installed skill can change under a running conductor' \
+    'chang|move|update' 'conductor|mid-run|running|under a run'
+  claim 'names the event log as what records which commit each leaf used' \
+    'event log|events\.jsonl' 'commit'
 fi
 report "$name"
 
@@ -213,17 +220,12 @@ report "$name"
 name="$skill_md's \$S paragraph no longer says nothing pins it, and says the skill snapshot (VERI_SKILL_COMMIT, .tdd/issue-<n>-skill-commit) pins the commit a run executes under"
 problems=()
 
-if need_section '## The scripts' 'what the document says about the directory $S points at could not be read'; then
-  paras="$(paragraphs)"
-  if [[ -z "$paras" ]]; then
-    problems+=("$skill_md's 'The scripts' section has no prose paragraphs — what it says about \$S could not be read")
-  else
-    stale="$(grep -F 'nothing here pins it' <<< "$paras")"
-    [[ -z "$stale" ]] ||
-      problems+=("$skill_md's '$sec_name' prose still says 'nothing here pins it', contradicting the skill snapshot run-conductor.sh enforces: $(printf '%.120s' "$stale")")
-    claim 'about $S says the skill snapshot (VERI_SKILL_COMMIT, .tdd/issue-<n>-skill-commit) pins the commit a run executes under' \
-      '\$s' 'pin' 'veri_skill_commit' 'issue-[^[:space:]/]+-skill-commit'
-  fi
+if need_scripts_prose; then
+  stale="$(grep -F 'nothing here pins it' <<< "$paras")"
+  [[ -z "$stale" ]] ||
+    problems+=("$skill_md's '$sec_name' prose still says 'nothing here pins it', contradicting the skill snapshot run-conductor.sh enforces: $(printf '%.120s' "$stale")")
+  claim 'about $S says the skill snapshot (VERI_SKILL_COMMIT, .tdd/issue-<n>-skill-commit) pins the commit a run executes under' \
+    '\$s' 'pin' 'veri_skill_commit' 'issue-[^[:space:]/]+-skill-commit'
 fi
 report "$name"
 
