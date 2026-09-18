@@ -7,8 +7,8 @@
 #
 # Driven against STUB LEAF SCRIPTS (no claude): exit-0, exit-nonzero, hang, slow-but-alive,
 # runaway (alive but over the hard timeout), and flaky (hangs once, then succeeds).
-# Timings are compressed via the env knobs VERI_HEARTBEAT / VERI_TIMEOUT / VERI_POLL so the
-# suite stays fast.
+# No case waits for real time to pass: the clock is injected (see "The injected clock" below),
+# so a hang is seen on the next poll and a lifetime longer than a window costs milliseconds.
 #
 # Status contract: exit 0 success · 1 leaf-failure · 2 killed-stuck.
 #
@@ -49,19 +49,24 @@ L
 # hang: one line of progress, then silent forever (no heartbeat).
 cat > "$stub/leaf-hang" <<'L'
 #!/usr/bin/env bash
-echo "leaf: starting"; sleep 60; echo "unreachable"
+echo "leaf: starting"; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60; echo "unreachable"
 L
-# slow-but-alive: emits a heartbeat line every 0.3s for ~1.8s, then finishes.
+# slow-but-alive: six ticks, each followed by a second of injected silence, so the leaf lives
+# six seconds on the supervisor's clock — three windows of case 4's two — and is never silent
+# for more than one. It waits for the supervisor to read the clock after every tick, so every
+# tick is watched rather than raced past.
 cat > "$stub/leaf-slow" <<'L'
 #!/usr/bin/env bash
-for i in 1 2 3 4 5 6; do echo "leaf: tick $i"; sleep 0.3; done
+: > .test-clock-reads
+for i in 1 2 3 4 5 6; do echo "leaf: tick $i"; clock-jump 1; await-poll; done
 echo "leaf: done"; exit 0
 L
 # runaway: stays alive AND keeps emitting (heartbeat fresh) but never exits — only the
-# hard timeout can stop it.
+# hard timeout can stop it. Each line lands a second later on the injected clock.
 cat > "$stub/leaf-runaway" <<'L'
 #!/usr/bin/env bash
-while true; do echo "leaf: busy"; sleep 0.2; done
+: > .test-clock-reads
+while true; do echo "leaf: busy"; clock-jump 1; await-poll; done
 L
 # flaky: hangs (silent) the FIRST time it runs, succeeds the SECOND — the one leaf here that
 # gets past its first attempt, which is what case 13 needs to watch a relaunch. The marker
@@ -73,9 +78,83 @@ cat > "$stub/leaf-flaky" <<'L'
 if [[ -e .retry-marker ]]; then
   echo "leaf: recovered on retry"; exit 0
 fi
-echo "leaf: starting"; : > .retry-marker; sleep 60; echo "unreachable"
+echo "leaf: starting"; : > .retry-marker; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60; echo "unreachable"
 L
 chmod +x "$stub"/leaf-*
+
+# The injected clock. supervise.sh reads time two ways, and both go through PATH: `date +%s`
+# for now, and `stat` for when the leaf last wrote to its log (the heartbeat). No case here
+# waits for either to move; a stub leaf moves them, with three helpers that work in the leaf's
+# cwd, which is the supervisor's:
+#   clock-jump <s>  <s> seconds pass. Appended to ./.test-clock as `<real time> <offset>`, so the
+#                   file is the clock's whole history: now is the real time plus the latest
+#                   offset. A hanging leaf writes a line and then jumps just past its window
+#                   (VERI_HEARTBEAT + 1, or 1000 when the default is in force), which is a
+#                   silence the next poll sees and still short of every hard timeout here.
+#   await-poll      returns once the supervisor has read the clock again, when the leaf has
+#                   asked to be counted by creating ./.test-clock-reads.
+# The two stubs below answer from that history. `date +%s` adds the latest offset. `stat`, for
+# the two spellings supervise.sh uses, adds the offset that was in force when the file was
+# last written — so a write made after a jump is "now", and silence is only ever the time
+# jumped while nothing was written. A relaunched attempt's fresh log is therefore not silent,
+# which an offset applied to `date` alone would make it. Every other `date` and `stat` call is
+# the real one; the real paths are baked in because each stub sits on PATH under the name it
+# would otherwise re-exec into forever.
+realdate="$(command -v date)"
+realstat="$(command -v stat)"
+cat > "$stub/date" <<D
+#!/usr/bin/env bash
+if [[ "\$*" == "+%s" ]]; then
+  [[ -e .test-clock-reads ]] && echo r >> .test-clock-reads
+  offset="\$(tail -n 1 .test-clock 2>/dev/null | cut -d' ' -f2)"
+  printf '%s\n' "\$(( \$("$realdate" +%s) + \${offset:-0} ))"
+else
+  exec "$realdate" "\$@"
+fi
+D
+cat > "$stub/stat" <<D
+#!/usr/bin/env bash
+if [[ \$# -eq 3 && ( "\$1 \$2" == "-c %Y" || "\$1 \$2" == "-f %m" ) ]]; then
+  exec python3 -c '
+import os, sys
+try:
+    m = os.stat(sys.argv[1]).st_mtime
+except OSError:
+    sys.exit(1)
+offset = 0
+try:
+    for line in open(".test-clock"):
+        at, value = line.split()
+        if float(at) <= m:
+            offset = int(value)
+except OSError:
+    pass
+print(int(m) + offset)' "\$3"
+fi
+exec "$realstat" "\$@"
+D
+cat > "$stub/clock-jump" <<'C'
+#!/usr/bin/env bash
+exec python3 -c '
+import sys, time
+offset = 0
+try:
+    offset = int(open(".test-clock").read().split()[-1])
+except (OSError, IndexError):
+    pass
+with open(".test-clock", "a") as f:
+    f.write("%r %d\n" % (time.time(), offset + int(sys.argv[1])))' "$1"
+C
+cat > "$stub/await-poll" <<'C'
+#!/usr/bin/env bash
+n="$(wc -l < .test-clock-reads)"
+for _ in $(seq 1 500); do (( $(wc -l < .test-clock-reads) > n )) && exit 0; sleep 0.01; done
+exit 1
+C
+chmod +x "$stub/date" "$stub/stat" "$stub/clock-jump" "$stub/await-poll"
+# On PATH for everything this suite starts, so the supervisor reads the injected clock and a
+# stub leaf can call the helpers by name.
+export PATH="$stub:$PATH"
 
 # sup <name> <heartbeat> <timeout> <leaf> -> sets $out / $code (runs in $work)
 # VERI_STUCK_RETRIES=0 is pinned, not inherited: every case here is about a single attempt,
@@ -83,7 +162,8 @@ chmod +x "$stub"/leaf-*
 # would change both the stderr transcript and the suite's wall time).
 sup() {
   local name="$1" hb="$2" to="$3" leaf="$4"
-  out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$hb" VERI_TIMEOUT="$to" VERI_POLL=0.2 \
+  rm -f "$work/.test-clock" "$work/.test-clock-reads"
+  out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$hb" VERI_TIMEOUT="$to" VERI_POLL=0.02 \
             "$SUP" "$name" "$stub/$leaf" 2>"$work/err" )"
   code=$?
 }
@@ -103,10 +183,11 @@ sup hang 1 30 leaf-hang
 { [[ "$code" == 2 ]] && grep -qi 'heartbeat\|stuck\|silent' "$work/err"; } && ok \
   || no "hung leaf → killed-stuck via heartbeat (code=$code, err=$(cat "$work/err"))"
 
-# 4. a slow-but-alive leaf keeps its heartbeat and is allowed to finish → success.
-#    Window is 2s, not 1s: the supervisor's clock is whole-second (`date +%s`), so a leaf
-#    emitting every 0.3s can read as 1s "silent" at a second boundary. Real windows are
-#    tens of seconds, where this granularity is irrelevant; the test honours it.
+# 4. a slow-but-alive leaf keeps its heartbeat and is allowed to finish → success. It lives
+#    six seconds on the injected clock against a two-second window, never silent for more
+#    than one, so it survives only if activity resets the heartbeat. Before the clock was
+#    injected the leaf finished inside its window in real time, and a supervisor measuring
+#    silence from launch rather than from the last write passed this case too.
 sup slow 2 30 leaf-slow
 { [[ "$code" == 0 ]] && [[ "$out" == *'done'* ]]; } && ok \
   || no "slow-but-alive leaf survives heartbeat → success (code=$code)"
@@ -211,42 +292,17 @@ SITES
 #     files; this one asks the running supervisor, which answers in the kill line it writes
 #     to stderr — `no heartbeat for Ns (window Ms)`, where M is the window in force.
 #
-#     Waiting out a real 180s silence would cost the suite three minutes, so the clock is
-#     injected rather than the wait endured. A `date` stub placed first on PATH answers
-#     `+%s` with the real time plus $TEST_CLOCK_SKEW seconds; the log's mtime is read
-#     through `stat`, which is NOT stubbed and so stays real. The supervisor computes
-#     `silence = now - mtime_of(log)`, so it reads ~$TEST_CLOCK_SKEW from the very first
-#     poll, and any window shorter than the skew fires at once. The hard timeout is
-#     untouched by this: it compares two skewed readings (`t - t0`), so the constant skew
-#     cancels and it still measures real elapsed seconds — which is what stops the arms
-#     below hanging for 30s when no heartbeat kill comes.
+#     Waiting out a real 180s silence would cost the suite three minutes, so it is not
+#     waited: the hanging leaf jumps the injected clock (near the top of this file) past its
+#     window — 1000s when VERI_HEARTBEAT is unset, which clears the 180s default. The hard
+#     timeout is set above that jump so it cannot be the kill that answers.
 #
-#     Both arms hang the same leaf under a 200s skew, so the only difference between them
-#     is where the window comes from: absent → the script's default, present → the caller's
-#     number. `env -u VERI_HEARTBEAT` unsets it for the child rather than trusting the
-#     suite's own environment to be clean, the same hermeticity case 8 insists on.
-realdate="$(command -v date)"
-cat > "$stub/date" <<D
-#!/usr/bin/env bash
-# \`date +%s\` answers \$TEST_CLOCK_SKEW seconds into the future; every other invocation is
-# the real \`date\`, untouched. The real path is baked in at generation time because this
-# stub sits on PATH as \`date\` itself and would otherwise re-exec into itself forever.
-if [[ "\$*" == "+%s" ]]; then
-  printf '%s\n' "\$(( \$("$realdate" +%s) + \${TEST_CLOCK_SKEW:-0} ))"
-else
-  exec "$realdate" "\$@"
-fi
-D
-chmod +x "$stub/date"
+#     Both arms hang the same leaf, so the only difference between them is where the window
+#     comes from: absent → the script's default, present → the caller's number.
+#     `env -u VERI_HEARTBEAT` unsets it for the child rather than trusting the suite's own
+#     environment to be clean, the same hermeticity case 8 insists on.
 
-# How far into the future the stub reports the clock, shared by both arms. It has to clear
-# the largest window either arm expects — 180, the default — or the unset arm would poll a
-# silence below its own window and never be killed at all, and the case would then read
-# '<no-heartbeat-kill>' rather than a number. That constraint is the reason for the value,
-# so it is named here next to it instead of being a bare 200 repeated at the call sites.
-skew=200
-
-# killed_window <name> <heartbeat|''> — hang a leaf under the skewed clock and echo the
+# killed_window <name> <heartbeat|''> — hang a leaf and echo the
 # window the supervisor said it killed on, or '<no-heartbeat-kill>' if it died some other
 # way (the hard timeout) or not at all. An empty second argument leaves VERI_HEARTBEAT
 # unset in the child, which is the whole point of the first arm.
@@ -254,8 +310,9 @@ killed_window() {
   local name="$1" hb="${2-}"
   local -a hbenv
   if [[ -n "$hb" ]]; then hbenv=(VERI_HEARTBEAT="$hb"); else hbenv=(-u VERI_HEARTBEAT); fi
-  ( cd "$work" && env "${hbenv[@]}" PATH="$stub:$PATH" TEST_CLOCK_SKEW="$skew" \
-      VERI_STUCK_RETRIES=0 VERI_TIMEOUT=5 VERI_POLL=0.2 \
+  rm -f "$work/.test-clock"
+  ( cd "$work" && env "${hbenv[@]}" \
+      VERI_STUCK_RETRIES=0 VERI_TIMEOUT=5000 VERI_POLL=0.02 \
       "$SUP" "$name" "$stub/leaf-hang" >/dev/null 2>"$work/err-$name" )
   grep -oE 'window [0-9]+s' "$work/err-$name" | head -1 | grep -oE '[0-9]+' \
     || echo '<no-heartbeat-kill>'
@@ -349,7 +406,7 @@ else:
 sup_run() {
   local dir="$1"; shift
   mkdir -p "$dir"
-  ( cd "$dir" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+  ( cd "$dir" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.02 \
       "$@" ) >/dev/null 2>&1
 }
 
@@ -422,7 +479,7 @@ retry_work="$work/retry"
 mkdir -p "$retry_work"
 retry_window=1
 ( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT="$retry_window" \
-    VERI_TIMEOUT=30 VERI_POLL=0.2 \
+    VERI_TIMEOUT=30 VERI_POLL=0.02 \
     "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
 retry_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11 and
@@ -927,6 +984,7 @@ result_hang_stub() {
 $prelude
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: ran the suite"}]}}'
 echo '{"type":"result","subtype":"$subtype","is_error":$is_error,"duration_ms":164524,"duration_api_ms":44600,"num_turns":12,"result":"$text","session_id":"4d1a","total_cost_usd":0.31,"usage":{"input_tokens":37,"cache_creation_input_tokens":41002,"cache_read_input_tokens":903117,"output_tokens":5140}}'
+clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
 sleep 60
 L
   chmod +x "$stub/$name"
@@ -949,7 +1007,7 @@ L
 sup_direct() {
   local dir="$1" leaf="$2" window="$3"; shift 3
   mkdir -p "$dir"
-  ( cd "$dir" && env "$@" VERI_HEARTBEAT="$window" VERI_TIMEOUT=30 VERI_POLL=0.2 \
+  ( cd "$dir" && env "$@" VERI_HEARTBEAT="$window" VERI_TIMEOUT=30 VERI_POLL=0.02 \
       "$SUP" verify-red "$stub/$leaf" )
 }
 
@@ -1151,6 +1209,7 @@ cat > "$stub/leaf-noresult-hang" <<'L'
 #!/usr/bin/env bash
 echo '{"type":"system","subtype":"init","session_id":"4d1a","model":"claude-opus-5"}'
 echo '{"type":"assistant","message":{"content":[{"type":"text","text":"leaf: reading the suite"}]}}'
+clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
 sleep 60
 L
 chmod +x "$stub/leaf-noresult-hang"
@@ -1219,7 +1278,7 @@ cat .tdd/develop-red.pid 2>/dev/null > pid-seen || echo '<missing>' > pid-seen
 exit 0
 L
 chmod +x "$stub/leaf-pid-seen"
-( cd "$pid_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.2 \
+( cd "$pid_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.02 \
     "$SUP" develop-red "$stub/leaf-pid-seen" ) >/dev/null 2>&1 &
 pid_sup=$!
 wait "$pid_sup"
@@ -1247,7 +1306,7 @@ echo "leaf: started"
 exec sleep 60
 L
 chmod +x "$stub/leaf-term-sleep"
-( cd "$term_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
+( cd "$term_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
     "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
 term_sup=$!
 for _ in $(seq 1 50); do [[ -s "$term_work/leaf-pid" ]] && break; sleep 0.1; done
