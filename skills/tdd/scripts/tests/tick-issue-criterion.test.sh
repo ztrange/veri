@@ -17,13 +17,13 @@ pass=0 fail=0
 stubdir="$(mktemp -d)"
 trap 'rm -rf "$stubdir"' EXIT
 cat > "$stubdir/gh" <<'STUB'
-#!/usr/bin/env bash
-if [[ "$1" == "issue" && "$2" == "view" ]]; then
+#!/bin/sh
+if [ "$1" = "issue" ] && [ "$2" = "view" ]; then
   printf '%s' "$FAKE_BODY"
-elif [[ "$1" == "issue" && "$2" == "edit" ]]; then
+elif [ "$1" = "issue" ] && [ "$2" = "edit" ]; then
   prev=""
   for a in "$@"; do
-    [[ "$prev" == "--body-file" ]] && cp "$a" "$FAKE_OUT"
+    [ "$prev" = "--body-file" ] && cp "$a" "$FAKE_OUT"
     prev="$a"
   done
 fi

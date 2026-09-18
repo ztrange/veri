@@ -31,8 +31,8 @@ trap 'rm -rf "$stub" "$work"' EXIT
 #   later runs → see the marker, print the success line, exit 0 right away
 # The marker lives in cwd ($work), which the supervisor preserves across attempts.
 cat > "$stub/leaf-flaky" <<'L'
-#!/usr/bin/env bash
-if [[ -e .retry-marker ]]; then
+#!/bin/sh
+if [ -e .retry-marker ]; then
   echo "leaf: recovered on retry"; exit 0
 fi
 echo "leaf: starting"; : > .retry-marker; sleep 60; echo "unreachable"
