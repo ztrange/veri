@@ -104,6 +104,16 @@ exit 1
 EOF
 chmod +x "$stub/xcrun"
 
+# A real (if fake) binary for xcrun to name in case 3: the recipe now symlinks `git` on a
+# suite's PATH straight to whatever it resolves as real, and a dangling symlink — one whose
+# target does not exist — is invisible to `command -v`, which skips it and keeps searching.
+# Naming a path that is not actually there would silently fall through to the real system git
+# instead of pinning what the recipe chose.
+xcrun_git="$work/xcrun-git/git"
+mkdir -p "$(dirname "$xcrun_git")"
+printf '#!/bin/sh\necho fake xcrun git\n' > "$xcrun_git"
+chmod +x "$xcrun_git"
+
 # 1. The locale. Asked with the caller in the UTF-8 locale a terminal sets, which is the one
 #    that made the text-processing suites twelve times slower.
 problems=()
@@ -134,10 +144,10 @@ report "make test gives every suite /dev/null as stdin, whatever stdin it was gi
 #    wrapper, so `readlink` names the real binary the recipe resolved rather than a shim it
 #    forwards to.
 problems=()
-recipe /dev/null -u OFFLINE_REAL_GIT PATH="$stub:$PATH" XCRUN_GIT=/opt/xcrun-says/bin/git
-expect OFFLINE_REAL_GIT /opt/xcrun-says/bin/git \
+recipe /dev/null -u OFFLINE_REAL_GIT PATH="$stub:$PATH" XCRUN_GIT="$xcrun_git"
+expect OFFLINE_REAL_GIT "$xcrun_git" \
   "the git symlink on PATH points at the git xcrun names, which on a Mac is xcrun's shim at ~21 ms a call on top"
-expect GIT_LINK_TARGET /opt/xcrun-says/bin/git \
+expect GIT_LINK_TARGET "$xcrun_git" \
   "the git symlink on a suite's PATH should point straight at the same binary OFFLINE_REAL_GIT names, with no wrapper in between"
 report "make test's git symlink points at the git xcrun names, when xcrun answers"
 
