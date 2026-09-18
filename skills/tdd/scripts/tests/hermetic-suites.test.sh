@@ -197,16 +197,14 @@ report "$name"
 #    It is the trap cases 3 and 4 record for their label and their numbers, one level up: here the
 #    thing that can silently name nothing is the pattern rather than the value.
 name="solvable-issues.test.sh: a live conductor lock for every number its own fixtures name gives the same exit and the same stdout as a run with none"
-every_work="$(mktemp -d)"
-trap 'rm -rf "$lock_work" "$every_work"' EXIT
-git init -q -b main "$every_work/locked" >/dev/null 2>&1
+git init -q -b main "$lock_work/every-locked" >/dev/null 2>&1
 fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -u))
 for n in "${fixture_numbers[@]+"${fixture_numbers[@]}"}"; do
-  mkdir -p "$every_work/locked/.tdd/wt/$n/.tdd"
-  printf '%s\n' "$$" > "$every_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
+  mkdir -p "$lock_work/every-locked/.tdd/wt/$n/.tdd"
+  printf '%s\n' "$$" > "$lock_work/every-locked/.tdd/wt/$n/.tdd/conductor.pid"
 done
 
-every_locked_out="$(solvable_in "$every_work/locked" -u VERI_PRIORITY_LABEL)" && every_locked_code=0 || every_locked_code=$?
+every_locked_out="$(solvable_in "$lock_work/every-locked" -u VERI_PRIORITY_LABEL)" && every_locked_code=0 || every_locked_code=$?
 
 same_answer no-lock "$unlocked_code" "$unlocked_out" "$every_locked_code" "$every_locked_out"
 [[ "${#fixture_numbers[@]}" -gt 0 ]] ||
@@ -284,7 +282,7 @@ name="hermetic-suites.test.sh re-runs no suite for the offline or own-origin cas
 if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
   rerun_work="$(mktemp -d)"
-  trap 'rm -rf "$lock_work" "$every_work" "$rerun_work"' EXIT
+  trap 'rm -rf "$lock_work" "$rerun_work"' EXIT
   rerun_log="$rerun_work/runs"
   mkdir -p "$rerun_work/scripts/tests"
   : > "$rerun_log"
@@ -333,7 +331,7 @@ name="a suite whose answer changes with an ambient VERI_* value or a live conduc
 if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
   leak_work="$(mktemp -d)"
-  trap 'rm -rf "$lock_work" "$every_work" "${rerun_work:-}" "$leak_work"' EXIT
+  trap 'rm -rf "$lock_work" "${rerun_work:-}" "$leak_work"' EXIT
   mkdir -p "$leak_work/scripts/tests"
   for stand_in in \
     'supervise-retry:[[ -z "${VERI_STUCK_RETRIES:-}" ]]' \
@@ -376,7 +374,7 @@ name="hermetic-suites.test.sh runs solvable-issues.test.sh's reference arm once,
 if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   problems=()
   share_work="$(mktemp -d)"
-  trap 'rm -rf "$lock_work" "$every_work" "${rerun_work:-}" "${leak_work:-}" "$share_work"' EXIT
+  trap 'rm -rf "$lock_work" "${rerun_work:-}" "${leak_work:-}" "$share_work"' EXIT
   share_log="$share_work/reference-runs"
   mkdir -p "$share_work/scripts/tests" "$share_work/cwd"
   : > "$share_log"
