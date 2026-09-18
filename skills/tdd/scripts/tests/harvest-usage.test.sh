@@ -352,6 +352,49 @@ killed_usage_lines="$(event_count "$killed_work" usage)"
 
 report "$name"
 
+# 3. A leaf name leaf-role.sh refuses: the eight numbers are readable -- the log holds a
+#    closing result record -- but the role they would be filed under is not, since the name's
+#    leading word (`frobnicate`) is none this script's mapping knows.
+#
+#    This case is the regression pin for the perf refactor that moves leaf-role.sh's mapping
+#    into a sourced library function (skills/tdd/scripts/lib/leaf-role.sh, called from
+#    harvest-usage.sh:133): today that line forks leaf-role.sh as a subprocess with no `||`
+#    guard, so its own refusal (exit 2, nothing on stdout) reaches this script's `set -e`
+#    unguarded and this script exits 2 too -- before ever building or appending the payload.
+#    A sourced function that `exit`s instead of `return`s, or a call site that swallows the
+#    failure, would let this case pass with the wrong code or a silent success; nothing here
+#    is about the log-reading half harvest-usage.sh already does, which is why the log is a
+#    minimal one-line fixture rather than case 1's full record.
+#
+#    Written by hand, not through launch_leaf/supervise.sh: this case has nothing to do with
+#    how a leaf is launched, only with a name already sitting in `.tdd/<name>.log`, so a
+#    fixture log is the direct way to put the harvester in front of the one line under test.
+name="a leaf name leaf-role.sh refuses: the harvester appends no usage event and exits 2, naming itself and the leaf on stderr"
+problems=()
+
+refused=frobnicate-red
+refused_work="$work/refused"
+mkdir -p "$refused_work/.tdd"
+cat > "$refused_work/.tdd/$refused.log" <<'LOG'
+{"type":"result","duration_ms":1,"duration_api_ms":1,"num_turns":1,"total_cost_usd":0.01,"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}
+LOG
+
+refused_err_text="$( ( cd "$refused_work" && "$HARVEST" "$refused" ) 2>&1 >/dev/null )" && refused_code=0 || refused_code=$?
+
+[[ "$refused_code" == 2 ]] ||
+  problems+=("want exit 2, got $refused_code")
+
+refused_usage_lines="$(event_count "$refused_work" usage)"
+[[ "$refused_usage_lines" == 0 ]] ||
+  problems+=("want 0 usage lines in the event log, got $refused_usage_lines")
+
+[[ "$refused_err_text" == *harvest-usage* || "$refused_err_text" == *leaf-role* ]] ||
+  problems+=("want harvest-usage or leaf-role named on stderr, got: $(printf '%q' "$refused_err_text")")
+[[ "$refused_err_text" == *"$refused"* ]] ||
+  problems+=("want the leaf named on stderr, got: $(printf '%q' "$refused_err_text")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
