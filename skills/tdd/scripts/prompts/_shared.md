@@ -24,6 +24,13 @@ is then lost. To see the committed version of a file, read it with `git show HEA
 to compare a whole tree against it, make a throwaway checkout with
 `git worktree add --detach <scratch> HEAD` and remove it afterwards.
 
+**Never change global or user-level configuration** — not git's (`git config --global`,
+`~/.gitconfig`), not your shell's, not `~/.claude`. It is shared with the operator and with
+every other run on the machine, and a cleanup that never runs (a `trap` in a killed
+process) leaves the change behind for all of them. To simulate a condition, use
+environment variables scoped to the one command, or a throwaway directory made with
+`mktemp -d` and removed afterwards.
+
 End your output with EXACTLY these two lines and nothing after them — no surrounding code
 fence, no extra formatting:
 
