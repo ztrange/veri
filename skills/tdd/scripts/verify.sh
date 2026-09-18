@@ -205,6 +205,14 @@ mark() {  # mark <event> [key=value …] -> event.sh under $role, or nothing whe
   fi
 }
 
+# The one refusal both comparisons below end in: what the leaf modified, then the paths that
+# changed on stdout, one per line, and exit 2 whatever the verdict was.
+refuse_modified() {  # refuse_modified <what> <paths> -> the refusal on stdout, then exit 2
+  echo "verifier leaf modified $1 — verdict not accepted (see .tdd/$leaf_name.log); changed:"
+  printf '%s\n' "$2"
+  exit 2
+}
+
 parse_err="$(mktemp)"
 trap 'rm -f "$parse_err"' EXIT
 relaunches=0
@@ -241,9 +249,7 @@ while :; do
       # tree the first one has already put right.
       restore_tree "$tree_before"
       restore_head "$head_before" "$head_after"
-      echo "verifier leaf modified the repository — verdict not accepted (see .tdd/$leaf_name.log); changed:"
-      printf '%s\n' "$changed"
-      exit 2
+      refuse_modified "the repository" "$changed"
     fi
   fi
 
@@ -251,9 +257,7 @@ while :; do
   # something this script can tell apart from what the operator changed meanwhile, so it is named
   # for a human to put right rather than guessed at.
   if [[ "$(gitconfig_snapshot)" != "$gitconfig_before" ]]; then
-    echo "verifier leaf modified the operator's global git config — verdict not accepted (see .tdd/$leaf_name.log); changed:"
-    printf '%s\n' "$operator_gitconfig"
-    exit 2
+    refuse_modified "the operator's global git config" "$operator_gitconfig"
   fi
 
   # The verdict is the parse result of the captured output, not the leaf's process status.
