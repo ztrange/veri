@@ -11,8 +11,9 @@
 # Exit:    0 one or more runs printed; 3 nothing to do — "no runs"
 set -euo pipefail
 
+lib="$(dirname "$0")/lib"
 # shellcheck source=lib/main-working-tree.sh
-source "$(dirname "$0")/lib/main-working-tree.sh"
+source "$lib/main-working-tree.sh"
 
 # Step n is the first unticked step; m is every step the ledger has.
 ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
@@ -33,7 +34,7 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 # is older than <timeout> seconds and <conductor.pid> does not answer `kill -0`, else running.
 # With STATUS_JSON=1 the same fields print as one JSON object instead.
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
-  PYTHONPATH="$(dirname "$0")/lib" python3 - "$1" "$2" "$3" <<'PY'
+  PYTHONPATH="$lib" python3 - "$1" "$2" "$3" <<'PY'
 import json, os, sys, time
 from event_log import read_events, usage_totals
 last, attempts = None, 0
@@ -92,7 +93,7 @@ PY
 # The solvable count is solvable_count's, passed in. With STATUS_JSON=1 the same totals print
 # as one JSON object instead, the count a number like the rest.
 scope_totals() {  # scope_totals <name> <solvable> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>  solvable <s>"
-  PYTHONPATH="$(dirname "$0")/lib" python3 - "$@" <<'PY'
+  PYTHONPATH="$lib" python3 - "$@" <<'PY'
 import json, os, sys
 from event_log import read_events, usage_totals
 solvable = sys.argv[2]
