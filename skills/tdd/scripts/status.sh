@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # status.sh — render every veri run under the repository's main working tree.
 #
-# Runs are discovered from `.tdd/wt/*` under the MAIN working tree, resolved the way
-# solvable-issues.sh resolves it (#166): the first `worktree <path>` line of git's registry,
-# never the checkout this script was called from.
+# Runs are discovered from `.tdd/wt/*` under the MAIN working tree, resolved through
+# lib/main-working-tree.sh, as solvable-issues.sh resolves it (#166): the first
+# `worktree <path>` line of git's registry, never the checkout this script was called from.
 #
 # Usage:   status.sh [--json] [--scope <name>] [--watch [seconds]]   (no --scope: VERI_LABEL, when set, names the scope)
 #          --json prints the same runs and scope totals as one JSON document.
@@ -12,11 +12,8 @@
 # Exit:    0 one or more runs printed; 3 nothing to do — "no runs"
 set -euo pipefail
 
-main_working_tree() {
-  local first_line
-  first_line="$(git worktree list --porcelain 2>/dev/null | head -n 1 || true)"
-  printf '%s\n' "${first_line#worktree }"
-}
+# shellcheck source=lib/main-working-tree.sh
+source "$(dirname "$0")/lib/main-working-tree.sh"
 
 # Step n is the first unticked step; m is every step the ledger has.
 ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
