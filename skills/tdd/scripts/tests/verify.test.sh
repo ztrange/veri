@@ -19,6 +19,66 @@ no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 stubdir="$(mktemp -d)"
 work="$(mktemp -d)"
 trap 'rm -rf "$stubdir" "$work"' EXIT
+
+# No case here waits on the real clock. Every verification polls its leaf at 0.02 s instead of
+# supervise.sh's default 1 s, pinned here rather than inherited (see hermetic-suites.test.sh);
+# at 1 s each of this suite's ~40 verifications waited out one whole poll before it saw its
+# leaf finish. And a hung leaf is found on the next poll instead of after a real heartbeat
+# window, through the injected clock supervise.test.sh describes in full: supervise.sh reads
+# now with `date +%s` and the heartbeat with `stat`, stubs of both come first on PATH, and a
+# hanging stub leaf moves time with `clock-jump` — one second past its window, which the next
+# poll sees as silence. The clock's history is kept in $TEST_CLOCK, outside the repository a
+# verification runs in, because verify.sh reads any file a verifier leaves in the tree as
+# tampering.
+export VERI_POLL=0.02
+export TEST_CLOCK="$stubdir/clock"
+clockbin="$stubdir/clockbin"; mkdir -p "$clockbin"
+realdate="$(command -v date)"
+realstat="$(command -v stat)"
+cat > "$clockbin/date" <<D
+#!/usr/bin/env bash
+if [[ "\$*" == "+%s" ]]; then
+  offset="\$(tail -n 1 "\$TEST_CLOCK" 2>/dev/null | cut -d' ' -f2)"
+  printf '%s\n' "\$(( \$("$realdate" +%s) + \${offset:-0} ))"
+else
+  exec "$realdate" "\$@"
+fi
+D
+cat > "$clockbin/stat" <<D
+#!/usr/bin/env bash
+if [[ \$# -eq 3 && ( "\$1 \$2" == "-c %Y" || "\$1 \$2" == "-f %m" ) ]]; then
+  exec python3 -c '
+import os, sys
+try:
+    m = os.stat(sys.argv[1]).st_mtime
+except OSError:
+    sys.exit(1)
+offset = 0
+try:
+    for line in open(sys.argv[2]):
+        at, value = line.split()
+        if float(at) <= m:
+            offset = int(value)
+except OSError:
+    pass
+print(int(m) + offset)' "\$3" "\$TEST_CLOCK"
+fi
+exec "$realstat" "\$@"
+D
+cat > "$clockbin/clock-jump" <<'C'
+#!/usr/bin/env bash
+exec python3 -c '
+import sys, time
+offset = 0
+try:
+    offset = int(open(sys.argv[2]).read().split()[-1])
+except (OSError, IndexError):
+    pass
+with open(sys.argv[2], "a") as f:
+    f.write("%r %d\n" % (time.time(), offset + int(sys.argv[1])))' "$1" "$TEST_CLOCK"
+C
+chmod +x "$clockbin/date" "$clockbin/stat" "$clockbin/clock-jump"
+export PATH="$clockbin:$PATH"
 cat > "$stubdir/claude" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$@" > "$ARGV_OUT"
@@ -51,10 +111,11 @@ verify() {  # verify <fake-out-text> <phase> -> runs in $work, sets $out/$code
   code=$?
 }
 
-# the second stub never finishes, so the supervisor's stuck-detection is what ends the run
+# the second stub never finishes, so the supervisor's stuck-detection is what ends the run: it
+# writes a line and then falls silent while the injected clock moves past its window
 cat > "$stubdir/claude-hang" <<'STUB'
 #!/usr/bin/env bash
-echo "thinking..."; sleep 60
+echo "thinking..."; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
 STUB
 chmod +x "$stubdir/claude-hang"
 
@@ -63,7 +124,7 @@ hung_leaf() {  # hung_leaf -> runs in $work, sets $out/$code, stderr in $work/er
   # single attempt, so the caller's environment must not be able to add retries (each extra
   # attempt waits out the heartbeat window again, changing the suite's wall time).
   out="$( cd "$work" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
-            VERI_HEARTBEAT=1 VERI_POLL=0.2 "$VERIFY" red "$work/spec.md" \
+            VERI_HEARTBEAT=1 VERI_POLL=0.02 "$VERIFY" red "$work/spec.md" \
             tests/test_slugify.py test_lowercases 2>"$work/err" )"
   code=$?
 }
@@ -567,13 +628,13 @@ budget_bad="$(never_verdict bad many)"
 cat > "$stubdir/claude-counting-hang" <<'STUB'
 #!/usr/bin/env bash
 echo $(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 )) > "$LAUNCH_COUNT"
-echo "thinking..."; sleep 60
+echo "thinking..."; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
 STUB
 chmod +x "$stubdir/claude-counting-hang"
 killed_dir="$work/killed-no-relaunch"
 mkdir -p "$killed_dir"
 ( cd "$killed_dir" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$killed_dir/launches" \
-    VERI_STUCK_RETRIES=1 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+    VERI_STUCK_RETRIES=1 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.02 \
     "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 killed_code=$?
 killed_launches="$(cat "$killed_dir/launches" 2>/dev/null || echo 0)"
@@ -591,7 +652,7 @@ mkdir -p "$axes_dir/no-verdict" "$axes_dir/stuck"
       VERI_STUCK_RETRIES=3 "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 axes_no_verdict="$? $(cat "$axes_dir/no-verdict/launches" 2>/dev/null || echo 0)"
 ( cd "$axes_dir/stuck" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$axes_dir/stuck/launches" \
-    VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.2 \
+    VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.02 \
     "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 axes_stuck="$? $(cat "$axes_dir/stuck/launches" 2>/dev/null || echo 0)"
 { [[ "$axes_no_verdict" == '2 2' ]] && [[ "$axes_stuck" == '2 1' ]]; } && ok \
@@ -623,7 +684,7 @@ mkdir -p "$cause_dir/no-verdict" "$cause_dir/killed"
   && env CLAUDE_BIN="$stubdir/claude-counting" LAUNCH_COUNT="$cause_dir/no-verdict/launches" ARGV_OUT="$cause_dir/argv" \
       "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 ( cd "$cause_dir/killed" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
-    VERI_HEARTBEAT=1 VERI_POLL=0.2 "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+    VERI_HEARTBEAT=1 VERI_POLL=0.02 "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 no_verdict_causes="$(causes_in "$cause_dir/no-verdict")"
 killed_causes="$(causes_in "$cause_dir/killed")"
 no_verdict_cause_count="$(printf '%s' "$no_verdict_causes" | grep -c '^' || true)"
