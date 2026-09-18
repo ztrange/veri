@@ -292,11 +292,12 @@ same_both_ways run-conductor.test.sh \
   -- VERI_NEW_SKILL=1
 report "$name"
 
-# 10. Cases 1 to 5 still fail, named, on a suite that leaks (#301). Probed the way case 9 is: a copy
+# 10. Cases 1 to 5 and 9 still fail, named, on a suite that leaks (#301). Probed the way case 9 is: a copy
 #     of this file runs in a scratch tree beside a stand-in for each suite those cases name, and
 #     every stand-in is green when run clean but goes red on exactly the ambient value its case
-#     sets — VERI_STUCK_RETRIES, VERI_MODEL, VERI_PRIORITY_LABEL, or a conductor lock under its
-#     cwd. A stand-in that were red either way would make its case fail for "nothing to compare
+#     sets — VERI_STUCK_RETRIES, VERI_MODEL, VERI_PRIORITY_LABEL, VERI_NEW_SKILL, or a conductor
+#     lock under its cwd. Case 9 is here because it was not, once: #301's refactor deleted the
+#     helper it called, and it went on reporting a pass without running anything, unnoticed. A stand-in that were red either way would make its case fail for "nothing to compare
 #     against", which is a failure but not the one this pins, so each is green clean by
 #     construction. The copy is run with HERMETIC_LEAK_PROBE and HERMETIC_RERUN_PROBE set, which
 #     this case and case 9 read to skip themselves in the child.
@@ -309,7 +310,8 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
   for stand_in in \
     'supervise-retry:[[ -z "${VERI_STUCK_RETRIES:-}" ]]' \
     'leaf-model:[[ -z "${VERI_MODEL:-}" ]]' \
-    'solvable-issues:[[ -z "${VERI_PRIORITY_LABEL:-}" ]] && ! ls .tdd/wt/*/.tdd/conductor.pid'; do
+    'solvable-issues:[[ -z "${VERI_PRIORITY_LABEL:-}" ]] && ! ls .tdd/wt/*/.tdd/conductor.pid' \
+    'run-conductor:[[ -z "${VERI_NEW_SKILL:-}" ]]'; do
     {
       printf '#!/usr/bin/env bash\n'
       printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
@@ -328,10 +330,16 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     "leaf-model.test.sh: an ambient VERI_MODEL" \
     "solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL" \
     "solvable-issues.test.sh: a live conductor lock in the surrounding repository" \
-    "solvable-issues.test.sh: a live conductor lock for every number"; do
+    "solvable-issues.test.sh: a live conductor lock for every number" \
+    "run-conductor.test.sh: an ambient VERI_NEW_SKILL=1"; do
     [[ "$leak_out" == *"FAIL - $leaked"* ]] ||
       problems+=("want a FAIL line naming '$leaked', got: $(printf '%q' "$leak_out")")
   done
+  # A FAIL line alone does not prove case 9 ran: a case that asserted nothing reports whatever
+  # an earlier case left in `problems`, and in this child cases 1-5 all leave some. So case 9's
+  # own finding is asked for by the words only it writes.
+  [[ "$leak_out" == *"from run-conductor.test.sh under VERI_NEW_SKILL=1"* ]] ||
+    problems+=("want case 9 to fail on its own finding, run-conductor.test.sh red under VERI_NEW_SKILL=1, not on problems an earlier case left; got: $(printf '%q' "$leak_out")")
   report "$name"
 fi
 
