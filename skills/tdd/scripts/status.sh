@@ -220,7 +220,12 @@ if [[ "$json" -eq 1 ]]; then
   scope_object="null"
   if [[ -n "$scope" ]]; then
     scope_object="$(scope_totals "$scope" ${events[@]+"${events[@]}"})"
-    scope_object="${scope_object%\}}, \"solvable\": \"$(solvable_count "$scope")\"}"
+    # One json.dumps over scope_totals's fields and the solvable count, so a count is a number like the rest.
+    scope_object="$(python3 -c '
+import json, sys
+scope = json.loads(sys.argv[1])
+scope["solvable"] = int(sys.argv[2]) if sys.argv[2].isdigit() else sys.argv[2]
+print(json.dumps(scope))' "$scope_object" "$(solvable_count "$scope")")"
   fi
   runs_array="$(IFS=,; printf '%s' "${run_objects[*]:-}")"
   printf '{"runs": [%s], "scope": %s}\n' "$runs_array" "$scope_object"

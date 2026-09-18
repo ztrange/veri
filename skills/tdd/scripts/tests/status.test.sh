@@ -283,6 +283,22 @@ for want in wanted:
 ')
 expect_nothing_missing "--json emits the same per-run and scope data as one JSON document"
 
+# --- --json: scope.solvable is a JSON number, like every other numeric field (#279) ---
+# The same runs and solvable fixture. The case above flattens every leaf to a string, so it
+# cannot tell 2 from "2"; a consumer reading scope.solvable can. It must be the number 2.
+VERI_GH_JSON="$solvable_gh" VERI_TIMEOUT=600 run_in "$scoped" --json --scope lamps-label
+solvable="$(printf '%s' "$out" | python3 -c '
+import json, sys
+try:
+    print(repr(json.loads(sys.stdin.read())["scope"]["solvable"]))
+except (ValueError, KeyError, TypeError) as err:
+    print("no scope.solvable: %r" % err)
+')"
+if [[ "$solvable" == "2" && "$code" -eq 0 ]]; then ok; else
+  no "--json emits scope.solvable as a JSON number, like every other numeric field"
+  diff <(printf '2\nexit 0\n') <(printf '%s\nexit %s\n' "$solvable" "$code")
+fi
+
 # --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
 # One running run, watched every 1 s with stdout to a file. Once its first render is on screen,
 # a `done` event is appended to the run's log. The watcher must still be going, must have moved
