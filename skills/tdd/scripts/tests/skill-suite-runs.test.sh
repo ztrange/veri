@@ -216,6 +216,35 @@ else
 fi
 report "$name"
 
+# 4. The other half of the pin path's split (issue #275): the full suite runs once, in the
+#    conductor's PASS branch, and the blind verifier's check 1 stays on the target test alone.
+#    A verify-pin that ran the full suite too would pay for the same run twice per pin, and it
+#    would move the gate to where a red answer is a REJECT — a methodology verdict on a pin
+#    the verifier has just judged sound — instead of the system failure case 3 pins. Read
+#    from the first item under "### Your checks" up to the second, so the shared preamble's
+#    "the project's test command" and checks 2 and 3 cannot answer for check 1.
+name="verify-pin.md's check 1 runs the target test alone, never the full suite"
+problems=()
+pin_prompt="skills/tdd/scripts/prompts/verify-pin.md"
+check_one="$(awk '
+  /^### Your checks/ { in_s = 1; next }
+  in_s && /^#/ { exit }
+  in_s && /^1\. / { want = 1 }
+  in_s && want && /^[2-9]\. / { exit }
+  want { print }' "$ROOT/$pin_prompt" | plain | tr '\n' ' ')"
+if [[ -z "${check_one// /}" ]]; then
+  problems+=("$pin_prompt has no check 1 under '### Your checks' — what the pin verifier runs could not be established")
+else
+  text="$check_one"
+  says 'target test' \
+    "$pin_prompt's check 1 never names the target test, so what the pin verifier runs first is no longer scoped to the one case"
+  wide='full (test )?suite|whole suite|entire suite|every suite|all (the )?(tests|suites)|make test|test-cmd|test command'
+  if [[ "$text" =~ $wide ]]; then
+    problems+=("$pin_prompt's check 1 runs more than the target test ('${BASH_REMATCH[0]}'), so the blind verifier pays for the full-suite run the conductor's pin PASS branch already makes")
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
