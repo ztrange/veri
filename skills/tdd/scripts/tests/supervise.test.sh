@@ -1327,6 +1327,32 @@ fi
 { [[ "$term_code" == 2 ]] && [[ "$term_exit" == 2 ]] && [[ "$term_alive" == no ]]; } && ok \
   || no "supervise.sh sent TERM writes 2 to its completion file, exits 2 and leaves no leaf process behind (code=$term_code want 2, exit file=$term_exit want 2, leaf alive=$term_alive want no)"
 
+# 31. a leaf name leaf-role.sh refuses degrades gracefully: the leaf still runs to completion
+#     and the supervisor still reports its real status, but nothing is marked to the event
+#     log rather than a line whose actor was invented (supervise.sh:231-233's own comment).
+#
+#     Regression pin for the perf refactor that moves leaf-role.sh's mapping, and
+#     leaf-model.sh's (which asks leaf-role.sh too), into sourced library functions called
+#     from supervise.sh:233 and :241 in place of the two
+#     `"$HERE/leaf-role.sh" "$name" ... || role=""` / `"$HERE/leaf-model.sh" "$name" ...
+#     || model=""` subprocess calls: today a name neither script recognises leaves `$role`
+#     and `$model` empty exactly the way the trailing `||` reads a subprocess's exit 2, and
+#     `mark` (supervise.sh:283) then writes nothing to `.tdd/events.jsonl` for either the
+#     `launch` or the `exit` line. A sourced function that raised (`exit` instead of
+#     `return`) where the subprocess used to just fail would take the whole supervision
+#     down instead of degrading it this way.
+#
+#     `leaf-ok`, the same clean stub case 1 uses, because this case is about the SUPERVISION
+#     around an unrecognised name, not about the leaf's own outcome — a leaf that failed or
+#     hung would leave two reasons this could go red instead of one.
+name_work="$work/unknown-name"
+sup_run "$name_work" "$SUP" frobnicate-red "$stub/leaf-ok"
+name_code=$?
+name_launch_events="$(event_count "$name_work" launch)"
+{ [[ "$name_code" == 0 ]] \
+  && [[ "$name_launch_events" == 0 || "$name_launch_events" == '<<no event log>>' ]]; } && ok \
+  || no "a leaf name leaf-role.sh refuses still runs the leaf to completion but marks no launch event (code=$name_code want 0, launch events=$name_launch_events want 0 or no event log)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
