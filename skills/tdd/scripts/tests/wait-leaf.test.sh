@@ -7,10 +7,13 @@
 # final code in a completion file, and this script blocks in the foreground until that
 # file appears, then exits with the code it holds.
 #
-# Driven against STUB WRITERS (no claude, no supervisor): a background subshell that
-# creates the completion file a couple of seconds after the wait has already started, which
-# is the case that matters — the file is absent when the wait begins, so the script must
-# poll rather than look once.
+# Driven against STUB WRITERS (no claude, no supervisor) on a VIRTUAL CLOCK: the script reads
+# time only through `date +%s`, so a stub `date` first on PATH serves it a clock that advances
+# a fixed step per reading and logs every value it served. Nothing here waits for real time:
+# a budget runs out after that many readings, the elapsed time a case asserts on is read off
+# the log, and the completion file a wait is waiting for is written by the clock itself at a
+# chosen virtual second — after the wait has started, which is the case that matters: the file
+# is absent when the wait begins, so the script must poll rather than look once.
 #
 # Status contract: exit 0 success · 1 leaf-failure · 2 killed-stuck (whatever the
 # supervisor recorded) · 3 nothing to report yet.
@@ -28,9 +31,28 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/.tdd"
 
-# timed <name> <budget> — wait for <name> in the foreground with a <budget>-second budget,
-# and echo "<wait-leaf's exit code> <seconds the wait took>". Its stderr is kept in
-# $work/<name>.err for the cases that assert on the diagnostic.
+# The virtual clock. Reading N is N * $VERI_CLOCK_STEP seconds past the start (one second a
+# reading unless the case says otherwise), and every value served is appended to
+# $VERI_CLOCK_LOG. With CLOCK_LAND_AT set, the first reading at or past that virtual second
+# writes $CLOCK_LAND_CODE to $CLOCK_LAND_FILE (relative to the waiter's cwd): a supervisor
+# recording its status that many seconds into the wait, on the waiter's own clock.
+clockbin="$work/clockbin"; mkdir -p "$clockbin"
+cat > "$clockbin/date" <<'D'
+#!/usr/bin/env bash
+n="$(wc -l < "$VERI_CLOCK_LOG" | tr -d ' ')"
+now="$(( n * ${VERI_CLOCK_STEP:-1} ))"
+if [[ -n "${CLOCK_LAND_AT:-}" && "$now" -ge "$CLOCK_LAND_AT" && ! -e "$CLOCK_LAND_FILE" ]]; then
+  printf '%s\n' "$CLOCK_LAND_CODE" > "$CLOCK_LAND_FILE"
+fi
+printf '%s\n' "$now" | tee -a "$VERI_CLOCK_LOG"
+D
+chmod +x "$clockbin/date"
+
+# timed <name> <budget> [VAR=value…] — wait for <name> in the foreground with a <budget>-second
+# budget on the virtual clock, and echo "<wait-leaf's exit code> <virtual seconds the wait
+# took>". The assignments go to the waiter's environment, after the clock's own, so a case can
+# add to PATH or have the clock land a file. Its stderr is kept in $work/<name>.err for the
+# cases that assert on the diagnostic.
 #
 # Both numbers are what a case needs, whichever way it is pointed: the code is the answer,
 # and the elapsed time separates the two ways of arriving at it — "returned when the file
@@ -39,23 +61,24 @@ mkdir -p "$work/.tdd"
 # tell those apart.
 #
 # VERI_POLL is pinned rather than inherited (see hermetic-suites.test.sh): an ambient poll
-# interval of minutes would make the elapsed time a fact about the caller's environment.
+# interval of minutes would make the case wait on real time. It is 0 because time passes on
+# the clock, one step a reading, not between readings.
 timed() {
-  local t0 rc
-  t0="$(date +%s)"
-  ( cd "$work" && env VERI_POLL=0.2 "$WAIT" "$1" "$2" >/dev/null 2>"$work/$1.err" )
+  local name="$1" budget="$2" log="$work/$1.clock" rc
+  shift 2
+  : > "$log"
+  ( cd "$work" && env VERI_POLL=0 VERI_CLOCK_LOG="$log" PATH="$clockbin:$PATH" "$@" \
+      "$WAIT" "$name" "$budget" >/dev/null 2>"$work/$name.err" )
   rc=$?
-  printf '%s %s\n' "$rc" "$(( $(date +%s) - t0 ))"
+  printf '%s %s\n' "$rc" "$(( $(tail -n 1 "$log") - $(head -n 1 "$log") ))"
 }
 
-# waited <name> <code> — spawn a writer that records <code> in the completion file
-# .tdd/<name>.exit two seconds from now, i.e. after the wait has already started, then `timed`
-# the wait for <name> with a budget ten times that delay, so the answer can only come from the
-# file landing and not from the budget running out.
+# waited <name> <code> — `timed` the wait for <name> with the clock recording <code> in the
+# completion file .tdd/<name>.exit two virtual seconds in, i.e. after the wait has already
+# started, and a budget ten times that delay, so the answer can only come from the file
+# landing and not from the budget running out.
 waited() {
-  ( sleep 2; printf '%s\n' "$2" > "$work/.tdd/$1.exit" ) &
-  timed "$1" 20
-  wait
+  timed "$1" 20 CLOCK_LAND_AT=2 CLOCK_LAND_FILE=".tdd/$1.exit" CLOCK_LAND_CODE="$2"
 }
 
 # promptly <result> <want-code> — true when a `waited` result reads "<want-code> <secs>" and
@@ -84,26 +107,15 @@ w_stuck="$(waited late-stuck 2)"
 #    call fits inside Claude Code's 10-minute foreground cap: at most 540 seconds.
 #
 #    Two arms, because the criterion has two halves. The first passes an explicit 1-second
-#    budget, so real time can prove both the code and that the wait ended. The second names
-#    no budget at all, and its length is measured rather than waited out: the script reads
-#    the clock with `date +%s` (as supervise.sh does — bash 3.2 has no $EPOCHSECONDS), so a
-#    stub `date` earlier on PATH hands it a VIRTUAL clock that jumps 10 seconds per reading
-#    and logs every value it served. The last logged value is the virtual moment the script
-#    gave up, i.e. the default budget itself — measured in well under a second of real time.
-#    A default of 600 would be logged as 600 and fail the case rather than hang it.
+#    budget, so the clock can prove both the code and that the wait ended. The second names
+#    no budget at all, and its length is read off the clock rather than waited out: the
+#    clock jumps 10 seconds per reading there, and the last value it logged is the virtual
+#    moment the script gave up, i.e. the default budget itself. A default of 600 would be
+#    logged as 600 and fail the case rather than hang it.
 b_given="$(timed never-lands 1)"
 
-clockbin="$work/clockbin"; mkdir -p "$clockbin"
 clocklog="$work/clock.log"; : > "$clocklog"
-cat > "$clockbin/date" <<'D'
-#!/usr/bin/env bash
-# Virtual clock: reading N is 10*N seconds past the start, and every reading served is
-# appended to $VERI_CLOCK_LOG so the caller can see how far the waiter let it run.
-n="$(wc -l < "$VERI_CLOCK_LOG" | tr -d ' ')"
-printf '%s\n' "$(( n * 10 ))" | tee -a "$VERI_CLOCK_LOG"
-D
-chmod +x "$clockbin/date"
-( cd "$work" && env VERI_POLL=0 VERI_CLOCK_LOG="$clocklog" PATH="$clockbin:$PATH" \
+( cd "$work" && env VERI_POLL=0 VERI_CLOCK_STEP=10 VERI_CLOCK_LOG="$clocklog" PATH="$clockbin:$PATH" \
     "$WAIT" no-budget-named >/dev/null 2>&1 )
 rc_default=$?
 b_default="$(tail -n 1 "$clocklog")"
@@ -121,7 +133,8 @@ b_default="$(tail -n 1 "$clocklog")"
 #    spawned, no supervisor — so the only thing the script can be answering about is the
 #    absence itself, with nothing of another case's making for it to find.
 bare="$work/bare"; mkdir -p "$bare"
-( cd "$bare" && env VERI_POLL=0.2 "$WAIT" never-launched 1 >/dev/null 2>&1 )
+( cd "$bare" && env VERI_POLL=0 VERI_CLOCK_LOG="$bare.clock" PATH="$clockbin:$PATH" \
+    "$WAIT" never-launched 1 >/dev/null 2>&1 )
 rc_bare=$?
 [[ "$rc_bare" == 3 ]] && ok \
   || no "exits 3, never 0, when there is no completion file and no leaf running (got $rc_bare, want 3)"
@@ -251,8 +264,8 @@ kill "$imp_pid" 2>/dev/null; wait "$imp_pid" 2>/dev/null
 #    The live supervisor is a stub script named supervise.sh, run as `supervise.sh live-sup x`
 #    so its command line is exactly what a real launch's is. It loops on short sleeps rather
 #    than one long one, so killing it afterwards leaves no child running past the suite. Both
-#    arms get a 2-second budget, and must sit it out: a 3 that came back before the budget was
-#    spent would be some other answer.
+#    arms get a 2-second budget, and must sit it out on the clock: a 3 that came back before
+#    the budget was spent would be some other answer.
 stubsup="$work/stubsup"; mkdir -p "$stubsup"
 cat > "$stubsup/supervise.sh" <<'S'
 #!/usr/bin/env bash
@@ -288,10 +301,7 @@ exit 1
 P
 chmod +x "$racebin/ps"
 printf '%s\n' "$dead_pid" > "$work/.tdd/race-sup.pid"
-t0="$(date +%s)"
-( cd "$work" && env VERI_POLL=0.2 PATH="$racebin:$PATH" "$WAIT" race-sup 20 >/dev/null 2>&1 )
-rc_race=$?
-x_race="$rc_race $(( $(date +%s) - t0 ))"
+x_race="$(timed race-sup 20 PATH="$racebin:$clockbin:$PATH")"
 promptly "$x_race" 1 && ok \
   || no "returns the recorded code when the completion file lands just before the supervisor exits, not the dead-supervisor 2 (got '<code> <secs>'=$x_race want '1 <=10')"
 
