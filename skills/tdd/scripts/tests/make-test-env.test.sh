@@ -12,8 +12,9 @@
 #     model-knobs-recorded.test.sh took 2.7 s under LC_ALL=C and 33.5 s under en_US.UTF-8,
 #     and the terminal the conductors run in sets UTF-8. 121 s of every run went to it.
 #   - Git. /usr/bin/git on macOS is xcrun's shim, 30.8 ms a call against 9.6 ms for the git
-#     it forwards to, and a run makes ~1,900 git calls — every one through the offline shim,
-#     which forwarded to `command -v git`, the xcrun shim.
+#     it forwards to, and a run makes ~1,900 git calls. `git` on a suite's PATH is now a
+#     symlink straight to the resolved real binary — no xcrun hop, and (since 2026-09-18) no
+#     bash wrapper in front of it either, which is what cases 3 and 4 below pin.
 # And one hang: a suite inherited whatever stdin `make test` was given. Under a leaf's
 # backgrounded `make test` that is a socket that never closes, and the stub claude's
 # `cat > "$PROMPT_OUT"` in run-conductor.test.sh blocked on it for 28 minutes.
@@ -25,8 +26,12 @@
 # Contract under test:
 #   1. A suite runs under LC_ALL=C, whatever locale `make test` was invoked in.
 #   2. A suite's stdin is /dev/null, whatever stdin `make test` was given.
-#   3. The offline shim forwards to the git `xcrun -f git` names when xcrun answers,
-#   4. and to `command -v git` when it does not — the Linux path, which CI runs on.
+#   3. `git` on a suite's PATH is a symlink straight to the git `xcrun -f git` names, when
+#      xcrun answers,
+#   4. and straight to the git `command -v git` names when it does not — the Linux path,
+#      which CI runs on. Neither hop goes through a bash wrapper any more (measured
+#      2026-09-18: that wrapper cost ~26 ms/call against ~8 ms for the real binary, over
+#      ~1,900 calls a run — 1,820 of the run's 4,834 bash starts).
 #
 # Run: skills/tdd/scripts/tests/make-test-env.test.sh
 set -uo pipefail
@@ -123,20 +128,28 @@ report "make test gives every suite /dev/null as stdin, whatever stdin it was gi
 
 # 3. xcrun answers. OFFLINE_REAL_GIT is cleared because a suite running under `make test`
 #    inherits the outer run's value, and the recipe keeps an inherited one on purpose (a nested
-#    run must not resolve the shim as the real git); cleared, the recipe has to resolve it.
+#    run must not re-resolve real git through its own, already-shadowed PATH); cleared, the
+#    recipe has to resolve it. GIT_LINK_TARGET is the immediate target of the `git` symlink the
+#    recipe puts on PATH — the fixture's own `command -v git` finds that symlink, not a bash
+#    wrapper, so `readlink` names the real binary the recipe resolved rather than a shim it
+#    forwards to.
 problems=()
 recipe /dev/null -u OFFLINE_REAL_GIT PATH="$stub:$PATH" XCRUN_GIT=/opt/xcrun-says/bin/git
 expect OFFLINE_REAL_GIT /opt/xcrun-says/bin/git \
-  "the offline shim forwards to the git on PATH, which on a Mac is xcrun's shim at ~21 ms a call on top"
-report "make test's offline shim forwards to the git xcrun names, when xcrun answers"
+  "the git symlink on PATH points at the git xcrun names, which on a Mac is xcrun's shim at ~21 ms a call on top"
+expect GIT_LINK_TARGET /opt/xcrun-says/bin/git \
+  "the git symlink on a suite's PATH should point straight at the same binary OFFLINE_REAL_GIT names, with no wrapper in between"
+report "make test's git symlink points at the git xcrun names, when xcrun answers"
 
 # 4. xcrun does not answer — the machine CI runs on. The expected value is computed under the
 #    same PATH the recipe gets, so the case asks what the recipe chose, not what this machine has.
 problems=()
 want_git="$(PATH="$stub:$PATH" command -v git)"
 recipe /dev/null -u OFFLINE_REAL_GIT PATH="$stub:$PATH"
-expect OFFLINE_REAL_GIT "$want_git" "with no xcrun to ask, the git on PATH is the real one"
-report "make test's offline shim forwards to the git on PATH, when xcrun does not answer"
+expect OFFLINE_REAL_GIT "$want_git" "with no xcrun to ask, the git symlink points at the git on PATH, the real one"
+expect GIT_LINK_TARGET "$want_git" \
+  "the git symlink on a suite's PATH should point straight at the same binary OFFLINE_REAL_GIT names, with no wrapper in between"
+report "make test's git symlink points at the git on PATH, when xcrun does not answer"
 
 echo "----"
 echo "$pass passed, $fail failed"
