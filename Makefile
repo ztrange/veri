@@ -27,17 +27,36 @@ COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 # file it leaves behind is read only once the suite is done. The suite's own exit status
 # travels in a second file because a pipeline's status is its last command's — tee's — and
 # PIPESTATUS is bash's, not the /bin/sh make runs recipes with.
+#
+# Every suite also runs offline (#301), in this same run rather than a second one: the shims in
+# OFFLINE_BIN stand in front of git, gh and curl, refuse a remote git verb aimed at a URL and any
+# gh or curl, and write each attempt to a reach log the recipe empties before every suite. A suite
+# whose log is not empty afterwards fails, one line per attempt naming the suite and what it tried.
+# The proxies point at a port nothing listens on, for anything that gets past the shims; loopback
+# is exempt, because a suite that serves a page on 127.0.0.1 (dashboard.test.sh) asks it there. A suite
+# that runs this recipe itself inherits the outer run's real git: `command -v git` would name the
+# shim, and the shim would exec itself forever.
+OFFLINE_BIN := $(CURDIR)/skills/tdd/scripts/tests/offline
+
 test:
-	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; \
-	trap 'rm -f "$$suite_out" "$$suite_status"' EXIT; \
+	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; \
+	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"' EXIT; \
+	real_git="$${OFFLINE_REAL_GIT:-$$(command -v git)}"; \
 	for t in $(TESTS); do \
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
-	  { "$$t"; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
+	  : > "$$reach_log"; \
+	  { PATH="$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
+	    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://127.0.0.1:1 \
+	    HTTP_PROXY=http://127.0.0.1:1 HTTPS_PROXY=http://127.0.0.1:1 NO_PROXY=127.0.0.1,localhost \
+	    "$$t"; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
 	    printf '%s: never reached its count line\n' "$$suite_name"; fail=1; \
 	  }; \
+	  while IFS= read -r reached; do \
+	    printf '%s: tried the network: %s\n' "$$suite_name" "$$reached"; fail=1; \
+	  done < "$$reach_log"; \
 	done; \
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi

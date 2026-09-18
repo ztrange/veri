@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# git on make test's PATH (#301): a remote verb whose target resolves to a URL rather than a path
+# on this filesystem is written to $OFFLINE_REACH_LOG and refused with exit 128, so no suite
+# reaches the network; everything else goes to the git that was on PATH before this one,
+# $OFFLINE_REAL_GIT. The same shim hermetic-suites.test.sh used to install for its second run.
+real_git="${OFFLINE_REAL_GIT:?}"
+remote_url() { [[ "$1" =~ ^[A-Za-z][A-Za-z0-9+.-]*:// || "$1" =~ ^[^/:]+@[^/:]+: ]]; }
+pre=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    fetch|pull|push|clone|ls-remote)
+      verb="$1"; target=""
+      for arg in "${@:2}"; do
+        [[ "$arg" == -* ]] && continue
+        target="$arg"; break
+      done
+      [[ -z "$target" ]] && target=origin
+      url="$target"
+      if ! remote_url "$url"; then
+        url="$("$real_git" ${pre[@]+"${pre[@]}"} remote get-url "$target" 2>/dev/null || printf '%s' "$target")"
+      fi
+      if remote_url "$url"; then
+        printf '%s\n' "git $verb $url (cwd $PWD)" >> "${OFFLINE_REACH_LOG:?}"
+        echo "git shim: network unreachable ($url)" >&2
+        exit 128
+      fi
+      break ;;
+    -C|-c|--git-dir|--work-tree) pre+=("$1" "$2"); shift 2; continue ;;
+    -*) pre+=("$1"); shift; continue ;;
+    *) break ;;
+  esac
+done
+exec "$real_git" ${pre[@]+"${pre[@]}"} "$@"
