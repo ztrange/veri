@@ -66,22 +66,27 @@ cp "$home/.gitconfig" "$work/gitconfig.before"
 
 printf 'Write the failing test for issue 276.' > "$work/prompt.txt"
 
+# launch_leaf <stub> — run run-leaf.sh with <stub> as the leaf's `claude`, printing its
+# output. `HOME` is the operator here: the suite must never write the machine's real
+# ~/.gitconfig, which is the very accident this issue is about, and `env -u` clears an
+# ambient GIT_CONFIG_GLOBAL so the answer is a fact about run-leaf.sh rather than about
+# the shell that ran the suite (hermetic-suites.test.sh's concern). XDG_CONFIG_HOME is
+# pointed inside the sandbox for the same reason — git falls back to it for --global
+# writes, so leaving the operator's own would aim a misbehaving leaf at it.
+launch_leaf() {
+  ( cd "$work" && env -u GIT_CONFIG_GLOBAL HOME="$home" XDG_CONFIG_HOME="$home/.config" \
+      CLAUDE_BIN="$1" "$LEAF" "$work/prompt.txt" 2>&1 )
+}
+
 # 1. Criterion 1. The leaf's `git config --global` must be private to the leaf, which is
 #    two facts and not one: the operator's file is untouched, AND the leaf reads its own
 #    write back. Either alone is satisfiable the wrong way — a run-leaf that pointed
 #    GIT_CONFIG_GLOBAL at /dev/null or an unwritable path would leave the operator's file
 #    perfect while silently breaking every leaf that legitimately configures git for
 #    itself, and a leaf that read the value back proves nothing about where it landed.
-#    `HOME` is the operator here: the suite must never write the machine's real
-#    ~/.gitconfig, which is the very accident this issue is about, and `env -u` clears an
-#    ambient GIT_CONFIG_GLOBAL so the answer is a fact about run-leaf.sh rather than about
-#    the shell that ran the suite (hermetic-suites.test.sh's concern). XDG_CONFIG_HOME is
-#    pointed inside the sandbox for the same reason — git falls back to it for --global
-#    writes, so leaving the operator's own would aim the misbehaving leaf at it.
 name="a leaf's git config --global leaves the operator's global config byte-identical and the leaf reads the value back"
 problems=()
-out="$( cd "$work" && env -u GIT_CONFIG_GLOBAL HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-    CLAUDE_BIN="$stubdir/claude" "$LEAF" "$work/prompt.txt" 2>&1 )"
+out="$(launch_leaf "$stubdir/claude")"
 cmp -s "$work/gitconfig.before" "$home/.gitconfig" ||
   problems+=("want the operator's global config byte-identical, got: $(printf '%q' "$(cat "$home/.gitconfig")")")
 [[ "$out" == *'read-back: wrote-it'* ]] ||
@@ -105,8 +110,7 @@ printf '[user]\n\tname = Operator\n[credential]\n\thelper = veri-test-helper\n' 
 
 name="a leaf's private global git config starts as a copy of the operator's, so a key present there is visible to the leaf"
 problems=()
-out="$( cd "$work" && env -u GIT_CONFIG_GLOBAL HOME="$home" XDG_CONFIG_HOME="$home/.config" \
-    CLAUDE_BIN="$stubdir/claude-reader" "$LEAF" "$work/prompt.txt" 2>&1 )"
+out="$(launch_leaf "$stubdir/claude-reader")"
 [[ "$out" == *'sees: veri-test-helper'* ]] ||
   problems+=("want the leaf to see the operator's credential.helper (sees: veri-test-helper), got: $(printf '%q' "$out")")
 report "$name"
