@@ -202,7 +202,9 @@ report "$name"
 #    one, so the REJECT and exit-2 branches' own "bail" cannot answer for it.
 name="$skill_md's pin PASS branch bails as a system failure on a red full suite and never commits the pin"
 problems=()
-pass_bullet="$(awk '/^- [*][*]REJECT/ { exit } { print }' <<<"$pass_branch" | plain | tr '\n' ' ')"
+# The PASS bullet raw, read once: case 5 asks it for a token, this case for a sentence.
+pass_raw="$(awk '/^- [*][*]REJECT/ { exit } { print }' <<<"$pass_branch")"
+pass_bullet="$(plain <<<"$pass_raw" | tr '\n' ' ')"
 if [[ -z "${pass_bullet// /}" ]]; then
   problems+=("$skill_md has no PASS (exit 0) branch under '$pin_heading' — what a red full suite there does could not be established")
 else
@@ -257,7 +259,6 @@ report "$name"
 name="$skill_md's pin PASS branch names its own red-suite bail cause, classified system and listed under Bailing"
 problems=()
 known_causes=' killed-stuck no-verdict revise-exhausted reconcile-failed '
-pass_raw="$(awk '/^- [*][*]REJECT/ { exit } { print }' <<<"$pass_branch")"
 cause=""
 for token in $(grep -oE '`[a-z]+(-[a-z]+)+`' <<<"$pass_raw" | tr -d '`'); do
   [[ "$known_causes" == *" $token "* ]] || { cause="$token"; break; }
