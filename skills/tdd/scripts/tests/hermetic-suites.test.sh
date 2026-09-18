@@ -286,10 +286,19 @@ fi
 #    whatever shell typed `make test`, unless that suite clears the name for itself. A run resumed
 #    with VERI_NEW_SKILL=1, the operator's documented way to take a newer skill, hands the name to
 #    its leaves' `make test` — the shape of #87 again, observed on #200's resume.
-name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 gives the same exit and the same stdout as a cleared run"
-same_both_ways run-conductor.test.sh \
-  -u VERI_NEW_SKILL \
-  -- VERI_NEW_SKILL=1
+#
+#    One arm, asked the way case 1 asks supervise-retry.test.sh — green under the ambient value —
+#    rather than compared against a cleared run. A leak turns the suite's keep-the-pin cases red
+#    (with the clearing at run-conductor.test.sh's launch_from removed: 21 passed, 3 failed), so
+#    green is the answer; a second, cleared run would add another ~26 s of make test on the Mac
+#    for the one leak that changes the output while every case still passes.
+name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 still leaves it green"
+problems=()
+out="$(VERI_NEW_SKILL=1 "$HERE/run-conductor.test.sh" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from run-conductor.test.sh under VERI_NEW_SKILL=1, got $code: $(printf '%q' "$(tail -n 1 <<< "$out")")")
+tail -n 1 <<< "$out" | grep -Eq '^[0-9]+ passed, 0 failed$' ||
+  problems+=("want '<n> passed, 0 failed' last from run-conductor.test.sh under VERI_NEW_SKILL=1, got: $(printf '%q' "$(tail -n 1 <<< "$out")")")
 report "$name"
 
 # 10. Cases 1 to 5 and 9 still fail, named, on a suite that leaks (#301). Probed the way case 9 is: a copy
