@@ -749,6 +749,83 @@ fi
 
 report "$name"
 
+# --- make test runs this suite, and one server answers every pane's endpoint with JSON ---
+# The criterion is about the suite as `make test` runs it, not about any one endpoint: the
+# roster `make test` walks has to name this file, and a single dashboard.sh started on a spare
+# port against fabricated runs has to answer each of the three pane endpoints with the JSON
+# document that pane reads. The cases above each start their own server for one endpoint; this
+# one asks all three of the same server, so a server that answered its first request and then
+# stopped serving, or that could only be asked one question per life, fails here.
+#
+# The roster is read off `make -n test` from the repository root, the way suite-lanes.test.sh
+# reads it: make prints the recipe with its `$(TESTS)` glob expanded and runs nothing, so what
+# it lists is exactly what `make test` would run — and a Makefile whose glob stopped reaching
+# this directory, or that filtered this suite out, fails here rather than silently dropping it.
+name="make test runs this suite, and one dashboard.sh on a spare port answers every pane endpoint with JSON"
+problems=()
+root="$(cd "$HERE/../../../.." && pwd)"
+roster="$(make --no-print-directory -n -C "$root" test 2>&1)"
+if ! grep -q 'skills/tdd/scripts/tests/dashboard\.test\.sh' <<< "$roster"; then
+  problems+=("make -n test in $root does not name skills/tdd/scripts/tests/dashboard.test.sh, so make test never runs this suite")
+fi
+
+all_repo="$(repo allendpoints)"
+all_run="$(fabricate_run "$all_repo" 51 tdd/51-lamps-hum)"
+cat > "$all_run/.tdd/issue-51.md" <<'EOF'
+# Plan for #51 — lamps hum
+
+- [x] a lamp exists
+- [ ] a lamp hums
+EOF
+all_now="$(date +%s)"
+cat > "$all_run/.tdd/events.jsonl" <<EOF
+{"ts": $((all_now - 120)), "issue": "51", "actor": "conductor", "phase": "", "step": "a lamp hums", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((all_now - 110)), "issue": "51", "actor": "developer", "phase": "red", "step": "a lamp hums", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+EOF
+all_port="$(free_port)"
+problem="$(port_problem "$all_port")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
+else
+  launch "$all_repo" "$work/allendpoints.log" "$all_port"
+  all_pid=$!
+  for path in /api/runs /api/metrics "/api/events?issue=51"; do
+    url="http://127.0.0.1:$all_port$path"
+    answer="$(serve_until_up "$url")"
+    problem="$(answer_problem "$url" "$work/allendpoints.log" "$answer")"
+    if [[ -n "$problem" ]]; then
+      problems+=("$problem")
+      continue
+    fi
+    http_body "$answer" > "$work/allendpoints.json"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && problems+=("$line")
+    done < <(python3 -c '
+import json, sys
+
+path, body = sys.argv[1], sys.argv[2]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("GET %s is not JSON; it starts: %r" % (path, f.read()[:200]))
+    sys.exit()
+want = {"/api/runs": ("runs", list), "/api/metrics": ("issues", dict),
+        "/api/events?issue=51": ("events", list)}[path]
+key, kind = want
+if not isinstance(got, dict) or not isinstance(got.get(key), kind):
+    print("GET %s returned %s; want an object with a %r %s"
+          % (path, json.dumps(got, sort_keys=True)[:300], key, kind.__name__))
+elif not got[key]:
+    print("GET %s returned an empty %r for a repository with run #51 in it" % (path, key))
+' "$path" "$work/allendpoints.json")
+  done
+  stop "$all_pid" || :
+fi
+
+report "$name"
+
 
 echo "----"
 echo "$pass passed, $fail failed"

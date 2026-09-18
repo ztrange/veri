@@ -6,4 +6,4 @@
 - [x] The Metrics endpoint returns the per-issue table, recomputed from the event log for a running run and read from the committed report for a finished one ⟦criterion 2⟧
 - [x] The Events endpoint returns the selected run's events.jsonl tail, newest last ⟦criterion 2⟧
 - [x] The served page's Runs, Metrics and Events panes each poll their own JSON endpoint every 2 seconds ⟦criterion 1⟧
-- [ ] make test runs a dashboard suite that starts the server on a spare port against fabricated run fixtures and asserts each endpoint's JSON ⟦criterion 3⟧
+- [x] make test runs a dashboard suite that starts the server on a spare port against fabricated run fixtures and asserts each endpoint's JSON ⟦criterion 3⟧
