@@ -362,6 +362,32 @@ prompt_says "$scoped_refactor" "never says an out-of-scope shortfall is not by i
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor notes an out-of-scope shortfall in REASON: rather than rejecting for it (${problems#; })"
 
+# 23. every phase's built prompt forbids changing global or user-level configuration, and
+#     names environment variables and throwaway directories as the way to simulate a
+#     condition instead (issue #276). On 2026-09-17 a verify-refactor leaf proving `make test`
+#     makes no network call ran `git config --global http.proxy http://127.0.0.1:1` behind a
+#     `trap` that never fired, and every network git operation on the machine failed until the
+#     key was found by chance. The leaf's goal was legitimate — simulating a condition is part
+#     of verifying — so the prohibition alone would leave the need unmet, and the alternative
+#     is half of the behaviour, as it is in case 13: each half is its own miss, and so is each
+#     phase, for case 12's reason.
+#
+#     Reads cases 5, 6, 7 and 9's prompts and invokes the builder not at all, as cases 12 and
+#     13 do. The prohibition is probed within one sentence (`[^.]`) so a "never" elsewhere in
+#     the paragraph cannot stand in for it; "throwaway" alone is not enough, since case 13's
+#     "throwaway checkout" already carries the word, so the probe asks for a directory.
+forbids_global_config() {  # forbids_global_config <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "verify-$label never forbids changing global or user-level configuration" \
+    -iE -e "(never|do not|don't|not)[^.]{0,80}(global|user-level)[^.]{0,60}config"
+  prompt_says "$prompt" "verify-$label never names environment variables as the way to simulate a condition" \
+    -iE -e 'environment variables?'
+  prompt_says "$prompt" "verify-$label never names throwaway directories as the way to simulate a condition" \
+    -iE -e '(throwaway|temporary|scratch)[^.]{0,20}director(y|ies)'
+}
+
+every_phase forbids_global_config "every phase's prompt forbids changing global or user-level configuration and names environment variables and throwaway directories instead"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
