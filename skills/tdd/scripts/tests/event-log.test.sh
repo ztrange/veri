@@ -64,19 +64,20 @@ mkdir -p "$gh_json"
 echo '[]' > "$gh_json/issues.json"
 echo '[]' > "$gh_json/prs.json"
 
-# status <script> [args…] — run a status.sh from inside the repository; stdout in $out.
+# status <script> [args…] — run a status.sh from inside the repository; stdout in $out, and
+# its #9 run line and scope line in $run_line and $scope_line.
 status() {
   local script="$1"; shift
   out="$(cd "$repo" && env -u VERI_LABEL VERI_GH_JSON="$gh_json" VERI_TIMEOUT=600 \
     "$script" --scope cogs-label "$@" 2>/dev/null)" && code=0 || code=$?
+  run_line="$(printf '%s\n' "$out" | grep '^#9 ' || true)"
+  scope_line="$(printf '%s\n' "$out" | grep '^scope ' || true)"
 }
 
 problems=()
 
 # The real scripts: the figures the log adds up to, as text and as --json.
 status "$SCRIPTS/status.sh"
-run_line="$(printf '%s\n' "$out" | grep '^#9 ' || true)"
-scope_line="$(printf '%s\n' "$out" | grep '^scope ' || true)"
 for want in "develop-green" "attempt 1" '$1.75' "11000 tokens"; do
   [[ "$run_line" == *"$want"* ]] || problems+=("status.sh run line lacks '$want': '$run_line' (exit $code)")
 done
@@ -119,8 +120,6 @@ def usage_totals(events):
     return 3.0, 1234
 PY
 status "$copy/status.sh"
-run_line="$(printf '%s\n' "$out" | grep '^#9 ' || true)"
-scope_line="$(printf '%s\n' "$out" | grep '^scope ' || true)"
 for want in "decoy-leaf" '$3.00' "1234 tokens"; do
   [[ "$run_line" == *"$want"* ]] \
     || problems+=("status.sh beside a stand-in event_log.py: run line lacks '$want': '$run_line' (exit $code)")
