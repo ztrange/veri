@@ -29,9 +29,12 @@
 # parent's session, host session, pid, entrypoint and child-session flag, all of them
 # answers to "which session am I" that belong to a session this one is not. Unsetting them
 # here is enough: the child inherits this script's environment, so a name gone from it is a
-# name gone from the child's. Nothing `VERI_*` is touched, because a conductor launched in
-# print mode must resolve VERI_MODEL_VERIFIER, REVISE_BUDGET, VERI_STUCK_RETRIES and the
-# rest exactly as one started from a chat session does.
+# name gone from the child's. The `VERI_*` tunables are left alone, because a conductor
+# launched in print mode must resolve VERI_MODEL_VERIFIER, REVISE_BUDGET, VERI_STUCK_RETRIES
+# and the rest exactly as one started from a chat session does. VERI_NEW_SKILL is the one
+# exception: it is not a tunable but this launch's instruction to re-pin, spent by the pin
+# decision below before any conductor exists. Handed on, it would reach every process the
+# conductor spawns, a leaf's `make test` among them (issue #285).
 #
 # The procedure goes in on STDIN, not as the argument to `-p`. SKILL.md's first line is the
 # YAML frontmatter fence `---`, and the CLI parses a leading-dash argument as an option, so
@@ -136,7 +139,8 @@ unset CLAUDECODE \
       CLAUDE_CODE_MESSAGING_TOKEN \
       CLAUDE_PID \
       CLAUDE_CODE_CHILD_SESSION \
-      CLAUDE_CODE_ENTRYPOINT
+      CLAUDE_CODE_ENTRYPOINT \
+      VERI_NEW_SKILL
 
 printf '%s\n' "$prompt" | "${CLAUDE_BIN:-claude}" -p \
   --output-format stream-json --verbose \

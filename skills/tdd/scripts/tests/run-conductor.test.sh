@@ -1072,6 +1072,40 @@ fi
 
 report "$name"
 
+# 24. VERI_NEW_SKILL=1 is this launch's instruction, not the run's (issue #285). It decides one
+# thing — whether this resume keeps its recorded pin or takes the new skill — and that decision
+# is made before the conductor exists. Handed on, it reaches every process the conductor spawns,
+# a leaf's `make test` among them, where it turns this suite's resume cases red. The run is
+# launched once, the clone moves, and the same issue is resumed with VERI_NEW_SKILL=1: that
+# launch must still re-pin and log it, and the conductor it starts must see no VERI_NEW_SKILL.
+name="a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
+problems=()
+
+clone24="$work/clone24"
+skill_clone "$clone24"
+
+caller24="$work/caller24"
+caller_repo "$caller24"
+
+launch_from "$caller24" "$clone24"
+
+advance_clone "$clone24" "# a commit the operator asks the run to take"
+current24="$(git -C "$clone24" rev-parse HEAD)"
+
+env24="$work/env24"
+rm -f "$env24"
+launch_from "$caller24" "$clone24" ENV_OUT="$env24" VERI_NEW_SKILL=1
+
+if ! repin_in "$caller24/.tdd/events.jsonl" "$current24"; then
+  problems+=("the launch with VERI_NEW_SKILL=1 did not re-pin to $current24: $(cat "$launch_err")")
+elif [[ ! -f "$env24" ]]; then
+  problems+=("the re-pinning launch never reached the conductor: $(cat "$launch_err")")
+elif grep -q '^VERI_NEW_SKILL=' "$env24"; then
+  problems+=("the re-pinning launch handed the conductor $(grep '^VERI_NEW_SKILL=' "$env24") in its environment")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
