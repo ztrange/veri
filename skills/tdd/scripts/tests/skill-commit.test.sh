@@ -174,7 +174,7 @@ need_scripts_prose() {
 #    pin it — so the document must say both halves: that the ground moves, and where a
 #    reader goes to find out whether it moved under their run. A session told only the
 #    first has been warned of a hazard it cannot check.
-name="$skill_md says \$S tracks the installed skill, may change mid-run, and that the event log records each leaf's commit"
+name="$skill_md says what a change to the skill means for a running conductor, and that the event log records each leaf's commit"
 problems=()
 
 if need_scripts_prose; then
