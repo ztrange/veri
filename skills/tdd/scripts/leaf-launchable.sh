@@ -22,6 +22,18 @@
 # printed on stdout, so a conductor reading this in a command substitution captures nothing.
 set -uo pipefail
 
+# veri needs bash 5 (since 2026-09-18), and nothing tests it on anything older — least of all
+# bash 3.2, the one macOS ships in /bin. So a run on an older bash is refused here, in the preflight check that runs before any leaf is paid for,
+# rather than left to fail however a bash-4-only construct later happens to fail. The check is
+# written in bash 3.2's own syntax so it can speak on the bash it refuses. VERI_BASH_MAJOR
+# stands in for the running bash's answer (bash-version-guard.test.sh), because CI's runner has
+# no older bash to ask; an answer that is not a number is refused rather than compared.
+bash_major="${VERI_BASH_MAJOR:-${BASH_VERSINFO[0]}}"
+if ! [[ "$bash_major" =~ ^[0-9]+$ ]] || [[ "$bash_major" -lt 5 ]]; then
+  echo "leaf-launchable: veri needs bash 5 or newer; this is bash ${VERI_BASH_MAJOR:-$BASH_VERSION} ($BASH). Install it with \`brew install bash\` (it lands ahead of /bin/bash on PATH), or your package manager on Linux." >&2
+  exit 2
+fi
+
 # The probe: the cheapest launch of the leaf binary there is. `--version` starts the same
 # process a leaf does, so a guard that refuses at startup — which is the whole class of fault
 # this script exists for — fires here too, and it costs no model call, no network round trip

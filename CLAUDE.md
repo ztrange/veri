@@ -20,8 +20,14 @@ there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely ev
 documentation drifting behind code must never block a TDD run. Since 2026-09-11 it is not
 in CI either: its thirty sandboxed page builds made every job ~4× longer on both runners.
 `make merge-gates` runs the right subset of it at merge time; CI runs `make test` only, on
-Linux only — the bash 3.2 / BSD-tools half of the portability promise is covered by the
-development machine being a Mac, not by a runner (macOS minutes bill at 10× Linux).
+Linux only — the BSD-tools half of the portability promise is covered by the development
+machine being a Mac, not by a runner (macOS minutes bill at 10× Linux).
+
+**veri needs bash 5 or newer** (since 2026-09-18; it promised bash 3.2 before). On a Mac,
+`brew install bash` — it lands ahead of `/bin/bash`, macOS's 3.2, on PATH. Nothing tests veri
+on an older bash, so the three places a run or a test run begins refuse one outright, naming
+that install line: `make test`, `run-conductor.sh` and `leaf-launchable.sh` (exit 2), pinned by
+`bash-version-guard.test.sh`.
 
 ## The one trap
 
@@ -206,9 +212,12 @@ purpose, see the test go red, put it back.
 
 ## `make test` on the development Mac
 
-It measured 393–515 s here against 176 s on CI (2026-09-18, the same 76 suites). Four
+It measured 393–515 s here against 176 s on CI (2026-09-18, the same 76 suites). Five
 causes are Mac-only, and none of them is the suites' own work:
 
+- **bash 3.2** — `/bin/bash` is the one macOS ships, and it is slow where the suites are busy:
+  a pattern substitution over CLAUDE.md's 17.5 kB took 3.86 s on it and ~0.2 s on bash 5.
+  veri now requires bash 5 (`brew install bash`) and refuses to run a suite without it.
 - **Locale, stdin and xcrun's git** — the `test` recipe fixes all three for every suite
   (`LC_ALL=C`, `< /dev/null`, `xcrun -f git`), and `make-test-env.test.sh` pins them. BSD
   text tools run ~12× slower in UTF-8; an inherited stdin let a stub `claude`'s `cat` block

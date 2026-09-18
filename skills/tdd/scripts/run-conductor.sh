@@ -44,6 +44,18 @@
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 set -euo pipefail
 
+# veri needs bash 5 (since 2026-09-18), and nothing tests it on anything older — least of all
+# bash 3.2, the one macOS ships in /bin. So a run on an older bash is refused here, before a skill is pinned or a conductor launched,
+# rather than left to fail however a bash-4-only construct later happens to fail. The check is
+# written in bash 3.2's own syntax so it can speak on the bash it refuses. VERI_BASH_MAJOR
+# stands in for the running bash's answer (bash-version-guard.test.sh), because CI's runner has
+# no older bash to ask; an answer that is not a number is refused rather than compared.
+bash_major="${VERI_BASH_MAJOR:-${BASH_VERSINFO[0]}}"
+if ! [[ "$bash_major" =~ ^[0-9]+$ ]] || [[ "$bash_major" -lt 5 ]]; then
+  echo "run-conductor: veri needs bash 5 or newer; this is bash ${VERI_BASH_MAJOR:-$BASH_VERSION} ($BASH). Install it with \`brew install bash\` (it lands ahead of /bin/bash on PATH), or your package manager on Linux." >&2
+  exit 2
+fi
+
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 issue="${1:?usage: run-conductor.sh <issue>}"
