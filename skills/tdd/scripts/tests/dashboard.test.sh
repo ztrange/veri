@@ -617,6 +617,142 @@ fi
 report "$name"
 
 
+# --- the page: one 2-second poll per pane ---
+# The criterion is what the BROWSER does with the page, and nothing here is a browser: the
+# suites in this repository depend on bash and python3 and on nothing else (ci.yml), so
+# bringing in a JavaScript engine to drive the page would be a new dependency for one case.
+# What is observable without one is the page the server actually served — fetched over HTTP
+# from a running dashboard.sh, not read off disk, so a page the server cannot hand out fails
+# here too — and the two things that page has to say for each pane to refresh from its own
+# endpoint every two seconds: the endpoint is fetched, and every repeating timer on the page
+# fires at 2000 ms.
+#
+# What that pins and what it does not: a page whose Metrics pane polled at 5000, or that
+# fetched an endpoint once at load and never again, or that named no endpoint for a pane, all
+# fail. A page whose three fetches sit behind one timer passes, and so does one whose timer
+# refreshes only two of the three panes — proving which fetch a given timer reaches needs the
+# engine this case does without, and the endpoints' own cases already pin what each pane is
+# answered with.
+name="the served page polls the Runs, Metrics and Events endpoints every 2 seconds"
+problems=()
+poll_repo="$(repo pollpage)"
+poll_log="$work/pollpage.log"
+poll_port="$(free_port)"
+
+problem="$(port_problem "$poll_port")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
+else
+  launch "$poll_repo" "$poll_log" "$poll_port"
+  poll_pid=$!
+
+  poll_url="http://127.0.0.1:$poll_port/"
+  poll_page="$(serve_until_up "$poll_url")"
+  problem="$(answer_problem "$poll_url" "$poll_log" "$poll_page")"
+
+  if [[ -n "$problem" ]]; then
+    problems+=("$problem")
+  else
+    http_body "$poll_page" > "$work/poll-page.html"
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && problems+=("$line")
+    done < <(python3 -c '
+import re
+import sys
+
+with open(sys.argv[1]) as f:
+    page = f.read()
+
+# The three quote characters JavaScript has, written as escapes: this program is passed to
+# python inside single quotes, so the apostrophe cannot appear in it literally.
+QUOTED = "\"\x27\x60"
+
+
+# The index just past the ")" that closes a call whose "(" is at src[i - 1], or -1 when the
+# page has no such ")". A regex cannot be asked this: an arrow function passed to setInterval
+# carries parentheses and commas of its own, and the delay this case reads is the argument
+# AFTER them.
+def balanced(src, i):
+    depth, quote = 1, ""
+    while i < len(src) and depth:
+        c = src[i]
+        if quote:
+            if c == "\\":
+                i += 1
+            elif c == quote:
+                quote = ""
+        elif c in QUOTED:
+            quote = c
+        elif c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        i += 1
+    return i if depth == 0 else -1
+
+
+# The argument text of every call of <name> on the page, the "(" and ")" left off.
+def calls(src, name):
+    out = []
+    for m in re.finditer(r"\b" + name + r"\s*\(", src):
+        end = balanced(src, m.end())
+        if end > 0:
+            out.append(src[m.end():end - 1])
+    return out
+
+
+# The last top-level argument of one such list — setInterval s delay. Same scan as balanced,
+# for the same reason: only a comma at depth zero and outside a string separates arguments.
+def last_arg(args):
+    depth, quote, cut, i = 0, "", 0, 0
+    while i < len(args):
+        c = args[i]
+        if quote:
+            if c == "\\":
+                i += 1
+            elif c == quote:
+                quote = ""
+        elif c in QUOTED:
+            quote = c
+        elif c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "," and depth == 0:
+            cut = i + 1
+        i += 1
+    return args[cut:].strip()
+
+
+# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
+# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
+# Matched as a prefix of the literal so that the Events pane may carry its ?issue= query.
+for pane, path in (("Runs", "/api/runs"), ("Metrics", "/api/metrics"),
+                   ("Events", "/api/events")):
+    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
+        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
+              % (path, pane))
+
+# Every two seconds, of every repeating timer the page sets: a pane refreshed on a slower
+# clock than another is the criterion broken just as much as one never refreshed at all.
+timers = calls(page, "setInterval")
+if not timers:
+    print("the page schedules no repeating poll at all; want setInterval(..., 2000) so every "
+          "pane refreshes every two seconds")
+for args in timers:
+    delay = last_arg(args)
+    if delay != "2000":
+        print("the page repeats setInterval(%s) every %s ms; a pane polls every 2000"
+              % (" ".join(args.split())[:120], delay))
+' "$work/poll-page.html")
+  fi
+
+  stop "$poll_pid" || :
+fi
+
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
