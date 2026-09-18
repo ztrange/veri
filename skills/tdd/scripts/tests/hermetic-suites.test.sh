@@ -416,6 +416,19 @@ for suite in ${offline_suites[@]+"${offline_suites[@]}"}; do
 done
 report "$name"
 
+# 9. The same rule for the one-shot re-pin instruction (#285): run-conductor.sh reads
+#    `${VERI_NEW_SKILL:-}` to decide whether a resume keeps its recorded skill pin or takes the
+#    clone's newer commit, so every case in run-conductor.test.sh that resumes without setting it
+#    — "keep the recorded pin", "refuse an unresolvable one with exit 2" — is asserting it about
+#    whatever shell typed `make test`, unless that suite clears the name for itself. A run resumed
+#    with VERI_NEW_SKILL=1, the operator's documented way to take a newer skill, hands the name to
+#    its leaves' `make test` — the shape of #87 again, observed on #200's resume.
+name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 gives the same exit and the same stdout as a cleared run"
+same_both_ways run-conductor.test.sh \
+  -u VERI_NEW_SKILL \
+  -- VERI_NEW_SKILL=1
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

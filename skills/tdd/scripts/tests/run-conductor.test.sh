@@ -189,10 +189,15 @@ advance_clone() {
 # inside <caller>, against the stub, with any extra VAR=value in its environment: the one way
 # every snapshot case launches, so the cases differ only in what they add. The launch's stderr
 # lands in $launch_err, and its exit status is the function's.
+#
+# VERI_NEW_SKILL is cleared first (#285): run-conductor.sh reads it to choose between keeping a
+# resume's recorded pin and re-pinning, so a case that does not pass it must not inherit the
+# caller's — a run resumed with VERI_NEW_SKILL=1 hands it to its leaves' `make test`. A case
+# that does pass it still gets it: the `env` assignments are applied after the unset.
 launch_from() {
   local caller="$1" clone="$2"
   shift 2
-  ( cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" "$@" \
+  ( unset VERI_NEW_SKILL; cd "$caller" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" "$@" \
       "$clone/skills/tdd/scripts/run-conductor.sh" "$issue" ) >/dev/null 2>"$launch_err"
 }
 
