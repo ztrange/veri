@@ -121,25 +121,12 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
 issues_json="$(gh_json issues.json issue list --limit 10000 --json number,title,labels,body,state)"
 prs_json="$(gh_json prs.json pr list --limit 10000 --json body,state)"
 
-# The directory the in-flight locks hang off: the repository's MAIN working tree, because that
-# is where issue-worktree.sh puts every run's worktree (`wt_path`, off `main_working_tree`) —
-# never the checkout this script happens to have been called from, which for a conductor
-# started inside a session worktree is a different directory entirely (#166). git's registry
-# prints the main working tree as the first block's `worktree <path>` line, so that first line
-# with its label taken off is the answer.
-#
-# `|| true` because a caller outside any repository is not an error here: git says nothing, the
-# root comes out empty, and the liveness check below then finds no lock and claims nothing —
-# which is the right reading, since with no repository there is no worktree to hold a run.
-#
-# Taking the label off is inside the function, not a second assignment to a name in the script's
-# own scope, for the reason issue-worktree.sh:37-40 argues about the same two steps; a second copy
-# of that argument here is one that drifts.
-main_working_tree() {
-  local first_line
-  first_line="$(git worktree list --porcelain 2>/dev/null | head -n 1 || true)"
-  printf '%s\n' "${first_line#worktree }"
-}
+# The directory the in-flight locks hang off: the repository's MAIN working tree, resolved by
+# lib/main-working-tree.sh (#166). A caller outside any repository gets an empty root, and the
+# liveness check below then finds no lock and claims nothing — which is the right reading, since
+# with no repository there is no worktree to hold a run.
+# shellcheck source=lib/main-working-tree.sh
+source "$(dirname "$0")/lib/main-working-tree.sh"
 main_tree="$(main_working_tree)"
 
 exec python3 -c '
