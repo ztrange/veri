@@ -421,6 +421,61 @@ probe_idiom_records_the_check
 
 report "$name"
 
+# probe_reaching_suite_is_refused_and_named — the criterion. The suite handed to the recipe is
+# written here into a scratch directory rather than kept under fixtures/, and it is green in
+# every other respect: it exits 0 and ends in its count line, so the only thing that can fail it
+# is the recipe noticing what it tried. It tries all three reaches the criterion names — a
+# `git fetch` of a URL, a `gh` call and a `curl` — each at an `.invalid` host (RFC 2606), so a
+# recipe that does not cut them off pays a failed DNS lookup and nothing more. Each attempt
+# carries a token no other line would, and the refusal has to put that token on one line with the
+# suite's name: a suite named on one line and an attempt on another would not say which suite
+# tried what once a whole `make test` of seventy suites is on screen.
+probe_reaching_suite_is_refused_and_named() {
+  local tree suite reach tried
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch tree to hold a suite that reaches the network, so the criterion went unasked")
+    return
+  }
+  suite="$tree/reaches-network.test.sh"
+  cat > "$suite" <<'SUITE'
+#!/usr/bin/env bash
+set -uo pipefail
+repo="$(mktemp -d)"
+git init -q "$repo" >/dev/null 2>&1
+GIT_TERMINAL_PROMPT=0 git -C "$repo" fetch https://example.invalid/veri-fetch-probe.git >/dev/null 2>&1
+gh api --hostname example.invalid veri-gh-probe >/dev/null 2>&1
+curl -s --max-time 2 https://example.invalid/veri-curl-probe >/dev/null 2>&1
+rm -rf "$repo"
+echo "1 passed, 0 failed"
+exit 0
+SUITE
+  chmod +x "$suite"
+
+  recipe "$suite"
+  [[ "$recipe_code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite that tried the network; it exited 0 and said: $(flat "$recipe_out")")
+  for reach in veri-fetch-probe veri-gh-probe veri-curl-probe; do
+    tried="$(grep -F 'reaches-network.test.sh' <<< "$recipe_out" | grep -F "$reach")"
+    [[ -n "$tried" ]] ||
+      problems+=("no line of the run names reaches-network.test.sh together with the attempt carrying $reach, so the refusal does not say which suite tried what")
+  done
+
+  rm -rf "$tree"
+}
+
+# 6. Issue #301: the offline guarantee lives in the recipe's own run of every suite, not in a
+#    second run hermetic-suites.test.sh makes of a third of them. A suite that runs `git fetch`
+#    against a remote URL, `gh` or `curl` fails `make test`, and the failure names the suite and
+#    what it tried.
+name="make test fails a suite that runs git fetch of a URL, gh or curl, naming the suite and what it tried"
+problems=()
+recipe_out=""
+recipe_code=0
+
+probe_reaching_suite_is_refused_and_named
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
