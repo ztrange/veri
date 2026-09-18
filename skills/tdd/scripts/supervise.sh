@@ -52,6 +52,8 @@ shift
 [[ $# -ge 1 ]] || { echo "supervise: missing <cmd>" >&2; exit 2; }
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/leaf-model.sh
+source "$HERE/lib/leaf-model.sh"
 
 heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
@@ -228,17 +230,20 @@ attempt_once() {
 
 # The three assignments every mark below is written under, read once. A refusal leaves this
 # empty — a failed command substitution still assigns, the empty stdout the refusal printed
-# — and that emptiness is the whole of "leaf-role.sh could not read this name" for `mark`
-# to test.
-role="$("$HERE/leaf-role.sh" "$name")" || role=""
+# — and that emptiness is the whole of "leaf_role could not read this name" for `mark`
+# to test. leaf_role and leaf_model are functions now (lib/leaf-model.sh, sourced above,
+# pulls in lib/leaf-role.sh too), called in place of the subprocesses this used to fork —
+# the `$(...)` around each still forks a subshell to run in, so a refusal's `return 2`
+# reaches this `||` exactly the way the old subprocess's `exit 2` did.
+role="$(leaf_role "$name")" || role=""
 
 # The model this leaf runs on, resolved here beside the role and from the same name (issue
 # #171) — so the value the `launch` mark reports below is the one the launch itself was
 # decided by, rather than a second reading of the environment that a caller could have
-# changed in between. A refusal — leaf-model.sh exits 2 on a value it can reject without a
+# changed in between. A refusal — leaf_model returns 2 on a value it can reject without a
 # network — leaves this empty the way `role` is left empty above; a bad value is preflight's
 # to stop, before any leaf.
-model="$("$HERE/leaf-model.sh" "$name")" || model=""
+model="$(leaf_model "$name")" || model=""
 
 # Exported, because the leaf is a command this script does not build: `supervise.sh <name>
 # <cmd> [args…]` is handed an argv and runs it verbatim, so the choice cannot be spliced into
@@ -281,7 +286,7 @@ export VERI_SKILL_COMMIT="${skill_commit:-${VERI_SKILL_COMMIT:-unknown}}"
 #     would be worse than the absent one a reader is already told to tolerate.
 mark() {
   [[ -n "$role" ]] || return 0
-  # shellcheck disable=SC2086  -- intentional word-split of leaf-role.sh's assignments
+  # shellcheck disable=SC2086  -- intentional word-split of leaf_role's assignments
   env $role "$HERE/event.sh" "$@"
 }
 

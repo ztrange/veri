@@ -937,7 +937,11 @@ skill_got="$(event_field "$skill_work" launch skill_commit)"
 #     repository — and the copy is what runs, so `$HERE` inside it is the directory git is
 #     asked about. The glob is what keeps the copy whole as scripts are added to the skill,
 #     rather than a list of the ones this supervisor happens to reach for today. `cp`
-#     preserves the execute bit.
+#     preserves the execute bit. `lib/` is copied too, the shape event-log.test.sh and
+#     main-working-tree.test.sh already use for status.sh and solvable-issues.sh: supervise.sh
+#     now sources lib/leaf-model.sh (which sources lib/leaf-role.sh in turn) instead of
+#     forking leaf-role.sh/leaf-model.sh, so a copy of the flat `.sh` files alone is no longer
+#     a complete copy of what the supervisor needs to run.
 #
 #     The precondition is asserted rather than assumed: if `$TMPDIR` ever sat inside a clone,
 #     git would resolve a sha there and the case would pass on a condition it never created.
@@ -947,8 +951,9 @@ skill_got="$(event_field "$skill_work" launch skill_commit)"
 #     A directory of its own for the run, for case 12's reason — the event log accumulates
 #     across a run, and `event_field` demands exactly one line of the kind it is asked for.
 nogit_skill="$work/nogit-skill"
-mkdir -p "$nogit_skill"
+mkdir -p "$nogit_skill/lib"
 cp "$SCRIPTS"/*.sh "$nogit_skill/"
+cp "$SCRIPTS/lib/leaf-role.sh" "$SCRIPTS/lib/leaf-model.sh" "$nogit_skill/lib/"
 nogit_resolves="$(git -C "$nogit_skill" rev-parse HEAD 2>/dev/null || echo '<none>')"
 nogit_work="$work/nogit-run"
 sup_run "$nogit_work" env -u VERI_SKILL_COMMIT "$nogit_skill/supervise.sh" develop-red "$stub/leaf-ok"
