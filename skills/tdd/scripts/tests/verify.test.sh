@@ -36,8 +36,8 @@ clockbin="$stubdir/clockbin"; mkdir -p "$clockbin"
 realdate="$(command -v date)"
 realstat="$(command -v stat)"
 cat > "$clockbin/date" <<D
-#!/usr/bin/env bash
-if [[ "\$*" == "+%s" ]]; then
+#!/bin/sh
+if [ "\$*" = "+%s" ]; then
   offset="\$(tail -n 1 "\$TEST_CLOCK" 2>/dev/null | cut -d' ' -f2)"
   printf '%s\n' "\$(( \$("$realdate" +%s) + \${offset:-0} ))"
 else
@@ -45,9 +45,10 @@ else
 fi
 D
 cat > "$clockbin/stat" <<D
-#!/usr/bin/env bash
-if [[ \$# -eq 3 && ( "\$1 \$2" == "-c %Y" || "\$1 \$2" == "-f %m" ) ]]; then
-  exec python3 -c '
+#!/bin/sh
+if [ "\$#" -eq 3 ]; then
+  if [ "\$1 \$2" = "-c %Y" ] || [ "\$1 \$2" = "-f %m" ]; then
+    exec python3 -c '
 import os, sys
 try:
     m = os.stat(sys.argv[1]).st_mtime
@@ -62,11 +63,12 @@ try:
 except OSError:
     pass
 print(int(m) + offset)' "\$3" "\$TEST_CLOCK"
+  fi
 fi
 exec "$realstat" "\$@"
 D
 cat > "$clockbin/clock-jump" <<'C'
-#!/usr/bin/env bash
+#!/bin/sh
 exec python3 -c '
 import sys, time
 offset = 0
@@ -80,7 +82,7 @@ C
 chmod +x "$clockbin/date" "$clockbin/stat" "$clockbin/clock-jump"
 export PATH="$clockbin:$PATH"
 cat > "$stubdir/claude" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 printf '%s\n' "$@" > "$ARGV_OUT"
 printf '%s' "${FAKE_OUT_TEXT:-}"
 exit 0
@@ -114,7 +116,7 @@ verify() {  # verify <fake-out-text> <phase> -> runs in $work, sets $out/$code
 # the second stub never finishes, so the supervisor's stuck-detection is what ends the run: it
 # writes a line and then falls silent while the injected clock moves past its window
 cat > "$stubdir/claude-hang" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 echo "thinking..."; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
 STUB
 chmod +x "$stubdir/claude-hang"
@@ -366,7 +368,7 @@ tamper_work="$work/tamper"
 # verifier's Bash call does. The mutation's own output is dropped rather than printed, since
 # run-leaf.sh captures this stub's stdout and parse-verdict.sh reads the verdict out of it.
 cat > "$stubdir/claude-mutate" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 eval "${FAKE_MUTATE:-}" >/dev/null 2>&1
 printf '%s' "${FAKE_OUT_TEXT:-}"
 exit 0
@@ -576,10 +578,10 @@ verify '{"type":"system","subtype":"init","session_id":"s"}
 #     VERDICT_ON_LAUNCH names (never, when unset) and no verdict on every other, so the case reads
 #     both the verdict returned and that it took two launches.
 cat > "$stubdir/claude-counting" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$LAUNCH_COUNT"
-if [[ "$n" -eq "${VERDICT_ON_LAUNCH:-0}" ]]; then
+if [ "$n" -eq "${VERDICT_ON_LAUNCH:-0}" ]; then
   printf '%s' 'VERDICT: PASS
 REASON: Target test and full suite are green.'
 else
@@ -626,7 +628,7 @@ budget_bad="$(never_verdict bad many)"
 #     second liveness layer. The stub counts its launches and then hangs; with VERI_STUCK_RETRIES=1
 #     supervise.sh makes two attempts, and a VERI_NO_VERDICT_RETRIES of 3 must add none to them.
 cat > "$stubdir/claude-counting-hang" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 echo $(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 )) > "$LAUNCH_COUNT"
 echo "thinking..."; clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
 STUB
@@ -699,7 +701,7 @@ no_verdict_distinct="$(printf '%s\n' "$no_verdict_causes" | sort -u)"
 #     failed attempt said, and no new parameter, reached the second one. The stub records the
 #     prompt each launch was handed (the argument after `-p`), one file per launch.
 cat > "$stubdir/claude-prompt-recording" <<'STUB'
-#!/usr/bin/env bash
+#!/bin/sh
 n=$(( $(cat "$LAUNCH_COUNT" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$LAUNCH_COUNT"
 printf '%s' "$2" > "$PROMPT_DIR/prompt.$n"

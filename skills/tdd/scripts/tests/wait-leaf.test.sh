@@ -38,10 +38,10 @@ mkdir -p "$work/.tdd"
 # recording its status that many seconds into the wait, on the waiter's own clock.
 clockbin="$work/clockbin"; mkdir -p "$clockbin"
 cat > "$clockbin/date" <<'D'
-#!/usr/bin/env bash
+#!/bin/sh
 n="$(wc -l < "$VERI_CLOCK_LOG" | tr -d ' ')"
 now="$(( n * ${VERI_CLOCK_STEP:-1} ))"
-if [[ -n "${CLOCK_LAND_AT:-}" && "$now" -ge "$CLOCK_LAND_AT" && ! -e "$CLOCK_LAND_FILE" ]]; then
+if [ -n "${CLOCK_LAND_AT:-}" ] && [ "$now" -ge "$CLOCK_LAND_AT" ] && [ ! -e "$CLOCK_LAND_FILE" ]; then
   printf '%s\n' "$CLOCK_LAND_CODE" > "$CLOCK_LAND_FILE"
 fi
 printf '%s\n' "$now" | tee -a "$VERI_CLOCK_LOG"
@@ -268,11 +268,11 @@ kill "$imp_pid" 2>/dev/null; wait "$imp_pid" 2>/dev/null
 #    the budget was spent would be some other answer.
 stubsup="$work/stubsup"; mkdir -p "$stubsup"
 cat > "$stubsup/supervise.sh" <<'S'
-#!/usr/bin/env bash
+#!/bin/sh
 while :; do sleep 0.2; done
 S
 chmod +x "$stubsup/supervise.sh"
-bash "$stubsup/supervise.sh" live-sup x &
+"$stubsup/supervise.sh" live-sup x &
 live_pid=$!
 printf '%s\n' "$live_pid" > "$work/.tdd/live-sup.pid"
 l_live="$(timed live-sup 2)"
@@ -294,7 +294,7 @@ l_nopid="$(timed no-pid-yet 2)"
 #    recorded is 1, so it cannot be mistaken for the 2 a dead supervisor would give.
 racebin="$work/racebin"; mkdir -p "$racebin"
 cat > "$racebin/ps" <<'P'
-#!/usr/bin/env bash
+#!/bin/sh
 # The supervisor records its status and exits in the instant between two looks.
 printf '1\n' > .tdd/race-sup.exit
 exit 1
