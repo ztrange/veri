@@ -18,13 +18,13 @@ set -euo pipefail
 exec python3 -c '
 import sys, json
 
-def first_line(text, limit=None):
-    lines = text.splitlines() or [""]
-    head = lines[0]
-    cut = len(lines) > 1
-    if limit is not None and len(head) > limit:
-        head, cut = head[:limit], True
-    return head + ("…" if cut else "")
+def first_line(text):
+    return (text.splitlines() or [""])[0]
+
+def truncated(text, limit):
+    head = first_line(text)
+    cut = len(text.splitlines()) > 1 or len(head) > limit
+    return head[:limit] + ("…" if cut else "")
 
 out = []
 for line in sys.stdin:
@@ -36,9 +36,9 @@ for line in sys.stdin:
             out.append(block["text"])
         elif kind == "tool_use":
             values = list(block.get("input", {}).values())
-            arg = (str(values[0]).splitlines() or [""])[0] if values else ""
+            arg = first_line(str(values[0])) if values else ""
             out.append("> %s: %s" % (block["name"], arg))
         elif kind == "tool_result":
-            out.append("< " + first_line(str(block.get("content", "")), 80))
+            out.append("< " + truncated(str(block.get("content", "")), 80))
 sys.stdout.write("".join(l + "\n" for l in out))
 '
