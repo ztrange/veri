@@ -255,166 +255,54 @@ done
   problems+=("no suite here was recognised as invoking push-branch.sh, so nothing was checked")
 report "$name"
 
-# 7. The same rule for a remote rather than a name or a file (#258): since #251 run-conductor.sh
-#    fetches `origin` in the clone its skill sits in before it pins, so a suite that launches the
-#    script beside it fetches whatever origin this checkout has — the real repository, over the
-#    network — and its answer then depends on the network and on what origin/main holds that day.
-#    Every fetch-and-pin launch has to come from a fixture clone whose origin the case controls.
+# 7 and 8. Which suites reach the network, and whether one fetches this checkout's own origin
+#    (#258), are no longer asked by re-running every suite that names a network-capable script
+#    here (#301): `make test` runs every suite once under the offline shims in tests/offline/,
+#    with a per-suite reach log, and fails naming the suite and what it tried. count-line-guard
+#    pins both — a fetch of a remote URL and a fetch of this checkout's own origin. Asking again
+#    here ran about a third of the suites twice on every `make test`.
 #
-#    Probed by running each suite here that names run-conductor.sh, with a `git` on PATH in front
-#    of the real one: a `fetch` in a repository whose origin is this checkout's own origin is
-#    written to a log and refused rather than performed, so the probe itself never reaches the
-#    network. The origin and the real git are written into the shim as text rather than passed in
-#    the environment, since a case that severs its child's environment would otherwise hand the
-#    shim an empty origin to compare against — and every repository with no origin matches that.
-#    A sweep that selected no suite, or an origin this checkout does not have, would pass about
-#    nothing, so both are probed.
-name="no suite that names run-conductor.sh fetches this checkout's own origin"
-problems=()
-fetch_work="$(mktemp -d)"
-trap 'rm -rf "$lock_work" "$every_work" "$fetch_work"' EXIT
-own_origin="$(git -C "$HERE" remote get-url origin 2>/dev/null)"
-real_git="$(command -v git)"
-fetch_log="$fetch_work/fetches"
-mkdir -p "$fetch_work/bin"
-: > "$fetch_log"
-{
-  printf '#!/usr/bin/env bash\n'
-  printf 'own_origin=%q real_git=%q fetch_log=%q\n' "$own_origin" "$real_git" "$fetch_log"
-  cat <<'SHIM'
-pre=()
-for arg in "$@"; do
-  if [[ "$arg" == fetch ]]; then
-    url="$("$real_git" ${pre[@]+"${pre[@]}"} remote get-url origin 2>/dev/null)"
-    if [[ -n "$own_origin" && "$url" == "$own_origin" ]]; then
-      printf '%s\n' "git $* (cwd $PWD)" >> "$fetch_log"
-      echo "git shim: refused a fetch of $own_origin" >&2
-      exit 128
-    fi
-    break
-  fi
-  pre+=("$arg")
-done
-exec "$real_git" "$@"
-SHIM
-} > "$fetch_work/bin/git"
-chmod +x "$fetch_work/bin/git"
+#    The two scratch names stay set, empty, because case 9's cleanup trap still names them.
+fetch_work="" offline_work=""
 
-launchers=()
-for suite in "$HERE"/*.test.sh; do
-  [[ "$suite" == "$HERE/$(basename "$0")" ]] && continue
-  grep -q 'run-conductor\.sh' "$suite" && launchers+=("$suite")
-done
-[[ -n "$own_origin" ]] ||
-  problems+=("this checkout has no origin, so there is no own origin a fetch could reach and nothing was checked")
-[[ "${#launchers[@]}" -gt 0 ]] ||
-  problems+=("no suite here names run-conductor.sh, so nothing was run")
-for suite in ${launchers[@]+"${launchers[@]}"}; do
-  : > "$fetch_log"
-  PATH="$fetch_work/bin:$PATH" "$suite" >/dev/null 2>&1
-  while IFS= read -r fetched; do
-    problems+=("$(basename "$suite") fetched this checkout's own origin: $fetched")
-  done < "$fetch_log"
-done
-report "$name"
-
-# 8. The whole of #258's promise rather than the one remote case 7 names: `make test` passes with
-#    the network unreachable. Every suite that exercises a script which can reach the network is
-#    run here with the network cut off, and has to come back green and never have tried.
+# 9. This suite runs no other suite a second time for the offline or own-origin checks (#301):
+#    `make test` already runs every suite once under the offline shim with a per-suite reach log,
+#    so a re-run here only doubles what three leaves of every step pay for the same answer.
 #
-#    "Can reach the network" is read as text, the way cases 5 and 6 read theirs: a script beside
-#    this directory whose uncommented lines run a remote git verb (fetch, pull, push, clone,
-#    ls-remote), `gh` or `curl`; a suite exercises it when its text names that script. A hand-kept
-#    list would be one script behind the next one that learns to fetch. Every other suite runs no
-#    such script, so running the whole roster again here would double what `make test` costs the
-#    three leaves of every step for suites that cannot answer differently offline.
-#
-#    Cut off twice over. `git`, `gh` and `curl` on PATH in front of the real ones: a remote git verb
-#    whose target is a URL rather than a path on this filesystem, and any `gh` or `curl` at all, is
-#    written to a log and refused with exit 128, so the probe never reaches the network. A suite that
-#    stubs `gh` itself puts its stub in front of these, which is the stub the suite meant. And
-#    http.proxy and HTTP(S)_PROXY point at a port nothing listens on, for anything that gets past
-#    the shims. A selection that found no script, or no suite, would pass about nothing, so both are
-#    probed.
-name="every suite exercising a network-capable script passes with the network unreachable, and never tries it"
-problems=()
-offline_work="$(mktemp -d)"
-trap 'rm -rf "$lock_work" "$every_work" "$fetch_work" "$offline_work"' EXIT
-offline_log="$offline_work/reaches"
-mkdir -p "$offline_work/bin"
-: > "$offline_log"
-{
-  printf '#!/usr/bin/env bash\n'
-  printf 'real_git=%q offline_log=%q\n' "$real_git" "$offline_log"
-  cat <<'SHIM'
-remote_url() { [[ "$1" =~ ^[A-Za-z][A-Za-z0-9+.-]*:// || "$1" =~ ^[^/:]+@[^/:]+: ]]; }
-pre=()
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    fetch|pull|push|clone|ls-remote)
-      verb="$1"; target=""
-      for arg in "${@:2}"; do
-        [[ "$arg" == -* ]] && continue
-        target="$arg"; break
-      done
-      [[ -z "$target" ]] && target=origin
-      url="$target"
-      if ! remote_url "$url"; then
-        url="$("$real_git" ${pre[@]+"${pre[@]}"} remote get-url "$target" 2>/dev/null || printf '%s' "$target")"
-      fi
-      if remote_url "$url"; then
-        printf '%s\n' "git $verb $url (cwd $PWD)" >> "$offline_log"
-        echo "git shim: network unreachable ($url)" >&2
-        exit 128
-      fi
-      break ;;
-    -C|-c|--git-dir|--work-tree) pre+=("$1" "$2"); shift 2; continue ;;
-    -*) pre+=("$1"); shift; continue ;;
-    *) break ;;
-  esac
-done
-exec "$real_git" ${pre[@]+"${pre[@]}"} "$@"
-SHIM
-} > "$offline_work/bin/git"
-for tool in gh curl; do
+#    Probed by running a copy of this file in a scratch tree beside a stand-in for each kind of
+#    script cases 7 and 8 select on — one that fetches and pushes, named run-conductor.sh and
+#    push-branch.sh — and one probe suite that names both and appends a line to a log each time it
+#    runs. Cases 1 to 5 name their subjects by file, and the probe is none of them, so any line in
+#    the log is a re-run by some other case. The copy is run with HERMETIC_RERUN_PROBE set, which
+#    this case reads to skip itself in the child: the copy's own case 9 would otherwise copy the
+#    copy, forever.
+name="hermetic-suites.test.sh re-runs no suite for the offline or own-origin cases"
+if [[ -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
+  problems=()
+  rerun_work="$(mktemp -d)"
+  trap 'rm -rf "$lock_work" "$every_work" "$fetch_work" "$offline_work" "$rerun_work"' EXIT
+  rerun_log="$rerun_work/runs"
+  mkdir -p "$rerun_work/scripts/tests"
+  : > "$rerun_log"
+  # The stand-ins are named by a loop variable rather than spelled as paths, since case 6 reads a
+  # quoted path ending in the push script's name as an invocation of it.
+  for stand_in in "run-conductor:fetch origin main" "push-branch:push origin HEAD"; do
+    printf '#!/usr/bin/env bash\ngit %s\n' "${stand_in#*:}" > "$rerun_work/scripts/${stand_in%%:*}.sh"
+  done
   {
     printf '#!/usr/bin/env bash\n'
-    printf 'offline_log=%q\n' "$offline_log"
-    printf 'printf "%%s\\n" "%s $* (cwd $PWD)" >> "$offline_log"\n' "$tool"
-    printf 'echo "%s shim: network unreachable" >&2\nexit 128\n' "$tool"
-  } > "$offline_work/bin/$tool"
-done
-chmod +x "$offline_work/bin/git" "$offline_work/bin/gh" "$offline_work/bin/curl"
-
-net_scripts=()
-for script in "$HERE"/../*.sh; do
-  grep -qE '^[^#]*git[^#]*[[:space:]](fetch|pull|push|clone|ls-remote)([[:space:]]|$)|^[^#]*(^|[[:space:]])(gh|curl)[[:space:]]' "$script" &&
-    net_scripts+=("$(basename "$script")")
-done
-offline_suites=()
-for suite in "$HERE"/*.test.sh; do
-  [[ "$suite" == "$HERE/$(basename "$0")" ]] && continue
-  for script in ${net_scripts[@]+"${net_scripts[@]}"}; do
-    if grep -qF "$script" "$suite"; then offline_suites+=("$suite"); break; fi
-  done
-done
-[[ "${#net_scripts[@]}" -gt 0 ]] ||
-  problems+=("no script beside this directory was recognised as reaching the network, so nothing was selected")
-[[ "${#offline_suites[@]}" -gt 0 ]] ||
-  problems+=("no suite here names a network-capable script, so nothing was run")
-for suite in ${offline_suites[@]+"${offline_suites[@]}"}; do
-  : > "$offline_log"
-  offline_out="$(PATH="$offline_work/bin:$PATH" \
-    GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://127.0.0.1:1 \
-    HTTP_PROXY=http://127.0.0.1:1 HTTPS_PROXY=http://127.0.0.1:1 \
-    "$suite" 2>/dev/null)" && offline_code=0 || offline_code=$?
-  [[ "$offline_code" == 0 ]] ||
-    problems+=("$(basename "$suite") offline: want exit 0, got $offline_code; last line: $(printf '%q' "$(printf '%s\n' "$offline_out" | tail -n 1)")")
-  while IFS= read -r reached; do
-    problems+=("$(basename "$suite") tried the network: $reached")
-  done < "$offline_log"
-done
-report "$name"
+    printf '# Names run-conductor.sh and push-branch.sh, and runs neither.\n'
+    printf 'printf "%%s\\n" ran >> %q\n' "$rerun_log"
+    printf 'echo "1 passed, 0 failed"\n'
+  } > "$rerun_work/scripts/tests/probe.test.sh"
+  cp "$HERE/$(basename "$0")" "$rerun_work/scripts/tests/"
+  chmod +x "$rerun_work/scripts/"*.sh "$rerun_work/scripts/tests/"*.test.sh
+  HERMETIC_RERUN_PROBE=1 "$rerun_work/scripts/tests/$(basename "$0")" >/dev/null 2>&1
+  reruns="$(wc -l < "$rerun_log" | tr -d ' ')"
+  [[ "$reruns" == 0 ]] ||
+    problems+=("$(basename "$0") ran probe.test.sh $reruns time(s), want 0: a suite that names a network-capable script was re-run")
+  report "$name"
+fi
 
 # 9. The same rule for the one-shot re-pin instruction (#285): run-conductor.sh reads
 #    `${VERI_NEW_SKILL:-}` to decide whether a resume keeps its recorded skill pin or takes the
