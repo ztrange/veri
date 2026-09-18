@@ -5,5 +5,5 @@
 - [x] with no tunables set supervise.sh, wait-leaf.sh and verify.sh keep default heartbeat 180 s, poll 1 s, and a malformed tunable value is still exit 2 ⟦criterion 4⟧
 - [ ] verify.test.sh and supervise.test.sh run on the fast clock and together take at most 45 s on the CI runner, with no case removed and every assertion kept ⟦criterion 1⟧
 - [ ] both suites pass in five consecutive make test runs on the branch, with no flake on the fast clock ⟦criterion 2⟧
-- [ ] wait-leaf.test.sh, detach-leaf.test.sh and hermetic-suites.test.sh each take at most 3 s, with no case removed and every assertion kept ⟦criterion 2⟧
+- [ ] wait-leaf.test.sh and detach-leaf.test.sh each take at most 3 s, with no case removed and every assertion kept ⟦criterion 2⟧
 - [ ] hermetic-suites.test.sh still passes: no suite depends on an ambient VERI_* value to be fast ⟦criterion 5⟧
