@@ -127,10 +127,18 @@ report "$name"
 #    The ambient value is `ready-for-agent` because it is the one label the fixtures actually
 #    carry: a name no fixture mentions renames the band to something nothing is in, changes no
 #    answer, and would make this case pass while the leak it exists for stayed open.
+#
+#    Cases 3, 4 and 5 share one reference arm (#301): solvable-issues.test.sh run once with the
+#    label cleared, in a scratch repository holding no lock. Each case's other arm differs from it
+#    by exactly the one ambient value that case sets, so the label is cleared in the lock arms too.
+lock_work="$(mktemp -d)"
+trap 'rm -rf "$lock_work"' EXIT
+git init -q -b main "$lock_work/no-lock" >/dev/null 2>&1
+unlocked_out="$(cd "$lock_work/no-lock" && env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && unlocked_code=0 || unlocked_code=$?
+
 name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
-same_both_ways solvable-issues.test.sh \
-  -u VERI_PRIORITY_LABEL \
-  -- VERI_PRIORITY_LABEL=ready-for-agent
+label_out="$(cd "$lock_work/no-lock" && VERI_PRIORITY_LABEL=ready-for-agent "$HERE/solvable-issues.test.sh" 2>/dev/null)" && label_code=0 || label_code=$?
+same_answer cleared "$unlocked_code" "$unlocked_out" "$label_code" "$label_out"
 report "$name"
 
 # 4. The same rule for ambient state that is not an environment variable at all: the lock a run
@@ -152,17 +160,13 @@ report "$name"
 #    pid written is this suite's own, which is alive by construction, since `in_flight` is
 #    fail-open and a stale lock would likewise change nothing.
 name="solvable-issues.test.sh: a live conductor lock in the surrounding repository gives the same exit and the same stdout as a run with none"
-lock_work="$(mktemp -d)"
-trap 'rm -rf "$lock_work"' EXIT
-git init -q -b main "$lock_work/no-lock" >/dev/null 2>&1
 git init -q -b main "$lock_work/locked" >/dev/null 2>&1
 for n in 108 117 120 124; do
   mkdir -p "$lock_work/locked/.tdd/wt/$n/.tdd"
   printf '%s\n' "$$" > "$lock_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
 done
 
-unlocked_out="$(cd "$lock_work/no-lock" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && unlocked_code=0 || unlocked_code=$?
-locked_out="$(cd "$lock_work/locked" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && locked_code=0 || locked_code=$?
+locked_out="$(cd "$lock_work/locked" && env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && locked_code=0 || locked_code=$?
 
 same_answer no-lock "$unlocked_code" "$unlocked_out" "$locked_code" "$locked_out"
 report "$name"
@@ -186,7 +190,6 @@ report "$name"
 name="solvable-issues.test.sh: a live conductor lock for every number its own fixtures name gives the same exit and the same stdout as a run with none"
 every_work="$(mktemp -d)"
 trap 'rm -rf "$lock_work" "$every_work"' EXIT
-git init -q -b main "$every_work/no-lock" >/dev/null 2>&1
 git init -q -b main "$every_work/locked" >/dev/null 2>&1
 fixture_numbers=($(sed -n 's/.*"number"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$HERE/solvable-issues.test.sh" | sort -u))
 for n in "${fixture_numbers[@]+"${fixture_numbers[@]}"}"; do
@@ -194,10 +197,9 @@ for n in "${fixture_numbers[@]+"${fixture_numbers[@]}"}"; do
   printf '%s\n' "$$" > "$every_work/locked/.tdd/wt/$n/.tdd/conductor.pid"
 done
 
-every_unlocked_out="$(cd "$every_work/no-lock" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && every_unlocked_code=0 || every_unlocked_code=$?
-every_locked_out="$(cd "$every_work/locked" && "$HERE/solvable-issues.test.sh" 2>/dev/null)" && every_locked_code=0 || every_locked_code=$?
+every_locked_out="$(cd "$every_work/locked" && env -u VERI_PRIORITY_LABEL "$HERE/solvable-issues.test.sh" 2>/dev/null)" && every_locked_code=0 || every_locked_code=$?
 
-same_answer no-lock "$every_unlocked_code" "$every_unlocked_out" "$every_locked_code" "$every_locked_out"
+same_answer no-lock "$unlocked_code" "$unlocked_out" "$every_locked_code" "$every_locked_out"
 [[ "${#fixture_numbers[@]}" -gt 0 ]] ||
   problems+=("no \"number\": <n> fixture was found in solvable-issues.test.sh, so no lock was written and the two arms cannot differ")
 report "$name"
@@ -350,6 +352,41 @@ if [[ -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
     [[ "$leak_out" == *"FAIL - $leaked"* ]] ||
       problems+=("want a FAIL line naming '$leaked', got: $(printf '%q' "$leak_out")")
   done
+  report "$name"
+fi
+
+# 11. Cases 3, 4 and 5 each compare an ambient arm of solvable-issues.test.sh against a reference
+#     arm — VERI_PRIORITY_LABEL cleared, no conductor lock under its cwd — and the reference is the
+#     same run each time, so it is run once and shared (#301). Probed the way cases 9 and 10 are: a
+#     copy of this file runs in a scratch tree beside a stand-in solvable-issues.test.sh that is
+#     green every way and appends a line to a log whenever it is run as the reference — neither
+#     the label nor a lock in sight. The copy is run from a scratch cwd holding no lock, with
+#     HERMETIC_SHARE_PROBE, HERMETIC_LEAK_PROBE and HERMETIC_RERUN_PROBE set, which this case and
+#     cases 9 and 10 read to skip themselves in the child.
+name="hermetic-suites.test.sh runs solvable-issues.test.sh's reference arm once, shared by its ambient and lock cases"
+if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${HERMETIC_RERUN_PROBE:-}" ]]; then
+  problems=()
+  share_work="$(mktemp -d)"
+  trap 'rm -rf "$lock_work" "$every_work" "${rerun_work:-}" "${leak_work:-}" "$share_work"' EXIT
+  share_log="$share_work/reference-runs"
+  mkdir -p "$share_work/scripts/tests" "$share_work/cwd"
+  : > "$share_log"
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf '# Fixture numbers, read as text by case 5: {"number": 108} {"number": 117}\n'
+    printf 'if [[ -z "${VERI_PRIORITY_LABEL:-}" ]] && ! ls .tdd/wt/*/.tdd/conductor.pid >/dev/null 2>&1; then\n'
+    printf '  printf "%%s\\n" reference >> %q\n' "$share_log"
+    printf 'fi\n'
+    printf 'echo "1 passed, 0 failed"\n'
+  } > "$share_work/scripts/tests/solvable-issues.test.sh"
+  cp "$HERE/$(basename "$0")" "$share_work/scripts/tests/"
+  chmod +x "$share_work/scripts/tests/"*.test.sh
+  (cd "$share_work/cwd" &&
+    HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
+      "$share_work/scripts/tests/$(basename "$0")" >/dev/null 2>&1)
+  reference_runs="$(wc -l < "$share_log" | tr -d ' ')"
+  [[ "$reference_runs" == 1 ]] ||
+    problems+=("$(basename "$0") ran solvable-issues.test.sh's reference arm $reference_runs time(s), want 1: cases 3, 4 and 5 each paid for their own")
   report "$name"
 fi
 
