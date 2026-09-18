@@ -193,6 +193,29 @@ else
 fi
 report "$name"
 
+# 3. What the pin PASS branch does when that full-suite run is red (issue #275). Running
+#    the suite is only half a gate: a branch that runs it and says nothing about a red
+#    answer leaves the conductor to fall through to the tick and the `test: pin` commit
+#    anyway. A red full suite after a PASSed pin is the plumbing's answer, not the
+#    methodology's — the verifier already said the pin is sound — so it bails as a system
+#    failure, and the step is never committed. Read from the PASS bullet up to the REJECT
+#    one, so the REJECT and exit-2 branches' own "bail" cannot answer for it.
+name="$skill_md's pin PASS branch bails as a system failure on a red full suite and never commits the pin"
+problems=()
+pass_bullet="$(awk '/^- [*][*]REJECT/ { exit } { print }' <<<"$pass_branch" | plain | tr '\n' ' ')"
+if [[ -z "${pass_bullet// /}" ]]; then
+  problems+=("$skill_md has no PASS (exit 0) branch under '$pin_heading' — what a red full suite there does could not be established")
+else
+  text="$pass_bullet"
+  says '(red|fail|non-zero|nonzero).{0,200}bail' \
+    "$skill_md's pin PASS branch never says a red full-suite run bails, so a pin that breaks another suite still reaches the tick and the commit"
+  says 'system failure' \
+    "$skill_md's pin PASS branch never classes a red full-suite run as a system failure, per the exit-code table"
+  says '(never|not|no|without)[^.]{0,30}commit' \
+    "$skill_md's pin PASS branch never says a red full-suite run leaves the step uncommitted"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

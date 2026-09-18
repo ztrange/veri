@@ -901,6 +901,9 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   $S/tick-ledger.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
+  If that `<test-cmd>` run is red, **bail** as a **system** failure — see *Bailing* — and
+  do not tick or commit the step: the verifier already found the pin sound, so a red full
+  suite is the plumbing's answer, and a pin that breaks another suite must not land.
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
