@@ -51,7 +51,22 @@ COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 OFFLINE_BIN := $(CURDIR)/skills/tdd/scripts/tests/offline
 OFFLINE_PROXY := http://127.0.0.1:1
 
+# veri needs bash 5 (since 2026-09-18), and the suites run under whatever `bash` is first on
+# PATH — every one starts with `#!/usr/bin/env bash`. Nothing tests veri on bash 3.2 any more,
+# the bash macOS ships in /bin, so a stale PATH must not be left to fail however a bash-4-only
+# construct happens to fail inside some suite: the recipe asks that bash its major version
+# before any suite runs, and refuses naming what to install. VERI_BASH_MAJOR stands in for the
+# answer, for bash-version-guard.test.sh, because CI's runner has no older bash to ask. An
+# answer that is not a number (no bash on PATH at all) is refused too, rather than compared.
+BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO[0]}"' 2>/dev/null)}"; \
+	case "$$bash_major" in ''|*[!0-9]*) bash_major=0 ;; esac; \
+	if [ "$$bash_major" -lt 5 ]; then \
+	  printf 'veri needs bash 5 or newer; the bash on PATH is version %s. Install it with `brew install bash` (it lands ahead of /bin/bash on PATH), or your package manager on Linux.\n' "$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSION}"' 2>/dev/null)}" >&2; \
+	  exit 2; \
+	fi
+
 test:
+	@$(BASH_GUARD)
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"' EXIT; \
 	real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
