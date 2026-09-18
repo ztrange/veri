@@ -33,30 +33,22 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 # is older than <timeout> seconds and <conductor.pid> does not answer `kill -0`, else running.
 # With STATUS_JSON=1 the same fields print as one JSON object instead.
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
-  python3 - "$1" "$2" "$3" <<'PY'
+  PYTHONPATH="$(dirname "$0")/lib" python3 - "$1" "$2" "$3" <<'PY'
 import json, os, sys, time
+from event_log import read_events, usage_totals
 last, attempts = None, 0
 newest, ended = None, None
-dollars, tokens = 0.0, 0
-TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
-               "cache_creation_input_tokens")
-with open(sys.argv[1]) as f:
-    for raw in f:
-        raw = raw.strip()
-        if not raw:
-            continue
-        line = json.loads(raw)
-        newest = line
-        if line.get("event") == "launch":
-            if line.get("step") != (last or {}).get("step"):
-                attempts = 0
-            last = line
-            attempts += 1
-        elif line.get("event") == "usage":
-            dollars += float(line.get("total_cost_usd") or 0)
-            tokens += sum(int(line.get(kind) or 0) for kind in TOKEN_KINDS)
-        elif line.get("event") in ("done", "bail"):
-            ended = line
+events = read_events(sys.argv[1])
+dollars, tokens = usage_totals(events)
+for line in events:
+    newest = line
+    if line.get("event") == "launch":
+        if line.get("step") != (last or {}).get("step"):
+            attempts = 0
+        last = line
+        attempts += 1
+    elif line.get("event") in ("done", "bail"):
+        ended = line
 
 
 def conductor_answers(pid_file):
@@ -100,30 +92,20 @@ PY
 # The solvable count is solvable_count's, passed in. With STATUS_JSON=1 the same totals print
 # as one JSON object instead, the count a number like the rest.
 scope_totals() {  # scope_totals <name> <solvable> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>  solvable <s>"
-  python3 - "$@" <<'PY'
+  PYTHONPATH="$(dirname "$0")/lib" python3 - "$@" <<'PY'
 import json, os, sys
+from event_log import read_events, usage_totals
 solvable = sys.argv[2]
 attempted = done = bailed = wall = 0
 dollars = 0.0
 for path in sys.argv[3:]:
     attempted += 1
-    first = last = None
-    with open(path) as f:
-        for raw in f:
-            raw = raw.strip()
-            if not raw:
-                continue
-            line = json.loads(raw)
-            first = line if first is None else first
-            last = line
-            if line.get("event") == "usage":
-                dollars += float(line.get("total_cost_usd") or 0)
-            elif line.get("event") == "done":
-                done += 1
-            elif line.get("event") == "bail":
-                bailed += 1
-    if first is not None:
-        wall += int(last["ts"]) - int(first["ts"])
+    events = read_events(path)
+    dollars += usage_totals(events)[0]
+    done += sum(1 for line in events if line.get("event") == "done")
+    bailed += sum(1 for line in events if line.get("event") == "bail")
+    if events:
+        wall += int(events[-1]["ts"]) - int(events[0]["ts"])
 if os.environ.get("STATUS_JSON") == "1":
     print(json.dumps({"name": sys.argv[1], "attempted": attempted, "done": done,
                       "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2),
