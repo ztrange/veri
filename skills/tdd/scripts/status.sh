@@ -101,13 +101,15 @@ PY
 
 # A scope's totals over every run's event log: runs attempted, how many ended done and how many
 # bailed, wall time as each run's first-to-last event span summed, and every usage line's dollars.
-# With STATUS_JSON=1 the same totals print as one JSON object instead.
-scope_totals() {  # scope_totals <name> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>"
+# The solvable count is solvable_count's, passed in. With STATUS_JSON=1 the same totals print
+# as one JSON object instead, the count a number like the rest.
+scope_totals() {  # scope_totals <name> <solvable> <events.jsonl>... -> "scope <name>  attempted <a>  done <d>  bailed <b>  wall <w>s  $<x>  solvable <s>"
   python3 - "$@" <<'PY'
 import json, os, sys
+solvable = sys.argv[2]
 attempted = done = bailed = wall = 0
 dollars = 0.0
-for path in sys.argv[2:]:
+for path in sys.argv[3:]:
     attempted += 1
     first = last = None
     with open(path) as f:
@@ -128,10 +130,11 @@ for path in sys.argv[2:]:
         wall += int(last["ts"]) - int(first["ts"])
 if os.environ.get("STATUS_JSON") == "1":
     print(json.dumps({"name": sys.argv[1], "attempted": attempted, "done": done,
-                      "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2)}))
+                      "bailed": bailed, "wall_seconds": wall, "dollars": round(dollars, 2),
+                      "solvable": int(solvable) if solvable.isdigit() else solvable}))
     sys.exit()
-print("scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f"
-      % (sys.argv[1], attempted, done, bailed, wall, dollars))
+print("scope %s  attempted %d  done %d  bailed %d  wall %ds  $%.2f  solvable %s"
+      % (sys.argv[1], attempted, done, bailed, wall, dollars, solvable))
 PY
 }
 
@@ -219,13 +222,7 @@ done
 if [[ "$json" -eq 1 ]]; then
   scope_object="null"
   if [[ -n "$scope" ]]; then
-    scope_object="$(scope_totals "$scope" ${events[@]+"${events[@]}"})"
-    # One json.dumps over scope_totals's fields and the solvable count, so a count is a number like the rest.
-    scope_object="$(python3 -c '
-import json, sys
-scope = json.loads(sys.argv[1])
-scope["solvable"] = int(sys.argv[2]) if sys.argv[2].isdigit() else sys.argv[2]
-print(json.dumps(scope))' "$scope_object" "$(solvable_count "$scope")")"
+    scope_object="$(scope_totals "$scope" "$(solvable_count "$scope")" ${events[@]+"${events[@]}"})"
   fi
   runs_array="$(IFS=,; printf '%s' "${run_objects[*]:-}")"
   printf '{"runs": [%s], "scope": %s}\n' "$runs_array" "$scope_object"
@@ -233,5 +230,5 @@ print(json.dumps(scope))' "$scope_object" "$(solvable_count "$scope")")"
 fi
 
 if [[ -n "$scope" ]]; then
-  printf '%s  solvable %s\n' "$(scope_totals "$scope" ${events[@]+"${events[@]}"})" "$(solvable_count "$scope")"
+  scope_totals "$scope" "$(solvable_count "$scope")" ${events[@]+"${events[@]}"}
 fi
