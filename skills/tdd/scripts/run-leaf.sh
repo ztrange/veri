@@ -22,6 +22,16 @@
 #
 # CLAUDE_BIN overrides the `claude` binary (used by the tests to inject a stub).
 #
+# A leaf gets its OWN global git config (issue #276). `GIT_CONFIG_GLOBAL` names the single
+# file git reads and writes for `--global`, so pointing it at a per-leaf file makes a
+# leaf's `git config --global` land there and die with the leaf. It is not a refusal: the
+# leaf writes and reads its own keys back normally, which is what a leaf legitimately
+# configuring git for itself needs. Without it, a leaf that sets a key behind a `trap`
+# that never fires — killed, timed out, backgrounded — leaves the change in the operator's
+# own `~/.gitconfig` for every other run on the machine, which is how a stray
+# `http.proxy http://127.0.0.1:1` broke every push and every conductor launch on
+# 2026-09-17.
+#
 # VERI_LEAF_MODEL is the model this leaf runs on, resolved by leaf-model.sh and exported by
 # supervise.sh — the one choke point that knows the leaf's name, and so its role (issue
 # #171). It is read here rather than resolved here because the run's `launch` event must
@@ -42,7 +52,12 @@ else
 fi
 
 stream_tmp="$(mktemp)"
-trap 'rm -f "$stream_tmp"' EXIT
+# The leaf's private global config. A file rather than a directory because
+# GIT_CONFIG_GLOBAL names a file, and it must exist and be writable for `git config
+# --global` to succeed in it.
+leaf_gitconfig="$(mktemp)"
+trap 'rm -f "$stream_tmp" "$leaf_gitconfig"' EXIT
+export GIT_CONFIG_GLOBAL="$leaf_gitconfig"
 
 # Stream the leaf's events to stdout (the supervisor captures this — every event is a
 # heartbeat) while teeing them aside for result extraction. set +e so pipefail can't abort
