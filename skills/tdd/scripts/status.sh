@@ -39,7 +39,7 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
   python3 - "$1" "$2" "$3" <<'PY'
 import json, os, sys, time
-last, attempts, step = None, 0, None
+last, attempts = None, 0
 newest, ended = None, None
 dollars, tokens = 0.0, 0
 TOKEN_KINDS = ("input_tokens", "output_tokens", "cache_read_input_tokens",
@@ -52,8 +52,8 @@ with open(sys.argv[1]) as f:
         line = json.loads(raw)
         newest = line
         if line.get("event") == "launch":
-            if line.get("step") != step:
-                step, attempts = line.get("step"), 0
+            if line.get("step") != (last or {}).get("step"):
+                attempts = 0
             last = line
             attempts += 1
         elif line.get("event") == "usage":
