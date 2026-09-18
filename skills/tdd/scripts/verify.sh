@@ -173,6 +173,17 @@ restore_head() {  # points HEAD back at the sha $1 names, where it moved from it
 tree_before="$(tree_snapshot)"
 head_before="$(head_snapshot)"
 
+# The operator's global git config, snapshotted the same way (issue #276). It lives under $HOME,
+# outside the tree, so the comparison above cannot see it — yet a leaf that sets a key in it and
+# is killed before its cleanup runs breaks git for every run on the machine. run-leaf.sh gives
+# the leaf a private GIT_CONFIG_GLOBAL, the same `$HOME/.gitconfig` path it copies from, so only
+# a write by path still reaches this file. Content, not mtime, and a missing file reads as empty.
+operator_gitconfig="$HOME/.gitconfig"
+gitconfig_snapshot() {  # prints the checksum of the operator's global git config, or nothing if absent
+  if [[ -f "$operator_gitconfig" ]]; then cksum < "$operator_gitconfig"; fi
+}
+gitconfig_before="$(gitconfig_snapshot)"
+
 # How many times a leaf that exited cleanly with no VERDICT: line is relaunched (issue #219).
 no_verdict_retries="${VERI_NO_VERDICT_RETRIES:-1}"
 # Refused before the leaf launches: under `set -u` a word inside the `-lt` below is read as a
@@ -234,6 +245,15 @@ while :; do
       printf '%s\n' "$changed"
       exit 2
     fi
+  fi
+
+  # The operator's global git config is not restored: which of its lines the leaf wrote is not
+  # something this script can tell apart from what the operator changed meanwhile, so it is named
+  # for a human to put right rather than guessed at.
+  if [[ "$(gitconfig_snapshot)" != "$gitconfig_before" ]]; then
+    echo "verifier leaf modified the operator's global git config — verdict not accepted (see .tdd/$leaf_name.log); changed:"
+    printf '%s\n' "$operator_gitconfig"
+    exit 2
   fi
 
   # The verdict is the parse result of the captured output, not the leaf's process status.
