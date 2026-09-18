@@ -252,14 +252,15 @@ detached, wait in the foreground — and each phase spells it out in full. A **d
 leaf** (red, green, refactor, revise) is launched straight through the supervisor:
 
 ```
-rm -f .tdd/<name>.exit
+rm -f .tdd/<name>.exit .tdd/<name>.pid
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err
 $S/wait-leaf.sh <name>
 ```
 
 The `rm -f` first, because the completion file is named for the **phase**, not the cycle: a
 `.tdd/develop-red.exit` left by the previous step's red leaf would end the next wait
-instantly, with the previous cycle's code. Then the launch, **detached** — through
+instantly, with the previous cycle's code — and a `.tdd/<name>.pid` left the same way, naming a
+supervisor long gone, would end it with a 2 before the new supervisor wrote its own. Then the launch, **detached** — through
 `detach-leaf.sh`, so the call returns at once and the leaf runs in a **session of its own**.
 Then `wait-leaf.sh` in the **foreground**, which blocks until the leaf finishes and exits
 with its code. On **exit 3** the leaf is still running and you have only spent the wait's
@@ -292,7 +293,7 @@ with one wrinkle: the code that matters is the verifier's **verdict**, not the s
 status, so the detached shell records that verdict in a completion file of its own —
 
 ```
-rm -f .tdd/verdict-<phase>.exit
+rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err; echo \$? > .tdd/verdict-<phase>.exit" > /dev/null 2>&1
 $S/wait-leaf.sh verdict-<phase>
 ```
@@ -602,7 +603,7 @@ following step. The phase sub-steps are:
    that one case fails — and launch the leaf **through the supervisor**:
    ```
    $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' > .tdd/develop-red.prompt
-   rm -f .tdd/develop-red.exit
+   rm -f .tdd/develop-red.exit .tdd/develop-red.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
    ```
@@ -621,7 +622,7 @@ following step. The phase sub-steps are:
    reason) to a file** — the revise step takes the reason as a *path*, not as text you
    retype:
    ```
-   rm -f .tdd/verdict-red.exit
+   rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err; echo \$? > .tdd/verdict-red.exit" > /dev/null 2>&1
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    ```
@@ -631,7 +632,7 @@ following step. The phase sub-steps are:
    verify-red, whose verdict on a passing test can only be `REJECT`. Run the pin check
    instead and continue at *Already satisfied — the pin*:
    ```
-   rm -f .tdd/verdict-pin.exit
+   rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err; echo \$? > .tdd/verdict-pin.exit" > /dev/null 2>&1
    $S/wait-leaf.sh verdict-pin     # foreground; on exit 3 call it again
    ```
@@ -663,7 +664,7 @@ following step. The phase sub-steps are:
    green — and launch **through the supervisor** (exit **2** → **bail**):
    ```
    $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <test-path> '<target-test-id>' > .tdd/develop-green.prompt
-   rm -f .tdd/develop-green.exit
+   rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
    ```
@@ -673,7 +674,7 @@ following step. The phase sub-steps are:
    narration below.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
    ```
-   rm -f .tdd/verdict-green.exit
+   rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err; echo \$? > .tdd/verdict-green.exit" > /dev/null 2>&1
    $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
    ```
@@ -715,7 +716,7 @@ following step. The phase sub-steps are:
    $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 3
    touched="$($S/refactor-touched.sh HEAD)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
-   rm -f .tdd/develop-refactor.exit
+   rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
    ```
@@ -766,7 +767,7 @@ following step. The phase sub-steps are:
      narration.
 3. **Verify (blind, once) on the settled result.**
    ```
-   rm -f .tdd/verdict-refactor.exit
+   rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err; echo \$? > .tdd/verdict-refactor.exit" > /dev/null 2>&1
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
@@ -936,7 +937,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    **through the supervisor** (exit **2 → bail**, system failure):
    ```
    $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/revise-<phase>-<k>.prompt
-   rm -f .tdd/revise-<phase>-<k>.exit
+   rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
    ```
@@ -950,7 +951,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    re-verify below and let the blind verdict, not the leaf's own account, decide.
 3. **Re-verify (blind, same phase).**
    ```
-   rm -f .tdd/verdict-<phase>.exit
+   rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err; echo \$? > .tdd/verdict-<phase>.exit" > /dev/null 2>&1
    $S/wait-leaf.sh verdict-<phase>      # foreground; on exit 3 call it again
    ```
@@ -984,7 +985,7 @@ supervisor** like every other:
 ```
 cp .tdd/issue-<n>.md .tdd/reconcile-ledger.before
 $S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
-rm -f .tdd/develop-reconcile.exit
+rm -f .tdd/develop-reconcile.exit .tdd/develop-reconcile.pid
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
 $S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
 ```
