@@ -57,6 +57,11 @@ stream_tmp="$(mktemp)"
 # --global` to succeed in it.
 leaf_gitconfig="$(mktemp)"
 trap 'rm -f "$stream_tmp" "$leaf_gitconfig"' EXIT
+# Private must not mean empty: the copy starts as the operator's own global config, so a
+# credential helper or `url.*.insteadOf` configured there still works inside the leaf.
+if [[ -f "$HOME/.gitconfig" ]]; then
+  cp "$HOME/.gitconfig" "$leaf_gitconfig"
+fi
 export GIT_CONFIG_GLOBAL="$leaf_gitconfig"
 
 # Stream the leaf's events to stdout (the supervisor captures this — every event is a
