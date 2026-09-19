@@ -199,6 +199,30 @@ commit_head
 expect_suites "rule 3: a change to the fixture tests/fixtures/plan.md prints every suite that references it by name" \
   "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
 
+# 9. rule 4: a change to SKILL.md, CLAUDE.md and the Makefile → their guard suites, the suites
+#    whose own contract is to read that document. Each guard names its document the way this
+#    repository's do: claude_md="CLAUDE.md" as model-knobs-recorded does, skill_md=
+#    "skills/tdd/SKILL.md" as skill-commit does, MAKEFILE="$ROOT/Makefile" as count-line-guard
+#    does. gamma's suite reads none of the three, so it must not appear.
+repo="$(new_repo rule4)"
+s="$repo/skills/tdd/scripts"
+mkdir -p "$s/tests"
+printf '# veri\n' > "$repo/CLAUDE.md"
+printf '# tdd\n' > "$repo/skills/tdd/SKILL.md"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf 'gamma\n' > "$s/gamma.sh"
+printf '#!/usr/bin/env bash\nclaude_md="CLAUDE.md"\ngrep -q veri "$claude_md"\n' > "$s/tests/claude-md-guard.test.sh"
+printf '#!/usr/bin/env bash\nskill_md="skills/tdd/SKILL.md"\ngrep -q tdd "$skill_md"\n' > "$s/tests/skill-md-guard.test.sh"
+printf '#!/usr/bin/env bash\nROOT="$(git rev-parse --show-toplevel)"\nMAKEFILE="$ROOT/Makefile"\ngrep -q test: "$MAKEFILE"\n' > "$s/tests/makefile-guard.test.sh"
+printf '#!/usr/bin/env bash\necho gamma\n' > "$s/tests/gamma.test.sh"
+commit_base
+printf '# veri 2\n' > "$repo/CLAUDE.md"
+printf '# tdd 2\n' > "$repo/skills/tdd/SKILL.md"
+printf 'test:\n\techo hi 2\n' > "$repo/Makefile"
+commit_head
+expect_suites "rule 4: a change to SKILL.md, CLAUDE.md and Makefile prints their guard suites" \
+  "$(printf 'skills/tdd/scripts/tests/claude-md-guard.test.sh\nskills/tdd/scripts/tests/makefile-guard.test.sh\nskills/tdd/scripts/tests/skill-md-guard.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
