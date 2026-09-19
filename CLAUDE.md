@@ -212,12 +212,17 @@ purpose, see the test go red, put it back.
 
 ## `make test` on the development Mac
 
-It measured 393–515 s here against 176 s on CI (2026-09-18, the same 76 suites). Five
-causes are Mac-only, and none of them is the suites' own work:
+It measured 393–515 s here against 176 s on CI on 2026-09-18 (the same 76 suites), and
+154 s here against a 55 s CI `gates` job on 2026-09-19, after #314–#327. Five causes were
+Mac-only, and none of them is the suites' own work:
 
 - **bash 3.2** — `/bin/bash` is the one macOS ships, and it is slow where the suites are busy:
   a pattern substitution over CLAUDE.md's 17.5 kB took 3.86 s on it and ~0.2 s on bash 5.
   veri now requires bash 5 (`brew install bash`) and refuses to run a suite without it.
+  Homebrew's bash 5 is slower to *start*, though — 12 ms against `/bin/bash`'s 4 ms in
+  Ghostty, because it loads its own libraries and CoreFoundation — and a run started 4,834
+  bash processes. So a suite's own stubs are `#!/bin/sh` (#322), and a helper a script calls
+  per leaf is a function sourced from `scripts/lib/` rather than a script it forks (#323).
 - **Locale, stdin and git** — the `test` recipe fixes all three for every suite (`LC_ALL=C`,
   `< /dev/null`, a resolved-and-symlinked `git`), and `make-test-env.test.sh` pins them. BSD
   text tools run ~12× slower in UTF-8; an inherited stdin let a stub `claude`'s `cat` block a
@@ -242,9 +247,10 @@ causes are Mac-only, and none of them is the suites' own work:
   `~/Library/Application Support/Claude/claude-code/` responsible, and that path changes on
   every update. Launch conductors from the enabled terminal.
 
-What is left of the gap to CI is the four suites that wait on a real clock (`verify`,
-`supervise`, `wait-leaf`, `detach-leaf`: 144 s here, 115 s on CI) and `run-conductor.test.sh`
-running up to four times a run. Neither is fixed by an acceptance criterion measured in
-seconds on this machine — #282 bailed twice on exactly that — so a veri issue about speed
-states a deterministic proxy (seconds of `sleep` requested, runs made), and CI's
-`timeout-minutes` stays the only wall-clock gate.
+The suites that waited on a real clock now run on an injected one (#314–#317, #325), and the
+ones that ran a whole other suite to check one property run the slice they check (#324, #327).
+What is left is per-case process work — a server started, a python3 per assertion, a fork per
+file. None of it is fixed by an acceptance criterion measured in seconds on this machine —
+#282 bailed twice on exactly that — so a veri issue about speed states a deterministic proxy
+(process starts counted through a PATH shim, seconds of `sleep` requested, runs made), and
+CI's `timeout-minutes` stays the only wall-clock gate.
