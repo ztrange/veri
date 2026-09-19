@@ -8,6 +8,10 @@
 #                    of test, unit or merge-gates nor depending on any of them. Read off
 #                    make's own database (`make -np`), which prints recipes without running
 #                    them, so no suite and no poll loop runs.
+#   VERI_WATCH_INTERVAL → a value that is not a number of seconds exits 2 with a line on
+#                    stderr naming the variable; unset, the loop sleeps 1 between passes.
+#                    A stub `sleep` first on PATH records its argument and ends the loop by
+#                    killing the shell that called it, so no real wait is ever taken.
 #
 # Not in tests/unit/: the cases driving the loop start real subprocesses, which the fast
 # tier's admission bar excludes.
@@ -59,6 +63,42 @@ for t in test unit merge-gates; do
   prereqs watch | grep -qx "$t" && problems+=("watch depends on $t")
   prereqs "$t" | grep -qx watch && problems+=("$t depends on watch")
 done
+report "$name"
+
+# 2. A malformed VERI_WATCH_INTERVAL exits 2 naming the variable; unset, the loop's first
+#    wait between passes is `sleep 1`. The stub sleep records its argument and kills its
+#    caller, so the loop ends at its first wait. A watchdog on the real sleep bounds a loop
+#    that never reaches a wait at all; on a passing run it is killed before it fires.
+name="VERI_WATCH_INTERVAL: malformed exits 2 naming the variable, unset defaults to 1"
+problems=()
+scratch="$(mktemp -d)"
+mkdir "$scratch/bin"
+cat > "$scratch/bin/sleep" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$1" >> "$SLEEP_LOG"
+kill -TERM "$PPID"
+STUB
+chmod +x "$scratch/bin/sleep"
+for bad in abc 1x; do
+  err="$(VERI_WATCH_INTERVAL="$bad" SLEEP_LOG="$scratch/sleep.log" PATH="$scratch/bin:$PATH" \
+    make --no-print-directory -s -C "$ROOT" watch 2>&1 >/dev/null)" && code=0 || code=$?
+  [[ "$code" == 2 ]] || problems+=("VERI_WATCH_INTERVAL='$bad': want exit 2, got $code")
+  grep -q VERI_WATCH_INTERVAL <<< "$err" ||
+    problems+=("VERI_WATCH_INTERVAL='$bad': stderr does not name the variable: ${err:-<empty>}")
+done
+: > "$scratch/sleep.log"
+( unset VERI_WATCH_INTERVAL
+  SLEEP_LOG="$scratch/sleep.log" PATH="$scratch/bin:$PATH" \
+    make --no-print-directory -s -C "$ROOT" watch >/dev/null 2>&1 ) &
+watched=$!
+{ /bin/sleep 30; kill -TERM "$watched"; } >/dev/null 2>&1 &
+watchdog=$!
+wait "$watched" 2>/dev/null
+kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null
+first_wait="$(head -n1 "$scratch/sleep.log")"
+[[ "$first_wait" == 1 ]] ||
+  problems+=("VERI_WATCH_INTERVAL unset: want the loop's first wait to be sleep 1, got '${first_wait:-no sleep at all}'")
+rm -rf "$scratch"
 report "$name"
 
 echo "----"

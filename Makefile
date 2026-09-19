@@ -146,6 +146,12 @@ profile:
 .PHONY: watch
 watch:
 	@$(BASH_GUARD)
+	@interval="$${VERI_WATCH_INTERVAL:-1}"; \
+	case "$$interval" in ''|*[!0-9.]*|.*|*.|*.*.*) \
+	  printf 'VERI_WATCH_INTERVAL must be a number of seconds, got %s\n' "$$interval" >&2; \
+	  exit 2 ;; \
+	esac; \
+	while :; do sleep "$$interval"; done
 
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
