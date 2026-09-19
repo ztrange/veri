@@ -197,6 +197,42 @@ out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code
 [[ "$code" == 2 ]] || problems+=("no increment: want exit 2, got $code")
 report "$name"
 
+# 7. VERI_PROFILE_THRESHOLD unset: the threshold is 1 second. A fixture whose case 2 spans
+#    exactly 1 fabricated second and whose case 3 spans 0.9 prints case 2 alone, L5-6; a
+#    fixture whose cases span 0.9 and 0.5 reaches the threshold nowhere, prints nothing,
+#    and still exits 0 — an empty report is a report, not a failure.
+name="default threshold 1: a 1 s case prints, 0.9 s does not; none reaching it exits 0"
+problems=()
+write_fixture default-at.test.sh <<'EOF'
+unset EPOCHREALTIME
+pass=0 fail=0
+EPOCHREALTIME=10.000000
+pass=$((pass + 1))
+EPOCHREALTIME=11.000000
+pass=$((pass + 1))
+EPOCHREALTIME=11.900000
+pass=$((pass + 1))
+echo "$pass passed, $fail failed"
+EOF
+out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("1 s case: want exit 0, got $code")
+expect_line "$fixture case 2 L5-6" 1
+write_fixture default-under.test.sh <<'EOF'
+unset EPOCHREALTIME
+pass=0 fail=0
+EPOCHREALTIME=10.000000
+pass=$((pass + 1))
+EPOCHREALTIME=10.900000
+pass=$((pass + 1))
+EPOCHREALTIME=11.400000
+pass=$((pass + 1))
+echo "$pass passed, $fail failed"
+EOF
+out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("no case reaching 1 s: want exit 0, got $code")
+[[ -z "$out" ]] || problems+=("no case reaching 1 s: want no output, got: $(printf '%q' "$out")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
