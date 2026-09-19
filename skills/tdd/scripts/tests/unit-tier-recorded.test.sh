@@ -72,6 +72,15 @@ section_records() {
 
 passage_text=""
 
+# read_section — load the section's records into `passage_text` for `says` to search, or
+# append the problem that there is no section to read and return 1. Every case starts here.
+read_section() {
+  passage_text="$(section_records)"
+  [[ -n "${passage_text// /}" ]] && return 0
+  problems+=("$claude_md has no '## $section_name' section to read")
+  return 1
+}
+
 # says <fact> <regex>... — some ONE record of the section has to match every <regex>, or
 # one problem naming the fact is appended.
 says() {
@@ -91,10 +100,7 @@ says() {
 name="$claude_md's '$section_name' section names skills/tdd/scripts/tests/unit/ as the fast tier and states its admission bar"
 problems=()
 
-passage_text="$(section_records)"
-if [[ -z "${passage_text// /}" ]]; then
-  problems+=("$claude_md has no '## $section_name' section to read")
-else
+if read_section; then
   says "that skills/tdd/scripts/tests/unit/ is the fast tier" \
     'skills/tdd/scripts/tests/unit/?' \
     'fast'
@@ -117,10 +123,7 @@ report "$name"
 name="$claude_md's '$section_name' section documents the unit-tier migration pattern, naming push-branch.sh as the worked example"
 problems=()
 
-passage_text="$(section_records)"
-if [[ -z "${passage_text// /}" ]]; then
-  problems+=("$claude_md has no '## $section_name' section to read")
-else
+if read_section; then
   says "the migration pattern — a main guard, a unit suite that sources the script, dependencies mocked as same-named shell functions, the CLI contract unchanged — naming push-branch.sh as the worked example" \
     'push-branch\.sh' \
     'worked example' \
