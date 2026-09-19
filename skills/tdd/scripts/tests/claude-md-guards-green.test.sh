@@ -95,8 +95,16 @@ roster() {
 # baseline, not about any one guard, so a roster that could not be read is said once and
 # the membership question is then not asked at all, rather than answered "missing" four
 # times for a reason that is about this probe.
+#
+# The four runs launch together rather than one after another: they are independent child
+# processes reading the same committed document, none writes anywhere the others read, and
+# `make test` itself runs them the same way — this suite's own recipe just serialises
+# something the four never needed serial. Wall time then tracks the slowest of the four
+# (count-line-guard.test.sh, itself real business logic per that suite's own header) rather
+# than their sum, which is the whole of the saving: every assertion below is unchanged, only
+# when each guard's output becomes available to read.
 probe_every_guard_is_rostered_and_green() {
-  local rost guard out code last cases
+  local rost guard out code last cases guard_work
   rost="$(roster)"
 
   if [[ -z "$rost" ]]; then
@@ -105,12 +113,20 @@ probe_every_guard_is_rostered_and_green() {
     problems+=("\`make -n test\` named no suite in $suites_dir, so the roster a green run covers could not be read")
   fi
 
+  guard_work="$(mktemp -d)"
+
   for guard in "${GUARDS[@]}"; do
     if [[ -n "$rost" ]] && ! grep -qxF "$suites_dir/$guard" <<< "$rost"; then
       problems+=("$suites_dir/$guard is not in the roster \`make test\` runs, so a green baseline says nothing about it")
     fi
 
-    out="$("$HERE/$guard" 2>&1)" && code=0 || code=$?
+    ( "$HERE/$guard" > "$guard_work/$guard.out" 2>&1; echo $? > "$guard_work/$guard.status" ) &
+  done
+  wait
+
+  for guard in "${GUARDS[@]}"; do
+    out="$(cat "$guard_work/$guard.out")"
+    code="$(cat "$guard_work/$guard.status")"
     last="$(tail -n 1 <<< "$out")"
     # The suite's own FAIL lines, joined onto one line with `|`, so the message says which
     # claim about the document the guard withheld rather than only that it withheld one.
@@ -119,6 +135,8 @@ probe_every_guard_is_rostered_and_green() {
       problems+=("$guard is not green against $claude_md: exit $code, last line '$last'${cases:+ — ${cases%|}}")
     fi
   done
+
+  rm -rf "$guard_work"
 }
 
 # 1. One criterion, one case: the four guards #202 names as its acceptance test are all in
