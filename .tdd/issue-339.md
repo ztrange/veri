@@ -4,7 +4,7 @@ Chosen script: `push-branch.sh` — 72 lines, and its integration suite `tests/p
 names git/gh/python3/sleep 61 times (the second-highest process-count proxy of any script's
 suite; the highest, issue-worktree.sh, is 348 lines and not small).
 
-- [x] push-branch.sh's logic runs from functions with a `main` entry, and the only top-level code executed when the file is run directly is `[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"`; sourcing it runs nothing ⟦criterion 2⟧ ⟂ refactor pending
+- [x] push-branch.sh's logic runs from functions with a `main` entry, and the only top-level code executed when the file is run directly is `[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"`; sourcing it runs nothing ⟦criterion 2⟧
 - [ ] push-branch.sh's existing integration suite tests/push-branch.test.sh passes unmodified against the refactored script — same stdout, stderr and exit codes for every existing case ⟦criterion 3⟧
 - [ ] A new skills/tdd/scripts/tests/unit/push-branch.test.sh sources push-branch.sh (never execs it) and mocks git, sleep and the event recording as same-named shell functions, and passes with PATH set to a directory containing none of those binaries ⟦criterion 4⟧
 - [ ] The new unit suite's header comment records push-branch.sh as the chosen script and the reasoning as a process-count proxy, not measured seconds ⟦criterion 1⟧
