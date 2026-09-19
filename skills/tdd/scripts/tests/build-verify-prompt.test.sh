@@ -388,6 +388,34 @@ forbids_global_config() {  # forbids_global_config <phase label> <prompt>
 
 every_phase forbids_global_config "every phase's prompt forbids changing global or user-level configuration and names environment variables and throwaway directories instead"
 
+# 24. verify-red and verify-pin REJECT a test that pins mechanism instead of behaviour
+#     (issue #331). #331's "at most N python3" was satisfied by a leaf adding suites that
+#     re-ran whole suites under a counting shim (+41s of `make test`); #333's "launches
+#     overlap" made a suite twice as slow. The blind verifier is the only backstop once the
+#     developer prompt's own rule (case 26 of build-develop-prompt.test.sh) is ignored or
+#     misjudged, so both verify-red and verify-pin need the same three REJECT reasons: a
+#     process/fork count or a timing asserted directly, a `PATH` shim counting real
+#     processes where an in-process spy on a named call would do, and a test that runs
+#     another suite (or its own again) instead of the unit. Two prompts, one criterion, so
+#     one case; the reads are cases 1 and 9's — same phase, same arguments — so no new
+#     invocation.
+problems=""
+mechanism_reject() {  # mechanism_reject <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "verify-$label never rejects a test that pins a process/fork count or a timing" \
+    -iE -e '(process|fork)[^.]{0,20}count|timing'
+  prompt_says "$prompt" "verify-$label never carves out an in-process spy for a call count the criterion names" \
+    -iE -e 'in-process spy'
+  prompt_says "$prompt" "verify-$label never rejects a PATH shim counting real processes over a spy" \
+    -iE -e 'PATH[^.]{0,60}shim|shim[^.]{0,60}(count|real process)'
+  prompt_says "$prompt" "verify-$label never rejects a test that runs another suite or re-runs its own" \
+    -iE -e '(runs?|running)[^.]{0,40}(another|other)[^.]{0,20}suite|re-runs?[^.]{0,30}suite'
+}
+mechanism_reject red "$red"
+mechanism_reject pin "$pin"
+[[ -z "$problems" ]] && ok \
+  || no "verify-red and verify-pin reject mechanism-pinning tests (process/fork/timing, a PATH shim over an in-process spy, or running another suite) (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
