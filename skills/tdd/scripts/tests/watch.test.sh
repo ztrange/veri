@@ -32,13 +32,19 @@ report() {
   fi
 }
 
-# prereqs <target> — the prerequisites make's database (`db`) lists on <target>'s rule line
-# (the `<target>:` line followed by make's `#  Phony target` note), one per line.
-prereqs() {
+# phony_rule <target> — <target>'s rule line in make's database (`db`): the `<target>:`
+# line, printed only when make's `#  Phony target` note follows it, so nothing when the
+# target is missing or not phony.
+phony_rule() {
   awk -v t="$1:" '
-    prev != "" && /^#  Phony target/ { sub(/^[^:]*:/, "", prev); print prev }
+    prev != "" && /^#  Phony target/ { print prev }
     { prev = ($1 == t) ? $0 : "" }
-  ' <<< "$db" | tr ' ' '\n' | sed '/^$/d'
+  ' <<< "$db"
+}
+
+# prereqs <target> — the prerequisites on <target>'s phony rule line, one per line.
+prereqs() {
+  phony_rule "$1" | sed 's/^[^:]*://' | tr ' ' '\n' | sed '/^$/d'
 }
 
 # 1. `make -np watch` exits 0, and its database marks `watch` phony, with no prerequisite
@@ -48,8 +54,7 @@ problems=()
 db="$(make --no-print-directory -np -C "$ROOT" watch 2>&1)" && code=0 || code=$?
 [[ "$code" == 0 ]] ||
   problems+=("want make -n watch to exit 0, got $code: $(grep -m1 '\*\*\*' <<< "$db")")
-awk '$1 == "watch:" { getline; if (/^#  Phony target/) found = 1 } END { exit !found }' \
-  <<< "$db" || problems+=("no phony watch: entry in make's database")
+[[ -n "$(phony_rule watch)" ]] || problems+=("no phony watch: entry in make's database")
 for t in test unit merge-gates; do
   prereqs watch | grep -qx "$t" && problems+=("watch depends on $t")
   prereqs "$t" | grep -qx watch && problems+=("$t depends on watch")
