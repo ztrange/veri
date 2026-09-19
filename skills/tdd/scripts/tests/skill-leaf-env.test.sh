@@ -599,6 +599,39 @@ scan_attribution() {
   run_case "with launches concurrent, a launch whose leaf does not see VERI_TEST_CMD is reported against its own line number" \
     scan_attribution
 
+# 7. One launch line's sentinel broken is the ONLY failure reported, and the other nine
+#    launches still pass (#333). Case 5 asks that the broken line is named; this asks that
+#    nothing else is — ten answers landing in whatever order their leaves finish could blur a
+#    failure onto a neighbour, or fail a line whose own leaf saw the right value.
+#
+#    Asked of this suite run against a copy of the skill whose SKILL.md carries a wrong value
+#    in one verifier line's VERI_TEST_CMD, rather than none: the copy's output must hold
+#    exactly one problem line, that line's, and a count line with exactly one failed case.
+#
+# scan_isolation — the case's body, in the other cases' shape.
+scan_isolation() {
+  local copy="$WORK/isolation" broken want out reported
+  mkdir -p "$copy/skills"
+  cp -R "$ROOT/skills/tdd" "$copy/skills/tdd"
+  broken="$(grep -nE "verify\.sh --step '<STEP>' green " "$md" | head -1 | cut -d: -f1)"
+  if [[ -z "$broken" ]]; then
+    problems+=("$skill_md has no verify-green launch line to break, so the isolation could not be probed")
+    return
+  fi
+  sed "${broken}s/VERI_TEST_CMD='<test-cmd>'/VERI_TEST_CMD='<test-cmd>-broken'/" "$md" > "$copy/$skill_md"
+  out="$(SKILL_LEAF_ENV_NESTED=1 "$copy/skills/tdd/scripts/tests/skill-leaf-env.test.sh" < /dev/null 2>&1)"
+  want="    $skill_md:$broken launches verify-green, whose leaf saw VERI_TEST_CMD=$SENTINEL-broken, want $SENTINEL:"
+  reported="$(grep -E '^    ' <<< "$out")"
+  [[ "$reported" == "$want"* && "$(grep -c . <<< "$reported")" -eq 1 ]] ||
+    problems+=("the copy with line $broken's sentinel broken did not report that line alone as '$want…'; it printed: $(grep -E '^(FAIL|    )' <<< "$out" | tr '\n' '|')")
+  grep -qE '^[0-9]+ passed, 1 failed$' <<< "$out" ||
+    problems+=("the copy with line $broken's sentinel broken did not end with exactly one failed case; it ended: $(tail -1 <<< "$out")")
+}
+
+[[ -n "${SKILL_LEAF_ENV_NESTED:-}" ]] ||
+  run_case "with launches concurrent, one launch line's broken sentinel is reported naming that line alone while the other launches pass" \
+    scan_isolation
+
 # 6. Case 3 reads every launch's tree only once every launch has completed (#333). With the
 #    launches running together, a case that read the trees while some leaf still ran would find
 #    that leaf's event log half-written — a `launch` line with no `exit` after it — and pass or
