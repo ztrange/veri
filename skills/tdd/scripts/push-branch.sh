@@ -21,14 +21,19 @@
 
 # record <event> [key=value…] — append an event, or exit 2 if it cannot be written. A log
 # that cannot be written is a system failure, whichever push outcome it was recording.
-record() { "$HERE/event.sh" "$@" || exit 2; }
+# event.sh is found beside this script only here, when an event is written, so a unit suite
+# that mocks `record` runs main with no `dirname` on PATH.
+record() {
+  local here
+  here="$(cd "$(dirname "$0")" && pwd)"
+  "$here/event.sh" "$@" || exit 2
+}
 
 # main — the whole script. Its logic lives behind this function so a unit suite can source
 # the file and run nothing (#339); executed directly, the guard at the bottom calls it.
 main() {
   set -uo pipefail
 
-  HERE="$(cd "$(dirname "$0")" && pwd)"
   local retries backoff tunable attempt out branch remote_sha
 
   # `--set-upstream` so the first call creates the remote branch and later ones fast-forward
