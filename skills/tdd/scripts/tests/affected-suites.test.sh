@@ -32,6 +32,11 @@ commit_all() {
   git_q "$1" commit -q -m "$2" >/dev/null 2>&1
 }
 
+# commit_base / commit_head — commit everything in $repo and record the commit as the case's
+# $base or $head, the two ends of the range expect_suites hands affected-suites.sh.
+commit_base() { commit_all "$repo" "base"; base="$(git -C "$repo" rev-parse HEAD)"; }
+commit_head() { commit_all "$repo" "head"; head="$(git -C "$repo" rev-parse HEAD)"; }
+
 # new_repo <name> -> path — a repository of the case's own under $work.
 new_repo() {
   local dir="$work/$1"
@@ -62,13 +67,11 @@ printf 'wolf\n' > "$s/wolf.sh"
 printf 'zulu\n' > "$s/zulu.sh"
 printf '# wolf suite\n' > "$s/tests/wolf.test.sh"
 printf '# zulu suite\n' > "$s/tests/unit/zulu.test.sh"
-commit_all "$repo" "base"
-base="$(git -C "$repo" rev-parse HEAD)"
+commit_base
 printf 'wolf 2\n' > "$s/wolf.sh"
 printf 'zulu 2\n' > "$s/zulu.sh"
 printf '# wolf suite 2\n' > "$s/tests/wolf.test.sh"
-commit_all "$repo" "head"
-head="$(git -C "$repo" rev-parse HEAD)"
+commit_head
 expect_suites "resolvable range → one suite per line, sorted, no duplicate" \
   "$(printf 'skills/tdd/scripts/tests/unit/zulu.test.sh\nskills/tdd/scripts/tests/wolf.test.sh')"
 
@@ -100,8 +103,7 @@ repo="$(new_repo empty)"
 mkdir -p "$repo/skills/tdd/scripts/tests"
 printf 'wolf\n' > "$repo/skills/tdd/scripts/wolf.sh"
 printf '# wolf suite\n' > "$repo/skills/tdd/scripts/tests/wolf.test.sh"
-commit_all "$repo" "base"
-base="$(git -C "$repo" rev-parse HEAD)"
+commit_base
 git_q "$repo" commit -q --allow-empty -m "head" >/dev/null 2>&1
 head="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
@@ -119,11 +121,9 @@ printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
 printf '# foo suite\n' > "$s/tests/foo.test.sh"
 printf '# bar suite\n' > "$s/tests/bar.test.sh"
-commit_all "$repo" "base"
-base="$(git -C "$repo" rev-parse HEAD)"
+commit_base
 printf 'foo 2\n' > "$s/foo.sh"
-commit_all "$repo" "head"
-head="$(git -C "$repo" rev-parse HEAD)"
+commit_head
 expect_suites "rule 1: a change to scripts/foo.sh prints exactly tests/foo.test.sh" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
@@ -137,11 +137,9 @@ printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
 printf '# foo unit suite\n' > "$s/tests/unit/foo.test.sh"
 printf '# bar suite\n' > "$s/tests/bar.test.sh"
-commit_all "$repo" "base"
-base="$(git -C "$repo" rev-parse HEAD)"
+commit_base
 printf 'foo 2\n' > "$s/foo.sh"
-commit_all "$repo" "head"
-head="$(git -C "$repo" rev-parse HEAD)"
+commit_head
 expect_suites "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly tests/unit/foo.test.sh" \
   "skills/tdd/scripts/tests/unit/foo.test.sh"
 
@@ -159,11 +157,9 @@ done
 printf '#!/usr/bin/env bash\necho gamma\n' > "$s/gamma.sh"
 printf '#!/usr/bin/env bash\necho bar\n' > "$s/bar.sh"
 for name in alpha beta gamma bar; do printf '# %s suite\n' "$name" > "$s/tests/$name.test.sh"; done
-commit_all "$repo" "base"
-base="$(git -C "$repo" rev-parse HEAD)"
+commit_base
 printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
-commit_all "$repo" "head"
-head="$(git -C "$repo" rev-parse HEAD)"
+commit_head
 expect_suites "rule 2: a change to scripts/lib/bar.sh prints the suite of every script that sources it, and no others" \
   "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
 
@@ -177,11 +173,9 @@ printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
 printf '# foo suite\n' > "$s/tests/foo.test.sh"
 printf '# bar suite\n' > "$s/tests/bar.test.sh"
-commit_all "$repo" "base"
-base="$(git -C "$repo" rev-parse HEAD)"
+commit_base
 printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
-commit_all "$repo" "head"
-head="$(git -C "$repo" rev-parse HEAD)"
+commit_head
 expect_suites "rule 3: a change to the suite tests/foo.test.sh itself prints exactly that suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
@@ -199,11 +193,9 @@ for name in alpha beta; do
   printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/fixtures/plan.md"\n' > "$s/tests/$name.test.sh"
 done
 printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/fixtures/other.md"\n' > "$s/tests/gamma.test.sh"
-commit_all "$repo" "base"
-base="$(git -C "$repo" rev-parse HEAD)"
+commit_base
 printf '# plan 2\n' > "$s/tests/fixtures/plan.md"
-commit_all "$repo" "head"
-head="$(git -C "$repo" rev-parse HEAD)"
+commit_head
 expect_suites "rule 3: a change to the fixture tests/fixtures/plan.md prints every suite that references it by name" \
   "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
 
