@@ -65,6 +65,12 @@ roster() {
   printf '%s\n' "$recipe" | grep -o '[^ ]*\.test\.sh' || :
 }
 
+# run_make <target> [<var>=<value>...] — the real recipe over this repository's Makefile, stdin
+# from /dev/null: its combined output into `out`, its exit status into `code`.
+run_make() {
+  out="$(make --no-print-directory -C "$ROOT" "$@" 2>&1 < /dev/null)" && code=0 || code=$?
+}
+
 # 1. `make -n unit` names only the fast tier's suites, and all of them.
 name="make -n unit lists only suites matching $UNIT_DIR/*.test.sh"
 problems=()
@@ -136,19 +142,17 @@ exit 0
 SUITE
 chmod +x "$scratch/no-count-line.test.sh" "$scratch/reaches-gh.test.sh"
 
-unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/no-count-line.test.sh" 2>&1 < /dev/null)" &&
-  unit_code=0 || unit_code=$?
-[[ "$unit_code" != 0 ]] ||
-  problems+=("want 'make unit' to fail a suite that never reached its count line; it exited 0 and said: $(flat "$unit_out")")
-grep -F 'no-count-line.test.sh' <<< "$unit_out" | grep -qF 'never reached its count line' ||
-  problems+=("no line of 'make unit' names no-count-line.test.sh and says it never reached its count line: $(flat "$unit_out")")
+run_make unit UNIT_TESTS="$scratch/no-count-line.test.sh"
+[[ "$code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that never reached its count line; it exited 0 and said: $(flat "$out")")
+grep -F 'no-count-line.test.sh' <<< "$out" | grep -qF 'never reached its count line' ||
+  problems+=("no line of 'make unit' names no-count-line.test.sh and says it never reached its count line: $(flat "$out")")
 
-unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/reaches-gh.test.sh" 2>&1 < /dev/null)" &&
-  unit_code=0 || unit_code=$?
-[[ "$unit_code" != 0 ]] ||
-  problems+=("want 'make unit' to fail a suite that ran gh; it exited 0 and said: $(flat "$unit_out")")
-grep -F 'reaches-gh.test.sh: tried the network:' <<< "$unit_out" | grep -qF 'veri-unit-gh-probe' ||
-  problems+=("no 'tried the network' line of 'make unit' names reaches-gh.test.sh with the gh call carrying veri-unit-gh-probe: $(flat "$unit_out")")
+run_make unit UNIT_TESTS="$scratch/reaches-gh.test.sh"
+[[ "$code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that ran gh; it exited 0 and said: $(flat "$out")")
+grep -F 'reaches-gh.test.sh: tried the network:' <<< "$out" | grep -qF 'veri-unit-gh-probe' ||
+  problems+=("no 'tried the network' line of 'make unit' names reaches-gh.test.sh with the gh call carrying veri-unit-gh-probe: $(flat "$out")")
 
 report "$name"
 
@@ -171,12 +175,12 @@ chmod +x "$scratch/reports-env.test.sh"
 
 fifo="$scratch/stdin"
 if mkfifo "$fifo" && exec 3<>"$fifo"; then
-  unit_out="$(env LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 PROBE_OUT="$probe" \
+  out="$(env LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 PROBE_OUT="$probe" \
     make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/reports-env.test.sh" 2>&1 < "$fifo")" &&
-    unit_code=0 || unit_code=$?
+    code=0 || code=$?
   exec 3>&-
-  [[ "$unit_code" == 0 ]] ||
-    problems+=("make unit over the fixture exited $unit_code: $(flat "$unit_out")")
+  [[ "$code" == 0 ]] ||
+    problems+=("make unit over the fixture exited $code: $(flat "$out")")
   saw_locale="$(sed -n 's/^LC_ALL=//p' "$probe" 2>/dev/null)"
   saw_stdin="$(sed -n 's/^stdin=//p' "$probe" 2>/dev/null)"
   [[ "$saw_locale" == C ]] ||
@@ -215,22 +219,19 @@ exit 1
 SUITE
 chmod +x "$scratch/calls-real-vcs.test.sh" "$scratch/mocks-vcs.test.sh"
 
-unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/calls-real-vcs.test.sh" 2>&1 < /dev/null)" &&
-  unit_code=0 || unit_code=$?
-[[ "$unit_code" != 0 ]] ||
-  problems+=("want 'make unit' to fail a suite that ran real git; it exited 0 and said: $(flat "$unit_out")")
-grep -v '^== ' <<< "$unit_out" | grep -qw git ||
-  problems+=("no line of 'make unit' over a suite that ran real git names git: $(flat "$unit_out")")
+run_make unit UNIT_TESTS="$scratch/calls-real-vcs.test.sh"
+[[ "$code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that ran real git; it exited 0 and said: $(flat "$out")")
+grep -v '^== ' <<< "$out" | grep -qw git ||
+  problems+=("no line of 'make unit' over a suite that ran real git names git: $(flat "$out")")
 
-test_out="$(make --no-print-directory -C "$ROOT" test TESTS="$scratch/calls-real-vcs.test.sh" UNIT_TESTS= 2>&1 < /dev/null)" &&
-  test_code=0 || test_code=$?
-[[ "$test_code" == 0 ]] ||
-  problems+=("want 'make test' to pass a suite that ran real git; it exited $test_code and said: $(flat "$test_out")")
+run_make test TESTS="$scratch/calls-real-vcs.test.sh" UNIT_TESTS=
+[[ "$code" == 0 ]] ||
+  problems+=("want 'make test' to pass a suite that ran real git; it exited $code and said: $(flat "$out")")
 
-unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/mocks-vcs.test.sh" 2>&1 < /dev/null)" &&
-  unit_code=0 || unit_code=$?
-[[ "$unit_code" == 0 ]] ||
-  problems+=("want 'make unit' to pass a suite that mocks git as a shell function; it exited $unit_code and said: $(flat "$unit_out")")
+run_make unit UNIT_TESTS="$scratch/mocks-vcs.test.sh"
+[[ "$code" == 0 ]] ||
+  problems+=("want 'make unit' to pass a suite that mocks git as a shell function; it exited $code and said: $(flat "$out")")
 
 report "$name"
 
