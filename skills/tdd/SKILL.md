@@ -790,7 +790,7 @@ following step. The phase sub-steps are:
 3. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err; echo \$? > .tdd/verdict-refactor.exit" > /dev/null 2>&1
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err; echo \$? > .tdd/verdict-refactor.exit" > /dev/null 2>&1
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
    — one verdict on the final state (**full suite** still green, code up to standard, no
@@ -988,8 +988,8 @@ For attempt `k = 1 … REVISE_BUDGET`:
    $S/wait-leaf.sh verdict-<phase>      # foreground; on exit 3 call it again
    ```
    — overwriting the reason file, so attempt `k+1` carries the newest objection. The
-   `--fast-cmd` rides along whatever the phase: green refuses to build without it (exit 2),
-   and the other phases' prompts name no fast command, so it changes nothing there. Both `rm
+   `--fast-cmd` rides along whatever the phase: green and refactor refuse to build without it
+   (exit 2), and the other phases' prompts name no fast command, so it changes nothing there. Both `rm
    -f`s matter in this loop: every attempt re-verifies the **same** phase, so the previous
    attempt's completion files would otherwise be read as this one's answer.
    - **PASS (exit 0):** the step is recovered. Post `### 🔎 verify-<phase> (revised) — PASS`
@@ -1128,7 +1128,7 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    `refactor-budget.sh 0` then skips the leaf — the step is tidied as far as it was funded
    to be. Run its **verify-refactor** after it — the check the interruption skipped — with
    `$green` as the cycle loop's `<green-sha>`:
-   `verify.sh --step '<STEP>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
+   `verify.sh --step '<STEP>' --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
    PASS clears the mark and commits the cleared ledger exactly as in the cycle loop; then
    come back here and ask sub-step 2 again.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle

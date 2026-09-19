@@ -86,7 +86,7 @@ mark='⟂ refactor pending'
 # (#223). Three probes ask for that shape — the read that finds the cycle loop's call, and
 # the two that ask what each call site hands it — and a third independent spelling would let
 # one of them go on matching a call SKILL.md no longer makes.
-verify_refactor='verify\.sh (--step [^ ]+ )?refactor'
+verify_refactor='verify\.sh (--step [^ ]+ )?(--fast-cmd [^ ]+ )?refactor'
 
 pass=0 fail=0
 

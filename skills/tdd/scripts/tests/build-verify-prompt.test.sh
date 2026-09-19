@@ -22,8 +22,8 @@ cat > "$work/spec.md" <<'SPEC'
 slugify("Hello & World/Foo") must return "hello-world-foo" — see {ref}\n done.
 SPEC
 testpath="tests/test_slugify.py"
-# green requires the fast tier's command by flag (#341, case 24); the other phases take none. fast_for <phase> sets the array `fast` to the flag its call owes.
-fast_for() { fast=(); [[ "$1" == green ]] && fast=( --fast-cmd 'make unit' ); }
+# green and refactor require the fast tier's command by flag (#341, case 24); the other phases take none. fast_for <phase> sets the array `fast` to the flag its call owes.
+fast_for() { fast=(); [[ "$1" == green || "$1" == refactor ]] && fast=( --fast-cmd 'make unit' ); }
 
 red="$("$BUILD" red "$work/spec.md" "$testpath" test_slugify_lowercases)"
 
@@ -52,7 +52,7 @@ grep -qi 'full' <<<"$green" && grep -qi 'suite' <<<"$green" \
   && ok || no "verify-green checks the full suite"
 
 # 7. verify-refactor judges up-to-standard (conventions/typing/robustness) + still green
-refactor="$("$BUILD" refactor "$work/spec.md" "$testpath" 0123abc)"  # refactor's 4th slot is a base sha (#151)
+refactor="$("$BUILD" --fast-cmd 'make unit' refactor "$work/spec.md" "$testpath" 0123abc)"  # refactor's 4th slot is a base sha (#151)
 grep -qiE 'standard|convention|typing|robust' <<<"$refactor" \
   && grep -qi 'green' <<<"$refactor" && ok || no "verify-refactor judges standard + green"
 
@@ -239,7 +239,7 @@ done
 #     is one that appears in neither the spec nor the test path, so only the argument can
 #     have put it there.
 base_sha='3f9a1c07e2b4'
-with_base="$("$BUILD" refactor "$work/spec.md" "$testpath" "$base_sha")"; code=$?
+with_base="$("$BUILD" --fast-cmd 'make unit' refactor "$work/spec.md" "$testpath" "$base_sha")"; code=$?
 [[ "$code" -eq 0 ]] && [[ "$with_base" == *"$base_sha"* ]] \
   && ok || no "verify-refactor carries the base sha from its 4th argument into the prompt (exit $code)"
 
@@ -252,7 +252,7 @@ problems=""
 probe_base() {  # probe_base <label> [<base-sha>]
   local label="$1"; shift
   local err="$work/base-sha.err" rc
-  "$BUILD" refactor "$work/spec.md" "$testpath" "$@" >/dev/null 2>"$err"; rc=$?
+  "$BUILD" --fast-cmd 'make unit' refactor "$work/spec.md" "$testpath" "$@" >/dev/null 2>"$err"; rc=$?
   if [[ "$rc" -ne 2 || ! -s "$err" ]]; then
     problems="$problems; $label: exit $rc, stderr $([[ -s "$err" ]] && echo present || echo empty)"
   fi
@@ -360,7 +360,7 @@ done
 #     splitting `out of scope` across a line. The prompt read is the stepped one, since a
 #     verifier with no step in scope has no outside to speak of; its step text carries no form
 #     of the words probed for, so only the template can match.
-scoped_refactor="$("$BUILD" --step "$step" refactor "$work/spec.md" "$testpath" "$base_sha")"
+scoped_refactor="$("$BUILD" --step "$step" --fast-cmd 'make unit' refactor "$work/spec.md" "$testpath" "$base_sha")"
 problems=""
 prompt_says "$scoped_refactor" "never sends a shortfall against a criterion outside the step to REASON: as out of scope" \
   -iE -e "out of scope[^.]{0,200}REASON:|REASON:[^.]{0,200}out of scope"

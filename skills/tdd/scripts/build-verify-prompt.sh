@@ -11,13 +11,13 @@
 #     phase = red | green | refactor | pin
 #     --step = the ledger's own line for the step under judgement (#223): it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
-#     --fast-cmd = the fast tier's test command (#341), required for green: verify-green
-#              runs it plus the affected suites, and a verifier in a target repository has
+#     --fast-cmd = the fast tier's test command (#341), required for green and refactor:
+#              verify-green and verify-refactor run it plus the affected suites, and a verifier in a target repository has
 #              no detect-test-command.sh of its own to ask. It is a command the conductor
 #              detected, never anything the developer leaf wrote.
 #
 # Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown
-# phase, a missing template/spec file, or a green call without --fast-cmd.
+# phase, a missing template/spec file, or a green or refactor call without --fast-cmd.
 set -euo pipefail
 
 # bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside
@@ -55,10 +55,10 @@ case "$phase" in
   *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin)" >&2; exit 2 ;;
 esac
 
-# Green names the fast command in its checks; without one the verifier would be told to run
-# a command nobody named (#341).
-if [[ "$phase" == green && -z "$fast_cmd" ]]; then
-  echo "build-verify-prompt: green needs --fast-cmd '<fast-tier test command>'" >&2
+# Green and refactor name the fast command in their checks; without one the verifier would be
+# told to run a command nobody named (#341).
+if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
+  echo "build-verify-prompt: $phase needs --fast-cmd '<fast-tier test command>'" >&2
   exit 2
 fi
 
