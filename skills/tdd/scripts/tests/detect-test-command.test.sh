@@ -851,6 +851,40 @@ done
 [[ -z "$misread" ]] \
   && ok || no "--tier fast/all: both CLAUDE.md markers declared, each tier prints its own marker's command byte for byte —$misread"
 
+# 11. the tier markers are found and quoted the way rule 0's `Test command:` is (#338): a
+# marker is recognised anywhere on a CLAUDE.md line, not only at its start, and one inside a
+# backtick span is a mention rather than a declaration, so it is skipped and the scan goes on.
+# Each tier's line in the seeded CLAUDE.md is preceded by a line that *quotes* that tier's
+# marker with a command of its own, and then states the marker mid-sentence with the command
+# in a backtick span — the shape rule 0 already reads in issue bodies (#131, #145). A script
+# that took the quoted mention would print the `bin/quoted-*` prose; one that looked only at
+# a line's start would miss both lines and fall back to the Makefile's `make test`.
+misread=""
+repo="$work/tiered-anywhere-quoted"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+{
+  printf '# demo\n\n'
+  printf 'Leaves never read `veri: fast tests: bin/quoted-fast` as a declaration.\n'
+  printf 'In this repo the fast tier is veri: fast tests: `bin/real-fast -q`. More prose.\n'
+  printf 'Nor `veri: all tests: bin/quoted-all` either.\n'
+  printf 'And the full suite is veri: all tests: `bin/real-all -v`. More prose.\n'
+} > "$repo/CLAUDE.md"
+
+for tier in fast all; do
+  case "$tier" in
+    fast) want='bin/real-fast -q' ;;
+    all)  want='bin/real-all -v' ;;
+  esac
+
+  detect --tier "$tier" "$repo"
+
+  matched || note "$tier"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "--tier fast/all: a CLAUDE.md marker is recognised mid-line and one inside a backtick span is skipped, as the issue override marker is —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
