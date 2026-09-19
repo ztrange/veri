@@ -35,8 +35,9 @@ stop — do not edit it.
    establish it under **Read the conventions out of the repository** at the top of this
    prompt, from the files that are already there.
 3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
-   command (`detect-test-command.sh --tier fast` prints it), then run the suites that
-   `affected-suites.sh` prints for your change, and confirm both runs are green. That pair
+   command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run
+   the suites that `affected-suites.sh` prints for your change, and confirm both runs are
+   green. That pair
    replaces the full suite, and runs exactly once: the conductor runs the full command
    itself, before it readies the PR. A new pass bought with a broken sibling test is not a
    pass; fix it or revert.

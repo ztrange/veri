@@ -9,7 +9,7 @@
 #
 # Usage:
 #   build-develop-prompt.sh red      <issue-spec-file> <step-text> <test-cmd>
-#   build-develop-prompt.sh green    <issue-spec-file> <step-text> <test-cmd> <test-path> <target>
+#   build-develop-prompt.sh green    <issue-spec-file> <step-text> <test-cmd> <test-path> <target> <fast-cmd>
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh reconcile <issue-spec-file> <step-text> <test-cmd> <branch> <remote-sha>
@@ -60,7 +60,7 @@ phase="$1"
 # the phase it is redoing, since neither has been shifted off yet.
 case "$phase" in
   red) want=4 ;;
-  green) want=6 ;;
+  green) want=7 ;;
   refactor) want=5 ;;
   revise) want=6 ;;
   reconcile) want=6 ;;
@@ -96,12 +96,15 @@ test_cmd="${4:?missing <test-cmd>}"
 # each branch names only those. Everything else stays empty, and an empty variable's
 # placeholder expands to nothing — which is why red, the phase that writes the test and so
 # has nothing yet to name, needs no branch body at all.
-test_path="" target="" touched="" reason_file="" refactor_budget="" branch="" remote_sha=""
+test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" branch="" remote_sha=""
 case "$phase" in
   red) ;;
   green)
     test_path="${5:?missing <test-path>}"
     target="${6:?missing <target-test>}"
+    # The fast tier's command (#341): green runs it plus the affected suites instead of the
+    # full suite, and a leaf in a target repository has no way to ask for it itself.
+    fast_cmd="${7:?missing <fast-cmd>}"
     ;;
   refactor)
     touched="${5:?missing <touched-files>}"
@@ -146,6 +149,7 @@ out="${out//\{\{STEP\}\}/$step}"
 out="${out//\{\{TEST_CMD\}\}/$test_cmd}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
+out="${out//\{\{FAST_CMD\}\}/$fast_cmd}"
 out="${out//\{\{TOUCHED_FILES\}\}/$touched}"
 out="${out//\{\{REFACTOR_BUDGET\}\}/$refactor_budget}"
 out="${out//\{\{REVISE_PHASE\}\}/$revised_phase}"
