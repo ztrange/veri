@@ -18,7 +18,7 @@
 #   untestable rather than forced into a costly or implementation-pinning test.
 #
 # Contract under test, green phase:
-#   build-develop-prompt.sh green <spec-file> <step-text> <test-cmd> <test-path> <target>
+#   build-develop-prompt.sh green <spec-file> <step-text> <test-cmd> <test-path> <target> <fast-cmd>
 #   exits 0 and prints a prompt naming the test the implementation must satisfy — its path
 #   and its case name — and forbidding any edit to it, the rule that keeps "make it green"
 #   from degenerating into "weaken the test".
@@ -84,7 +84,7 @@ red="$("$BUILD" red "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code
 #    editing it
 test_path='tests/zorblat/test_frob & nitz.sh'
 target='qwixtle seeds a newline-terminated block'
-green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" 2>/dev/null)"; code=$?
+green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] \
   && [[ "$green" == *"$test_path"* ]] \
   && [[ "$green" == *"$target"* ]] \
@@ -973,6 +973,24 @@ prompt_says "$red" "never gives the UNTESTABLE outcome as the report line for a 
   -iE -e 'UNTESTABLE'
 [[ -z "$problems" ]] \
   && ok || no "develop-red states behaviour-over-mechanism (with the in-process-spy carve-out), points cost at make profile, and offers UNTESTABLE for a criterion no lightweight test can pin (${problems#; })"
+
+# 27. the green phase takes the fast tier's command as a seventh positional (issue #341).
+#     develop-green now runs the fast command plus the affected suites instead of the full
+#     suite, and a leaf in a target repository has no `detect-test-command.sh` of its own to
+#     ask — so the conductor passes the command in, and the prompt carries it verbatim, `&`,
+#     `/` and quotes included. Without it the leaf would be told to run a command nobody
+#     named, so a call short of it is a bad-arguments case: exit 2, a diagnostic, no prompt.
+#     `problems` says which half broke.
+fast_cmd='make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
+problems=""
+fast_green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "$fast_cmd" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; with <fast-cmd> exited $code, want 0"
+[[ "$fast_green" == *"$fast_cmd"* ]] || problems="$problems; the prompt does not carry <fast-cmd> verbatim"
+refusal_bad=""
+refuses "missing <fast-cmd>" "$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target"
+[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
+[[ -z "$problems" ]] \
+  && ok || no "develop-green takes <fast-cmd> as a seventh positional, carries it verbatim, and refuses a call without it with exit 2 (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"

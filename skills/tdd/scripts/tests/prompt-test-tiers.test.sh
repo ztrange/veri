@@ -137,7 +137,7 @@ report "$name"
 #    green, the full suite.
 name="develop-green and verify-green name the fast command plus the affected suites, not the full suite"
 problems=()
-green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
+green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 'make unit' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh green exited $?")
 verify_green="$("$VERIFY" green "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh green exited $?")
