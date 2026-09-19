@@ -117,6 +117,28 @@ if ! grep -qF 'refactor-touched.sh' <<< "$after_each"; then
 fi
 report "$name"
 
+# 4. The green leaf and its verifier run the fast command plus the affected suites
+#    (criterion 4): each prompt names detect-test-command.sh's `--tier fast` and tells its
+#    leaf to run what affected-suites.sh prints, and neither still tells it to run, or keep
+#    green, the full suite.
+name="develop-green and verify-green name the fast command plus the affected suites, not the full suite"
+problems=()
+green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh green exited $?")
+verify_green="$("$VERIFY" green "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
+  problems+=("build-verify-prompt.sh green exited $?")
+for label in develop-green verify-green; do
+  if [[ "$label" == develop-green ]]; then prompt="$green"; else prompt="$verify_green"; fi
+  if ! plain <<< "$prompt" | grep -qF -- '--tier fast'; then
+    problems+=("$label's prompt never names the fast command (detect-test-command.sh --tier fast)")
+  fi
+  runs_affected "$label" "$prompt"
+  if plain <<< "$prompt" | grep -qE "run (the )?(project's )?full (test )?suite|full suite (is )?green"; then
+    problems+=("$label's prompt still tells its leaf to run, or keep green, the full suite")
+  fi
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
