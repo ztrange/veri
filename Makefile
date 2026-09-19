@@ -9,9 +9,10 @@
 TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 
 # `make unit` is the fast tier (#336): only the suites under tests/unit/, through the same
-# recipe as `test`, which runs them too. SUITES is set per target, so the two share one runner.
+# recipe as `test`, which runs them too. SUITES is set per target, so the two share one runner;
+# `profile` below takes `test`'s list from the same line rather than restating it.
 UNIT_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/unit/*.test.sh))
-test: SUITES = $(TESTS) $(UNIT_TESTS)
+test profile: SUITES = $(TESTS) $(UNIT_TESTS)
 unit: SUITES = $(UNIT_TESTS)
 
 # The fast tier's admission-bar guard: `unit` alone puts UNIT_GUARD_BIN first on a suite's PATH,
@@ -138,7 +139,7 @@ profile:
 	@reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	$(OFFLINE_GIT); \
-	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(TESTS) $(UNIT_TESTS) < /dev/null
+	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(SUITES) < /dev/null
 
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
