@@ -9,7 +9,7 @@
 # has already answered the question in words, so no later inference gets to second-guess
 # it. Which of the two answers first is argued where rule 0 sits.
 #
-# Usage:   detect-test-command.sh [--issue <body-file>] [repo-root]
+# Usage:   detect-test-command.sh [--tier fast|all] [--issue <body-file>] [repo-root]
 #          (repo-root defaults to the current directory)
 set -euo pipefail
 
@@ -17,6 +17,15 @@ set -euo pipefail
 # already saved the issue body to a file, so what is passed is a path, never the text.
 # `shift 2` drops both words so the repo root is read from $1 either way, and the empty
 # default keeps `set -u` from aborting on the unset variable when the flag is absent.
+# `--tier fast|all` asks for one of the two tiers a repo may declare in its root CLAUDE.md
+# (#338) rather than for the single command. Omitted, the empty value leaves every rule
+# below exactly as it was.
+tier=""
+if [ "${1:-}" = "--tier" ]; then
+  tier="${2:-}"
+  shift 2
+fi
+
 issue=""
 if [ "${1:-}" = "--issue" ]; then
   issue="${2:-}"
@@ -156,6 +165,19 @@ answer_from() {
     answer "$cmd"
   done
 }
+
+# The tier markers. A repo's root CLAUDE.md may declare `veri: fast tests: <cmd>` and
+# `veri: all tests: <cmd>`, and a `--tier` call answers from the one its tier names. The
+# lines are read by the same walk as rule 0's, so a marker is found anywhere on a line and
+# skipped inside a backtick span exactly as the issue's own is; only the words differ, which
+# is why `marker` is swapped for the walk and put back for rule 0.
+if [ -n "$tier" ] && [ -f "$root/CLAUDE.md" ]; then
+  marker="veri: $tier tests:"
+  while IFS= read -r line || [ -n "$line" ]; do
+    answer_from "$line"
+  done < "$root/CLAUDE.md"
+  marker='Test command:'
+fi
 
 if [ -n "$issue" ] && [ -f "$issue" ]; then
   while IFS= read -r line || [ -n "$line" ]; do
