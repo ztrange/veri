@@ -519,6 +519,14 @@ scan_launch_trees() {
   fi
 }
 
+# What had finished at the moment case 3 began reading, kept for case 6: the launches' finish
+# markers, the trees case 3 is about to walk and which of their logs already hold an `exit`
+# event, copied now, since by the time case 6 runs any
+# launch still in flight would have finished and the evidence of the early read with it.
+cp "$markers" "$WORK/finished-before-case3" 2>/dev/null || : > "$WORK/finished-before-case3"
+( cd "$run" && ls -1 ) > "$WORK/trees-before-case3" 2>/dev/null
+( cd "$run" && grep -l '"event": *"exit"' */.tdd/events.jsonl ) > "$WORK/exited-before-case3" 2>/dev/null
+
 run_case "every leaf $skill_md launches leaves events carrying the run's issue and step" \
   scan_launch_trees
 
@@ -590,6 +598,35 @@ scan_attribution() {
 [[ -n "${SKILL_LEAF_ENV_NESTED:-}" ]] ||
   run_case "with launches concurrent, a launch whose leaf does not see VERI_TEST_CMD is reported against its own line number" \
     scan_attribution
+
+# 6. Case 3 reads every launch's tree only once every launch has completed (#333). With the
+#    launches running together, a case that read the trees while some leaf still ran would find
+#    that leaf's event log half-written — a `launch` line with no `exit` after it — and pass or
+#    fail on whichever of the two it happened to catch.
+#
+#    Asked of the snapshot taken just before case 3 began: the trees it was about to walk must
+#    be one per launch line cases 1 and 2 scan, each with its launch's finish marker already
+#    written and an `exit` event already in its log.
+#
+# scan_case3_read_after_launches — the case's body, in `scan_launch_trees`'s shape.
+scan_case3_read_after_launches() {
+  local want got tree lineno line
+  want=$(( $(grep -cE "$developer_launch" "$md") + $(grep -cE "$verifier_launch" "$md") ))
+  got="$(grep -c . "$WORK/trees-before-case3")"
+  [[ "$got" -eq "$want" ]] ||
+    problems+=("case 3 began with $got launch trees to read, want $want — one per launch line cases 1 and 2 scan")
+  while IFS= read -r tree; do
+    [[ -n "$tree" && -f "$run/$tree/origin" ]] || continue
+    IFS=$'\t' read -r lineno line < "$run/$tree/origin"
+    grep -qx "finish $lineno" "$WORK/finished-before-case3" ||
+      problem "was read by case 3 before its launch had finished"
+    grep -qxF "$tree/.tdd/events.jsonl" "$WORK/exited-before-case3" ||
+      problem "left no exit event for case 3 to read"
+  done < "$WORK/trees-before-case3"
+}
+
+run_case "case 3 reads every launch's tree only after every launch has completed" \
+  scan_case3_read_after_launches
 
 echo "----"
 echo "$pass passed, $fail failed"
