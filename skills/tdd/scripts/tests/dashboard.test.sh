@@ -827,6 +827,73 @@ fi
 report "$name"
 
 
+# --- the server's python is a module beside dashboard.sh, and importing it binds nothing ---
+# The endpoints are pure functions of the filesystem and of status.sh/metrics.sh, so a case
+# should be able to ask one a question without starting a server (#330). That needs the python
+# to be a file on disk dashboard.sh execs, not a heredoc on its stdin, and the file to bind its
+# port only when run as the program, never when imported. The module is found the way anyone
+# reading dashboard.sh would find it — the `.py` beside it that its `exec python3` line names —
+# so the case does not care what it is called. It is imported with the argv dashboard.sh hands
+# when started with no port argument, so the port it would bind is the default: the port asked about
+# afterwards is the one an unguarded bootstrap would have taken. That question is asked inside
+# the importing process, while the module is still loaded — after it exits, whatever it bound
+# is released and the answer would say nothing. An alarm that raises bounds the whole of it,
+# because an import that falls into serve_forever never returns on its own; the process says
+# `checked` last, so one that died on the way is a failure and not a silent pass.
+name="importing the dashboard's python module and calling its endpoint functions never binds port 8765"
+problems=()
+imported="$(repo imported)"
+
+problem="$(port_problem "$PORT")"
+if [[ -n "$problem" ]]; then
+  problems+=("$problem")
+else
+  exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
+  module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
+  if [[ -z "$module" ]]; then
+    problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+  elif [[ ! -f "$HERE/../$module.py" ]]; then
+    problems+=("dashboard.sh execs $module.py, but there is no such file beside it")
+  else
+    checked=""
+    while IFS= read -r line; do
+      if [[ "$line" == checked ]]; then
+        checked=1
+      elif [[ -n "$line" ]]; then
+        problems+=("$line")
+      fi
+    done < <(cd "$imported" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
+import importlib, signal, socket, sys
+
+scripts, module, port = sys.argv[1], sys.argv[2], int(sys.argv[3])
+def timed_out(signum, frame):
+    raise TimeoutError("still running after 10 s")
+signal.signal(signal.SIGALRM, timed_out)
+signal.alarm(10)
+sys.path.insert(0, scripts)
+sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", str(port),
+            scripts + "/status.sh", scripts + "/metrics.sh"]
+try:
+    mod = importlib.import_module(module)
+    for fn, query in (("runs_json", {}), ("metrics_json", {}), ("events_json", {"issue": [""]})):
+        if not callable(getattr(mod, fn, None)):
+            print("%s.py has no function %s" % (module, fn))
+            continue
+        getattr(mod, fn)(query)
+except BaseException as e:
+    print("importing %s.py and calling its endpoints raised %s: %s" % (module, type(e).__name__, e))
+s = socket.socket(); s.settimeout(1.0)
+if s.connect_ex(("127.0.0.1", port)) == 0:
+    print("port %d answers after importing %s.py and calling its endpoints; want it still free" % (port, module))
+print("checked")
+' "$(cd "$HERE/.." && pwd)" "$module" "$PORT")
+    [[ -n "$checked" ]] ||
+      problems+=("the process importing $module.py died before it could ask whether port $PORT is free")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
