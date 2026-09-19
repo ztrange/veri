@@ -27,6 +27,10 @@
 #   3. SKILL.md's Draft PR step and its Guardrails invariant about opening the PR both name
 #      `detect-test-command.sh --tier all`'s command, run exactly once, as the only
 #      full-suite gate left in the cycle (issue #341).
+#   4. SKILL.md's Draft PR step answers a red result on that full run by adding a repair step
+#      to the ledger rather than bailing; the same step says a unit-tier test is added when
+#      the failure exposes a gap, and that the verifier judges the fix against the full
+#      command (issue #341).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -173,6 +177,32 @@ if [[ -z "$invariant" ]]; then
   problems+=("$skill_md's Guardrails has no invariant about opening the PR to read — which command it gates on could not be checked")
 elif ! names_the_full_gate "$invariant"; then
   problems+=("$skill_md's closing invariant never names detect-test-command.sh --tier all's command, run exactly once, as the only full-suite gate: $(printf '%.120s' "$invariant")")
+fi
+report "$name"
+
+# 4. The criterion, as one case (issue #341): a red result on the one full run is not a bail.
+#    The fast tier and the affected suites are what every leaf ran, so a suite that only the
+#    full command reaches can go red for the first time here — and that is a gap in the tiers,
+#    which the methodology answers with another cycle, not a stop. What is pinned is that the
+#    Draft PR step has a record that, on red, adds a "repair step" to the ledger, and that the
+#    step's text says the two things that make it a repair rather than a retry: a unit-tier
+#    test when the failure exposes a gap, and a verifier judging the fix against the full
+#    command. The record is asked for first so the case fails closed — a step with no repair
+#    record at all gets one problem line, not three that read as partial progress.
+name="$skill_md's Draft PR step adds a repair step to the ledger on a red full run, rather than bailing"
+problems=()
+
+records="$(draft_pr_instructions)"
+repair="$(grep -F 'repair step' <<< "$records" | grep -wF 'red' | grep -F 'ledger' | head -1)"
+if [[ -z "$records" ]]; then
+  problems+=("$skill_md has no ### 4. Draft PR section to read — what a red full run does could not be checked")
+elif [[ -z "$repair" ]]; then
+  problems+=("$skill_md's Draft PR step has no record adding a repair step to the ledger on a red full run, so a suite only the full command reaches still ends the run in a bail")
+else
+  grep -qF 'unit-tier test' <<< "$records" && grep -qwF 'gap' <<< "$records" ||
+    problems+=("$skill_md's Draft PR step never says a unit-tier test is added when the red full run exposes a gap the fast tier missed")
+  grep -qE 'verifier[^.]*full command' <<< "$records" ||
+    problems+=("$skill_md's Draft PR step never says the repair step's verifier judges the fix against the full command")
 fi
 report "$name"
 
