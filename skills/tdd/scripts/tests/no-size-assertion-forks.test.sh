@@ -94,6 +94,26 @@ whole="$(awk -v n="$suites" '$1 == "grep" && $2 >= n' "$starts_log" | wc -l | tr
 
 report "$name"
 
+# 2. The criterion: the per-file work — subjects()'s sed and the classifying grep, one start
+#    each, each naming one suite — runs only for the M suites holding a size-verb line, not
+#    for all N. M is counted here by the real grep, outside the shimmed PATH, so it is not a
+#    start the probe made; the observed suite's own header quotes a `wc` line, so it is one.
+#      → M = 3 of N = 6, and at most 2 × 3 = 6 starts naming one suite, where asking every
+#        suite would make 2 × 6 = 12.
+name="no-size-assertion.test.sh's probe starts its per-file subjects() sed and classifying grep only for the suites the directory-wide grep matched, bounded by M of N, counted by the same shim"
+problems=()
+
+size_verb='(^|[^[:alnum:]_./-])(wc|stat|du)[[:space:]]'
+matched="$(grep -lE "$size_verb" "${fixtures[@]}" | wc -l | tr -d ' ')"
+[[ "$matched" -ge 1 && "$matched" -lt "$suites" ]] ||
+  problems+=("setup: want M, the suites holding a size-verb line, between 1 and N-1 = $((suites - 1)), got $matched")
+
+per_file="$(awk '$2 == 1' "$starts_log" | wc -l | tr -d ' ')"
+[[ "$per_file" -le $((2 * matched)) ]] ||
+  problems+=("want at most 2 × M = $((2 * matched)) grep-or-sed starts naming one suite (M = $matched of N = $suites), got $per_file")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
