@@ -344,6 +344,61 @@ starts="$(wc -l < "$starts_log" | tr -d ' ')"
 
 report "$name"
 
+# 5. The criterion: case 3 of harvest-usage.test.sh is unchanged by the moves above — its leaf
+#    (`frobnicate-red`, a name leaf-role.sh refuses) is never launched, the harvester reads a
+#    one-line log holding the result record, and the case still asserts exit 2, no usage line,
+#    and a diagnostic naming the harvester or leaf-role and the leaf. The first half is read
+#    off case 1's traced run; the second by running the suite against a harvester that, for
+#    that leaf alone, appends a `usage` line, says something naming neither, and exits 0:
+#      → only case 3 red, saying each of those four things.
+name="harvest-usage.test.sh case 3 is unchanged: a hand-written one-line log fixture, no launch, exit 2, no usage line, a diagnostic naming the harvester or leaf-role"
+problems=()
+
+refused=frobnicate-red
+[[ -z "$(run_leaf_snap "$refused")" ]] ||
+  problems+=("$refused: want no run-leaf.sh launch, found one")
+if [[ -s "$trace/supervise" ]] && grep -q "$refused" "$trace/supervise"; then
+  problems+=("$refused: want no supervise.sh launch, found one")
+fi
+refused_harvests=0
+for h in "$trace"/harvest.*; do
+  [[ -f "$h/leaf" && "$(cat "$h/leaf")" == "$refused" ]] || continue
+  refused_harvests=$((refused_harvests + 1))
+  lines="$(wc -l < "$h/log" | tr -d ' ')"
+  [[ "$lines" == 1 ]] && grep -q '"type":"result"' "$h/log" ||
+    problems+=("$refused: want the harvester to read a one-line log holding the result record, got: $(printf '%q' "$(cat "$h/log")")")
+done
+[[ "$refused_harvests" == 1 ]] ||
+  problems+=("$refused: want exactly one harvest of the leaf, got $refused_harvests")
+
+quiet="$tmp/quiet"
+variant "$quiet"
+mv "$quiet/harvest-usage.sh" "$quiet/harvest-usage.real.sh"
+cat > "$quiet/harvest-usage.sh" <<'BROKEN'
+#!/bin/sh
+if [ "$1" = frobnicate-red ]; then
+  printf '%s\n' '{"event":"usage","leaf":"x"}' >> .tdd/events.jsonl
+  echo nope >&2
+  exit 0
+fi
+exec "$(dirname "$0")/harvest-usage.real.sh" "$@"
+BROKEN
+chmod +x "$quiet/harvest-usage.sh"
+
+out="$("$quiet/tests/harvest-usage.test.sh" 2>/dev/null)"
+[[ "$out" == *'2 passed, 1 failed'* ]] ||
+  problems+=("harvester that accepts $refused: want only case 3 red, got: $(printf '%q' "$out")")
+block="$(fail_block 'a leaf name leaf-role.sh refuses' "$out")"
+for want in 'want exit 2, got 0' \
+            'want 0 usage lines in the event log, got 1' \
+            'want harvest-usage or leaf-role named on stderr' \
+            'want the leaf named on stderr'; do
+  [[ "$block" == *"$want"* ]] ||
+    problems+=("harvester that accepts $refused: want case 3 to say '$want', got: $(printf '%q' "$block")")
+done
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
