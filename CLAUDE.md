@@ -231,7 +231,14 @@ into a scratch tree and reran the whole thing, sometimes several times over, to 
 python3-start count or a case roster: ~41.5s of `make test` to pin a ~1.5s saving. They are
 gone, not exempted; the one behaviour among their assertions no remaining case covered — that
 run-leaf.sh's appended result text keeps a leaf's closing record from ever being its log's
-last line — moved into harvest-usage.test.sh's own first case.
+last line — moved into harvest-usage.test.sh's own first case. `supervise.test.sh`'s own
+former case 33 (#290's "one supervision starts at most 1 python3" ceiling, a PATH shim
+counting processes over the whole suite) is gone the same way, not moved: the behaviour it
+protected — that event.sh's bash rewrite still escapes a payload byte-identical to
+`json.dumps`'s own — was already pinned independently by `event.test.sh` case 5. When a call
+count IS itself the behaviour (a launcher that must be called exactly once per mark, say),
+the code calls one wrapper function and the test replaces that wrapper with a spy function
+that records its calls, in-process — never a PATH shim counting processes over a suite run.
 
 A guard or a failure path that has never been watched to fail is not tested. Break it on
 purpose, see the test go red, put it back.
