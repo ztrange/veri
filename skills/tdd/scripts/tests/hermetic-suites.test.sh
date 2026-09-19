@@ -106,22 +106,49 @@ report "$name"
 #    itself. An operator steering a loop exports exactly this variable, and the inner `make
 #    test` of a run on veri's own repository inherits it — the shape of #87 again.
 #
-#    The ambient value is `ready-for-agent` because it is the one label the fixtures actually
-#    carry: a name no fixture mentions renames the band to something nothing is in, changes no
-#    answer, and would make this case pass while the leak it exists for stayed open.
-#
-#    Cases 3, 4 and 5 share one reference arm (#301): solvable-issues.test.sh run once with the
-#    label cleared, in a scratch repository holding no lock. Each case's other arm differs from it
-#    by exactly the one ambient value that case sets, so the label is cleared in the lock arms too.
+#    Every place a fixture's label is literally "priority" or "bug" — the only way an ambient
+#    VERI_PRIORITY_LABEL could change what a case prints — sits between solvable-issues.test.sh's
+#    `# 22. ` and `# 28. ` markers (cases 22-27, the band-order and label-tunable cases); no
+#    other case names either word. So the witness is a slice of the suite's own text between
+#    those two markers, the awk cut run-conductor-argv-guard.test.sh already uses for the same
+#    reason, rather than its other ~24 cases' worth of unrelated fixtures — which is a suite
+#    fact, not a script fact: a case elsewhere in solvable-issues.test.sh that started reading
+#    VERI_PRIORITY_LABEL without clearing it would not be caught by calling solvable-issues.sh
+#    directly with one fixture, only by asking the suite itself. A slice that finds a different
+#    number of assertions than today's six fails closed, naming the count, rather than silently
+#    asking a narrower question about a file whose markers have moved.
+name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
+problems=()
+label_cut="$(mktemp "$HERE/.hermetic-label-slice.XXXXXX")"
+awk '
+  /^# 1\. / {skip=1}
+  /^# 22\. / {skip=0}
+  /^# 28\. / {skip=1}
+  !skip
+' "$HERE/solvable-issues.test.sh" > "$label_cut"
+printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$label_cut"
+chmod +x "$label_cut"
+label_assertions="$(grep -c 'ok || no ' "$label_cut")"
+if [[ "$label_assertions" -ne 6 ]]; then
+  problems+=("the slice of solvable-issues.test.sh between '# 22. ' and '# 28. ' held $label_assertions assertions, want 6 — the markers may have moved")
+else
+  cleared_label_out="$(env -u VERI_PRIORITY_LABEL "$label_cut" 2>/dev/null)" && cleared_label_code=0 || cleared_label_code=$?
+  ambient_label_out="$(env VERI_PRIORITY_LABEL=ready-for-agent "$label_cut" 2>/dev/null)" && ambient_label_code=0 || ambient_label_code=$?
+  same_answer cleared "$cleared_label_code" "$cleared_label_out" "$ambient_label_code" "$ambient_label_out"
+fi
+rm -f "$label_cut"
+report "$name"
+
+# Cases 4 and 5, below, still run the whole of solvable-issues.test.sh rather than a slice: their
+# criterion is "no case anywhere in the suite reads a conductor lock outside a repository it
+# built itself", asked of every fixture number the suite carries TODAY (case 5's own point,
+# #226) — a property about arbitrary future cases and numbers, which a fixed slice would
+# silently stop covering the moment a case outside it is added. So their reference arm is still
+# a real run of the suite, shared between them (#301).
 lock_work="$(mktemp -d)"
 trap 'rm -rf "$lock_work"' EXIT
 git init -q -b main "$lock_work/no-lock" >/dev/null 2>&1
 unlocked_out="$(solvable_in "$lock_work/no-lock" -u VERI_PRIORITY_LABEL)" && unlocked_code=0 || unlocked_code=$?
-
-name="solvable-issues.test.sh: an ambient VERI_PRIORITY_LABEL gives the same exit and the same stdout as a cleared run"
-label_out="$(solvable_in "$lock_work/no-lock" VERI_PRIORITY_LABEL=ready-for-agent)" && label_code=0 || label_code=$?
-same_answer cleared "$unlocked_code" "$unlocked_out" "$label_code" "$label_out"
-report "$name"
 
 # 4. The same rule for ambient state that is not an environment variable at all: the lock a run
 #    in flight leaves at <main_tree>/.tdd/wt/<n>/.tdd/conductor.pid. solvable-issues.sh reads it
