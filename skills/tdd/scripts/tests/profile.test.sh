@@ -8,6 +8,9 @@
 # Contract under test (issue #329):
 #   profile.sh <suite>...  → one line `<secs> <suite> case <n> L<a>-<b>` per case at or
 #                            above the threshold; exit 0 whether or not any case crossed.
+#   make -n profile          → names every suite `make -n test` names, under the offline
+#                              environment test's recipe gives them. Read off `make -n`,
+#                              which prints a recipe without running it, so no real suite runs.
 #
 # No case here waits on a clock. A fixture suite fabricates its own timestamps: bash stops
 # treating EPOCHREALTIME as special once it is unset, so after `unset EPOCHREALTIME` an
@@ -231,6 +234,38 @@ EOF
 out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("no case reaching 1 s: want exit 0, got $code")
 [[ -z "$out" ]] || problems+=("no case reaching 1 s: want no output, got: $(printf '%q' "$out")")
+report "$name"
+
+# 8. `make -n profile` is read as text beside `make -n test`: every suite `make -n test`
+#    names (the TESTS glob, expanded), profile names too, and no other; and every fragment
+#    of the offline environment test's recipe gives a suite — the offline shims on PATH, the
+#    reach log, the real git, git's transport allowlist and proxy, the dead proxies, the C
+#    locale, stdin from /dev/null — profile's recipe carries as well. `-n` prints a recipe
+#    without running it, so nothing here runs a real suite.
+name="make -n profile: the same suites as make -n test, in the same offline environment"
+problems=()
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+test_recipe="$(make --no-print-directory -n -C "$ROOT" test 2>&1)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("make -n test exited $code")
+profile_recipe="$(make --no-print-directory -n -C "$ROOT" profile 2>&1)" && code=0 || code=$?
+if [[ "$code" != 0 ]]; then
+  problems+=("make -n profile exited $code: $(printf '%s' "$profile_recipe" | tr '\n' '/')")
+else
+  test_suites="$(grep -oE 'skills/tdd/scripts/tests/[^ ;"]+\.test\.sh' <<< "$test_recipe" | sort -u)"
+  profile_suites="$(grep -oE 'skills/tdd/scripts/tests/[^ ;"]+\.test\.sh' <<< "$profile_recipe" | sort -u)"
+  [[ -n "$test_suites" ]] || problems+=("make -n test names no suite")
+  [[ "$profile_suites" == "$test_suites" ]] ||
+    problems+=("suites differ (< test, > profile): $(diff <(echo "$test_suites") <(echo "$profile_suites") | grep '^[<>]' | tr '\n' '/')")
+  for frag in 'skills/tdd/scripts/tests/offline:' 'OFFLINE_REACH_LOG=' 'xcrun -f git' \
+      'GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=http://127.0.0.1:1' \
+      'GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never' \
+      'GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always' \
+      'HTTP_PROXY=http://127.0.0.1:1' 'HTTPS_PROXY=http://127.0.0.1:1' \
+      'NO_PROXY=127.0.0.1,localhost' 'LC_ALL=C' '< /dev/null'; do
+    [[ "$test_recipe" == *"$frag"* ]] || problems+=("make -n test lacks '$frag' — probe is stale")
+    [[ "$profile_recipe" == *"$frag"* ]] || problems+=("make -n profile lacks '$frag'")
+  done
+fi
 report "$name"
 
 echo "----"

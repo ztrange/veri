@@ -107,6 +107,23 @@ test:
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
+# `make profile` runs the suites `test` runs, under the same offline environment, through
+# profile.sh: one line per case at or above VERI_PROFILE_THRESHOLD seconds, slowest first
+# (#329). A tool a human runs on demand — not part of `test`, and nothing gates on it.
+.PHONY: profile
+profile:
+	@$(BASH_GUARD)
+	@reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
+	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
+	real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
+	ln -sf "$$real_git" "$$git_bin/git"; \
+	PATH="$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
+	  GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
+	  GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
+	  GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
+	  HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
+	  LC_ALL=C skills/tdd/scripts/profile.sh $(TESTS) < /dev/null
+
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
 # regenerates into a buffer and diffs against the committed file, which fails both when a
