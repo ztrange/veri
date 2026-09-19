@@ -8,7 +8,14 @@
 #   build-develop-prompt.sh red <spec-file> <step-text> <test-cmd>
 #   exits 0 and prints a prompt carrying the spec, the step criterion and the test command
 #   verbatim, plus the `AGAINST_UNMODIFIED` report line — the protocol token the conductor
-#   greps for to route a passing red test to verify-pin (SKILL.md, Red step).
+#   greps for to route a passing red test to verify-pin (SKILL.md, Red step). It also
+#   carries the `UNTESTABLE` outcome (issue #331) and the rules a valid test holds to —
+#   behaviour over mechanism (a process/fork count or a timing belongs to `make profile`,
+#   never an assertion, except a call count the criterion itself names, pinned with an
+#   in-process spy rather than a `PATH` shim counting real processes), lightweight
+#   (~100ms, costly dependencies replaced), and self-contained (never another suite, never
+#   its own again) — so a criterion only pinnable by breaking one of those is reported
+#   untestable rather than forced into a costly or implementation-pinning test.
 #
 # Contract under test, green phase:
 #   build-develop-prompt.sh green <spec-file> <step-text> <test-cmd> <test-path> <target>
@@ -940,6 +947,32 @@ forbids_global_config() {  # forbids_global_config <phase label> <prompt>
 
 every_phase forbids_global_config \
   "every built developer prompt forbids changing global or user-level configuration and names environment variables and throwaway directories instead"
+
+# 26. what a valid test is, and the escape hatch for a criterion that has none (issue #331).
+#     #331's "the suite starts at most N python3" was satisfied by a leaf adding suites that
+#     re-run whole suites under a counting shim (+41s of `make test`); #333's "launches
+#     overlap" made a suite twice as slow. Both are criteria a developer leaf CAN satisfy —
+#     just not with a test, and the pipeline had no way for it to say so. So develop-red now
+#     states the rule (behaviour over mechanism, lightweight, self-contained) and the report
+#     line that lets the leaf decline: `AGAINST_UNMODIFIED: UNTESTABLE` with a `WHY:`. Five
+#     faces of one criterion — the mechanism ban, the process-count example, the spy carve-out
+#     for a call count the criterion itself names, the lightweight rule and the escape hatch
+#     itself — so one case, built the way case 11 builds its five: every alternation branch
+#     carries at most ONE `[^.]{0,N}`, and `red` is case 1's prompt (same phase, same
+#     arguments), so this reads it rather than building its own.
+problems=""
+prompt_says "$red" "never forbids pinning a process count, a fork count or a timing" \
+  -iE -e '(process|fork)[^.]{0,20}count|timing'
+prompt_says "$red" "never points a process/fork count or a timing at make profile instead" \
+  -iE -e 'make profile'
+prompt_says "$red" "never carves out a call count the criterion itself names, pinned with an in-process spy" \
+  -iE -e 'in-process spy'
+prompt_says "$red" "never says a PATH shim counting real processes is what the spy replaces" \
+  -iE -e 'PATH[^.]{0,60}shim|shim[^.]{0,60}(count|real process)'
+prompt_says "$red" "never gives the UNTESTABLE outcome as the report line for a criterion that cannot be pinned" \
+  -iE -e 'UNTESTABLE'
+[[ -z "$problems" ]] \
+  && ok || no "develop-red states behaviour-over-mechanism (with the in-process-spy carve-out), points cost at make profile, and offers UNTESTABLE for a criterion no lightweight test can pin (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"
