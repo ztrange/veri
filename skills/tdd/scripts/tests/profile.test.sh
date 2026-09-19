@@ -66,6 +66,36 @@ lines=()
 [[ "$out" != *" case 3 "* ]] || problems+=("case 3 (0.25 s) was printed: $(printf '%q' "$out")")
 report "$name"
 
+# 2. the printed line is exactly `<secs> <suite> case <n> L<a>-<b>`: the fixture's case 2
+#    starts on line 5, the first line after case 1's boundary on line 4, and ends at its
+#    own boundary on line 8, spanning 13 - 10 = 3 fabricated seconds. The seconds field is
+#    pinned as a number equal to 3, not as a digit count.
+name="the printed line is <secs> <suite> case 2 L5-8, secs equal to 3"
+problems=()
+fixture="$scratch/format.test.sh"
+cat > "$fixture" <<'EOF'
+unset EPOCHREALTIME
+pass=0 fail=0
+EPOCHREALTIME=10.000000
+pass=$((pass + 1))
+EPOCHREALTIME=11.000000
+x=1
+EPOCHREALTIME=13.000000
+pass=$((pass + 1))
+echo "$pass passed, $fail failed"
+EOF
+chmod +x "$fixture"
+out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+secs="${out%% *}"
+if [[ "$out" =~ ^[0-9]+(\.[0-9]+)?\ (.*)$ && "${BASH_REMATCH[2]}" == "$fixture case 2 L5-8" ]]; then
+  awk -v s="$secs" 'BEGIN { exit !(s + 0 == 3) }' ||
+    problems+=("want secs equal to 3, got $(printf '%q' "$secs")")
+else
+  problems+=("want exactly '<secs> $fixture case 2 L5-8', got: $(printf '%q' "$out")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
