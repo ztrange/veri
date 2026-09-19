@@ -820,6 +820,37 @@ detect "$repo"
 [[ "$code" == 3 ]] && [[ -z "$out" ]] \
   && ok || no "no --tier: a repo whose only markers are CLAUDE.md's veri: fast/all tests: lines prints nothing and exits 3 (exit=$code want 3, stdout='$out' want '')"
 
+# 10. with both tier markers in the root CLAUDE.md and no `--issue`, each tier answers from
+# its own marker (#338): `--tier fast` prints what `veri: fast tests:` names and `--tier all`
+# what `veri: all tests:` names. One repo is asked both questions, because the claim is that
+# the two lines are two answers — a script that read either marker for both tiers would get
+# one of the two calls wrong.
+#
+# The repo also carries a Makefile with a `test:` target, so the single-command chain has an
+# answer of its own (`make test`) that a tier call ignoring the markers would print instead.
+# Both commands carry a doubled space and a quoted argument no rule could infer, so anything
+# short of the bytes after the marker — collapsed whitespace, dropped quotes, a trimmed tail
+# of flags — shows up in stdout.
+misread=""
+repo="$work/tiered-both"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '# demo\n\nveri: fast tests: bin/fast-suite  --only "unit tier" -q\nveri: all tests: bin/all-suite  --every "suite there is" -v\n' > "$repo/CLAUDE.md"
+
+for tier in fast all; do
+  case "$tier" in
+    fast) want='bin/fast-suite  --only "unit tier" -q' ;;
+    all)  want='bin/all-suite  --every "suite there is" -v' ;;
+  esac
+
+  detect --tier "$tier" "$repo"
+
+  matched || note "$tier"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "--tier fast/all: both CLAUDE.md markers declared, each tier prints its own marker's command byte for byte —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
