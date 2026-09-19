@@ -169,13 +169,6 @@ GitHub Actions does, and pins what the `gates` job declares and why (issue #99).
 keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.
 
-**`skills/tdd/scripts/tests/unit/` is the fast tier**, run alone by `make unit` and also by
-`make test`. A suite belongs there only if it clears the admission bar: about 100 ms per
-case, and no git, network, servers, real waits (`sleep`) or nested suites — judged by
-grepping the suite's own source, not by timing it, and stated in its header. `make unit`
-shims `git`, `gh`, `curl` and `python3` so a suite that calls one for real fails, named; a
-unit suite mocks them as shell functions instead. Everything else stays in `tests/`.
-
 That last line is not a formatting convention — **the `test` recipe enforces it**. A suite
 whose output does not end in `<n> passed, <m> failed` fails the run, named:
 `<suite>: never reached its count line`. A suite's **exit code alone is not trusted**
@@ -186,6 +179,13 @@ the command *before* the comparison. `build-guards.test.sh` ran 37 of its 54 cas
 until commit `c4a6bdb`, and the run still said `all suites green` (#157). A non-zero exit
 still fails a suite, count line or not; the check lives in the recipe once, so a suite added
 under the glob is covered by existing.
+
+**`skills/tdd/scripts/tests/unit/` is the fast tier**, run alone by `make unit` and also by
+`make test`. A suite belongs there only if it clears the admission bar: about 100 ms per
+case, and no git, network, servers, real waits (`sleep`) or nested suites — judged by
+grepping the suite's own source, not by timing it, and stated in its header. `make unit`
+shims `git`, `gh`, `curl` and `python3` so a suite that calls one for real fails, named; a
+unit suite mocks them as shell functions instead. Everything else stays in `tests/`.
 
 **A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
 existing — `make docs-test` globs that directory, so a suite added there owes no Makefile
