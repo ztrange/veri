@@ -18,7 +18,8 @@
 # Contract under test:
 #   Every `verify.sh` call SKILL.md tells the conductor to run — the red, pin, green,
 #   refactor, revise re-verify and resume launches — passes `--step '<STEP>'` before
-#   verify.sh's positionals.
+#   verify.sh's positionals; and every one that can judge green — the green launch and the
+#   revise re-verify, whose phase is `<phase>` — passes `--fast-cmd '<fast-cmd>'` after it.
 #
 # A call is a line naming `verify.sh` with the **spec file** among its arguments: that is
 # what tells a line a conductor copies as it stands from prose about one. The script
@@ -49,8 +50,9 @@ flag="--step '<STEP>'"
 # the two cannot drift: nothing in the flag's spelling is an ERE metacharacter, so it goes in
 # as it stands. The phase alternation after it is what pins the POSITION — `--step` has to
 # sit between `verify.sh` and the phase the call judges, which is a word in a concrete launch
-# and the `<phase>` placeholder in the revise loop's.
-call_re="verify\.sh $flag (red|green|refactor|pin|<phase>)"
+# and the `<phase>` placeholder in the revise loop's. Green's call also passes the fast tier's
+# command (#341), after the step and still ahead of the phase.
+call_re="verify\.sh $flag( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>)"
 
 pass=0 fail=0
 
@@ -96,6 +98,29 @@ else
     line="${numbered#*:}"
     [[ "$line" =~ $call_re ]] ||
       problems+=("$skill_md:$lineno does not pass $flag before verify.sh's positionals: $line")
+  done <<< "$calls"
+fi
+
+report "$name"
+
+# 2. A call that can judge green passes the fast tier's command too (#341): green is the one
+#    phase build-verify-prompt.sh refuses without `--fast-cmd`, exit 2, and the conductor
+#    reads exit 2 as a system failure. The revise loop's re-verify spells its phase
+#    `<phase>`, which is green whenever a green was rejected, so it owes the flag as much as
+#    the green launch does — a revised green would otherwise bail instead of being judged.
+fast_flag="--fast-cmd '<fast-cmd>'"
+green_re="verify\.sh $flag( $fast_flag)? (green|<phase>) "
+name="$skill_md passes $fast_flag on every verify.sh call that can judge green"
+problems=()
+
+if [[ -n "$calls" ]]; then
+  while IFS= read -r numbered; do
+    [[ -n "$numbered" ]] || continue
+    lineno="${numbered%%:*}"
+    line="${numbered#*:}"
+    [[ "$line" =~ $green_re ]] || continue
+    [[ "$line" == *"verify.sh $flag $fast_flag "* ]] ||
+      problems+=("$skill_md:$lineno can judge green but does not pass $fast_flag: $line")
   done <<< "$calls"
 fi
 

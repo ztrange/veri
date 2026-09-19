@@ -22,6 +22,8 @@ cat > "$work/spec.md" <<'SPEC'
 slugify("Hello & World/Foo") must return "hello-world-foo" — see {ref}\n done.
 SPEC
 testpath="tests/test_slugify.py"
+# green requires the fast tier's command by flag (#341, case 24); the other phases take none.
+fast_for() { [[ "$1" == green ]] && printf '%s\n' --fast-cmd 'make unit'; }
 
 red="$("$BUILD" red "$work/spec.md" "$testpath" test_slugify_lowercases)"
 
@@ -45,7 +47,7 @@ grep -qi 'right reason' <<<"$red" && grep -qiE 'trivial|coupled|complex' <<<"$re
   && ok || no "verify-red audits right-reason + quality"
 
 # 6. verify-green checks the FULL SUITE, not just the target test
-green="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases)"
+green="$("$BUILD" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases)"
 grep -qi 'full' <<<"$green" && grep -qi 'suite' <<<"$green" \
   && ok || no "verify-green checks the full suite"
 
@@ -90,7 +92,7 @@ grep -qiE "$full_suite" <<<"$green" \
 #     positionals must reach nothing: the prompt is byte-identical to the four-argument one
 #     built at case 6 from the same phase, spec, test path and test id.
 smuggled='ran only tests/test_slugify.py, the suite I touched, because the rest is slow'
-five="$("$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases "$smuggled")"
+five="$("$BUILD" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases "$smuggled")"
 [[ "$five" == "$green" ]] && ok || no "a fifth argument reaches nothing (argument list unchanged)"
 
 # The probe the two per-phase cases below are built from, lifted from the same helper in
@@ -190,10 +192,10 @@ every_phase forbids_stash "every phase's prompt forbids git stash and names a sa
 #     while the four documented positionals are everything the prompt can be built from
 #     (ADR-0003). So the prompt built with it set is byte-identical to the one built with it
 #     unset, from the same four arguments.
-base="$(env -u VERI_TEST_CMD "$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases)"
+base="$(env -u VERI_TEST_CMD "$BUILD" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases)"
 #     The probe's value is deliberately not any command this repo would fall back to, so a
 #     leak reading it cannot coincide with its own default and pass by accident.
-ambient="$(VERI_TEST_CMD='pytest -k leaked_channel' "$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases)"
+ambient="$(VERI_TEST_CMD='pytest -k leaked_channel' "$BUILD" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_slugify_lowercases)"
 [[ "$ambient" == "$base" ]] && ok || no "VERI_TEST_CMD in the environment reaches nothing (arguments unchanged)"
 
 # 15. no verifier prompt carries the developer's prediction, through any channel. #193 has
@@ -220,8 +222,9 @@ prediction='the second assert fires: want "hello-world-foo", got "Hello & World/
 problems=""
 for phase in red green refactor pin; do
   slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
+  mapfile -t fast < <(fast_for "$phase")
   smuggled_prompt="$(VERI_PREDICTED_FAILURE="$prediction" \
-    "$BUILD" "$phase" "$work/spec.md" "$testpath" "$slot4" "$prediction")"
+    "$BUILD" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4" "$prediction")"
   [[ "$smuggled_prompt" == *"$prediction"* ]] \
     && problems="$problems; verify-$phase carries the prediction text"
   grep -qiE 'PREDICTED_FAILURE|PREDICTION' <<<"$smuggled_prompt" \
@@ -306,7 +309,8 @@ step='frobnicate --dry-run prints the plan and writes nothing ⟦criterion 3⟧'
 problems=""
 for phase in red green refactor pin; do
   slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
-  stepped="$("$BUILD" --step "$step" "$phase" "$work/spec.md" "$testpath" "$slot4" 2>/dev/null)"; code=$?
+  mapfile -t fast < <(fast_for "$phase")
+  stepped="$("$BUILD" --step "$step" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4" 2>/dev/null)"; code=$?
   [[ "$code" -eq 0 ]] || problems="$problems; verify-$phase exits $code"
   [[ "$stepped" == *"$step"* ]] || problems="$problems; verify-$phase never shows the step"
   prompt_says "$stepped" "verify-$phase never says the verdict is about that criterion only" \
@@ -332,8 +336,9 @@ ambient_step='frobnicate --dry-run prints the plan and writes nothing ⟦criteri
 problems=""
 for phase in red green refactor pin; do
   slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
-  unset_arm="$(env -u VERI_STEP "$BUILD" "$phase" "$work/spec.md" "$testpath" "$slot4")"
-  ambient_arm="$(VERI_STEP="$ambient_step" "$BUILD" "$phase" "$work/spec.md" "$testpath" "$slot4")"
+  mapfile -t fast < <(fast_for "$phase")
+  unset_arm="$(env -u VERI_STEP "$BUILD" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4")"
+  ambient_arm="$(VERI_STEP="$ambient_step" "$BUILD" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4")"
   [[ "$ambient_arm" == *"$ambient_step"* ]] \
     && problems="$problems; verify-$phase carries the ambient VERI_STEP text"
   [[ "$ambient_arm" == "$unset_arm" ]] \
@@ -417,6 +422,26 @@ mechanism_reject red "$red"
 mechanism_reject pin "$pin"
 [[ -z "$problems" ]] && ok \
   || no "verify-red and verify-pin reject mechanism-pinning tests (process/fork/timing, a PATH shim over an in-process spy, or running another suite) (${problems#; })"
+
+# 25. verify-green takes the fast tier's command by flag, and requires it (issue #341).
+#     verify-green now runs the fast command plus the affected suites instead of the full
+#     suite, and a verifier in a target repository has no `detect-test-command.sh` of its own
+#     to ask — so the conductor passes the command in, as `--fast-cmd '<cmd>'` before the
+#     positionals the way `--step` arrives, leaving case 11's four positionals the whole of
+#     the positional input. The prompt carries it verbatim, `&`, `/` and quotes included.
+#     Without it the verifier would be told to run a command nobody named, so a green call
+#     short of it is a bad-arguments case: exit 2, a diagnostic on stderr. `problems` says
+#     which half broke.
+fast_cmd='make unit ZORBLAT=fast -- --only "frob & nitz/quux"'
+problems=""
+fast_green="$("$BUILD" --fast-cmd "$fast_cmd" green "$work/spec.md" "$testpath" test_slugify_lowercases 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; with --fast-cmd exited $code, want 0"
+[[ "$fast_green" == *"$fast_cmd"* ]] || problems="$problems; the prompt does not carry --fast-cmd's value verbatim"
+"$BUILD" green "$work/spec.md" "$testpath" test_slugify_lowercases >/dev/null 2>"$work/fast-cmd.err"; code=$?
+[[ "$code" -eq 2 && -s "$work/fast-cmd.err" ]] \
+  || problems="$problems; without --fast-cmd: exit $code, stderr $([[ -s "$work/fast-cmd.err" ]] && echo present || echo empty), want exit 2 and a diagnostic"
+[[ -z "$problems" ]] \
+  && ok || no "verify-green takes --fast-cmd, carries it verbatim, and refuses a green call without it with exit 2 (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"

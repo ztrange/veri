@@ -139,7 +139,7 @@ name="develop-green and verify-green name the fast command plus the affected sui
 problems=()
 green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 'make unit' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh green exited $?")
-verify_green="$("$VERIFY" green "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
+verify_green="$("$VERIFY" --fast-cmd 'make unit' green "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh green exited $?")
 runs_fast_plus_affected develop-green "$green"
 runs_fast_plus_affected verify-green "$verify_green"

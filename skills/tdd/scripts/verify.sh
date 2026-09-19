@@ -10,9 +10,11 @@
 #       → parse-verdict.sh   extract PASS|REJECT + reason from the leaf's output
 #
 # Usage:
-#   verify.sh [--step '<STEP>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#   verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #     phase = red | green | refactor | pin
 #     --step = the ledger's own line for the step under judgement (#223), passed straight
+#              through to build-verify-prompt.sh
+#     --fast-cmd = the fast tier's test command (#341), required for green, passed straight
 #              through to build-verify-prompt.sh
 #
 # stdout: the verifier's reason (mirror it to the issue thread).
@@ -33,13 +35,14 @@ set -euo pipefail
 
 # The step is a flag and only a flag: an ambient VERI_STEP is never read here, so nothing
 # but this call site can scope a verdict (#223). Without it the prompt is what it always was.
+# --fast-cmd (#341) rides alongside it, straight through: green's prompt names that command.
 step_args=()
-if [[ "${1:-}" == --step ]]; then
-  step_args=( --step "${2:?--step needs the step text}" )
+while [[ "${1:-}" == --step || "${1:-}" == --fast-cmd ]]; do
+  step_args+=( "$1" "${2:?$1 needs a value}" )
   shift 2
-fi
+done
 
-phase="${1:?usage: verify.sh [--step '<STEP>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
+phase="${1:?usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
 spec_file="${2:?missing <issue-spec-file>}"
 test_path="${3:?missing <test-path>}"
 target="${4:-}"
