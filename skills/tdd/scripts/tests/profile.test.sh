@@ -176,12 +176,12 @@ done
 report "$name"
 
 # 6. no answer could be obtained, twice over: a threshold that is not a number of seconds
-#    (a well-formed fixture, so the threshold is the only thing wrong), and a fixture whose
-#    trace never raises `pass` or `fail` (the default threshold, so the trace is the only
-#    thing wrong) — nothing to cut into cases. Both are exit 2, not a report.
+#    (case 4's well-formed fixture, so the threshold is the only thing wrong), and a
+#    fixture whose trace never raises `pass` or `fail` (the default threshold, so the trace
+#    is the only thing wrong) — nothing to cut into cases. Both are exit 2, not a report.
 name="exit 2: a non-numeric threshold, and a suite that never increments pass/fail"
 problems=()
-out="$(VERI_PROFILE_THRESHOLD=abc "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+out="$(VERI_PROFILE_THRESHOLD=abc "$PROFILE" "$scratch/order.test.sh" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 2 ]] || problems+=("threshold abc: want exit 2, got $code")
 write_fixture no-increment.test.sh <<'EOF'
 pass=0 fail=0
