@@ -131,6 +131,32 @@ else
 fi
 report "$name"
 
+# 4. three cases over the threshold, written out of order — case 2 spans 2 fabricated
+#    seconds, case 3 spans 5, case 4 spans 3 — are printed slowest first: 3, 4, 2.
+name="slowest first: cases spanning 2, 5 and 3 s print as case 3, case 4, case 2"
+problems=()
+fixture="$scratch/order.test.sh"
+cat > "$fixture" <<'EOF'
+unset EPOCHREALTIME
+pass=0 fail=0
+EPOCHREALTIME=10.000000
+pass=$((pass + 1))
+EPOCHREALTIME=12.000000
+pass=$((pass + 1))
+EPOCHREALTIME=17.000000
+pass=$((pass + 1))
+EPOCHREALTIME=20.000000
+pass=$((pass + 1))
+echo "$pass passed, $fail failed"
+EOF
+chmod +x "$fixture"
+out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+order="$(awk '{ printf "%s ", $4 }' <<< "$out")"
+[[ "$order" == "3 4 2 " ]] ||
+  problems+=("want cases in the order 3 4 2, got: $(printf '%q' "$out")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
