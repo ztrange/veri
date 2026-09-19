@@ -13,6 +13,8 @@
 #   1. `make -n unit` names only suites matching skills/tdd/scripts/tests/unit/*.test.sh —
 #      and every one of them on disk, so an empty roster over a populated directory is a
 #      failure rather than a vacuous pass.
+#   2. `make -n test` names the suites of both directories — the flat one and unit/ — and
+#      none of them twice, so the full tier still covers what the fast tier runs.
 #
 # The roster is read off `make -n`, which expands the target's list and runs nothing, the
 # same idiom as no-docs-reads.test.sh's roster helper: running `make unit` to find out
@@ -66,6 +68,35 @@ else
     rel="$UNIT_DIR/$(basename "$f")"
     grep -qxF "$rel" <<< "$listed" ||
       problems+=("make -n unit does not name $rel, which is on disk under $UNIT_DIR/")
+  done
+fi
+
+report "$name"
+
+# 2. `make -n test` names both directories' suites, each once. Read off a scratch copy of the
+# Makefile over a fixture tree holding one suite in each directory, so the answer does not
+# depend on which real suites have moved yet — with unit/ still empty in the repo, a check
+# against the real tree would pass vacuously.
+name="make -n test lists suites from both skills/tdd/scripts/tests/*.test.sh and $UNIT_DIR/*.test.sh, none twice"
+problems=()
+
+scratch="$(mktemp -d)"
+trap 'rm -rf "$scratch"' EXIT
+mkdir -p "$scratch/$UNIT_DIR"
+cp "$ROOT/Makefile" "$scratch/Makefile"
+flat_suite='skills/tdd/scripts/tests/fixture-flat.test.sh'
+unit_suite="$UNIT_DIR/fixture-unit.test.sh"
+: > "$scratch/$flat_suite"
+: > "$scratch/$unit_suite"
+
+recipe="$(make --no-print-directory -n -C "$scratch" test 2>&1)" && code=0 || code=$?
+if [[ "$code" != 0 ]]; then
+  problems+=("make -n test exited $code: $(flat "$recipe")")
+else
+  listed="$(printf '%s\n' "$recipe" | grep -o '[^ ]*\.test\.sh')"
+  for rel in "$flat_suite" "$unit_suite"; do
+    n="$(grep -cxF "$rel" <<< "$listed")"
+    [[ "$n" -eq 1 ]] || problems+=("make -n test names $rel $n times, not once")
   done
 fi
 
