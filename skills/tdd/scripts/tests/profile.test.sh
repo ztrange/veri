@@ -268,6 +268,28 @@ else
 fi
 report "$name"
 
+# 9. `test` and `profile` are independent targets: neither runs the other, as a prerequisite
+#    or from its recipe. `make -n` prints a prerequisite's recipe ahead of the target's own
+#    and runs a `$(MAKE)` line even under -n, so either route would put the other target's
+#    recipe into this one's text: test's is the only one to print `all suites green`, and
+#    profile's the only one to run `scripts/profile.sh`. A `make <target>` spelt out
+#    literally in a recipe is looked for as text.
+name="make -n test never runs profile, make -n profile never runs test"
+problems=()
+test_recipe="$(make --no-print-directory -n -C "$ROOT" test 2>&1)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("make -n test exited $code")
+profile_recipe="$(make --no-print-directory -n -C "$ROOT" profile 2>&1)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("make -n profile exited $code")
+[[ "$test_recipe" == *"all suites green"* ]] || problems+=("make -n test lacks 'all suites green' — probe is stale")
+[[ "$profile_recipe" == *"scripts/profile.sh"* ]] || problems+=("make -n profile lacks 'scripts/profile.sh' — probe is stale")
+[[ "$test_recipe" != *"scripts/profile.sh"* ]] || problems+=("make -n test runs profile.sh")
+[[ "$profile_recipe" != *"all suites green"* ]] || problems+=("make -n profile runs test's recipe")
+grep -Eq '(^|[^[:alnum:]_.-])make[^;]*[[:space:]]profile([[:space:];]|$)' <<< "$test_recipe" &&
+  problems+=("make -n test calls make profile")
+grep -Eq '(^|[^[:alnum:]_.-])make[^;]*[[:space:]]test([[:space:];]|$)' <<< "$profile_recipe" &&
+  problems+=("make -n profile calls make test")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
