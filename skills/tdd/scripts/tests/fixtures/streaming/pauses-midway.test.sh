@@ -14,11 +14,14 @@
 #
 # PAUSE is what every `make test` pays for that window, three times per TDD step, so it is as
 # short as the observation can be made against rather than as long as would be comfortable:
-# the probe reading this fixture's output looks ten times a second, so seconds of slack buy
-# nothing.
+# the probe reading this fixture's output looks fifty times a second, so seconds of slack buy
+# nothing. 0.2s is not arbitrary: sleep guarantees AT LEAST that long (only ever more, under
+# load — a busy runner cannot make this fixture pause less, so raising the floor cannot make
+# the probe flaky), and count-line-guard.test.sh's own timer needs a floor comfortably below
+# it to tell a streamed run from a buffered one — see that file for the exact margin.
 set -uo pipefail
 
-PAUSE=2
+PAUSE=0.2
 
 pass=0 fail=0
 
