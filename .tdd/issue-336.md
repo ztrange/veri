@@ -1,6 +1,6 @@
 # Plan for #336 — `make unit` runs a hand-picked fast tier; `make test` still runs everything with the same checks
 
-- [ ] `make -n unit` lists only suites matching `skills/tdd/scripts/tests/unit/*.test.sh` ⟦criterion 1⟧
+- [x] `make -n unit` lists only suites matching `skills/tdd/scripts/tests/unit/*.test.sh` ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] `make -n test` lists suites from both `skills/tdd/scripts/tests/*.test.sh` and `skills/tdd/scripts/tests/unit/*.test.sh`, with no suite listed twice ⟦criterion 2⟧
 - [ ] `make unit` applies the same per-suite count-line check and the same `OFFLINE_BIN` network-block guard (reach log) as `make test` ⟦criterion 3⟧
 - [ ] `make unit` runs each suite with `LC_ALL=C` and stdin from `/dev/null`, as `make test` does

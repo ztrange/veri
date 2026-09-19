@@ -5,8 +5,14 @@
 # test target → make test"), so veri can be run against its own repository: the suite is
 # green when this target exits 0.
 
-.PHONY: test
+.PHONY: test unit
 TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
+
+# `make unit` is the fast tier (#336): only the suites under tests/unit/, through the same
+# recipe as `test`. SUITES is set per target, so the two share one runner.
+UNIT_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/unit/*.test.sh))
+test: SUITES = $(TESTS)
+unit: SUITES = $(UNIT_TESTS)
 
 # The line every suite under that glob prints last, as an ERE — the "count line" the
 # recipe's failure message names and CLAUDE.md's testing idiom requires, defined here
@@ -93,12 +99,12 @@ BASH_GUARD := bash_major="$${VERI_BASH_MAJOR:-$$(bash -c 'echo "$${BASH_VERSINFO
 	  exit 2; \
 	fi
 
-test:
+test unit:
 	@$(BASH_GUARD)
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	$(OFFLINE_GIT); \
-	for t in $(TESTS); do \
+	for t in $(SUITES); do \
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
 	  : > "$$reach_log"; \
