@@ -908,6 +908,30 @@ fi
 
 report "$name"
 
+# --- the page served at / is dashboard.html, so the poll checks above are the served page's ---
+# Before #330 the poll contract was asked of the page a running server handed out, so a server
+# serving any other HTML failed it; the case above asks it of the file instead, and the first
+# case only asks that / is some HTML. This ties the two back together without a third server
+# start: the body the start with no argument answered at / is compared with dashboard.html's
+# own text, and any difference means the checks above were made of a page no browser gets.
+# Both sides lose their trailing newlines to a command substitution, and nothing else.
+name="the page dashboard.sh serves at / is dashboard.html, byte for byte"
+problems=()
+if [[ "$(http_status "${page:-}")" != 200 ]]; then
+  problems+=("the start with no argument never answered 200 at http://127.0.0.1:$PORT/, so there is no served page to compare with dashboard.html")
+elif [[ ! -f "$disk_page" ]]; then
+  problems+=("there is no dashboard.html beside dashboard.sh to compare the served page with")
+else
+  served_page="$(http_body "$page")"
+  file_page="$(cat "$disk_page")"
+  if [[ "$served_page" != "$file_page" ]]; then
+    problems+=("GET / served $(printf '%q' "${served_page:0:200}")")
+    problems+=("dashboard.html holds $(printf '%q' "${file_page:0:200}")")
+  fi
+fi
+
+report "$name"
+
 # --- the whole suite starts at most two servers ---
 # Last on purpose: it reads the count every case above left on $starts, through the shim
 # installed at the top (#330). Only the lifecycle facts — the default port, a port argument,
