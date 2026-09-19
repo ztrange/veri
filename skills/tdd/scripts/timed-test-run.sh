@@ -25,8 +25,12 @@
 # slow is a comparison against a tier's usual, which a later reader makes.
 set -uo pipefail
 
-tier="${1:?usage: timed-test-run.sh <tier> <suites> <cmd> [args …]}"
-suites="${2?usage: timed-test-run.sh <tier> <suites> <cmd> [args …]}"
+# The call this script accepts, spelled once: both checks below quote it back, and two
+# spellings of one synopsis are two chances for the one a reader is shown to be the stale one.
+USAGE="usage: timed-test-run.sh <tier> <suites> <cmd> [args …]"
+
+tier="${1:?$USAGE}"
+suites="${2?$USAGE}"
 shift 2
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
