@@ -81,8 +81,7 @@ expect_suites "resolvable range → one suite per line, sorted, no duplicate" \
 new_repo malformed
 mkdir -p "$s"
 printf 'wolf\n' > "$s/wolf.sh"
-commit_all "$repo" "base"
-head="$(git -C "$repo" rev-parse HEAD)"
+commit_head
 bad=""
 for arg in "$head" "$head..no-such-rev" "no-such-rev..$head"; do
   err="$(cd "$repo" && "$AFFECTED" "$arg" 2>&1 >/dev/null)"; code=$?
