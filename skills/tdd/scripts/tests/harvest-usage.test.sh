@@ -28,7 +28,6 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 HARVEST="$HERE/../harvest-usage.sh"
-SUP="$HERE/../supervise.sh"
 RUN_LEAF="$HERE/../run-leaf.sh"
 pass=0 fail=0
 
@@ -110,7 +109,7 @@ print(n)
 
 # launch_leaf <stub-dir> <work-dir> <leaf> — run <leaf> to completion in <work-dir> against a
 # stub `claude` that prints <stub-dir>/stream.jsonl, and complain into `problems` unless the
-# supervisor exited 0. Both cases need the same two files out of it —
+# launcher exited 0. Both cases need the same two files out of it —
 # `<work-dir>/.tdd/<leaf>.log` for the harvester to read, and `<work-dir>/.tdd/events.jsonl`
 # for it to append to (or not) — and differ only in the stream the stub prints, which each
 # writes itself beforehand.
@@ -121,25 +120,26 @@ print(n)
 # docs-gap-adr.test.sh's must_say does, so report() below closes over it unchanged; the leaf's
 # name goes in the message because the helper no longer knows which case it is serving.
 #
-# Through supervise.sh, never run-leaf.sh directly, because that is how every leaf in a real
-# run is launched and therefore how `.tdd/<name>.log` really comes to exist: run-leaf.sh
-# builds it by streaming the leaf's events and then APPENDING the extracted result text after
-# them (run-leaf.sh:44-49). So the record is never the last line of the file it has to be
-# found in, and a harvester that read the tail would pass against a hand-written fixture and
-# fail against every real leaf. Driving the real launcher is what puts that wrinkle in front
-# of it.
+# Through the real run-leaf.sh, with its combined stdout/stderr in `.tdd/<leaf>.log` — the
+# path and shape supervise.sh captures it to — because run-leaf.sh is what builds that log: it
+# streams the leaf's events and then APPENDS the extracted result text after them. So the
+# record is never the last line of the file it has to be found in, and a harvester that read
+# the tail would pass against a hand-written fixture and fail against every real leaf. Not
+# through supervise.sh (#331): its poll loop and its own unconditional harvest add nothing
+# either case asks about.
 #
 # The stub ignores its argv and prints that stream, the way a leaf that finished does; its
 # heredoc is unquoted, so <stub-dir> is baked into the script rather than read from whatever
-# environment supervise.sh hands the leaf. For the same reason the prompt's text is written
-# here and is arbitrary: nothing downstream of the stub ever reads it.
-#
-# The watchdog knobs are pinned rather than inherited so this suite's wall time is its own
-# answer (hermetic-suites.test.sh's concern); the stub returns at once, so they never fire.
+# environment run-leaf.sh hands the leaf. For the same reason the prompt's text is written
+# here and is arbitrary: nothing downstream of the stub ever reads it. It also appends one
+# marker line to the run's event log, so the log exists with a line in it before any harvest
+# runs — case 2's setup probe asks for exactly that, which supervise.sh's own `launch` and
+# `exit` marks used to provide.
 launch_leaf() {
   local stub_dir="$1" work_dir="$2" leaf="$3"
   cat > "$stub_dir/claude" <<STUB
 #!/bin/sh
+printf '%s\n' '{"event":"fixture-leaf"}' >> .tdd/events.jsonl
 cat "$stub_dir/stream.jsonl"
 exit 0
 STUB
@@ -147,11 +147,10 @@ STUB
   mkdir -p "$work_dir/.tdd"
   printf 'do the step.' > "$work_dir/.tdd/$leaf.prompt"
   local code=0
-  ( cd "$work_dir" && env CLAUDE_BIN="$stub_dir/claude" VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 \
-      VERI_TIMEOUT=10 VERI_POLL=0.2 "$SUP" "$leaf" "$RUN_LEAF" ".tdd/$leaf.prompt" \
-    ) >/dev/null 2>&1 || code=$?
+  ( cd "$work_dir" && CLAUDE_BIN="$stub_dir/claude" "$RUN_LEAF" ".tdd/$leaf.prompt" \
+      > ".tdd/$leaf.log" 2>&1 ) || code=$?
   [[ "$code" == 0 ]] ||
-    problems+=("setup: want the stub leaf $leaf to exit 0 through supervise.sh, got $code")
+    problems+=("setup: want the stub leaf $leaf to exit 0 through run-leaf.sh, got $code")
 }
 
 # has_result_record <work-dir> <leaf> — did the leaf's log come out holding a closing
@@ -176,7 +175,7 @@ trap 'rm -rf "$stub" "$work"' EXIT
 # 1. The step's whole criterion, as one case: a leaf runs to completion, and the harvester
 #    turns the record that leaf closed with into one `usage` line carrying its eight numbers.
 #
-#    The leaf is a real launch through supervise.sh against a `CLAUDE_BIN` stub, not a log
+#    The leaf is a real launch through run-leaf.sh against a `CLAUDE_BIN` stub, not a log
 #    file written by hand: launch_leaf's header above gives the reason, which is that the file
 #    the harvester reads is not the stub's stdout but the log run-leaf.sh assembles from it.
 #
@@ -234,11 +233,10 @@ has_result_record "$finished_work" "$leaf" ||
   problems+=("setup: want the closing result record in .tdd/$leaf.log, not found")
 
 # The harvest itself, run in the worktree the way every other writer is — but not in the one
-# the leaf ran in. Since #163 supervise.sh harvests every leaf it finishes, so the launch above
-# already left a `usage` line in `$finished_work`'s event log, and a second harvest there would
-# read as the one thing the probe below refuses to read past: two of them. What this case is
-# about is the harvester itself, called directly, so it gets a directory whose only `usage` line
-# is the one it writes.
+# the leaf ran in, so a writer that ever lands a `usage` line there — supervise.sh has harvested
+# every leaf it finishes since #163 — cannot make a second one read as the thing the probe below
+# refuses to read past: two of them. What this case is about is the harvester itself, called
+# directly, so it gets a directory whose only `usage` line is the one it writes.
 #
 # The LOG is copied rather than regenerated, so the file under test is still the one
 # run-leaf.sh really assembled — launch_leaf's header gives the reason that matters — and only
@@ -277,9 +275,9 @@ report "$name"
 #    a truncated log is the same log however it came to be truncated. Driving a real kill here
 #    would buy no assertion and spend the watchdog's wall time to do it.
 #
-#    Run through supervise.sh and inside a run that already has an event log, for the reason
-#    the probe's header gives: `.tdd/events.jsonl` at this point holds the supervisor's own
-#    `launch` and `exit` lines, so "appended nothing" is being asserted against a file that
+#    Run inside a run that already has an event log, for the reason the probe's header gives:
+#    `.tdd/events.jsonl` at this point holds the marker line the stub leaf wrote (launch_leaf's
+#    header), so "appended nothing" is being asserted against a file that
 #    exists and has lines in it. A case whose log was empty for want of any writer at all
 #    would pass on a harvester that appended eight zeros.
 #
@@ -314,12 +312,12 @@ launch_leaf "$killed_stub" "$killed_work" "$killed"
 
 # Two probes about the fixture, so a setup that drifted says so rather than being read as the
 # harvester behaving: the log the leaf left really does hold no `result` record, and the event
-# log exists with the supervisor's own lines in it. That the leaf ran at all is launch_leaf's
+# log exists with the stub leaf's marker line in it. That the leaf ran at all is launch_leaf's
 # own probe.
 ! has_result_record "$killed_work" "$killed" ||
   problems+=("setup: want no closing result record in .tdd/$killed.log, found one")
 [[ -s "$killed_work/.tdd/events.jsonl" ]] ||
-  problems+=("setup: want supervise.sh's own lines in the event log, found none")
+  problems+=("setup: want the stub leaf's marker line in the event log, found none")
 
 # The harvest, with stderr kept rather than discarded — it is half of what this case pins.
 #
@@ -366,7 +364,7 @@ report "$name"
 #    is about the log-reading half harvest-usage.sh already does, which is why the log is a
 #    minimal one-line fixture rather than case 1's full record.
 #
-#    Written by hand, not through launch_leaf/supervise.sh: this case has nothing to do with
+#    Written by hand, not through launch_leaf/run-leaf.sh: this case has nothing to do with
 #    how a leaf is launched, only with a name already sitting in `.tdd/<name>.log`, so a
 #    fixture log is the direct way to put the harvester in front of the one line under test.
 name="a leaf name leaf-role.sh refuses: the harvester appends no usage event and exits 2, naming itself and the leaf on stderr"
