@@ -238,6 +238,16 @@ launch_leaf "$stub" "$finished_work" "$leaf"
 has_result_record "$finished_work" "$leaf" ||
   problems+=("setup: want the closing result record in .tdd/$leaf.log, not found")
 
+# And it is not the log's LAST line: run-leaf.sh streams the leaf's raw events and only then
+# APPENDS the extracted result text (run-leaf.sh's own header), so the closing `result`
+# record this suite reads is buried, never trailing. A harvester written against a
+# hand-written fixture that put the record last would pass here and fail against every real
+# leaf, which is what this pins against: the record found by has_result_record above must not
+# be the last non-blank line launch_leaf's real run-leaf.sh left behind.
+last_line="$(grep -v '^[[:space:]]*$' "$finished_work/.tdd/$leaf.log" | tail -n 1)"
+[[ "$last_line" != *'"type":"result"'* ]] ||
+  problems+=("want the closing result record not to be .tdd/$leaf.log's last line (run-leaf.sh appends the extracted text after it), it is")
+
 # The harvest itself, run in the worktree the way every other writer is — but not in the one
 # the leaf ran in, so a writer that ever lands a `usage` line there — supervise.sh has harvested
 # every leaf it finishes since #163 — cannot make a second one read as the thing the probe below
