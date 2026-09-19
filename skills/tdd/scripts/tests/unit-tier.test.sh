@@ -152,5 +152,42 @@ grep -F 'reaches-gh.test.sh: tried the network:' <<< "$unit_out" | grep -qF 'ver
 
 report "$name"
 
+# 4. `make unit` fixes the two environment facts make-test-env.test.sh pins for `make test`: the
+# locale and stdin. Asked the same way — the caller in a UTF-8 locale, make's stdin a FIFO that
+# fd 3 holds open, so a reader would get neither data nor end-of-file — through a fixture that
+# only compares and writes down what it saw. The fixture uses bash builtins alone, so nothing a
+# fast tier may shim ahead of PATH stands between it and its report.
+name="make unit runs each suite with LC_ALL=C and stdin from /dev/null, as make test does"
+problems=()
+
+probe="$scratch/env-probe"
+cat > "$scratch/reports-env.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+if [[ /dev/stdin -ef /dev/null ]]; then stdin=devnull; else stdin=inherited; fi
+printf 'LC_ALL=%s\nstdin=%s\n' "${LC_ALL-<unset>}" "$stdin" > "$PROBE_OUT"
+echo "1 passed, 0 failed"
+SUITE
+chmod +x "$scratch/reports-env.test.sh"
+
+fifo="$scratch/stdin"
+if mkfifo "$fifo" && exec 3<>"$fifo"; then
+  unit_out="$(env LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 PROBE_OUT="$probe" \
+    make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/reports-env.test.sh" 2>&1 < "$fifo")" &&
+    unit_code=0 || unit_code=$?
+  exec 3>&-
+  [[ "$unit_code" == 0 ]] ||
+    problems+=("make unit over the fixture exited $unit_code: $(flat "$unit_out")")
+  saw_locale="$(sed -n 's/^LC_ALL=//p' "$probe" 2>/dev/null)"
+  saw_stdin="$(sed -n 's/^stdin=//p' "$probe" 2>/dev/null)"
+  [[ "$saw_locale" == C ]] ||
+    problems+=("a suite under make unit saw LC_ALL=${saw_locale:-<nothing>}, want C")
+  [[ "$saw_stdin" == devnull ]] ||
+    problems+=("a suite under make unit saw stdin=${saw_stdin:-<nothing>}, want devnull")
+else
+  problems+=("could not hold a FIFO open to hand make as stdin, so the case went unasked")
+fi
+
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
