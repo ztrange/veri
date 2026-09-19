@@ -117,9 +117,19 @@ prompt_base() {
 
 # differing_files <expected> <copy> — the files under <expected>, one path per line, that
 # <copy> does not hold byte for byte. Fails when <expected> cannot be entered.
+#
+# One `cksum` manifest per side — the same batching clone_state's `xargs -0 cksum` already
+# uses below (case 13) — instead of a `cmp` fork (and a `find`-loop `read`) per file: the
+# 143-file skill tree cost 143 forks here before, now 2 (`find|xargs cksum`) regardless of
+# tree size. Both manifests are sorted before diffing so a traversal-order
+# difference alone (not a content one) never reads as a change.
 differing_files() {
-  (cd "$1" && find . -type f | while read -r f; do
-    cmp -s "$f" "$2/$f" || echo "$f"; done)
+  local expected="$1" copy="$2" exp_manifest cop_manifest out
+  exp_manifest="$(cd "$expected" && find . -type f -print0 | xargs -0 cksum | sort)" || return 1
+  cop_manifest="$(cd "$copy" 2>/dev/null && find . -type f -print0 | xargs -0 cksum | sort)"
+  out="$(diff <(printf '%s\n' "$exp_manifest") <(printf '%s\n' "$cop_manifest") |
+    grep '^< ' | sed -E 's/^< [0-9]+ [0-9]+ //')"
+  printf '%s\n' "$out"
 }
 
 # holds_skill <base> <expected> <what> <detail> — <base>, the directory a launch was handed,
@@ -159,9 +169,20 @@ loose_skill() {
 # skill_clone <dir> — a git clone at <dir> holding this skill under skills/tdd, committed
 # once: the fixture a snapshot case launches run-conductor.sh from, so the skill commit it
 # resolves is one the case controls. Prints nothing; read the commit with rev-parse.
+#
+# The 143-file tree under test is the same for every case, so the first call builds one
+# canonical commit under $work/base-clone — loose_skill + commit_once, same work every call
+# used to redo on its own — and every call after just `cp -R`s it. A copied `.git` is its own
+# object store: two skill_clone dirs never share one, so a git operation on one (advance_clone,
+# a case's own sabotaging edit) cannot reach another case's clone.
+base_clone=""
 skill_clone() {
-  loose_skill "$1"
-  commit_once "$1"
+  if [[ -z "$base_clone" ]]; then
+    base_clone="$work/base-clone"
+    loose_skill "$base_clone"
+    commit_once "$base_clone"
+  fi
+  cp -R "$base_clone/." "$1"
 }
 
 # commit_once <dir> — <dir> made a git repository whose one commit holds everything under it.
