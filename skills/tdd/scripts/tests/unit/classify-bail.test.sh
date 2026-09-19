@@ -3,12 +3,13 @@
 # Given a cause as $1, print the category on the first stdout line and exit 0.
 # Zero-dependency plain-shell asserts, same idiom as parse-verdict.test.sh.
 #
-# Contract under test (issue #18):
-#   classify-bail.sh killed-stuck     → first stdout line `system`,  exit 0
-#   classify-bail.sh no-verdict       → first stdout line `system`,  exit 0
-#   classify-bail.sh revise-exhausted → first stdout line `process`, exit 0
-#   classify-bail.sh reconcile-failed → first stdout line `system`,  exit 0
-#   classify-bail.sh <unrecognised>   → error on stderr, exit non-zero
+# Contract under test (issue #18, extended by #331):
+#   classify-bail.sh killed-stuck         → first stdout line `system`,  exit 0
+#   classify-bail.sh no-verdict           → first stdout line `system`,  exit 0
+#   classify-bail.sh revise-exhausted     → first stdout line `process`, exit 0
+#   classify-bail.sh reconcile-failed     → first stdout line `system`,  exit 0
+#   classify-bail.sh untestable-criterion → first stdout line `process`, exit 0
+#   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
 #
 # Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
 #
@@ -61,6 +62,12 @@ check_nonzero "unknown cause exits non-zero" wat
 # 5. a reconcile-failed cause classifies as system (issue #232): where the branch lives
 #    broke, not the methodology
 check "reconcile-failed is system" reconcile-failed 0 system
+
+# 6. an untestable-criterion cause classifies as process (issue #331): a Red developer leaf
+#    found no way to pin the step's criterion as a lightweight, behavior-level test, which
+#    is the methodology speaking, not the plumbing breaking — the same category
+#    revise-exhausted gets and for the same reason.
+check "untestable-criterion is process" untestable-criterion 0 process
 
 echo "----"
 echo "$pass passed, $fail failed"
