@@ -929,6 +929,45 @@ detect --tier fast "$repo"
 matched \
   && ok || no "--tier fast: with only CLAUDE.md's veri: all tests: declared, fast falls back to the single-command chain (exit=$code want 0, stdout='$out' want '$want')"
 
+# 14. an issue's own `--issue <body-file>` override answers `--tier all` for that run ahead of
+# CLAUDE.md's `veri: all tests:` line (#338) — the narrower, per-run claim wins, as rule 0
+# already has it win over `.veri/test-command` — while `--tier fast` in the same invocation
+# does not take the issue's line: it answers from `veri: fast tests:` when CLAUDE.md declares
+# it, and from the single-command chain behind the override when it does not. Two repos, one
+# per way the fast tier can answer: one whose CLAUDE.md declares both markers, and one that
+# declares only `veri: all tests:`. Each carries a Makefile `test:` target, so the chain's own
+# answer is `make test`. Both are asked with the same issue body and both tiers, so the label
+# in `misread` carries the repo and the tier.
+misread=""
+body="$work/tiered-issue-body.md"
+printf '## Notes\n\nTest command: bin/issue-suite --only "this run" -q\n' > "$body"
+repo="$work/tiered-issue-both"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '# demo\n\nveri: fast tests: bin/fast-suite --unit -q\nveri: all tests: bin/all-suite --every -v\n' > "$repo/CLAUDE.md"
+repo="$work/tiered-issue-all-only"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '# demo\n\nveri: all tests: bin/all-suite --every -v\n' > "$repo/CLAUDE.md"
+
+for shape in both all-only; do
+  repo="$work/tiered-issue-$shape"
+  for tier in fast all; do
+    case "$shape,$tier" in
+      both,fast)     want='bin/fast-suite --unit -q' ;;
+      all-only,fast) want='make test' ;;
+      *,all)         want='bin/issue-suite --only "this run" -q' ;;
+    esac
+
+    detect --tier "$tier" --issue "$body" "$repo"
+
+    matched || note "$shape, $tier"
+  done
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "--tier all/fast with --issue: the issue's Test command: line answers all ahead of CLAUDE.md's veri: all tests:, while fast still answers from veri: fast tests: or the single-command chain —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
