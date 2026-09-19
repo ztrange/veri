@@ -36,10 +36,11 @@ shopt -u patsub_replacement 2>/dev/null || true
 # verdict. Without it the prompt is what it always was: a resumed run passes no step.
 # --fast-cmd is a flag for the same reason: an ambient VERI_TEST_CMD is never read.
 step="" fast_cmd=""
-while [[ "${1:-}" == --step || "${1:-}" == --fast-cmd ]]; do
-  case "$1" in
+while :; do
+  case "${1:-}" in
     --step) step="${2:?--step needs the step text}" ;;
     --fast-cmd) fast_cmd="${2:?--fast-cmd needs the command}" ;;
+    *) break ;;
   esac
   shift 2
 done
