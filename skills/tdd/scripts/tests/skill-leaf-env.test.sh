@@ -559,6 +559,38 @@ scan_launch_overlap() {
 run_case "every launch $skill_md prescribes starts before any of them finishes" \
   scan_launch_overlap
 
+# 5. With the launches running together, a launch line whose leaf does not see VERI_TEST_CMD
+#    is still reported against that line, by its number (#333). Ten answers now land in
+#    whatever order their leaves finish, so what ties an answer to the line that asked is no
+#    longer the order the lines were read in — and a report naming the wrong line sends a
+#    reader to edit a launch that was never broken.
+#
+#    Asked of this suite itself, run against a copy of the skill whose SKILL.md has lost the
+#    prefix from one launch line: its output is the observable the criterion is about. The
+#    copy runs with `SKILL_LEAF_ENV_NESTED` set so it does not run this case in turn.
+#
+# scan_attribution — the case's body, in the other cases' shape: it records into `run_case`'s
+# `problems` and leaves the counting to `run_case`.
+scan_attribution() {
+  local copy="$WORK/attribution" broken want out
+  mkdir -p "$copy/skills"
+  cp -R "$ROOT/skills/tdd" "$copy/skills/tdd"
+  broken="$(grep -nE '\$S/supervise\.sh develop-green \$S/run-leaf\.sh' "$md" | head -1 | cut -d: -f1)"
+  if [[ -z "$broken" ]]; then
+    problems+=("$skill_md has no develop-green launch line to break, so the attribution could not be probed")
+    return
+  fi
+  sed "${broken}s/VERI_TEST_CMD='<test-cmd>' //" "$md" > "$copy/$skill_md"
+  out="$(SKILL_LEAF_ENV_NESTED=1 "$copy/skills/tdd/scripts/tests/skill-leaf-env.test.sh" < /dev/null 2>&1)"
+  want="    $skill_md:$broken launches develop-green, whose leaf saw VERI_TEST_CMD=<unset>, want $SENTINEL:"
+  grep -qF -- "$want" <<< "$out" ||
+    problems+=("the copy with line $broken's prefix removed did not report '$want…'; it printed: $(grep -E '^(FAIL|    )' <<< "$out" | tr '\n' '|')")
+}
+
+[[ -n "${SKILL_LEAF_ENV_NESTED:-}" ]] ||
+  run_case "with launches concurrent, a launch whose leaf does not see VERI_TEST_CMD is reported against its own line number" \
+    scan_attribution
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
