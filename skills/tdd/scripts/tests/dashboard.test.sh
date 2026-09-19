@@ -29,6 +29,17 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 DASH="$HERE/../dashboard.sh"
 STATUS="$HERE/../status.sh"
 METRICS="$HERE/../metrics.sh"
+scripts="$(cd "$HERE/.." && pwd)"
+
+# The server's python module, found the way anyone reading dashboard.sh would find it — the
+# `.py` beside it that its `exec python3` line names — so no case cares what it is called.
+# Found once here for every case that imports it; $module_problem is why it could not be, or
+# nothing, and each of those cases fails on it rather than on a module it never loaded.
+exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
+module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
+module_problem=""
+[[ -n "$module" ]] ||
+  module_problem="dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
@@ -45,7 +56,7 @@ mkdir -p "$work/shim"
 cat > "$work/shim/python3" <<EOF
 #!/bin/sh
 case "\$1" in
-  '$(cd "$HERE/.." && pwd)'/*.py) printf '%s\n' "\$*" >> '$starts' ;;
+  '$scripts'/*.py) printf '%s\n' "\$*" >> '$starts' ;;
 esac
 exec '$(command -v python3)' "\$@"
 EOF
@@ -425,9 +436,8 @@ report "$name"
 # The endpoints are pure functions of the filesystem and of status.sh/metrics.sh, so a case
 # should be able to ask one a question without starting a server (#330). That needs the python
 # to be a file on disk dashboard.sh execs, not a heredoc on its stdin, and the file to bind its
-# port only when run as the program, never when imported. The module is found the way anyone
-# reading dashboard.sh would find it — the `.py` beside it that its `exec python3` line names —
-# so the case does not care what it is called. It is imported with the argv dashboard.sh hands
+# port only when run as the program, never when imported. The module is the one found at the
+# top of the suite. It is imported with the argv dashboard.sh hands
 # when started with no port argument, so the port it would bind is the default: the port asked about
 # afterwards is the one an unguarded bootstrap would have taken. That question is asked inside
 # the importing process, while the module is still loaded — after it exits, whatever it bound
@@ -437,16 +447,13 @@ report "$name"
 name="importing the dashboard's python module and calling its endpoint functions never binds port 8765"
 problems=()
 imported="$(repo imported)"
-scripts="$(cd "$HERE/.." && pwd)"
 
 problem="$(port_problem "$PORT")"
 if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
-  exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
-  module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
-  if [[ -z "$module" ]]; then
-    problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+  if [[ -n "$module_problem" ]]; then
+    problems+=("$module_problem")
   elif [[ ! -f "$scripts/$module.py" ]]; then
     problems+=("dashboard.sh execs $module.py, but there is no such file beside it")
   else
@@ -509,10 +516,8 @@ cat > "$direct_run/.tdd/issue-22.md" <<'EOF'
 - [x] a lamp exists
 - [ ] a lamp glows
 EOF
-exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
-module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
-if [[ -z "$module" ]]; then
-  problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
 else
   (cd "$direct_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
 import importlib, sys
@@ -590,10 +595,8 @@ cat > "$mdirect_done/.tdd/issue-32-metrics.md" <<'EOF'
 | green | 1 |
 EOF
 
-exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
-module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
-if [[ -z "$module" ]]; then
-  problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
 else
   (cd "$mdirect_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
 import importlib, sys
@@ -692,10 +695,8 @@ cat > "$edirect_other/.tdd/events.jsonl" <<EOF
 {"ts": $((edirect_now - 100)), "issue": "52", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
 EOF
 
-exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
-module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
-if [[ -z "$module" ]]; then
-  problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
 else
   (cd "$edirect_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
 import importlib, sys
