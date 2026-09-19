@@ -176,11 +176,11 @@ answer_from_file() {
   done < "$1"
 }
 
-# Rule 0 is asked first, ahead of the tier markers too, because the issue's line is this
-# run's claim and `veri: all tests:` is the repo's — the narrower one wins, as it does over
-# `.veri/test-command`. The fast tier is the exception (#338): an issue names the command
-# that proves it done, which is the full suite, so `--tier fast` never takes the issue's line
-# and answers from `veri: fast tests:` or the single-command chain instead.
+# Rule 0 is asked first, ahead of the tier markers too: `veri: all tests:` is another repo-wide
+# answer, so the issue's narrower claim wins over it for the reason given at rule 0's heading
+# above. The fast tier is the exception (#338): an issue names the command that proves it
+# done, which is the full suite, so `--tier fast` never takes the issue's line and answers
+# from `veri: fast tests:` or the single-command chain instead.
 if [ "$tier" != fast ] && [ -n "$issue" ] && [ -f "$issue" ]; then
   answer_from_file "$issue"
 fi
