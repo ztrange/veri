@@ -15,6 +15,9 @@
 #   a tracked file changes → the loop runs `make unit` once on its next pass, and not at
 #                    all on a pass that finds nothing changed. Driven against a fixture repo
 #                    with a stub sleep that counts passes and fabricates the changes.
+#   one poll pass  → `watch_snapshot` (skills/tdd/scripts/lib/watch.sh) calls its stat
+#                    wrapper `watch_stat` once, for 1 tracked file or 40. Pinned with an
+#                    in-process spy: the library is sourced here and `watch_stat` replaced.
 #
 # Not in tests/unit/: the cases driving the loop start real subprocesses, which the fast
 # tier's admission bar excludes.
@@ -150,6 +153,42 @@ bounded env WATCH_COUNT="$scratch/count" WATCH_FIXTURE="$fixture" UNIT_LOG="$scr
 runs="$(tr '\n' ' ' < "$scratch/unit.log" | sed 's/ $//')"
 [[ "$runs" == "2 4" ]] ||
   problems+=("want make unit to run once after each change (after sleeps 2 and 4), ran after sleeps: '${runs:-none}'")
+rm -rf "$scratch"
+report "$name"
+
+# 4. One poll pass is `watch_snapshot` from skills/tdd/scripts/lib/watch.sh, which the recipe
+#    sources; it hands the tracked files to its stat wrapper, `watch_stat`. With the library
+#    sourced into this shell and `watch_stat` replaced by a spy that logs each call, one pass
+#    over a fixture repo of 1 tracked file and one over 40 each call the wrapper exactly once —
+#    one call per pass whatever the file count, which is what makes polling cheap enough to
+#    take over the fswatch/entr fallback.
+name="make watch: one poll pass calls its stat wrapper exactly once, whatever the number of tracked files"
+problems=()
+lib="$ROOT/skills/tdd/scripts/lib/watch.sh"
+scratch="$(mktemp -d)"
+if [[ -f "$lib" ]]; then
+  # shellcheck source=/dev/null
+  source "$lib"
+else
+  problems+=("no stat-wrapper library to source at ${lib#"$ROOT"/}")
+fi
+if declare -F watch_snapshot >/dev/null; then
+  watch_stat() { printf 'call\n' >> "$scratch/spy.log"; }
+  for n in 1 40; do
+    fixture="$scratch/repo-$n"
+    mkdir -p "$fixture"
+    for ((i = 1; i <= n; i++)); do printf '%s\n' "$i" > "$fixture/f$i.txt"; done
+    git -C "$fixture" init -q && git -C "$fixture" add -A
+    : > "$scratch/spy.log"
+    ( cd "$fixture" && watch_snapshot >/dev/null 2>&1 )
+    calls="$(wc -l < "$scratch/spy.log" | tr -d ' ')"
+    [[ "$calls" == 1 ]] ||
+      problems+=("one poll pass over $n tracked files: want 1 watch_stat call, got $calls")
+  done
+  unset -f watch_stat watch_snapshot
+else
+  problems+=("no watch_snapshot function (one poll pass) defined by ${lib#"$ROOT"/}")
+fi
 rm -rf "$scratch"
 report "$name"
 
