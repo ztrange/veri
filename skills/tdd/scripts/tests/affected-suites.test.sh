@@ -124,6 +124,28 @@ if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
+# 5. rule 1 via tests/unit/: a change to a script whose suite lives under tests/unit/ → that
+#    unit suite, not a tests/<script>.test.sh that does not exist. A neighbour script with a
+#    suite under tests/ is left untouched, so the answer must be the unit suite alone.
+repo="$(new_repo rule1-unit)"
+s="$repo/skills/tdd/scripts"
+mkdir -p "$s/tests/unit"
+printf 'foo\n' > "$s/foo.sh"
+printf 'bar\n' > "$s/bar.sh"
+printf '# foo unit suite\n' > "$s/tests/unit/foo.test.sh"
+printf '# bar suite\n' > "$s/tests/bar.test.sh"
+commit_all "$repo" "base"
+base="$(git -C "$repo" rev-parse HEAD)"
+printf 'foo 2\n' > "$s/foo.sh"
+commit_all "$repo" "head"
+head="$(git -C "$repo" rev-parse HEAD)"
+expected="skills/tdd/scripts/tests/unit/foo.test.sh"
+out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
+if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
+  no "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly tests/unit/foo.test.sh (code=$code)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
