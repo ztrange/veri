@@ -10,4 +10,4 @@
 - [x] A second red result on the full run after a repair step bails, naming every suite still red, not only the first ⟦criterion 7⟧
 - [x] build-develop-prompt.sh accepts the new parameters the tiered templates require and exits 2 on a missing one, its existing cases still passing ⟦criterion 8⟧
 - [x] build-verify-prompt.sh accepts the new parameters the tiered templates require and exits 2 on a missing one, its existing cases still passing ⟦criterion 8⟧
-- [x] run-conductor.test.sh asserts, per phase with a stub claude, which command (fast, affected, fast+affected, or all) that phase's launch was built with ⟦criterion 9⟧ ⟂ refactor pending
+- [x] run-conductor.test.sh asserts, per phase with a stub claude, which command (fast, affected, fast+affected, or all) that phase's launch was built with ⟦criterion 9⟧
