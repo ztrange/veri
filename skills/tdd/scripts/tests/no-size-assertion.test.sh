@@ -100,10 +100,15 @@ subjects() {
 #
 # One problem per offending line, naming the suite and the line number, because what sends
 # the next author to the site is the address rather than the file.
+#
+# One grep across every suite first names the few that hold a size-verb line at all, so only
+# those pay the per-file sed and grep below (#332).
 probe_no_suite_measures_either_file() {
   local f name subj hit lineno text
-  for f in "$HERE"/*.test.sh; do
-    [[ -e "$f" ]] || continue
+  local -a suites=("$HERE"/*.test.sh) matched=()
+  [[ -e "${suites[0]}" ]] || return 0
+  mapfile -t matched < <(grep -lE "$SIZE_VERB" "${suites[@]}")
+  for f in "${matched[@]}"; do
     name="$(basename "$f")"
     subj="$(subjects "$f")"
     while IFS= read -r hit; do
