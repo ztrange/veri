@@ -169,6 +169,23 @@ if need_section '### 2. Scope & plan' 'what the plan comment states could not be
 fi
 report "$name"
 
+# 2. The baseline runs the fast tier (issue #341). Preflight's baseline is the one suite run
+#    before any cycle, and it is timed; what it runs is `detect-test-command.sh --tier fast`'s
+#    command, not the issue's full one — the full command runs once, at the Draft PR gate.
+#    Asked of the ONE numbered item that times the baseline, so a `--tier fast` elsewhere in
+#    preflight cannot stand in for the command that item actually runs.
+name="$skill_md's preflight baseline runs and times detect-test-command.sh --tier fast's command"
+problems=()
+if need_section '### 0. Preflight' 'what the baseline runs could not be read'; then
+  baseline_item="$(items | grep -E 'baseline' | grep -E 'time it')"
+  if [[ -z "$baseline_item" ]]; then
+    problems+=("$skill_md preflight has no numbered item that runs and times the baseline")
+  elif ! grep -qE 'detect-test-command\.sh --tier fast' <<< "$baseline_item"; then
+    problems+=("$skill_md's baseline item never runs detect-test-command.sh --tier fast, so the baseline times a command other than the fast tier: $(printf '%.120s' "$baseline_item")")
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
