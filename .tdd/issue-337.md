@@ -2,7 +2,7 @@
 
 - [x] affected-suites.sh <base>..<head> prints one suite path per line, sorted, with no duplicate, for a range git can resolve ⟦criterion 1⟧
 - [x] A malformed argument (missing `..`, or either side not a resolvable revision) exits 2 with a diagnostic ⟦criterion 2⟧
-- [ ] A range whose diff is empty exits 3 and prints nothing ⟦criterion 3⟧
+- [x] A range whose diff is empty exits 3 and prints nothing ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] Rule 1: a change to skills/tdd/scripts/foo.sh with a suite skills/tdd/scripts/tests/foo.test.sh prints exactly that suite ⟦criterion 4⟧
 - [ ] Rule 1 via tests/unit/: a change to a script whose suite lives under skills/tdd/scripts/tests/unit/ prints that unit suite ⟦criterion 4⟧
 - [ ] Rule 2: a change to skills/tdd/scripts/lib/bar.sh prints the suite of every script that sources it, and no others ⟦criterion 5⟧

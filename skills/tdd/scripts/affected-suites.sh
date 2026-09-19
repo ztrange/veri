@@ -35,4 +35,8 @@ suite_of() {
   esac
 }
 
-git diff --name-only "$range" | while IFS= read -r f; do suite_of "$f"; done | sort -u
+# An empty diff is "nothing to do" (exit 3), not an empty answer.
+files="$(git diff --name-only "$range")"
+[[ -n "$files" ]] || exit 3
+
+while IFS= read -r f; do suite_of "$f"; done <<<"$files" | sort -u
