@@ -64,13 +64,15 @@ implementation-pinning test anyway to force a pass.
    and the shape of the message the suite will print. It is formed from the test and the code,
    never from the output: a prediction written after the run is a transcription of it, and
    answers nothing.
-3. Run the suite that holds the new case — not the full suite — against the **unmodified**
-   production code, and record whether the new case FAILS or PASSES. The only question this
-   phase asks is whether that one case fails. How this repository runs one suite is a
-   convention like any other — establish it under **Read the conventions out of the
-   repository** at the top of this prompt, from the files that are already there.
-   If the repository has no way to run one suite on its own, fall back to the test
-   command above and say so in your report.
+3. Run the suites `affected-suites.sh` prints for your change — not the full suite, and not
+   one suite picked by hand — against the **unmodified** production code, and record whether
+   the new case FAILS or PASSES. The only question this phase asks is whether that one case
+   fails; the suite holding the new case is among those it prints, and the others read the
+   same files, and must stay green. How this
+   repository runs one suite is a convention like any other — establish it under **Read the
+   conventions out of the repository** at the top of this prompt, from the files that are
+   already there. If the repository has no way to run one suite on its own, fall back to
+   the test command above and say so in your report.
 4. **Compare what it printed against what you predicted**, and report which it was.
    *Matched* — carry on. *Diverged* — the test is the suspect, not the prediction: the case
    failed for a reason you did not write it to catch, which is how a typo'd fixture path, a
