@@ -160,7 +160,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — seventy-nine files for thirty-seven scripts, plus five moved under `unit/`, all run by `make test`.
+`skills/tdd/scripts/tests/` — eighty files for thirty-seven scripts, plus five moved under `unit/`, all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
@@ -168,6 +168,13 @@ something outside `skills/` at all — it reads `.github/workflows/ci.yml` as te
 GitHub Actions does, and pins what the `gates` job declares and why (issue #99). All
 keep `pass`/`fail` counters, print `FAIL - <name>` with a diff, and end with a count.
 Match that style rather than introducing a framework.
+
+**`skills/tdd/scripts/tests/unit/` is the fast tier**, run alone by `make unit` and also by
+`make test`. A suite belongs there only if it clears the admission bar: about 100 ms per
+case, and no git, network, servers, real waits (`sleep`) or nested suites — judged by
+grepping the suite's own source, not by timing it, and stated in its header. `make unit`
+shims `git`, `gh`, `curl` and `python3` so a suite that calls one for real fails, named; a
+unit suite mocks them as shell functions instead. Everything else stays in `tests/`.
 
 That last line is not a formatting convention — **the `test` recipe enforces it**. A suite
 whose output does not end in `<n> passed, <m> failed` fails the run, named:
