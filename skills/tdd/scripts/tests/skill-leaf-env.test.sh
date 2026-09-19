@@ -52,9 +52,9 @@
 # only after every launch has completed" were pure scheduling-shape assertions with nothing
 # to prove once launches are serial, and are gone with the concurrency they were about. What
 # #333 was actually protecting — a broken launch line named alone while its neighbours still
-# pass, and the count-line/FAIL-line format holding still — is picked back up in the next
-# commit, checked against a small fixture instead of by replaying all ten launches (or this
-# whole suite) a second time.
+# pass, and the count-line/FAIL-line format holding still — stays, checked below against a
+# small fixture fed straight into the same scan the document's own ten lines use, not by
+# replaying all ten of them (or this whole suite) a second time.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -492,6 +492,89 @@ scan_launch_trees() {
 
 run_case "every leaf $skill_md launches leaves events carrying the run's issue and step" \
   scan_launch_trees
+
+# 4. What issue #333 was actually protecting, kept now that the launches it made concurrent
+#    are serial again: a single broken launch line is reported by name — the document's own
+#    line number and text — while unrelated lines report nothing. Concurrency was never what
+#    could blur that here (scan_launches runs one line fully, through `problem`, before the
+#    next starts either way, serial or not); a scoping slip between `lineno`/`line` and the
+#    complaint a later iteration builds could, which this fixture would catch regardless of
+#    whether launches overlap.
+#
+#    Checked against three small developer-shaped lines of this probe's own, not the
+#    document's ten and not a second run of this whole suite: the fixture costs three cheap
+#    launches instead of replaying ten real ones (or all eight of this suite's cases) again.
+#
+# scan_fixture_naming — the case's body, in the other cases' shape. The middle line's
+# VERI_TEST_CMD prefix is missing on purpose; the other two are correct, so a run that
+# reports either of them, or reports nothing, or reports more than the one complaint, has
+# found a real scoping bug rather than the fixture's own deliberate fault.
+scan_fixture_naming() {
+  local fixture i=0 lineno line launch got
+  read -r -d '' fixture <<'FIXTURE' || true
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-good-1 $S/run-leaf.sh .tdd/fixture-good-1.prompt
+VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-bad $S/run-leaf.sh .tdd/fixture-bad.prompt
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-good-2 $S/run-leaf.sh .tdd/fixture-good-2.prompt
+FIXTURE
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    i=$((i + 1))
+    lineno="fixture-naming-$i"
+    launch="$(runnable "$line")" || {
+      problem "fixture-naming line $i names a placeholder this probe cannot supply"
+      continue
+    }
+    check_developer_launch "$launch"
+  done <<< "$fixture"
+  # The loop above leaves this case's real verdict in `problems` — the three fixture
+  # launches' own complaints, not this case's question. Fold them into the one thing
+  # actually being asked: exactly one complaint, naming the line that was actually broken.
+  got=("${problems[@]}")
+  problems=()
+  if [[ "${#got[@]}" -ne 1 || "${got[0]}" != *"fixture-bad"* ]]; then
+    problems+=("the fixture's three launches (only the middle one broken) reported: ${got[*]:-<nothing>}")
+  fi
+}
+
+run_case "a single broken launch line is reported by name, alone, while unrelated lines report nothing" \
+  scan_fixture_naming
+
+# 5. The other half of what issue #333 was protecting: report()'s and problem()'s own output
+#    shape — the `FAIL - <name>` line, the indented `<file>:<line> <complaint>:<text>` line,
+#    and a case with nothing wrong printing neither — hasn't drifted. Anything grepping a
+#    run's log for them, the `test` recipe's own count-line check first of all, would stop
+#    matching the day one of them moved.
+#
+#    Checked directly against report() and problem() with a synthetic complaint, in a
+#    subshell so the synthetic pass/fail/problems this manufactures never reach this run's
+#    own count — not by breaking a real launch line and re-running this whole suite a second
+#    time to look for the shape in its own output.
+#
+# _fixture_report_case — calls problem() and report() exactly the way a real case does, with
+# a synthetic `lineno`/`line` in place of ones a scan read off the document.
+_fixture_report_case() {
+  local lineno="999" line="sample line text"
+  local problems=()
+  problem "sample problem"
+  report "sample case"
+}
+
+# scan_message_format — the case's body, in the other cases' shape.
+scan_message_format() {
+  local out want
+  out="$(
+    pass=0 fail=0
+    _fixture_report_case
+    echo "----"
+    echo "$pass passed, $fail failed"
+  )"
+  want=$'FAIL - sample case\n    skills/tdd/SKILL.md:999 sample problem:sample line text\n----\n0 passed, 1 failed'
+  [[ "$out" == "$want" ]] ||
+    problems+=("report()'s and problem()'s output shape has drifted: got $(tr '\n' '|' <<< "$out")")
+}
+
+run_case "report()'s FAIL line, its indented problem line, and the count line keep their shape" \
+  scan_message_format
 
 echo "----"
 echo "$pass passed, $fail failed"
