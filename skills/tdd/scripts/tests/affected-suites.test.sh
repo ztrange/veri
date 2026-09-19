@@ -37,11 +37,12 @@ commit_all() {
 commit_base() { commit_all "$repo" "base"; base="$(git -C "$repo" rev-parse HEAD)"; }
 commit_head() { commit_all "$repo" "head"; head="$(git -C "$repo" rev-parse HEAD)"; }
 
-# new_repo <name> -> path — a repository of the case's own under $work.
+# new_repo <name> — a repository of the case's own under $work, set as $repo, with $s the
+# path of its skills/tdd/scripts/ (not created: each case makes the directories it needs).
 new_repo() {
-  local dir="$work/$1"
-  git init -q -b main "$dir" >/dev/null 2>&1
-  echo "$dir"
+  repo="$work/$1"
+  git init -q -b main "$repo" >/dev/null 2>&1
+  s="$repo/skills/tdd/scripts"
 }
 
 # expect_suites <name> <expected> — run affected-suites.sh on $base..$head inside $repo and
@@ -60,8 +61,7 @@ expect_suites() {
 #    answer would carry it twice; and zulu.sh, whose suite is under tests/unit/, so the diff
 #    order (wolf before zulu) puts tests/wolf.test.sh ahead of tests/unit/zulu.test.sh, which
 #    sorts first.
-repo="$(new_repo sorted)"
-s="$repo/skills/tdd/scripts"
+new_repo sorted
 mkdir -p "$s/tests/unit"
 printf 'wolf\n' > "$s/wolf.sh"
 printf 'zulu\n' > "$s/zulu.sh"
@@ -78,9 +78,9 @@ expect_suites "resolvable range → one suite per line, sorted, no duplicate" \
 # 2. a malformed argument → exit 2 and a diagnostic on stderr. Three shapes: a single
 #    revision with no `..` (which git diff alone would read as "against the working tree"
 #    and answer happily), and a range whose base or head git cannot resolve.
-repo="$(new_repo malformed)"
-mkdir -p "$repo/skills/tdd/scripts"
-printf 'wolf\n' > "$repo/skills/tdd/scripts/wolf.sh"
+new_repo malformed
+mkdir -p "$s"
+printf 'wolf\n' > "$s/wolf.sh"
 commit_all "$repo" "base"
 head="$(git -C "$repo" rev-parse HEAD)"
 bad=""
@@ -99,10 +99,10 @@ fi
 #    to do", not an error and not an empty answer. The head is a real commit of its own, made
 #    with --allow-empty, so the range is two distinct revisions git resolves and only the diff
 #    between them is empty.
-repo="$(new_repo empty)"
-mkdir -p "$repo/skills/tdd/scripts/tests"
-printf 'wolf\n' > "$repo/skills/tdd/scripts/wolf.sh"
-printf '# wolf suite\n' > "$repo/skills/tdd/scripts/tests/wolf.test.sh"
+new_repo empty
+mkdir -p "$s/tests"
+printf 'wolf\n' > "$s/wolf.sh"
+printf '# wolf suite\n' > "$s/tests/wolf.test.sh"
 commit_base
 git_q "$repo" commit -q --allow-empty -m "head" >/dev/null 2>&1
 head="$(git -C "$repo" rev-parse HEAD)"
@@ -114,8 +114,7 @@ fi
 # 4. rule 1: a change to a script under skills/tdd/scripts/ → exactly its own suite. The tree
 #    also holds a second script with a suite of its own, untouched, so an answer that listed
 #    every suite, or the neighbour's, would not pass for "exactly that suite".
-repo="$(new_repo rule1)"
-s="$repo/skills/tdd/scripts"
+new_repo rule1
 mkdir -p "$s/tests"
 printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
@@ -130,8 +129,7 @@ expect_suites "rule 1: a change to scripts/foo.sh prints exactly tests/foo.test.
 # 5. rule 1 via tests/unit/: a change to a script whose suite lives under tests/unit/ → that
 #    unit suite, not a tests/<script>.test.sh that does not exist. A neighbour script with a
 #    suite under tests/ is left untouched, so the answer must be the unit suite alone.
-repo="$(new_repo rule1-unit)"
-s="$repo/skills/tdd/scripts"
+new_repo rule1-unit
 mkdir -p "$s/tests/unit"
 printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
@@ -147,8 +145,7 @@ expect_suites "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly
 #    sources it, and no others. alpha.sh and beta.sh source lib/bar.sh the way event.sh sources
 #    lib/json-escape.sh; gamma.sh does not, and a top-level bar.sh shares the lib file's name,
 #    so neither gamma's suite nor tests/bar.test.sh may appear.
-repo="$(new_repo rule2)"
-s="$repo/skills/tdd/scripts"
+new_repo rule2
 mkdir -p "$s/tests" "$s/lib"
 printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
 for name in alpha beta; do
@@ -166,8 +163,7 @@ expect_suites "rule 2: a change to scripts/lib/bar.sh prints the suite of every 
 # 7. rule 3: a change to a suite file itself → that suite. Only tests/foo.test.sh changes; the
 #    script it covers and a neighbour's suite stay untouched, so the answer must be the suite
 #    alone — not read as a change to foo.sh, and not widened to every suite.
-repo="$(new_repo rule3-suite)"
-s="$repo/skills/tdd/scripts"
+new_repo rule3-suite
 mkdir -p "$s/tests"
 printf 'foo\n' > "$s/foo.sh"
 printf 'bar\n' > "$s/bar.sh"
@@ -183,8 +179,7 @@ expect_suites "rule 3: a change to the suite tests/foo.test.sh itself prints exa
 #    fixture by name. alpha's and beta's suites read fixtures/plan.md the way count-line-guard
 #    reads fixtures/silent-death/…; gamma's reads a different fixture, other.md, so it must not
 #    appear, and neither may the suites' scripts, which did not change.
-repo="$(new_repo rule3-fixture)"
-s="$repo/skills/tdd/scripts"
+new_repo rule3-fixture
 mkdir -p "$s/tests/fixtures"
 printf '# plan\n' > "$s/tests/fixtures/plan.md"
 printf '# other\n' > "$s/tests/fixtures/other.md"
@@ -204,8 +199,7 @@ expect_suites "rule 3: a change to the fixture tests/fixtures/plan.md prints eve
 #    repository's do: claude_md="CLAUDE.md" as model-knobs-recorded does, skill_md=
 #    "skills/tdd/SKILL.md" as skill-commit does, MAKEFILE="$ROOT/Makefile" as count-line-guard
 #    does. gamma's suite reads none of the three, so it must not appear.
-repo="$(new_repo rule4)"
-s="$repo/skills/tdd/scripts"
+new_repo rule4
 mkdir -p "$s/tests"
 printf '# veri\n' > "$repo/CLAUDE.md"
 printf '# tdd\n' > "$repo/skills/tdd/SKILL.md"
