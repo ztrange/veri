@@ -49,6 +49,11 @@ done
 printf '#!/usr/bin/env bash\nlines="$(wc -l < "$plan")"\n' > "$scanned/counts-plan.test.sh"
 printf '#!/usr/bin/env bash\nsize="$(stat -f %%z "$log")"\n' > "$scanned/sizes-log.test.sh"
 fixtures=("$scanned"/*.test.sh)
+
+# The document's name, spelled without its `.md` so no line here both measures and names it:
+# no-size-assertion.test.sh scans this suite too (case 6), and a fixture's size-verb line
+# written out verbatim would be a ceiling on CLAUDE.md as far as that probe can tell.
+md=CLAUDE
 suites="${#fixtures[@]}"
 
 # One line per start: the verb, then how many of the scanned directory's suites its arguments
@@ -125,7 +130,7 @@ problems=()
 commented="$tmp/commented"
 mkdir -p "$commented"
 cp "$HERE/no-size-assertion.test.sh" "$commented/"
-printf '#!/usr/bin/env bash\n# wc -c < "$ROOT/CLAUDE.md" the old way\necho "no ceiling here"\n' \
+printf '#!/usr/bin/env bash\n# wc -c < "$ROOT/%s.md" the old way\necho "no ceiling here"\n' "$md" \
   > "$commented/comment-only.test.sh"
 
 out="$("$commented/no-size-assertion.test.sh" 2>&1)"
@@ -148,7 +153,7 @@ problems=()
 bound="$tmp/bound"
 mkdir -p "$bound"
 cp "$HERE/no-size-assertion.test.sh" "$bound/"
-printf '#!/usr/bin/env bash\ndoc="$ROOT/CLAUDE.md"\necho one\necho two\nbytes="$(wc -c < "$doc")"\n' \
+printf '#!/usr/bin/env bash\ndoc="$ROOT/%s.md"\necho one\necho two\nbytes="$(wc -c < "$doc")"\n' "$md" \
   > "$bound/binds-doc.test.sh"
 
 out="$("$bound/no-size-assertion.test.sh" 2>&1)"
@@ -183,6 +188,23 @@ out="$("$unrelated/no-size-assertion.test.sh" 2>&1)"
   problems+=("want the observed suite green when a suite measures only files other than the two documents, got: $(printf '%q' "$out")")
 [[ "$out" != *'sizes-other.test.sh:'* ]] ||
   problems+=("want no problem line naming sizes-other.test.sh, got: $(printf '%q' "$out")")
+
+report "$name"
+
+# 6. The criterion: run in place against the current tree, the suite still ends where it did
+#    before the restructure — its one case green, since no suite here puts a ceiling on either
+#    document. Not a fixture: the tree this suite sits in is the subject.
+#      → the observed suite's last line `1 passed, 0 failed`, and exit 0.
+name="no-size-assertion.test.sh run against the current tree still ends in the same count line as before the restructure, 1 passed, 0 failed"
+problems=()
+
+out="$("$HERE/no-size-assertion.test.sh" 2>&1)"
+rc=$?
+last="$(printf '%s\n' "$out" | tail -n 1)"
+[[ "$last" == '1 passed, 0 failed' ]] ||
+  problems+=("want the count line '1 passed, 0 failed' against the current tree, got '$last' from: $(printf '%q' "$out")")
+[[ "$rc" -eq 0 ]] ||
+  problems+=("want exit 0 against the current tree, got $rc")
 
 report "$name"
 
