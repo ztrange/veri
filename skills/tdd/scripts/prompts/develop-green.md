@@ -3,7 +3,7 @@
 ## Phase: develop-green
 
 Write the **minimum** production code that makes the one failing test pass, and keep the
-full suite green.
+fast command and the affected suites green.
 
 ### The step (this cycle's criterion)
 
@@ -34,12 +34,15 @@ stop — do not edit it.
    the time. How this repository runs one suite is a convention like any other —
    establish it under **Read the conventions out of the repository** at the top of this
    prompt, from the files that are already there.
-3. Run the **full suite** exactly once, immediately before you write the `SUITE:` report
-   line, and confirm it is green. A new pass bought with a broken sibling test is not a
+3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
+   command (`detect-test-command.sh --tier fast` prints it), then run the suites that
+   `affected-suites.sh` prints for your change, and confirm both runs are green. That pair
+   replaces the full suite, and runs exactly once: the conductor runs the full command
+   itself, before it readies the PR. A new pass bought with a broken sibling test is not a
    pass; fix it or revert.
 4. Leave no change this step does not require.
 
 ### Report (last lines of your output)
 
 IMPL_PATH: <comma-separated paths of the production files you created or changed>
-SUITE: GREEN | RED — <the full suite's final summary line>
+SUITE: GREEN | RED — <the final summary line of that run>
