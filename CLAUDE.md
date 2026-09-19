@@ -192,6 +192,14 @@ grepping the suite's own source, not by timing it, and stated in its header. `ma
 shims `git`, `gh`, `curl` and `python3` so a suite that calls one for real fails, named; a
 unit suite mocks them as shell functions instead. Everything else stays in `tests/`.
 
+**A script moves into the unit tier by one pattern, and `push-branch.sh` is its worked
+example** (#339). The script's logic goes behind functions, and a main guard —
+`[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"` — is the only code that runs when it is
+executed. A new `tests/unit/<script>.test.sh` sources the script, never execs it, and mocks
+every command it shells out to as a same-named shell function, so those calls start no
+process. The CLI contract — arguments, stdout, stderr, exit codes — stays byte-identical,
+proven by the script's integration suite passing unmodified in `tests/`, where it stays.
+
 **A suite whose subject is the docs pipeline lives in `docs/tests/`, not here**, and runs by
 existing — `make docs-test` globs that directory, so a suite added there owes no Makefile
 edit (#137). `make test` is the **full suite**, and three leaves per step run it:
