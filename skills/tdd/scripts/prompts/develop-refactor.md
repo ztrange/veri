@@ -45,8 +45,8 @@ which file it sits in:
    batch, so a break stays attributable to one change. That attribution is the whole of
    what a leaf per transform used to buy, and it is what has to survive several transforms
    sharing this one.
-3. Run the suites covering the files you touched after each transform, not the full suite:
-   they answer what one transform could plausibly break, and answer it in a fraction of the
+3. Run the suites `affected-suites.sh` prints for the files `refactor-touched.sh` printed —
+   the ones listed above — after each transform, not the full suite: they answer what one transform could plausibly break, and answer it in a fraction of the
    time. Those suites must stay green; revert a transform that turns them red rather than
    leave a red suite behind, and carry on with the next candidate. How this repository runs
    one suite is a convention like any other — establish it under **Read the conventions out
