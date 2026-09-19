@@ -55,6 +55,20 @@ runs_affected() {
   fi
 }
 
+# runs_fast_plus_affected <phase label> <prompt> — the prompt names detect-test-command.sh's
+# `--tier fast`, tells the leaf to run what affected-suites.sh prints, and no longer tells it
+# to run, or keep green, the full suite.
+runs_fast_plus_affected() {
+  local label="$1" prompt="$2"
+  if ! plain <<< "$prompt" | grep -qF -- '--tier fast'; then
+    problems+=("$label's prompt never names the fast command (detect-test-command.sh --tier fast)")
+  fi
+  runs_affected "$label" "$prompt"
+  if plain <<< "$prompt" | grep -qE "run (the )?(project's )?full (test )?suite|full suite (is )?green"; then
+    problems+=("$label's prompt still tells its leaf to run, or keep green, the full suite")
+  fi
+}
+
 # numbered_item <ere> — from the prompt on stdin, the first numbered item (`N. ` up to the
 # next `N. `) whose text matches <ere>, printed as the item's own lines. <ere> is matched
 # against the item joined onto one line (each line preceded by a space), so a template may
@@ -127,16 +141,8 @@ green="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorb
   problems+=("build-develop-prompt.sh green exited $?")
 verify_green="$("$VERIFY" green "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh green exited $?")
-for label in develop-green verify-green; do
-  if [[ "$label" == develop-green ]]; then prompt="$green"; else prompt="$verify_green"; fi
-  if ! plain <<< "$prompt" | grep -qF -- '--tier fast'; then
-    problems+=("$label's prompt never names the fast command (detect-test-command.sh --tier fast)")
-  fi
-  runs_affected "$label" "$prompt"
-  if plain <<< "$prompt" | grep -qE "run (the )?(project's )?full (test )?suite|full suite (is )?green"; then
-    problems+=("$label's prompt still tells its leaf to run, or keep green, the full suite")
-  fi
-done
+runs_fast_plus_affected develop-green "$green"
+runs_fast_plus_affected verify-green "$verify_green"
 report "$name"
 
 echo "----"
