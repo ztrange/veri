@@ -244,6 +244,32 @@ stop() {  # stop <pid>
   wait "$1" 2>/dev/null
 }
 
+# call_endpoint <repo> <fn> <err> <query> <out> [<query> <out> …] — import the module in
+# <repo>, with the argv dashboard.sh hands it when started with no port argument, and call its
+# endpoint function <fn> once per <query> — the parsed query string as JSON, `?issue=41` being
+# {"issue": ["41"]} — leaving each answer's bytes on the <out> after it and python's stderr on
+# <err>. One python3 process however many calls, and no socket: this is how the payload cases
+# ask an endpoint a question without a server. An <out> that was never written is the case's
+# sign the call raised, and <err> says why.
+call_endpoint() {  # call_endpoint <repo> <fn> <err> <query> <out> [<query> <out> …]
+  local dir="$1" fn="$2" err="$3"
+  shift 3
+  (cd "$dir" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
+import importlib, json, sys
+
+scripts, module, port, fn = sys.argv[1:5]
+calls = sys.argv[5:]
+sys.path.insert(0, scripts)
+sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", port,
+            scripts + "/status.sh", scripts + "/metrics.sh"]
+endpoint = getattr(importlib.import_module(module), fn)
+for query, out in zip(calls[0::2], calls[1::2]):
+    body = endpoint(json.loads(query))
+    with open(out, "wb") as f:
+        f.write(body)
+' "$scripts" "$module" "$PORT" "$fn" "$@") 2> "$err"
+}
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
@@ -519,17 +545,7 @@ EOF
 if [[ -n "$module_problem" ]]; then
   problems+=("$module_problem")
 else
-  (cd "$direct_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
-import importlib, sys
-
-scripts, module, out = sys.argv[1], sys.argv[2], sys.argv[3]
-sys.path.insert(0, scripts)
-sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", "8765",
-            scripts + "/status.sh", scripts + "/metrics.sh"]
-body = importlib.import_module(module).runs_json({})
-with open(out, "wb") as f:
-    f.write(body)
-' "$scripts" "$module" "$work/runs-direct.json") 2> "$work/runs-direct.err"
+  call_endpoint "$direct_repo" runs_json "$work/runs-direct.err" '{}' "$work/runs-direct.json"
   (cd "$direct_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
     > "$work/runs-direct-status.json" 2>/dev/null
   if [[ ! -f "$work/runs-direct.json" ]]; then
@@ -598,17 +614,7 @@ EOF
 if [[ -n "$module_problem" ]]; then
   problems+=("$module_problem")
 else
-  (cd "$mdirect_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
-import importlib, sys
-
-scripts, module, out = sys.argv[1], sys.argv[2], sys.argv[3]
-sys.path.insert(0, scripts)
-sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", "8765",
-            scripts + "/status.sh", scripts + "/metrics.sh"]
-body = importlib.import_module(module).metrics_json({})
-with open(out, "wb") as f:
-    f.write(body)
-' "$scripts" "$module" "$work/metrics-direct.json") 2> "$work/metrics-direct.err"
+  call_endpoint "$mdirect_repo" metrics_json "$work/metrics-direct.err" '{}' "$work/metrics-direct.json"
   # metrics.sh's own answer for the running run, asked from that run's worktree the way the
   # conductor asks it, so a difference is the function's and not the fixture's.
   (cd "$mdirect_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
@@ -698,20 +704,9 @@ EOF
 if [[ -n "$module_problem" ]]; then
   problems+=("$module_problem")
 else
-  (cd "$edirect_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
-import importlib, sys
-
-scripts, module, sel_out, none_out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-sys.path.insert(0, scripts)
-sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", "8765",
-            scripts + "/status.sh", scripts + "/metrics.sh"]
-events_json = importlib.import_module(module).events_json
-for issue, out in (("51", sel_out), ("99", none_out)):
-    body = events_json({"issue": [issue]})
-    with open(out, "wb") as f:
-        f.write(body)
-' "$scripts" "$module" "$work/events-direct-51.json" "$work/events-direct-99.json") \
-    2> "$work/events-direct.err"
+  call_endpoint "$edirect_repo" events_json "$work/events-direct.err" \
+    '{"issue": ["51"]}' "$work/events-direct-51.json" \
+    '{"issue": ["99"]}' "$work/events-direct-99.json"
   if [[ ! -f "$work/events-direct-51.json" || ! -f "$work/events-direct-99.json" ]]; then
     problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-direct.err")")
   else
