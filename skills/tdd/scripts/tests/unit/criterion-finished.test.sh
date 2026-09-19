@@ -4,11 +4,13 @@
 # step ending in ` ⟦criterion k⟧` is ticked with no ` ⟂ refactor pending` mark, and exit 3
 # when some step serving k is still open or pending.
 #
-# Run: scripts/tests/criterion-finished.test.sh
+# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
+#
+# Run: scripts/tests/unit/criterion-finished.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-FINISHED="$HERE/../criterion-finished.sh"
+FINISHED="$HERE/../../criterion-finished.sh"
 pass=0 fail=0
 code_for() {  # code_for <criterion> <ledger> — print the script's exit code
   local code

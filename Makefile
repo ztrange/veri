@@ -138,7 +138,7 @@ profile:
 	@reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
 	$(OFFLINE_GIT); \
-	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(TESTS) < /dev/null
+	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(TESTS) $(UNIT_TESTS) < /dev/null
 
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
