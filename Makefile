@@ -14,6 +14,15 @@ UNIT_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/unit/*.test.sh))
 test: SUITES = $(TESTS) $(UNIT_TESTS)
 unit: SUITES = $(UNIT_TESTS)
 
+# The fast tier's admission-bar guard: `unit` alone puts UNIT_GUARD_BIN first on a suite's PATH,
+# where git and python3 refuse, naming themselves; gh and curl fall through to OFFLINE_BIN's shims,
+# which already refuse any call, named, and log it. A unit suite mocks all four as shell functions,
+# which bash finds before PATH, so only a real process call reaches a guard. `test` leaves the
+# prefix empty and runs the same suites unguarded. OFFLINE_ENV below is a recursive `=`
+# rather than `:=` for this reason: it must read GUARD_PATH per target, when the recipe expands it.
+UNIT_GUARD_BIN := $(CURDIR)/skills/tdd/scripts/tests/unit-guard
+unit: GUARD_PATH = $(UNIT_GUARD_BIN):
+
 # The line every suite under that glob prints last, as an ERE — the "count line" the
 # recipe's failure message names and CLAUDE.md's testing idiom requires, defined here
 # rather than inline so the term has one place to point at. `$$` is make's escape for a
@@ -78,7 +87,7 @@ OFFLINE_PROXY := http://127.0.0.1:1
 # reads $git_bin, $real_git and $reach_log from the recipe that expands it.
 OFFLINE_GIT := real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
 	ln -sf "$$real_git" "$$git_bin/git"
-OFFLINE_ENV := PATH="$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
+OFFLINE_ENV = PATH="$(GUARD_PATH)$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
 	GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
 	GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
 	GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
