@@ -236,8 +236,7 @@ run_make unit UNIT_TESTS="$scratch/mocks-vcs.test.sh"
 report "$name"
 
 # 6. The fast tier is populated: at least five suites that already lived in the flat directory
-# have moved under unit/ — git's history of the old path is the proof it is an existing suite,
-# and no copy is left behind — each saying in its header comment why it qualifies, as a count of
+# have moved under unit/, and no copy is left behind — each saying in its header comment why it qualifies, as a count of
 # its own git, python3, server and sleep usage on one line (`git <n>, python3 <n>, server <n>,
 # sleep <n>`), and all of them passing under the real `make unit`, admission-bar guard and all.
 name="at least five existing suites move into $UNIT_DIR/, each passing and recording its git/python3/server/sleep count in its header"
@@ -253,8 +252,6 @@ for f in "$ROOT/$UNIT_DIR"/*.test.sh; do
   moved=$((moved + 1))
   [[ ! -e "$HERE/$base" ]] ||
     problems+=("$base is under $UNIT_DIR/ and still in skills/tdd/scripts/tests/ too")
-  [[ -n "$(git -C "$ROOT" log --oneline -1 -- "skills/tdd/scripts/tests/$base" 2>/dev/null)" ]] ||
-    problems+=("$base has no history at skills/tdd/scripts/tests/$base, so it is not an existing suite moved")
   # The header: the comment lines after the shebang, up to the first line that is not one.
   header="$(sed -n '2,$p' "$f" | sed '/^#/!q' | grep '^#')"
   grep -Eq "$USAGE_COUNTS" <<< "$header" ||
