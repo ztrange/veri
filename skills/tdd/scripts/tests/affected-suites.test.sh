@@ -39,6 +39,17 @@ new_repo() {
   echo "$dir"
 }
 
+# expect_suites <name> <expected> — run affected-suites.sh on $base..$head inside $repo and
+# pass when it exits 0 printing exactly <expected>; otherwise fail <name>, with a diff.
+expect_suites() {
+  local name="$1" expected="$2" out code
+  out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
+  if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
+    no "$name (code=$code)"
+    diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+  fi
+}
+
 # 1. a resolvable range → one suite per line, sorted, no duplicate. The range touches
 #    wolf.sh and its own suite, so both name tests/wolf.test.sh and a list that kept every
 #    answer would carry it twice; and zulu.sh, whose suite is under tests/unit/, so the diff
@@ -58,12 +69,8 @@ printf 'zulu 2\n' > "$s/zulu.sh"
 printf '# wolf suite 2\n' > "$s/tests/wolf.test.sh"
 commit_all "$repo" "head"
 head="$(git -C "$repo" rev-parse HEAD)"
-expected="$(printf 'skills/tdd/scripts/tests/unit/zulu.test.sh\nskills/tdd/scripts/tests/wolf.test.sh')"
-out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
-if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
-  no "resolvable range → one suite per line, sorted, no duplicate (code=$code)"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
+expect_suites "resolvable range → one suite per line, sorted, no duplicate" \
+  "$(printf 'skills/tdd/scripts/tests/unit/zulu.test.sh\nskills/tdd/scripts/tests/wolf.test.sh')"
 
 # 2. a malformed argument → exit 2 and a diagnostic on stderr. Three shapes: a single
 #    revision with no `..` (which git diff alone would read as "against the working tree"
@@ -117,12 +124,8 @@ base="$(git -C "$repo" rev-parse HEAD)"
 printf 'foo 2\n' > "$s/foo.sh"
 commit_all "$repo" "head"
 head="$(git -C "$repo" rev-parse HEAD)"
-expected="skills/tdd/scripts/tests/foo.test.sh"
-out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
-if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
-  no "rule 1: a change to scripts/foo.sh prints exactly tests/foo.test.sh (code=$code)"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
+expect_suites "rule 1: a change to scripts/foo.sh prints exactly tests/foo.test.sh" \
+  "skills/tdd/scripts/tests/foo.test.sh"
 
 # 5. rule 1 via tests/unit/: a change to a script whose suite lives under tests/unit/ → that
 #    unit suite, not a tests/<script>.test.sh that does not exist. A neighbour script with a
@@ -139,12 +142,8 @@ base="$(git -C "$repo" rev-parse HEAD)"
 printf 'foo 2\n' > "$s/foo.sh"
 commit_all "$repo" "head"
 head="$(git -C "$repo" rev-parse HEAD)"
-expected="skills/tdd/scripts/tests/unit/foo.test.sh"
-out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
-if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
-  no "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly tests/unit/foo.test.sh (code=$code)"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
+expect_suites "rule 1 via tests/unit/: a change to scripts/foo.sh prints exactly tests/unit/foo.test.sh" \
+  "skills/tdd/scripts/tests/unit/foo.test.sh"
 
 # 6. rule 2: a change to a file under skills/tdd/scripts/lib/ → the suite of every script that
 #    sources it, and no others. alpha.sh and beta.sh source lib/bar.sh the way event.sh sources
@@ -165,12 +164,8 @@ base="$(git -C "$repo" rev-parse HEAD)"
 printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
 commit_all "$repo" "head"
 head="$(git -C "$repo" rev-parse HEAD)"
-expected="$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
-out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
-if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
-  no "rule 2: a change to scripts/lib/bar.sh prints the suite of every script that sources it, and no others (code=$code)"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
-fi
+expect_suites "rule 2: a change to scripts/lib/bar.sh prints the suite of every script that sources it, and no others" \
+  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
 
 echo "----"
 echo "$pass passed, $fail failed"
