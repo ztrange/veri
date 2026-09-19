@@ -1061,6 +1061,108 @@ fi
 
 report "$name"
 
+# --- the Events endpoint's payload, asked of events_json directly: the selected run, or nothing ---
+# The same contract as the Events endpoint case above, asked of the function that answers the
+# endpoint rather than of a server answering it (#330): events_json is handed the query string
+# the endpoint parses, `?issue=41` read as {"issue": ["41"]}, and returns a contiguous suffix of
+# that run's `.tdd/events.jsonl` ending at its newest line. A second run's log is there and must
+# not be answered with. And an issue no run holds a ledger for — 99 here — is the empty list,
+# not another run's log and not an error. The module is imported the way the runs_json case
+# above imports it, in the fixture repository, and no dashboard.sh is started.
+name="events_json, called directly, returns the selected run's events newest last, and none for an issue no run holds"
+problems=()
+edirect_repo="$(repo eventsdirect)"
+
+edirect_sel="$(fabricate_run "$edirect_repo" 51 tdd/51-lamps-flicker)"
+cat > "$edirect_sel/.tdd/issue-51.md" <<'EOF'
+# Plan for #51 — lamps flicker
+
+- [x] a lamp exists
+- [ ] a lamp flickers
+EOF
+edirect_now="$(date +%s)"
+: > "$edirect_sel/.tdd/events.jsonl"
+for i in $(seq 1 30); do
+  printf '{"ts": %s, "issue": "51", "actor": "developer", "phase": "red", "step": "a lamp flickers", "event": "launch", "attempt": "%s", "skill_commit": "abc", "name": "develop-red", "seq": %s}\n' \
+    "$((edirect_now - 3000 + i * 10))" "$i" "$i" >> "$edirect_sel/.tdd/events.jsonl"
+done
+
+edirect_other="$(fabricate_run "$edirect_repo" 52 tdd/52-lamps-dim)"
+cat > "$edirect_other/.tdd/issue-52.md" <<'EOF'
+# Plan for #52 — lamps dim
+
+- [ ] a lamp dims
+EOF
+cat > "$edirect_other/.tdd/events.jsonl" <<EOF
+{"ts": $((edirect_now - 200)), "issue": "52", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
+{"ts": $((edirect_now - 100)), "issue": "52", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
+EOF
+
+exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
+module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
+if [[ -z "$module" ]]; then
+  problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+else
+  (cd "$edirect_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
+import importlib, sys
+
+scripts, module, sel_out, none_out = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+sys.path.insert(0, scripts)
+sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", "8765",
+            scripts + "/status.sh", scripts + "/metrics.sh"]
+events_json = importlib.import_module(module).events_json
+for issue, out in (("51", sel_out), ("99", none_out)):
+    body = events_json({"issue": [issue]})
+    with open(out, "wb") as f:
+        f.write(body)
+' "$scripts" "$module" "$work/events-direct-51.json" "$work/events-direct-99.json") \
+    2> "$work/events-direct.err"
+  if [[ ! -f "$work/events-direct-51.json" || ! -f "$work/events-direct-99.json" ]]; then
+    problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-direct.err")")
+  else
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && problems+=("$line")
+    done < <(python3 -c '
+import json, sys
+
+sel_body, none_body, log_path = sys.argv[1], sys.argv[2], sys.argv[3]
+for path, issue in ((sel_body, "51"), (none_body, "99")):
+    try:
+        with open(path) as f:
+            got = json.load(f)
+    except ValueError:
+        with open(path) as f:
+            print("events_json for issue %s returned something that is not JSON; it starts: %r"
+                  % (issue, f.read()[:200]))
+        sys.exit()
+    if not isinstance(got, dict) or not isinstance(got.get("events"), list):
+        print("events_json for issue %s returned %s; want an object with an \"events\" array"
+              % (issue, json.dumps(got, sort_keys=True)[:300]))
+        sys.exit()
+    if issue == "51":
+        events = got["events"]
+    else:
+        none = got["events"]
+with open(log_path) as f:
+    want = [json.loads(raw) for raw in f if raw.strip()]
+if not events:
+    print("events_json for issue 51 returned no events; the selected run’s log has %d" % len(want))
+elif len(events) > len(want):
+    print("events_json for issue 51 returned %d events; the selected run’s log has only %d"
+          % (len(events), len(want)))
+elif events != want[len(want) - len(events):]:
+    print("events_json for issue 51 returned %s" % json.dumps(events, sort_keys=True)[:400])
+    print("the last %d lines of the run’s log, newest last, are %s"
+          % (len(events), json.dumps(want[len(want) - len(events):], sort_keys=True)[:400]))
+if none != []:
+    print("events_json for issue 99, which no run holds a ledger for, returned %s; want []"
+          % json.dumps(none, sort_keys=True)[:400])
+' "$work/events-direct-51.json" "$work/events-direct-99.json" "$edirect_sel/.tdd/events.jsonl")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
