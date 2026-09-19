@@ -157,6 +157,36 @@ order="$(awk '{ printf "%s ", $4 }' <<< "$out")"
   problems+=("want cases in the order 3 4 2, got: $(printf '%q' "$out")")
 report "$name"
 
+# 5. one fixture, one set of fabricated timestamps — cases spanning 2, 5 and 3 s — profiled
+#    at three thresholds: which cases print is the threshold's doing alone. At 1 all three
+#    do (3 4 2), at 2.5 the 2 s case drops out (3 4), at 4 only the 5 s case is left (3).
+name="threshold changes which cases print: 1 → 3 4 2, 2.5 → 3 4, 4 → 3"
+problems=()
+fixture="$scratch/thresholds.test.sh"
+cat > "$fixture" <<'EOF'
+unset EPOCHREALTIME
+pass=0 fail=0
+EPOCHREALTIME=10.000000
+pass=$((pass + 1))
+EPOCHREALTIME=12.000000
+pass=$((pass + 1))
+EPOCHREALTIME=17.000000
+pass=$((pass + 1))
+EPOCHREALTIME=20.000000
+pass=$((pass + 1))
+echo "$pass passed, $fail failed"
+EOF
+chmod +x "$fixture"
+for probe in "1:3 4 2 " "2.5:3 4 " "4:3 "; do
+  t="${probe%%:*}" want="${probe#*:}"
+  out="$(VERI_PROFILE_THRESHOLD="$t" "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+  [[ "$code" == 0 ]] || problems+=("threshold $t: want exit 0, got $code")
+  order="$(awk '{ printf "%s ", $4 }' <<< "$out")"
+  [[ "$order" == "$want" ]] ||
+    problems+=("threshold $t: want cases '$want', got: $(printf '%q' "$out")")
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
