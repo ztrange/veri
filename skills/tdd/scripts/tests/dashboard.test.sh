@@ -33,6 +33,25 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 
+# Every server this suite starts, counted (#330): a `python3` first on PATH for the whole
+# suite that appends one line to $starts whenever it is handed a .py file beside dashboard.sh
+# as its script — which is what `dashboard.sh` execs to serve, and nothing else here does —
+# then execs the real interpreter with the same arguments. Counted at the exec rather than by
+# timing anything, so the last case can ask how many starts there were, not how long they
+# took. `#!/bin/sh` like every stub here (#322): it runs once per python3 the suite spawns.
+starts="$work/server-starts.log"
+: > "$starts"
+mkdir -p "$work/shim"
+cat > "$work/shim/python3" <<EOF
+#!/bin/sh
+case "\$1" in
+  '$(cd "$HERE/.." && pwd)'/*.py) printf '%s\n' "\$*" >> '$starts' ;;
+esac
+exec '$(command -v python3)' "\$@"
+EOF
+chmod +x "$work/shim/python3"
+export PATH="$work/shim:$PATH"
+
 # The default port the criterion names. Spelled once, because both the URL the case fetches
 # and the "is anything already there?" probe below have to mean the same number: a case that
 # fetched one port and checked another for squatters could pass against a stranger's server.
@@ -203,48 +222,6 @@ port_problem() {  # port_problem <port>
   fi
 }
 
-# fetch_endpoint <repo> <tag> <path> <bodyfile> — start dashboard.sh in <repo> on a port the
-# kernel says is free, GET <path> from it, leave the response body on <bodyfile>, and stop the
-# server again; print the reason there is no body to assert on, or nothing. Every endpoint
-# case below is that shape and differs only in the run fixtures it fabricates and in what it
-# then asks of the body, so the scaffolding between the two is written once here. The port is
-# asked of the kernel per case rather than being the default, so a case is never answered by
-# another case's server.
-#
-# A body that does not parse is one of those reasons and not one case's business: every
-# endpoint here answers JSON, so an unparseable body is the same failure whichever pane
-# returned it, reported once with the beginning of what did come back. Each case's own script
-# is then free to load the file and assert on the document, rather than opening with the same
-# seven lines of try/except.
-fetch_endpoint() {  # fetch_endpoint <repo> <tag> <path> <bodyfile>
-  local dir="$1" log="$work/$2.log" path="$3" out="$4"
-  local port url answer problem pid
-  port="$(free_port)"
-  problem="$(port_problem "$port")"
-  if [[ -n "$problem" ]]; then
-    echo "$problem"
-    return
-  fi
-  launch "$dir" "$log" "$port"
-  pid=$!
-  url="http://127.0.0.1:$port$path"
-  answer="$(serve_until_up "$url")"
-  problem="$(answer_problem "$url" "$log" "$answer")"
-  if [[ -n "$problem" ]]; then
-    echo "$problem"
-  else
-    http_body "$answer" > "$out"
-    python3 -c 'import json, sys
-try:
-    with open(sys.argv[1]) as f:
-        json.load(f)
-except ValueError:
-    with open(sys.argv[1]) as f:
-        print("the endpoint body is not JSON; it starts: %r" % f.read()[:200])' "$out"
-  fi
-  stop "$pid" || :
-}
-
 # stop <pid> — interrupt a launched server and reap it, returning the status it exited
 # with. SIGINT rather than SIGTERM because that is the stop the script documents, and the
 # status is returned rather than swallowed because for the first case it IS half the
@@ -297,15 +274,49 @@ fi
 
 report "$name"
 
-# --- an argument: that port, and no interface but loopback ---
-# Both halves of one criterion, asked of one running server: the page has to answer on the
-# port the argument named (not the default), and the same port has to refuse a connection
-# made to this machine's other address. Two servers could not answer the second question
-# together — a second one on the same port would fail to bind — so it is one launch.
-name="dashboard.sh with a port argument serves the page on that port and binds 127.0.0.1 only"
+# --- make test runs this suite ---
+# The roster is read off `make -n test` from the repository root, the way suite-lanes.test.sh
+# reads it: make prints the recipe with its `$(TESTS)` glob expanded and runs nothing, so what
+# it lists is exactly what `make test` would run — and a Makefile whose glob stopped reaching
+# this directory, or that filtered this suite out, fails here rather than silently dropping it.
+name="make test runs this suite"
+problems=()
+root="$(cd "$HERE/../../../.." && pwd)"
+roster="$(make --no-print-directory -n -C "$root" test 2>&1)"
+if ! grep -q 'skills/tdd/scripts/tests/dashboard\.test\.sh' <<< "$roster"; then
+  problems+=("make -n test in $root does not name skills/tdd/scripts/tests/dashboard.test.sh, so make test never runs this suite")
+fi
+
+report "$name"
+
+# --- an argument: that port, no interface but loopback, and every pane endpoint of one life ---
+# One running server, three questions (#330: the suite's second and last server start). The
+# page has to answer on the port the argument named (not the default); the same port has to
+# refuse a connection made to this machine's other address; and the same process has to go on
+# answering each of the three pane endpoints with the JSON document that pane reads, so a
+# server that answered its first request and then stopped serving, or that could only be asked
+# one question per life, fails here. Two servers could not answer the loopback question together
+# — a second one on the same port would fail to bind — so it is one launch. What each payload
+# holds is asked of runs_json, metrics_json and events_json directly below; the one payload
+# fact only a live server has is that /api/runs's `elapsed_seconds` is counted, so the Runs
+# answer is also compared with `status.sh --json` here, that field as numbers seconds apart.
+name="dashboard.sh with a port argument serves the page on that port, binds 127.0.0.1 only, and answers every pane endpoint with JSON"
 problems=()
 arg_repo="$(repo argport)"
 arg_log="$work/argport.log"
+arg_run="$(fabricate_run "$arg_repo" 51 tdd/51-lamps-hum)"
+cat > "$arg_run/.tdd/issue-51.md" <<'EOF'
+# Plan for #51 — lamps hum
+
+- [x] a lamp exists
+- [ ] a lamp hums
+EOF
+arg_now="$(date +%s)"
+cat > "$arg_run/.tdd/events.jsonl" <<EOF
+{"ts": $((arg_now - 120)), "issue": "51", "actor": "conductor", "phase": "", "step": "a lamp hums", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((arg_now - 110)), "issue": "51", "actor": "developer", "phase": "red", "step": "a lamp hums", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((arg_now - 60)), "issue": "51", "actor": "developer", "phase": "red", "step": "a lamp hums", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "0.25", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500"}
+EOF
 arg_port="$(free_port)"
 
 problem="$(port_problem "$arg_port")"
@@ -336,474 +347,25 @@ else
     problems+=("the server answered on $elsewhere:$arg_port as well, so it is bound to every interface; want 127.0.0.1 only")
   fi
 
-  stop "$arg_pid" || :
-fi
-
-report "$name"
-
-# --- the Runs endpoint: what status.sh --json returns ---
-# The pane is a reader of a script that already exists, so the criterion is an equality and
-# not a shape: whatever `status.sh --json` says of the repository the server was started
-# from, GET /api/runs has to say too. Asking it that way means no field of that document is
-# spelled twice — a run's issue, title, branch, step, phase, actor, cost and state, and the
-# scope object beside them — so the case cannot drift from status.sh as status.sh grows.
-#
-# One fabricated run so the answer is not the empty one: a ledger of two steps with the first
-# ticked, and an event log whose newest events are seconds old, so both readings agree the run
-# is running rather than one of them calling it stale.
-#
-# `elapsed_seconds` is the one field that cannot be equal: it is `now` minus the leaf's launch
-# timestamp, measured once when the endpoint answers and again when this case runs status.sh
-# itself, so it counts the gap between the two calls. It is compared as a number seconds apart
-# rather than dropped, because dropping it would let an endpoint that never reports elapsed
-# time at all pass.
-name="the Runs endpoint returns what status.sh --json returns"
-problems=()
-runs_repo="$(repo runsendpoint)"
-runs_run="$(fabricate_run "$runs_repo" 21 tdd/21-lamps-glow)"
-cat > "$runs_run/.tdd/issue-21.md" <<'EOF'
-# Plan for #21 — lamps glow
-
-- [x] a lamp exists
-- [ ] a lamp glows
-EOF
-now="$(date +%s)"
-cat > "$runs_run/.tdd/events.jsonl" <<EOF
-{"ts": $((now - 120)), "issue": "21", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((now - 110)), "issue": "21", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
-{"ts": $((now - 60)), "issue": "21", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "0.25", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500"}
-EOF
-problem="$(fetch_endpoint "$runs_repo" runsendpoint /api/runs "$work/runs-endpoint.json")"
-if [[ -n "$problem" ]]; then
-  problems+=("$problem")
-else
-  # status.sh's own answer to the same question, asked from the same repository and with
-  # the same environment the launch gave the server, so any difference is the endpoint's.
-  (cd "$runs_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
-    > "$work/runs-status.json" 2>/dev/null
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && problems+=("$line")
-  done < <(python3 -c '
-import json, sys
-
-
-def load(path):
-    with open(path) as f:
-        return json.load(f)
-
-
-got, want = load(sys.argv[1]), load(sys.argv[2])
-if not isinstance(got, dict):
-    print("the endpoint returned a %s; status.sh --json returns an object"
-          % type(got).__name__)
-    sys.exit()
-
-
-def without_elapsed(doc):
-    out = json.loads(json.dumps(doc))
-    for run in out.get("runs", []) if isinstance(out.get("runs"), list) else []:
-        if isinstance(run, dict):
-            run.pop("elapsed_seconds", None)
-    return out
-
-
-bare_got, bare_want = without_elapsed(got), without_elapsed(want)
-if bare_got != bare_want:
-    print("the endpoint returned %s" % json.dumps(bare_got, sort_keys=True))
-    print("status.sh --json returns %s" % json.dumps(bare_want, sort_keys=True))
-    sys.exit()
-for i, (g, w) in enumerate(zip(got["runs"], want["runs"])):
-    if "elapsed_seconds" not in g:
-        print("run %d has no elapsed_seconds from the endpoint; status.sh --json "
-              "reports %s" % (i, w.get("elapsed_seconds")))
-    elif abs(int(g["elapsed_seconds"]) - int(w["elapsed_seconds"])) > 10:
-        print("run %d elapsed_seconds is %s from the endpoint and %s from status.sh --json, "
-              "more than the 10 s the two calls can be apart"
-              % (i, g["elapsed_seconds"], w["elapsed_seconds"]))
-' "$work/runs-endpoint.json" "$work/runs-status.json")
-fi
-
-report "$name"
-
-# --- the Metrics endpoint: live for a running run, the committed report for a finished one ---
-# The pane is a reader of metrics.sh and of the report the conductor commits beside the
-# ledger (`.tdd/issue-<n>-metrics.md`, SKILL.md:858), so the criterion is two equalities over
-# two runs: a run still going has its figures RECOMPUTED from `.tdd/events.jsonl`, and a run
-# that ended has the committed file handed back verbatim — the account of the run as it was
-# written, not a reading of a log that may since have been pushed and pruned.
-#
-# What makes the two distinguishable is that BOTH fabricated runs carry a committed report,
-# and neither file is what metrics.sh would print for its log. So an endpoint that read the
-# file for everything fails on the running run, and one that recomputed everything fails on
-# the finished one; only the split the criterion names passes. metrics.sh reads the log and
-# the ledger and asks no clock, so its live answer here is a stable string to compare with.
-#
-# `done`/`bail` is what ends a run — the mark status.sh already reads for its `state`
-# (status.sh:76) — so the finished run's log carries a `done` and the running run's newest
-# event is seconds old with no such mark.
-name="the Metrics endpoint recomputes a running run and returns the committed report for a finished one"
-problems=()
-met_repo="$(repo metricsendpoint)"
-
-# The running run: two steps, the first ticked, newest event seconds old, no `done`.
-met_live="$(fabricate_run "$met_repo" 31 tdd/31-lamps-glow)"
-cat > "$met_live/.tdd/issue-31.md" <<'EOF'
-# Plan for #31 — lamps glow
-
-- [x] a lamp exists
-- [ ] a lamp glows
-EOF
-met_now="$(date +%s)"
-cat > "$met_live/.tdd/events.jsonl" <<EOF
-{"ts": $((met_now - 120)), "issue": "31", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((met_now - 110)), "issue": "31", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
-{"ts": $((met_now - 60)), "issue": "31", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "0.25", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500", "num_turns": "7", "duration_api_ms": "12000"}
-EOF
-# A committed report the running run must NOT be answered with: the run is still spending, so
-# a file written when the step before it ended is exactly the stale reading the criterion
-# splits on. Its heading is one metrics.sh never prints, so the two can never be confused.
-cat > "$met_live/.tdd/issue-31-metrics.md" <<'EOF'
-# a stale committed report for #31 that metrics.sh would never print
-EOF
-
-# The finished run: a log that ends in `done`, and the committed report that is the answer.
-met_done="$(fabricate_run "$met_repo" 32 tdd/32-lamps-dim)"
-cat > "$met_done/.tdd/issue-32.md" <<'EOF'
-# Plan for #32 — lamps dim
-
-- [x] a lamp exists
-- [x] a lamp dims
-EOF
-cat > "$met_done/.tdd/events.jsonl" <<EOF
-{"ts": $((met_now - 9000)), "issue": "32", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((met_now - 8900)), "issue": "32", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green"}
-{"ts": $((met_now - 8800)), "issue": "32", "actor": "verifier", "phase": "green", "step": "a lamp dims", "event": "verdict", "attempt": "1", "skill_commit": "abc", "verdict": "PASS"}
-{"ts": $((met_now - 8700)), "issue": "32", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-done", "attempt": "", "skill_commit": "abc"}
-{"ts": $((met_now - 8600)), "issue": "32", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://example.invalid/pr/2"}
-EOF
-cat > "$met_done/.tdd/issue-32-metrics.md" <<'EOF'
-# What solving #32 cost — the committed report, verbatim
-
-| phase | attempts |
-|---|---|
-| green | 1 |
-EOF
-
-problem="$(fetch_endpoint "$met_repo" metricsendpoint /api/metrics "$work/metrics-endpoint.json")"
-if [[ -n "$problem" ]]; then
-  problems+=("$problem")
-else
-  # metrics.sh's own answer for the running run, asked from that run's worktree the way
-  # the conductor asks it, so a difference is the endpoint's and not the fixture's.
-  (cd "$met_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
-    > "$work/metrics-live.md" 2>/dev/null
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && problems+=("$line")
-  done < <(python3 -c '
-import json, sys
-
-body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
-with open(body) as f:
-    got = json.load(f)
-if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
-    print("the endpoint returned %s; want an object with an \"issues\" object keyed by "
-          "issue number" % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-issues = got["issues"]
-if sorted(issues) != ["31", "32"]:
-    print("the endpoint reports issues %s; want the two runs 31 and 32"
-          % json.dumps(sorted(issues)))
-    sys.exit()
-with open(live_path) as f:
-    live = f.read()
-with open(committed_path) as f:
-    committed = f.read()
-if issues["31"] != live:
-    print("issue 31 is running, so its report has to be recomputed from the event log: the "
-          "endpoint returned %r, and metrics.sh 31 prints %r"
-          % (issues["31"][:300], live[:300]))
-if issues["32"] != committed:
-    print("issue 32 ended with a done mark, so its report has to be the committed "
-          ".tdd/issue-32-metrics.md: the endpoint returned %r, and the committed file holds "
-          "%r" % (issues["32"][:300], committed[:300]))
-' "$work/metrics-endpoint.json" "$work/metrics-live.md" "$met_done/.tdd/issue-32-metrics.md")
-fi
-
-report "$name"
-
-# --- the Events endpoint: the selected run's log, newest last ---
-# The pane is a reader of `.tdd/events.jsonl`, so the criterion is the log itself: the lines
-# of the SELECTED run, parsed, in the order the file has them — which is oldest first and so
-# newest last. Selected by issue number, because that is what names a run everywhere else the
-# page already reads: `status.sh --json` keys each run object by `issue`, and the Metrics
-# endpoint keys its `issues` object by the same number.
-#
-# Two fabricated runs, and only one of them asked for: an endpoint that returned every run's
-# events, or the wrong run's, fails here rather than looking right against a lone fixture.
-# The other run's log carries a mark no line of the selected one does, so the two can never
-# be confused for one another.
-#
-# A "tail" is a suffix, and how long a one is the endpoint's to choose: the case asserts that
-# what comes back IS a contiguous suffix of the log ending at its newest line, which is what
-# "newest last" means and what a reversed answer breaks, and says nothing about how many
-# lines a tail is. The log is thirty events so that both a cap shorter than it and no cap at
-# all satisfy that, and neither is read as this step's business.
-name="the Events endpoint returns the selected run's events.jsonl tail, newest last"
-problems=()
-ev_repo="$(repo eventsendpoint)"
-
-ev_sel="$(fabricate_run "$ev_repo" 41 tdd/41-lamps-flicker)"
-cat > "$ev_sel/.tdd/issue-41.md" <<'EOF'
-# Plan for #41 — lamps flicker
-
-- [x] a lamp exists
-- [ ] a lamp flickers
-EOF
-ev_now="$(date +%s)"
-: > "$ev_sel/.tdd/events.jsonl"
-for i in $(seq 1 30); do
-  printf '{"ts": %s, "issue": "41", "actor": "developer", "phase": "red", "step": "a lamp flickers", "event": "launch", "attempt": "%s", "skill_commit": "abc", "name": "develop-red", "seq": %s}\n' \
-    "$((ev_now - 3000 + i * 10))" "$i" "$i" >> "$ev_sel/.tdd/events.jsonl"
-done
-
-# The run that must NOT be answered with. Its every line carries `"issue": "42"`, so a single
-# line of it in the answer is visible as such.
-ev_other="$(fabricate_run "$ev_repo" 42 tdd/42-lamps-dim)"
-cat > "$ev_other/.tdd/issue-42.md" <<'EOF'
-# Plan for #42 — lamps dim
-
-- [ ] a lamp dims
-EOF
-cat > "$ev_other/.tdd/events.jsonl" <<EOF
-{"ts": $((ev_now - 200)), "issue": "42", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
-{"ts": $((ev_now - 100)), "issue": "42", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
-EOF
-
-problem="$(fetch_endpoint "$ev_repo" eventsendpoint "/api/events?issue=41" \
-  "$work/events-endpoint.json")"
-if [[ -n "$problem" ]]; then
-  problems+=("$problem")
-else
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && problems+=("$line")
-  done < <(python3 -c '
-import json, sys
-
-body, log_path = sys.argv[1], sys.argv[2]
-with open(body) as f:
-    got = json.load(f)
-if not isinstance(got, dict) or not isinstance(got.get("events"), list):
-    print("the endpoint returned %s; want an object with an \"events\" array"
-          % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-events = got["events"]
-with open(log_path) as f:
-    want = [json.loads(raw) for raw in f if raw.strip()]
-if not events:
-    print("the endpoint returned no events; the selected run’s log has %d" % len(want))
-    sys.exit()
-if len(events) > len(want):
-    print("the endpoint returned %d events; the selected run’s log has only %d"
-          % (len(events), len(want)))
-    sys.exit()
-tail = want[len(want) - len(events):]
-if events != tail:
-    print("the endpoint returned %s" % json.dumps(events, sort_keys=True)[:400])
-    print("the last %d lines of the run’s log, newest last, are %s"
-          % (len(events), json.dumps(tail, sort_keys=True)[:400]))
-' "$work/events-endpoint.json" "$ev_sel/.tdd/events.jsonl")
-fi
-
-report "$name"
-
-
-# --- the page: one 2-second poll per pane ---
-# The criterion is what the BROWSER does with the page, and nothing here is a browser: the
-# suites in this repository depend on bash and python3 and on nothing else (ci.yml), so
-# bringing in a JavaScript engine to drive the page would be a new dependency for one case.
-# What is observable without one is the page the server actually served — fetched over HTTP
-# from a running dashboard.sh, not read off disk, so a page the server cannot hand out fails
-# here too — and the two things that page has to say for each pane to refresh from its own
-# endpoint every two seconds: the endpoint is fetched, and every repeating timer on the page
-# fires at 2000 ms.
-#
-# What that pins and what it does not: a page whose Metrics pane polled at 5000, or that
-# fetched an endpoint once at load and never again, or that named no endpoint for a pane, all
-# fail. A page whose three fetches sit behind one timer passes, and so does one whose timer
-# refreshes only two of the three panes — proving which fetch a given timer reaches needs the
-# engine this case does without, and the endpoints' own cases already pin what each pane is
-# answered with.
-name="the served page polls the Runs, Metrics and Events endpoints every 2 seconds"
-problems=()
-poll_repo="$(repo pollpage)"
-poll_log="$work/pollpage.log"
-poll_port="$(free_port)"
-
-problem="$(port_problem "$poll_port")"
-if [[ -n "$problem" ]]; then
-  problems+=("$problem")
-else
-  launch "$poll_repo" "$poll_log" "$poll_port"
-  poll_pid=$!
-
-  poll_url="http://127.0.0.1:$poll_port/"
-  poll_page="$(serve_until_up "$poll_url")"
-  problem="$(answer_problem "$poll_url" "$poll_log" "$poll_page")"
-
-  if [[ -n "$problem" ]]; then
-    problems+=("$problem")
-  else
-    http_body "$poll_page" > "$work/poll-page.html"
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && problems+=("$line")
-    done < <(python3 -c '
-import re
-import sys
-
-with open(sys.argv[1]) as f:
-    page = f.read()
-
-# The three quote characters JavaScript has, written as escapes: this program is passed to
-# python inside single quotes, so the apostrophe cannot appear in it literally.
-QUOTED = "\"\x27\x60"
-
-
-# Every character of src from index i on that sits outside a string literal, as (index,
-# character, depth), depth being how many brackets are open once that character is read and
-# starting from the depth given. A regex cannot be asked where a call ends or where its last
-# argument starts: an arrow function passed to setInterval carries parentheses and commas of
-# its own, and only one at the right depth and outside a string counts.
-def code_chars(src, i, depth):
-    quote = ""
-    while i < len(src):
-        c = src[i]
-        if quote:
-            if c == "\\":
-                i += 1
-            elif c == quote:
-                quote = ""
-        elif c in QUOTED:
-            quote = c
-        else:
-            if c in "([{":
-                depth += 1
-            elif c in ")]}":
-                depth -= 1
-            yield i, c, depth
-        i += 1
-
-
-# The index just past the ")" that closes a call whose "(" is at src[i - 1], or -1 when the
-# page has no such ")".
-def balanced(src, i):
-    for j, c, depth in code_chars(src, i, 1):
-        if depth == 0:
-            return j + 1
-    return -1
-
-
-# The argument text of every call of <name> on the page, the "(" and ")" left off.
-def calls(src, name):
-    out = []
-    for m in re.finditer(r"\b" + name + r"\s*\(", src):
-        end = balanced(src, m.end())
-        if end > 0:
-            out.append(src[m.end():end - 1])
-    return out
-
-
-# The last top-level argument of one such list — setInterval s delay.
-def last_arg(args):
-    cut = 0
-    for j, c, depth in code_chars(args, 0, 0):
-        if c == "," and depth == 0:
-            cut = j + 1
-    return args[cut:].strip()
-
-
-# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
-# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
-# Matched as a prefix of the literal so that the Events pane may carry its ?issue= query.
-for pane, path in (("Runs", "/api/runs"), ("Metrics", "/api/metrics"),
-                   ("Events", "/api/events")):
-    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
-        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
-              % (path, pane))
-
-# Every two seconds, of every repeating timer the page sets: a pane refreshed on a slower
-# clock than another is the criterion broken just as much as one never refreshed at all.
-timers = calls(page, "setInterval")
-if not timers:
-    print("the page schedules no repeating poll at all; want setInterval(..., 2000) so every "
-          "pane refreshes every two seconds")
-for args in timers:
-    delay = last_arg(args)
-    if delay != "2000":
-        print("the page repeats setInterval(%s) every %s ms; a pane polls every 2000"
-              % (" ".join(args.split())[:120], delay))
-' "$work/poll-page.html")
-  fi
-
-  stop "$poll_pid" || :
-fi
-
-report "$name"
-
-# --- make test runs this suite, and one server answers every pane's endpoint with JSON ---
-# The criterion is about the suite as `make test` runs it, not about any one endpoint: the
-# roster `make test` walks has to name this file, and a single dashboard.sh started on a spare
-# port against fabricated runs has to answer each of the three pane endpoints with the JSON
-# document that pane reads. The cases above each start their own server for one endpoint; this
-# one asks all three of the same server, so a server that answered its first request and then
-# stopped serving, or that could only be asked one question per life, fails here.
-#
-# The roster is read off `make -n test` from the repository root, the way suite-lanes.test.sh
-# reads it: make prints the recipe with its `$(TESTS)` glob expanded and runs nothing, so what
-# it lists is exactly what `make test` would run — and a Makefile whose glob stopped reaching
-# this directory, or that filtered this suite out, fails here rather than silently dropping it.
-name="make test runs this suite, and one dashboard.sh on a spare port answers every pane endpoint with JSON"
-problems=()
-root="$(cd "$HERE/../../../.." && pwd)"
-roster="$(make --no-print-directory -n -C "$root" test 2>&1)"
-if ! grep -q 'skills/tdd/scripts/tests/dashboard\.test\.sh' <<< "$roster"; then
-  problems+=("make -n test in $root does not name skills/tdd/scripts/tests/dashboard.test.sh, so make test never runs this suite")
-fi
-
-all_repo="$(repo allendpoints)"
-all_run="$(fabricate_run "$all_repo" 51 tdd/51-lamps-hum)"
-cat > "$all_run/.tdd/issue-51.md" <<'EOF'
-# Plan for #51 — lamps hum
-
-- [x] a lamp exists
-- [ ] a lamp hums
-EOF
-all_now="$(date +%s)"
-cat > "$all_run/.tdd/events.jsonl" <<EOF
-{"ts": $((all_now - 120)), "issue": "51", "actor": "conductor", "phase": "", "step": "a lamp hums", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((all_now - 110)), "issue": "51", "actor": "developer", "phase": "red", "step": "a lamp hums", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
-EOF
-all_port="$(free_port)"
-problem="$(port_problem "$all_port")"
-if [[ -n "$problem" ]]; then
-  problems+=("$problem")
-else
-  launch "$all_repo" "$work/allendpoints.log" "$all_port"
-  all_pid=$!
+  # status.sh's own answer, asked from the same repository and with the same environment the
+  # launch gave the server, so any difference is the endpoint's.
+  (cd "$arg_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
+    > "$work/argport-status.json" 2>/dev/null
   for path in /api/runs /api/metrics "/api/events?issue=51"; do
-    url="http://127.0.0.1:$all_port$path"
+    url="http://127.0.0.1:$arg_port$path"
     answer="$(serve_until_up "$url")"
-    problem="$(answer_problem "$url" "$work/allendpoints.log" "$answer")"
+    problem="$(answer_problem "$url" "$arg_log" "$answer")"
     if [[ -n "$problem" ]]; then
       problems+=("$problem")
       continue
     fi
-    http_body "$answer" > "$work/allendpoints.json"
+    http_body "$answer" > "$work/argport.json"
     while IFS= read -r line; do
       [[ -n "$line" ]] && problems+=("$line")
     done < <(python3 -c '
 import json, sys
 
-path, body = sys.argv[1], sys.argv[2]
+path, body, status_path = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
     with open(body) as f:
         got = json.load(f)
@@ -817,15 +379,47 @@ key, kind = want
 if not isinstance(got, dict) or not isinstance(got.get(key), kind):
     print("GET %s returned %s; want an object with a %r %s"
           % (path, json.dumps(got, sort_keys=True)[:300], key, kind.__name__))
-elif not got[key]:
+    sys.exit()
+if not got[key]:
     print("GET %s returned an empty %r for a repository with run #51 in it" % (path, key))
-' "$path" "$work/allendpoints.json")
+    sys.exit()
+if path != "/api/runs":
+    sys.exit()
+
+# `elapsed_seconds` is `now` minus the leaf launch, measured once when the endpoint answers
+# and again when status.sh ran above, so it is compared as numbers seconds apart rather than
+# dropped: dropping it would let an endpoint that never reports elapsed time pass.
+with open(status_path) as f:
+    status = json.load(f)
+
+
+def without_elapsed(doc):
+    out = json.loads(json.dumps(doc))
+    for run in out.get("runs", []) if isinstance(out.get("runs"), list) else []:
+        if isinstance(run, dict):
+            run.pop("elapsed_seconds", None)
+    return out
+
+
+if without_elapsed(got) != without_elapsed(status):
+    print("GET /api/runs returned %s" % json.dumps(without_elapsed(got), sort_keys=True))
+    print("status.sh --json returns %s" % json.dumps(without_elapsed(status), sort_keys=True))
+    sys.exit()
+for i, (g, w) in enumerate(zip(got["runs"], status["runs"])):
+    if "elapsed_seconds" not in g:
+        print("run %d has no elapsed_seconds from GET /api/runs; status.sh --json "
+              "reports %s" % (i, w.get("elapsed_seconds")))
+    elif abs(int(g["elapsed_seconds"]) - int(w["elapsed_seconds"])) > 10:
+        print("run %d elapsed_seconds is %s from GET /api/runs and %s from status.sh --json, "
+              "more than the 10 s the two calls can be apart"
+              % (i, g["elapsed_seconds"], w["elapsed_seconds"]))
+' "$path" "$work/argport.json" "$work/argport-status.json")
   done
-  stop "$all_pid" || :
+
+  stop "$arg_pid" || :
 fi
 
 report "$name"
-
 
 # --- the server's python is a module beside dashboard.sh, and importing it binds nothing ---
 # The endpoints are pure functions of the filesystem and of status.sh/metrics.sh, so a case
@@ -896,9 +490,9 @@ fi
 report "$name"
 
 # --- the Runs endpoint's payload, asked of runs_json directly: status.sh --json, byte for byte ---
-# The same equality as the Runs endpoint case above, asked of the function that answers the
-# endpoint rather than of a server answering it (#330): the module is imported the way the case
-# above imports it, runs_json is called in the fixture repository, and what it returns is
+# The Runs pane is a reader of `status.sh --json`, so the criterion is an equality, asked of the
+# function that answers the endpoint rather than of a server answering it (#330): the module is
+# imported the way the case above imports it, runs_json is called in the fixture repository, and what it returns is
 # compared with what `status.sh --json` prints there, byte for byte. No dashboard.sh is started
 # and no socket is opened, so nothing here waits on a server coming up.
 #
@@ -946,8 +540,8 @@ fi
 report "$name"
 
 # --- the Metrics endpoint's payload, asked of metrics_json directly: live and committed ---
-# The same two equalities as the Metrics endpoint case above, asked of the function that
-# answers the endpoint rather than of a server answering it (#330): a running run's report is
+# The Metrics pane's two equalities — live for a running run, the committed report for a
+# finished one (SKILL.md:858) — asked of the function that answers the endpoint rather than of a server answering it (#330): a running run's report is
 # what metrics.sh prints for it, recomputed, and a finished run's is its committed
 # `.tdd/issue-<n>-metrics.md` verbatim. Both runs carry a committed report that metrics.sh
 # would never print, so a function that read the file for both fails on the running run and
@@ -1062,8 +656,8 @@ fi
 report "$name"
 
 # --- the Events endpoint's payload, asked of events_json directly: the selected run, or nothing ---
-# The same contract as the Events endpoint case above, asked of the function that answers the
-# endpoint rather than of a server answering it (#330): events_json is handed the query string
+# The Events pane's contract — the selected run's log, newest last — asked of the function that
+# answers the endpoint rather than of a server answering it (#330): events_json is handed the query string
 # the endpoint parses, `?issue=41` read as {"issue": ["41"]}, and returns a contiguous suffix of
 # that run's `.tdd/events.jsonl` ending at its newest line. A second run's log is there and must
 # not be answered with. And an issue no run holds a ledger for — 99 here — is the empty list,
@@ -1164,12 +758,15 @@ fi
 report "$name"
 
 # --- the page on disk: one 2-second poll per pane, no server started ---
-# The same two checks as the served-page case above, asked of dashboard.html as it sits beside
-# dashboard.sh rather than of a running server's answer (#330): the server hands the file out
+# The criterion is what the BROWSER does with the page, and nothing here is a browser: the
+# suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
+# as it sits beside dashboard.sh rather than of a running server's answer (#330): the server hands the file out
 # byte for byte with no per-request computation, so the file's own text is what the browser
 # gets, and a server started only to read it back adds a process start and nothing else. Every
 # pane's endpoint is fetched from a literal, and every repeating timer on the page fires at
-# 2000 ms; what that pins and what it does not is exactly as stated for the case above.
+# 2000 ms. A page whose Metrics pane polled at 5000, or fetched an endpoint once and never
+# again, or named no endpoint for a pane, fails; a page whose three fetches sit behind one
+# timer passes, since proving which fetch a timer reaches needs the engine this case lacks.
 name="dashboard.html, read off disk, polls the Runs, Metrics and Events endpoints every 2 seconds"
 problems=()
 disk_page="$scripts/dashboard.html"
@@ -1267,6 +864,25 @@ for args in timers:
 ' "$disk_page")
 fi
 
+report "$name"
+
+# --- the whole suite starts at most two servers ---
+# Last on purpose: it reads the count every case above left on $starts, through the shim
+# installed at the top (#330). Only the lifecycle facts — the default port, a port argument,
+# loopback only, exit 0 on SIGINT, one process answering more than once — need a process;
+# every payload and the page's own text are asked of a function or a file. A count of zero
+# is the shim not counting, not a suite that started nothing, and fails as that.
+name="the dashboard suite starts at most 2 dashboard.sh servers, counted at python3's exec"
+problems=()
+server_starts="$(wc -l < "$starts" | tr -d ' ')"
+if [[ "$server_starts" -eq 0 ]]; then
+  problems+=("the python3 shim counted no server start at all, so it is not counting what dashboard.sh execs")
+elif [[ "$server_starts" -gt 2 ]]; then
+  problems+=("$server_starts dashboard.sh servers were started across the suite, want at most 2; each start's python3 argv:")
+  while IFS= read -r line; do
+    problems+=("  $line")
+  done < "$starts"
+fi
 report "$name"
 
 echo "----"
