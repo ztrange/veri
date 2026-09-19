@@ -968,6 +968,29 @@ done
 [[ -z "$misread" ]] \
   && ok || no "--tier all/fast with --issue: the issue's Test command: line answers all ahead of CLAUDE.md's veri: all tests:, while fast still answers from veri: fast tests: or the single-command chain —$misread"
 
+# 15. veri's own repo declares both tiers in its root CLAUDE.md (#338): run against veri's
+# repo root, `--tier fast` prints `make unit` and `--tier all` prints `make test`. Unlike every
+# case above, the repo is not seeded — it is the checkout this suite lives in, four levels up
+# from here — because what is pinned is veri's own declaration, not the parser. Veri's Makefile
+# spells its target as the two-target rule `test unit:`, which the chain's `^test[[:space:]]*:`
+# does not match, so without the markers neither tier has an answer at all (exit 3); both
+# commands can only come from the CLAUDE.md lines.
+misread=""
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+for tier in fast all; do
+  case "$tier" in
+    fast) want='make unit' ;;
+    all)  want='make test' ;;
+  esac
+
+  detect --tier "$tier" "$ROOT"
+
+  matched || note "veri, $tier"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "--tier fast/all: run against veri's own repo root, fast prints make unit and all prints make test, from veri's CLAUDE.md —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
