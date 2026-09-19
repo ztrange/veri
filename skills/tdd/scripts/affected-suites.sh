@@ -19,6 +19,13 @@ for rev in "${range%%..*}" "${range#*..}"; do
     { echo "affected-suites: cannot resolve revision '$rev'" >&2; exit 2; }
 done
 
+# suites_naming <pattern>... — every suite whose source contains one of the fixed strings.
+suites_naming() {
+  local args=() p
+  for p in "$@"; do args+=(-e "$p"); done
+  grep -lF "${args[@]}" "$scripts"/tests/*.test.sh || true
+}
+
 # suite_of <path> — the suites a touched file affects: a suite is its own, a script's is the
 # one named after it, under tests/ or tests/unit/, and a lib file's are those of every script
 # that sources it.
@@ -28,12 +35,12 @@ suite_of() {
     CLAUDE.md|Makefile|skills/*/SKILL.md)
       # A guard suite names its document as a whole quoted path, as model-knobs-recorded does
       # claude_md="CLAUDE.md", or at the end of one, as count-line-guard does "$ROOT/Makefile".
-      grep -lF -e "\"$f\"" -e "/$f\"" "$scripts"/tests/*.test.sh || true ;;
+      suites_naming "\"$f\"" "/$f\"" ;;
     "$scripts"/tests/*.test.sh) echo "$f" ;;
     "$scripts"/tests/fixtures/*)
       # A suite references a fixture by its path under tests/, as count-line-guard does
       # "$HERE/fixtures/silent-death/…".
-      grep -lF -- "${f#"$scripts"/tests/}" "$scripts"/tests/*.test.sh || true ;;
+      suites_naming "${f#"$scripts"/tests/}" ;;
     "$scripts"/lib/*.sh)
       # A sourcing script names the lib file on a `source` line, as event.sh does
       # `source "$HERE/lib/json-escape.sh"`; a comment naming it is not a dependency.
