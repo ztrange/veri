@@ -165,7 +165,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — seventy-nine files for thirty-eight scripts, plus six suites under `unit/` (five moved there, one written for it), all run by `make test`.
+`skills/tdd/scripts/tests/` — eighty files for thirty-eight scripts, plus six suites under `unit/` (five moved there, one written for it), all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
