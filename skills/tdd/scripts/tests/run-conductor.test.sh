@@ -1275,8 +1275,9 @@ for want in develop-red=affected verify-red=affected develop-green=fast+affected
   leaf25="${want%%=*}" tier25="${want#*=}"
   if [[ ! -s "$tiers/$leaf25.received" ]]; then
     problems+=("$leaf25 never received a prompt: $(cat "$tiers/$leaf25.err" 2>/dev/null)")
-  elif [[ "$(tier_of "$tiers/$leaf25.received")" != "$tier25" ]]; then
-    problems+=("$leaf25's launch was built with $(tier_of "$tiers/$leaf25.received"), not $tier25")
+  else
+    got25="$(tier_of "$tiers/$leaf25.received")"
+    [[ "$got25" == "$tier25" ]] || problems+=("$leaf25's launch was built with $got25, not $tier25")
   fi
 done
 
