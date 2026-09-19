@@ -187,6 +187,11 @@ BEFORE='[^0-9A-Za-z-]'
 # as comparisons.
 intro_claim=".*$BEFORE$NUM bash scripts.*"
 idiom_claim=".*$BEFORE$NUM files for $NUM scripts.*"
+# The same sentence's unit-tier count, "plus <n> [words] under `unit/`" — the backticks and
+# the slash matched as any character: the backticks so the pattern needs no quoting inside
+# this double-quoted string, the slash because `claimed` hands the pattern to sed as
+# `s/…/…/`, where a literal one ends it.
+unit_claim=".*${BEFORE}plus $NUM [A-Za-z ]*under .unit..*"
 
 # claimed <text> <pattern> <group> — the count <pattern> captures out of <text>, empty if
 # nothing matches. The leading `.*` is greedy, so of several sentences matching in the
@@ -384,10 +389,6 @@ problems=()
 unit_glob="skills/tdd/scripts/tests/unit/*.test.sh"
 unit_path="$ROOT/$unit_glob"
 unit_suite="skills/tdd/scripts/tests/unit/push-branch.test.sh"
-# "plus <n> [words] under `unit/`" — the backticks and the slash matched as any character:
-# the backticks so the pattern needs no quoting inside this double-quoted string, the slash
-# because `claimed` hands the pattern to sed as `s/…/…/`, where a literal one ends it.
-unit_claim=".*${BEFORE}plus $NUM [A-Za-z ]*under .unit..*"
 
 present "$unit_suite"
 n_unit="$(how_many "$unit_path")"
