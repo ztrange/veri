@@ -72,14 +72,16 @@ pin="$("$BUILD" pin "$work/spec.md" "$testpath" test_slugify_lowercases)"; code=
   && grep -qiE 'behaviou?r-level|trivial' <<<"$pin" \
   && ok || no "verify-pin carries spec + test path and the three pin checks (exit $code)"
 
-# 10. both blind verifiers still demand the project's FULL TEST SUITE, in those words.
-#     #144 moves the developer leaves off the full suite and onto the suite they touched,
-#     so these two prompts become the only place a regression in an untouched suite is
-#     caught. The phrase is matched tolerantly of markdown emphasis (`**full test
-#     suite**`) but not of the whole sentence going missing.
+# 10. verify-green still demands the project's FULL TEST SUITE, in those words.
+#     #144 moved the developer leaves off the full suite and onto the suite they touched,
+#     so the blind verifiers became the place a regression in an untouched suite is
+#     caught. #341 moves verify-refactor onto the affected suites — the conductor's pre-PR
+#     `--tier all` run is where the full command still runs — and prompt-test-tiers.test.sh
+#     pins that half now. The phrase is matched tolerantly of markdown emphasis (`**full
+#     test suite**`) but not of the whole sentence going missing.
 full_suite='full[^[:alnum:]]*test[^[:alnum:]]*suite'
-grep -qiE "$full_suite" <<<"$green" && grep -qiE "$full_suite" <<<"$refactor" \
-  && ok || no "verify-green and verify-refactor still require the full test suite"
+grep -qiE "$full_suite" <<<"$green" \
+  && ok || no "verify-green still requires the full test suite"
 
 # 11. the argument list does not grow. #144 moves the developer leaves onto the suite they
 #     touched, and the obvious next thought is to tell the verifier which suite that was —

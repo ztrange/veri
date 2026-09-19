@@ -71,6 +71,23 @@ if plain <<< "$red" | grep -qE 'run the suite that holds the new case'; then
 fi
 report "$name"
 
+# 2. verify-refactor's checklist item 1 runs the affected suites (criterion 3). The item is
+#    read on its own — from its `1.` line up to the `2.` one — so a mention elsewhere in the
+#    prompt cannot satisfy it.
+name="verify-refactor's checklist item 1 names affected-suites.sh, not the project's full test suite"
+problems=()
+verify_refactor="$("$VERIFY" refactor "$work/spec.md" 'tests/zorblat.test.sh' 'abc1234' 2>/dev/null)" ||
+  problems+=("build-verify-prompt.sh refactor exited $?")
+item1="$(plain <<< "$verify_refactor" | awk 'f && /^2\. /{exit} f; /^1\. still green/{f=1; print}')"
+if [[ -z "$item1" ]]; then
+  problems+=("verify-refactor's prompt has no checklist item 1 ('1. still green')")
+fi
+if grep -qF "the project's full test suite" <<< "$item1"; then
+  problems+=("verify-refactor's checklist item 1 still says \"the project's full test suite\"")
+fi
+runs_affected "verify-refactor's checklist item 1" "$item1"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
