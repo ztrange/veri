@@ -56,10 +56,16 @@ runs_affected() {
 }
 
 # numbered_item <ere> — from the prompt on stdin, the first numbered item (`N. ` up to the
-# next `N. `) whose text matches <ere>, joined onto one line so a template may wrap it
-# anywhere. Reading the item on its own means a mention elsewhere cannot satisfy a probe.
+# next `N. `) whose text matches <ere>, printed as the item's own lines. <ere> is matched
+# against the item joined onto one line (each line preceded by a space), so a template may
+# wrap the matched words anywhere; the lines stay unjoined so runs_affected still demands
+# "run" and affected-suites.sh on one line. Reading the item on its own means a mention
+# elsewhere cannot satisfy a probe.
 numbered_item() {
-  awk -v re="$1" '/^[0-9]+\. /{if (item ~ re) {print item; exit} item=""} /^[0-9]+\. /||item!=""{item=item " " $0} END{if (item ~ re) print item}'
+  awk -v re="$1" '
+    /^[0-9]+\. /{if (item ~ re) {printf "%s", lines; done=1; exit} item=""; lines=""}
+    /^[0-9]+\. /||item!=""{item=item " " $0; lines=lines $0 "\n"}
+    END{if (!done && item ~ re) printf "%s", lines}'
 }
 
 printf 'zorblat must return frob\n' > "$work/spec.md"
