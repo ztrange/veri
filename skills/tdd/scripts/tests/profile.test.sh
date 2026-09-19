@@ -34,6 +34,18 @@ write_fixture() {
   chmod +x "$fixture"
 }
 
+# expect_line <rest> <secs> — `out` is exactly one line `<secs> <rest>`, its seconds field a
+# number equal to <secs> (compared as a number, not as a digit count); otherwise a problem.
+expect_line() {
+  local rest="$1" want="$2"
+  if [[ "$out" =~ ^([0-9]+(\.[0-9]+)?)\ (.*)$ && "${BASH_REMATCH[3]}" == "$rest" ]]; then
+    awk -v s="${BASH_REMATCH[1]}" -v w="$want" 'BEGIN { exit !(s + 0 == w + 0) }' ||
+      problems+=("want secs equal to $want, got $(printf '%q' "$out")")
+  else
+    problems+=("want exactly '<secs> $rest', got: $(printf '%q' "$out")")
+  fi
+}
+
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
@@ -91,13 +103,7 @@ echo "$pass passed, $fail failed"
 EOF
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
-secs="${out%% *}"
-if [[ "$out" =~ ^[0-9]+(\.[0-9]+)?\ (.*)$ && "${BASH_REMATCH[2]}" == "$fixture case 2 L5-8" ]]; then
-  awk -v s="$secs" 'BEGIN { exit !(s + 0 == 3) }' ||
-    problems+=("want secs equal to 3, got $(printf '%q' "$secs")")
-else
-  problems+=("want exactly '<secs> $fixture case 2 L5-8', got: $(printf '%q' "$out")")
-fi
+expect_line "$fixture case 2 L5-8" 3
 report "$name"
 
 # 3. only a top-level assignment that raises `pass` or `fail` ends a case. The fixture's
@@ -125,12 +131,7 @@ echo "$pass passed, $fail failed"
 EOF
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
-if [[ "$out" =~ ^([0-9]+(\.[0-9]+)?)\ (.*)$ && "${BASH_REMATCH[3]}" == "$fixture case 2 L5-12" ]]; then
-  awk -v s="${BASH_REMATCH[1]}" 'BEGIN { exit !(s + 0 == 25) }' ||
-    problems+=("want secs equal to 25, got $(printf '%q' "$out")")
-else
-  problems+=("want exactly '<secs> $fixture case 2 L5-12', got: $(printf '%q' "$out")")
-fi
+expect_line "$fixture case 2 L5-12" 25
 report "$name"
 
 # 4. three cases over the threshold, written out of order — case 2 spans 2 fabricated
