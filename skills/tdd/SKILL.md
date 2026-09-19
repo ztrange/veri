@@ -412,8 +412,8 @@ unauthenticated baseline never gets a cycle.
    ```
    body="$(mktemp)" && gh issue view <n> --json body -q .body > "$body"
    ```
-   Then get the test command from `$S/detect-test-command.sh --issue "$body"` (see
-   *Detecting the test command*) and run it. If already red, stop and report — a cycle must
+   Then get the fast tier's command from `$S/detect-test-command.sh --tier fast --issue "$body"`
+   (see *Detecting the test command*) and run it. If already red, stop and report — a cycle must
    not start on a red baseline. Reading the body **here**, before the baseline runs, is what
    keeps the baseline and every later leaf on one command: detected after the baseline, the
    issue's line would arrive too late to be the command the baseline proved green. Note how
