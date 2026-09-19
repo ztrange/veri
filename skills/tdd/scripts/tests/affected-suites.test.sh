@@ -216,6 +216,27 @@ commit_head
 expect_suites "rule 4: a change to SKILL.md, CLAUDE.md and Makefile prints their guard suites" \
   "$(printf 'skills/tdd/scripts/tests/claude-md-guard.test.sh\nskills/tdd/scripts/tests/makefile-guard.test.sh\nskills/tdd/scripts/tests/skill-md-guard.test.sh')"
 
+# 10. rule 5: a change to one file rule 1 places and one file no rule places → every suite, the
+#    full tier, not rule 1's suite alone. foo.sh is placed by rule 1; docs/notes.md is no script,
+#    lib file, suite, fixture or guarded document, so it widens the whole answer to all three
+#    suites — tests/bar.test.sh and tests/unit/baz.test.sh included, though nothing they cover
+#    changed.
+new_repo rule5
+mkdir -p "$s/tests/unit" "$repo/docs"
+printf 'foo\n' > "$s/foo.sh"
+printf 'bar\n' > "$s/bar.sh"
+printf 'baz\n' > "$s/baz.sh"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# bar suite\n' > "$s/tests/bar.test.sh"
+printf '# baz unit suite\n' > "$s/tests/unit/baz.test.sh"
+printf '# notes\n' > "$repo/docs/notes.md"
+commit_base
+printf 'foo 2\n' > "$s/foo.sh"
+printf '# notes 2\n' > "$repo/docs/notes.md"
+commit_head
+expect_suites "rule 5: a rule-1 file plus a file no rule matches prints every suite, not the rule-1 suite alone" \
+  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh\nskills/tdd/scripts/tests/unit/baz.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

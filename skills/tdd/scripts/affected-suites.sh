@@ -28,7 +28,7 @@ suites_naming() {
 
 # suite_of <path> — the suites a touched file affects: a suite is its own, a script's is the
 # one named after it, under tests/ or tests/unit/, and a lib file's are those of every script
-# that sources it.
+# that sources it. Returns 1 for a file no rule places.
 suite_of() {
   local f="$1" name script
   case "$f" in
@@ -57,6 +57,7 @@ suite_of() {
       else
         echo "$scripts/tests/$name.test.sh"
       fi ;;
+    *) return 1 ;;
   esac
 }
 
@@ -64,4 +65,21 @@ suite_of() {
 files="$(git diff --name-only "$range")"
 [[ -n "$files" ]] || exit 3
 
-while IFS= read -r f; do suite_of "$f"; done <<<"$files" | sort -u
+# One file no rule places widens the whole answer to every suite (fail-closed): a partial list
+# would narrow the run to what the other rules happened to find.
+placed="" unplaced=0
+while IFS= read -r f; do
+  if suites="$(suite_of "$f")"; then
+    if [[ -n "$suites" ]]; then placed+="$suites"$'\n'; fi
+  else
+    unplaced=1
+  fi
+done <<<"$files"
+
+if (( unplaced )); then
+  for suite in "$scripts"/tests/*.test.sh "$scripts"/tests/unit/*.test.sh; do
+    if [[ -f "$suite" ]]; then echo "$suite"; fi
+  done | sort -u
+else
+  printf '%s' "$placed" | sort -u
+fi
