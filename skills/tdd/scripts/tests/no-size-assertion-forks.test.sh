@@ -159,6 +159,33 @@ out="$("$bound/no-size-assertion.test.sh" 2>&1)"
 
 report "$name"
 
+# 5. The criterion: a suite that measures something else entirely with `wc`, `stat` and `du` is
+#    still not reported — even when the same suite names CLAUDE.md on a line that measures
+#    nothing, so only the per-line subject check keeps it green. Its own fixture directory, so
+#    the counts above are not moved.
+#      → the observed suite `1 passed, 0 failed`, and no line naming the measuring suite.
+name="no-size-assertion.test.sh's probe still does not report a suite that measures something else entirely with wc, stat and du"
+problems=()
+
+unrelated="$tmp/unrelated"
+mkdir -p "$unrelated"
+cp "$HERE/no-size-assertion.test.sh" "$unrelated/"
+printf '#!/usr/bin/env bash
+grep -q rule "$ROOT/CLAUDE.md"
+lines="$(wc -l < "$plan")"
+size="$(stat -f %%z "$log")"
+used="$(du -k "$tmp" | cut -f1)"
+' \
+  > "$unrelated/sizes-other.test.sh"
+
+out="$("$unrelated/no-size-assertion.test.sh" 2>&1)"
+[[ "$out" == *'1 passed, 0 failed'* ]] ||
+  problems+=("want the observed suite green when a suite measures only files other than the two documents, got: $(printf '%q' "$out")")
+[[ "$out" != *'sizes-other.test.sh:'* ]] ||
+  problems+=("want no problem line naming sizes-other.test.sh, got: $(printf '%q' "$out")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
