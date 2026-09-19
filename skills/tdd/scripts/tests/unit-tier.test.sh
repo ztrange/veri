@@ -15,6 +15,9 @@
 #      failure rather than a vacuous pass.
 #   2. `make -n test` names the suites of both directories — the flat one and unit/ — and
 #      none of them twice, so the full tier still covers what the fast tier runs.
+#   3. `make unit` guards a suite the way `make test` does: a suite that never prints its
+#      `<n> passed, <m> failed` count line fails the run, named, and so does one that calls gh,
+#      caught by the OFFLINE_BIN shim's reach log and named with what it tried.
 #
 # The roster is read off `make -n`, which expands the target's list and runs nothing, the
 # same idiom as no-docs-reads.test.sh's roster helper: running `make unit` to find out
@@ -109,6 +112,43 @@ else
     [[ "$n" -eq 1 ]] || problems+=("make -n test names $rel $n times, not once")
   done
 fi
+
+report "$name"
+
+# 3. `make unit` applies `make test`'s two guards. Each fixture is handed to the real recipe as
+# `make unit UNIT_TESTS=<fixture>`, the way make-test-env.test.sh hands one to `test` as
+# TESTS=<fixture>: the target's SUITES reads UNIT_TESTS, so the fixture is all it runs. Neither
+# fixture calls git or python3, so the case asks only the two guards and nothing the fast tier
+# may add on top of them.
+name="make unit applies make test's count-line check and OFFLINE_BIN reach-log guard"
+problems=()
+
+cat > "$scratch/no-count-line.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+echo "a suite that stopped asserting"
+exit 0
+SUITE
+cat > "$scratch/reaches-gh.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+gh api --hostname example.invalid veri-unit-gh-probe >/dev/null 2>&1
+echo "1 passed, 0 failed"
+exit 0
+SUITE
+chmod +x "$scratch/no-count-line.test.sh" "$scratch/reaches-gh.test.sh"
+
+unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/no-count-line.test.sh" 2>&1 < /dev/null)" &&
+  unit_code=0 || unit_code=$?
+[[ "$unit_code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that never reached its count line; it exited 0 and said: $(flat "$unit_out")")
+grep -F 'no-count-line.test.sh' <<< "$unit_out" | grep -qF 'never reached its count line' ||
+  problems+=("no line of 'make unit' names no-count-line.test.sh and says it never reached its count line: $(flat "$unit_out")")
+
+unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/reaches-gh.test.sh" 2>&1 < /dev/null)" &&
+  unit_code=0 || unit_code=$?
+[[ "$unit_code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that ran gh; it exited 0 and said: $(flat "$unit_out")")
+grep -F 'reaches-gh.test.sh: tried the network:' <<< "$unit_out" | grep -qF 'veri-unit-gh-probe' ||
+  problems+=("no 'tried the network' line of 'make unit' names reaches-gh.test.sh with the gh call carrying veri-unit-gh-probe: $(flat "$unit_out")")
 
 report "$name"
 
