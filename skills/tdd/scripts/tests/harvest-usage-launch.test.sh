@@ -159,13 +159,20 @@ variant() {
   cp "$HERE/harvest-usage.test.sh" "$1/tests/"
 }
 
-# killed_block <suite-output> — the indented problem lines under the FAIL line of the observed
-# suite's case 2 (the leaf with no closing result record), or nothing when that case passed.
-killed_block() {
-  printf '%s\n' "$1" | awk '
-    /^FAIL - a leaf whose log carries no closing result record/ { on = 1; next }
+# fail_block <case-name-prefix> <suite-output> — the indented problem lines under the observed
+# suite's FAIL line for the case whose name starts with <case-name-prefix>, or nothing when
+# that case passed. The prefix is matched as text, not as a pattern.
+fail_block() {
+  printf '%s\n' "$2" | awk -v want="FAIL - $1" '
+    index($0, want) == 1 { on = 1; next }
     on && /^    / { print; next }
     { on = 0 }'
+}
+
+# killed_block <suite-output> — fail_block for the observed suite's case 2, the leaf with no
+# closing result record.
+killed_block() {
+  fail_block 'a leaf whose log carries no closing result record' "$1"
 }
 
 # 2. The criterion: case 2 of harvest-usage.test.sh still makes every assertion it made before
@@ -282,10 +289,7 @@ out="$(PATH="$wrong/bin:$PATH" "$wrong/tests/harvest-usage.test.sh" 2>/dev/null)
   problems+=("setup: want the harvested cache_read_input_tokens rewritten to 1287432, it was not")
 [[ "$out" == *'2 passed, 1 failed'* ]] ||
   problems+=("broken cache_read_input_tokens: want only case 1 red, got: $(printf '%q' "$out")")
-block="$(printf '%s\n' "$out" | awk '
-  /^FAIL - a finished leaf: the harvester appends one usage event/ { on = 1; next }
-  on && /^    / { print; next }
-  { on = 0 }')"
+block="$(fail_block 'a finished leaf: the harvester appends one usage event' "$out")"
 printf '%s\n' "$block" | grep -qw cache_read_input_tokens ||
   problems+=("broken cache_read_input_tokens: want case 1 to name that field, got: $(printf '%q' "$block")")
 for other in duration_ms duration_api_ms num_turns total_cost_usd \
