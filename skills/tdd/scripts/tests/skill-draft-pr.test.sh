@@ -31,6 +31,8 @@
 #      to the ledger rather than bailing; the same step says a unit-tier test is added when
 #      the failure exposes a gap, and that the verifier judges the fix against the full
 #      command (issue #341).
+#   5. SKILL.md's Draft PR step bails on a second red result on the full run after a repair
+#      step, naming every suite still red rather than only the first (issue #341).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -210,6 +212,27 @@ else
     problems+=("$skill_md's Draft PR step never says a unit-tier test is added when the red full run exposes a gap the fast tier missed")
   grep -qE 'verifier[^.]*full command' <<< "$records" ||
     problems+=("$skill_md's Draft PR step never says the repair step's verifier judges the fix against the full command")
+fi
+report "$name"
+
+# 5. The criterion, as one case (issue #341): the repair step is one more cycle, not a loop.
+#    A full run that is red again after the repair step has had its chance ends the run, and
+#    the bail names every suite still red — a report naming only the first would send the
+#    human who reads it to fix one suite and find the next on the rerun. What is pinned is a
+#    record of the Draft PR step that bails on a second red full run after a repair step, and
+#    that the same record names every suite still red. The record is asked for first so the
+#    case fails closed, the way case 4 does.
+name="$skill_md's Draft PR step bails on a second red full run after a repair step, naming every suite still red"
+problems=()
+
+records="$(draft_pr_instructions)"
+second="$(grep -wF 'bail' <<< "$records" | grep -E 'second red|red again' | grep -F 'repair step' | head -1)"
+if [[ -z "$records" ]]; then
+  no_draft_pr_section "what a second red full run does"
+elif [[ -z "$second" ]]; then
+  problems+=("$skill_md's Draft PR step has no record bailing on a second red full run after a repair step, so a repair that does not take can loop instead of ending the run")
+elif ! grep -qE 'every (suite still red|red suite|failing suite|still-red suite)' <<< "$second"; then
+  problems+=("$skill_md's Draft PR step bails on a second red full run without naming every suite still red: $(printf '%.120s' "$second")")
 fi
 report "$name"
 
