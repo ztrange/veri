@@ -167,6 +167,24 @@ head="$(git -C "$repo" rev-parse HEAD)"
 expect_suites "rule 2: a change to scripts/lib/bar.sh prints the suite of every script that sources it, and no others" \
   "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
 
+# 7. rule 3: a change to a suite file itself → that suite. Only tests/foo.test.sh changes; the
+#    script it covers and a neighbour's suite stay untouched, so the answer must be the suite
+#    alone — not read as a change to foo.sh, and not widened to every suite.
+repo="$(new_repo rule3-suite)"
+s="$repo/skills/tdd/scripts"
+mkdir -p "$s/tests"
+printf 'foo\n' > "$s/foo.sh"
+printf 'bar\n' > "$s/bar.sh"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# bar suite\n' > "$s/tests/bar.test.sh"
+commit_all "$repo" "base"
+base="$(git -C "$repo" rev-parse HEAD)"
+printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
+commit_all "$repo" "head"
+head="$(git -C "$repo" rev-parse HEAD)"
+expect_suites "rule 3: a change to the suite tests/foo.test.sh itself prints exactly that suite" \
+  "skills/tdd/scripts/tests/foo.test.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
