@@ -10,4 +10,4 @@ suite; the highest, issue-worktree.sh, is 348 lines and not small).
 - [x] The new unit suite's header comment records push-branch.sh as the chosen script and the reasoning as a process-count proxy, not measured seconds ⟦criterion 1⟧
 - [x] Both the new unit suite and the untouched integration suite pass under `make test`, and the unit suite alone passes under `make unit` ⟦criterion 5⟧
 - [x] CLAUDE.md's "Testing idiom" section documents the pattern (main guard, source, mock-as-function, unchanged CLI contract) naming push-branch.sh as the worked example, in wording a guard suite pins ⟦criterion 6⟧
-- [x] claude-md-counts.test.sh's suite-count assertions include the new unit suite file and still pass ⟦criterion 7⟧ ⟂ refactor pending
+- [x] claude-md-counts.test.sh's suite-count assertions include the new unit suite file and still pass ⟦criterion 7⟧
