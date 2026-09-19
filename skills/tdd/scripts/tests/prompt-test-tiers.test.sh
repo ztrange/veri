@@ -88,6 +88,25 @@ fi
 runs_affected "verify-refactor's checklist item 1" "$item1"
 report "$name"
 
+# 3. The refactor leaf runs, after each transform, the suites affected-suites.sh prints when
+#    fed refactor-touched.sh's output. The instruction that runs after each transform is read
+#    on its own — the numbered item that says "after each transform", joined onto one line so
+#    a template may wrap it anywhere — so a mention elsewhere in the prompt cannot satisfy it.
+name="develop-refactor runs affected-suites.sh fed refactor-touched.sh's output after each transform"
+problems=()
+refactor="$("$DEVELOP" refactor "$work/spec.md" 'QWIXTLE step' 'make test' 'src/zorblat.sh' 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh refactor exited $?")
+after_each="$(plain <<< "$refactor" |
+  awk '/^[0-9]+\. /{if (item ~ /after each transform/) {print item; exit} item=""} /^[0-9]+\. /||item!=""{item=item " " $0} END{if (item ~ /after each transform/) print item}')"
+if [[ -z "$after_each" ]]; then
+  problems+=("develop-refactor's prompt has no numbered item saying what runs after each transform")
+fi
+runs_affected "develop-refactor's after-each-transform item" "$after_each"
+if ! grep -qF 'refactor-touched.sh' <<< "$after_each"; then
+  problems+=("develop-refactor's after-each-transform item never feeds affected-suites.sh refactor-touched.sh's output")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
