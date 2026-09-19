@@ -9,9 +9,9 @@
 TESTS := $(sort $(wildcard skills/tdd/scripts/tests/*.test.sh))
 
 # `make unit` is the fast tier (#336): only the suites under tests/unit/, through the same
-# recipe as `test`. SUITES is set per target, so the two share one runner.
+# recipe as `test`, which runs them too. SUITES is set per target, so the two share one runner.
 UNIT_TESTS := $(sort $(wildcard skills/tdd/scripts/tests/unit/*.test.sh))
-test: SUITES = $(TESTS)
+test: SUITES = $(TESTS) $(UNIT_TESTS)
 unit: SUITES = $(UNIT_TESTS)
 
 # The line every suite under that glob prints last, as an ERE — the "count line" the
