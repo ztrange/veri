@@ -53,6 +53,39 @@ else
   pass=$((pass + 1))
 fi
 
+# 3. sourced, with git, sleep and the event recording mocked as same-named functions and PATH
+#    an empty directory, main runs the whole failed-push path in-process: every attempt
+#    pushes, one wait between the two, one push-failed event, one stderr line, exit 0 — and
+#    no real process is started, since PATH holds nothing one could be started from
+name="sourced with git, sleep and record mocked as functions and PATH empty, main runs a failed push to its push-failed event, starting no real process"
+calls="$scratch/calls3" err="$scratch/err3" nobin="$scratch/nobin"
+mkdir -p "$nobin"
+: > "$calls"
+(
+  source "$PUSH"
+  git() { echo "git $*" >> "$calls"; echo "fatal: unable to access origin"; return 128; }
+  sleep() { echo "sleep $*" >> "$calls"; return 0; }
+  record() { echo "record $*" >> "$calls"; return 0; }
+  PATH="$nobin"
+  VERI_PUSH_RETRIES=1
+  unset VERI_PUSH_BACKOFF
+  main
+) > "$scratch/out3" 2> "$err"
+rc=$?
+want_calls="git push --set-upstream origin HEAD
+sleep 2
+git push --set-upstream origin HEAD
+record push-failed error=fatal: unable to access origin attempts=2"
+want_err="push-branch.sh: push failed after 2 attempts; the branch is not on the remote"
+if [[ "$rc" -ne 0 || -s "$scratch/out3" || "$(cat "$err")" != "$want_err" || "$(cat "$calls")" != "$want_calls" ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (want exit 0, empty stdout, stderr '$want_err'):"
+  echo "    exit $rc"; echo "    stdout: $(printf '%q' "$(cat "$scratch/out3")")"
+  echo "    stderr: $(printf '%q' "$(cat "$err")")"
+  diff <(echo "$want_calls") "$calls"
+else
+  pass=$((pass + 1))
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
