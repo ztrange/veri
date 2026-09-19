@@ -96,6 +96,13 @@ draft_pr_instructions() {
   section_records '### 4. Draft PR' '^## |^### '
 }
 
+# no_draft_pr_section <what> — the problem a case records when the `### 4. Draft PR` step is
+# not there to read, naming <what> it could therefore not check. One sentence for every case,
+# so a renamed or emptied section fails each of them closed in the same words.
+no_draft_pr_section() {
+  problems+=("$skill_md has no ### 4. Draft PR section to read — $1 could not be checked")
+}
+
 # 1. The criterion, as one case: the step opens the PR for a branch that is already on the
 #    remote. Both halves are asked of the same slice, and the opening half is asked first so
 #    the case fails closed — a section emptied or renamed must not read as "it no longer
@@ -107,7 +114,7 @@ problems=()
 
 records="$(draft_pr_instructions)"
 if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no ### 4. Draft PR section to read — whether the step still pushes could not be checked")
+  no_draft_pr_section "whether the step still pushes"
 else
   grep -qF 'gh pr create' <<< "$records" ||
     problems+=("$skill_md's Draft PR step never runs gh pr create, so there is no PR being opened against the pushed branch at all")
@@ -168,7 +175,7 @@ problems=()
 
 records="$(draft_pr_instructions)"
 if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no ### 4. Draft PR section to read — which command its full-suite gate runs could not be checked")
+  no_draft_pr_section "which command its full-suite gate runs"
 elif ! names_the_full_gate "$records"; then
   problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
 fi
@@ -195,7 +202,7 @@ problems=()
 records="$(draft_pr_instructions)"
 repair="$(grep -F 'repair step' <<< "$records" | grep -wF 'red' | grep -F 'ledger' | head -1)"
 if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no ### 4. Draft PR section to read — what a red full run does could not be checked")
+  no_draft_pr_section "what a red full run does"
 elif [[ -z "$repair" ]]; then
   problems+=("$skill_md's Draft PR step has no record adding a repair step to the ledger on a red full run, so a suite only the full command reaches still ends the run in a bail")
 else
