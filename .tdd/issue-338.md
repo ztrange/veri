@@ -1,6 +1,6 @@
 # Plan for #338 — detect-test-command.sh reads a target repo's declared fast/all test commands
 
-- [ ] With no `--tier` flag, detect-test-command.sh behaves exactly as today across every existing single-command case (`.veri/test-command`, package.json, Makefile, pytest/pyproject/setup.cfg, go.mod, Cargo.toml, tests/test_*.py glob, `--issue` override) ⟦criterion 1⟧
+- [x] With no `--tier` flag, detect-test-command.sh behaves exactly as today across every existing single-command case (`.veri/test-command`, package.json, Makefile, pytest/pyproject/setup.cfg, go.mod, Cargo.toml, tests/test_*.py glob, `--issue` override) ⟦criterion 1⟧
 - [ ] With no `--tier` flag, `veri: fast tests:` / `veri: all tests:` lines in the target's root CLAUDE.md are ignored and the single-command chain still answers ⟦criterion 1⟧
 - [ ] With both CLAUDE.md marker lines present and no issue override, `--tier fast` prints the fast command and `--tier all` prints the all command, byte for byte ⟦criterion 3⟧
 - [ ] A `veri: fast tests:` / `veri: all tests:` marker is recognized anywhere on a CLAUDE.md line, and one quoted inside a backtick span is skipped exactly as the issue override marker is ⟦criterion 2⟧
