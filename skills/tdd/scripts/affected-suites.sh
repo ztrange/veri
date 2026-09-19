@@ -29,8 +29,9 @@ suite_of() {
     "$scripts"/lib/*.sh)
       # A sourcing script names the lib file on a `source` line, as event.sh does
       # `source "$HERE/lib/json-escape.sh"`; a comment naming it is not a dependency.
+      name="$(basename "$f")"
       for script in "$scripts"/*.sh; do
-        if grep -qE "^[[:space:]]*(source|\.)[[:space:]].*lib/$(basename "$f")\"?[[:space:]]*$" "$script"; then
+        if grep -qE "^[[:space:]]*(source|\.)[[:space:]].*lib/$name\"?[[:space:]]*$" "$script"; then
           suite_of "$script"
         fi
       done ;;
