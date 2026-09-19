@@ -860,6 +860,9 @@ and return to step 3, *The cycle loop* — the failing suite is that step's red 
 developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
 verifier judges the fix against the full command, not the fast one.
 
+A second red result on the full run after a repair step does **bail** — the repair step is
+one more cycle, not a loop — and the bail names every suite still red, not only the first.
+
 1. **Ask the two questions that decide whether there is anything fit to push, and refuse to
    go on while either says no** — both from inside the worktree, before a human is asked to
    look:
