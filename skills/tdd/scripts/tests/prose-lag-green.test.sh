@@ -21,47 +21,46 @@
 # is grown, nothing is rebuilt, and the runner is asked for its verdict.
 #
 # Contract under test:
-#   Over a copy of this tree with one line appended to skills/tdd/scripts/solvable-issues.sh
-#   and the generated tree copied across untouched, `make test` runs the suite that owns that
-#   script, that suite passes, and the runner says `all suites green`.
+#   Over a tree with one script one line longer than the suite that owns it expects, `make
+#   test` runs that suite, that suite passes, and the runner says `all suites green`.
 #
 # The roster is narrowed to that one suite through the recipe's own TESTS variable, for two
 # reasons that both have to hold.
 #
-#   Scope. The copy is a partial tree, and deliberately so (see tree_grown_past_its_prose):
-#   the whole roster run over one was measured at 98 s and came back SUITES FAILED, seven
-#   cases across five suites — count-line-guard, skill-identity, skill-refactor-pending,
-#   skill-suite-runs and workflow-timeouts — every one of them reading something the copy
-#   does not carry: CLAUDE.md, .github/workflows/, or the git index its tracked-file sweeps
-#   ask. None of that is the criterion, and a case that had to copy a whole repository
-#   including its worktrees to avoid it would be pinning the copy rather than the rule.
+#   Scope. The tree is partial, and deliberately so: the whole roster run over a copy of this
+#   repository was measured at 98 s and came back SUITES FAILED, seven cases across five
+#   suites — count-line-guard, skill-identity, skill-refactor-pending, skill-suite-runs and
+#   workflow-timeouts — every one of them reading something a partial copy does not carry:
+#   CLAUDE.md, .github/workflows/, or the git index its tracked-file sweeps ask. None of that
+#   is the criterion, and a case that had to copy a whole repository including its worktrees
+#   to avoid it would be pinning the copy rather than the rule.
 #
 #   Cost. This case runs inside `make test` itself, and `make test` runs three times per
-#   step — once for develop-green and once for each blind verifier. 98 s of it would add
-#   five minutes a step to every issue veri solves, to re-observe on 36 suites what
-#   no-docs-reads.test.sh case 2 already establishes about all of them for the price of one
-#   `make -n`.
+#   step — once for develop-green and once for each blind verifier. What used to pay for that
+#   scope was a real 30-case suite (solvable-issues.test.sh) chosen because it is the actual
+#   historical regression #143 names — but the property under test does not care WHICH script
+#   grew or WHICH suite owns it, only that the runner does not fail a development commit for
+#   a page it never reads: that is a fact about `make test`'s own recipe and no-docs-reads.sh's
+#   discipline, not about solvable-issues.sh. So the witness is a fixture script and a
+#   two-line suite invented for this case alone (fixture-prose-lag.sh /
+#   fixture-prose-lag.test.sh), not a copy of the repository's own 145-file skills/ tree: no
+#   `cp -R`, and the nested `make test` run pays for one trivial assertion instead of
+#   solvable-issues.test.sh's thirty.
 #
 # What no static check can establish is that the runner comes back green over a tree in that
-# state, and one suite is enough to observe it: solvable-issues.test.sh is the suite that used
-# to go red here, and solvable-issues.sh the script whose length it read, so this is the
-# scenario the criterion names, run.
+# state, and one suite is enough to observe it — its own subject no longer needs to be real
+# production code, since the criterion is about the runner's recipe, not about any script's
+# behaviour.
 #
-# The plant is an appended comment, at the END of the script: the page states a length and
-# quotes the source, so a line added anywhere makes what the committed page says about that
-# script false, and a line added at the end cannot disturb the header or the code that any
-# other case reads.
+# The plant is an appended comment, at the END of the fixture script: the scenario is a
+# script one line longer than whatever last described it, and a line added at the end cannot
+# disturb the code any assertion reads. probe_plant_is_real asserts the fixture script really
+# did grow against the pristine copy this case wrote first, so a plant that landed nowhere
+# would not leave this case passing over an ordinary tree.
 #
-# Nothing in the copy is rebuilt, and that is what makes the tree the one the criterion
-# describes: the generated tree is copied across byte for byte, so whatever the page in the
-# copy says about that script, it says about the file as it stood before the plant.
-# probe_plant_is_real asserts the two lengths really did part company — a plant that landed
-# somewhere else, or not at all, would leave this case passing over an ordinary tree.
-#
-# No line of code below spells the generated tree's name with its slash: it is built onto
-# GENERATED_DIR, so this file is not the first offender against the rule it exists to
-# observe. Copying that tree is not reading it — no assertion here is decided by a byte of
-# it, which is the whole of what no-docs-reads.test.sh asks of a suite in this directory.
+# No line of code below spells the generated tree's name: this case no longer copies or
+# touches it at all, which is the strongest form of what no-docs-reads.test.sh asks of a
+# suite in this directory.
 #
 # Run: skills/tdd/scripts/tests/prose-lag-green.test.sh
 set -uo pipefail
@@ -74,19 +73,14 @@ pass=0 fail=0
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# The script the plant grows and the suite that owns it, repo-relative — which is what the
-# recipe's TESTS variable is handed, what the failure messages quote and what resolves
-# against both trees. Each basename besides, and neither substitutes for the other: the
-# runner announces each suite by basename (`== <name>`), which is how this case knows the
-# narrowed roster was not empty, while the case name is about the file that grew.
-SCRIPT='skills/tdd/scripts/solvable-issues.sh'
+# The fixture script the plant grows and the fixture suite that owns it, repo-relative — which
+# is what the recipe's TESTS variable is handed and what the failure messages quote. Neither
+# exists in this repository outside the planted tree: they are invented for this case alone,
+# for the reason the header gives.
+SCRIPT='skills/tdd/scripts/fixture-prose-lag.sh'
 SCRIPT_NAME="${SCRIPT##*/}"
-SUITE='skills/tdd/scripts/tests/solvable-issues.test.sh'
+SUITE='skills/tdd/scripts/tests/fixture-prose-lag.test.sh'
 SUITE_NAME="${SUITE##*/}"
-
-# The generated tree, written once and without its trailing slash, so that no line of this
-# file names a path in it. It is copied into the plant and never opened.
-GENERATED_DIR='docs'
 
 # What the recipe prints when every suite it ran came back green — the runner's own verdict,
 # which is the thing this case reads rather than the exit code alone (#157: a suite that dies
@@ -95,7 +89,7 @@ GREEN_LINE='all suites green'
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the contract broke rather than just that the case did.
+# so the message says which half of the contract broke rather than just that the case did.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -114,46 +108,64 @@ flat() { printf '%s' "$1" | tr '\n' '/'; }
 # why <output> — the part of a runner's output that says what went wrong, flattened onto one
 # problem line: every `FAIL - …` line a suite printed — the line every suite in this tree
 # reports a failed case with — plus the last few lines, which is where the count line and the
-# runner's own verdict are. The tail alone is not enough: a suite prints its failures above
-# its count line, so five lines of tail come back saying `1 failed` without saying what
-# failed, and naming the site is the whole value of a red case.
+# runner's own verdict are.
 why() { flat "$( { grep -E '^FAIL - ' <<< "$1"; tail -5 <<< "$1"; } )"; }
 
-# lines_of <path> — how long a file is, as the builder counts it. The number the deleted case
-# compared against the page's listing header, and the one probe_plant_is_real watches move.
+# lines_of <path> — how long a file is, as the builder counts it. The number
+# probe_plant_is_real watches move between the pristine fixture and the planted one.
 lines_of() { awk 'END {print NR}' "$1"; }
 
-# tree_grown_past_its_prose — a disposable copy of this tree with $SCRIPT one line longer and
-# nothing regenerated, printed as a path. Named, and out of the case body, so the case reads
-# as the three steps it is: build the tree, prove the plant is really a plant, ask the runner.
+# tree_grown_past_its_prose — a disposable tree holding only a Makefile and the fixture
+# script/suite pair, the script one line longer than the pristine copy this function keeps at
+# $WORK/pristine, printed as a path. Named, and out of the case body, so the case reads as the
+# three steps it is: build the tree, prove the plant is really a plant, ask the runner.
 #
-# What is copied is what the suite under test resolves against $REPO_ROOT — the skill tree it
-# tests, the two root documents case 11 of it reads — plus the Makefile, which is the runner
-# itself, and the generated tree, which is copied so that the plant leaves the tree in the
-# state the criterion describes rather than in one with no prose to lag behind. The whole
-# repository is not copied: in the primary clone .tdd/ holds this repository's worktrees and
-# a recursive copy would descend into them.
+# The Makefile is the runner itself, copied so `make -C $planted test` is the same recipe
+# every other suite in this tree runs under. Nothing else from this repository is copied —
+# the fixture pair is written fresh — which is what makes this case's cost independent of how
+# large skills/ or docs/ have grown.
 tree_grown_past_its_prose() {
   local planted="$WORK/tree"
-  mkdir -p "$planted"
-  cp -R "$ROOT/skills" "$planted/skills"
-  cp -R "$ROOT/$GENERATED_DIR" "$planted/$GENERATED_DIR"
-  cp "$ROOT/Makefile" "$ROOT/README.md" "$ROOT/CONTEXT.md" "$planted/"
+  mkdir -p "$planted/$(dirname "$SCRIPT")" "$planted/$(dirname "$SUITE")"
+  cp "$ROOT/Makefile" "$planted/"
+
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf '# A fixture script prose-lag-green.test.sh grows to observe make test'"'"'s verdict\n'
+    printf '# over a tree whose prose has fallen behind its code (#143). Not shipped.\n'
+    printf 'echo ok\n'
+  } > "$WORK/pristine"
+  cp "$WORK/pristine" "$planted/$SCRIPT"
+  chmod 755 "$planted/$SCRIPT"
+
+  {
+    printf '#!/usr/bin/env bash\n'
+    printf '# Fixture suite for prose-lag-green.test.sh: %s still prints "ok".\n' "$SCRIPT_NAME"
+    printf 'set -uo pipefail\n'
+    printf 'here="$(cd "$(dirname "$0")" && pwd)"\n'
+    printf 'pass=0 fail=0\n'
+    printf 'out="$("$here/../%s" 2>/dev/null)"\n' "$SCRIPT_NAME"
+    printf '[[ "$out" == ok ]] && pass=$((pass + 1)) || { fail=$((fail + 1)); echo "FAIL - %s still prints ok"; }\n' "$SCRIPT_NAME"
+    printf 'echo "----"\n'
+    printf 'echo "$pass passed, $fail failed"\n'
+    printf '[[ "$fail" -eq 0 ]]\n'
+  } > "$planted/$SUITE"
+  chmod 755 "$planted/$SUITE"
+
   printf '\n# a line this script grew after the prose that lists it was written\n' >> "$planted/$SCRIPT"
   printf '%s' "$planted"
 }
 
 # probe_plant_is_real <dir> — the plant is only a plant if the script in the copy is no longer
-# the script the copied prose describes, and its length is what says so: that is the number
-# the deleted case read out of the page's listing header, so a copy whose script is still the
-# same length is a tree the old case would have passed over too, and green there would mean
-# nothing. Appends to `$problems` the way report() reads it.
+# the pristine one this case wrote first, and its length is what says so: a copy whose script
+# is still the same length is a tree the deleted case would have passed over too, and green
+# there would mean nothing. Appends to `$problems` the way report() reads it.
 probe_plant_is_real() {
   local grown here
   grown="$(lines_of "$1/$SCRIPT")"
-  here="$(lines_of "$ROOT/$SCRIPT")"
+  here="$(lines_of "$WORK/pristine")"
   [[ "$grown" -gt "$here" ]] ||
-    problems+=("the case is vacuous: $SCRIPT is $grown lines in the copy against $here here, so nothing in the copied prose was left describing a file that has moved on")
+    problems+=("the case is vacuous: $SCRIPT is $grown lines in the planted tree against $here in the pristine fixture, so nothing in the fixture was left describing a file that has moved on")
 }
 
 # 1. The criterion: a script grows, no rebuild follows, and the development lane's runner is
@@ -163,8 +175,8 @@ probe_plant_is_real() {
 #
 #    The suite's `== <name>` announcement is asserted too, because a TESTS list that resolved
 #    to nothing would have the recipe print `all suites green` over an empty roster: the
-#    narrowed roster has to have actually run the suite that used to go red here, or the case
-#    observes an empty loop.
+#    narrowed roster has to have actually run the suite that stands in for the one that used
+#    to go red here, or the case observes an empty loop.
 name="\`make test\` is green over a tree whose $SCRIPT_NAME has grown past the prose listing it, with nothing rebuilt in between"
 problems=()
 
