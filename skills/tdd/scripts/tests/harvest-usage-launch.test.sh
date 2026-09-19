@@ -150,6 +150,81 @@ fi
 
 report "$name"
 
+# variant <dir> — a fresh untraced copy of the scripts and the observed suite under <dir>, for
+# a case to swap one script of before running the suite against it.
+variant() {
+  mkdir -p "$1/tests"
+  cp "$SCRIPTS"/*.sh "$1/"
+  cp -R "$SCRIPTS/lib" "$1/lib"
+  cp "$HERE/harvest-usage.test.sh" "$1/tests/"
+}
+
+# killed_block <suite-output> — the indented problem lines under the FAIL line of the observed
+# suite's case 2 (the leaf with no closing result record), or nothing when that case passed.
+killed_block() {
+  printf '%s\n' "$1" | awk '
+    /^FAIL - a leaf whose log carries no closing result record/ { on = 1; next }
+    on && /^    / { print; next }
+    { on = 0 }'
+}
+
+# 2. The criterion: case 2 of harvest-usage.test.sh still makes every assertion it made before
+#    the launch moved off supervise.sh, and its setup probe still refuses an empty event log.
+#    Observed by running the suite against two broken copies and reading what case 2 says:
+#      - a harvester that, for case 2's leaf alone, appends a `usage` line and says nothing
+#        → case 2 red with the usage-line count, the missing diagnostic, and the harvester and
+#          the leaf each unnamed; cases 1 and 3 untouched.
+#      - a run-leaf.sh that leaves the event log empty behind the real launcher
+#        → case 2 red with its setup probe's complaint about the missing marker line.
+name="harvest-usage.test.sh case 2 still asserts no usage line and a stderr diagnostic naming the harvester and the leaf, and its setup probe still refuses to run when the event log a real writer left behind is empty"
+problems=()
+
+loud="$tmp/loud"
+variant "$loud"
+mv "$loud/harvest-usage.sh" "$loud/harvest-usage.real.sh"
+cat > "$loud/harvest-usage.sh" <<'BROKEN'
+#!/bin/sh
+if [ "$1" = develop-green ]; then
+  printf '%s\n' '{"event":"usage","leaf":"develop-green"}' >> .tdd/events.jsonl
+  exit 0
+fi
+exec "$(dirname "$0")/harvest-usage.real.sh" "$@"
+BROKEN
+chmod +x "$loud/harvest-usage.sh"
+
+out="$("$loud/tests/harvest-usage.test.sh" 2>/dev/null)"
+[[ "$out" == *'2 passed, 1 failed'* ]] ||
+  problems+=("silent harvester that appends: want only case 2 red, got: $(printf '%q' "$out")")
+block="$(killed_block "$out")"
+for want in 'want 0 usage lines in the event log, got 1' \
+            'want a diagnostic on stderr, got nothing' \
+            'want the harvester named on stderr' \
+            'want the leaf named on stderr'; do
+  [[ "$block" == *"$want"* ]] ||
+    problems+=("silent harvester that appends: want case 2 to say '$want', got: $(printf '%q' "$block")")
+done
+
+empty="$tmp/empty"
+variant "$empty"
+mv "$empty/run-leaf.sh" "$empty/run-leaf.real.sh"
+cat > "$empty/run-leaf.sh" <<'BROKEN'
+#!/bin/sh
+"$(dirname "$0")/run-leaf.real.sh" "$@"
+rc=$?
+: > .tdd/events.jsonl
+exit $rc
+BROKEN
+chmod +x "$empty/run-leaf.sh"
+
+out="$("$empty/tests/harvest-usage.test.sh" 2>/dev/null)"
+[[ "$out" == *'2 passed, 1 failed'* ]] ||
+  problems+=("empty event log: want only case 2 red, got: $(printf '%q' "$out")")
+block="$(killed_block "$out")"
+[[ "$block" == *"setup: want the stub leaf's marker line in the event log, found none"* ]] ||
+  problems+=("empty event log: want case 2's setup probe to refuse it, got: $(printf '%q' "$block")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
