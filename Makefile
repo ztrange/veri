@@ -155,10 +155,11 @@ watch:
 	  printf 'VERI_WATCH_INTERVAL must be a number of seconds, got %s\n' "$$interval" >&2; \
 	  exit 2 ;; \
 	esac; \
-	seen="$$(git ls-files -z | xargs -0 cksum 2>/dev/null)"; \
+	snapshot() { git ls-files -z | xargs -0 cksum 2>/dev/null; }; \
+	seen="$$(snapshot)"; \
 	while :; do \
 	  sleep "$$interval"; \
-	  now="$$(git ls-files -z | xargs -0 cksum 2>/dev/null)"; \
+	  now="$$(snapshot)"; \
 	  [ "$$now" = "$$seen" ] && continue; \
 	  seen="$$now"; \
 	  $(WATCH_MAKE) --no-print-directory unit || :; \
