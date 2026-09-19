@@ -237,6 +237,34 @@ commit_head
 expect_suites "rule 5: a rule-1 file plus a file no rule matches prints every suite, not the rule-1 suite alone" \
   "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh\nskills/tdd/scripts/tests/unit/baz.test.sh')"
 
+# 11. rule 5's converse: a change touching only files rules 1–4 place → exactly the suites those
+#    rules name, never the full tier. foo.sh is placed by rule 1, lib/bar.sh (sourced by
+#    alpha.sh) by rule 2, fixtures/plan.md (read by beta's suite) by rule 3, CLAUDE.md (read by
+#    the guard) by rule 4. gamma's suite and the unit suite tests/unit/zeta.test.sh cover nothing
+#    that changed, so an answer that fell back to every suite would carry them.
+new_repo rule5-converse
+mkdir -p "$s/tests/unit" "$s/tests/fixtures" "$s/lib"
+printf '# veri\n' > "$repo/CLAUDE.md"
+printf 'foo\n' > "$s/foo.sh"
+printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\nsource "$HERE/lib/bar.sh"\n' > "$s/alpha.sh"
+for name in beta gamma zeta; do printf '%s\n' "$name" > "$s/$name.sh"; done
+printf '# plan\n' > "$s/tests/fixtures/plan.md"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# alpha suite\n' > "$s/tests/alpha.test.sh"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/fixtures/plan.md"\n' > "$s/tests/beta.test.sh"
+printf '#!/usr/bin/env bash\nclaude_md="CLAUDE.md"\ngrep -q veri "$claude_md"\n' > "$s/tests/claude-md-guard.test.sh"
+printf '# gamma suite\n' > "$s/tests/gamma.test.sh"
+printf '# zeta unit suite\n' > "$s/tests/unit/zeta.test.sh"
+commit_base
+printf 'foo 2\n' > "$s/foo.sh"
+printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
+printf '# plan 2\n' > "$s/tests/fixtures/plan.md"
+printf '# veri 2\n' > "$repo/CLAUDE.md"
+commit_head
+expect_suites "rule 5: a diff touching only files rules 1–4 match never falls back to the full suite" \
+  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh\nskills/tdd/scripts/tests/claude-md-guard.test.sh\nskills/tdd/scripts/tests/foo.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
