@@ -1163,6 +1163,112 @@ fi
 
 report "$name"
 
+# --- the page on disk: one 2-second poll per pane, no server started ---
+# The same two checks as the served-page case above, asked of dashboard.html as it sits beside
+# dashboard.sh rather than of a running server's answer (#330): the server hands the file out
+# byte for byte with no per-request computation, so the file's own text is what the browser
+# gets, and a server started only to read it back adds a process start and nothing else. Every
+# pane's endpoint is fetched from a literal, and every repeating timer on the page fires at
+# 2000 ms; what that pins and what it does not is exactly as stated for the case above.
+name="dashboard.html, read off disk, polls the Runs, Metrics and Events endpoints every 2 seconds"
+problems=()
+disk_page="$scripts/dashboard.html"
+
+if [[ ! -f "$disk_page" ]]; then
+  problems+=("there is no dashboard.html beside dashboard.sh to read")
+else
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && problems+=("$line")
+  done < <(python3 -c '
+import re
+import sys
+
+with open(sys.argv[1]) as f:
+    page = f.read()
+
+# The three quote characters JavaScript has, written as escapes: this program is passed to
+# python inside single quotes, so the apostrophe cannot appear in it literally.
+QUOTED = "\"\x27\x60"
+
+
+# Every character of src from index i on that sits outside a string literal, as (index,
+# character, depth), depth being how many brackets are open once that character is read and
+# starting from the depth given. A regex cannot be asked where a call ends or where its last
+# argument starts: an arrow function passed to setInterval carries parentheses and commas of
+# its own, and only one at the right depth and outside a string counts.
+def code_chars(src, i, depth):
+    quote = ""
+    while i < len(src):
+        c = src[i]
+        if quote:
+            if c == "\\":
+                i += 1
+            elif c == quote:
+                quote = ""
+        elif c in QUOTED:
+            quote = c
+        else:
+            if c in "([{":
+                depth += 1
+            elif c in ")]}":
+                depth -= 1
+            yield i, c, depth
+        i += 1
+
+
+# The index just past the ")" that closes a call whose "(" is at src[i - 1], or -1 when the
+# page has no such ")".
+def balanced(src, i):
+    for j, c, depth in code_chars(src, i, 1):
+        if depth == 0:
+            return j + 1
+    return -1
+
+
+# The argument text of every call of <name> on the page, the "(" and ")" left off.
+def calls(src, name):
+    out = []
+    for m in re.finditer(r"\b" + name + r"\s*\(", src):
+        end = balanced(src, m.end())
+        if end > 0:
+            out.append(src[m.end():end - 1])
+    return out
+
+
+# The last top-level argument of one such list — setInterval s delay.
+def last_arg(args):
+    cut = 0
+    for j, c, depth in code_chars(args, 0, 0):
+        if c == "," and depth == 0:
+            cut = j + 1
+    return args[cut:].strip()
+
+
+# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
+# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
+# Matched as a prefix of the literal so that the Events pane may carry its ?issue= query.
+for pane, path in (("Runs", "/api/runs"), ("Metrics", "/api/metrics"),
+                   ("Events", "/api/events")):
+    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
+        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
+              % (path, pane))
+
+# Every two seconds, of every repeating timer the page sets: a pane refreshed on a slower
+# clock than another is the criterion broken just as much as one never refreshed at all.
+timers = calls(page, "setInterval")
+if not timers:
+    print("the page schedules no repeating poll at all; want setInterval(..., 2000) so every "
+          "pane refreshes every two seconds")
+for args in timers:
+    delay = last_arg(args)
+    if delay != "2000":
+        print("the page repeats setInterval(%s) every %s ms; a pane polls every 2000"
+              % (" ".join(args.split())[:120], delay))
+' "$disk_page")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
