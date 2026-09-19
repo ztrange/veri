@@ -15,8 +15,9 @@ Render one verdict on the settled result.
 
 ### Your checks
 
-1. **Still green.** Run the project's full test suite yourself; it must be **green**. A
-   refactor that changed observable behavior or broke any test is a REJECT.
+1. **Still green.** Run the suites `affected-suites.sh` prints for the files the refactor
+   touched yourself; they must be **green**. A refactor that changed observable behavior or
+   broke any test is a REJECT.
 2. **Up to standard.** The settled code should be code you would approve: it follows the
    repository's **conventions**, uses sensible **typing**/structure where the project
    does, names things clearly, and is reasonably **robust** (no obvious unhandled edge
