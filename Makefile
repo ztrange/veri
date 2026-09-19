@@ -148,8 +148,7 @@ profile:
 # line that mentions $(MAKE) itself even under `make -n` — which would start the loop for real.
 WATCH_MAKE := $(MAKE)
 # One poll pass is `watch_snapshot` from WATCH_LIB: one `watch_stat` call per pass, whatever the
-# number of tracked files. A copy of this Makefile outside the tree (a suite's fixture repo) has
-# no library beside it, so the recipe falls back to the same pipeline written inline.
+# number of tracked files.
 WATCH_LIB := skills/tdd/scripts/lib/watch.sh
 .PHONY: watch
 watch:
@@ -159,8 +158,7 @@ watch:
 	  printf 'VERI_WATCH_INTERVAL must be a number of seconds, got %s\n' "$$interval" >&2; \
 	  exit 2 ;; \
 	esac; \
-	if [ -f $(WATCH_LIB) ]; then . ./$(WATCH_LIB); \
-	else watch_snapshot() { git ls-files -z | xargs -0 cksum 2>/dev/null; }; fi; \
+	. ./$(WATCH_LIB); \
 	seen="$$(watch_snapshot)"; \
 	while :; do \
 	  sleep "$$interval"; \
