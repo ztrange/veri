@@ -189,5 +189,50 @@ fi
 
 report "$name"
 
+# 5. The admission bar's guard: `make unit` shims git, gh, curl and python3 ahead of PATH, so a
+# unit suite that runs one of them as a process fails loudly, named. `make test` adds no such
+# shim, so the same fixture passes through its recipe — handed over as TESTS=<fixture> with
+# UNIT_TESTS emptied, so it is all that recipe runs — and a sibling that mocks git as a shell
+# function passes under `make unit`, since a function is found before anything on PATH. The
+# fixtures' names and output avoid the word git, so a line naming it can only be the shim's.
+name="make unit shims git, gh, curl and python3 to fail naming themselves; make test does not"
+problems=()
+
+cat > "$scratch/calls-real-vcs.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+if git --version > /dev/null; then echo "1 passed, 0 failed"; exit 0; fi
+echo "FAIL - the version probe"
+echo "0 passed, 1 failed"
+exit 1
+SUITE
+cat > "$scratch/mocks-vcs.test.sh" <<'SUITE'
+#!/usr/bin/env bash
+git() { echo "mocked"; }
+if [[ "$(git --version)" == mocked ]]; then echo "1 passed, 0 failed"; exit 0; fi
+echo "FAIL - the mocked probe"
+echo "0 passed, 1 failed"
+exit 1
+SUITE
+chmod +x "$scratch/calls-real-vcs.test.sh" "$scratch/mocks-vcs.test.sh"
+
+unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/calls-real-vcs.test.sh" 2>&1 < /dev/null)" &&
+  unit_code=0 || unit_code=$?
+[[ "$unit_code" != 0 ]] ||
+  problems+=("want 'make unit' to fail a suite that ran real git; it exited 0 and said: $(flat "$unit_out")")
+grep -v '^== ' <<< "$unit_out" | grep -qw git ||
+  problems+=("no line of 'make unit' over a suite that ran real git names git: $(flat "$unit_out")")
+
+test_out="$(make --no-print-directory -C "$ROOT" test TESTS="$scratch/calls-real-vcs.test.sh" UNIT_TESTS= 2>&1 < /dev/null)" &&
+  test_code=0 || test_code=$?
+[[ "$test_code" == 0 ]] ||
+  problems+=("want 'make test' to pass a suite that ran real git; it exited $test_code and said: $(flat "$test_out")")
+
+unit_out="$(make --no-print-directory -C "$ROOT" unit UNIT_TESTS="$scratch/mocks-vcs.test.sh" 2>&1 < /dev/null)" &&
+  unit_code=0 || unit_code=$?
+[[ "$unit_code" == 0 ]] ||
+  problems+=("want 'make unit' to pass a suite that mocks git as a shell function; it exited $unit_code and said: $(flat "$unit_out")")
+
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
