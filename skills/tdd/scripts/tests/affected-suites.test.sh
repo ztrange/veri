@@ -185,6 +185,28 @@ head="$(git -C "$repo" rev-parse HEAD)"
 expect_suites "rule 3: a change to the suite tests/foo.test.sh itself prints exactly that suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
+# 8. rule 3: a change to a fixture under tests/fixtures/ → every suite that references that
+#    fixture by name. alpha's and beta's suites read fixtures/plan.md the way count-line-guard
+#    reads fixtures/silent-death/…; gamma's reads a different fixture, other.md, so it must not
+#    appear, and neither may the suites' scripts, which did not change.
+repo="$(new_repo rule3-fixture)"
+s="$repo/skills/tdd/scripts"
+mkdir -p "$s/tests/fixtures"
+printf '# plan\n' > "$s/tests/fixtures/plan.md"
+printf '# other\n' > "$s/tests/fixtures/other.md"
+for name in alpha beta gamma; do printf '%s\n' "$name" > "$s/$name.sh"; done
+for name in alpha beta; do
+  printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/fixtures/plan.md"\n' > "$s/tests/$name.test.sh"
+done
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/fixtures/other.md"\n' > "$s/tests/gamma.test.sh"
+commit_all "$repo" "base"
+base="$(git -C "$repo" rev-parse HEAD)"
+printf '# plan 2\n' > "$s/tests/fixtures/plan.md"
+commit_all "$repo" "head"
+head="$(git -C "$repo" rev-parse HEAD)"
+expect_suites "rule 3: a change to the fixture tests/fixtures/plan.md prints every suite that references it by name" \
+  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
