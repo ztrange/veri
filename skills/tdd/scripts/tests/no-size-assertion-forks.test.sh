@@ -204,6 +204,30 @@ last="$(printf '%s\n' "$out" | tail -n 1)"
 
 report "$name"
 
+# 7. The criterion: `make test` still runs the suite and still reads it as green — it is
+#    still an executable `*.test.sh` in this directory, which is how the recipe's glob finds
+#    and starts it, and run the way the recipe runs it (`LC_ALL=C`, stdin from /dev/null) it
+#    prints no FAIL line, ends in a line matching the recipe's count-line pattern with none
+#    failed, and exits 0. Not a fixture: the tree this suite sits in is the subject.
+#      → executable; no `FAIL - ` line; last line `<n> passed, 0 failed`; exit 0.
+name="no-size-assertion.test.sh is still an executable suite make test's glob starts, and run as make test runs it every assertion passes: no FAIL line, a count line with 0 failed, exit 0"
+problems=()
+
+suite="$HERE/no-size-assertion.test.sh"
+[[ -x "$suite" && "$suite" == "$HERE"/*.test.sh ]] ||
+  problems+=("want $suite to be an executable *.test.sh beside this suite, so make test's glob starts it")
+out="$(LC_ALL=C "$suite" < /dev/null 2>&1)"
+rc=$?
+[[ "$out" != *'FAIL - '* ]] ||
+  problems+=("want no FAIL line when run as make test runs it, got: $(printf '%q' "$out")")
+last="$(printf '%s\n' "$out" | tail -n 1)"
+[[ "$last" =~ ^[0-9]+\ passed,\ 0\ failed$ ]] ||
+  problems+=("want a last line matching make test's count-line pattern with 0 failed, got '$last'")
+[[ "$rc" -eq 0 ]] ||
+  problems+=("want exit 0 when run as make test runs it, got $rc")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
