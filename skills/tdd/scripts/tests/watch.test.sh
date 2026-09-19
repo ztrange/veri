@@ -18,6 +18,9 @@
 #   one poll pass  → `watch_snapshot` (skills/tdd/scripts/lib/watch.sh) calls its stat
 #                    wrapper `watch_stat` once, for 1 tracked file or 40. Pinned with an
 #                    in-process spy: the library is sourced here and `watch_stat` replaced.
+#   only `unit`    → every make the loop starts asks for `unit` and no other goal. A `make`
+#                    wrapper passed as MAKE= logs each make's goals, and the case fails
+#                    on any goal but `unit` — `test`, `merge-gates` or anything else.
 #
 # Not in tests/unit/: the cases driving the loop start real subprocesses, which the fast
 # tier's admission bar excludes.
@@ -191,6 +194,67 @@ if declare -F watch_snapshot >/dev/null; then
 else
   problems+=("no watch_snapshot function (one poll pass) defined by ${lib#"$ROOT"/}")
 fi
+rm -rf "$scratch"
+report "$name"
+
+# 5. The loop never runs a make target besides `unit`. Against a fixture repo like case 3's,
+#    the outer `make watch` is handed MAKE=<wrapper> on its command line — the loop names make
+#    as $(MAKE), which a command-line value overrides — and the wrapper logs the goals of every
+#    make the loop starts, then execs the real one. The stub sleep fabricates one change on
+#    its call 2 and ends the loop at call 4, so the loop reruns at least once; every make it
+#    starts must have asked for `unit` and nothing else.
+name="make watch: never runs any make target besides unit"
+problems=()
+scratch="$(mktemp -d)"
+fixture="$scratch/repo"
+real_make="$(command -v make)"
+mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skills/tdd/scripts/lib"
+cp "$ROOT/Makefile" "$fixture/Makefile"
+cp "$ROOT/skills/tdd/scripts/lib/watch.sh" "$fixture/skills/tdd/scripts/lib/watch.sh"
+printf 'original\n' > "$fixture/tracked.txt"
+cat > "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh" <<'SUITE'
+#!/bin/sh
+echo "1 passed, 0 failed"
+SUITE
+chmod +x "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh"
+git -C "$fixture" init -q && git -C "$fixture" add -A
+cat > "$scratch/bin/make" <<STUB
+#!/bin/sh
+goals=""; skip=""
+for a in "\$@"; do
+  if [ -n "\$skip" ]; then skip=""; continue; fi
+  case "\$a" in
+    -C|-f|-I|-o|-W) skip=1 ;;
+    -*|*=*) ;;
+    *) goals="\$goals \$a" ;;
+  esac
+done
+printf '%s\n' "\${goals# }" >> "\$MAKE_LOG"
+exec "$real_make" "\$@"
+STUB
+chmod +x "$scratch/bin/make"
+cat > "$scratch/bin/sleep" <<'STUB'
+#!/bin/sh
+n=$(( $(cat "$WATCH_COUNT") + 1 ))
+echo "$n" > "$WATCH_COUNT"
+case "$n" in
+  2) printf 'change\n' > "$WATCH_FIXTURE/tracked.txt"
+     touch -t 200201010000 "$WATCH_FIXTURE/tracked.txt" ;;
+  4) kill -TERM "$PPID" ;;
+esac
+STUB
+chmod +x "$scratch/bin/sleep"
+echo 0 > "$scratch/count"
+: > "$scratch/make.log"
+bounded env WATCH_COUNT="$scratch/count" WATCH_FIXTURE="$fixture" MAKE_LOG="$scratch/make.log" \
+  PATH="$scratch/bin:$PATH" "$real_make" --no-print-directory -s -C "$fixture" \
+  MAKE="$scratch/bin/make" watch >/dev/null 2>&1
+[[ -s "$scratch/make.log" ]] ||
+  problems+=("the loop never ran a nested make after a change, so nothing was checked")
+while IFS= read -r goals; do
+  [[ "$goals" == unit ]] ||
+    problems+=("want every make the loop runs to ask for unit only, one asked for: '${goals:-<default goal>}'")
+done < "$scratch/make.log"
 rm -rf "$scratch"
 report "$name"
 
