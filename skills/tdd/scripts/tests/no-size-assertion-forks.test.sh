@@ -136,6 +136,29 @@ out="$("$commented/no-size-assertion.test.sh" 2>&1)"
 
 report "$name"
 
+# 4. The criterion: a suite binding a variable to one of the two documents three lines above
+#    the line that measures it is still reported — the measuring line names only `$doc`, so
+#    only the binding the probe reads out of the same suite makes it a ceiling. Its own
+#    fixture directory, so the counts above are not moved.
+#      → the observed suite `0 passed, 1 failed`, with a problem line naming
+#        binds-doc.test.sh:5, the `wc` line.
+name="no-size-assertion.test.sh's probe still reports a suite that binds a variable to CLAUDE.md three lines above the line measuring it, naming the suite and line"
+problems=()
+
+bound="$tmp/bound"
+mkdir -p "$bound"
+cp "$HERE/no-size-assertion.test.sh" "$bound/"
+printf '#!/usr/bin/env bash\ndoc="$ROOT/CLAUDE.md"\necho one\necho two\nbytes="$(wc -c < "$doc")"\n' \
+  > "$bound/binds-doc.test.sh"
+
+out="$("$bound/no-size-assertion.test.sh" 2>&1)"
+[[ "$out" == *'0 passed, 1 failed'* ]] ||
+  problems+=("want the observed suite red when a suite measures a variable bound to CLAUDE.md, got: $(printf '%q' "$out")")
+[[ "$out" == *'binds-doc.test.sh:5 measures the size'* ]] ||
+  problems+=("want a problem line naming binds-doc.test.sh:5, got: $(printf '%q' "$out")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
