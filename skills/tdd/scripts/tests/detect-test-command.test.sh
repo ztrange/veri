@@ -804,6 +804,22 @@ done
 [[ -z "$misread" ]] \
   && ok || no "no --tier: CLAUDE.md's veri: fast/all tests: lines leave every single-command answer as today —$misread"
 
+# 9b. the other half of case 9: a repo whose root CLAUDE.md declares both tier markers and
+# carries *nothing else* any rule could key on. In case 9 some rule of the chain always
+# answered, so a marker read *behind* every rule would never have been reached and could not
+# have shown up there; here the markers are the only thing in the repo that could answer at
+# all. With no `--tier` flag they must not: the chain matches nothing, so the call says what
+# case 8 says of any repo matching nothing — nothing on stdout, exit 3 — rather than handing
+# back either tier's command as if it were the single one.
+repo="$work/untiered-markers-only"
+mkdir -p "$repo"
+printf '# demo\n\nveri: fast tests: bin/fast-suite\nveri: all tests: bin/all-suite\n' > "$repo/CLAUDE.md"
+
+detect "$repo"
+
+[[ "$code" == 3 ]] && [[ -z "$out" ]] \
+  && ok || no "no --tier: a repo whose only markers are CLAUDE.md's veri: fast/all tests: lines prints nothing and exits 3 (exit=$code want 3, stdout='$out' want '')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
