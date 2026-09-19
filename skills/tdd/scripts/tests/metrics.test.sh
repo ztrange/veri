@@ -42,6 +42,7 @@ pass=0 fail=0
 # Same helper, same words, as event.test.sh's and session-cost.test.sh's.
 report() {
   local name="$1"
+  probes_run
   if [[ "${#problems[@]}" -eq 0 ]]; then
     pass=$((pass + 1))
   else
@@ -57,6 +58,7 @@ report() {
 # attached only on a failure, since a passing case has nothing to read.
 report_on() {
   local name="$1" out_file="$2"
+  probes_run
   [[ "${#problems[@]}" -eq 0 ]] ||
     problems+=("the report was: $(printf '%q' "$(cat "$out_file")")")
   report "$name"
@@ -74,16 +76,48 @@ render() {
     problems+=("want metrics.sh to exit 0, it exited $status")
 }
 
-# probe <program> <arg>… — run one python probe over a rendered report and put every line it
-# prints onto the caller's `problems`, nothing when it prints nothing. Each probe below is a
-# program that reports its disagreements on stdout and says nothing when it has none, so
-# what differs between them is the program and its arguments; how the lines are captured,
-# that stderr counts as a complaint too, and that an empty answer adds no empty problem are
-# one rule, kept here once.
+# probe <program> <arg>… — queue one python probe over a rendered report; `probes_run` later
+# puts every line it prints onto the caller's `problems`, nothing when it prints nothing. Each
+# probe below is a program that reports its disagreements on stdout and says nothing when it
+# has none, so what differs between them is the program and its arguments; how the lines are
+# captured, that stderr counts as a complaint too, and that an empty answer adds no empty
+# problem are one rule, kept here once.
+#
+# Queued rather than run (#331): a `python3 -c` per assertion was 51 interpreter starts per
+# run of this suite. The queue is a spool file of NUL-separated fields — the program, its
+# argument count, its arguments — since a NUL is the one byte neither can hold.
 probe() {
-  local program="$1"; shift
+  printf '%s\0' "$1" "$(($# - 1))" "${@:2}" >> "$probe_spool"
+}
+
+# probes_run — run every queued probe in one python3, each as `python3 -c` would: its own
+# globals, its own sys.argv, stdout and stderr caught together, a SystemExit ending only that
+# probe. Called by report and report_on before they read `problems`, so a case's probes
+# answer in the order they were queued, and the spool is emptied for the next case.
+probes_run() {
+  [[ -s "$probe_spool" ]] || return 0
   local said
-  said="$(python3 -c "$program" "$@" 2>&1)"
+  said="$(python3 -c '
+import contextlib, io, sys, traceback
+fields = open(sys.argv[1], "rb").read().decode().split("\0")[:-1]
+while fields:
+    program, count = fields[0], int(fields[1])
+    args, fields = fields[2:2 + count], fields[2 + count:]
+    sys.argv = ["-c"] + args
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+        try:
+            exec(compile(program, "<string>", "exec"), {"__name__": "__main__"})
+        except SystemExit as stop:
+            if stop.code is not None and not isinstance(stop.code, int):
+                print(stop.code, file=sys.stderr)
+        except BaseException:
+            traceback.print_exc()
+    said = buf.getvalue().rstrip("\n")
+    if said:
+        print(said)
+' "$probe_spool" 2>&1)"
+  : > "$probe_spool"
   [[ -z "$said" ]] || while IFS= read -r line; do problems+=("$line"); done <<< "$said"
 }
 
@@ -299,6 +333,9 @@ table_says() {
 # reason to run `rm -rf` on an unexpanded word.
 fixture_works=()
 trap '[[ "${#fixture_works[@]}" -eq 0 ]] || rm -rf "${fixture_works[@]}"' EXIT
+
+probe_spool="$(mktemp)"
+fixture_works+=("$probe_spool")
 
 fixture_work() {
   local dir
