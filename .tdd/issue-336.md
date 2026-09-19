@@ -5,5 +5,5 @@
 - [x] `make unit` applies the same per-suite count-line check and the same `OFFLINE_BIN` network-block guard (reach log) as `make test` ⟦criterion 3⟧
 - [x] `make unit` runs each suite with `LC_ALL=C` and stdin from `/dev/null`, as `make test` does
 - [x] `make unit` shims `git`, `gh`, `curl` and `python3` to exit nonzero naming themselves, while `make test` does not: a unit fixture calling real `git` fails under `make unit` naming `git`, and passes through `make test`'s recipe, as does a sibling fixture mocking `git` as a shell function ⟦criterion 4⟧
-- [x] At least five existing suites move into `skills/tdd/scripts/tests/unit/`, each still passing its own cases, each recording in its header comment its git/python3/server/sleep usage count as the reason it qualifies ⟦criterion 5⟧ ⟂ refactor pending
+- [x] At least five existing suites move into `skills/tdd/scripts/tests/unit/`, each still passing its own cases, each recording in its header comment its git/python3/server/sleep usage count as the reason it qualifies ⟦criterion 5⟧
 - [ ] CLAUDE.md's "Testing idiom" section states the admission bar (~100 ms/case, no git, network, servers, real waits or nested suites) and names `skills/tdd/scripts/tests/unit/` as the fast tier, pinned by a guard suite in the style of `model-knobs-recorded.test.sh` ⟦criterion 6⟧
