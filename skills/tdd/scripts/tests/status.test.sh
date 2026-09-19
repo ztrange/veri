@@ -359,16 +359,21 @@ if [[ "$phases" == "phase=red bail_phase=green" && "$code" -eq 0 ]]; then ok; el
 fi
 
 # --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
-# One running run, watched every 1 s with stdout to a file. Once its first render is on screen,
-# a `done` event is appended to the run's log. The watcher must still be going, must have moved
-# the cursor back to redraw in place (an ESC [ or ESC c sequence), and a later render must say
-# #41 is done — read from the file it changed, not remembered from the first render.
+# One running run, watched with stdout to a file. `--watch 0` rather than `--watch 1`: a real
+# 1s interval between redraws made this case's second wait_for below sit out up to a full
+# second of real wall time for the SECOND render to notice the appended `done` event — 0 is a
+# legitimate value (status.sh's own `^[0-9]+$` accepts it) that keeps the redraw loop running
+# flat out instead, so the next render lands as soon as this test's own polling below can see
+# it. Once its first render is on screen, a `done` event is appended to the run's log. The
+# watcher must still be going, must have moved the cursor back to redraw in place (an ESC [ or
+# ESC c sequence), and a later render must say #41 is done — read from the file it changed,
+# not remembered from the first render.
 watched="$(repo watched)"
 now="$(date +%s)"
 run="$(launched_run "$watched" 41 $((now - 10)))"
 echo "$$" > "$run/.tdd/conductor.pid"
 watch_out="$work/watch.out"
-(cd "$watched" && exec "$STATUS" --watch 1 > "$watch_out" 2>/dev/null) &
+(cd "$watched" && exec "$STATUS" --watch 0 > "$watch_out" 2>/dev/null) &
 watch_pid=$!
 wait_for() {  # wait_for <text>; polls $watch_out for up to 5 s
   local i
