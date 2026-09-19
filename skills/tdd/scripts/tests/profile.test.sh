@@ -46,6 +46,11 @@ expect_line() {
   fi
 }
 
+# case_order — the case numbers in `out`, in the order printed, each followed by a space.
+case_order() {
+  awk '{ printf "%s ", $4 }' <<< "$out"
+}
+
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
@@ -153,7 +158,7 @@ echo "$pass passed, $fail failed"
 EOF
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
-order="$(awk '{ printf "%s ", $4 }' <<< "$out")"
+order="$(case_order)"
 [[ "$order" == "3 4 2 " ]] ||
   problems+=("want cases in the order 3 4 2, got: $(printf '%q' "$out")")
 report "$name"
@@ -169,7 +174,7 @@ for probe in "1:3 4 2 " "2.5:3 4 " "4:3 "; do
   t="${probe%%:*}" want="${probe#*:}"
   out="$(VERI_PROFILE_THRESHOLD="$t" "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] || problems+=("threshold $t: want exit 0, got $code")
-  order="$(awk '{ printf "%s ", $4 }' <<< "$out")"
+  order="$(case_order)"
   [[ "$order" == "$want" ]] ||
     problems+=("threshold $t: want cases '$want', got: $(printf '%q' "$out")")
 done
