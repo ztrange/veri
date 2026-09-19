@@ -885,6 +885,36 @@ done
 [[ -z "$misread" ]] \
   && ok || no "--tier fast/all: a CLAUDE.md marker is recognised mid-line and one inside a backtick span is skipped, as the issue override marker is —$misread"
 
+# 12. with neither tier marker declared, both tiers fall back to the single command today's
+# precedence chain picks (#338): a `--tier` call in a repo that never opted into tiers must get
+# the same answer a call without the flag gets, not nothing and not an error. Two repos, one per
+# way of declaring nothing: one whose root CLAUDE.md exists but carries no marker line — only
+# prose that names the tiers without the marker's words — beside a Makefile `test:` target, and
+# one with no CLAUDE.md at all, whose `.veri/test-command` override is the chain's answer.
+misread=""
+repo="$work/tierless-claude-md"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '# demo\n\nThe fast tests and all tests are the same here.\n' > "$repo/CLAUDE.md"
+repo="$work/tierless-no-claude-md"
+mkdir -p "$repo/.veri"
+printf '%s\n' 'bin/run-suite --all --strict' > "$repo/.veri/test-command"
+
+for shape in claude-md no-claude-md; do
+  case "$shape" in
+    claude-md)    repo="$work/tierless-claude-md" ;    want='make test' ;;
+    no-claude-md) repo="$work/tierless-no-claude-md" ; want='bin/run-suite --all --strict' ;;
+  esac
+  for tier in fast all; do
+    detect --tier "$tier" "$repo"
+
+    matched || note "$shape, $tier"
+  done
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "--tier fast/all: with neither CLAUDE.md marker declared, both tiers print the single command the precedence chain picks —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
