@@ -298,6 +298,96 @@ fi
 rm -rf "$sc_work" "$unset_work"
 report "$name"
 
+
+# 5. Escaping is the one thing a payload cannot be trusted to arrive without (issue #290): a
+#    verifier's reason is English a model wrote, and a step's title or a kill cause can carry
+#    any of it. A payload here is not asked merely to PARSE — a JSON encoder has more than one
+#    valid way to escape the same string, and this pins the one THIS writer must produce,
+#    byte for byte, because #290's whole premise is that a bash rewrite of what used to be
+#    `python3 -c '... json.dumps(line) ...'` may change how the line is COMPOSED (no more
+#    interpreter) but not what it reads as, down to the byte: `metrics.sh` and every suite
+#    here keep reading the file the same way, whichever writer produced a given line.
+#
+#    The payload carries, in one string, every class of byte `json.dumps(str,
+#    ensure_ascii=True)` — python's default, which is what this line has always been checked
+#    against — treats specially: a double quote and a backslash (the two characters JSON
+#    escaping exists for at all), a newline and a tab (the two-character short escapes,
+#    `\n` `\t`), a control byte with no short escape (`\x01`, which must become `\u0001`),
+#    and two non-ASCII characters — `é` (a single UTF-16 code unit, `\u00e9`) and an emoji
+#    past the Basic Multilingual Plane (`😀`, which `ensure_ascii` can only spell as a UTF-16
+#    SURROGATE PAIR, `\ud83d\ude00` — there is no single `\uXXXX` for a code point above
+#    0xffff). A writer that got any one of these wrong would still often produce valid JSON —
+#    a different but still-legal escaping, or a truncated string that happens to close — so
+#    "parses" alone is not this case's pin.
+#
+#    `reference_line` is a live python3 process building the SAME dict, in the SAME field
+#    order, through `json.dumps` itself — the independent oracle event.sh used to call
+#    directly and now only has to still agree with. `ts` is blanked to `0` on both sides
+#    (`normalize_ts`) before the comparison, since it is the one field neither side can pin to
+#    a shared value — a whole-number-of-seconds probe is case 1's job, not this one's.
+normalize_ts() {
+  # sed rather than a third python3 call: the ts field is always `"ts": <digits>` at a fixed
+  # position (event.sh writes it first), so a text substitution is exact and does not risk
+  # re-serializing the very line this case is pinning the bytes of.
+  sed -E 's/"ts": [0-9]+/"ts": 0/' <<< "$1"
+}
+
+# reference_line <issue> <actor> <phase> <step> <event> <attempt> <skill_commit> [key=value …]
+# — the dict event.sh's OLD python3 block built, in the same field order, dumped by a live
+# python3 rather than composed here: the oracle this case checks the bash rewrite against has
+# to be independent of it, or a bug shared by both would go uncaught.
+reference_line() {
+  python3 -c '
+import json, sys
+
+d = {
+    "ts": 0,
+    "issue": sys.argv[1],
+    "actor": sys.argv[2],
+    "phase": sys.argv[3],
+    "step": sys.argv[4],
+    "event": sys.argv[5],
+    "attempt": sys.argv[6],
+    "skill_commit": sys.argv[7],
+}
+for arg in sys.argv[8:]:
+    key, _, value = arg.partition("=")
+    d[key] = value
+print(json.dumps(d))
+' "$@"
+}
+
+name="a payload with a double quote, a backslash, a newline, a tab, a control byte and two non-ASCII characters (one past the Basic Multilingual Plane) round-trips through event.sh into a line byte-identical to json.dumps's own, and metrics.sh's own json.loads reads it back unchanged"
+problems=()
+esc_work="$(mktemp -d)"
+esc_log="$esc_work/.tdd/events.jsonl"
+esc_payload=$'a "quoted" \ word
+next line	indented  café 😀 end'
+
+( cd "$esc_work" && env VERI_ISSUE=290 VERI_ACTOR=developer VERI_PHASE=green VERI_STEP=9     VERI_ATTEMPT=1 VERI_SKILL_COMMIT=deadbeef "$EVENT" step-start "reason=$esc_payload" ) >/dev/null 2>&1
+esc_code=$?
+[[ "$esc_code" == 0 ]] || problems+=("want exit 0, got $esc_code")
+
+if [[ ! -f "$esc_log" ]]; then
+  problems+=("want the line appended to .tdd/events.jsonl, but no such file under $esc_work")
+else
+  esc_got_line="$(sed -n 1p "$esc_log")"
+  esc_want_line="$(reference_line 290 developer green 9 step-start 1 deadbeef "reason=$esc_payload")"
+  esc_got_norm="$(normalize_ts "$esc_got_line")"
+  esc_want_norm="$(normalize_ts "$esc_want_line")"
+  [[ "$esc_got_norm" == "$esc_want_norm" ]] ||
+    problems+=("want the line byte-identical to json.dumps's own (ts blanked): got $(printf '%q' "$esc_got_norm"), want $(printf '%q' "$esc_want_norm")")
+
+  # metrics.sh reads this file through the same `json.loads`, one line at a time
+  # (metrics.sh:151-160-ish) — `jget` is that same read, so a value read back through it is
+  # what metrics.sh itself would see, not merely what this suite's own probes accept.
+  if want_parses "$esc_log"; then
+    want_field "$esc_log" reason "$esc_payload"
+  fi
+fi
+rm -rf "$esc_work"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
