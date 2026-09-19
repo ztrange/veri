@@ -268,5 +268,46 @@ run_make unit
 
 report "$name"
 
+# 7. The first migrated script's two suites (#339): push-branch.sh keeps its integration suite in
+# the flat directory and gains a unit suite under unit/ that sources it. `make -n test` must name
+# both and `make -n unit` the unit one; then each target's real recipe is run over just those
+# suites — handed over as TESTS=/UNIT_TESTS=, so nothing else in the tree is re-run here — and
+# must pass, count-line check, reach log and (for `unit`) admission-bar guard included.
+name="make test passes push-branch.sh's integration and unit suites, and make unit passes the unit suite alone"
+problems=()
+
+integ_suite='skills/tdd/scripts/tests/push-branch.test.sh'
+unit_pb_suite="$UNIT_DIR/push-branch.test.sh"
+
+for rel in "$integ_suite" "$unit_pb_suite"; do
+  [[ -f "$ROOT/$rel" ]] || problems+=("$rel is not on disk")
+done
+if listed="$(roster "$ROOT" test)"; then
+  for rel in "$integ_suite" "$unit_pb_suite"; do
+    grep -qxF "$rel" <<< "$listed" || problems+=("make -n test does not name $rel")
+  done
+else
+  problems+=("$listed")
+fi
+if listed="$(roster "$ROOT" unit)"; then
+  grep -qxF "$unit_pb_suite" <<< "$listed" || problems+=("make -n unit does not name $unit_pb_suite")
+  grep -qxF "$integ_suite" <<< "$listed" && problems+=("make -n unit names the integration suite $integ_suite")
+else
+  problems+=("$listed")
+fi
+
+run_make test TESTS="$integ_suite" UNIT_TESTS="$unit_pb_suite"
+[[ "$code" == 0 ]] ||
+  problems+=("want 'make test' over $integ_suite and $unit_pb_suite to pass; it exited $code and said: $(flat "$out")")
+n="$(grep -cxF '== push-branch.test.sh' <<< "$out")"
+[[ "$n" -eq 2 ]] ||
+  problems+=("want 'make test' to run push-branch.test.sh twice (integration and unit), it ran it $n times")
+
+run_make unit UNIT_TESTS="$unit_pb_suite"
+[[ "$code" == 0 ]] ||
+  problems+=("want 'make unit' over $unit_pb_suite alone to pass; it exited $code and said: $(flat "$out")")
+
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
