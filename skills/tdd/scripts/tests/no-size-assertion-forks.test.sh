@@ -114,6 +114,28 @@ per_file="$(awk '$2 == 1' "$starts_log" | wc -l | tr -d ' ')"
 
 report "$name"
 
+# 3. The criterion: a suite whose only size-verb line is a comment is still not reported, even
+#    when that comment names one of the two documents — so the comment exemption, not a
+#    missing subject, is what keeps it green. Its own fixture directory, so the counts above
+#    are not moved.
+#      → the observed suite `1 passed, 0 failed`, and no line naming the commented suite.
+name="no-size-assertion.test.sh's probe still does not report a suite whose only size-verb line is inside a comment"
+problems=()
+
+commented="$tmp/commented"
+mkdir -p "$commented"
+cp "$HERE/no-size-assertion.test.sh" "$commented/"
+printf '#!/usr/bin/env bash\n# wc -c < "$ROOT/CLAUDE.md" the old way\necho "no ceiling here"\n' \
+  > "$commented/comment-only.test.sh"
+
+out="$("$commented/no-size-assertion.test.sh" 2>&1)"
+[[ "$out" == *'1 passed, 0 failed'* ]] ||
+  problems+=("want the observed suite green when the only size-verb line is a comment, got: $(printf '%q' "$out")")
+[[ "$out" != *'comment-only.test.sh:'* ]] ||
+  problems+=("want no problem line naming comment-only.test.sh, got: $(printf '%q' "$out")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
