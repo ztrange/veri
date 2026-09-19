@@ -265,10 +265,10 @@ keys=(duration_ms duration_api_ms num_turns total_cost_usd
       input_tokens output_tokens cache_read_input_tokens cache_creation_input_tokens)
 mapfile -t got < <(event_fields "$direct_work" usage "${keys[@]}")
 for i in "${!keys[@]}"; do
-  key="${keys[$i]}"
+  key="${keys[$i]}" value="${got[$i]-}"
   var="want_$key"
-  [[ "${got[$i]-}" == "${!var}" ]] ||
-    problems+=("$key: want $(printf '%q' "${!var}"), got $(printf '%q' "${got[$i]-}")")
+  [[ "$value" == "${!var}" ]] ||
+    problems+=("$key: want $(printf '%q' "${!var}"), got $(printf '%q' "$value")")
 done
 
 report "$name"
