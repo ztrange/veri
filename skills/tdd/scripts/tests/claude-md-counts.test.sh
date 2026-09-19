@@ -372,6 +372,35 @@ fi
 
 report "$name"
 
+# 4. The unit tier is counted too, and the count includes the suite #339 adds there. The
+#    *Testing idiom* sentence that counts `tests/*.test.sh` goes on to count the suites
+#    under `unit/` — "plus <n> … under `unit/`" — and case 1 never reads that number, so the
+#    first unit suite written rather than moved there (`unit/push-branch.test.sh`) could land
+#    with the sentence still counting the tier without it. Held to the glob the same way
+#    case 1 holds the other two: the number in the prose is the number of files on disk.
+name="$claude_md's unit-tier suite count matches the unit suites on disk, including push-branch.sh's"
+problems=()
+
+unit_glob="skills/tdd/scripts/tests/unit/*.test.sh"
+unit_path="$ROOT/$unit_glob"
+unit_suite="skills/tdd/scripts/tests/unit/push-branch.test.sh"
+# "plus <n> [words] under `unit/`" — the backticks and the slash matched as any character:
+# the backticks so the pattern needs no quoting inside this double-quoted string, the slash
+# because `claimed` hands the pattern to sed as `s/…/…/`, where a literal one ends it.
+unit_claim=".*${BEFORE}plus $NUM [A-Za-z ]*under .unit..*"
+
+present "$unit_suite"
+n_unit="$(how_many "$unit_path")"
+nonempty "unit suite" "$n_unit" "$unit_glob"
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the unit suite count it states"; then
+    check "*$section_name* unit suite count" "$(claimed "$idiom" "$unit_claim" 1)" "$n_unit"
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
