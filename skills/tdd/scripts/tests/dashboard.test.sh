@@ -945,6 +945,122 @@ fi
 
 report "$name"
 
+# --- the Metrics endpoint's payload, asked of metrics_json directly: live and committed ---
+# The same two equalities as the Metrics endpoint case above, asked of the function that
+# answers the endpoint rather than of a server answering it (#330): a running run's report is
+# what metrics.sh prints for it, recomputed, and a finished run's is its committed
+# `.tdd/issue-<n>-metrics.md` verbatim. Both runs carry a committed report that metrics.sh
+# would never print, so a function that read the file for both fails on the running run and
+# one that recomputed both fails on the finished one. The module is imported the way the
+# runs_json case above imports it, in the fixture repository, and no dashboard.sh is started.
+name="metrics_json, called directly, recomputes a running run and returns the committed report for a finished one"
+problems=()
+mdirect_repo="$(repo metricsdirect)"
+
+mdirect_live="$(fabricate_run "$mdirect_repo" 31 tdd/31-lamps-glow)"
+cat > "$mdirect_live/.tdd/issue-31.md" <<'EOF'
+# Plan for #31 — lamps glow
+
+- [x] a lamp exists
+- [ ] a lamp glows
+EOF
+mdirect_now="$(date +%s)"
+cat > "$mdirect_live/.tdd/events.jsonl" <<EOF
+{"ts": $((mdirect_now - 120)), "issue": "31", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((mdirect_now - 110)), "issue": "31", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((mdirect_now - 60)), "issue": "31", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "0.25", "input_tokens": "1000", "output_tokens": "200", "cache_read_input_tokens": "3000", "cache_creation_input_tokens": "500", "num_turns": "7", "duration_api_ms": "12000"}
+EOF
+cat > "$mdirect_live/.tdd/issue-31-metrics.md" <<'EOF'
+# a stale committed report for #31 that metrics.sh would never print
+EOF
+
+mdirect_done="$(fabricate_run "$mdirect_repo" 32 tdd/32-lamps-dim)"
+cat > "$mdirect_done/.tdd/issue-32.md" <<'EOF'
+# Plan for #32 — lamps dim
+
+- [x] a lamp exists
+- [x] a lamp dims
+EOF
+cat > "$mdirect_done/.tdd/events.jsonl" <<EOF
+{"ts": $((mdirect_now - 9000)), "issue": "32", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((mdirect_now - 8900)), "issue": "32", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green"}
+{"ts": $((mdirect_now - 8800)), "issue": "32", "actor": "verifier", "phase": "green", "step": "a lamp dims", "event": "verdict", "attempt": "1", "skill_commit": "abc", "verdict": "PASS"}
+{"ts": $((mdirect_now - 8700)), "issue": "32", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-done", "attempt": "", "skill_commit": "abc"}
+{"ts": $((mdirect_now - 8600)), "issue": "32", "actor": "conductor", "phase": "", "step": "", "event": "done", "attempt": "", "skill_commit": "abc", "pr": "https://example.invalid/pr/2"}
+EOF
+cat > "$mdirect_done/.tdd/issue-32-metrics.md" <<'EOF'
+# What solving #32 cost — the committed report, verbatim
+
+| phase | attempts |
+|---|---|
+| green | 1 |
+EOF
+
+exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
+module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
+if [[ -z "$module" ]]; then
+  problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+else
+  (cd "$mdirect_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
+import importlib, sys
+
+scripts, module, out = sys.argv[1], sys.argv[2], sys.argv[3]
+sys.path.insert(0, scripts)
+sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", "8765",
+            scripts + "/status.sh", scripts + "/metrics.sh"]
+body = importlib.import_module(module).metrics_json({})
+with open(out, "wb") as f:
+    f.write(body)
+' "$scripts" "$module" "$work/metrics-direct.json") 2> "$work/metrics-direct.err"
+  # metrics.sh's own answer for the running run, asked from that run's worktree the way the
+  # conductor asks it, so a difference is the function's and not the fixture's.
+  (cd "$mdirect_live" && PYTHONPATH= PYTHONNOUSERSITE=1 "$METRICS" 31) \
+    > "$work/metrics-direct-live.md" 2>/dev/null
+  if [[ ! -f "$work/metrics-direct.json" ]]; then
+    problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-direct.err")")
+  else
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && problems+=("$line")
+    done < <(python3 -c '
+import json, sys
+
+body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("metrics_json returned something that is not JSON; it starts: %r" % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
+    print("metrics_json returned %s; want an object with an \"issues\" object keyed by "
+          "issue number" % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+issues = got["issues"]
+if sorted(issues) != ["31", "32"]:
+    print("metrics_json reports issues %s; want the two runs 31 and 32"
+          % json.dumps(sorted(issues)))
+    sys.exit()
+with open(live_path) as f:
+    live = f.read()
+with open(committed_path) as f:
+    committed = f.read()
+if not live:
+    print("metrics.sh 31 printed nothing for the running run, so the equality says nothing")
+if issues["31"] != live:
+    print("issue 31 is running, so its report has to be recomputed from the event log: "
+          "metrics_json returned %r, and metrics.sh 31 prints %r"
+          % (issues["31"][:300], live[:300]))
+if issues["32"] != committed:
+    print("issue 32 ended with a done mark, so its report has to be the committed "
+          ".tdd/issue-32-metrics.md: metrics_json returned %r, and the committed file holds "
+          "%r" % (issues["32"][:300], committed[:300]))
+' "$work/metrics-direct.json" "$work/metrics-direct-live.md" "$mdirect_done/.tdd/issue-32-metrics.md")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
