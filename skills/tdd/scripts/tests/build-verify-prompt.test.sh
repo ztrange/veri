@@ -22,8 +22,8 @@ cat > "$work/spec.md" <<'SPEC'
 slugify("Hello & World/Foo") must return "hello-world-foo" — see {ref}\n done.
 SPEC
 testpath="tests/test_slugify.py"
-# green requires the fast tier's command by flag (#341, case 24); the other phases take none.
-fast_for() { [[ "$1" == green ]] && printf '%s\n' --fast-cmd 'make unit'; }
+# green requires the fast tier's command by flag (#341, case 24); the other phases take none. fast_for <phase> sets the array `fast` to the flag its call owes.
+fast_for() { fast=(); [[ "$1" == green ]] && fast=( --fast-cmd 'make unit' ); }
 
 red="$("$BUILD" red "$work/spec.md" "$testpath" test_slugify_lowercases)"
 
@@ -222,7 +222,7 @@ prediction='the second assert fires: want "hello-world-foo", got "Hello & World/
 problems=""
 for phase in red green refactor pin; do
   slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
-  mapfile -t fast < <(fast_for "$phase")
+  fast_for "$phase"
   smuggled_prompt="$(VERI_PREDICTED_FAILURE="$prediction" \
     "$BUILD" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4" "$prediction")"
   [[ "$smuggled_prompt" == *"$prediction"* ]] \
@@ -309,7 +309,7 @@ step='frobnicate --dry-run prints the plan and writes nothing ⟦criterion 3⟧'
 problems=""
 for phase in red green refactor pin; do
   slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
-  mapfile -t fast < <(fast_for "$phase")
+  fast_for "$phase"
   stepped="$("$BUILD" --step "$step" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4" 2>/dev/null)"; code=$?
   [[ "$code" -eq 0 ]] || problems="$problems; verify-$phase exits $code"
   [[ "$stepped" == *"$step"* ]] || problems="$problems; verify-$phase never shows the step"
@@ -336,7 +336,7 @@ ambient_step='frobnicate --dry-run prints the plan and writes nothing ⟦criteri
 problems=""
 for phase in red green refactor pin; do
   slot4=test_slugify_lowercases; [[ "$phase" == refactor ]] && slot4=0123abc  # a base sha (#151)
-  mapfile -t fast < <(fast_for "$phase")
+  fast_for "$phase"
   unset_arm="$(env -u VERI_STEP "$BUILD" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4")"
   ambient_arm="$(VERI_STEP="$ambient_step" "$BUILD" "${fast[@]+"${fast[@]}"}" "$phase" "$work/spec.md" "$testpath" "$slot4")"
   [[ "$ambient_arm" == *"$ambient_step"* ]] \
