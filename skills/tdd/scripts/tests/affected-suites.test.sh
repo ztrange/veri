@@ -85,6 +85,23 @@ if [[ -z "$bad" ]]; then ok; else
   no "malformed argument → exit 2 with a diagnostic ($bad)"
 fi
 
+# 3. a range whose diff is empty → exit 3 and nothing on stdout: nothing changed is "nothing
+#    to do", not an error and not an empty answer. The head is a real commit of its own, made
+#    with --allow-empty, so the range is two distinct revisions git resolves and only the diff
+#    between them is empty.
+repo="$(new_repo empty)"
+mkdir -p "$repo/skills/tdd/scripts/tests"
+printf 'wolf\n' > "$repo/skills/tdd/scripts/wolf.sh"
+printf '# wolf suite\n' > "$repo/skills/tdd/scripts/tests/wolf.test.sh"
+commit_all "$repo" "base"
+base="$(git -C "$repo" rev-parse HEAD)"
+git_q "$repo" commit -q --allow-empty -m "head" >/dev/null 2>&1
+head="$(git -C "$repo" rev-parse HEAD)"
+out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
+if [[ "$code" == 3 && -z "$out" ]]; then ok; else
+  no "empty diff → exit 3 and prints nothing (code=$code, stdout=${out:-<empty>})"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
