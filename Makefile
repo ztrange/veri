@@ -141,6 +141,12 @@ profile:
 	$(OFFLINE_GIT); \
 	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(SUITES) < /dev/null
 
+# `make watch` reruns `make unit` when a tracked file changes (#340). A developer
+# convenience — not part of `test`, `unit` or `merge-gates`, and nothing gates on it.
+.PHONY: watch
+watch:
+	@$(BASH_GUARD)
+
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
 # regenerates into a buffer and diffs against the committed file, which fails both when a
