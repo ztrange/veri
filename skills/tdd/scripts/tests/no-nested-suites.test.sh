@@ -96,12 +96,6 @@ declare -A EXEMPT=(
   [docs-read-guard.test.sh]="copies no-docs-reads.test.sh (the guard #143 added) into a planted tree with a genuine documentation-tree read and asserts the guard still catches it; the guard's whole job is to catch that read, so only running it proves it still can"
   [docs-read-guard-plant.test.sh]="the same plant-the-bug seam verification one level up: runs a scratch copy of docs-read-guard.test.sh against a stubbed no-docs-reads.test.sh to pin that IT still reports the guard's absence correctly"
   [prose-drift-red.test.sh]="its subject is the verdict \`make test\`'s own runner reaches over a tree — \`make -C \$planted test TESTS=refactor-budget.test.sh\` — not the product; only the real recipe over the real suite produces that verdict"
-
-  # Not folded by this change (out of scope: this change only folds #331's three suites).
-  # #332's sibling of the same anti-pattern — copies no-size-assertion.test.sh to count its
-  # own grep/sed starts, the same shape metrics-python3-starts.test.sh used for python3.
-  # Flagged as a follow-up, not silently left for the next author to rediscover.
-  [no-size-assertion-forks.test.sh]="issue #332's sibling of the pattern folded here (cp's no-size-assertion.test.sh to count its own grep/sed starts); left as a known instance for a follow-up, not folded by this change"
 )
 
 # roster: every real suite's basename under $suites_dir and its unit/ tier — not fixtures/,

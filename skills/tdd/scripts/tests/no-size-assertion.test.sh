@@ -134,6 +134,100 @@ probe_no_suite_measures_either_file
 
 report "$name"
 
+# Cases 2-4 below ask three shapes of the exemption logic above that the real tree never
+# happens to exercise: a comment, a variable bound three lines above its measuring line, and
+# a suite that measures something else entirely with the same three verbs. Moved from
+# no-size-assertion-forks.test.sh (#332), which used to observe them as a side effect of
+# counting that suite's own grep/sed starts; the count is gone (a suite asserts behaviour,
+# not cost — CLAUDE.md's "Testing idiom"), these three behaviours are not.
+#
+# Each asks its question by running a fresh COPY of this very file against a one-suite
+# fixture directory, the way skill-leaf-env.test.sh relaunches a copy of itself to ask about
+# a nested environment. That copy carries cases 2-4 too, and would relaunch a copy of
+# itself in turn without `NO_SIZE_ASSERTION_NESTED` — set once here, checked once below —
+# the same guard skill-leaf-env.test.sh's own `SKILL_LEAF_ENV_NESTED` is for. Case 1 still
+# runs in a nested copy (it is the one thing being observed); only 2-4 do not recurse.
+if [[ -z "${NO_SIZE_ASSERTION_NESTED:-}" ]]; then
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+# The document's name, spelled without its `.md` so no line here both measures and names it
+# (the same reason no-size-assertion-forks.test.sh, where these three cases came from, split
+# it the same way): this suite scans itself too, and a fixture body written out with the two
+# halves already joined would be a ceiling on CLAUDE.md as far as its own probe can tell.
+md=CLAUDE
+
+# observe <dir> <suite-name> <format> [<arg>…] — a fresh copy of THIS suite, run NESTED (see
+# above) in its own fixture directory beside one suite <suite-name> written by `printf
+# <format> <arg>…`; the observed suite's combined output lands in `out`. Each case's own
+# directory, so one case's fixture cannot be found by another's copy. The copy is of this
+# file, not of a different suite: `tok == self` in no-nested-suites.test.sh's guard is
+# exactly this shape, a suite proving its own exemption logic against a fixture rather than
+# another suite's.
+observe() {
+  local dir="$tmp/$1" suite="$2" format="$3"
+  shift 3
+  mkdir -p "$dir"
+  cp "$HERE/no-size-assertion.test.sh" "$dir/"
+  printf "$format" "$@" > "$dir/$suite"
+  out="$(NO_SIZE_ASSERTION_NESTED=1 "$dir/no-size-assertion.test.sh" 2>&1)"
+}
+
+# 2. The criterion: a suite whose only size-verb line is a comment is not reported, even when
+#    that comment names the document — so the comment exemption, not a missing subject, is
+#    what keeps it green.
+#      → the observed suite `1 passed, 0 failed`, and no line naming the fixture suite.
+name="a suite whose only size-verb line is inside a comment is not reported, even when the comment names the document"
+problems=()
+
+observe commented comment-only.test.sh \
+  '#!/usr/bin/env bash\n# wc -c < "$ROOT/%s.md" the old way\necho "no ceiling here"\n' "$md"
+[[ "$out" == *'1 passed, 0 failed'* ]] ||
+  problems+=("want the observed suite green when the only size-verb line is a comment, got: $(flat "$out")")
+[[ "$out" != *'comment-only.test.sh:'* ]] ||
+  problems+=("want no problem line naming comment-only.test.sh, got: $(flat "$out")")
+
+report "$name"
+
+# 3. The criterion: a suite binding a variable to the document three lines above the line
+#    that measures it is still reported — the measuring line names only `$doc`, so only the
+#    binding the probe reads out of the same suite makes it a ceiling.
+#      → the observed suite `0 passed, 1 failed`, naming binds-doc.test.sh:5, the `wc` line.
+name="a suite binding a variable to the document three lines above the line measuring it is still reported, naming the suite and line"
+problems=()
+
+observe bound binds-doc.test.sh \
+  '#!/usr/bin/env bash\ndoc="$ROOT/%s.md"\necho one\necho two\nbytes="$(wc -c < "$doc")"\n' "$md"
+[[ "$out" == *'0 passed, 1 failed'* ]] ||
+  problems+=("want the observed suite red when a suite measures a variable bound to the document, got: $(flat "$out")")
+[[ "$out" == *'binds-doc.test.sh:5 measures the size'* ]] ||
+  problems+=("want a problem line naming binds-doc.test.sh:5, got: $(flat "$out")")
+
+report "$name"
+
+# 4. The criterion: a suite that measures something else entirely with `wc`, `stat` and `du`
+#    is not reported — even when the same suite names the document on a line that measures
+#    nothing, so only the per-line subject check keeps it green.
+#      → the observed suite `1 passed, 0 failed`, and no line naming the fixture suite.
+name="a suite that measures something else entirely with wc, stat and du is not reported, even when it also names the document on an unrelated line"
+problems=()
+
+observe unrelated sizes-other.test.sh '#!/usr/bin/env bash
+grep -q rule "$ROOT/%s.md"
+lines="$(wc -l < "$plan")"
+size="$(stat -f %%z "$log")"
+used="$(du -k "$tmp" | cut -f1)"
+' "$md"
+[[ "$out" == *'1 passed, 0 failed'* ]] ||
+  problems+=("want the observed suite green when a suite measures only files other than the two documents, got: $(flat "$out")")
+[[ "$out" != *'sizes-other.test.sh:'* ]] ||
+  problems+=("want no problem line naming sizes-other.test.sh, got: $(flat "$out")")
+
+report "$name"
+
+fi # NO_SIZE_ASSERTION_NESTED
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
