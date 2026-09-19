@@ -1196,6 +1196,100 @@ fi
 
 report "$name"
 
+# 25. Each phase's launch is built with its own tier of test command (#341). While the
+# conductor runs, the hook launches every leaf phase the way SKILL.md does, from the base
+# directory's scripts — the three developer prompts built by build-develop-prompt.sh and run
+# by supervise.sh over run-leaf.sh, the three verifiers run by verify.sh — handing each the
+# full command and the fast one as two marker strings, every verifier getting `--fast-cmd`
+# alike, so that what a phase runs is decided by the phase and not by what the hook withheld —
+# and then verify-refactor once more without it, which must be refused, as green's is.
+# The leaf's stub `claude` records the prompt it was handed, and the prompt is read for which
+# command the leaf is told to run: the fast marker is `fast`, `affected-suites.sh` is
+# `affected`, both are `fast+affected`, and a prompt naming only the full marker is `all` —
+# the tier no leaf gets, since the conductor runs it itself, once, before the PR is readied.
+name="each phase's leaf is launched with its tier: red and refactor affected, green, verify-green and verify-refactor fast+affected"
+problems=()
+
+clone25="$work/clone25"
+skill_clone "$clone25"
+
+tiers="$work/tiers25"
+mkdir -p "$tiers"
+echo "spec" > "$tiers/spec.md"
+fast25="make FAST-TIER-7781"
+all25="make ALL-TIER-7781"
+
+# The leaves' own `claude`: records the prompt it is handed with `-p` to $LEAF_PROMPT_OUT and
+# answers with a verdict, so a verifier leaf is parsed and not retried for want of one.
+cat > "$stubdir/tier-claude" <<'STUB'
+#!/bin/sh
+while [ "$#" -gt 0 ]; do
+  [ "$1" = "-p" ] && { printf '%s\n' "$2" > "$LEAF_PROMPT_OUT"; shift; }
+  shift
+done
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"VERDICT: PASS\nREASON: ok"}'
+STUB
+chmod +x "$stubdir/tier-claude"
+
+cat > "$stubdir/hook25" <<HOOK
+#!/bin/sh
+S="\$1/scripts"
+cd "$tiers" || exit 1
+leaf() { # leaf <name> <command…> — run <command…> against the stub, its prompt to <name>.received
+  n="\$1"; shift
+  env CLAUDE_BIN="$stubdir/tier-claude" LEAF_PROMPT_OUT="$tiers/\$n.received" VERI_POLL=0.02 "\$@" > "\$n.out" 2> "\$n.err"
+}
+"\$S/build-develop-prompt.sh" red spec.md "the step" "$all25" > develop-red.prompt
+"\$S/build-develop-prompt.sh" green spec.md "the step" "$all25" t.test.sh "the case" "$fast25" > develop-green.prompt
+"\$S/build-develop-prompt.sh" refactor spec.md "the step" "$all25" src/a.sh > develop-refactor.prompt
+for p in red green refactor; do
+  leaf develop-\$p "\$S/supervise.sh" develop-\$p "\$S/run-leaf.sh" develop-\$p.prompt
+done
+leaf verify-red "\$S/verify.sh" --step "the step" --fast-cmd "$fast25" red spec.md t.test.sh "the case"
+leaf verify-green "\$S/verify.sh" --step "the step" --fast-cmd "$fast25" green spec.md t.test.sh "the case"
+leaf verify-refactor "\$S/verify.sh" --step "the step" --fast-cmd "$fast25" refactor spec.md t.test.sh abc1234
+leaf verify-refactor-bare "\$S/verify.sh" --step "the step" refactor spec.md t.test.sh abc1234
+echo "\$?" > verify-refactor-bare.exit
+HOOK
+chmod +x "$stubdir/hook25"
+
+caller25="$work/caller25"
+caller_repo "$caller25"
+launch_from "$caller25" "$clone25" CONDUCTOR_HOOK="$stubdir/hook25"
+
+# tier_of <file> — the command the prompt in <file> tells its leaf to run, in the four words
+# the criterion uses.
+tier_of() {
+  local fast="" affected=""
+  grep -qF -- "$fast25" "$1" && fast=fast
+  grep -qF -- 'affected-suites.sh' "$1" && affected=affected
+  if [[ -n "$fast" && -n "$affected" ]]; then echo fast+affected
+  elif [[ -n "$fast$affected" ]]; then echo "$fast$affected"
+  elif grep -qF -- "$all25" "$1"; then echo all
+  else echo none
+  fi
+}
+
+for want in develop-red=affected verify-red=affected develop-green=fast+affected \
+            verify-green=fast+affected develop-refactor=affected verify-refactor=fast+affected; do
+  leaf25="${want%%=*}" tier25="${want#*=}"
+  if [[ ! -s "$tiers/$leaf25.received" ]]; then
+    problems+=("$leaf25 never received a prompt: $(cat "$tiers/$leaf25.err" 2>/dev/null)")
+  elif [[ "$(tier_of "$tiers/$leaf25.received")" != "$tier25" ]]; then
+    problems+=("$leaf25's launch was built with $(tier_of "$tiers/$leaf25.received"), not $tier25")
+  fi
+done
+
+# verify-refactor's fast half must not hang on the hook having passed it: a launch that omits
+# `--fast-cmd` is refused (exit 2) before any leaf is asked, the way green's is, so a refactor
+# verifier can never be told to run a fast command nobody named.
+bare25="$(cat "$tiers/verify-refactor-bare.exit" 2>/dev/null)"
+if [[ "$bare25" != 2 || -e "$tiers/verify-refactor-bare.received" ]]; then
+  problems+=("verify-refactor launched without --fast-cmd exited ${bare25:-nothing} and its leaf $([[ -e "$tiers/verify-refactor-bare.received" ]] && echo received || echo "never received") a prompt, want exit 2 and no prompt")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

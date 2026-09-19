@@ -15,8 +15,9 @@ Render one verdict on the settled result.
 
 ### Your checks
 
-1. **Still green.** Run the suites `affected-suites.sh` prints for the files the refactor
-   touched yourself; they must be **green**. A refactor that changed observable behavior or
+1. **Still green.** Run the fast command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast`
+   prints it), then run the suites `affected-suites.sh` prints for the files the refactor
+   touched yourself; both must be **green**. A refactor that changed observable behavior or
    broke any test is a REJECT.
 2. **Up to standard.** The settled code should be code you would approve: it follows the
    repository's **conventions**, uses sensible **typing**/structure where the project

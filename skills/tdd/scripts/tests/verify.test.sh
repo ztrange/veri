@@ -109,7 +109,7 @@ printf 'slugify must lowercase the title and join words with hyphens.' > "$work/
 verify_in() {
   local slot4=test_lowercases; [[ "$2" == refactor ]] && slot4=0123abc  # refactor's is a base sha (#151)
   local step_args=(); [[ -n "${5:-}" ]] && step_args=( --step "$5" )
-  [[ "$2" == green ]] && step_args+=( --fast-cmd "make unit" )  # green requires it (#341)
+  [[ "$2" == green || "$2" == refactor ]] && step_args+=( --fast-cmd "make unit" )  # both require it (#341)
   ( cd "$1" && env CLAUDE_BIN="${4:-$stubdir/claude}" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$3" \
       "$VERIFY" "${step_args[@]+"${step_args[@]}"}" "$2" "$work/spec.md" tests/test_slugify.py "$slot4" )
 }

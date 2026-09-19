@@ -319,10 +319,10 @@ fi
 #    so green is the answer; a second, cleared run would double the cost for the one leak that
 #    changes the output while every case still passes.
 #
-#    Only five of run-conductor.test.sh's 24 cases ever set VERI_NEW_SKILL=1 in a `launch_from`
+#    Only five of run-conductor.test.sh's 25 cases ever set VERI_NEW_SKILL=1 in a `launch_from`
 #    call — the rest cannot observe this leak at all — so the witness is those five, cut out of
 #    the suite's own text the way run-conductor-argv-guard.test.sh already cuts its one case,
-#    rather than paying for a real git clone and event log per case for the other nineteen. The
+#    rather than paying for a real git clone and event log per case for the other twenty. The
 #    cut also drops `tree_clone "$work/tree"`, the one call before case 1 that recursively copies
 #    this whole skill tree to build $CONDUCTOR — none of the five cases below reads $CONDUCTOR,
 #    only cases 1-5 do, and that copy was the suite's single most expensive step. A cut that
@@ -330,8 +330,8 @@ fi
 #    closed naming what is missing, rather than silently asking about fewer cases than today's
 #    five.
 #
-#    Depends on run-conductor.test.sh's `# 9. `, `# 10. `, `# 17. `, `# 20. ` and `# 24. `
-#    markers, and the literal line `tree_clone "$work/tree"`.
+#    Depends on run-conductor.test.sh's `# 9. `, `# 10. `, `# 17. `, `# 20. `, `# 24. ` and
+#    `# 25. ` markers, and the literal line `tree_clone "$work/tree"`.
 name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 still leaves it green"
 problems=()
 newskill_cases=(
@@ -349,6 +349,7 @@ awk '
   /^# 17\. / {skip=0}
   /^# 20\. / {skip=1}
   /^# 24\. / {skip=0}
+  /^# 25\. / {skip=1}
   !skip
 ' "$HERE/run-conductor.test.sh" > "$newskill_cut"
 printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$newskill_cut"
@@ -358,7 +359,7 @@ for newskill_case in "${newskill_cases[@]}"; do
   grep -qF "name=\"$newskill_case\"" "$newskill_cut" || newskill_missing+=("$newskill_case")
 done
 if [[ "${#newskill_missing[@]}" -gt 0 ]]; then
-  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — the '# 9. '/'# 10. '/'# 17. '/'# 20. '/'# 24. ' markers may have moved")
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — the '# 9. '/'# 10. '/'# 17. '/'# 20. '/'# 24. '/'# 25. ' markers may have moved")
 else
   out="$(VERI_NEW_SKILL=1 "$newskill_cut" 2>/dev/null)" && code=0 || code=$?
   [[ "$code" == 0 ]] ||

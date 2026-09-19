@@ -102,7 +102,7 @@ report "$name"
 #    own through numbered_item.
 name="verify-refactor's checklist item 1 names affected-suites.sh, not the project's full test suite"
 problems=()
-verify_refactor="$("$VERIFY" refactor "$work/spec.md" 'tests/zorblat.test.sh' 'abc1234' 2>/dev/null)" ||
+verify_refactor="$("$VERIFY" --fast-cmd 'make unit' refactor "$work/spec.md" 'tests/zorblat.test.sh' 'abc1234' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh refactor exited $?")
 item1="$(plain <<< "$verify_refactor" | numbered_item '^ 1\. still green')"
 if [[ -z "$item1" ]]; then
