@@ -1,5 +1,10 @@
 # Generality comes from triangulation; refactor is behavior-preserving
 
+**Superseded in part by [ADR-0021](0021-green-is-obvious-implementation.md)**: green does
+not fake. The "fake-green" half of the Context below no longer holds; triangulation as the
+only route to generality does. The triangulating step the refactor leaf "confirms" is now
+added to the ledger by [ADR-0022](0022-the-ledger-grows-mid-run.md).
+
 Production code is only ever added to satisfy a failing test. Generality is achieved by
 **triangulation** — each acceptance criterion becomes a failing test (a plan step), and
 the implementation is forced to generalize to keep all of them green. The refactor step
