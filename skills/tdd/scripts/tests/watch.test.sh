@@ -12,6 +12,9 @@
 #                    stderr naming the variable; unset, the loop sleeps 1 between passes.
 #                    A stub `sleep` first on PATH records its argument and ends the loop by
 #                    killing the shell that called it, so no real wait is ever taken.
+#   a tracked file changes → the loop runs `make unit` once on its next pass, and not at
+#                    all on a pass that finds nothing changed. Driven against a fixture repo
+#                    with a stub sleep that counts passes and fabricates the changes.
 #
 # Not in tests/unit/: the cases driving the loop start real subprocesses, which the fast
 # tier's admission bar excludes.
@@ -100,6 +103,51 @@ kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null
 first_wait="$(head -n1 "$scratch/sleep.log")"
 [[ "$first_wait" == 1 ]] ||
   problems+=("VERI_WATCH_INTERVAL unset: want the loop's first wait to be sleep 1, got '${first_wait:-no sleep at all}'")
+rm -rf "$scratch"
+report "$name"
+
+# 3. Against a fixture repo — a copy of this Makefile, one tracked file, and a fixture unit
+#    suite that logs each `make unit` run — the stub sleep is the loop's clock: it counts its
+#    calls, fabricates a change to the tracked file (new content and an explicit mtime) on
+#    calls 2 and 4, and ends the loop at call 6. The fixture suite logs the call count each
+#    time it runs, so one rerun per change and none between them reads `2 4`.
+name="make watch: reruns make unit once per detected change, never between changes"
+problems=()
+scratch="$(mktemp -d)"
+fixture="$scratch/repo"
+mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit"
+cp "$ROOT/Makefile" "$fixture/Makefile"
+printf 'original\n' > "$fixture/tracked.txt"
+cat > "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh" <<'SUITE'
+#!/bin/sh
+cat "$WATCH_COUNT" >> "$UNIT_LOG"
+echo "1 passed, 0 failed"
+SUITE
+chmod +x "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh"
+git -C "$fixture" init -q && git -C "$fixture" add -A
+cat > "$scratch/bin/sleep" <<'STUB'
+#!/bin/sh
+n=$(( $(cat "$WATCH_COUNT") + 1 ))
+echo "$n" > "$WATCH_COUNT"
+case "$n" in
+  2|4) printf 'change %s\n' "$n" > "$WATCH_FIXTURE/tracked.txt"
+       touch -t "200${n}01010000" "$WATCH_FIXTURE/tracked.txt" ;;
+  6) kill -TERM "$PPID" ;;
+esac
+STUB
+chmod +x "$scratch/bin/sleep"
+echo 0 > "$scratch/count"
+: > "$scratch/unit.log"
+( WATCH_COUNT="$scratch/count" WATCH_FIXTURE="$fixture" UNIT_LOG="$scratch/unit.log" \
+    PATH="$scratch/bin:$PATH" make --no-print-directory -s -C "$fixture" watch >/dev/null 2>&1 ) &
+watched=$!
+{ /bin/sleep 30; kill -TERM "$watched"; } >/dev/null 2>&1 &
+watchdog=$!
+wait "$watched" 2>/dev/null
+kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null
+runs="$(tr '\n' ' ' < "$scratch/unit.log" | sed 's/ $//')"
+[[ "$runs" == "2 4" ]] ||
+  problems+=("want make unit to run once after each change (after sleeps 2 and 4), ran after sleeps: '${runs:-none}'")
 rm -rf "$scratch"
 report "$name"
 
