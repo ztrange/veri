@@ -37,6 +37,18 @@ report() {
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+# observe <dir> <suite> <format> [<arg>…] — run a fresh copy of no-size-assertion.test.sh in
+# its own fixture directory `$tmp/<dir>`, beside one suite <suite> written by `printf <format>
+# <arg>…`; the observed suite's output lands in `out`.
+observe() {
+  local dir="$tmp/$1" suite="$2" format="$3"
+  shift 3
+  mkdir -p "$dir"
+  cp "$HERE/no-size-assertion.test.sh" "$dir/"
+  printf "$format" "$@" > "$dir/$suite"
+  out="$("$dir/no-size-assertion.test.sh" 2>&1)"
+}
+
 # The fixture directory: the suite under observation, whose `$HERE` is where it scans, beside
 # five suites of which two carry a size-verb line — neither about the two documents, so the
 # observed suite stays green and every start the shims count is the probe asking.
@@ -127,13 +139,8 @@ report "$name"
 name="no-size-assertion.test.sh's probe still does not report a suite whose only size-verb line is inside a comment"
 problems=()
 
-commented="$tmp/commented"
-mkdir -p "$commented"
-cp "$HERE/no-size-assertion.test.sh" "$commented/"
-printf '#!/usr/bin/env bash\n# wc -c < "$ROOT/%s.md" the old way\necho "no ceiling here"\n' "$md" \
-  > "$commented/comment-only.test.sh"
-
-out="$("$commented/no-size-assertion.test.sh" 2>&1)"
+observe commented comment-only.test.sh \
+  '#!/usr/bin/env bash\n# wc -c < "$ROOT/%s.md" the old way\necho "no ceiling here"\n' "$md"
 [[ "$out" == *'1 passed, 0 failed'* ]] ||
   problems+=("want the observed suite green when the only size-verb line is a comment, got: $(printf '%q' "$out")")
 [[ "$out" != *'comment-only.test.sh:'* ]] ||
@@ -150,13 +157,8 @@ report "$name"
 name="no-size-assertion.test.sh's probe still reports a suite that binds a variable to CLAUDE.md three lines above the line measuring it, naming the suite and line"
 problems=()
 
-bound="$tmp/bound"
-mkdir -p "$bound"
-cp "$HERE/no-size-assertion.test.sh" "$bound/"
-printf '#!/usr/bin/env bash\ndoc="$ROOT/%s.md"\necho one\necho two\nbytes="$(wc -c < "$doc")"\n' "$md" \
-  > "$bound/binds-doc.test.sh"
-
-out="$("$bound/no-size-assertion.test.sh" 2>&1)"
+observe bound binds-doc.test.sh \
+  '#!/usr/bin/env bash\ndoc="$ROOT/%s.md"\necho one\necho two\nbytes="$(wc -c < "$doc")"\n' "$md"
 [[ "$out" == *'0 passed, 1 failed'* ]] ||
   problems+=("want the observed suite red when a suite measures a variable bound to CLAUDE.md, got: $(printf '%q' "$out")")
 [[ "$out" == *'binds-doc.test.sh:5 measures the size'* ]] ||
@@ -172,18 +174,12 @@ report "$name"
 name="no-size-assertion.test.sh's probe still does not report a suite that measures something else entirely with wc, stat and du"
 problems=()
 
-unrelated="$tmp/unrelated"
-mkdir -p "$unrelated"
-cp "$HERE/no-size-assertion.test.sh" "$unrelated/"
-printf '#!/usr/bin/env bash
+observe unrelated sizes-other.test.sh '#!/usr/bin/env bash
 grep -q rule "$ROOT/CLAUDE.md"
 lines="$(wc -l < "$plan")"
 size="$(stat -f %%z "$log")"
 used="$(du -k "$tmp" | cut -f1)"
-' \
-  > "$unrelated/sizes-other.test.sh"
-
-out="$("$unrelated/no-size-assertion.test.sh" 2>&1)"
+'
 [[ "$out" == *'1 passed, 0 failed'* ]] ||
   problems+=("want the observed suite green when a suite measures only files other than the two documents, got: $(printf '%q' "$out")")
 [[ "$out" != *'sizes-other.test.sh:'* ]] ||
