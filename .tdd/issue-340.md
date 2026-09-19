@@ -6,4 +6,4 @@
 - [x] One poll pass over the tracked files calls its stat wrapper exactly once whatever the number of tracked files (in-process spy), so the polling path is taken rather than the fswatch/entr fallback ⟦criterion 4⟧
 - [x] The watch loop never runs any make target besides `unit` — a fixture fails if `test`, `merge-gates` or any other target runs ⟦criterion 5⟧
 - [x] The Makefile's comment header documents `make watch` as low priority / a developer convenience, in the style of the `profile` and `docs` comments ⟦criterion 6⟧
-- [ ] `watch.test.sh` is run by `make test`'s glob and is not run by `make unit` ⟦criterion 7⟧
+- [x] `watch.test.sh` is run by `make test`'s glob and is not run by `make unit` ⟦criterion 7⟧

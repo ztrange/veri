@@ -23,6 +23,8 @@
 #                    on any goal but `unit` — `test`, `merge-gates` or anything else.
 #   the Makefile   → its comment on `make watch` calls it a developer convenience (or low
 #                    priority), not part of `test`, that nothing gates on — as `profile`'s does.
+#   the suite's lane → `make -n test` lists this suite and `make -n unit` does not: each
+#                    target's roster read off its own expanded recipe, which runs nothing.
 #
 # Not in tests/unit/: the cases driving the loop start real subprocesses, which the fast
 # tier's admission bar excludes.
@@ -282,6 +284,18 @@ else
   grep -q 'nothing gates on it' <<< "$header" ||
     problems+=("the make watch comment does not say nothing gates on it: $header")
 fi
+report "$name"
+
+# 7. This suite runs in `make test`'s lane and not in `make unit`'s. Each roster is read
+#    off `make -n <target>`, which prints the recipe with its glob already expanded and
+#    runs none of it — the target's own list, not a copy of its glob written out here.
+name="watch.test.sh: run by make test's glob, not by make unit's"
+problems=()
+roster() { make --no-print-directory -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
+roster test | grep -qx 'skills/tdd/scripts/tests/watch.test.sh' ||
+  problems+=("make -n test does not list skills/tdd/scripts/tests/watch.test.sh")
+in_unit="$(roster unit | grep '/watch\.test\.sh$')"
+[[ -z "$in_unit" ]] || problems+=("make -n unit lists $in_unit; want it absent from the fast tier")
 report "$name"
 
 echo "----"
