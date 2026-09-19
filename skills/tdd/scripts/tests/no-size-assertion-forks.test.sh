@@ -48,7 +48,8 @@ for i in 1 2 3; do
 done
 printf '#!/usr/bin/env bash\nlines="$(wc -l < "$plan")"\n' > "$scanned/counts-plan.test.sh"
 printf '#!/usr/bin/env bash\nsize="$(stat -f %%z "$log")"\n' > "$scanned/sizes-log.test.sh"
-suites=6
+fixtures=("$scanned"/*.test.sh)
+suites="${#fixtures[@]}"
 
 # One line per start: the verb, then how many of the scanned directory's suites its arguments
 # reach — a file named directly counts one, the directory itself counts all of them.
