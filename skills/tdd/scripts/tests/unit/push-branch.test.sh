@@ -13,6 +13,11 @@ pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
+show_run() {  # show_run <exit> <stdout-file> <stderr-file> — print what a failing case got
+  echo "    exit $1"; echo "    stdout: $(printf '%q' "$(cat "$2")")"
+  echo "    stderr: $(printf '%q' "$(cat "$3")")"
+}
+
 # 1. sourcing the script runs nothing: no git call, no exit out of the sourcing shell, and a
 #    `main` function left defined for a caller to run
 name="sourcing push-branch.sh runs nothing and defines main"
@@ -47,8 +52,7 @@ rc=$?
 want_err="push-branch.sh: VERI_PUSH_RETRIES must be a non-negative integer, got 'x'"
 if [[ "$rc" -ne 2 || -s "$out" || "$(cat "$err")" != "$want_err" ]]; then
   fail=$((fail + 1)); echo "FAIL - $name (want exit 2, empty stdout, stderr '$want_err'):"
-  echo "    exit $rc"; echo "    stdout: $(printf '%q' "$(cat "$out")")"
-  echo "    stderr: $(printf '%q' "$(cat "$err")")"
+  show_run "$rc" "$out" "$err"
 else
   pass=$((pass + 1))
 fi
@@ -79,8 +83,7 @@ record push-failed error=fatal: unable to access origin attempts=2"
 want_err="push-branch.sh: push failed after 2 attempts; the branch is not on the remote"
 if [[ "$rc" -ne 0 || -s "$scratch/out3" || "$(cat "$err")" != "$want_err" || "$(cat "$calls")" != "$want_calls" ]]; then
   fail=$((fail + 1)); echo "FAIL - $name (want exit 0, empty stdout, stderr '$want_err'):"
-  echo "    exit $rc"; echo "    stdout: $(printf '%q' "$(cat "$scratch/out3")")"
-  echo "    stderr: $(printf '%q' "$(cat "$err")")"
+  show_run "$rc" "$scratch/out3" "$err"
   diff <(echo "$want_calls") "$calls"
 else
   pass=$((pass + 1))
