@@ -311,6 +311,39 @@ grep -qx 'harvest-end verify-refactor' "$seq_log" ||
 
 report "$name"
 
+# 4. The criterion: a whole run of harvest-usage.test.sh starts python3 at most 8 times —
+#    roughly one probe per case plus the production forks (extract-result.sh per launch,
+#    harvest-usage.sh's record parse per harvest) that are not test code. Counted, not timed:
+#    a PATH-first `python3` appends one line to a counter file before exec'ing the real
+#    interpreter, against an untraced copy of the scripts, so every start the suite causes —
+#    its own probes and the product scripts' — lands in the count.
+#      → the observed suite green, and at most 8 lines in the counter.
+name="harvest-usage.test.sh's total python3 starts, counted by a PATH-first counting shim, are at most 8"
+problems=()
+
+counted="$tmp/counted"
+variant "$counted"
+starts_log="$tmp/python3-starts"
+: > "$starts_log"
+mkdir -p "$counted/bin"
+cat > "$counted/bin/python3" <<SHIM
+#!/bin/sh
+printf 'python3\n' >> "$starts_log"
+exec "$real_python3" "\$@"
+SHIM
+chmod +x "$counted/bin/python3"
+
+out="$(PATH="$counted/bin:$PATH" "$counted/tests/harvest-usage.test.sh" 2>/dev/null)"
+[[ "$out" == *'3 passed, 0 failed'* ]] ||
+  problems+=("setup: want the observed suite green, got: $(printf '%q' "$out")")
+starts="$(wc -l < "$starts_log" | tr -d ' ')"
+[[ "$starts" -gt 0 ]] ||
+  problems+=("setup: want the counting shim to see python3 started at all, got 0")
+[[ "$starts" -le 8 ]] ||
+  problems+=("want at most 8 python3 starts across harvest-usage.test.sh, got $starts")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
