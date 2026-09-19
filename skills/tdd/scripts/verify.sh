@@ -36,9 +36,9 @@ set -euo pipefail
 # The step is a flag and only a flag: an ambient VERI_STEP is never read here, so nothing
 # but this call site can scope a verdict (#223). Without it the prompt is what it always was.
 # --fast-cmd (#341) rides alongside it, straight through: green's prompt names that command.
-step_args=()
+flag_args=()
 while [[ "${1:-}" == --step || "${1:-}" == --fast-cmd ]]; do
-  step_args+=( "$1" "${2:?$1 needs a value}" )
+  flag_args+=( "$1" "${2:?$1 needs a value}" )
   shift 2
 done
 
@@ -100,7 +100,7 @@ else
 fi
 
 # Build the blind prompt (exits 2 on unknown phase / unreadable files — propagated).
-prompt="$("$HERE/build-verify-prompt.sh" "${step_args[@]+"${step_args[@]}"}" "$phase" "$spec_file" "$test_path" "$target")"
+prompt="$("$HERE/build-verify-prompt.sh" "${flag_args[@]+"${flag_args[@]}"}" "$phase" "$spec_file" "$test_path" "$target")"
 
 # Launch the verifier leaf THROUGH THE SUPERVISOR (no leaf is launched directly, #4).
 # supervise.sh owns the .tdd/verify-<phase>.log progress log and returns the captured
