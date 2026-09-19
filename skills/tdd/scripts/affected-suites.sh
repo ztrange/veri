@@ -25,6 +25,10 @@ done
 suite_of() {
   local f="$1" name script
   case "$f" in
+    CLAUDE.md|Makefile|skills/*/SKILL.md)
+      # A guard suite names its document as a whole quoted path, as model-knobs-recorded does
+      # claude_md="CLAUDE.md", or at the end of one, as count-line-guard does "$ROOT/Makefile".
+      grep -lF -e "\"$f\"" -e "/$f\"" "$scripts"/tests/*.test.sh || true ;;
     "$scripts"/tests/*.test.sh) echo "$f" ;;
     "$scripts"/tests/fixtures/*)
       # A suite references a fixture by its path under tests/, as count-line-guard does
