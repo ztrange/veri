@@ -10,6 +10,15 @@ set -euo pipefail
 range="${1:?usage: affected-suites.sh <base>..<head>}"
 scripts=skills/tdd/scripts
 
+# A malformed range is a plumbing failure, not an answer. Without the `..` check a single
+# revision reaches `git diff` as "against the working tree", which it answers happily.
+[[ "$range" == *..* ]] ||
+  { echo "affected-suites: '$range' is not a <base>..<head> range" >&2; exit 2; }
+for rev in "${range%%..*}" "${range#*..}"; do
+  git rev-parse --verify --quiet "$rev^{commit}" >/dev/null ||
+    { echo "affected-suites: cannot resolve revision '$rev'" >&2; exit 2; }
+done
+
 # suite_of <path> — the suite a touched file affects: a suite is its own, a script's is the
 # one named after it, under tests/ or tests/unit/.
 suite_of() {

@@ -65,6 +65,26 @@ if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
+# 2. a malformed argument → exit 2 and a diagnostic on stderr. Three shapes: a single
+#    revision with no `..` (which git diff alone would read as "against the working tree"
+#    and answer happily), and a range whose base or head git cannot resolve.
+repo="$(new_repo malformed)"
+mkdir -p "$repo/skills/tdd/scripts"
+printf 'wolf\n' > "$repo/skills/tdd/scripts/wolf.sh"
+commit_all "$repo" "base"
+head="$(git -C "$repo" rev-parse HEAD)"
+bad=""
+for arg in "$head" "$head..no-such-rev" "no-such-rev..$head"; do
+  err="$(cd "$repo" && "$AFFECTED" "$arg" 2>&1 >/dev/null)"; code=$?
+  if [[ "$code" != 2 || -z "$err" ]]; then
+    bad="${arg/$head/<head>}: code=$code, stderr=${err:-<empty>}"
+    break
+  fi
+done
+if [[ -z "$bad" ]]; then ok; else
+  no "malformed argument → exit 2 with a diagnostic ($bad)"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
