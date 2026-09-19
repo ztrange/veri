@@ -176,19 +176,23 @@ answer_from_file() {
   done < "$1"
 }
 
+# Rule 0 is asked first, ahead of the tier markers too, because the issue's line is this
+# run's claim and `veri: all tests:` is the repo's — the narrower one wins, as it does over
+# `.veri/test-command`. The fast tier is the exception (#338): an issue names the command
+# that proves it done, which is the full suite, so `--tier fast` never takes the issue's line
+# and answers from `veri: fast tests:` or the single-command chain instead.
+if [ "$tier" != fast ] && [ -n "$issue" ] && [ -f "$issue" ]; then
+  answer_from_file "$issue"
+fi
+
 # The tier markers. A repo's root CLAUDE.md may declare `veri: fast tests: <cmd>` and
 # `veri: all tests: <cmd>`, and a `--tier` call answers from the one its tier names. The
 # lines are read by the same walk as rule 0's, so a marker is found anywhere on a line and
 # skipped inside a backtick span exactly as the issue's own is; only the words differ, which
-# is why `marker` is swapped for the walk and put back for rule 0.
+# is why `marker` is swapped for the walk.
 if [ -n "$tier" ] && [ -f "$root/CLAUDE.md" ]; then
   marker="veri: $tier tests:"
   answer_from_file "$root/CLAUDE.md"
-  marker='Test command:'
-fi
-
-if [ -n "$issue" ] && [ -f "$issue" ]; then
-  answer_from_file "$issue"
 fi
 
 # 1. The override file. Its first non-empty line is the command, verbatim: `IFS=` keeps
