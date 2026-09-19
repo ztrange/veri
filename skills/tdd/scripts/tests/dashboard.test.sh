@@ -83,6 +83,16 @@ report() {
   fi
 }
 
+# add_problems — one problem per non-empty line of stdin. Every case that hands its assertions
+# to a python3 program reads what that program printed this way: the program says nothing when
+# the case passes, and one line per thing that broke when it does not.
+add_problems() {
+  local line
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && problems+=("$line")
+  done
+}
+
 # A repository of the case's own, so the dashboard is started from a target repo rather than
 # from whichever repository `make test` was typed in. A `git init` with no commit is enough,
 # exactly as status.test.sh's `repo` helper makes one.
@@ -397,9 +407,7 @@ else
       continue
     fi
     http_body "$answer" > "$work/argport.json"
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && problems+=("$line")
-    done < <(python3 -c '
+    add_problems < <(python3 -c '
 import json, sys
 
 path, body, status_path = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -622,9 +630,7 @@ else
   if [[ ! -f "$work/metrics-direct.json" ]]; then
     problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-direct.err")")
   else
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && problems+=("$line")
-    done < <(python3 -c '
+    add_problems < <(python3 -c '
 import json, sys
 
 body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -710,9 +716,7 @@ else
   if [[ ! -f "$work/events-direct-51.json" || ! -f "$work/events-direct-99.json" ]]; then
     problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-direct.err")")
   else
-    while IFS= read -r line; do
-      [[ -n "$line" ]] && problems+=("$line")
-    done < <(python3 -c '
+    add_problems < <(python3 -c '
 import json, sys
 
 sel_body, none_body, log_path = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -770,9 +774,7 @@ disk_page="$scripts/dashboard.html"
 if [[ ! -f "$disk_page" ]]; then
   problems+=("there is no dashboard.html beside dashboard.sh to read")
 else
-  while IFS= read -r line; do
-    [[ -n "$line" ]] && problems+=("$line")
-  done < <(python3 -c '
+  add_problems < <(python3 -c '
 import re
 import sys
 
