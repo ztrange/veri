@@ -86,6 +86,10 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 stub="$WORK/stub"       # the fake `claude` every launch below ends in
 run="$WORK/run"         # one tree per launch line, named for its leaf
+# One file every launch appends to, outside `$run` so case 3's glob over the trees never reads
+# it: `start <lineno>` when a launch begins and `finish <lineno>` when it has ended, one line
+# each, so the file's line order is the order the launches' ends happened in (case 4).
+markers="$WORK/markers"
 mkdir -p "$stub" "$run"
 
 # The test command this probe stands in for the conductor's. A command with a space in it,
@@ -117,10 +121,10 @@ printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"o
 STUB
 chmod +x "$stub/claude"
 
-# launched_test_cmd <leaf> <launch-line> <file>... — run one launch line to completion in a
-# tree of its own and echo what VERI_TEST_CMD said inside the leaf, or `<no leaf ran>` when
-# the line never reached one. Both cases below ask that one question, of the two launch
-# shapes the document prescribes, so both come through here.
+# start_launch <leaf> <launch-line> <file>... — start one launch line in a tree of its own, in
+# the background, and return at once; `launched_test_cmd` reads its answer once `launch_all`
+# has waited for every launch. Both cases below ask one question, of the two launch shapes the
+# document prescribes, so both come through here.
 #
 # The `<file>` arguments are what the tree must hold before the line can run, and they are
 # the only thing the two shapes differ in: a developer launch names its own prompt file,
@@ -149,7 +153,7 @@ chmod +x "$stub/claude"
 # `line` is `scan_launches`'s, holding the document's own spelling, and a local of that name
 # here would shadow it — so the `origin` file below would record the substituted copy as
 # though it were what the document says.
-launched_test_cmd() {
+start_launch() {
   local leaf="$1" launch="$2"
   shift 2
   # One tree per launch LINE, not per leaf: `$lineno` is `scan_launches`'s, read the way
@@ -185,12 +189,25 @@ launched_test_cmd() {
   # landing means the answer is already there. Bounded by the supervisor's own ceiling
   # (VERI_TIMEOUT), so a leaf that ran is never cut short, and a line that reached no
   # supervisor at all still comes back as `<no leaf ran>` rather than hanging the suite.
-  ( cd "$dir" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
-      S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
-      VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
-      bash -c "$launch
+  #
+  # The whole of it runs in the background, bracketed by its `start` and `finish` markers, so
+  # the next line's launch begins while this one's leaf is still running (#333).
+  {
+    echo "start $lineno" >> "$markers"
+    ( cd "$dir" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
+        S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
+        VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
+        bash -c "$launch
 \"$SCRIPTS/wait-leaf.sh\" \"$leaf\" 60" ) >/dev/null 2>&1
-  cat "$seen" 2>/dev/null || echo '<no leaf ran>'
+    echo "finish $lineno" >> "$markers"
+  } &
+}
+
+# launched_test_cmd <leaf> — echo what VERI_TEST_CMD said inside the leaf `start_launch` ran
+# for the current line, or `<no leaf ran>` when the line never reached one. Read only after
+# `launch_all` has waited for every launch, from the tree keyed the way `start_launch` keys it.
+launched_test_cmd() {
+  cat "$run/$lineno-$1/seen" 2>/dev/null || echo '<no leaf ran>'
 }
 
 # expect_sentinel <leaf> <launch-line> <file>... — run one launch line and record a problem
@@ -203,9 +220,16 @@ launched_test_cmd() {
 # into describing the same failure two ways — and the value they quote is the whole evidence a
 # reader gets, since `<unset>` (the prefix is missing) and `<no leaf ran>` (the line never
 # reached one) are different faults with the same verdict.
+#
+# Called twice per line: once while `launching` is set, to start the launch, and once from the
+# case, to ask what it saw.
 expect_sentinel() {
   local leaf="$1" got
-  got="$(launched_test_cmd "$@")"
+  if [[ -n "$launching" ]]; then
+    start_launch "$@"
+    return
+  fi
+  got="$(launched_test_cmd "$leaf")"
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 }
@@ -339,12 +363,6 @@ check_developer_launch() {
   expect_sentinel "$leaf" "$launch" "$prompt"
 }
 
-run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
-  scan_launches \
-  '\$S/supervise\.sh .*run-leaf\.sh' \
-  "a leaf through supervise.sh into run-leaf.sh" \
-  check_developer_launch
-
 # 2. The same criterion, asked of the verifier launches. A verifier is a leaf too — `claude
 #    -p` in a tree, denied Write and Edit but free to run commands — so `make docs` is as
 #    typeable there as in a developer leaf, and a guard the documentation targets carry is
@@ -382,9 +400,32 @@ check_verifier_launch() {
   expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 
+# The launch lines each case scans for, spelled once because each is scanned twice: once by
+# `launch_all` to start every launch, once by its case to read what the launches saw.
+developer_launch='\$S/supervise\.sh .*run-leaf\.sh'
+verifier_launch='\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md'
+
+# launch_all — start the launches of cases 1 and 2 together, then wait for every one of them,
+# so no launch waits on another's leaf (#333) and every case below reads finished trees. A
+# problem the scan finds here is dropped: the case's own scan finds it again and reports it.
+launch_all() {
+  local problems=() launching=1
+  scan_launches "$developer_launch" "a leaf through supervise.sh into run-leaf.sh" check_developer_launch
+  scan_launches "$verifier_launch" "a verifier through verify.sh against a spec file" check_verifier_launch
+  wait
+}
+launching=
+launch_all
+
+run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
+  scan_launches \
+  "$developer_launch" \
+  "a leaf through supervise.sh into run-leaf.sh" \
+  check_developer_launch
+
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
-  '\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
+  "$verifier_launch" \
   "a verifier through verify.sh against a spec file" \
   check_verifier_launch
 
@@ -477,6 +518,43 @@ scan_launch_trees() {
 
 run_case "every leaf $skill_md launches leaves events carrying the run's issue and step" \
   scan_launch_trees
+
+# 4. The launches of cases 1 and 2 run together, not one after another (#333). Each launch is
+#    keyed by its own line and its own tree, so none waits on another's answer — and a
+#    launch is a real supervisor over a real detached leaf, so ten of them in sequence is
+#    ten waits where one would do.
+#
+#    Asked of the `markers` file every launch appends its `start` and `finish` lines to,
+#    because the order of those lines is the one observable difference between launches that
+#    overlap and launches merely backgrounded one at a time: overlapping, every start is
+#    written before any finish; serial, the first finish lands before the second start. Every
+#    tree cases 1 and 2 left must have both of its lines, so a launch that never wrote them
+#    cannot make the order look right by being absent.
+#
+# scan_launch_overlap — the case's body, in `scan_launch_trees`'s shape, restoring each tree's
+# `lineno` and `line` from its `origin` so a missing marker names the launch to look at.
+scan_launch_overlap() {
+  local trees tree lineno line last_start first_finish
+  if [[ ! -s "$markers" ]]; then
+    problems+=("no launch wrote a start or finish marker, so whether the launches overlapped could not be read")
+    return
+  fi
+  trees=( "$run"/* )
+  for tree in "${trees[@]}"; do
+    [[ -f "$tree/origin" ]] || continue
+    IFS=$'\t' read -r lineno line < "$tree/origin"
+    grep -qx "start $lineno" "$markers" || problem "wrote no start marker"
+    grep -qx "finish $lineno" "$markers" || problem "wrote no finish marker"
+  done
+  last_start="$(grep -n '^start ' "$markers" | tail -1 | cut -d: -f1)"
+  first_finish="$(grep -n '^finish ' "$markers" | head -1 | cut -d: -f1)"
+  if [[ -n "$last_start" && -n "$first_finish" && "$last_start" -gt "$first_finish" ]]; then
+    problems+=("a launch finished (marker $first_finish: $(sed -n "${first_finish}p" "$markers")) before the last one started (marker $last_start: $(sed -n "${last_start}p" "$markers")), so the launches ran one after another")
+  fi
+}
+
+run_case "every launch $skill_md prescribes starts before any of them finishes" \
+  scan_launch_overlap
 
 echo "----"
 echo "$pass passed, $fail failed"
