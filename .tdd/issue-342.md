@@ -1,6 +1,6 @@
 # Plan for #342 — Test-command runs record a tier/seconds event; the conductor posts a soft warning over budget
 
-- [ ] a test-command run made through the new wrapper writes one `test-run` event carrying `tier`, `suites` and `seconds`, and exits with the command's own status ⟦criterion 1⟧
+- [x] a test-command run made through the new wrapper writes one `test-run` event carrying `tier`, `suites` and `seconds`, and exits with the command's own status ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] the "usual" for a tier is the median of that tier's last 10 `test-run` events' seconds, read out of `.tdd/events.jsonl` ⟦criterion 2⟧
 - [ ] `VERI_UNIT_BUDGET` and `VERI_TIME_WARN_RATIO` unset resolve to `10` and `1.5`, and a non-numeric value for either exits 2 with a diagnostic naming the variable ⟦criterion 3⟧
 - [ ] a unit-tier run whose seconds exceed `VERI_UNIT_BUDGET` is over budget; at or under it, it is not ⟦criterion 4⟧
