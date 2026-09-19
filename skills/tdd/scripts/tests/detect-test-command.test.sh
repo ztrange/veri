@@ -915,6 +915,20 @@ done
 [[ -z "$misread" ]] \
   && ok || no "--tier fast/all: with neither CLAUDE.md marker declared, both tiers print the single command the precedence chain picks —$misread"
 
+# 13. with only `veri: all tests:` declared, `--tier fast` falls back to the single command the
+# precedence chain picks (#338), rather than erroring, printing nothing, or borrowing the all
+# tier's line. The repo's Makefile `test:` target is that chain's answer, and the all-tier
+# command is spelled so that no rule could infer it — so `make test` can only mean the fast
+# tier found no marker of its own and went on down the chain.
+repo="$work/tiered-all-only"
+mkdir -p "$repo"
+printf 'test:\n\techo hi\n' > "$repo/Makefile"
+printf '# demo\n\nveri: all tests: bin/all-only-suite --every -v\n' > "$repo/CLAUDE.md"
+want='make test'
+detect --tier fast "$repo"
+matched \
+  && ok || no "--tier fast: with only CLAUDE.md's veri: all tests: declared, fast falls back to the single-command chain (exit=$code want 0, stdout='$out' want '$want')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
