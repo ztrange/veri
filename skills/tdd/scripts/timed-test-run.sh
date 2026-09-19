@@ -35,13 +35,11 @@ shift 2
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-started=""
 printf -v started '%(%s)T' -1
 
 "$@"
 code=$?
 
-ended=""
 printf -v ended '%(%s)T' -1
 
 "$HERE/event.sh" test-run "tier=$tier" "suites=$suites" "seconds=$((ended - started))"
