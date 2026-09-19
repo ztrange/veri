@@ -1,6 +1,6 @@
 # Plan for #330 — dashboard.test.sh calls the endpoint functions directly instead of starting a server for every case
 
-- [x] The dashboard's python server lives in a module file beside dashboard.sh that dashboard.sh execs; importing it and calling runs_json, metrics_json or events_json never binds a port — a case imports it, calls a function, then confirms the default port 8765 is still free ⟦criterion 1⟧ ⟂ refactor pending
+- [x] The dashboard's python server lives in a module file beside dashboard.sh that dashboard.sh execs; importing it and calling runs_json, metrics_json or events_json never binds a port — a case imports it, calls a function, then confirms the default port 8765 is still free ⟦criterion 1⟧
 - [ ] /api/runs's payload is asserted by calling runs_json directly against a fixture repo, byte-identical to status.sh --json on the same fixture, with no HTTP request and no server process for that case ⟦criterion 2⟧
 - [ ] /api/metrics's payload is asserted by calling metrics_json directly — recomputed live for a running run, and the committed .tdd/issue-<n>-metrics.md verbatim for a finished one — with no server for that case ⟦criterion 3⟧
 - [ ] /api/events's payload is asserted by calling events_json directly, including the empty list for an issue no run holds a ledger for, with no server for that case ⟦criterion 4⟧
