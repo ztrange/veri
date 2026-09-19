@@ -290,6 +290,36 @@ grep -Eq '(^|[^[:alnum:]_.-])make[^;]*[[:space:]]test([[:space:];]|$)' <<< "$pro
   problems+=("make -n profile calls make test")
 report "$name"
 
+# 10. this suite costs no clock and runs no real suite, and `make test` runs it. Read as
+#     text, the way no-docs-reads.test.sh reads a suite: no line outside a comment runs
+#     `sleep` as a command, and every call to the profiler hands it a fixture this suite
+#     wrote under $scratch — never a path under skills/tdd/scripts/tests/. Then the suite
+#     is among those case 9's `make -n test` names, so the TESTS glob covers it with no
+#     recipe edit. The two words searched for are spelt in halves so this case's own
+#     lines do not match them.
+name="this suite runs no clock and no real suite, and make -n test names it"
+problems=()
+self="$HERE/$(basename "$0")"
+nap="sl""eep" call='"$PROF''ILE"' n=0 calls=0
+runs_nap="(^|[;&|(])[[:space:]]*$nap([[:space:]]|;|\$)"
+fixture_arg='^ "(\$fixture|\$scratch/[^"]+)"'
+while IFS= read -r line; do
+  n=$((n + 1))
+  [[ "$line" =~ ^[[:space:]]*# ]] && continue
+  [[ "$line" =~ $runs_nap ]] &&
+    problems+=("L$n runs $nap: $line")
+  if [[ "$line" == *"$call"* ]]; then
+    calls=$((calls + 1))
+    rest="${line#*"$call"}"
+    [[ "$rest" =~ $fixture_arg ]] ||
+      problems+=("L$n profiles something other than a fixture under \$scratch: $line")
+  fi
+done < "$self"
+[[ "$calls" -gt 0 ]] || problems+=("found no call to the profiler in $self — probe is stale")
+[[ "$test_recipe" == *"skills/tdd/scripts/tests/$(basename "$0")"* ]] ||
+  problems+=("make -n test does not name skills/tdd/scripts/tests/$(basename "$0")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
