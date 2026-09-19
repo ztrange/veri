@@ -29,6 +29,7 @@ main() {
   set -uo pipefail
 
   HERE="$(cd "$(dirname "$0")" && pwd)"
+  local retries backoff tunable attempt out branch remote_sha
 
   # `--set-upstream` so the first call creates the remote branch and later ones fast-forward
   # against it; `HEAD` rather than a branch name so the script reads the branch off the
