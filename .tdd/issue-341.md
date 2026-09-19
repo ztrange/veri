@@ -4,7 +4,7 @@
 - [x] develop-red.md and verify-red.md name the affected-suites command, not a single hand-named suite, as what the red leaf and its verifier run ⟦criterion 2⟧
 - [x] verify-refactor.md's checklist item 1 no longer says "the project's full test suite" and names the affected-suites command ⟦criterion 3⟧
 - [x] develop-refactor.md names the affected-suites command fed refactor-touched.sh's output as what the refactor leaf runs after each transform
-- [x] develop-green.md and verify-green.md name the fast command plus the affected suites as what they run, not "the full suite" ⟦criterion 4⟧ ⟂ refactor pending
+- [x] develop-green.md and verify-green.md name the fast command plus the affected suites as what they run, not "the full suite" ⟦criterion 4⟧
 - [ ] SKILL.md's Draft PR section and its closing invariant both name `--tier all`'s command, run exactly once, as the only full-suite gate left in the cycle ⟦criterion 5⟧
 - [ ] A red result on the final full run adds a repair step to the ledger rather than bailing, with a unit-tier test added when the failure exposes a gap and the verifier judging the fix against the full command ⟦criterion 6⟧
 - [ ] A second red result on the full run after a repair step bails, naming every suite still red, not only the first ⟦criterion 7⟧
