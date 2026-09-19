@@ -21,6 +21,8 @@
 #   only `unit`    → every make the loop starts asks for `unit` and no other goal. A `make`
 #                    wrapper passed as MAKE= logs each make's goals, and the case fails
 #                    on any goal but `unit` — `test`, `merge-gates` or anything else.
+#   the Makefile   → its comment on `make watch` calls it a developer convenience (or low
+#                    priority), not part of `test`, that nothing gates on — as `profile`'s does.
 #
 # Not in tests/unit/: the cases driving the loop start real subprocesses, which the fast
 # tier's admission bar excludes.
@@ -256,6 +258,30 @@ while IFS= read -r goals; do
     problems+=("want every make the loop runs to ask for unit only, one asked for: '${goals:-<default goal>}'")
 done < "$scratch/make.log"
 rm -rf "$scratch"
+report "$name"
+
+# 6. The Makefile documents `make watch` the way it documents `make profile`: a comment
+#    paragraph opening "# `make watch`" that calls it a developer convenience (or low
+#    priority), says it is not part of `test`, and that nothing gates on it. Read off the
+#    Makefile as text, since a comment is what make itself never shows, and joined into one
+#    line first so where the prose wraps cannot decide the case.
+name="Makefile: comment header documents make watch as a low-priority developer convenience, like profile and docs"
+problems=()
+header="$(awk '
+  /^# `make watch`/ { on = 1 }
+  on && !/^#/ { exit }
+  on { sub(/^# ?/, ""); printf "%s ", $0 }
+' "$ROOT/Makefile")"
+if [[ -z "$header" ]]; then
+  problems+=("no comment paragraph opening '# \`make watch\`' in the Makefile")
+else
+  grep -qiE 'developer convenience|low priority' <<< "$header" ||
+    problems+=("the make watch comment does not call it a developer convenience or low priority: $header")
+  grep -q 'not part of `test`' <<< "$header" ||
+    problems+=("the make watch comment does not say it is not part of \`test\`: $header")
+  grep -q 'nothing gates on it' <<< "$header" ||
+    problems+=("the make watch comment does not say nothing gates on it: $header")
+fi
 report "$name"
 
 echo "----"
