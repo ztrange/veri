@@ -400,18 +400,21 @@ check_verifier_launch() {
   expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 
-# The launch lines each case scans for, spelled once because each is scanned twice: once by
-# `launch_all` to start every launch, once by its case to read what the launches saw.
+# The launch lines each case scans for, and the shape each names when none is found, spelled
+# once because each is scanned twice: once by `launch_all` to start every launch, once by its
+# case to read what the launches saw.
 developer_launch='\$S/supervise\.sh .*run-leaf\.sh'
+developer_shape="a leaf through supervise.sh into run-leaf.sh"
 verifier_launch='\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md'
+verifier_shape="a verifier through verify.sh against a spec file"
 
 # launch_all — start the launches of cases 1 and 2 together, then wait for every one of them,
 # so no launch waits on another's leaf (#333) and every case below reads finished trees. A
 # problem the scan finds here is dropped: the case's own scan finds it again and reports it.
 launch_all() {
   local problems=() launching=1
-  scan_launches "$developer_launch" "a leaf through supervise.sh into run-leaf.sh" check_developer_launch
-  scan_launches "$verifier_launch" "a verifier through verify.sh against a spec file" check_verifier_launch
+  scan_launches "$developer_launch" "$developer_shape" check_developer_launch
+  scan_launches "$verifier_launch" "$verifier_shape" check_verifier_launch
   wait
 }
 launching=
@@ -420,13 +423,13 @@ launch_all
 run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
   "$developer_launch" \
-  "a leaf through supervise.sh into run-leaf.sh" \
+  "$developer_shape" \
   check_developer_launch
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
   "$verifier_launch" \
-  "a verifier through verify.sh against a spec file" \
+  "$verifier_shape" \
   check_verifier_launch
 
 # 3. The second thing a leaf launch has to carry, and the one #163 measured missing: the run
