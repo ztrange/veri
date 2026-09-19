@@ -253,6 +253,7 @@ runnable() {
   launch="${launch//<test-path>/probe.test.sh}"
   launch="${launch//<target-test-id>/probe-target}"
   launch="${launch//<green-sha>/0123abc}"  # refactor's 4th slot must be a sha (#151)
+  launch="${launch//<fast-cmd>/make probe-fast}"  # green's --fast-cmd (#341)
   launch="${launch//\[target\]/probe-target}"
   [[ "$launch" != *'<'*'>'* ]] || return 1
   printf '%s\n' "$launch"
@@ -393,7 +394,7 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 # matched as `--step '<up to the closing quote>'`.
 check_verifier_launch() {
   local launch="$1" leaf
-  leaf="verify-$(arg_after verify.sh "$(sed -E "s/ --step '[^']*'//" <<< "$launch")")"
+  leaf="verify-$(arg_after verify.sh "$(sed -E "s/ --(step|fast-cmd) '[^']*'//g" <<< "$launch")")"
   expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 

@@ -109,6 +109,7 @@ printf 'slugify must lowercase the title and join words with hyphens.' > "$work/
 verify_in() {
   local slot4=test_lowercases; [[ "$2" == refactor ]] && slot4=0123abc  # refactor's is a base sha (#151)
   local step_args=(); [[ -n "${5:-}" ]] && step_args=( --step "$5" )
+  [[ "$2" == green ]] && step_args+=( --fast-cmd "make unit" )  # green requires it (#341)
   ( cd "$1" && env CLAUDE_BIN="${4:-$stubdir/claude}" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$3" \
       "$VERIFY" "${step_args[@]+"${step_args[@]}"}" "$2" "$work/spec.md" tests/test_slugify.py "$slot4" )
 }
@@ -656,7 +657,7 @@ axes_dir="$work/budget-axes"
 mkdir -p "$axes_dir/no-verdict" "$axes_dir/stuck"
 ( cd "$axes_dir/no-verdict" && unset VERI_NO_VERDICT_RETRIES \
   && env CLAUDE_BIN="$stubdir/claude-counting" LAUNCH_COUNT="$axes_dir/no-verdict/launches" ARGV_OUT="$axes_dir/argv" \
-      VERI_STUCK_RETRIES=3 "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+      VERI_STUCK_RETRIES=3 "$VERIFY" --fast-cmd "make unit" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 axes_no_verdict="$? $(cat "$axes_dir/no-verdict/launches" 2>/dev/null || echo 0)"
 ( cd "$axes_dir/stuck" && env CLAUDE_BIN="$stubdir/claude-counting-hang" LAUNCH_COUNT="$axes_dir/stuck/launches" \
     VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=3 VERI_HEARTBEAT=1 VERI_POLL=0.02 \
@@ -689,7 +690,7 @@ cause_dir="$work/no-verdict-cause"
 mkdir -p "$cause_dir/no-verdict" "$cause_dir/killed"
 ( cd "$cause_dir/no-verdict" && unset VERI_NO_VERDICT_RETRIES \
   && env CLAUDE_BIN="$stubdir/claude-counting" LAUNCH_COUNT="$cause_dir/no-verdict/launches" ARGV_OUT="$cause_dir/argv" \
-      "$VERIFY" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
+      "$VERIFY" --fast-cmd "make unit" green "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 ( cd "$cause_dir/killed" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
     VERI_HEARTBEAT=1 VERI_POLL=0.02 "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases >/dev/null 2>&1 )
 no_verdict_causes="$(causes_in "$cause_dir/no-verdict")"
@@ -719,7 +720,7 @@ mkdir -p "$prompt_dir"
 ( unset VERI_NO_VERDICT_RETRIES
   LAUNCH_COUNT="$prompt_dir/launches" PROMPT_DIR="$prompt_dir" \
     verify_in "$prompt_dir" green '' "$stubdir/claude-prompt-recording" >/dev/null 2>&1 )
-printf '%s' "$("$HERE/../build-verify-prompt.sh" green "$work/spec.md" tests/test_slugify.py test_lowercases)" \
+printf '%s' "$("$HERE/../build-verify-prompt.sh" --fast-cmd "make unit" green "$work/spec.md" tests/test_slugify.py test_lowercases)" \
   > "$prompt_dir/expected"
 prompt_launches="$(cat "$prompt_dir/launches" 2>/dev/null || echo 0)"
 { [[ "$prompt_launches" == 2 ]] && cmp -s "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" \

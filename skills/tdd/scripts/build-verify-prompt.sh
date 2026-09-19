@@ -7,13 +7,17 @@
 # blindness guarantee is structural, not a matter of the conductor remembering to omit it.
 #
 # Usage:
-#   build-verify-prompt.sh [--step '<STEP>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
+#   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #     phase = red | green | refactor | pin
 #     --step = the ledger's own line for the step under judgement (#223): it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
+#     --fast-cmd = the fast tier's test command (#341), required for green: verify-green
+#              runs it plus the affected suites, and a verifier in a target repository has
+#              no detect-test-command.sh of its own to ask. It is a command the conductor
+#              detected, never anything the developer leaf wrote.
 #
 # Prints the assembled prompt on stdout (feed it to run-leaf.sh). Exit 2 on an unknown
-# phase or a missing template/spec file.
+# phase, a missing template/spec file, or a green call without --fast-cmd.
 set -euo pipefail
 
 # bash 5.2 added the `patsub_replacement` option and turned it ON by default: inside
@@ -30,11 +34,15 @@ shopt -u patsub_replacement 2>/dev/null || true
 
 # The step is a flag, never read from ambient VERI_STEP, so only the caller can scope a
 # verdict. Without it the prompt is what it always was: a resumed run passes no step.
-step=""
-if [[ "${1:-}" == --step ]]; then
-  step="${2:?--step needs the step text}"
+# --fast-cmd is a flag for the same reason: an ambient VERI_TEST_CMD is never read.
+step="" fast_cmd=""
+while [[ "${1:-}" == --step || "${1:-}" == --fast-cmd ]]; do
+  case "$1" in
+    --step) step="${2:?--step needs the step text}" ;;
+    --fast-cmd) fast_cmd="${2:?--fast-cmd needs the command}" ;;
+  esac
   shift 2
-fi
+done
 
 phase="${1:?usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
 spec_file="${2:?missing <issue-spec-file>}"
@@ -45,6 +53,13 @@ case "$phase" in
   red|green|refactor|pin) ;;
   *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin)" >&2; exit 2 ;;
 esac
+
+# Green names the fast command in its checks; without one the verifier would be told to run
+# a command nobody named (#341).
+if [[ "$phase" == green && -z "$fast_cmd" ]]; then
+  echo "build-verify-prompt: green needs --fast-cmd '<fast-tier test command>'" >&2
+  exit 2
+fi
 
 # For refactor, the 4th slot is the step's green commit, and only a sha may arrive in it:
 # a slot that accepted free text would be a channel for the developer's rationale (#151).
@@ -85,5 +100,6 @@ out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{BASE_SHA\}\}/$base_sha}"
+out="${out//\{\{FAST_CMD\}\}/$fast_cmd}"
 
 printf '%s\n' "$out"
