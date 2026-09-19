@@ -276,8 +276,9 @@ report "$name"
 # probe_run_showed_the_line_while_the_suite_ran — the criterion, and the only way to ask it
 # is to watch a run rather than read one: a runner that collects a suite's output and prints
 # it when the suite is over leaves exactly the same text behind as one that streams it. So
-# the run goes into the background writing to a file, and the file is read ten times a
-# second while it fills.
+# the run goes into the background writing to a file, and the file is read fifty times a
+# second while it fills — fast enough to keep pace with PAUSE_FIXTURE's own 0.2s pause
+# (pauses-midway.test.sh) without costing more than a couple of forks per look.
 #
 # What counts as an answer is the pair, not the FAIL line alone: the fixture's own count line
 # is the last thing it prints, so output holding the FAIL line and NOT the count line can
@@ -293,7 +294,11 @@ probe_run_showed_the_line_while_the_suite_ran() {
     return
   }
 
-  local started=$SECONDS
+  # Bash's own $SECONDS only counts whole seconds, which fit a 2s PAUSE but not a 0.2s one —
+  # every look inside the same second would read the same value. EPOCHREALTIME (bash 5,
+  # which veri now requires — CLAUDE.md, "Versions are tags") is microsecond-precision and
+  # needs no external `date`, so it costs no extra fork either.
+  local started="$EPOCHREALTIME"
   make -C "$ROOT" test TESTS="$PAUSE_FIXTURE" > "$stream_log" 2>&1 &
   mk=$!
   while :; do
@@ -310,15 +315,15 @@ probe_run_showed_the_line_while_the_suite_ran() {
     # broken fixture, reported by the probe below rather than waited out here.
     grep -Eq "$COUNT_LINE" "$stream_log" && break
     looks=$((looks + 1))
-    if [[ "$looks" -gt 300 ]]; then
+    if [[ "$looks" -gt 1500 ]]; then
       problems+=("the run had still not printed the fixture's count line after 30s; gave up on it")
       kill "$mk" 2>/dev/null
       break
     fi
-    sleep 0.1
+    sleep 0.02
   done
   wait "$mk" 2>/dev/null
-  stream_elapsed=$((SECONDS - started))
+  stream_elapsed="$(awk -v a="$started" -v b="$EPOCHREALTIME" 'BEGIN { printf "%.3f", b - a }')"
 
   [[ "$streamed" == yes ]] || {
     if grep -qF "$PAUSE_LINE" "$stream_log"; then
@@ -336,9 +341,15 @@ probe_run_showed_the_line_while_the_suite_ran() {
 # leaves the two lines microseconds apart, and one whose count line stopped matching the
 # pattern above leaves "without its count line" true forever — and either would let a
 # buffering runner through.
+#
+# The floor is 0.15s, not PAUSE_FIXTURE's full 0.2s: `sleep "$PAUSE"` there guarantees AT
+# LEAST 0.2s of real time (only ever more, under load — a busy runner cannot make the
+# fixture's own pause shorter), and this run's elapsed time also carries `make`'s and
+# bash's own startup on top of it, so 0.15 (75% of the guaranteed minimum) is comfortable
+# margin below a floor that CI contention can only push up, never down.
 probe_that_run_could_have_told_the_difference() {
-  [[ "$stream_elapsed" -ge 1 ]] ||
-    problems+=("the whole run took under a second, so the fixture no longer pauses and there was no window in which a streamed line and a buffered one differ")
+  awk -v e="$stream_elapsed" 'BEGIN { exit !(e >= 0.15) }' ||
+    problems+=("the whole run took under 0.15s (got ${stream_elapsed}s), so the fixture no longer pauses long enough and there was no window in which a streamed line and a buffered one differ")
   grep -Eq "$COUNT_LINE" "$stream_log" ||
     problems+=("the fixture's count line never matched the pattern the probe above waits for, so 'the FAIL line without the count line' was true of every look and says nothing: $(flat "$(cat "$stream_log")")")
   rm -f "$stream_log"
