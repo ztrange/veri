@@ -661,6 +661,50 @@ scan_case3_read_after_launches() {
 run_case "case 3 reads every launch's tree only after every launch has completed" \
   scan_case3_read_after_launches
 
+# 8. Running the launches together changed nothing a reader of this suite's output sees (#333):
+#    the `FAIL - <name>` line `report` prints, the indented `<file>:<line> <complaint>:<text>`
+#    line `problem` builds, and the `----` / `<n> passed, <m> failed` pair the `test` recipe
+#    reads a suite's verdict from. Anything grepping a run's log for them — the recipe's count
+#    check first of all — would stop matching the day one of them moved.
+#
+#    Asked of this suite run against a copy of the skill whose develop-green line has lost all
+#    three prefixes, which fails the two pre-#333 cases that can see it — 1 (`<unset>`) and 3
+#    (empty issue and step in its events) — and no other. Every line is spelled out here as the
+#    suite printed it before #333, rather than rebuilt from `problem` or `report`, so a change
+#    to either shows up as a mismatch instead of being carried into the expectation.
+#
+# scan_output_format — the case's body, in the other cases' shape.
+scan_output_format() {
+  local copy="$WORK/format" broken text out printed want
+  mkdir -p "$copy/skills"
+  cp -R "$ROOT/skills/tdd" "$copy/skills/tdd"
+  broken="$(grep -nE '\$S/supervise\.sh develop-green \$S/run-leaf\.sh' "$md" | head -1 | cut -d: -f1)"
+  if [[ -z "$broken" ]]; then
+    problems+=("$skill_md has no develop-green launch line to break, so the output format could not be probed")
+    return
+  fi
+  sed "${broken}s/VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' //" "$md" > "$copy/$skill_md"
+  text="$(sed -n "${broken}p" "$copy/$skill_md")"
+  out="$(SKILL_LEAF_ENV_NESTED=1 "$copy/skills/tdd/scripts/tests/skill-leaf-env.test.sh" < /dev/null 2>&1)"
+  printed="$(grep -E '^(FAIL|    )' <<< "$out")"
+  want="FAIL - every leaf skills/tdd/SKILL.md launches through supervise.sh sees the run's test command as VERI_TEST_CMD
+    skills/tdd/SKILL.md:$broken launches develop-green, whose leaf saw VERI_TEST_CMD=<unset>, want make sentinel-test-cmd:$text
+FAIL - every leaf skills/tdd/SKILL.md launches leaves events carrying the run's issue and step
+    skills/tdd/SKILL.md:$broken leaves events that do not carry issue=143 step='pin the sentinel step' (@):$text"
+  # The complaint in case 3's parentheses lists the events the launch left, which is the
+  # supervisor's business rather than this suite's format, so it is the one part matched loosely.
+  printed="$(sed -E "s/ \(launch issue='' step=''[^)]*\):/ (@):/" <<< "$printed")"
+  [[ "$printed" == "$want" ]] ||
+    problems+=("the copy with line $broken's prefixes removed did not print its failures in the pre-#333 format; it printed: $(tr '\n' '|' <<< "$printed")")
+  [[ "$(tail -2 <<< "$out" | head -1)" == "----" ]] &&
+    grep -qE '^[0-9]+ passed, 2 failed$' <<< "$(tail -1 <<< "$out")" ||
+    problems+=("the copy with line $broken's prefixes removed did not end with '----' and '<n> passed, 2 failed'; it ended: $(tail -2 <<< "$out" | tr '\n' '|')")
+}
+
+[[ -n "${SKILL_LEAF_ENV_NESTED:-}" ]] ||
+  run_case "with launches concurrent, the count line and every FAIL and problem line keep their pre-#333 format" \
+    scan_output_format
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
