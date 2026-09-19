@@ -26,6 +26,14 @@ pass=0 fail=0
 scratch="$(mktemp -d)"
 trap 'rm -rf "$scratch"' EXIT
 
+# write_fixture <name> — write stdin to an executable fixture suite under $scratch and
+# leave its path in `fixture`.
+write_fixture() {
+  fixture="$scratch/$1"
+  cat > "$fixture"
+  chmod +x "$fixture"
+}
+
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem.
 report() {
@@ -44,8 +52,7 @@ report() {
 #    the fixture's anchor (see the header) and must not be printed either.
 name="threshold 1: the 2.5 s case is printed, the 0.25 s case is not"
 problems=()
-fixture="$scratch/two-cases.test.sh"
-cat > "$fixture" <<'EOF'
+write_fixture two-cases.test.sh <<'EOF'
 unset EPOCHREALTIME
 pass=0 fail=0
 EPOCHREALTIME=100.000000
@@ -56,7 +63,6 @@ EPOCHREALTIME=102.750000
 pass=$((pass + 1))
 echo "$pass passed, $fail failed"
 EOF
-chmod +x "$fixture"
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
 lines=()
@@ -72,8 +78,7 @@ report "$name"
 #    pinned as a number equal to 3, not as a digit count.
 name="the printed line is <secs> <suite> case 2 L5-8, secs equal to 3"
 problems=()
-fixture="$scratch/format.test.sh"
-cat > "$fixture" <<'EOF'
+write_fixture format.test.sh <<'EOF'
 unset EPOCHREALTIME
 pass=0 fail=0
 EPOCHREALTIME=10.000000
@@ -84,7 +89,6 @@ EPOCHREALTIME=13.000000
 pass=$((pass + 1))
 echo "$pass passed, $fail failed"
 EOF
-chmod +x "$fixture"
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
 secs="${out%% *}"
@@ -104,8 +108,7 @@ report "$name"
 #    the cases or cut case 2 short.
 name="boundaries: only top-level increments of pass/fail, so case 2 is L5-12"
 problems=()
-fixture="$scratch/boundaries.test.sh"
-cat > "$fixture" <<'EOF'
+write_fixture boundaries.test.sh <<'EOF'
 unset EPOCHREALTIME
 pass=0 fail=0
 EPOCHREALTIME=10.000000
@@ -120,7 +123,6 @@ EPOCHREALTIME=35.000000
 pass=$((pass + 1))
 echo "$pass passed, $fail failed"
 EOF
-chmod +x "$fixture"
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
 if [[ "$out" =~ ^([0-9]+(\.[0-9]+)?)\ (.*)$ && "${BASH_REMATCH[3]}" == "$fixture case 2 L5-12" ]]; then
@@ -135,8 +137,7 @@ report "$name"
 #    seconds, case 3 spans 5, case 4 spans 3 — are printed slowest first: 3, 4, 2.
 name="slowest first: cases spanning 2, 5 and 3 s print as case 3, case 4, case 2"
 problems=()
-fixture="$scratch/order.test.sh"
-cat > "$fixture" <<'EOF'
+write_fixture order.test.sh <<'EOF'
 unset EPOCHREALTIME
 pass=0 fail=0
 EPOCHREALTIME=10.000000
@@ -149,7 +150,6 @@ EPOCHREALTIME=20.000000
 pass=$((pass + 1))
 echo "$pass passed, $fail failed"
 EOF
-chmod +x "$fixture"
 out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
 order="$(awk '{ printf "%s ", $4 }' <<< "$out")"
@@ -162,8 +162,7 @@ report "$name"
 #    do (3 4 2), at 2.5 the 2 s case drops out (3 4), at 4 only the 5 s case is left (3).
 name="threshold changes which cases print: 1 → 3 4 2, 2.5 → 3 4, 4 → 3"
 problems=()
-fixture="$scratch/thresholds.test.sh"
-cat > "$fixture" <<'EOF'
+write_fixture thresholds.test.sh <<'EOF'
 unset EPOCHREALTIME
 pass=0 fail=0
 EPOCHREALTIME=10.000000
@@ -176,7 +175,6 @@ EPOCHREALTIME=20.000000
 pass=$((pass + 1))
 echo "$pass passed, $fail failed"
 EOF
-chmod +x "$fixture"
 for probe in "1:3 4 2 " "2.5:3 4 " "4:3 "; do
   t="${probe%%:*}" want="${probe#*:}"
   out="$(VERI_PROFILE_THRESHOLD="$t" "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
@@ -195,13 +193,11 @@ name="exit 2: a non-numeric threshold, and a suite that never increments pass/fa
 problems=()
 out="$(VERI_PROFILE_THRESHOLD=abc "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 2 ]] || problems+=("threshold abc: want exit 2, got $code")
-fixture="$scratch/no-increment.test.sh"
-cat > "$fixture" <<'EOF'
+write_fixture no-increment.test.sh <<'EOF'
 pass=0 fail=0
 x=1
 echo "$pass passed, $fail failed"
 EOF
-chmod +x "$fixture"
 out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
 [[ "$code" == 2 ]] || problems+=("no increment: want exit 2, got $code")
 report "$name"
