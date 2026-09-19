@@ -154,6 +154,26 @@ for _ in $(seq 1 500); do [ "$(wc -l < .test-clock-reads)" -gt "$n" ] && exit 0;
 exit 1
 C
 chmod +x "$stub/date" "$stub/stat" "$stub/clock-jump" "$stub/await-poll"
+
+# A counting shim for python3 (issue #290's deterministic proxy — CLAUDE.md's rule against a
+# wall-clock acceptance criterion on this machine: #282's own ~0.33 s-per-supervision budget
+# was abandoned for exactly that reason). Every real python3 call still runs, so nothing a
+# case depends on (event_field's own json.loads, harvest-usage.sh's closing-record parse)
+# changes behaviour; each call additionally appends one line to `$py_calls`, cleared
+# immediately before the one case that reads it and read immediately after, so what
+# accumulated from every OTHER case's own event_field/jget calls in between plays no part in
+# that count. `$1` alone is logged (never the full `"$@"`, which — for the block event.sh
+# used to run — is a multi-line python program and would turn one call into several log
+# lines), so `wc -l` on the file is exactly the number of processes started.
+realpython3="$(command -v python3)"
+py_calls="$work/.python3-calls"
+cat > "$stub/python3" <<PYSTUB
+#!/bin/sh
+echo "\$1" >> "$py_calls"
+exec "$realpython3" "\$@"
+PYSTUB
+chmod +x "$stub/python3"
+
 # On PATH for everything this suite starts, so the supervisor reads the injected clock and a
 # stub leaf can call the helpers by name.
 export PATH="$stub:$PATH"
@@ -1390,6 +1410,39 @@ for bad in two -1; do
 done
 { [[ "${#kp_problems[@]}" -eq 0 ]]; } && ok \
   || no "a non-numeric or negative VERI_KILL_POLL exits 2 with a diagnostic and no status on stdout (${kp_problems[*]})"
+
+# 33. The fixed plumbing cost issue #290 is about, pinned as a PROCESS COUNT rather than a
+#     wall-clock budget — CLAUDE.md's rule against a wall-clock acceptance criterion measured
+#     on this machine, the reason #282's own ~0.33 s-per-supervision figure was never made a
+#     suite's pin and this is a deterministic proxy for it instead. Before #290, one clean
+#     supervision of a stub leaf whose log ends in a closing result record started FOUR
+#     python3 processes: `event.sh`'s `launch` and `exit` marks (supervise.sh:290) and
+#     `harvest-usage.sh`'s `usage` mark (also through event.sh) each forked one to escape and
+#     compose their JSON line, and harvest-usage.sh's own read of the leaf's closing record
+#     (harvest-usage.sh:38, parsing — not writing — the stream-json log, a step this issue
+#     does not touch) forked a fifth. #290 removes python3 from event.sh entirely (an
+#     escaper written in bash instead, lib/json-escape.sh), so what is left is that one read:
+#     the ceiling here is 1, not 0.
+#
+#     `VERI_STUCK_RETRIES=0` (via `sup_run`) makes the count exact rather than a range: no
+#     retry means exactly one `launch` and one `exit`, and `$stub/leaf-result` (case 16's
+#     stub, reused rather than redefined so the closing record this counts against is the one
+#     already proven to produce a `usage` line) makes harvest-usage.sh find a record and write
+#     its own mark too — the THIRD event.sh call a supervision can make, and the one a leaf
+#     that never wrote a closing record (`leaf-ok`, case 1's stub) would leave uncounted.
+#
+#     The shim counts every python3 this suite's own probes start as well (`event_field`'s
+#     `json.loads`), which is why `$py_calls` is cleared immediately before this call and
+#     read immediately after rather than once for the whole file — every earlier case's own
+#     reads must play no part in a count that is only about what ONE supervision starts.
+count_work="$work/python3-count"
+: > "$py_calls"
+sup_run "$count_work" "$SUP" develop-red "$stub/leaf-result"
+count_code=$?
+count_got="$(wc -l < "$py_calls" | tr -d ' ')"
+count_ceiling=1
+{ [[ "$count_code" == 0 ]] && [[ "$count_got" -le "$count_ceiling" ]]; } && ok \
+  || no "one supervision of a stub leaf with a closing result record starts at most $count_ceiling python3 process (code=$count_code, python3 starts=$count_got want <= $count_ceiling)"
 
 echo "----"
 echo "$pass passed, $fail failed"
