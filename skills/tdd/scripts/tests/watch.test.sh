@@ -116,7 +116,8 @@ first_wait="$(head -n1 "$scratch/sleep.log")"
 rm -rf "$scratch"
 report "$name"
 
-# 3. Against a fixture repo — a copy of this Makefile, one tracked file, and a fixture unit
+# 3. Against a fixture repo — a copy of this Makefile and the watch library it sources, one
+#    tracked file, and a fixture unit
 #    suite that logs each `make unit` run — the stub sleep is the loop's clock: it counts its
 #    calls, fabricates a change to the tracked file (new content and an explicit mtime) on
 #    calls 2 and 4, and ends the loop at call 6. The fixture suite logs the call count each
@@ -125,8 +126,9 @@ name="make watch: reruns make unit once per detected change, never between chang
 problems=()
 scratch="$(mktemp -d)"
 fixture="$scratch/repo"
-mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit"
+mkdir -p "$scratch/bin" "$fixture/skills/tdd/scripts/tests/unit" "$fixture/skills/tdd/scripts/lib"
 cp "$ROOT/Makefile" "$fixture/Makefile"
+cp "$ROOT/skills/tdd/scripts/lib/watch.sh" "$fixture/skills/tdd/scripts/lib/watch.sh"
 printf 'original\n' > "$fixture/tracked.txt"
 cat > "$fixture/skills/tdd/scripts/tests/unit/probe.test.sh" <<'SUITE'
 #!/bin/sh
