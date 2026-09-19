@@ -26,6 +26,10 @@ suite_of() {
   local f="$1" name script
   case "$f" in
     "$scripts"/tests/*.test.sh) echo "$f" ;;
+    "$scripts"/tests/fixtures/*)
+      # A suite references a fixture by its path under tests/, as count-line-guard does
+      # "$HERE/fixtures/silent-death/…".
+      grep -lF -- "${f#"$scripts"/tests/}" "$scripts"/tests/*.test.sh || true ;;
     "$scripts"/lib/*.sh)
       # A sourcing script names the lib file on a `source` line, as event.sh does
       # `source "$HERE/lib/json-escape.sh"`; a comment naming it is not a dependency.
