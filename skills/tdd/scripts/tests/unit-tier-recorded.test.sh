@@ -109,6 +109,31 @@ fi
 
 report "$name"
 
+# 2. One criterion, one case: the migration pattern a script follows into the unit tier is
+#    written where the tier is, with push-branch.sh named as the worked example (#339). The
+#    four parts are asked of ONE record, so a later migration reads the whole recipe in one
+#    place: the main guard, the unit suite sourcing the script, its dependencies mocked as
+#    same-named shell functions, and the CLI contract left unchanged.
+name="$claude_md's '$section_name' section documents the unit-tier migration pattern, naming push-branch.sh as the worked example"
+problems=()
+
+passage_text="$(section_records)"
+if [[ -z "${passage_text// /}" ]]; then
+  problems+=("$claude_md has no '## $section_name' section to read")
+else
+  says "the migration pattern — a main guard, a unit suite that sources the script, dependencies mocked as same-named shell functions, the CLI contract unchanged — naming push-branch.sh as the worked example" \
+    'push-branch\.sh' \
+    'worked example' \
+    'bash_source|main guard' \
+    'sources?|sourcing' \
+    'mock' \
+    'shell functions?|same-named' \
+    'cli contract|byte-identical' \
+    'unchanged|unmodified|byte-identical'
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
