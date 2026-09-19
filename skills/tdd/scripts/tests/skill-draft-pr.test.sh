@@ -24,6 +24,9 @@
 #      still runs `gh pr create`, and no instruction of that step pushes the branch first.
 #   2. SKILL.md's Green PASS and verify-refactor PASS branches each run `push-branch.sh`,
 #      so the branch reaches the remote at both of the points that write the ledger.
+#   3. SKILL.md's Draft PR step and its Guardrails invariant about opening the PR both name
+#      `detect-test-command.sh --tier all`'s command, run exactly once, as the only
+#      full-suite gate left in the cycle (issue #341).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -140,6 +143,37 @@ for heading in '#### Green' '#### Refactor loop'; do
       problems+=("$skill_md's '$heading' PASS branch never runs push-branch.sh, so the commits it ticks and commits stay on one disk until the run is review-ready: $(printf '%.120s' "$record")")
   fi
 done
+report "$name"
+
+# names_the_full_gate <record> — true when <record> runs `detect-test-command.sh --tier all`'s
+# command and says it runs exactly once, as the only full-suite gate.
+names_the_full_gate() {
+  grep -qE 'detect-test-command\.sh --tier all' <<< "$1" &&
+    grep -qF 'exactly once' <<< "$1" &&
+    grep -qwF 'only' <<< "$1"
+}
+
+# 3. The criterion, as one case (issue #341): the full command runs once per cycle, here. Every
+#    leaf now runs the fast command, the affected suites, or both, so the Draft PR step is the
+#    one place `detect-test-command.sh --tier all`'s command still runs — and the Guardrails
+#    invariant that says the full suite is green before the PR opens must name the same
+#    command, or the two would read as two different gates. Both are asked of their own slice:
+#    the Draft PR step as a whole, and the one Guardrails record that speaks of opening the PR.
+name="$skill_md's Draft PR step and its closing invariant both run detect-test-command.sh --tier all's command exactly once, as the only full-suite gate"
+problems=()
+
+records="$(draft_pr_instructions)"
+if [[ -z "$records" ]]; then
+  problems+=("$skill_md has no ### 4. Draft PR section to read — which command its full-suite gate runs could not be checked")
+elif ! names_the_full_gate "$records"; then
+  problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
+fi
+invariant="$(section_records '## Guardrails' '^## ' | grep -F 'before you open the pr' | head -1)"
+if [[ -z "$invariant" ]]; then
+  problems+=("$skill_md's Guardrails has no invariant about opening the PR to read — which command it gates on could not be checked")
+elif ! names_the_full_gate "$invariant"; then
+  problems+=("$skill_md's closing invariant never names detect-test-command.sh --tier all's command, run exactly once, as the only full-suite gate: $(printf '%.120s' "$invariant")")
+fi
 report "$name"
 
 echo "----"

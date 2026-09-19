@@ -848,7 +848,9 @@ following step. The phase sub-steps are:
 ### 4. Draft PR
 
 Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off. The full suite
-must be green before this step; that nothing is left uncommitted and no step is still only
+must be green before this step: run `$S/detect-test-command.sh --tier all`'s command here,
+exactly once — the only full-suite gate left in the cycle, since every leaf runs the fast
+command, the affected suites, or both. That nothing is left uncommitted and no step is still only
 green is not taken on trust here — sub-step 1 asks. Like every step since 1.2, this one runs
 **from inside the worktree** — every command below is issued there, so each sees the issue
 branch and its commits without any switching.
@@ -1181,7 +1183,9 @@ hatch.
   test, never hand-generalized in a refactor.
 - Every phase is **blind-verified** before you proceed, and **every verdict is mirrored**
   to the issue thread.
-- The full suite must be green before you commit and before you open the PR.
+- The full suite must be green before you commit and before you open the PR: that is
+  `detect-test-command.sh --tier all`'s command, run exactly once at the Draft PR step — the
+  only full-suite gate left in the cycle.
 - The PR is always a **draft**, always carries `Closes #<n>`, and is **never merged** by
   you.
 - On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
