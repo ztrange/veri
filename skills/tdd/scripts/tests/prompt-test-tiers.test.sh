@@ -55,6 +55,13 @@ runs_affected() {
   fi
 }
 
+# numbered_item <ere> — from the prompt on stdin, the first numbered item (`N. ` up to the
+# next `N. `) whose text matches <ere>, joined onto one line so a template may wrap it
+# anywhere. Reading the item on its own means a mention elsewhere cannot satisfy a probe.
+numbered_item() {
+  awk -v re="$1" '/^[0-9]+\. /{if (item ~ re) {print item; exit} item=""} /^[0-9]+\. /||item!=""{item=item " " $0} END{if (item ~ re) print item}'
+}
+
 printf 'zorblat must return frob\n' > "$work/spec.md"
 
 # 1. The red leaf and its verifier run the affected suites (criterion 2).
@@ -71,14 +78,13 @@ if plain <<< "$red" | grep -qE 'run the suite that holds the new case'; then
 fi
 report "$name"
 
-# 2. verify-refactor's checklist item 1 runs the affected suites (criterion 3). The item is
-#    read on its own — from its `1.` line up to the `2.` one — so a mention elsewhere in the
-#    prompt cannot satisfy it.
+# 2. verify-refactor's checklist item 1 runs the affected suites (criterion 3), read on its
+#    own through numbered_item.
 name="verify-refactor's checklist item 1 names affected-suites.sh, not the project's full test suite"
 problems=()
 verify_refactor="$("$VERIFY" refactor "$work/spec.md" 'tests/zorblat.test.sh' 'abc1234' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh refactor exited $?")
-item1="$(plain <<< "$verify_refactor" | awk 'f && /^2\. /{exit} f; /^1\. still green/{f=1; print}')"
+item1="$(plain <<< "$verify_refactor" | numbered_item '^ 1\. still green')"
 if [[ -z "$item1" ]]; then
   problems+=("verify-refactor's prompt has no checklist item 1 ('1. still green')")
 fi
@@ -89,15 +95,13 @@ runs_affected "verify-refactor's checklist item 1" "$item1"
 report "$name"
 
 # 3. The refactor leaf runs, after each transform, the suites affected-suites.sh prints when
-#    fed refactor-touched.sh's output. The instruction that runs after each transform is read
-#    on its own — the numbered item that says "after each transform", joined onto one line so
-#    a template may wrap it anywhere — so a mention elsewhere in the prompt cannot satisfy it.
+#    fed refactor-touched.sh's output — the numbered item that says "after each transform",
+#    read on its own through numbered_item.
 name="develop-refactor runs affected-suites.sh fed refactor-touched.sh's output after each transform"
 problems=()
 refactor="$("$DEVELOP" refactor "$work/spec.md" 'QWIXTLE step' 'make test' 'src/zorblat.sh' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh refactor exited $?")
-after_each="$(plain <<< "$refactor" |
-  awk '/^[0-9]+\. /{if (item ~ /after each transform/) {print item; exit} item=""} /^[0-9]+\. /||item!=""{item=item " " $0} END{if (item ~ /after each transform/) print item}')"
+after_each="$(plain <<< "$refactor" | numbered_item 'after each transform')"
 if [[ -z "$after_each" ]]; then
   problems+=("develop-refactor's prompt has no numbered item saying what runs after each transform")
 fi
