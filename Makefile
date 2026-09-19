@@ -66,6 +66,19 @@ COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 OFFLINE_BIN := $(CURDIR)/skills/tdd/scripts/tests/offline
 OFFLINE_PROXY := http://127.0.0.1:1
 
+# The two halves of that environment `test` and `profile` share, so a suite runs under the
+# same one either way: OFFLINE_GIT resolves the real git and symlinks it into the recipe's
+# $git_bin; OFFLINE_ENV is the assignments and the locale a suite is started under, and
+# reads $git_bin, $real_git and $reach_log from the recipe that expands it.
+OFFLINE_GIT := real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
+	ln -sf "$$real_git" "$$git_bin/git"
+OFFLINE_ENV := PATH="$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
+	GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
+	GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
+	GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
+	HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
+	LC_ALL=C
+
 # veri needs bash 5 (since 2026-09-18), and the suites run under whatever `bash` is first on
 # PATH — every one starts with `#!/usr/bin/env bash`. Nothing tests veri on bash 3.2 any more,
 # the bash macOS ships in /bin, so a stale PATH must not be left to fail however a bash-4-only
@@ -84,18 +97,12 @@ test:
 	@$(BASH_GUARD)
 	@fail=0; suite_out="$$(mktemp)"; suite_status="$$(mktemp)"; reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$suite_out" "$$suite_status" "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
-	real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
-	ln -sf "$$real_git" "$$git_bin/git"; \
+	$(OFFLINE_GIT); \
 	for t in $(TESTS); do \
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
 	  : > "$$reach_log"; \
-	  { PATH="$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
-	    GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
-	    GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
-	    GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
-	    HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
-	    LC_ALL=C "$$t" < /dev/null; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
+	  { $(OFFLINE_ENV) "$$t" < /dev/null; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
 	    printf '%s: never reached its count line\n' "$$suite_name"; fail=1; \
@@ -115,14 +122,8 @@ profile:
 	@$(BASH_GUARD)
 	@reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
 	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
-	real_git="$${OFFLINE_REAL_GIT:-$$(xcrun -f git 2>/dev/null || command -v git)}"; \
-	ln -sf "$$real_git" "$$git_bin/git"; \
-	PATH="$$git_bin:$(OFFLINE_BIN):$$PATH" OFFLINE_REAL_GIT="$$real_git" OFFLINE_REACH_LOG="$$reach_log" \
-	  GIT_CONFIG_COUNT=3 GIT_CONFIG_KEY_0=http.proxy GIT_CONFIG_VALUE_0=$(OFFLINE_PROXY) \
-	  GIT_CONFIG_KEY_1=protocol.allow GIT_CONFIG_VALUE_1=never \
-	  GIT_CONFIG_KEY_2=protocol.file.allow GIT_CONFIG_VALUE_2=always \
-	  HTTP_PROXY=$(OFFLINE_PROXY) HTTPS_PROXY=$(OFFLINE_PROXY) NO_PROXY=127.0.0.1,localhost \
-	  LC_ALL=C skills/tdd/scripts/profile.sh $(TESTS) < /dev/null
+	$(OFFLINE_GIT); \
+	$(OFFLINE_ENV) skills/tdd/scripts/profile.sh $(TESTS) < /dev/null
 
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
