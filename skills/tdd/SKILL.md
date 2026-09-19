@@ -609,17 +609,37 @@ following step. The phase sub-steps are:
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
    ```
+   The template also states what a valid test is: behavior, not mechanism (no process, fork
+   or call count and no timing across a suite run — those are `make profile`'s job — except
+   a call count the criterion itself names, pinned with an in-process spy on the one wrapper
+   called, never a `PATH` shim counting real processes); lightweight (~100ms, costly
+   dependencies replaced unless the behavior under test IS the dependency); and
+   self-contained (never runs another suite, whole or sliced, and never re-runs its own). A
+   criterion that cannot be pinned within those rules is not weakened into one that can —
+   the leaf reports it untestable instead (below).
    You supply only those variables; the instructions are the template's, identical every
    run. The leaf's report is in `.tdd/develop-red.out`, and ends with the lines you branch on — `TEST_PATH:`, `TARGET_TEST:`,
-   `AGAINST_UNMODIFIED: FAILS | PASSES`, `FAIL_OUTPUT:` — so take the **test path** and
-   **target test id** from the first two and read the third for the next sub-step.
+   `AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE`, `WHY:`, `FAIL_OUTPUT:` — so take the
+   **test path** and **target test id** from the first two and read the third for the next
+   sub-step.
    `AGAINST_UNMODIFIED` exists because a criterion earlier work already satisfies cannot
    yield a failing test, and that fact has to reach you as data: in #30's step 3 it did not,
    and a faithful test spent two verify-red `REJECT`s and two revise leaves reporting
-   IMPOSSIBLE before the run bailed and the revert discarded it.
+   IMPOSSIBLE before the run bailed and the revert discarded it. `UNTESTABLE` is the same
+   kind of fact for a criterion that cannot be pinned as a lightweight, behavior-level test
+   at all (#331's "at most N python3" cost +41s of `make test`, satisfied only by a shim
+   that re-ran whole suites under a counter) — the leaf says so rather than writing that test
+   to force a pass.
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly (see *Bailing*); do not retry.
-2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line. On **`FAILS`**, run
+2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
+   On **`UNTESTABLE`** there is no test on disk for a blind verifier to judge — sending
+   nothing to verify-red would only get a malformed-verdict `REJECT` for the wrong reason —
+   so skip verify-red and verify-pin entirely and **bail** immediately with cause
+   `untestable-criterion` (see *Bailing*), carrying the leaf's `WHY:` as the reason. This is
+   a **process** failure: the criterion as phrased cannot be tested as behavior, not that
+   the plumbing broke.
+   On **`FAILS`**, run
    the red verifier against the on-disk test and spec, **redirecting its stdout (the
    reason) to a file** — the revise step takes the reason as a *path*, not as text you
    retype:
@@ -1015,6 +1035,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   killed) → **system** failure.
 - `revise-exhausted` — a step spent its `REVISE_BUDGET` and the blind verifier still says
   `REJECT` → **process** failure (methodology spoke).
+- `untestable-criterion` — a Red developer leaf reported `AGAINST_UNMODIFIED: UNTESTABLE`:
+  the step's criterion cannot be pinned as a lightweight, behavior-level test → **process**
+  failure (the criterion as phrased cannot be tested as behavior, not that the plumbing
+  broke).
 
 To bail:
 
@@ -1035,7 +1059,8 @@ To bail:
    `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
 5. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
    carries the `### 📊 Metrics` block just committed, carries the last reason
-   (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the kill cause otherwise),
+   (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
+   line on an `untestable-criterion` bail, the kill cause otherwise),
    and points at the progress log (`.tdd/<phase>.log` or
    `.tdd/revise-<phase>-*.log`) for forensics. Mark the stop in the log too, with the cause
    token and the classification step 2 derived from it:
