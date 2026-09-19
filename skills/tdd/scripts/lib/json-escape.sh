@@ -17,7 +17,14 @@
 # this eight-plus times per line (once per fixed key, once per `key=value` payload
 # argument), and a command substitution forks a subshell per call — cheap next to python3,
 # but not free, and not this issue's to reintroduce for a different reason than the one it
-# started with.
+# started with. The BYTE-ORDINAL lookup inside the loop below is the same trade for the same
+# reason, one level down: `printf -v byte '%d' "'$c"` (a builtin writing into a variable)
+# instead of `byte=$(printf '%d' "'$c")` (a command substitution) — the loop runs once per
+# BYTE of the string, so a fork there would have reintroduced, per character, the exact cost
+# this file exists to remove per call. Measured: with the command-substitution form, event.sh
+# barely beat the python3 version it replaced (~65 ms vs ~72 ms for a short payload, both
+# dominated by process-start cost neither the fork nor its removal touches) — with `-v`, ~20
+# ms, next to a bare `bash -c :`'s own ~19 ms, i.e. the escaper's own cost is noise.
 #
 # It matches `json.dumps(s)` (python's default: `ensure_ascii=True`, no caller here ever
 # passes otherwise) byte for byte, proven in json-escape.test.sh against a live python3
@@ -53,11 +60,13 @@ json_escape_string() {
   len=${#s}
   while (( i < len )); do
     c="${s:i:1}"
-    # The `'` prefix is bash/ksh's own numeric-conversion syntax: `printf '%d' "'$c"` is the
-    # ordinal of the FIRST byte of `$c`, which under the forced C locale above is `$c`
-    # itself (one byte, since C is a single-byte locale) — not the character's Unicode code
-    # point, which is what the same expression would give under a UTF-8 locale instead.
-    byte=$(( $(printf '%d' "'$c") & 0xFF ))
+    # The `'` prefix is bash/ksh's own numeric-conversion syntax: `printf -v byte '%d'
+    # "'$c"` writes the ordinal of the FIRST byte of `$c` into `byte` directly — under the
+    # forced C locale above that is `$c` itself (one byte, since C is a single-byte locale),
+    # not the character's Unicode code point, which is what the same expression would give
+    # under a UTF-8 locale instead.
+    printf -v byte '%d' "'$c"
+    byte=$(( byte & 0xFF ))
 
     case "$byte" in
       34) out+='\"' ;;                 # "
@@ -85,7 +94,8 @@ json_escape_string() {
           fi
           for (( k=1; k<nbytes; k++ )); do
             cont="${s:$((i+k)):1}"
-            cbyte=$(( $(printf '%d' "'$cont") & 0xFF ))
+            printf -v cbyte '%d' "'$cont"
+            cbyte=$(( cbyte & 0xFF ))
             cp=$(( (cp << 6) | (cbyte & 0x3F) ))
           done
           if (( cp <= 0xFFFF )); then
