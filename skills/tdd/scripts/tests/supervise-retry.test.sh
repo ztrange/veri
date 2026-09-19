@@ -114,9 +114,11 @@ export PATH="$stub:$PATH"
 # 1 must suffice and a value exported by the shell that ran `make test` cannot change the
 # answer. VERI_POLL=0.02 is a real interval still (the supervisor's poll loop sleeps for
 # real between clock reads), kept small so the handful of polls this case needs cost
-# milliseconds rather than the 0.2s the pre-clock version paid per poll.
+# milliseconds rather than the 0.2s the pre-clock version paid per poll. VERI_KILL_POLL=0.01
+# does the same for kill_tree's grace loop, which the retry's kill still goes through — it
+# polls `kill -0`, a real OS fact, not the injected clock, so it is real sleep regardless.
 out="$( cd "$work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT=1 VERI_TIMEOUT=30 VERI_POLL=0.02 \
-          "$SUP" flaky "$stub/leaf-flaky" 2>"$work/err" )"
+          VERI_KILL_POLL=0.01 "$SUP" flaky "$stub/leaf-flaky" 2>"$work/err" )"
 code=$?
 
 # Acceptance: recovered on the retry → success (exit 0) with the success path captured.

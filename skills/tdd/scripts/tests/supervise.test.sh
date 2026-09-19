@@ -161,12 +161,16 @@ export PATH="$stub:$PATH"
 # sup <name> <heartbeat> <timeout> <leaf> -> sets $out / $code (runs in $work)
 # VERI_STUCK_RETRIES=0 is pinned, not inherited: every case here is about a single attempt,
 # so the caller's environment must not be able to add retries (extra killed-stuck attempts
-# would change both the stderr transcript and the suite's wall time).
+# would change both the stderr transcript and the suite's wall time). VERI_KILL_POLL=0.01 is
+# pinned the same way, in every helper below that can reach a killed-stuck leaf: kill_tree's
+# grace loop polls a real OS fact (is the process gone yet), not the injected clock, so it is
+# real sleep regardless — up to 5 x 0.1s production default, unpinned, on each of this
+# suite's ~18 killed-stuck cases.
 sup() {
   local name="$1" hb="$2" to="$3" leaf="$4"
   rm -f "$work/.test-clock" "$work/.test-clock-reads"
   out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT="$hb" VERI_TIMEOUT="$to" VERI_POLL=0.02 \
-            "$SUP" "$name" "$stub/$leaf" 2>"$work/err" )"
+            VERI_KILL_POLL=0.01 "$SUP" "$name" "$stub/$leaf" 2>"$work/err" )"
   code=$?
 }
 
@@ -409,7 +413,7 @@ sup_run() {
   local dir="$1"; shift
   mkdir -p "$dir"
   ( cd "$dir" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.02 \
-      "$@" ) >/dev/null 2>&1
+      VERI_KILL_POLL=0.01 "$@" ) >/dev/null 2>&1
 }
 
 # Every variable this case owns is prefixed with the event it is about, and case 13's with
@@ -481,7 +485,7 @@ retry_work="$work/retry"
 mkdir -p "$retry_work"
 retry_window=1
 ( cd "$retry_work" && env -u VERI_STUCK_RETRIES VERI_HEARTBEAT="$retry_window" \
-    VERI_TIMEOUT=30 VERI_POLL=0.02 \
+    VERI_TIMEOUT=30 VERI_POLL=0.02 VERI_KILL_POLL=0.01 \
     "$SUP" develop-red "$stub/leaf-flaky" ) >/dev/null 2>&1
 retry_code=$?
 # Read once, into the variable the assertion and the failure message share — cases 9, 11 and
@@ -1015,7 +1019,7 @@ sup_direct() {
   local dir="$1" leaf="$2" window="$3"; shift 3
   mkdir -p "$dir"
   ( cd "$dir" && env "$@" VERI_HEARTBEAT="$window" VERI_TIMEOUT=30 VERI_POLL=0.02 \
-      "$SUP" verify-red "$stub/$leaf" )
+      VERI_KILL_POLL=0.01 "$SUP" verify-red "$stub/$leaf" )
 }
 
 
@@ -1286,7 +1290,7 @@ exit 0
 L
 chmod +x "$stub/leaf-pid-seen"
 ( cd "$pid_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=5 VERI_TIMEOUT=10 VERI_POLL=0.02 \
-    "$SUP" develop-red "$stub/leaf-pid-seen" ) >/dev/null 2>&1 &
+    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-pid-seen" ) >/dev/null 2>&1 &
 pid_sup=$!
 wait "$pid_sup"
 pid_seen="$(tr -d '[:space:]' < "$pid_work/pid-seen" 2>/dev/null || echo '<no leaf run>')"
@@ -1314,7 +1318,7 @@ exec sleep 60
 L
 chmod +x "$stub/leaf-term-sleep"
 ( cd "$term_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
-    "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+    VERI_KILL_POLL=0.01 "$SUP" develop-red "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
 term_sup=$!
 for _ in $(seq 1 50); do [[ -s "$term_work/leaf-pid" ]] && break; sleep 0.1; done
 term_leaf="$(tr -d '[:space:]' < "$term_work/leaf-pid" 2>/dev/null)"
@@ -1357,6 +1361,35 @@ name_launch_events="$(event_count "$name_work" launch)"
 { [[ "$name_code" == 0 ]] \
   && [[ "$name_launch_events" == 0 || "$name_launch_events" == '<<no event log>>' ]]; } && ok \
   || no "a leaf name leaf-role.sh refuses still runs the leaf to completion but marks no launch event (code=$name_code want 0, launch events=$name_launch_events want 0 or no event log)"
+
+# 32. VERI_KILL_POLL — kill_tree's grace-loop poll, the interval it sleeps between checking
+#     whether a killed leaf's process group has actually gone away (up to 5 checks, real
+#     sleep: it polls `kill -0`, an OS fact, not the injected clock cases above jump). This
+#     suite already pins it to 0.02 in sup() below, so ~18 killed-stuck cases here do not
+#     each pay up to 5 x the 0.1s production default in real wall time; this case is the
+#     tunable's own contract, the way case 3 in refactor-budget.test.sh pins
+#     VERI_REFACTOR_BUDGET's. A non-numeric or negative value is a misconfigured run, not a
+#     decision (same fail-closed rule as VERI_REFACTOR_BUDGET): exit 2, a diagnostic on
+#     stderr, and nothing on stdout, so a conductor mirroring stdout cannot mistake a
+#     misconfigured run for a real status. `leaf-ok` (case 1's stub) is never reached, so a
+#     leaf that ran would put its own output on stdout ahead of any real status — the
+#     probe refactor-budget.test.sh's case 3 already uses.
+kp_work="$work/kill-poll-bad"; mkdir -p "$kp_work"
+kp_problems=()
+for bad in two -1; do
+  kp_out="$(mktemp)" kp_err="$(mktemp)"
+  ( cd "$kp_work" && env VERI_KILL_POLL="$bad" "$SUP" badpoll "$stub/leaf-ok" ) >"$kp_out" 2>"$kp_err"
+  kp_code=$?
+  [[ "$kp_code" == 2 ]] ||
+    kp_problems+=("VERI_KILL_POLL=$bad: want exit 2, got $kp_code")
+  [[ ! -s "$kp_out" ]] ||
+    kp_problems+=("VERI_KILL_POLL=$bad: want no status on stdout, got: $(cat "$kp_out")")
+  [[ -s "$kp_err" ]] ||
+    kp_problems+=("VERI_KILL_POLL=$bad: want a diagnostic on stderr, got nothing")
+  rm -f "$kp_out" "$kp_err"
+done
+{ [[ "${#kp_problems[@]}" -eq 0 ]]; } && ok \
+  || no "a non-numeric or negative VERI_KILL_POLL exits 2 with a diagnostic and no status on stdout (${kp_problems[*]})"
 
 echo "----"
 echo "$pass passed, $fail failed"
