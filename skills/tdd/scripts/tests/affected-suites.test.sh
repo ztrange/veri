@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Unit tests for scripts/affected-suites.sh — prints the suites one change affects, so a red or
+# refactor leaf can run a narrow slice of `make test` instead of all of it (issue #337).
+#
+# Contract under test:
+#   affected-suites.sh <base>..<head>, run inside the repository
+#                       → exit 0, and one suite path per line, sorted, with no duplicate.
+#
+# Every case builds a fixture tree of its own shaped like this repository's
+# `skills/tdd/scripts/`, so the answer never depends on the suites the repository `make test`
+# was typed in happens to have.
+#
+# Run: scripts/tests/affected-suites.test.sh
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+AFFECTED="$HERE/../affected-suites.sh"
+pass=0 fail=0
+ok() { pass=$((pass + 1)); }
+no() { fail=$((fail + 1)); echo "FAIL - $1"; }
+
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+
+# git_q <repo> <args…> — git with a fixed identity, so a commit does not depend on the
+# user.name/user.email of the machine running the suite (CI carries none).
+git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
+
+# commit_all <repo> <message> — stage everything in <repo> and commit it.
+commit_all() {
+  git_q "$1" add -A >/dev/null 2>&1
+  git_q "$1" commit -q -m "$2" >/dev/null 2>&1
+}
+
+# new_repo <name> -> path — a repository of the case's own under $work.
+new_repo() {
+  local dir="$work/$1"
+  git init -q -b main "$dir" >/dev/null 2>&1
+  echo "$dir"
+}
+
+# 1. a resolvable range → one suite per line, sorted, no duplicate. The range touches
+#    wolf.sh and its own suite, so both name tests/wolf.test.sh and a list that kept every
+#    answer would carry it twice; and zulu.sh, whose suite is under tests/unit/, so the diff
+#    order (wolf before zulu) puts tests/wolf.test.sh ahead of tests/unit/zulu.test.sh, which
+#    sorts first.
+repo="$(new_repo sorted)"
+s="$repo/skills/tdd/scripts"
+mkdir -p "$s/tests/unit"
+printf 'wolf\n' > "$s/wolf.sh"
+printf 'zulu\n' > "$s/zulu.sh"
+printf '# wolf suite\n' > "$s/tests/wolf.test.sh"
+printf '# zulu suite\n' > "$s/tests/unit/zulu.test.sh"
+commit_all "$repo" "base"
+base="$(git -C "$repo" rev-parse HEAD)"
+printf 'wolf 2\n' > "$s/wolf.sh"
+printf 'zulu 2\n' > "$s/zulu.sh"
+printf '# wolf suite 2\n' > "$s/tests/wolf.test.sh"
+commit_all "$repo" "head"
+head="$(git -C "$repo" rev-parse HEAD)"
+expected="$(printf 'skills/tdd/scripts/tests/unit/zulu.test.sh\nskills/tdd/scripts/tests/wolf.test.sh')"
+out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
+if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
+  no "resolvable range → one suite per line, sorted, no duplicate (code=$code)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
+echo "----"
+echo "$pass passed, $fail failed"
+[[ "$fail" -eq 0 ]]
