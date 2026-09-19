@@ -843,6 +843,7 @@ report "$name"
 name="importing the dashboard's python module and calling its endpoint functions never binds port 8765"
 problems=()
 imported="$(repo imported)"
+scripts="$(cd "$HERE/.." && pwd)"
 
 problem="$(port_problem "$PORT")"
 if [[ -n "$problem" ]]; then
@@ -852,7 +853,7 @@ else
   module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
   if [[ -z "$module" ]]; then
     problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
-  elif [[ ! -f "$HERE/../$module.py" ]]; then
+  elif [[ ! -f "$scripts/$module.py" ]]; then
     problems+=("dashboard.sh execs $module.py, but there is no such file beside it")
   else
     checked=""
@@ -886,7 +887,7 @@ s = socket.socket(); s.settimeout(1.0)
 if s.connect_ex(("127.0.0.1", port)) == 0:
     print("port %d answers after importing %s.py and calling its endpoints; want it still free" % (port, module))
 print("checked")
-' "$(cd "$HERE/.." && pwd)" "$module" "$PORT")
+' "$scripts" "$module" "$PORT")
     [[ -n "$checked" ]] ||
       problems+=("the process importing $module.py died before it could ask whether port $PORT is free")
   fi
