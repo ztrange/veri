@@ -109,13 +109,18 @@ w_stuck="$(waited late-stuck 2)"
 #    Two arms, because the criterion has two halves. The first passes an explicit 1-second
 #    budget, so the clock can prove both the code and that the wait ended. The second names
 #    no budget at all, and its length is read off the clock rather than waited out: the
-#    clock jumps 10 seconds per reading there, and the last value it logged is the virtual
-#    moment the script gave up, i.e. the default budget itself. A default of 600 would be
-#    logged as 600 and fail the case rather than hang it.
+#    clock jumps 540 seconds per reading there — the default budget itself, so the loop's
+#    very first read already reaches it — and the last value it logged is the virtual moment
+#    the script gave up. A default of 600 would still be caught: the loop would not stop at
+#    540 (600 > 540), and its next read jumps to 1080, which fails the `-le 540` assertion
+#    below just as loudly. Only a smaller-than-540 regression could land unnoticed here, and
+#    the assertion only ever promised an upper bound ("at most 540 seconds" above), never the
+#    exact figure — a step of 10 cost 54 reads (each forking the clock's `wc`/`tee` stub) to
+#    learn the same thing this one read now does.
 b_given="$(timed never-lands 1)"
 
 clocklog="$work/clock.log"; : > "$clocklog"
-( cd "$work" && env VERI_POLL=0 VERI_CLOCK_STEP=10 VERI_CLOCK_LOG="$clocklog" PATH="$clockbin:$PATH" \
+( cd "$work" && env VERI_POLL=0 VERI_CLOCK_STEP=540 VERI_CLOCK_LOG="$clocklog" PATH="$clockbin:$PATH" \
     "$WAIT" no-budget-named >/dev/null 2>&1 )
 rc_default=$?
 b_default="$(tail -n 1 "$clocklog")"
