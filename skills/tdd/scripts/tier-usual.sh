@@ -21,12 +21,15 @@ tier="${1:?usage: tier-usual.sh <tier>}"
 
 log=".tdd/events.jsonl"
 
-# The same apostrophe trap metrics.sh and event.sh carry: this is a single-quoted shell
-# string, so a `run's` anywhere inside it ends the program there.
-exec python3 -c '
+# The lib the parse comes from, reached the way status.sh reaches it: PYTHONPATH, and the
+# program on stdin as a quoted heredoc. A quoted heredoc is not a shell string, so an
+# apostrophe inside the program below is just an apostrophe — the trap metrics.sh and
+# event.sh still carry with `python3 -c` is not one here.
+lib="$(cd "$(dirname "$0")" && pwd)/lib"
+
+PYTHONPATH="$lib" exec python3 - "$tier" "$log" <<'PY'
 import sys
 
-sys.path.insert(0, sys.argv[3])
 from event_log import read_events
 
 tier, path = sys.argv[1], sys.argv[2]
@@ -41,4 +44,4 @@ middle = len(window) // 2
 usual = (window[middle - 1] + window[middle]) / 2 if len(window) % 2 == 0 else window[middle]
 
 print(usual)
-' "$tier" "$log" "$(cd "$(dirname "$0")" && pwd)/lib"
+PY
