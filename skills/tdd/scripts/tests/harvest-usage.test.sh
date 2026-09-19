@@ -45,10 +45,13 @@ report() {
   fi
 }
 
-# event_field <dir> <event> <key> — the value of <key> on the one <event> line of the event
-# log a run in <dir> wrote, or a diagnostic in `<<…>>` when there is no such line, more than
-# one, or no log at all. The probe supervise.test.sh uses for its `launch`, `retry` and `exit`
-# cases, spelled the same way here for `usage`: python3 rather than jq, the dependency
+# event_fields <dir> <event> <key>... — the value of each <key> on the one <event> line of the
+# event log a run in <dir> wrote, one line per key in the order asked, or a diagnostic in
+# `<<…>>` in each key's place when there is no such line, more than one, or no log at all.
+# Every key in one python3 process (#331): case 1 asks for eight, and a process per key
+# re-read the log and re-started the interpreter eight times to answer one question. The
+# parse supervise.test.sh's `event_field` uses for its `launch`, `retry` and `exit` cases,
+# spelled the same way here for `usage`: python3 rather than jq, the dependency
 # extract-result.sh already execs in production.
 #
 # A run directory rather than a file path, so where the log lands under it —
@@ -65,7 +68,9 @@ report() {
 # event.test.sh leaves `ts` comparable whether it is written as a JSON number or as digits in
 # a string. What the event log must not lose is the count; whether event.sh's key=value
 # payload stringifies it on the way through is that writer's business, not this one's.
-event_field() {
+event_fields() {
+  local dir="$1" event="$2"
+  shift 2
   python3 -c '
 import sys, json
 hits = []
@@ -76,15 +81,16 @@ for line in open(sys.argv[1]).read().splitlines():
         continue
     if isinstance(obj, dict) and obj.get("event") == sys.argv[2]:
         hits.append(obj)
-if len(hits) != 1:
-    print("<<%d %s lines>>" % (len(hits), sys.argv[2]))
-else:
-    print(hits[0].get(sys.argv[3], "<<missing>>"))
-' "$1/.tdd/events.jsonl" "$2" "$3" 2>/dev/null || echo '<<no event log>>'
+for key in sys.argv[3:]:
+    if len(hits) != 1:
+        print("<<%d %s lines>>" % (len(hits), sys.argv[2]))
+    else:
+        print(hits[0].get(key, "<<missing>>"))
+' "$dir/.tdd/events.jsonl" "$event" "$@" 2>/dev/null || printf '<<no event log>>\n%.0s' "$@"
 }
 
 # event_count <dir> <event> — how many <event> lines a run in <dir> wrote to its event log,
-# and 0 when it wrote no log at all. `event_field` above is the probe for reading a value off
+# and 0 when it wrote no log at all. `event_fields` above is the probe for reading a value off
 # the one line that must exist; case 2's assertion is that NO such line exists, which that
 # probe can only report as the text of a diagnostic — comparing against `<<0 usage lines>>`
 # would make this suite's own error spelling load-bearing.
@@ -249,17 +255,20 @@ harvest_code=$?
 [[ "$harvest_code" == 0 ]] ||
   problems+=("want exit 0 from the harvester, got $harvest_code")
 
-# The eight numbers, each read once into the comparison and the failure message both. The
-# loop names each key beside the `want_<key>` variable holding its expectation, so the key
-# in the event log and the key in this case cannot drift apart: `${!var}` is an indirect
-# expansion — it reads the variable whose NAME is in `$var`, which is how `want_duration_ms`
-# is reached from the string `duration_ms`.
-for key in duration_ms duration_api_ms num_turns total_cost_usd \
-           input_tokens output_tokens cache_read_input_tokens cache_creation_input_tokens; do
+# The eight numbers, read in one probe and then each compared on its own, so a wrong one is
+# named in the failure message. The loop names each key beside the `want_<key>` variable
+# holding its expectation, so the key in the event log and the key in this case cannot drift
+# apart: `${!var}` is an indirect expansion — it reads the variable whose NAME is in `$var`,
+# which is how `want_duration_ms` is reached from the string `duration_ms`. `mapfile -t` reads
+# the probe's lines into `got`, one element per key, in the order `keys` asked for them.
+keys=(duration_ms duration_api_ms num_turns total_cost_usd
+      input_tokens output_tokens cache_read_input_tokens cache_creation_input_tokens)
+mapfile -t got < <(event_fields "$direct_work" usage "${keys[@]}")
+for i in "${!keys[@]}"; do
+  key="${keys[$i]}"
   var="want_$key"
-  got="$(event_field "$direct_work" usage "$key")"
-  [[ "$got" == "${!var}" ]] ||
-    problems+=("$key: want $(printf '%q' "${!var}"), got $(printf '%q' "$got")")
+  [[ "${got[$i]-}" == "${!var}" ]] ||
+    problems+=("$key: want $(printf '%q' "${!var}"), got $(printf '%q' "${got[$i]-}")")
 done
 
 report "$name"

@@ -225,6 +225,88 @@ block="$(killed_block "$out")"
 
 report "$name"
 
+# 3. The criterion: case 1 of harvest-usage.test.sh compares its eight numbers in ONE python3
+#    process, and that comparison still goes red naming the one field whose expectation is
+#    wrong. Observed by running the suite with one field broken — `cache_read_input_tokens`,
+#    a nested `usage.*` count whose name contains another of the eight (`input_tokens`), so
+#    a block that named every field, or the wrong one, is told apart by whole-word matching —
+#    and a PATH-first `python3` that writes one line to a shared sequence file before exec'ing
+#    the real interpreter. The break is made on the value the harvest recorded, not on the
+#    suite's `want_` variable: that one variable feeds both the stub's record and the
+#    expectation, so editing it moves both sides and nothing goes red. The harvester's tracer
+#    rewrites that one number in the event log after the real harvest of `verify-refactor`,
+#    so the expectation (1287431) and the recorded value (1287432) disagree on that field alone.
+#    The harvester's and run-leaf.sh's tracers write their own marks into the same sequence
+#    file, so the python3 starts case 1's comparison makes are the ones between the end of its
+#    harvest of `verify-refactor` and the next mark (case 2's launch):
+#      → exactly one python3 start there;
+#      → only case 1 red, its block naming `cache_read_input_tokens` and none of the other seven.
+name="harvest-usage.test.sh case 1's eight-number comparison runs in one python3 process and still goes red naming the one field whose expected value is wrong"
+problems=()
+
+wrong="$tmp/wrong"
+variant "$wrong"
+seq_log="$tmp/wrong-sequence"
+: > "$seq_log"
+mv "$wrong/harvest-usage.sh" "$wrong/harvest-usage.real.sh"
+cat > "$wrong/harvest-usage.sh" <<TRACER
+#!/bin/sh
+printf 'harvest-begin %s\n' "\$1" >> "$seq_log"
+"\$(dirname "\$0")/harvest-usage.real.sh" "\$@"
+rc=\$?
+if [ "\$1" = verify-refactor ]; then
+  sed 's/1287431/1287432/' .tdd/events.jsonl > .tdd/events.jsonl.broken &&
+    mv .tdd/events.jsonl.broken .tdd/events.jsonl
+  grep -q 1287432 .tdd/events.jsonl && echo broken >> "$tmp/wrong-broke"
+fi
+printf 'harvest-end %s\n' "\$1" >> "$seq_log"
+exit \$rc
+TRACER
+mv "$wrong/run-leaf.sh" "$wrong/run-leaf.real.sh"
+cat > "$wrong/run-leaf.sh" <<TRACER
+#!/bin/sh
+printf 'run-leaf %s\n' "\$(pwd)" >> "$seq_log"
+exec "\$(dirname "\$0")/run-leaf.real.sh" "\$@"
+TRACER
+real_python3="$(command -v python3)"
+mkdir -p "$wrong/bin"
+cat > "$wrong/bin/python3" <<SHIM
+#!/bin/sh
+printf 'python3\n' >> "$seq_log"
+exec "$real_python3" "\$@"
+SHIM
+chmod +x "$wrong/harvest-usage.sh" "$wrong/run-leaf.sh" "$wrong/bin/python3"
+
+out="$(PATH="$wrong/bin:$PATH" "$wrong/tests/harvest-usage.test.sh" 2>/dev/null)"
+[[ -s "$tmp/wrong-broke" ]] ||
+  problems+=("setup: want the harvested cache_read_input_tokens rewritten to 1287432, it was not")
+[[ "$out" == *'2 passed, 1 failed'* ]] ||
+  problems+=("broken cache_read_input_tokens: want only case 1 red, got: $(printf '%q' "$out")")
+block="$(printf '%s\n' "$out" | awk '
+  /^FAIL - a finished leaf: the harvester appends one usage event/ { on = 1; next }
+  on && /^    / { print; next }
+  { on = 0 }')"
+printf '%s\n' "$block" | grep -qw cache_read_input_tokens ||
+  problems+=("broken cache_read_input_tokens: want case 1 to name that field, got: $(printf '%q' "$block")")
+for other in duration_ms duration_api_ms num_turns total_cost_usd \
+             input_tokens output_tokens cache_creation_input_tokens; do
+  if printf '%s\n' "$block" | grep -qw "$other"; then
+    problems+=("broken cache_read_input_tokens: want case 1 not to name $other, got: $(printf '%q' "$block")")
+  fi
+done
+
+comparison_starts="$(awk '
+  $0 == "harvest-end verify-refactor" { on = 1; n = 0; next }
+  on && $0 == "python3" { n++; next }
+  on { exit }
+  END { print n + 0 }' "$seq_log")"
+grep -qx 'harvest-end verify-refactor' "$seq_log" ||
+  problems+=("setup: want a harvest of verify-refactor in the sequence, got: $(printf '%q' "$(cat "$seq_log")")")
+[[ "$comparison_starts" == 1 ]] ||
+  problems+=("want 1 python3 start for case 1's comparison, got $comparison_starts")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
