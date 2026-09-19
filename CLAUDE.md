@@ -165,7 +165,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — eighty-two files for thirty-eight scripts, plus five moved under `unit/`, all run by `make test`.
+`skills/tdd/scripts/tests/` — eighty files for thirty-eight scripts, plus five moved under `unit/`, all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
@@ -219,6 +219,20 @@ Where a test would otherwise need a real model or a real clock, it injects inste
 `VERI_STUCK_RETRIES` shrink the supervisor's windows so nothing waits on wall time. That
 is why every tunable is read as `${VAR:-default}`.
 
+**A suite asserts behaviour** — outputs, exit codes, files and events the unit under test
+produces; process counts, fork counts and timings are observed with `make profile` and
+reported in a speed PR's body, never pinned in a suite; **no suite runs another suite.**
+`no-nested-suites.test.sh` fails the run naming `<suite>:<line>` and the suite it names,
+against an exemption table it carries with a reason for each — the plants that have to run a
+real suite to prove a fragile seam still catches a regression, or a runner's own verdict over
+a real tree, both of which no cheaper read establishes. metrics-python3-starts.test.sh,
+harvest-usage-launch.test.sh and probe-suites-unchanged.test.sh (#331) copied a real suite
+into a scratch tree and reran the whole thing, sometimes several times over, to pin a
+python3-start count or a case roster: ~41.5s of `make test` to pin a ~1.5s saving. They are
+gone, not exempted; the one behaviour among their assertions no remaining case covered — that
+run-leaf.sh's appended result text keeps a leaf's closing record from ever being its log's
+last line — moved into harvest-usage.test.sh's own first case.
+
 A guard or a failure path that has never been watched to fail is not tested. Break it on
 purpose, see the test go red, put it back.
 
@@ -263,6 +277,8 @@ The suites that waited on a real clock now run on an injected one (#314–#317, 
 ones that ran a whole other suite to check one property run the slice they check (#324, #327).
 What is left is per-case process work — a server started, a python3 per assertion, a fork per
 file. None of it is fixed by an acceptance criterion measured in seconds on this machine —
-#282 bailed twice on exactly that — so a veri issue about speed states a deterministic proxy
-(process starts counted through a PATH shim, seconds of `sleep` requested, runs made), and
-CI's `timeout-minutes` stays the only wall-clock gate.
+#282 bailed twice on exactly that — and a process count pinned in a suite is the same mistake
+the other way round (a suite asserts behaviour, not cost: see "Testing idiom"). So a veri
+issue about speed states its acceptance criteria as behaviours only; the speed itself is
+`make profile` run before and after, quoted in the PR body and read before merging, never
+asserted as a test. CI's `timeout-minutes` stays the only wall-clock gate.
