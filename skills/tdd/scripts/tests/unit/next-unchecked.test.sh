@@ -4,11 +4,13 @@
 # and exit 0; exit 3 when every step is checked (or there are none) — the signal that the
 # cycle loop is complete. Mirrors the checkbox grammar of tick-criterion.sh.
 #
-# Run: scripts/tests/next-unchecked.test.sh
+# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
+#
+# Run: scripts/tests/unit/next-unchecked.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-NEXT="$HERE/../next-unchecked.sh"
+NEXT="$HERE/../../next-unchecked.sh"
 pass=0 fail=0
 check() {  # check <name> <expected-exit> <input> <expected-stdout>
   local name="$1" exp_code="$2" input="$3" exp="$4" out code

@@ -235,5 +235,39 @@ run_make unit UNIT_TESTS="$scratch/mocks-vcs.test.sh"
 
 report "$name"
 
+# 6. The fast tier is populated: at least five suites that already lived in the flat directory
+# have moved under unit/ — git's history of the old path is the proof it is an existing suite,
+# and no copy is left behind — each saying in its header comment why it qualifies, as a count of
+# its own git, python3, server and sleep usage on one line (`git <n>, python3 <n>, server <n>,
+# sleep <n>`), and all of them passing under the real `make unit`, admission-bar guard and all.
+name="at least five existing suites move into $UNIT_DIR/, each passing and recording its git/python3/server/sleep count in its header"
+problems=()
+
+# The line a header must carry, as an ERE: the four counts, in that order.
+USAGE_COUNTS='(^|[^a-z0-9])git [0-9]+, python3 [0-9]+, server [0-9]+, sleep [0-9]+'
+
+moved=0
+for f in "$ROOT/$UNIT_DIR"/*.test.sh; do
+  [[ -e "$f" ]] || continue
+  base="$(basename "$f")"
+  moved=$((moved + 1))
+  [[ ! -e "$HERE/$base" ]] ||
+    problems+=("$base is under $UNIT_DIR/ and still in skills/tdd/scripts/tests/ too")
+  [[ -n "$(git -C "$ROOT" log --oneline -1 -- "skills/tdd/scripts/tests/$base" 2>/dev/null)" ]] ||
+    problems+=("$base has no history at skills/tdd/scripts/tests/$base, so it is not an existing suite moved")
+  # The header: the comment lines after the shebang, up to the first line that is not one.
+  header="$(sed -n '2,$p' "$f" | sed '/^#/!q' | grep '^#')"
+  grep -Eq "$USAGE_COUNTS" <<< "$header" ||
+    problems+=("$base's header comment has no 'git <n>, python3 <n>, server <n>, sleep <n>' line")
+done
+[[ "$moved" -ge 5 ]] ||
+  problems+=("want at least 5 suites under $UNIT_DIR/, found $moved")
+
+run_make unit
+[[ "$code" == 0 ]] ||
+  problems+=("want 'make unit' over the real tree to pass; it exited $code and said: $(flat "$out")")
+
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

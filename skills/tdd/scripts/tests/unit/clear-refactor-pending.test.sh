@@ -5,11 +5,13 @@
 # contains the matcher and carries the mark, in place, and exit 0; exit 3 with the file
 # byte-identical when no such step matched. Operates on a real temp file.
 #
-# Run: scripts/tests/clear-refactor-pending.test.sh
+# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
+#
+# Run: scripts/tests/unit/clear-refactor-pending.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CLEAR="$HERE/../clear-refactor-pending.sh"
+CLEAR="$HERE/../../clear-refactor-pending.sh"
 pass=0 fail=0
 
 work="$(mktemp -d)"

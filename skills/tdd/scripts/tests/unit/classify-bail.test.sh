@@ -10,11 +10,13 @@
 #   classify-bail.sh reconcile-failed → first stdout line `system`,  exit 0
 #   classify-bail.sh <unrecognised>   → error on stderr, exit non-zero
 #
-# Run: scripts/tests/classify-bail.test.sh
+# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
+#
+# Run: scripts/tests/unit/classify-bail.test.sh
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CLASSIFY="$HERE/../classify-bail.sh"
+CLASSIFY="$HERE/../../classify-bail.sh"
 pass=0 fail=0
 
 # check <name> <cause> <expected-exit> <expected-first-line>
