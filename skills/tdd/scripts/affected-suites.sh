@@ -19,12 +19,21 @@ for rev in "${range%%..*}" "${range#*..}"; do
     { echo "affected-suites: cannot resolve revision '$rev'" >&2; exit 2; }
 done
 
-# suite_of <path> — the suite a touched file affects: a suite is its own, a script's is the
-# one named after it, under tests/ or tests/unit/.
+# suite_of <path> — the suites a touched file affects: a suite is its own, a script's is the
+# one named after it, under tests/ or tests/unit/, and a lib file's are those of every script
+# that sources it.
 suite_of() {
-  local f="$1" name
+  local f="$1" name script
   case "$f" in
     "$scripts"/tests/*.test.sh) echo "$f" ;;
+    "$scripts"/lib/*.sh)
+      # A sourcing script names the lib file on a `source` line, as event.sh does
+      # `source "$HERE/lib/json-escape.sh"`; a comment naming it is not a dependency.
+      for script in "$scripts"/*.sh; do
+        if grep -qE "^[[:space:]]*(source|\.)[[:space:]].*lib/$(basename "$f")\"?[[:space:]]*$" "$script"; then
+          suite_of "$script"
+        fi
+      done ;;
     "$scripts"/*.sh)
       name="$(basename "$f" .sh)"
       if [[ -f "$scripts/tests/unit/$name.test.sh" ]]; then

@@ -146,6 +146,32 @@ if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
   diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
+# 6. rule 2: a change to a file under skills/tdd/scripts/lib/ → the suite of every script that
+#    sources it, and no others. alpha.sh and beta.sh source lib/bar.sh the way event.sh sources
+#    lib/json-escape.sh; gamma.sh does not, and a top-level bar.sh shares the lib file's name,
+#    so neither gamma's suite nor tests/bar.test.sh may appear.
+repo="$(new_repo rule2)"
+s="$repo/skills/tdd/scripts"
+mkdir -p "$s/tests" "$s/lib"
+printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
+for name in alpha beta; do
+  printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\nsource "$HERE/lib/bar.sh"\n' > "$s/$name.sh"
+done
+printf '#!/usr/bin/env bash\necho gamma\n' > "$s/gamma.sh"
+printf '#!/usr/bin/env bash\necho bar\n' > "$s/bar.sh"
+for name in alpha beta gamma bar; do printf '# %s suite\n' "$name" > "$s/tests/$name.test.sh"; done
+commit_all "$repo" "base"
+base="$(git -C "$repo" rev-parse HEAD)"
+printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
+commit_all "$repo" "head"
+head="$(git -C "$repo" rev-parse HEAD)"
+expected="$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
+out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
+if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
+  no "rule 2: a change to scripts/lib/bar.sh prints the suite of every script that sources it, and no others (code=$code)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
