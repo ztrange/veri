@@ -41,7 +41,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 claude_md="CLAUDE.md"
 claude_path="$ROOT/$claude_md"
 
-# The two trees the counts are counts OF, each one twice for the same reason the document
+# The trees the counts are counts OF, each one twice for the same reason the document
 # above is: repo-relative because that is how CLAUDE.md names them and how the failure
 # messages have to, and resolved for `how_many` to expand, so a message can never name a
 # tree the count was not taken from. Globs rather than directories: what the sentences count
@@ -53,6 +53,8 @@ scripts_glob="skills/tdd/scripts/*.sh"
 scripts_path="$ROOT/$scripts_glob"
 suites_glob="skills/tdd/scripts/tests/*.test.sh"
 suites_path="$ROOT/$suites_glob"
+unit_glob="skills/tdd/scripts/tests/unit/*.test.sh"
+unit_path="$ROOT/$unit_glob"
 
 # The section the second and third counts live in, named once: it is both an argument to
 # `section` and a name the failure messages spell, so renaming the heading in the document
@@ -386,8 +388,6 @@ report "$name"
 name="$claude_md's unit-tier suite count matches the unit suites on disk, including push-branch.sh's"
 problems=()
 
-unit_glob="skills/tdd/scripts/tests/unit/*.test.sh"
-unit_path="$ROOT/$unit_glob"
 unit_suite="skills/tdd/scripts/tests/unit/push-branch.test.sh"
 
 present "$unit_suite"
