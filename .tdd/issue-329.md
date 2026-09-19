@@ -9,4 +9,4 @@
 - [x] With VERI_PROFILE_THRESHOLD unset the threshold is 1 second, and a run in which no case reaches the threshold still exits 0
 - [x] make -n profile runs every suite make -n test runs, over the same TESTS glob and the same offline/PATH environment test's recipe sets up ⟦criterion 1⟧
 - [x] make -n test does not invoke profile and profile does not invoke test — they are independent targets ⟦criterion 2⟧
-- [ ] profile.test.sh requests no real sleep and runs no real suite from skills/tdd/scripts/tests/ — only its own fixture suites — and is covered by make test's own glob ⟦criterion 9⟧
+- [x] profile.test.sh requests no real sleep and runs no real suite from skills/tdd/scripts/tests/ — only its own fixture suites — and is covered by make test's own glob ⟦criterion 9⟧
