@@ -79,17 +79,19 @@ printf '%s\n' "$1" >> "$SLEEP_LOG"
 kill -TERM "$PPID"
 STUB
 chmod +x "$scratch/bin/sleep"
+# stubbed_watch — `make watch` with the stub sleep first on PATH, logging to sleep.log.
+stubbed_watch() {
+  SLEEP_LOG="$scratch/sleep.log" PATH="$scratch/bin:$PATH" \
+    make --no-print-directory -s -C "$ROOT" watch
+}
 for bad in abc 1x; do
-  err="$(VERI_WATCH_INTERVAL="$bad" SLEEP_LOG="$scratch/sleep.log" PATH="$scratch/bin:$PATH" \
-    make --no-print-directory -s -C "$ROOT" watch 2>&1 >/dev/null)" && code=0 || code=$?
+  err="$(VERI_WATCH_INTERVAL="$bad" stubbed_watch 2>&1 >/dev/null)" && code=0 || code=$?
   [[ "$code" == 2 ]] || problems+=("VERI_WATCH_INTERVAL='$bad': want exit 2, got $code")
   grep -q VERI_WATCH_INTERVAL <<< "$err" ||
     problems+=("VERI_WATCH_INTERVAL='$bad': stderr does not name the variable: ${err:-<empty>}")
 done
 : > "$scratch/sleep.log"
-( unset VERI_WATCH_INTERVAL
-  SLEEP_LOG="$scratch/sleep.log" PATH="$scratch/bin:$PATH" \
-    make --no-print-directory -s -C "$ROOT" watch >/dev/null 2>&1 ) &
+( unset VERI_WATCH_INTERVAL; stubbed_watch >/dev/null 2>&1 ) &
 watched=$!
 { /bin/sleep 30; kill -TERM "$watched"; } >/dev/null 2>&1 &
 watchdog=$!
