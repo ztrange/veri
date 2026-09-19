@@ -166,6 +166,16 @@ answer_from() {
   done
 }
 
+# `answer_from_file <file>` asks every line of that file in turn, and answers from the first
+# one that states the current marker. The tier markers and rule 0 both read a whole file this
+# way, so the loop is named once rather than spelled out beside each of them.
+answer_from_file() {
+  local line
+  while IFS= read -r line || [ -n "$line" ]; do
+    answer_from "$line"
+  done < "$1"
+}
+
 # The tier markers. A repo's root CLAUDE.md may declare `veri: fast tests: <cmd>` and
 # `veri: all tests: <cmd>`, and a `--tier` call answers from the one its tier names. The
 # lines are read by the same walk as rule 0's, so a marker is found anywhere on a line and
@@ -173,16 +183,12 @@ answer_from() {
 # is why `marker` is swapped for the walk and put back for rule 0.
 if [ -n "$tier" ] && [ -f "$root/CLAUDE.md" ]; then
   marker="veri: $tier tests:"
-  while IFS= read -r line || [ -n "$line" ]; do
-    answer_from "$line"
-  done < "$root/CLAUDE.md"
+  answer_from_file "$root/CLAUDE.md"
   marker='Test command:'
 fi
 
 if [ -n "$issue" ] && [ -f "$issue" ]; then
-  while IFS= read -r line || [ -n "$line" ]; do
-    answer_from "$line"
-  done < "$issue"
+  answer_from_file "$issue"
 fi
 
 # 1. The override file. Its first non-empty line is the command, verbatim: `IFS=` keeps
