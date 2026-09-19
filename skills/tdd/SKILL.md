@@ -855,6 +855,11 @@ green is not taken on trust here — sub-step 1 asks. Like every step since 1.2,
 **from inside the worktree** — every command below is issued there, so each sees the issue
 branch and its commits without any switching.
 
+A red result on that full run does not bail: append a repair step to the ledger, commit it,
+and return to step 3, *The cycle loop* — the failing suite is that step's red evidence. Its
+developer adds a unit-tier test when the failure exposes a gap the fast tier missed, and its
+verifier judges the fix against the full command, not the fast one.
+
 1. **Ask the two questions that decide whether there is anything fit to push, and refuse to
    go on while either says no** — both from inside the worktree, before a human is asked to
    look:
