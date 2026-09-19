@@ -6,4 +6,4 @@
 - [x] harvest-usage.test.sh's total python3 starts, counted by a PATH-first counting shim, are at most 8 ⟦criterion 2⟧
 - [x] metrics.test.sh's total python3 starts, counted by a PATH-first counting shim, are at most 21 — one per case — with every case's assertions unchanged ⟦criterion 1⟧
 - [x] harvest-usage.test.sh case 3 is unchanged: a hand-written one-line log fixture, no launch, exit 2, no usage line, a diagnostic naming the harvester or leaf-role ⟦criterion 6⟧
-- [ ] every metrics.test.sh and harvest-usage.test.sh assertion that passed before still passes, and make test is green ⟦criterion 7⟧
+- [x] every metrics.test.sh and harvest-usage.test.sh assertion that passed before still passes, and make test is green ⟦criterion 7⟧
