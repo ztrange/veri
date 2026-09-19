@@ -255,34 +255,12 @@ tree_clone() {
 tree_clone "$work/tree"
 CONDUCTOR="$work/tree/skills/tdd/scripts/run-conductor.sh"
 
-# 1. The criterion: one conductor, launched as `claude -p` for the issue, streaming events.
-name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
-problems=()
-
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-
-# Fail closed: no argv file means the stub was never reached, so every probe below would be
-# reading a file that does not exist and reporting four problems for one. One says it.
-if [[ ! -f "$argv" ]]; then
-  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no argv")
-else
-  flag -p
-  valued --output-format stream-json
-  flag --verbose
-  # The prompt travels on stdin, not argv — case 4 is why — so the issue is looked for where
-  # it now goes.
-  grep -q -- "$issue" "$prompt" 2>/dev/null ||
-    problems+=("issue $issue does not reach the prompt the launch carries")
-fi
-
-report "$name"
-
 # The eight handles a nested `claude` would otherwise inherit from the session that launched
 # it — the messaging socket and token most of all, which wire a second session into the
 # first one's IPC channel. Each carries the value it is set to, because the list that sets
 # them and the list that then looks for them gone must be the same list: a name set here but
-# probed under a second spelling is a probe that passes having watched nothing.
+# probed under a second spelling is a probe that passes having watched nothing. Read by
+# assert_case2, defined below; declared here so it exists wherever that runs.
 handles=(
   CLAUDECODE=1
   CLAUDE_CODE_SESSION_ID=parent-session
@@ -296,42 +274,161 @@ handles=(
 
 envfile="$work/env"
 
+# assert_case1..assert_case5 <conductor> — cases 1-5's own bodies, as functions taking the
+# run-conductor.sh to launch instead of reading the global $CONDUCTOR: each writes its
+# findings into `problems`, the same array `flag`/`valued` already write into, reset by
+# whichever case calls it. No namerefs — same style as the rest of this file.
+#
+# Factored out so cases 21-23 can ask "does case N hold against this other clone's
+# run-conductor.sh" by calling the function directly, instead of awk-cutting case N out of a
+# copy of this whole suite and running that copy as a child process (which is what they did
+# until this refactor: a full second tree_clone, a full second stub `claude`, one launch tax
+# per nested case). run-conductor-argv-guard.test.sh still awk-slices case 4 out of this file
+# for its own reasons (planting a bug in a scratch run-conductor.sh) — that still works
+# unchanged, because these functions live in the shared preamble the slice always keeps, and
+# case 4's own block below is still exactly the two lines the slice needs: reset `problems`,
+# call the function, report.
+
+# assert_case1 — the criterion: one conductor, launched as `claude -p` for the issue,
+# streaming events.
+assert_case1() {
+  local conductor="$1"
+
+  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+      "$conductor" "$issue" ) >/dev/null 2>&1
+
+  # Fail closed: no argv file means the stub was never reached, so every probe below would be
+  # reading a file that does not exist and reporting four problems for one. One says it.
+  if [[ ! -f "$argv" ]]; then
+    problems+=("the conductor binary was never launched — $conductor recorded no argv")
+  else
+    flag -p
+    valued --output-format stream-json
+    flag --verbose
+    # The prompt travels on stdin, not argv — case 4 is why — so the issue is looked for
+    # where it now goes.
+    grep -q -- "$issue" "$prompt" 2>/dev/null ||
+      problems+=("issue $issue does not reach the prompt the launch carries")
+  fi
+}
+
+# assert_case2 — the environment the child is handed: the session handles severed, the
+# tunables intact.
+assert_case2() {
+  local conductor="$1"
+
+  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$envfile" \
+      "${handles[@]}" \
+      VERI_MODEL_VERIFIER=probe-verifier-model \
+      "$conductor" "$issue" ) >/dev/null 2>&1
+
+  if [[ ! -f "$envfile" ]]; then
+    problems+=("the conductor binary was never launched — $conductor recorded no environment")
+  else
+    for handle in "${handles[@]}"; do
+      grep -q "^${handle%%=*}=" "$envfile" &&
+        problems+=("${handle%%=*} is still in the child's environment")
+    done
+    grep -qx -- 'VERI_MODEL_VERIFIER=probe-verifier-model' "$envfile" ||
+      problems+=("VERI_MODEL_VERIFIER did not reach the child's environment")
+  fi
+}
+
+# assert_case3 — the status: a conductor that died is a conductor the caller must be able to
+# see died, so the child's status is the script's and not a status the script invents. 17
+# because it is neither 0 nor one of the four codes this repository's scripts speak, so a
+# script that forwards it cannot be a script that happens to produce the same number some
+# other way.
+assert_case3() {
+  local conductor="$1" status
+
+  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" STUB_EXIT=17 \
+      "$conductor" "$issue" ) >/dev/null 2>&1
+  status=$?
+
+  [[ "$status" -eq 17 ]] ||
+    problems+=("the script exited $status, not the child's 17")
+}
+
+# assert_case4 — the procedure's first line is the frontmatter fence `---`, and to a real
+# `claude` a word beginning with a dash is an option, not a prompt: the launch dies on
+# `unknown option` before a conductor exists. The stub parses options for that reason, so a
+# procedure passed by argv makes this case's launch exit non-zero the way the binary's does;
+# what is left to ask is whether the whole procedure arrived anyway.
+assert_case4() {
+  local conductor="$1" status cwd
+  # The procedure compared against is the SKILL.md in the directory the launch was handed,
+  # not the one beside this script: the run pins origin/<default>'s commit (#251), so a
+  # working tree whose SKILL.md differs from that commit — any branch that edits it — would
+  # otherwise fail here for a launch that handed over its own procedure whole.
+  local handed="$work/handed-skill"
+  rm -rf "$prompt" "$handed"
+  mkdir -p "$handed"
+  local SKILL="$handed/SKILL.md"
+  # A fresh cwd per call, not the shared $work: run-conductor.sh records its pin as
+  # .tdd/issue-<n>-skill-commit under whatever directory it is run from, and this function is
+  # now called more than once against different conductors (case 4 itself, then 21 and 22 —
+  # case 21's note explains why). Sharing $work as the cwd across those calls would leave the
+  # first call's record on disk for the second to find and refuse to re-pin over (issue #253's
+  # own protection, tripped by this test rather than by anything under test).
+  cwd="$(mktemp -d -p "$work")"
+
+  ( cd "$cwd" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
+      BASE_OUT="$handed" "$conductor" "$issue" ) >/dev/null 2>&1
+  status=$?
+
+  if [[ "$status" -ne 0 ]]; then
+    problems+=("the launch exited $status — the binary rejected the procedure it was handed")
+  elif [[ ! -f "$prompt" ]]; then
+    problems+=("the launch started but no procedure reached the binary")
+  elif [[ ! -f "$SKILL" ]]; then
+    problems+=("the directory the launch was handed holds no SKILL.md")
+  elif ! IFS= read -r fence < "$SKILL" || [[ "$fence" != "---" ]]; then
+    problems+=("the procedure handed over does not open with the frontmatter fence this case is about")
+  elif [[ "$(cat "$prompt")" != "$(cat "$SKILL")"* ]]; then
+    # Verbatim-prefix, compared as text rather than by taking the procedure's first N lines
+    # off the front of what arrived: a line count is a size, and #202 forbids any suite here
+    # from applying a size verb to SKILL.md. The tail the prefix leaves is the issue line,
+    # which case 1 is the one that asserts on.
+    problems+=("what reached the binary does not begin with $SKILL verbatim")
+  fi
+}
+
+# assert_case5 — print mode has nobody to approve a tool call, so without this flag the
+# `gh`, the `make` and the nested `claude` a conductor needs are all denied and it is a
+# process that can read but cannot act. Asserted as a flag-with-value rather than as two
+# words found anywhere, because `--permission-mode` reads whatever argument follows it: the
+# pair landing at opposite ends of the command line is a different launch from this one.
+assert_case5() {
+  local conductor="$1"
+
+  ( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
+      "$conductor" "$issue" ) >/dev/null 2>&1
+
+  if [[ ! -f "$argv" ]]; then
+    problems+=("the conductor binary was never launched — $conductor recorded no argv")
+  else
+    valued --permission-mode bypassPermissions
+  fi
+}
+
+# 1. The criterion: one conductor, launched as `claude -p` for the issue, streaming events.
+name="run-conductor.sh <issue> launches claude -p for that issue in stream-json"
+problems=()
+assert_case1 "$CONDUCTOR"
+report "$name"
+
 # 2. The environment the child is handed: the session handles severed, the tunables intact.
 name="the launch severs the eight session handles and passes VERI_* through"
 problems=()
-
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" ENV_OUT="$envfile" \
-    "${handles[@]}" \
-    VERI_MODEL_VERIFIER=probe-verifier-model \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-
-if [[ ! -f "$envfile" ]]; then
-  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no environment")
-else
-  for handle in "${handles[@]}"; do
-    grep -q "^${handle%%=*}=" "$envfile" &&
-      problems+=("${handle%%=*} is still in the child's environment")
-  done
-  grep -qx -- 'VERI_MODEL_VERIFIER=probe-verifier-model' "$envfile" ||
-    problems+=("VERI_MODEL_VERIFIER did not reach the child's environment")
-fi
-
+assert_case2 "$CONDUCTOR"
 report "$name"
 
 # 3. The status: a conductor that died is a conductor the caller must be able to see died,
-# so the child's status is the script's and not a status the script invents. 17 because it is
-# neither 0 nor one of the four codes this repository's scripts speak, so a script that
-# forwards it cannot be a script that happens to produce the same number some other way.
+# so the child's status is the script's and not a status the script invents.
 name="a non-zero child exit is the script's exit"
 problems=()
-
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" STUB_EXIT=17 \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-status=$?
-
-[[ "$status" -eq 17 ]] ||
-  problems+=("the script exited $status, not the child's 17")
-
+assert_case3 "$CONDUCTOR"
 report "$name"
 
 # 4. The procedure's first line is the frontmatter fence `---`, and to a real `claude` a
@@ -341,36 +438,7 @@ report "$name"
 # ask is whether the whole procedure arrived anyway.
 name="a frontmatter-fenced procedure launches and reaches the binary whole"
 problems=()
-
-# The procedure compared against is the SKILL.md in the directory the launch was handed, not
-# the one beside this script: the run pins origin/<default>'s commit (#251), so a working
-# tree whose SKILL.md differs from that commit — any branch that edits it — would otherwise
-# fail here for a launch that handed over its own procedure whole.
-handed="$work/handed-skill"
-rm -rf "$prompt" "$handed"
-mkdir -p "$handed"
-SKILL="$handed/SKILL.md"
-
-( cd "$work" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$argv" PROMPT_OUT="$prompt" \
-    BASE_OUT="$handed" "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-status=$?
-
-if [[ "$status" -ne 0 ]]; then
-  problems+=("the launch exited $status — the binary rejected the procedure it was handed")
-elif [[ ! -f "$prompt" ]]; then
-  problems+=("the launch started but no procedure reached the binary")
-elif [[ ! -f "$SKILL" ]]; then
-  problems+=("the directory the launch was handed holds no SKILL.md")
-elif ! IFS= read -r fence < "$SKILL" || [[ "$fence" != "---" ]]; then
-  problems+=("the procedure handed over does not open with the frontmatter fence this case is about")
-elif [[ "$(cat "$prompt")" != "$(cat "$SKILL")"* ]]; then
-  # Verbatim-prefix, compared as text rather than by taking the procedure's first N lines
-  # off the front of what arrived: a line count is a size, and #202 forbids any suite here
-  # from applying a size verb to SKILL.md. The tail the prefix leaves is the issue line,
-  # which case 1 is the one that asserts on.
-  problems+=("what reached the binary does not begin with $SKILL verbatim")
-fi
-
+assert_case4 "$CONDUCTOR"
 report "$name"
 
 # 5. Print mode has nobody to approve a tool call, so without this flag the `gh`, the `make`
@@ -380,16 +448,7 @@ report "$name"
 # opposite ends of the command line is a different launch from this one.
 name="the launch carries --permission-mode bypassPermissions"
 problems=()
-
-( cd "$work" && env PATH="$stubdir:$PATH" ARGV_OUT="$argv" \
-    "$CONDUCTOR" "$issue" ) >/dev/null 2>&1
-
-if [[ ! -f "$argv" ]]; then
-  problems+=("the conductor binary was never launched — $CONDUCTOR recorded no argv")
-else
-  valued --permission-mode bypassPermissions
-fi
-
+assert_case5 "$CONDUCTOR"
 report "$name"
 
 # 6. The run pins its skill (issue #237). A conductor in print mode is not handed a base
@@ -1003,10 +1062,12 @@ report "$name"
 # 21. Case 4 holds in a tree whose SKILL.md carries an uncommitted edit (issue #256). A green
 # leaf edits SKILL.md before it commits, so a case 4 that compared against the working tree's
 # SKILL.md rather than the committed one the launch hands over would make every such step red.
-# The fixture is a skill clone committed once, then edited; case 4 is cut out of that clone's
-# copy of this suite — the preamble, case 4, and the count line — and run there, so it is case
-# 4 as written that is asked, against a launch pinned to the clone's commit. Cut rather than
-# the whole suite run, which would run this case again inside itself.
+# The fixture is a skill clone committed once, then edited; assert_case4 (case 4's own body,
+# factored out above) is called directly against that clone's run-conductor.sh, so it is case
+# 4 as written that is asked, against a launch pinned to the clone's commit — no cutting a
+# copy of this suite out of the clone and running it as a child process, which is how this
+# case and 22-23 used to ask the same question (up to ~2s each, mostly a second tree_clone and
+# a second stub `claude`, to run code already loaded in this process).
 name="case 4 passes with an uncommitted edit to SKILL.md in the tree under test"
 problems=()
 
@@ -1014,19 +1075,7 @@ clone21="$work/clone21"
 skill_clone "$clone21"
 echo "uncommitted edit to the procedure" >> "$clone21/skills/tdd/SKILL.md"
 
-suite21="$clone21/skills/tdd/scripts/tests/case4-only.test.sh"
-awk '/^# 1\. / {skip=1} /^# 4\. / {skip=0} /^# 5\. / {skip=1} !skip' \
-  "$clone21/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite21"
-printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite21"
-chmod +x "$suite21"
-
-if ! grep -q '^name="a frontmatter-fenced procedure launches and reaches the binary whole"$' "$suite21"; then
-  problems+=("case 4 could not be cut out of the clone's run-conductor.test.sh")
-else
-  out21="$("$suite21" 2>&1)"
-  [[ "$(tail -n 1 <<< "$out21")" == "1 passed, 0 failed" ]] ||
-    problems+=("case 4 did not pass with SKILL.md edited and uncommitted: ${out21//$'\n'/ | }")
-fi
+assert_case4 "$clone21/skills/tdd/scripts/run-conductor.sh"
 
 report "$name"
 
@@ -1039,6 +1088,11 @@ report "$name"
 # than after the end, because committed text followed by more text still begins with the
 # committed text and case 4's prefix check would rightly pass it. Case 4 must fail on the
 # comparison itself, not on a launch that never happened.
+#
+# assert_case4 is called directly (case 21's note explains why), so what it means for "case 4"
+# to fail here is that it writes exactly the one, specific verbatim-prefix problem to
+# `problems` — no problem at all would mean it wrongly passed; any other problem would mean it
+# failed for the wrong reason, e.g. the launch never running at all.
 name="case 4 fails when what reaches the binary differs from the committed SKILL.md"
 problems=()
 
@@ -1053,22 +1107,16 @@ sed 's|^skill_file="\$base/SKILL.md"$|skill_file="$HERE/../SKILL.md"|' "$conduct
   > "$work/conductor22.edited"
 cat "$work/conductor22.edited" > "$conductor22"
 
-suite22="$clone22/skills/tdd/scripts/tests/case4-only.test.sh"
-awk '/^# 1\. / {skip=1} /^# 4\. / {skip=0} /^# 5\. / {skip=1} !skip' \
-  "$clone22/skills/tdd/scripts/tests/run-conductor.test.sh" > "$suite22"
-printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$suite22"
-chmod +x "$suite22"
-
 if ! grep -qx 'skill_file="$HERE/../SKILL.md"' "$conductor22"; then
   problems+=("the clone's run-conductor.sh could not be made to read the working tree's SKILL.md")
-elif ! grep -q '^name="a frontmatter-fenced procedure launches and reaches the binary whole"$' "$suite22"; then
-  problems+=("case 4 could not be cut out of the clone's run-conductor.test.sh")
 else
-  out22="$("$suite22" 2>&1)"
-  if [[ "$(tail -n 1 <<< "$out22")" != "0 passed, 1 failed" ]]; then
-    problems+=("case 4 did not fail when the binary got an edited SKILL.md: ${out22//$'\n'/ | }")
-  elif ! grep -q 'does not begin with .*SKILL.md verbatim' <<< "$out22"; then
-    problems+=("case 4 failed, but not on the comparison: ${out22//$'\n'/ | }")
+  assert_case4 "$conductor22"
+  case4_problems=("${problems[@]}")
+  problems=()
+  if [[ "${#case4_problems[@]}" -eq 0 ]]; then
+    problems+=("case 4 did not fail when the binary got an edited SKILL.md")
+  elif [[ "${#case4_problems[@]}" -ne 1 || "${case4_problems[0]}" != *"does not begin with"*"SKILL.md verbatim"* ]]; then
+    problems+=("case 4 failed, but not on the comparison: ${case4_problems[*]}")
   fi
 fi
 
@@ -1080,8 +1128,18 @@ report "$name"
 # network — and case 4 then holds only for what origin/main happens to point at. The fixture is
 # a skill clone whose origin is a URL nothing listens on; cases 1–5 are cut out of that clone's
 # copy of this suite — the preamble through case 5, and the count line — and run there, the way
-# case 21 runs case 4, so a case that still launches from the tree it sits in fetches that dead
-# origin and fails, and one that launches from a fixture it controls does not.
+# case 21 used to run case 4, so a case that still launches from the tree it sits in fetches that
+# dead origin and fails, and one that launches from a fixture it controls does not.
+#
+# Unlike 21 and 22, this one keeps the cut-and-subprocess shape rather than calling
+# assert_case1..assert_case5 directly: clone23's own run-conductor.sh is the negative control —
+# its unreachable origin exists so that *launching it directly* always fails the fetch and
+# never reaches `claude` at all. What cases 1-5 must be asked against is tree_clone's fixture as
+# built from *inside* clone23 — origin-less by construction (tree_clone's own doc, above) — and
+# that only happens if $HERE resolves inside clone23 when tree_clone runs, which needs a process
+# whose own $0 sits there. Calling the functions directly, in this process, would parameterize
+# them with clone23's own adjacent script — the one thing this case's fixture guarantees always
+# fails — inverting what "cases 1-5 pass" is asking.
 name="cases 1-5 pass when the checkout under test has an unreachable origin"
 problems=()
 
