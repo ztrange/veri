@@ -143,6 +143,10 @@ profile:
 
 # `make watch` reruns `make unit` when a tracked file changes (#340). A developer
 # convenience — not part of `test`, `unit` or `merge-gates`, and nothing gates on it.
+#
+# The loop names make through WATCH_MAKE, a `:=` copy of $(MAKE), because make runs any recipe
+# line that mentions $(MAKE) itself even under `make -n` — which would start the loop for real.
+WATCH_MAKE := $(MAKE)
 .PHONY: watch
 watch:
 	@$(BASH_GUARD)
@@ -151,7 +155,14 @@ watch:
 	  printf 'VERI_WATCH_INTERVAL must be a number of seconds, got %s\n' "$$interval" >&2; \
 	  exit 2 ;; \
 	esac; \
-	while :; do sleep "$$interval"; done
+	seen="$$(git ls-files -z | xargs -0 cksum 2>/dev/null)"; \
+	while :; do \
+	  sleep "$$interval"; \
+	  now="$$(git ls-files -z | xargs -0 cksum 2>/dev/null)"; \
+	  [ "$$now" = "$$seen" ] && continue; \
+	  seen="$$now"; \
+	  $(WATCH_MAKE) --no-print-directory unit || :; \
+	done
 
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
