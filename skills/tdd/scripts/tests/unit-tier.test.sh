@@ -49,15 +49,27 @@ report() {
 # flat <text> — one line of it, for a failure message: newlines become slashes.
 flat() { printf '%s' "$1" | tr '\n' '/'; }
 
+# roster <dir> <target> — the suite paths `make -n <target>` names over the Makefile in <dir>,
+# one per line, duplicates kept so a case can count them — none is an empty answer, not a
+# failure, hence the `|| :` on grep. When make fails, the problem line instead, and status 1.
+roster() {
+  local recipe code
+  recipe="$(make --no-print-directory -n -C "$1" "$2" 2>&1)" && code=0 || code=$?
+  if [[ "$code" != 0 ]]; then
+    echo "make -n $2 exited $code: $(flat "$recipe")"
+    return 1
+  fi
+  printf '%s\n' "$recipe" | grep -o '[^ ]*\.test\.sh' || :
+}
+
 # 1. `make -n unit` names only the fast tier's suites, and all of them.
 name="make -n unit lists only suites matching $UNIT_DIR/*.test.sh"
 problems=()
 
-recipe="$(make --no-print-directory -n -C "$ROOT" unit 2>&1)" && code=0 || code=$?
-if [[ "$code" != 0 ]]; then
-  problems+=("make -n unit exited $code: $(flat "$recipe")")
+if ! listed="$(roster "$ROOT" unit)"; then
+  problems+=("$listed")
 else
-  listed="$(printf '%s\n' "$recipe" | grep -o '[^ ]*\.test\.sh' | sort -u)"
+  listed="$(sort -u <<< "$listed")"
   while IFS= read -r rel; do
     [[ -n "$rel" ]] || continue
     [[ "$rel" =~ ^$UNIT_DIR/[^/]+\.test\.sh$ ]] ||
@@ -89,11 +101,9 @@ unit_suite="$UNIT_DIR/fixture-unit.test.sh"
 : > "$scratch/$flat_suite"
 : > "$scratch/$unit_suite"
 
-recipe="$(make --no-print-directory -n -C "$scratch" test 2>&1)" && code=0 || code=$?
-if [[ "$code" != 0 ]]; then
-  problems+=("make -n test exited $code: $(flat "$recipe")")
+if ! listed="$(roster "$scratch" test)"; then
+  problems+=("$listed")
 else
-  listed="$(printf '%s\n' "$recipe" | grep -o '[^ ]*\.test\.sh')"
   for rel in "$flat_suite" "$unit_suite"; do
     n="$(grep -cxF "$rel" <<< "$listed")"
     [[ "$n" -eq 1 ]] || problems+=("make -n test names $rel $n times, not once")
