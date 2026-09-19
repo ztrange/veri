@@ -40,6 +40,21 @@
 #   line carries the run's issue and step.
 #
 # Run: skills/tdd/scripts/tests/skill-leaf-env.test.sh
+#
+# History: issue #333 made the ten launches below run concurrently instead of one after
+# another, and added cases proving the overlap didn't blur which launch a failure belonged
+# to — at the cost of doubling this suite's own time (9.9-11.3s serial -> 20.3-21.3s
+# concurrent, interleaved on the same machine, 2026-09-19) and dropping wait-leaf.sh's
+# ps-based fast-fail on a dead supervisor (issue #297) from the launches' own wait. Reverted
+# here under a standing rule that this suite's cases assert BEHAVIOUR, not scheduling shape:
+# launches are one round again, one after another, each waited on through wait-leaf.sh as
+# before (#297's protection is back); "all ten start before any finishes" and "case 3 reads
+# only after every launch has completed" were pure scheduling-shape assertions with nothing
+# to prove once launches are serial, and are gone with the concurrency they were about. What
+# #333 was actually protecting — a broken launch line named alone while its neighbours still
+# pass, and the count-line/FAIL-line format holding still — is picked back up in the next
+# commit, checked against a small fixture instead of by replaying all ten launches (or this
+# whole suite) a second time.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -86,10 +101,6 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 stub="$WORK/stub"       # the fake `claude` every launch below ends in
 run="$WORK/run"         # one tree per launch line, named for its leaf
-# One file every launch appends to, outside `$run` so case 3's glob over the trees never reads
-# it: `start <lineno>` when a launch begins and `finish <lineno>` when it has ended, one line
-# each, so the file's line order is the order the launches' ends happened in (case 4).
-markers="$WORK/markers"
 mkdir -p "$stub" "$run"
 
 # The test command this probe stands in for the conductor's. A command with a space in it,
@@ -121,10 +132,10 @@ printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"o
 STUB
 chmod +x "$stub/claude"
 
-# start_launch <leaf> <launch-line> <file>... — start one launch line in a tree of its own, in
-# the background, and return at once; `launched_test_cmd` reads its answer once `launch_all`
-# has waited for every launch. Both cases below ask one question, of the two launch shapes the
-# document prescribes, so both come through here.
+# launched_test_cmd <leaf> <launch-line> <file>... — run one launch line to completion in a
+# tree of its own and echo what VERI_TEST_CMD said inside the leaf, or `<no leaf ran>` when
+# the line never reached one. Both cases below ask that one question, of the two launch
+# shapes the document prescribes, so both come through here.
 #
 # The `<file>` arguments are what the tree must hold before the line can run, and they are
 # the only thing the two shapes differ in: a developer launch names its own prompt file,
@@ -153,7 +164,7 @@ chmod +x "$stub/claude"
 # `line` is `scan_launches`'s, holding the document's own spelling, and a local of that name
 # here would shadow it — so the `origin` file below would record the substituted copy as
 # though it were what the document says.
-start_launch() {
+launched_test_cmd() {
   local leaf="$1" launch="$2"
   shift 2
   # One tree per launch LINE, not per leaf: `$lineno` is `scan_launches`'s, read the way
@@ -189,25 +200,12 @@ start_launch() {
   # landing means the answer is already there. Bounded by the supervisor's own ceiling
   # (VERI_TIMEOUT), so a leaf that ran is never cut short, and a line that reached no
   # supervisor at all still comes back as `<no leaf ran>` rather than hanging the suite.
-  #
-  # The whole of it runs in the background, bracketed by its `start` and `finish` markers, so
-  # the next line's launch begins while this one's leaf is still running (#333).
-  {
-    echo "start $lineno" >> "$markers"
-    ( cd "$dir" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
-        S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
-        VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
-        bash -c "$launch
+  ( cd "$dir" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
+      S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
+      VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
+      bash -c "$launch
 \"$SCRIPTS/wait-leaf.sh\" \"$leaf\" 60" ) >/dev/null 2>&1
-    echo "finish $lineno" >> "$markers"
-  } &
-}
-
-# launched_test_cmd <leaf> — echo what VERI_TEST_CMD said inside the leaf `start_launch` ran
-# for the current line, or `<no leaf ran>` when the line never reached one. Read only after
-# `launch_all` has waited for every launch, from the tree keyed the way `start_launch` keys it.
-launched_test_cmd() {
-  cat "$run/$lineno-$1/seen" 2>/dev/null || echo '<no leaf ran>'
+  cat "$seen" 2>/dev/null || echo '<no leaf ran>'
 }
 
 # expect_sentinel <leaf> <launch-line> <file>... — run one launch line and record a problem
@@ -220,16 +218,9 @@ launched_test_cmd() {
 # into describing the same failure two ways — and the value they quote is the whole evidence a
 # reader gets, since `<unset>` (the prefix is missing) and `<no leaf ran>` (the line never
 # reached one) are different faults with the same verdict.
-#
-# Called twice per line: once while `launching` is set, to start the launch, and once from the
-# case, to ask what it saw.
 expect_sentinel() {
   local leaf="$1" got
-  if [[ -n "$launching" ]]; then
-    start_launch "$@"
-    return
-  fi
-  got="$(launched_test_cmd "$leaf")"
+  got="$(launched_test_cmd "$@")"
   [[ "$got" == "$SENTINEL" ]] ||
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 }
@@ -363,6 +354,12 @@ check_developer_launch() {
   expect_sentinel "$leaf" "$launch" "$prompt"
 }
 
+run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
+  scan_launches \
+  '\$S/supervise\.sh .*run-leaf\.sh' \
+  "a leaf through supervise.sh into run-leaf.sh" \
+  check_developer_launch
+
 # 2. The same criterion, asked of the verifier launches. A verifier is a leaf too — `claude
 #    -p` in a tree, denied Write and Edit but free to run commands — so `make docs` is as
 #    typeable there as in a developer leaf, and a guard the documentation targets carry is
@@ -400,36 +397,10 @@ check_verifier_launch() {
   expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 
-# The launch lines each case scans for, and the shape each names when none is found, spelled
-# once because each is scanned twice: once by `launch_all` to start every launch, once by its
-# case to read what the launches saw.
-developer_launch='\$S/supervise\.sh .*run-leaf\.sh'
-developer_shape="a leaf through supervise.sh into run-leaf.sh"
-verifier_launch='\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md'
-verifier_shape="a verifier through verify.sh against a spec file"
-
-# launch_all — start the launches of cases 1 and 2 together, then wait for every one of them,
-# so no launch waits on another's leaf (#333) and every case below reads finished trees. A
-# problem the scan finds here is dropped: the case's own scan finds it again and reports it.
-launch_all() {
-  local problems=() launching=1
-  scan_launches "$developer_launch" "$developer_shape" check_developer_launch
-  scan_launches "$verifier_launch" "$verifier_shape" check_verifier_launch
-  wait
-}
-launching=
-launch_all
-
-run_case "every leaf $skill_md launches through supervise.sh sees the run's test command as VERI_TEST_CMD" \
-  scan_launches \
-  "$developer_launch" \
-  "$developer_shape" \
-  check_developer_launch
-
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
-  "$verifier_launch" \
-  "$verifier_shape" \
+  '\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
+  "a verifier through verify.sh against a spec file" \
   check_verifier_launch
 
 # 3. The second thing a leaf launch has to carry, and the one #163 measured missing: the run
@@ -519,191 +490,8 @@ scan_launch_trees() {
   fi
 }
 
-# What had finished at the moment case 3 began reading, kept for case 6: the launches' finish
-# markers, the trees case 3 is about to walk and which of their logs already hold an `exit`
-# event, copied now, since by the time case 6 runs any
-# launch still in flight would have finished and the evidence of the early read with it.
-cp "$markers" "$WORK/finished-before-case3" 2>/dev/null || : > "$WORK/finished-before-case3"
-( cd "$run" && ls -1 ) > "$WORK/trees-before-case3" 2>/dev/null
-( cd "$run" && grep -l '"event": *"exit"' */.tdd/events.jsonl ) > "$WORK/exited-before-case3" 2>/dev/null
-
 run_case "every leaf $skill_md launches leaves events carrying the run's issue and step" \
   scan_launch_trees
-
-# 4. The launches of cases 1 and 2 run together, not one after another (#333). Each launch is
-#    keyed by its own line and its own tree, so none waits on another's answer — and a
-#    launch is a real supervisor over a real detached leaf, so ten of them in sequence is
-#    ten waits where one would do.
-#
-#    Asked of the `markers` file every launch appends its `start` and `finish` lines to,
-#    because the order of those lines is the one observable difference between launches that
-#    overlap and launches merely backgrounded one at a time: overlapping, every start is
-#    written before any finish; serial, the first finish lands before the second start. Every
-#    tree cases 1 and 2 left must have both of its lines, so a launch that never wrote them
-#    cannot make the order look right by being absent.
-#
-# scan_launch_overlap — the case's body, in `scan_launch_trees`'s shape, restoring each tree's
-# `lineno` and `line` from its `origin` so a missing marker names the launch to look at.
-scan_launch_overlap() {
-  local trees tree lineno line last_start first_finish
-  if [[ ! -s "$markers" ]]; then
-    problems+=("no launch wrote a start or finish marker, so whether the launches overlapped could not be read")
-    return
-  fi
-  trees=( "$run"/* )
-  for tree in "${trees[@]}"; do
-    [[ -f "$tree/origin" ]] || continue
-    IFS=$'\t' read -r lineno line < "$tree/origin"
-    grep -qx "start $lineno" "$markers" || problem "wrote no start marker"
-    grep -qx "finish $lineno" "$markers" || problem "wrote no finish marker"
-  done
-  last_start="$(grep -n '^start ' "$markers" | tail -1 | cut -d: -f1)"
-  first_finish="$(grep -n '^finish ' "$markers" | head -1 | cut -d: -f1)"
-  if [[ -n "$last_start" && -n "$first_finish" && "$last_start" -gt "$first_finish" ]]; then
-    problems+=("a launch finished (marker $first_finish: $(sed -n "${first_finish}p" "$markers")) before the last one started (marker $last_start: $(sed -n "${last_start}p" "$markers")), so the launches ran one after another")
-  fi
-}
-
-run_case "every launch $skill_md prescribes starts before any of them finishes" \
-  scan_launch_overlap
-
-# 5. With the launches running together, a launch line whose leaf does not see VERI_TEST_CMD
-#    is still reported against that line, by its number (#333). Ten answers now land in
-#    whatever order their leaves finish, so what ties an answer to the line that asked is no
-#    longer the order the lines were read in — and a report naming the wrong line sends a
-#    reader to edit a launch that was never broken.
-#
-#    Asked of this suite itself, run against a copy of the skill whose SKILL.md has lost the
-#    prefix from one launch line: its output is the observable the criterion is about. The
-#    copy runs with `SKILL_LEAF_ENV_NESTED` set so it does not run this case in turn.
-#
-# scan_attribution — the case's body, in the other cases' shape: it records into `run_case`'s
-# `problems` and leaves the counting to `run_case`.
-scan_attribution() {
-  local copy="$WORK/attribution" broken want out
-  mkdir -p "$copy/skills"
-  cp -R "$ROOT/skills/tdd" "$copy/skills/tdd"
-  broken="$(grep -nE '\$S/supervise\.sh develop-green \$S/run-leaf\.sh' "$md" | head -1 | cut -d: -f1)"
-  if [[ -z "$broken" ]]; then
-    problems+=("$skill_md has no develop-green launch line to break, so the attribution could not be probed")
-    return
-  fi
-  sed "${broken}s/VERI_TEST_CMD='<test-cmd>' //" "$md" > "$copy/$skill_md"
-  out="$(SKILL_LEAF_ENV_NESTED=1 "$copy/skills/tdd/scripts/tests/skill-leaf-env.test.sh" < /dev/null 2>&1)"
-  want="    $skill_md:$broken launches develop-green, whose leaf saw VERI_TEST_CMD=<unset>, want $SENTINEL:"
-  grep -qF -- "$want" <<< "$out" ||
-    problems+=("the copy with line $broken's prefix removed did not report '$want…'; it printed: $(grep -E '^(FAIL|    )' <<< "$out" | tr '\n' '|')")
-}
-
-[[ -n "${SKILL_LEAF_ENV_NESTED:-}" ]] ||
-  run_case "with launches concurrent, a launch whose leaf does not see VERI_TEST_CMD is reported against its own line number" \
-    scan_attribution
-
-# 7. One launch line's sentinel broken is the ONLY failure reported, and the other nine
-#    launches still pass (#333). Case 5 asks that the broken line is named; this asks that
-#    nothing else is — ten answers landing in whatever order their leaves finish could blur a
-#    failure onto a neighbour, or fail a line whose own leaf saw the right value.
-#
-#    Asked of this suite run against a copy of the skill whose SKILL.md carries a wrong value
-#    in one verifier line's VERI_TEST_CMD, rather than none: the copy's output must hold
-#    exactly one problem line, that line's, and a count line with exactly one failed case.
-#
-# scan_isolation — the case's body, in the other cases' shape.
-scan_isolation() {
-  local copy="$WORK/isolation" broken want out reported
-  mkdir -p "$copy/skills"
-  cp -R "$ROOT/skills/tdd" "$copy/skills/tdd"
-  broken="$(grep -nE "verify\.sh --step '<STEP>' green " "$md" | head -1 | cut -d: -f1)"
-  if [[ -z "$broken" ]]; then
-    problems+=("$skill_md has no verify-green launch line to break, so the isolation could not be probed")
-    return
-  fi
-  sed "${broken}s/VERI_TEST_CMD='<test-cmd>'/VERI_TEST_CMD='<test-cmd>-broken'/" "$md" > "$copy/$skill_md"
-  out="$(SKILL_LEAF_ENV_NESTED=1 "$copy/skills/tdd/scripts/tests/skill-leaf-env.test.sh" < /dev/null 2>&1)"
-  want="    $skill_md:$broken launches verify-green, whose leaf saw VERI_TEST_CMD=$SENTINEL-broken, want $SENTINEL:"
-  reported="$(grep -E '^    ' <<< "$out")"
-  [[ "$reported" == "$want"* && "$(grep -c . <<< "$reported")" -eq 1 ]] ||
-    problems+=("the copy with line $broken's sentinel broken did not report that line alone as '$want…'; it printed: $(grep -E '^(FAIL|    )' <<< "$out" | tr '\n' '|')")
-  grep -qE '^[0-9]+ passed, 1 failed$' <<< "$out" ||
-    problems+=("the copy with line $broken's sentinel broken did not end with exactly one failed case; it ended: $(tail -1 <<< "$out")")
-}
-
-[[ -n "${SKILL_LEAF_ENV_NESTED:-}" ]] ||
-  run_case "with launches concurrent, one launch line's broken sentinel is reported naming that line alone while the other launches pass" \
-    scan_isolation
-
-# 6. Case 3 reads every launch's tree only once every launch has completed (#333). With the
-#    launches running together, a case that read the trees while some leaf still ran would find
-#    that leaf's event log half-written — a `launch` line with no `exit` after it — and pass or
-#    fail on whichever of the two it happened to catch.
-#
-#    Asked of the snapshot taken just before case 3 began: the trees it was about to walk must
-#    be one per launch line cases 1 and 2 scan, each with its launch's finish marker already
-#    written and an `exit` event already in its log.
-#
-# scan_case3_read_after_launches — the case's body, in `scan_launch_trees`'s shape.
-scan_case3_read_after_launches() {
-  local want got tree lineno line
-  want=$(( $(grep -cE "$developer_launch" "$md") + $(grep -cE "$verifier_launch" "$md") ))
-  got="$(grep -c . "$WORK/trees-before-case3")"
-  [[ "$got" -eq "$want" ]] ||
-    problems+=("case 3 began with $got launch trees to read, want $want — one per launch line cases 1 and 2 scan")
-  while IFS= read -r tree; do
-    [[ -n "$tree" && -f "$run/$tree/origin" ]] || continue
-    IFS=$'\t' read -r lineno line < "$run/$tree/origin"
-    grep -qx "finish $lineno" "$WORK/finished-before-case3" ||
-      problem "was read by case 3 before its launch had finished"
-    grep -qxF "$tree/.tdd/events.jsonl" "$WORK/exited-before-case3" ||
-      problem "left no exit event for case 3 to read"
-  done < "$WORK/trees-before-case3"
-}
-
-run_case "case 3 reads every launch's tree only after every launch has completed" \
-  scan_case3_read_after_launches
-
-# 8. Running the launches together changed nothing a reader of this suite's output sees (#333):
-#    the `FAIL - <name>` line `report` prints, the indented `<file>:<line> <complaint>:<text>`
-#    line `problem` builds, and the `----` / `<n> passed, <m> failed` pair the `test` recipe
-#    reads a suite's verdict from. Anything grepping a run's log for them — the recipe's count
-#    check first of all — would stop matching the day one of them moved.
-#
-#    Asked of this suite run against a copy of the skill whose develop-green line has lost all
-#    three prefixes, which fails the two pre-#333 cases that can see it — 1 (`<unset>`) and 3
-#    (empty issue and step in its events) — and no other. Every line is spelled out here as the
-#    suite printed it before #333, rather than rebuilt from `problem` or `report`, so a change
-#    to either shows up as a mismatch instead of being carried into the expectation.
-#
-# scan_output_format — the case's body, in the other cases' shape.
-scan_output_format() {
-  local copy="$WORK/format" broken text out printed want
-  mkdir -p "$copy/skills"
-  cp -R "$ROOT/skills/tdd" "$copy/skills/tdd"
-  broken="$(grep -nE '\$S/supervise\.sh develop-green \$S/run-leaf\.sh' "$md" | head -1 | cut -d: -f1)"
-  if [[ -z "$broken" ]]; then
-    problems+=("$skill_md has no develop-green launch line to break, so the output format could not be probed")
-    return
-  fi
-  sed "${broken}s/VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' //" "$md" > "$copy/$skill_md"
-  text="$(sed -n "${broken}p" "$copy/$skill_md")"
-  out="$(SKILL_LEAF_ENV_NESTED=1 "$copy/skills/tdd/scripts/tests/skill-leaf-env.test.sh" < /dev/null 2>&1)"
-  printed="$(grep -E '^(FAIL|    )' <<< "$out")"
-  want="FAIL - every leaf skills/tdd/SKILL.md launches through supervise.sh sees the run's test command as VERI_TEST_CMD
-    skills/tdd/SKILL.md:$broken launches develop-green, whose leaf saw VERI_TEST_CMD=<unset>, want make sentinel-test-cmd:$text
-FAIL - every leaf skills/tdd/SKILL.md launches leaves events carrying the run's issue and step
-    skills/tdd/SKILL.md:$broken leaves events that do not carry issue=143 step='pin the sentinel step' (@):$text"
-  # The complaint in case 3's parentheses lists the events the launch left, which is the
-  # supervisor's business rather than this suite's format, so it is the one part matched loosely.
-  printed="$(sed -E "s/ \(launch issue='' step=''[^)]*\):/ (@):/" <<< "$printed")"
-  [[ "$printed" == "$want" ]] ||
-    problems+=("the copy with line $broken's prefixes removed did not print its failures in the pre-#333 format; it printed: $(tr '\n' '|' <<< "$printed")")
-  [[ "$(tail -2 <<< "$out" | head -1)" == "----" ]] &&
-    grep -qE '^[0-9]+ passed, 2 failed$' <<< "$(tail -1 <<< "$out")" ||
-    problems+=("the copy with line $broken's prefixes removed did not end with '----' and '<n> passed, 2 failed'; it ended: $(tail -2 <<< "$out" | tr '\n' '|')")
-}
-
-[[ -n "${SKILL_LEAF_ENV_NESTED:-}" ]] ||
-  run_case "with launches concurrent, the count line and every FAIL and problem line keep their pre-#333 format" \
-    scan_output_format
 
 echo "----"
 echo "$pass passed, $fail failed"
