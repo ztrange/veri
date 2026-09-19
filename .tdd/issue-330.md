@@ -6,5 +6,5 @@
 - [x] /api/events's payload is asserted by calling events_json directly, including the empty list for an issue no run holds a ledger for, with no server for that case ⟦criterion 4⟧
 - [x] The static-HTML polling contract (the page polls all 3 endpoints every 2 s) is asserted by reading dashboard.html directly off disk, with no server started for that case ⟦criterion 5⟧
 - [x] At most 2 dashboard.sh server processes are started across the whole dashboard suite, counted deterministically by a PATH-first counting shim or a bind marker file, never by wall clock ⟦criterion 6⟧
-- [ ] The remaining server-dependent cases together assert: default port 8765 with no argument; an explicit port argument bound instead; loopback only, unreachable from a non-loopback attempt; clean exit 0 on SIGINT; one server process answering more than one request across its life ⟦criterion 7⟧
+- [x] The remaining server-dependent cases together assert: default port 8765 with no argument; an explicit port argument bound instead; loopback only, unreachable from a non-loopback attempt; clean exit 0 on SIGINT; one server process answering more than one request across its life ⟦criterion 7⟧
 - [ ] Every assertion dashboard.test.sh made before this issue is still made by some case afterwards, and make test is green ⟦criterion 8⟧
