@@ -315,17 +315,58 @@ fi
 #    its leaves' `make test` — the shape of #87 again, observed on #200's resume.
 #
 #    One arm, asked the way case 1 asks supervise-retry.test.sh — green under the ambient value —
-#    rather than compared against a cleared run. A leak turns the suite's keep-the-pin cases red
-#    (with the clearing at run-conductor.test.sh's launch_from removed: 21 passed, 3 failed), so
-#    green is the answer; a second, cleared run would add another ~26 s of make test on the Mac
-#    for the one leak that changes the output while every case still passes.
+#    rather than compared against a cleared run. A leak turns the suite's keep-the-pin cases red,
+#    so green is the answer; a second, cleared run would double the cost for the one leak that
+#    changes the output while every case still passes.
+#
+#    Only five of run-conductor.test.sh's 24 cases ever set VERI_NEW_SKILL=1 in a `launch_from`
+#    call — the rest cannot observe this leak at all — so the witness is those five, cut out of
+#    the suite's own text the way run-conductor-argv-guard.test.sh already cuts its one case,
+#    rather than paying for a real git clone and event log per case for the other nineteen. The
+#    cut also drops `tree_clone "$work/tree"`, the one call before case 1 that recursively copies
+#    this whole skill tree to build $CONDUCTOR — none of the five cases below reads $CONDUCTOR,
+#    only cases 1-5 do, and that copy was the suite's single most expensive step. A cut that
+#    cannot find one of the five case markers, or the five cases' own `name=` lines, fails
+#    closed naming what is missing, rather than silently asking about fewer cases than today's
+#    five.
+#
+#    Depends on run-conductor.test.sh's `# 9. `, `# 10. `, `# 17. `, `# 20. ` and `# 24. `
+#    markers, and the literal line `tree_clone "$work/tree"`.
 name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 still leaves it green"
 problems=()
-out="$(VERI_NEW_SKILL=1 "$HERE/run-conductor.test.sh" 2>/dev/null)" && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from run-conductor.test.sh under VERI_NEW_SKILL=1, got $code: $(printf '%q' "$(tail -n 1 <<< "$out")")")
-tail -n 1 <<< "$out" | grep -Eq '^[0-9]+ passed, 0 failed$' ||
-  problems+=("want '<n> passed, 0 failed' last from run-conductor.test.sh under VERI_NEW_SKILL=1, got: $(printf '%q' "$(tail -n 1 <<< "$out")")")
+newskill_cases=(
+  "a resume with VERI_NEW_SKILL=1 is re-pinned to the clone's current commit and logs a skill-repin event"
+  "a resume with VERI_NEW_SKILL=1 re-pins to origin/<default> as just fetched, not to the clone's HEAD"
+  "an unresolvable recorded skill commit refuses with exit 2 unless VERI_NEW_SKILL=1, which re-pins and logs a skill-repin event"
+  "the skill-repin event lands in the run worktree's .tdd/wt/<n>/.tdd/events.jsonl, never the caller's .tdd/events.jsonl"
+  "a re-pinning launch with VERI_NEW_SKILL=1 hands the conductor no VERI_NEW_SKILL"
+)
+newskill_cut="$(mktemp "$HERE/.hermetic-newskill-slice.XXXXXX")"
+awk '
+  /^tree_clone "\$work\/tree"$/ {skip=1}
+  /^# 9\. / {skip=0}
+  /^# 10\. / {skip=1}
+  /^# 17\. / {skip=0}
+  /^# 20\. / {skip=1}
+  /^# 24\. / {skip=0}
+  !skip
+' "$HERE/run-conductor.test.sh" > "$newskill_cut"
+printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$newskill_cut"
+chmod +x "$newskill_cut"
+newskill_missing=()
+for newskill_case in "${newskill_cases[@]}"; do
+  grep -qF "name=\"$newskill_case\"" "$newskill_cut" || newskill_missing+=("$newskill_case")
+done
+if [[ "${#newskill_missing[@]}" -gt 0 ]]; then
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 — the slice is missing case(s): $(printf '%s | ' "${newskill_missing[@]}") — the '# 9. '/'# 10. '/'# 17. '/'# 20. '/'# 24. ' markers may have moved")
+else
+  out="$(VERI_NEW_SKILL=1 "$newskill_cut" 2>/dev/null)" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("want exit 0 from run-conductor.test.sh under VERI_NEW_SKILL=1, got $code: $(printf '%q' "$(tail -n 1 <<< "$out")")")
+  [[ "$(tail -n 1 <<< "$out")" == "5 passed, 0 failed" ]] ||
+    problems+=("want '5 passed, 0 failed' last from run-conductor.test.sh under VERI_NEW_SKILL=1 (one per case that sets it), got: $(printf '%q' "$(tail -n 1 <<< "$out")")")
+fi
+rm -f "$newskill_cut"
 report "$name"
 
 # 10. Cases 1 to 5 and 9 still fail, named, on a suite that leaks (#301). Probed the way case 9 is: a copy
