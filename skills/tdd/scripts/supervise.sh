@@ -41,7 +41,9 @@
 #
 # Tunables (env): VERI_HEARTBEAT silence window secs (default 180) · VERI_TIMEOUT hard cap
 # secs (default 900) · VERI_POLL poll interval secs (default 1) · VERI_STUCK_RETRIES extra
-# attempts after the first when a leaf is killed-stuck (default 1) · VERI_MODEL /
+# attempts after the first when a leaf is killed-stuck (default 1) · VERI_KILL_POLL the grace
+# loop's poll interval secs when a kill is sent, before escalating to KILL (default 0.1, an
+# internal knob like VERI_POLL rather than one SKILL.md documents) · VERI_MODEL /
 # VERI_MODEL_DEVELOPER / VERI_MODEL_VERIFIER the model this leaf's role runs on, resolved
 # through leaf-model.sh and exported to the leaf as VERI_LEAF_MODEL (all unset by default,
 # which is no `--model` flag at all).
@@ -59,6 +61,18 @@ heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
 poll="${VERI_POLL:-1}"
 retries="${VERI_STUCK_RETRIES:-1}"
+
+# A malformed VERI_KILL_POLL is a misconfigured run, not a decision — the same fail-closed
+# rule refactor-budget.sh applies to VERI_REFACTOR_BUDGET: a diagnostic on stderr and exit 2,
+# never a silent fallback that would leave kill_tree either busy-looping or waiting far
+# longer than intended. Unlike VERI_HEARTBEAT/VERI_TIMEOUT/VERI_POLL/VERI_STUCK_RETRIES above
+# (whole seconds or counts, unvalidated since #12), this one accepts a fraction — the
+# production default is 0.1s — so the pattern allows an optional decimal part.
+kill_poll="${VERI_KILL_POLL:-0.1}"
+if [[ ! "$kill_poll" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  echo "supervise: VERI_KILL_POLL must be a non-negative number: $kill_poll" >&2
+  exit 2
+fi
 
 mkdir -p .tdd
 log=".tdd/$name.log"
@@ -89,8 +103,12 @@ mtime_of() {
 
 kill_tree() {
   kill -TERM -"$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null
-  # brief grace, then make sure it is gone
-  for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || return 0; sleep 0.1; done
+  # Brief grace, then make sure it is gone. The poll is real sleep, not the injected clock
+  # supervise.test.sh stubs `date`/`stat` with: this loop polls `kill -0`, a real OS process
+  # check, so jumping a fake clock would not make the kernel reap the child any sooner.
+  # VERI_KILL_POLL (default 0.1, unchanged) is a test-only knob a suite exercising many
+  # killed-stuck leaves can shrink instead of paying up to 5 x 0.1s of real sleep each time.
+  for _ in 1 2 3 4 5; do kill -0 "$pid" 2>/dev/null || return 0; sleep "$kill_poll"; done
   kill -KILL -"$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null
 }
 

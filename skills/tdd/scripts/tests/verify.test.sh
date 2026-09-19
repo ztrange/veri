@@ -31,6 +31,11 @@ trap 'rm -rf "$stubdir" "$work"' EXIT
 # verification runs in, because verify.sh reads any file a verifier leaves in the tree as
 # tampering.
 export VERI_POLL=0.02
+# kill_tree's grace-loop poll (real sleep — it checks `kill -0`, an OS fact, not the injected
+# clock below): every hung-verifier case here gets killed, so left at the 0.1s production
+# default it would add up to 5 x 0.1s of real wall time per kill across this suite's several
+# killed-stuck cases, for no observation any case makes.
+export VERI_KILL_POLL=0.01
 export TEST_CLOCK="$stubdir/clock"
 clockbin="$stubdir/clockbin"; mkdir -p "$clockbin"
 realdate="$(command -v date)"
