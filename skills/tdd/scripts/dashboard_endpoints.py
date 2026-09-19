@@ -10,15 +10,6 @@ import subprocess
 import sys
 import urllib.parse
 
-# SIGINT back to the handler that raises KeyboardInterrupt, explicitly. A non-interactive
-# shell starts a background child with SIGINT ignored, `exec` keeps that disposition, and
-# python only installs its own handler where it finds SIG_DFL — so a server launched in
-# the background (which is how anything but a human at a terminal launches it) would
-# otherwise ignore the very signal it is meant to stop on and hang forever.
-signal.signal(signal.SIGINT, signal.default_int_handler)
-
-page = open(sys.argv[1], "rb").read()
-port = int(sys.argv[2])
 status_sh = sys.argv[3]
 metrics_sh = sys.argv[4]
 
@@ -175,6 +166,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
 # Only when run as the program: importing this file to call an endpoint function must not
 # bind the port (#330).
 if __name__ == "__main__":
+    # SIGINT back to the handler that raises KeyboardInterrupt, explicitly. A non-interactive
+    # shell starts a background child with SIGINT ignored, `exec` keeps that disposition, and
+    # python only installs its own handler where it finds SIG_DFL — so a server launched in
+    # the background (which is how anything but a human at a terminal launches it) would
+    # otherwise ignore the very signal it is meant to stop on and hang forever. Here and not
+    # at import, because a process that imports this to call an endpoint owns its own SIGINT.
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+
+    # The page and the port are the server's alone: no endpoint function reads either.
+    page = open(sys.argv[1], "rb").read()
+    port = int(sys.argv[2])
+
     with http.server.HTTPServer(("127.0.0.1", port), Handler) as httpd:
         try:
             httpd.serve_forever()
