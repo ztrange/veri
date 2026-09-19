@@ -1,6 +1,6 @@
 # Plan for #337 — `affected-suites.sh` prints the suites one change affects, per PRD's five rules, fail-closed
 
-- [x] affected-suites.sh <base>..<head> prints one suite path per line, sorted, with no duplicate, for a range git can resolve ⟦criterion 1⟧ ⟂ refactor pending
+- [x] affected-suites.sh <base>..<head> prints one suite path per line, sorted, with no duplicate, for a range git can resolve ⟦criterion 1⟧
 - [ ] A malformed argument (missing `..`, or either side not a resolvable revision) exits 2 with a diagnostic ⟦criterion 2⟧
 - [ ] A range whose diff is empty exits 3 and prints nothing ⟦criterion 3⟧
 - [ ] Rule 1: a change to skills/tdd/scripts/foo.sh with a suite skills/tdd/scripts/tests/foo.test.sh prints exactly that suite ⟦criterion 4⟧
