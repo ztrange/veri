@@ -469,7 +469,10 @@ rm -f "\$src/run-leaf.sh"
 echo "SABOTAGED-TEMPLATE" > "\$src/prompts/develop-red.md"
 cd "$leafdir" || exit 1
 "\$base/scripts/build-develop-prompt.sh" red spec.md "the step" "make test" > leaf.prompt 2> build.err
-env CLAUDE_BIN="$stubdir/leaf-claude" LEAF_PROMPT_OUT="$leafdir/leaf-received" \
+# VERI_POLL=0.02 (the same value verify.test.sh and supervise.test.sh inject): the rule here
+# is which binary ran and what got logged, not wall-clock behavior, so the mandatory poll
+# sleep before supervise.sh can observe an already-finished leaf is pure cost to shrink.
+env CLAUDE_BIN="$stubdir/leaf-claude" LEAF_PROMPT_OUT="$leafdir/leaf-received" VERI_POLL=0.02 \
   "\$base/scripts/supervise.sh" develop-red "\$base/scripts/run-leaf.sh" leaf.prompt > supervise.out 2> supervise.err
 echo \$? > supervise.rc
 HOOK
@@ -727,7 +730,13 @@ problems=()
 
 remote8="$work/remote8"
 clone8="$work/clone8"
-cloned_skill "$remote8" "$clone8"
+# clone8 must hold this skill's real, current run-conductor.sh — it is what launch_from
+# actually executes — but remote8 exists only to be cloned from (for a valid origin url in
+# clone8's config) and then removed: its own content never has to be a skill, so it is a bare
+# repository nothing checks a working tree out of, cheaper than a full skill clone.
+skill_clone "$clone8"
+git init -q --bare "$remote8"
+git -C "$clone8" remote add origin "$remote8"
 rm -rf "$remote8"
 
 caller8="$work/caller8"
@@ -770,7 +779,9 @@ cat > "$stubdir/record-hook" <<HOOK
 base="\$1"
 cd "$caller9" || exit 1
 "\$base/scripts/event.sh" conductor-mark
-"\$base/scripts/supervise.sh" develop-red echo ok > /dev/null 2>&1
+# Same VERI_POLL rationale as the hook above: this case reads skill_commit off events and
+# the prompt, never wall-clock behavior.
+VERI_POLL=0.02 "\$base/scripts/supervise.sh" develop-red echo ok > /dev/null 2>&1
 HOOK
 chmod +x "$stubdir/record-hook"
 
