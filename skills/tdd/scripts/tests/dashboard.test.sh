@@ -895,6 +895,56 @@ fi
 
 report "$name"
 
+# --- the Runs endpoint's payload, asked of runs_json directly: status.sh --json, byte for byte ---
+# The same equality as the Runs endpoint case above, asked of the function that answers the
+# endpoint rather than of a server answering it (#330): the module is imported the way the case
+# above imports it, runs_json is called in the fixture repository, and what it returns is
+# compared with what `status.sh --json` prints there, byte for byte. No dashboard.sh is started
+# and no socket is opened, so nothing here waits on a server coming up.
+#
+# Byte-identical is only a fair ask of a fixture with no clock in its answer, so the run here has
+# a ledger and no event log: status.sh then reports its issue, title, branch and step and no
+# `elapsed_seconds`, which would otherwise count the gap between the two calls.
+name="runs_json, called directly, returns status.sh --json byte for byte"
+problems=()
+direct_repo="$(repo runsdirect)"
+direct_run="$(fabricate_run "$direct_repo" 22 tdd/22-lamps-glow)"
+cat > "$direct_run/.tdd/issue-22.md" <<'EOF'
+# Plan for #22 — lamps glow
+
+- [x] a lamp exists
+- [ ] a lamp glows
+EOF
+exec_line="$(grep -E '^exec python3 ' "$DASH" || :)"
+module="$(sed -nE 's/^exec python3 .*"\$HERE\/([A-Za-z_][A-Za-z0-9_]*)\.py".*/\1/p' <<< "$exec_line")"
+if [[ -z "$module" ]]; then
+  problems+=("dashboard.sh execs no .py module beside it; its exec line is: $(printf '%q' "$exec_line")")
+else
+  (cd "$direct_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
+import importlib, sys
+
+scripts, module, out = sys.argv[1], sys.argv[2], sys.argv[3]
+sys.path.insert(0, scripts)
+sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", "8765",
+            scripts + "/status.sh", scripts + "/metrics.sh"]
+body = importlib.import_module(module).runs_json({})
+with open(out, "wb") as f:
+    f.write(body)
+' "$scripts" "$module" "$work/runs-direct.json") 2> "$work/runs-direct.err"
+  (cd "$direct_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 "$STATUS" --json) \
+    > "$work/runs-direct-status.json" 2>/dev/null
+  if [[ ! -f "$work/runs-direct.json" ]]; then
+    problems+=("calling $module.runs_json wrote nothing: $(tail -n 1 "$work/runs-direct.err")")
+  elif ! cmp -s "$work/runs-direct.json" "$work/runs-direct-status.json"; then
+    problems+=("runs_json returned $(printf '%q' "$(cat "$work/runs-direct.json")")")
+    problems+=("status.sh --json prints $(printf '%q' "$(cat "$work/runs-direct-status.json")")")
+  elif [[ ! -s "$work/runs-direct-status.json" ]]; then
+    problems+=("status.sh --json printed nothing for the fixture, so the equality says nothing")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
