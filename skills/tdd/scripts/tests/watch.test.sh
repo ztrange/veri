@@ -54,6 +54,18 @@ prereqs() {
   phony_rule "$1" | sed 's/^[^:]*://' | tr ' ' '\n' | sed '/^$/d'
 }
 
+# bounded <cmd…> — run <cmd…> in the background and wait for it, killing it if it is still
+# running after 30 s: a watchdog on the real sleep bounds a loop that never ends on its own.
+# On a passing run the watchdog is killed before it fires.
+bounded() {
+  "$@" &
+  local watched=$! watchdog
+  { /bin/sleep 30; kill -TERM "$watched"; } >/dev/null 2>&1 &
+  watchdog=$!
+  wait "$watched" 2>/dev/null
+  kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null
+}
+
 # 1. `make -np watch` exits 0, and its database marks `watch` phony, with no prerequisite
 #    among test, unit and merge-gates — and none of those three lists `watch` as one.
 name="make -n watch: its own .PHONY target, separate from test, unit and merge-gates"
@@ -70,8 +82,8 @@ report "$name"
 
 # 2. A malformed VERI_WATCH_INTERVAL exits 2 naming the variable; unset, the loop's first
 #    wait between passes is `sleep 1`. The stub sleep records its argument and kills its
-#    caller, so the loop ends at its first wait. A watchdog on the real sleep bounds a loop
-#    that never reaches a wait at all; on a passing run it is killed before it fires.
+#    caller, so the loop ends at its first wait; `bounded` covers a loop that never reaches
+#    a wait at all.
 name="VERI_WATCH_INTERVAL: malformed exits 2 naming the variable, unset defaults to 1"
 problems=()
 scratch="$(mktemp -d)"
@@ -94,12 +106,7 @@ for bad in abc 1x; do
     problems+=("VERI_WATCH_INTERVAL='$bad': stderr does not name the variable: ${err:-<empty>}")
 done
 : > "$scratch/sleep.log"
-( unset VERI_WATCH_INTERVAL; stubbed_watch >/dev/null 2>&1 ) &
-watched=$!
-{ /bin/sleep 30; kill -TERM "$watched"; } >/dev/null 2>&1 &
-watchdog=$!
-wait "$watched" 2>/dev/null
-kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null
+( unset VERI_WATCH_INTERVAL; bounded stubbed_watch >/dev/null 2>&1 )
 first_wait="$(head -n1 "$scratch/sleep.log")"
 [[ "$first_wait" == 1 ]] ||
   problems+=("VERI_WATCH_INTERVAL unset: want the loop's first wait to be sleep 1, got '${first_wait:-no sleep at all}'")
@@ -138,13 +145,8 @@ STUB
 chmod +x "$scratch/bin/sleep"
 echo 0 > "$scratch/count"
 : > "$scratch/unit.log"
-( WATCH_COUNT="$scratch/count" WATCH_FIXTURE="$fixture" UNIT_LOG="$scratch/unit.log" \
-    PATH="$scratch/bin:$PATH" make --no-print-directory -s -C "$fixture" watch >/dev/null 2>&1 ) &
-watched=$!
-{ /bin/sleep 30; kill -TERM "$watched"; } >/dev/null 2>&1 &
-watchdog=$!
-wait "$watched" 2>/dev/null
-kill "$watchdog" 2>/dev/null; wait "$watchdog" 2>/dev/null
+bounded env WATCH_COUNT="$scratch/count" WATCH_FIXTURE="$fixture" UNIT_LOG="$scratch/unit.log" \
+  PATH="$scratch/bin:$PATH" make --no-print-directory -s -C "$fixture" watch >/dev/null 2>&1
 runs="$(tr '\n' ' ' < "$scratch/unit.log" | sed 's/ $//')"
 [[ "$runs" == "2 4" ]] ||
   problems+=("want make unit to run once after each change (after sleeps 2 and 4), ran after sleeps: '${runs:-none}'")
