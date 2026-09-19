@@ -746,6 +746,64 @@ detect "$repo"
 [[ "$code" == 3 ]] && [[ -z "$out" ]] \
   && ok || no "a repo matching nothing prints nothing and exits 3 (exit=$code want 3, stdout='$out' want '')"
 
+# 9. no `--tier` flag means today's answer, even in a repo whose root CLAUDE.md now declares
+# both tier markers (#338). The markers are new inputs a tier-aware call reads; a call that
+# names no tier is every caller that existed before them, and it must go on getting the one
+# command today's precedence chain picks — not the fast command, not the all command.
+#
+# One case over every single-command shape the chain knows, because "exactly as today" is
+# one claim and it can only break shape by shape: a marker read ahead of rule 0 would take
+# every repo, one read ahead of rule 3 only the ones below it. Each repo carries the same
+# CLAUDE.md, stated plainly at the start of lines so that nothing but the missing flag keeps
+# the markers from answering; the tier commands are spelled so that no rule could infer them.
+# The `--issue` shape is asked with its body, so the issue's own line is today's winner there.
+misread=""
+body="$work/tier-issue-body.md"
+printf '## Notes\n\nTest command: bin/issue-suite\n' > "$body"
+
+for shape in override npm pnpm yarn make pytest.ini pyproject.toml setup.cfg go.mod Cargo.toml unittest issue; do
+  repo="$work/untiered-$shape"
+  mkdir -p "$repo"
+  printf '# demo\n\nveri: fast tests: bin/fast-suite\nveri: all tests: bin/all-suite\n' > "$repo/CLAUDE.md"
+  args=("$repo")
+  case "$shape" in
+    override)
+      mkdir -p "$repo/.veri"
+      printf '%s\n' 'bin/run-suite --all --strict' > "$repo/.veri/test-command"
+      want='bin/run-suite --all --strict' ;;
+    npm|pnpm|yarn)
+      printf '{"scripts":{"test":"jest"}}\n' > "$repo/package.json"
+      case "$shape" in
+        pnpm) printf 'lockfileVersion: 9.0\n' > "$repo/pnpm-lock.yaml" ;;
+        yarn) printf '# yarn lockfile v1\n' > "$repo/yarn.lock" ;;
+      esac
+      want="$shape test" ;;
+    make)
+      printf 'test:\n\techo hi\n' > "$repo/Makefile"
+      want='make test' ;;
+    pytest.ini)     : > "$repo/pytest.ini" ; want='pytest -q' ;;
+    pyproject.toml) printf '[tool.pytest.ini_options]\naddopts = "-ra"\n' > "$repo/pyproject.toml" ; want='pytest -q' ;;
+    setup.cfg)      printf '[tool:pytest]\naddopts = -ra\n' > "$repo/setup.cfg" ; want='pytest -q' ;;
+    go.mod)         : > "$repo/go.mod" ; want='go test ./...' ;;
+    Cargo.toml)     : > "$repo/Cargo.toml" ; want='cargo test' ;;
+    unittest)
+      mkdir -p "$repo/tests"
+      printf 'import unittest\n' > "$repo/tests/test_foo.py"
+      want='python3 -m unittest discover -q' ;;
+    issue)
+      printf 'test:\n\techo hi\n' > "$repo/Makefile"
+      args=(--issue "$body" "$repo")
+      want='bin/issue-suite' ;;
+  esac
+
+  detect "${args[@]}"
+
+  matched || note "$shape"
+done
+
+[[ -z "$misread" ]] \
+  && ok || no "no --tier: CLAUDE.md's veri: fast/all tests: lines leave every single-command answer as today —$misread"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
