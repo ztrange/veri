@@ -96,6 +96,41 @@ else
 fi
 report "$name"
 
+# 3. only a top-level assignment that raises `pass` or `fail` ends a case. The fixture's
+#    `pass=0 fail=0` on line 2 raises nothing, `passed=1` on line 6 names another variable,
+#    the function's `local passed=1` and `local pass=9` are not top-level, and `fail=0` on
+#    line 10 lowers nothing. Read right, case 2 runs from line 5 to the increment on line
+#    12, 35 - 10 = 25 fabricated seconds; any of those read as a boundary would renumber
+#    the cases or cut case 2 short.
+name="boundaries: only top-level increments of pass/fail, so case 2 is L5-12"
+problems=()
+fixture="$scratch/boundaries.test.sh"
+cat > "$fixture" <<'EOF'
+unset EPOCHREALTIME
+pass=0 fail=0
+EPOCHREALTIME=10.000000
+pass=$((pass + 1))
+EPOCHREALTIME=20.000000
+passed=1
+bump() { local passed=1; local pass=9; }
+EPOCHREALTIME=30.000000
+bump
+fail=0
+EPOCHREALTIME=35.000000
+pass=$((pass + 1))
+echo "$pass passed, $fail failed"
+EOF
+chmod +x "$fixture"
+out="$(VERI_PROFILE_THRESHOLD=1 "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+if [[ "$out" =~ ^([0-9]+(\.[0-9]+)?)\ (.*)$ && "${BASH_REMATCH[3]}" == "$fixture case 2 L5-12" ]]; then
+  awk -v s="${BASH_REMATCH[1]}" 'BEGIN { exit !(s + 0 == 25) }' ||
+    problems+=("want secs equal to 25, got $(printf '%q' "$out")")
+else
+  problems+=("want exactly '<secs> $fixture case 2 L5-12', got: $(printf '%q' "$out")")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
