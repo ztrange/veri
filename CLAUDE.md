@@ -7,6 +7,11 @@ there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely ev
 
 ## Commands
 
+The two test tiers veri detects when run against its own repo (#338):
+
+veri: fast tests: `make unit`
+veri: all tests: `make test`
+
 | | |
 |---|---|
 | `make test` | The shell unit suites. **This is also the command veri detects when run against its own repo**, so it must stay green — a red baseline makes the conductor refuse to start. |
