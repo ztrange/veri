@@ -187,6 +187,25 @@ for probe in "1:3 4 2 " "2.5:3 4 " "4:3 "; do
 done
 report "$name"
 
+# 6. no answer could be obtained, twice over: a threshold that is not a number of seconds
+#    (a well-formed fixture, so the threshold is the only thing wrong), and a fixture whose
+#    trace never raises `pass` or `fail` (the default threshold, so the trace is the only
+#    thing wrong) — nothing to cut into cases. Both are exit 2, not a report.
+name="exit 2: a non-numeric threshold, and a suite that never increments pass/fail"
+problems=()
+out="$(VERI_PROFILE_THRESHOLD=abc "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 2 ]] || problems+=("threshold abc: want exit 2, got $code")
+fixture="$scratch/no-increment.test.sh"
+cat > "$fixture" <<'EOF'
+pass=0 fail=0
+x=1
+echo "$pass passed, $fail failed"
+EOF
+chmod +x "$fixture"
+out="$(env -u VERI_PROFILE_THRESHOLD "$PROFILE" "$fixture" 2>/dev/null)" && code=0 || code=$?
+[[ "$code" == 2 ]] || problems+=("no increment: want exit 2, got $code")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -9,12 +9,17 @@
 #
 # Prints one line `<secs> <suite> case <n> L<a>-<b>` per case whose cost is at or above
 # VERI_PROFILE_THRESHOLD (seconds, default 1), slowest first. Exit 0 whether or not any
-# case crossed it.
+# case crossed it. Exit 2 when no answer could be obtained: a threshold that is not a
+# number of seconds, or a suite whose trace never raises `pass` or `fail`.
 #
 # Usage:   profile.sh <suite>...
 set -euo pipefail
 
 threshold="${VERI_PROFILE_THRESHOLD:-1}"
+if [[ ! "$threshold" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  echo "profile.sh: VERI_PROFILE_THRESHOLD must be a number of seconds, got '$threshold'" >&2
+  exit 2
+fi
 
 trace="$(mktemp)"
 trap 'rm -f "$trace"' EXIT
@@ -42,6 +47,12 @@ for suite in "$@"; do
           first = ""
         }
         seen[kv[1]] = kv[2]
+      }
+    }
+    END {
+      if (n == 0) {
+        print "profile.sh: " suite ": no pass=/fail= increment in its trace" > "/dev/stderr"
+        exit 2
       }
     }
   ' "$trace"
