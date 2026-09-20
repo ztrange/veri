@@ -82,6 +82,14 @@ green_section() {
 }
 section="$(green_section)"
 
+# unreadable — empty unless the Green section could not be read at all, in which case it is
+# the half of the failure message both cases share: what was searched for and not found. Fail
+# closed on it rather than probing an empty string, which would let "the phase is gone" read
+# as "the phase is right"; each case appends what it could not establish.
+unreadable=""
+[[ -n "${section// /}" ]] ||
+  unreadable="$skill_md has no '$green_heading' section to read —"
+
 # win <extended-regex> — the section text within 250 characters either side of the first
 # match, or the empty string when there is none: the text a reader meets while working out
 # what to do about that answer. 250 rather than a rounder, larger number because BSD grep —
@@ -114,10 +122,8 @@ bailing_causes() {
 name="$skill_md's Green section, on SPLIT:, restores the tree to HEAD, adds the split steps before STEP in one add-ledger-step.sh call, commits the ledger, emits step-split and returns to next-unchecked.sh"
 problems=()
 
-if [[ -z "${section// /}" ]]; then
-  # Fail closed: a renamed or emptied section is reported as unreadable rather than probed as
-  # an empty string, which would let "the phase is gone" read as "the phase is right".
-  problems+=("$skill_md has no '$green_heading' section to read — what the conductor does with a SPLIT: report could not be established")
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable what the conductor does with a SPLIT: report could not be established")
 else
   # 1. The branch itself. A leaf that reports SPLIT: has written no implementation and no
   #    `SUITE:` line, so a conductor with no branch for it reads the report as a malformed
@@ -169,8 +175,8 @@ report "$name"
 name="$skill_md's Green section bails with cause step-too-big when add-ledger-step.sh exits 1 on a split, and its Bailing section lists that cause as a process failure"
 problems=()
 
-if [[ -z "${section// /}" ]]; then
-  problems+=("$skill_md has no '$green_heading' section to read — what the conductor does when a split is over budget could not be established")
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable what the conductor does when a split is over budget could not be established")
 elif ! grep -qE 'step-too-big' <<<"$section"; then
   problems+=("$skill_md's Green section never names the step-too-big cause, so a split refused for growth budget leaves the conductor to invent a stop for a step whose criteria are already filed as owed")
 else
