@@ -10,3 +10,5 @@
 - extract the shared `grep -qF 'body'` probe of cases 6 and 7 into a predicate helper beside `names_the_full_gate` — left undone: it is one grep, and the two cases assert different things reaching the body
 ### SKILL.md says each insertion emits a `step-added` event
 - case 6 scans every instruction matching an anchor while `mark()` stops at the first; an `instructions_matching` iterator could serve both, though `mark()`'s multi-anchor `anchored` bookkeeping makes the shared shape thin
+### CLAUDE.md's budgets invariant names VERI_STEP_GROWTH as a fifth axis, plan growth, never merged with the other four ⟦criterion 11⟧
+- collapse the four-line per-case ritual (`name=` / `problems=()` / `probe_…` / `report "$name"`) into a single `case "<name>" <probe>` helper — not applied because that ritual is the shared idiom of the sibling document suites (model-knobs-recorded.test.sh, lane-rule-recorded.test.sh), and changing it in this suite alone makes it read unlike the three it deliberately mirrors
