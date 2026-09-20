@@ -149,20 +149,19 @@ report "$name"
 #    `test-run` mark in the log. The wrapper has to be named at a path the leaf can run —
 #    a leaf works in the target repository, where the bare name resolves to nothing — and
 #    each run has to name its tier, since the mark's `tier=` key is the wrapper's first
-#    argument and is what every later reader groups by.
+#    argument and is what every later reader groups by. Read off case 4's `green`, the same
+#    prompt built from the same arguments, rather than building it a second time.
 name="develop-green runs the fast command and the affected suites through timed-test-run.sh, under tiers fast and affected"
 problems=()
-green_wrapped="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 'make unit' 2>/dev/null)" ||
-  problems+=("build-develop-prompt.sh green exited $?")
 runnable=""
 while read -r cand; do
   [[ -x "$cand" ]] && runnable="$cand"
-done < <(grep -oE '[^ `]*timed-test-run\.sh' <<< "$green_wrapped")
+done < <(grep -oE '[^ `]*timed-test-run\.sh' <<< "$green")
 if [[ -z "$runnable" ]]; then
   problems+=("develop-green's prompt never names timed-test-run.sh at a path the leaf can run")
 fi
 for tier in fast affected; do
-  if ! plain <<< "$green_wrapped" | grep -qE "timed-test-run\.sh $tier\b"; then
+  if ! plain <<< "$green" | grep -qE "timed-test-run\.sh $tier\b"; then
     problems+=("develop-green's prompt never tells its leaf to run through timed-test-run.sh under tier $tier")
   fi
 done
