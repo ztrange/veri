@@ -23,10 +23,12 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/candidate-line.sh"
 
 verb="${1:-}"
+# Both verbs take the owed file as their second argument — `append` writes it, `render`
+# reads it — so the argument is named once here rather than in each branch.
+file="${2:-}"
 
 case "$verb" in
   append)
-    file="${2:-}"
     step="${3:-}"
 
     structural=()
@@ -52,8 +54,6 @@ case "$verb" in
     fi
     ;;
   render)
-    file="${2:-}"
-
     # The heading is the only thing render adds: `append` already wrote each step and its
     # candidates in the markdown the PR body wants, in the order they were recorded, so
     # the section is that file under a heading a reader can find it by.
