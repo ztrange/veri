@@ -32,6 +32,10 @@
 # Usage:   refactor-triage.sh < leaf-report.txt
 set -euo pipefail
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/candidate-line.sh
+source "$HERE/lib/candidate-line.sh"
+
 structural=()
 candidates_seen=0
 
@@ -42,13 +46,13 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   candidates_seen=1
   class_and_transform="${BASH_REMATCH[1]}"
 
-  # `[|]` rather than `\|` — inside [[ … =~ … ]] the pattern is an ERE, where a bare `|`
-  # is alternation and a backslashed one is undefined; a bracket expression is neither.
-  # The structural transforms are collected rather than printed as they are found: the
-  # malformed line that sends this script to exit 2 can come after them, and exit 2 owes
-  # an empty stdout.
-  if [[ "$class_and_transform" =~ ^structural[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
-    structural+=("${BASH_REMATCH[1]}")
+  # What a structural candidate line looks like is lib/candidate-line.sh's to say — it is
+  # the one shape refactor-owed.sh reads out of the same report, for the leftovers it
+  # carries into the PR. The transforms are collected rather than printed as they are
+  # found: the malformed line that sends this script to exit 2 can come after them, and
+  # exit 2 owes an empty stdout.
+  if structural_candidate "$line"; then
+    structural+=("$STRUCTURAL_TRANSFORM")
   elif [[ "$class_and_transform" =~ ^cosmetic[[:space:]]*[|] ]] ||
        [[ "$class_and_transform" =~ ^none[[:space:]]*$ ]]; then
     # Both are a real answer, and neither is one worth a leaf: a cosmetic transform the

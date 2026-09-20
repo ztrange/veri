@@ -16,6 +16,10 @@
 # front of the merge decision is the mixed backlog #149 already refused once.
 set -euo pipefail
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/candidate-line.sh
+source "$HERE/lib/candidate-line.sh"
+
 verb="${1:-}"
 
 case "$verb" in
@@ -27,10 +31,11 @@ case "$verb" in
     # `|| [[ -n "$line" ]]` so a report whose last line has no trailing newline is still
     # read: `read` returns non-zero at EOF even when it did fill the variable.
     while IFS= read -r line || [[ -n "$line" ]]; do
-      # `[|]` rather than `\|` — inside [[ … =~ … ]] the pattern is an ERE, where a bare
-      # `|` is alternation and a backslashed one is undefined.
-      if [[ "$line" =~ ^CANDIDATES:[[:space:]]*structural[[:space:]]*[|][[:space:]]*(.*)$ ]]; then
-        structural+=("${BASH_REMATCH[1]}")
+      # What a structural candidate line looks like is lib/candidate-line.sh's to say:
+      # refactor-triage.sh reads the same line for the loop's own answer, and one copy of
+      # that shape drifting from the other is a leftover silently recorded by neither.
+      if structural_candidate "$line"; then
+        structural+=("$STRUCTURAL_TRANSFORM")
       fi
     done
 
