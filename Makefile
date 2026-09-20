@@ -168,6 +168,27 @@ watch:
 	  $(WATCH_MAKE) --no-print-directory unit || :; \
 	done
 
+# `make spec` runs the ShellSpec specs under spec/, in the same offline environment and
+# under the same bash guard as `test`, so a ported suite and its original are measured on
+# equal terms. It exists for the framework spike only: `test` is untouched, the ported
+# suites live beside their originals rather than replacing them, and nothing gates on this
+# target. If the spike's verdict is no, this target and spec/ and vendor/ come out together.
+#
+# One ShellSpec process runs every specfile, which is the framework's own unit of work and
+# not the per-suite loop `test` runs. That difference is a finding, not an accident: the
+# count-line guard `test` applies per suite has one count line per RUN here, so adopting
+# ShellSpec for the real suites means deciding where that guard goes.
+SPECS := $(sort $(wildcard spec/*_spec.sh))
+SHELLSPEC := vendor/shellspec/shellspec
+
+.PHONY: spec
+spec:
+	@$(BASH_GUARD)
+	@reach_log="$$(mktemp)"; git_bin="$$(mktemp -d)"; \
+	trap 'rm -f "$$reach_log"; rm -rf "$$git_bin"' EXIT; \
+	$(OFFLINE_GIT); \
+	$(OFFLINE_ENV) $(SHELLSPEC) --shell bash $(SPECS) < /dev/null
+
 # docs/walkthrough.html is GENERATED from the real scripts by docs/build-walkthrough.py,
 # so the source it shows cannot drift. `make docs` regenerates it; `make docs-check`
 # regenerates into a buffer and diffs against the committed file, which fails both when a

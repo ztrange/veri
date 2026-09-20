@@ -1,0 +1,5 @@
+--require spec_helper
+--format veri
+--failure-exit-code 1
+--error-exit-code 2
+--load-path spec/support
