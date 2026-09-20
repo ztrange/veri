@@ -239,9 +239,10 @@ attempt_once() {
     m="$(mtime_of "$log")"
     if [[ "$m" != "$last_m" ]]; then last_m="$m"; seen_at="$t"; fi
     silence=$(( t - seen_at ))
-    # Strict '>' so the whole-second clock's ±1s over-read at a second boundary (see the
-    # slow-leaf note in supervise.test.sh) can't spuriously kill an active/just-relaunched
-    # leaf; a genuine hang keeps climbing past the window and is still killed.
+    # Strict '>' for the one rounding the reading above still has: `silence` is a difference
+    # of two whole-second `now` readings, so a sub-second gap straddling a second boundary
+    # reads as a whole second of it. That must not kill an active or just-relaunched leaf at
+    # exactly the window; a genuine hang keeps climbing past it and is still killed.
     if (( silence > heartbeat )); then
       status="killed-stuck"; reason="no heartbeat for ${silence}s (window ${heartbeat}s)"
       kill_tree; break
