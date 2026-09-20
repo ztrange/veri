@@ -118,11 +118,14 @@ def metrics_json(query):
 
 # Which run a pane was asked about, by issue number — the name a run goes by everywhere
 # else the page reads: status.sh keys each run object by `issue` and the Metrics endpoint
-# keys `issues` by the same number. The run is the one holding that issue's ledger, which is
-# how metrics_json above already decides which issue a run is for, read the other way round.
+# keys `issues` by the same number. The run is `.tdd/wt/<issue>` and no other, which is how
+# metrics_json above already decides which issue a run is for, read the other way round:
+# holding `issue-<n>.md` does not make a run issue `<n>`'s, because ledgers are committed and
+# every run worktree carries a copy of every earlier issue's plan (#343). An issue with no run
+# directory of its own is no run, and its pane is the empty log rather than another run's.
 def run_for_issue(issue):
     for run in runs():
-        if has_ledger(run, issue):
+        if run_issue(run) == issue and has_ledger(run, issue):
             return run
     return ""
 
