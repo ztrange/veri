@@ -85,6 +85,15 @@ def runs():
     return sorted(glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*")))
 
 
+# Whether a run holds issue `<n>`'s ledger — the one question both readers below ask of a run,
+# so where a ledger lives is spelled here and not in either of them. An empty issue holds
+# nothing: the Events pane is polled with no issue selected, and the name of a run directory
+# that is not a number is no issue at all.
+def has_ledger(run, issue):
+    return bool(issue) and os.path.exists(
+        os.path.join(run, ".tdd", "issue-%s.md" % issue))
+
+
 # The Metrics pane: one entry per run directory, and its report. The walk is all this is —
 # which run and which issue, never how one is read.
 #
@@ -102,7 +111,7 @@ def metrics_json(query):
     issues = {}
     for run in runs():
         issue = run_issue(run)
-        if issue and os.path.exists(os.path.join(run, ".tdd", "issue-%s.md" % issue)):
+        if has_ledger(run, issue):
             issues[issue] = issue_report(run, issue)
     return json.dumps({"issues": issues}).encode()
 
@@ -113,7 +122,7 @@ def metrics_json(query):
 # how metrics_json above already decides which issue a run is for, read the other way round.
 def run_for_issue(issue):
     for run in runs():
-        if issue and os.path.exists(os.path.join(run, ".tdd", "issue-%s.md" % issue)):
+        if has_ledger(run, issue):
             return run
     return ""
 
