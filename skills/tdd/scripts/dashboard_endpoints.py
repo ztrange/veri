@@ -131,11 +131,19 @@ def run_for_issue(issue):
     return ""
 
 
+# Which issue a request selected: the `issue=` of its parsed query string, or the empty name
+# when it carries none — a pane is polled with nothing selected before the reader picks a run.
+# Every pane that answers about one run asks this, so how a request names its run is read out
+# of the query string here and not once per endpoint.
+def selected_issue(query):
+    return query.get("issue", [""])[0]
+
+
 # The Events pane: the selected run's log, oldest first and so newest last — the pane's
 # promise is that the order the file has is not reordered. An issue no run holds a ledger for
 # is the empty list, which is what events_of makes of the empty run name.
 def events_json(query):
-    events = events_of(run_for_issue(query.get("issue", [""])[0]))
+    events = events_of(run_for_issue(selected_issue(query)))
     return json.dumps({"events": events}).encode()
 
 
@@ -233,7 +241,7 @@ def test_runs(run, command):
 # one that was asked about: run_for_issue answers with `.tdd/wt/<issue>` and no other, so
 # asking the run back for its own number could only return the number already in hand.
 def tests_json(query):
-    issue = query.get("issue", [""])[0]
+    issue = selected_issue(query)
     run = run_for_issue(issue)
     command = test_command(run, issue)
     return json.dumps({"tests": test_runs(run, command) if command else []}).encode()
@@ -270,7 +278,7 @@ def current_leaf(run):
 # like every endpoint since #343. An issue with no run of its own, or a run on no leaf, or a
 # leaf that has written nothing yet, is the empty rendering rather than another leaf's.
 def chatter_json(query):
-    run = run_for_issue(query.get("issue", [""])[0])
+    run = run_for_issue(selected_issue(query))
     log = leaf_log(run, current_leaf(run))
     return json.dumps({"chatter": rendered_log(log)}).encode()
 
