@@ -150,6 +150,9 @@ out="${out//\{\{TEST_CMD\}\}/$test_cmd}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{FAST_CMD\}\}/$fast_cmd}"
+# The wrapper every test-command run goes through (#373), named at an absolute path: a leaf
+# works in the target repository, where the bare name resolves to nothing.
+out="${out//\{\{TIMED_TEST_RUN\}\}/$HERE/timed-test-run.sh}"
 out="${out//\{\{TOUCHED_FILES\}\}/$touched}"
 out="${out//\{\{REFACTOR_BUDGET\}\}/$refactor_budget}"
 out="${out//\{\{REVISE_PHASE\}\}/$revised_phase}"
