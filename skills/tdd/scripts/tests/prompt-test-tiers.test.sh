@@ -166,10 +166,8 @@ runs_fast_plus_affected verify-green "$verify_green"
 report "$name"
 
 # 5. The green leaf's two runs go through timed-test-run.sh (#373), which is what leaves a
-#    `test-run` mark in the log. The wrapper has to be named at a path the leaf can run —
-#    a leaf works in the target repository, where the bare name resolves to nothing — and
-#    each run has to name its tier, since the mark's `tier=` key is the wrapper's first
-#    argument and is what every later reader groups by. Read off case 4's `green`, the same
+#    `test-run` mark in the log — probed by timed_through above, whose header carries why a
+#    runnable path and a named tier are what it demands. Read off case 4's `green`, the same
 #    prompt built from the same arguments, rather than building it a second time.
 name="develop-green runs the fast command and the affected suites through timed-test-run.sh, under tiers fast and affected"
 problems=()
