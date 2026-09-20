@@ -133,11 +133,11 @@ else
   first_record_line "$pr_records" 'gh pr create' >/dev/null ||
     problems+=("$skill_md's Draft PR step never runs gh pr create, so the run ends with no PR carrying the metrics it committed")
 
-  # The block, in the two places a human reads a finished run: the PR body and the final
-  # comment. Each is asked of the record carrying that instruction's own command, so a
-  # mention of the block anywhere in the step cannot answer for either.
-  first_record_line "$pr_records" 'gh pr create' '📊 metrics' >/dev/null ||
-    problems+=("$skill_md's gh pr create instruction does not put the ### 📊 Metrics block in the PR body, so a reviewer reads the PR without what the run cost")
+  # The block where a human reads a finished run: the closing comment. Asked of the record
+  # carrying that comment's own command, so a mention of the block anywhere else in the step
+  # cannot answer for it. The PR body's copy is not asked here — a record holds the whole
+  # sub-step, so a block reaching the PR by a later gh pr edit would answer for the create
+  # (#267); the fenced-line cases below read SKILL.md's command block directly instead.
   first_record_line "$pr_records" '✅ done' '📊 metrics' >/dev/null ||
     problems+=("$skill_md's final ✅ Done comment does not carry the ### 📊 Metrics block, so the issue thread ends without the run's figures")
 fi
@@ -377,6 +377,26 @@ dead_comment='lands '"BEFORE"' the PR is opened'
   problems+=("$suite_md compares the metrics commit's record number against gh pr create's with a greater-than, but section_records folds both into the same record, so the check cannot fail and reports coverage the suite does not have")
 [[ "$suite_src" != *"$dead_comment"* ]] ||
   problems+=("$suite_md still carries the comment claiming a record-level probe catches a metrics commit made after the PR is opened, which the folding makes impossible")
+report "$name"
+
+# Issue #267: the second dead record-level check, for the same reason as the one above. The
+# probe asked whether the record carrying `gh pr create` also carries the metrics block, and
+# claimed that a create whose --body omits it fails the suite. It cannot: section_records
+# folds the whole Draft PR sub-step into ONE record, so the block reaching the PR by the
+# `gh pr edit` two instructions later satisfies a probe aimed at the create. Today's SKILL.md
+# is exactly that shape and the suite was green. The fenced-line cases above read the command
+# block directly, where that question is expressible. This case reads the suite's own source
+# and asks that the probe has not come back. Its needle is assembled from three pieces at
+# runtime, so the lines writing it here can never answer for the line it is looking for.
+name="skill-metrics.test.sh carries no record-level gh pr create + 📊 metrics presence probe, which records_of's folding makes dead"
+problems=()
+
+suite_src="$(cat "$ROOT/$suite_md")"
+probe_call='first_record_line "$pr_records" '
+create_arg="'gh pr create'"
+block_arg="'📊 metrics'"
+[[ "$suite_src" != *"$probe_call$create_arg $block_arg"* ]] ||
+  problems+=("$suite_md still asks whether the record holding gh pr create also holds the 📊 metrics block, but section_records folds the whole Draft PR sub-step into one record, so a block carried by a later gh pr edit answers for the create and the probe cannot fail")
 report "$name"
 
 echo "----"
