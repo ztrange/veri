@@ -432,6 +432,38 @@ if [[ "$pairs" == "7=0.25 9=1.50" && "$code" -eq 0 ]]; then ok; else
   diff <(printf '7=0.25 9=1.50\nexit 0\n') <(printf '%s\nexit %s\n' "$pairs" "$code")
 fi
 
+# --- a run directory with no ledger of its own is not yet a run (#343) ---
+# A run directory is made before its ledger is written, so between the two it holds only the
+# committed copies of earlier issues' plans. .tdd/wt/8 here has issue-3.md and issue-5.md and
+# no issue-8.md: it contributes no run — no line in the text rendering, no object in --json —
+# and its half-born state is not an error, so the script still exits 0.
+unborn="$(repo unborn)"
+run="$(fabricate_run "$unborn" 8 tdd/8-lamps-glow)"
+cat > "$run/.tdd/issue-3.md" <<'EOF'
+# Plan for #3 — gears turn
+
+- [ ] a gear exists
+EOF
+cat > "$run/.tdd/issue-5.md" <<'EOF'
+# Plan for #5 — lamps glow
+
+- [ ] a lamp exists
+EOF
+missing=()
+run_in "$unborn"
+lines="$(printf '%s\n' "$out" | grep -c '^#' || true)"
+[[ "$lines" == "0" ]] || missing+=("no run line, got $lines")
+run_in "$unborn" --json
+issues="$(printf '%s' "$out" | python3 -c '
+import json, sys
+try:
+    print(" ".join(r["issue"] for r in json.loads(sys.stdin.read())["runs"]) or "(none)")
+except (ValueError, KeyError, TypeError) as err:
+    print("no runs array: %r" % err)
+')"
+[[ "$issues" == "(none)" ]] || missing+=("--json runs empty, got: $issues")
+expect_nothing_missing "a run directory with no ledger of its own contributes no run and is not an error"
+
 # --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
 # One running run, watched with stdout to a file. `--watch 0` rather than `--watch 1`: a real
 # 1s interval between redraws made this case's second wait_for below sit out up to a full
