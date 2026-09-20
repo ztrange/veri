@@ -22,8 +22,7 @@ rewritten implementation nor `IMPOSSIBLE` is the honest answer. Report `SPLIT:` 
 instead of an implementation, changing no production code — one to three of them, each a
 behaviour-level criterion small enough to be one red-green cycle of its own, in the order
 they must be built. The conductor restores the tree, adds those steps ahead of this one
-and comes back to this step later, so leave the working tree exactly as you found it and
-skip the run in step 3 below.
+and comes back to this step later, so leave the working tree exactly as you found it.
 
 ### The issue's behavior spec (context — the criterion above is what is in scope)
 
@@ -35,6 +34,10 @@ skip the run in step 3 below.
 
 ### What to do
 
+0. **Check the step's size first, when the phase you are redoing is green.** If it needs
+   more than one new behaviour at once, stop here and report `SPLIT:` lines as **When the
+   step is too big for one green** above says — do not proceed to the steps below: with no
+   implementation written, the run they ask for has no question to answer.
 1. Read what this step left on disk and rewrite it to answer that objection — and only
    that objection. Do not drift beyond what the criterion and the reason require: a fix
    that also changes something the verifier did not object to gives it new grounds to
