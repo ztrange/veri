@@ -26,6 +26,9 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TIMED="$HERE/../timed-test-run.sh"
+# The reader at the other end of the mark, for case 2: the same report the conductor commits
+# beside the ledger and pastes into the issue thread.
+METRICS="$HERE/../metrics.sh"
 pass=0 fail=0
 
 report() {
@@ -103,6 +106,62 @@ else
 fi
 rm -rf "$work"
 report "$name"
+
+# 2. The other end of the same mark. Case 1 says the wrapper writes a `test-run` line; this
+#    says that line is one metrics.sh renders a row from — the seam the two halves meet at,
+#    which neither suite establishes on its own. metrics.test.sh has a per-tier case, but its
+#    marks are hand-written JSON: a writer that spelled a key differently, or stopped writing
+#    `seconds` at all, would leave that case green and every real run rowless, which is the
+#    state #373 found (`.tdd/issue-344-metrics.md` renders the heading with nothing under it).
+#
+#    So nothing here is fabricated: the log is whatever timed-test-run.sh itself left behind,
+#    and the assertion is made on the report metrics.sh printed over it. The command is
+#    `true`, so the run costs no wall time and the recorded seconds — 0, whatever they are —
+#    are never asserted on, the same rule as case 1.
+name="a log carrying timed-test-run.sh's own test-run marks renders at least one row under the report's per-tier section"
+problems=()
+work="$(mktemp -d)"
+( cd "$work" && env VERI_ISSUE=373 VERI_ACTOR=developer VERI_PHASE=green VERI_STEP=1 \
+    VERI_ATTEMPT=1 "$TIMED" fast 'skills/tdd/scripts/tests/event.test.sh' true ) >/dev/null 2>&1 ||
+  problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
+
+report_out="$work/report.md"
+( cd "$work" && "$METRICS" 373 ) > "$report_out" 2>/dev/null && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want metrics.sh to exit 0 over the log the wrapper wrote, it exited $code")
+
+# The rows under the heading, as the report prints them: every table line between it and the
+# next section, less the column headings and the markdown alignment rule under them. Their
+# first cell is the tier, which is the key this section is by.
+tiers="$(python3 -c '
+import sys
+heading = "#### Test-command seconds, by tier"
+lines = open(sys.argv[1]).read().splitlines()
+if heading not in lines:
+    sys.exit("<<no such heading>>")
+rows = []
+for line in lines[lines.index(heading) + 1:]:
+    if line.startswith("####"):
+        break
+    if not line.startswith("|"):
+        continue
+    cells = [c.strip() for c in line.strip("|").split("|")]
+    if cells[0] in ("tier", "---"):
+        continue
+    rows.append(cells[0])
+print(" ".join(rows))
+' "$report_out" 2>&1)"
+
+[[ -n "$tiers" ]] ||
+  problems+=("want at least one row under the per-tier section, the report has the heading and nothing under it")
+[[ " $tiers " == *" fast "* ]] ||
+  problems+=("want a row for the tier the wrapper recorded (fast), the section rows are $(printf '%q' "$tiers")")
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the report was: $(printf '%q' "$(cat "$report_out")")")
+rm -rf "$work"
+report "$name"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
