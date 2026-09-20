@@ -309,6 +309,20 @@ if have_records 'the step-added mark'; then
 fi
 report "$name"
 
+# 7. The Refactor phase's own insertion (issue #361): case 6 asks that every insertion
+#    prescribed anywhere carries the mark, which a section that prescribes no insertion at all
+#    satisfies vacuously. This case asks the one the Refactor phase makes — the call that grows
+#    the plan with the leaf's `NEW_STEP:` values after verify-refactor's final PASS, in the same
+#    breath as the refactor-pending clear — to carry it, so dropping that call or its mark from
+#    the phase that grows the plan mid-run is caught where it happens.
+name="$skill_md marks the Refactor section's own plan insertion with an event.sh step-added call beside it"
+problems=()
+if have_records "the Refactor section's step-added mark"; then
+  mark step-added "grows the plan with the leaf's \`NEW_STEP:\` values beside the refactor-pending clear" \
+    '\$s/add-ledger-step\.sh' 'clear-refactor-pending\.sh' 'new_step:'
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
