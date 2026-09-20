@@ -544,6 +544,33 @@ prompt_says "$green" "verify-green never says the restore comes before reporting
 [[ -z "$problems" ]] && ok \
   || no "verify-green tells the verifier to remove the code, run the suite, and restore the tree before reporting (${problems#; })"
 
+# 31. the cycle's files, and the one a transform may leave them for (issue #358). Case 30 of
+#     build-develop-prompt.test.sh lets a transform touch a file outside the touched-files
+#     list when — and only when — it removes duplication between that file and code this
+#     cycle wrote. The verifier judging that transform has no touched-files list: it is given
+#     a base sha, so it derives the cycle's files itself, as `git diff --name-only
+#     <base-sha>^ <base-sha>`. That is a list of paths and nothing else, so blindness holds
+#     (ADR-0003) — no rationale can ride in on a file name. A changed file outside that list
+#     is then a REJECT, unless its hunk removes duplication with code in the list, which is
+#     the developer prompt's exception read back. Three claims, three misses, for case 12's
+#     reason: the derivation without the rule leaves the verifier a list it does nothing
+#     with, and the rule without its exception rejects exactly the transform #358 permits.
+#     The prompt read is case 16's `$with_base` — same phase, same arguments — so no new
+#     invocation, and the sha is the one case 16 established only the argument can supply.
+#     The REJECT probe names the list rather than `outside` alone, because check 6's
+#     out-of-scope sentence already puts `outside` within a clause of `REJECT` and would
+#     answer a looser probe. `duplication` and `--name-only` appear nowhere in the prompt
+#     built today, checked against the built prompt rather than the template.
+problems=""
+prompt_says "$with_base" "never names git diff --name-only $base_sha^ $base_sha" \
+  -F -e "git diff --name-only $base_sha^ $base_sha"
+prompt_says "$with_base" "never makes a changed file outside that list a REJECT" \
+  -iE -e "outside[^.]{0,80}list[^.]{0,160}REJECT|REJECT[^.]{0,160}outside[^.]{0,80}list"
+prompt_says "$with_base" "never spares the hunk that removes duplication with code in the list" \
+  -iE -e "(unless|except)[^.]{0,160}duplication|duplication[^.]{0,160}(unless|except)"
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor derives the cycle's files as git diff --name-only <base-sha>^ <base-sha> and REJECTs a changed file outside that list unless its hunk removes duplication with code in it (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -42,6 +42,11 @@ Render one verdict on the settled result.
    named in REASON: as out of scope and is not by itself a REJECT: a behavior-preserving
    refactor may not add another step's work, so demanding it here is a demand no revise
    leaf can satisfy.
+7. **The cycle's files.** The files this cycle touched are the ones
+   `git diff --name-only {{BASE_SHA}}^ {{BASE_SHA}}` names, and the refactor was confined to
+   them; derive that list yourself, and read it as paths and nothing else. A changed file
+   outside that list is a REJECT, unless its hunk removes duplication between that file and
+   code in the list — the one reason a transform was allowed to leave the list for.
 
 PASS if the suite is green and the code is up to standard. REJECT, naming the specific
 weakness, if the tidy-up left the code below standard or altered behavior.
