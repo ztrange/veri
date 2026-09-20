@@ -170,10 +170,18 @@ def output_tail(text):
     return "\n".join(text.splitlines()[-TAIL_LINES:])
 
 
-# Every leaf log of one run, in a stable order: the `.tdd/<leaf>.out` files the conductor's
-# leaves wrote. A run still being born has none, which is the empty list and not an error.
+# Where one leaf's log lives: `.tdd/<leaf>.out` under the run, which is where the conductor's
+# leaves write. Spelled here alone, so the reader that walks every log and the reader that
+# wants one named leaf's cannot disagree about it. No run, or no leaf, names no log.
+def leaf_log(run, leaf):
+    return os.path.join(run, ".tdd", "%s.out" % leaf) if run and leaf else ""
+
+
+# Every leaf log of one run, in a stable order — the whole set, asked for as the glob of any
+# leaf name. A run still being born has none, which is the empty list and not an error, and
+# so is the empty run name: glob answers nothing for the empty path.
 def leaf_logs(run):
-    return sorted(glob.glob(os.path.join(run, ".tdd", "*.out"))) if run else []
+    return sorted(glob.glob(leaf_log(run, "*")))
 
 
 # One leaf log's records: its stream-json lines, parsed, one per line and in the order the
@@ -263,8 +271,7 @@ def current_leaf(run):
 # leaf that has written nothing yet, is the empty rendering rather than another leaf's.
 def chatter_json(query):
     run = run_for_issue(query.get("issue", [""])[0])
-    leaf = current_leaf(run)
-    log = os.path.join(run, ".tdd", "%s.out" % leaf) if run and leaf else ""
+    log = leaf_log(run, current_leaf(run))
     return json.dumps({"chatter": rendered_log(log)}).encode()
 
 
