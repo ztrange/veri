@@ -947,12 +947,19 @@ def calls(pattern):
         yield m, balanced(code, m.end())
 
 
+# The call at <m> as it reads on the page rather than as code_only blanked it, flattened onto
+# one line and cut to what fits a problem line: a message names what is written there, not the
+# spaces this program put in its place.
+def shown(m, end):
+    text = page[m.start():end] if end > 0 else page[m.start():m.end()]
+    return " ".join(text.split())[:120]
+
+
 # No fixed clock anywhere on the page: one setInterval left behind is one pane still queueing
 # requests against an endpoint that has not answered.
 for m, end in calls(r"\bsetInterval"):
-    shown = page[m.start():end] if end > 0 else page[m.start():m.end()]
     print("the page calls %s, so a pane fires on a fixed clock rather than on its previous "
-          "request answering" % " ".join(shown.split())[:120])
+          "request answering" % shown(m, end))
 
 # Where a settlement handler body is: the argument list of .then, .catch or .finally.
 spans = []
@@ -968,10 +975,10 @@ else:
     resolve = reject = False
     for m, end in timers:
         kinds = [kind for kind, a, b in spans if a <= m.start() < b]
-        shown = " ".join((page[m.start():end] if end > 0 else page[m.start():m.end()]).split())
+        text = shown(m, end)
         if not kinds:
             print("the page calls %s outside every .then, .catch and .finally body, so that "
-                  "request is not scheduled by the previous one settling" % shown[:120])
+                  "request is not scheduled by the previous one settling" % text)
         if [k for k in kinds if k in ("then", "finally")]:
             resolve = True
         if [k for k in kinds if k in ("catch", "finally")]:
@@ -979,7 +986,7 @@ else:
         delay = last_arg(code[m.end():end - 1]) if end > 0 else ""
         if delay != "2000":
             print("the page reschedules with %s, %s ms after the previous request settled; "
-                  "want 2000" % (shown[:120], delay))
+                  "want 2000" % (text, delay))
     if not resolve:
         print("no setTimeout on the page sits in a .then or .finally body, so a pane whose "
               "request resolves never asks again")
