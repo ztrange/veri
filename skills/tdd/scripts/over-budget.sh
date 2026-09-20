@@ -23,7 +23,9 @@ tier="${1:?usage: over-budget.sh <tier> <seconds> <usual>}"
 seconds="${2:?usage: over-budget.sh <tier> <seconds> <usual>}"
 usual="${3:?usage: over-budget.sh <tier> <seconds> <usual>}"
 
-budget="$("$(cd "$(dirname "$0")" && pwd)/time-budget.sh" | head -1)"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+budget="$("$HERE/time-budget.sh" | head -1)"
 
 if [[ "$tier" == "unit" ]]; then
   awk -v s="$seconds" -v b="$budget" 'BEGIN { exit !(s > b) }' && exit 0
