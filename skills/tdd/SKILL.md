@@ -195,6 +195,14 @@ file.
   ledger and pastes it into the issue thread (the *Draft PR* step, and *Bailing*): a run that
   never calls it leaves the figures computable and uncomputed, which from the issue thread is
   indistinguishable from not having them.
+- `$S/over-budget.sh <tier> <seconds> <usual>` — say whether one recorded test-command run
+  was slow enough to be worth a word: **exit 0** = over budget, **exit 1** = not, **exit 2** =
+  `VERI_UNIT_BUDGET` or `VERI_TIME_WARN_RATIO` cannot be read (the same misconfiguration
+  step 5's `time-budget.sh` preflight refuses). On exit 0 it prints **exactly one line**,
+  carrying a ⏱; on exit 1 it prints nothing at all. **Paste that ⏱ line verbatim into that
+  phase's narration** in the issue thread, and do nothing else with it: **nothing branches on
+  this check** — not the phase's verdict, not a retry, not a bail. A slow run is a remark, and
+  a run that is not slow leaves you an empty capture and therefore nothing to paste.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Writes the rule to **both** the worktree's `.gitignore` (committed, so the first

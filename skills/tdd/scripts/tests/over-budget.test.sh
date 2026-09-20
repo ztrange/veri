@@ -14,6 +14,10 @@
 #   at or under that figure it is not. A run of any tier is over budget when its seconds
 #   exceed VERI_TIME_WARN_RATIO (default 1.5) times that tier's usual; at or under that
 #   product it is not.
+#   An over-budget run also prints exactly one line, carrying the ⏱ the conductor pastes
+#   into that phase's narration; a run that is not over budget prints nothing. SKILL.md is
+#   where the conductor is told to paste that line and to branch on nothing, so this suite
+#   reads it too — the line and the instruction to use it are one fact in two files.
 #
 # Every number here is fabricated and passed in as an argument, so nothing waits on a clock
 # and the case costs one process per invocation (CLAUDE.md, "Testing idiom" — the seconds a
@@ -27,6 +31,11 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 CHECK="$HERE/../over-budget.sh"
+# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root. The
+# document is held twice: the path every failure message spells, and the same path resolved
+# for the probes to read, so a message can never name a file the probes did not open.
+skill_md="skills/tdd/SKILL.md"
+skill_path="$(cd "$HERE/../../../.." && pwd)/$skill_md"
 pass=0 fail=0
 
 report() {
@@ -92,6 +101,69 @@ probe VERI_TIME_WARN_RATIO "" all 150 100 1
 probe VERI_TIME_WARN_RATIO "" all 100 100 1
 probe VERI_TIME_WARN_RATIO 2  all 160 100 1
 probe VERI_TIME_WARN_RATIO "" unit 8   4   0
+
+report "$name"
+
+# 3. What the check says out loud, and what the conductor is told to do with it. The two
+#    halves are one criterion: the ⏱ line only exists to be pasted into a phase's narration,
+#    and a line nobody is instructed to paste — or one a conductor reads as a verdict — is
+#    the same defect as no line at all. So one case, with the script's own output probed
+#    first and SKILL.md's instruction after it.
+#
+#    The line's wording is the writer's; what is pinned is that an over-budget run prints
+#    exactly one line and that the line carries the ⏱ the narration is recognised by, and
+#    that a run which is not over budget prints nothing at all — a conductor that pastes
+#    whatever it got would otherwise narrate a blank warning on every green run.
+name="over-budget.sh: one ⏱ line for a run over budget and nothing for one that is not, and $skill_md says to paste it and branch on nothing"
+problems=()
+
+# `lines <text>` — how many lines a captured stdout held; empty output is 0 rather than the
+# 1 `wc -l` would count for a string command substitution has already stripped.
+lines() {
+  [[ -z "$1" ]] && { echo 0; return; }
+  printf '%s\n' "$1" | wc -l | tr -d ' '
+}
+
+# Both fabricated runs are unit-tier against a usual of 100: 12 s is over the default 10 s
+# ceiling and 4 s is under it, and the usual is far enough above both that the ratio rule
+# cannot be what answered either one.
+over="$("$CHECK" unit 12 100 2>/dev/null)" || true
+under="$("$CHECK" unit 4 100 2>/dev/null)" || true
+
+[[ "$(lines "$over")" == 1 ]] ||
+  problems+=("unit 12 s against usual 100, over budget: want exactly one line of output, got $(lines "$over") lines: $(printf '%q' "$over")")
+[[ "$over" == *⏱* ]] ||
+  problems+=("unit 12 s against usual 100, over budget: want the line to carry ⏱, got: $(printf '%q' "$over")")
+[[ -z "$under" ]] ||
+  problems+=("unit 4 s against usual 100, not over budget: want no output at all, got: $(printf '%q' "$under")")
+
+# SKILL.md's side of the same criterion: the text that names the script, joined onto one
+# line and normalised, so a sentence that wraps still reads as one and `**never**` matches
+# "never". The block is delimited by a top-level bullet or a blank line, not by a blank
+# line alone: the script roster here is one unbroken run of bullets, so a paragraph-mode
+# read would hand every assertion below the whole roster and each would then be satisfied
+# by some *other* script's bullet — a bullet for this one saying "bail the run when it
+# does" would pass. Fail closed — a document that never names the script is reported as
+# that, rather than probed as an empty string in which nothing matches for its own reason.
+instruction="$(awk '
+  /^[-*] / || /^[[:space:]]*$/ {
+    if (block ~ /over-budget\.sh/) print block
+    block = ""
+  }
+  { block = block " " $0 }
+  END { if (block ~ /over-budget\.sh/) print block }
+' "$skill_path" | tr -d '*`' | tr '[:upper:]' '[:lower:]')"
+
+if [[ -z "${instruction// /}" ]]; then
+  problems+=("$skill_md never names over-budget.sh, so the conductor is never told what the ⏱ line is or what to do with it")
+else
+  [[ "$instruction" == *⏱* ]] ||
+    problems+=("$skill_md names over-budget.sh but never the ⏱ line, so what the conductor is to paste is not stated")
+  [[ "$instruction" =~ narrat|issue\ thread|comment ]] ||
+    problems+=("$skill_md never says the ⏱ line goes into the phase's narration, so the one place it is meant to appear is unstated")
+  [[ "$instruction" =~ (never|not|nothing|no)[^.]{0,80}(branch|gate|verdict|outcome|bail|retr) ]] ||
+    problems+=("$skill_md never says the check is branched on by nothing, so a conductor may read an over-budget run as a verdict")
+fi
 
 report "$name"
 

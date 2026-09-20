@@ -8,7 +8,11 @@
 #
 # Exit 0 when the run is over budget, exit 1 when it is not — the clean negative CLAUDE.md's
 # "Exit codes are the API" table reserves for a real answer: the check ran and said no.
-# Nothing on stdout: the answer is the code, and the narration is the conductor's to write.
+#
+# An over-budget run also prints exactly one line on stdout, carrying the ⏱ the conductor
+# pastes into that phase's narration; a run that is not over budget prints nothing at all,
+# so a conductor that pastes whatever it got narrates a warning only when there is one. The
+# line is the whole of the answer's prose: the check never gates, and nothing branches on it.
 #
 # Two rules, and either one answering yes is enough. The ratio rule is every tier's: a run
 # whose seconds exceed VERI_TIME_WARN_RATIO times that tier's usual is over budget. The unit
@@ -43,4 +47,8 @@ budget="${limits%%$'\n'*}"
 ratio="${limits##*$'\n'}"
 
 exec awk -v s="$seconds" -v b="$budget" -v r="$ratio" -v u="$usual" -v tier="$tier" \
-  'BEGIN { exit !((tier == "unit" && s > b) || s > r * u) }'
+  'BEGIN {
+     over = (tier == "unit" && s > b) || s > r * u
+     if (over) printf "\342\217\261 %s tier took %s s (usual %s s, ratio %s, unit budget %s s)\n", tier, s, u, r, b
+     exit !over
+   }'
