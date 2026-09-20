@@ -67,7 +67,6 @@ keys="$(IFS='|'; echo "${!EXEMPT[*]}")"
 # being written here, which is how this file can be run over a suite that plants one.
 found=0
 while IFS=$'\t' read -r file lineno stub; do
-  [[ -n "$lineno" ]] || continue
   found=1
   printf '%s:%s %s reaches its silence by real waiting: it sleeps with no clock-jump in its body, and no exemption is recorded for it\n' \
     "$file" "$lineno" "$stub"
