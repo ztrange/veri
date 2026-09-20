@@ -84,8 +84,10 @@ out=""
 while IFS= read -r line; do
   if is_anchor_step "$line"; then
     steps="$(added_steps "$line")"
-    if [[ "$where" == before ]]; then line="$steps"$'\n'"$line"; fi
-    if [[ "$where" == after ]]; then line="$line"$'\n'"$steps"; fi
+    case "$where" in
+      before) line="$steps"$'\n'"$line" ;;
+      after) line="$line"$'\n'"$steps" ;;
+    esac
   fi
   out+="$line"$'\n'
 done < "$file"
