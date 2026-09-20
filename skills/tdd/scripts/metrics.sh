@@ -128,6 +128,17 @@
 # line beside the issue wall says whether the figures have it or are the leaves alone: the
 # same claim the `unknown` cells make, about a figure that has no cell to make it in.
 #
+# A fifth section is TIME AGAIN, read off a different mark and keyed by neither a phase nor
+# a step: the seconds every test-command run recorded, one row per tier (#342, part of PRD
+# #335). timed-test-run.sh writes one `test-run` mark per run of the test command, carrying
+# the tier it used, the suites it covered and the wall seconds it took, and this section
+# lists those seconds per tier in the order the log carries them — a trend, which is what
+# makes "is this run typical" a question a reader can answer by eye.
+#
+# The figures are the marks own and never the `secs` an `exit` carries: a leaf wall second is
+# the whole leaf, reading and writing and thinking included, and what this section is about is
+# the test command alone.
+#
 # The log is read relative to the directory this runs in, `.tdd/events.jsonl`, the way
 # event.sh writes it and the way supervise.sh already spells `.tdd/<name>.log` — the issue's
 # worktree, in other words, which is where the conductor calls this from.
@@ -317,6 +328,13 @@ attempts_spent = {}
 rejected = []
 recovered = set()
 
+# The seconds each tier of test-command run recorded, keyed by tier and holding one figure
+# per `test-run` mark in the order the log carries them — a list rather than a row of counts,
+# because what this section reports is a trend and a trend read out of order is not one. Its
+# own table rather than a column of either section above, for the reason the total has one:
+# a tier is neither a phase nor a step, and one test-command run happens inside both.
+tier_runs = {}
+
 # The run own row, a table of one rather than a row of either section above: a total belongs
 # to neither key, and appended to the per-step table it would be a step whose name happened
 # to be `total`, carrying a bracket and two budgets with nothing true to say. It is also the
@@ -412,6 +430,20 @@ with open(path) as f:
             spent.setdefault(step, {})[event] = ts
             if event == "step-done":
                 recovered.add(step)
+            continue
+        # The seconds one test-command run recorded, off the mark timed-test-run.sh writes
+        # for it. Read before the leaf events below and falling through to none of them: a
+        # `test-run` is not a launch, an exit or a verdict, and the seconds it carries are
+        # the test command own rather than any attempt.
+        #
+        # The figure travels as the text the mark carries rather than as a number parsed and
+        # printed again, so a run recorded as `4` is listed as `4` and this section invents
+        # no precision the writer did not claim. A mark with no seconds at all supplies no
+        # figure and raises no row of its own.
+        if event == "test-run":
+            seconds = line.get("seconds")
+            if seconds not in (None, ""):
+                tier_runs.setdefault(line.get("tier") or UNKNOWN, []).append(str(seconds))
             continue
         # A step whose criterion earlier work already satisfied is done on its `pin` mark and
         # never writes `step-done` (SKILL.md, the verify-pin PASS branch).
@@ -537,6 +569,24 @@ def step_cells(step):
 # this renderer from naming a budget: the section that has such columns hands in its own
 # reader, where before the headings doubled as a flag for whether to call a function this
 # function reached out of the module for by name.
+# The per-tier section, rendered by itself rather than through `section` below: every other
+# table has one cell per column of a fixed list, where a row here has one cell per run that
+# tier made, and how many that is is a fact about the log rather than about the report.
+#
+# The header is widened to the busiest tier and the shorter rows are padded with empty cells,
+# so the table stays rectangular: a row carrying more cells than the header has columns is a
+# row whose extra figures GitHub markdown drops on the floor, and this report is pasted into
+# an issue thread to be read there.
+def tier_section(heading, key_column):
+    print()
+    print(heading)
+    print()
+    width = max([len(runs) for runs in tier_runs.values()] or [0])
+    row([key_column] + ["run %d s" % (i + 1) for i in range(width)])
+    row(["---"] + ["---:"] * width)
+    for tier, runs in tier_runs.items():
+        row([tier] + runs + [""] * (width - len(runs)))
+
 def section(heading, key_column, columns, table, text=None):
     headings, cells_for = text or ((), None)
     headings = list(headings)
@@ -593,5 +643,8 @@ section("#### By phase", "phase", PHASE_COLUMNS, counts)
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
         ([WALL] + BUDGETS, step_cells))
+# After the two sections keyed by the run own structure and before the total, because it is
+# keyed by neither: the seconds of the test command itself, per tier, in log order.
+tier_section("#### Test-command seconds, by tier", "tier")
 section("#### Total", "run", COST_COLUMNS, totals)
 ' "$issue" "$log" "$ledger"
