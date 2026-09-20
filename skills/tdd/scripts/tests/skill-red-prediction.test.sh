@@ -86,6 +86,18 @@ red_section() {
   return 1
 }
 
+# revise_section <from-regex> <missing-message> — the same for the `## Revising on a REJECT`
+# section, whose loop runs a second time for a revise-red report. Written beside
+# `red_section` rather than folded into it: the two cases below anchor in different
+# sections, and a case whose section is gone must read as one failure, not a row of passes
+# over an empty string.
+revise_section() {
+  text="$(doc_text '## Revising on a REJECT' "$1")"
+  [[ -n "${text// /}" ]] && return 0
+  problems+=("$2")
+  return 1
+}
+
 # says <regex> <fact> — one thing the narration text has to carry, written as the regex of
 # any wording that would carry it; `fact` names it once if nothing matches.
 says() {
@@ -131,6 +143,29 @@ if red_section 'red-divergence' \
     "$skill_md does not tell the conductor to emit a \`prediction-diverged\` event, so a divergence leaves no mark in the run log"
   says 'revise loop|revising on a reject|revise' \
     "$skill_md does not send a diverged red into the revise loop, so the step continues as though the test were sound"
+fi
+report "$name"
+
+# 3. The second hole the same report line opens (#356): a revise leaf rewrites the red test
+#    and reports its own `PREDICTION:`, so the revise loop owes the same check the Red
+#    section does before it re-verifies. One criterion, one case: the loop has to run
+#    `red-divergence.sh` on a revise-red report and, on exit 0 or 2, spend the attempt
+#    without launching the verifier at all.
+name="$skill_md's revise loop checks a revise-red report with red-divergence.sh and spends the attempt without re-verifying"
+problems=()
+# Anchored at the first line naming the script inside the revise loop, so the case reads the
+# loop's own check rather than the Red section's, which sits above it and already names both
+# the script and its exit codes.
+if revise_section 'red-divergence' \
+  "$skill_md's \`Revising on a REJECT\` section never runs \`red-divergence.sh\` on a revise-red report, so a rewritten red test that failed for the wrong reason goes straight back to the blind verifier"; then
+  says 'revise-red|revise of red|red revise|phase is red|<phase> is red' \
+    "$skill_md does not say the check is the red phase's, so the loop runs it on a green or refactor revise report, whose own template writes no \`PREDICTION:\` line"
+  says 'exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b' \
+    "$skill_md names \`red-divergence.sh\` in the revise loop without saying which of its exit codes takes the diverged path, so exit 2 — a prediction nobody can read — is not handled like a divergence"
+  says 'without (launching|running|re-running) the verifier|skip(s|ping)? (the )?re-verif|do not re-verify|never re-verif|without re-verifying' \
+    "$skill_md does not tell the conductor to skip the re-verification on a diverged revise-red, so the blind verifier judges a test the revise leaf itself flagged as suspect"
+  says 'spends? (the |that )?(next )?attempt|attempt .* (is |still )?spen|counts? against|against .*revise_budget' \
+    "$skill_md does not say the diverged attempt still spends \`REVISE_BUDGET\`, so a red test that keeps diverging loops forever instead of bailing the step"
 fi
 report "$name"
 
