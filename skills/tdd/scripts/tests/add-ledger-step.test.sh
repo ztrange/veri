@@ -35,6 +35,24 @@ else
   diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
 
+# 2. `before` inserts several texts, in the order given, on the lines above the anchor
+printf '# Plan for #42\n\n- [x] lowercase the slug ⟦criterion 1⟧\n- [ ] collapse to single hyphen ⟦criterion 2⟧\n- [ ] strip edge hyphens ⟦criterion 3⟧\n' > "$led"
+"$ADD" "$led" before 'collapse to single hyphen' 'one more edge case' 'and another'; code=$?
+want='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] one more edge case ⟦added⟧ ⟦criterion 2⟧
+- [ ] and another ⟦added⟧ ⟦criterion 2⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] strip edge hyphens ⟦criterion 3⟧'
+got="$(cat "$led")"
+if [[ "$code" == 0 && "$got" == "$want" ]]; then
+  ok
+else
+  no "before: inserts both texts, in order, on the lines above the anchor (code=$code)"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
