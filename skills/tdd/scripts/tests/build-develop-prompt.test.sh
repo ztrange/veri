@@ -1092,12 +1092,11 @@ says_both_ways "$refactor" "never says removing that duplication is the only rea
 #     the one it never runs. So the suites follow what the transform touched, the out-of-list
 #     file included, rather than the list the prompt opened with.
 #
-#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
-#     case 3 owns the exit-0 check on it. Probed through `says_both_ways` for case 16's reason
-#     — "run the suites covering a file outside the list too" reads as naturally as "a file
-#     outside the list is covered by the suites run" — which spells one bounded `[^.]{0,gap}`
-#     per branch, the constraint `prompt_says` reasons about. The gap is 80: the two halves
-#     belong to one sub-step's sentence. Checked against the built prompt rather than the
+#     Read and built as case 30 is, and for the reasons given there: case 3's prompt, so there
+#     is one invocation and case 3 owns the exit-0 check on it; `says_both_ways`, since "run
+#     the suites covering a file outside the list too" reads as naturally as "a file outside
+#     the list is covered by the suites run". The gap is 80 rather than case 30's 60: the two
+#     halves belong to one sub-step's sentence. Checked against the built prompt rather than the
 #     template, the prompt's one `outside` sits in case 30's exception, whose sentence names
 #     no suite, so the probe is not answered by prose already there — and `[^.]` cannot reach
 #     sub-step 3 from it, since every script name between them carries a `.`.
