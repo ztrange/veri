@@ -96,6 +96,58 @@ fi
 rm -f "$leaf_report" "$owed_file"
 report "$name"
 
+# 2. what a second `append` does to what the first wrote. The file accumulates across a
+#    whole run — one call per step, from SKILL.md's Refactor section — and `.tdd/develop-
+#    refactor.out` losing every step's leftovers but the last is the whole bug #359 names.
+#    So a second call must add to the file, never replace it: after two calls for different
+#    steps, both steps and both steps' candidates are still there.
+#
+#    Two probes, because one alone would pass on a broken script: candidates alone would
+#    pass a file that lost the first step's *name*, and names alone would pass one that kept
+#    both headings and dropped the earlier transform.
+name="two append calls for different steps leave both steps' candidates in the file"
+problems=()
+
+first_report="$(mktemp)"
+cat > "$first_report" <<'REPORT'
+RESULT: applied "split the verdict parser out of run-leaf.sh", suite green
+FLAGS: none
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+REPORT
+
+second_report="$(mktemp)"
+cat > "$second_report" <<'REPORT'
+RESULT: applied "name the ledger path once", suite green
+FLAGS: none
+CANDIDATES: cosmetic | reflow the header comment to ninety columns
+CANDIDATES: structural | hoist the ledger path into one variable
+REPORT
+
+owed_file="$(mktemp)"
+first_step='refactor-owed.sh append writes only the structural CANDIDATES lines'
+second_step='two append calls for different steps keep both steps'
+"$OWED" append "$owed_file" "$first_step" <"$first_report" && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from the first append, got $code")
+"$OWED" append "$owed_file" "$second_step" <"$second_report" && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from the second append, got $code")
+
+# -F throughout: a transform is matched as the literal a leaf wrote, and `$` and `'` are
+# ordinary characters in one.
+for wanted in \
+  "$first_step" \
+  "$second_step" \
+  "fold verify.sh's two mktemp calls into one helper" \
+  "hoist the ledger path into one variable"
+do
+  grep -qF "$wanted" "$owed_file" ||
+    problems+=("'$wanted' is not in $owed_file; the second append did not add to what the first wrote")
+done
+
+rm -f "$first_report" "$second_report" "$owed_file"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
