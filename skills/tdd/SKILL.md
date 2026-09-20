@@ -883,9 +883,12 @@ following step. The phase sub-steps are:
    $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md '<STEP>' < .tdd/develop-refactor.out
    ```
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
-     **grow the plan with the leaf's `NEW_STEP:` values, then clear the refactor-pending
-     mark and commit the grown, cleared ledger first**, before anything outside the
-     repository says the step is done:
+     **grow the plan with the leaf's `NEW_STEP:` values and the passing verify-refactor
+     verdict's own, then clear the refactor-pending mark and commit the grown, cleared
+     ledger first**, before anything outside the repository says the step is done. The
+     verifier's are the `NEW_STEP:` lines before the final `VERDICT:`/`REASON:` pair in
+     `.tdd/verify-refactor.log` — the unhandled edge case it proposes rather than REJECTs
+     for:
      ```
      $S/add-ledger-step.sh .tdd/issue-<n>.md after '<STEP>' '<NEW_STEP: value>' …   # every NEW_STEP: value in ONE call
      VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
@@ -896,11 +899,12 @@ following step. The phase sub-steps are:
      `git add -A` is what carries `.tdd/issue-<n>-refactor-owed.md` into that same commit:
      what `append` wrote is untracked until then, and a file left beside the worktree is
      lost with it.
-     Every `NEW_STEP:` value goes in **one** call, anchored `after '<STEP>'` so the
+     Every `NEW_STEP:` value from both — the leaf's and the verdict's — goes in **one**
+     call, anchored `after '<STEP>'` so the
      triangulating step lands next to the code it triangulates: the script reads
      `VERI_STEP_GROWTH` once per call, so a call per value would refuse the third value of a
-     step that one call either fits whole or files whole. A leaf reporting `NEW_STEP: none`
-     is no call and no mark at all.
+     step that one call either fits whole or files whole. Neither reporting a value — the leaf's
+     `NEW_STEP: none` and no `NEW_STEP:` line in the verdict — is no call and no mark at all.
      **exit 1** is that one call meeting the plan-growth budget: the values are filed as
      owed steps rather than planned — the script's own entry above says how — and
      `next-unchecked.sh` never finds them there, so the run does not plan what it recorded.

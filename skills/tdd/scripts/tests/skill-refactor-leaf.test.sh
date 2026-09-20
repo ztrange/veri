@@ -20,8 +20,9 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — four criteria, the procedure, the account of it, what the leaf's
-# report grows, and what a growth budget too full to hold it means, one case each:
+# Contract under test — five criteria, the procedure, the account of it, what the leaf's
+# report grows, what a growth budget too full to hold it means, and whose proposals that
+# growth carries, one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -38,6 +39,9 @@
 #   4. That section narrates `add-ledger-step.sh` exit 1 — the plan-growth budget is full, so
 #      nothing was inserted and every value was filed under the ledger's `## Owed steps`
 #      heading — as the owed steps it is, and does not bail on it (issue #361).
+##   5. That same one call carries the passing verify-refactor verdict's own `NEW_STEP:`
+#      values as well as the leaf's, so the unhandled edge case the refactor verifier now
+#      proposes instead of REJECTing for reaches the plan (issue #362).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -430,6 +434,42 @@ else
     bailed="$(grep -oE 'bail|abort' <<<"$clause" | head -1)"
     [[ -z "$bailed" ]] ||
       problems+=("$skill_md's Refactor section says '$bailed' where it narrates add-ledger-step.sh exit 1, so a ledger whose growth budget is full ends a run whose step verified PASS — the owed steps are recorded and the plan simply did not grow, which is nothing to stop for")
+  fi
+fi
+
+report "$name"
+
+# 5. One criterion — the passing verify-refactor verdict's `NEW_STEP:` values join the leaf's
+#    in that same one call — and so one case. Issue #362 stops the refactor verifier
+#    REJECTing an unhandled edge case the spec implies: handling one changes behaviour, which
+#    the revise leaf is forbidden to do untested, so the verifier proposes it as a `NEW_STEP:`
+#    line before the final `VERDICT:`/`REASON:` pair instead. A proposal nothing reads is the
+#    same nothing case 3 was written against — the line narrated into the thread and the plan
+#    left as it was — so the verdict's values go where the leaf's already go: the one
+#    `add-ledger-step.sh … after '<STEP>'` call the PASS branch makes. One call and not a
+#    second of its own, because the script reads `VERI_STEP_GROWTH` once per call, and two
+#    calls would let the verifier's proposals be refused for a budget the leaf's had already
+#    spent.
+#
+#    Asked of the text around that call rather than of the section at large, the way case 1
+#    asks its refusals: this section names verify-refactor throughout — launching it, waiting
+#    on it, branching on its verdict — and a probe reading the whole section would be answered
+#    by one of those sentences and pass a document where the verifier's proposals still reach
+#    nobody.
+name="$skill_md's Refactor section passes the passing verify-refactor verdict's NEW_STEP: values to the same add-ledger-step.sh call as the leaf's"
+problems=()
+
+if unreadable_section; then
+  # Fail closed, the same way cases 1, 3 and 4 do: a renamed or emptied section is
+  # unreadable, not silently right.
+  problems+=("$(unreadable_problem "what becomes of the verify-refactor verdict's NEW_STEP: lines could not be established")")
+else
+  added="$(win '\$s/add-ledger-step\.sh')"
+  if [[ -z "$added" ]]; then
+    problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so the verifier's NEW_STEP: proposals are narrated and nothing grows the plan — the edge case it stopped REJECTing for is proposed to nobody")
+  else
+    grep -qE 'verif|verdict' <<<"$added" ||
+      problems+=("$skill_md's Refactor section runs add-ledger-step.sh over the leaf's NEW_STEP: values alone, so the passing verify-refactor verdict's own values never reach the ledger — the unhandled edge case the verifier stopped REJECTing for is proposed to nobody")
   fi
 fi
 
