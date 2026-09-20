@@ -29,7 +29,7 @@ behaviour-level criterion small enough to be one red-green cycle of its own, in 
 they must be built. The conductor restores the tree, adds those steps ahead of this one
 and comes back to this step later, so a tree left carrying part of an implementation
 nobody has written a test for would poison the first of them: leave the working tree
-exactly as you found it, and skip the runs in step 3 below.
+exactly as you found it.
 
 ### The issue's behavior spec (context — build only what the failing test demands)
 
@@ -37,6 +37,10 @@ exactly as you found it, and skip the runs in step 3 below.
 
 ### What to do
 
+0. **Check the step's size first.** If it needs more than one new behaviour at once, stop
+   here and report `SPLIT:` lines as **When the step is too big for one green** above says
+   — do not proceed to the steps below: with no implementation written, none of the runs
+   they ask for has a question to answer.
 1. Make the target case pass with the smallest change that genuinely implements the
    behaviour. No generality, options, flags or extra cases the test does not demand —
    later steps triangulate those.
