@@ -902,11 +902,11 @@ following step. The phase sub-steps are:
      step that one call either fits whole or files whole. A leaf reporting `NEW_STEP: none`
      is no call and no mark at all. The leaf was forbidden to
      generalize the overfit code it found; this is where the step that forces it is owed to
-     somebody. That grown ledger rides the same commit as the clear — resume reads the
-     **committed** ledger, so a step inserted into a file nothing commits is a step the next
-     run never sees.
-     A clear left uncommitted is not a clear: resume reads the **committed** ledger, so
-     until that commit exists the step still says pending. The push copies the step's
+     somebody. That grown ledger rides the same commit as the clear.
+     A clear left uncommitted is not a clear, and a step inserted into a ledger nothing
+     commits is a step the next run never sees: resume reads the **committed** ledger, so
+     until that commit exists the step still says pending and the plan is still the one the
+     leaf grew from. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
      the reconcile leaf (*Reconciling a rejected push*), exit **2** is a **bail**. Then **mirror to the issue**:
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
