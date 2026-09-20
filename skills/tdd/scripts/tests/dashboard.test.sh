@@ -1215,6 +1215,121 @@ fi
 
 report "$name"
 
+# --- the Chatter endpoint follows the run: a new current leaf switches what it returns ---
+# The pane's other half of the contract: "the leaf the run is CURRENTLY on" is a question
+# re-asked of the run on every poll, not one answered once. The case above pins WHICH leaf a
+# static run is on; this one pins that the answer MOVES — the run launches a second leaf while
+# the pane is polling, and the next answer is that leaf's log and not the first's. An endpoint
+# that read the event log once, or that cached what it found there, answers the first case and
+# not this one.
+#
+# Asked of chatter_json twice over one run whose event log grows between the two calls, which
+# is what a run does: the conductor appends a `launch` line when it starts the next leaf. Both
+# renderings come from render-leaf-log.sh, for the reason the case above gives, and they are
+# also required to differ from each other — two identical fixtures would let an endpoint stuck
+# on the first leaf pass.
+name="chatter_json switches to the new leaf when the selected run's current leaf changes"
+problems=()
+switch_repo="$(repo chatterswitch)"
+
+switch_run="$(fabricate_run "$switch_repo" 55 tdd/55-lamps-dim)"
+cat > "$switch_run/.tdd/issue-55.md" <<'EOF'
+# Plan for #55 — lamps dim
+
+- [ ] a lamp dims
+EOF
+cat > "$switch_run/.tdd/develop-red.out" <<'EOF'
+{"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Adding the case that pins the dimming."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_3", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_3", "type": "tool_result", "content": "FAIL - a lamp dims\n----\n7 passed, 1 failed", "is_error": true}]}}
+EOF
+cat > "$switch_run/.tdd/develop-green.out" <<'EOF'
+{"type": "system", "subtype": "init", "session_id": "s2", "tools": ["Bash"]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Making the dimming case pass."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_9", "type": "tool_result", "content": "----\n8 passed, 0 failed", "is_error": false}]}}
+EOF
+switch_now="$(date +%s)"
+cat > "$switch_run/.tdd/events.jsonl" <<EOF
+{"ts": $((switch_now - 400)), "issue": "55", "actor": "conductor", "phase": "", "step": "a lamp dims", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
+{"ts": $((switch_now - 390)), "issue": "55", "actor": "developer", "phase": "red", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red", "seq": 2}
+EOF
+
+"$HERE/../render-leaf-log.sh" < "$switch_run/.tdd/develop-red.out" > "$work/switch-want-red.txt" 2>/dev/null ||
+  problems+=("render-leaf-log.sh could not render the develop-red fixture this case compares against")
+"$HERE/../render-leaf-log.sh" < "$switch_run/.tdd/develop-green.out" > "$work/switch-want-green.txt" 2>/dev/null ||
+  problems+=("render-leaf-log.sh could not render the develop-green fixture this case compares against")
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+elif [[ "${#problems[@]}" -eq 0 ]]; then
+  call_endpoint "$switch_repo" chatter_json "$work/switch-first.err" \
+    '{"issue": ["55"]}' "$work/switch-55-first.json"
+  # The run moves on: the conductor's next leaf is launched, and the log says so.
+  cat >> "$switch_run/.tdd/events.jsonl" <<EOF
+{"ts": $((switch_now - 60)), "issue": "55", "actor": "developer", "phase": "green", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 3}
+EOF
+  call_endpoint "$switch_repo" chatter_json "$work/switch-second.err" \
+    '{"issue": ["55"]}' "$work/switch-55-second.json"
+  if [[ ! -f "$work/switch-55-first.json" || ! -f "$work/switch-55-second.json" ]]; then
+    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/switch-first.err" "$work/switch-second.err" 2>/dev/null | tr '\n' ' ')")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+
+def chatter(path, when):
+    """The answer at <path> as the rendered text it should carry, or None after saying why."""
+    try:
+        with open(path) as f:
+            got = json.load(f)
+    except ValueError:
+        with open(path) as f:
+            print("chatter_json for issue 55 %s returned something that is not JSON; it "
+                  "starts: %r" % (when, f.read()[:200]))
+        return None
+    if not isinstance(got, dict) or "chatter" not in got:
+        print("chatter_json for issue 55 %s returned %s; want an object with a \"chatter\" key"
+              % (when, json.dumps(got, sort_keys=True)[:300]))
+        return None
+    # As the case above: the rendering as the renderer’s own text, or as its lines.
+    text = got["chatter"]
+    if isinstance(text, list):
+        text = "\n".join(str(line) for line in text)
+    if not isinstance(text, str):
+        print("chatter_json for issue 55 %s returned chatter=%s; want the rendered log as "
+              "text or as its lines" % (when, json.dumps(text, sort_keys=True)[:300]))
+        return None
+    return text.strip("\n")
+
+
+def want(path):
+    with open(path) as f:
+        return f.read().strip("\n")
+
+
+first, second = chatter(sys.argv[1], "before the second launch"), chatter(sys.argv[2], "after the second launch")
+want_red, want_green = want(sys.argv[3]), want(sys.argv[4])
+if want_red == want_green:
+    print("this case’s two leaf log fixtures render identically, so it could not tell an "
+          "endpoint that switched leaves from one that did not")
+if first is not None and first != want_red:
+    print("chatter_json for issue 55 returned %r while its newest launch named develop-red; "
+          "want render-leaf-log.sh’s rendering of develop-red.out, which is %r"
+          % (first[:400], want_red[:400]))
+if second is not None and second != want_green:
+    stuck = " — it returned the log of the leaf it was on before that launch" if second == want_red else ""
+    print("chatter_json for issue 55 returned %r after the run launched develop-green; want "
+          "render-leaf-log.sh’s rendering of develop-green.out, the new current leaf, which "
+          "is %r%s" % (second[:400], want_green[:400], stuck))
+' "$work/switch-55-first.json" "$work/switch-55-second.json" \
+  "$work/switch-want-red.txt" "$work/switch-want-green.txt")
+  fi
+fi
+
+report "$name"
+
 # --- the page on disk: one endpoint per pane, no server started ---
 # The criterion is what the BROWSER does with the page, and nothing here is a browser: the
 # suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
