@@ -1160,6 +1160,36 @@ says_both_ways "$green" "never says a leaf that splits changes no production cod
 [[ -z "$problems" ]] \
   && ok || no "develop-green offers one to three SPLIT: lines instead of an implementation, changing no production code (${problems#; })"
 
+# 34. the same way out, offered to the leaf redoing that green (issue #363). Case 33 pins
+#     `SPLIT:` in the green prompt; a verify-green REJECT sends a fresh leaf to the revise
+#     template instead, and that leaf may only answer the verifier's objection — so a step
+#     whose size is what made the attempt rejectable had, on that path, no third answer at
+#     all: it could fake a pass or bail. The revise prompt therefore offers the same report,
+#     and the same bound and the same no-production-code rule with it, since a split reached
+#     through revise leaves the next step the same tree a split reached through green does.
+#     Three faces of one criterion, so one case.
+#
+#     Read from its own invocation rather than case 4's `$revise`, which is built for `revise
+#     red`: the criterion names the prompt built for `revise green`, and a probe answered by
+#     the red one would pin nothing about green. This case therefore owns the exit-0 check on
+#     that invocation. The report line is probed unfolded and anchored at `^`, the way cases
+#     8, 32 and 33 probe `CANDIDATES:`, `NEW_STEP:` and `SPLIT:`, because what is pinned is a
+#     report LINE the conductor greps for at the start of one; the other two go through
+#     `prompt_says` and `says_both_ways` exactly as case 33 asks them of green, gap 80, for
+#     the reason given there. `SPLIT` occurs nowhere in the revise prompt built today, so the
+#     template's two existing "production code" mentions — the prediction sub-step and the
+#     `AGAINST_UNMODIFIED:` footer line — answer neither probe.
+revise_green="$("$BUILD" revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+grep -qE '^SPLIT:' <<<"$revise_green" || problems="$problems; no SPLIT: report line"
+prompt_says "$revise_green" "never bounds the split at one to three criteria" \
+  -iE -e 'one to three|1 to 3|(at most|no more than) three'
+says_both_ways "$revise_green" "never says a leaf that splits changes no production code" \
+  80 'SPLIT' '(no|any|without changing) production code'
+[[ -z "$problems" ]] \
+  && ok || no "develop-revise redoing green offers the same one to three SPLIT: lines, changing no production code (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
