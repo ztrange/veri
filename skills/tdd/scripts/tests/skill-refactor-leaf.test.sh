@@ -340,6 +340,14 @@ fi
 
 report "$name"
 
+# The invocation the growth of the plan is found by, spelled once for the three probes that
+# ask for it — case 3 counts them, case 3 and case 5 each read the window around the one.
+# `$s` and not `$S` because `plain` folds the section's case; the `$` and the `.` are escaped
+# because this is an extended regex and not a path. A suite where the three were separate
+# literals could be re-pointed at a renamed script in one probe and go on telling a reader it
+# looked for the old one in the other two.
+add_ledger_step='\$s/add-ledger-step\.sh'
+
 # 3. One criterion — the refactor leaf's `NEW_STEP:` lines become steps in the plan — and so
 #    one case. Case 1 pins what the conductor checks about the leaf's commits; this pins what
 #    it does with the one part of the leaf's report that is not a leftover and not a
@@ -368,13 +376,13 @@ if unreadable_section; then
   # silently right.
   problems+=("$(unreadable_problem "what becomes of the leaf's NEW_STEP: lines could not be established")")
 else
-  calls="$(grep -oE '\$s/add-ledger-step\.sh' <<<"$section" | grep -c '')"
+  calls="$(grep -oE "$add_ledger_step" <<<"$section" | grep -c '')"
   if [[ "$calls" -eq 0 ]]; then
     problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so the leaf's NEW_STEP: lines are narrated and nothing grows the plan — the triangulating step the leaf refused to write by hand is owed to nobody")
   elif [[ "$calls" -gt 1 ]]; then
     problems+=("$skill_md's Refactor section runs add-ledger-step.sh $calls times, so a step's NEW_STEP: values are inserted a call at a time and the growth budget is read once per value rather than once for the step")
   else
-    added="$(win '\$s/add-ledger-step\.sh')"
+    added="$(win "$add_ledger_step")"
     grep -qE 'new_step' <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the leaf's NEW_STEP: values, so what the inserted step says is left to judgement")
     grep -qE "after '?<step>" <<<"$added" ||
@@ -464,7 +472,7 @@ if unreadable_section; then
   # unreadable, not silently right.
   problems+=("$(unreadable_problem "what becomes of the verify-refactor verdict's NEW_STEP: lines could not be established")")
 else
-  added="$(win '\$s/add-ledger-step\.sh')"
+  added="$(win "$add_ledger_step")"
   if [[ -z "$added" ]]; then
     problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so the verifier's NEW_STEP: proposals are narrated and nothing grows the plan — the edge case it stopped REJECTing for is proposed to nobody")
   else
