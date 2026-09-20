@@ -20,6 +20,13 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 DIVERGENCE="$HERE/../../red-divergence.sh"
 pass=0 fail=0
 
+# run_on <report> — feed the report to the script on stdin and leave what it said in `out`
+# (stdout and stderr together, so a case can assert that a silent exit really is silent) and
+# what it exited with in `code`.
+run_on() {
+  out="$(printf '%s' "$1" | "$DIVERGENCE" 2>&1)" && code=0 || code=$?
+}
+
 # verdict <name> — report one case from the `problems` array the case just filled: empty is
 # a pass, otherwise a FAIL line naming the case and one indented line per problem. Same
 # accounting idiom as classify-bail.test.sh's check().
@@ -47,7 +54,7 @@ FAIL_OUTPUT: $fail_output
 PREDICTED_FAILURE: $predicted
 PREDICTION: DIVERGED
 PREDICTION_NOTE: $note"
-out="$(printf '%s' "$report" | "$DIVERGENCE" 2>&1)" && code=0 || code=$?
+run_on "$report"
 problems=()
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
 [[ "$out" == *"$predicted"* ]] || problems+=("stdout does not carry the PREDICTED_FAILURE value '$predicted'")
@@ -65,7 +72,7 @@ AGAINST_UNMODIFIED: FAILS
 FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
 PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'
 PREDICTION: MATCHED"
-out="$(printf '%s' "$report" | "$DIVERGENCE" 2>&1)" && code=0 || code=$?
+run_on "$report"
 problems=()
 [[ "$code" == 3 ]] || problems+=("want exit 3, got $code")
 [[ -z "$out" ]] || problems+=("want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
