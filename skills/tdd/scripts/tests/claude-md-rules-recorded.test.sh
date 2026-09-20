@@ -111,6 +111,17 @@ one_record_matches() {
   return 1
 }
 
+# record_carries <problem> <regex>... — the shape every invariant case below shares: pass when
+# one record of the document matches all of <regex>, and collect <problem> when none does.
+# Written once so an invariant is added as the regexes that carry it and the message naming
+# what left, never as another copy of the guard-and-append around them.
+record_carries() {
+  local problem="$1"
+  shift
+  one_record_matches "$ALL_RECORDS" "$@" && return
+  problems+=("$problem")
+}
+
 # The roster: one rule per line, `;`-separated — the rule as a failure message names it,
 # then every regex a record carrying it has to match. A semicolon rather than a pipe because
 # the regexes alternate. Read from a heredoc rather than written as a function call each, so
@@ -157,10 +168,9 @@ ROWS
 # reports every rule missing from the same empty text; that is fail-closed by construction,
 # since there is no way to read CLAUDE.md as blank and have a rule answer.
 probe_every_rule_is_carried_by_one_record() {
-  local text row rule
-  text="$ALL_RECORDS"
+  local row rule
 
-  if [[ -z "${text// /}" ]]; then
+  if [[ -z "${ALL_RECORDS// /}" ]]; then
     problems+=("$claude_md could not be read, so no rule could be looked for in it")
     return
   fi
@@ -169,8 +179,7 @@ probe_every_rule_is_carried_by_one_record() {
     [[ -n "$row" ]] || continue
     IFS=';' read -r -a fields <<< "$row"
     rule="${fields[0]}"
-    one_record_matches "$text" "${fields[@]:1}" ||
-      problems+=("$claude_md has no single record stating that $rule")
+    record_carries "$claude_md has no single record stating that $rule" "${fields[@]:1}"
   done <<< "$ROSTER"
 }
 
@@ -195,9 +204,10 @@ report "$name"
 # be merged with, that there are now four, the two failures each answers, and the verb that
 # keeps them apart.
 probe_budgets_invariant_names_the_fourth_axis() {
-  one_record_matches "$ALL_RECORDS" 'veri_no_verdict_retries' 'veri_stuck_retries' 'four' \
-    'liveness' 'protocol|contract|compliance' 'never merged|not merged|one knob' && return
-  problems+=("$claude_md has no single record naming VERI_NO_VERDICT_RETRIES as a fourth budget axis beside VERI_STUCK_RETRIES, liveness against protocol compliance, never merged")
+  record_carries \
+    "$claude_md has no single record naming VERI_NO_VERDICT_RETRIES as a fourth budget axis beside VERI_STUCK_RETRIES, liveness against protocol compliance, never merged" \
+    'veri_no_verdict_retries' 'veri_stuck_retries' 'four' \
+    'liveness' 'protocol|contract|compliance' 'never merged|not merged|one knob'
 }
 
 # 2. One criterion, one case: the budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth
@@ -217,9 +227,10 @@ report "$name"
 # record, like the roster above: the invariant, the builder, the parameter, the phase it
 # belongs to, what shape confines it (hex), and that it cannot carry rationale.
 probe_blind_invariant_names_the_base_sha() {
-  one_record_matches "$ALL_RECORDS" 'blind' 'build-verify-prompt\.sh' 'base.sha' 'refactor' \
-    'hex|0-9a-f' 'rationale|leak' && return
-  problems+=("$claude_md has no single record naming <base-sha> as the refactor phase parameter of build-verify-prompt.sh in the blind-verifier invariant, and why a hex sha cannot leak rationale")
+  record_carries \
+    "$claude_md has no single record naming <base-sha> as the refactor phase parameter of build-verify-prompt.sh in the blind-verifier invariant, and why a hex sha cannot leak rationale" \
+    'blind' 'build-verify-prompt\.sh' 'base.sha' 'refactor' \
+    'hex|0-9a-f' 'rationale|leak'
 }
 
 # 3. One criterion, one case: the blind-verifier invariant names the base-sha parameter and
@@ -241,9 +252,10 @@ report "$name"
 # record, like the roster above: the new variable, one of the four it must not be merged
 # with, that there are now five, the axis it answers, and the verb that keeps them apart.
 probe_budgets_invariant_names_the_fifth_axis() {
-  one_record_matches "$ALL_RECORDS" 'veri_step_growth' 'veri_refactor_budget' 'five' \
-    'plan' 'never merged|not merged|one knob' && return
-  problems+=("$claude_md has no single record naming VERI_STEP_GROWTH as a fifth budget axis beside the other four, plan growth, never merged")
+  record_carries \
+    "$claude_md has no single record naming VERI_STEP_GROWTH as a fifth budget axis beside the other four, plan growth, never merged" \
+    'veri_step_growth' 'veri_refactor_budget' 'five' \
+    'plan' 'never merged|not merged|one knob'
 }
 
 # 4. One criterion, one case: the budgets invariant names VERI_STEP_GROWTH as a fifth axis,
