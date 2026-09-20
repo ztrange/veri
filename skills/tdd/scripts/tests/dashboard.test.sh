@@ -801,19 +801,62 @@ fi
 
 report "$name"
 
-# --- the page on disk: one 2-second poll per pane, no server started ---
+# --- the page on disk: one endpoint per pane, no server started ---
 # The criterion is what the BROWSER does with the page, and nothing here is a browser: the
 # suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
 # as it sits beside dashboard.sh rather than of a running server's answer (#330): the server hands the file out
 # byte for byte with no per-request computation, so the file's own text is what the browser
 # gets, and a server started only to read it back adds a process start and nothing else. Every
-# pane's endpoint is fetched from a literal, and every repeating timer on the page fires at
-# 2000 ms. A page whose Metrics pane polled at 5000, or fetched an endpoint once and never
-# again, or named no endpoint for a pane, fails; a page whose three fetches sit behind one
-# timer passes, since proving which fetch a timer reaches needs the engine this case lacks.
-name="dashboard.html, read off disk, polls the Runs, Metrics and Events endpoints every 2 seconds"
+# pane's endpoint is fetched from a literal. A page that fetched an endpoint for no pane fails;
+# a page whose three fetches sit behind one scheduler passes, since proving which fetch a timer
+# reaches needs the engine this case lacks.
+#
+# What schedules the next fetch is the case below (#344), which took this one's timer half
+# with it: this case demanded a setInterval at 2000 ms, and a page that fires on a fixed clock
+# is the bug #344 fixes — the two cannot both be asked of one page.
+name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoints"
 problems=()
 disk_page="$scripts/dashboard.html"
+
+if [[ ! -f "$disk_page" ]]; then
+  problems+=("there is no dashboard.html beside dashboard.sh to read")
+else
+  add_problems < <(python3 -c '
+import re
+import sys
+
+with open(sys.argv[1]) as f:
+    page = f.read()
+
+# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
+# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
+# Matched as a prefix of the literal so that the Events pane may carry its ?issue= query.
+for pane, path in (("Runs", "/api/runs"), ("Metrics", "/api/metrics"),
+                   ("Events", "/api/events")):
+    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
+        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
+              % (path, pane))
+' "$disk_page")
+fi
+
+report "$name"
+
+# --- the page on disk: the next request is scheduled by the previous one answering ---
+# The bug (#344) is an unbounded queue: a pane on a fixed clock issues a request every 2 s
+# whether or not its last one has answered, so against a slow endpoint the requests pile up
+# and no pane ever fills. The fix is that a pane schedules its next request only from the
+# settlement of its previous one — both the resolve path and the reject path, since a pane
+# whose fetch rejects and never reschedules is a pane that dies on the first hiccup — and so
+# has at most one request in flight. Read off dashboard.html the way the case above reads it,
+# for the same reason: nothing here is a browser.
+#
+# String literals and comments are blanked before anything is looked for, so a page whose
+# own prose says "no setInterval" is not failed for its prose. A setTimeout counts as
+# scheduled by an answer when it sits inside the argument list of a .then, .catch or .finally
+# — which is the settlement handler the fetch promise calls — and the delay stays the 2000 ms
+# the case above used to ask of setInterval.
+name="dashboard.html, read off disk, schedules each pane's next request only from the previous one settling"
+problems=()
 
 if [[ ! -f "$disk_page" ]]; then
   problems+=("there is no dashboard.html beside dashboard.sh to read")
@@ -830,79 +873,113 @@ with open(sys.argv[1]) as f:
 QUOTED = "\"\x27\x60"
 
 
-# Every character of src from index i on that sits outside a string literal, as (index,
-# character, depth), depth being how many brackets are open once that character is read and
-# starting from the depth given. A regex cannot be asked where a call ends or where its last
-# argument starts: an arrow function passed to setInterval carries parentheses and commas of
-# its own, and only one at the right depth and outside a string counts.
-def code_chars(src, i, depth):
-    quote = ""
-    while i < len(src):
+# The page with the inside of every string literal and every comment replaced by spaces,
+# every index unchanged. A call is then looked for in code only: a comment naming setInterval
+# is prose, and the "/api/events?issue=" literal is a path, not a call.
+def code_only(src):
+    out = list(src)
+    i, n = 0, len(src)
+    while i < n:
         c = src[i]
-        if quote:
-            if c == "\\":
+        pair = src[i:i + 2]
+        if c in QUOTED:
+            i += 1
+            while i < n and src[i] != c:
+                if src[i] == "\\":
+                    out[i] = " "
+                    i += 1
+                if i < n:
+                    out[i] = " "
+                    i += 1
+            i += 1
+        elif pair == "//":
+            while i < n and src[i] != "\n":
+                out[i] = " "
                 i += 1
-            elif c == quote:
-                quote = ""
-        elif c in QUOTED:
-            quote = c
+        elif pair == "/*":
+            while i < n and src[i:i + 2] != "*/":
+                out[i] = " "
+                i += 1
+            out[i:i + 2] = "  "
+            i += 2
         else:
-            if c in "([{":
-                depth += 1
-            elif c in ")]}":
-                depth -= 1
-            yield i, c, depth
-        i += 1
+            i += 1
+    return "".join(out)
 
 
 # The index just past the ")" that closes a call whose "(" is at src[i - 1], or -1 when the
-# page has no such ")".
+# page has no such ")". A regex cannot be asked where a call ends: a callback passed to
+# setTimeout carries parentheses and commas of its own, and only one at depth 0 counts.
 def balanced(src, i):
-    for j, c, depth in code_chars(src, i, 1):
-        if depth == 0:
-            return j + 1
+    depth = 1
+    while i < len(src):
+        if src[i] in "([{":
+            depth += 1
+        elif src[i] in ")]}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
     return -1
 
 
-# The argument text of every call of <name> on the page, the "(" and ")" left off.
-def calls(src, name):
-    out = []
-    for m in re.finditer(r"\b" + name + r"\s*\(", src):
-        end = balanced(src, m.end())
-        if end > 0:
-            out.append(src[m.end():end - 1])
-    return out
-
-
-# The last top-level argument of one such list — setInterval s delay.
+# The last top-level argument of an argument list — a setTimeout s delay.
 def last_arg(args):
-    cut = 0
-    for j, c, depth in code_chars(args, 0, 0):
-        if c == "," and depth == 0:
+    depth, cut = 0, 0
+    for j, c in enumerate(args):
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+        elif c == "," and depth == 0:
             cut = j + 1
     return args[cut:].strip()
 
 
-# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
-# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
-# Matched as a prefix of the literal so that the Events pane may carry its ?issue= query.
-for pane, path in (("Runs", "/api/runs"), ("Metrics", "/api/metrics"),
-                   ("Events", "/api/events")):
-    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
-        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
-              % (path, pane))
+code = code_only(page)
 
-# Every two seconds, of every repeating timer the page sets: a pane refreshed on a slower
-# clock than another is the criterion broken just as much as one never refreshed at all.
-timers = calls(page, "setInterval")
+# No fixed clock anywhere on the page: one setInterval left behind is one pane still queueing
+# requests against an endpoint that has not answered.
+for m in re.finditer(r"\bsetInterval\s*\(", code):
+    end = balanced(code, m.end())
+    shown = page[m.start():end] if end > 0 else page[m.start():m.end()]
+    print("the page calls %s, so a pane fires on a fixed clock rather than on its previous "
+          "request answering" % " ".join(shown.split())[:120])
+
+# Where a settlement handler body is: the argument list of .then, .catch or .finally.
+spans = []
+for m in re.finditer(r"\.(then|catch|finally)\s*\(", code):
+    end = balanced(code, m.end())
+    if end > 0:
+        spans.append((m.group(1), m.end(), end - 1))
+
+timers = list(re.finditer(r"\bsetTimeout\s*\(", code))
 if not timers:
-    print("the page schedules no repeating poll at all; want setInterval(..., 2000) so every "
-          "pane refreshes every two seconds")
-for args in timers:
-    delay = last_arg(args)
-    if delay != "2000":
-        print("the page repeats setInterval(%s) every %s ms; a pane polls every 2000"
-              % (" ".join(args.split())[:120], delay))
+    print("the page calls setTimeout nowhere, so no pane schedules its next request from its "
+          "previous one settling")
+else:
+    resolve = reject = False
+    for m in timers:
+        kinds = [kind for kind, a, b in spans if a <= m.start() < b]
+        end = balanced(code, m.end())
+        shown = " ".join((page[m.start():end] if end > 0 else page[m.start():m.end()]).split())
+        if not kinds:
+            print("the page calls %s outside every .then, .catch and .finally body, so that "
+                  "request is not scheduled by the previous one settling" % shown[:120])
+        if [k for k in kinds if k in ("then", "finally")]:
+            resolve = True
+        if [k for k in kinds if k in ("catch", "finally")]:
+            reject = True
+        delay = last_arg(code[m.end():end - 1]) if end > 0 else ""
+        if delay != "2000":
+            print("the page reschedules with %s, %s ms after the previous request settled; "
+                  "want 2000" % (shown[:120], delay))
+    if not resolve:
+        print("no setTimeout on the page sits in a .then or .finally body, so a pane whose "
+              "request resolves never asks again")
+    if not reject:
+        print("no setTimeout on the page sits in a .catch or .finally body, so a pane whose "
+              "request rejects never asks again")
 ' "$disk_page")
 fi
 
