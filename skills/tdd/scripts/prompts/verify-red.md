@@ -12,22 +12,21 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 ### Your checks
 
 1. **It runs and fails.** Run the suites `affected-suites.sh` prints for the change
-   yourself, not one suite picked by hand. The target test must **fail**, and an error on
-   exactly the name the step introduces — a missing function, script, file, route or field
-   — is a valid red: in bash, Python or JS a name that does not exist yet errors before any
-   assertion runs, so a test that cannot even reach its assertions for that reason is red,
-   not broken. Any *other* error before an assertion is still a REJECT under check 2. Make
-   that run through the wrapper `{{TIMED_TEST_RUN}}`, which
-   records what the run cost and names the tier it belongs to:
+   yourself, not one suite picked by hand. The target test must **fail** — check 2 is
+   where the way it failed is judged. Make that run through the wrapper
+   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to:
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 
    The wrapper hands the command's own exit status straight back, so a red run stays red —
    and red is what this check is after.
 2. **It fails for the right reason.** The failure must be the *missing behavior from the
-   spec* (e.g. an absent function/route/field, or a wrong returned value) — NOT an
-   import typo, a wrong path, a syntax error, a missing fixture, or an unrelated
-   environment problem.
+   spec*: an absent function, script, file, route or field, or a wrong returned value. An
+   error on exactly the name the step introduces is a valid red — in bash, Python or JS a
+   name that does not exist yet errors before any assertion runs, so a test that cannot
+   even reach its assertions for that reason is red, not broken. Any *other* error before
+   an assertion is a REJECT: a typo'd name, a wrong path, a missing fixture, a syntax error
+   in the test, or an unrelated environment problem.
    A test that fails for the wrong reason is a REJECT.
 3. **Quality of the test.** REJECT if the test is:
    - **trivial** — it cannot meaningfully fail once the behavior exists (asserts a
