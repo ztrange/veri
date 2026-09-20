@@ -20,6 +20,14 @@ make fail. Confirm the test is a genuine **regression pin** worth committing.
    Then restore the code exactly — `git checkout -- <file>`, and confirm with `git diff
    --exit-code` — before you report. A test that still passes with the behavior removed
    pins nothing: that is a REJECT.
+   Make both of those runs — the one in check 1 and the one after the mutation — through
+   the wrapper `{{TIMED_TEST_RUN}}`, which records what each run cost and names the tier it
+   belongs to:
+
+       {{TIMED_TEST_RUN}} target '{{TEST_PATH}}' <the command that runs the target test>
+
+   The wrapper hands the command's own exit status straight back, so the mutated run stays
+   red — and red is what check 2 is after.
 3. **Quality of the test.** REJECT if the test is:
    - **trivial** — it asserts a constant or something no plausible change could break, or
    - **over-coupled** — it asserts on private internals / implementation details rather

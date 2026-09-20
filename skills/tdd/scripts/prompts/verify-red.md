@@ -13,7 +13,13 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 
 1. **It runs and fails.** Run the suites `affected-suites.sh` prints for the change
    yourself, not one suite picked by hand. The target test must **fail**, not error before
-   it reaches its assertions.
+   it reaches its assertions. Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which
+   records what the run cost and names the tier it belongs to:
+
+       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+
+   The wrapper hands the command's own exit status straight back, so a red run stays red —
+   and red is what this check is after.
 2. **It fails for the right reason.** The failure must be the *missing behavior from the
    spec* (e.g. an absent function/route/field, or a wrong returned value) — NOT an
    import typo, a syntax error, a missing fixture, or an unrelated environment problem.
