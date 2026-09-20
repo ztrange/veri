@@ -171,8 +171,10 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   own — plan growth, never merged with the other four. **Exit 0** = inserted; **exit 1** = the
   budget cannot hold them, so nothing is inserted and every text is appended as a plain bullet
   under a trailing `## Owed steps` heading instead; **exit 2** = the anchor matches no step or
-  more than one, or the budget is unreadable, with the ledger left byte-identical. Every
-  insertion is marked in the log beside the call it made —
+  more than one, or the budget is unreadable, with the ledger left byte-identical. Every text
+  one growth is made of goes in **one call**: the script takes them all at once and reads the
+  budget once per call, so a call per text would refuse a third text that one call either fits
+  whole or files whole. Every insertion is marked in the log beside the call it made —
   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added
   anchor='<anchor>' added=<count>` — because a plan that changes with no record leaves the
   log unable to say which steps the run chose for itself; an exit 1 owes the same mark with
@@ -762,10 +764,8 @@ following step. The phase sub-steps are:
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-split anchor='<STEP>' added=<count>
    ```
-   One call and not one per criterion, for the same reason the Refactor loop's `NEW_STEP:`
-   values go in one: the script reads `VERI_STEP_GROWTH` once per call, so a call per
-   criterion would refuse a step's third `SPLIT:` line that one call either fits whole or
-   files whole. A split is the one thing that changes a step's plan without a green commit
+   One call and not one per criterion, under the script's own one-call rule above. A split is
+   the one thing that changes a step's plan without a green commit
    of its own, so `step-split` is what tells the run log the step was split rather than
    silently restarted — `step-added` is the insertion's own mark, which every
    `add-ledger-step.sh` call owes, and says how many steps the plan grew by; `step-split` says
@@ -925,10 +925,8 @@ following step. The phase sub-steps are:
      what `append` wrote is untracked until then, and a file left beside the worktree is
      lost with it.
      Every `NEW_STEP:` value from both — the leaf's and the verdict's — goes in **one**
-     call, anchored `after '<STEP>'` so the
-     triangulating step lands next to the code it triangulates: the script reads
-     `VERI_STEP_GROWTH` once per call, so a call per value would refuse the third value of a
-     step that one call either fits whole or files whole. Neither reporting a value — the leaf's
+     call, under the script's own one-call rule, anchored `after '<STEP>'` so the
+     triangulating step lands next to the code it triangulates. Neither reporting a value — the leaf's
      `NEW_STEP: none` and no `NEW_STEP:` line in the verdict — is no call and no mark at all.
      **exit 1** is that one call meeting the plan-growth budget: the values are filed as
      owed steps rather than planned — the script's own entry above says how — and
