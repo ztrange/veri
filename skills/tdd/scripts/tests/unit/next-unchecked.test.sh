@@ -50,6 +50,19 @@ check "verbatim special chars" 0 "$lit" '`slugify("a/b")` returns `a-b`'
 # 6. the very first line being unchecked is returned (no checked lines before it)
 check "first line unchecked" 0 '- [ ] only step' "only step"
 
+# 7. a plain bullet under `## Owed steps` is not a step — a ledger whose boxes are all
+# ticked still exits 3, never returning an owed text (#360)
+owed_ledger='# Plan for #42
+
+- [x] collapse non-alphanumerics to a single hyphen
+- [x] strip leading and trailing hyphens
+
+## Owed steps
+
+- a unicode dash collapses too
+- an empty slug falls back to "n-a"'
+check "owed bullets are not steps" 3 "$owed_ledger" ""
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
