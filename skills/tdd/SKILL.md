@@ -437,6 +437,17 @@ unauthenticated baseline never gets a cycle.
    decision, and catching it here is what lets the refactor loop treat exit 2 as impossible.
    Exit 0 and exit 3 both mean it parses (3 only says the budget is 0 — a run with the
    refactor loop switched off), so continue.
+
+   Then the plan-growth budget, which `add-ledger-step.sh` reads the same way: it must be
+   unset, or a whole number ≥ 0. There is nothing to run, since that script refuses an
+   anchor it cannot find before it ever looks at the budget, so read the value here:
+   ```
+   [[ -z "${VERI_STEP_GROWTH+x}" || "$VERI_STEP_GROWTH" =~ ^[0-9]+$ ]]
+   ```
+   False — anything else, **including set-but-empty** — is the same **exit 2** as a bad
+   `VERI_REFACTOR_BUDGET`: stop and do not start, reporting the value verbatim. Caught here
+   it costs nothing; left to the first leaf that tries to grow the plan, it surfaces as a
+   refused insertion mid-cycle, with the branch, the worktree and the plan already built.
 6. **Leaf models parse.** Run `$S/leaf-model.sh develop-red` and
    `$S/leaf-model.sh verify-green` once each. Both roles, because the three variables do not
    all reach both: `VERI_MODEL_DEVELOPER` is only ever read for a developer name and
