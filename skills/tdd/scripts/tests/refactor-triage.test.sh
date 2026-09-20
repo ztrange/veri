@@ -372,6 +372,66 @@ fi
 
 report "$name"
 
+# 6. the report shape #361 leaves behind. Since that issue a refactor leaf's report ends in
+#    `NEW_STEP:` lines — the behaviour-level criteria a triangulating step would pin — in
+#    place of the `FLAGS:` line it used to carry. This script reads the `CANDIDATES:` lines
+#    and nothing else, so those added lines must leave its answer exactly where it was: the
+#    conductor pipes in the leaf's last lines verbatim, and a report the new prompt produces
+#    must triage as the same report written before it did.
+#
+#    One criterion — the answer is unchanged — so one case, over a report of each of the
+#    three answers cases 1–3 pin, with `problems` saying which pair disagreed. What is
+#    asserted is only that the two codes match: which code each report earns is cases 1–3's
+#    question, and repeating it here would pin it twice.
+name="a report carrying NEW_STEP: lines exits with the same code as the same report without them"
+problems=()
+
+# same_code_probe <label> <fixture> — run the script on one report, then on that same report
+# with the leaf's `NEW_STEP:` lines appended where develop-refactor.md's *Report* puts them,
+# and collect the problem if the two answers differ. The variant is built from the fixture
+# itself rather than written out a second time, so the two reports cannot drift apart into
+# two different questions.
+same_code_probe() {
+  local label="$1" fixture="$2" with_steps plain_code steps_code
+  "$TRIAGE" <"$fixture" >/dev/null 2>&1 && plain_code=0 || plain_code=$?
+
+  with_steps="$(mktemp)"
+  cat "$fixture" > "$with_steps"
+  cat >> "$with_steps" <<'STEPS'
+NEW_STEP: the parser accepts a second header field
+NEW_STEP: the parser rejects a header field it has no name for
+STEPS
+
+  "$TRIAGE" <"$with_steps" >/dev/null 2>&1 && steps_code=0 || steps_code=$?
+  [[ "$steps_code" == "$plain_code" ]] ||
+    problems+=("$label: the report without NEW_STEP: lines exits $plain_code, the same report with them exits $steps_code")
+  rm -f "$with_steps"
+}
+
+structural_report="$(mktemp)"
+cat > "$structural_report" <<'REPORT'
+RESULT: applied "inline the single-use $phase_label variable", suite green
+CANDIDATES: structural | fold the two mktemp calls into one helper
+REPORT
+
+none_report="$(mktemp)"
+cat > "$none_report" <<'REPORT'
+RESULT: applied "inline the single-use $phase_label variable", suite green
+CANDIDATES: none
+REPORT
+
+malformed_report="$(mktemp)"
+cat > "$malformed_report" <<'REPORT'
+RESULT: applied "inline the single-use $phase_label variable", suite green
+REPORT
+
+same_code_probe "a report listing a structural candidate" "$structural_report"
+same_code_probe "a report whose candidates are CANDIDATES: none" "$none_report"
+same_code_probe "a report with no CANDIDATES: line" "$malformed_report"
+
+rm -f "$structural_report" "$none_report" "$malformed_report"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
