@@ -1026,6 +1026,109 @@ fi
 
 report "$name"
 
+# --- a slow /api/runs must not starve /api/events: ordering, not elapsed time ---
+# The one fact only a live process can answer about concurrency: while one request is still
+# inside status.sh, another request to a different endpoint gets its answer. Asked by
+# ordering — the Events answer arrives, and only afterwards does this case release the
+# blocked Runs request — so nothing here is timed and no threshold in seconds is asserted.
+#
+# The server is started from a directory of symlinks to dashboard.sh, its python module and
+# the page, beside a `status.sh` that is a stub blocking on a marker file. It has to be:
+# dashboard.sh hands the server the `status.sh` sitting beside itself, so the only way to
+# have a Runs request that is still computing when the Events request is made is a scripts
+# directory whose status.sh is the stub. That is also why the shim at the top of the suite
+# does not count this start — its argv names a .py under $work, not under $scripts.
+name="/api/events answers while an /api/runs request is still blocked inside status.sh"
+problems=()
+slow_repo="$(repo slowruns)"
+slow_run="$(fabricate_run "$slow_repo" 77 tdd/77-a-kettle-boils)"
+cat > "$slow_run/.tdd/issue-77.md" <<'EOF'
+# Plan for #77 — a kettle boils
+
+- [ ] a kettle boils
+EOF
+cat > "$slow_run/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "77", "actor": "conductor", "phase": "", "step": "a kettle boils", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+EOF
+slow_log="$work/slowruns.log"
+entered="$work/slow-status-entered"
+release="$work/slow-status-release"
+settled="$work/slow-runs-settled"
+slow_dir="$work/slow-scripts"
+mkdir -p "$slow_dir"
+cat > "$slow_dir/status.sh" <<EOF
+#!/bin/sh
+# The slow endpoint, stopped at a marker rather than at a duration: it says it has been
+# entered, waits for the case to let it go, and only then answers the empty document.
+: > '$entered'
+while [ ! -e '$release' ]; do sleep 0.05; done
+printf '{"runs": []}\n'
+EOF
+chmod +x "$slow_dir/status.sh"
+slow_port="$(free_port)"
+
+problem="$(port_problem "$slow_port")"
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+elif [[ -n "$problem" ]]; then
+  problems+=("$problem")
+else
+  ln -s "$scripts/dashboard.sh" "$slow_dir/dashboard.sh"
+  ln -s "$scripts/$module.py" "$slow_dir/$module.py"
+  ln -s "$scripts/dashboard.html" "$slow_dir/dashboard.html"
+  ln -s "$METRICS" "$slow_dir/metrics.sh"
+
+  (cd "$slow_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$slow_dir/dashboard.sh" "$slow_port" >"$slow_log" 2>&1) &
+  slow_pid=$!
+
+  slow_url="http://127.0.0.1:$slow_port/"
+  slow_page="$(serve_until_up "$slow_url")"
+  problem="$(answer_problem "$slow_url" "$slow_log" "$slow_page")"
+  if [[ -n "$problem" ]]; then
+    problems+=("$problem")
+  else
+    # The Runs request, in the background, and the wait is for the stub to say it has been
+    # entered — not for a number of seconds — so what follows happens with that request
+    # provably still inside status.sh.
+    # The marker is written only where the fetch came back with an answer, so `settled`
+    # means the server answered the Runs request and never that the client gave up on it.
+    (fetch "http://127.0.0.1:$slow_port/api/runs" >/dev/null 2>&1 && : > "$settled") &
+    slow_runs_pid=$!
+    i=0
+    while [[ ! -e "$entered" && "$i" -lt 100 ]]; do
+      sleep 0.1
+      i=$((i + 1))
+    done
+
+    if [[ ! -e "$entered" ]]; then
+      problems+=("the /api/runs request never reached status.sh, so nothing was blocking when /api/events was asked; the server left: $(printf '%q' "$(cat "$slow_log" 2>/dev/null)")")
+    else
+      events_url="http://127.0.0.1:$slow_port/api/events?issue=77"
+      events_answer="$(fetch "$events_url" 2>/dev/null || :)"
+      # Read before the stub is released: an /api/runs that had already answered would mean
+      # the two were never in flight together, whatever the Events answer was.
+      [[ -e "$settled" ]] && runs_settled=1 || runs_settled=""
+
+      if [[ -z "$events_answer" ]]; then
+        problems+=("GET $events_url got no answer while an /api/runs request was blocked inside status.sh, so the slow endpoint starves the cheap one")
+      elif [[ "$(http_status "$events_answer")" != 200 ]]; then
+        problems+=("GET $events_url answered $(http_status "$events_answer") while /api/runs was blocked, want 200")
+      elif [[ "$(http_body "$events_answer")" != *step-start* ]]; then
+        problems+=("GET $events_url answered while /api/runs was blocked, but without run #77's events: $(printf '%q' "$(http_body "$events_answer")")")
+      fi
+      [[ -z "$runs_settled" ]] ||
+        problems+=("the blocked /api/runs request had already answered before /api/events was asked, so the two were never in flight together")
+    fi
+
+    : > "$release"
+    wait "$slow_runs_pid" 2>/dev/null
+  fi
+
+  stop "$slow_pid"
+fi
+
+report "$name"
+
 # --- the whole suite starts at most two servers ---
 # Last on purpose: it reads the count every case above left on $starts, through the shim
 # installed at the top (#330). Only the lifecycle facts — the default port, a port argument,

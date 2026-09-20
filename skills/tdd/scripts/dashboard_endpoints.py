@@ -160,9 +160,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
 
-# HTTPServer rather than a bare TCPServer for its SO_REUSEADDR: without it the port is
-# unbindable for a minute after the last client's connection closes, so a restart — or a
-# second run of the suite — would fail on a port nothing is listening on.
+# ThreadingHTTPServer rather than a plain HTTPServer because HTTPServer answers one request
+# at a time: /api/runs shells out to status.sh, which takes tens of seconds on a repo with
+# live runs, and every other pane's request queued behind it (#344). A thread per request
+# means a slow endpoint cannot starve the cheap ones. It subclasses HTTPServer, so it keeps
+# that class's SO_REUSEADDR — without it the port is unbindable for a minute after the last
+# client's connection closes, so a restart — or a second run of the suite — would fail on a
+# port nothing is listening on — and the bind stays loopback-only. Its threads are daemons,
+# so a request still inside status.sh cannot hold the process open past SIGINT.
 # Only when run as the program: importing this file to call an endpoint function must not
 # bind the port (#330).
 if __name__ == "__main__":
@@ -178,7 +183,7 @@ if __name__ == "__main__":
     page = open(sys.argv[1], "rb").read()
     port = int(sys.argv[2])
 
-    with http.server.HTTPServer(("127.0.0.1", port), Handler) as httpd:
+    with http.server.ThreadingHTTPServer(("127.0.0.1", port), Handler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
