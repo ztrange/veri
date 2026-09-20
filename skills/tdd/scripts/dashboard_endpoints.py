@@ -138,6 +138,86 @@ def events_json(query):
     return json.dumps({"events": events}).encode()
 
 
+# The command the run's leaves were told to run — the `Test command:` line of the run's own
+# spec file, which is where the conductor recorded it for this issue (SKILL.md:508). Read here
+# rather than detected afresh, because what the Tests pane reports is the runs the leaves
+# performed, and a leaf ran the command the spec named; a run whose spec names none has no
+# test command, and so no test run to list.
+TEST_COMMAND = "Test command:"
+
+
+def test_command(run, issue):
+    spec = os.path.join(run, ".tdd", "issue-%s-spec.md" % issue) if run else ""
+    if not spec or not os.path.exists(spec):
+        return ""
+    with open(spec) as f:
+        for line in f:
+            _, marker, rest = line.partition(TEST_COMMAND)
+            if marker and rest.strip():
+                return rest.strip()
+    return ""
+
+
+# The tail of one test run's output: its last few lines, which is where a suite in this house
+# puts what a reader wants — the count line it ends with, and the FAIL lines just above it.
+# A whole `make test` output is thousands of lines and the pane shows one entry per run, so
+# what is cut is the part no one reads.
+TAIL_LINES = 10
+
+
+def output_tail(text):
+    return "\n".join(text.splitlines()[-TAIL_LINES:])
+
+
+# Every leaf log of one run, in a stable order: the `.tdd/<leaf>.out` files the conductor's
+# leaves wrote. A run still being born has none, which is the empty list and not an error.
+def leaf_logs(run):
+    return sorted(glob.glob(os.path.join(run, ".tdd", "*.out"))) if run else []
+
+
+# The Tests pane: the test runs the LEAVES performed, read back out of their logs — the
+# dashboard runs no suite itself, and could not: a suite takes minutes and would run again on
+# every poll. A test run is a Bash tool call whose command is the run's own test command,
+# paired with the tool result carrying its answer; the pairing is by `tool_use_id`, because a
+# leaf's call and its result are separate records and other calls sit between them. A Bash
+# call to anything else is no run of the suite, and so is not listed.
+def test_runs(run, command):
+    found = []
+    for log in leaf_logs(run):
+        pending = {}
+        with open(log) as f:
+            for raw in f:
+                if not raw.strip():
+                    continue
+                try:
+                    obj = json.loads(raw)
+                except ValueError:
+                    continue
+                for block in (obj.get("message") or {}).get("content") or []:
+                    if block.get("type") == "tool_use":
+                        if (block.get("name") == "Bash"
+                                and (block.get("input") or {}).get("command") == command):
+                            pending[block.get("id")] = True
+                    elif block.get("type") == "tool_result":
+                        if pending.pop(block.get("tool_use_id"), False):
+                            found.append({
+                                "command": command,
+                                "passed": not block.get("is_error", False),
+                                "tail": output_tail(str(block.get("content", ""))),
+                            })
+    return found
+
+
+# Answered for the selected run alone, the way every endpoint has since #343: the run is
+# `.tdd/wt/<issue>` and no other, so a second run whose leaves ran the same command is not
+# reported here. An issue with no run of its own, or one whose spec names no test command,
+# is the empty list rather than another run's tests.
+def tests_json(query):
+    run = run_for_issue(query.get("issue", [""])[0])
+    command = test_command(run, run_issue(run))
+    return json.dumps({"tests": test_runs(run, command) if command else []}).encode()
+
+
 # One entry per JSON pane: the path it is polled at, and the reader that answers it. A
 # pane is a line here rather than a branch below, so the only thing adding one decides is
 # what it serves — that every endpoint is JSON, and how JSON is sent, is settled once. Every
@@ -145,7 +225,7 @@ def events_json(query):
 # it, so that which panes take a parameter stays the readers' business and not the
 # dispatcher's.
 endpoints = {"/api/runs": runs_json, "/api/metrics": metrics_json,
-             "/api/events": events_json}
+             "/api/events": events_json, "/api/tests": tests_json}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
