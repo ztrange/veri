@@ -1010,7 +1010,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    which is every revise of green or refactor. `IMPOSSIBLE` is a legitimate answer, not a
    crash: the leaf says the objection cannot be met as stated. It still spends attempt `k` —
    re-verify below and let the blind verdict, not the leaf's own account, decide.
-2b. **Check the prediction first (red only).** When `<phase>` is red the revise leaf rewrote
+3. **Check the prediction first (red only).** When `<phase>` is red the revise leaf rewrote
    the failing test and reported its own `PREDICTED_FAILURE:` and `PREDICTION:` lines, so run
    the same gate the Red section runs before anything reaches a verifier:
    ```
@@ -1029,7 +1029,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    Every other phase's revise template writes no `PREDICTION:` line, so this sub-step is the
    red phase's alone.
 
-3. **Re-verify (blind, same phase).**
+4. **Re-verify (blind, same phase).**
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh bash -c "$S/verify.sh --step '<STEP>' --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err; echo \$? > .tdd/verdict-<phase>.exit" > /dev/null 2>&1
