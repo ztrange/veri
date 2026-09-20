@@ -91,6 +91,11 @@ records() {
        END { if (rec != "") print rec }' "$claude_path" | plain
 }
 
+# The document as records, read once: the four cases below all ask their question of the same
+# text, and `records` is an awk pass over the file, so asking it once and passing the answer
+# around costs one process instead of four. Read at load, before any case runs.
+ALL_RECORDS="$(records)"
+
 # one_record_matches <text> <regex>... — exit 0 when one line of <text> (a record, as
 # `records` prints them) matches every regex, 1 otherwise. Asked of one record at a time for
 # the reason the header gives: fragments of a rule sections apart must not answer for it.
@@ -153,7 +158,7 @@ ROWS
 # since there is no way to read CLAUDE.md as blank and have a rule answer.
 probe_every_rule_is_carried_by_one_record() {
   local text row rule
-  text="$(records)"
+  text="$ALL_RECORDS"
 
   if [[ -z "${text// /}" ]]; then
     problems+=("$claude_md could not be read, so no rule could be looked for in it")
@@ -190,7 +195,7 @@ report "$name"
 # be merged with, that there are now four, the two failures each answers, and the verb that
 # keeps them apart.
 probe_budgets_invariant_names_the_fourth_axis() {
-  one_record_matches "$(records)" 'veri_no_verdict_retries' 'veri_stuck_retries' 'four' \
+  one_record_matches "$ALL_RECORDS" 'veri_no_verdict_retries' 'veri_stuck_retries' 'four' \
     'liveness' 'protocol|contract|compliance' 'never merged|not merged|one knob' && return
   problems+=("$claude_md has no single record naming VERI_NO_VERDICT_RETRIES as a fourth budget axis beside VERI_STUCK_RETRIES, liveness against protocol compliance, never merged")
 }
@@ -212,7 +217,7 @@ report "$name"
 # record, like the roster above: the invariant, the builder, the parameter, the phase it
 # belongs to, what shape confines it (hex), and that it cannot carry rationale.
 probe_blind_invariant_names_the_base_sha() {
-  one_record_matches "$(records)" 'blind' 'build-verify-prompt\.sh' 'base.sha' 'refactor' \
+  one_record_matches "$ALL_RECORDS" 'blind' 'build-verify-prompt\.sh' 'base.sha' 'refactor' \
     'hex|0-9a-f' 'rationale|leak' && return
   problems+=("$claude_md has no single record naming <base-sha> as the refactor phase parameter of build-verify-prompt.sh in the blind-verifier invariant, and why a hex sha cannot leak rationale")
 }
@@ -236,7 +241,7 @@ report "$name"
 # record, like the roster above: the new variable, one of the four it must not be merged
 # with, that there are now five, the axis it answers, and the verb that keeps them apart.
 probe_budgets_invariant_names_the_fifth_axis() {
-  one_record_matches "$(records)" 'veri_step_growth' 'veri_refactor_budget' 'five' \
+  one_record_matches "$ALL_RECORDS" 'veri_step_growth' 'veri_refactor_budget' 'five' \
     'plan' 'never merged|not merged|one knob' && return
   problems+=("$claude_md has no single record naming VERI_STEP_GROWTH as a fifth budget axis beside the other four, plan growth, never merged")
 }
