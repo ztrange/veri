@@ -729,6 +729,84 @@ fi
 
 report "$name"
 
+# --- the Metrics endpoint keys a run by its own directory, and runs metrics.sh once for it ---
+# Ledgers are committed, so a run worktree carries a copy of every earlier issue's plan: the
+# run under `.tdd/wt/7/` here holds issue-3.md and issue-5.md beside its own issue-7.md. The
+# rule the criterion names is the directory, not the glob — `.tdd/wt/<n>/` is issue `<n>`, and
+# its ledger is `.tdd/issue-<n>.md` — so the payload has exactly one entry, keyed 7, and
+# metrics.sh is run exactly once, for 7, in that directory.
+#
+# The call count IS the behaviour here, so it is pinned with an in-process spy rather than a
+# PATH shim counting processes: `capture` is the one wrapper every shell-out in the module goes
+# through, and the case replaces it with a same-named function that records the metrics.sh
+# calls and answers them with a stub. Everything else — the `git worktree list` that finds the
+# runs — still goes to the real one, so what is faked is only the script whose calls are counted.
+# The directory a call was made in is compared as a real path: the runs are found through git,
+# which resolves `/var` to `/private/var` on a Mac, and the same directory spelled two ways
+# would otherwise fail a correct implementation.
+name="metrics_json keys one entry per run directory by its own issue number and runs metrics.sh once for a live run"
+problems=()
+mown_repo="$(repo metricsown)"
+mown_run="$(fabricate_run "$mown_repo" 7 tdd/7-lamps-glow)"
+cat > "$mown_run/.tdd/issue-7.md" <<'EOF'
+# Plan for #7 — lamps glow
+
+- [x] a lamp exists
+- [ ] a lamp glows
+EOF
+cat > "$mown_run/.tdd/issue-3.md" <<'EOF'
+# Plan for #3 — an earlier run's committed plan
+
+- [x] a lamp is wired
+EOF
+cat > "$mown_run/.tdd/issue-5.md" <<'EOF'
+# Plan for #5 — another earlier run's committed plan
+
+- [x] a lamp has a switch
+EOF
+mown_now="$(date +%s)"
+cat > "$mown_run/.tdd/events.jsonl" <<EOF
+{"ts": $((mown_now - 120)), "issue": "7", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((mown_now - 110)), "issue": "7", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  add_problems < <(cd "$mown_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
+import importlib, json, os, sys
+
+scripts, module, port, run = sys.argv[1:5]
+run = os.path.realpath(run)
+sys.path.insert(0, scripts)
+sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", port,
+            scripts + "/status.sh", scripts + "/metrics.sh"]
+mod = importlib.import_module(module)
+
+metrics_calls = []
+real_capture = mod.capture
+
+def spy(argv, cwd=None):
+    if list(argv)[:1] == [mod.metrics_sh]:
+        metrics_calls.append([list(argv), os.path.realpath(cwd) if cwd else cwd])
+        return b"a stub report\n"
+    return real_capture(argv, cwd=cwd)
+
+mod.capture = spy
+got = json.loads(mod.metrics_json({}))
+issues = got.get("issues", {}) if isinstance(got, dict) else {}
+if sorted(issues) != ["7"]:
+    print("metrics_json reports issues %s; want 7 alone, the issue the run directory "
+          ".tdd/wt/7 is for: issue-3.md and issue-5.md there are earlier runs committed "
+          "plans" % json.dumps(sorted(issues)))
+if metrics_calls != [[[mod.metrics_sh, "7"], run]]:
+    print("metrics_json ran metrics.sh as %s; want exactly one run of it, for issue 7 in %s"
+          % (json.dumps([[a[1:], c] for a, c in metrics_calls]), run))
+' "$scripts" "$module" "$PORT" "$mown_run")
+fi
+
+report "$name"
+
 # --- the Events endpoint's payload, asked of events_json directly: the selected run, or nothing ---
 # The Events pane's contract — the selected run's log, newest last — asked of the function that
 # answers the endpoint rather than of a server answering it (#330): events_json is handed the query string

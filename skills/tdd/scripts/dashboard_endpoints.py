@@ -85,18 +85,25 @@ def runs():
     return sorted(glob.glob(os.path.join(main_working_tree(), ".tdd", "wt", "*")))
 
 
-# The Metrics pane: every issue every run holds a ledger for, and its report. The walk is
-# all this is — which run and which issue, never how one is read.
+# The Metrics pane: one entry per run directory, and its report. The walk is all this is —
+# which run and which issue, never how one is read.
 #
-# `issue-<digits>.md` rather than `issue-*.md`: the committed report sits in the same
-# directory under a name the looser glob also matches, and `31-metrics` is not an issue.
+# The issue a run is for is its directory's own name — `.tdd/wt/7` is issue 7 — and not
+# whichever ledgers it holds: ledgers are committed, so every run worktree carries a copy of
+# every earlier issue's plan, and globbing them reported one entry per copy and ran
+# metrics.sh once for each (#343). A directory whose own `issue-<n>.md` is not there yet is
+# a run still being born and contributes nothing.
+def run_issue(run):
+    found = re.match(r"^([0-9]+)$", os.path.basename(run))
+    return found.group(1) if found else ""
+
+
 def metrics_json(query):
     issues = {}
     for run in runs():
-        for ledger in sorted(glob.glob(os.path.join(run, ".tdd", "issue-*.md"))):
-            found = re.match(r"^issue-([0-9]+)\.md$", os.path.basename(ledger))
-            if found:
-                issues[found.group(1)] = issue_report(run, found.group(1))
+        issue = run_issue(run)
+        if issue and os.path.exists(os.path.join(run, ".tdd", "issue-%s.md" % issue)):
+            issues[issue] = issue_report(run, issue)
     return json.dumps({"issues": issues}).encode()
 
 
