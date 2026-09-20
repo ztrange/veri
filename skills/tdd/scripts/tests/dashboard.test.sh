@@ -956,6 +956,114 @@ fi
 
 report "$name"
 
+# --- the Tests endpoint's payload, asked of tests_json directly: the selected run's leaf test runs ---
+# The Tests pane's contract — the test runs the LEAVES performed, read back out of their
+# stream-json logs — asked of the function that answers the endpoint rather than of a server
+# answering it, the way the events cases above ask theirs. tests_json is handed the parsed
+# query string, `?issue=51` read as {"issue": ["51"]}, and returns one entry per Bash tool
+# call in that run's leaf logs whose command is the run's own test command — the `Test
+# command:` line of its `.tdd/issue-<n>-spec.md` — carrying that command, whether it passed
+# (the tool result's exit status: `is_error` false is a pass, true a fail) and the tail of
+# its output. A leaf's other Bash calls are no test run of the suite and are not listed, and
+# a second run, whose leaf ran the same command, must not be answered with.
+name="tests_json, called directly, lists the selected run's leaf test runs with command, pass/fail and output tail"
+problems=()
+tdirect_repo="$(repo testsdirect)"
+
+tdirect_sel="$(fabricate_run "$tdirect_repo" 51 tdd/51-lamps-flicker)"
+cat > "$tdirect_sel/.tdd/issue-51.md" <<'EOF'
+# Plan for #51 — lamps flicker
+
+- [ ] a lamp flickers
+EOF
+cat > "$tdirect_sel/.tdd/issue-51-spec.md" <<'EOF'
+## What to build
+
+A lamp that flickers when the switch is held.
+
+Test command: make test
+EOF
+cat > "$tdirect_sel/.tdd/develop-red.out" <<'EOF'
+{"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Reading the suite before adding the case."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "git log --oneline -3", "description": "Recent commits"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "abc1234 plan: a lamp flickers", "is_error": false}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_2", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_2", "type": "tool_result", "content": "FAIL - a lamp flickers\n----\n11 passed, 1 failed", "is_error": true}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_3", "name": "Bash", "input": {"command": "make test", "description": "Run the suite again"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_3", "type": "tool_result", "content": "----\n12 passed, 0 failed", "is_error": false}]}}
+{"type": "result", "subtype": "success", "is_error": false, "result": "The case is added and fails as predicted."}
+EOF
+
+tdirect_other="$(fabricate_run "$tdirect_repo" 52 tdd/52-lamps-dim)"
+cat > "$tdirect_other/.tdd/issue-52.md" <<'EOF'
+# Plan for #52 — lamps dim
+
+- [ ] a lamp dims
+EOF
+cat > "$tdirect_other/.tdd/issue-52-spec.md" <<'EOF'
+## What to build
+
+A lamp that dims.
+
+Test command: make test
+EOF
+cat > "$tdirect_other/.tdd/develop-green.out" <<'EOF'
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_9", "type": "tool_result", "content": "----\n7 passed, 0 failed  (run 52)", "is_error": false}]}}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  call_endpoint "$tdirect_repo" tests_json "$work/tests-direct.err" \
+    '{"issue": ["51"]}' "$work/tests-direct-51.json"
+  if [[ ! -f "$work/tests-direct-51.json" ]]; then
+    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-direct.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+red_fail = "FAIL - a lamp flickers\n----\n11 passed, 1 failed"
+red_pass = "----\n12 passed, 0 failed"
+try:
+    with open(sys.argv[1]) as f:
+        got = json.load(f)
+except ValueError:
+    with open(sys.argv[1]) as f:
+        print("tests_json for issue 51 returned something that is not JSON; it starts: %r"
+              % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
+    print("tests_json for issue 51 returned %s; want an object with a \"tests\" array"
+          % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+runs = got["tests"]
+if len(runs) != 2:
+    print("tests_json for issue 51 returned %d test runs, %s; want the two `make test` calls "
+          "in its own leaf log — neither its `git log` call nor run 52\u2019s `make test`"
+          % (len(runs), json.dumps(runs, sort_keys=True)[:400]))
+    sys.exit()
+for entry, passed, output in zip(runs, (False, True), (red_fail, red_pass)):
+    if entry.get("command") != "make test":
+        print("a test run came back with command %r; want the run’s own test command, "
+              "`make test`" % entry.get("command"))
+    if entry.get("passed") is not passed:
+        print("the `make test` whose tool result is %r came back passed=%r; want %r, from that "
+              "result’s exit status" % (output, entry.get("passed"), passed))
+    tail = entry.get("tail")
+    if not isinstance(tail, str) or not tail or not output.endswith(tail):
+        print("the `make test` whose output is %r came back tail=%r; want a non-empty tail of "
+              "that output" % (output, tail))
+    elif output.splitlines()[-1] not in tail:
+        print("the `make test` whose output is %r came back tail=%r; want it to carry that "
+              "output’s last line, %r" % (output, tail, output.splitlines()[-1]))
+' "$work/tests-direct-51.json")
+  fi
+fi
+
+report "$name"
+
 # --- the page on disk: one endpoint per pane, no server started ---
 # The criterion is what the BROWSER does with the page, and nothing here is a browser: the
 # suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
