@@ -40,16 +40,11 @@ added_steps() {
 out=""
 while IFS= read -r line; do
   if [[ "$line" == *"$anchor"* ]]; then
-    if [[ "$where" == before ]]; then
-      out+="$(added_steps "$line")"$'\n'
-    fi
-    out+="$line"$'\n'
-    if [[ "$where" == after ]]; then
-      out+="$(added_steps "$line")"$'\n'
-    fi
-  else
-    out+="$line"$'\n'
+    steps="$(added_steps "$line")"
+    if [[ "$where" == before ]]; then line="$steps"$'\n'"$line"; fi
+    if [[ "$where" == after ]]; then line="$line"$'\n'"$steps"; fi
   fi
+  out+="$line"$'\n'
 done < "$file"
 
 printf '%s' "$out" > "$file"
