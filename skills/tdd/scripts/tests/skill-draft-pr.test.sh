@@ -35,6 +35,8 @@
 #      step, naming every suite still red rather than only the first (issue #341).
 #   6. SKILL.md's Draft PR step puts `refactor-owed.sh render`'s output in the PR body, from
 #      the run's own owed file, and omits the section when that render exits 3 (issue #359).
+#   7. SKILL.md's Draft PR step copies the ledger's `## Owed steps` bullets into the PR
+#      body under a `## Owed steps` heading of its own (issue #360).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -269,6 +271,35 @@ else
     grep -E 'exits? 3' |
     grep -qE 'omit|left out|leaves it out|no section|nothing' ||
     problems+=("$skill_md's Draft PR step never says an exit 3 from refactor-owed.sh render leaves the section out, so a run whose every refactor finished clean gets a ## Refactor owed heading promising leftovers nobody left")
+fi
+report "$name"
+
+# 7. The criterion, as one case (issue #360, part of #354): a step the run could not add
+#    still reaches the human. When `add-ledger-step.sh` cannot fit a text inside
+#    `VERI_STEP_GROWTH`, it appends it as a plain bullet under the ledger's trailing
+#    `## Owed steps` heading — a checkbox `next-unchecked.sh` never returns, so nothing in
+#    the run will ever read it again. The Draft PR step is the last place it can be read, so
+#    what is pinned is that the step copies those bullets out of the run's own ledger and
+#    into the PR body under the same `## Owed steps` heading. The copy is asked for first so
+#    the case fails closed: a step that never mentions the section gets one problem line
+#    rather than two reading as partial progress. The source half asks for the ledger by
+#    name — `.tdd/issue-<n>.md` — because the run holds a second file whose name carries
+#    "owed", `.tdd/issue-<n>-refactor-owed.md`, and a step that rendered the owed *steps*
+#    out of the refactor leftovers would copy the wrong list.
+name="$skill_md's Draft PR step copies the ledger's ## Owed steps bullets into the PR body under ## Owed steps"
+problems=()
+
+records="$(draft_pr_instructions)"
+owed="$(grep -F 'owed steps' <<< "$records")"
+if [[ -z "$records" ]]; then
+  no_draft_pr_section "whether the ledger's owed steps reach the PR body"
+elif [[ -z "$owed" ]]; then
+  problems+=("$skill_md's Draft PR step never mentions the ledger's ## Owed steps section, so a step the growth budget refused is left in a committed file no reader of the PR is pointed at")
+else
+  grep -qF '.tdd/issue-<n>.md' <<< "$owed" ||
+    problems+=("$skill_md's Draft PR step speaks of ## Owed steps without naming the run's .tdd/issue-<n>.md ledger as where the bullets are read from, so the run's other owed file could be copied instead: $(printf '%.120s' "$owed")")
+  grep -qF 'body' <<< "$owed" ||
+    problems+=("$skill_md's Draft PR step never puts the ## Owed steps bullets in the PR body, so they stay where only the conductor sees them: $(printf '%.120s' "$owed")")
 fi
 report "$name"
 
