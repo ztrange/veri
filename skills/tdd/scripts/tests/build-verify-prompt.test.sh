@@ -479,6 +479,27 @@ prompt_says "$red" "verify-red names no syntax error among the errors it still r
 [[ -z "$problems" ]] && ok \
   || no "verify-red still rejects any other error before an assertion: a typo'd name, a wrong path, a missing fixture, a syntax error (${problems#; })"
 
+# 28. and check 1 no longer requires the target test to reach its assertions (issue #355).
+#     The sentence case 26 widened was one half of a contradiction; this is the other half
+#     going away. While check 1 still demanded a failure that does not "error before it
+#     reaches its assertions", a verifier reading it had a rule that contradicts check 2's
+#     valid-red sentence outright, and the run turns on which of the two a given model reads
+#     first. So the claim is an absence, and the probe is its own: `prompt_says` reports a
+#     claim that is missing, and what must be named here is a claim that is present. The
+#     pattern matches the requirement, not the valid-red explanation that legitimately uses
+#     the same words — "a test that cannot even reach its assertions for that reason is red"
+#     says the opposite and must stay. Folded to one line for `prompt_says`'s own reason: a
+#     requirement rewrapped across a line break would otherwise read as already gone. The
+#     read is case 1's `$red`, so no new invocation.
+problems=""
+one_line="$(tr '\n' ' ' <<<"$red")"
+grep -qiE -e "(must|has to|should)[^.]{0,100}not error before[^.]{0,60}assertion" <<<"$one_line" \
+  && problems="$problems; verify-red still forbids a failure that errors before it reaches its assertions"
+grep -qiE -e "(must|has to|should)[^.]{0,100}reach(es)? its assertions" <<<"$one_line" \
+  && problems="$problems; verify-red still requires the target test to reach its assertions"
+[[ -z "$problems" ]] && ok \
+  || no "verify-red no longer requires the target test to reach its assertions (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
