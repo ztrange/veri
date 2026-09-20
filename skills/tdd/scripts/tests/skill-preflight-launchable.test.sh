@@ -116,6 +116,20 @@ call_at() {
     'NR >= s && NR <= e && index($0, want) { print NR; exit }' "$md"
 }
 
+# item_around <line> — the text of the numbered preflight item that contains <line>: from the
+# last `N.` item opener at or before it to the line before the next opener, or the section's
+# end when it is the last item. The item rather than the line, because a check is announced on
+# one line and its refusal spelled on the next; the opener rather than blank lines, because an
+# item's continuation lines are indented prose with blank lines of their own.
+item_around() {
+  local at="$1" start end next
+  start="$(awk -v s="$sec_start" -v at="$at" 'NR >= s && NR <= at && /^[0-9]+\./ { n = NR } END { print n + 0 }' "$md")"
+  [[ "$start" -gt 0 ]] || start="$sec_start"
+  next="$(awk -v s="$((at + 1))" -v e="$sec_end" 'NR >= s && NR <= e && /^[0-9]+\./ { print NR; exit }' "$md")"
+  if [[ -n "$next" ]]; then end=$((next - 1)); else end="$sec_end"; fi
+  sed -n "${start},${end}p" "$md"
+}
+
 # preflight_or_problem <what> — enter the preflight section, or record the one problem that
 # says the case could not be read at all. Non-zero when the heading is gone, so each case
 # below is a probe run inside the section rather than a probe and its own missing-section
@@ -145,20 +159,6 @@ if preflight_or_problem "a launchability check"; then
 fi
 
 report "$name"
-
-# item_around <line> — the text of the numbered preflight item that contains <line>: from the
-# last `N.` item opener at or before it to the line before the next opener, or the section's
-# end when it is the last item. The item rather than the line, because a check is announced on
-# one line and its refusal spelled on the next; the opener rather than blank lines, because an
-# item's continuation lines are indented prose with blank lines of their own.
-item_around() {
-  local at="$1" start end next
-  start="$(awk -v s="$sec_start" -v at="$at" 'NR >= s && NR <= at && /^[0-9]+\./ { n = NR } END { print n + 0 }' "$md")"
-  [[ "$start" -gt 0 ]] || start="$sec_start"
-  next="$(awk -v s="$((at + 1))" -v e="$sec_end" 'NR >= s && NR <= e && /^[0-9]+\./ { print NR; exit }' "$md")"
-  if [[ -n "$next" ]]; then end=$((next - 1)); else end="$sec_end"; fi
-  sed -n "${start},${end}p" "$md"
-}
 
 # 2. The fifth budget is checked where the third one is: a value that cannot be read stops the
 #    run before it starts, rather than surfacing when a leaf first tries to grow the plan.
