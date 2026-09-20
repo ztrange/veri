@@ -500,6 +500,29 @@ grep -qiE -e "(must|has to|should)[^.]{0,100}reach(es)? its assertions" <<<"$one
 [[ -z "$problems" ]] && ok \
   || no "verify-red no longer requires the target test to reach its assertions (${problems#; })"
 
+# 29. verify-green REJECTs production code no test requires (issue #357). develop-green
+#     asks for the minimum code, but verify-green's three checks — the target passes, the
+#     fast command and the affected suites are green, the pass is genuine — never ask
+#     whether any of the code the leaf wrote was needed. Code no test requires is caught
+#     only at verify-refactor, a step later, after it has been committed as `feat:` and the
+#     ledger ticked. So the green prompt names the fourth check itself: a branch, option,
+#     flag or parameter whose removal leaves every test green is a REJECT, and `REASON:`
+#     names that code, since a verdict that says "something is unneeded" costs the revise
+#     leaf a search the verifier already did. Each claim is its own miss, for case 12's
+#     reason; the read is case 6's `$green` — same phase, same arguments — so no new
+#     invocation.
+problems=""
+prompt_says "$green" "verify-green never makes production code no test requires a REJECT" \
+  -iE -e "REJECT[^.]{0,200}code[^.]{0,80}no test requires|code[^.]{0,80}no test requires[^.]{0,200}REJECT"
+prompt_says "$green" "verify-green never names a branch, option, flag or parameter as the code it means" \
+  -iE -e "branch[^.]{0,80}option[^.]{0,80}flag[^.]{0,80}parameter"
+prompt_says "$green" "verify-green never says removing it leaves every test green" \
+  -iE -e "remov(e|ed|ing|al)[^.]{0,140}(leaves?|leaving)[^.]{0,60}tests? green|remov(e|ed|ing|al)[^.]{0,140}(every|all) tests? [^.]{0,40}green"
+prompt_says "$green" "verify-green never has REASON: name that code" \
+  -iE -e "REASON:?[^.]{0,160}nam(e|es|ing)[^.]{0,60}code|nam(e|es|ing)[^.]{0,60}code[^.]{0,160}REASON"
+[[ -z "$problems" ]] && ok \
+  || no "verify-green REJECTs production code no test requires and names it in REASON: (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
