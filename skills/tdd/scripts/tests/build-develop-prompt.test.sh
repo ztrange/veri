@@ -992,6 +992,33 @@ refuses "missing <fast-cmd>" "$BUILD" green "$work/spec.md" "$step_text" "$test_
 [[ -z "$problems" ]] \
   && ok || no "develop-green takes <fast-cmd> as a seventh positional, carries it verbatim, and refuses a call without it with exit 2 (${problems#; })"
 
+# 28. what the red leaf writes on the PREDICTED_FAILURE: line when the failure it predicts is
+#     an error rather than an assertion (issue #355). Case 21 pins that the prompt asks for a
+#     prediction before the run and carries the footer token; it says nothing about the one
+#     family of red whose prediction has no assertion to name. In bash, Python or JS a call to
+#     a name the step is about to introduce errors before any assertion runs, and verify-red
+#     now accepts exactly that error — on exactly the name the step introduces — as a valid
+#     red, while still rejecting a typo'd name or a wrong path. What tells the two apart is
+#     whether the error names the name the step introduces, so the developer's prediction has
+#     to carry that name: a prediction of "it errors" is a prediction a wrong path satisfies
+#     too. So the template asks for the missing name on the PREDICTED_FAILURE: line.
+#
+#     The prompt read is case 1's — same phase, same arguments, so case 1 owns the exit-0
+#     check on it. Probed through `says_both_ways` for case 21's reason: the claim reads as
+#     naturally either way round — "PREDICTED_FAILURE: names the missing name" against "the
+#     missing name goes on the PREDICTED_FAILURE: line" — and the helper spells one bounded
+#     `[^.]{0,gap}` per branch, the constraint `prompt_says` reasons about. The gap is 60
+#     rather than case 21's 20 because the two halves are a sentence apart at most, and the
+#     footer folds to one period-free run where a looser bound would let the TARGET_TEST line's
+#     "case name string" answer for the missing name this case is after. `missing name` occurs
+#     nowhere in the prompt built today, checked against the built prompt rather than the
+#     template.
+problems=""
+says_both_ways "$red" "never says the predicted missing-name error names the missing name on the PREDICTED_FAILURE: line" \
+  60 'PREDICTED_FAILURE' '(missing|absent) name'
+[[ -z "$problems" ]] \
+  && ok || no "develop-red says a predicted missing-name error names the missing name in PREDICTED_FAILURE: (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
