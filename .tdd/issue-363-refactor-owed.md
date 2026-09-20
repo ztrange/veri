@@ -1,2 +1,4 @@
 ### The prompt `build-develop-prompt.sh revise green …` builds offers the same `SPLIT:` report
 - extract the shared "When the step is too big for one green" prose out of develop-green.md and develop-revise.md — blocked today: build-develop-prompt.sh has one include slot (`{{SHARED}}` → `_develop-shared.md`) that every develop phase gets, so extracting there would offer SPLIT to red, refactor and reconcile too; a per-phase partial mechanism is generality no test demands
+### SKILL.md's Green section, on `SPLIT:`, restores the tree to `HEAD`, adds the split steps before STEP in one `add-ledger-step.sh` call, commits the ledger, emits `step-split` and returns to `next-unchecked.sh`
+- anchor probe 3's commit check to the recipe's code fence rather than the 250-char prose window, which already contains the word "commit" — as written the probe passes with the `git add -A && git commit` line deleted
