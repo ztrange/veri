@@ -130,13 +130,15 @@ unreadable_section() {
   [[ -z "${section// /}" ]]
 }
 
-# win <extended-regex> — the section text within 250 characters either side of the first
-# match, or the empty string when there is none: the text a reader meets while working out
-# what to do about that check. 250 rather than a rounder, larger number because BSD grep —
-# the one on the development machine this repository holds itself portable to — refuses an
-# interval whose bound is over 255.
+# win <extended-regex> [radius] — the section text within <radius> characters either side of
+# the first match, or the empty string when there is none: the text a reader meets while
+# working out what to do about that check. The default 250 rather than a rounder, larger
+# number because BSD grep — the one on the development machine this repository holds itself
+# portable to — refuses an interval whose bound is over 255. A probe passes a narrower radius
+# when 250 would reach a neighbouring bullet that answers its question for it.
 win() {
-  grep -oE ".{0,250}$1.{0,250}" <<<"$section" | head -1
+  local radius="${2:-250}"
+  grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section" | head -1
 }
 
 # What a refusal looks like, spelled once for the two probes that ask for one. Both checks
@@ -408,10 +410,10 @@ else
     problems+=("$skill_md's Refactor section never says what add-ledger-step.sh exit 1 means, so a conductor meeting the plan-growth budget's refusal is left to read it as the failure every other non-zero exit in this phase is, and the NEW_STEP: values it filed as owed steps go unmentioned")
   else
     # And that the clause does not end the run. The window is the claim with about a clause
-    # either side of it, not the section: `win`'s 250 would reach the REJECT and
+    # either side of it, not the section: `win`'s default 250 would reach the REJECT and
     # killed-stuck bullets from the end of the PASS one, and this probe would then be
     # answered by a bail that is not this one's.
-    clause="$(grep -oE ".{0,150}$owed_claim.{0,150}" <<<"$section" | head -1)"
+    clause="$(win "$owed_claim" 150)"
     bailed="$(grep -oE 'bail|abort' <<<"$clause" | head -1)"
     [[ -z "$bailed" ]] ||
       problems+=("$skill_md's Refactor section says '$bailed' where it narrates add-ledger-step.sh exit 1, so a ledger whose growth budget is full ends a run whose step verified PASS — the owed steps are recorded and the plan simply did not grow, which is nothing to stop for")
