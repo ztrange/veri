@@ -93,16 +93,43 @@ add_problems() {
   done
 }
 
-# ask_page <program> — run a python3 program over the dashboard.html beside dashboard.sh and
-# file what it prints as this case's problems, or file the missing page as the one problem when
-# there is nothing there to read. Both cases that read the page off disk read it this way; what
-# differs between them is only what their program looks for once it has it.
+# ask_page <program> [<arg>…] — run a python3 program over the dashboard.html beside
+# dashboard.sh and file what it prints as this case's problems, or file the missing page as the
+# one problem when there is nothing there to read. Every case that reads the page off disk reads
+# it this way; what differs between them is only what their program looks for once it has it.
+# The page is the program's argv[1] and any further arguments follow it, which is how one
+# program serves several cases that differ only in what they name.
 ask_page() {
+  local program="$1"
+  shift
   if [[ ! -f "$disk_page" ]]; then
     problems+=("there is no dashboard.html beside dashboard.sh to read")
   else
-    add_problems < <(python3 -c "$1" "$disk_page")
+    add_problems < <(python3 -c "$program" "$disk_page" "$@")
   fi
+}
+
+# fetches_endpoints <pane>=<path>… — file a problem for every named pane whose endpoint the
+# page never fetches. Two cases ask this, of different panes and of nothing else, so what they
+# ask lives here once and takes the panes it is asked about as arguments.
+fetches_endpoints() {
+  ask_page '
+import re
+import sys
+
+with open(sys.argv[1]) as f:
+    page = f.read()
+
+# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
+# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
+# Matched as a prefix of the literal so that a pane may carry a ?issue= query of its own on
+# the end of its path.
+for arg in sys.argv[2:]:
+    pane, path = arg.split("=", 1)
+    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
+        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
+              % (path, pane))
+' "$@"
 }
 
 # A repository of the case's own, so the dashboard is started from a target repo rather than
@@ -1347,22 +1374,7 @@ name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoi
 problems=()
 disk_page="$scripts/dashboard.html"
 
-ask_page '
-import re
-import sys
-
-with open(sys.argv[1]) as f:
-    page = f.read()
-
-# One endpoint per pane. The path is asked for inside a fetch of a literal, not anywhere on
-# the page: the endpoint named in a comment, or in the prose of a heading, is not a poll.
-# Matched as a prefix of the literal so that the Events pane may carry its ?issue= query.
-for pane, path in (("Runs", "/api/runs"), ("Metrics", "/api/metrics"),
-                   ("Events", "/api/events")):
-    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
-        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
-              % (path, pane))
-'
+fetches_endpoints Runs=/api/runs Metrics=/api/metrics Events=/api/events
 
 report "$name"
 
@@ -1535,20 +1547,7 @@ report "$name"
 name="dashboard.html, read off disk, gives the Tests and Chatter panes an endpoint apiece to poll"
 problems=()
 
-ask_page '
-import re
-import sys
-
-with open(sys.argv[1]) as f:
-    page = f.read()
-
-# Matched as a prefix of the literal, the way the Runs, Metrics and Events case matches, so
-# that either pane may carry an ?issue= query of its own on the end of its path.
-for pane, path in (("Tests", "/api/tests"), ("Chatter", "/api/chatter")):
-    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
-        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
-              % (path, pane))
-'
+fetches_endpoints Tests=/api/tests Chatter=/api/chatter
 
 report "$name"
 
