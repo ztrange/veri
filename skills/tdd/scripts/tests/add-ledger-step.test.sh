@@ -12,6 +12,19 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
+# check <name> <code> <want> — the run exited 0 and left the ledger exactly <want>; a
+# mismatch names the case and prints the diff, indented under it.
+check() {
+  local name="$1" code="$2" want="$3" got
+  got="$(cat "$led")"
+  if [[ "$code" == 0 && "$got" == "$want" ]]; then
+    ok
+  else
+    no "$name (code=$code)"
+    diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+  fi
+}
+
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
@@ -28,13 +41,7 @@ want='# Plan for #42
 - [ ] collapse to single hyphen ⟦criterion 2⟧
 - [ ] collapse a unicode dash too ⟦added⟧ ⟦criterion 2⟧
 - [ ] strip edge hyphens ⟦criterion 3⟧'
-got="$(cat "$led")"
-if [[ "$code" == 0 && "$got" == "$want" ]]; then
-  ok
-else
-  no "after: inserts the added step below the anchor, carrying its criterion (code=$code)"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+check "after: inserts the added step below the anchor, carrying its criterion" "$code" "$want"
 
 # 2. `before` inserts several texts, in the order given, on the lines above the anchor
 seed
@@ -46,13 +53,7 @@ want='# Plan for #42
 - [ ] and another ⟦added⟧ ⟦criterion 2⟧
 - [ ] collapse to single hyphen ⟦criterion 2⟧
 - [ ] strip edge hyphens ⟦criterion 3⟧'
-got="$(cat "$led")"
-if [[ "$code" == 0 && "$got" == "$want" ]]; then
-  ok
-else
-  no "before: inserts both texts, in order, on the lines above the anchor (code=$code)"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+check "before: inserts both texts, in order, on the lines above the anchor" "$code" "$want"
 
 echo "----"
 echo "$pass passed, $fail failed"
