@@ -10,5 +10,5 @@
 - [x] VERI_STEP_GROWTH unset allows 3 added steps; a value that is not a non-negative integer, set-but-empty included, exits 2 and leaves the ledger byte-identical ⟦criterion 8⟧
 - [x] SKILL.md's preflight refuses to start on a bad VERI_STEP_GROWTH, as it does a bad VERI_REFACTOR_BUDGET ⟦criterion 9⟧
 - [x] SKILL.md's Draft PR section copies the ledger's `## Owed steps` bullets into the PR body under `## Owed steps` ⟦criterion 10⟧
-- [ ] SKILL.md says each insertion emits a `step-added` event
+- [x] SKILL.md says each insertion emits a `step-added` event ⟂ refactor pending
 - [ ] CLAUDE.md's budgets invariant names VERI_STEP_GROWTH as a fifth axis, plan growth, never merged with the other four ⟦criterion 11⟧

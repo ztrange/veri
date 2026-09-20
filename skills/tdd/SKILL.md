@@ -164,6 +164,19 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   Nothing on stdout. **Exit 0** when it cleared the mark; **exit 3** when no ticked step both
   matched and carried it — the file is left byte-identical, because nothing is written unless
   the transform found its line.
+- `$S/add-ledger-step.sh <ledger> after|before '<anchor substring>' '<text>' […]` — **grow
+  the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
+  the anchor step, or directly before it, inheriting the anchor's criterion. `VERI_STEP_GROWTH`
+  (default 3) bounds how many `⟦added⟧` steps one ledger may hold, on a **fifth axis** of its
+  own — plan growth, never merged with the other four. **Exit 0** = inserted; **exit 1** = the
+  budget cannot hold them, so nothing is inserted and every text is appended as a plain bullet
+  under a trailing `## Owed steps` heading instead; **exit 2** = the anchor matches no step or
+  more than one, or the budget is unreadable, with the ledger left byte-identical. Every
+  insertion is marked in the log beside the call it made —
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added
+  anchor='<anchor>' added=<count>` — because a plan that changes with no record leaves the
+  log unable to say which steps the run chose for itself; an exit 1 owes the same mark with
+  `added=0`, since a step the budget refused is still a decision the run made.
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
   non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
