@@ -69,6 +69,26 @@ runs_fast_plus_affected() {
   fi
 }
 
+# timed_through <phase label> <prompt> <tier> [tier …] — the prompt names timed-test-run.sh
+# at a path the leaf can run (a leaf works in the target repository, where the bare name
+# resolves to nothing), and tells its leaf to run through that wrapper under each tier
+# named — the wrapper's first argument, and what every later reader groups by.
+timed_through() {
+  local label="$1" prompt="$2"; shift 2
+  local runnable="" cand tier
+  while read -r cand; do
+    [[ -x "$cand" ]] && runnable="$cand"
+  done < <(grep -oE '[^ `]*timed-test-run\.sh' <<< "$prompt")
+  if [[ -z "$runnable" ]]; then
+    problems+=("$label's prompt never names timed-test-run.sh at a path the leaf can run")
+  fi
+  for tier in "$@"; do
+    if ! plain <<< "$prompt" | grep -qE "timed-test-run\.sh $tier\b"; then
+      problems+=("$label's prompt never tells its leaf to run through timed-test-run.sh under tier $tier")
+    fi
+  done
+}
+
 # numbered_item <ere> — from the prompt on stdin, the first numbered item (`N. ` up to the
 # next `N. `) whose text matches <ere>, printed as the item's own lines. <ere> is matched
 # against the item joined onto one line (each line preceded by a space), so a template may
@@ -165,6 +185,24 @@ for tier in fast affected; do
     problems+=("develop-green's prompt never tells its leaf to run through timed-test-run.sh under tier $tier")
   fi
 done
+report "$name"
+
+# 6. The developer prompts other than green time their runs the same way (#373): red and
+#    refactor run the suites affected-suites.sh prints, so tier `affected`; revise and
+#    reconcile run the whole test command, so tier `all` — the tier word
+#    detect-test-command.sh already uses for it. Red's and refactor's prompts are the ones
+#    cases 1 and 3 built, read again rather than built a second time.
+name="develop-red, develop-refactor, develop-revise and develop-reconcile run their test commands through timed-test-run.sh, each naming its tier"
+problems=()
+printf 'the verifier objected to the fixture path\n' > "$work/reason.md"
+revise="$("$DEVELOP" revise red "$work/spec.md" 'QWIXTLE step' 'make test' "$work/reason.md" 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh revise exited $?")
+reconcile="$("$DEVELOP" reconcile "$work/spec.md" 'QWIXTLE step' 'make test' 'tdd/1-zorblat' 'abc1234' 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh reconcile exited $?")
+timed_through develop-red "$red" affected
+timed_through develop-refactor "$refactor" affected
+timed_through develop-revise "$revise" all
+timed_through develop-reconcile "$reconcile" all
 report "$name"
 
 echo "----"

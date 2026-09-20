@@ -73,6 +73,13 @@ implementation-pinning test anyway to force a pass.
    conventions out of the repository** at the top of this prompt, from the files that are
    already there. If the repository has no way to run one suite on its own, fall back to
    the test command above and say so in your report.
+   Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost
+   and names the tier it belongs to:
+
+       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+
+   The wrapper hands the command's own exit status straight back, so a red run stays red —
+   and red is the answer this phase is after.
 4. **Compare what it printed against what you predicted**, and report which it was.
    *Matched* — carry on. *Diverged* — the test is the suspect, not the prediction: the case
    failed for a reason you did not write it to catch, which is how a typo'd fixture path, a

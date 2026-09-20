@@ -51,6 +51,13 @@ which file it sits in:
    leave a red suite behind, and carry on with the next candidate. How this repository runs
    one suite is a convention like any other — establish it under **Read the conventions out
    of the repository** at the top of this prompt, from the files that are already there.
+   Make each of those runs through the wrapper `{{TIMED_TEST_RUN}}`, which records what the
+   run cost and names the tier it belongs to:
+
+       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+
+   The wrapper hands the command's own exit status straight back, so a suite a transform
+   turned red still reads as red.
 4. The full suite runs at verify-refactor, on the settled result. The trade is that a break
    in an untouched suite surfaces there, as a REJECT the revise loop answers, rather than
    at the transform that caused it.

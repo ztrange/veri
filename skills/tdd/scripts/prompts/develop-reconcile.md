@@ -28,6 +28,13 @@ not contain. Your job is to make the push land without losing anyone's commits.
      run's own earlier history): rebase onto the remote with
      `git rebase {{REMOTE_SHA}}`, confirm the test command is still green, then
      `git push origin HEAD:{{BRANCH}}`.
+     Make that green check through the wrapper `{{TIMED_TEST_RUN}}`, which records what the
+     run cost and names the tier it belongs to — `all`, since the whole test command is what
+     runs:
+
+         {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}
+
+     The wrapper hands the command's own exit status straight back, so a red run stays red.
    - **Only the run's own pre-rebase history** (the same commits, rewritten locally): push
      with the lease pinned to the sha above, and nothing looser:
      `git push --force-with-lease={{BRANCH}}:{{REMOTE_SHA}} origin HEAD:{{BRANCH}}`.
