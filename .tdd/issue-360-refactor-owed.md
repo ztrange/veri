@@ -1,0 +1,2 @@
+### add-ledger-step.sh inserts `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` after the anchor step, carrying the anchor's k, exit 0 ⟦criterion 1⟧
+- extract the ` ⟦criterion k⟧` literal shared by add-ledger-step.sh:25 and criterion-finished.sh:15 into a `scripts/lib/` builder — judged below the bar and left: it would add a lib file, a `HERE` resolution and a source line into a unit-tier script to dedupe a twenty-character format string that criterion-finished.sh then interpolates into two regexes anyway
