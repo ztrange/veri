@@ -758,7 +758,7 @@ following step. The phase sub-steps are:
    **one** call, and commit the grown ledger:
    ```
    git reset --hard HEAD
-   git ls-files --error-unmatch <test-path> > /dev/null 2>&1 || rm -f <test-path>   # a file Red created is untracked, so the reset leaves it
+   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it; one git already tracked the reset restored
    $S/add-ledger-step.sh .tdd/issue-<n>.md before '<STEP>' '<SPLIT: value>' …   # every SPLIT: value in ONE call
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
