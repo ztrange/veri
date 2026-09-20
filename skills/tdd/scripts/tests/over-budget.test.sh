@@ -58,13 +58,19 @@ report() {
 # One helper rather than one per rule: the two rules differ only in which tunable a case
 # pins and which tier and usual it picks, so the invocation, the exit-code capture and the
 # diagnostic are the same work either way.
+#
+# The exit code is all this helper asserts, so the check's own streams go to /dev/null the
+# way refactor-budget.test.sh's exit-code-only probe sends them: an over-budget run prints
+# its ⏱ line, and a suite whose report is interleaved with the output of the thing it is
+# probing is harder to read a `FAIL -` diagnostic out of. Case 3 is where that line is
+# captured and asserted on.
 probe() {
   local var="$1" value="$2" tier="$3" seconds="$4" usual="$5" want="$6" code verdict against
   if [[ -n "$value" ]]; then
-    env "$var=$value" "$CHECK" "$tier" "$seconds" "$usual" && code=0 || code=$?
+    env "$var=$value" "$CHECK" "$tier" "$seconds" "$usual" >/dev/null 2>&1 && code=0 || code=$?
     against="$var=$value"
   else
-    env -u "$var" "$CHECK" "$tier" "$seconds" "$usual" && code=0 || code=$?
+    env -u "$var" "$CHECK" "$tier" "$seconds" "$usual" >/dev/null 2>&1 && code=0 || code=$?
     against="$var unset, so the script's own default"
   fi
   [[ "$want" == 0 ]] && verdict="over budget" || verdict="not over budget"
