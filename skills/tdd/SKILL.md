@@ -1010,6 +1010,25 @@ For attempt `k = 1 … REVISE_BUDGET`:
    which is every revise of green or refactor. `IMPOSSIBLE` is a legitimate answer, not a
    crash: the leaf says the objection cannot be met as stated. It still spends attempt `k` —
    re-verify below and let the blind verdict, not the leaf's own account, decide.
+2b. **Check the prediction first (red only).** When `<phase>` is red the revise leaf rewrote
+   the failing test and reported its own `PREDICTED_FAILURE:` and `PREDICTION:` lines, so run
+   the same gate the Red section runs before anything reaches a verifier:
+   ```
+   $S/red-divergence.sh < .tdd/revise-red-<k>.out > .tdd/verify-red.reason; echo $?
+   ```
+   - **Exit 3 — matched:** nothing was surprising; carry on to the re-verify below.
+   - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the rewritten test failed
+     for a reason other than the one it was written to catch (exit 0), or its report carries
+     no readable `PREDICTION:` line at all (exit 2), which is handled the same way. The test
+     is the suspect, and verify-red is blind by construction, so spend attempt `k` **without
+     re-verifying**: skip the re-verification entirely, keep the reason the script wrote to
+     `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead), mark
+     it with `$S/event.sh prediction-diverged`, and treat the attempt exactly as a `REJECT`
+     does — if attempts remain, loop to attempt `k+1` with that reason; otherwise fall
+     through to the budget-exhausted bail below.
+   Every other phase's revise template writes no `PREDICTION:` line, so this sub-step is the
+   red phase's alone.
+
 3. **Re-verify (blind, same phase).**
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
