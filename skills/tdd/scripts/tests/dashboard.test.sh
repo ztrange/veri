@@ -1084,7 +1084,11 @@ else
   launch "$slow_dir/dashboard.sh" "$slow_repo" "$slow_log" "$slow_port"
   slow_pid=$!
 
-  slow_url="http://127.0.0.1:$slow_port/"
+  # The three URLs this case fetches are three paths on one server, so its address is
+  # spelled once: the page it waits to come up, the Runs request that blocks, and the Events
+  # request that has to be answered while it does.
+  slow_base="http://127.0.0.1:$slow_port"
+  slow_url="$slow_base/"
   slow_page="$(serve_until_up "$slow_url")"
   problem="$(answer_problem "$slow_url" "$slow_log" "$slow_page")"
   if [[ -n "$problem" ]]; then
@@ -1095,7 +1099,7 @@ else
     # provably still inside status.sh.
     # The marker is written only where the fetch came back with an answer, so `slow_settled`
     # means the server answered the Runs request and never that the client gave up on it.
-    (fetch "http://127.0.0.1:$slow_port/api/runs" >/dev/null 2>&1 && : > "$slow_settled") &
+    (fetch "$slow_base/api/runs" >/dev/null 2>&1 && : > "$slow_settled") &
     slow_runs_pid=$!
     slow_i=0
     while [[ ! -e "$slow_entered" && "$slow_i" -lt 100 ]]; do
@@ -1106,7 +1110,7 @@ else
     if [[ ! -e "$slow_entered" ]]; then
       problems+=("the /api/runs request never reached status.sh, so nothing was blocking when /api/events was asked; the server left: $(printf '%q' "$(cat "$slow_log" 2>/dev/null)")")
     else
-      events_url="http://127.0.0.1:$slow_port/api/events?issue=77"
+      events_url="$slow_base/api/events?issue=77"
       events_answer="$(fetch "$events_url" 2>/dev/null || :)"
       # Read before the stub is released: an /api/runs that had already answered would mean
       # the two were never in flight together, whatever the Events answer was.
