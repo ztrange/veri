@@ -357,6 +357,10 @@ else
 fi
 report "$name"
 
+# The suite's own source, read once for the two #267 cases below: both ask that a dead
+# record-level check has not come back, and neither writes to the file between the reads.
+suite_src="$(cat "$ROOT/$suite_md")"
+
 # Issue #267: the record-level commit-before-PR check this suite used to carry could not
 # fail. section_records folds the whole Draft PR sub-step — its prose and its fenced command
 # block — into ONE record, so the metrics commit's record number and gh pr create's are the
@@ -370,7 +374,6 @@ report "$name"
 name="skill-metrics.test.sh carries no record-level commit-before-PR comparison, which records_of's folding makes dead"
 problems=()
 
-suite_src="$(cat "$ROOT/$suite_md")"
 dead_compare='commit_line" '"-gt"' "$pr_line'
 dead_comment='lands '"BEFORE"' the PR is opened'
 [[ "$suite_src" != *"$dead_compare"* ]] ||
@@ -391,7 +394,6 @@ report "$name"
 name="skill-metrics.test.sh carries no record-level gh pr create + 📊 metrics presence probe, which records_of's folding makes dead"
 problems=()
 
-suite_src="$(cat "$ROOT/$suite_md")"
 probe_call='first_record_line "$pr_records" '
 create_arg="'gh pr create'"
 block_arg="'📊 metrics'"
