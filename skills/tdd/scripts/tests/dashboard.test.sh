@@ -1125,6 +1125,96 @@ fi
 
 report "$name"
 
+# --- the Chatter endpoint's payload, asked of chatter_json directly: the current leaf's log ---
+# The Chatter pane's contract — the rendered log of the leaf the selected run is CURRENTLY on
+# — asked of the function that answers the endpoint rather than of a server answering it, the
+# way the Tests and Events cases above ask theirs. Which leaf that is, is the run's own event
+# log's answer: the newest `launch` event's `name`, which is the same leaf status.sh reports a
+# run as being on (status.sh:79), and its log is `.tdd/<name>.out`. So the fixture run has two
+# leaf logs and an event log whose newest launch names the second: an endpoint that handed back
+# the first, or both, is not answering "the leaf it is currently on".
+#
+# What "rendered" means is render-leaf-log.sh's answer and not a second spelling of it, so the
+# case renders the fixture with that script and compares — a case that spelled the renderer's
+# rules again would pass a pane that rendered the log its own way.
+name="chatter_json, called directly, returns the rendered log of the leaf the selected run is currently on"
+problems=()
+chat_repo="$(repo chatterdirect)"
+
+chat_run="$(fabricate_run "$chat_repo" 54 tdd/54-lamps-buzz)"
+cat > "$chat_run/.tdd/issue-54.md" <<'EOF'
+# Plan for #54 — lamps buzz
+
+- [x] a lamp buzzes
+- [ ] a lamp stops buzzing
+EOF
+cat > "$chat_run/.tdd/develop-red.out" <<'EOF'
+{"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Adding the case that pins the buzz."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "FAIL - a lamp stops buzzing\n----\n4 passed, 1 failed", "is_error": true}]}}
+EOF
+cat > "$chat_run/.tdd/verify-green.out" <<'EOF'
+{"type": "system", "subtype": "init", "session_id": "s2", "tools": ["Bash"]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Reading the diff against the spec."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_7", "name": "Bash", "input": {"command": "git diff HEAD~1", "description": "The step’s diff"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_7", "type": "tool_result", "content": "diff --git a/lamp.sh b/lamp.sh\n+  silence\n", "is_error": false}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "VERDICT: PASS"}]}}
+EOF
+chat_now="$(date +%s)"
+cat > "$chat_run/.tdd/events.jsonl" <<EOF
+{"ts": $((chat_now - 300)), "issue": "54", "actor": "conductor", "phase": "", "step": "a lamp stops buzzing", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
+{"ts": $((chat_now - 290)), "issue": "54", "actor": "developer", "phase": "red", "step": "a lamp stops buzzing", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red", "seq": 2}
+{"ts": $((chat_now - 100)), "issue": "54", "actor": "verifier", "phase": "green", "step": "a lamp stops buzzing", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "verify-green", "seq": 3}
+EOF
+
+"$HERE/../render-leaf-log.sh" < "$chat_run/.tdd/verify-green.out" > "$work/chatter-want.txt" 2>/dev/null ||
+  problems+=("render-leaf-log.sh could not render the fixture leaf log this case compares against")
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+elif [[ "${#problems[@]}" -eq 0 ]]; then
+  call_endpoint "$chat_repo" chatter_json "$work/chatter-direct.err" \
+    '{"issue": ["54"]}' "$work/chatter-direct-54.json"
+  if [[ ! -f "$work/chatter-direct-54.json" ]]; then
+    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-direct.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+try:
+    with open(sys.argv[1]) as f:
+        got = json.load(f)
+except ValueError:
+    with open(sys.argv[1]) as f:
+        print("chatter_json for issue 54 returned something that is not JSON; it starts: %r"
+              % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or "chatter" not in got:
+    print("chatter_json for issue 54 returned %s; want an object with a \"chatter\" key"
+          % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+# The rendered log as either the renderer’s own text or the lines of it, since one line per
+# thing said or done is what the renderer promises and a list of them says the same thing.
+chatter = got["chatter"]
+if isinstance(chatter, list):
+    chatter = "\n".join(str(line) for line in chatter)
+if not isinstance(chatter, str):
+    print("chatter_json for issue 54 returned chatter=%s; want the rendered log as text or as "
+          "its lines" % json.dumps(chatter, sort_keys=True)[:300])
+    sys.exit()
+with open(sys.argv[2]) as f:
+    want = f.read()
+if chatter.strip("\n") != want.strip("\n"):
+    print("chatter_json for issue 54 returned %r; want render-leaf-log.sh’s rendering of "
+          "verify-green.out, the leaf the run’s newest launch event names, which is %r"
+          % (chatter[:400], want[:400]))
+' "$work/chatter-direct-54.json" "$work/chatter-want.txt")
+  fi
+fi
+
+report "$name"
+
 # --- the page on disk: one endpoint per pane, no server started ---
 # The criterion is what the BROWSER does with the page, and nothing here is a browser: the
 # suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
