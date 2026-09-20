@@ -1519,6 +1519,39 @@ else:
 
 report "$name"
 
+# --- the page on disk: a pane apiece for the Tests and Chatter endpoints ---
+# The two endpoints the page does not yet poll. Asked of dashboard.html as it sits beside
+# dashboard.sh, the way the two cases above ask theirs and for the same reason: nothing here
+# is a browser, and the server hands the file out byte for byte with no per-request
+# computation, so the file's own text is what a browser gets.
+#
+# Each of the two panes has an endpoint of its own, fetched from a literal — an endpoint
+# named only in a comment or in the prose of a heading is not a poll. What schedules that
+# fetch is the settlement case above, which is asked of the whole page rather than of one
+# pane: it fails on a setInterval anywhere on the page and on any setTimeout outside a
+# .then, .catch or .finally body, so a Tests or Chatter pane put on a fixed clock of its own
+# reddens it. Proving which fetch a given timer reaches needs the engine these cases lack,
+# which is why the scheduling half is not re-asked here pane by pane.
+name="dashboard.html, read off disk, gives the Tests and Chatter panes an endpoint apiece to poll"
+problems=()
+
+ask_page '
+import re
+import sys
+
+with open(sys.argv[1]) as f:
+    page = f.read()
+
+# Matched as a prefix of the literal, the way the Runs, Metrics and Events case matches, so
+# that either pane may carry an ?issue= query of its own on the end of its path.
+for pane, path in (("Tests", "/api/tests"), ("Chatter", "/api/chatter")):
+    if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
+        print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
+              % (path, pane))
+'
+
+report "$name"
+
 # --- the page served at / is dashboard.html, so the poll checks above are the served page's ---
 # Before #330 the poll contract was asked of the page a running server handed out, so a server
 # serving any other HTML failed it; the case above asks it of the file instead, and the first

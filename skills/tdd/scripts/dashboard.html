@@ -12,10 +12,14 @@
 <pre id="metrics"></pre>
 <h2>Events</h2>
 <pre id="events"></pre>
+<h2>Tests</h2>
+<pre id="tests"></pre>
+<h2>Chatter</h2>
+<pre id="chatter"></pre>
 <script>
 // Each pane polls its own endpoint on its own schedule, so a slow answer from one never
-// holds back the others. The Events pane shows the run named in the page's
-// ?issue= query, the same number the Runs and Metrics endpoints key each run by.
+// holds back the others. The Events, Tests and Chatter panes show the run named in the
+// page's ?issue= query, the same number the Runs and Metrics endpoints key each run by.
 var issue = new URLSearchParams(location.search).get("issue") || "";
 
 function show(pane, answer) {
@@ -40,6 +44,12 @@ poll("runs", function () { return fetch("/api/runs"); });
 poll("metrics", function () { return fetch("/api/metrics"); });
 poll("events", function () {
   return fetch("/api/events?issue=" + encodeURIComponent(issue));
+});
+poll("tests", function () {
+  return fetch("/api/tests?issue=" + encodeURIComponent(issue));
+});
+poll("chatter", function () {
+  return fetch("/api/chatter?issue=" + encodeURIComponent(issue));
 });
 </script>
 </body>
