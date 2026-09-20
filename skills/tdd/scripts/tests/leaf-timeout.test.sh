@@ -56,24 +56,34 @@ report() {
   fi
 }
 
-# good_probe <baseline> <want> — a baseline the script must answer: exit 0, exactly the
-# expected number on stdout and, because a valid call is not a diagnosable one, nothing on
-# stderr. Separate files per stream, since the case is about which stream carries what.
+# good_probe <baseline> <want> — a baseline the script must answer, in the shape
+# assert_answer names. Separate files per stream, since the case is about which stream
+# carries what.
 # `env -u` clears VERI_TIMEOUT for the child only, so the answer is a fact about the script
 # and not about whatever the surrounding run exported (hermetic-suites.test.sh's concern).
 good_probe() {
   local baseline="$1" want="$2" out err code
   out="$(mktemp)" err="$(mktemp)"
   env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$baseline" >"$out" 2>"$err" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("baseline $baseline: want exit 0, got $code")
-  # One line holding exactly the number: `$(cat …)` eats the trailing newline, so this is
-  # both "the right value" and "nothing else printed alongside it".
-  [[ "$(cat "$out")" == "$want" ]] ||
-    problems+=("baseline $baseline: want $want on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ ! -s "$err" ]] ||
-    problems+=("baseline $baseline: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  assert_answer "baseline $baseline" "$want" "$code" "$out" "$err"
   rm -f "$out" "$err"
+}
+
+# assert_answer <label> <want> <code> <stdout-file> <stderr-file> — the three things every
+# answered call owes, whichever call produced it: exit 0, exactly <want> on stdout and, because
+# a valid call is not a diagnosable one, nothing on stderr. Named once for the same reason
+# assert_fail_closed is: an answer is one shape, and the five probes below differ only in how
+# they call the script and what number they expect, never in what an answer looks like.
+# `$(cat …)` eats the trailing newline, so the stdout check is both "the right value" and
+# "nothing else printed alongside it". Appends to the caller's `problems`, a case-level global.
+assert_answer() {
+  local label="$1" want="$2" code="$3" out="$4" err="$5"
+  [[ "$code" == 0 ]] ||
+    problems+=("$label: want exit 0, got $code")
+  [[ "$(cat "$out")" == "$want" ]] ||
+    problems+=("$label: want $want on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ ! -s "$err" ]] ||
+    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
 }
 
 # assert_fail_closed <label> <code> <stdout-file> <stderr-file> — the three things every
@@ -114,12 +124,7 @@ override_probe() {
   local timeout="$1" baseline="$2" out err code
   out="$(mktemp)" err="$(mktemp)"
   VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" "$baseline" >"$out" 2>"$err" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("VERI_TIMEOUT=$timeout baseline $baseline: want exit 0, got $code")
-  [[ "$(cat "$out")" == "$timeout" ]] ||
-    problems+=("VERI_TIMEOUT=$timeout baseline $baseline: want $timeout on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ ! -s "$err" ]] ||
-    problems+=("VERI_TIMEOUT=$timeout baseline $baseline: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  assert_answer "VERI_TIMEOUT=$timeout baseline $baseline" "$timeout" "$code" "$out" "$err"
   rm -f "$out" "$err"
 }
 
@@ -152,12 +157,7 @@ refactor_probe() {
   else
     env -u VERI_TIMEOUT VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
   fi
-  [[ "$code" == 0 ]] ||
-    problems+=("$label: want exit 0, got $code")
-  [[ "$(cat "$out")" == "$want" ]] ||
-    problems+=("$label: want $want on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ ! -s "$err" ]] ||
-    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  assert_answer "$label" "$want" "$code" "$out" "$err"
   rm -f "$out" "$err"
 }
 
@@ -171,12 +171,7 @@ refactor_override_probe() {
   out="$(mktemp)" err="$(mktemp)"
   label="VERI_TIMEOUT=$timeout VERI_REFACTOR_BUDGET=$budget baseline $baseline refactor"
   VERI_TIMEOUT="$timeout" VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("$label: want exit 0, got $code")
-  [[ "$(cat "$out")" == "$timeout" ]] ||
-    problems+=("$label: want $timeout on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ ! -s "$err" ]] ||
-    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  assert_answer "$label" "$timeout" "$code" "$out" "$err"
   rm -f "$out" "$err"
 }
 
@@ -192,12 +187,7 @@ full_tier_probe() {
   out="$(mktemp)" err="$(mktemp)"
   label="fast $fast full $full"
   env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$fast" --full "$full" >"$out" 2>"$err" && code=0 || code=$?
-  [[ "$code" == 0 ]] ||
-    problems+=("$label: want exit 0, got $code")
-  [[ "$(cat "$out")" == "$want" ]] ||
-    problems+=("$label: want $want on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ ! -s "$err" ]] ||
-    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  assert_answer "$label" "$want" "$code" "$out" "$err"
   rm -f "$out" "$err"
 }
 
