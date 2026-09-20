@@ -226,6 +226,30 @@ probe_blind_invariant_names_the_base_sha
 
 report "$name"
 
+# probe_budgets_invariant_names_the_fifth_axis — issue #360 gave the plan itself a budget,
+# `VERI_STEP_GROWTH`: how many steps one ledger may hold marked `⟦added⟧`, so a run that
+# discovers work as it goes can grow its plan without growing it without end. It is a fifth
+# axis, not a bigger refactor budget: `VERI_REFACTOR_BUDGET` bounds what one step's tidying
+# costs, this one bounds how much plan a run may add. Folded into any of the other four, "let
+# the run plan more" and "let a leaf retry / revise / refactor more" would be one decision,
+# which is the same collapse this invariant already refuses three times over. Asked of ONE
+# record, like the roster above: the new variable, one of the four it must not be merged
+# with, that there are now five, the axis it answers, and the verb that keeps them apart.
+probe_budgets_invariant_names_the_fifth_axis() {
+  one_record_matches "$(records)" 'veri_step_growth' 'veri_refactor_budget' 'five' \
+    'plan' 'never merged|not merged|one knob' && return
+  problems+=("$claude_md has no single record naming VERI_STEP_GROWTH as a fifth budget axis beside the other four, plan growth, never merged")
+}
+
+# 4. One criterion, one case: the budgets invariant names VERI_STEP_GROWTH as a fifth axis,
+#    plan growth, never merged with the other four (#360).
+name="$claude_md's budgets invariant names VERI_STEP_GROWTH as a fifth axis, plan growth, never merged with the other four"
+problems=()
+
+probe_budgets_invariant_names_the_fifth_axis
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

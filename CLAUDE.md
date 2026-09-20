@@ -2,7 +2,7 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/solve-issue/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus forty-five bash scripts it calls. Read `CONTEXT.md` for the glossary — the terms
+follows, plus forty-six bash scripts it calls. Read `CONTEXT.md` for the glossary — the terms
 there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
 
 ## Commands
@@ -119,12 +119,16 @@ Two traps, both already cost something once:
   also appends `⟂ refactor pending`, which only that step's verify-refactor PASS takes off
   again — so a ticked step is green, not finished, and the mark is what tells a resumed run
   which of the two it is.
-- **Four budgets on four axes, never merged**: `VERI_STUCK_RETRIES` (liveness — the leaf
+- **Five budgets on five axes, never merged**: `VERI_STUCK_RETRIES` (liveness — the leaf
   never answered), `VERI_NO_VERDICT_RETRIES` (protocol compliance — the verifier finished
   cleanly and ignored the output contract, no `VERDICT:` line), `REVISE_BUDGET` (verdict — it
-  answered and was rejected) and `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's
+  answered and was rejected), `VERI_REFACTOR_BUDGET` (cost — how many transforms one step's
   tidying is worth, since one refactor leaf now spends the whole step's budget and a leaf
-  given a number will find that many). One knob over any two of them would trade a plumbing
+  given a number will find that many) and `VERI_STEP_GROWTH` (plan growth — how many steps
+  one ledger may hold marked `⟦added⟧`, so a run that discovers work as it goes can grow
+  its plan without growing it without end; ADR-0022). The fifth is never merged with the
+  other four either: folded into any of them, "let the run plan more" and "let a leaf retry,
+  revise or refactor more" would be one decision. One knob over any two of them would trade a plumbing
   failure against a methodology one, or against how much a step is allowed to cost; over the
   first two, "retry more hangs" (a hung tool, fixed in the supervisor's windows) and
   "tolerate more contract breaches" (a model choice, fixed in the prompt) would be the same
@@ -165,7 +169,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — eighty-eight files for forty-five scripts, plus seven suites under `unit/` (five moved there, two written for them), all run by `make test`.
+`skills/tdd/scripts/tests/` — eighty-nine files for forty-six scripts, plus seven suites under `unit/` (five moved there, two written for them), all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
