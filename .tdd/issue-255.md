@@ -6,4 +6,4 @@
 - [ ] The Tests endpoint never executes a suite: a test command whose execution would leave a trace leaves none when the endpoint is queried ⟦criterion 2⟧
 - [ ] The Chatter endpoint returns the rendered log of the leaf the selected run is currently on ⟦criterion 3⟧
 - [ ] A fixture run whose current leaf changes switches the Chatter endpoint to the new leaf ⟦criterion 3⟧
-- [ ] The served page has Tests and Chatter panes, each polling its own JSON endpoint every 2 seconds
+- [ ] The served page has Tests and Chatter panes, each scheduling its next request only from the settlement of its previous one, like the existing panes
