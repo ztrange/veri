@@ -1396,6 +1396,32 @@ done
 { [[ "${#kp_problems[@]}" -eq 0 ]]; } && ok \
   || no "a non-numeric or negative VERI_KILL_POLL exits 2 with a diagnostic and no status on stdout (${kp_problems[*]})"
 
+# 33. the silence the supervisor measures is the silence this suite INJECTED, whatever real
+#     time did in between (issue #300). Case 4's premise is that a slow-but-alive leaf's
+#     heartbeat never depends on real elapsed time; this case is that premise made
+#     observable. The leaf writes one line, then makes its own progress log look 60 REAL
+#     seconds old — the cheap stand-in for a scheduling delay, no wait involved — and only
+#     then injects 1 s of silence onto the clock, well inside its 5 s window. A supervisor
+#     reading the injected clock sees 1 s and lets the leaf finish; one that reads any real
+#     elapsed time at all sees ~61 s and kills it as stuck. `.tdd/reallag.log` is the log
+#     `sup reallag` gives it, named here because the leaf has to reach its own log to age it.
+cat > "$stub/leaf-real-lag" <<'L'
+#!/bin/sh
+: > .test-clock-reads
+echo "leaf: starting"
+python3 -c '
+import os, sys
+s = os.stat(sys.argv[1])
+os.utime(sys.argv[1], (s.st_atime - 60, s.st_mtime - 60))' .tdd/reallag.log
+clock-jump 1
+await-poll
+echo "leaf: done"; exit 0
+L
+chmod +x "$stub/leaf-real-lag"
+sup reallag 5 30 leaf-real-lag
+{ [[ "$code" == 0 ]] && [[ "$out" == *'done'* ]]; } && ok \
+  || no "60s of real lag on the leaf's log is not silence: 1s injected against a 5s window → success (code=$code want 0, err=$(cat "$work/err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
