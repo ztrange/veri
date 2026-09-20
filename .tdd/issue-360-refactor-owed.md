@@ -6,3 +6,5 @@
 - `where` is never validated — a third word silently rewrites the ledger unchanged and exits 0; the two `if [[ "$where" == before/after ]]` lines want one `case` with an `exit 2` default, which needs a triangulating test first since no case covers a bad `where`
 ### VERI_STEP_GROWTH unset allows 3 added steps; a value that is not a non-negative integer, set-but-empty included, exits 2 and leaves the ledger byte-identical ⟦criterion 8⟧
 - `criterion_of` spells `⟦criterion ` three times over (the glob test, the `##` strip, the `printf` format) — naming it would remove the duplication, but the `printf ' %s%s⟧'` arm it forces reads worse than the literal, so I left it
+### SKILL.md's Draft PR section copies the ledger's `## Owed steps` bullets into the PR body under `## Owed steps` ⟦criterion 10⟧
+- extract the shared `grep -qF 'body'` probe of cases 6 and 7 into a predicate helper beside `names_the_full_gate` — left undone: it is one grep, and the two cases assert different things reaching the body
