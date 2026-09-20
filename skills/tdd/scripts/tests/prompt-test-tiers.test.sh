@@ -145,6 +145,29 @@ runs_fast_plus_affected develop-green "$green"
 runs_fast_plus_affected verify-green "$verify_green"
 report "$name"
 
+# 5. The green leaf's two runs go through timed-test-run.sh (#373), which is what leaves a
+#    `test-run` mark in the log. The wrapper has to be named at a path the leaf can run —
+#    a leaf works in the target repository, where the bare name resolves to nothing — and
+#    each run has to name its tier, since the mark's `tier=` key is the wrapper's first
+#    argument and is what every later reader groups by.
+name="develop-green runs the fast command and the affected suites through timed-test-run.sh, under tiers fast and affected"
+problems=()
+green_wrapped="$("$DEVELOP" green "$work/spec.md" 'QWIXTLE step' 'make test' 'tests/zorblat.test.sh' 'zorblat case' 'make unit' 2>/dev/null)" ||
+  problems+=("build-develop-prompt.sh green exited $?")
+runnable=""
+while read -r cand; do
+  [[ -x "$cand" ]] && runnable="$cand"
+done < <(grep -oE '[^ `]*timed-test-run\.sh' <<< "$green_wrapped")
+if [[ -z "$runnable" ]]; then
+  problems+=("develop-green's prompt never names timed-test-run.sh at a path the leaf can run")
+fi
+for tier in fast affected; do
+  if ! plain <<< "$green_wrapped" | grep -qE "timed-test-run\.sh $tier\b"; then
+    problems+=("develop-green's prompt never tells its leaf to run through timed-test-run.sh under tier $tier")
+  fi
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
