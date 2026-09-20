@@ -20,8 +20,8 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — three criteria, the procedure, the account of it, and what the
-# leaf's report grows, one case each:
+# Contract under test — four criteria, the procedure, the account of it, what the leaf's
+# report grows, and what a growth budget too full to hold it means, one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -35,6 +35,9 @@
 #      `add-ledger-step.sh … after '<STEP>'` call once verify-refactor has PASSed, and the
 #      ledger those steps landed in rides the commit that clears the refactor-pending mark
 #      (issue #361).
+#   4. That section narrates `add-ledger-step.sh` exit 1 — the plan-growth budget is full, so
+#      nothing was inserted and every value was filed under the ledger's `## Owed steps`
+#      heading — as the owed steps it is, and does not bail on it (issue #361).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -368,6 +371,50 @@ else
   else
     grep -qE 'add-ledger-step' <<<"$cleared" ||
       problems+=("$skill_md's Refactor section commits the cleared ledger without the steps add-ledger-step.sh inserted into it, so a step added for triangulation is lost the moment the run is resumed from the committed ledger")
+  fi
+fi
+
+report "$name"
+
+# 4. One criterion — a plan-growth budget that cannot hold the leaf's `NEW_STEP:` values is
+#    not a run-ending fault — and so one case. `add-ledger-step.sh` exit 1 is the fifth
+#    axis's refusal: nothing is inserted, every text is appended as a plain bullet under the
+#    ledger's trailing `## Owed steps` heading, and `render-pr-body.sh` puts that heading in
+#    front of the human who decides the merge. The step is therefore recorded, just not
+#    planned — which is a narration, not a bail. A section that left exit 1 unspoken leaves
+#    the conductor to read a non-zero exit as the failure every other non-zero exit in this
+#    phase is, and a run whose refactor verified PASS would end on the one answer that means
+#    the plan grew past its budget.
+#
+#    Asked of the clause itself and not of the section at large, for the reason the refusals
+#    in case 1 are: this section already says bail four times over, for the leaf's exit 2,
+#    for a malformed verdict and for an exhausted revise budget, and a probe reading the
+#    whole section would be answered by those and pass a document that bails here too.
+name="$skill_md's Refactor section narrates add-ledger-step.sh exit 1 as owed steps and does not bail on it"
+problems=()
+
+if unreadable_section; then
+  # Fail closed, the same way cases 1 and 3 do: a renamed or emptied section is unreadable,
+  # not silently right.
+  problems+=("$skill_md has no '#### Refactor' section to read — what the conductor does when the plan-growth budget cannot hold the leaf's NEW_STEP: values could not be established")
+else
+  # The claim, found by what it says rather than by where it sits: an exit 1 spoken of in
+  # the same clause as the owed steps it files. 120 characters either way is about one
+  # clause, which is what keeps this from matching the other two exit 1s this section
+  # carries — the rejected push's and the REJECT verdict's, neither of which has the word
+  # `owed` anywhere near it.
+  owed_claim='(exit 1.{0,120}owed|owed.{0,120}exit 1)'
+  if ! grep -qE "$owed_claim" <<<"$section"; then
+    problems+=("$skill_md's Refactor section never says what add-ledger-step.sh exit 1 means, so a conductor meeting the plan-growth budget's refusal is left to read it as the failure every other non-zero exit in this phase is, and the NEW_STEP: values it filed as owed steps go unmentioned")
+  else
+    # And that the clause does not end the run. The window is the claim with about a clause
+    # either side of it, not the section: `win`'s 250 would reach the REJECT and
+    # killed-stuck bullets from the end of the PASS one, and this probe would then be
+    # answered by a bail that is not this one's.
+    clause="$(grep -oE ".{0,150}$owed_claim.{0,150}" <<<"$section" | head -1)"
+    bailed="$(grep -oE 'bail|abort' <<<"$clause" | head -1)"
+    [[ -z "$bailed" ]] ||
+      problems+=("$skill_md's Refactor section says '$bailed' where it narrates add-ledger-step.sh exit 1, so a ledger whose growth budget is full ends a run whose step verified PASS — the owed steps are recorded and the plan simply did not grow, which is nothing to stop for")
   fi
 fi
 

@@ -900,7 +900,13 @@ following step. The phase sub-steps are:
      triangulating step lands next to the code it triangulates: the script reads
      `VERI_STEP_GROWTH` once per call, so a call per value would refuse the third value of a
      step that one call either fits whole or files whole. A leaf reporting `NEW_STEP: none`
-     is no call and no mark at all. The leaf was forbidden to
+     is no call and no mark at all.
+     **exit 1** is that one call meeting the plan-growth budget: nothing is inserted, and
+     every text is recorded as an owed step under the ledger's trailing `## Owed steps`
+     heading, where `next-unchecked.sh` will not find it, so the run never plans it.
+     Narrate it as the owed steps it is and carry on to the clear below — the step verified
+     PASS and the values are recorded; the plan simply did not grow, which is nothing to
+     stop a run for. The leaf was forbidden to
      generalize the overfit code it found; this is where the step that forces it is owed to
      somebody. That grown ledger rides the same commit as the clear.
      A clear left uncommitted is not a clear, and a step inserted into a ledger nothing
