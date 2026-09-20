@@ -2,7 +2,7 @@
 
 - [x] add-ledger-step.sh inserts `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` after the anchor step, carrying the anchor's k, exit 0 ⟦criterion 1⟧
 - [x] `before` inserts several texts, in the order given, on the lines before the anchor step ⟦criterion 2⟧
-- [ ] an anchor step carrying no `⟦criterion k⟧` yields an added step carrying none ⟦criterion 3⟧
+- [x] an anchor step carrying no `⟦criterion k⟧` yields an added step carrying none ⟦criterion 3⟧
 - [ ] criterion-finished.sh does not report k finished while an unchecked `⟦added⟧` step serving k remains ⟦criterion 4⟧
 - [ ] over budget, the call inserts no checkbox, exits 1, and appends every text as a plain bullet under a trailing `## Owed steps` heading ⟦criterion 5⟧
 - [ ] next-unchecked.sh never returns a bullet under `## Owed steps` ⟦criterion 6⟧
