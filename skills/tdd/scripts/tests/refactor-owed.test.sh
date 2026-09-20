@@ -75,25 +75,22 @@ under_step() {
 #
 #    The fixture is a whole report rather than bare candidate lines because that is what the
 #    conductor pipes in: the leaf's last lines, verbatim (develop-refactor.md, *Report*).
-#    It is written to a file rather than through `$(cat <<'REPORT' … )` for the reason
-#    refactor-triage.test.sh records: a command substitution is scanned for its closing
-#    paren without regard for the heredoc inside it, so the apostrophe in `verify.sh's`
-#    below would read as an unterminated quote.
+#    It is redirected straight into the script's stdin as a quoted heredoc — never built up
+#    in `$(cat <<'REPORT' … )`, for the reason refactor-triage.test.sh records: a command
+#    substitution is scanned for its closing paren without regard for the heredoc inside it,
+#    so the apostrophe in `verify.sh's` below would read as an unterminated quote.
 name="append writes only the structural candidates to the file, under the named step"
 problems=()
 
-leaf_report="$(mktemp)"
-cat > "$leaf_report" <<'REPORT'
+owed_file="$(mktemp)"
+step='refactor-owed.sh append writes only the structural CANDIDATES lines'
+"$OWED" append "$owed_file" "$step" <<'REPORT' && code=0 || code=$?
 RESULT: applied "fold verify.sh's two prompt paths into one", suite green
 FLAGS: none
 CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
 CANDIDATES: cosmetic | reflow the header comment to ninety columns
 CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
 REPORT
-
-owed_file="$(mktemp)"
-step='refactor-owed.sh append writes only the structural CANDIDATES lines'
-"$OWED" append "$owed_file" "$step" <"$leaf_report" && code=0 || code=$?
 
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from append, got $code")
@@ -116,7 +113,7 @@ grep -qF "$cosmetic" "$owed_file" &&
 # The step is named, and named before the candidate it left behind.
 under_step "$owed_file" "$step" 'fold verify.sh'"'"'s two mktemp calls into one helper'
 
-rm -f "$leaf_report" "$owed_file"
+rm -f "$owed_file"
 report "$name"
 
 # 2. what a second `append` does to what the first wrote. The file accumulates across a
@@ -131,28 +128,22 @@ report "$name"
 name="two append calls for different steps leave both steps' candidates in the file"
 problems=()
 
-first_report="$(mktemp)"
-cat > "$first_report" <<'REPORT'
+owed_file="$(mktemp)"
+first_step='refactor-owed.sh append writes only the structural CANDIDATES lines'
+second_step='two append calls for different steps keep both steps'
+"$OWED" append "$owed_file" "$first_step" <<'REPORT' && code=0 || code=$?
 RESULT: applied "split the verdict parser out of run-leaf.sh", suite green
 FLAGS: none
 CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
 REPORT
-
-second_report="$(mktemp)"
-cat > "$second_report" <<'REPORT'
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from the first append, got $code")
+"$OWED" append "$owed_file" "$second_step" <<'REPORT' && code=0 || code=$?
 RESULT: applied "name the ledger path once", suite green
 FLAGS: none
 CANDIDATES: cosmetic | reflow the header comment to ninety columns
 CANDIDATES: structural | hoist the ledger path into one variable
 REPORT
-
-owed_file="$(mktemp)"
-first_step='refactor-owed.sh append writes only the structural CANDIDATES lines'
-second_step='two append calls for different steps keep both steps'
-"$OWED" append "$owed_file" "$first_step" <"$first_report" && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("want exit 0 from the first append, got $code")
-"$OWED" append "$owed_file" "$second_step" <"$second_report" && code=0 || code=$?
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from the second append, got $code")
 
@@ -168,7 +159,7 @@ do
     problems+=("'$wanted' is not in $owed_file; the second append did not add to what the first wrote")
 done
 
-rm -f "$first_report" "$second_report" "$owed_file"
+rm -f "$owed_file"
 report "$name"
 
 # 3. what `render` prints. The owed file accumulates one section per step across a whole
@@ -189,26 +180,20 @@ report "$name"
 name="render prints a ## Refactor owed section listing every recorded candidate under its step"
 problems=()
 
-first_report="$(mktemp)"
-cat > "$first_report" <<'REPORT'
+owed_file="$(mktemp)"
+first_step='refactor-owed.sh append writes only the structural CANDIDATES lines'
+second_step='refactor-owed.sh render prints a Refactor owed section'
+"$OWED" append "$owed_file" "$first_step" <<'REPORT'
 RESULT: applied "split the verdict parser out of run-leaf.sh", suite green
 FLAGS: none
 CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
 REPORT
-
-second_report="$(mktemp)"
-cat > "$second_report" <<'REPORT'
+"$OWED" append "$owed_file" "$second_step" <<'REPORT'
 RESULT: applied "name the ledger path once", suite green
 FLAGS: none
 CANDIDATES: structural | hoist the ledger path into one variable
 CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
 REPORT
-
-owed_file="$(mktemp)"
-first_step='refactor-owed.sh append writes only the structural CANDIDATES lines'
-second_step='refactor-owed.sh render prints a Refactor owed section'
-"$OWED" append "$owed_file" "$first_step" <"$first_report"
-"$OWED" append "$owed_file" "$second_step" <"$second_report"
 
 rendered="$(mktemp)"
 "$OWED" render "$owed_file" >"$rendered" 2>/dev/null && code=0 || code=$?
@@ -226,7 +211,7 @@ under_step "$rendered" "$first_step" "fold verify.sh's two mktemp calls into one
 under_step "$rendered" "$second_step" 'hoist the ledger path into one variable'
 under_step "$rendered" "$second_step" 'rename $tmp to $prompt_file, which is what it holds'
 
-rm -f "$first_report" "$second_report" "$owed_file" "$rendered"
+rm -f "$owed_file" "$rendered"
 report "$name"
 
 
