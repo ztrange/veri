@@ -65,6 +65,30 @@ want='# Plan for #42
 - [ ] strip edge hyphens ⟦criterion 3⟧'
 check "no criterion on the anchor: the added step carries none either" "$code" "$want"
 
+# 4. over budget: the call is all or nothing — no checkbox is inserted, it exits 1, and every
+#    text lands as a plain bullet under a trailing `## Owed steps` heading. Two texts against
+#    a budget of one, so it is the texts given that overflow, not steps already added.
+seed
+VERI_STEP_GROWTH=1 "$ADD" "$led" before 'collapse to single hyphen' 'one more edge case' 'and another'; code=$?
+want='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] strip edge hyphens ⟦criterion 3⟧
+
+## Owed steps
+
+- one more edge case
+- and another'
+name="over budget: inserts no checkbox, exits 1, and owes both texts as plain bullets"
+got="$(cat "$led")"
+if [[ "$code" == 1 && "$got" == "$want" ]]; then
+  ok
+else
+  no "$name (code=$code)"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
