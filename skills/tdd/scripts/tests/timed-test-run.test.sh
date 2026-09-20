@@ -29,6 +29,9 @@ TIMED="$HERE/../timed-test-run.sh"
 # The reader at the other end of the mark, for case 2: the same report the conductor commits
 # beside the ledger and pastes into the issue thread.
 METRICS="$HERE/../metrics.sh"
+# The other reader of the mark, for case 3: the figure a later comparison judges a run
+# against.
+USUAL="$HERE/../tier-usual.sh"
 pass=0 fail=0
 
 report() {
@@ -159,6 +162,41 @@ print(" ".join(rows))
 
 [[ "${#problems[@]}" -eq 0 ]] ||
   problems+=("the report was: $(printf '%q' "$(cat "$report_out")")")
+rm -rf "$work"
+report "$name"
+
+
+# 3. The third reader of the same mark, and the last of the three #373 found wired to
+#    nothing. Case 2 says the wrapper's line renders a metrics row; this says the same line
+#    is one tier-usual.sh computes its figure from. tier-usual.test.sh has a median case, but
+#    its log is hand-written JSON, so a writer that spelled `seconds` differently, or stopped
+#    writing it, would leave that case green while every real run left tier-usual.sh medianing
+#    an empty list — which over an empty list is not a smaller figure but no figure at all,
+#    since there is no middle element to take (`tier-usual.sh:44`).
+#
+#    So nothing here is fabricated either: the log is whatever timed-test-run.sh itself left
+#    behind, two runs of it under one tier. The assertion is that an answer came back at all —
+#    exit 0 and a number on stdout — never which number: the seconds a `true` happens to take
+#    on this machine are a cost, and a suite here asserts behaviour (CLAUDE.md, "Testing
+#    idiom").
+name="a log carrying timed-test-run.sh's own test-run marks gives tier-usual.sh a figure to answer with"
+problems=()
+work="$(mktemp -d)"
+for _ in 1 2; do
+  ( cd "$work" && env VERI_ISSUE=373 VERI_ACTOR=developer VERI_PHASE=green VERI_STEP=1 \
+      VERI_ATTEMPT=1 "$TIMED" fast 'skills/tdd/scripts/tests/event.test.sh' true ) >/dev/null 2>&1 ||
+    problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
+done
+
+usual="$( cd "$work" && "$USUAL" fast 2>/dev/null )" && code=0 || code=$?
+[[ "$code" == 0 ]] ||
+  problems+=("want tier-usual.sh to exit 0 over the log the wrapper wrote, it exited $code")
+
+[[ "$usual" =~ ^[0-9]+(\.[0-9]+)?$ ]] ||
+  problems+=("usual for tier fast: want a number computed from the marks, got $(printf '%q' "$usual")")
+
+[[ "${#problems[@]}" -eq 0 ]] ||
+  problems+=("the log was: $(printf '%q' "$(cat "$work/.tdd/events.jsonl" 2>&1)")")
 rm -rf "$work"
 report "$name"
 
