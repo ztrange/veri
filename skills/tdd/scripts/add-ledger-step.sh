@@ -11,9 +11,9 @@
 set -euo pipefail
 
 file="${1:?usage: add-ledger-step.sh <ledger-file> after <anchor-substring> <text>}"
-where="${2:?usage: add-ledger-step.sh <ledger-file> after <anchor-substring> <text>}"
-anchor="${3:?usage: add-ledger-step.sh <ledger-file> after <anchor-substring> <text>}"
-text="${4:?usage: add-ledger-step.sh <ledger-file> after <anchor-substring> <text>}"
+where="${2:?missing after}"
+anchor="${3:?missing <anchor-substring>}"
+text="${4:?missing <text>}"
 
 # criterion_of <step-line> -> ` ⟦criterion k⟧`, or nothing when the line carries none.
 # Read with globs rather than a regex: the marks are multibyte and suites run under LC_ALL=C.
