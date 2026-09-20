@@ -1129,6 +1129,37 @@ grep -q 'FLAGS:' <<<"$refactor" && problems="$problems; the report still carries
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor ends its report with NEW_STEP: lines offering none and carries no FLAGS: line (${problems#; })"
 
+# 33. the way out of a step too big for one green (issue #363). Case 2 pins the test the green
+#     leaf must satisfy and the rule that it may not weaken it; this case pins what it may do
+#     when neither is reachable — when the step needs more than one new behaviour at once, and
+#     the only honest answers so far were a faked pass or a bail. Beck's Child Test is the
+#     third: report the smaller steps instead of an implementation, and let the run come back
+#     to this one. So the prompt offers `SPLIT:` — one to three behaviour-level criteria, one
+#     per line, the conductor greps for and hands to `add-ledger-step.sh` — and says that a
+#     leaf taking it changes no production code, since a split that left half an implementation
+#     behind would hand the next step a tree nobody wrote a test for. Three faces of one
+#     criterion, so one case.
+#
+#     The prompt read is case 2's: same phase, same arguments, so there is one invocation and
+#     case 2 owns the exit-0 check on it. The report line is probed unfolded and anchored at
+#     `^`, the way cases 8 and 32 probe `CANDIDATES:` and `NEW_STEP:`, because what is pinned
+#     is a report LINE the conductor greps for at the start of one. The other two are claims
+#     made somewhere in a sentence, so they go through `prompt_says`, and the third through
+#     `says_both_ways` for case 16's reason — "report SPLIT: lines, changing no production
+#     code" reads as naturally as "no production code changes when the leaf splits". The gap
+#     is 80: the two halves belong to one sentence. `SPLIT` occurs nowhere in the prompt built
+#     today and neither does "no production code" — the template's one "production code" is
+#     the opening instruction to write the minimum of it — so no probe is answered by prose
+#     already there.
+problems=""
+grep -qE '^SPLIT:' <<<"$green" || problems="$problems; no SPLIT: report line"
+prompt_says "$green" "never bounds the split at one to three criteria" \
+  -iE -e 'one to three|1 to 3|(at most|no more than) three'
+says_both_ways "$green" "never says a leaf that splits changes no production code" \
+  80 'SPLIT' '(no|any|without changing) production code'
+[[ -z "$problems" ]] \
+  && ok || no "develop-green offers one to three SPLIT: lines instead of an implementation, changing no production code (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
