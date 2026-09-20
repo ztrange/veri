@@ -97,6 +97,12 @@ says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
+# The one probe both divergence cases owe: any wording naming exit 0 and exit 2 together as the
+# codes that take the diverged path. Written once because the Red section and the revise loop
+# each have to say it, and a regex copied into two cases is one chance for a rewording to be
+# pinned in only one of them. The failure messages stay per-case: each names its own section.
+exit_0_or_2='exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b'
+
 # 1. One criterion — the Red comment carries the prediction and whether it matched — and so
 #    one case: a thread showing only one of the two halves cannot be read for divergence,
 #    and the fix to either is one edit to one instruction.
@@ -126,7 +132,7 @@ problems=()
 # speaks of `.tdd/verify-red.reason` and of a revise loop.
 if red_section 'red-divergence' \
   "$skill_md's Red section never runs \`red-divergence.sh\` on the leaf's report, so a \`PREDICTION: DIVERGED\` goes to verify-red like a matched one"; then
-  says 'exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b' \
+  says "$exit_0_or_2" \
     "$skill_md names \`red-divergence.sh\` without saying which of its exit codes takes the diverged path, so exit 2 — a prediction nobody can read — is not handled like a divergence"
   says 'skips? verify-red and verify-pin|skips? both verify-red and verify-pin|verify-red and verify-pin entirely' \
     "$skill_md does not tell the conductor to skip verify-red and verify-pin on a divergence, so the blind verifier still judges a test the developer already flagged as suspect"
@@ -153,7 +159,7 @@ if revise_section 'red-divergence' \
   "$skill_md's \`Revising on a REJECT\` section never runs \`red-divergence.sh\` on a revise-red report, so a rewritten red test that failed for the wrong reason goes straight back to the blind verifier"; then
   says 'revise-red|revise of red|red revise|phase is red|<phase> is red' \
     "$skill_md does not say the check is the red phase's, so the loop runs it on a green or refactor revise report, whose own template writes no \`PREDICTION:\` line"
-  says 'exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b' \
+  says "$exit_0_or_2" \
     "$skill_md names \`red-divergence.sh\` in the revise loop without saying which of its exit codes takes the diverged path, so exit 2 — a prediction nobody can read — is not handled like a divergence"
   says 'without (launching|running|re-running) the verifier|skip(s|ping)? (the )?re-verif|do not re-verify|never re-verif|without re-verifying' \
     "$skill_md does not tell the conductor to skip the re-verification on a diverged revise-red, so the blind verifier judges a test the revise leaf itself flagged as suspect"
