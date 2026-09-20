@@ -20,7 +20,8 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — two criteria, the procedure and the account of it, one case each:
+# Contract under test — three criteria, the procedure, the account of it, and what the
+# leaf's report grows, one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -30,6 +31,10 @@
 #   2. CONTEXT.md's **Cycle** entry and CLAUDE.md's three-budgets invariant describe that
 #      same shape — one refactor leaf for the step, not a transformation per leaf — and
 #      point a reader at the ADR that now records it.
+#   3. SKILL.md's Refactor section passes the leaf's `NEW_STEP:` values to one
+#      `add-ledger-step.sh … after '<STEP>'` call once verify-refactor has PASSed, and the
+#      ledger those steps landed in rides the commit that clears the refactor-pending mark
+#      (issue #361).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -301,6 +306,61 @@ fi
 # that the records name the decision, and a citation in one of them is a reader sent there.
 [[ -n "$(adr_pointer "$cycle $invariant")" ]] ||
   problems+=("neither $context_md's Cycle entry nor $claude_md's budget invariant names an ADR other than the superseded 0010, so nothing in either record points a reader at the decision that replaced one transform per leaf")
+
+report "$name"
+
+# 3. One criterion — the refactor leaf's `NEW_STEP:` lines become steps in the plan — and so
+#    one case. Case 1 pins what the conductor checks about the leaf's commits; this pins what
+#    it does with the one part of the leaf's report that is not a leftover and not a
+#    transform: the behaviour-level criterion that would force the general implementation of
+#    overfit code the leaf was forbidden to generalize itself. ADR-0009 promised the refactor
+#    leaf "confirms the plan contains" such a step, and until this issue nothing added one:
+#    the line was narrated into the thread and the plan stayed as it was, so the triangulation
+#    the leaf refused to do by hand was owed to nobody.
+#
+#    The insertion and the commit are one criterion for the same reason the append and its
+#    commit are one in skill-refactor-owed.test.sh: resume reads the COMMITTED ledger, so a
+#    step inserted into a file nothing commits is a step the next run never sees, and it is
+#    the refactor-pending clear that is the one commit a completed step always makes.
+#
+#    `one` call is asked as the number of `$S/add-ledger-step.sh` invocations the section
+#    holds, because the script takes every text at once and reads the growth budget per call:
+#    a call per value would refuse the third `NEW_STEP:` line of a step under the default
+#    `VERI_STEP_GROWTH` while the one call this criterion asks for either fits them all or
+#    files them all as owed. A mention that is not an invocation — the script named in a
+#    sentence about what its exit 1 means — carries no `$S/` and is not counted.
+name="$skill_md's Refactor section passes the leaf's NEW_STEP: values to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
+problems=()
+
+if [[ -z "${section// /}" ]]; then
+  # Fail closed, the same way case 1 does: a renamed or emptied section is unreadable, not
+  # silently right.
+  problems+=("$skill_md has no '#### Refactor' section to read — what becomes of the leaf's NEW_STEP: lines could not be established")
+else
+  calls="$(grep -oE '\$s/add-ledger-step\.sh' <<<"$section" | grep -c '')"
+  if [[ "$calls" -eq 0 ]]; then
+    problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so the leaf's NEW_STEP: lines are narrated and nothing grows the plan — the triangulating step the leaf refused to write by hand is owed to nobody")
+  elif [[ "$calls" -gt 1 ]]; then
+    problems+=("$skill_md's Refactor section runs add-ledger-step.sh $calls times, so a step's NEW_STEP: values are inserted a call at a time and the growth budget is read once per value rather than once for the step")
+  else
+    added="$(win '\$s/add-ledger-step\.sh')"
+    grep -qE 'new_step' <<<"$added" ||
+      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the leaf's NEW_STEP: values, so what the inserted step says is left to judgement")
+    grep -qE "after '?<step>" <<<"$added" ||
+      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
+  fi
+
+  # And the commit. `clear-refactor-pending.sh` is the anchor for the same reason
+  # skill-refactor-owed.test.sh uses it: that clear is the one commit a completed step always
+  # makes, and a ledger grown but not committed is a plan the next run never reads.
+  cleared="$(win 'clear-refactor-pending\.sh')"
+  if [[ -z "$cleared" ]]; then
+    problems+=("$skill_md's Refactor section never clears the refactor-pending mark, so the commit the grown ledger is supposed to ride does not exist to be read for")
+  else
+    grep -qE 'add-ledger-step' <<<"$cleared" ||
+      problems+=("$skill_md's Refactor section commits the cleared ledger without the steps add-ledger-step.sh inserted into it, so a step added for triangulation is lost the moment the run is resumed from the committed ledger")
+  fi
+fi
 
 report "$name"
 

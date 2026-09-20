@@ -815,9 +815,9 @@ following step. The phase sub-steps are:
    `git commit -m "refactor: <what> (#<n>)"`. The atomic tick-and-commit stays on green
    (ADR-0007); it is the refactor commit that moved to the leaf. The report is in
    `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
-   `nothing left to tidy`), `FLAGS:` (overfit code and the case that would force the
-   generality, or `none`) and `CANDIDATES:` (one line per leftover it still sees, each
-   carrying its class, or `none`).
+   `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each
+   carrying its class, or `none`) and `NEW_STEP:` (one behaviour-level criterion per line
+   that would force the general implementation of overfit code it found, or `none`).
 2. **Check what the leaf left.** The leaf produced the result; the conductor's job in this
    phase is to **check** it, because verify-refactor judges the **settled tree** and can see
    neither of the two faults below. Ask git, not the report:
@@ -883,9 +883,12 @@ following step. The phase sub-steps are:
    $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md '<STEP>' < .tdd/develop-refactor.out
    ```
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
-     **clear the refactor-pending mark and commit the cleared ledger first**, before
-     anything outside the repository says the step is done:
+     **grow the plan with the leaf's `NEW_STEP:` values, then clear the refactor-pending
+     mark and commit the grown, cleared ledger first**, before anything outside the
+     repository says the step is done:
      ```
+     $S/add-ledger-step.sh .tdd/issue-<n>.md after '<STEP>' '<NEW_STEP: value>' …   # every NEW_STEP: value in ONE call
+     VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
@@ -893,6 +896,15 @@ following step. The phase sub-steps are:
      `git add -A` is what carries `.tdd/issue-<n>-refactor-owed.md` into that same commit:
      what `append` wrote is untracked until then, and a file left beside the worktree is
      lost with it.
+     Every `NEW_STEP:` value goes in **one** call, anchored `after '<STEP>'` so the
+     triangulating step lands next to the code it triangulates: the script reads
+     `VERI_STEP_GROWTH` once per call, so a call per value would refuse the third value of a
+     step that one call either fits whole or files whole. A leaf reporting `NEW_STEP: none`
+     is no call and no mark at all. The leaf was forbidden to
+     generalize the overfit code it found; this is where the step that forces it is owed to
+     somebody. That grown ledger rides the same commit as the clear — resume reads the
+     **committed** ledger, so a step inserted into a file nothing commits is a step the next
+     run never sees.
      A clear left uncommitted is not a clear: resume reads the **committed** ledger, so
      until that commit exists the step still says pending. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
