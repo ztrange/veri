@@ -73,30 +73,23 @@ doc_text() {
     }' "$skill_path" | plain | tr '\n' ' '
 }
 
-# red_section <from-regex> <missing-message> — set `text` to the Red section's words from
-# <from-regex> on, and say whether a case's probes can run at all. Nothing matching means the
-# anchor is gone — the section was renamed, or the instruction moved — so the message goes into
-# `problems` and 1 comes back: a case whose anchor vanished must read as one failure, never as
-# a row of passes over an empty string. Both cases below anchor in the same `#### Red` section,
-# which is why the heading is written once, here.
-red_section() {
-  text="$(doc_text '#### Red' "$1")"
+# section <heading-prefix> <from-regex> <missing-message> — set `text` to that section's words
+# from <from-regex> on, and say whether a case's probes can run at all. Nothing matching means
+# the anchor is gone — the section was renamed, or the instruction moved — so the message goes
+# into `problems` and 1 comes back: a case whose anchor vanished must read as one failure, never
+# as a row of passes over an empty string.
+section() {
+  text="$(doc_text "$1" "$2")"
   [[ -n "${text// /}" ]] && return 0
-  problems+=("$2")
+  problems+=("$3")
   return 1
 }
 
-# revise_section <from-regex> <missing-message> — the same for the `## Revising on a REJECT`
-# section, whose loop runs a second time for a revise-red report. Written beside
-# `red_section` rather than folded into it: the two cases below anchor in different
-# sections, and a case whose section is gone must read as one failure, not a row of passes
-# over an empty string.
-revise_section() {
-  text="$(doc_text '## Revising on a REJECT' "$1")"
-  [[ -n "${text// /}" ]] && return 0
-  problems+=("$2")
-  return 1
-}
+# The two sections the cases below anchor in, each heading written once so a rename to either is
+# one edit here rather than one per case: `#### Red` holds the Red phase's own instructions, and
+# `## Revising on a REJECT` the revise loop that owes the same check a second time.
+red_section()    { section '#### Red' "$@"; }
+revise_section() { section '## Revising on a REJECT' "$@"; }
 
 # says <regex> <fact> — one thing the narration text has to carry, written as the regex of
 # any wording that would carry it; `fact` names it once if nothing matches.
