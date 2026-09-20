@@ -25,7 +25,9 @@
 # only compares integers — and the ratio rule is a multiplication besides. awk's own exit
 # status is already this script's answer — `exit !(…)` is 0 when the run is over budget and
 # 1 when it is not — so the comparison is `exec`'d rather than run and re-encoded, which
-# also spares the run one process.
+# also spares the run one process. The tier goes to awk as itself rather than as a flag
+# bash worked out first, so which tier the fixed ceiling belongs to is stated once, in the
+# expression that applies it.
 set -euo pipefail
 
 tier="${1:?usage: over-budget.sh <tier> <seconds> <usual>}"
@@ -40,10 +42,5 @@ limits="$("$HERE/time-budget.sh")"
 budget="${limits%%$'\n'*}"
 ratio="${limits##*$'\n'}"
 
-unit=0
-if [[ "$tier" == "unit" ]]; then
-  unit=1
-fi
-
-exec awk -v s="$seconds" -v b="$budget" -v r="$ratio" -v u="$usual" -v unit="$unit" \
-  'BEGIN { exit !((unit && s > b) || s > r * u) }'
+exec awk -v s="$seconds" -v b="$budget" -v r="$ratio" -v u="$usual" -v tier="$tier" \
+  'BEGIN { exit !((tier == "unit" && s > b) || s > r * u) }'
