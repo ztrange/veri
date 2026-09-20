@@ -640,7 +640,27 @@ following step. The phase sub-steps are:
    to force a pass.
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
    cleanly (see *Bailing*); do not retry.
-2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
+2. **Check the prediction (the `FAILS` path only).** Before any verifier, run
+   `red-divergence.sh` on the leaf's report and branch on **its** exit code:
+   ```
+   $S/red-divergence.sh < .tdd/develop-red.out > .tdd/verify-red.reason; echo $?
+   ```
+   - **Exit 3 — `PREDICTION: MATCHED`:** nothing was surprising. The script printed
+     nothing; continue to *Verify (blind)* below.
+   - **Exit 0 or 2 — diverged, or a prediction nobody can read:** the test failed for a
+     reason other than the one it was written to catch (exit 0), or the report carries no
+     readable `PREDICTION:` line at all (exit 2), which is handled the same way — an
+     unreadable prediction is not a matched one. Beck stops on that surprise, because the
+     test is then the suspect, and this gate is **yours**: verify-red is blind by
+     construction and the prediction is the developer's reasoning, so no verifier can be
+     told about it. So **skip verify-red and verify-pin**, keep the reason the script wrote
+     to `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead —
+     the report had no prediction to read), mark it with
+     `$S/event.sh prediction-diverged` so the divergence is in the run log, and enter the
+     **revise loop** for red exactly as a verify-red `REJECT` does (see *Revising on a
+     REJECT*) — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
+     `REVISE_BUDGET` like any other.
+3. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
    On **`UNTESTABLE`** there is no test on disk for a blind verifier to judge — sending
    nothing to verify-red would only get a malformed-verdict `REJECT` for the wrong reason —
    so skip verify-red and verify-pin entirely and **bail** immediately with cause
@@ -670,7 +690,7 @@ following step. The phase sub-steps are:
    `.tdd/verify-<phase>.reason` to narrate it. The file is named for the **verifier** that
    wrote it (`red`, `pin`, `green`, `refactor`), and each verification of that phase
    overwrites it — the newest objection is the only one a revise leaf should answer.
-3. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment with the test, the
+4. **Narrate + branch (the `FAILS` path).** Post a `### 🔴 Red` comment with the test, the
    failing output, the leaf's `PREDICTED_FAILURE:` and whether the prediction **matched or
    diverged** — with its `PREDICTION_NOTE:` when it diverged. Both halves, always: the
    prediction is what the failing output is read against, so a thread carrying only one of
