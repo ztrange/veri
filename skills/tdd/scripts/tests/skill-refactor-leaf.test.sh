@@ -109,13 +109,18 @@ plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# refactor_section — the lines after the first heading starting `#### Refactor`, up to the
-# next heading of any level, normalised through `plain` and joined onto one line: none of
+# The heading the section is found by, spelled once: the probes look for it and the three
+# fail-closed messages below name it, and a suite where those are separate literals can be
+# re-pointed at a renamed heading while still telling a reader it searched for the old one.
+refactor_heading='#### Refactor'
+
+# refactor_section — the lines after the first heading starting `$refactor_heading`, up to
+# the next heading of any level, normalised through `plain` and joined onto one line: none of
 # the probes below is about order, and a claim that wraps across two lines is still one
 # claim. The prefix stops at the word the phase is named for, so a heading reworded from
 # "Refactor loop" — which is what this issue stops it being — is still the section found.
 refactor_section() {
-  awk -v h='#### Refactor' \
+  awk -v h="$refactor_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
     plain | tr '\n' ' '
 }
@@ -128,6 +133,14 @@ section="$(refactor_section)"
 # where "the phase is gone" reads as a pass in one of them.
 unreadable_section() {
   [[ -z "${section// /}" ]]
+}
+
+# unreadable_problem <what-could-not-be-established> — the message the three fail-closed
+# cases share, differing only in what each of them was about to ask. Spelled once for the
+# same reason `unreadable_section` is: three copies of the sentence are three chances for one
+# of them to keep naming a heading this suite has stopped looking for.
+unreadable_problem() {
+  printf "%s has no '%s' section to read — %s" "$skill_md" "$refactor_heading" "$1"
 }
 
 # win <extended-regex> [radius] — the section text within <radius> characters either side of
@@ -157,7 +170,7 @@ problems=()
 if unreadable_section; then
   # Fail closed: a renamed or emptied section is reported as unreadable rather than probed
   # as an empty string, which would let "the phase is gone" read as "the phase is right".
-  problems+=("$skill_md has no '#### Refactor' section to read — how the refactor leaf is launched and what is asked of its result could not be established")
+  problems+=("$(unreadable_problem "how the refactor leaf is launched and what is asked of its result could not be established")")
 else
   # 1. One leaf for the step. Both faces, because either alone passes a document that is
   #    half-rewritten: it has to SAY one leaf, and it must no longer tell the conductor to
@@ -349,7 +362,7 @@ problems=()
 if unreadable_section; then
   # Fail closed, the same way case 1 does: a renamed or emptied section is unreadable, not
   # silently right.
-  problems+=("$skill_md has no '#### Refactor' section to read — what becomes of the leaf's NEW_STEP: lines could not be established")
+  problems+=("$(unreadable_problem "what becomes of the leaf's NEW_STEP: lines could not be established")")
 else
   calls="$(grep -oE '\$s/add-ledger-step\.sh' <<<"$section" | grep -c '')"
   if [[ "$calls" -eq 0 ]]; then
@@ -398,7 +411,7 @@ problems=()
 if unreadable_section; then
   # Fail closed, the same way cases 1 and 3 do: a renamed or emptied section is unreadable,
   # not silently right.
-  problems+=("$skill_md has no '#### Refactor' section to read — what the conductor does when the plan-growth budget cannot hold the leaf's NEW_STEP: values could not be established")
+  problems+=("$(unreadable_problem "what the conductor does when the plan-growth budget cannot hold the leaf's NEW_STEP: values could not be established")")
 else
   # The claim, found by what it says rather than by where it sits: an exit 1 spoken of in
   # the same clause as the owed steps it files. 120 characters either way is about one
