@@ -116,14 +116,23 @@ call_at() {
     'NR >= s && NR <= e && index($0, want) { print NR; exit }' "$md"
 }
 
+# preflight_or_problem <what> — enter the preflight section, or record the one problem that
+# says the case could not be read at all. Non-zero when the heading is gone, so each case
+# below is a probe run inside the section rather than a probe and its own missing-section
+# branch: both cases ask the same question first and would otherwise spell the same
+# fail-closed message twice, once per case.
+preflight_or_problem() {
+  section "$preflight" && return 0
+  problems+=("$skill_md has no '$preflight' section — where $1 would sit could not be read")
+  return 1
+}
+
 # 1. One criterion, one case: the check the earlier steps built is the one a real run
 #    performs, and it runs before the run has paid for anything.
 name="$skill_md's preflight runs $launchable before the baseline suite"
 problems=()
 
-if ! section "$preflight"; then
-  problems+=("$skill_md has no '$preflight' section — where a launchability check would sit could not be read")
-else
+if preflight_or_problem "a launchability check"; then
   launch_at="$(call_at "$launchable")"
   baseline_at="$(call_at "$detector")"
   [[ -n "$launch_at" ]] ||
@@ -156,9 +165,7 @@ item_around() {
 name="$skill_md's preflight refuses to start on a bad $growth"
 problems=()
 
-if ! section "$preflight"; then
-  problems+=("$skill_md has no '$preflight' section — where a $growth check would sit could not be read")
-else
+if preflight_or_problem "a $growth check"; then
   growth_at="$(call_at "$growth")"
   if [[ -z "$growth_at" ]]; then
     problems+=("$skill_md's '$preflight' section never names $growth, so a run whose plan-growth budget cannot be read starts anyway and only finds out when a leaf first tries to grow the plan")
