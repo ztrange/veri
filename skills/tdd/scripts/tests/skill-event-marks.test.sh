@@ -75,6 +75,16 @@ calls_event() {
   [[ "$1" =~ event\.sh[[:space:]]+"$2"([^a-z0-9-]|$) ]]
 }
 
+# have_records <what> — the guard every case that reads the document opens with. Fail closed:
+# no records means SKILL.md was renamed or emptied and not one probe below ran, which must not
+# read as a pass. Returns non-zero with the problem already filed, naming <what> went unchecked,
+# so the case's body is skipped.
+have_records() {
+  [[ -n "$records" ]] && return 0
+  problems+=("$skill_md has no instructions to read — $1 could not be checked")
+  return 1
+}
+
 # mark <event> <what the instruction prescribes> <anchor-regex>… — assert that a single
 # instruction of the global `records` matches every <anchor-regex> AND prescribes
 # `event.sh <event>`, in two stages, because the two failures have different fixes.
@@ -133,11 +143,7 @@ refactor_mark() {
 name="$skill_md prescribes an event.sh call for each of the conductor's seven marks, beside the issue comment it mirrors"
 problems=()
 records="$(instructions)"
-if [[ -z "$records" ]]; then
-  # Fail closed: no records means the document was renamed or emptied and not one mark
-  # below was tested, which must not read as seven passes.
-  problems+=("$skill_md has no instructions to read — no mark could be checked")
-else
+if have_records 'no mark'; then
   mark step-start 'takes the next unchecked step with next-unchecked.sh' \
     'next-unchecked\.sh'
   comment_mark step-done '### ✅ Step done' 'step done'
@@ -157,9 +163,7 @@ report "$name"
 #    leaves a cell unknown.
 name="$skill_md writes an event.sh refactor mark carrying transforms, budget and stopped, beside the Refactor comment"
 problems=()
-if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no instructions to read — the refactor mark could not be checked")
-else
+if have_records 'the refactor mark'; then
   refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
     [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
@@ -181,9 +185,7 @@ report "$name"
 #    `min(count, budget)`, and every cell downstream would still read as a real number.
 name="$skill_md prescribes the refactor mark's transforms as the observed git rev-list count, unclamped on an overrun"
 problems=()
-if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no instructions to read — the refactor mark's count could not be checked")
-else
+if have_records "the refactor mark's count"; then
   refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
     # The sentence that introduces the call: everything before `event.sh refactor`, from
@@ -261,9 +263,7 @@ report "$name"
 #    longer offer `triage`, and must still offer the three reasons that did not change.
 name="$skill_md names stopped=nothing-structural for refactor-triage.sh exit 3 and stopped=structural-owed for exit 0, no stopped=triage, and keeps malformed, nothing-left and budget"
 problems=()
-if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no instructions to read — the refactor mark's stop reasons could not be checked")
-else
+if have_records "the refactor mark's stop reasons"; then
   refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
     for pair in '3|nothing-structural' '0|structural-owed'; do
@@ -292,9 +292,7 @@ report "$name"
 #    mark of its own is exactly the drift this suite exists to catch.
 name="$skill_md prescribes an event.sh step-added call beside every add-ledger-step.sh insertion"
 problems=()
-if [[ -z "$records" ]]; then
-  problems+=("$skill_md has no instructions to read — the step-added mark could not be checked")
-else
+if have_records 'the step-added mark'; then
   insertions=0
   while IFS= read -r line; do
     # The call, not a mention: every script this document orders run is written `$S/<script>`,
