@@ -15,6 +15,16 @@ exactly what the reason objects to.
 
 {{REJECTION_REASON}}
 
+### When the step is too big for one green
+
+Redoing green only: when the step needs more than one new behaviour at once, neither a
+rewritten implementation nor `IMPOSSIBLE` is the honest answer. Report `SPLIT:` lines
+instead of an implementation, changing no production code — one to three of them, each a
+behaviour-level criterion small enough to be one red-green cycle of its own, in the order
+they must be built. The conductor restores the tree, adds those steps ahead of this one
+and comes back to this step later, so leave the working tree exactly as you found it and
+skip the run in step 3 below.
+
 ### The issue's behavior spec (context — the criterion above is what is in scope)
 
 {{ISSUE_SPEC}}
@@ -53,3 +63,8 @@ OUTCOME: REWRITTEN | IMPOSSIBLE — <what you changed, or why the step cannot be
 AGAINST_UNMODIFIED: FAILS | PASSES | N/A — <does the test fail against the unmodified production code; N/A if you did not touch a test>
 PREDICTED_FAILURE: <redoing red only — the assertion the rewritten test was predicted to fire on, the values it fires on and the shape of the message, as predicted before running; N/A otherwise>
 PREDICTION: MATCHED | DIVERGED | N/A — <whether the run printed what you predicted; N/A unless you are redoing red>
+
+or, when the green you are redoing is a step too big for one, those lines replaced by one
+to three of:
+
+SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
