@@ -77,14 +77,13 @@ green_section() {
 }
 section="$(green_section)"
 
-# win <extended-regex> [radius] — the section text within <radius> characters either side of
-# the first match, or the empty string when there is none: the text a reader meets while
-# working out what to do about that answer. The default 250 rather than a rounder, larger
-# number because BSD grep — the one on the development machine this repository holds itself
-# portable to — refuses an interval whose bound is over 255.
+# win <extended-regex> — the section text within 250 characters either side of the first
+# match, or the empty string when there is none: the text a reader meets while working out
+# what to do about that answer. 250 rather than a rounder, larger number because BSD grep —
+# the one on the development machine this repository holds itself portable to — refuses an
+# interval whose bound is over 255.
 win() {
-  local radius="${2:-250}"
-  grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section" | head -1
+  grep -oE ".{0,250}$1.{0,250}" <<<"$section" | head -1
 }
 
 # The invocation the plan's growth is found by, spelled once for the probes that count it and
