@@ -106,6 +106,6 @@ TARGET_TEST: <the exact case name string you used, or NONE on UNTESTABLE>
 AGAINST_UNMODIFIED: FAILS | PASSES | UNTESTABLE
 WHY: <UNTESTABLE only — which rule (1, 2 or 3) the only available test would break, and why>
 FAIL_OUTPUT: <the failure line — from the unmodified code if it fails there, otherwise from the temporarily-broken code>
-PREDICTED_FAILURE: <the assertion, the values and the message shape — as predicted before running>
+PREDICTED_FAILURE: <the missing name, when the predicted failure is an error on the name the step introduces rather than an assertion; otherwise the assertion, the values and the message shape — as predicted before running>
 PREDICTION: MATCHED | DIVERGED
 PREDICTION_NOTE: <on DIVERGED, what actually happened and why it could not be reconciled>
