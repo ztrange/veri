@@ -92,15 +92,16 @@ green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$
   && ok || no "develop-green names the test path + target test and forbids modifying the test (exit $code)"
 
 # 3. the refactor prompt names the files the cycle touched, carries the rule that bounds
-#    the tidy-up (no generality no test demands) and requires the RESULT:/FLAGS: footer
+#    the tidy-up (no generality no test demands) and requires the RESULT: footer. The
+#    footer's other two lines are cases 8 (`CANDIDATES:`) and 32 (`NEW_STEP:`); the
+#    `FLAGS:` line case 32 replaced is gone from here with it.
 touched='scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh'
 refactor="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] \
   && [[ "$refactor" == *"$touched"* ]] \
   && grep -qiE '(no|not|never|without)[^.]{0,80}(generality|generali[sz]ation|abstraction)' <<<"$refactor" \
   && grep -q 'RESULT:' <<<"$refactor" \
-  && grep -q 'FLAGS:' <<<"$refactor" \
-  && ok || no "develop-refactor carries the touched-files list + the no-untested-generality rule and the RESULT:/FLAGS: footer (exit $code)"
+  && ok || no "develop-refactor carries the touched-files list + the no-untested-generality rule and the RESULT: footer (exit $code)"
 
 # 4. the revise prompt carries the verifier's rejection reason verbatim and offers the
 #    IMPOSSIBLE outcome
@@ -1105,6 +1106,27 @@ says_both_ways "$refactor" "never says the suites run after a transform cover a 
   80 'outside' 'suites?'
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor tells the leaf to run the suites covering every file a transform touched, the out-of-list file included (${problems#; })"
+
+# 32. what the refactor leaf reports about overfit code (issue #361). Case 3 pins that the
+#     footer carries a `FLAGS:` line — prose naming overfit code and the case that would force
+#     the general implementation — and ADR-0022 records where that line went: narrated into the
+#     issue thread and dropped, although ADR-0009 promised the plan would gain a triangulating
+#     step. A sentence cannot be handed to `add-ledger-step.sh`; a behaviour-level criterion,
+#     one per line, can. So the line becomes `NEW_STEP:`, the protocol token the conductor
+#     greps for and passes through, offering `none` when the leaf saw no overfit code — and
+#     `FLAGS:` goes, rather than sitting beside it, since two footers for one answer let a leaf
+#     fill either and the conductor read the other. Three faces of one criterion, so one case.
+#
+#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
+#     case 3 owns the exit-0 check on it. Probed unfolded and anchored at `^`, the way case 8
+#     probes `CANDIDATES:`, because what is pinned is a report LINE the conductor greps for at
+#     the start of one, not a claim made somewhere in a sentence.
+problems=""
+grep -qE '^NEW_STEP:' <<<"$refactor" || problems="$problems; no NEW_STEP: report line"
+grep -qE '^NEW_STEP:.*none' <<<"$refactor" || problems="$problems; the NEW_STEP: line does not offer none"
+grep -q 'FLAGS:' <<<"$refactor" && problems="$problems; the report still carries a FLAGS: line"
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor ends its report with NEW_STEP: lines offering none and carries no FLAGS: line (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"

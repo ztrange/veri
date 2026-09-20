@@ -69,8 +69,9 @@ which file it sits in:
    demanding it — never hand-written here. Do not add options, flags, parameters or
    abstraction no existing test requires.
 6. If the code is **overfit** — it hard-codes the one tested case rather than implementing
-   the behaviour — do **not** generalize it yourself. Flag it as needing a triangulating
-   test, and say which case would force the generality.
+   the behaviour — do **not** generalize it yourself. Report the criterion that would force
+   the general implementation as a `NEW_STEP:` line, so the plan gains the step that
+   triangulates it.
 7. If no structural candidate is left under those rules, change nothing and report
    "nothing left to tidy" — even when cosmetic candidates remain, since none of them is
    worth a transform. That is a legitimate result, not a failure to find work.
@@ -78,5 +79,5 @@ which file it sits in:
 ### Report (last lines of your output)
 
 RESULT: <"applied <the transform>, suites green" — one line per transform you applied, each on its own RESULT: line, in the order you applied them — or "nothing left to tidy" if you applied none>
-FLAGS: <overfit code needing a triangulating test, and the case that would force it — or "none">
 CANDIDATES: <"structural | <transform>" or "cosmetic | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
+NEW_STEP: <a behaviour-level criterion that would force the general implementation of overfit code you found — one per line, each on its own NEW_STEP: line — or "none">
