@@ -398,6 +398,40 @@ except (ValueError, KeyError, TypeError) as err:
 [[ "$issues" == "7" ]] || missing+=("--json runs exactly [7], got: $issues")
 expect_nothing_missing "a run directory is one run, its own issue's ledger, not every committed ledger beside it"
 
+# --- two run directories, each holding the other's committed ledger (#343) ---
+# The rule above, with a second run beside the first: .tdd/wt/7 and .tdd/wt/9 each carry their
+# own ledger, the other's committed copy, and a third issue's (#4). --json must print exactly
+# two objects, #7 and #9, and each must carry its OWN directory's event log totals — #7's
+# $0.25 and #9's $1.50 — never the other's, and never #4 at all.
+pair="$(repo pair)"
+pair_run() {  # pair_run <n> <dollars> -> path; own ledger, two committed ones beside it, one usage line
+  local dir other
+  dir="$(fabricate_run "$pair" "$1" "tdd/$1-lamps")"
+  for other in "$1" 4 "$2"; do
+    printf '# Plan for #%s — lamps glow\n\n- [ ] a lamp glows\n' "$other" > "$dir/.tdd/issue-$other.md"
+  done
+  printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}\n' \
+    "$(date +%s)" "$1" > "$dir/.tdd/events.jsonl"
+  printf '{"ts": %s, "issue": "%s", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "usage", "attempt": "1", "skill_commit": "abc", "total_cost_usd": "%s", "input_tokens": "10", "output_tokens": "0", "cache_read_input_tokens": "0", "cache_creation_input_tokens": "0"}\n' \
+    "$(date +%s)" "$1" "$3" >> "$dir/.tdd/events.jsonl"
+  echo "$dir"
+}
+pair_run 7 9 0.25 > /dev/null
+pair_run 9 7 1.50 > /dev/null
+run_in "$pair" --json
+pairs="$(printf '%s' "$out" | python3 -c '
+import json, sys
+try:
+    runs = json.loads(sys.stdin.read())["runs"]
+    print(" ".join(sorted("%s=%.2f" % (r["issue"], r["dollars"]) for r in runs)))
+except (ValueError, KeyError, TypeError) as err:
+    print("no runs with issue and dollars: %r" % err)
+')"
+if [[ "$pairs" == "7=0.25 9=1.50" && "$code" -eq 0 ]]; then ok; else
+  no "two run directories each holding the other's committed ledger print exactly two runs, each with only its own directory's totals"
+  diff <(printf '7=0.25 9=1.50\nexit 0\n') <(printf '%s\nexit %s\n' "$pairs" "$code")
+fi
+
 # --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
 # One running run, watched with stdout to a file. `--watch 0` rather than `--watch 1`: a real
 # 1s interval between redraws made this case's second wait_for below sit out up to a full
