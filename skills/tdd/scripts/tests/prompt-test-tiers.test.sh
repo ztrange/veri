@@ -173,18 +173,7 @@ report "$name"
 #    prompt built from the same arguments, rather than building it a second time.
 name="develop-green runs the fast command and the affected suites through timed-test-run.sh, under tiers fast and affected"
 problems=()
-runnable=""
-while read -r cand; do
-  [[ -x "$cand" ]] && runnable="$cand"
-done < <(grep -oE '[^ `]*timed-test-run\.sh' <<< "$green")
-if [[ -z "$runnable" ]]; then
-  problems+=("develop-green's prompt never names timed-test-run.sh at a path the leaf can run")
-fi
-for tier in fast affected; do
-  if ! plain <<< "$green" | grep -qE "timed-test-run\.sh $tier\b"; then
-    problems+=("develop-green's prompt never tells its leaf to run through timed-test-run.sh under tier $tier")
-  fi
-done
+timed_through develop-green "$green" fast affected
 report "$name"
 
 # 6. The developer prompts other than green time their runs the same way (#373): red and
