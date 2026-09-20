@@ -95,6 +95,20 @@ want='# Plan for #42
 check_code "over budget: inserts no checkbox, exits 1, and owes both texts as plain bullets" \
   "$code" 1 "$want"
 
+# 5. an anchor that matches no step, and one that matches more than one, are both refusals:
+#    exit 2, and the ledger is left byte-identical. Run both against the same seeded ledger —
+#    a change made by either run would survive into the final comparison.
+seed
+"$ADD" "$led" after 'no such step' 'collapse a unicode dash too'; code1=$?
+"$ADD" "$led" after 'hyphen' 'collapse a unicode dash too'; code2=$?
+want='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] strip edge hyphens ⟦criterion 3⟧'
+check_code "ambiguous or absent anchor: exits 2 and leaves the ledger byte-identical" \
+  "$code1/$code2" "2/2" "$want"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
