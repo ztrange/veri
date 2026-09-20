@@ -6,3 +6,4 @@
 - [x] refactor-owed.sh render on an absent file, or one holding no candidate, exits 3 and prints nothing ⟦criterion 4⟧
 - [x] SKILL.md's Refactor section runs append for each step and commits the file with that step's refactor-pending clear ⟦criterion 5⟧
 - [x] SKILL.md's Draft PR section includes the render output in the PR body and omits it on exit 3 ⟦criterion 6⟧
+- [ ] repair: CLAUDE.md's stated suite count matches the tree after step 5 added a suite (full-suite red on claude-md-counts.test.sh)
