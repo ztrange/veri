@@ -26,11 +26,6 @@
 #      as a **process** failure, the way skill-red-untestable.test.sh pins the same thing for
 #      `untestable-criterion`.
 #
-# One call and not one per criterion, for the reason skill-refactor-leaf.test.sh gives about
-# the same script: it takes every text at once and reads VERI_STEP_GROWTH per call, so a call
-# per criterion would refuse the third `SPLIT:` line of a step under the default budget while
-# the one call asked for here either fits them all or files them all as owed.
-#
 # Run: scripts/tests/skill-green-split.test.sh
 set -uo pipefail
 
@@ -137,10 +132,12 @@ else
   grep -qE 'git (restore|checkout|reset)[^.]{0,60}head|restore[^.]{0,60}(the tree|to) head' <<<"$section" ||
     problems+=("$skill_md's Green section never restores the tree to HEAD on a SPLIT:, so the uncommitted red test stays on disk and the first split step starts against a failing case nobody wrote for it")
 
-  # 3. The insertion, and that there is exactly one of it: the script reads the growth budget
-  #    per call, so a call per criterion refuses the third SPLIT: line under the default
-  #    VERI_STEP_GROWTH while one call either fits them all or files them all as owed. A
-  #    mention that is not an invocation carries no `$S/` and is not counted.
+  # 3. The insertion, and that there is exactly one of it, for the reason
+  #    skill-refactor-leaf.test.sh gives about the same script: it takes every text at once
+  #    and reads the growth budget per call, so a call per criterion refuses the third SPLIT:
+  #    line of a step under the default VERI_STEP_GROWTH while one call either fits them all
+  #    or files them all as owed. A mention that is not an invocation carries no `$S/` and is
+  #    not counted.
   calls="$(grep -oE "$add_ledger_step" <<<"$section" | grep -c '')"
   if [[ "$calls" -eq 0 ]]; then
     problems+=("$skill_md's Green section never runs add-ledger-step.sh on a SPLIT:, so the criteria the leaf named are narrated and the plan the run reads is unchanged")
