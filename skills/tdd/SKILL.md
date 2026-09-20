@@ -747,6 +747,31 @@ following step. The phase sub-steps are:
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
    or changed) and `SUITE: GREEN | RED` plus the suite's final summary line; both go into the
    narration below.
+
+   **`SPLIT:` lines in place of those two** — the step needed more than one new behaviour at
+   once, so the leaf implemented nothing and named one to three smaller criteria instead.
+   There is no implementation for verify-green to judge, so do not launch it. Restore the
+   tree to `HEAD` first — Red's test is uncommitted, and left on disk it becomes the first
+   split step's inherited red — then put the criteria into the plan ahead of this step, in
+   **one** call, and commit the grown ledger:
+   ```
+   git reset --hard HEAD
+   git ls-files --error-unmatch <test-path> > /dev/null 2>&1 || rm -f <test-path>   # a file Red created is untracked, so the reset leaves it
+   $S/add-ledger-step.sh .tdd/issue-<n>.md before '<STEP>' '<SPLIT: value>' …   # every SPLIT: value in ONE call
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
+   git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-split anchor='<STEP>' added=<count>
+   ```
+   One call and not one per criterion, for the same reason the Refactor loop's `NEW_STEP:`
+   values go in one: the script reads `VERI_STEP_GROWTH` once per call, so a call per
+   criterion would refuse a step's third `SPLIT:` line that one call either fits whole or
+   files whole. A split is the one thing that changes a step's plan without a green commit
+   of its own, so `step-split` is what tells the run log the step was split rather than
+   silently restarted — `step-added` is the insertion's own mark, which every
+   `add-ledger-step.sh` call owes, and says how many steps the plan grew by; `step-split` says
+   why. Then loop back to `next-unchecked.sh`, which now hands over the first
+   split step; **STEP** itself starts again from Red once the smaller steps ahead of it are
+   done.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
