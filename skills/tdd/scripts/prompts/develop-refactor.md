@@ -58,7 +58,10 @@ which file it sits in:
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
 
    The wrapper hands the command's own exit status straight back, so a suite a transform
-   turned red still reads as red.
+   turned red still reads as red. When a transform reached the one file outside that list
+   the exception above allows, its suites run too: the suites follow every file the
+   transform touched, so the one suite that could catch the break it did cause is never the
+   one it skipped.
 4. The full suite runs at verify-refactor, on the settled result. The trade is that a break
    in an untouched suite surfaces there, as a REJECT the revise loop answers, rather than
    at the transform that caused it.
