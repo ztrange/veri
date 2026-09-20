@@ -55,6 +55,16 @@ want='# Plan for #42
 - [ ] strip edge hyphens ⟦criterion 3⟧'
 check "before: inserts both texts, in order, on the lines above the anchor" "$code" "$want"
 
+# 3. an anchor step carrying no ⟦criterion k⟧ yields an added step carrying none
+printf '# Plan for #42\n\n- [ ] collapse to single hyphen\n- [ ] strip edge hyphens ⟦criterion 3⟧\n' > "$led"
+"$ADD" "$led" after 'collapse to single hyphen' 'collapse a unicode dash too'; code=$?
+want='# Plan for #42
+
+- [ ] collapse to single hyphen
+- [ ] collapse a unicode dash too ⟦added⟧
+- [ ] strip edge hyphens ⟦criterion 3⟧'
+check "no criterion on the anchor: the added step carries none either" "$code" "$want"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
