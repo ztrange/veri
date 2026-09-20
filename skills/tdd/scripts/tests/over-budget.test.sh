@@ -173,6 +173,93 @@ fi
 
 report "$name"
 
+# 4. What the check is NOT allowed to do: a run whose seconds trip it still ends on the
+#    verdict its leaf rendered. The two halves of the check's contract are "prints a line"
+#    (case 3) and "changes nothing", and only the second one is a statement about a whole
+#    run, so it is asked of one: a fixture verification driven end to end through verify.sh
+#    against a stub leaf whose verdict is fixed — PASS, written into the stub — while the
+#    run's own recorded history says the run is over budget by both of the check's rules.
+#
+#    The over-budget run is written into `.tdd/events.jsonl` itself, as the last `test-run`
+#    line, because that log is the only place a recorded run exists: it is what
+#    tier-usual.sh reads and what any later reader of a run's cost reads. A fabricated
+#    number passed to nothing would be over budget in this suite's arithmetic alone, and a
+#    verify.sh that had grown a reading of the seconds would never meet it. Here it does —
+#    the last run the log holds is 40 s of the unit tier, over the 10 s ceiling and over the
+#    ratio times the 1 s the tier usually costs — so a verify.sh that read that line and
+#    bailed, retried, or turned the verdict into anything but the stub's own PASS fails
+#    every assertion below.
+#
+#    The seconds are fabricated and the leaf's verdict is written down, so neither can be
+#    what the other decided. The fixture is proven over budget first, by the check itself —
+#    a fixture that did not trip it would leave every assertion below true for the wrong
+#    reason.
+#
+#    The whole log is read afterwards rather than the exit status alone, because "nothing
+#    retries or bails because of the seconds" is a claim about what the run did, not only
+#    about what it returned: a relaunch mark is how a retry would show up, and a bail mark
+#    how a bail would, and both would be there alongside a verdict that still said PASS.
+name="over-budget.sh: a run over budget still ends on its leaf's own verdict, with no retry and no bail"
+problems=()
+
+fixture="$(mktemp -d)"
+trap 'rm -rf "$fixture"' EXIT
+
+# The fabricated history, in event.sh's own shape — eight fixed keys and the three test-run
+# ones: ten unit-tier runs of 1 s, then the run this case is about, 40 s of the same tier.
+# tier-usual.sh reads the tier's usual off the last 10 of the eleven, nine 1 s runs and the
+# 40 s one, so the usual is 1 s and the last recorded run is over budget twice over — past
+# the unit tier's 10 s ceiling and past the ratio times that usual.
+over_seconds=40
+mkdir -p "$fixture/.tdd"
+{
+  for _ in {1..10}; do
+    printf '{"ts": 1, "issue": "342", "actor": "", "phase": "", "step": "", "event": "test-run", "attempt": "1", "skill_commit": "", "tier": "unit", "suites": "make unit", "seconds": "1"}\n'
+  done
+  printf '{"ts": 2, "issue": "342", "actor": "", "phase": "", "step": "", "event": "test-run", "attempt": "1", "skill_commit": "", "tier": "unit", "suites": "make unit", "seconds": "%s"}\n' "$over_seconds"
+} > "$fixture/.tdd/events.jsonl"
+
+printf 'slugify must lowercase the title and join words with hyphens.\n' > "$fixture/spec.md"
+
+# The stub leaf: it reads nothing and says PASS, so its verdict is fixed independently of
+# every number the fixture fabricates.
+cat > "$fixture/claude" <<'STUB'
+#!/bin/sh
+printf 'VERDICT: PASS\nREASON: the new case fails for the reason the step names.\n'
+STUB
+chmod +x "$fixture/claude"
+
+usual="$(cd "$fixture" && "$HERE/../tier-usual.sh" unit)"
+( cd "$fixture" && "$CHECK" unit "$over_seconds" "$usual" ) >/dev/null 2>&1 && tripped=0 || tripped=$?
+[[ "$tripped" == 0 ]] ||
+  problems+=("the run the fixture log records last (unit, $over_seconds s, usual $usual) is not over budget: the check exited $tripped, so nothing below is a statement about an over-budget run")
+
+# Every tunable this verification could inherit is set or cleared here rather than left to
+# the shell that ran the suite (hermetic-suites.test.sh): the poll so nothing waits out a
+# whole second, the two retry budgets so a stub that answered once is launched once, and the
+# three model names and VERIFY_LEAF_ARGS so no ambient flag reaches the stub's command line.
+before="$(wc -l < "$fixture/.tdd/events.jsonl" | tr -d ' ')"
+out="$( cd "$fixture" && env -u VERI_MODEL -u VERI_MODEL_VERIFIER -u VERI_MODEL_DEVELOPER \
+          -u VERIFY_LEAF_ARGS CLAUDE_BIN="$fixture/claude" VERI_POLL=0.02 \
+          VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=0 \
+          "$HERE/../verify.sh" red "$fixture/spec.md" tests/test_slugify.py test_lowercases 2>/dev/null )" \
+  && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("the stub leaf said PASS on an over-budget run: want verify.sh exit 0, got $code")
+[[ "$out" == *"the reason the step names"* ]] ||
+  problems+=("want the stub leaf's own reason on stdout, got: $(printf '%q' "$out")")
+
+after="$(sed -n "$((before + 1)),\$p" "$fixture/.tdd/events.jsonl")"
+[[ "$after" == *'"event": "verdict"'*'"verdict": "PASS"'* ]] ||
+  problems+=("want one verdict event carrying PASS in the log, got: $(printf '%q' "$after")")
+[[ "$after" != *'"event": "relaunch"'* ]] ||
+  problems+=("the over-budget run was retried: a relaunch event was logged: $(printf '%q' "$after")")
+[[ "$after" != *'"event": "bail"'* ]] ||
+  problems+=("the over-budget run bailed: a bail event was logged: $(printf '%q' "$after")")
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
