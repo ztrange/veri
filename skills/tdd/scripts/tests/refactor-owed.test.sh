@@ -231,6 +231,43 @@ rm -f "$first_report" "$second_report" "$owed_file" "$rendered"
 report "$name"
 
 
+# 4. what `render` does with nothing to render. Two ways the owed file holds no candidate:
+#    a run whose every step's refactor finished clean never creates it at all, and a file
+#    that exists but is empty is the same answer. Either way the PR body must not carry an
+#    empty `## Refactor owed` heading promising leftovers nobody left — so render says
+#    "nothing to do" the way every script here says it, exit 3 (CLAUDE.md, *Exit codes are
+#    the API*), and prints nothing at all on stdout.
+#
+#    Both probes in one case because they are one behaviour: the criterion says "an absent
+#    file, or one holding no candidate", and a render that answered 3 for one and printed a
+#    bare heading for the other would still put that heading in a PR body.
+name="render exits 3 and prints nothing when the file is absent or holds no candidate"
+problems=()
+
+missing_file="$(mktemp)"
+rm -f "$missing_file"
+empty_file="$(mktemp)"
+
+for owed_file in "$missing_file" "$empty_file"; do
+  [[ "$owed_file" == "$missing_file" ]] && what="an absent file" || what="a file holding no candidate"
+
+  rendered="$(mktemp)"
+  "$OWED" render "$owed_file" >"$rendered" 2>/dev/null && code=0 || code=$?
+
+  [[ "$code" == 3 ]] ||
+    problems+=("want exit 3 from render on $what, got $code")
+
+  printed="$(cat "$rendered")"
+  [[ -z "$printed" ]] ||
+    problems+=("render printed '$printed' on stdout for $what; a PR body must not carry a heading promising leftovers nobody left")
+
+  rm -f "$rendered"
+done
+
+rm -f "$empty_file"
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -54,6 +54,13 @@ case "$verb" in
     fi
     ;;
   render)
+    # Nothing to render is not an error, it is exit 3 (CLAUDE.md, *Exit codes are the
+    # API*): a run whose every refactor finished clean never creates the file, and one
+    # that exists with nothing in it is the same answer. The heading is printed after
+    # this check, never before, so a PR body cannot end up carrying a `## Refactor owed`
+    # promising leftovers nobody left.
+    [[ -s "$file" ]] || exit 3
+
     # The heading is the only thing render adds: `append` already wrote each step and its
     # candidates in the markdown the PR body wants, in the order they were recorded, so
     # the section is that file under a heading a reader can find it by.
