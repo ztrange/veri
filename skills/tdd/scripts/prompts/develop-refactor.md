@@ -13,8 +13,9 @@ nothing is left to tidy. The suites covering it stay green throughout.
 
 {{TOUCHED_FILES}}
 
-Confine the transform to those files. Tidying code this cycle did not write is out of
-scope, however tempting.
+Confine the transform to those files, with one exception: a transform may touch a file
+outside that list only when it removes duplication between that file and code this cycle
+wrote. Tidying code this cycle did not write is otherwise out of scope, however tempting.
 
 ### The issue's behavior spec (context — the behaviour that must not change)
 
