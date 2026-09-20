@@ -109,6 +109,26 @@ want='# Plan for #42
 check_code "ambiguous or absent anchor: exits 2 and leaves the ledger byte-identical" \
   "$code1/$code2" "2/2" "$want"
 
+# 6. The budget variable itself: unset means three, so three texts in one call fit; a value
+#    that is not a non-negative integer is a refusal rather than a fallback to the default —
+#    exit 2, ledger byte-identical. `three` and set-but-empty are both asked against the
+#    ledger the first run left, so a change made by either would survive into the comparison.
+seed
+env -u VERI_STEP_GROWTH "$ADD" "$led" after 'collapse to single hyphen' \
+  'first added' 'second added' 'third added'; code1=$?
+VERI_STEP_GROWTH=three "$ADD" "$led" after 'collapse to single hyphen' 'a fourth'; code2=$?
+VERI_STEP_GROWTH= "$ADD" "$led" after 'collapse to single hyphen' 'a fourth'; code3=$?
+want='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] first added ⟦added⟧ ⟦criterion 2⟧
+- [ ] second added ⟦added⟧ ⟦criterion 2⟧
+- [ ] third added ⟦added⟧ ⟦criterion 2⟧
+- [ ] strip edge hyphens ⟦criterion 3⟧'
+check_code "unset allows three added steps; a non-integer or empty budget exits 2, ledger untouched" \
+  "$code1/$code2/$code3" "0/2/2" "$want"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

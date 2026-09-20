@@ -62,7 +62,15 @@ count_lines() {
   exit 2
 }
 
-budget="${VERI_STEP_GROWTH:-3}"
+# Unset means three. Set-but-empty is read with `-` rather than `:-` so it reaches the guard
+# as the empty string instead of silently falling back to the default: a budget that is not a
+# whole number >= 0 is a refusal, like an anchor that names no single step.
+budget="${VERI_STEP_GROWTH-3}"
+
+if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
+  printf 'add-ledger-step.sh: VERI_STEP_GROWTH must be a whole number >= 0: %s\n' "$budget" >&2
+  exit 2
+fi
 
 if (( $(count_lines is_added_step) + ${#texts[@]} > budget )); then
   {
