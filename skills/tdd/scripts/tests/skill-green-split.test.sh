@@ -60,11 +60,12 @@ report() {
   fi
 }
 
-# plain — stdin with emphasis marks and backticks dropped and the case folded, because
-# `SPLIT:` and **split** are the same word. The probes' regexes are then written one way and
-# match however the author chose to mark the words up.
+# plain — stdin with emphasis marks and backticks dropped, the case folded and the lines
+# joined onto one, because `SPLIT:` and **split** are the same word and a claim that wraps
+# across two lines is still one claim. The probes' regexes are then written one way, match
+# however the author chose to mark the words up, and none of them is about order.
 plain() {
-  tr -d '*`' | tr '[:upper:]' '[:lower:]'
+  tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
 # The heading the section is found by, spelled once: the probes look for it and the
@@ -73,12 +74,11 @@ plain() {
 green_heading='#### Green'
 
 # green_section — the lines after the first heading starting `$green_heading`, up to the next
-# heading of any level, normalised through `plain` and joined onto one line: none of the
-# probes below is about order, and a claim that wraps across two lines is still one claim.
+# heading of any level, normalised through `plain`.
 green_section() {
   awk -v h="$green_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
-    plain | tr '\n' ' '
+    plain
 }
 section="$(green_section)"
 
@@ -97,7 +97,7 @@ win() {
 add_ledger_step='\$s/add-ledger-step\.sh'
 
 # bailing_causes — the Bailing section's causes list, from the `killed-stuck` bullet to the
-# end of the section, normalised and joined the same way `green_section` is. The list and not
+# end of the section, normalised the same way `green_section` is. The list and not
 # the whole section, for the reason skill-red-untestable.test.sh gives about the same text: a
 # "process failure" written anywhere else in the procedure must not stand in for the list
 # actually carrying the token.
@@ -108,7 +108,7 @@ bailing_causes() {
     in_s {
       if (!want && $0 ~ /killed-stuck/) want = 1
       if (want) print
-    }' "$skill_path" | plain | tr '\n' ' '
+    }' "$skill_path" | plain
 }
 
 name="$skill_md's Green section, on SPLIT:, restores the tree to HEAD, adds the split steps before STEP in one add-ledger-step.sh call, commits the ledger, emits step-split and returns to next-unchecked.sh"
