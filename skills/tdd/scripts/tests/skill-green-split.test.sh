@@ -124,7 +124,7 @@ else
     added="$(win "$add_ledger_step")"
     grep -qE "before '?<step>" <<<"$added" ||
       problems+=("$skill_md's Green section runs add-ledger-step.sh without anchoring the insertion before the step being split, so the smaller steps land after the step they were supposed to come first")
-    grep -qE 'git commit|commit' <<<"$added" ||
+    grep -qE 'commit' <<<"$added" ||
       problems+=("$skill_md's Green section grows the ledger on a SPLIT: without committing it, so the split steps are lost the moment the run is resumed from the committed ledger")
   fi
 
