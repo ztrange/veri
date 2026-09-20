@@ -30,16 +30,16 @@ function show(pane, answer) {
 // A pane asks again two seconds after its previous request has settled — whether it answered
 // or failed — never on a clock of its own. So a pane has at most one request in flight, and
 // an endpoint slower than two seconds queues nothing up behind it.
-function poll(refresh) {
-  refresh().finally(function () {
-    setTimeout(function () { poll(refresh); }, 2000);
+function poll(pane, request) {
+  show(pane, request()).finally(function () {
+    setTimeout(function () { poll(pane, request); }, 2000);
   });
 }
 
-poll(function () { return show("runs", fetch("/api/runs")); });
-poll(function () { return show("metrics", fetch("/api/metrics")); });
-poll(function () {
-  return show("events", fetch("/api/events?issue=" + encodeURIComponent(issue)));
+poll("runs", function () { return fetch("/api/runs"); });
+poll("metrics", function () { return fetch("/api/metrics"); });
+poll("events", function () {
+  return fetch("/api/events?issue=" + encodeURIComponent(issue));
 });
 </script>
 </body>
