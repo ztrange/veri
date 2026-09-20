@@ -230,6 +230,45 @@ def tests_json(query):
     return json.dumps({"tests": test_runs(run, command) if command else []}).encode()
 
 
+# The renderer the Chatter pane shows a leaf log through — the script beside this one, run
+# rather than re-implemented, the way runs_json runs status.sh: what "rendered" means is
+# render-leaf-log.sh's answer, so the pane cannot drift into a second spelling of it. It
+# reads the log on stdin and writes the rendered lines out; a log it cannot render (exit 2
+# on a line that is not JSON) leaves whatever it managed, since `check=False` here as
+# everywhere above.
+render_leaf_log_sh = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "render-leaf-log.sh")
+
+
+def rendered_log(log):
+    if not log or not os.path.exists(log):
+        return ""
+    with open(log, "rb") as f:
+        done = subprocess.run([render_leaf_log_sh], stdin=f, stdout=subprocess.PIPE,
+                              stderr=subprocess.DEVNULL, check=False)
+    return done.stdout.decode("utf-8", "replace")
+
+
+# The leaf a run is CURRENTLY on: the name its newest `launch` event carries, which is the
+# leaf status.sh reports a run as being on (status.sh:79). The log is appended to, so the
+# newest launch is the last one in it — a run that has launched nothing yet is on no leaf.
+def current_leaf(run):
+    for event in reversed(events_of(run)):
+        if event.get("event") == "launch" and event.get("name"):
+            return event["name"]
+    return ""
+
+
+# The Chatter pane: the current leaf's log, rendered. Answered for the selected run alone,
+# like every endpoint since #343. An issue with no run of its own, or a run on no leaf, or a
+# leaf that has written nothing yet, is the empty rendering rather than another leaf's.
+def chatter_json(query):
+    run = run_for_issue(query.get("issue", [""])[0])
+    leaf = current_leaf(run)
+    log = os.path.join(run, ".tdd", "%s.out" % leaf) if run and leaf else ""
+    return json.dumps({"chatter": rendered_log(log)}).encode()
+
+
 # One entry per JSON pane: the path it is polled at, and the reader that answers it. A
 # pane is a line here rather than a branch below, so the only thing adding one decides is
 # what it serves — that every endpoint is JSON, and how JSON is sent, is settled once. Every
@@ -237,7 +276,8 @@ def tests_json(query):
 # it, so that which panes take a parameter stays the readers' business and not the
 # dispatcher's.
 endpoints = {"/api/runs": runs_json, "/api/metrics": metrics_json,
-             "/api/events": events_json, "/api/tests": tests_json}
+             "/api/events": events_json, "/api/tests": tests_json,
+             "/api/chatter": chatter_json}
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
