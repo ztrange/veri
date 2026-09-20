@@ -102,11 +102,17 @@ draft_pr_instructions() {
   section_records '### 4. Draft PR' '^## |^### '
 }
 
-# no_draft_pr_section <what> — the problem a case records when the `### 4. Draft PR` step is
-# not there to read, naming <what> it could therefore not check. One sentence for every case,
-# so a renamed or emptied section fails each of them closed in the same words.
-no_draft_pr_section() {
+# draft_pr_or_problem <what> — read the `### 4. Draft PR` step into `records`, or record the
+# one problem that says the case could not be read at all, naming <what> it could therefore
+# not check. Non-zero when the section is gone, so each case below is its probes alone rather
+# than its probes and its own missing-section branch: every case here asks the document for
+# the same slice first, and would otherwise spell the same fetch and the same fail-closed
+# message six times over.
+draft_pr_or_problem() {
+  records="$(draft_pr_instructions)"
+  [[ -n "$records" ]] && return 0
   problems+=("$skill_md has no ### 4. Draft PR section to read — $1 could not be checked")
+  return 1
 }
 
 # 1. The criterion, as one case: the step opens the PR for a branch that is already on the
@@ -118,10 +124,7 @@ no_draft_pr_section() {
 name="$skill_md's Draft PR step opens the PR against the already-pushed branch, with no push of its own"
 problems=()
 
-records="$(draft_pr_instructions)"
-if [[ -z "$records" ]]; then
-  no_draft_pr_section "whether the step still pushes"
-else
+if draft_pr_or_problem "whether the step still pushes"; then
   grep -qF 'gh pr create' <<< "$records" ||
     problems+=("$skill_md's Draft PR step never runs gh pr create, so there is no PR being opened against the pushed branch at all")
   pushes="$(grep -F 'git push' <<< "$records" | head -1)"
@@ -179,11 +182,9 @@ names_the_full_gate() {
 name="$skill_md's Draft PR step and its closing invariant both run detect-test-command.sh --tier all's command exactly once, as the only full-suite gate"
 problems=()
 
-records="$(draft_pr_instructions)"
-if [[ -z "$records" ]]; then
-  no_draft_pr_section "which command its full-suite gate runs"
-elif ! names_the_full_gate "$records"; then
-  problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
+if draft_pr_or_problem "which command its full-suite gate runs"; then
+  names_the_full_gate "$records" ||
+    problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
 fi
 invariant="$(section_records '## Guardrails' '^## ' | grep -F 'before you open the pr' | head -1)"
 if [[ -z "$invariant" ]]; then
@@ -205,17 +206,16 @@ report "$name"
 name="$skill_md's Draft PR step adds a repair step to the ledger on a red full run, rather than bailing"
 problems=()
 
-records="$(draft_pr_instructions)"
-repair="$(grep -F 'repair step' <<< "$records" | grep -wF 'red' | grep -F 'ledger' | head -1)"
-if [[ -z "$records" ]]; then
-  no_draft_pr_section "what a red full run does"
-elif [[ -z "$repair" ]]; then
-  problems+=("$skill_md's Draft PR step has no record adding a repair step to the ledger on a red full run, so a suite only the full command reaches still ends the run in a bail")
-else
-  grep -qF 'unit-tier test' <<< "$records" && grep -qwF 'gap' <<< "$records" ||
-    problems+=("$skill_md's Draft PR step never says a unit-tier test is added when the red full run exposes a gap the fast tier missed")
-  grep -qE 'verifier[^.]*full command' <<< "$records" ||
-    problems+=("$skill_md's Draft PR step never says the repair step's verifier judges the fix against the full command")
+if draft_pr_or_problem "what a red full run does"; then
+  repair="$(grep -F 'repair step' <<< "$records" | grep -wF 'red' | grep -F 'ledger' | head -1)"
+  if [[ -z "$repair" ]]; then
+    problems+=("$skill_md's Draft PR step has no record adding a repair step to the ledger on a red full run, so a suite only the full command reaches still ends the run in a bail")
+  else
+    grep -qF 'unit-tier test' <<< "$records" && grep -qwF 'gap' <<< "$records" ||
+      problems+=("$skill_md's Draft PR step never says a unit-tier test is added when the red full run exposes a gap the fast tier missed")
+    grep -qE 'verifier[^.]*full command' <<< "$records" ||
+      problems+=("$skill_md's Draft PR step never says the repair step's verifier judges the fix against the full command")
+  fi
 fi
 report "$name"
 
@@ -229,14 +229,13 @@ report "$name"
 name="$skill_md's Draft PR step bails on a second red full run after a repair step, naming every suite still red"
 problems=()
 
-records="$(draft_pr_instructions)"
-second="$(grep -wF 'bail' <<< "$records" | grep -E 'second red|red again' | grep -F 'repair step' | head -1)"
-if [[ -z "$records" ]]; then
-  no_draft_pr_section "what a second red full run does"
-elif [[ -z "$second" ]]; then
-  problems+=("$skill_md's Draft PR step has no record bailing on a second red full run after a repair step, so a repair that does not take can loop instead of ending the run")
-elif ! grep -qE 'every (suite still red|red suite|failing suite|still-red suite)' <<< "$second"; then
-  problems+=("$skill_md's Draft PR step bails on a second red full run without naming every suite still red: $(printf '%.120s' "$second")")
+if draft_pr_or_problem "what a second red full run does"; then
+  second="$(grep -wF 'bail' <<< "$records" | grep -E 'second red|red again' | grep -F 'repair step' | head -1)"
+  if [[ -z "$second" ]]; then
+    problems+=("$skill_md's Draft PR step has no record bailing on a second red full run after a repair step, so a repair that does not take can loop instead of ending the run")
+  elif ! grep -qE 'every (suite still red|red suite|failing suite|still-red suite)' <<< "$second"; then
+    problems+=("$skill_md's Draft PR step bails on a second red full run without naming every suite still red: $(printf '%.120s' "$second")")
+  fi
 fi
 report "$name"
 
@@ -256,21 +255,20 @@ report "$name"
 name="$skill_md's Draft PR step puts refactor-owed.sh render's output in the PR body, and omits the section on exit 3"
 problems=()
 
-records="$(draft_pr_instructions)"
-render="$(grep -F 'refactor-owed.sh render' <<< "$records" | head -1)"
-if [[ -z "$records" ]]; then
-  no_draft_pr_section "whether the run's refactor leftovers reach the PR body"
-elif [[ -z "$render" ]]; then
-  problems+=("$skill_md's Draft PR step never runs refactor-owed.sh render, so every step's structural leftovers stay in a committed file nobody reading the PR is pointed at")
-else
-  grep -qE 'issue-[^ ]*refactor-owed\.md' <<< "$render" ||
-    problems+=("$skill_md's Draft PR step runs refactor-owed.sh render without naming the run's .tdd/issue-<n>-refactor-owed.md file, so which file the PR body is rendered from is left to judgement: $(printf '%.120s' "$render")")
-  grep -qF 'body' <<< "$render" ||
-    problems+=("$skill_md's Draft PR step renders the owed section without putting it in the PR body, so the leftovers are printed where only the conductor sees them: $(printf '%.120s' "$render")")
-  grep -F 'refactor-owed' <<< "$records" |
-    grep -E 'exits? 3' |
-    grep -qE 'omit|left out|leaves it out|no section|nothing' ||
-    problems+=("$skill_md's Draft PR step never says an exit 3 from refactor-owed.sh render leaves the section out, so a run whose every refactor finished clean gets a ## Refactor owed heading promising leftovers nobody left")
+if draft_pr_or_problem "whether the run's refactor leftovers reach the PR body"; then
+  render="$(grep -F 'refactor-owed.sh render' <<< "$records" | head -1)"
+  if [[ -z "$render" ]]; then
+    problems+=("$skill_md's Draft PR step never runs refactor-owed.sh render, so every step's structural leftovers stay in a committed file nobody reading the PR is pointed at")
+  else
+    grep -qE 'issue-[^ ]*refactor-owed\.md' <<< "$render" ||
+      problems+=("$skill_md's Draft PR step runs refactor-owed.sh render without naming the run's .tdd/issue-<n>-refactor-owed.md file, so which file the PR body is rendered from is left to judgement: $(printf '%.120s' "$render")")
+    grep -qF 'body' <<< "$render" ||
+      problems+=("$skill_md's Draft PR step renders the owed section without putting it in the PR body, so the leftovers are printed where only the conductor sees them: $(printf '%.120s' "$render")")
+    grep -F 'refactor-owed' <<< "$records" |
+      grep -E 'exits? 3' |
+      grep -qE 'omit|left out|leaves it out|no section|nothing' ||
+      problems+=("$skill_md's Draft PR step never says an exit 3 from refactor-owed.sh render leaves the section out, so a run whose every refactor finished clean gets a ## Refactor owed heading promising leftovers nobody left")
+  fi
 fi
 report "$name"
 
@@ -289,17 +287,16 @@ report "$name"
 name="$skill_md's Draft PR step copies the ledger's ## Owed steps bullets into the PR body under ## Owed steps"
 problems=()
 
-records="$(draft_pr_instructions)"
-owed="$(grep -F 'owed steps' <<< "$records")"
-if [[ -z "$records" ]]; then
-  no_draft_pr_section "whether the ledger's owed steps reach the PR body"
-elif [[ -z "$owed" ]]; then
-  problems+=("$skill_md's Draft PR step never mentions the ledger's ## Owed steps section, so a step the growth budget refused is left in a committed file no reader of the PR is pointed at")
-else
-  grep -qF '.tdd/issue-<n>.md' <<< "$owed" ||
-    problems+=("$skill_md's Draft PR step speaks of ## Owed steps without naming the run's .tdd/issue-<n>.md ledger as where the bullets are read from, so the run's other owed file could be copied instead: $(printf '%.120s' "$owed")")
-  grep -qF 'body' <<< "$owed" ||
-    problems+=("$skill_md's Draft PR step never puts the ## Owed steps bullets in the PR body, so they stay where only the conductor sees them: $(printf '%.120s' "$owed")")
+if draft_pr_or_problem "whether the ledger's owed steps reach the PR body"; then
+  owed="$(grep -F 'owed steps' <<< "$records")"
+  if [[ -z "$owed" ]]; then
+    problems+=("$skill_md's Draft PR step never mentions the ledger's ## Owed steps section, so a step the growth budget refused is left in a committed file no reader of the PR is pointed at")
+  else
+    grep -qF '.tdd/issue-<n>.md' <<< "$owed" ||
+      problems+=("$skill_md's Draft PR step speaks of ## Owed steps without naming the run's .tdd/issue-<n>.md ledger as where the bullets are read from, so the run's other owed file could be copied instead: $(printf '%.120s' "$owed")")
+    grep -qF 'body' <<< "$owed" ||
+      problems+=("$skill_md's Draft PR step never puts the ## Owed steps bullets in the PR body, so they stay where only the conductor sees them: $(printf '%.120s' "$owed")")
+  fi
 fi
 report "$name"
 
