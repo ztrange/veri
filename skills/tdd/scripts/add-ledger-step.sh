@@ -40,6 +40,22 @@ added_steps() {
   done
 }
 
+# anchor_matches -> how many steps contain the anchor substring. The anchor has to name one
+# step and no other: none means the plan has moved on, more than one means the caller cannot
+# have known where the step would land, and both are refusals rather than a guess.
+anchor_matches() {
+  local line n=0
+  while IFS= read -r line; do
+    if [[ "$line" == "- ["*"]"* && "$line" == *"$anchor"* ]]; then n=$((n + 1)); fi
+  done < "$file"
+  printf '%s' "$n"
+}
+
+[[ "$(anchor_matches)" == 1 ]] || {
+  printf 'add-ledger-step.sh: anchor matches no single step: %s\n' "$anchor" >&2
+  exit 2
+}
+
 budget="${VERI_STEP_GROWTH:-3}"
 
 # added_held -> how many ⟦added⟧ steps the ledger already holds.
