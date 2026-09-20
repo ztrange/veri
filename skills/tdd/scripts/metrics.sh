@@ -569,7 +569,19 @@ def step_cells(step):
 # this renderer from naming a budget: the section that has such columns hands in its own
 # reader, where before the headings doubled as a flag for whether to call a function this
 # function reached out of the module for by name.
-# The per-tier section, rendered by itself rather than through `section` below: every other
+def section(heading, key_column, columns, table, text=None):
+    headings, cells_for = text or ((), None)
+    headings = list(headings)
+    print()
+    print(heading)
+    print()
+    row([key_column] + columns + headings)
+    row(["---"] + ["---:"] * len(columns) + ["---"] * len(headings))
+    for key, row_counts in table.items():
+        cells = [key] + [figure(c, row_counts[c]) for c in columns]
+        row(cells + (cells_for(key) if cells_for else []))
+
+# The per-tier section, rendered by itself rather than through `section` above: every other
 # table has one cell per column of a fixed list, where a row here has one cell per run that
 # tier made, and how many that is is a fact about the log rather than about the report.
 #
@@ -586,18 +598,6 @@ def tier_section(heading, key_column):
     row(["---"] + ["---:"] * width)
     for tier, runs in tier_runs.items():
         row([tier] + runs + [""] * (width - len(runs)))
-
-def section(heading, key_column, columns, table, text=None):
-    headings, cells_for = text or ((), None)
-    headings = list(headings)
-    print()
-    print(heading)
-    print()
-    row([key_column] + columns + headings)
-    row(["---"] + ["---:"] * len(columns) + ["---"] * len(headings))
-    for key, row_counts in table.items():
-        cells = [key] + [figure(c, row_counts[c]) for c in columns]
-        row(cells + (cells_for(key) if cells_for else []))
 
 print("### 📊 Metrics — issue %s" % issue)
 print()
