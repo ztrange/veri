@@ -93,8 +93,8 @@ green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$
 
 # 3. the refactor prompt names the files the cycle touched, carries the rule that bounds
 #    the tidy-up (no generality no test demands) and requires the RESULT: footer. The
-#    footer's other two lines are cases 8 (`CANDIDATES:`) and 32 (`NEW_STEP:`); the
-#    `FLAGS:` line case 32 replaced is gone from here with it.
+#    footer's other two lines are cases 8 (`CANDIDATES:`) and 32 (`NEW_STEP:`), each of
+#    which carries why it pins what it pins.
 touched='scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh'
 refactor="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] \
@@ -1107,8 +1107,8 @@ says_both_ways "$refactor" "never says the suites run after a transform cover a 
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor tells the leaf to run the suites covering every file a transform touched, the out-of-list file included (${problems#; })"
 
-# 32. what the refactor leaf reports about overfit code (issue #361). Case 3 pins that the
-#     footer carries a `FLAGS:` line — prose naming overfit code and the case that would force
+# 32. what the refactor leaf reports about overfit code (issue #361). Case 3 pinned a `FLAGS:`
+#     line until this case replaced it — prose naming overfit code and the case that would force
 #     the general implementation — and ADR-0022 records where that line went: narrated into the
 #     issue thread and dropped, although ADR-0009 promised the plan would gain a triangulating
 #     step. A sentence cannot be handed to `add-ledger-step.sh`; a behaviour-level criterion,
