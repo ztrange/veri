@@ -78,5 +78,27 @@ problems=()
 [[ -z "$out" ]] || problems+=("want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
 verdict "$name"
 
+# 3. A prediction nobody can read — no PREDICTION: line at all, or a value that is neither
+#    MATCHED nor DIVERGED — is not a matched one, so it exits 2 and the conductor handles it
+#    the way it handles DIVERGED rather than sending the step on to a blind verify-red.
+name="report with no PREDICTION: line, or an unrecognised value, exits 2"
+problems=()
+report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
+TARGET_TEST: slugify lowercases the title
+AGAINST_UNMODIFIED: FAILS
+FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
+PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'"
+run_on "$report"
+[[ "$code" == 2 ]] || problems+=("no PREDICTION: line: want exit 2, got $code")
+report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
+TARGET_TEST: slugify lowercases the title
+AGAINST_UNMODIFIED: FAILS
+FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
+PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'
+PREDICTION: probably"
+run_on "$report"
+[[ "$code" == 2 ]] || problems+=("PREDICTION: probably: want exit 2, got $code")
+verdict "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
