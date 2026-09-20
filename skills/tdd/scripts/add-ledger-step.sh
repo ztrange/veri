@@ -22,6 +22,12 @@ anchor="${3:?$usage}"
 shift 3
 texts=("$@")
 
+# The mark an added step carries, named once: `added_steps` writes it and `is_added_step`
+# counts it against the budget, so the two must spell it the same way. Other ledger readers
+# name their mark the same way — clear-refactor-pending.sh's `mark`, criterion-finished.sh's
+# `tag`.
+added='⟦added⟧'
+
 # criterion_of <step-line> -> ` ⟦criterion k⟧`, or nothing when the line carries none.
 # Read with globs rather than a regex: the marks are multibyte and suites run under LC_ALL=C.
 criterion_of() {
@@ -36,14 +42,14 @@ added_steps() {
   local line="$1" crit text
   crit="$(criterion_of "$line")"
   for text in "${texts[@]}"; do
-    printf '%s\n' "- [ ] $text ⟦added⟧$crit"
+    printf '%s\n' "- [ ] $text $added$crit"
   done
 }
 
 # is_anchor_step <line> — the line is a step (`- [ ]` or `- [x]`) holding the anchor
 # substring; is_added_step <line> — the line is one an earlier call added.
 is_anchor_step() { [[ "$1" == "- ["*"]"* && "$1" == *"$anchor"* ]]; }
-is_added_step() { [[ "$1" == *"⟦added⟧"* ]]; }
+is_added_step() { [[ "$1" == *"$added"* ]]; }
 
 # count_lines <predicate> -> how many of the ledger's lines the named predicate accepts.
 count_lines() {
