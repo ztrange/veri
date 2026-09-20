@@ -8,3 +8,5 @@
 - `criterion_of` spells `⟦criterion ` three times over (the glob test, the `##` strip, the `printf` format) — naming it would remove the duplication, but the `printf ' %s%s⟧'` arm it forces reads worse than the literal, so I left it
 ### SKILL.md's Draft PR section copies the ledger's `## Owed steps` bullets into the PR body under `## Owed steps` ⟦criterion 10⟧
 - extract the shared `grep -qF 'body'` probe of cases 6 and 7 into a predicate helper beside `names_the_full_gate` — left undone: it is one grep, and the two cases assert different things reaching the body
+### SKILL.md says each insertion emits a `step-added` event
+- case 6 scans every instruction matching an anchor while `mark()` stops at the first; an `instructions_matching` iterator could serve both, though `mark()`'s multi-anchor `anchored` bookkeeping makes the shared shape thin
