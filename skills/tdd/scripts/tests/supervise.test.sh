@@ -1465,7 +1465,7 @@ printf '%s\n' \
   > "$planted"
 
 if [[ ! -x "$AUDIT" ]]; then
-  audit_problems+=("no executable clock audit at skills/tdd/scripts/tests/real-clock-audit.sh")
+  audit_problems+=("no executable clock audit at $AUDIT")
 else
   audit_self_out="$("$AUDIT" "$HERE/supervise.test.sh" 2>&1)"
   audit_self_code=$?
