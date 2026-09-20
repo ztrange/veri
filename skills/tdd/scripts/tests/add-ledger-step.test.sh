@@ -32,7 +32,16 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 led="$work/issue-42.md"
-seed() { printf '# Plan for #42\n\n- [x] lowercase the slug ⟦criterion 1⟧\n- [ ] collapse to single hyphen ⟦criterion 2⟧\n- [ ] strip edge hyphens ⟦criterion 3⟧\n' > "$led"; }
+
+# seed_lines <step-line>... — write a ledger of exactly those steps under the plan heading.
+seed_lines() { { printf '# Plan for #42\n\n'; printf '%s\n' "$@"; } > "$led"; }
+
+# seed — the three-step plan most cases start from.
+seed() {
+  seed_lines '- [x] lowercase the slug ⟦criterion 1⟧' \
+             '- [ ] collapse to single hyphen ⟦criterion 2⟧' \
+             '- [ ] strip edge hyphens ⟦criterion 3⟧'
+}
 
 # 1. `after` inserts the text as an unchecked step on the line following the anchor,
 #    marked ⟦added⟧ and carrying the anchor's own criterion, and exits 0
@@ -59,7 +68,7 @@ want='# Plan for #42
 check "before: inserts both texts, in order, on the lines above the anchor" "$code" "$want"
 
 # 3. an anchor step carrying no ⟦criterion k⟧ yields an added step carrying none
-printf '# Plan for #42\n\n- [ ] collapse to single hyphen\n- [ ] strip edge hyphens ⟦criterion 3⟧\n' > "$led"
+seed_lines '- [ ] collapse to single hyphen' '- [ ] strip edge hyphens ⟦criterion 3⟧'
 "$ADD" "$led" after 'collapse to single hyphen' 'collapse a unicode dash too'; code=$?
 want='# Plan for #42
 
