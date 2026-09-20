@@ -1064,6 +1064,67 @@ fi
 
 report "$name"
 
+# --- the Tests endpoint runs no suite: the test command is read, never executed ---
+# The other half of the Tests pane's contract. What the pane lists is the runs the LEAVES
+# performed, so the endpoint's own work is reading logs — a dashboard that ran the command
+# itself would spend minutes of a suite on every poll, and would run it against whatever the
+# worktree holds mid-step. Asked as behaviour rather than as "no subprocess": the run's spec
+# names a test command whose execution leaves a trace on disk, its leaf log carries a Bash
+# call of exactly that command, and after tests_json has answered, the trace is not there.
+# The answer itself is checked too, so a marker missing because the endpoint raised before it
+# ever looked at the command is a failure of this case and not a pass.
+name="tests_json reads the run's test command and never executes it, so a command that would leave a trace leaves none"
+problems=()
+tnoexec_repo="$(repo testsnoexec)"
+tnoexec_marker="$work/tests-noexec-trace"
+tnoexec_cmd="sh -c 'echo executed > $tnoexec_marker'"
+rm -f "$tnoexec_marker"
+
+tnoexec_run="$(fabricate_run "$tnoexec_repo" 53 tdd/53-lamps-hum)"
+cat > "$tnoexec_run/.tdd/issue-53.md" <<'EOF'
+# Plan for #53 — lamps hum
+
+- [ ] a lamp hums
+EOF
+cat > "$tnoexec_run/.tdd/issue-53-spec.md" <<EOF
+## What to build
+
+A lamp that hums.
+
+Test command: $tnoexec_cmd
+EOF
+cat > "$tnoexec_run/.tdd/develop-red.out" <<EOF
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "$tnoexec_cmd", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n3 passed, 0 failed", "is_error": false}]}}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  call_endpoint "$tnoexec_repo" tests_json "$work/tests-noexec.err" \
+    '{"issue": ["53"]}' "$work/tests-noexec-53.json"
+  if [[ ! -f "$work/tests-noexec-53.json" ]]; then
+    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-noexec.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+with open(sys.argv[1]) as f:
+    got = json.load(f)
+runs = got.get("tests") if isinstance(got, dict) else None
+if not isinstance(runs, list) or len(runs) != 1 or runs[0].get("command") != sys.argv[2]:
+    print("tests_json for issue 53 returned %s; want the one leaf test run of its own test "
+          "command, %r — the marker below says nothing if the endpoint never read it"
+          % (json.dumps(got, sort_keys=True)[:400], sys.argv[2]))
+' "$work/tests-noexec-53.json" "$tnoexec_cmd")
+    if [[ -e "$tnoexec_marker" ]]; then
+      problems+=("the run's test command left $(printf '%q' "$tnoexec_marker") behind, so tests_json executed $(printf '%q' "$tnoexec_cmd") instead of only reading it out of the spec and matching it in the leaf log")
+    fi
+  fi
+fi
+
+report "$name"
+
 # --- the page on disk: one endpoint per pane, no server started ---
 # The criterion is what the BROWSER does with the page, and nothing here is a browser: the
 # suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
