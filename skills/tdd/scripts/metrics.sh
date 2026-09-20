@@ -562,6 +562,18 @@ def budget_cells(step):
 def step_cells(step):
     return [step_wall(step)] + budget_cells(step)
 
+# The lines every table in this report opens with: a blank line, the heading, another blank,
+# the header row and the markdown alignment row under it. Both renderers below go through it
+# rather than spelling it out twice, so the frame of a table is laid out in one place however
+# many tables the report grows. The alignments come in per column because they are the one part
+# that differs between them: a column of figures is right-aligned and a column of words is not.
+def table_head(heading, key_column, columns, aligns):
+    print()
+    print(heading)
+    print()
+    row([key_column] + columns)
+    row(["---"] + aligns)
+
 # `text` is a section of non-count columns, as the pair (headings, a function mapping a row
 # key to that rows cells under them). One parameter rather than two because headings with
 # nothing filling them is a table of blanks and cells with no heading land nowhere, so the
@@ -572,11 +584,8 @@ def step_cells(step):
 def section(heading, key_column, columns, table, text=None):
     headings, cells_for = text or ((), None)
     headings = list(headings)
-    print()
-    print(heading)
-    print()
-    row([key_column] + columns + headings)
-    row(["---"] + ["---:"] * len(columns) + ["---"] * len(headings))
+    table_head(heading, key_column, columns + headings,
+               ["---:"] * len(columns) + ["---"] * len(headings))
     for key, row_counts in table.items():
         cells = [key] + [figure(c, row_counts[c]) for c in columns]
         row(cells + (cells_for(key) if cells_for else []))
@@ -590,12 +599,9 @@ def section(heading, key_column, columns, table, text=None):
 # row whose extra figures GitHub markdown drops on the floor, and this report is pasted into
 # an issue thread to be read there.
 def tier_section(heading, key_column):
-    print()
-    print(heading)
-    print()
     width = max([len(runs) for runs in tier_runs.values()] or [0])
-    row([key_column] + ["run %d s" % (i + 1) for i in range(width)])
-    row(["---"] + ["---:"] * width)
+    table_head(heading, key_column,
+               ["run %d s" % (i + 1) for i in range(width)], ["---:"] * width)
     for tier, runs in tier_runs.items():
         row([tier] + runs + [""] * (width - len(runs)))
 
