@@ -28,6 +28,12 @@
 #   VERI_TIMEOUT=<n> set, refactor
 #                              → <n> as given, unmultiplied: the budget is the cost axis
 #                                and must not move a hand-set liveness cap.
+#   leaf-timeout.sh <fast-seconds> --full <full-seconds>
+#                              → the derivation run over the FULL tier's measurement, not
+#                                the fast one: the timeout bounds a leaf that runs the
+#                                suites covering its change and a verifier that runs the
+#                                whole suite, so a fast-tier baseline sizes the run off
+#                                work no leaf does (issue #377).
 #
 # Run: scripts/tests/leaf-timeout.test.sh
 set -uo pipefail
@@ -174,6 +180,27 @@ refactor_override_probe() {
   rm -f "$out" "$err"
 }
 
+# full_tier_probe <fast> <full> <want> — a recorded pair of tier measurements: the run's
+# fast tier (`make unit` here) and its full tier (`make test`). The script must answer the
+# derivation over the full one, because that is the work the timeout bounds — a developer
+# leaf runs the suites covering the files it touched and a verifier runs the whole suite,
+# while the fast tier is only what preflight happened to time. Every pair passed here has a
+# quick fast tier whose own derivation is the 900 s floor, so a script still sizing from the
+# fast measurement prints 900 and the probe names it.
+full_tier_probe() {
+  local fast="$1" full="$2" want="$3" out err code label
+  out="$(mktemp)" err="$(mktemp)"
+  label="fast $fast full $full"
+  env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$fast" --full "$full" >"$out" 2>"$err" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("$label: want exit 0, got $code")
+  [[ "$(cat "$out")" == "$want" ]] ||
+    problems+=("$label: want $want on stdout, got: $(printf '%q' "$(cat "$out")")")
+  [[ ! -s "$err" ]] ||
+    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  rm -f "$out" "$err"
+}
+
 # 1. The whole of this step's criterion, as one case: with VERI_TIMEOUT unset the script
 #    derives the timeout, and a baseline it cannot derive from is refused rather than
 #    guessed at.
@@ -270,6 +297,19 @@ refactor_probe 3 5 2700
 refactor_probe unset 5 4500
 refactor_override_probe 900 5 200
 refactor_override_probe 1800 3 5
+report "$name"
+
+# 4. The tier split's own hole (issue #377). Preflight times the FAST tier — `make unit`
+#    here since #341, a few seconds — and sized the whole run's hard timeout from that,
+#    while every leaf it launches runs something else: a developer leaf runs the suites
+#    covering the files it touched, a verifier runs the full tier. #300's green leaf was
+#    killed at the 900 s floor twice over, working the whole time, because the measurement
+#    that sized the timeout was of different work. So the pair is handed in and the full
+#    tier is the one the derivation runs over: 600 s of `make test` gets 3600 s, where the
+#    5 s fast tier alongside it would have kept the floor and killed the leaf again.
+name="a recorded pair of tier measurements: the timeout is derived from the full tier's measurement, not the fast one"
+problems=()
+full_tier_probe 5 600 3600
 report "$name"
 
 echo "----"

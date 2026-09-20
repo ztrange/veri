@@ -24,13 +24,29 @@
 # the run's derived timeout times that budget. An explicit VERI_TIMEOUT stays unmultiplied
 # — the budget is the cost axis, and it must not move a cap the operator set on liveness.
 #
+# Preflight measures the FAST tier — `make unit` on this repo since #341, a few seconds —
+# but no leaf runs it: a developer leaf runs the suites covering the files it touched and a
+# verifier runs the full tier. Sizing from the fast measurement therefore bounded work
+# nobody does, and #300's green leaf was killed at the floor twice over while working. So a
+# caller that has both measurements hands in both, and the derivation runs over the full
+# one; the fast argument stays first and stays validated, because it is still the baseline
+# a caller with only one measurement has.
+#
 # Usage:   leaf-timeout.sh <baseline-seconds>              # a whole number >= 0
 #          leaf-timeout.sh <baseline-seconds> refactor     # × max(1, VERI_REFACTOR_BUDGET)
+#          leaf-timeout.sh <fast-seconds> --full <full-seconds>
 #          VERI_TIMEOUT=<n> leaf-timeout.sh …   # <n> a whole number >= 1, used as given
 set -euo pipefail
 
 baseline="${1:-}"
 role="${2:-}"
+# The full-tier measurement displaces the fast one as what the derivation runs over — it is
+# not a second input mixed with the first, so `baseline` is reassigned rather than held
+# alongside: there is one measurement the timeout is sized from, and this says which.
+full=""
+if [[ "$role" == --full ]]; then
+  full="${3:-}"
+fi
 # `override`, not `timeout`: both branches print a timeout, so the name has to say which of
 # the two this one is. It is the value VERI_TIMEOUT arrived with — checked and printed back
 # as the answer, never mixed with the floor and scaled baseline the other branch derives
@@ -49,6 +65,10 @@ fi
 if [[ ! "$baseline" =~ ^[0-9]+$ ]]; then
   echo "leaf-timeout: <baseline-seconds> must be a whole number >= 0: $baseline" >&2
   exit 2
+fi
+
+if [[ -n "$full" ]]; then
+  baseline="$full"
 fi
 
 # The floor is named once rather than written into both branches: it is one decision —
