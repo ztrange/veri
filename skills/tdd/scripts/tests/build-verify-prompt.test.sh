@@ -523,6 +523,27 @@ prompt_says "$green" "verify-green never has REASON: name that code" \
 [[ -z "$problems" ]] && ok \
   || no "verify-green REJECTs production code no test requires and names it in REASON: (${problems#; })"
 
+# 30. and it tells the verifier how to establish that (issue #357). A fourth check the
+#     verifier answers by reading would be a guess: "no test requires this" is a claim
+#     about every test, and the only thing that settles it is removing the code and
+#     watching the suite stay green. So the prompt names the procedure verify-pin already
+#     names for its mutation — remove it, run the suite, put the tree back with `git
+#     checkout --` and confirm with `git diff --exit-code` — and says the restore happens
+#     before the verdict is reported, because a verifier that reports first leaves the
+#     developer's tree mutated for the next leaf. Each claim is its own miss, for case 12's
+#     reason; the read is case 6's `$green`, so no new invocation.
+problems=""
+prompt_says "$green" "verify-green never says to remove the code and run the suite" \
+  -iE -e "remov(e|ing)[^.]{0,120}run[^.]{0,80}suite"
+prompt_says "$green" "verify-green never says to restore the tree afterwards" \
+  -iE -e "restor(e|ing)[^.]{0,80}(tree|code|file)"
+prompt_says "$green" "verify-green never says to confirm the restore with git diff --exit-code" \
+  -iE -e "git diff[[:space:]]+--exit-code"
+prompt_says "$green" "verify-green never says the restore comes before reporting" \
+  -iE -e "before[^.]{0,60}report"
+[[ -z "$problems" ]] && ok \
+  || no "verify-green tells the verifier to remove the code, run the suite, and restore the tree before reporting (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

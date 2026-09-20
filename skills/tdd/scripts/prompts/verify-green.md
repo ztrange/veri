@@ -36,7 +36,11 @@ A developer agent has written the implementation intended to make the target tes
 4. **Only code a test requires.** REJECT production code that no test requires — a
    branch, option, flag or parameter whose removal leaves every test green — and name
    that code in REASON:, since a verdict that only says something is unneeded costs the
-   revise leaf the search you have already done.
+   revise leaf the search you have already done. Establish it the way verify-pin
+   establishes a mutation: remove the code yourself and run the suites again, and if they
+   stay green nothing required it. Then restore the tree exactly — `git checkout --
+   <file>`, and confirm with `git diff --exit-code` — before you report, since a verifier
+   that reports first leaves the developer's tree mutated for the next leaf.
 
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
