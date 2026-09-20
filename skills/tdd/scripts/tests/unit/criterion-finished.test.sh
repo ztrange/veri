@@ -60,6 +60,21 @@ else
   pass=$((pass + 1))
 fi
 
+# 3. a step added mid-run carries ⟦added⟧ before its criterion mark: while one such step is
+#    unchecked, criterion 1 is not finished even though every originally-planned step is → 3
+name="an unchecked ⟦added⟧ step serving criterion 1 keeps it unfinished: exits 3"
+with_added='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] collapse a run of hyphens ⟦added⟧ ⟦criterion 1⟧
+- [x] collapse non-alphanumerics to a single hyphen ⟦criterion 1⟧'
+got_added="$(code_for 1 "$with_added")"
+if [[ "$got_added" != 3 ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name (unchecked added step serving criterion 1: want exit 3, got $got_added)"
+else
+  pass=$((pass + 1))
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
