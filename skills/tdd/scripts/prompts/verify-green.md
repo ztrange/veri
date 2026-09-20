@@ -33,6 +33,10 @@ A developer agent has written the implementation intended to make the target tes
    was not made to pass by weakening the assertion, deleting cases, skipping/xfailing the
    test, or hard-coding the exact expected value in a way that doesn't implement the
    behavior. Any of these is a REJECT.
+4. **Only code a test requires.** REJECT production code that no test requires — a
+   branch, option, flag or parameter whose removal leaves every test green — and name
+   that code in REASON:, since a verdict that only says something is unneeded costs the
+   revise leaf the search you have already done.
 
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
