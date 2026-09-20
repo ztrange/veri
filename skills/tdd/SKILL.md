@@ -770,6 +770,11 @@ following step. The phase sub-steps are:
    `step-added` mark the insertion owes as any other does, which says the plan grew but not
    why. Then loop back to `next-unchecked.sh`, which now hands over the first split step;
    **STEP** itself starts again from Red once the smaller steps ahead of it are done.
+
+   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see *Bailing*. The
+   insertion would take the ledger past `VERI_STEP_GROWTH`, so the script has already filed
+   the criteria under `## Owed steps`: the step's own red is discarded and the smaller steps
+   it needs are not in the plan, so there is nothing for the run to go on with.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
@@ -1188,6 +1193,10 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   the step's criterion cannot be pinned as a lightweight, behavior-level test → **process**
   failure (the criterion as phrased cannot be tested as behavior, not that the plumbing
   broke).
+- `step-too-big` — a Green developer leaf reported `SPLIT:` and the insertion was refused for
+  `VERI_STEP_GROWTH`, so the smaller steps are filed under `## Owed steps` rather than in the
+  plan → **process** failure (the step was too big for one green; `add-ledger-step.sh` exit 1
+  says so, and nothing in the plumbing broke).
 
 To bail:
 

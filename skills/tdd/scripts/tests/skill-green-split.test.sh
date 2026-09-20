@@ -20,6 +20,11 @@
 #      split criteria to ONE `add-ledger-step.sh … before '<STEP>'` call, commits the grown
 #      ledger, emits `step-split`, and loops back to `next-unchecked.sh`, which hands over
 #      the first split step.
+#   2. On the over-budget end of that branch — `add-ledger-step.sh` exits 1, so the criteria
+#      are already filed under `## Owed steps` and the step has no plan to go on with — the
+#      run bails with cause `step-too-big`, which SKILL.md's Bailing causes list classifies
+#      as a **process** failure, the way skill-red-untestable.test.sh pins the same thing for
+#      `untestable-criterion`.
 #
 # One call and not one per criterion, for the reason skill-refactor-leaf.test.sh gives about
 # the same script: it takes every text at once and reads VERI_STEP_GROWTH per call, so a call
@@ -91,6 +96,21 @@ win() {
 # `$` and the `.` are escaped because this is an extended regex and not a path.
 add_ledger_step='\$s/add-ledger-step\.sh'
 
+# bailing_causes — the Bailing section's causes list, from the `killed-stuck` bullet to the
+# end of the section, normalised and joined the same way `green_section` is. The list and not
+# the whole section, for the reason skill-red-untestable.test.sh gives about the same text: a
+# "process failure" written anywhere else in the procedure must not stand in for the list
+# actually carrying the token.
+bailing_causes() {
+  awk '
+    !in_s && index($0, "## Bailing") == 1 { in_s = 1; next }
+    in_s && /^#/ { exit }
+    in_s {
+      if (!want && $0 ~ /killed-stuck/) want = 1
+      if (want) print
+    }' "$skill_path" | plain | tr '\n' ' '
+}
+
 name="$skill_md's Green section, on SPLIT:, restores the tree to HEAD, adds the split steps before STEP in one add-ledger-step.sh call, commits the ledger, emits step-split and returns to next-unchecked.sh"
 problems=()
 
@@ -137,6 +157,36 @@ else
   #    loop is re-entered at its head rather than carried on into verify-green.
   grep -qE 'next-unchecked' <<<"$section" ||
     problems+=("$skill_md's Green section never loops back to next-unchecked.sh after a split, so the conductor goes on into verify-green with no implementation for it to judge")
+fi
+
+report "$name"
+
+# The over-budget end of the same branch: `add-ledger-step.sh` exits 1 when the insertion
+# would take the ledger past `VERI_STEP_GROWTH`, and it has already filed the criteria under
+# `## Owed steps` by then. The step cannot go on without them — its own red is discarded and
+# the smaller steps it needs are not in the plan — so the run stops, and it stops as a
+# process failure: the methodology said this step is too big, nothing in the plumbing broke.
+name="$skill_md's Green section bails with cause step-too-big when add-ledger-step.sh exits 1 on a split, and its Bailing section lists that cause as a process failure"
+problems=()
+
+if [[ -z "${section// /}" ]]; then
+  problems+=("$skill_md has no '$green_heading' section to read — what the conductor does when a split is over budget could not be established")
+elif ! grep -qE 'step-too-big' <<<"$section"; then
+  problems+=("$skill_md's Green section never names the step-too-big cause, so a split refused for growth budget leaves the conductor to invent a stop for a step whose criteria are already filed as owed")
+else
+  over="$(win 'step-too-big')"
+  grep -qE 'exits? 1' <<<"$over" ||
+    problems+=("$skill_md's Green section names step-too-big without saying it is add-ledger-step.sh's exit 1 that causes it, so the conductor cannot tell the over-budget refusal from a call that worked")
+  grep -qE 'bail' <<<"$over" ||
+    problems+=("$skill_md's Green section names step-too-big without bailing on it, so a run whose split was refused carries on into a step it has no plan for")
+fi
+
+causes="$(bailing_causes)"
+if [[ -z "${causes// /}" ]]; then
+  problems+=("$skill_md's Bailing section has no causes list starting at killed-stuck — the classification of step-too-big could not be read")
+else
+  grep -qE 'step-too-big[^.]{0,220}process' <<<"$causes" ||
+    problems+=("$skill_md's Bailing causes list never classifies step-too-big as a process failure, so the label a human reads calls a methodology verdict a broken pipe")
 fi
 
 report "$name"
