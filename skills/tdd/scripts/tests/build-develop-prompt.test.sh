@@ -27,9 +27,10 @@
 #   build-develop-prompt.sh refactor <spec-file> <step-text> <test-cmd> <touched-files>
 #   exits 0 and prints a prompt naming the files this cycle touched — the bounds of the
 #   tidy-up — carrying the rule that bounds it further (no generality no test demands), and
-#   requiring the `RESULT:` / `FLAGS:` / `CANDIDATES:` footer: the first two the conductor
-#   branches on, the third the backlog it lists when the loop was stopped by the budget
-#   rather than by a leaf finding nothing left.
+#   requiring the `RESULT:` / `CANDIDATES:` / `NEW_STEP:` footer: the first the conductor
+#   branches on, the second the backlog it lists when the loop was stopped by the budget
+#   rather than by a leaf finding nothing left, the third the steps the plan gains for
+#   overfit code the leaf must not generalize itself.
 #
 # Contract under test, the reader of that footer:
 #   SKILL.md's `#### Refactor loop` section — no script assembles the `### 🛠️ Refactor`
@@ -177,7 +178,7 @@ none_out="$("$BUILD" 2>"$none_err")"; code=$?
 #    with nothing saying what it was; that line is the backlog the conductor's `### 🛠️
 #    Refactor` comment lists, and a later repo-wide refactor capability reads. One criterion
 #    with three faces, so one case: the footer carries a `CANDIDATES:` line of its own —
-#    the protocol token, at the start of a line like `RESULT:` and `FLAGS:`, because the
+#    the protocol token, at the start of a line like `RESULT:` and `NEW_STEP:`, because the
 #    conductor greps for it — the candidates go **one per line**, so N of them can be
 #    counted and listed rather than parsed out of a sentence, and the line says `none` when
 #    the leaf sees nothing left, which is what distinguishes a clean stop from a truncated
