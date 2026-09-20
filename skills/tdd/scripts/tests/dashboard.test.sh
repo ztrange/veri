@@ -228,19 +228,22 @@ serve_until_up() {  # serve_until_up <url>
   done
 }
 
-# launch <repo> <log> [port] — start dashboard.sh in the background from <repo>, its output
-# on <log>, and leave its pid in `$!` for the caller to interrupt and wait on. `exec` inside
-# the subshell so that pid is the server's own and not a shell wrapping it — the SIGINT has
-# to reach the thing that is serving. PYTHONPATH cleared and PYTHONNOUSERSITE set so an
-# importable package in the caller's environment cannot be what makes it work: "stdlib-only"
-# is part of the criterion, and a server that needed a third-party module would have it to
-# hand otherwise. Started here rather than in a command substitution because a pid the
-# calling shell is not the parent of cannot be `wait`ed on, and the exit status after SIGINT
-# is half of what the first case asks.
-launch() {  # launch <repo> <log> [port]
-  local dir="$1" out="$2"
-  shift 2
-  (cd "$dir" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$DASH" "$@" >"$out" 2>&1) &
+# launch <dash> <repo> <log> [port] — start <dash> in the background from <repo>, its output
+# on <log>, and leave its pid in `$!` for the caller to interrupt and wait on. Which
+# dashboard.sh is the caller's because the script reads the status.sh sitting beside itself,
+# so the concurrency case starts the copy in a directory whose status.sh is its stub while
+# every other case starts $DASH; everything else about the start is the same in all of them
+# and so is spelled here. `exec` inside the subshell so that pid is the server's own and not
+# a shell wrapping it — the SIGINT has to reach the thing that is serving. PYTHONPATH cleared
+# and PYTHONNOUSERSITE set so an importable package in the caller's environment cannot be
+# what makes it work: "stdlib-only" is part of the criterion, and a server that needed a
+# third-party module would have it to hand otherwise. Started here rather than in a command
+# substitution because a pid the calling shell is not the parent of cannot be `wait`ed on,
+# and the exit status after SIGINT is half of what the first case asks.
+launch() {  # launch <dash> <repo> <log> [port]
+  local dash="$1" dir="$2" out="$3"
+  shift 3
+  (cd "$dir" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$dash" "$@" >"$out" 2>&1) &
 }
 
 # port_problem <port> — the reason this case cannot be asked of that port, or nothing. Every
@@ -302,7 +305,7 @@ problem="$(port_problem "$PORT")"
 if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
-  launch "$served" "$log"
+  launch "$DASH" "$served" "$log"
   dash_pid=$!
 
   url="http://127.0.0.1:$PORT/"
@@ -385,7 +388,7 @@ fi
 if [[ -n "$problem" ]]; then
   problems+=("$problem")
 else
-  launch "$arg_repo" "$arg_log" "$arg_port"
+  launch "$DASH" "$arg_repo" "$arg_log" "$arg_port"
   arg_pid=$!
 
   # The URL is the port the argument named, so anything wrong with the fetch of it is the
@@ -1078,7 +1081,7 @@ else
   ln -s "$scripts/dashboard.html" "$slow_dir/dashboard.html"
   ln -s "$METRICS" "$slow_dir/metrics.sh"
 
-  (cd "$slow_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 exec "$slow_dir/dashboard.sh" "$slow_port" >"$slow_log" 2>&1) &
+  launch "$slow_dir/dashboard.sh" "$slow_repo" "$slow_log" "$slow_port"
   slow_pid=$!
 
   slow_url="http://127.0.0.1:$slow_port/"
