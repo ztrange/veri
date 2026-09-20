@@ -764,19 +764,21 @@ says_both_ways "$budgeted" "the prompt never names 37 as the budget" \
 #     DIVERGED` — 18 characters, 11 of them before the DIVERGED — so 20 is the value plus room
 #     to reword it, and stops short of the 30 the leak needs.
 #
-#     Both shapes are written once and each caller names only its own token or verdict, for
-#     the reason `offers_class` gives: the pattern is then the thing the complaint names, and
-#     the two cannot disagree. `asks_for` is where `-F` lives — the whole of a protocol string
-#     is the pattern, so there is nothing in it to interpret — and `offers_verdict` where the
-#     bound does.
-asks_for() {  # asks_for <footer token, colon included>
-  local token="$1"
-  prompt_says "$red" "the report never asks for $token" -F -e "$token"
+#     Both shapes are written once and each caller names only its own prompt, label, token or
+#     verdict, for the reason `offers_class` gives: the pattern is then the thing the complaint
+#     names, and no two callers can disagree. `asks_for` is where `-F` lives — the whole of a
+#     protocol string is the pattern, so there is nothing in it to interpret — and
+#     `offers_verdict` where the bound does. Both take the prompt the way
+#     `predicts_before_running` below does, because the same footer is owed by more than one
+#     phase: case 29 asks these of the revise prompt.
+asks_for() {  # asks_for <prompt> <report label> <footer token, colon included>
+  local prompt="$1" label="$2" token="$3"
+  prompt_says "$prompt" "the $label report never asks for $token" -F -e "$token"
 }
 
-offers_verdict() {  # offers_verdict <verdict word>
-  local verdict="$1"
-  prompt_says "$red" "the report never offers $verdict on the PREDICTION: line" \
+offers_verdict() {  # offers_verdict <prompt> <report label> <verdict word>
+  local prompt="$1" label="$2" verdict="$3"
+  prompt_says "$prompt" "the $label report never offers $verdict on the PREDICTION: line" \
     -E -e "PREDICTION:[^.]{0,20}$verdict"
 }
 
@@ -787,10 +789,10 @@ predicts_before_running() {  # predicts_before_running <prompt> <complaint>
 
 problems=""
 predicts_before_running "$red" "does not require the prediction to be stated before the run"
-asks_for 'PREDICTED_FAILURE:'
-offers_verdict MATCHED
-offers_verdict DIVERGED
-asks_for 'PREDICTION_NOTE:'
+asks_for "$red" red 'PREDICTED_FAILURE:'
+offers_verdict "$red" red MATCHED
+offers_verdict "$red" red DIVERGED
+asks_for "$red" red 'PREDICTION_NOTE:'
 [[ -z "$problems" ]] \
   && ok || no "develop-red requires the predicted failure before the run and carries PREDICTED_FAILURE:, PREDICTION: MATCHED | DIVERGED and PREDICTION_NOTE: in its report footer (${problems#; })"
 
@@ -1031,13 +1033,13 @@ says_both_ways "$red" "never says the predicted missing-name error names the mis
 #
 #     The prompt read is case 4's — same phase, same arguments, so there is one invocation and
 #     case 4 owns the exit-0 check on it, and it is the prompt built for `revise red`, the
-#     call the criterion names. The probes are case 21's, pointed at this prompt: the
-#     `PREDICTED_FAILURE:` one literal and `-F`, since a protocol string a reader greps for
-#     has nothing in it to interpret and a paraphrase of one is not one; the two verdict words
-#     anchored on `PREDICTION:` and probed separately rather than as one alternation, which
-#     would be answered by either. Both shapes are spelled once here and each caller names
-#     only its token or its verdict, for `offers_class`'s reason — a bound edited on one and
-#     not the other is a drift no diff makes loud.
+#     call the criterion names. The probes are case 21's own `asks_for` and `offers_verdict`,
+#     named here with this prompt and this phase's label: the `PREDICTED_FAILURE:` one literal
+#     and `-F`, since a protocol string a reader greps for has nothing in it to interpret and a
+#     paraphrase of one is not one; the two verdict words anchored on `PREDICTION:` and probed
+#     separately rather than as one alternation, which would be answered by either. Reused
+#     rather than restated, for `offers_class`'s reason — a bound edited on one copy and not
+#     the other is a drift no diff makes loud.
 #
 #     The gap is case 21's 20, and load-bearing for the reason written there: `prompt_says`
 #     folds the prompt to one line, so at 40 the DIVERGED branch is answered by a following
@@ -1046,21 +1048,10 @@ says_both_ways "$red" "never says the predicted missing-name error names the mis
 #     probes are case-sensitive, so the lower-case `prediction` sub-step 2 already carries
 #     answers neither: `PREDICTED_FAILURE` and `PREDICTION:` occur nowhere in the revise
 #     prompt built today, checked against the built prompt rather than the template.
-revise_asks_for() {  # revise_asks_for <footer token, colon included>
-  local token="$1"
-  prompt_says "$revise" "the revise report never asks for $token" -F -e "$token"
-}
-
-revise_offers_verdict() {  # revise_offers_verdict <verdict word>
-  local verdict="$1"
-  prompt_says "$revise" "the revise report never offers $verdict on the PREDICTION: line" \
-    -E -e "PREDICTION:[^.]{0,20}$verdict"
-}
-
 problems=""
-revise_asks_for 'PREDICTED_FAILURE:'
-revise_offers_verdict MATCHED
-revise_offers_verdict DIVERGED
+asks_for "$revise" revise 'PREDICTED_FAILURE:'
+offers_verdict "$revise" revise MATCHED
+offers_verdict "$revise" revise DIVERGED
 [[ -z "$problems" ]] \
   && ok || no "develop-revise ends with PREDICTED_FAILURE: and PREDICTION: MATCHED | DIVERGED report lines (${problems#; })"
 
