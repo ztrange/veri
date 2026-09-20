@@ -123,7 +123,7 @@ else
   # The commit, as the acceptance criterion spells it: one `metrics:` commit of the file
   # beside the ledger. Both strings of one record, because a commit verb in one instruction
   # and a filename in another is not an instruction to commit that file.
-  commit_line="$(first_record_line "$pr_records" 'metrics:' 'metrics.md')" ||
+  first_record_line "$pr_records" 'metrics:' 'metrics.md' >/dev/null ||
     problems+=("$skill_md's Draft PR step has no instruction committing .tdd/issue-<n>-metrics.md in a metrics: commit, so the report is never beside the ledger it describes")
 
   # The PR itself, by its command: without a `gh pr create` the step has no PR for a human
