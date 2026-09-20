@@ -1055,6 +1055,33 @@ offers_verdict "$revise" revise DIVERGED
 [[ -z "$problems" ]] \
   && ok || no "develop-revise ends with PREDICTED_FAILURE: and PREDICTION: MATCHED | DIVERGED report lines (${problems#; })"
 
+# 30. the one file a transform may touch that this cycle did not (issue #358). Case 3 pins the
+#     touched-files list as the bounds of the tidy-up, and the template's "Confine the transform
+#     to those files" makes those bounds absolute — so duplication BETWEEN code this cycle wrote
+#     and an older file can never be removed, which is the duplication Beck's refactor exists
+#     for: his `Sum.plus()`/`Money.plus()` case spans two classes. So the prompt now carries one
+#     exception, and only one: a transform may reach a file outside the list when it removes
+#     duplication between that file and code this cycle wrote, and for no other reason. Two
+#     faces of one criterion — the permission and its only-ness — so one case: a permission
+#     without the bound reads as licence to tidy the whole repository, which is what case 3's
+#     bounds were for.
+#
+#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
+#     case 3 owns the exit-0 check on it. Probed through `says_both_ways` for case 16's reason —
+#     "a transform outside the list only removes duplication" reads as naturally as "removing
+#     duplication is the only transform outside the list" — which spells one bounded
+#     `[^.]{0,gap}` per branch, the constraint `prompt_says` reasons about. The gap is 60: the
+#     two halves belong to one sentence at most. `outside` occurs nowhere in the prompt built
+#     today, checked against the built prompt rather than the template, so neither probe is
+#     answered by prose already there.
+problems=""
+says_both_ways "$refactor" "never says a transform may touch a file outside the touched-files list to remove duplication" \
+  60 'outside' 'duplication'
+says_both_ways "$refactor" "never says removing that duplication is the only reason to leave the list" \
+  60 'outside' 'only'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor permits a transform outside the touched-files list only when it removes duplication with code this cycle wrote (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
