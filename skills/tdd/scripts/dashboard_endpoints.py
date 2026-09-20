@@ -211,10 +211,13 @@ def test_runs(run, command):
 # Answered for the selected run alone, the way every endpoint has since #343: the run is
 # `.tdd/wt/<issue>` and no other, so a second run whose leaves ran the same command is not
 # reported here. An issue with no run of its own, or one whose spec names no test command,
-# is the empty list rather than another run's tests.
+# is the empty list rather than another run's tests. The issue the spec is read for is the
+# one that was asked about: run_for_issue answers with `.tdd/wt/<issue>` and no other, so
+# asking the run back for its own number could only return the number already in hand.
 def tests_json(query):
-    run = run_for_issue(query.get("issue", [""])[0])
-    command = test_command(run, run_issue(run))
+    issue = query.get("issue", [""])[0]
+    run = run_for_issue(issue)
+    command = test_command(run, issue)
     return json.dumps({"tests": test_runs(run, command) if command else []}).encode()
 
 
