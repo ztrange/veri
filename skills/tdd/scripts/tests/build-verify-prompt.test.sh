@@ -459,6 +459,26 @@ prompt_says "$red" "verify-red never says a missing script or file is one of the
 [[ -z "$problems" ]] && ok \
   || no "verify-red accepts an error on exactly the name the step introduces as a valid red (${problems#; })"
 
+# 27. and the other half of the same sentence stays put (issue #355). Widening check 1 to
+#     accept an error on the name the step introduces must not widen it to accept every
+#     error before an assertion: a typo'd name, a wrong path, a missing fixture and a
+#     syntax error in the test are each still a REJECT, and each is a way a test reaches
+#     Green looking red. Each claim is its own miss, for case 12's reason; the read is
+#     case 1's `$red`, so no new invocation.
+problems=""
+prompt_says "$red" "verify-red never says any other error before an assertion is a REJECT" \
+  -iE -e "any [^.]{0,20}other[^.]{0,20} error[^.]{0,60}before[^.]{0,40}assertion[^.]{0,80}REJECT"
+prompt_says "$red" "verify-red names no typo'd name among the errors it still rejects" \
+  -iE -e "typo"
+prompt_says "$red" "verify-red names no wrong path among the errors it still rejects" \
+  -iE -e "wrong path|incorrect path|path that does not exist"
+prompt_says "$red" "verify-red names no missing fixture among the errors it still rejects" \
+  -iE -e "(missing|absent) fixture"
+prompt_says "$red" "verify-red names no syntax error among the errors it still rejects" \
+  -iE -e "syntax error"
+[[ -z "$problems" ]] && ok \
+  || no "verify-red still rejects any other error before an assertion: a typo'd name, a wrong path, a missing fixture, a syntax error (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
