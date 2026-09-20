@@ -36,12 +36,17 @@ led="$work/issue-42.md"
 # seed_lines <step-line>... — write a ledger of exactly those steps under the plan heading.
 seed_lines() { { printf '# Plan for #42\n\n'; printf '%s\n' "$@"; } > "$led"; }
 
-# seed — the three-step plan most cases start from.
-seed() {
-  seed_lines '- [x] lowercase the slug ⟦criterion 1⟧' \
-             '- [ ] collapse to single hyphen ⟦criterion 2⟧' \
-             '- [ ] strip edge hyphens ⟦criterion 3⟧'
-}
+# seeded — the three-step plan most cases start from, as `seed` leaves it on disk. A case
+# that expects the ledger unchanged, or unchanged but for an appended block, says so against
+# this string rather than a copy of it, so the two cannot drift apart.
+seeded='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] collapse to single hyphen ⟦criterion 2⟧
+- [ ] strip edge hyphens ⟦criterion 3⟧'
+
+# seed — write that plan to the ledger.
+seed() { printf '%s\n' "$seeded" > "$led"; }
 
 # 1. `after` inserts the text as an unchecked step on the line following the anchor,
 #    marked ⟦added⟧ and carrying the anchor's own criterion, and exits 0
@@ -82,11 +87,7 @@ check "no criterion on the anchor: the added step carries none either" "$code" "
 #    a budget of one, so it is the texts given that overflow, not steps already added.
 seed
 VERI_STEP_GROWTH=1 "$ADD" "$led" before 'collapse to single hyphen' 'one more edge case' 'and another'; code=$?
-want='# Plan for #42
-
-- [x] lowercase the slug ⟦criterion 1⟧
-- [ ] collapse to single hyphen ⟦criterion 2⟧
-- [ ] strip edge hyphens ⟦criterion 3⟧
+want="$seeded"'
 
 ## Owed steps
 
@@ -101,11 +102,7 @@ check_code "over budget: inserts no checkbox, exits 1, and owes both texts as pl
 seed
 "$ADD" "$led" after 'no such step' 'collapse a unicode dash too'; code1=$?
 "$ADD" "$led" after 'hyphen' 'collapse a unicode dash too'; code2=$?
-want='# Plan for #42
-
-- [x] lowercase the slug ⟦criterion 1⟧
-- [ ] collapse to single hyphen ⟦criterion 2⟧
-- [ ] strip edge hyphens ⟦criterion 3⟧'
+want="$seeded"
 check_code "ambiguous or absent anchor: exits 2 and leaves the ledger byte-identical" \
   "$code1/$code2" "2/2" "$want"
 
