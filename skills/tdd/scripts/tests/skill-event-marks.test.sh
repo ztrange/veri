@@ -65,6 +65,16 @@ instructions() {
     END { flush() }' "$ROOT/$skill_md" | tr '[:upper:]' '[:lower:]'
 }
 
+# calls_event <instruction> <event> — does this instruction prescribe `event.sh <event>`?
+#
+# The event name is bounded on the right so a mark cannot answer for one whose name it is a
+# prefix of — `event.sh bailed` is not `event.sh bail`, and the hyphen is excluded for the
+# same reason `done` must not be satisfied by `step-done`. Every case that reads a call out of
+# the document asks through here, so that boundary is one decision rather than one per case.
+calls_event() {
+  [[ "$1" =~ event\.sh[[:space:]]+"$2"([^a-z0-9-]|$) ]]
+}
+
 # mark <event> <what the instruction prescribes> <anchor-regex>… — assert that a single
 # instruction of the global `records` matches every <anchor-regex> AND prescribes
 # `event.sh <event>`, in two stages, because the two failures have different fixes.
@@ -75,10 +85,6 @@ instructions() {
 #
 # Anchors match but none of them carries the call: that is the criterion failing, and the
 # message quotes the instruction so the fix is an edit to a line already in front of you.
-#
-# The event name is bounded on the right so a mark cannot answer for one whose name it is a
-# prefix of — `event.sh bailed` is not `event.sh bail`, and the hyphen is excluded for the
-# same reason `done` must not be satisfied by `step-done`.
 #
 # On a pass, the global `marked` holds the instruction that carried the call, so a case
 # asking more of the call than its name reads it from there rather than re-matching anchors.
@@ -92,7 +98,7 @@ mark() {
     # The first anchored instruction, kept for the message; the loop goes on because a
     # later one may be the instruction that carries the call.
     [[ -n "$anchored" ]] || anchored="$line"
-    [[ "$line" =~ event\.sh[[:space:]]+"$event"([^a-z0-9-]|$) ]] && { marked="$line"; return 0; }
+    calls_event "$line" "$event" && { marked="$line"; return 0; }
   done <<< "$records"
   if [[ -z "$anchored" ]]; then
     problems+=("$skill_md no longer $what — where \`event.sh $event\` belongs could not be read")
@@ -295,7 +301,7 @@ else
     # and preflight names `add-ledger-step.sh` bare while reading its budget.
     [[ "$line" =~ \$s/add-ledger-step\.sh ]] || continue
     insertions=$((insertions + 1))
-    [[ "$line" =~ event\.sh[[:space:]]+step-added([^a-z0-9-]|$) ]] ||
+    calls_event "$line" step-added ||
       problems+=("$skill_md inserts a step with no \`event.sh step-added\` beside it: $(printf '%.130s' "$line")")
   done <<< "$records"
   # Fail closed: no insertion prescribed anywhere means the loop asked nothing, which must not
