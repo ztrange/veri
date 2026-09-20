@@ -175,12 +175,6 @@ def leaf_logs(run):
     return sorted(glob.glob(os.path.join(run, ".tdd", "*.out"))) if run else []
 
 
-# The Tests pane: the test runs the LEAVES performed, read back out of their logs — the
-# dashboard runs no suite itself, and could not: a suite takes minutes and would run again on
-# every poll. A test run is a Bash tool call whose command is the run's own test command,
-# paired with the tool result carrying its answer; the pairing is by `tool_use_id`, because a
-# leaf's call and its result are separate records and other calls sit between them. A Bash
-# call to anything else is no run of the suite, and so is not listed.
 # One leaf log's records: its stream-json lines, parsed, one per line and in the order the
 # file has them. A line that is not JSON is skipped rather than raised on, because this reads
 # a log the leaf may still be writing — the last line of a live one is routinely half a
@@ -197,23 +191,29 @@ def log_records(log):
                 continue
 
 
+# The Tests pane: the test runs the LEAVES performed, read back out of their logs — the
+# dashboard runs no suite itself, and could not: a suite takes minutes and would run again on
+# every poll. A test run is a Bash tool call whose command is the run's own test command,
+# paired with the tool result carrying its answer; the pairing is by `tool_use_id`, because a
+# leaf's call and its result are separate records and other calls sit between them. A Bash
+# call to anything else is no run of the suite, and so is not listed.
 def test_runs(run, command):
     found = []
     for log in leaf_logs(run):
-        pending = {}
+        pending = set()
         for obj in log_records(log):
             for block in (obj.get("message") or {}).get("content") or []:
-                if block.get("type") == "tool_use":
-                    if (block.get("name") == "Bash"
-                            and (block.get("input") or {}).get("command") == command):
-                        pending[block.get("id")] = True
-                elif block.get("type") == "tool_result":
-                    if pending.pop(block.get("tool_use_id"), False):
-                        found.append({
-                            "command": command,
-                            "passed": not block.get("is_error", False),
-                            "tail": output_tail(str(block.get("content", ""))),
-                        })
+                if (block.get("type") == "tool_use" and block.get("name") == "Bash"
+                        and (block.get("input") or {}).get("command") == command):
+                    pending.add(block.get("id"))
+                elif (block.get("type") == "tool_result"
+                        and block.get("tool_use_id") in pending):
+                    pending.discard(block.get("tool_use_id"))
+                    found.append({
+                        "command": command,
+                        "passed": not block.get("is_error", False),
+                        "tail": output_tail(str(block.get("content", ""))),
+                    })
     return found
 
 
