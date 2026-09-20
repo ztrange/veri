@@ -938,30 +938,36 @@ def last_arg(args):
 
 code = code_only(page)
 
+
+# Every call in code whose name matches <pattern>, as (match, end) — end being the index just
+# past the ")" that closes it, or -1 when nothing does. The match carries the name that was
+# found, which the settlement handlers below need and the timers do not.
+def calls(pattern):
+    for m in re.finditer(pattern + r"\s*\(", code):
+        yield m, balanced(code, m.end())
+
+
 # No fixed clock anywhere on the page: one setInterval left behind is one pane still queueing
 # requests against an endpoint that has not answered.
-for m in re.finditer(r"\bsetInterval\s*\(", code):
-    end = balanced(code, m.end())
+for m, end in calls(r"\bsetInterval"):
     shown = page[m.start():end] if end > 0 else page[m.start():m.end()]
     print("the page calls %s, so a pane fires on a fixed clock rather than on its previous "
           "request answering" % " ".join(shown.split())[:120])
 
 # Where a settlement handler body is: the argument list of .then, .catch or .finally.
 spans = []
-for m in re.finditer(r"\.(then|catch|finally)\s*\(", code):
-    end = balanced(code, m.end())
+for m, end in calls(r"\.(then|catch|finally)"):
     if end > 0:
         spans.append((m.group(1), m.end(), end - 1))
 
-timers = list(re.finditer(r"\bsetTimeout\s*\(", code))
+timers = list(calls(r"\bsetTimeout"))
 if not timers:
     print("the page calls setTimeout nowhere, so no pane schedules its next request from its "
           "previous one settling")
 else:
     resolve = reject = False
-    for m in timers:
+    for m, end in timers:
         kinds = [kind for kind, a, b in spans if a <= m.start() < b]
-        end = balanced(code, m.end())
         shown = " ".join((page[m.start():end] if end > 0 else page[m.start():m.end()]).split())
         if not kinds:
             print("the page calls %s outside every .then, .catch and .finally body, so that "
