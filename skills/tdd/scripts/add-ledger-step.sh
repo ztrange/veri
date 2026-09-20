@@ -4,7 +4,10 @@
 #
 # Inserts each <text> as an unchecked step `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` on the lines
 # after the step containing <anchor-substring>, or on the lines before it, in the order
-# given. The added step inherits the anchor's criterion, so criterion-finished.sh keeps
+# given. VERI_STEP_GROWTH (default 3) caps how many ⟦added⟧ steps one ledger may hold, and
+# the call is all or nothing: a batch that would exceed the cap inserts nothing, exits 1 and
+# records every text as a plain bullet under `## Owed steps`, where next-unchecked.sh will
+# not find it. The added step inherits the anchor's criterion, so criterion-finished.sh keeps
 # counting it against the same acceptance criterion; the ⟦added⟧ mark goes first because that
 # reader takes the criterion from the line's end.
 #
@@ -36,6 +39,25 @@ added_steps() {
     printf '%s\n' "- [ ] $text ⟦added⟧$crit"
   done
 }
+
+budget="${VERI_STEP_GROWTH:-3}"
+
+# added_held -> how many ⟦added⟧ steps the ledger already holds.
+added_held() {
+  local line n=0
+  while IFS= read -r line; do
+    if [[ "$line" == *"⟦added⟧"* ]]; then n=$((n + 1)); fi
+  done < "$file"
+  printf '%s' "$n"
+}
+
+if (( $(added_held) + ${#texts[@]} > budget )); then
+  {
+    printf '\n## Owed steps\n\n'
+    for text in "${texts[@]}"; do printf -- '- %s\n' "$text"; done
+  } >> "$file"
+  exit 1
+fi
 
 out=""
 while IFS= read -r line; do
