@@ -502,6 +502,55 @@ fi
 rm -f "$skillcommit_cut"
 report "$name"
 
+# 13. Case 12 itself fails, named, on a suite that leaks (#305) — the half of the criterion that
+#     case 12 cannot ask about itself. Probed the way cases 9, 10 and 11 are: a copy of this file
+#     runs in a scratch tree beside a stand-in run-conductor.test.sh that goes red on exactly the
+#     ambient value case 12 sets, and the copy's output is asked for case 12's OWN finding rather
+#     than merely a FAIL line carrying its name. That distinction is the trap case 10 records for
+#     case 9, one level up: case 12 also fails closed when it cannot cut its slice at all, and both
+#     failures name the same suite, so only the words the leaked arm writes prove an arm ran.
+#
+#     The stand-in is a suite case 12's awk cut can slice: it carries the `tree_clone
+#     "$work/tree"` line that cut skips from, the `# 15. ` and `# 16. ` markers it cuts between,
+#     case 15's own `name=` line, and the `pass`/`fail` counters the appended count line reads. It
+#     is `#!/usr/bin/env bash` rather than `#!/bin/sh` like the other stand-ins here, because the
+#     three lines the cut appends are bash's `[[`. Green run clean and red only with the sha in its
+#     environment, by construction, so case 12 fails for the leak and not for an arm that was never
+#     green either way.
+#
+#     The copy is run with HERMETIC_SKILLCOMMIT_PROBE set, which this case reads to skip itself in
+#     the child — its own case 13 would otherwise copy the copy, forever — and with the three names
+#     cases 9, 10 and 11 read, none of which has a stand-in in this tree.
+name="a suite whose answer changes with an ambient VERI_SKILL_COMMIT fails hermetic-suites.test.sh, named"
+if [[ -z "${HERMETIC_SKILLCOMMIT_PROBE:-}" ]]; then
+  problems=()
+  sha_work="$(mktemp -d)"
+  trap 'rm -rf "$lock_work" "${rerun_work:-}" "${leak_work:-}" "${share_work:-}" "$sha_work"' EXIT
+  mkdir -p "$sha_work/scripts/tests"
+  printf '%s\n' \
+    '#!/usr/bin/env bash' \
+    'set -uo pipefail' \
+    'pass=0 fail=0' \
+    'tree_clone "$work/tree"' \
+    '# 15. The one case of this suite that can observe the sha.' \
+    'name="every event a launched run writes carries origin'\''s tip as skill_commit, and the prompt names it"' \
+    'if [[ -z "${VERI_SKILL_COMMIT:-}" ]]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL - $name"; fi' \
+    '# 16. Past the cut, and never run.' \
+    'exit 9' \
+    > "$sha_work/scripts/tests/run-conductor.test.sh"
+  cp "$HERE/$(basename "$0")" "$sha_work/scripts/tests/"
+  chmod +x "$sha_work/scripts/tests/"*.test.sh
+  sha_out="$(HERMETIC_SKILLCOMMIT_PROBE=1 HERMETIC_SHARE_PROBE=1 HERMETIC_LEAK_PROBE=1 HERMETIC_RERUN_PROBE=1 \
+    "$sha_work/scripts/tests/$(basename "$0")" 2>/dev/null)" && sha_code=0 || sha_code=$?
+  [[ "$sha_code" != 0 ]] ||
+    problems+=("want the copy to exit non-zero with the stand-in leaking VERI_SKILL_COMMIT, got 0: $(printf '%q' "$sha_out")")
+  [[ "$sha_out" == *"FAIL - run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMIT"* ]] ||
+    problems+=("want a FAIL line naming 'run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMIT', got: $(printf '%q' "$sha_out")")
+  [[ "$sha_out" == *"(the one case that can observe the sha), got"* ]] ||
+    problems+=("want case 12 to fail on its own finding, the sliced case red under the ambient sha, not on a slice it could not cut; got: $(printf '%q' "$sha_out")")
+  report "$name"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
