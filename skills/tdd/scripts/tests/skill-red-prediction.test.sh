@@ -73,6 +73,19 @@ doc_text() {
     }' "$skill_path" | plain | tr '\n' ' '
 }
 
+# red_section <from-regex> <missing-message> — set `text` to the Red section's words from
+# <from-regex> on, and say whether a case's probes can run at all. Nothing matching means the
+# anchor is gone — the section was renamed, or the instruction moved — so the message goes into
+# `problems` and 1 comes back: a case whose anchor vanished must read as one failure, never as
+# a row of passes over an empty string. Both cases below anchor in the same `#### Red` section,
+# which is why the heading is written once, here.
+red_section() {
+  text="$(doc_text '#### Red' "$1")"
+  [[ -n "${text// /}" ]] && return 0
+  problems+=("$2")
+  return 1
+}
+
 # says <regex> <fact> — one thing the narration text has to carry, written as the regex of
 # any wording that would carry it; `fact` names it once if nothing matches.
 says() {
@@ -86,12 +99,8 @@ name="$skill_md's Red narration puts the leaf's prediction and whether it matche
 problems=()
 # The narrate sub-step: the one that posts the comment, found by the heading it posts
 # rather than by its number, which a reordering would move.
-text="$(doc_text '#### Red' '### 🔴 Red')"
-if [[ -z "${text// /}" ]]; then
-  # Fail closed: no narrate sub-step means the section was renamed or the comment moved,
-  # and neither probe below ran — which must not read as two passes.
-  problems+=("$skill_md's Red section has no instruction posting the \`### 🔴 Red\` comment — what that comment carries could not be read")
-else
+if red_section '### 🔴 Red' \
+  "$skill_md's Red section has no instruction posting the \`### 🔴 Red\` comment — what that comment carries could not be read"; then
   says 'predicted_failure|predicted failure|prediction it (made|wrote)|what it predicted' \
     "$skill_md tells the conductor to post the \`### 🔴 Red\` comment without the leaf's predicted failure, so the thread shows what the test did with nothing to read it against"
   says 'prediction: *matched|matched \| diverged|whether (the|its) (prediction|predicted failure) (matched|was)|matched or diverged' \
@@ -110,12 +119,8 @@ problems=()
 # Anchored at the first line naming the script, so the case reads the divergence
 # instruction itself rather than the verify-red prose three sub-steps above, which already
 # speaks of `.tdd/verify-red.reason` and of a revise loop.
-text="$(doc_text '#### Red' 'red-divergence')"
-if [[ -z "${text// /}" ]]; then
-  # Fail closed: with no instruction naming the script there is no branch to read, and the
-  # five probes below must not read as five passes.
-  problems+=("$skill_md's Red section never runs \`red-divergence.sh\` on the leaf's report, so a \`PREDICTION: DIVERGED\` goes to verify-red like a matched one")
-else
+if red_section 'red-divergence' \
+  "$skill_md's Red section never runs \`red-divergence.sh\` on the leaf's report, so a \`PREDICTION: DIVERGED\` goes to verify-red like a matched one"; then
   says 'exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b' \
     "$skill_md names \`red-divergence.sh\` without saying which of its exit codes takes the diverged path, so exit 2 — a prediction nobody can read — is not handled like a divergence"
   says 'skips? verify-red and verify-pin|skips? both verify-red and verify-pin|verify-red and verify-pin entirely' \
