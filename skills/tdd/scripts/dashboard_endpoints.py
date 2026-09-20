@@ -181,30 +181,39 @@ def leaf_logs(run):
 # paired with the tool result carrying its answer; the pairing is by `tool_use_id`, because a
 # leaf's call and its result are separate records and other calls sit between them. A Bash
 # call to anything else is no run of the suite, and so is not listed.
+# One leaf log's records: its stream-json lines, parsed, one per line and in the order the
+# file has them. A line that is not JSON is skipped rather than raised on, because this reads
+# a log the leaf may still be writing — the last line of a live one is routinely half a
+# record — and a pane that died on it would go blank for as long as the write took. That is
+# the difference from events_of above, which reads a log written a whole line at a time.
+def log_records(log):
+    with open(log) as f:
+        for raw in f:
+            if not raw.strip():
+                continue
+            try:
+                yield json.loads(raw)
+            except ValueError:
+                continue
+
+
 def test_runs(run, command):
     found = []
     for log in leaf_logs(run):
         pending = {}
-        with open(log) as f:
-            for raw in f:
-                if not raw.strip():
-                    continue
-                try:
-                    obj = json.loads(raw)
-                except ValueError:
-                    continue
-                for block in (obj.get("message") or {}).get("content") or []:
-                    if block.get("type") == "tool_use":
-                        if (block.get("name") == "Bash"
-                                and (block.get("input") or {}).get("command") == command):
-                            pending[block.get("id")] = True
-                    elif block.get("type") == "tool_result":
-                        if pending.pop(block.get("tool_use_id"), False):
-                            found.append({
-                                "command": command,
-                                "passed": not block.get("is_error", False),
-                                "tail": output_tail(str(block.get("content", ""))),
-                            })
+        for obj in log_records(log):
+            for block in (obj.get("message") or {}).get("content") or []:
+                if block.get("type") == "tool_use":
+                    if (block.get("name") == "Bash"
+                            and (block.get("input") or {}).get("command") == command):
+                        pending[block.get("id")] = True
+                elif block.get("type") == "tool_result":
+                    if pending.pop(block.get("tool_use_id"), False):
+                        found.append({
+                            "command": command,
+                            "passed": not block.get("is_error", False),
+                            "tail": output_tail(str(block.get("content", ""))),
+                        })
     return found
 
 
