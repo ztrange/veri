@@ -40,34 +40,31 @@ added_steps() {
   done
 }
 
-# anchor_matches -> how many steps contain the anchor substring. The anchor has to name one
-# step and no other: none means the plan has moved on, more than one means the caller cannot
-# have known where the step would land, and both are refusals rather than a guess.
-anchor_matches() {
-  local line n=0
+# is_anchor_step <line> — the line is a step (`- [ ]` or `- [x]`) holding the anchor
+# substring; is_added_step <line> — the line is one an earlier call added.
+is_anchor_step() { [[ "$1" == "- ["*"]"* && "$1" == *"$anchor"* ]]; }
+is_added_step() { [[ "$1" == *"⟦added⟧"* ]]; }
+
+# count_lines <predicate> -> how many of the ledger's lines the named predicate accepts.
+count_lines() {
+  local pred="$1" line n=0
   while IFS= read -r line; do
-    if [[ "$line" == "- ["*"]"* && "$line" == *"$anchor"* ]]; then n=$((n + 1)); fi
+    if "$pred" "$line"; then n=$((n + 1)); fi
   done < "$file"
   printf '%s' "$n"
 }
 
-[[ "$(anchor_matches)" == 1 ]] || {
+# The anchor has to name one step and no other: none means the plan has moved on, more than
+# one means the caller cannot have known where the step would land, and both are refusals
+# rather than a guess.
+[[ "$(count_lines is_anchor_step)" == 1 ]] || {
   printf 'add-ledger-step.sh: anchor matches no single step: %s\n' "$anchor" >&2
   exit 2
 }
 
 budget="${VERI_STEP_GROWTH:-3}"
 
-# added_held -> how many ⟦added⟧ steps the ledger already holds.
-added_held() {
-  local line n=0
-  while IFS= read -r line; do
-    if [[ "$line" == *"⟦added⟧"* ]]; then n=$((n + 1)); fi
-  done < "$file"
-  printf '%s' "$n"
-}
-
-if (( $(added_held) + ${#texts[@]} > budget )); then
+if (( $(count_lines is_added_step) + ${#texts[@]} > budget )); then
   {
     printf '\n## Owed steps\n\n'
     for text in "${texts[@]}"; do printf -- '- %s\n' "$text"; done
