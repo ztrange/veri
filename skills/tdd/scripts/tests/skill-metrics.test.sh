@@ -126,13 +126,12 @@ else
   commit_line="$(first_record_line "$pr_records" 'metrics:' 'metrics.md')" ||
     problems+=("$skill_md's Draft PR step has no instruction committing .tdd/issue-<n>-metrics.md in a metrics: commit, so the report is never beside the ledger it describes")
 
-  # …and it lands BEFORE the PR is opened, which is what keeps the branch the human is
-  # asked to look at from being one commit short of the report its body quotes.
-  pr_line="$(first_record_line "$pr_records" 'gh pr create')" ||
-    problems+=("$skill_md's Draft PR step never runs gh pr create, so there is no PR for the metrics commit to precede")
-  if [[ -n "${commit_line:-}" && -n "${pr_line:-}" && "$commit_line" -gt "$pr_line" ]]; then
-    problems+=("$skill_md commits the metrics report AFTER gh pr create, so the PR is opened on a branch missing the file its body quotes: $(printf '%.120s' "$(record_at "$pr_records" "$commit_line")")")
-  fi
+  # The PR itself, by its command: without a `gh pr create` the step has no PR for a human
+  # to read the delivered figures on. Order is not asked here — a record holds the whole
+  # sub-step, so the commit and the create land in the same one (#267); the fenced-line cases
+  # below read SKILL.md's command block directly, where the order is expressible.
+  first_record_line "$pr_records" 'gh pr create' >/dev/null ||
+    problems+=("$skill_md's Draft PR step never runs gh pr create, so the run ends with no PR carrying the metrics it committed")
 
   # The block, in the two places a human reads a finished run: the PR body and the final
   # comment. Each is asked of the record carrying that instruction's own command, so a
@@ -356,6 +355,28 @@ else
     prev_anchor="$anchor" prev_at="$at"
   done
 fi
+report "$name"
+
+# Issue #267: the record-level commit-before-PR check this suite used to carry could not
+# fail. section_records folds the whole Draft PR sub-step — its prose and its fenced command
+# block — into ONE record, so the metrics commit's record number and gh pr create's are the
+# same number, and a greater-than between them is false whatever order the step runs. A check
+# that cannot fail reports coverage the suite does not have; the fenced-line cases above pin
+# that ordering for real, at the granularity where it is expressible. This case reads the
+# suite's own source and asks that neither the comparison nor the comment claiming it catches
+# a metrics commit made after the PR is opened has come back. Both needles are assembled from
+# two pieces at runtime, so the lines writing them here can never answer for the lines they
+# are looking for.
+name="skill-metrics.test.sh carries no record-level commit-before-PR comparison, which records_of's folding makes dead"
+problems=()
+
+suite_src="$(cat "$ROOT/$suite_md")"
+dead_compare='commit_line" '"-gt"' "$pr_line'
+dead_comment='lands '"BEFORE"' the PR is opened'
+[[ "$suite_src" != *"$dead_compare"* ]] ||
+  problems+=("$suite_md compares the metrics commit's record number against gh pr create's with a greater-than, but section_records folds both into the same record, so the check cannot fail and reports coverage the suite does not have")
+[[ "$suite_src" != *"$dead_comment"* ]] ||
+  problems+=("$suite_md still carries the comment claiming a record-level probe catches a metrics commit made after the PR is opened, which the folding makes impossible")
 report "$name"
 
 echo "----"
