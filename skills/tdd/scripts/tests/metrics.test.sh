@@ -1923,6 +1923,87 @@ stopped_says "$triage_out" "$tidied=nothing-structural" "$owing=structural-owed"
 report_on "$name" "$triage_out"
 
 
+# tier_seconds_say <file> <tier>=<s>,<s>,… … — the per-tier section of the `test-run` marks
+# timed-test-run.sh leaves behind (#342, part of PRD #335). Each expectation names a tier and
+# the seconds its runs recorded, in the order the log carries them, and every one of those
+# figures must appear in that tier's row in that order.
+#
+# A subsequence rather than the row's numbers outright, for the reason every other probe here
+# locates a column by its heading: what the step asks for is that the recorded seconds are
+# listed per tier, so a section free to carry a count, a median or a usual beside them is one
+# this case must not forbid. The ORDER is pinned, since a trend read out of order is not one.
+#
+# The table is found by its rows, as everywhere above — the first one carrying a row whose
+# key is the tier — so neither the section's heading nor its position in the report is pinned.
+tier_seconds_say() {
+  local out_file="$1"; shift
+  probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+tables = tables_in(path)
+
+# Whether `wanted` runs through `got` in order, other figures allowed between them.
+def in_order(wanted, got):
+    remaining = iter(got)
+    return all(any(figure == want for figure in remaining) for want in wanted)
+
+for arg in sys.argv[2:]:
+    key, expected = arg.split("=", 1)
+    wanted = [float(s) for s in expected.split(",")]
+    header, row = located(tables, key, "a per-tier table", table_with)
+    if row is None:
+        continue
+    got = [figure for figure in (number(c) for c in row[1:]) if figure is not None]
+    if not in_order(wanted, got):
+        complain("tier %r seconds: want %s in its row, in that order, got %s"
+                 % (key, wanted, got))
+
+print("\n".join(problems))
+' "$out_file" "$@"
+}
+
+# A fixture for the per-tier section: one step of one phase whose leaves ran the test command
+# six times, three at the `fast` tier and three at `all`, interleaved the way a run interleaves
+# them. The seconds are fabricated and no clock produced them — `test-run` carries the figure
+# it was written with, so nothing here waits on wall time.
+#
+# The two tiers read 4, 6, 5 and 120, 100, 140: neither list is sorted, so a section that
+# ordered the figures rather than trending them cannot pass, and no figure of one tier appears
+# in the other, so a section that pooled both tiers into one row cannot either.
+#
+# The step's own `exit` marks carry `secs` too, and are what make the case say something: they
+# are 30 and 900 seconds, in neither tier's list, so a section reading its figures off the
+# wall seconds supervise.sh writes rather than off the `test-run` marks reports numbers this
+# case does not want.
+fixture_work tier_work
+
+timed="metrics.sh prints a per-tier section of the test-run events' recorded seconds"
+
+sv "$timed" 50000 conductor ""        step-start ""
+sv "$timed" 50002 developer green     launch  1 '"name": "develop-green"'
+sv "$timed" 50010 developer green     test-run 1 '"tier": "fast", "suites": "metrics.test.sh", "seconds": "4"'
+sv "$timed" 50020 developer green     test-run 1 '"tier": "all", "suites": "all", "seconds": "120"'
+sv "$timed" 50032 developer green     exit    1 '"status": "0", "secs": "30"'
+sv "$timed" 50040 verifier  green     launch  1 '"name": "verify-green"'
+sv "$timed" 50050 verifier  green     test-run 1 '"tier": "fast", "suites": "metrics.test.sh", "seconds": "6"'
+sv "$timed" 50060 verifier  green     test-run 1 '"tier": "all", "suites": "all", "seconds": "100"'
+sv "$timed" 50070 verifier  green     test-run 1 '"tier": "fast", "suites": "metrics.test.sh", "seconds": "5"'
+sv "$timed" 50080 verifier  green     test-run 1 '"tier": "all", "suites": "all", "seconds": "140"'
+sv "$timed" 50940 verifier  green     exit    1 '"status": "0", "secs": "900"'
+sv "$timed" 50940 verifier  green     verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$timed" 50950 conductor ""        step-done ""
+
+
+name="the report carries a per-tier section listing each tier's test-run seconds in log order"
+problems=()
+
+tier_out="$tier_work/report.md"
+render "$tier_work" "$tier_out"
+
+tier_seconds_say "$tier_out" fast=4,6,5 all=120,100,140
+
+report_on "$name" "$tier_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

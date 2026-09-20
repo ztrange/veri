@@ -7,4 +7,4 @@
 - [x] a run of any tier whose seconds exceed `VERI_TIME_WARN_RATIO` × its usual is over budget; at or under the ratio, it is not ⟦criterion 5⟧
 - [x] the over-budget answer prints exactly one `⏱` line for a run over budget and nothing for one that is not, and SKILL.md instructs the conductor to paste that line into the phase's narration and to branch on nothing ⟦criterion 7⟧
 - [x] an over-budget test run leaves a run's outcome alone: the verdict stands and nothing retries or bails because of the seconds ⟦criterion 6⟧
-- [ ] `metrics.sh <issue>` prints a new per-tier section of the `test-run` events' recorded seconds, reading only `.tdd/events.jsonl` ⟦criterion 8⟧
+- [x] `metrics.sh <issue>` prints a new per-tier section of the `test-run` events' recorded seconds, reading only `.tdd/events.jsonl` ⟦criterion 8⟧ ⟂ refactor pending
