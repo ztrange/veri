@@ -43,6 +43,25 @@ line_of() {
   grep -nF "$2" "$1" | head -1 | cut -d: -f1
 }
 
+# under_step <file> <step> <transform> — probe that <file> carries <transform>, and carries
+# it after the step that left it behind. Two cases ask exactly that of two different files —
+# the file `append` wrote, and the output `render` printed — so it is asked in one place, and
+# the file is the only thing a caller passes to tell them apart. Order rather than syntax:
+# the step is named, and named before its candidates, which is the whole of what "under that
+# step" means to a reader; how the step is marked up is the script's business.
+under_step() {
+  local file="$1" step="$2" transform="$3" step_at candidate_at
+  step_at="$(line_of "$file" "$step")"
+  candidate_at="$(line_of "$file" "$transform")"
+  if [[ -z "$candidate_at" ]]; then
+    problems+=("$file does not carry the candidate '$transform'")
+  elif [[ -z "$step_at" ]]; then
+    problems+=("$file carries '$transform' but never names the step '$step' that owes it")
+  elif [[ "$step_at" -gt "$candidate_at" ]]; then
+    problems+=("$file names the step '$step' on line $step_at, below its candidate '$transform' on line $candidate_at — the candidate is not under its step")
+  fi
+}
+
 # 1. what `append` keeps. A develop-refactor report piped in carries both classes of
 #    candidate — structural and cosmetic, as prompts/develop-refactor.md's *The two classes
 #    of candidate* defines them — and only the structural ones are work a follow-up owes.
@@ -94,15 +113,8 @@ cosmetic='reflow the header comment to ninety columns'
 grep -qF "$cosmetic" "$owed_file" &&
   problems+=("the cosmetic candidate '$cosmetic' is in $owed_file; only structural leftovers are work a follow-up owes")
 
-# Order rather than syntax: the step is named, and it is named before the candidates it
-# left behind, which is the whole of what "under that step" means to a reader.
-step_at="$(line_of "$owed_file" "$step")"
-first_candidate_at="$(line_of "$owed_file" 'fold verify.sh'"'"'s two mktemp calls into one helper')"
-if [[ -z "$step_at" ]]; then
-  problems+=("$owed_file never names the step '$step', so nothing says which step owes these candidates")
-elif [[ -n "$first_candidate_at" && "$step_at" -gt "$first_candidate_at" ]]; then
-  problems+=("$owed_file names the step on line $step_at, after its first candidate on line $first_candidate_at — the candidates are not under the step")
-fi
+# The step is named, and named before the candidate it left behind.
+under_step "$owed_file" "$step" 'fold verify.sh'"'"'s two mktemp calls into one helper'
 
 rm -f "$leaf_report" "$owed_file"
 report "$name"
@@ -210,22 +222,9 @@ grep -qF '## Refactor owed' "$rendered" ||
 # Every recorded candidate is printed, and printed after the step that left it behind.
 # Paired step-and-candidate probes rather than two separate lists: a render that printed
 # both steps and both candidates in the wrong order would pass a list of each.
-check_under() {
-  local step="$1" transform="$2" step_at candidate_at
-  step_at="$(line_of "$rendered" "$step")"
-  candidate_at="$(line_of "$rendered" "$transform")"
-  if [[ -z "$candidate_at" ]]; then
-    problems+=("render did not print the recorded candidate '$transform'")
-  elif [[ -z "$step_at" ]]; then
-    problems+=("render printed '$transform' but never names the step '$step' that owes it")
-  elif [[ "$step_at" -gt "$candidate_at" ]]; then
-    problems+=("render printed '$transform' on line $candidate_at, above its step '$step' on line $step_at — it is not under its step")
-  fi
-}
-
-check_under "$first_step" "fold verify.sh's two mktemp calls into one helper"
-check_under "$second_step" 'hoist the ledger path into one variable'
-check_under "$second_step" 'rename $tmp to $prompt_file, which is what it holds'
+under_step "$rendered" "$first_step" "fold verify.sh's two mktemp calls into one helper"
+under_step "$rendered" "$second_step" 'hoist the ledger path into one variable'
+under_step "$rendered" "$second_step" 'rename $tmp to $prompt_file, which is what it holds'
 
 rm -f "$first_report" "$second_report" "$owed_file" "$rendered"
 report "$name"
