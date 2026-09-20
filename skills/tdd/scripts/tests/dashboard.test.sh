@@ -295,6 +295,35 @@ for query, out in zip(calls[0::2], calls[1::2]):
 ' "$scripts" "$module" "$PORT" "$fn" "$@") 2> "$err"
 }
 
+# The half of an events case that is the same in both of them: two answers call_endpoint
+# wrote, each loaded and checked to be an object with an "events" array, and the run log
+# they are answers about, parsed the way events_json parses it. Handed
+# <body> <issue> <body> <issue> <log>, it leaves `answers` keyed by issue number and `want`
+# the log's lines, and says which half of a malformed answer broke rather than dying on it.
+# What differs between the two cases is only what they compare those to — the program each
+# appends to this one — so the shape check and the log read are written here once.
+events_answers='
+import json, sys
+
+answers = {}
+for path, issue in ((sys.argv[1], sys.argv[2]), (sys.argv[3], sys.argv[4])):
+    try:
+        with open(path) as f:
+            got = json.load(f)
+    except ValueError:
+        with open(path) as f:
+            print("events_json for issue %s returned something that is not JSON; it starts: %r"
+                  % (issue, f.read()[:200]))
+        sys.exit()
+    if not isinstance(got, dict) or not isinstance(got.get("events"), list):
+        print("events_json for issue %s returned %s; want an object with an \"events\" array"
+              % (issue, json.dumps(got, sort_keys=True)[:300]))
+        sys.exit()
+    answers[issue] = got["events"]
+with open(sys.argv[5]) as f:
+    want = [json.loads(raw) for raw in f if raw.strip()]
+'
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
@@ -853,29 +882,8 @@ else
   if [[ ! -f "$work/events-direct-51.json" || ! -f "$work/events-direct-99.json" ]]; then
     problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-direct.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-sel_body, none_body, log_path = sys.argv[1], sys.argv[2], sys.argv[3]
-for path, issue in ((sel_body, "51"), (none_body, "99")):
-    try:
-        with open(path) as f:
-            got = json.load(f)
-    except ValueError:
-        with open(path) as f:
-            print("events_json for issue %s returned something that is not JSON; it starts: %r"
-                  % (issue, f.read()[:200]))
-        sys.exit()
-    if not isinstance(got, dict) or not isinstance(got.get("events"), list):
-        print("events_json for issue %s returned %s; want an object with an \"events\" array"
-              % (issue, json.dumps(got, sort_keys=True)[:300]))
-        sys.exit()
-    if issue == "51":
-        events = got["events"]
-    else:
-        none = got["events"]
-with open(log_path) as f:
-    want = [json.loads(raw) for raw in f if raw.strip()]
+    add_problems < <(python3 -c "$events_answers"'
+events, none = answers["51"], answers["99"]
 if not events:
     print("events_json for issue 51 returned no events; the selected run’s log has %d" % len(want))
 elif len(events) > len(want):
@@ -888,7 +896,8 @@ elif events != want[len(want) - len(events):]:
 if none != []:
     print("events_json for issue 99, which no run holds a ledger for, returned %s; want []"
           % json.dumps(none, sort_keys=True)[:400])
-' "$work/events-direct-51.json" "$work/events-direct-99.json" "$edirect_sel/.tdd/events.jsonl")
+' "$work/events-direct-51.json" 51 "$work/events-direct-99.json" 99 \
+      "$edirect_sel/.tdd/events.jsonl")
   fi
 fi
 
@@ -931,27 +940,7 @@ else
   if [[ ! -f "$work/events-own-3.json" || ! -f "$work/events-own-7.json" ]]; then
     problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-own.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-copy_body, own_body, log_path = sys.argv[1], sys.argv[2], sys.argv[3]
-answers = {}
-for path, issue in ((copy_body, "3"), (own_body, "7")):
-    try:
-        with open(path) as f:
-            got = json.load(f)
-    except ValueError:
-        with open(path) as f:
-            print("events_json for issue %s returned something that is not JSON; it starts: %r"
-                  % (issue, f.read()[:200]))
-        sys.exit()
-    if not isinstance(got, dict) or not isinstance(got.get("events"), list):
-        print("events_json for issue %s returned %s; want an object with an \"events\" array"
-              % (issue, json.dumps(got, sort_keys=True)[:300]))
-        sys.exit()
-    answers[issue] = got["events"]
-with open(log_path) as f:
-    want = [json.loads(raw) for raw in f if raw.strip()]
+    add_problems < <(python3 -c "$events_answers"'
 if answers["3"] != []:
     print("events_json for issue 3, which is only a committed ledger copy inside the run "
           "directory .tdd/wt/7, returned %s; want [], because there is no .tdd/wt/3"
@@ -960,7 +949,8 @@ if answers["7"] != want:
     print("events_json for issue 7 returned %s; want its own run directory’s log, %s"
           % (json.dumps(answers["7"], sort_keys=True)[:400],
              json.dumps(want, sort_keys=True)[:400]))
-' "$work/events-own-3.json" "$work/events-own-7.json" "$eown_run/.tdd/events.jsonl")
+' "$work/events-own-3.json" 3 "$work/events-own-7.json" 7 \
+      "$eown_run/.tdd/events.jsonl")
   fi
 fi
 
