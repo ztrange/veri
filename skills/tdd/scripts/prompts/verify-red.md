@@ -26,7 +26,8 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
    and red is what this check is after.
 2. **It fails for the right reason.** The failure must be the *missing behavior from the
    spec* (e.g. an absent function/route/field, or a wrong returned value) — NOT an
-   import typo, a syntax error, a missing fixture, or an unrelated environment problem.
+   import typo, a wrong path, a syntax error, a missing fixture, or an unrelated
+   environment problem.
    A test that fails for the wrong reason is a REJECT.
 3. **Quality of the test.** REJECT if the test is:
    - **trivial** — it cannot meaningfully fail once the behavior exists (asserts a
