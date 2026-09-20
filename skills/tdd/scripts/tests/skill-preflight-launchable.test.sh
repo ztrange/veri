@@ -18,6 +18,13 @@
 #   Some preflight check names `leaf-launchable.sh`, and it comes before the check that runs
 #   the baseline suite.
 #
+# A second case (issue #360) holds the same section to refusing a bad `VERI_STEP_GROWTH`, the
+# fifth budget axis: the check belongs where item 5 already refuses a bad
+# `VERI_REFACTOR_BUDGET`, since a budget that cannot be read is a misconfigured run either way
+# and preflight is the one place a run is still free to stop. Its behaviour as a script is
+# add-ledger-step.test.sh's; that the document orders a run to make the check is prose, and so
+# is pinned here.
+#
 # Before the baseline is the whole point of the position, not a tidiness: the baseline is the
 # expensive half of preflight — minutes on a slow repo — and it is wasted either way when no
 # leaf can launch. A launchability check placed after it would still refuse the run, but only
@@ -56,6 +63,7 @@ md="$ROOT/$skill_md"
 # failure message spells, so a message can never name something the probe never looked for.
 launchable="leaf-launchable.sh"
 detector="detect-test-command.sh"
+growth='VERI_STEP_GROWTH'
 preflight='### 0. Preflight'
 
 pass=0 fail=0
@@ -124,6 +132,38 @@ else
     problems+=("$skill_md's '$preflight' section has no item naming $detector, so which check runs the baseline — the one a launchability check has to precede — could not be read")
   elif [[ -n "$launch_at" ]] && [[ "$launch_at" -gt "$baseline_at" ]]; then
     problems+=("$skill_md:$launch_at calls $launchable after the baseline's $detector call at line $baseline_at, so a run that cannot launch a leaf still pays the whole baseline suite first")
+  fi
+fi
+
+report "$name"
+
+# item_around <line> — the text of the numbered preflight item that contains <line>: from the
+# last `N.` item opener at or before it to the line before the next opener, or the section's
+# end when it is the last item. The item rather than the line, because a check is announced on
+# one line and its refusal spelled on the next; the opener rather than blank lines, because an
+# item's continuation lines are indented prose with blank lines of their own.
+item_around() {
+  local at="$1" start end next
+  start="$(awk -v s="$sec_start" -v at="$at" 'NR >= s && NR <= at && /^[0-9]+\./ { n = NR } END { print n + 0 }' "$md")"
+  [[ "$start" -gt 0 ]] || start="$sec_start"
+  next="$(awk -v s="$((at + 1))" -v e="$sec_end" 'NR >= s && NR <= e && /^[0-9]+\./ { print NR; exit }' "$md")"
+  if [[ -n "$next" ]]; then end=$((next - 1)); else end="$sec_end"; fi
+  sed -n "${start},${end}p" "$md"
+}
+
+# 2. The fifth budget is checked where the third one is: a value that cannot be read stops the
+#    run before it starts, rather than surfacing when a leaf first tries to grow the plan.
+name="$skill_md's preflight refuses to start on a bad $growth"
+problems=()
+
+if ! section "$preflight"; then
+  problems+=("$skill_md has no '$preflight' section — where a $growth check would sit could not be read")
+else
+  growth_at="$(call_at "$growth")"
+  if [[ -z "$growth_at" ]]; then
+    problems+=("$skill_md's '$preflight' section never names $growth, so a run whose plan-growth budget cannot be read starts anyway and only finds out when a leaf first tries to grow the plan")
+  elif ! item_around "$growth_at" | grep -qiE 'exits? 2'; then
+    problems+=("$skill_md:$growth_at names $growth in a preflight item that spells no exit 2, so the document mentions the budget without refusing a run that cannot read it — the way item 5 refuses a bad VERI_REFACTOR_BUDGET")
   fi
 fi
 
