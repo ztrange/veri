@@ -1082,6 +1082,31 @@ says_both_ways "$refactor" "never says removing that duplication is the only rea
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor permits a transform outside the touched-files list only when it removes duplication with code this cycle wrote (${problems#; })"
 
+# 31. which suites a transform owes a run of, now that it may leave the list (issue #358).
+#     Case 30 lets one transform reach a file outside the touched-files list to remove
+#     duplication with code this cycle wrote; case 19 pins the run that follows every
+#     transform, and it is a run of "the suites affected-suites.sh prints for the files
+#     refactor-touched.sh printed — the ones listed above". Those bounds were the same bounds
+#     until case 30, and now are not: a transform that edits an older file runs the suites of
+#     the files it did not edit, and the one suite that could catch the break it did cause is
+#     the one it never runs. So the suites follow what the transform touched, the out-of-list
+#     file included, rather than the list the prompt opened with.
+#
+#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
+#     case 3 owns the exit-0 check on it. Probed through `says_both_ways` for case 16's reason
+#     — "run the suites covering a file outside the list too" reads as naturally as "a file
+#     outside the list is covered by the suites run" — which spells one bounded `[^.]{0,gap}`
+#     per branch, the constraint `prompt_says` reasons about. The gap is 80: the two halves
+#     belong to one sub-step's sentence. Checked against the built prompt rather than the
+#     template, the prompt's one `outside` sits in case 30's exception, whose sentence names
+#     no suite, so the probe is not answered by prose already there — and `[^.]` cannot reach
+#     sub-step 3 from it, since every script name between them carries a `.`.
+problems=""
+says_both_ways "$refactor" "never says the suites run after a transform cover a file it touched outside the list" \
+  80 'outside' 'suites?'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor tells the leaf to run the suites covering every file a transform touched, the out-of-list file included (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
