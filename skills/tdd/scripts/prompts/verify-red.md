@@ -12,8 +12,12 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 ### Your checks
 
 1. **It runs and fails.** Run the suites `affected-suites.sh` prints for the change
-   yourself, not one suite picked by hand. The target test must **fail**, not error before
-   it reaches its assertions. Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which
+   yourself, not one suite picked by hand. The target test must **fail**, and an error on
+   exactly the name the step introduces — a missing function, script, file, route or field
+   — is a valid red: in bash, Python or JS a name that does not exist yet errors before any
+   assertion runs, so a test that cannot even reach its assertions for that reason is red,
+   not broken. Any *other* error before an assertion is still a REJECT under check 2. Make
+   that run through the wrapper `{{TIMED_TEST_RUN}}`, which
    records what the run cost and names the tier it belongs to:
 
        {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
