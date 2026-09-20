@@ -20,6 +20,20 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 DIVERGENCE="$HERE/../../red-divergence.sh"
 pass=0 fail=0
 
+# verdict <name> — report one case from the `problems` array the case just filled: empty is
+# a pass, otherwise a FAIL line naming the case and one indented line per problem. Same
+# accounting idiom as classify-bail.test.sh's check().
+verdict() {
+  local name="$1" p
+  if (( ${#problems[@]} )); then
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    for p in "${problems[@]}"; do echo "    $p"; done
+  else
+    pass=$((pass + 1))
+  fi
+}
+
 # 1. DIVERGED → exit 0, and the reason carries all three of the report's values, so the
 #    revise leaf is told what was predicted, what actually failed, and why they differ.
 name="DIVERGED report exits 0 and prints its PREDICTED_FAILURE, FAIL_OUTPUT and PREDICTION_NOTE"
@@ -39,14 +53,8 @@ problems=()
 [[ "$out" == *"$predicted"* ]] || problems+=("stdout does not carry the PREDICTED_FAILURE value '$predicted'")
 [[ "$out" == *"$fail_output"* ]] || problems+=("stdout does not carry the FAIL_OUTPUT value '$fail_output'")
 [[ "$out" == *"$note"* ]] || problems+=("stdout does not carry the PREDICTION_NOTE value '$note'")
-if (( ${#problems[@]} )); then
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  for p in "${problems[@]}"; do echo "    $p"; done
-  echo "    it printed: $(printf '%s' "$out" | tr '\n' '|')"
-else
-  pass=$((pass + 1))
-fi
+if (( ${#problems[@]} )); then problems+=("it printed: $(printf '%s' "$out" | tr '\n' '|')"); fi
+verdict "$name"
 
 # 2. MATCHED → exit 3 (nothing to do) and not a byte of output, so the conductor carries
 #    on to verify-red exactly as it did before there was a divergence gate.
@@ -61,13 +69,7 @@ out="$(printf '%s' "$report" | "$DIVERGENCE" 2>&1)" && code=0 || code=$?
 problems=()
 [[ "$code" == 3 ]] || problems+=("want exit 3, got $code")
 [[ -z "$out" ]] || problems+=("want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
-if (( ${#problems[@]} )); then
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  for p in "${problems[@]}"; do echo "    $p"; done
-else
-  pass=$((pass + 1))
-fi
+verdict "$name"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
