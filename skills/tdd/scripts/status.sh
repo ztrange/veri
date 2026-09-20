@@ -188,16 +188,17 @@ for run in "${runs[@]}"; do
   heading="${heading#\# Plan for #}"
   issue="${heading%% — *}"
   title="${heading#* — }"
+  step="$(ledger_step "$ledger")"
   if [[ "$json" -eq 1 ]]; then
     # One object per run: the ledger's fields, merged with run_activity's object when there is one.
     run_objects+=("$(python3 -c '
 import json, sys
 run = {"issue": sys.argv[1], "title": sys.argv[2], "branch": sys.argv[3], "step": sys.argv[4]}
 run.update(json.loads(sys.argv[5]) if sys.argv[5] else {})
-print(json.dumps(run))' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity")")
+print(json.dumps(run))' "$issue" "$title" "$branch" "$step" "$activity")")
     continue
   fi
-  printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity"
+  printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$step" "$activity"
 done
 
 if [[ "$json" -eq 1 ]]; then
