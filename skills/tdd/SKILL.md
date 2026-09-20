@@ -849,12 +849,15 @@ following step. The phase sub-steps are:
    `structural-owed` for triage exit **0**):
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
+   ```
+   Then **record the leftovers themselves**, which is not a log mark and does not belong in
+   that line: the narration above is a comment and `.tdd/develop-refactor.out` is overwritten
+   by the next step's leaf, so **`append` is what makes the structural leftovers outlast the
+   step**. It copies them — never the cosmetic ones — into the run's owed file under this
+   step's name, where the Draft PR renders every step's, not just the last one's:
+   ```
    $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md '<STEP>' < .tdd/develop-refactor.out
    ```
-   The narration above is a comment and `.tdd/develop-refactor.out` is overwritten by the
-   next step's leaf, so **`append` is what makes the structural leftovers outlast the
-   step**: it copies them — never the cosmetic ones — into the run's owed file under this
-   step's name, where the Draft PR renders every step's, not just the last one's.
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **clear the refactor-pending mark and commit the cleared ledger first**, before
      anything outside the repository says the step is done:
