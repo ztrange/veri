@@ -571,6 +571,35 @@ prompt_says "$with_base" "never spares the hunk that removes duplication with co
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor derives the cycle's files as git diff --name-only <base-sha>^ <base-sha> and REJECTs a changed file outside that list unless its hunk removes duplication with code in it (${problems#; })"
 
+# 32. an unhandled edge case the spec implies is a proposed step, not a REJECT (issue #362).
+#     Check 2 asks for code that is "reasonably robust (no obvious unhandled edge case the
+#     spec implies)", and handling an edge case changes behaviour — so a REJECT on that
+#     ground can only be met by the untested behaviour change develop-refactor forbids, and
+#     the revise leaf either fails or smuggles one in. Beck's answer to a missing case is a
+#     new test, so the finding becomes a `NEW_STEP:` line, the same protocol token the
+#     refactor leaf reports its overfit findings on (#361), written before the final
+#     `VERDICT:`/`REASON:` pair. Proposing a criterion reveals no developer reasoning, so
+#     blindness holds (ADR-0003).
+#
+#     Four claims, four misses, for case 12's reason: the token without the edge case it
+#     answers is a line the verifier fills with anything, the placement is what keeps
+#     parse-verdict.sh reading the final pair, and the token arriving while the REJECT stays
+#     leaves the verdict that #362 exists to remove. The prompt read is case 7's `$refactor`
+#     — same phase, same arguments — so there is no new invocation, and case 7 owns the
+#     build. `NEW_STEP` and `edge case` both appear at most once in the prompt built today,
+#     so no probe is answered by prose already there.
+problems=""
+prompt_says "$refactor" "verify-refactor never names a NEW_STEP: line" \
+  -F -e 'NEW_STEP:'
+prompt_says "$refactor" "verify-refactor never ties NEW_STEP: to an unhandled edge case the spec implies" \
+  -iE -e "unhandled edge case[^.]{0,200}NEW_STEP|NEW_STEP[^.]{0,200}unhandled edge case"
+prompt_says "$refactor" "verify-refactor never puts the NEW_STEP: line before the VERDICT: line" \
+  -iE -e "NEW_STEP[^.]{0,120}before[^.]{0,120}VERDICT"
+prompt_says "$refactor" "verify-refactor never says an unhandled edge case is not a REJECT" \
+  -iE -e "(edge case|robust)[^.]{0,200}not( by itself)? a REJECT|not( by itself)? a REJECT[^.]{0,200}(edge case|robust)"
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor reports an unhandled edge case the spec implies as a NEW_STEP: line before VERDICT: rather than a REJECT (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

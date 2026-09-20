@@ -27,22 +27,28 @@ Render one verdict on the settled result.
    The wrapper hands the command's own exit status straight back, so a red run stays red.
 2. **Up to standard.** The settled code should be code you would approve: it follows the
    repository's **conventions**, uses sensible **typing**/structure where the project
-   does, names things clearly, and is reasonably **robust** (no obvious unhandled edge
-   case the spec implies). It must not have smuggled in untested generality — generality
-   is only earned through triangulation, not hand-written here.
-3. **No assertion loosened.** A removed or weakened test assertion in the range is a REJECT,
+   does, names things clearly, and is reasonably **robust**. It must not have smuggled in
+   untested generality — generality is only earned through triangulation, not hand-written
+   here.
+3. **A missing case is a step, not a REJECT.** An obvious unhandled edge case the spec
+   implies is not by itself a REJECT: handling it changes behavior, which a
+   behavior-preserving refactor may not do, so the REJECT would demand what no revise leaf
+   can give you — the answer to a missing case is a new test, not tidier code. Report the
+   unhandled edge case as a `NEW_STEP: <behaviour-level criterion>` line instead, written
+   before the final `VERDICT:`/`REASON:` pair.
+4. **No assertion loosened.** A removed or weakened test assertion in the range is a REJECT,
    and the REJECT names that assertion: the suite stays green while it loosens, so the diff
    is the only place it shows.
-4. **Cosmetic hunks.** A hunk that is only cosmetic (whitespace, reflowed prose, a rename
+5. **Cosmetic hunks.** A hunk that is only cosmetic (whitespace, reflowed prose, a rename
    with no other effect) is named in REASON: but is not a REJECT by itself, since a REJECT
    costs a revise leaf.
-5. **Empty range.** An empty range, which a reset of the leaf's commits leaves, is not a
+6. **Empty range.** An empty range, which a reset of the leaf's commits leaves, is not a
    REJECT by itself: judge the settled result as it stands.
-6. **Out of scope.** A shortfall against a criterion outside the step under judgement is
+7. **Out of scope.** A shortfall against a criterion outside the step under judgement is
    named in REASON: as out of scope and is not by itself a REJECT: a behavior-preserving
    refactor may not add another step's work, so demanding it here is a demand no revise
    leaf can satisfy.
-7. **The cycle's files.** The files this cycle touched are the ones
+8. **The cycle's files.** The files this cycle touched are the ones
    `git diff --name-only {{BASE_SHA}}^ {{BASE_SHA}}` names, and the refactor was confined to
    them; derive that list yourself, and read it as paths and nothing else. A changed file
    outside that list is a REJECT, unless its hunk removes duplication between that file and
