@@ -9,6 +9,7 @@
 #   classify-bail.sh revise-exhausted     → first stdout line `process`, exit 0
 #   classify-bail.sh reconcile-failed     → first stdout line `system`,  exit 0
 #   classify-bail.sh untestable-criterion → first stdout line `process`, exit 0
+#   classify-bail.sh step-too-big         → first stdout line `process`, exit 0
 #   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
 #
 # Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
@@ -68,6 +69,11 @@ check "reconcile-failed is system" reconcile-failed 0 system
 #    is the methodology speaking, not the plumbing breaking — the same category
 #    revise-exhausted gets and for the same reason.
 check "untestable-criterion is process" untestable-criterion 0 process
+
+# 7. a step-too-big cause classifies as process (issue #363): a Green developer leaf found the
+#    step needs more than one new behaviour at once and the split steps would not fit the plan's
+#    growth budget, so the step cannot go on — the methodology speaking, not the plumbing.
+check "step-too-big is process" step-too-big 0 process
 
 echo "----"
 echo "$pass passed, $fail failed"
