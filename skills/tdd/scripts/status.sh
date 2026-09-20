@@ -181,24 +181,23 @@ for run in "${runs[@]}"; do
   fi
   # A run directory is .tdd/wt/<n>/, so its own ledger is issue-<n>.md. Every other
   # issue-*.md beside it is an earlier issue's committed plan, not a run of this tree.
-  for ledger in "$run/.tdd/issue-${run##*/}.md"; do
-    [[ -f "$ledger" ]] || continue
-    # The heading is `# Plan for #<n> — <title>`.
-    heading="$(head -n 1 "$ledger")"
-    heading="${heading#\# Plan for #}"
-    issue="${heading%% — *}"
-    title="${heading#* — }"
-    if [[ "$json" -eq 1 ]]; then
-      # One object per run: the ledger's fields, merged with run_activity's object when there is one.
-      run_objects+=("$(python3 -c '
+  ledger="$run/.tdd/issue-${run##*/}.md"
+  [[ -f "$ledger" ]] || continue
+  # The heading is `# Plan for #<n> — <title>`.
+  heading="$(head -n 1 "$ledger")"
+  heading="${heading#\# Plan for #}"
+  issue="${heading%% — *}"
+  title="${heading#* — }"
+  if [[ "$json" -eq 1 ]]; then
+    # One object per run: the ledger's fields, merged with run_activity's object when there is one.
+    run_objects+=("$(python3 -c '
 import json, sys
 run = {"issue": sys.argv[1], "title": sys.argv[2], "branch": sys.argv[3], "step": sys.argv[4]}
 run.update(json.loads(sys.argv[5]) if sys.argv[5] else {})
 print(json.dumps(run))' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity")")
-      continue
-    fi
-    printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity"
-  done
+    continue
+  fi
+  printf '#%s  %s  %s  step %s%s\n' "$issue" "$title" "$branch" "$(ledger_step "$ledger")" "$activity"
 done
 
 if [[ "$json" -eq 1 ]]; then
