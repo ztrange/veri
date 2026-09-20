@@ -93,6 +93,18 @@ add_problems() {
   done
 }
 
+# ask_page <program> — run a python3 program over the dashboard.html beside dashboard.sh and
+# file what it prints as this case's problems, or file the missing page as the one problem when
+# there is nothing there to read. Both cases that read the page off disk read it this way; what
+# differs between them is only what their program looks for once it has it.
+ask_page() {
+  if [[ ! -f "$disk_page" ]]; then
+    problems+=("there is no dashboard.html beside dashboard.sh to read")
+  else
+    add_problems < <(python3 -c "$1" "$disk_page")
+  fi
+}
+
 # A repository of the case's own, so the dashboard is started from a target repo rather than
 # from whichever repository `make test` was typed in. A `git init` with no commit is enough,
 # exactly as status.test.sh's `repo` helper makes one.
@@ -818,10 +830,7 @@ name="dashboard.html, read off disk, fetches the Runs, Metrics and Events endpoi
 problems=()
 disk_page="$scripts/dashboard.html"
 
-if [[ ! -f "$disk_page" ]]; then
-  problems+=("there is no dashboard.html beside dashboard.sh to read")
-else
-  add_problems < <(python3 -c '
+ask_page '
 import re
 import sys
 
@@ -836,8 +845,7 @@ for pane, path in (("Runs", "/api/runs"), ("Metrics", "/api/metrics"),
     if not re.search(r"fetch\s*\(\s*[\"\x27\x60][^\"\x27\x60]*" + re.escape(path), page):
         print("the page never fetches %s, so the %s pane has no endpoint of its own to poll"
               % (path, pane))
-' "$disk_page")
-fi
+'
 
 report "$name"
 
@@ -858,10 +866,7 @@ report "$name"
 name="dashboard.html, read off disk, schedules each pane's next request only from the previous one settling"
 problems=()
 
-if [[ ! -f "$disk_page" ]]; then
-  problems+=("there is no dashboard.html beside dashboard.sh to read")
-else
-  add_problems < <(python3 -c '
+ask_page '
 import re
 import sys
 
@@ -993,8 +998,7 @@ else:
     if not reject:
         print("no setTimeout on the page sits in a .catch or .finally body, so a pane whose "
               "request rejects never asks again")
-' "$disk_page")
-fi
+'
 
 report "$name"
 
