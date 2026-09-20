@@ -20,6 +20,17 @@ bar easier to clear is not clearing it: a pass bought by weakening, skipping or 
 the case is a rejected step. If the test itself looks wrong, say so in your report and
 stop — do not edit it.
 
+### When the step is too big for one green
+
+A step that needs more than one new behaviour at once has a third answer, and it is not a
+weakened test or a half-written implementation. Report `SPLIT:` lines instead of an
+implementation, changing no production code — one to three of them, each a
+behaviour-level criterion small enough to be one red-green cycle of its own, in the order
+they must be built. The conductor restores the tree, adds those steps ahead of this one
+and comes back to this step later, so a tree left carrying part of an implementation
+nobody has written a test for would poison the first of them: leave the working tree
+exactly as you found it, and skip the runs in step 3 below.
+
 ### The issue's behavior spec (context — build only what the failing test demands)
 
 {{ISSUE_SPEC}}
@@ -54,3 +65,7 @@ stop — do not edit it.
 
 IMPL_PATH: <comma-separated paths of the production files you created or changed>
 SUITE: GREEN | RED — <the final summary line of that run>
+
+or, when the step is too big for one green, those two lines replaced by one to three of:
+
+SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
