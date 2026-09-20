@@ -443,6 +443,22 @@ fast_green="$("$BUILD" --fast-cmd "$fast_cmd" green "$work/spec.md" "$testpath" 
 [[ -z "$problems" ]] \
   && ok || no "verify-green takes --fast-cmd, carries it verbatim, and refuses a green call without it with exit 2 (${problems#; })"
 
+# 26. verify-red accepts an error on exactly the name the step introduces as a valid red
+#     (issue #355). In bash, Python or JS, calling a name that does not exist errors before
+#     any assertion runs, so check 1's "must fail, not error before it reaches its
+#     assertions" and check 2's "an absent function/route/field" ruled opposite ways on the
+#     same test, and two verifiers spent a revise leaf on the difference. Beck counts a test
+#     that does not compile as red, so the prompt must say so — and must say which names
+#     qualify, since a bash step introduces a missing script or file far more often than a
+#     route. The read is case 1's `$red`, so no new invocation.
+problems=""
+prompt_says "$red" "verify-red never says an error on exactly the name the step introduces is a valid red" \
+  -iE -e "error[^.]{0,160}(exactly the name|the exact name)[^.]{0,200}(valid|legitimate) red|(valid|legitimate) red[^.]{0,200}error[^.]{0,160}(exactly the name|the exact name)"
+prompt_says "$red" "verify-red never says a missing script or file is one of the names that qualify" \
+  -iE -e "(missing|absent)[^.]{0,120}(script|file)[^.]{0,120}(route|field)"
+[[ -z "$problems" ]] && ok \
+  || no "verify-red accepts an error on exactly the name the step introduces as a valid red (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
