@@ -38,30 +38,36 @@ report() {
   fi
 }
 
+# `probe <budget> <seconds> <want>` runs the check on a fabricated unit-tier run of
+# <seconds> against <budget>, and records a problem unless it exits <want>. An empty
+# <budget> means the variable is cleared with `env -u` so the script's own default of 10 s
+# answers — cleared rather than merely unset by the caller, which hermetic-suites.test.sh
+# requires of every suite here. The `usual` argument is the fixed 100 the header explains.
+probe() {
+  local budget="$1" seconds="$2" want="$3" code verdict against
+  if [[ -n "$budget" ]]; then
+    VERI_UNIT_BUDGET="$budget" "$CHECK" unit "$seconds" 100 && code=0 || code=$?
+    against="VERI_UNIT_BUDGET=$budget"
+  else
+    env -u VERI_UNIT_BUDGET "$CHECK" unit "$seconds" 100 && code=0 || code=$?
+    against="the default 10 s budget"
+  fi
+  [[ "$want" == 0 ]] && verdict="over budget" || verdict="not over budget"
+  [[ "$code" == "$want" ]] ||
+    problems+=("unit $seconds s against $against: want exit $want ($verdict), got $code")
+}
+
 # 1. The whole of this step's criterion, as one case: three fabricated unit-tier runs
 #    against the default budget of 10 s — one over it, one exactly at it, one under — and a
 #    fourth against a budget set low by the environment, so that a check which had hardcoded
-#    10 rather than reading VERI_UNIT_BUDGET is not a pass. `env -u` clears the variable for
-#    the default-budget invocations rather than trusting the caller's environment, which
-#    hermetic-suites.test.sh requires of every suite here.
+#    10 rather than reading VERI_UNIT_BUDGET is not a pass.
 name="over-budget.sh: a unit-tier run over VERI_UNIT_BUDGET is over budget, at or under it is not"
 problems=()
 
-env -u VERI_UNIT_BUDGET "$CHECK" unit 12 100 && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("unit 12 s against the default 10 s budget: want exit 0 (over budget), got $code")
-
-env -u VERI_UNIT_BUDGET "$CHECK" unit 10 100 && code=0 || code=$?
-[[ "$code" == 1 ]] ||
-  problems+=("unit 10 s against the default 10 s budget: want exit 1 (not over budget), got $code")
-
-env -u VERI_UNIT_BUDGET "$CHECK" unit 4 100 && code=0 || code=$?
-[[ "$code" == 1 ]] ||
-  problems+=("unit 4 s against the default 10 s budget: want exit 1 (not over budget), got $code")
-
-VERI_UNIT_BUDGET=3 "$CHECK" unit 4 100 && code=0 || code=$?
-[[ "$code" == 0 ]] ||
-  problems+=("unit 4 s against VERI_UNIT_BUDGET=3: want exit 0 (over budget), got $code")
+probe "" 12 0
+probe "" 10 1
+probe "" 4  1
+probe 3  4  0
 
 report "$name"
 
