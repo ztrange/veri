@@ -1054,17 +1054,17 @@ cat > "$slow_run/.tdd/events.jsonl" <<'EOF'
 {"ts": 1, "issue": "77", "actor": "conductor", "phase": "", "step": "a kettle boils", "event": "step-start", "attempt": "", "skill_commit": "abc"}
 EOF
 slow_log="$work/slowruns.log"
-entered="$work/slow-status-entered"
-release="$work/slow-status-release"
-settled="$work/slow-runs-settled"
+slow_entered="$work/slow-status-entered"
+slow_release="$work/slow-status-release"
+slow_settled="$work/slow-runs-settled"
 slow_dir="$work/slow-scripts"
 mkdir -p "$slow_dir"
 cat > "$slow_dir/status.sh" <<EOF
 #!/bin/sh
 # The slow endpoint, stopped at a marker rather than at a duration: it says it has been
 # entered, waits for the case to let it go, and only then answers the empty document.
-: > '$entered'
-while [ ! -e '$release' ]; do sleep 0.05; done
+: > '$slow_entered'
+while [ ! -e '$slow_release' ]; do sleep 0.05; done
 printf '{"runs": []}\n'
 EOF
 chmod +x "$slow_dir/status.sh"
@@ -1093,24 +1093,24 @@ else
     # The Runs request, in the background, and the wait is for the stub to say it has been
     # entered — not for a number of seconds — so what follows happens with that request
     # provably still inside status.sh.
-    # The marker is written only where the fetch came back with an answer, so `settled`
+    # The marker is written only where the fetch came back with an answer, so `slow_settled`
     # means the server answered the Runs request and never that the client gave up on it.
-    (fetch "http://127.0.0.1:$slow_port/api/runs" >/dev/null 2>&1 && : > "$settled") &
+    (fetch "http://127.0.0.1:$slow_port/api/runs" >/dev/null 2>&1 && : > "$slow_settled") &
     slow_runs_pid=$!
-    i=0
-    while [[ ! -e "$entered" && "$i" -lt 100 ]]; do
+    slow_i=0
+    while [[ ! -e "$slow_entered" && "$slow_i" -lt 100 ]]; do
       sleep 0.1
-      i=$((i + 1))
+      slow_i=$((slow_i + 1))
     done
 
-    if [[ ! -e "$entered" ]]; then
+    if [[ ! -e "$slow_entered" ]]; then
       problems+=("the /api/runs request never reached status.sh, so nothing was blocking when /api/events was asked; the server left: $(printf '%q' "$(cat "$slow_log" 2>/dev/null)")")
     else
       events_url="http://127.0.0.1:$slow_port/api/events?issue=77"
       events_answer="$(fetch "$events_url" 2>/dev/null || :)"
       # Read before the stub is released: an /api/runs that had already answered would mean
       # the two were never in flight together, whatever the Events answer was.
-      [[ -e "$settled" ]] && runs_settled=1 || runs_settled=""
+      [[ -e "$slow_settled" ]] && slow_runs_settled=1 || slow_runs_settled=""
 
       if [[ -z "$events_answer" ]]; then
         problems+=("GET $events_url got no answer while an /api/runs request was blocked inside status.sh, so the slow endpoint starves the cheap one")
@@ -1119,11 +1119,11 @@ else
       elif [[ "$(http_body "$events_answer")" != *step-start* ]]; then
         problems+=("GET $events_url answered while /api/runs was blocked, but without run #77's events: $(printf '%q' "$(http_body "$events_answer")")")
       fi
-      [[ -z "$runs_settled" ]] ||
+      [[ -z "$slow_runs_settled" ]] ||
         problems+=("the blocked /api/runs request had already answered before /api/events was asked, so the two were never in flight together")
     fi
 
-    : > "$release"
+    : > "$slow_release"
     wait "$slow_runs_pid" 2>/dev/null
   fi
 
