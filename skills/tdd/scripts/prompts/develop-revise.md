@@ -36,6 +36,12 @@ exactly what the reason objects to.
    prediction; never adjust the prediction to fit what you saw. The leaf whose attempt was
    rejected predicted a different test, so there is nothing here for you to inherit.
 3. Run the test command and confirm the result the phase you are redoing calls for.
+   Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost
+   and names the tier it belongs to — `all`, since the whole test command is what runs:
+
+       {{TIMED_TEST_RUN}} all '' {{TEST_CMD}}
+
+   The wrapper hands the command's own exit status straight back, so a red run stays red.
 4. If the objection **cannot** be met — the criterion is already satisfied by existing
    code, or the reason asks for something the step cannot deliver — report `IMPOSSIBLE`
    and say why. That is a legitimate outcome and the pipeline acts on it. Do not fake a
