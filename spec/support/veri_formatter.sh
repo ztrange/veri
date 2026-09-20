@@ -44,11 +44,28 @@ veri_end() {
   progress '=' "${LF}${LF}"
 
   # An example that did not succeed is a failure for this count's purpose, whatever ShellSpec
-  # calls it: a failed expectation, a fatal error, a skip, a pending, an unexpectedly-fixed
-  # example. Collapsing them is right here and nowhere else — the count line answers "is this
-  # suite green", and veri's own suites have no vocabulary for a skip. The detail stays
-  # visible in the lines above, printed by the formatters required at the top.
-  _failed=$(( ${failed_count:-0} + ${error_count:-0} + ${skipped_count:-0} \
+  # calls it: a failed expectation, a fatal error, a warning, a skip, a pending, an
+  # unexpectedly-fixed example. Collapsing them is right here and nowhere else — the count
+  # line answers "is this suite green", and veri's own suites have no vocabulary for a skip.
+  # The detail stays visible in the lines above, printed by the formatters required at the top.
+  #
+  # warned_count is in this sum for a reason worth keeping. An example whose subject exits
+  # non-zero with no `The status` check is WARNED, not failed: ShellSpec exits 1 for it
+  # (--warning-as-failure is on by default) but counts it in neither failed_count nor
+  # error_count. Leaving it out made a run that ShellSpec itself called red print
+  # `2 passed, 0 failed` — a count line that disagrees with the exit code beside it. The
+  # Makefile checks both and would still have failed the suite, so nothing would have got
+  # through; but a count line that lies is the exact failure #157 added it to catch, and a
+  # guard that only works because a second guard covers it is not a guard. Found by planting
+  # the case, not by reading the formatter.
+  # warned_count counts only when ShellSpec itself treats a warning as a failure, which is a
+  # CLI flag (--{no-}warning-as-failure, default on). The count line's job is to agree with the
+  # exit code sitting next to it, and that exit code follows the flag: hard-coding either
+  # answer makes the line lie in one of the two configurations, which is the failure #157
+  # added it to catch.
+  _warned=0
+  [ "${SHELLSPEC_WARNING_AS_FAILURE:-}" ] && _warned=${warned_count:-0}
+  _failed=$(( ${failed_count:-0} + ${error_count:-0} + _warned + ${skipped_count:-0} \
             + ${todo_count:-0} + ${fixed_count:-0} ))
   _passed=$(( ${example_count:-0} - _failed ))
   [ "$_passed" -lt 0 ] && _passed=0
