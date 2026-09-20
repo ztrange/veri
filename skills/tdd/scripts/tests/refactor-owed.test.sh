@@ -148,6 +148,83 @@ done
 rm -f "$first_report" "$second_report" "$owed_file"
 report "$name"
 
+# 3. what `render` prints. The owed file accumulates one section per step across a whole
+#    run, and the draft PR is where it is finally read: SKILL.md's Draft PR section puts
+#    this output in the body, so the human deciding the merge sees the leftovers #359 says
+#    were being lost. The section's own heading — `## Refactor owed` — is the one piece of
+#    syntax the criterion names, because the PR body is markdown and the section has to sit
+#    in it as a section.
+#
+#    The file is built by `append`, not written here by hand: `render` reads what `append`
+#    writes, so a fixture spelled out in the test would pin the file format — the script's
+#    business, and the only thing case 1 deliberately did not assert.
+#
+#    Two steps, two candidates each side of the split, so "under its step" is a real probe:
+#    every candidate is printed *after* the step that left it behind, which is what the
+#    grouping means to a reader. Cosmetic lines are absent from the file already, so this
+#    case says nothing about them.
+name="render prints a ## Refactor owed section listing every recorded candidate under its step"
+problems=()
+
+first_report="$(mktemp)"
+cat > "$first_report" <<'REPORT'
+RESULT: applied "split the verdict parser out of run-leaf.sh", suite green
+FLAGS: none
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+REPORT
+
+second_report="$(mktemp)"
+cat > "$second_report" <<'REPORT'
+RESULT: applied "name the ledger path once", suite green
+FLAGS: none
+CANDIDATES: structural | hoist the ledger path into one variable
+CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
+REPORT
+
+owed_file="$(mktemp)"
+first_step='refactor-owed.sh append writes only the structural CANDIDATES lines'
+second_step='refactor-owed.sh render prints a Refactor owed section'
+"$OWED" append "$owed_file" "$first_step" <"$first_report"
+"$OWED" append "$owed_file" "$second_step" <"$second_report"
+
+rendered="$(mktemp)"
+"$OWED" render "$owed_file" >"$rendered" 2>/dev/null && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from render, got $code")
+
+grep -qF '## Refactor owed' "$rendered" ||
+  problems+=("render printed no '## Refactor owed' heading, so its output is not a section a PR body can carry")
+
+# line_of <needle> — the first line of the rendered section holding <needle>, or empty.
+# -F throughout: a transform is matched as the literal a leaf wrote, and `$` and `'` are
+# ordinary characters in one.
+line_of() { grep -nF "$1" "$rendered" | head -1 | cut -d: -f1; }
+
+# Every recorded candidate is printed, and printed after the step that left it behind.
+# Paired step-and-candidate probes rather than two separate lists: a render that printed
+# both steps and both candidates in the wrong order would pass a list of each.
+check_under() {
+  local step="$1" transform="$2" step_at candidate_at
+  step_at="$(line_of "$step")"
+  candidate_at="$(line_of "$transform")"
+  if [[ -z "$candidate_at" ]]; then
+    problems+=("render did not print the recorded candidate '$transform'")
+  elif [[ -z "$step_at" ]]; then
+    problems+=("render printed '$transform' but never names the step '$step' that owes it")
+  elif [[ "$step_at" -gt "$candidate_at" ]]; then
+    problems+=("render printed '$transform' on line $candidate_at, above its step '$step' on line $step_at — it is not under its step")
+  fi
+}
+
+check_under "$first_step" "fold verify.sh's two mktemp calls into one helper"
+check_under "$second_step" 'hoist the ledger path into one variable'
+check_under "$second_step" 'rename $tmp to $prompt_file, which is what it holds'
+
+rm -f "$first_report" "$second_report" "$owed_file" "$rendered"
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

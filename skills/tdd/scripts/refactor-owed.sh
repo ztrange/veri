@@ -6,9 +6,11 @@
 # draft PR every step's leftovers but the last were gone (#359, part of #354). This
 # script appends them to a file that survives the run — `.tdd/issue-<n>-refactor-owed.md`,
 # which the ledger's .gitignore rule already tracks — so the work a follow-up owes is in
-# front of the human deciding the merge.
+# front of the human deciding the merge. `render` prints that file back as the
+# `## Refactor owed` section SKILL.md's Draft PR step puts in the body.
 #
 #     refactor-owed.sh append <file> '<STEP>' < leaf-report.txt
+#     refactor-owed.sh render <file>
 #
 # Reads a finished refactor leaf's report on stdin, the same lines refactor-triage.sh
 # reads, and appends the transform of every `CANDIDATES: structural | …` line to <file>
@@ -49,8 +51,18 @@ case "$verb" in
       } >>"$file"
     fi
     ;;
+  render)
+    file="${2:-}"
+
+    # The heading is the only thing render adds: `append` already wrote each step and its
+    # candidates in the markdown the PR body wants, in the order they were recorded, so
+    # the section is that file under a heading a reader can find it by.
+    printf '## Refactor owed\n\n'
+    cat "$file"
+    ;;
   *)
     echo "refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt" >&2
+    echo "                      refactor-owed.sh render <file>" >&2
     exit 2
     ;;
 esac
