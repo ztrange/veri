@@ -5,4 +5,4 @@
 - [x] a verifier prompt — red, green, refactor, pin — names the same wrapper at a runnable path and the tier each of its test-command runs uses ⟦criterion 1⟧
 - [x] a log carrying `test-run` marks renders at least one row under `#### Test-command seconds, by tier` in its metrics ⟦criterion 2⟧
 - [x] `tier-usual.sh` answers with a figure taken from a log carrying `test-run` marks rather than from an empty list ⟦criterion 3⟧
-- [ ] a verify-green leaf's target-test run in check 1 also goes through the wrapper, naming tier `target` ⟦criterion 1⟧
+- [x] a verify-green leaf's target-test run in check 1 also goes through the wrapper, naming tier `target` ⟦criterion 1⟧ ⟂ refactor pending

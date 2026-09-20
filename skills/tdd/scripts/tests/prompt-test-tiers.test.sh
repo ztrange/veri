@@ -208,6 +208,20 @@ timed_through verify-refactor "$verify_refactor" fast affected
 timed_through verify-pin "$verify_pin" target
 report "$name"
 
+# 8. verify-green's check 1 — the target-test run — goes through the wrapper too (#373),
+#    under tier `target`, the tier verify-pin already uses for a run of the target test
+#    alone. Read on its own through numbered_item, so the wrapper lines check 2 already
+#    carries cannot satisfy it; the item is read raw rather than plain-folded, because
+#    timed_through tests the path it finds with -x and a case-folded path is another path.
+name="verify-green's check 1 runs the target test through timed-test-run.sh, under tier target"
+problems=()
+check1="$(numbered_item 'The target test passes' <<< "$verify_green")"
+if [[ -z "$check1" ]]; then
+  problems+=("verify-green's prompt has no numbered item saying the target test passes")
+fi
+timed_through "verify-green's check 1" "$check1" target
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
