@@ -932,11 +932,17 @@ one more cycle, not a loop — and the bail names every suite still red, not onl
    git add .tdd/issue-<n>-metrics.md
    git commit -m "metrics: what solving #<n> cost (#<n>)"
    $S/push-branch.sh
-   gh pr edit <pr-url> --body "<the body above, followed by the contents of .tdd/issue-<n>-metrics.md>"
+   $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
+   gh pr edit <pr-url> --body "<the body above, followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output>"
    ```
    One `metrics:` commit, and the report sits beside the ledger it describes — the
    `issue-<n>-metrics.md` name is already on the keep side of the run-state ignore rule, so
    nothing else has to change for it to be tracked.
+   The render is what puts every step's structural leftovers in front of the human who
+   decides the merge, rather than leaving them in a committed file nobody is pointed at.
+   When it exits 3 — no step left anything structural behind — it prints nothing, and the
+   `## Refactor owed` section is **omitted** from the body: a heading over an empty list
+   promises a backlog nobody left.
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
 4. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
    under it, pasted verbatim from the file just committed. It mirrors the

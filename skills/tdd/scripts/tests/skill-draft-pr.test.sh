@@ -33,6 +33,8 @@
 #      command (issue #341).
 #   5. SKILL.md's Draft PR step bails on a second red result on the full run after a repair
 #      step, naming every suite still red rather than only the first (issue #341).
+#   6. SKILL.md's Draft PR step puts `refactor-owed.sh render`'s output in the PR body, from
+#      the run's own owed file, and omits the section when that render exits 3 (issue #359).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -233,6 +235,40 @@ elif [[ -z "$second" ]]; then
   problems+=("$skill_md's Draft PR step has no record bailing on a second red full run after a repair step, so a repair that does not take can loop instead of ending the run")
 elif ! grep -qE 'every (suite still red|red suite|failing suite|still-red suite)' <<< "$second"; then
   problems+=("$skill_md's Draft PR step bails on a second red full run without naming every suite still red: $(printf '%.120s' "$second")")
+fi
+report "$name"
+
+# 6. The criterion, as one case (issue #359, part of #354): the leftovers reach the human
+#    who decides the merge. `refactor-owed.sh append` already writes every step's structural
+#    candidates into the run's own `.tdd/issue-<n>-refactor-owed.md`, and that file is
+#    committed with each step's refactor-pending clear — but a file nobody reads records
+#    nothing a reviewer sees. The Draft PR step is where it is read, so what is pinned is
+#    that the step runs `render` on that file and puts its output in the PR body, and that an
+#    exit 3 from it — no step left anything behind — leaves the section out rather than
+#    quoting an empty one. The render call is asked for first so the case fails closed: a step
+#    that never renders gets one problem line, not three reading as partial progress. The exit
+#    3 half is asked of the step's records rather than of the render record alone, since
+#    whether that answer is a clause of the same bullet or the sentence after it is the
+#    writer's — but it is asked together with `refactor-owed`, because the step already reads
+#    an exit 3 from `next-pending-refactor.sh` and a bare probe would answer with that one.
+name="$skill_md's Draft PR step puts refactor-owed.sh render's output in the PR body, and omits the section on exit 3"
+problems=()
+
+records="$(draft_pr_instructions)"
+render="$(grep -F 'refactor-owed.sh render' <<< "$records" | head -1)"
+if [[ -z "$records" ]]; then
+  no_draft_pr_section "whether the run's refactor leftovers reach the PR body"
+elif [[ -z "$render" ]]; then
+  problems+=("$skill_md's Draft PR step never runs refactor-owed.sh render, so every step's structural leftovers stay in a committed file nobody reading the PR is pointed at")
+else
+  grep -qE 'issue-[^ ]*refactor-owed\.md' <<< "$render" ||
+    problems+=("$skill_md's Draft PR step runs refactor-owed.sh render without naming the run's .tdd/issue-<n>-refactor-owed.md file, so which file the PR body is rendered from is left to judgement: $(printf '%.120s' "$render")")
+  grep -qF 'body' <<< "$render" ||
+    problems+=("$skill_md's Draft PR step renders the owed section without putting it in the PR body, so the leftovers are printed where only the conductor sees them: $(printf '%.120s' "$render")")
+  grep -F 'refactor-owed' <<< "$records" |
+    grep -E 'exits? 3' |
+    grep -qE 'omit|left out|leaves it out|no section|nothing' ||
+    problems+=("$skill_md's Draft PR step never says an exit 3 from refactor-owed.sh render leaves the section out, so a run whose every refactor finished clean gets a ## Refactor owed heading promising leftovers nobody left")
 fi
 report "$name"
 
