@@ -12,18 +12,21 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
-# check <name> <code> <want> — the run exited 0 and left the ledger exactly <want>; a
-# mismatch names the case and prints the diff, indented under it.
-check() {
-  local name="$1" code="$2" want="$3" got
+# check_code <name> <code> <want-code> <want> — the run exited <want-code> and left the
+# ledger exactly <want>; a mismatch names the case and prints the diff, indented under it.
+check_code() {
+  local name="$1" code="$2" want_code="$3" want="$4" got
   got="$(cat "$led")"
-  if [[ "$code" == 0 && "$got" == "$want" ]]; then
+  if [[ "$code" == "$want_code" && "$got" == "$want" ]]; then
     ok
   else
     no "$name (code=$code)"
     diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
   fi
 }
+
+# check <name> <code> <want> — check_code for a case that expects the run to have succeeded.
+check() { check_code "$1" "$2" 0 "$3"; }
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -80,14 +83,8 @@ want='# Plan for #42
 
 - one more edge case
 - and another'
-name="over budget: inserts no checkbox, exits 1, and owes both texts as plain bullets"
-got="$(cat "$led")"
-if [[ "$code" == 1 && "$got" == "$want" ]]; then
-  ok
-else
-  no "$name (code=$code)"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+check_code "over budget: inserts no checkbox, exits 1, and owes both texts as plain bullets" \
+  "$code" 1 "$want"
 
 echo "----"
 echo "$pass passed, $fail failed"
