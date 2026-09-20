@@ -849,7 +849,12 @@ following step. The phase sub-steps are:
    `structural-owed` for triage exit **0**):
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
+   $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md '<STEP>' < .tdd/develop-refactor.out
    ```
+   The narration above is a comment and `.tdd/develop-refactor.out` is overwritten by the
+   next step's leaf, so **`append` is what makes the structural leftovers outlast the
+   step**: it copies them — never the cosmetic ones — into the run's owed file under this
+   step's name, where the Draft PR renders every step's, not just the last one's.
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **clear the refactor-pending mark and commit the cleared ledger first**, before
      anything outside the repository says the step is done:
@@ -858,6 +863,9 @@ following step. The phase sub-steps are:
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
      ```
+     `git add -A` is what carries `.tdd/issue-<n>-refactor-owed.md` into that same commit:
+     what `append` wrote is untracked until then, and a file left beside the worktree is
+     lost with it.
      A clear left uncommitted is not a clear: resume reads the **committed** ledger, so
      until that commit exists the step still says pending. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
