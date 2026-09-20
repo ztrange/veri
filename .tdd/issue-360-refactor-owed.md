@@ -2,3 +2,5 @@
 - extract the ` ⟦criterion k⟧` literal shared by add-ledger-step.sh:25 and criterion-finished.sh:15 into a `scripts/lib/` builder — judged below the bar and left: it would add a lib file, a `HERE` resolution and a source line into a unit-tier script to dedupe a twenty-character format string that criterion-finished.sh then interpolates into two regexes anyway
 ### `before` inserts several texts, in the order given, on the lines before the anchor step ⟦criterion 2⟧
 - `added_steps` reads the script-level `texts` array rather than taking it as a parameter; passing it explicitly would narrow the scope, but bash array-passing costs a `shift` dance and the script is a flat script, not a library — judged not an improvement, left in place
+### an anchor matching no step, or more than one, exits 2 and leaves the ledger byte-identical ⟦criterion 7⟧
+- `where` is never validated — a third word silently rewrites the ledger unchanged and exits 0; the two `if [[ "$where" == before/after ]]` lines want one `case` with an `exit 2` default, which needs a triangulating test first since no case covers a bad `where`

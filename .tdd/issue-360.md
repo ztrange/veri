@@ -6,7 +6,7 @@
 - [x] criterion-finished.sh does not report k finished while an unchecked `⟦added⟧` step serving k remains ⟦criterion 4⟧
 - [x] over budget, the call inserts no checkbox, exits 1, and appends every text as a plain bullet under a trailing `## Owed steps` heading ⟦criterion 5⟧
 - [x] next-unchecked.sh never returns a bullet under `## Owed steps` ⟦criterion 6⟧
-- [x] an anchor matching no step, or more than one, exits 2 and leaves the ledger byte-identical ⟦criterion 7⟧ ⟂ refactor pending
+- [x] an anchor matching no step, or more than one, exits 2 and leaves the ledger byte-identical ⟦criterion 7⟧
 - [ ] VERI_STEP_GROWTH unset allows 3 added steps; a value that is not a non-negative integer, set-but-empty included, exits 2 and leaves the ledger byte-identical ⟦criterion 8⟧
 - [ ] SKILL.md's preflight refuses to start on a bad VERI_STEP_GROWTH, as it does a bad VERI_REFACTOR_BUDGET ⟦criterion 9⟧
 - [ ] SKILL.md's Draft PR section copies the ledger's `## Owed steps` bullets into the PR body under `## Owed steps` ⟦criterion 10⟧
