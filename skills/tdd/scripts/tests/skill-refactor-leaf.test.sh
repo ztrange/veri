@@ -118,6 +118,15 @@ refactor_section() {
 }
 section="$(refactor_section)"
 
+# unreadable_section — true when there is no section to probe: a heading renamed away from
+# `#### Refactor`, or one with nothing under it. Spelled once for the two cases that fail
+# closed on it, so the normalisation — a section of nothing but spaces is as unreadable as an
+# empty one — cannot be tightened in one case and left loose in the other, which is the state
+# where "the phase is gone" reads as a pass in one of them.
+unreadable_section() {
+  [[ -z "${section// /}" ]]
+}
+
 # win <extended-regex> — the section text within 250 characters either side of the first
 # match, or the empty string when there is none: the text a reader meets while working out
 # what to do about that check. 250 rather than a rounder, larger number because BSD grep —
@@ -140,7 +149,7 @@ refusal='refus|do(es)? not (go on|continue|proceed)|don.t (go on|continue)|not c
 name="$skill_md's Refactor section launches one leaf per step and refuses verify-refactor over a dirty tree or a non-refactor: commit since the green commit, narrating the count against the budget"
 problems=()
 
-if [[ -z "${section// /}" ]]; then
+if unreadable_section; then
   # Fail closed: a renamed or emptied section is reported as unreadable rather than probed
   # as an empty string, which would let "the phase is gone" read as "the phase is right".
   problems+=("$skill_md has no '#### Refactor' section to read — how the refactor leaf is launched and what is asked of its result could not be established")
@@ -332,7 +341,7 @@ report "$name"
 name="$skill_md's Refactor section passes the leaf's NEW_STEP: values to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
 problems=()
 
-if [[ -z "${section// /}" ]]; then
+if unreadable_section; then
   # Fail closed, the same way case 1 does: a renamed or emptied section is unreadable, not
   # silently right.
   problems+=("$skill_md has no '#### Refactor' section to read — what becomes of the leaf's NEW_STEP: lines could not be established")
