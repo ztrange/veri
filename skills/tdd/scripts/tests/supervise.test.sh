@@ -1422,6 +1422,72 @@ sup reallag 5 30 leaf-real-lag
 { [[ "$code" == 0 ]] && [[ "$out" == *'done'* ]]; } && ok \
   || no "60s of real lag on the leaf's log is not silence: 1s injected against a 5s window → success (code=$code want 0, err=$(cat "$work/err"))"
 
+# 34. the discipline cases 4 and 33 rest on is guarded rather than merely practised (issue
+#     #300): a case here that reaches its silence by real waiting instead of by an injected
+#     clock jump fails this run, named. Case 4 failed about one run in ten for exactly that
+#     shape — a silence produced by real elapsed time, read as a stall when a scheduling delay
+#     landed near a whole-second boundary — and the fix is only as durable as the next stub
+#     leaf written without a jump, which nothing in a green run would otherwise say.
+#
+#     The audit is asked twice, which is what makes the answer mean anything. Over THIS suite
+#     as committed it must be silent: the real waits still here — case 30's leaf, which must
+#     be a live process for a signal to be sent to it, and the kill-grace polls that watch an
+#     OS fact rather than the clock — are deliberate, so silence over this file says its
+#     exemption table records them with a reason rather than that the audit found nothing to
+#     look at. Over a planted suite holding two stub leaves it must speak: one jumps the clock
+#     before going quiet, one simply waits, and only the second is a silence real time
+#     produces. Naming both, or neither, would pass a rule that says nothing.
+#
+#     The wait verb is assembled from two halves below rather than written out. A line of this
+#     suite spelling it inside a stub-leaf body is the very thing the audit exists to catch,
+#     and a case that tripped its own subject would leave the rule unachievable —
+#     docs-read-guard.test.sh keeps its own subject's path out of its source for the same
+#     reason.
+AUDIT="$HERE/real-clock-audit.sh"
+audit_work="$work/clock-audit"
+mkdir -p "$audit_work"
+audit_problems=()
+wait_verb="sl""eep"
+
+planted="$audit_work/planted.test.sh"
+printf '%s\n' \
+  '#!/usr/bin/env bash' \
+  "cat > \"\$stub/leaf-jumped\" <<'L'" \
+  '#!/bin/sh' \
+  "echo \"leaf: starting\"; clock-jump 4; $wait_verb 60" \
+  'L' \
+  "cat > \"\$stub/leaf-real-silence\" <<'L'" \
+  '#!/bin/sh' \
+  "echo \"leaf: starting\"; $wait_verb 4; echo \"leaf: back\"" \
+  'L' \
+  'sup jumped 1 30 leaf-jumped' \
+  'sup realsilence 3 30 leaf-real-silence' \
+  > "$planted"
+
+if [[ ! -x "$AUDIT" ]]; then
+  audit_problems+=("no executable clock audit at skills/tdd/scripts/tests/real-clock-audit.sh")
+else
+  audit_self_out="$("$AUDIT" "$HERE/supervise.test.sh" 2>&1)"
+  audit_self_code=$?
+  [[ "$audit_self_code" == 0 ]] ||
+    audit_problems+=("over this suite as committed the audit exited $audit_self_code, want 0: ${audit_self_out//$'\n'//}")
+  [[ -z "$audit_self_out" ]] ||
+    audit_problems+=("over this suite as committed the audit named something, want nothing: ${audit_self_out//$'\n'//}")
+
+  audit_out="$("$AUDIT" "$planted" 2>&1)"
+  audit_code=$?
+  [[ "$audit_code" == 1 ]] ||
+    audit_problems+=("over the planted suite the audit exited $audit_code, want 1: ${audit_out//$'\n'//}")
+  [[ "$audit_out" == *"planted.test.sh"* ]] ||
+    audit_problems+=("over the planted suite the audit does not name the file it read: ${audit_out//$'\n'//}")
+  [[ "$audit_out" == *"leaf-real-silence"* ]] ||
+    audit_problems+=("over the planted suite the audit does not name leaf-real-silence, whose silence is real waiting: ${audit_out//$'\n'//}")
+  [[ "$audit_out" != *"leaf-jumped"* ]] ||
+    audit_problems+=("over the planted suite the audit names leaf-jumped, which injects its silence onto the clock: ${audit_out//$'\n'//}")
+fi
+{ [[ "${#audit_problems[@]}" -eq 0 ]]; } && ok \
+  || no "a stub leaf whose silence is real waiting is named by the clock audit, a deliberate real-clock dependence recorded with a reason is not (${audit_problems[*]})"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
