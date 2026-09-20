@@ -21,7 +21,11 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   esac
 done
 
-[[ "$prediction" == "DIVERGED" ]] || exit 2
+case "$prediction" in
+  DIVERGED) ;;
+  MATCHED)  exit 3 ;;
+  *)        exit 2 ;;
+esac
 
 cat <<REASON
 The red leaf's prediction diverged from the failure it saw, so the test is the suspect.

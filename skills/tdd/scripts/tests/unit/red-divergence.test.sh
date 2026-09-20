@@ -48,5 +48,26 @@ else
   pass=$((pass + 1))
 fi
 
+# 2. MATCHED → exit 3 (nothing to do) and not a byte of output, so the conductor carries
+#    on to verify-red exactly as it did before there was a divergence gate.
+name="MATCHED report exits 3 and prints nothing"
+report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
+TARGET_TEST: slugify lowercases the title
+AGAINST_UNMODIFIED: FAILS
+FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
+PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'
+PREDICTION: MATCHED"
+out="$(printf '%s' "$report" | "$DIVERGENCE" 2>&1)" && code=0 || code=$?
+problems=()
+[[ "$code" == 3 ]] || problems+=("want exit 3, got $code")
+[[ -z "$out" ]] || problems+=("want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
+if (( ${#problems[@]} )); then
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  for p in "${problems[@]}"; do echo "    $p"; done
+else
+  pass=$((pass + 1))
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
