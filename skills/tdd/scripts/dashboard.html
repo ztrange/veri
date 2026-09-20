@@ -20,7 +20,9 @@
 // Each pane polls its own endpoint on its own schedule, so a slow answer from one never
 // holds back the others. The Events, Tests and Chatter panes show the run named in the
 // page's ?issue= query, the same number the Runs and Metrics endpoints key each run by.
-var issue = new URLSearchParams(location.search).get("issue") || "";
+// That query is built once here rather than at each of those three fetches.
+var runQuery = "?issue=" + encodeURIComponent(
+  new URLSearchParams(location.search).get("issue") || "");
 
 function show(pane, answer) {
   return answer
@@ -42,15 +44,9 @@ function poll(pane, request) {
 
 poll("runs", function () { return fetch("/api/runs"); });
 poll("metrics", function () { return fetch("/api/metrics"); });
-poll("events", function () {
-  return fetch("/api/events?issue=" + encodeURIComponent(issue));
-});
-poll("tests", function () {
-  return fetch("/api/tests?issue=" + encodeURIComponent(issue));
-});
-poll("chatter", function () {
-  return fetch("/api/chatter?issue=" + encodeURIComponent(issue));
-});
+poll("events", function () { return fetch("/api/events" + runQuery); });
+poll("tests", function () { return fetch("/api/tests" + runQuery); });
+poll("chatter", function () { return fetch("/api/chatter" + runQuery); });
 </script>
 </body>
 </html>
