@@ -39,6 +39,9 @@
 set -euo pipefail
 
 baseline="${1:-}"
+# The second argument is either the leaf's role or the --full flag, never both, and the two
+# are split apart here so that `role` only ever holds a role: the refactor test far below is
+# then a question about which leaf is asking, not about which of two argument shapes arrived.
 role="${2:-}"
 # The full-tier measurement displaces the fast one as what the derivation runs over — it is
 # not a second input mixed with the first, so `baseline` is reassigned rather than held
@@ -46,6 +49,7 @@ role="${2:-}"
 full=""
 if [[ "$role" == --full ]]; then
   full="${3:-}"
+  role=""
 fi
 # `override`, not `timeout`: both branches print a timeout, so the name has to say which of
 # the two this one is. It is the value VERI_TIMEOUT arrived with — checked and printed back
