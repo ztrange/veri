@@ -99,6 +99,36 @@ else
 fi
 report "$name"
 
+# 2. The other half of the same report line (#356): a DIVERGED prediction is the conductor's
+#    gate, not a verifier's — verify-red is blind and the prediction is the developer's
+#    reasoning, so nothing downstream can act on it. One criterion, one case: the Red
+#    section has to run `red-divergence.sh` on the leaf's report and, when it answers 0
+#    (diverged) or 2 (no prediction anyone can read), take the step down the revise path
+#    instead of the verify one. All five facts are one instruction, so one case reads them.
+name="$skill_md's Red section runs red-divergence.sh and sends a diverged prediction to the red revise loop"
+problems=()
+# Anchored at the first line naming the script, so the case reads the divergence
+# instruction itself rather than the verify-red prose three sub-steps above, which already
+# speaks of `.tdd/verify-red.reason` and of a revise loop.
+text="$(doc_text '#### Red' 'red-divergence')"
+if [[ -z "${text// /}" ]]; then
+  # Fail closed: with no instruction naming the script there is no branch to read, and the
+  # five probes below must not read as five passes.
+  problems+=("$skill_md's Red section never runs \`red-divergence.sh\` on the leaf's report, so a \`PREDICTION: DIVERGED\` goes to verify-red like a matched one")
+else
+  says 'exit(s| code)? 0 (or|\|) 2|0 or 2|\b0\b[^.]*\b2\b' \
+    "$skill_md names \`red-divergence.sh\` without saying which of its exit codes takes the diverged path, so exit 2 — a prediction nobody can read — is not handled like a divergence"
+  says 'skips? verify-red and verify-pin|skips? both verify-red and verify-pin|verify-red and verify-pin entirely' \
+    "$skill_md does not tell the conductor to skip verify-red and verify-pin on a divergence, so the blind verifier still judges a test the developer already flagged as suspect"
+  says 'verify-red.reason' \
+    "$skill_md does not tell the conductor to write the divergence reason to \`.tdd/verify-red.reason\`, so the revise leaf is launched with nothing to answer"
+  says 'prediction-diverged' \
+    "$skill_md does not tell the conductor to emit a \`prediction-diverged\` event, so a divergence leaves no mark in the run log"
+  says 'revise loop|revising on a reject|revise' \
+    "$skill_md does not send a diverged red into the revise loop, so the step continues as though the test were sound"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
