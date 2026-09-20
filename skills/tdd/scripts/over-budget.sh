@@ -31,8 +31,8 @@
 set -euo pipefail
 
 tier="${1:?usage: over-budget.sh <tier> <seconds> <usual>}"
-seconds="${2:?usage: over-budget.sh <tier> <seconds> <usual>}"
-usual="${3:?usage: over-budget.sh <tier> <seconds> <usual>}"
+seconds="${2:?missing <seconds>}"
+usual="${3:?missing <usual>}"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
