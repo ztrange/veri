@@ -16,7 +16,9 @@
 # one place; a misconfigured run therefore leaves this script with exit 2, not a verdict.
 #
 # The comparison is awk's, not bash's: a recorded `seconds` is a decimal, and bash's `-gt`
-# only compares integers.
+# only compares integers. awk's own exit status is already this script's answer — `exit !(s >
+# b)` is 0 when the run is over budget and 1 when it is not — so the comparison is `exec`'d
+# rather than run and re-encoded, which also spares the run one process.
 set -euo pipefail
 
 tier="${1:?usage: over-budget.sh <tier> <seconds> <usual>}"
@@ -28,7 +30,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 budget="$("$HERE/time-budget.sh" | head -1)"
 
 if [[ "$tier" == "unit" ]]; then
-  awk -v s="$seconds" -v b="$budget" 'BEGIN { exit !(s > b) }' && exit 0
+  exec awk -v s="$seconds" -v b="$budget" 'BEGIN { exit !(s > b) }'
 fi
 
 exit 1
