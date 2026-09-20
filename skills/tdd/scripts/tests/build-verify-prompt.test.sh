@@ -600,6 +600,37 @@ prompt_says "$refactor" "verify-refactor never says an unhandled edge case is no
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor reports an unhandled edge case the spec implies as a NEW_STEP: line before VERDICT: rather than a REJECT (${problems#; })"
 
+# 33. every phase's built prompt allows NEW_STEP: lines before the final pair (issue #362).
+#     The footer every verifier writes is the conductor's whole reading of the leaf, and it
+#     says today to end with EXACTLY the two lines and nothing after them. Case 32 has the
+#     refactor verifier report an unhandled edge case on a `NEW_STEP:` line before that
+#     pair — a line the contract as written does not admit, so the verifier is told to
+#     break the contract to obey the check. The contract is what has to give: `NEW_STEP:`
+#     lines are allowed ahead of the final two, and the final two stay last, which is what
+#     keeps parse-verdict.sh reading the same verdict and reason as before.
+#
+#     Asked of all four phases, not just refactor, because the contract lives in _shared.md
+#     and a phase that kept the older footer would carry a rule contradicting the one the
+#     run acts on — and because the refactor leaf already reports on this token (#361), so
+#     any verifier may be handed output carrying it. Assert on the built prompts rather
+#     than on _shared.md, for case 12's reason: the behaviour is the rule reaching every
+#     phase, not which file holds it.
+#
+#     Two claims, two misses per phase: a prompt naming the token without permitting it
+#     still forbids the line it asks for, and permission without the placement leaves
+#     parse-verdict.sh's final pair unguarded. The prompts read are cases 5, 6, 7 and 9's —
+#     same phases, same arguments — so this case invokes the builder not at all, and folds
+#     through `prompt_says` for the reason given at its definition.
+allows_new_step() {  # allows_new_step <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "verify-$label's output contract never allows a NEW_STEP: line" \
+    -iE -e "NEW_STEP[^.]{0,200}(may|can|allow|permit)|(may|can|allow|permit)[^.]{0,200}NEW_STEP"
+  prompt_says "$prompt" "verify-$label never puts NEW_STEP: lines before the final VERDICT:/REASON: pair" \
+    -iE -e "NEW_STEP[^.]{0,160}before[^.]{0,160}(VERDICT|(final|last)[^.]{0,40}two lines)"
+}
+
+every_phase allows_new_step "every phase's prompt allows NEW_STEP: lines before the final VERDICT:/REASON: pair"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
