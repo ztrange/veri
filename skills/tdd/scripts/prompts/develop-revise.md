@@ -51,3 +51,5 @@ exactly what the reason objects to.
 
 OUTCOME: REWRITTEN | IMPOSSIBLE — <what you changed, or why the step cannot be met as stated>
 AGAINST_UNMODIFIED: FAILS | PASSES | N/A — <does the test fail against the unmodified production code; N/A if you did not touch a test>
+PREDICTED_FAILURE: <redoing red only — the assertion the rewritten test was predicted to fire on, the values it fires on and the shape of the message, as predicted before running; N/A otherwise>
+PREDICTION: MATCHED | DIVERGED | N/A — <whether the run printed what you predicted; N/A unless you are redoing red>
