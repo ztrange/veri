@@ -4,4 +4,4 @@
 - [x] With two run directories each also holding the other's committed ledger, status.sh --json prints exactly two objects, each carrying only its own directory's events totals ⟦criterion 2⟧
 - [x] A run directory holding no ledger for its own issue number contributes no run and does not make status.sh exit non-zero ⟦criterion 3⟧
 - [x] /api/metrics keys exactly one entry per run directory by that directory's issue number, and runs metrics.sh at most once per live run directory ⟦criterion 4⟧
-- [ ] /api/events answers by the run directory's own issue number, so an issue present only as a committed ledger copy inside another run returns the empty list ⟦criterion 5⟧
+- [x] /api/events answers by the run directory's own issue number, so an issue present only as a committed ledger copy inside another run returns the empty list ⟦criterion 5⟧ ⟂ refactor pending

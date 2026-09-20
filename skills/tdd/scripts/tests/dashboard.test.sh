@@ -894,6 +894,78 @@ fi
 
 report "$name"
 
+# --- the Events endpoint answers by the run directory's own issue number ---
+# The other half of the rule the Metrics case above pins, asked of the Events pane. Ledgers
+# are committed, so the run under `.tdd/wt/7/` carries a copy of #3's plan; deciding which run
+# an issue belongs to by who holds its ledger therefore answered `?issue=3` with run 7's log
+# (#343). The directory is the rule — `.tdd/wt/<n>/` is issue `<n>` — so issue 3, which has no
+# run directory of its own, is the empty list, and issue 7 is still its own run's events.
+name="events_json answers by the run directory's own issue, so an issue present only as a committed ledger copy is the empty list"
+problems=()
+eown_repo="$(repo eventsown)"
+
+eown_run="$(fabricate_run "$eown_repo" 7 tdd/7-lamps-glow)"
+cat > "$eown_run/.tdd/issue-7.md" <<'EOF'
+# Plan for #7 — lamps glow
+
+- [x] a lamp exists
+- [ ] a lamp glows
+EOF
+cat > "$eown_run/.tdd/issue-3.md" <<'EOF'
+# Plan for #3 — an earlier run's committed plan
+
+- [x] a lamp is wired
+EOF
+eown_now="$(date +%s)"
+cat > "$eown_run/.tdd/events.jsonl" <<EOF
+{"ts": $((eown_now - 120)), "issue": "7", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
+{"ts": $((eown_now - 110)), "issue": "7", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red", "seq": 2}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  call_endpoint "$eown_repo" events_json "$work/events-own.err" \
+    '{"issue": ["3"]}' "$work/events-own-3.json" \
+    '{"issue": ["7"]}' "$work/events-own-7.json"
+  if [[ ! -f "$work/events-own-3.json" || ! -f "$work/events-own-7.json" ]]; then
+    problems+=("calling $module.events_json wrote nothing: $(tail -n 1 "$work/events-own.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+copy_body, own_body, log_path = sys.argv[1], sys.argv[2], sys.argv[3]
+answers = {}
+for path, issue in ((copy_body, "3"), (own_body, "7")):
+    try:
+        with open(path) as f:
+            got = json.load(f)
+    except ValueError:
+        with open(path) as f:
+            print("events_json for issue %s returned something that is not JSON; it starts: %r"
+                  % (issue, f.read()[:200]))
+        sys.exit()
+    if not isinstance(got, dict) or not isinstance(got.get("events"), list):
+        print("events_json for issue %s returned %s; want an object with an \"events\" array"
+              % (issue, json.dumps(got, sort_keys=True)[:300]))
+        sys.exit()
+    answers[issue] = got["events"]
+with open(log_path) as f:
+    want = [json.loads(raw) for raw in f if raw.strip()]
+if answers["3"] != []:
+    print("events_json for issue 3, which is only a committed ledger copy inside the run "
+          "directory .tdd/wt/7, returned %s; want [], because there is no .tdd/wt/3"
+          % json.dumps(answers["3"], sort_keys=True)[:400])
+if answers["7"] != want:
+    print("events_json for issue 7 returned %s; want its own run directory’s log, %s"
+          % (json.dumps(answers["7"], sort_keys=True)[:400],
+             json.dumps(want, sort_keys=True)[:400]))
+' "$work/events-own-3.json" "$work/events-own-7.json" "$eown_run/.tdd/events.jsonl")
+  fi
+fi
+
+report "$name"
+
 # --- the page on disk: one endpoint per pane, no server started ---
 # The criterion is what the BROWSER does with the page, and nothing here is a browser: the
 # suites depend on bash and python3 and nothing else (ci.yml). So it is asked of dashboard.html
