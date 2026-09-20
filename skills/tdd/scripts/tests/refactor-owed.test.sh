@@ -32,6 +32,17 @@ report() {
   fi
 }
 
+# line_of <file> <needle> — the 1-based number of the first line of <file> holding <needle>,
+# or the empty string when none does. Two cases below ask the same ordering question of two
+# different files — whether `append` wrote a candidate under its step, and whether `render`
+# printed it under its step — and a position is what turns two "is it there?" probes into it.
+# -F throughout: a transform is matched as the literal a leaf wrote, not as a pattern, since
+# `$` and `'` are ordinary characters in one. Suite-local helper, the same idiom
+# refactor-triage.test.sh's own `line_of` follows.
+line_of() {
+  grep -nF "$2" "$1" | head -1 | cut -d: -f1
+}
+
 # 1. what `append` keeps. A develop-refactor report piped in carries both classes of
 #    candidate — structural and cosmetic, as prompts/develop-refactor.md's *The two classes
 #    of candidate* defines them — and only the structural ones are work a follow-up owes.
@@ -85,8 +96,8 @@ grep -qF "$cosmetic" "$owed_file" &&
 
 # Order rather than syntax: the step is named, and it is named before the candidates it
 # left behind, which is the whole of what "under that step" means to a reader.
-step_at="$(grep -nF "$step" "$owed_file" | head -1 | cut -d: -f1)"
-first_candidate_at="$(grep -nF 'fold verify.sh'"'"'s two mktemp calls into one helper' "$owed_file" | head -1 | cut -d: -f1)"
+step_at="$(line_of "$owed_file" "$step")"
+first_candidate_at="$(line_of "$owed_file" 'fold verify.sh'"'"'s two mktemp calls into one helper')"
 if [[ -z "$step_at" ]]; then
   problems+=("$owed_file never names the step '$step', so nothing says which step owes these candidates")
 elif [[ -n "$first_candidate_at" && "$step_at" -gt "$first_candidate_at" ]]; then
@@ -196,18 +207,13 @@ rendered="$(mktemp)"
 grep -qF '## Refactor owed' "$rendered" ||
   problems+=("render printed no '## Refactor owed' heading, so its output is not a section a PR body can carry")
 
-# line_of <needle> — the first line of the rendered section holding <needle>, or empty.
-# -F throughout: a transform is matched as the literal a leaf wrote, and `$` and `'` are
-# ordinary characters in one.
-line_of() { grep -nF "$1" "$rendered" | head -1 | cut -d: -f1; }
-
 # Every recorded candidate is printed, and printed after the step that left it behind.
 # Paired step-and-candidate probes rather than two separate lists: a render that printed
 # both steps and both candidates in the wrong order would pass a list of each.
 check_under() {
   local step="$1" transform="$2" step_at candidate_at
-  step_at="$(line_of "$step")"
-  candidate_at="$(line_of "$transform")"
+  step_at="$(line_of "$rendered" "$step")"
+  candidate_at="$(line_of "$rendered" "$transform")"
   if [[ -z "$candidate_at" ]]; then
     problems+=("render did not print the recorded candidate '$transform'")
   elif [[ -z "$step_at" ]]; then
