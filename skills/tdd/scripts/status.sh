@@ -179,7 +179,10 @@ for run in "${runs[@]}"; do
     activity="$(run_activity "$run/.tdd/events.jsonl" "$run/.tdd/conductor.pid" "$timeout")"
     [[ "$json" -eq 1 ]] || activity="  $activity"
   fi
-  for ledger in "$run"/.tdd/issue-*.md; do
+  # A run directory is .tdd/wt/<n>/, so its own ledger is issue-<n>.md. Every other
+  # issue-*.md beside it is an earlier issue's committed plan, not a run of this tree.
+  for ledger in "$run/.tdd/issue-${run##*/}.md"; do
+    [[ -f "$ledger" ]] || continue
     # The heading is `# Plan for #<n> — <title>`.
     heading="$(head -n 1 "$ledger")"
     heading="${heading#\# Plan for #}"

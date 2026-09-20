@@ -358,6 +358,46 @@ if [[ "$phases" == "phase=red bail_phase=green" && "$code" -eq 0 ]]; then ok; el
   diff <(printf 'phase=red bail_phase=green\nexit 0\n') <(printf '%s\nexit %s\n' "$phases" "$code")
 fi
 
+# --- a run directory's own ledger is its run, not every committed ledger beside it (#343) ---
+# Ledgers are committed, so a run worktree carries a copy of every earlier issue's plan. The
+# run under .tdd/wt/7 is issue #7 and nothing else: its own issue-7.md is the one reported, and
+# the committed issue-3.md and issue-5.md beside it are other issues' plans, not runs of their
+# own — in the text rendering (exactly one `#` line, #7) and in --json (exactly one object).
+own="$(repo own)"
+run="$(fabricate_run "$own" 7 tdd/7-widgets-spin)"
+cat > "$run/.tdd/issue-7.md" <<'EOF'
+# Plan for #7 — widgets spin when clicked
+
+- [ ] a widget exists
+EOF
+cat > "$run/.tdd/issue-3.md" <<'EOF'
+# Plan for #3 — gears turn
+
+- [ ] a gear exists
+EOF
+cat > "$run/.tdd/issue-5.md" <<'EOF'
+# Plan for #5 — lamps glow
+
+- [ ] a lamp exists
+EOF
+missing=()
+run_in "$own"
+lines="$(printf '%s\n' "$out" | grep -c '^#' || true)"
+[[ "$lines" == "1" ]] || missing+=("exactly one run line, got $lines")
+[[ "$out" == *"#7"* ]] || missing+=("#7")
+[[ "$out" != *"#3"* ]] || missing+=("no line for #3")
+[[ "$out" != *"#5"* ]] || missing+=("no line for #5")
+run_in "$own" --json
+issues="$(printf '%s' "$out" | python3 -c '
+import json, sys
+try:
+    print(" ".join(r["issue"] for r in json.loads(sys.stdin.read())["runs"]))
+except (ValueError, KeyError, TypeError) as err:
+    print("no runs: %r" % err)
+')"
+[[ "$issues" == "7" ]] || missing+=("--json runs exactly [7], got: $issues")
+expect_nothing_missing "a run directory is one run, its own issue's ledger, not every committed ledger beside it"
+
 # --- --watch [seconds]: redraws in place, recomputing every run from disk on each render ---
 # One running run, watched with stdout to a file. `--watch 0` rather than `--watch 1`: a real
 # 1s interval between redraws made this case's second wait_for below sit out up to a full
