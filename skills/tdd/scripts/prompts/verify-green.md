@@ -17,7 +17,14 @@ A developer agent has written the implementation intended to make the target tes
    prints for the change yourself, not just the target test. There must be **no
    regressions** — every test that passed before must still pass. A new pass bought with a
    broken sibling test is a REJECT. This is not the project's full test suite: the
-   conductor runs that once, before it readies the PR.
+   conductor runs that once, before it readies the PR. Make each of those two runs through
+   the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it
+   belongs to:
+
+       {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
+       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+
+   The wrapper hands the command's own exit status straight back, so a red run stays red.
 3. **The pass is genuine.** The behavior the spec asks for is actually present — the test
    was not made to pass by weakening the assertion, deleting cases, skipping/xfailing the
    test, or hard-coding the exact expected value in a way that doesn't implement the

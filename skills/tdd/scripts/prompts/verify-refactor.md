@@ -18,7 +18,13 @@ Render one verdict on the settled result.
 1. **Still green.** Run the fast command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast`
    prints it), then run the suites `affected-suites.sh` prints for the files the refactor
    touched yourself; both must be **green**. A refactor that changed observable behavior or
-   broke any test is a REJECT.
+   broke any test is a REJECT. Make each of those two runs through the wrapper
+   `{{TIMED_TEST_RUN}}`, which records what the run cost and names the tier it belongs to:
+
+       {{TIMED_TEST_RUN}} fast '' {{FAST_CMD}}
+       {{TIMED_TEST_RUN}} affected '<the suites affected-suites.sh printed>' <the command that runs them>
+
+   The wrapper hands the command's own exit status straight back, so a red run stays red.
 2. **Up to standard.** The settled code should be code you would approve: it follows the
    repository's **conventions**, uses sensible **typing**/structure where the project
    does, names things clearly, and is reasonably **robust** (no obvious unhandled edge

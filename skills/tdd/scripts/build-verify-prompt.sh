@@ -102,5 +102,8 @@ out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{BASE_SHA\}\}/$base_sha}"
 out="${out//\{\{FAST_CMD\}\}/$fast_cmd}"
+# The wrapper every test-command run goes through (#373), named at an absolute path: a
+# verifier works in the target repository, where the bare name resolves to nothing.
+out="${out//\{\{TIMED_TEST_RUN\}\}/$HERE/timed-test-run.sh}"
 
 printf '%s\n' "$out"

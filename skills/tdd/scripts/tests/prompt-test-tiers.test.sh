@@ -192,6 +192,22 @@ timed_through develop-revise "$revise" all
 timed_through develop-reconcile "$reconcile" all
 report "$name"
 
+# 7. The verifier prompts time their runs the same way (#373). Each names the wrapper at a
+#    runnable path and the tier every test-command run it asks for belongs to: verify-red
+#    runs the affected suites, so `affected`; verify-green and verify-refactor run the fast
+#    command and then the affected suites, so `fast` and `affected`; verify-pin runs the
+#    target test alone, before and after its mutation, so `target`. The first three prompts
+#    are the ones cases 1, 4 and 2 built, read again rather than built a second time.
+name="verify-red, verify-green, verify-refactor and verify-pin run their test commands through timed-test-run.sh, each naming its tier"
+problems=()
+verify_pin="$("$VERIFY" pin "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat case' 2>/dev/null)" ||
+  problems+=("build-verify-prompt.sh pin exited $?")
+timed_through verify-red "$verify_red" affected
+timed_through verify-green "$verify_green" fast affected
+timed_through verify-refactor "$verify_refactor" fast affected
+timed_through verify-pin "$verify_pin" target
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
