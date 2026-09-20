@@ -1469,21 +1469,26 @@ if [[ ! -x "$AUDIT" ]]; then
 else
   audit_self_out="$("$AUDIT" "$HERE/supervise.test.sh" 2>&1)"
   audit_self_code=$?
+  # What a problem line quotes: the audit's own output with its newlines turned into `/`, so a
+  # finding over several lines stays on the one FAIL line this suite prints. The matches below
+  # read the unflattened capture, which is what the audit actually said.
+  audit_self_said="${audit_self_out//$'\n'//}"
   [[ "$audit_self_code" == 0 ]] ||
-    audit_problems+=("over this suite as committed the audit exited $audit_self_code, want 0: ${audit_self_out//$'\n'//}")
+    audit_problems+=("over this suite as committed the audit exited $audit_self_code, want 0: $audit_self_said")
   [[ -z "$audit_self_out" ]] ||
-    audit_problems+=("over this suite as committed the audit named something, want nothing: ${audit_self_out//$'\n'//}")
+    audit_problems+=("over this suite as committed the audit named something, want nothing: $audit_self_said")
 
   audit_out="$("$AUDIT" "$planted" 2>&1)"
   audit_code=$?
+  audit_said="${audit_out//$'\n'//}"
   [[ "$audit_code" == 1 ]] ||
-    audit_problems+=("over the planted suite the audit exited $audit_code, want 1: ${audit_out//$'\n'//}")
+    audit_problems+=("over the planted suite the audit exited $audit_code, want 1: $audit_said")
   [[ "$audit_out" == *"planted.test.sh"* ]] ||
-    audit_problems+=("over the planted suite the audit does not name the file it read: ${audit_out//$'\n'//}")
+    audit_problems+=("over the planted suite the audit does not name the file it read: $audit_said")
   [[ "$audit_out" == *"leaf-real-silence"* ]] ||
-    audit_problems+=("over the planted suite the audit does not name leaf-real-silence, whose silence is real waiting: ${audit_out//$'\n'//}")
+    audit_problems+=("over the planted suite the audit does not name leaf-real-silence, whose silence is real waiting: $audit_said")
   [[ "$audit_out" != *"leaf-jumped"* ]] ||
-    audit_problems+=("over the planted suite the audit names leaf-jumped, which injects its silence onto the clock: ${audit_out//$'\n'//}")
+    audit_problems+=("over the planted suite the audit names leaf-jumped, which injects its silence onto the clock: $audit_said")
 fi
 { [[ "${#audit_problems[@]}" -eq 0 ]]; } && ok \
   || no "a stub leaf whose silence is real waiting is named by the clock audit, a deliberate real-clock dependence recorded with a reason is not (${audit_problems[*]})"
