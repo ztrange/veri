@@ -1,0 +1,2 @@
+### The prompt `build-develop-prompt.sh revise green …` builds offers the same `SPLIT:` report
+- extract the shared "When the step is too big for one green" prose out of develop-green.md and develop-revise.md — blocked today: build-develop-prompt.sh has one include slot (`{{SHARED}}` → `_develop-shared.md`) that every develop phase gets, so extracting there would offer SPLIT to red, refactor and reconcile too; a per-phase partial mechanism is generality no test demands
