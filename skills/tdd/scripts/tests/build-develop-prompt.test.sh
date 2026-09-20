@@ -1019,6 +1019,51 @@ says_both_ways "$red" "never says the predicted missing-name error names the mis
 [[ -z "$problems" ]] \
   && ok || no "develop-red says a predicted missing-name error names the missing name in PREDICTED_FAILURE: (${problems#; })"
 
+# 29. the footer a revise of red owes (issue #356). Case 23 pins that the revise prompt asks
+#     for a new prediction for the rewritten test, before the re-run; it says nothing about
+#     the leaf REPORTING it. The conductor's red-divergence gate reads a report's
+#     `PREDICTION:` line and stops the step when it says DIVERGED — so a revise-red report
+#     with no such line is a rewritten red test whose divergence nobody can see, the second
+#     hole #356 names. A prediction the leaf formed and did not report is, to the conductor,
+#     the same as one it never formed. So the revise footer carries the two lines the red
+#     footer carries: the prediction itself, and whether it held. Two faces of one criterion,
+#     so one case.
+#
+#     The prompt read is case 4's — same phase, same arguments, so there is one invocation and
+#     case 4 owns the exit-0 check on it, and it is the prompt built for `revise red`, the
+#     call the criterion names. The probes are case 21's, pointed at this prompt: the
+#     `PREDICTED_FAILURE:` one literal and `-F`, since a protocol string a reader greps for
+#     has nothing in it to interpret and a paraphrase of one is not one; the two verdict words
+#     anchored on `PREDICTION:` and probed separately rather than as one alternation, which
+#     would be answered by either. Both shapes are spelled once here and each caller names
+#     only its token or its verdict, for `offers_class`'s reason — a bound edited on one and
+#     not the other is a drift no diff makes loud.
+#
+#     The gap is case 21's 20, and load-bearing for the reason written there: `prompt_says`
+#     folds the prompt to one line, so at 40 the DIVERGED branch is answered by a following
+#     `PREDICTION_NOTE: <on DIVERGED …>` placeholder 30 characters past the anchor with no `.`
+#     between, and a footer offering only MATCHED on the PREDICTION: line would pass. The
+#     probes are case-sensitive, so the lower-case `prediction` sub-step 2 already carries
+#     answers neither: `PREDICTED_FAILURE` and `PREDICTION:` occur nowhere in the revise
+#     prompt built today, checked against the built prompt rather than the template.
+revise_asks_for() {  # revise_asks_for <footer token, colon included>
+  local token="$1"
+  prompt_says "$revise" "the revise report never asks for $token" -F -e "$token"
+}
+
+revise_offers_verdict() {  # revise_offers_verdict <verdict word>
+  local verdict="$1"
+  prompt_says "$revise" "the revise report never offers $verdict on the PREDICTION: line" \
+    -E -e "PREDICTION:[^.]{0,20}$verdict"
+}
+
+problems=""
+revise_asks_for 'PREDICTED_FAILURE:'
+revise_offers_verdict MATCHED
+revise_offers_verdict DIVERGED
+[[ -z "$problems" ]] \
+  && ok || no "develop-revise ends with PREDICTED_FAILURE: and PREDICTION: MATCHED | DIVERGED report lines (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
