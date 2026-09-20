@@ -754,16 +754,16 @@ cat > "$mown_run/.tdd/issue-7.md" <<'EOF'
 - [x] a lamp exists
 - [ ] a lamp glows
 EOF
-cat > "$mown_run/.tdd/issue-3.md" <<'EOF'
-# Plan for #3 — an earlier run's committed plan
+# The earlier runs' committed plans, which differ from each other in nothing the rule reads:
+# the criterion is that a ledger which is not this directory's own is passed over, whatever it
+# says, so what each of them says is the same sentence.
+for mown_other in 3 5; do
+  cat > "$mown_run/.tdd/issue-$mown_other.md" <<EOF
+# Plan for #$mown_other — an earlier run's committed plan
 
 - [x] a lamp is wired
 EOF
-cat > "$mown_run/.tdd/issue-5.md" <<'EOF'
-# Plan for #5 — another earlier run's committed plan
-
-- [x] a lamp has a switch
-EOF
+done
 mown_now="$(date +%s)"
 cat > "$mown_run/.tdd/events.jsonl" <<EOF
 {"ts": $((mown_now - 120)), "issue": "7", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
