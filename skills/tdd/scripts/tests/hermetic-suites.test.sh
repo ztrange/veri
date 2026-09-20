@@ -456,6 +456,52 @@ if [[ -z "${HERMETIC_SHARE_PROBE:-}" && -z "${HERMETIC_LEAK_PROBE:-}" && -z "${H
   report "$name"
 fi
 
+# 12. The same rule for the pin that travels beside that instruction (#305): a run resumed with
+#     VERI_NEW_SKILL=1 re-pins, and run-conductor.sh then exports VERI_SKILL_COMMIT so every
+#     event.sh and supervise.sh of the run carries the sha — which means the `make test` a leaf of
+#     that run executes inherits BOTH names, not just the one case 9 asks about. Observed on #282's
+#     resume: the preflight baseline on `main` came back red, and the conductor overrode its own
+#     baseline gate to continue.
+#
+#     One case of run-conductor.test.sh can observe the sha at all — case 15, which reads
+#     `skill_commit` off every event a launched run writes and compares it to origin's tip — so
+#     that case is the witness, cut out of the suite's own text the way case 9 cuts its five and
+#     for the same reason: the other twenty-four would pay for a git clone apiece to answer a
+#     question they cannot be asked. The cut drops `tree_clone "$work/tree"` too, the recursive
+#     copy of this skill tree that builds $CONDUCTOR for cases 1-5; case 15 does not read it.
+#
+#     The ambient sha is forty hex digits naming no commit anywhere, so a green arm is green
+#     because the name was ignored and not because it happened to agree with the fixture's tip.
+#     Both names are set at once rather than the sha alone: that is the pair a resume exports, and
+#     a leak of either turns the arm red. A cut that cannot find case 15's marker or its `name=`
+#     line fails closed, naming what is missing, rather than silently asking about nothing.
+#
+#     Depends on run-conductor.test.sh's `# 15. ` and `# 16. ` markers, and the literal line
+#     `tree_clone "$work/tree"`.
+name="run-conductor.test.sh: an ambient VERI_NEW_SKILL=1 with a VERI_SKILL_COMMIT still leaves it green"
+problems=()
+skillcommit_case="every event a launched run writes carries origin's tip as skill_commit, and the prompt names it"
+skillcommit_cut="$(mktemp "$HERE/.hermetic-skillcommit-slice.XXXXXX")"
+awk '
+  /^tree_clone "\$work\/tree"$/ {skip=1}
+  /^# 15\. / {skip=0}
+  /^# 16\. / {skip=1}
+  !skip
+' "$HERE/run-conductor.test.sh" > "$skillcommit_cut"
+printf '%s\n' 'echo "----"' 'echo "$pass passed, $fail failed"' '[[ "$fail" -eq 0 ]]' >> "$skillcommit_cut"
+chmod +x "$skillcommit_cut"
+if ! grep -qF "name=\"$skillcommit_case\"" "$skillcommit_cut"; then
+  problems+=("no case could be asked from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT — the slice is missing the case: $skillcommit_case — the '# 15. '/'# 16. ' markers may have moved")
+else
+  out="$(VERI_NEW_SKILL=1 VERI_SKILL_COMMIT=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef "$skillcommit_cut" 2>/dev/null)" && code=0 || code=$?
+  [[ "$code" == 0 ]] ||
+    problems+=("want exit 0 from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT, got $code: $(printf '%q' "$(tail -n 1 <<< "$out")")")
+  [[ "$(tail -n 1 <<< "$out")" == "1 passed, 0 failed" ]] ||
+    problems+=("want '1 passed, 0 failed' last from run-conductor.test.sh under VERI_NEW_SKILL=1 and VERI_SKILL_COMMIT (the one case that can observe the sha), got: $(printf '%q' "$(tail -n 1 <<< "$out")")")
+fi
+rm -f "$skillcommit_cut"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
