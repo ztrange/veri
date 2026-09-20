@@ -4,7 +4,7 @@
 - [x] `before` inserts several texts, in the order given, on the lines before the anchor step ⟦criterion 2⟧
 - [x] an anchor step carrying no `⟦criterion k⟧` yields an added step carrying none ⟦criterion 3⟧
 - [x] criterion-finished.sh does not report k finished while an unchecked `⟦added⟧` step serving k remains ⟦criterion 4⟧
-- [x] over budget, the call inserts no checkbox, exits 1, and appends every text as a plain bullet under a trailing `## Owed steps` heading ⟦criterion 5⟧ ⟂ refactor pending
+- [x] over budget, the call inserts no checkbox, exits 1, and appends every text as a plain bullet under a trailing `## Owed steps` heading ⟦criterion 5⟧
 - [ ] next-unchecked.sh never returns a bullet under `## Owed steps` ⟦criterion 6⟧
 - [ ] an anchor matching no step, or more than one, exits 2 and leaves the ledger byte-identical ⟦criterion 7⟧
 - [ ] VERI_STEP_GROWTH unset allows 3 added steps; a value that is not a non-negative integer, set-but-empty included, exits 2 and leaves the ledger byte-identical ⟦criterion 8⟧
