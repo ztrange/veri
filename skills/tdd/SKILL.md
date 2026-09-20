@@ -765,13 +765,11 @@ following step. The phase sub-steps are:
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-split anchor='<STEP>' added=<count>
    ```
    One call and not one per criterion, under the script's own one-call rule above. A split is
-   the one thing that changes a step's plan without a green commit
-   of its own, so `step-split` is what tells the run log the step was split rather than
-   silently restarted — `step-added` is the insertion's own mark, which every
-   `add-ledger-step.sh` call owes, and says how many steps the plan grew by; `step-split` says
-   why. Then loop back to `next-unchecked.sh`, which now hands over the first
-   split step; **STEP** itself starts again from Red once the smaller steps ahead of it are
-   done.
+   the one thing that changes a step's plan without a green commit of its own, so `step-split`
+   is what tells the run log the step was split rather than silently restarted — beside the
+   `step-added` mark the insertion owes as any other does, which says the plan grew but not
+   why. Then loop back to `next-unchecked.sh`, which now hands over the first split step;
+   **STEP** itself starts again from Red once the smaller steps ahead of it are done.
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
