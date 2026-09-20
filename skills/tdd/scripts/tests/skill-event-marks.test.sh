@@ -277,6 +277,34 @@ else
 fi
 report "$name"
 
+# 6. The plan grows mid-run (issue #360): `add-ledger-step.sh` inserts a step the scoping pass
+#    never wrote, and a plan that changes without a record leaves the log unable to say which
+#    steps the run chose for itself — metrics counts them, and a bail reader cannot otherwise
+#    tell an original step from one a leaf asked for. The script is prose to the session like
+#    every other mark here, so the event exists only where this document prescribes it: beside
+#    the insertion, and beside EVERY insertion, since a second call site added later with no
+#    mark of its own is exactly the drift this suite exists to catch.
+name="$skill_md prescribes an event.sh step-added call beside every add-ledger-step.sh insertion"
+problems=()
+if [[ -z "$records" ]]; then
+  problems+=("$skill_md has no instructions to read — the step-added mark could not be checked")
+else
+  insertions=0
+  while IFS= read -r line; do
+    # The call, not a mention: every script this document orders run is written `$S/<script>`,
+    # and preflight names `add-ledger-step.sh` bare while reading its budget.
+    [[ "$line" =~ \$s/add-ledger-step\.sh ]] || continue
+    insertions=$((insertions + 1))
+    [[ "$line" =~ event\.sh[[:space:]]+step-added([^a-z0-9-]|$) ]] ||
+      problems+=("$skill_md inserts a step with no \`event.sh step-added\` beside it: $(printf '%.130s' "$line")")
+  done <<< "$records"
+  # Fail closed: no insertion prescribed anywhere means the loop asked nothing, which must not
+  # read as a pass.
+  [[ "$insertions" -gt 0 ]] ||
+    problems+=("$skill_md prescribes no \`\$S/add-ledger-step.sh\` call — where \`event.sh step-added\` belongs could not be read")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
