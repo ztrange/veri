@@ -96,6 +96,27 @@ REASON: Two problems:
 - vacuous assertion
 - no call to the function'
 
+# 12. a verifier that proposes work reports it as NEW_STEP: lines before the final
+#     VERDICT:/REASON: pair (#362). Those lines are addressed to the conductor, not to
+#     the reason the human reads: the same output without them must parse identically,
+#     same exit code and same reason text.
+ns_plain='I read the diff against the base sha.
+VERDICT: PASS
+REASON: The transform is behaviour-preserving and the suite is green.'
+ns_proposing='I read the diff against the base sha.
+NEW_STEP: slugify returns an empty string for input that is all separators
+VERDICT: PASS
+REASON: The transform is behaviour-preserving and the suite is green.'
+ns_out_plain="$(printf '%s' "$ns_plain" | "$PARSE")" && ns_code_plain=0 || ns_code_plain=$?
+ns_out_proposing="$(printf '%s' "$ns_proposing" | "$PARSE")" && ns_code_proposing=0 || ns_code_proposing=$?
+if [[ "$ns_code_proposing" == "$ns_code_plain" && "$ns_out_proposing" == "$ns_out_plain" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - new_step lines before the verdict pair change nothing (want exit $ns_code_plain, got $ns_code_proposing)"
+  diff <(printf '%s\n' "$ns_out_plain") <(printf '%s\n' "$ns_out_proposing") | sed 's/^/    /'
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
