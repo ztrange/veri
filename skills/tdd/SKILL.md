@@ -1505,6 +1505,24 @@ To bail:
    the branch name, and the **worktree path** — the logs named above are inside it, and it
    is where a re-run will resume. Leave it in place; only a merged PR retires it.
 
+## Stopping
+
+A **stop** is not a bail. A bail ends an issue; a stop pauses one, at an operator's word —
+`stop-requested.sh` printed a mode (`at-ledger`, `at-leaf` or `now`) at a checkpoint — and
+leaves the run resumable. Run this sequence in order.
+
+1. **Settle the leaves before you touch the tree.** A live leaf owns the working tree
+   (#170), so reset nothing while any `.tdd/<name>.pid` names a process still running
+   `supervise.sh <name> …`. For each one that does, call `$S/wait-leaf.sh <name>` — again on
+   an exit 3, as everywhere else — until it returns 0, 1 or 2. Under mode `now` that wait
+   ends at once: `stop-run.sh` has already sent that supervisor its TERM, and
+   `supervise.sh:350-355` recorded a 2 in the completion file.
+2. **Settle the tree.** Only now, and only with `git reset --hard HEAD`: a non-empty `git
+   status --porcelain` is the half-done step, and dropping it leaves every completed step's
+   commit intact. That reset is the only reach for the tree this section has: restoring a
+   path out of some other tree is not what dropping a half-done step means. Say in the
+   narration what was dropped.
+
 ## Resume
 
 The committed ledger makes a run **resumable**: re-running `/tdd <n>` picks up
