@@ -18,18 +18,12 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/.tdd"
 
-# run_stop — run the script from the run's worktree, leaving its stdout in `out` and its exit
-# code in `code`. stderr is dropped: what a case here asserts on is what a conductor at a
-# checkpoint captures, which is stdout alone.
+# run_stop — run the script from the run's worktree, leaving its stdout in `out`, its exit
+# code in `code` and its stderr in `err`. Most cases assert on `out` and `code` alone,
+# since what a conductor at a checkpoint captures is stdout; the malformed ones read `err`
+# too, because "nothing on stdout" and "a diagnostic somewhere" are together what keeps a
+# conductor from reading a complaint as a mode.
 run_stop() {
-  out="$(cd "$work" && "$STOP" 2>/dev/null)" && code=0 || code=$?
-}
-
-# run_stop_err — as run_stop, but the diagnostic is kept in `err` rather than dropped: a
-# malformed request is the one case that asserts on stderr as well, because "nothing on
-# stdout" and "a diagnostic somewhere" are together what keeps a conductor from reading a
-# complaint as a mode.
-run_stop_err() {
   out="$(cd "$work" && "$STOP" 2>"$work/stderr")" && code=0 || code=$?
   err="$(cat "$work/stderr")"
 }
@@ -75,7 +69,7 @@ fi
 # line to `problems` unless all three halves of the verdict hold. One function over the
 # three fixtures because the verdict is the same one; only the fixture differs.
 check_malformed() {
-  run_stop_err
+  run_stop
   if [[ "$code" != 2 || -n "$out" || -z "$err" ]]; then
     problems+="    $1: want exit 2, empty stdout and a diagnostic on stderr, got exit $code, stdout '$out' and stderr '$err'"$'\n'
   fi
