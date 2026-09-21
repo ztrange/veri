@@ -31,6 +31,16 @@ refuse() {
   exit 2
 }
 
+# The other half of that pair, and deliberately not folded into it: the command was
+# understood perfectly and there was simply no live run answering to it, which is this
+# repository's exit 3 rather than its 2. The write is what the separation is really for — a
+# request left in a finished run's .tdd/stop is not a no-op but a trap, still sitting there
+# when that issue is next resumed.
+nothing_to_do() {
+  echo "stop-run: $1" >&2
+  exit 3
+}
+
 mode="at-ledger"
 issue=""
 all=0
@@ -98,6 +108,7 @@ request_stop() {
 }
 
 if (( all == 1 )); then
+  stopped=0
   # The glob, not `git worktree list`: a run is a directory under .tdd/wt/, and `[[ -d ]]`
   # also answers the case of a repository with no runs at all, where bash leaves the pattern
   # itself standing as the one word of the loop.
@@ -105,8 +116,13 @@ if (( all == 1 )); then
     [[ -d "$candidate" ]] || continue
     if live_run "$candidate"; then
       request_stop "$candidate"
+      stopped=1
     fi
   done
+  (( stopped == 1 )) || nothing_to_do "no live run to stop"
 else
-  request_stop "$main_tree/.tdd/wt/$issue"
+  target="$main_tree/.tdd/wt/$issue"
+  live_run "$target" ||
+    nothing_to_do "no live run for issue $issue"
+  request_stop "$target"
 fi

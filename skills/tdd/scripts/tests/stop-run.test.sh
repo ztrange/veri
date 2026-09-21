@@ -268,6 +268,48 @@ done
 
 report "--all writes the mode into every live run's .tdd/stop and into no other"
 
+# 7. The three shapes of a run that is not there to be stopped — an issue with no worktree
+#    under .tdd/wt/ at all, an issue whose .tdd/conductor.pid names no live process, and
+#    `--all` finding no live run anywhere — each exit 3 and write no .tdd/stop. Exit 3 is
+#    this repository's "nothing to do", distinct from the 2 a misunderstood command gets:
+#    the operator typed something the script understood perfectly, and there was simply no
+#    run answering to it. The write is the half that matters more than the code, though: a
+#    stop request left in a finished run's .tdd/stop is not a no-op but a trap, since it is
+#    still sitting there when that issue is next resumed and would stop the new run at its
+#    first checkpoint for a decision the operator made about the old one.
+#
+#    The first two are asked of the repository the suite has been building all along — run
+#    404 was never created, and run 9 is the one case 6 gave a conductor.pid nobody answers
+#    for. The third needs a repository of its own: this one has two live runs by now, so
+#    `--all` typed here would find them. A fresh `git init` with the same dead run in it is
+#    the smallest tree where `--all` can find nothing.
+problems=""
+
+label="an issue with no worktree"
+run_stop 404
+check_code 3
+[[ ! -e "$repo/.tdd/wt/404" ]] ||
+  note "want nothing written for a run that does not exist, found $repo/.tdd/wt/404"
+
+label="an issue whose conductor is not live"
+run_stop 9
+check_code 3
+[[ ! -e "$dead/.tdd/stop" ]] ||
+  note "want no .tdd/stop written, found one holding '$(cat "$dead/.tdd/stop")'"
+
+label="--all with no live run"
+quiet="$work/quiet"
+git init -q -b main "$quiet" >/dev/null 2>&1
+quiet_dead="$quiet/.tdd/wt/9"; mkdir -p "$quiet_dead/.tdd"
+printf '%s\n' "$dead_pid" > "$quiet_dead/.tdd/conductor.pid"
+out="$(cd "$quiet" && "$STOP" --all 2>"$work/stderr")" && code=0 || code=$?
+err="$(cat "$work/stderr")"
+check_code 3
+[[ ! -e "$quiet_dead/.tdd/stop" ]] ||
+  note "want no .tdd/stop written, found one holding '$(cat "$quiet_dead/.tdd/stop")'"
+
+report "an issue with no worktree, an issue whose conductor names no live process, and --all with no live run each exit 3 and write no .tdd/stop"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
