@@ -119,6 +119,20 @@ if [[ "$code" != 2 || "$left" != "at-ledger" ]]; then
 fi
 verdict "any other argument exits 2 and leaves .tdd/stop as it was"
 
+# 6. --clear carries no argument of its own, so a word after it is as unrecognised as one
+#    in its place: exit 2, and .tdd/stop left exactly as it was. The clearing is what makes
+#    this its own case — a script that branches on the first argument alone reads `--clear`
+#    and removes the file, so the typo silently throws away a request an operator is
+#    waiting on rather than being refused.
+problems=""
+printf '%s\n' "at-ledger" > "$work/.tdd/stop"
+run_stop --clear --bogus
+left="$(cat "$work/.tdd/stop" 2>/dev/null || echo "<gone>")"
+if [[ "$code" != 2 || "$left" != "at-ledger" ]]; then
+  problems+="    --clear --bogus: want exit 2 and .tdd/stop still 'at-ledger', got exit $code and '$left'"$'\n'
+fi
+verdict "--clear with a trailing argument exits 2 and leaves .tdd/stop as it was"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
