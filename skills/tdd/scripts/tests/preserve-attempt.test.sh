@@ -41,10 +41,20 @@ REF="refs/veri/attempts/409/3/develop-green-1"
 # filesystem check and be no commit at all.
 ref_resolves() { git_q "$1" rev-parse --verify --quiet "$REF^{commit}" >/dev/null 2>&1; }
 
+# attempts_dir <repo> — the directory preservation puts its copies in. A case asks whether it
+# exists at all as well as what is in it, and copy_path builds names under it, so the path is
+# named here once and nowhere else.
+attempts_dir() { printf '%s/.tdd/attempts' "$1"; }
+
+# copies_in <repo> — every name left in that directory, space-joined, and empty when the
+# directory is not there. The listing rather than a count, so a case that expected nothing
+# names what it found instead.
+copies_in() { ls "$(attempts_dir "$1")" 2>/dev/null | tr '\n' ' '; }
+
 # copy_path <repo> <mark> <ext> — where preservation puts the leaf's <ext> file in <repo> for
 # those same coordinates under <mark>. The name is the criterion itself — step, phase, attempt
 # and the mark that triggered the preservation — so it is built in one place, not per case.
-copy_path() { printf '%s/.tdd/attempts/3-develop-green-1-%s.%s' "$1" "$2" "$3"; }
+copy_path() { printf '%s/3-develop-green-1-%s.%s' "$(attempts_dir "$1")" "$2" "$3"; }
 
 # copy_text <path> — the preserved file's contents, or the literal <missing> when it was never
 # written. A failure message that says <missing> distinguishes "preserved the wrong bytes" from
@@ -145,7 +155,7 @@ new_repo "$repo"
 printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 3 develop-green 1 bail >/dev/null 2>&1; code=$?
 ref_resolves "$repo"; resolved=$?
-copies="$(ls "$repo/.tdd/attempts" 2>/dev/null | tr '\n' ' ')"
+copies="$(copies_in "$repo")"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ -z "$copies" ]]; } \
   && ok || no "preserves the tree and exits 0 when the leaf wrote neither log nor output (code=$code resolved=$resolved copies='$copies')"
 
@@ -161,8 +171,8 @@ printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 printf 'final result text\n' > "$repo/.tdd/develop-green.out"
 preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
 ref_resolves "$repo"; resolved=$?
-attempts_there="$([[ -e "$repo/.tdd/attempts" ]] && echo yes || echo no)"
-copies="$(ls "$repo/.tdd/attempts" 2>/dev/null | tr '\n' ' ')"
+attempts_there="$([[ -e "$(attempts_dir "$repo")" ]] && echo yes || echo no)"
+copies="$(copies_in "$repo")"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$attempts_there" == no ]] && [[ -z "$copies" ]]; } \
   && ok || no "copies nothing when no mark is given, log present (code=$code resolved=$resolved attempts_dir=$attempts_there copies='$copies')"
 
