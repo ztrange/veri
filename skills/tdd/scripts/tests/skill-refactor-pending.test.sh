@@ -519,6 +519,18 @@ says_reset_and_reduced_budget() {
     miss "$skill_md's Resume never says the budget the relaunched leaf is given is reduced by the \`refactor:\` commits the step already has, so the count it computes is read and then thrown away"
 }
 
+# reads_dirty_tree_gate — the Draft PR step's one record that asks `git status --porcelain`,
+# into `$instruction`, or one problem and a non-zero return the way `reads` itself does. Cases
+# 3 and 10 are the two halves of that one record — what it refuses, and what it offers the run
+# instead — so which record answers them is the one thing they must not be free to spell
+# apart. Two `reads` calls would still find the same sub-step today and stop doing so the day
+# the section grows a second that asks the same question, and the two halves would then be
+# asserted of two different records with nothing saying so.
+
+reads_dirty_tree_gate() {
+  reads 'asks git status --porcelain before the PR is opened' "$dirty_tree"
+}
+
 # 1. One criterion — the mark is written at exactly one tick, withheld at the other, and
 #    cleared where the step ends — and so one case. The three probes are one wiring: a mark
 #    written and never cleared stalls every resumed run in a refactor loop, and a mark
@@ -610,7 +622,7 @@ if records_from draft_pr_instructions \
   # What that gate asks, and what it does with the answer. Both conditions belong to the one
   # instruction: a run stopped here is stopped for the same reason either way — the PR would
   # otherwise carry work no verifier has passed.
-  if reads 'checks the worktree is clean before the PR is opened' "$dirty_tree"; then
+  if reads_dirty_tree_gate; then
     says 'next-pending-refactor\.sh' \
       "$skill_md's Draft PR step checks only that the tree is clean, so a ledger whose last step is committed but still marked refactor-pending opens a PR with that step's refactor never verified"
     says 'refuse|do not open|does not open|stop|bail|must not|never' \
@@ -834,7 +846,7 @@ name="$skill_md's Draft PR step names a remedy for a dirty tree with no step pen
 problems=()
 if records_from draft_pr_instructions \
     "$skill_md has no ### 4. Draft PR section to read — whether its refusal has a remedy could not be checked"; then
-  if reads 'refuses to open the PR while the worktree is dirty' "$dirty_tree"; then
+  if reads_dirty_tree_gate; then
     says '(no |nothing |none |without a )[^.]{0,40}pending' \
       "$skill_md's Draft PR step refuses a dirty tree but names a remedy only for a step that is pending, so a run whose tree is dirty with nothing pending is sent to a branch that exits 3 and arrives back at the same refusal"
     says 'unchecked' \
