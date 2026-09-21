@@ -30,7 +30,12 @@
 # nobody does, and #300's green leaf was killed at the floor twice over while working. So a
 # caller that has both measurements hands in both, and the derivation runs over the full
 # one; the fast argument stays first and stays validated, because it is still the baseline
-# a caller with only one measurement has.
+# a caller with only one measurement has. The full one is validated the same way and for a
+# sharper reason: it is the number the whole run's timeout is sized from, so an unreadable
+# one — a word, a decimal, a negative, a `--full` with nothing behind it — must refuse here
+# rather than either die in the arithmetic with bash's own exit 1 (a clean negative, which
+# tells a conductor the plumbing is fine) or fall back to the fast measurement and print a
+# floor value that looks like a real timeout.
 #
 # Usage:   leaf-timeout.sh <baseline-seconds>              # a whole number >= 0
 #          leaf-timeout.sh <baseline-seconds> refactor     # × max(1, VERI_REFACTOR_BUDGET)
@@ -46,8 +51,13 @@ role="${2:-}"
 # The full-tier measurement displaces the fast one as what the derivation runs over — it is
 # not a second input mixed with the first, so `baseline` is reassigned rather than held
 # alongside: there is one measurement the timeout is sized from, and this says which.
+# `full_given` carries whether the flag arrived, separately from what followed it, because
+# `--full` with nothing behind it is a broken call and not a caller who handed in no pair:
+# a single empty variable would read as the latter and derive from the fast tier instead.
+full_given=0
 full=""
 if [[ "$role" == --full ]]; then
+  full_given=1
   full="${3:-}"
   role=""
 fi
@@ -71,7 +81,11 @@ if [[ ! "$baseline" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-if [[ -n "$full" ]]; then
+if [[ "$full_given" == 1 ]]; then
+  if [[ ! "$full" =~ ^[0-9]+$ ]]; then
+    echo "leaf-timeout: <full-seconds> must be a whole number >= 0: $full" >&2
+    exit 2
+  fi
   baseline="$full"
 fi
 
