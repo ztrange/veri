@@ -8,7 +8,9 @@
 #                                     with `…` marking that something was cut
 #
 # Everything else — the system init, thinking blocks, the terminal result record —
-# prints nothing. A line that is not JSON exits 2: no rendering can be given.
+# prints nothing. A line that is not JSON exits 2 and prints nothing at all: the
+# rendering is written only after the loop, so the records already rendered are
+# discarded along with the line that stopped it.
 #
 # Usage:   render-leaf-log.sh < .tdd/<leaf>.out
 #
