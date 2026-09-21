@@ -18,6 +18,9 @@
 #      `.tdd/<name>.pid` still running `supervise.sh <name> ` and does so BEFORE it reaches
 #      for the tree, and the only reach it names is `git reset --hard HEAD`, never
 #      `git checkout`.
+#   2. That section refuses the tree when an interrupted rebase or merge is present —
+#      `rebase-merge`, `rebase-apply` or `MERGE_HEAD` — recording `at=unsettled` instead of
+#      resetting, and it checks for that before it reaches the reset.
 #
 # Run: scripts/tests/skill-stopping.test.sh
 set -uo pipefail
@@ -85,6 +88,30 @@ else
 
   grep -qE 'git checkout' <<<"$section" \
     && problems+=("the Stopping section reaches for git checkout; dropping a half-done step is git reset --hard HEAD")
+fi
+report "$name"
+
+# ---------------------------------------------------------------------------
+name="the Stopping section resets nothing and records at=unsettled when rebase-merge, rebase-apply or MERGE_HEAD is present in the worktree"
+problems=()
+section="$(stopping_section)"
+if [[ -z "$section" ]]; then
+  # Fail closed: no section means not one probe below ran.
+  problems+=("$skill_md has no ## Stopping section — nothing could be checked")
+else
+  for state in 'rebase-merge' 'rebase-apply' 'merge_head'; do
+    grep -qE -- "$state" <<<"$section" \
+      || problems+=("the Stopping section never names $state — an interrupted rebase or merge it cannot see is one it would reset away")
+  done
+
+  grep -qE 'at=unsettled' <<<"$section" \
+    || problems+=("the Stopping section never records at=unsettled — the mark would claim a boundary the tree never reached")
+
+  guard_at="$(first_line_matching 'rebase-merge')"
+  reset_at="$(first_line_matching 'git reset --hard head')"
+  if [[ -n "$guard_at" && -n "$reset_at" && "$guard_at" -gt "$reset_at" ]]; then
+    problems+=("the Stopping section drops the tree (line $reset_at) before it checks for an interrupted rebase or merge (line $guard_at) — the reset it must refuse has already run")
+  fi
 fi
 report "$name"
 

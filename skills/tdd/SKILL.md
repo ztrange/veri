@@ -1517,7 +1517,14 @@ leaves the run resumable. Run this sequence in order.
    an exit 3, as everywhere else — until it returns 0, 1 or 2. Under mode `now` that wait
    ends at once: `stop-run.sh` has already sent that supervisor its TERM, and
    `supervise.sh:350-355` recorded a 2 in the completion file.
-2. **Settle the tree.** Only now, and only with `git reset --hard HEAD` — a non-empty `git
+2. **Settle the tree.** Ask first whether it is the run's to settle. If `git rev-parse
+   --git-path rebase-merge` or `git rev-parse --git-path rebase-apply` names a directory
+   that exists, or `MERGE_HEAD` resolves, an interrupted rebase or merge is in progress:
+   **reset nothing**, record `at=unsettled`, say in the comment what a human must finish
+   (`git rebase --continue` or `--abort`, `git merge --abort`) and skip the rest of this
+   step. Dropping that tree would throw away conflict resolutions no commit holds yet, and
+   `git reset --hard HEAD` cannot put a half-finished rebase back.
+   Otherwise, and only with `git reset --hard HEAD` — a non-empty `git
    status --porcelain` is the half-done step, dropped exactly as *Bailing* step 1 drops it
    and for the reason given there. That reset is the only reach for the tree this section
    has: restoring a path out of some other tree is not what dropping a half-done step
