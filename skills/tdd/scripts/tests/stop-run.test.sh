@@ -317,6 +317,35 @@ check_code 3
 
 report "an issue with no worktree, an issue whose conductor names no live process, and --all with no live run each exit 3 and write no .tdd/stop"
 
+# 8. A command typed where no main working tree can be resolved exits 2, the same as any
+#    other command this script cannot make sense of. `git worktree list` says nothing
+#    outside a repository, so the resolution comes back empty and there is no .tdd/wt/ to
+#    look under — the script has not found a repository with no live runs in it, it has
+#    found no repository, and the two are the difference between this repository's 3 and its
+#    2: an operator's wrapper that branches on the codes would read "nothing to do" and stop
+#    asking, when what actually happened is that the command was typed in the wrong place.
+#    Nothing is written and nothing is signalled, checked against the live run this suite has
+#    been carrying all along: the refusal happens before any run is looked at, so a stop
+#    request left behind or a TERM sent from a command that never resolved a tree would reach
+#    a run the operator's shell was not even standing in.
+problems=""
+label=""
+rm -f "$run/.tdd/stop"
+
+outside="$work/outside"; mkdir -p "$outside"
+run_stop_in "$outside" --mode now 5
+check_code 2
+[[ -z "$out" ]] || note "want empty stdout, got '$out'"
+[[ "$err" == "stop-run: "* ]] || note "want a complaint of the script's own, got '$err'"
+[[ ! -e "$run/.tdd/stop" ]] ||
+  note "want no .tdd/stop written, found one holding '$(cat "$run/.tdd/stop")'"
+kill -0 "$sup_pid" 2>/dev/null ||
+  note "want the live supervisor $sup_pid untouched, it is gone"
+kill -0 "$run_conductor_pid" 2>/dev/null ||
+  note "want the conductor $run_conductor_pid untouched, it is gone"
+
+report "a command typed where no main working tree resolves exits 2, writes no .tdd/stop and signals nothing"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
