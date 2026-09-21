@@ -476,6 +476,59 @@ label=""
 
 report "--mode at-ledger <n> and --mode at-leaf <n> write the mode and signal nothing"
 
+# 11. .tdd/conductor.pid is read to decide whether a run is live and for nothing else — the
+#     conductor is never signalled, whatever its process happens to be running. `--mode now`
+#     is the only mode that signals at all, and the pid files it reads a supervisor out of are
+#     found by a glob over <run>/.tdd/*.pid, which .tdd/conductor.pid is one of. So what keeps
+#     the conductor out has to be its name, and the fixture makes that the only thing that can:
+#     run 11's conductor is launched with the command line a supervisor of a leaf named
+#     `conductor` would have, so every other check on the way to a TERM says yes. Signalling it
+#     would take down the one process that reads the request the same command has just written
+#     — the stop would kill the conductor it was asking to stop.
+#
+#     The stub records a TERM in a file rather than merely dying of one, and that file is what
+#     the check reads: a background child that has died is still a pid `kill -0` answers for
+#     until the suite's shell reaps it, so liveness here could call a signalled conductor
+#     untouched. The mode written and exit 0 are checked beside it, which is what makes
+#     "signalled nothing" the command declining to signal rather than the command doing nothing.
+problems=""
+label=""
+
+conductor_run="$repo/.tdd/wt/11"
+mkdir -p "$conductor_run/.tdd"
+marker="$work/conductor-signalled"
+rm -f "$marker"
+
+trapbin="$work/trapbin"; mkdir -p "$trapbin"
+cat > "$trapbin/supervise.sh" <<'S'
+#!/bin/sh
+trap 'echo signalled > "$MARKER"; exit 0' TERM
+while :; do sleep 0.05; done
+S
+chmod +x "$trapbin/supervise.sh"
+
+MARKER="$marker" "$trapbin/supervise.sh" conductor 11 &
+fake_conductor=$!; alive+=("$fake_conductor")
+printf '%s\n' "$fake_conductor" > "$conductor_run/.tdd/conductor.pid"
+
+run_stop --mode now 11
+check_code 0
+check_stop "$conductor_run" now
+
+# The window is a short poll rather than one read: a TERM sent by the command is recorded by
+# the stub's trap a moment after the command returns, and a check made the instant it does
+# would call a conductor that has been signalled untouched. Only a run where nothing was sent
+# pays the whole window, and it is the shortest one that a signal cannot outrun.
+signalled=0
+for (( i = 0; i < 12; i++ )); do
+  if [[ -e "$marker" ]]; then signalled=1; break; fi
+  sleep 0.05
+done
+(( signalled == 0 )) ||
+  note "want the conductor $fake_conductor untouched, it took a TERM"
+
+report "stop-run.sh never signals the pid in .tdd/conductor.pid"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
