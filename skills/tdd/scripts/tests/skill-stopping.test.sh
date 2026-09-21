@@ -70,6 +70,19 @@ load_section() {
   return 1
 }
 
+# require <pattern> <problem> — record <problem> unless the section matches <pattern>; and
+# refuse <pattern> <problem> — record <problem> when it does. Every probe below but the two
+# ordering ones is one of these two shapes, so what they share — which text is read, how it
+# is matched, where a problem lands — is written once here rather than eleven times, and a
+# case reads as the list of claims it makes.
+require() {
+  grep -qE -- "$1" <<<"$section" || problems+=("$2")
+}
+refuse() {
+  grep -qE -- "$1" <<<"$section" && problems+=("$2")
+  return 0
+}
+
 # first_line_matching <pattern> — the 1-based number of the section's first line matching
 # <pattern>, or empty when none does. Ordering is asked of these numbers rather than of a
 # single joined blob, so "before" means what a reader means by it.
@@ -92,10 +105,10 @@ if load_section; then
   wait_at="$(first_line_matching 'wait-leaf\.sh')"
   [[ -n "$wait_at" ]] \
     || problems+=("the Stopping section never calls wait-leaf.sh")
-  grep -qE '\.tdd/<name>\.pid' <<<"$section" \
-    || problems+=("the Stopping section never names .tdd/<name>.pid — it says nothing about which leaves are still running")
-  grep -qE 'supervise\.sh <name> ' <<<"$section" \
-    || problems+=("the Stopping section never names 'supervise.sh <name> ' — a pid file alone does not say the process is still that leaf's supervisor")
+  require '\.tdd/<name>\.pid' \
+    "the Stopping section never names .tdd/<name>.pid — it says nothing about which leaves are still running"
+  require 'supervise\.sh <name> ' \
+    "the Stopping section never names 'supervise.sh <name> ' — a pid file alone does not say the process is still that leaf's supervisor"
 
   reset_at="$(reset_line)"
   if [[ -z "$reset_at" ]]; then
@@ -104,8 +117,8 @@ if load_section; then
     problems+=("the Stopping section reaches for the tree (line $reset_at) before it waits on the leaves (line $wait_at)")
   fi
 
-  grep -qE 'git checkout' <<<"$section" \
-    && problems+=("the Stopping section reaches for git checkout; dropping a half-done step is git reset --hard HEAD")
+  refuse 'git checkout' \
+    "the Stopping section reaches for git checkout; dropping a half-done step is git reset --hard HEAD"
 fi
 report "$name"
 
@@ -114,12 +127,12 @@ name="the Stopping section resets nothing and records at=unsettled when rebase-m
 problems=()
 if load_section; then
   for state in 'rebase-merge' 'rebase-apply' 'merge_head'; do
-    grep -qE -- "$state" <<<"$section" \
-      || problems+=("the Stopping section never names $state — an interrupted rebase or merge it cannot see is one it would reset away")
+    require "$state" \
+      "the Stopping section never names $state — an interrupted rebase or merge it cannot see is one it would reset away"
   done
 
-  grep -qE 'at=unsettled' <<<"$section" \
-    || problems+=("the Stopping section never records at=unsettled — the mark would claim a boundary the tree never reached")
+  require 'at=unsettled' \
+    "the Stopping section never records at=unsettled — the mark would claim a boundary the tree never reached"
 
   guard_at="$(first_line_matching 'rebase-merge')"
   reset_at="$(reset_line)"
@@ -133,21 +146,21 @@ report "$name"
 name="the Stopping section runs push-branch.sh and records push=rejected with the sha its stderr names on exit 1, launching no reconcile leaf and bailing not at all"
 problems=()
 if load_section; then
-  grep -qE 'push-branch\.sh' <<<"$section" \
-    || problems+=("the Stopping section never runs push-branch.sh — a stopped run would leave its commits only in the worktree")
-  grep -qE 'exit 1' <<<"$section" \
-    || problems+=("the Stopping section says nothing about push-branch.sh exit 1 — the rejected push it must record is the one case it has to answer for")
-  grep -qE 'push=rejected' <<<"$section" \
-    || problems+=("the Stopping section never records push=rejected — the comment would claim a push that the remote refused")
-  grep -qE 'stderr' <<<"$section" \
-    || problems+=("the Stopping section never names push-branch.sh's stderr, which is where the remote's sha is printed")
-  grep -qE 'sha' <<<"$section" \
-    || problems+=("the Stopping section never names the sha the rejected push is recorded with — without it a resume cannot tell whose commits the remote holds")
+  require 'push-branch\.sh' \
+    "the Stopping section never runs push-branch.sh — a stopped run would leave its commits only in the worktree"
+  require 'exit 1' \
+    "the Stopping section says nothing about push-branch.sh exit 1 — the rejected push it must record is the one case it has to answer for"
+  require 'push=rejected' \
+    "the Stopping section never records push=rejected — the comment would claim a push that the remote refused"
+  require 'stderr' \
+    "the Stopping section never names push-branch.sh's stderr, which is where the remote's sha is printed"
+  require 'sha' \
+    "the Stopping section never names the sha the rejected push is recorded with — without it a resume cannot tell whose commits the remote holds"
 
-  grep -qE 'detach-leaf\.sh|build-develop-prompt\.sh reconcile|develop-reconcile' <<<"$section" \
-    && problems+=("the Stopping section launches the reconcile leaf; a stop launches no leaves")
-  grep -qE 'classify-bail\.sh|event\.sh bail' <<<"$section" \
-    && problems+=("the Stopping section bails on the rejected push; a stop is not a bail")
+  refuse 'detach-leaf\.sh|build-develop-prompt\.sh reconcile|develop-reconcile' \
+    "the Stopping section launches the reconcile leaf; a stop launches no leaves"
+  refuse 'classify-bail\.sh|event\.sh bail' \
+    "the Stopping section bails on the rejected push; a stop is not a bail"
 fi
 report "$name"
 
