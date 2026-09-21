@@ -221,6 +221,19 @@ records_from() {
   return 1
 }
 
+# text_from <reader> <nothing-to-read fact> — `records_from`, and then the records it yielded
+# as ONE string in the global `records_text`. The two cases that read order as *text* order —
+# the reset before the ask, and the capture before the reset — each need exactly this pair, and
+# each fails closed the same way when the section is unreadable, so the pair is spelled once
+# here rather than once per case. Two copies would be free to flatten differently, and a probe
+# reading a differently flattened section answers a subtly different question of the same
+# document.
+records_text=""
+text_from() {
+  records_from "$1" "$2" || return 1
+  records_text="$(printf '%s' "$records" | tr '\n' ' ')"
+}
+
 # ordinal <regex> — the 1-based position, within the global `records`, of the first
 # instruction matching <regex>, or 0 when none does. Position is what turns two independent
 # "is it there?" probes into the one question a criterion about order asks: which of the two
@@ -730,20 +743,19 @@ report "$name"
 #    record today, which ties their positions and would pass the document exactly as it is.
 name="$skill_md's Resume resets the worktree before it asks next-pending-refactor.sh, so a resume with no step carrying the mark still discards the stray work"
 problems=()
-# `records_from` opens this case as it opens the others, so the fail-closed rule — an empty
-# slice means the heading moved, and then no probe below ran at all — stays spelled in the one
-# place, rather than as a guard here that could drift from it. What this case needs that the
-# others do not is the section's records as ONE string: text order is what it reads, and the
+# `text_from` opens this case as `records_from` opens the others, so the fail-closed rule — an
+# empty slice means the heading moved, and then no probe below ran at all — stays spelled in the
+# one place, rather than as a guard here that could drift from it. What this case needs that
+# those do not is the section's records as ONE string: text order is what it reads, and the
 # reset it reads for is `$reset_command`, the family case 6 asks of its own slice.
-if records_from resume_instructions \
+if text_from resume_instructions \
   "$skill_md has no ## Resume section to read — whether the reset comes before the ask could not be checked"; then
-  resume_text="$(printf '%s' "$records" | tr '\n' ' ')"
-  if [[ ! "$resume_text" =~ next-pending-refactor\.sh ]]; then
+  if [[ ! "$records_text" =~ next-pending-refactor\.sh ]]; then
     problems+=("$skill_md's Resume never asks next-pending-refactor.sh, so there is no ask for the reset to come before — case 2 says what that ask is for")
   else
     # Everything the section says before the first mention of the ask. A reset in there runs
     # on both of the ask's answers; a reset only after it runs on one.
-    before_ask="${resume_text%%next-pending-refactor.sh*}"
+    before_ask="${records_text%%next-pending-refactor.sh*}"
     [[ "$before_ask" =~ $reset_command ]] ||
       problems+=("$skill_md's Resume resets the worktree only after asking next-pending-refactor.sh, so a resume where that ask exits 3 continues on top of what a leaf killed in Red or Green left uncommitted, and the Draft PR step then refuses a tree nothing will ever clean")
   fi
@@ -766,19 +778,18 @@ report "$name"
 #    strings in what it reads is exactly that.
 name="$skill_md's Resume captures the dirty paths before it resets and names them in the ### ▶️ Resuming comment"
 problems=()
-if records_from resume_instructions \
+if text_from resume_instructions \
   "$skill_md has no ## Resume section to read — whether the reset says what it discarded could not be checked"; then
-  resume_text="$(printf '%s' "$records" | tr '\n' ' ')"
   # The capture, spelled once here rather than twice below: the probe for the capture and the
   # probe for its order ask for the same string, and two literals would let the order probe go
   # on matching a spelling the presence probe had stopped accepting.
   capture='git status --porcelain'
-  if [[ ! "$resume_text" =~ $capture ]]; then
+  if [[ ! "$records_text" =~ $capture ]]; then
     problems+=("$skill_md's Resume never captures git status --porcelain, so nothing knows what the reset is about to discard and a killed leaf's files vanish unnamed")
   else
     # A capture followed, later in the same text, by a reset. Greedy or not, the match exists
     # only if some capture precedes some reset — which is the whole claim.
-    [[ "$resume_text" =~ $capture.*$reset_command ]] ||
+    [[ "$records_text" =~ $capture.*$reset_command ]] ||
       problems+=("$skill_md's Resume captures git status --porcelain only after the reset, where the tree is already clean, so the comment names nothing however faithfully it reports what it captured")
   fi
   # Whichever record carries it — the sub-step that resets or the one that posts — the
