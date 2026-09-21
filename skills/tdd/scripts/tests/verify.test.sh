@@ -921,6 +921,89 @@ nv_paired="$(if [[ -f "$nv_copy" ]] && cmp -s "$nv_copy" "$nv_dir/.tdd/verify-gr
   || no "a malformed verdict with no VERDICT: line preserves the attempt under its own ref and copies (code=$nv_code want 2; event issue=$nv_issue_seen step=$nv_step_seen phase=$nv_phase attempt=$nv_attempt cause=$nv_cause want no-verdict; ref=$nv_ref resolved=$nv_resolved; git show said '$nv_shown'; log copy='$nv_copy' matches .tdd/verify-green.log: $nv_paired)"
 
 
+# 29. the other side of the same criterion (issue #409): a step that recorded none of the marks
+#     writes no ref and no preserved copy, so an untroubled run costs what it costs today. Cases
+#     27 and 28 pin what a troubled verification keeps; nothing there says the keeping is
+#     CONDITIONAL, and a preservation that fired on every verification would put a commit and two
+#     copies on disk for every step of every green run — the "not a request to keep every log of
+#     every run" the issue rules out.
+#
+#     Both halves of the criterion are exercised by one verification each, because one
+#     verification drives both scripts that preserve: verify.sh decides on the verdict, and the
+#     supervise.sh it launches the leaf through decides on the leaf's status. So the `pass` arm is
+#     a PASS verdict whose leaf exited success, and the `failure` arm a leaf that exited a clean
+#     failure — the status supervise.sh calls `failure` rather than `killed-stuck` — carrying the
+#     same PASS text, so the two arms differ in exactly the thing under test and nothing else.
+#     A third arm for a REJECT-with-failing-leaf would say nothing: cases 27 and 28 already have
+#     the verdict half, and this one is about the status.
+#
+#     Each arm gets its own repository, so `verdict_field_in`'s one-verdict-line probe still reads
+#     its own verification, and each is asked the same question: how much is under
+#     refs/veri/attempts/ and how much under .tdd/attempts/. Zero and zero, not "the ref this
+#     arm would have been filed under is missing" — the claim is that nothing was written at all,
+#     under any name.
+#
+#     The verdict event is read back in both arms as the positive control: a verification that
+#     died before it ever reached the preservation branch would leave the same empty ref space,
+#     so what says the branch was reached and declined is that a PASS verdict was recorded with
+#     this run's own issue and step in it. The `failure` arm's leaf rc is read off
+#     `.tdd/verify-green.rc` for the same reason — it is what says the leaf really did exit 1
+#     rather than 0, which is the only thing that arm adds.
+cat > "$stubdir/claude-clean-failure" <<'STUB'
+#!/bin/sh
+printf '%s\n' "$@" > "$ARGV_OUT"
+printf '%s' "${FAKE_OUT_TEXT:-}"
+exit 1
+STUB
+chmod +x "$stubdir/claude-clean-failure"
+
+# preserved_trace <dir> — everything preservation would have left in <dir>, as one line: the
+# number of refs under refs/veri/attempts/ and the number of files under .tdd/attempts/. Counted
+# rather than named, because the claim is about nothing existing under any name. `grep -c .`
+# rather than `wc -l`, which answers 1 for the single empty line an empty listing prints.
+preserved_trace() {
+  local refs copies
+  refs="$(git -C "$1" for-each-ref --format='%(refname)' 'refs/veri/attempts/' 2>/dev/null | grep -c . || true)"
+  copies="$(ls -1 "$1/.tdd/attempts" 2>/dev/null | grep -c . || true)"
+  echo "refs=$refs copies=$copies"
+}
+
+untroubled_verdict='VERDICT: PASS
+REASON: the test pins the behaviour and the suite is green.'
+quiet_issue=409
+quiet_step=7
+
+quiet_pass_dir="$work/preserve-none-pass"
+fixture_repo "$quiet_pass_dir" argv
+printf 'the work the verifier accepted\n' > "$quiet_pass_dir/src.txt"
+( export VERI_ISSUE="$quiet_issue" VERI_STEP="$quiet_step"
+  verify_in "$quiet_pass_dir" green "$untroubled_verdict" >/dev/null 2>&1 )
+quiet_pass_code=$?
+
+quiet_fail_dir="$work/preserve-none-failure"
+fixture_repo "$quiet_fail_dir" argv
+printf 'the work the verifier accepted\n' > "$quiet_fail_dir/src.txt"
+( export VERI_ISSUE="$quiet_issue" VERI_STEP="$quiet_step"
+  verify_in "$quiet_fail_dir" green "$untroubled_verdict" "$stubdir/claude-clean-failure" >/dev/null 2>&1 )
+quiet_fail_code=$?
+
+quiet_pass_trace="$(preserved_trace "$quiet_pass_dir")"
+quiet_fail_trace="$(preserved_trace "$quiet_fail_dir")"
+quiet_pass_word="$(verdict_field_in "$quiet_pass_dir" verdict)"
+quiet_fail_word="$(verdict_field_in "$quiet_fail_dir" verdict)"
+quiet_pass_issue="$(verdict_field_in "$quiet_pass_dir" issue)"
+quiet_fail_issue="$(verdict_field_in "$quiet_fail_dir" issue)"
+quiet_leaf_rc="$(cat "$quiet_fail_dir/.tdd/verify-green.rc" 2>/dev/null)"
+{ [[ "$quiet_pass_code" == 0 ]] && [[ "$quiet_fail_code" == 0 ]] \
+  && [[ "$quiet_pass_word" == PASS ]] && [[ "$quiet_fail_word" == PASS ]] \
+  && [[ "$quiet_pass_issue" == "$quiet_issue" ]] && [[ "$quiet_fail_issue" == "$quiet_issue" ]] \
+  && [[ "$quiet_leaf_rc" == 1 ]] \
+  && [[ "$quiet_pass_trace" == "refs=0 copies=0" ]] \
+  && [[ "$quiet_fail_trace" == "refs=0 copies=0" ]]; } && ok \
+  || no "a PASS verdict and a leaf that exits success or clean failure write no ref and no preserved copy (pass arm: code=$quiet_pass_code want 0, verdict=$quiet_pass_word issue=$quiet_pass_issue want PASS/$quiet_issue, $quiet_pass_trace want refs=0 copies=0; clean-failure arm: code=$quiet_fail_code want 0, verdict=$quiet_fail_word issue=$quiet_fail_issue want PASS/$quiet_issue, leaf rc=${quiet_leaf_rc:-<none>} want 1, $quiet_fail_trace want refs=0 copies=0)"
+
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
