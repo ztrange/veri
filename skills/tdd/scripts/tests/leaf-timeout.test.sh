@@ -34,6 +34,11 @@
 #                                suites covering its change and a verifier that runs the
 #                                whole suite, so a fast-tier baseline sizes the run off
 #                                work no leaf does (issue #377).
+#   a full-tier measurement that is not a whole number >= 0 (`abc`, `-1`, `1.5`, or a
+#   `--full` with nothing behind it)
+#                              → exit 2 with the same fail-closed shape a bad baseline gets:
+#                                it is the measurement the derivation runs over, so an
+#                                unreadable one would size the whole run.
 #
 # Run: scripts/tests/leaf-timeout.test.sh
 set -uo pipefail
@@ -335,6 +340,27 @@ problems=()
 full_tier_override_probe 900 5 600
 full_tier_override_probe 7200 5 20
 full_tier_override_probe 1 150 151
+report "$name"
+
+
+# 6. The refusal half of the new argument shape (issue #377). Case 1 pins that a baseline
+#    the script cannot read is refused rather than guessed at, and the full-tier measurement
+#    is now the value the derivation actually runs over — so it is the one whose being
+#    unreadable would size the whole run. An unvalidated one does not fail closed, it fails
+#    quietly: a word reaches `$((… * 6))` and the arithmetic dies with bash's own error
+#    (exit 1, the clean-negative code that tells a conductor the plumbing is fine and the
+#    answer was no), while `-1` or a `--full` with nothing behind it falls back to deriving
+#    from the fast measurement and prints a floor value that looks like a real timeout. Both
+#    are the failure this issue is about, one step earlier: a run bounded by a number that is
+#    not a measurement of anything. The probes are case 1's four, asked of the full tier, each
+#    with a fast measurement the script derives from happily — so the refusal can only be
+#    about the full one.
+name="a full-tier measurement that is not a whole number >= 0 exits 2 with a diagnostic on stderr and nothing on stdout"
+problems=()
+bad_probe "fast 5 full abc" 5 --full abc
+bad_probe "fast 5 full -1" 5 --full -1
+bad_probe "fast 5 full 1.5" 5 --full 1.5
+bad_probe "fast 5 full missing" 5 --full
 report "$name"
 
 
