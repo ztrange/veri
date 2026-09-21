@@ -126,6 +126,28 @@ want='# Plan for #42
 check_code "unset allows three added steps; a non-integer or empty budget exits 2, ledger untouched" \
   "$code1/$code2/$code3" "0/2/2" "$want"
 
+# 7. `instead-of` is a third placement: the texts land where the anchor step was and the
+#    anchor itself is gone, under the same budget and owed-steps refusal the other two obey.
+#    The second run asks for two texts against a budget of one, so it overflows and appends
+#    its owed bullets to the ledger the first run left.
+seed
+"$ADD" "$led" instead-of 'collapse to single hyphen' \
+  'collapse an ASCII hyphen run' 'collapse a unicode dash too'; code1=$?
+VERI_STEP_GROWTH=1 "$ADD" "$led" instead-of 'strip edge hyphens' 'one more' 'and another'; code2=$?
+want='# Plan for #42
+
+- [x] lowercase the slug ⟦criterion 1⟧
+- [ ] collapse an ASCII hyphen run ⟦added⟧ ⟦criterion 2⟧
+- [ ] collapse a unicode dash too ⟦added⟧ ⟦criterion 2⟧
+- [ ] strip edge hyphens ⟦criterion 3⟧
+
+## Owed steps
+
+- one more
+- and another'
+check_code "instead-of: replaces the anchor step with the texts, and over budget owes them instead" \
+  "$code1/$code2" "0/1" "$want"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
