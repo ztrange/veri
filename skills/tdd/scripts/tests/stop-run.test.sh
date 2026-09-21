@@ -449,6 +449,33 @@ check_still_answering "$impostor" "the pid running something other than a superv
 
 report "--mode now <n> sends TERM to the pid in <run>/.tdd/<name>.pid whose process runs supervise.sh <name>, and to no pid whose process is gone or runs something else"
 
+# 10. The other two modes signal nothing. `at-ledger` and `at-leaf` are the modes that ask a
+#     conductor to stop at its own next checkpoint, so the whole of what they do is the write:
+#     a leaf they took down would be the `now` behaviour under another name, and the operator
+#     who chose the gentler mode chose it precisely to let the leaf in flight finish. Case 9
+#     signalled every live supervisor run 5 had, so one is launched again here — the check
+#     needs a supervisor that is alive for any reason but the one under test.
+#
+#     Each mode is asked the same three things: exit 0, the mode written (which is what makes
+#     "signalled nothing" the command declining to signal rather than the command doing nothing
+#     at all), and that run's live leaf supervisor still answering `kill -0` afterwards.
+problems=""
+
+live_supervisor "$run" develop-red
+quiet_sup="$supervisor_pid"
+
+for gentle in at-ledger at-leaf; do
+  label="--mode $gentle"
+  rm -f "$run/.tdd/stop"
+  run_stop --mode "$gentle" 5
+  check_code 0
+  check_stop "$run" "$gentle"
+  check_still_answering "$quiet_sup" "the live supervisor"
+done
+label=""
+
+report "--mode at-ledger <n> and --mode at-leaf <n> write the mode and signal nothing"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
