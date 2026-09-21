@@ -267,8 +267,9 @@ def logged_test_runs(run, command):
 # per `test-run` mark, the line timed-test-run.sh:45 appends per test-command run since #342 —
 # when a leaf stopped typing its test command as a bare Bash call and started invoking the
 # wrapper by absolute path instead (#383). That is why the mark and not the leaf log is what
-# the pane counts today: logged_test_runs' string match against the spec's command could never hold
-# again, and the pane went empty on a live run that had already run its suite seven times.
+# the pane counts today: logged_test_runs' string match against the spec's command could
+# never hold again, and the pane went empty on a live run that had already run its suite
+# seven times.
 #
 # Each entry says which suites that run covered and whether it came back green, both read off
 # the mark itself: `suites` is the list timed-test-run.sh was handed (empty for a whole-suite
@@ -292,12 +293,11 @@ def tests_json(query):
     issue = selected_issue(query)
     run = run_for_issue(issue)
     command = test_command(run, issue)
-    # A run that HAS an event log is answered out of that log alone: every test-command run it
-    # performed appended a `test-run` mark there, so a log carrying none is a run that ran the
-    # suite no times — the empty list, and not the bare Bash calls its leaves happen to have
-    # typed, which since #342 are no longer how a test command is run at all. That the marks
-    # are read for the selected run's log and no other is what keeps a run beside it, whose
-    # leaves ran the same command, out of the answer.
+    # A run that HAS an event log is answered out of that log alone, by marked_test_runs
+    # above: every test-command run it performed appended a `test-run` mark there, so a log
+    # carrying none is a run that ran the suite no times — the empty list. That the marks are
+    # read for the selected run's log and no other is what keeps a run beside it, whose leaves
+    # ran the same command, out of the answer.
     #
     # A run with NO event log recorded nothing, and its leaf logs are the only account of it
     # there is: that is the one case still read the old way, and the only thing a run predating
