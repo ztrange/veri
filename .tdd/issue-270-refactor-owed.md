@@ -1,0 +1,4 @@
+### Every script under skills/tdd/scripts/ that takes a required positional argument exits 2 with a usage line on stderr when it is missing
+- extract the `[[ -n "${1:-}" ]] || { echo usage >&2; exit 2; }` idiom into a `lib/` function sourced by the ~20 scripts that repeat it — not taken because scripts like event.sh (called per mark) have no `HERE`, so sourcing would add a `$(cd … && pwd)` subshell per call, against CLAUDE.md's fork budget (#323)
+- verify.sh and build-verify-prompt.sh each spell the same `<phase> <issue-spec-file> <test-path>` positional check and usage synopsis; verify.sh's USAGE is the builder's plus its two flags, and the two can drift apart
+- verify.sh, build-verify-prompt.sh, over-budget.sh, timed-test-run.sh and session-cost.sh re-argue the #270 exit-2 rationale at length, each adding only which answer its own 1 would have meant
