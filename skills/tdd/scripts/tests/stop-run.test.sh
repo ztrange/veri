@@ -100,11 +100,17 @@ run_stop() {
   err="$(cat "$work/stderr")"
 }
 
+# check_code <want> — the exit status, which every case asks about and all of them ask about
+# the same way. The stderr the script wrote rides along in the message, because an unexpected
+# status is nearly always explained by the complaint that came with it, and a diff that made
+# the reader go and rerun the command by hand to see it would be the slower one.
+check_code() { [[ "$code" == "$1" ]] || note "want exit $1, got exit $code (stderr: $err)"; }
+
 check_refused() {  # check_refused <label> [args…]
   local label="$1"; shift
   local out code err
   run_stop "$@"
-  [[ "$code" == 2 ]] || note "want exit 2, got exit $code"
+  check_code 2
   [[ -z "$out" ]] || note "want empty stdout, got '$out'"
   # The complaint has to be the script's own — the `stop-run: ` prefix refuse() writes — and
   # not bash's: a `set -u` death over an option's missing value names this file and a line
@@ -167,7 +173,7 @@ check_stop() {
 #    and the step asks for the run to be named, not for a format.
 problems=""
 run_stop --mode now 5
-[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
+check_code 0
 [[ "$out" == *5* ]] || note "want the run named on stdout, got '$out'"
 check_stop "$run" now
 
@@ -183,7 +189,7 @@ report "--mode now <n> writes now as the only line of that run's .tdd/stop, name
 problems=""
 rm -f "$run/.tdd/stop"
 run_stop 5
-[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
+check_code 0
 check_stop "$run" at-ledger
 
 report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
@@ -197,7 +203,7 @@ report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
 #    alone, on one line, with the call reported as a success like any other.
 problems=""
 run_stop --mode now 5
-[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
+check_code 0
 check_stop "$run" now
 
 report "a second call for the same run overwrites the mode already in .tdd/stop"
@@ -234,7 +240,7 @@ wait "$dead_pid" 2>/dev/null
 printf '%s\n' "$dead_pid" > "$dead/.tdd/conductor.pid"
 
 run_stop --mode at-leaf --all
-[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
+check_code 0
 
 named="$(printf '%s\n' "$out" | while read -r line; do
   [[ -n "$line" ]] && basename "$line"
