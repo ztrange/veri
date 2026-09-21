@@ -11,11 +11,15 @@
 # leaf's staged-or-not state is left exactly as it was: this script reads the worktree and
 # writes an object, and touches neither the index nor the branch.
 #
-# Usage:   preserve-attempt.sh 409 3 develop-green 1     # run from the issue's worktree
+# A fifth argument, the mark that made the step interesting (reject, bail, no-verdict,
+# stuck, prediction-diverged), additionally preserves the leaf's own output — see the copy
+# step at the foot of this script.
+#
+# Usage:   preserve-attempt.sh 409 3 develop-green 1 [<mark>]   # run from the issue's worktree
 set -euo pipefail
 
 [[ -n "${1:-}" && -n "${2:-}" && -n "${3:-}" && -n "${4:-}" ]] \
-  || { echo "usage: preserve-attempt.sh <issue> <step> <phase> <attempt>" >&2; exit 2; }
+  || { echo "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]" >&2; exit 2; }
 issue="$1" step="$2" phase="$3" attempt="$4"
 
 # Every git command below runs from the top of the worktree rather than wherever the caller
@@ -39,3 +43,23 @@ tree="$(GIT_INDEX_FILE="$index" git write-tree)"
 commit="$(git commit-tree "$tree" -p HEAD \
   -m "attempt: issue $issue step $step $phase attempt $attempt")"
 git update-ref "refs/veri/attempts/$issue/$step/$phase-$attempt" "$commit"
+
+# The tree is what a reader wants first, but it is not the whole record: the tree says what the
+# leaf produced, and the leaf's own log is the only place what it *tried* survives. So when the
+# caller names the mark that made the step interesting, the progress log and the final-output
+# file are copied beside the ref under names carrying step, phase, attempt and that mark — the
+# pairing a reader needs to line them up with the event in events.jsonl.
+#
+# A copy, not a move: run-leaf.sh's own `.tdd/<name>.log` and `.tdd/<name>.out` are what a retry
+# reads back, so the leaf that wrote them must find them where it left them.
+mark="${5:-}"
+if [[ -n "$mark" ]]; then
+  mkdir -p .tdd/attempts
+  base=".tdd/attempts/$step-$phase-$attempt-$mark"
+  # Each copy is conditional on its own source: a leaf killed before it wrote a final-output
+  # file still has a log worth keeping, and a missing one is not a failure of preservation.
+  # `if` rather than `[[ … ]] && cp`, because under `set -e` a false test as the script's last
+  # command is the script's exit status: a missing .out would report a failed preservation.
+  if [[ -f ".tdd/$phase.log" ]]; then cp ".tdd/$phase.log" "$base.log"; fi
+  if [[ -f ".tdd/$phase.out" ]]; then cp ".tdd/$phase.out" "$base.out"; fi
+fi
