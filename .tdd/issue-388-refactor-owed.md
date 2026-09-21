@@ -2,3 +2,5 @@
 - hoist the duplicated `report` and markup-plain helpers shared by skill-stopping.test.sh, skill-push-reconcile.test.sh and the other prose suites into one sourced tests helper — out of scope here (it rewrites suites this cycle did not write, and the repository's zero-dependency idiom repeats them on purpose)
 ### CLAUDE.md's *Testing idiom* suite count matches the suites on disk again, so `make test` is green at the tip after this run added `skill-stopping.test.sh`
 - cases 2, 3 and 5 of claude-md-counts.test.sh repeat one block — name the arrivals, `present` each, then guard on `${#problems[@]}` before calling `moved_by` — which could become one `moved_case <name> <files…>` helper; it is code this cycle did not write, so it was left alone here
+### The Stopping section runs `push-branch.sh` and, on its exit 1, records `push=rejected` with the sha its stderr names, launching no reconcile leaf and bailing not at all
+- `stopping_section`'s `tr -d '*`' | tr '[:upper:]' '[:lower:]'` is the same markup-stripping as `skill-push-reconcile.test.sh`'s `plain()`; sharing it would need a helper file the suites deliberately do without
