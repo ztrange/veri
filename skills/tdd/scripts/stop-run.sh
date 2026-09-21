@@ -88,6 +88,11 @@ fi
 # conductor's worktree is itself under .tdd/wt/, so resolving from here would look for runs
 # inside one run (#166, the rule status.sh:158-164 already follows).
 main_tree="$(main_working_tree)"
+# Outside a repository git prints nothing and the resolution comes back empty, which is not a
+# repository holding no live runs but no repository at all — a 2 with the other refusals, never
+# the 3 below: an operator's wrapper reading "nothing to do" would stop asking, when what
+# happened is that the command was typed in the wrong place.
+[[ -n "$main_tree" ]] || refuse "no main working tree here — type this inside the repository"
 
 # live_run <run-path> — whether a conductor is still running inside this run's worktree, the
 # reading issue-worktree.sh:109-116 already makes: `.tdd/conductor.pid` holds a number and
