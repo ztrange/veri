@@ -20,9 +20,10 @@
 # purpose: both callers — the stop sequence at its end, and the claim at a run's first
 # step — must be able to clear without first asking whether there is anything to clear.
 #
-# Anything else is not an argument this script takes: nothing on stdout, the usage line on
+# Anything else is not an argument this script takes — an unknown word, or a second one
+# after `--clear`, which takes no argument of its own: nothing on stdout, the usage line on
 # stderr, exit 2, and `.tdd/stop` left exactly as it was. A typo must neither be read as a
-# mode nor clear a request an operator is waiting on, so the check runs before either.
+# mode nor clear a request an operator is waiting on, so both checks run before either.
 #
 # Usage:   stop-requested.sh [--clear]
 # Exits:   0 a mode was printed, or the request was cleared | 2 malformed request, or an
@@ -31,16 +32,24 @@ set -euo pipefail
 
 file=".tdd/stop"
 
+usage() {
+  echo "usage: stop-requested.sh [--clear]" >&2
+  exit 2
+}
+
+# One argument at most: `--clear` takes none of its own, so a word after it is as
+# unrecognised as one in its place. The count is checked before the case below, because a
+# case branching on the first argument alone reads `--clear --bogus` as `--clear` and
+# removes the file — throwing away a request an operator is waiting on, over a typo.
+(( $# <= 1 )) || usage
+
 case "${1:-}" in
   --clear)
     rm -f "$file"
     exit 0
     ;;
   "") ;;
-  *)
-    echo "usage: stop-requested.sh [--clear]" >&2
-    exit 2
-    ;;
+  *) usage ;;
 esac
 
 [[ -f "$file" ]] || exit 3
