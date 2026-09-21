@@ -1190,6 +1190,36 @@ says_both_ways "$revise_green" "never says a leaf that splits changes no product
 [[ -z "$problems" ]] \
   && ok || no "develop-revise redoing green offers the same one to three SPLIT: lines, changing no production code (${problems#; })"
 
+# 35. the prompt for a step whose revise budget ran out (issue #408). A rejected step gets
+#     `REVISE_BUDGET` attempts and then bails, losing the step's work — but a step no blind
+#     verifier can be satisfied with in two attempts is usually a step carrying more than one
+#     behaviour, the condition `SPLIT:` already exists for. So the budget's end sends one more
+#     leaf, to a template of its own, and this case pins what that template must carry before
+#     anything branches on what comes back: the step it could not satisfy, the verifier's LAST
+#     rejection reason — the leaf never saw the attempt that earned it, so the reason text is
+#     the whole of what it has to reason from, exactly as case 4 pins for revise — and the
+#     issue spec, the criterion the step was cut from. The fourth face is the refusal: a phase
+#     whose whole input is that reason file must not build a prompt without one, and a missing
+#     file is exit 2, veri's "no answer could be obtained", like every other refusal in case 5.
+#     Four faces of one criterion, so one case.
+#
+#     The reason file is case 4's: its text carries &, {} and a backslash, so a substitution
+#     that mangled them would fail here too. Its own invocation, and its own exit-0 check,
+#     since no other case builds this phase.
+exhausted="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+[[ "$exhausted" == *"$step_text"* ]] || problems="$problems; does not carry the step"
+[[ "$exhausted" == *"REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."* ]]   || problems="$problems; does not carry the rejection reason verbatim"
+[[ "$exhausted" == *'zorblat("Frob & Nitz/Quux")'* ]] || problems="$problems; does not carry the issue spec"
+no_reason_err="$work/exhausted-no-reason.err"
+no_reason_out="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/absent.md" 2>"$no_reason_err")"; code=$?
+[[ "$code" -eq 2 ]] || problems="$problems; a missing reason file exited $code, want 2"
+[[ -z "$no_reason_out" ]] || problems="$problems; a missing reason file printed a prompt"
+[[ -s "$no_reason_err" ]] || problems="$problems; a missing reason file gave no diagnostic"
+[[ -z "$problems" ]] \
+  && ok || no "develop-exhausted carries the step, the verifier's last rejection reason and the issue spec, and refuses a missing reason file with exit 2 (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
