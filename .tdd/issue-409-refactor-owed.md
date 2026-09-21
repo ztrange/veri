@@ -5,3 +5,6 @@
 - the six `preserve "$repo" 409 3 develop-green 1 …` calls repeat the coordinates `REF` now states once; a wrapper taking only the repo and the optional mark would tie them together
 ### a REJECT or a malformed verdict makes verify.sh preserve that attempt, and the preserved names pair with the verdict event
 - verify.sh:353-366 — fold the outer `if [[ "$word" != PASS ]]` and the inner four-condition guard into one condition, so `$trouble` and `$attempt` are derived only where they are read
+### a killed-stuck leaf makes supervise.sh preserve that attempt, both on a retry and on the final killed-stuck exit
+- fold supervise.test.sh case 35's two `printf '%s\n' "$X" | grep -c . || true` counts into one named helper
+- fold case 35's two `while read … done <<< … | sort | xargs` extraction loops into one helper taking the per-line reader
