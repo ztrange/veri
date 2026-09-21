@@ -42,6 +42,9 @@
 #      the `refactor:` commits that step already has.
 #   7. SKILL.md passes the step's green commit sha to `verify.sh refactor` at both call
 #      sites: the cycle loop's `<green-sha>` and Resume's `$green`.
+#   8. SKILL.md's Resume resets the worktree BEFORE it asks `next-pending-refactor.sh`, so a
+#      resume that finds no step carrying the mark still discards what a killed leaf left
+#      uncommitted (issue #194).
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -693,6 +696,42 @@ if records_from resume_instructions \
     says "$verify_refactor"' [^ ]+ [^ ]+ "?\$green' \
       "$skill_md's Resume never runs verify.sh refactor with \$green, so the resumed step's verify-refactor is handed no base sha and exits 2"
   fi
+fi
+report "$name"
+
+# 8. One criterion — the reset is unconditional — and so one case. Case 2 pins the reset that
+#    happens *inside* the pending branch, which is the only path that has one: a resume whose
+#    `next-pending-refactor.sh` exits 3 walks to sub-step 3 over whatever a leaf killed in Red
+#    or Green left on disk, and nothing throws it away. That is the same stray work by the
+#    same kill mode — a usage limit takes the conductor and every leaf together, at whatever
+#    point the run had reached — so the reset belongs before the ask rather than under one of
+#    its two answers (issue #194).
+#
+#    Read as text order over the whole section rather than as record positions, because the
+#    fix may leave the reset in sub-step 2 ahead of the ask or lift it into a sub-step of its
+#    own, and both are the same instruction: whatever a session reads before it runs the ask
+#    is what it does first. `ordinal`/`precedes` cannot answer that — both strings sit in one
+#    record today, which ties their positions and would pass the document exactly as it is.
+name="$skill_md's Resume resets the worktree before it asks next-pending-refactor.sh, so a resume with no step carrying the mark still discards the stray work"
+problems=()
+# The Resume section as one string, in the order a session reads it. The reset family is the
+# one `says_reset_reenter_verify` and `says_reset_and_reduced_budget` already accept, spelled
+# the same way for the same reason: which command discards the work is not this criterion's
+# claim — that something does, before the ask — is.
+resume_text="$(resume_instructions | tr '\n' ' ')"
+resume_reset_re='git (reset|checkout|restore|clean)'
+if [[ -z "$resume_text" ]]; then
+  # Fail closed, like `records_from`: an empty slice means the heading moved, and then the
+  # probe below was never run at all — which must not read as a pass.
+  problems+=("$skill_md has no ## Resume section to read — whether the reset comes before the ask could not be checked")
+elif [[ ! "$resume_text" =~ next-pending-refactor\.sh ]]; then
+  problems+=("$skill_md's Resume never asks next-pending-refactor.sh, so there is no ask for the reset to come before — case 2 says what that ask is for")
+else
+  # Everything the section says before the first mention of the ask. A reset in there runs on
+  # both of the ask's answers; a reset only after it runs on one.
+  before_ask="${resume_text%%next-pending-refactor.sh*}"
+  [[ "$before_ask" =~ $resume_reset_re ]] ||
+    problems+=("$skill_md's Resume resets the worktree only after asking next-pending-refactor.sh, so a resume where that ask exits 3 continues on top of what a leaf killed in Red or Green left uncommitted, and the Draft PR step then refuses a tree nothing will ever clean")
 fi
 report "$name"
 
