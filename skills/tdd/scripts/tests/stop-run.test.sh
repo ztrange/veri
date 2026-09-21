@@ -136,6 +136,24 @@ check_refused "--mode with no value" --mode
 
 report "--mode with no value exits 2 with the script's own complaint, writes no .tdd/stop and signals nothing"
 
+# check_stop <run-path> <want-mode> — the three halves of a written request, checked the same
+# way wherever a case looks at one: the file is there, it holds that mode, and the mode is its
+# only line, since stop-requested.sh reads it as one word and a second line beside it is a
+# request the conductor cannot answer. Four cases below ask exactly this of a run they have
+# just stopped, so the asking is written once here; each names its own run, and the lines
+# note() collects name it too, so a failure says which run's file was wrong.
+check_stop() {
+  local path="$1/.tdd/stop" want="$2" written lines
+  if [[ ! -f "$path" ]]; then
+    note "want $path holding '$want', it was not written"
+    return
+  fi
+  written="$(cat "$path")"
+  [[ "$written" == "$want" ]] || note "want $path to hold '$want', it holds '$written'"
+  lines="$(grep -c '' "$path")"
+  [[ "$lines" == 1 ]] || note "want '$want' as the only line of $path, it has $lines lines"
+}
+
 # 3. The write itself, on the mode that also stops a run at once: `--mode now <n>` finds the
 #    named run under the MAIN working tree, writes `now` as the only line of its .tdd/stop,
 #    names the run on stdout and exits 0. Three halves, all of them what a caller sees: the
@@ -151,14 +169,7 @@ problems=""
 run_stop --mode now 5
 [[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
 [[ "$out" == *5* ]] || note "want the run named on stdout, got '$out'"
-if [[ ! -f "$run/.tdd/stop" ]]; then
-  note "want $run/.tdd/stop holding 'now', it was not written"
-else
-  written="$(cat "$run/.tdd/stop")"
-  [[ "$written" == "now" ]] || note "want .tdd/stop to hold 'now', it holds '$written'"
-  lines="$(grep -c '' "$run/.tdd/stop")"
-  [[ "$lines" == 1 ]] || note "want 'now' as the only line of .tdd/stop, it has $lines lines"
-fi
+check_stop "$run" now
 
 report "--mode now <n> writes now as the only line of that run's .tdd/stop, names the run on stdout and exits 0"
 
@@ -173,13 +184,7 @@ problems=""
 rm -f "$run/.tdd/stop"
 run_stop 5
 [[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
-if [[ ! -f "$run/.tdd/stop" ]]; then
-  note "want $run/.tdd/stop holding 'at-ledger', it was not written"
-else
-  written="$(cat "$run/.tdd/stop")"
-  [[ "$written" == "at-ledger" ]] ||
-    note "want .tdd/stop to hold 'at-ledger', it holds '$written'"
-fi
+check_stop "$run" at-ledger
 
 report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
 
@@ -193,15 +198,7 @@ report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
 problems=""
 run_stop --mode now 5
 [[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
-if [[ ! -f "$run/.tdd/stop" ]]; then
-  note "want $run/.tdd/stop holding 'now', it was not written"
-else
-  written="$(cat "$run/.tdd/stop")"
-  [[ "$written" == "now" ]] ||
-    note "want the second call's mode alone, .tdd/stop holds '$written'"
-  lines="$(grep -c '' "$run/.tdd/stop")"
-  [[ "$lines" == 1 ]] || note "want 'now' as the only line of .tdd/stop, it has $lines lines"
-fi
+check_stop "$run" now
 
 report "a second call for the same run overwrites the mode already in .tdd/stop"
 
@@ -246,16 +243,7 @@ done | sort | tr '\n' ' ')"
   note "want the two live runs named on stdout, got '$named' from '$out'"
 
 for live_run in "$run" "$live2"; do
-  if [[ ! -f "$live_run/.tdd/stop" ]]; then
-    note "want $live_run/.tdd/stop holding 'at-leaf', it was not written"
-  else
-    written="$(cat "$live_run/.tdd/stop")"
-    [[ "$written" == "at-leaf" ]] ||
-      note "want $live_run/.tdd/stop to hold 'at-leaf', it holds '$written'"
-    lines="$(grep -c '' "$live_run/.tdd/stop")"
-    [[ "$lines" == 1 ]] ||
-      note "want 'at-leaf' as the only line of $live_run/.tdd/stop, it has $lines lines"
-  fi
+  check_stop "$live_run" at-leaf
 done
 
 [[ ! -e "$dead/.tdd/stop" ]] ||
