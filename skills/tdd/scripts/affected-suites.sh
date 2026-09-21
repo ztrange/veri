@@ -42,6 +42,10 @@ suite_of() {
       # A suite references a fixture by its path under tests/, as count-line-guard does
       # "$HERE/fixtures/silent-death/…".
       suites_naming "${f#"$scripts"/tests/}" ;;
+    "$scripts"/prompts/*.md)
+      # A suite names a prompt by its path under scripts/, as build-develop-prompt.test.sh does
+      # "$HERE/../prompts/develop-reconcile.md".
+      suites_naming "prompts/$(basename "$f")" ;;
     "$scripts"/lib/*.sh)
       # A sourcing script names the lib file on a `source` line, as event.sh does
       # `source "$HERE/lib/json-escape.sh"`; a comment naming it is not a dependency.
