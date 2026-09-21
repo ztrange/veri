@@ -1,0 +1,2 @@
+### preserve-attempt.sh commits the worktree as it stands to a ref under refs/veri/attempts/ named by issue, step, phase and attempt, and git show reads that commit's tree back
+- extract the throwaway-index snapshot (`GIT_INDEX_FILE` + `git add -A` + one git command) duplicated between `preserve-attempt.sh:32-35` and `verify.sh:143-149`'s `in_temp_index` into `lib/` — not applied here because the two error contracts differ (verify.sh fails open and prints nothing; preserve-attempt must fail loudly under `set -e`), so today it would need a policy parameter no test demands
