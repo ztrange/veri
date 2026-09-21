@@ -12,6 +12,7 @@
 #   build-develop-prompt.sh green    <issue-spec-file> <step-text> <test-cmd> <test-path> <target> <fast-cmd>
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
+#   build-develop-prompt.sh exhausted <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh reconcile <issue-spec-file> <step-text> <test-cmd> <branch> <remote-sha>
 #
 # `refactor` also reads VERI_REFACTOR_BUDGET (default 5) from the environment, the number of
@@ -40,7 +41,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 #
 # The phase list is spelled once, here, so the usage line and the unknown-phase refusal
 # below cannot name different sets.
-phases="red|green|refactor|revise|reconcile"
+phases="red|green|refactor|revise|reconcile|exhausted"
 # Spelled once, and quoted back by both refusals below: a caller who dropped an argument
 # later than the phase word is as entitled to see the whole call as one who passed nothing.
 USAGE="build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
@@ -64,6 +65,10 @@ case "$phase" in
   refactor) want=5 ;;
   revise) want=6 ;;
   reconcile) want=6 ;;
+  # The phase a step reaches when its revise budget ran out (#408). It takes what `revise`
+  # takes minus the phase being redone: there is no phase to redo here, only a step to
+  # judge, so the spec, the step, the test command and the last rejection reason.
+  exhausted) want=5 ;;
   *) echo "build-develop-prompt: unknown phase '$phase' (want $phases)" >&2; exit 2 ;;
 esac
 # refuse <what> — the shape every bad-arguments refusal past the phase word takes: say what
@@ -145,7 +150,7 @@ case "$phase" in
     # own bound is read from.
     refactor_budget="${VERI_REFACTOR_BUDGET:-5}"
     ;;
-  revise)
+  revise|exhausted)
     need reason_file "${5:-}" '<reason-file>'
     ;;
   reconcile)
@@ -158,7 +163,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/develop-$phase.md"
 shared_file="$HERE/prompts/_develop-shared.md"
 for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file"; do
-  [[ -n "$f" ]] || continue  # only revise has a reason file; every other phase leaves it empty
+  [[ -n "$f" ]] || continue  # only revise and exhausted have a reason file; every other phase leaves it empty
   [[ -r "$f" ]] || { echo "build-develop-prompt: cannot read '$f'" >&2; exit 2; }
 done
 
