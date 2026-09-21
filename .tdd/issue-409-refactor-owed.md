@@ -3,3 +3,5 @@
 ### preserve-attempt.sh also copies the leaf's progress log and its final-output file to preserved names carrying the step, phase, attempt and the mark that triggered the preservation
 - the `$([[ -e … ]] && echo yes || echo no)` existence readback is written twice (cases 4 and 6) and could be one `exists` helper
 - the six `preserve "$repo" 409 3 develop-green 1 …` calls repeat the coordinates `REF` now states once; a wrapper taking only the repo and the optional mark would tie them together
+### a REJECT or a malformed verdict makes verify.sh preserve that attempt, and the preserved names pair with the verdict event
+- verify.sh:353-366 — fold the outer `if [[ "$word" != PASS ]]` and the inner four-condition guard into one condition, so `$trouble` and `$attempt` are derived only where they are read
