@@ -191,6 +191,21 @@ full_tier_probe() {
   rm -f "$out" "$err"
 }
 
+# full_tier_override_probe <veri-timeout> <fast> <full> — the tier pair handed in with an
+# explicit VERI_TIMEOUT set: the operator's number, printed back byte for byte, whatever the
+# two measurements alongside it would have derived. Every triple here pairs an override with
+# a pair whose own derivation is some other number, so a script that let the full-tier
+# measurement displace the override — the one new way this shape could break the invariant —
+# prints that other number and the probe names it.
+full_tier_override_probe() {
+  local timeout="$1" fast="$2" full="$3" out err code label
+  out="$(mktemp)" err="$(mktemp)"
+  label="VERI_TIMEOUT=$timeout fast $fast full $full"
+  VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" "$fast" --full "$full" >"$out" 2>"$err" && code=0 || code=$?
+  assert_answer "$label" "$timeout" "$code" "$out" "$err"
+  rm -f "$out" "$err"
+}
+
 # 1. The whole of this step's criterion, as one case: with VERI_TIMEOUT unset the script
 #    derives the timeout, and a baseline it cannot derive from is refused rather than
 #    guessed at.
@@ -301,6 +316,27 @@ name="a recorded pair of tier measurements: the timeout is derived from the full
 problems=()
 full_tier_probe 5 600 3600
 report "$name"
+
+# 5. The same invariant as case 2, asked of the new argument shape: an explicit VERI_TIMEOUT
+#    is the conductor's answer and not an input, whatever pair of tier measurements arrives
+#    alongside it. Case 2 pins that against a single baseline, and the derivation now has a
+#    second input that can displace the first, so the liveness axis staying the operator's
+#    (CLAUDE.md's budgets on separate axes) has to be pinned against the pair as well — a
+#    script deriving from the full tier before reading the override would raise a hand-set
+#    timeout, which is the same merge of axes read the other way round. The triples are the
+#    directions the override can differ from the pair's derivation: 900 against a 600 s full
+#    tier that derives 3600 (the override must win downward, the #300 shape with an operator
+#    in it), 7200 against a 20 s full tier that would keep the 900 s floor (upward, the
+#    `VERI_TIMEOUT=2700` workaround that resumed #300), and 1 against a pair deriving 906 —
+#    the smallest override the contract admits, below the floor, so the floor does not apply
+#    to a value the operator chose here either.
+name="an explicit VERI_TIMEOUT is printed as given whatever pair of tier measurements is handed in"
+problems=()
+full_tier_override_probe 900 5 600
+full_tier_override_probe 7200 5 20
+full_tier_override_probe 1 150 151
+report "$name"
+
 
 echo "----"
 echo "$pass passed, $fail failed"
