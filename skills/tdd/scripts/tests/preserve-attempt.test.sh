@@ -22,9 +22,15 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
-# git_q <repo> <args…> — git with an identity of its own, so the suite does not depend on
-# whatever user.name/user.email the machine running it carries (CI carries none).
-git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
+# The identity every commit this suite causes is made under, stated once: the suite must not
+# depend on whatever user.name/user.email the machine running it carries (CI carries none).
+# In the environment rather than as `git -c` flags because half the commits are git's own,
+# made inside the script under test, which takes no flags from here.
+ident=(GIT_AUTHOR_NAME=veri GIT_AUTHOR_EMAIL=veri@example.test
+       GIT_COMMITTER_NAME=veri GIT_COMMITTER_EMAIL=veri@example.test)
+
+# git_q <repo> <args…> — git run against <repo> under that identity.
+git_q() { local repo="$1"; shift; env "${ident[@]}" git -C "$repo" "$@"; }
 
 # new_repo <path> — a throwaway repo at <path>, on `main`, carrying one commit that tracks
 # stop-run.sh. -b main names the default branch rather than inheriting init.defaultBranch.
@@ -36,14 +42,12 @@ new_repo() {
   git_q "$1" commit -q -m "initial" >/dev/null 2>&1
 }
 
-# preserve <repo> <args…> — call the script from <repo>, with a git identity in the
-# environment of that one command: the commit it makes is git's, and a machine with no
-# configured user (CI) must not decide whether this case can run at all.
+# preserve <repo> <args…> — call the script from <repo>, under the same identity: the commit
+# it makes is git's, and a machine with no configured user (CI) must not decide whether this
+# case can run at all.
 preserve() {
   local repo="$1"; shift
-  ( cd "$repo" && env GIT_AUTHOR_NAME=veri GIT_AUTHOR_EMAIL=veri@example.test \
-      GIT_COMMITTER_NAME=veri GIT_COMMITTER_EMAIL=veri@example.test \
-      "$PRESERVE" "$@" )
+  ( cd "$repo" && env "${ident[@]}" "$PRESERVE" "$@" )
 }
 
 # 1. the worktree as it stands lands on a ref named by issue, step, phase and attempt, and
