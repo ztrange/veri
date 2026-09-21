@@ -300,6 +300,26 @@ commit_head
 expect_suites "rule 6: a prompt and a suite in one range print that suite and the prompt's suites, without widening" \
   "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/delta.test.sh')"
 
+# 14. fail-closed: a range whose only changed file matches no rule → every suite, kept whole
+#     after rule 6. docs/notes.md is no script, lib file, suite, fixture, prompt or guarded
+#     document, and nothing else changed, so there is no placed suite to narrow to: the answer
+#     must be all three suites — tests/unit/baz.test.sh included — rather than an empty one.
+new_repo unplaced-only
+mkdir -p "$s/tests/unit" "$s/prompts" "$repo/docs"
+printf 'foo\n' > "$s/foo.sh"
+printf 'bar\n' > "$s/bar.sh"
+printf 'baz\n' > "$s/baz.sh"
+printf '# red template\n' > "$s/prompts/develop-red.md"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# bar suite\n' > "$s/tests/bar.test.sh"
+printf '# baz unit suite\n' > "$s/tests/unit/baz.test.sh"
+printf '# notes\n' > "$repo/docs/notes.md"
+commit_base
+printf '# notes 2\n' > "$repo/docs/notes.md"
+commit_head
+expect_suites "fail-closed: a range whose only changed file matches no rule prints every suite" \
+  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh\nskills/tdd/scripts/tests/unit/baz.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
