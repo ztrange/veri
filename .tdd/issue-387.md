@@ -9,5 +9,5 @@
 - [x] an issue with no worktree, an issue whose .tdd/conductor.pid names no live process, and --all with no live run each exit 3 and write no .tdd/stop ⟦criterion 5⟧
 - [x] no main working tree to resolve exits 2 and writes nothing
 - [x] stop-run.sh --mode now <n> sends TERM to the pid in <run>/.tdd/<name>.pid whose process runs `supervise.sh <name> `, and to no pid whose process is gone or runs something else ⟦criterion 6⟧
-- [ ] stop-run.sh --mode at-ledger <n> and --mode at-leaf <n> signal nothing ⟦criterion 7⟧
+- [x] stop-run.sh --mode at-ledger <n> and --mode at-leaf <n> signal nothing ⟦criterion 7⟧
 - [ ] stop-run.sh never signals the pid in .tdd/conductor.pid ⟦criterion 8⟧
