@@ -76,16 +76,22 @@ if [[ -n "$override" ]]; then
   exit 0
 fi
 
-if [[ ! "$baseline" =~ ^[0-9]+$ ]]; then
-  echo "leaf-timeout: <baseline-seconds> must be a whole number >= 0: $baseline" >&2
-  exit 2
-fi
-
-if [[ "$full_given" == 1 ]]; then
-  if [[ ! "$full" =~ ^[0-9]+$ ]]; then
-    echo "leaf-timeout: <full-seconds> must be a whole number >= 0: $full" >&2
+# require_seconds <parameter-name> <value> — refuse a measurement that is not a whole number
+# of seconds. The fast baseline and the full-tier measurement owe the same refusal for the same
+# reason — a number the timeout is sized from that is not a measurement of anything — so the
+# shape is written once and the parameter's own name is all the two diagnostics differ by.
+require_seconds() {
+  local name="$1" value="$2"
+  if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+    echo "leaf-timeout: <$name> must be a whole number >= 0: $value" >&2
     exit 2
   fi
+}
+
+require_seconds baseline-seconds "$baseline"
+
+if [[ "$full_given" == 1 ]]; then
+  require_seconds full-seconds "$full"
   baseline="$full"
 fi
 
