@@ -405,40 +405,50 @@ if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
 runs = got["tests"]
 '
 
-# The half of a Chatter case that is the same in both of the two below: the answer
-# call_endpoint wrote, loaded and checked to be an object with a "chatter" key, beside the
-# rendering the case compares it against. Handed <body> <issue> <want-file>, it leaves
-# `chatter` that answer’s rendering and `want` render-leaf-log.sh’s own, both with their
-# surrounding blank lines off, and says which half of a malformed answer broke rather than
-# dying on it. What differs between the cases is only what they say when the two disagree.
+# The half of a Chatter case that is the same in all three of them: reading one answer
+# call_endpoint wrote. `chatter(<body>, <issue>)` loads it, checks it is an object with a
+# "chatter" key, takes the rendering as the renderer’s own text or as the lines of it, and
+# hands it back with its surrounding blank lines off — or says which half of a malformed
+# answer broke, and hands back None, rather than dying on it. `want(<path>)` reads
+# render-leaf-log.sh’s own rendering the same way, so the two sides of every comparison below
+# are stripped alike. The third argument names WHICH answer, for the one case that asks twice
+# over one run; the two that ask once leave it off. What differs between the cases is only
+# what they say when the two sides disagree.
 chatter_rendering='
 import json, sys
 
-body, issue = sys.argv[1], sys.argv[2]
-try:
-    with open(body) as f:
-        got = json.load(f)
-except ValueError:
-    with open(body) as f:
-        print("chatter_json for issue %s returned something that is not JSON; it starts: %r"
-              % (issue, f.read()[:200]))
-    sys.exit()
-if not isinstance(got, dict) or "chatter" not in got:
-    print("chatter_json for issue %s returned %s; want an object with a \"chatter\" key"
-          % (issue, json.dumps(got, sort_keys=True)[:300]))
-    sys.exit()
-# The rendering as the renderer’s own text or as its lines, since one line per thing said or
-# done is what the renderer promises and a list of them says the same thing.
-chatter = got["chatter"]
-if isinstance(chatter, list):
-    chatter = "\n".join(str(line) for line in chatter)
-if not isinstance(chatter, str):
-    print("chatter_json for issue %s returned chatter=%s; want the rendered log as text or as "
-          "its lines" % (issue, json.dumps(chatter, sort_keys=True)[:300]))
-    sys.exit()
-with open(sys.argv[3]) as f:
-    want = f.read().strip("\n")
-chatter = chatter.strip("\n")
+
+def chatter(body, issue, when=""):
+    """The rendering the answer at <body> carries, or None after saying why it has none."""
+    which = "for issue %s%s" % (issue, " " + when if when else "")
+    try:
+        with open(body) as f:
+            got = json.load(f)
+    except ValueError:
+        with open(body) as f:
+            print("chatter_json %s returned something that is not JSON; it starts: %r"
+                  % (which, f.read()[:200]))
+        return None
+    if not isinstance(got, dict) or "chatter" not in got:
+        print("chatter_json %s returned %s; want an object with a \"chatter\" key"
+              % (which, json.dumps(got, sort_keys=True)[:300]))
+        return None
+    # The rendering as the renderer’s own text or as its lines, since one line per thing said
+    # or done is what the renderer promises and a list of them says the same thing.
+    text = got["chatter"]
+    if isinstance(text, list):
+        text = "\n".join(str(line) for line in text)
+    if not isinstance(text, str):
+        print("chatter_json %s returned chatter=%s; want the rendered log as text or as its "
+              "lines" % (which, json.dumps(text, sort_keys=True)[:300]))
+        return None
+    return text.strip("\n")
+
+
+def want(path):
+    """render-leaf-log.sh’s own rendering of a fixture, stripped the way an answer is."""
+    with open(path) as f:
+        return f.read().strip("\n")
 '
 
 # The ledger and spec every Tests case fabricates before an endpoint will answer about its
@@ -1508,11 +1518,12 @@ elif [[ "${#problems[@]}" -eq 0 ]]; then
     problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-direct.err")")
   else
     add_problems < <(python3 -c "$chatter_rendering"'
-if chatter != want:
+got, wanted = chatter(sys.argv[1], 54), want(sys.argv[2])
+if got is not None and got != wanted:
     print("chatter_json for issue 54 returned %r; want render-leaf-log.sh’s rendering of "
           "verify-green.out, the leaf the run’s newest launch event names, which is %r"
-          % (chatter[:400], want[:400]))
-' "$work/chatter-direct-54.json" 54 "$work/chatter-want.txt")
+          % (got[:400], wanted[:400]))
+' "$work/chatter-direct-54.json" "$work/chatter-want.txt")
   fi
 fi
 
@@ -1565,13 +1576,14 @@ elif [[ "${#problems[@]}" -eq 0 ]]; then
     problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-verifier.err")")
   else
     add_problems < <(python3 -c "$chatter_rendering"'
-if chatter != want:
+got, wanted = chatter(sys.argv[1], 59), want(sys.argv[2])
+if got is not None and got != wanted:
     blank = " — the empty string, which is what a run whose current leaf is a verifier gets " \
-            "from a transcript spelled `.out`" if not chatter.strip() else ""
+            "from a transcript spelled `.out`" if not got.strip() else ""
     print("chatter_json for issue 59 returned %r%s; want render-leaf-log.sh’s rendering of "
           "verify-red.log, the transcript of the verifier the run’s newest launch event "
-          "names, which is %r" % (chatter[:400], blank, want[:400]))
-' "$work/chatter-verifier-59.json" 59 "$work/chatter-want-verify.txt")
+          "names, which is %r" % (got[:400], blank, wanted[:400]))
+' "$work/chatter-verifier-59.json" "$work/chatter-want-verify.txt")
   fi
 fi
 
@@ -1637,41 +1649,9 @@ EOF
   if [[ ! -f "$work/switch-55-first.json" || ! -f "$work/switch-55-second.json" ]]; then
     problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/switch-first.err" "$work/switch-second.err" 2>/dev/null | tr '\n' ' ')")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-
-def chatter(path, when):
-    """The answer at <path> as the rendered text it should carry, or None after saying why."""
-    try:
-        with open(path) as f:
-            got = json.load(f)
-    except ValueError:
-        with open(path) as f:
-            print("chatter_json for issue 55 %s returned something that is not JSON; it "
-                  "starts: %r" % (when, f.read()[:200]))
-        return None
-    if not isinstance(got, dict) or "chatter" not in got:
-        print("chatter_json for issue 55 %s returned %s; want an object with a \"chatter\" key"
-              % (when, json.dumps(got, sort_keys=True)[:300]))
-        return None
-    # As the case above: the rendering as the renderer’s own text, or as its lines.
-    text = got["chatter"]
-    if isinstance(text, list):
-        text = "\n".join(str(line) for line in text)
-    if not isinstance(text, str):
-        print("chatter_json for issue 55 %s returned chatter=%s; want the rendered log as "
-              "text or as its lines" % (when, json.dumps(text, sort_keys=True)[:300]))
-        return None
-    return text.strip("\n")
-
-
-def want(path):
-    with open(path) as f:
-        return f.read().strip("\n")
-
-
-first, second = chatter(sys.argv[1], "before the second launch"), chatter(sys.argv[2], "after the second launch")
+    add_problems < <(python3 -c "$chatter_rendering"'
+first = chatter(sys.argv[1], 55, "before the second launch")
+second = chatter(sys.argv[2], 55, "after the second launch")
 want_red, want_green = want(sys.argv[3]), want(sys.argv[4])
 if want_red == want_green:
     print("this case’s two leaf log fixtures render identically, so it could not tell an "
