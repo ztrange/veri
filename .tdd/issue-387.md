@@ -10,4 +10,4 @@
 - [x] no main working tree to resolve exits 2 and writes nothing
 - [x] stop-run.sh --mode now <n> sends TERM to the pid in <run>/.tdd/<name>.pid whose process runs `supervise.sh <name> `, and to no pid whose process is gone or runs something else ⟦criterion 6⟧
 - [x] stop-run.sh --mode at-ledger <n> and --mode at-leaf <n> signal nothing ⟦criterion 7⟧
-- [x] stop-run.sh never signals the pid in .tdd/conductor.pid ⟦criterion 8⟧ ⟂ refactor pending
+- [x] stop-run.sh never signals the pid in .tdd/conductor.pid ⟦criterion 8⟧
