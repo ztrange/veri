@@ -30,22 +30,18 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$HERE/../.."
+source "$HERE/../../lib/missing-argument-exit.sh"
 pass=0 fail=0
 offenders=()
 
 # refuses <script> [args …] — call it, and record an offender unless it came back with exit 2
-# and said on stderr how it is called. stdout is discarded and stderr captured, so a script
-# that reads stdin after its guard (criterion-finished.sh, harvest-usage.sh) gets /dev/null
-# rather than this suite's own input.
+# and said on stderr how it is called. The judging is lib/missing-argument-exit.sh's, so that
+# the check this suite's whole worth rests on has a suite of its own
+# (tests/unit/missing-argument-guard.test.sh): every script in the rosters below answers
+# correctly today, so no case here can tell a working check from a broken one.
 refuses() {
-  local script="$1"; shift
-  local code=0 err shown="$script${*:+ $*}"
-  err="$("$SCRIPTS/$script" "$@" 2>&1 >/dev/null </dev/null)" || code=$?
-  if [[ "$code" != 2 ]]; then
-    offenders+=( "$shown: want exit 2, got $code" )
-  elif [[ "$err" != *usage* ]]; then
-    offenders+=( "$shown: exit 2 but no usage line on stderr: ${err:-<nothing on stderr>}" )
-  fi
+  local line
+  line="$(missing_argument_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
 }
 
 # 1. called with no arguments at all — the emptiest bad-arguments case there is — every script
