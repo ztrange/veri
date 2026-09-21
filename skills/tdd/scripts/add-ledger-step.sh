@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
-# add-ledger-step.sh <ledger-file> after|before <anchor-substring> <text> [<text> …] — grow
-# the plan while a run is under way (issue #360).
+# add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]
+# — grow the plan while a run is under way (issue #360).
 #
 # Inserts each <text> as an unchecked step `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` on the lines
 # after the step containing <anchor-substring>, or on the lines before it, in the order
-# given. VERI_STEP_GROWTH (default 3) caps how many ⟦added⟧ steps one ledger may hold, and
+# given. `instead-of` puts them where that step was and drops the step itself — the
+# placement a step that turned out to be several behaviours takes (issue #408).
+# VERI_STEP_GROWTH (default 3) caps how many ⟦added⟧ steps one ledger may hold, and
 # the call is all or nothing: a batch that would exceed the cap inserts nothing, exits 1 and
 # records every text as a plain bullet under `## Owed steps`, where next-unchecked.sh will
 # not find it. The added step inherits the anchor's criterion, so criterion-finished.sh keeps
@@ -14,7 +16,7 @@
 # Usage:   add-ledger-step.sh .tdd/issue-<n>.md after 'collapse to single hyphen' 'a unicode dash too'
 set -euo pipefail
 
-usage='usage: add-ledger-step.sh <ledger-file> after|before <anchor-substring> <text> [<text> …]'
+usage='usage: add-ledger-step.sh <ledger-file> after|before|instead-of <anchor-substring> <text> [<text> …]'
 [[ $# -ge 4 && -n "$1" && -n "$2" && -n "$3" ]] || { printf '%s\n' "$usage" >&2; exit 2; }
 file="$1"
 where="$2"
@@ -93,6 +95,7 @@ while IFS= read -r line; do
     case "$where" in
       before) line="$steps"$'\n'"$line" ;;
       after) line="$line"$'\n'"$steps" ;;
+      instead-of) line="$steps" ;;
     esac
   fi
   out+="$line"$'\n'
