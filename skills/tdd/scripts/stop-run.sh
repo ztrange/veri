@@ -18,6 +18,10 @@
 #          3 nothing to do — no live run answered to what was named
 set -euo pipefail
 
+lib="$(dirname "$0")/lib"
+# shellcheck source=lib/main-working-tree.sh
+source "$lib/main-working-tree.sh"
+
 # Every refusal below is the same two moves — say why on stderr, exit 2 — so they are made
 # in one place and each site says only what is wrong. The `stop-run: ` prefix lives here for
 # the same reason: four copies of a script's own name are four chances for one of them to go
@@ -65,6 +69,13 @@ if [[ -n "$issue" && ! "$issue" =~ ^[1-9][0-9]*$ ]]; then
   refuse "<issue> must be a positive integer: '$issue'"
 fi
 
-# Finding the runs and writing the mode into each live one is the next step's work; until it
-# is written, a well-formed call has found no live run to leave a request with.
-exit 3
+# The runs live under the MAIN working tree, never the checkout this was typed in: a
+# conductor's worktree is itself under .tdd/wt/, so resolving from here would look for runs
+# inside one run (#166, the rule status.sh:158-164 already follows).
+main_tree="$(main_working_tree)"
+run="$main_tree/.tdd/wt/$issue"
+
+# The mode as the only line of the file, because stop-requested.sh reads it as one word, and
+# `>` rather than `>>` because the last write is the request that stands.
+printf '%s\n' "$mode" > "$run/.tdd/stop"
+echo "$run"
