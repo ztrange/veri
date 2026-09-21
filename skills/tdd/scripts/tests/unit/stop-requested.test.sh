@@ -70,19 +70,23 @@ fi
 #    third fixture is a zero-byte file rather than a bare newline: its first line is empty
 #    the same way, but the read that takes it hits end-of-file, so a script that lets that
 #    read decide its fate exits on the read's own status with nothing said.
+#
+# check_malformed <what the fixture already written is> — run the script over it and add a
+# line to `problems` unless all three halves of the verdict hold. One function over the
+# three fixtures because the verdict is the same one; only the fixture differs.
+check_malformed() {
+  run_stop_err
+  if [[ "$code" != 2 || -n "$out" || -z "$err" ]]; then
+    problems+="    $1: want exit 2, empty stdout and a diagnostic on stderr, got exit $code, stdout '$out' and stderr '$err'"$'\n'
+  fi
+}
 problems=""
 for line in "bogus" ""; do
   printf '%s\n' "$line" > "$work/.tdd/stop"
-  run_stop_err
-  if [[ "$code" != 2 || -n "$out" || -z "$err" ]]; then
-    problems+="    first line '$line': want exit 2, empty stdout and a diagnostic on stderr, got exit $code, stdout '$out' and stderr '$err'"$'\n'
-  fi
+  check_malformed "first line '$line'"
 done
 : > "$work/.tdd/stop"
-run_stop_err
-if [[ "$code" != 2 || -n "$out" || -z "$err" ]]; then
-  problems+="    a zero-byte file: want exit 2, empty stdout and a diagnostic on stderr, got exit $code, stdout '$out' and stderr '$err'"$'\n'
-fi
+check_malformed "a zero-byte file"
 if [[ -z "$problems" ]]; then
   pass=$((pass + 1))
 else
