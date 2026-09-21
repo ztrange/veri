@@ -1,0 +1,3 @@
+### Resume resets a dirty worktree before it asks for a pending refactor, so a resume with no step carrying the refactor-pending mark still discards the stray work
+- `says_reset_reenter_verify`'s own `reset_re` (skill-refactor-pending.test.sh:446) is a third spelling of the same family, differing only by also accepting `git stash` — folding it into `$reset_command` would narrow what that probe accepts, so it is a behaviour change to the guard, not a behaviour-preserving tidy
+- SKILL.md's Resume sub-step 2 now carries two instructions ("reset the worktree, then ask for a pending refactor"); splitting the reset into its own sub-step would renumber the sub-steps the Draft PR step and this suite's case 2 both point at by number
