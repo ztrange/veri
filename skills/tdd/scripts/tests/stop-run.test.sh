@@ -137,6 +137,14 @@ check_no_stop() {
     note "want no .tdd/stop for $1, found one holding '$(cat "$1/.tdd/stop")'"
 }
 
+# check_still_answering <pid> <what> — a process the command must not have signalled, read
+# the way the script itself reads liveness: `kill -0` sends nothing and only says whether
+# there is a process to send to. Both of a refused command's untouched pids are asked about
+# through this, since what separates them is which pid and what to call it, never the check.
+check_still_answering() {
+  kill -0 "$1" 2>/dev/null || note "want $2 $1 untouched, it is gone"
+}
+
 # check_refused_in <dir> <label> [args…] — one refusal, checked whole: exit 2, nothing on
 # stdout, the script's own complaint on stderr, no .tdd/stop for the live run the command did
 # not name properly, and both its live pids still answering. The directory is a parameter
@@ -154,10 +162,8 @@ check_refused_in() {
   # number, says nothing about what the operator got wrong, and does not exit 2.
   [[ "$err" == "stop-run: "* ]] || note "want a complaint of the script's own, got '$err'"
   check_no_stop "$run"
-  kill -0 "$sup_pid" 2>/dev/null ||
-    note "want the live supervisor $sup_pid untouched, it is gone"
-  kill -0 "$run_conductor_pid" 2>/dev/null ||
-    note "want the conductor $run_conductor_pid untouched, it is gone"
+  check_still_answering "$sup_pid" "the live supervisor"
+  check_still_answering "$run_conductor_pid" "the conductor"
   rm -f "$run/.tdd/stop"
 }
 
