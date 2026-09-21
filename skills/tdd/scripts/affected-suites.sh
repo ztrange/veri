@@ -77,14 +77,14 @@ while IFS= read -r f; do
   if suites="$(suite_of "$f")"; then
     if [[ -n "$suites" ]]; then placed+="$suites"$'\n'; fi
   else
-    unplaced+="$f"$'\n'
+    # Accumulated already comma-joined: the list is only ever printed, never iterated.
+    unplaced+="${unplaced:+,}$f"
   fi
 done <<<"$files"
 
 if [[ -n "$unplaced" ]]; then
   # Say which file widened the answer, so the next unplaced kind is visible rather than silent.
-  printf 'affected-suites: no rule places %s; widening to every suite\n' \
-    "$(printf '%s' "$unplaced" | paste -sd, -)" >&2
+  printf 'affected-suites: no rule places %s; widening to every suite\n' "$unplaced" >&2
   for suite in "$scripts"/tests/*.test.sh "$scripts"/tests/unit/*.test.sh; do
     if [[ -f "$suite" ]]; then echo "$suite"; fi
   done | sort -u
