@@ -117,6 +117,48 @@ request_stop() {
   echo "$1"
 }
 
+# supervising <pid> <leaf-name> — whether that pid is running that leaf's supervisor, the
+# check wait-leaf.sh:47-51 already makes and for the same reason: a pid file outlives the
+# process it named and the operating system reuses the number, so a pid that answers is not
+# evidence of anything on its own. `ps -p <pid> -o args=` prints that process's command line
+# and nothing else, and a pid nobody answers for prints nothing at all, so both of the pid
+# files a finished run leaves behind — the stale one and the stranger's — fail the same test.
+supervising() {
+  local args
+  args="$(ps -p "$1" -o args= 2>/dev/null)" || return 1
+  [[ "$args" == *"supervise.sh $2 "* ]]
+}
+
+# stop_leaves <run-path> — `--mode now`'s other half: TERM to each of that run's live leaf
+# supervisors, so the stop takes effect at once rather than at the next checkpoint, which
+# wait-leaf.sh's own window can hold off for up to nine minutes. Nothing new kills a leaf —
+# supervise.sh:350-355 traps TERM, takes the leaf's tree down through kill_tree and records 2
+# in the completion file, so the supervisor stays the one place a kill happens.
+#
+# The leaf's name is the pid file's, so the glob finds the candidates and supervising() is
+# what decides: a pid whose process is gone or is something else is skipped in silence, since
+# a stale pid file is the ordinary state of a finished leaf and not a failure to report.
+# .tdd/conductor.pid is among the files the glob turns up and is refused by that same check,
+# a conductor running run-conductor.sh rather than supervise.sh — this never signals it.
+stop_leaves() {
+  local pidfile name pid
+  for pidfile in "$1"/.tdd/*.pid; do
+    [[ -f "$pidfile" ]] || continue
+    name="$(basename "$pidfile" .pid)"
+    pid="$(cat "$pidfile" 2>/dev/null || true)"
+    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    supervising "$pid" "$name" || continue
+    kill -TERM "$pid" 2>/dev/null || true
+  done
+}
+
+# request_stop's caller for a run it has just written to: `now` is the only mode that signals,
+# and it signals only where the write happened, never over a run the command skipped.
+stop_now() {
+  [[ "$mode" == now ]] && stop_leaves "$1"
+  return 0
+}
+
 if (( all == 1 )); then
   stopped=0
   # The glob, not `git worktree list`: a run is a directory under .tdd/wt/, and `[[ -d ]]`
@@ -126,6 +168,7 @@ if (( all == 1 )); then
     [[ -d "$candidate" ]] || continue
     if live_run "$candidate"; then
       request_stop "$candidate"
+      stop_now "$candidate"
       stopped=1
     fi
   done
@@ -135,4 +178,5 @@ else
   live_run "$target" ||
     nothing_to_do "no live run for issue $issue"
   request_stop "$target"
+  stop_now "$target"
 fi
