@@ -253,6 +253,25 @@ def test_runs(run, command):
     return found
 
 
+# The same test runs, read out of the run's own event log rather than its leaf logs: one entry
+# per `test-run` mark, the line timed-test-run.sh:45 appends per test-command run since #342 —
+# when a leaf stopped typing its test command as a bare Bash call and started invoking the
+# wrapper by absolute path instead (#383). That is why the mark and not the leaf log is what
+# the pane counts today: test_runs' string match against the spec's command could never hold
+# again, and the pane went empty on a live run that had already run its suite seven times.
+#
+# Each entry says which suites that run covered and whether it came back green, both read off
+# the mark itself: `suites` is the list timed-test-run.sh was handed (empty for a whole-suite
+# tier, which covers them all and names none), and `status` is the test command's own exit
+# status, so a run passed when that status was success. The command is the spec's, the one
+# test_runs above names too, because the mark does not carry it.
+def marked_test_runs(run, command):
+    return [{"command": command,
+             "suites": mark.get("suites", ""),
+             "passed": mark.get("status") == "0"}
+            for mark in events_marked(run, "test-run")]
+
+
 # Answered for the selected run alone, the way every endpoint has since #343: the run is
 # `.tdd/wt/<issue>` and no other, so a second run whose leaves ran the same command is not
 # reported here. An issue with no run of its own, or one whose spec names no test command,
@@ -263,25 +282,10 @@ def tests_json(query):
     issue = selected_issue(query)
     run = run_for_issue(issue)
     command = test_command(run, issue)
-    # One entry per `test-run` mark of the run's own log: one such line per test-command run,
-    # appended by timed-test-run.sh:45 since #342, when a leaf stopped typing its test command
-    # as a bare Bash call and started invoking the wrapper by absolute path instead (#383).
-    # That is why the mark and not the leaf log is what this counts: test_runs' string match
-    # against the spec's command could never hold again, and the pane went empty on a live run
-    # that had already run its suite seven times.
-    # Each entry says which suites that run covered and whether it came back green, both read
-    # off the mark itself: `suites` is the list timed-test-run.sh was handed (empty for a
-    # whole-suite tier, which covers them all and names none), and `status` is the test
-    # command's own exit status, so a run passed when that status was success.
-    marks = events_marked(run, "test-run")
-    if marks:
-        tests = [{"command": command,
-                  "suites": mark.get("suites", ""),
-                  "passed": mark.get("status") == "0"} for mark in marks]
-    else:
-        # A run whose log carries no mark is still read out of its leaf logs, which is the
-        # only thing a run predating #342 has to be read out of.
-        tests = test_runs(run, command) if command else []
+    # The marks when the run's log carries any; a run whose log carries none is read out of
+    # its leaf logs instead, which is the only thing a run predating #342 has to be read out
+    # of. Which of the two answers is the run's age and not a choice made here.
+    tests = marked_test_runs(run, command) or (test_runs(run, command) if command else [])
     return json.dumps({"tests": tests}).encode()
 
 
