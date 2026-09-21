@@ -107,6 +107,18 @@ if [[ "$code" != 0 ]]; then
 fi
 verdict "--clear removes a stop request and exits 0, with or without one to remove"
 
+# 5. any other argument is not an argument this script takes: exit 2, and .tdd/stop left
+#    exactly as it was. The second half is what keeps a typo from acting: an unrecognised
+#    word must neither be read as a mode nor clear a request an operator is waiting on.
+problems=""
+printf '%s\n' "at-ledger" > "$work/.tdd/stop"
+run_stop --bogus
+left="$(cat "$work/.tdd/stop" 2>/dev/null || echo "<gone>")"
+if [[ "$code" != 2 || "$left" != "at-ledger" ]]; then
+  problems+="    --bogus: want exit 2 and .tdd/stop still 'at-ledger', got exit $code and '$left'"$'\n'
+fi
+verdict "any other argument exits 2 and leaves .tdd/stop as it was"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

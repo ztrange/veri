@@ -20,17 +20,28 @@
 # purpose: both callers — the stop sequence at its end, and the claim at a run's first
 # step — must be able to clear without first asking whether there is anything to clear.
 #
+# Anything else is not an argument this script takes: nothing on stdout, the usage line on
+# stderr, exit 2, and `.tdd/stop` left exactly as it was. A typo must neither be read as a
+# mode nor clear a request an operator is waiting on, so the check runs before either.
+#
 # Usage:   stop-requested.sh [--clear]
-# Exits:   0 a mode was printed, or the request was cleared | 2 malformed request |
-#          3 no stop request
+# Exits:   0 a mode was printed, or the request was cleared | 2 malformed request, or an
+#          argument this script does not take | 3 no stop request
 set -euo pipefail
 
 file=".tdd/stop"
 
-if [[ "${1:-}" == "--clear" ]]; then
-  rm -f "$file"
-  exit 0
-fi
+case "${1:-}" in
+  --clear)
+    rm -f "$file"
+    exit 0
+    ;;
+  "") ;;
+  *)
+    echo "usage: stop-requested.sh [--clear]" >&2
+    exit 2
+    ;;
+esac
 
 [[ -f "$file" ]] || exit 3
 
