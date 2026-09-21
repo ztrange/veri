@@ -72,6 +72,28 @@ esac
   exit 2
 }
 
+# need <var> <value> <what> — assign <value> to <var>, or refuse the call naming <what>.
+#
+# The ten positionals below were read as `${N:?missing <what>}` until #270. That expansion
+# aborts the shell with status 1 — "a clean negative", the code the conductor reads as a
+# leaf that ran and answered — where a call that left an argument out owes 2, "no answer
+# could be obtained". The arity check above already refuses a short call with 2, so the
+# expansions could only ever have fired on an argument passed *empty*; that is the same
+# bad-arguments case and owes the same code. Spelled once here because ten copies of a
+# three-line refusal is where the wrong one hides.
+#
+# `printf -v` rather than a `$(…)` command substitution: this builder runs once per leaf and
+# CLAUDE.md's fork budget counts what a per-leaf helper costs, so the assignment happens in
+# this shell rather than in ten subshells.
+need() {
+  [[ -n "$2" ]] || {
+    echo "build-develop-prompt: missing $3" >&2
+    echo "$USAGE" >&2
+    exit 2
+  }
+  printf -v "$1" '%s' "$2"
+}
+
 # `revise` names the phase it is redoing *before* the three arguments every phase shares,
 # so its spec/step/test-cmd each sit one position later than everyone else's. Take that
 # extra argument off the front; past this point the positions line up again.
@@ -82,7 +104,7 @@ esac
 # is not among the four here — a revise of a revise has no template behind it.
 revised_phase=""
 if [[ "$phase" == "revise" ]]; then
-  revised_phase="${2:?missing <phase> being revised}"
+  need revised_phase "${2:-}" '<phase> being revised'
   case "$revised_phase" in
     red|green|refactor) ;;
     *) echo "build-develop-prompt: unknown phase to revise '$revised_phase' (want red|green|refactor)" >&2; exit 2 ;;
@@ -90,9 +112,9 @@ if [[ "$phase" == "revise" ]]; then
   shift
 fi
 
-spec_file="${2:?missing <issue-spec-file>}"
-step="${3:?missing <step-text>}"
-test_cmd="${4:?missing <test-cmd>}"
+need spec_file "${2:-}" '<issue-spec-file>'
+need step "${3:-}" '<step-text>'
+need test_cmd "${4:-}" '<test-cmd>'
 
 # Each phase takes its own extra positionals past the three every phase shares, and below
 # each branch names only those. Everything else stays empty, and an empty variable's
@@ -102,14 +124,14 @@ test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" 
 case "$phase" in
   red) ;;
   green)
-    test_path="${5:?missing <test-path>}"
-    target="${6:?missing <target-test>}"
+    need test_path "${5:-}" '<test-path>'
+    need target "${6:-}" '<target-test>'
     # The fast tier's command (#341): green runs it plus the affected suites instead of the
     # full suite, and a leaf in a target repository has no way to ask for it itself.
-    fast_cmd="${7:?missing <fast-cmd>}"
+    need fast_cmd "${7:-}" '<fast-cmd>'
     ;;
   refactor)
-    touched="${5:?missing <touched-files>}"
+    need touched "${5:-}" '<touched-files>'
     # The one variable this builder reads from the environment rather than from a
     # positional. It is the same number `refactor-budget.sh` reads, same name and same
     # default, because one leaf per step moves the spending decision inside the leaf: the
@@ -120,11 +142,11 @@ case "$phase" in
     refactor_budget="${VERI_REFACTOR_BUDGET:-5}"
     ;;
   revise)
-    reason_file="${5:?missing <reason-file>}"
+    need reason_file "${5:-}" '<reason-file>'
     ;;
   reconcile)
-    branch="${5:?missing <branch>}"
-    remote_sha="${6:?missing <remote-sha>}"
+    need branch "${5:-}" '<branch>'
+    need remote_sha "${6:-}" '<remote-sha>'
     ;;
 esac
 

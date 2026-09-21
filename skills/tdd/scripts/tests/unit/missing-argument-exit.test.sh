@@ -7,11 +7,12 @@
 # branches on the difference, so a leaf launched with a dropped argument must read as a
 # plumbing failure, never as a methodology one (issue #270).
 #
-# Two cases, because a script has as many ways to be called wrong as it has required
-# arguments: the first drops all of them at once, the second drops one at a time from the
-# later positions — the ones a `${2:?…}`/`${3:?…}` expansion used to guard, which is where the
-# exit 1 the issue reports actually came from. `verify.sh green <spec>` with no <test-path> is
-# the reported shape, and it is in the second roster.
+# Three cases. Two of them call, because a script has as many ways to be called wrong as it
+# has required arguments: the first drops all of them at once, the second drops one at a time
+# from the later positions — the ones a `${2:?…}`/`${3:?…}` expansion used to guard, which is
+# where the exit 1 the issue reports actually came from. `verify.sh green <spec>` with no
+# <test-path> is the reported shape, and it is in the second roster. The third reads the
+# source instead, for the offender no call can reach.
 #
 # Both rosters are named here rather than discovered, because "requires this argument" is not
 # a question a script can be asked without calling it, and calling the ones that require none
@@ -115,6 +116,20 @@ refuses timed-test-run.sh all ''                          # a suite list may be 
 refuses verify.sh green                                   # no <issue-spec-file>
 refuses verify.sh green spec                              # no <test-path> — the shape #270 reports
 refuses verify.sh --step                                  # no step text
+verdict "$name"
+
+# 3. the same contract read off the source instead of off a call: no script under scripts/
+#    still guards a required positional with a bare `${N:?…}` expansion. The two rosters
+#    above cannot settle this on their own — an expansion can sit on a position no call in
+#    them reaches, and a script added tomorrow is in neither — so this case asks the tree
+#    rather than a list, and covers a new script by existing. What it reports is a line
+#    number, because that is what a `${N:?…}` has instead of an exit code worth calling.
+#
+#    lib/missing-argument-exit.sh does the reading, and its own suite
+#    (tests/unit/missing-argument-guard.test.sh) plants an offender to prove the scan finds
+#    one: scripts/ is clean today, so a green here says nothing about whether the scan works.
+name="no script guards a required positional argument with a bare \${N:?…} expansion"
+mapfile -t offenders < <(bare_expansion_offenders "$SCRIPTS")
 verdict "$name"
 
 echo "----"
