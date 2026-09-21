@@ -1589,6 +1589,73 @@ fi
 
 report "$name"
 
+# --- the Chatter endpoint on a closed leaf: the result text appended after the records ---
+# Criterion 2 of #384. A leaf's transcript is records first and prose last: once the leaf
+# closes, run-leaf.sh appends a blank line and then the plain-text result (run-leaf.sh:82-83).
+# render-leaf-log.sh exits 2 on the first line that is not JSON and writes its accumulated
+# output only after the loop (render-leaf-log.sh:33-46), so that tail throws away every line it
+# had already rendered — and the pane goes blank the moment a leaf finishes, developer leaves
+# included.
+#
+# The fixture has that shape: a run currently on develop-green whose transcript carries four
+# stream-json records, then the blank line, then the result text. What the case asks for is
+# that the records' own rendering — render-leaf-log.sh's answer for the records alone, as in
+# the two cases above — is THERE in what the endpoint hands back, and not that the trailing
+# prose is rendered one particular way: whether the fix relaxes the renderer's contract or
+# stops handing it the tail is the solving run's call (#384), and both satisfy the criterion.
+name="chatter_json renders a leaf transcript whose plain-text result is appended after its stream-json records"
+problems=()
+tail_repo="$(repo chattertail)"
+
+tail_run="$(fabricate_run "$tail_repo" 61 tdd/61-lamps-flicker)"
+cat > "$tail_run/.tdd/issue-61.md" <<'EOF'
+# Plan for #61 — lamps flicker
+
+- [ ] a lamp stops flickering
+EOF
+cat > "$work/chatter-tail-records.jsonl" <<'EOF'
+{"type": "system", "subtype": "init", "session_id": "s4", "tools": ["Bash"]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Making the flicker case pass."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_9", "type": "tool_result", "content": "10 passed, 0 failed", "is_error": false}]}}
+EOF
+{
+  cat "$work/chatter-tail-records.jsonl"
+  printf '\n'
+  printf 'The step is green: 10 passed, 0 failed.\n'
+} > "$tail_run/.tdd/develop-green.log"
+tail_now="$(date +%s)"
+cat > "$tail_run/.tdd/events.jsonl" <<EOF
+{"ts": $((tail_now - 400)), "issue": "61", "actor": "conductor", "phase": "", "step": "a lamp stops flickering", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
+{"ts": $((tail_now - 150)), "issue": "61", "actor": "developer", "phase": "green", "step": "a lamp stops flickering", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
+EOF
+
+"$HERE/../render-leaf-log.sh" < "$work/chatter-tail-records.jsonl" > "$work/chatter-want-tail.txt" 2>/dev/null ||
+  problems+=("render-leaf-log.sh could not render the stream-json records this case compares against")
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+elif [[ "${#problems[@]}" -eq 0 ]]; then
+  call_endpoint "$tail_repo" chatter_json "$work/chatter-tail.err" \
+    '{"issue": ["61"]}' "$work/chatter-tail-61.json"
+  if [[ ! -f "$work/chatter-tail-61.json" ]]; then
+    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-tail.err")")
+  else
+    add_problems < <(python3 -c "$chatter_rendering"'
+got, wanted = chatter(sys.argv[1], 61), want(sys.argv[2])
+if got is not None and wanted not in got:
+    blank = " — the empty string, which is what a transcript with the result text appended " \
+            "after its records gets from a renderer that exits 2 on the first line that is " \
+            "not JSON" if not got.strip() else ""
+    print("chatter_json for issue 61 returned %r%s; want an answer carrying "
+          "render-leaf-log.sh’s rendering of develop-green.log’s stream-json records, "
+          "which is %r" % (got[:400], blank, wanted[:400]))
+' "$work/chatter-tail-61.json" "$work/chatter-want-tail.txt")
+  fi
+fi
+
+report "$name"
+
 # --- the Chatter endpoint follows the run: a new current leaf switches what it returns ---
 # The pane's other half of the contract: "the leaf the run is CURRENTLY on" is a question
 # re-asked of the run on every poll, not one answered once. The case above pins WHICH leaf a
