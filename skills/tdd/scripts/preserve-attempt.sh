@@ -60,6 +60,9 @@ if [[ -n "$mark" ]]; then
   # file still has a log worth keeping, and a missing one is not a failure of preservation.
   # `if` rather than `[[ … ]] && cp`, because under `set -e` a false test as the script's last
   # command is the script's exit status: a missing .out would report a failed preservation.
-  if [[ -f ".tdd/$phase.log" ]]; then cp ".tdd/$phase.log" "$base.log"; fi
-  if [[ -f ".tdd/$phase.out" ]]; then cp ".tdd/$phase.out" "$base.out"; fi
+  # The two files differ only in their extension, so the rule is written once and the list of
+  # what run-leaf.sh leaves behind — the progress log and the final-output file — is the loop.
+  for ext in log out; do
+    if [[ -f ".tdd/$phase.$ext" ]]; then cp ".tdd/$phase.$ext" "$base.$ext"; fi
+  done
 fi
