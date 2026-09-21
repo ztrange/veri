@@ -237,13 +237,13 @@ def log_records(log):
                 continue
 
 
-# The Tests pane: the test runs the LEAVES performed, read back out of their logs — the
+# The test runs a run's LEAF LOGS account for, read back out of their records — the
 # dashboard runs no suite itself, and could not: a suite takes minutes and would run again on
 # every poll. A test run is a Bash tool call whose command is the run's own test command,
 # paired with the tool result carrying its answer; the pairing is by `tool_use_id`, because a
 # leaf's call and its result are separate records and other calls sit between them. A Bash
 # call to anything else is no run of the suite, and so is not listed.
-def test_runs(run, command):
+def logged_test_runs(run, command):
     found = []
     for log in leaf_logs(run):
         pending = set()
@@ -267,14 +267,14 @@ def test_runs(run, command):
 # per `test-run` mark, the line timed-test-run.sh:45 appends per test-command run since #342 —
 # when a leaf stopped typing its test command as a bare Bash call and started invoking the
 # wrapper by absolute path instead (#383). That is why the mark and not the leaf log is what
-# the pane counts today: test_runs' string match against the spec's command could never hold
+# the pane counts today: logged_test_runs' string match against the spec's command could never hold
 # again, and the pane went empty on a live run that had already run its suite seven times.
 #
 # Each entry says which suites that run covered and whether it came back green, both read off
 # the mark itself: `suites` is the list timed-test-run.sh was handed (empty for a whole-suite
 # tier, which covers them all and names none), and `status` is the test command's own exit
 # status, so a run passed when that status was success. The command is the spec's, the one
-# test_runs above names too, because the mark does not carry it.
+# logged_test_runs above names too, because the mark does not carry it.
 def marked_test_runs(run, command):
     return [{"command": command,
              "suites": mark.get("suites", ""),
@@ -306,7 +306,7 @@ def tests_json(query):
     if event_log(run):
         tests = marked_test_runs(run, command)
     else:
-        tests = test_runs(run, command) if command else []
+        tests = logged_test_runs(run, command) if command else []
     return json.dumps({"tests": tests}).encode()
 
 
