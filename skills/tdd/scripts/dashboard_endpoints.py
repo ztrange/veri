@@ -19,10 +19,10 @@ metrics_sh = sys.argv[4]
 # not a failure — status.sh exits 3 for "no runs", which is the empty document — and
 # stderr is discarded because the page is the only reader and a diagnostic on it would
 # only garble the body. `cwd=None` runs it in the server's own working directory, which is
-# the target repo dashboard.sh was started from, and `stdin=None` leaves the child the
-# server's own stdin — a reader with a file for the script to read hands it over open.
-def capture(argv, cwd=None, stdin=None, feed=None):
-    done = subprocess.run(argv, cwd=cwd, stdin=stdin, input=feed, stdout=subprocess.PIPE,
+# the target repo dashboard.sh was started from, and `feed=None` leaves the child the server's
+# own stdin — a reader with bytes for the script to read on stdin hands them over instead.
+def capture(argv, cwd=None, feed=None):
+    done = subprocess.run(argv, cwd=cwd, input=feed, stdout=subprocess.PIPE,
                           stderr=subprocess.DEVNULL, check=False)
     return done.stdout
 
