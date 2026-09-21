@@ -50,6 +50,26 @@ if [[ "$rc" -eq 2 ]]; then pass=$((pass + 1)); else
   echo "    expected exit 2, got $rc"
 fi
 
+# 3. the header's account of a line that is not JSON says what the script does with the
+#    records BEFORE it: they are discarded too, because the accumulated output is written
+#    only after the loop that exit leaves. "no rendering can be given" alone leaves a reader
+#    to guess whether the pane gets what the script managed — it gets nothing (#384).
+name="the header says a non-JSON line discards the records already rendered"
+header="$(sed -n '2,/^set -euo pipefail$/p' "$RENDER" | sed -n 's/^#[[:space:]]\{0,1\}//p')"
+rendered_before="$(printf '%s\n' \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}' \
+  'not json at all' | "$RENDER" 2>/dev/null)"
+if [[ -n "$rendered_before" ]]; then
+  fail=$((fail + 1)); echo "FAIL - $name"
+  echo "    expected the script to print nothing, got: $rendered_before"
+elif grep -qE 'discard|throw[sn]? away|already rendered|records before it' <<< "$header"; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1)); echo "FAIL - $name"
+  echo "    the header never says the records already rendered are discarded:"
+  grep -n 'not JSON' <<< "$header" | sed 's/^/    /'
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
