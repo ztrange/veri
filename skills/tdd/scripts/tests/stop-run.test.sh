@@ -66,23 +66,27 @@ printf '%s\n' "$cond_pid" > "$run/.tdd/conductor.pid"
 #    run at its next checkpoint, and a TERM sent before the arguments were understood would
 #    take a leaf down over a typo.
 problems=""
+
+# note <what-went-wrong> — one line of the case's diff, indented and headed by the refusal
+# being checked. Every check below says only its own half; the shape they share is written
+# once here. `$label` is check_refused's own local, which this function reads because bash
+# scopes `local` dynamically — a function called from there sees the caller's locals.
+note() { problems+="    $label: $1"$'\n'; }
+
 check_refused() {  # check_refused <label> [args…]
   local label="$1"; shift
   local out code err
   out="$(cd "$repo" && "$STOP" "$@" 2>"$work/stderr")" && code=0 || code=$?
   err="$(cat "$work/stderr")"
-  [[ "$code" == 2 ]] ||
-    problems+="    $label: want exit 2, got exit $code"$'\n'
-  [[ -z "$out" ]] ||
-    problems+="    $label: want empty stdout, got '$out'"$'\n'
-  [[ -n "$err" ]] ||
-    problems+="    $label: want a complaint on stderr, got nothing"$'\n'
+  [[ "$code" == 2 ]] || note "want exit 2, got exit $code"
+  [[ -z "$out" ]] || note "want empty stdout, got '$out'"
+  [[ -n "$err" ]] || note "want a complaint on stderr, got nothing"
   [[ ! -e "$run/.tdd/stop" ]] ||
-    problems+="    $label: want no .tdd/stop written, found one holding '$(cat "$run/.tdd/stop")'"$'\n'
+    note "want no .tdd/stop written, found one holding '$(cat "$run/.tdd/stop")'"
   kill -0 "$sup_pid" 2>/dev/null ||
-    problems+="    $label: want the live supervisor $sup_pid untouched, it is gone"$'\n'
+    note "want the live supervisor $sup_pid untouched, it is gone"
   kill -0 "$cond_pid" 2>/dev/null ||
-    problems+="    $label: want the conductor $cond_pid untouched, it is gone"$'\n'
+    note "want the conductor $cond_pid untouched, it is gone"
   rm -f "$run/.tdd/stop"
 }
 check_refused "an unknown --mode value" --mode bogus 5
