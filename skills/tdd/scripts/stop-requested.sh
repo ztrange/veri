@@ -16,11 +16,21 @@
 # under `set -e` it would end the run at exit 1 — outside this script's four-code API and
 # silent besides. `|| mode=""` hands that case to the check below instead.
 #
-# Usage:   stop-requested.sh
-# Exits:   0 a mode was printed | 2 malformed request | 3 no stop request
+# `--clear` removes the file and exits 0 whether or not it was there. Idempotent on
+# purpose: both callers — the stop sequence at its end, and the claim at a run's first
+# step — must be able to clear without first asking whether there is anything to clear.
+#
+# Usage:   stop-requested.sh [--clear]
+# Exits:   0 a mode was printed, or the request was cleared | 2 malformed request |
+#          3 no stop request
 set -euo pipefail
 
 file=".tdd/stop"
+
+if [[ "${1:-}" == "--clear" ]]; then
+  rm -f "$file"
+  exit 0
+fi
 
 [[ -f "$file" ]] || exit 3
 
