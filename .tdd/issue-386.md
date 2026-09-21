@@ -6,4 +6,4 @@
 - [x] stop-requested.sh --clear removes .tdd/stop and exits 0, and exits 0 when there was no file to remove ⟦criterion 4⟧
 - [x] stop-requested.sh given any other argument exits 2 and leaves .tdd/stop as it was ⟦criterion 5⟧
 - [x] stop-requested.sh --clear with a trailing argument exits 2 and leaves .tdd/stop as it was ⟦added⟧ ⟦criterion 5⟧
-- [ ] the stop-requested suite runs in the fast tier from tests/unit/ and its header states the bar it clears ⟦criterion 6⟧
+- [x] the stop-requested suite runs in the fast tier from tests/unit/ and its header states the bar it clears ⟦criterion 6⟧
