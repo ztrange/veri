@@ -221,31 +221,9 @@ check() {
   fi
 }
 
-# moved <what> <claimed> <n> <added> — one stated count against the tree as it stood
-# BEFORE <added> landed in it. <n> is what the glob matches now, so <n>-1 is the number the
-# sentence stated before, and a sentence still stating that is one nobody edited when the
-# file arrived. That is the whole failure the case below is there for and the one `check`
-# above cannot see on its own: nothing recomputes a number written in prose, so a script
-# can land, its suite can land, `make test` can go green, and both sentences go on counting
-# the tree the script landed in. Either spelling, case-folded, for the reason `check` gives;
-# an empty <claimed> fails closed through `unreadable` for the reason `check` gives too — a
-# count the document no longer states cannot be shown to have moved.
-moved() {
-  local what="$1" claimed="$2" before="$(( $3 - 1 ))" added="$4" words
-  if [[ -z "$claimed" ]]; then
-    unreadable "$claude_md states no $what" "the sentence that counts them"
-    return
-  fi
-  claimed="$(tr '[:upper:]' '[:lower:]' <<< "$claimed")"
-  words="$(in_words "$before")"
-  if [[ "$claimed" == "$before" ]] || [[ -n "$words" && "$claimed" == "$words" ]]; then
-    problems+=("$claude_md says the $what is '$claimed' — the count of the tree without $added")
-  fi
-}
-
 # present <path> — record the problem a file the counts are supposed to cover leaves behind
 # by not being there. Fails closed for the same reason `nonempty` above does: with the file
-# gone there is no move left to look for, and `moved` would be holding the stated count
+# gone there is no move left to look for, and `moved_by` would be holding the stated count
 # against a tree one file smaller than the one the sentence describes — under which a count
 # that never moved reads as one that did.
 present() {
@@ -254,15 +232,19 @@ present() {
   fi
 }
 
-# moved_by <what> <claimed> <n> <added…> — `moved` for an issue that adds more than one
-# file to the same tree. `moved` measures against <n>-1 because #149 added exactly one
-# script and one suite; this issue adds one script and TWO suites, so the number nobody
-# edited when it landed is <n> minus as many files as are named, and <n>-1 is a count that
-# was never true of either tree. The two helpers catch different stale numbers rather than
-# the same one twice — with 58 suites on disk, `moved` goes red on 57 and this goes red on
-# 56 — which is why the case below is a case and not case 2 with other names. Either
-# spelling, case-folded, and an empty <claimed> fails closed, all for the reasons `check`
-# and `moved` give.
+# moved_by <what> <claimed> <n> <added…> — one stated count against the tree as it stood
+# BEFORE the named files landed in it. <n> is what the glob matches now, so <n> minus as
+# many files as are named is the number the sentence stated before, and a sentence still
+# stating that is one nobody edited when they arrived. That is the whole failure the cases
+# below are there for and the one `check` above cannot see on its own: nothing recomputes a
+# number written in prose, so a script can land, its suite can land, `make test` can go
+# green, and both sentences go on counting the tree the script landed in. How many files
+# are named is the whole difference between those cases — with 58 suites on disk, an issue
+# that added one goes red on 57 and one that added two goes red on 56 — which is why each
+# is its own case rather than one case with other names. Either spelling, case-folded, for
+# the reason `check` gives; an empty <claimed> fails closed through `unreadable` for the
+# reason `check` gives too — a count the document no longer states cannot be shown to have
+# moved.
 moved_by() {
   local what="$1" claimed="$2" n="$3" words
   shift 3
@@ -290,19 +272,19 @@ moved_by() {
 # one script and one suite: are both on disk, and did all three counts move off the number
 # true of the tree without them. Written once so the two cases cannot drift into asking it
 # differently. Returns non-zero when either file is missing — `present` has already recorded
-# the problem, and `moved`'s <n>-1 would be measuring against the wrong tree — so a caller
-# with a question of its own to add skips it the same way.
+# the problem, and `moved_by`'s subtraction would be measuring against the wrong tree — so a
+# caller with a question of its own to add skips it the same way.
 moved_with() {
   local script="$1" suite="$2"
   present "$script"
   present "$suite"
   if [[ "${#problems[@]}" -ne 0 ]]; then return 1; fi
   if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
-    moved "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$script"
+    moved_by "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$script"
   fi
   if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
-    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$suite"
-    moved "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$script"
+    moved_by "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$suite"
+    moved_by "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$script"
   fi
 }
 
@@ -350,8 +332,8 @@ report "$name"
 #    #149's pair; this one asks it of #207's — `run-conductor.sh`, and the two suites that
 #    arrive with it, `run-conductor.test.sh` and `skill-conductor-launch.test.sh`. Two
 #    suites is the whole reason this is its own case: the suite count nobody edited when
-#    this issue landed is two below the tree on disk, and case 2's `moved` only ever looks
-#    one below, so a document still stating fifty-six suites reads to case 2 as one
+#    this issue landed is two below the tree on disk, and case 2 names one file so it only
+#    ever looks one below, so a document still stating fifty-six suites reads to case 2 as one
 #    somebody moved. The reads are case 1's, taken once above — `n_scripts`, `n_suites`,
 #    `intro` and `idiom` — asked of this issue's arrivals.
 name="$claude_md's counts moved with run-conductor.sh and its suites"
@@ -459,9 +441,8 @@ report "$name"
 #    *Testing idiom* count that was true of the tree without it would still be sitting in
 #    the sentence, `make test` would be red at the tip, and case 1 alone cannot say why —
 #    it reports the count as wrong, not as one nobody moved when this suite arrived. Same
-#    shape as cases 2 and 3, asked of this issue's single arrival, so `moved` is the helper
-#    rather than `moved_by`. The reads are case 1's, taken once above — `n_suites` and
-#    `idiom`.
+#    shape as cases 2 and 3, asked of this issue's single arrival, so `moved_by` is given
+#    the one file. The reads are case 1's, taken once above — `n_suites` and `idiom`.
 name="$claude_md's counts moved with skill-stopping.test.sh"
 problems=()
 
@@ -470,11 +451,11 @@ stopping_suite="skills/tdd/scripts/tests/skill-stopping.test.sh"
 present "$stopping_suite"
 
 # Only ask about the move when the suite is on disk, for the reason case 2 gives:
-# `present` has already recorded the problem otherwise, and `moved`'s <n>-1 would be
-# measuring against a tree that is not the one the sentence describes.
+# `present` has already recorded the problem otherwise, and `moved_by`'s subtraction would
+# be measuring against a tree that is not the one the sentence describes.
 if [[ "${#problems[@]}" -eq 0 ]]; then
   if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite count it states"; then
-    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$stopping_suite"
+    moved_by "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$stopping_suite"
   fi
 fi
 
