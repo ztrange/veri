@@ -1,0 +1,2 @@
+### SKILL.md has a `## Stopping` section that settles the leaves first — waiting with `wait-leaf.sh <name>` on every `.tdd/<name>.pid` still running `supervise.sh <name> ` before it touches the tree — and reaches only for `git reset --hard HEAD`, never `git checkout`
+- hoist the duplicated `report` and markup-plain helpers shared by skill-stopping.test.sh, skill-push-reconcile.test.sh and the other prose suites into one sourced tests helper — out of scope here (it rewrites suites this cycle did not write, and the repository's zero-dependency idiom repeats them on purpose)
