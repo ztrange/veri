@@ -704,7 +704,11 @@ following step. The phase sub-steps are:
      told about it. So **skip verify-red and verify-pin**, keep the reason the script wrote
      to `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead —
      the report had no prediction to read), mark it with
-     `$S/event.sh prediction-diverged` so the divergence is in the run log, and enter the
+     `$S/event.sh prediction-diverged` so the divergence is in the run log, preserve the
+     attempt beside that mark with
+     `$S/preserve-attempt.sh <n> '<STEP>' develop-red 1 prediction-diverged` so the tree the
+     surprising test came from survives the next leaf that overwrites it (best-effort: note
+     it if it fails and carry on), and enter the
      **revise loop** for red exactly as a verify-red `REJECT` does (see *Revising on a
      REJECT*) — the revise leaf answers `.tdd/verify-red.reason`, and the attempt spends
      `REVISE_BUDGET` like any other.
@@ -1136,7 +1140,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
      is the suspect, and verify-red is blind by construction, so spend attempt `k` **without
      re-verifying**: skip the re-verification entirely, keep the reason the script wrote to
      `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead), mark
-     it with `$S/event.sh prediction-diverged`, and treat the attempt exactly as a `REJECT`
+     it with `$S/event.sh prediction-diverged`, preserve the attempt beside that mark with
+     `$S/preserve-attempt.sh <n> '<STEP>' revise-red <k> prediction-diverged` (best-effort:
+     note it if it fails and carry on), and treat the attempt exactly as a `REJECT`
      does — if attempts remain, loop to attempt `k+1` with that reason; otherwise fall
      through to the budget-exhausted bail below.
    Every other phase's revise template writes no `PREDICTION:` line, so this sub-step is the
@@ -1282,34 +1288,43 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
 
 To bail:
 
-1. **Revert only the half-done step.** Completed steps are committed; the failing step's
+1. **Preserve the attempt first.** The tree the troubled leaf left is the evidence a reader
+   of this bail will want, and the very next step throws it away — so snapshot it before the
+   reset, from inside the worktree:
+   ```
+   $S/preserve-attempt.sh <n> '<STEP>' <phase> <attempt> bail
+   ```
+   `<phase>` is the leaf whose trouble caused the bail (`develop-green`, `verify-red`, …) and
+   `<attempt>` its number (`1` outside the revise loop, `k` inside it). Best-effort: note it
+   if it fails and bail anyway — a bail that stops for a failed snapshot loses the report too.
+2. **Revert only the half-done step.** Completed steps are committed; the failing step's
    test/code is still uncommitted (the cycle bailed before its atomic green commit). Drop
    exactly that half-done work — `git reset --hard HEAD` — which leaves every completed
    step's commit (and the ledger's checked steps) intact.
-2. **Classify deterministically.** `classification="$($S/classify-bail.sh <cause>)"`
+3. **Classify deterministically.** `classification="$($S/classify-bail.sh <cause>)"`
    (`<cause>` is one of the tokens above). This keeps the label consistent rather than
    ad-hoc; an unknown token makes it exit non-zero — pick the right token.
-3. **Render and commit the metrics**, from inside the worktree and before the push, so the
+4. **Render and commit the metrics**, from inside the worktree and before the push, so the
    branch carrying the progress carries the account of it too: `$S/metrics.sh <n> >
    .tdd/issue-<n>-metrics.md`, then `git add .tdd/issue-<n>-metrics.md && git commit -m
    "metrics: what bailing on #<n> cost (#<n>)"`. This is the ending the report is worth most
    at — every attempt a bailed step spent is waste, and only the file says how much.
-4. **Push the branch** so completed steps, that metrics commit and the leaf logs are
+5. **Push the branch** so completed steps, that metrics commit and the leaf logs are
    recoverable, from inside the worktree (where you already are):
    `git push -u origin tdd/<n>-<slug>` (best-effort; note if it fails).
-5. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
+6. Post a `### ⛔ Bailed — <phase> (<classification> failure)` comment that names the phase,
    carries the `### 📊 Metrics` block just committed, carries the last reason
    (`.tdd/verify-<phase>.reason` on a `revise-exhausted` bail, the develop-red leaf's `WHY:`
    line on an `untestable-criterion` bail, the kill cause otherwise),
    and points at the progress log (`.tdd/<phase>.log` or
    `.tdd/revise-<phase>-*.log`) for forensics. Mark the stop in the log too, with the cause
-   token and the classification step 2 derived from it:
+   token and the classification step 3 derived from it:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
    ```
-6. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
+7. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
    failing step (see *Resume*).
-7. Report to the user: the phase, the **classification** (system vs process), the reason,
+8. Report to the user: the phase, the **classification** (system vs process), the reason,
    the branch name, and the **worktree path** — the logs named above are inside it, and it
    is where a re-run will resume. Leave it in place; only a merged PR retires it.
 

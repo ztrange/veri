@@ -7,5 +7,5 @@
 - [x] a malformed verdict, the no-verdict half of the same criterion, preserves the verifier attempt under its own ref and copies ⟦added⟧ ⟦criterion 1⟧
 - [x] a killed-stuck leaf makes supervise.sh preserve that attempt, both on a retry and on the final killed-stuck exit ⟦criterion 1⟧
 - [x] a PASS verdict and a leaf that exits success or clean failure write no ref and no preserved copy ⟦criterion 4⟧
-- [ ] the conductor preserves the attempt on a bail and on a prediction-diverged mark, so those two conductor-side marks are covered like the leaf-side ones ⟦criterion 1⟧
+- [x] the conductor preserves the attempt on a bail and on a prediction-diverged mark, so those two conductor-side marks are covered like the leaf-side ones ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] preservation changes no leaf prompt and puts the developer's rationale nowhere a verifier leaf reads: the preserved commit is unreachable from HEAD and its message carries no rationale ⟦criterion 5⟧
