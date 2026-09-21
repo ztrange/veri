@@ -13,24 +13,16 @@
 # Output:  the worktree's absolute path on stdout, exit 0.
 set -euo pipefail
 
-# Bad arguments are exit 2, not the 1 a `${1:?…}` expansion aborts with: a caller who passed
-# nothing made no call whose result could be a negative answer (#270). Both call shapes need
-# a first argument, so the one refusal above serves both — and it is answered here, before
-# the `git worktree list` below, because a call that was never valid should start no process
-# and get its usage line rather than whatever git has to say about the directory it ran in.
-# Refusing also keeps a missing <n> from silently building a branch called `tdd/-`.
+# Bad arguments are exit 2, not the 1 a `${N:?…}` expansion aborts with: a caller who passed
+# nothing made no call whose result could be a negative answer (#270). Both call shapes take
+# exactly two arguments — <n> <slug>, or --remove <n> — so one refusal naming both is the
+# whole argument check, asked before the `--remove` dispatch below rather than once inside
+# each of its arms. It is answered here, above the `git worktree list` below, because a call
+# that was never valid should start no process and get its usage line rather than whatever
+# git has to say about the directory it ran in. Refusing also keeps a missing <n> from
+# silently building a branch called `tdd/-`.
 USAGE="usage: issue-worktree.sh <n> <slug> | --remove <n>"
-[[ -n "${1:-}" ]] || { echo "$USAGE" >&2; exit 2; }
-# The second argument each call shape needs — the slug, or --remove's <n> — is checked up
-# here with the first, and for the same two reasons. It is exit 2 rather than the 1 a
-# `${2:?…}` expansion aborts with, and it is answered before the `git worktree list` below
-# rather than at the point the value is read, so a call that was never valid still starts
-# no process and still gets its usage line.
-if [[ "$1" == "--remove" ]]; then
-  [[ -n "${2:-}" ]] || { echo "usage: issue-worktree.sh --remove <n>" >&2; exit 2; }
-else
-  [[ -n "${2:-}" ]] || { echo "$USAGE" >&2; exit 2; }
-fi
+[[ -n "${1:-}" && -n "${2:-}" ]] || { echo "$USAGE" >&2; exit 2; }
 
 # git's own registry of worktrees — asked once here, questioned three times below. `worktree
 # list --porcelain` prints one block per registered worktree, blank-line separated: a
