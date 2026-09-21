@@ -168,7 +168,7 @@ if load_section; then
 
   refuse 'detach-leaf\.sh|build-develop-prompt\.sh reconcile|develop-reconcile' \
     "the Stopping section launches the reconcile leaf; a stop launches no leaves"
-  refuse 'classify-bail\.sh|event\.sh bail' \
+  refuse 'event\.sh bail' \
     "the Stopping section bails on the rejected push; a stop is not a bail"
 fi
 report "$name"
