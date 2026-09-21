@@ -163,9 +163,13 @@ stop_leaves() {
   done
 }
 
-# request_stop's caller for a run it has just written to: `now` is the only mode that signals,
-# and it signals only where the write happened, never over a run the command skipped.
-stop_now() {
+# stop_run <run-path> — the whole of what stopping one live run is, so that both callers below
+# ask for it in one line and neither can do half of it: the write, and then — for `now` alone —
+# the TERM to that run's leaf supervisors. Pairing them here rather than at each caller is what
+# holds the rule that a signal only ever goes to a run a write has just reached, never over one
+# the command skipped.
+stop_run() {
+  request_stop "$1"
   [[ "$mode" == now ]] && stop_leaves "$1"
   return 0
 }
@@ -178,8 +182,7 @@ if (( all == 1 )); then
   for candidate in "$main_tree"/.tdd/wt/*; do
     [[ -d "$candidate" ]] || continue
     if live_run "$candidate"; then
-      request_stop "$candidate"
-      stop_now "$candidate"
+      stop_run "$candidate"
       stopped=1
     fi
   done
@@ -188,6 +191,5 @@ else
   target="$main_tree/.tdd/wt/$issue"
   live_run "$target" ||
     nothing_to_do "no live run for issue $issue"
-  request_stop "$target"
-  stop_now "$target"
+  stop_run "$target"
 fi
