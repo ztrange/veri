@@ -72,16 +72,19 @@ files="$(git diff --name-only "$range")"
 
 # One file no rule places widens the whole answer to every suite (fail-closed): a partial list
 # would narrow the run to what the other rules happened to find.
-placed="" unplaced=0
+placed="" unplaced=""
 while IFS= read -r f; do
   if suites="$(suite_of "$f")"; then
     if [[ -n "$suites" ]]; then placed+="$suites"$'\n'; fi
   else
-    unplaced=1
+    unplaced+="$f"$'\n'
   fi
 done <<<"$files"
 
-if (( unplaced )); then
+if [[ -n "$unplaced" ]]; then
+  # Say which file widened the answer, so the next unplaced kind is visible rather than silent.
+  printf 'affected-suites: no rule places %s; widening to every suite\n' \
+    "$(printf '%s' "$unplaced" | paste -sd, -)" >&2
   for suite in "$scripts"/tests/*.test.sh "$scripts"/tests/unit/*.test.sh; do
     if [[ -f "$suite" ]]; then echo "$suite"; fi
   done | sort -u

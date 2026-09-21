@@ -320,6 +320,22 @@ commit_head
 expect_suites "fail-closed: a range whose only changed file matches no rule prints every suite" \
   "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh\nskills/tdd/scripts/tests/unit/baz.test.sh')"
 
+# 15. a widened answer says why: the script names on stderr the file that forced the widening,
+#     so the next unplaced kind is visible rather than silent. docs/notes.md matches no rule, so
+#     the answer is every suite; stderr must name that file, not merely be non-empty.
+new_repo widening-names-the-file
+mkdir -p "$s/tests" "$repo/docs"
+printf 'foo\n' > "$s/foo.sh"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# notes\n' > "$repo/docs/notes.md"
+commit_base
+printf '# notes 2\n' > "$repo/docs/notes.md"
+commit_head
+err="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>&1 >/dev/null)"; code=$?
+if [[ "$code" == 0 && "$err" == *"docs/notes.md"* ]]; then ok; else
+  no "a widened answer names on stderr the file that forced the widening (code=$code, stderr=${err:-<empty>})"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
