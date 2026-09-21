@@ -1493,6 +1493,99 @@ fi
 { [[ "${#audit_problems[@]}" -eq 0 ]]; } && ok \
   || no "a stub leaf whose silence is real waiting is named by the clock audit, a deliberate real-clock dependence recorded with a reason is not (${audit_problems[*]})"
 
+# 35. a killed-stuck leaf's attempt is preserved — the one the supervisor RELAUNCHED past as
+#     well as the one it finally gave up on (issue #409). Both are evidence a human will want:
+#     the tree the leaf left is never committed to the work branch, and `.tdd/develop-red.log`
+#     is truncated at the top of every attempt (supervise.sh's `: > "$log"`), so the first
+#     attempt's work and output exist nowhere else the moment the relaunch begins. The
+#     supervisor is the only place either can be caught: it is where a kill is decided, and the
+#     retry loop is its own.
+#
+#     Both halves are asserted in one case because "both" is the whole of the criterion: a
+#     preservation written only at the foot of the script would leave the relaunched attempt
+#     lost, and one written only before the relaunch would lose the attempt the run ended on.
+#     Two refs and two copies is what says they were kept apart rather than one overwriting the
+#     other under a shared name.
+#
+#     What each preserved thing IS, rather than merely that something was written: the leaf
+#     counts its own attempts into a tracked `attempts.txt` and names the number in its output,
+#     so the ref for the first attempt holds a one-line file and the second a two-line one, and
+#     each preserved log carries its own attempt's line. A preservation that snapshotted the
+#     same moment twice would satisfy a count and fail here.
+#
+#     The refs are counted and read rather than named, and the copies are found by the prefix
+#     preserve-attempt.sh's own contract builds (`<step>-<phase>-<attempt>-<mark>`): how the two
+#     attempts are told apart inside that name, and which mark ends it, are that script's to say
+#     and preserve-attempt.test.sh's to pin. The numbers are sorted before comparison for the
+#     same reason — the order `for-each-ref` and `ls` return is alphabetical, not chronological.
+#
+#     A real git repository, since the subject is a real ref: one commit, then the leaf's work on
+#     top of it, the shape a step is killed in. `.tdd/` is ignored the way ensure-run-state-ignored.sh
+#     installs it in a real run, and `.test-clock*` beside it — the injected clock's own history,
+#     written into the leaf's cwd, which is nothing the preserved tree should carry.
+#
+#     Not through `sup_run`, for case 13's reason: that helper pins VERI_STUCK_RETRIES=0 and
+#     there would be no relaunch to preserve. `env -u` instead, so the DEFAULT budget of one
+#     retry produces exactly two attempts and the shell that ran `make test` cannot change how
+#     many.
+preserve_work="$work/preserve"
+preserve_issue=409
+preserve_step=6
+preserve_window=1
+mkdir -p "$preserve_work"
+git init -q -b main "$preserve_work" >/dev/null 2>&1
+git -C "$preserve_work" config user.name veri
+git -C "$preserve_work" config user.email veri@example.test
+printf '.tdd/\n.test-clock*\n' > "$preserve_work/.gitignore"
+printf 'the step this leaf never finished\n' > "$preserve_work/src.txt"
+git -C "$preserve_work" add -A >/dev/null 2>&1
+git -C "$preserve_work" commit -q -m "initial" >/dev/null 2>&1
+
+# The leaf that hangs on EVERY attempt, counting itself into the tree it leaves behind. Written
+# here rather than beside the leaf-* stubs at the top of the file, for case 16's reason: next to
+# the case whose premise it is. `leaf-hang` cannot stand in — it leaves both attempts byte-
+# identical, so nothing could tell one preserved tree from the other.
+cat > "$stub/leaf-hang-counting" <<'L'
+#!/bin/sh
+echo run >> attempts.txt
+echo "leaf: attempt $(wc -l < attempts.txt | tr -d ' ')"
+clock-jump "$(( ${VERI_HEARTBEAT:-999} + 1 ))"; sleep 60
+L
+chmod +x "$stub/leaf-hang-counting"
+
+( cd "$preserve_work" && env -u VERI_STUCK_RETRIES \
+    VERI_ISSUE="$preserve_issue" VERI_STEP="$preserve_step" \
+    VERI_HEARTBEAT="$preserve_window" VERI_TIMEOUT=30 VERI_POLL=0.02 VERI_KILL_POLL=0.01 \
+    "$SUP" develop-red "$stub/leaf-hang-counting" ) >/dev/null 2>&1
+preserve_code=$?
+
+# Each fact read once, into the variable the assertion and the failure message share — every
+# case above this one's shape.
+preserve_refs="$(git -C "$preserve_work" for-each-ref --format='%(refname)' \
+  "refs/veri/attempts/$preserve_issue/$preserve_step/" 2>/dev/null)"
+preserve_ref_count="$(printf '%s\n' "$preserve_refs" | grep -c . || true)"
+# How many attempts each preserved tree had seen — the line count of the file the leaf appends
+# to once per attempt. `xargs` joins the sorted numbers into one word-spaced line and answers
+# the empty string when there is nothing, which is what an unpreserved run reports.
+preserve_trees="$(while read -r ref; do
+    [[ -n "$ref" ]] || continue
+    git -C "$preserve_work" show "$ref:attempts.txt" 2>/dev/null | grep -c . || true
+  done <<< "$preserve_refs" | sort | xargs)"
+# The preserved logs, found by the prefix the step and the leaf's name build. `ls` rather than a
+# glob into an array, case 27 of verify.test.sh's reason: an unmatched glob comes back as the
+# pattern itself, which reads as a found file.
+preserve_copies="$(ls "$preserve_work/.tdd/attempts/$preserve_step-develop-red-"*.log 2>/dev/null || true)"
+preserve_copy_count="$(printf '%s\n' "$preserve_copies" | grep -c . || true)"
+preserve_logged="$(while read -r f; do
+    [[ -n "$f" ]] || continue
+    grep -oE 'leaf: attempt [0-9]+' "$f" | head -1 | grep -oE '[0-9]+' || true
+  done <<< "$preserve_copies" | sort | xargs)"
+{ [[ "$preserve_code" == 2 ]] \
+  && [[ "$preserve_ref_count" == 2 ]] && [[ "$preserve_trees" == "1 2" ]] \
+  && [[ "$preserve_copy_count" == 2 ]] && [[ "$preserve_logged" == "1 2" ]]; } && ok \
+  || no "a killed-stuck leaf preserves the relaunched attempt and the final one, each as its own tree and log (code=$preserve_code want 2; refs=$preserve_ref_count want 2 under refs/veri/attempts/$preserve_issue/$preserve_step/, attempts per tree='$preserve_trees' want '1 2'; log copies=$preserve_copy_count want 2, attempt each logged='$preserve_logged' want '1 2')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

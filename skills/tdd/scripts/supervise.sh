@@ -359,11 +359,45 @@ on_signal() {
 }
 trap on_signal TERM INT HUP
 
+# The evidence a killed-stuck attempt leaves behind, kept before the next one destroys it
+# (issue #409). `attempt_once` truncates `.tdd/<name>.log` at its top, and the tree a killed
+# leaf produced is never committed to the work branch — a green commit lands only after
+# verify-green PASSes — so between a kill and the relaunch is the only moment either exists.
+# This is the one place both can be caught: the kill is decided here and the retry loop is
+# this script's own.
+#
+# `stuck` is the mark, the word the issue's list of troubles uses for this one, and it ends
+# the names of the copies so a reader pairs them with the `retry`/`exit` event that carries
+# the same cause. The attempt number is the supervisor's own count of tries, not the one the
+# leaf's NAME carries (`revise-green-2`): two attempts of one supervision share that name, so
+# filing both under it would have the second overwrite the first — which is the loss this is
+# here to prevent.
+#
+# A no-op on every other status, so an untroubled leaf costs nothing, and on a run with no
+# issue/step in its environment or no HEAD to hang a commit off, which is what the suites'
+# bare temporary directories are. Preservation never changes what this supervision reports:
+# its failure is said on stderr and dropped, the way harvest-usage.sh's is, because a run that
+# loses its evidence is better off than one that loses its leaf's status to a failed
+# `git update-ref`.
+preserve_killed_attempt() {
+  local attempt="$1"
+  [[ "$status" == "killed-stuck" ]] || return 0
+  [[ -n "${VERI_ISSUE:-}" && -n "${VERI_STEP:-}" ]] || return 0
+  git rev-parse --verify -q HEAD >/dev/null 2>&1 || return 0
+  "$HERE/preserve-attempt.sh" "$VERI_ISSUE" "$VERI_STEP" "$name" "$attempt" stuck >&2 \
+    || echo "supervise[$name]: could not preserve the stuck attempt (issue $VERI_ISSUE step $VERI_STEP $name attempt $attempt)" >&2
+}
+
 # First attempt plus up to $retries extra attempts. A normal result (success/failure)
 # short-circuits; only killed-stuck is retried.
 tries=0
 while :; do
   attempt_once "$@"
+  # Before the loop decides anything: on the relaunch path this runs while the killed
+  # attempt's log and tree are still on disk, and on the last attempt it is the final
+  # killed-stuck one being kept. One call site rather than two, because the two are the same
+  # act at two moments.
+  preserve_killed_attempt "$(( tries + 1 ))"
   [[ "$status" == "killed-stuck" ]] || break
   (( tries >= retries )) && break
   tries=$(( tries + 1 ))
