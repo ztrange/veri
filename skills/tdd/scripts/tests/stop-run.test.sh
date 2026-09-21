@@ -89,11 +89,21 @@ report() {
   fi
 }
 
+# run_stop <args…> — run the command under test from the repository the case built, leaving
+# its stdout in `out`, its exit code in `code` and its stderr in `err`. Every case captures
+# the same three, and all three have to be captured together: `$?` is the status of the last
+# command run, so a read of stderr placed between the call and the capture is what `$?` then
+# answers about. Written once here rather than per case for that reason, and it assigns to
+# the caller's names for the same dynamic-scope reason note() reads `$label`.
+run_stop() {
+  out="$(cd "$repo" && "$STOP" "$@" 2>"$work/stderr")" && code=0 || code=$?
+  err="$(cat "$work/stderr")"
+}
+
 check_refused() {  # check_refused <label> [args…]
   local label="$1"; shift
   local out code err
-  out="$(cd "$repo" && "$STOP" "$@" 2>"$work/stderr")" && code=0 || code=$?
-  err="$(cat "$work/stderr")"
+  run_stop "$@"
   [[ "$code" == 2 ]] || note "want exit 2, got exit $code"
   [[ -z "$out" ]] || note "want empty stdout, got '$out'"
   # The complaint has to be the script's own — the `stop-run: ` prefix refuse() writes — and
@@ -138,8 +148,8 @@ report "--mode with no value exits 2 with the script's own complaint, writes no 
 #    name: naming the run by its path and naming it by its number are both the run named,
 #    and the step asks for the run to be named, not for a format.
 problems=""
-out="$(cd "$repo" && "$STOP" --mode now 5 2>"$work/stderr")" && code=0 || code=$?
-[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $(cat "$work/stderr"))"
+run_stop --mode now 5
+[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
 [[ "$out" == *5* ]] || note "want the run named on stdout, got '$out'"
 if [[ ! -f "$run/.tdd/stop" ]]; then
   note "want $run/.tdd/stop holding 'now', it was not written"
