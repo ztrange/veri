@@ -38,7 +38,12 @@ USAGE="usage: session-cost.sh --since <ISO date> [--json] [<transcript.jsonl> ..
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --since)
-      since="${2:?$USAGE}"
+      # Checked rather than read through `${2:?…}`: that expansion aborts the shell with
+      # status 1, the code reserved for an answer, and a --since with no date asked
+      # nothing. Bad arguments are exit 2, the same code the missing --since below gets
+      # (#270).
+      [[ -n "${2:-}" ]] || { echo "$USAGE" >&2; exit 2; }
+      since="$2"
       shift 2
       ;;
     # The same day, for a reader that is not a person: a dashboard, a weekly roll-up, the

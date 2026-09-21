@@ -21,7 +21,8 @@ if [[ "${1:-}" == "--refactor-pending" ]]; then
   shift
 fi
 
-file="${1:?usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>}"
+[[ -n "${1:-}" ]] || { echo "usage: tick-ledger.sh [--refactor-pending] <ledger-file> <matcher>" >&2; exit 2; }
+file="$1"
 matcher="${2:-}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 

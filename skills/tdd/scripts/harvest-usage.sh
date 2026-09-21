@@ -23,8 +23,10 @@
 # them as they arrived means a reader who has seen one has seen the other.
 set -euo pipefail
 
-# `${1:?msg}` expands $1, but aborts the shell with msg on stderr if it is unset or empty.
-name="${1:?usage: harvest-usage.sh <leaf-name>}"
+# Bad arguments are exit 2, not the 1 a `${1:?…}` expansion aborts with: a caller who
+# passed nothing made no call whose result could be a negative answer (#270).
+[[ -n "${1:-}" ]] || { echo "usage: harvest-usage.sh <leaf-name>" >&2; exit 2; }
+name="$1"
 
 # The one file this program reads, named beside the leaf name it is built from rather than
 # spelled at the foot of the python block below, where it arrives as `sys.argv[1]` and says

@@ -42,7 +42,8 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-prompt_src="${1:?usage: run-leaf.sh <prompt-file|-> [claude args...]}"
+[[ -n "${1:-}" ]] || { echo "usage: run-leaf.sh <prompt-file|-> [claude args...]" >&2; exit 2; }
+prompt_src="$1"
 shift
 
 if [[ "$prompt_src" == "-" ]]; then

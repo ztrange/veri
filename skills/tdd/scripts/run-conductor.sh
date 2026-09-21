@@ -58,7 +58,8 @@ fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-issue="${1:?usage: run-conductor.sh <issue>}"
+[[ -n "${1:-}" ]] || { echo "usage: run-conductor.sh <issue>" >&2; exit 2; }
+issue="$1"
 
 # The run pins its skill (issue #237): the commit the skill directory is checked out at is
 # materialised with `git archive` into a directory of the run's own, and that snapshot — not

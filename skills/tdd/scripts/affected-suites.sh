@@ -7,7 +7,8 @@
 # Prints one suite path per line, sorted, with no duplicate.
 set -euo pipefail
 
-range="${1:?usage: affected-suites.sh <base>..<head>}"
+[[ -n "${1:-}" ]] || { echo "usage: affected-suites.sh <base>..<head>" >&2; exit 2; }
+range="$1"
 scripts=skills/tdd/scripts
 
 # A malformed range is a plumbing failure, not an answer. Without the `..` check a single

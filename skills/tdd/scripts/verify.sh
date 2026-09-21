@@ -36,15 +36,30 @@ set -euo pipefail
 # The step is a flag and only a flag: an ambient VERI_STEP is never read here, so nothing
 # but this call site can scope a verdict (#223). Without it the prompt is what it always was.
 # --fast-cmd (#341) rides alongside it, straight through: green's prompt names that command.
+#
+# The call this script accepts, spelled once: both refusals below quote it back.
+USAGE="usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+
 flag_args=()
 while [[ "${1:-}" == --step || "${1:-}" == --fast-cmd ]]; do
-  flag_args+=( "$1" "${2:?$1 needs a value}" )
+  [[ -n "${2:-}" ]] || { echo "verify: $1 needs a value" >&2; echo "$USAGE" >&2; exit 2; }
+  flag_args+=( "$1" "$2" )
   shift 2
 done
 
-phase="${1:?usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
-spec_file="${2:?missing <issue-spec-file>}"
-test_path="${3:?missing <test-path>}"
+# Every required positional is checked here, in one place, rather than each being read
+# through a `${N:?…}` expansion: that expansion aborts the shell with status 1, the code
+# CLAUDE.md's "Exit codes are the API" reserves for a real answer — the leaf ran and
+# failed, the verifier said REJECT. A call missing an argument produced no answer at all,
+# which is exit 2, and the conductor branches on exactly that difference (#270). The check
+# covers <test-path> as well as <phase> and <issue-spec-file>, so `verify.sh green <spec>`
+# refuses the way `verify.sh` with nothing does. `$#` is asked first and `[[ … && … ]]`
+# stops at the first false operand, so the `$2` and `$3` below are only read once they
+# exist and `set -u` has nothing to abort on.
+[[ $# -ge 3 && -n "$1" && -n "$2" && -n "$3" ]] || { echo "$USAGE" >&2; exit 2; }
+phase="$1"
+spec_file="$2"
+test_path="$3"
 target="${4:-}"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

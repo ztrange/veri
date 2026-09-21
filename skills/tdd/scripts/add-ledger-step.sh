@@ -15,10 +15,10 @@
 set -euo pipefail
 
 usage='usage: add-ledger-step.sh <ledger-file> after|before <anchor-substring> <text> [<text> …]'
-file="${1:?$usage}"
-where="${2:?$usage}"
-anchor="${3:?$usage}"
-[[ $# -ge 4 ]] || { printf '%s\n' "$usage" >&2; exit 2; }
+[[ $# -ge 4 && -n "$1" && -n "$2" && -n "$3" ]] || { printf '%s\n' "$usage" >&2; exit 2; }
+file="$1"
+where="$2"
+anchor="$3"
 shift 3
 texts=("$@")
 

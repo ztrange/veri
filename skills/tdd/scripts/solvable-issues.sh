@@ -63,7 +63,10 @@ set -euo pipefail
 repo_args=()
 repo=""
 if [[ "${1:-}" == "--repo" ]]; then
-  repo="${2:?usage: solvable-issues.sh [--repo owner/name]}"
+  # Checked rather than read through `${2:?…}`, which aborts with status 1 — the code this
+  # script reserves for a real answer. A --repo with no repository named is exit 2 (#270).
+  [[ -n "${2:-}" ]] || { echo "usage: solvable-issues.sh [--repo owner/name]" >&2; exit 2; }
+  repo="$2"
   repo_args=(--repo "$repo")
 fi
 
