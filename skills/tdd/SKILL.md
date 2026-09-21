@@ -1260,16 +1260,22 @@ is nothing to re-create or switch. The **resume check** then finds an existing
 
 1. Do **not** re-plan — the ledger is the source of truth. Re-write only the blind spec
    file (`.tdd/issue-<n>-spec.md`) since it is run scratch, not committed.
-2. **Ask for a pending refactor before anything else.**
-   `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` prints the first checked step whose
+2. **Reset the worktree, then ask for a pending refactor.** Whatever killed the previous
+   run killed its leaf too, at whatever point the run had reached — a usage limit takes the
+   conductor and every leaf together — so a resumed worktree may carry uncommitted work from
+   a killed **Red** or **Green** leaf just as readily as from a killed refactor one. No
+   verifier has seen any of it and none of it may reach the PR, so throw it away **before**
+   the ask, not under one of its answers:
+   ```
+   git reset --hard HEAD
+   ```
+   Then `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` prints the first checked step whose
    refactor-pending mark is still there — a step the previous run left **green but not
    tidied**, because it was killed between that step's green commit and its
    verify-refactor. **Exit 3** means no step carries the mark: go to sub-step 3. Otherwise
    **STEP** is that description, and this step's refactor loop is re-entered where it
-   stopped — starting by throwing away whatever the killed leaf left uncommitted, which no
-   verifier has seen and which must never reach the PR:
+   stopped:
    ```
-   git reset --hard HEAD
    green="$(git log -1 --format=%H -- .tdd/issue-<n>.md)"
    touched="$($S/refactor-touched.sh "$green")"
    count="$(git log --format=%s "$green"..HEAD | grep -c '^refactor:')"
