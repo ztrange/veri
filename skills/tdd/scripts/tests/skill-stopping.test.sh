@@ -98,6 +98,15 @@ reset_line() {
   first_line_matching 'git reset --hard head'
 }
 
+# after <line> <other> — true when both are real line numbers and <line> falls after
+# <other>. Both cases ask their ordering question through this one predicate, for the same
+# reason reset_line is written once: a second spelling of the comparison is where "before
+# the reset" comes to mean two things in one suite, and an empty line number — a probe
+# above has already said what is missing — is never an ordering answer.
+after() {
+  [[ -n "$1" && -n "$2" && "$1" -gt "$2" ]]
+}
+
 # ---------------------------------------------------------------------------
 name="the Stopping section waits with wait-leaf.sh on every .tdd/<name>.pid still running supervise.sh <name> before it touches the tree, and reaches only for git reset --hard HEAD, never git checkout"
 problems=()
@@ -113,7 +122,7 @@ if load_section; then
   reset_at="$(reset_line)"
   if [[ -z "$reset_at" ]]; then
     problems+=("the Stopping section never drops the tree with git reset --hard HEAD")
-  elif [[ -n "$wait_at" && "$wait_at" -gt "$reset_at" ]]; then
+  elif after "$wait_at" "$reset_at"; then
     problems+=("the Stopping section reaches for the tree (line $reset_at) before it waits on the leaves (line $wait_at)")
   fi
 
@@ -136,7 +145,7 @@ if load_section; then
 
   guard_at="$(first_line_matching 'rebase-merge')"
   reset_at="$(reset_line)"
-  if [[ -n "$guard_at" && -n "$reset_at" && "$guard_at" -gt "$reset_at" ]]; then
+  if after "$guard_at" "$reset_at"; then
     problems+=("the Stopping section drops the tree (line $reset_at) before it checks for an interrupted rebase or merge (line $guard_at) — the reset it must refuse has already run")
   fi
 fi
