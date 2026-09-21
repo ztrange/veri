@@ -83,6 +83,73 @@ log_after="$(git_q "$repo" log --oneline 2>&1)"
     && [[ "$index_after" == "$index_before" ]] && [[ "$log_after" == "$log_before" ]]; } \
   && ok || no "leaves HEAD, the index and git log untouched (code=$code head=$head_before/$head_after index_changed=$([[ "$index_after" == "$index_before" ]] && echo no || echo yes) log_changed=$([[ "$log_after" == "$log_before" ]] && echo no || echo yes))"
 
+# 3. the leaf's own output is preserved beside the tree: the progress log and the final-output
+#    file are copied to names carrying the step, phase, attempt and the mark that triggered the
+#    preservation, so a reader can pair them with the event that made the step interesting. The
+#    originals stay where run-leaf.sh left them — this is a copy, not a move, because the leaf
+#    that wrote them may still be the one a retry reads back.
+repo="$work/leafoutput"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
+printf 'final result text\n' > "$repo/.tdd/develop-green.out"
+preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
+log_copy="$repo/.tdd/attempts/3-develop-green-1-reject.log"
+out_copy="$repo/.tdd/attempts/3-develop-green-1-reject.out"
+log_text="$([[ -f "$log_copy" ]] && cat "$log_copy" || echo "<missing>")"
+out_text="$([[ -f "$out_copy" ]] && cat "$out_copy" || echo "<missing>")"
+{ [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] \
+    && [[ "$out_text" == "final result text" ]] \
+    && [[ -f "$repo/.tdd/develop-green.log" ]] && [[ -f "$repo/.tdd/develop-green.out" ]]; } \
+  && ok || no "copies the leaf's log and final output to names carrying step, phase, attempt and mark (code=$code log='$log_text' out='$out_text')"
+
+# 4. a leaf killed before it wrote its final-output file still gets its log preserved, and the
+#    preservation reports success: a missing .out is the normal shape of a stuck or killed leaf,
+#    not a failure of preserving what there was. No .out copy is written, because there was
+#    nothing to copy.
+repo="$work/nooutput"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
+preserve "$repo" 409 3 develop-green 1 stuck >/dev/null 2>&1; code=$?
+log_copy="$repo/.tdd/attempts/3-develop-green-1-stuck.log"
+out_copy="$repo/.tdd/attempts/3-develop-green-1-stuck.out"
+log_text="$([[ -f "$log_copy" ]] && cat "$log_copy" || echo "<missing>")"
+out_there="$([[ -e "$out_copy" ]] && echo yes || echo no)"
+{ [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] && [[ "$out_there" == no ]]; } \
+  && ok || no "preserves the log of a leaf that wrote no final output, with exit 0 (code=$code log='$log_text' out_copy=$out_there)"
+
+# 5. and a leaf that wrote neither file is preserved too: the tree is still on its ref and the
+#    preservation still reports success. Nothing is copied, so a reader is never handed an
+#    empty file that reads as "the leaf said nothing" when the truth is it never wrote one.
+repo="$work/nooutputatall"
+new_repo "$repo"
+printf 'rejected work\n' > "$repo/stop-run.sh"
+preserve "$repo" 409 3 develop-green 1 bail >/dev/null 2>&1; code=$?
+ref="refs/veri/attempts/409/3/develop-green-1"
+git_q "$repo" rev-parse --verify --quiet "$ref^{commit}" >/dev/null 2>&1; resolved=$?
+copies="$(ls "$repo/.tdd/attempts" 2>/dev/null | tr '\n' ' ')"
+{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ -z "$copies" ]]; } \
+  && ok || no "preserves the tree and exits 0 when the leaf wrote neither log nor output (code=$code resolved=$resolved copies='$copies')"
+
+# 6. and the mark is what turns copying on: the same call without it — four arguments, with a
+#    progress log sitting right there in .tdd — preserves the tree and copies nothing. An
+#    untroubled step is the common case, and it must cost what it costs today: no .tdd/attempts
+#    directory, no copies in it.
+repo="$work/nomark"
+new_repo "$repo"
+printf 'rejected work\n' > "$repo/stop-run.sh"
+mkdir -p "$repo/.tdd"
+printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
+printf 'final result text\n' > "$repo/.tdd/develop-green.out"
+preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
+ref="refs/veri/attempts/409/3/develop-green-1"
+git_q "$repo" rev-parse --verify --quiet "$ref^{commit}" >/dev/null 2>&1; resolved=$?
+attempts_there="$([[ -e "$repo/.tdd/attempts" ]] && echo yes || echo no)"
+copies="$(ls "$repo/.tdd/attempts" 2>/dev/null | tr '\n' ' ')"
+{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$attempts_there" == no ]] && [[ -z "$copies" ]]; } \
+  && ok || no "copies nothing when no mark is given, log present (code=$code resolved=$resolved attempts_dir=$attempts_there copies='$copies')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
