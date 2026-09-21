@@ -33,7 +33,12 @@ all=0
 
 while (( $# > 0 )); do
   case "$1" in
-    --mode) mode="$2"; shift 2 ;;
+    # `$2` is read only once it is known to exist: under `set -u` the expansion itself
+    # would kill the script before the contract below could refuse, and bash's complaint
+    # names this file and a line number instead of saying what the operator got wrong.
+    --mode)
+      (( $# >= 2 )) || refuse "--mode needs a value — at-ledger, at-leaf or now"
+      mode="$2"; shift 2 ;;
     --all) all=1; shift ;;
     *) issue="$1"; shift ;;
   esac
