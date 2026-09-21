@@ -340,6 +340,15 @@ check_no_stop "$quiet_dead"
 
 report "an issue with no worktree, an issue whose conductor names no live process, and --all with no live run each exit 3 and write no .tdd/stop"
 
+# Cases 3 and 5 each stopped run 5 with `--mode now`, so the supervisor launched at the top of
+# the suite has been signalled by then and the pid left in develop-red.pid names nothing. What
+# the two cases below ask is what a command the script refuses leaves untouched, and that needs
+# a live supervisor there to be untouched: one is launched here and develop-red.pid points at
+# it again, so the check reads a pid that is alive for any reason but the one under test.
+"$stubbin/supervise.sh" develop-red 5 &
+sup_pid=$!; alive+=("$sup_pid")
+printf '%s\n' "$sup_pid" > "$run/.tdd/develop-red.pid"
+
 # 8. A command typed where no main working tree can be resolved exits 2, the same as any
 #    other command this script cannot make sense of. `git worktree list` says nothing
 #    outside a repository, so the resolution comes back empty and there is no .tdd/wt/ to
@@ -358,6 +367,65 @@ outside="$work/outside"; mkdir -p "$outside"
 check_refused_in "$outside" "no main working tree" --mode now 5
 
 report "a command typed where no main working tree resolves exits 2, writes no .tdd/stop and signals nothing"
+
+# 9. `--mode now` is the one mode that also takes the run's leaves down at once, and the pid it
+#    may send TERM to is a narrow one: the number in `<run>/.tdd/<name>.pid` whose process's
+#    `ps -p <pid> -o args=` holds `supervise.sh <name> `, the check wait-leaf.sh:47-51 already
+#    makes. Both halves of that are load-bearing, because a pid file outlives the process it
+#    named and pids are reused: a pid whose process is gone names nothing, and a pid whose
+#    process is something else is a stranger's, and a TERM sent to either is sent to whatever
+#    the operating system has since given that number to. So the run is given all three kinds of
+#    pid file at once, and what the case asks is that exactly the supervisor stopped.
+#
+#    The kill is a request, not something the caller applies: the signal is delivered to a
+#    running process, which then runs its own trap (supervise.sh:350-355) and exits, so what
+#    the command must produce is the supervisor finishing — checked by polling, since it is not
+#    finished the instant the command returns.
+problems=""
+label=""
+rm -f "$run/.tdd/stop"
+
+# A live leaf supervisor of run 5, launched exactly as a real one is, so the args string the
+# script asks `ps` for is the one a real launch would show.
+"$stubbin/supervise.sh" develop-green 5 &
+green_sup=$!; alive+=("$green_sup")
+printf '%s\n' "$green_sup" > "$run/.tdd/develop-green.pid"
+
+# A pid file of the same shape whose process is not that leaf's supervisor at all: it is live
+# and answers `kill -0` exactly as the supervisor does, and a plain `sleep` is its whole command
+# line, so the args check is the only thing standing between it and a TERM.
+sleep 60 &
+impostor=$!; alive+=("$impostor")
+printf '%s\n' "$impostor" > "$run/.tdd/verify-green.pid"
+
+# And one whose process is simply gone — a background `sleep 0` already reaped, so the number
+# names nothing (case 6's idiom). No signal not sent can be watched for, so what this one is
+# here for is the exit code: a stale pid file is the ordinary state of a finished leaf, and a
+# run whose stop was written must not be reported as a failure over one.
+sleep 0 &
+stale_pid=$!
+wait "$stale_pid" 2>/dev/null
+printf '%s\n' "$stale_pid" > "$run/.tdd/verify-refactor.pid"
+
+# gone <pid> — whether a signalled process has finished going, in 50 ms steps rather than one
+# fixed wait: a delivered signal is answered in the first step or two, and only a supervisor
+# that was never signalled at all pays the whole 2 s before the case says so.
+gone() {
+  local pid="$1" i
+  for (( i = 0; i < 40; i++ )); do
+    kill -0 "$pid" 2>/dev/null || return 0
+    sleep 0.05
+  done
+  return 1
+}
+
+run_stop --mode now 5
+check_code 0
+gone "$green_sup" ||
+  note "want the develop-green supervisor $green_sup signalled, it is still answering"
+check_still_answering "$impostor" "the pid running something other than a supervisor"
+
+report "--mode now <n> sends TERM to the pid in <run>/.tdd/<name>.pid whose process runs supervise.sh <name>, and to no pid whose process is gone or runs something else"
 
 echo "----"
 echo "$pass passed, $fail failed"
