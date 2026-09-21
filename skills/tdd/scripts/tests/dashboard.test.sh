@@ -785,6 +785,78 @@ fi
 
 report "$name"
 
+# --- the Metrics endpoint's payload for a BAILED run: the committed report, verbatim ---
+# A run can end two ways, and the pane's reading has to be the same for both: `done` and
+# `bail` are the pair that ends a log (status.sh:76), and the Bailing procedure commits
+# `.tdd/issue-<n>-metrics.md` before the push exactly as draft-PR time does (SKILL.md:858).
+# So a run whose log ends in a `bail` mark is quoted, not recomputed — asked of metrics_json
+# directly (#330), with no dashboard.sh started. The committed report here is a sentence
+# metrics.sh would never print, so a function that recomputed a bailed run fails the equality
+# rather than passing on a coincidence.
+name="metrics_json, called directly, returns the committed report for a run that ended in a bail mark"
+problems=()
+mbail_repo="$(repo metricsbail)"
+
+mbail_run="$(fabricate_run "$mbail_repo" 33 tdd/33-lamps-flicker)"
+cat > "$mbail_run/.tdd/issue-33.md" <<'EOF'
+# Plan for #33 — lamps flicker
+
+- [x] a lamp exists
+- [ ] a lamp flickers
+EOF
+mbail_now="$(date +%s)"
+cat > "$mbail_run/.tdd/events.jsonl" <<EOF
+{"ts": $((mbail_now - 9000)), "issue": "33", "actor": "conductor", "phase": "", "step": "a lamp flickers", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((mbail_now - 8900)), "issue": "33", "actor": "developer", "phase": "red", "step": "a lamp flickers", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((mbail_now - 8800)), "issue": "33", "actor": "conductor", "phase": "red", "step": "a lamp flickers", "event": "bail", "attempt": "1", "skill_commit": "abc", "reason": "killed-stuck"}
+EOF
+cat > "$mbail_run/.tdd/issue-33-metrics.md" <<'EOF'
+# What solving #33 cost — the committed report of a bailed run, verbatim
+
+| phase | attempts |
+|---|---|
+| red | 1 |
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  call_endpoint "$mbail_repo" metrics_json "$work/metrics-bail.err" '{}' "$work/metrics-bail.json"
+  if [[ ! -f "$work/metrics-bail.json" ]]; then
+    problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-bail.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+body, committed_path = sys.argv[1], sys.argv[2]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("metrics_json returned something that is not JSON; it starts: %r" % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
+    print("metrics_json returned %s; want an object with an \"issues\" object keyed by "
+          "issue number" % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+issues = got["issues"]
+if sorted(issues) != ["33"]:
+    print("metrics_json reports issues %s; want the one bailed run 33"
+          % json.dumps(sorted(issues)))
+    sys.exit()
+with open(committed_path) as f:
+    committed = f.read()
+if issues["33"] != committed:
+    print("issue 33 ended with a bail mark, so its report has to be the committed "
+          ".tdd/issue-33-metrics.md verbatim: metrics_json returned %r, and the committed "
+          "file holds %r" % (issues["33"][:300], committed[:300]))
+' "$work/metrics-bail.json" "$mbail_run/.tdd/issue-33-metrics.md")
+  fi
+fi
+
+report "$name"
+
 # --- the Metrics endpoint keys a run by its own directory, and runs metrics.sh once for it ---
 # Ledgers are committed, so a run worktree carries a copy of every earlier issue's plan: the
 # run under `.tdd/wt/7/` here holds issue-3.md and issue-5.md beside its own issue-7.md. The
