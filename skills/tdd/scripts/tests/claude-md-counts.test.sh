@@ -454,6 +454,32 @@ fi
 
 report "$name"
 
+# 7. The suite count moved with the suite THIS issue adds. #388 writes one new suite,
+#    `skill-stopping.test.sh`, and nothing recomputes a number written in prose: the
+#    *Testing idiom* count that was true of the tree without it would still be sitting in
+#    the sentence, `make test` would be red at the tip, and case 1 alone cannot say why —
+#    it reports the count as wrong, not as one nobody moved when this suite arrived. Same
+#    shape as cases 2 and 3, asked of this issue's single arrival, so `moved` is the helper
+#    rather than `moved_by`. The reads are case 1's, taken once above — `n_suites` and
+#    `idiom`.
+name="$claude_md's counts moved with skill-stopping.test.sh"
+problems=()
+
+stopping_suite="skills/tdd/scripts/tests/skill-stopping.test.sh"
+
+present "$stopping_suite"
+
+# Only ask about the move when the suite is on disk, for the reason case 2 gives:
+# `present` has already recorded the problem otherwise, and `moved`'s <n>-1 would be
+# measuring against a tree that is not the one the sentence describes.
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite count it states"; then
+    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$stopping_suite"
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
