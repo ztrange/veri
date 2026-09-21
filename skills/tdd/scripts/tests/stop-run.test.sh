@@ -102,16 +102,24 @@ report() {
   fi
 }
 
-# run_stop <args…> — run the command under test from the repository the case built, leaving
-# its stdout in `out`, its exit code in `code` and its stderr in `err`. Every case captures
-# the same three, and all three have to be captured together: `$?` is the status of the last
-# command run, so a read of stderr placed between the call and the capture is what `$?` then
-# answers about. Written once here rather than per case for that reason, and it assigns to
-# the caller's names for the same dynamic-scope reason note() reads `$label`.
-run_stop() {
-  out="$(cd "$repo" && "$STOP" "$@" 2>"$work/stderr")" && code=0 || code=$?
+# run_stop_in <dir> <args…> — run the command under test from <dir>, leaving its stdout in
+# `out`, its exit code in `code` and its stderr in `err`. Every case captures the same three,
+# and all three have to be captured together: `$?` is the status of the last command run, so a
+# read of stderr placed between the call and the capture is what `$?` then answers about.
+# Written once here rather than per case for that reason, and it assigns to the caller's names
+# for the same dynamic-scope reason note() reads `$label`. Which directory is a parameter
+# because one case below builds a second repository to ask what `--all` does where nothing is
+# live, and a second copy of this capture written out for it would be a second chance to get
+# that `$?` ordering wrong.
+run_stop_in() {
+  local dir="$1"; shift
+  out="$(cd "$dir" && "$STOP" "$@" 2>"$work/stderr")" && code=0 || code=$?
   err="$(cat "$work/stderr")"
 }
+
+# run_stop <args…> — the same, from the repository the suite has been building all along,
+# which is where every case but that one runs.
+run_stop() { run_stop_in "$repo" "$@"; }
 
 # check_code <want> — the exit status, which every case asks about and all of them ask about
 # the same way. The stderr the script wrote rides along in the message, because an unexpected
@@ -302,8 +310,7 @@ quiet="$work/quiet"
 git init -q -b main "$quiet" >/dev/null 2>&1
 quiet_dead="$quiet/.tdd/wt/9"; mkdir -p "$quiet_dead/.tdd"
 printf '%s\n' "$dead_pid" > "$quiet_dead/.tdd/conductor.pid"
-out="$(cd "$quiet" && "$STOP" --all 2>"$work/stderr")" && code=0 || code=$?
-err="$(cat "$work/stderr")"
+run_stop_in "$quiet" --all
 check_code 3
 [[ ! -e "$quiet_dead/.tdd/stop" ]] ||
   note "want no .tdd/stop written, found one holding '$(cat "$quiet_dead/.tdd/stop")'"
