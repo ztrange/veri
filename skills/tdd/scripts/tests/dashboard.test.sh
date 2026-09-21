@@ -405,6 +405,22 @@ if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
 runs = got["tests"]
 '
 
+# The `test-run` marks the two mark-reading cases below fabricate, written the way
+# timed-test-run.sh appends them (timed-test-run.sh:45): a step-start mark first, so a log
+# line that is no test run is there to be left out, then three test runs disagreeing on both
+# axes the pane reports — a whole-suite run that passed, a named-suite run that failed, and a
+# named-suite run that passed. One case counts those marks and the other reads the fields off
+# them, so the log they share is written here once.
+fabricate_marks() {  # fabricate_marks <run> <n> <step> <failed-suite> <passed-suite>
+  local now; now="$(date +%s)"
+  cat > "$1/.tdd/events.jsonl" <<EOF
+{"ts": $((now - 300)), "issue": "$2", "actor": "conductor", "phase": "", "step": "$3", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((now - 240)), "issue": "$2", "actor": "", "phase": "", "step": "$3", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "fast", "suites": "", "seconds": "3", "status": "0"}
+{"ts": $((now - 180)), "issue": "$2", "actor": "", "phase": "", "step": "$3", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "affected", "suites": "$4", "seconds": "9", "status": "1"}
+{"ts": $((now - 120)), "issue": "$2", "actor": "", "phase": "", "step": "$3", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "target", "suites": "$5", "seconds": "8", "status": "0"}
+EOF
+}
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
@@ -1302,13 +1318,8 @@ A lamp that buzzes.
 
 Test command: make test
 EOF
-tmarks_now="$(date +%s)"
-cat > "$tmarks_run/.tdd/events.jsonl" <<EOF
-{"ts": $((tmarks_now - 300)), "issue": "54", "actor": "conductor", "phase": "", "step": "a lamp buzzes", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((tmarks_now - 240)), "issue": "54", "actor": "", "phase": "", "step": "a lamp buzzes", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "fast", "suites": "", "seconds": "3", "status": "0"}
-{"ts": $((tmarks_now - 180)), "issue": "54", "actor": "", "phase": "", "step": "a lamp buzzes", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "affected", "suites": "skills/tdd/scripts/tests/lamp.test.sh", "seconds": "9", "status": "1"}
-{"ts": $((tmarks_now - 120)), "issue": "54", "actor": "", "phase": "", "step": "a lamp buzzes", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "target", "suites": "skills/tdd/scripts/tests/lamp.test.sh", "seconds": "8", "status": "0"}
-EOF
+fabricate_marks "$tmarks_run" 54 "a lamp buzzes" \
+  skills/tdd/scripts/tests/lamp.test.sh skills/tdd/scripts/tests/lamp.test.sh
 cat > "$tmarks_run/.tdd/develop-red.out" <<'EOF'
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
 {"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n4 passed, 0 failed", "is_error": false}]}}
@@ -1361,13 +1372,8 @@ A lamp that gutters.
 
 Test command: make test
 EOF
-tfields_now="$(date +%s)"
-cat > "$tfields_run/.tdd/events.jsonl" <<EOF
-{"ts": $((tfields_now - 300)), "issue": "56", "actor": "conductor", "phase": "", "step": "a lamp gutters", "event": "step-start", "attempt": "", "skill_commit": "abc"}
-{"ts": $((tfields_now - 240)), "issue": "56", "actor": "", "phase": "", "step": "a lamp gutters", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "fast", "suites": "", "seconds": "3", "status": "0"}
-{"ts": $((tfields_now - 180)), "issue": "56", "actor": "", "phase": "", "step": "a lamp gutters", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "affected", "suites": "skills/tdd/scripts/tests/gutter.test.sh", "seconds": "9", "status": "1"}
-{"ts": $((tfields_now - 120)), "issue": "56", "actor": "", "phase": "", "step": "a lamp gutters", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "target", "suites": "skills/tdd/scripts/tests/flicker.test.sh", "seconds": "8", "status": "0"}
-EOF
+fabricate_marks "$tfields_run" 56 "a lamp gutters" \
+  skills/tdd/scripts/tests/gutter.test.sh skills/tdd/scripts/tests/flicker.test.sh
 
 if [[ -n "$module_problem" ]]; then
   problems+=("$module_problem")
