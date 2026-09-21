@@ -110,13 +110,22 @@ verdict "--clear removes a stop request and exits 0, with or without one to remo
 # 5. any other argument is not an argument this script takes: exit 2, and .tdd/stop left
 #    exactly as it was. The second half is what keeps a typo from acting: an unrecognised
 #    word must neither be read as a mode nor clear a request an operator is waiting on.
+#
+# check_refused <label> [args…] — write a stop request, run the script with the arguments
+# given and add a line to `problems` unless it exits 2 and leaves that request untouched.
+# One function over both refusal cases because what is demanded of them is the same; only
+# the argument list differs.
+check_refused() {
+  local label="$1"; shift
+  printf '%s\n' "at-ledger" > "$work/.tdd/stop"
+  run_stop "$@"
+  local left; left="$(cat "$work/.tdd/stop" 2>/dev/null || echo "<gone>")"
+  if [[ "$code" != 2 || "$left" != "at-ledger" ]]; then
+    problems+="    $label: want exit 2 and .tdd/stop still 'at-ledger', got exit $code and '$left'"$'\n'
+  fi
+}
 problems=""
-printf '%s\n' "at-ledger" > "$work/.tdd/stop"
-run_stop --bogus
-left="$(cat "$work/.tdd/stop" 2>/dev/null || echo "<gone>")"
-if [[ "$code" != 2 || "$left" != "at-ledger" ]]; then
-  problems+="    --bogus: want exit 2 and .tdd/stop still 'at-ledger', got exit $code and '$left'"$'\n'
-fi
+check_refused "--bogus" --bogus
 verdict "any other argument exits 2 and leaves .tdd/stop as it was"
 
 # 6. --clear carries no argument of its own, so a word after it is as unrecognised as one
@@ -125,12 +134,7 @@ verdict "any other argument exits 2 and leaves .tdd/stop as it was"
 #    and removes the file, so the typo silently throws away a request an operator is
 #    waiting on rather than being refused.
 problems=""
-printf '%s\n' "at-ledger" > "$work/.tdd/stop"
-run_stop --clear --bogus
-left="$(cat "$work/.tdd/stop" 2>/dev/null || echo "<gone>")"
-if [[ "$code" != 2 || "$left" != "at-ledger" ]]; then
-  problems+="    --clear --bogus: want exit 2 and .tdd/stop still 'at-ledger', got exit $code and '$left'"$'\n'
-fi
+check_refused "--clear --bogus" --clear --bogus
 verdict "--clear with a trailing argument exits 2 and leaves .tdd/stop as it was"
 
 echo "----"
