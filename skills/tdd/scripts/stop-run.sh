@@ -18,6 +18,15 @@
 #          3 nothing to do — no live run answered to what was named
 set -euo pipefail
 
+# Every refusal below is the same two moves — say why on stderr, exit 2 — so they are made
+# in one place and each site says only what is wrong. The `stop-run: ` prefix lives here for
+# the same reason: four copies of a script's own name are four chances for one of them to go
+# on saying it after a rename.
+refuse() {
+  echo "stop-run: $1" >&2
+  exit 2
+}
+
 mode="at-ledger"
 issue=""
 all=0
@@ -32,29 +41,23 @@ done
 
 case "$mode" in
   at-ledger | at-leaf | now) ;;
-  *)
-    echo "stop-run: unknown mode — want at-ledger, at-leaf or now: '$mode'" >&2
-    exit 2
-    ;;
+  *) refuse "unknown mode — want at-ledger, at-leaf or now: '$mode'" ;;
 esac
 
 # Exactly one of the two ways of naming runs. Both is a contradiction — `--all` is every
 # live run, so an issue beside it says nothing about which the operator meant — and neither
 # names no run at all.
 if [[ -n "$issue" ]] && (( all == 1 )); then
-  echo "stop-run: name an issue or --all, not both" >&2
-  exit 2
+  refuse "name an issue or --all, not both"
 fi
 if [[ -z "$issue" ]] && (( all == 0 )); then
-  echo "stop-run: name an issue, or --all" >&2
-  exit 2
+  refuse "name an issue, or --all"
 fi
 
 # An issue is a worktree name under .tdd/wt/, so anything but a positive integer names no
 # run that could exist.
 if [[ -n "$issue" && ! "$issue" =~ ^[1-9][0-9]*$ ]]; then
-  echo "stop-run: <issue> must be a positive integer: '$issue'" >&2
-  exit 2
+  refuse "<issue> must be a positive integer: '$issue'"
 fi
 
 # Finding the runs and writing the mode into each live one is the next step's work; until it
