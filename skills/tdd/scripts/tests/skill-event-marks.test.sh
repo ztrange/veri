@@ -323,6 +323,80 @@ if have_records "the Refactor section's step-added mark"; then
 fi
 report "$name"
 
+# 8. The three outcomes at exhaustion (issue #408): a step whose revise budget runs out no
+#    longer ends one way but three — the criteria the leaf named replace it, it is parked for
+#    the user, or it bails exactly as it did before — and marks that cannot be told apart
+#    leave a log reader unable to say afterwards which of the three a run took. The bailed one
+#    already carries its own cause token; the other two are new, and the split needs more than
+#    a mark of its own: the Green section's volunteered split writes the very same call, so a
+#    plan that grew at exhaustion and one that grew because a leaf asked read identically
+#    unless this branch's mark carries something that one does not.
+name="$skill_md marks the exhausted-budget split and the needs-user park in the event log, the split told apart from a leaf-volunteered one"
+problems=()
+if have_records 'the exhausted-budget marks'; then
+  # The three branch records and the Green section's volunteered split, each anchored on what
+  # only it says: the answer file plus its placement, the answer file plus the park, the third
+  # answer's exit code beside the cause it keeps, and the `before` insertion that is the
+  # leaf-volunteered split's own.
+  split_rec="" park_rec="" bail_rec="" volunteered_rec=""
+  while IFS= read -r line; do
+    if [[ "$line" =~ exhausted-answer && "$line" =~ instead-of ]]; then split_rec="$line"
+    elif [[ "$line" =~ exhausted-answer && "$line" =~ park ]]; then park_rec="$line"
+    elif [[ "$line" =~ exit[[:space:]]+3 && "$line" =~ revise-exhausted ]]; then bail_rec="$line"
+    elif [[ "$line" =~ \$s/add-ledger-step\.sh && "$line" =~ [[:space:]]before[[:space:]] && "$line" =~ split: ]]; then volunteered_rec="$line"
+    fi
+  done <<< "$records"
+
+  # event_calls <record> — every `event.sh <mark> [key=value …]` the record prescribes, one
+  # per line. The call ends at the first word that is neither a mark name nor a key=value, so
+  # the shell command that follows it in the same fenced block is not read as part of it.
+  event_calls() { grep -oE 'event\.sh [a-z][a-z-]*( [a-z]+=[^ ]+)*' <<< "$1"; }
+
+  # The split branch, and the half of this criterion nothing else pins: its mark must say
+  # something the volunteered split's does not.
+  if [[ -z "$split_rec" ]]; then
+    problems+=("$skill_md prescribes no instead-of insertion beside .tdd/exhausted-answer.txt — where the split outcome's mark belongs could not be read")
+  elif [[ -z "$volunteered_rec" ]]; then
+    problems+=("$skill_md prescribes no \`before\` insertion for a leaf-volunteered split — what the exhausted split must be told apart from could not be read")
+  else
+    distinct=""
+    while IFS= read -r call; do
+      [[ -n "$call" ]] || continue
+      [[ "$volunteered_rec" == *"$call"* ]] || distinct="$call"
+    done <<< "$(event_calls "$split_rec")"
+    [[ -n "$distinct" ]] ||
+      problems+=("$skill_md marks the split a run reaches at exhaustion with nothing a leaf-volunteered split does not write too, so the log cannot say which of the two grew the plan: $(printf '%.130s' "$split_rec")")
+  fi
+
+  # The needs-user branch, which writes no mark at all until this step: an escalation is the
+  # one outcome that stops the run without a bail, so a log without it says only that the run
+  # stopped saying nothing.
+  if [[ -z "$park_rec" ]]; then
+    problems+=("$skill_md prescribes no park beside .tdd/exhausted-answer.txt — where the escalated outcome's mark belongs could not be read")
+  else
+    park_calls="$(event_calls "$park_rec")"
+    if [[ -z "$park_calls" ]]; then
+      problems+=("$skill_md parks a step at exhaustion with no \`event.sh\` call beside it, so the outcome that stops a run without bailing it leaves no mark in the log")
+    else
+      # And a mark of its own: a park logged under the name the split writes is a third
+      # outcome the log still reads as the first.
+      split_names="$(event_calls "$split_rec" | awk '{print $2}')"
+      own=""
+      while IFS= read -r call; do
+        grep -qxF "$(awk '{print $2}' <<< "$call")" <<< "$split_names" || own="$call"
+      done <<< "$park_calls"
+      [[ -n "$own" ]] ||
+        problems+=("$skill_md marks the parked step only with marks the split branch writes too, so the escalated outcome is not distinguishable from the split one")
+    fi
+  fi
+
+  # The third outcome, which already has its mark: the bail's cause token, kept beside the
+  # answer that takes it, so all three ways out of exhaustion are named in one case.
+  [[ -n "$bail_rec" ]] ||
+    problems+=("$skill_md no longer names the revise-exhausted cause against exhausted-outcome.sh's exit 3, so the bailed outcome's own mark could not be read")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
