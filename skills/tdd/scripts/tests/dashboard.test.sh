@@ -1398,6 +1398,81 @@ fi
 
 report "$name"
 
+# --- a run with no `test-run` mark is the empty list, and never another run's marks ---
+# The other end of the rule the two cases above pin. What the pane lists is one entry per
+# `test-run` mark in THE SELECTED RUN's own event log, so a run whose log holds none has no
+# test run to report — the empty list, not the bare Bash calls its leaves happen to have
+# typed, and not the marks of the run next door. A run predating #342 is the honest case of
+# the first: its leaves ran the suite and nothing recorded it, and a pane that guessed from
+# a matching Bash call would be reporting a number it cannot stand behind.
+#
+# The fixture puts both wrong answers within reach at once. The selected run, 57, has an
+# event log carrying no `test-run` line and a leaf log holding a bare `make test` Bash call
+# whose command is exactly its spec's; the run beside it, 58, carries three `test-run` marks.
+# An endpoint falling back to leaf logs answers 1, one reading every run's log answers 3, and
+# only one reading the selected run's marks alone answers 0.
+name="tests_json answers the empty list for a run whose event log holds no test-run mark, and never another run's marks"
+problems=()
+tempty_repo="$(repo testsempty)"
+
+tempty_sel="$(fabricate_run "$tempty_repo" 57 tdd/57-lamps-sputter)"
+cat > "$tempty_sel/.tdd/issue-57.md" <<'EOF'
+# Plan for #57 — lamps sputter
+
+- [ ] a lamp sputters
+EOF
+cat > "$tempty_sel/.tdd/issue-57-spec.md" <<'EOF'
+## What to build
+
+A lamp that sputters.
+
+Test command: make test
+EOF
+cat > "$tempty_sel/.tdd/events.jsonl" <<'EOF'
+{"ts": 1789910000, "issue": "57", "actor": "conductor", "phase": "", "step": "a lamp sputters", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": 1789910060, "issue": "57", "actor": "conductor", "phase": "develop-red", "step": "a lamp sputters", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+EOF
+cat > "$tempty_sel/.tdd/develop-red.out" <<'EOF'
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n5 passed, 0 failed", "is_error": false}]}}
+EOF
+
+tempty_other="$(fabricate_run "$tempty_repo" 58 tdd/58-lamps-glare)"
+cat > "$tempty_other/.tdd/issue-58.md" <<'EOF'
+# Plan for #58 — lamps glare
+
+- [ ] a lamp glares
+EOF
+cat > "$tempty_other/.tdd/issue-58-spec.md" <<'EOF'
+## What to build
+
+A lamp that glares.
+
+Test command: make test
+EOF
+fabricate_marks "$tempty_other" 58 "a lamp glares" \
+  skills/tdd/scripts/tests/glare.test.sh skills/tdd/scripts/tests/glare.test.sh
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  call_endpoint "$tempty_repo" tests_json "$work/tests-empty.err" \
+    '{"issue": ["57"]}' "$work/tests-empty-57.json"
+  if [[ ! -f "$work/tests-empty-57.json" ]]; then
+    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-empty.err")")
+  else
+    add_problems < <(python3 -c "$tests_runs"'
+if runs:
+    print("tests_json for issue 57 returned %d test runs, %s; want none — its own event log "
+          "holds no `test-run` mark, so neither the bare `make test` Bash call in its leaf "
+          "log nor run 58’s three marks are a test run of its own"
+          % (len(runs), json.dumps(runs, sort_keys=True)[:400]))
+' "$work/tests-empty-57.json" 57)
+  fi
+fi
+
+report "$name"
+
 # --- the Chatter endpoint's payload, asked of chatter_json directly: the current leaf's log ---
 # The Chatter pane's contract — the rendered log of the leaf the selected run is CURRENTLY on
 # — asked of the function that answers the endpoint rather than of a server answering it, the

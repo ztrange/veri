@@ -44,14 +44,24 @@ def main_working_tree():
     return first[0][len("worktree "):] if first else ""
 
 
+# Where one run's event log lives, or nothing when the run has none — the path, asked before
+# it is read, because whether a run HAS a log is a fact of its own and not only a step on the
+# way to its lines. A run that has one is a run whose every step was recorded, so its log is
+# the whole account of what it did; a run with none recorded nothing, and nothing about it can
+# be read out of marks it never wrote.
+def event_log(run):
+    log = os.path.join(run, ".tdd", "events.jsonl") if run else ""
+    return log if log and os.path.exists(log) else ""
+
+
 # One run's event log, parsed, in the order the file has them — a log is appended to, so that
 # order is oldest first and newest last. A run that has not logged anything yet, or that has
 # no log at all, is the empty list and not an error: both readers below are polled every two
 # seconds while a run is still being born. Where the log lives and how a line of it becomes an
 # object is settled here, so neither of them spells it.
 def events_of(run):
-    log = os.path.join(run, ".tdd", "events.jsonl") if run else ""
-    if not log or not os.path.exists(log):
+    log = event_log(run)
+    if not log:
         return []
     with open(log) as f:
         return [json.loads(raw) for raw in f if raw.strip()]
@@ -282,10 +292,21 @@ def tests_json(query):
     issue = selected_issue(query)
     run = run_for_issue(issue)
     command = test_command(run, issue)
-    # The marks when the run's log carries any; a run whose log carries none is read out of
-    # its leaf logs instead, which is the only thing a run predating #342 has to be read out
-    # of. Which of the two answers is the run's age and not a choice made here.
-    tests = marked_test_runs(run, command) or (test_runs(run, command) if command else [])
+    # A run that HAS an event log is answered out of that log alone: every test-command run it
+    # performed appended a `test-run` mark there, so a log carrying none is a run that ran the
+    # suite no times — the empty list, and not the bare Bash calls its leaves happen to have
+    # typed, which since #342 are no longer how a test command is run at all. That the marks
+    # are read for the selected run's log and no other is what keeps a run beside it, whose
+    # leaves ran the same command, out of the answer.
+    #
+    # A run with NO event log recorded nothing, and its leaf logs are the only account of it
+    # there is: that is the one case still read the old way, and the only thing a run predating
+    # the mark has to be read out of. Which of the two answers is a fact about the run and not
+    # a choice made here.
+    if event_log(run):
+        tests = marked_test_runs(run, command)
+    else:
+        tests = test_runs(run, command) if command else []
     return json.dumps({"tests": tests}).encode()
 
 
