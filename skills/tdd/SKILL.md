@@ -1271,10 +1271,9 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    stray="$(git status --porcelain)"
    git reset --hard HEAD
    ```
-   `$stray` holds the paths that reset discarded. Carry it to sub-step 4, whose
-   `### ▶️ Resuming` comment names those paths: a killed leaf's stray work is real work — the
-   run that prompted this left a 235-line untracked test file behind — and it has to go
-   loudly, not in silence.
+   `$stray` holds the paths that reset discarded, and sub-step 4 is what does the naming:
+   a killed leaf's stray work is real work — the run that prompted this left a 235-line
+   untracked test file behind — and it has to go loudly, not in silence.
    Then `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` prints the first checked step whose
    refactor-pending mark is still there — a step the previous run left **green but not
    tidied**, because it was killed between that step's green commit and its
