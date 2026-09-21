@@ -405,6 +405,27 @@ if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
 runs = got["tests"]
 '
 
+# The ledger and spec every Tests case fabricates before an endpoint will answer about its
+# run: the `.tdd/issue-<n>.md` run_for_issue looks for, and the `.tdd/issue-<n>-spec.md` whose
+# `Test command:` line tests_json reads. Those two facts are the whole of what any case here
+# reads out of either file — the title, the step and the spec's prose are flavour — so the
+# pair is written in one place, and a case names only what it varies: which run, which issue,
+# and the test command when it is not `make test`.
+fabricate_plan() {  # fabricate_plan <run> <n> <title> <step> [<test-command>]
+  cat > "$1/.tdd/issue-$2.md" <<EOF
+# Plan for #$2 — $3
+
+- [ ] $4
+EOF
+  cat > "$1/.tdd/issue-$2-spec.md" <<EOF
+## What to build
+
+${4^}.
+
+Test command: ${5:-make test}
+EOF
+}
+
 # The `test-run` marks the two mark-reading cases below fabricate, written the way
 # timed-test-run.sh appends them (timed-test-run.sh:45): a step-start mark first, so a log
 # line that is no test run is there to be left out, then three test runs disagreeing on both
@@ -1156,18 +1177,7 @@ problems=()
 tdirect_repo="$(repo testsdirect)"
 
 tdirect_sel="$(fabricate_run "$tdirect_repo" 51 tdd/51-lamps-flicker)"
-cat > "$tdirect_sel/.tdd/issue-51.md" <<'EOF'
-# Plan for #51 — lamps flicker
-
-- [ ] a lamp flickers
-EOF
-cat > "$tdirect_sel/.tdd/issue-51-spec.md" <<'EOF'
-## What to build
-
-A lamp that flickers when the switch is held.
-
-Test command: make test
-EOF
+fabricate_plan "$tdirect_sel" 51 "lamps flicker" "a lamp flickers"
 cat > "$tdirect_sel/.tdd/develop-red.out" <<'EOF'
 {"type": "system", "subtype": "init", "session_id": "s1", "tools": ["Bash"]}
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Reading the suite before adding the case."}]}}
@@ -1181,18 +1191,7 @@ cat > "$tdirect_sel/.tdd/develop-red.out" <<'EOF'
 EOF
 
 tdirect_other="$(fabricate_run "$tdirect_repo" 52 tdd/52-lamps-dim)"
-cat > "$tdirect_other/.tdd/issue-52.md" <<'EOF'
-# Plan for #52 — lamps dim
-
-- [ ] a lamp dims
-EOF
-cat > "$tdirect_other/.tdd/issue-52-spec.md" <<'EOF'
-## What to build
-
-A lamp that dims.
-
-Test command: make test
-EOF
+fabricate_plan "$tdirect_other" 52 "lamps dim" "a lamp dims"
 cat > "$tdirect_other/.tdd/develop-green.out" <<'EOF'
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_9", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
 {"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_9", "type": "tool_result", "content": "----\n7 passed, 0 failed  (run 52)", "is_error": false}]}}
@@ -1251,18 +1250,7 @@ tnoexec_cmd="sh -c 'echo executed > $tnoexec_marker'"
 rm -f "$tnoexec_marker"
 
 tnoexec_run="$(fabricate_run "$tnoexec_repo" 53 tdd/53-lamps-hum)"
-cat > "$tnoexec_run/.tdd/issue-53.md" <<'EOF'
-# Plan for #53 — lamps hum
-
-- [ ] a lamp hums
-EOF
-cat > "$tnoexec_run/.tdd/issue-53-spec.md" <<EOF
-## What to build
-
-A lamp that hums.
-
-Test command: $tnoexec_cmd
-EOF
+fabricate_plan "$tnoexec_run" 53 "lamps hum" "a lamp hums" "$tnoexec_cmd"
 cat > "$tnoexec_run/.tdd/develop-red.out" <<EOF
 {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "$tnoexec_cmd", "description": "Run the suite"}}]}}
 {"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n3 passed, 0 failed", "is_error": false}]}}
@@ -1306,18 +1294,7 @@ problems=()
 tmarks_repo="$(repo testsmarks)"
 
 tmarks_run="$(fabricate_run "$tmarks_repo" 54 tdd/54-lamps-buzz)"
-cat > "$tmarks_run/.tdd/issue-54.md" <<'EOF'
-# Plan for #54 — lamps buzz
-
-- [ ] a lamp buzzes
-EOF
-cat > "$tmarks_run/.tdd/issue-54-spec.md" <<'EOF'
-## What to build
-
-A lamp that buzzes.
-
-Test command: make test
-EOF
+fabricate_plan "$tmarks_run" 54 "lamps buzz" "a lamp buzzes"
 fabricate_marks "$tmarks_run" 54 "a lamp buzzes" \
   skills/tdd/scripts/tests/lamp.test.sh skills/tdd/scripts/tests/lamp.test.sh
 cat > "$tmarks_run/.tdd/develop-red.out" <<'EOF'
@@ -1360,18 +1337,7 @@ problems=()
 tfields_repo="$(repo testsfields)"
 
 tfields_run="$(fabricate_run "$tfields_repo" 56 tdd/56-lamps-gutter)"
-cat > "$tfields_run/.tdd/issue-56.md" <<'EOF'
-# Plan for #56 — lamps gutter
-
-- [ ] a lamp gutters
-EOF
-cat > "$tfields_run/.tdd/issue-56-spec.md" <<'EOF'
-## What to build
-
-A lamp that gutters.
-
-Test command: make test
-EOF
+fabricate_plan "$tfields_run" 56 "lamps gutter" "a lamp gutters"
 fabricate_marks "$tfields_run" 56 "a lamp gutters" \
   skills/tdd/scripts/tests/gutter.test.sh skills/tdd/scripts/tests/flicker.test.sh
 
@@ -1416,18 +1382,7 @@ problems=()
 tempty_repo="$(repo testsempty)"
 
 tempty_sel="$(fabricate_run "$tempty_repo" 57 tdd/57-lamps-sputter)"
-cat > "$tempty_sel/.tdd/issue-57.md" <<'EOF'
-# Plan for #57 — lamps sputter
-
-- [ ] a lamp sputters
-EOF
-cat > "$tempty_sel/.tdd/issue-57-spec.md" <<'EOF'
-## What to build
-
-A lamp that sputters.
-
-Test command: make test
-EOF
+fabricate_plan "$tempty_sel" 57 "lamps sputter" "a lamp sputters"
 cat > "$tempty_sel/.tdd/events.jsonl" <<'EOF'
 {"ts": 1789910000, "issue": "57", "actor": "conductor", "phase": "", "step": "a lamp sputters", "event": "step-start", "attempt": "", "skill_commit": "abc"}
 {"ts": 1789910060, "issue": "57", "actor": "conductor", "phase": "develop-red", "step": "a lamp sputters", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
@@ -1438,18 +1393,7 @@ cat > "$tempty_sel/.tdd/develop-red.out" <<'EOF'
 EOF
 
 tempty_other="$(fabricate_run "$tempty_repo" 58 tdd/58-lamps-glare)"
-cat > "$tempty_other/.tdd/issue-58.md" <<'EOF'
-# Plan for #58 — lamps glare
-
-- [ ] a lamp glares
-EOF
-cat > "$tempty_other/.tdd/issue-58-spec.md" <<'EOF'
-## What to build
-
-A lamp that glares.
-
-Test command: make test
-EOF
+fabricate_plan "$tempty_other" 58 "lamps glare" "a lamp glares"
 fabricate_marks "$tempty_other" 58 "a lamp glares" \
   skills/tdd/scripts/tests/glare.test.sh skills/tdd/scripts/tests/glare.test.sh
 
