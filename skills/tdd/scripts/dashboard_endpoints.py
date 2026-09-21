@@ -245,6 +245,16 @@ def test_runs(run, command):
     return found
 
 
+# The `test-run` marks of one run's event log: one line per test-command run, appended by
+# timed-test-run.sh:45 since #342, when a leaf stopped typing its test command as a bare Bash
+# call and started invoking the wrapper by absolute path instead (#383). That is why the mark
+# and not the leaf log is what the Tests pane counts: test_runs' string match against the
+# spec's command could never hold again, and the pane went empty on a live run that had
+# already run its suite seven times.
+def test_run_marks(run):
+    return [event for event in events_of(run) if event.get("event") == "test-run"]
+
+
 # Answered for the selected run alone, the way every endpoint has since #343: the run is
 # `.tdd/wt/<issue>` and no other, so a second run whose leaves ran the same command is not
 # reported here. An issue with no run of its own, or one whose spec names no test command,
@@ -255,7 +265,14 @@ def tests_json(query):
     issue = selected_issue(query)
     run = run_for_issue(issue)
     command = test_command(run, issue)
-    return json.dumps({"tests": test_runs(run, command) if command else []}).encode()
+    marks = test_run_marks(run)
+    if marks:
+        tests = [{"command": command} for _ in marks]
+    else:
+        # A run whose log carries no mark is still read out of its leaf logs, which is the
+        # only thing a run predating #342 has to be read out of.
+        tests = test_runs(run, command) if command else []
+    return json.dumps({"tests": tests}).encode()
 
 
 # The renderer the Chatter pane shows a leaf log through — the script beside this one, run

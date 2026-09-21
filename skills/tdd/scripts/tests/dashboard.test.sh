@@ -1269,6 +1269,73 @@ fi
 
 report "$name"
 
+# --- the Tests endpoint counts `test-run` marks, not leaf Bash calls ---
+# Since #342 every test-command run goes through `timed-test-run.sh <tier> <suites> <cmd>`,
+# which is also what appends the `test-run` line to `.tdd/events.jsonl`. So a leaf no longer
+# types its test command as a bare Bash call, the string match against the spec's `Test
+# command:` line never held, and the pane was empty on a live run that had already run its
+# suite seven times (#383). The mark is the thing to count: one entry per `test-run` line of
+# the selected run's event log.
+#
+# The fixture makes the two rules disagree on purpose — three marks in the event log, and one
+# leaf Bash call whose command is exactly the spec's `make test`. An endpoint counting Bash
+# calls answers one; an endpoint counting marks answers three.
+name="tests_json lists one entry per test-run mark in the run's event log, not per leaf Bash call matching the spec's command"
+problems=()
+tmarks_repo="$(repo testsmarks)"
+
+tmarks_run="$(fabricate_run "$tmarks_repo" 54 tdd/54-lamps-buzz)"
+cat > "$tmarks_run/.tdd/issue-54.md" <<'EOF'
+# Plan for #54 — lamps buzz
+
+- [ ] a lamp buzzes
+EOF
+cat > "$tmarks_run/.tdd/issue-54-spec.md" <<'EOF'
+## What to build
+
+A lamp that buzzes.
+
+Test command: make test
+EOF
+tmarks_now="$(date +%s)"
+cat > "$tmarks_run/.tdd/events.jsonl" <<EOF
+{"ts": $((tmarks_now - 300)), "issue": "54", "actor": "conductor", "phase": "", "step": "a lamp buzzes", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((tmarks_now - 240)), "issue": "54", "actor": "", "phase": "", "step": "a lamp buzzes", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "fast", "suites": "", "seconds": "3", "status": "0"}
+{"ts": $((tmarks_now - 180)), "issue": "54", "actor": "", "phase": "", "step": "a lamp buzzes", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "affected", "suites": "skills/tdd/scripts/tests/lamp.test.sh", "seconds": "9", "status": "1"}
+{"ts": $((tmarks_now - 120)), "issue": "54", "actor": "", "phase": "", "step": "a lamp buzzes", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "target", "suites": "skills/tdd/scripts/tests/lamp.test.sh", "seconds": "8", "status": "0"}
+EOF
+cat > "$tmarks_run/.tdd/develop-red.out" <<'EOF'
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_1", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_1", "type": "tool_result", "content": "----\n4 passed, 0 failed", "is_error": false}]}}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  call_endpoint "$tmarks_repo" tests_json "$work/tests-marks.err" \
+    '{"issue": ["54"]}' "$work/tests-marks-54.json"
+  if [[ ! -f "$work/tests-marks-54.json" ]]; then
+    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-marks.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+with open(sys.argv[1]) as f:
+    got = json.load(f)
+runs = got.get("tests") if isinstance(got, dict) else None
+if not isinstance(runs, list):
+    print("tests_json for issue 54 returned %s; want an object with a \"tests\" array"
+          % json.dumps(got, sort_keys=True)[:300])
+elif len(runs) != 3:
+    print("tests_json for issue 54 returned %d test runs, %s; want one per `test-run` mark "
+          "in that run’s event log, 3 — not the 1 bare `make test` Bash call in its leaf log"
+          % (len(runs), json.dumps(runs, sort_keys=True)[:400]))
+' "$work/tests-marks-54.json")
+  fi
+fi
+
+report "$name"
+
 # --- the Chatter endpoint's payload, asked of chatter_json directly: the current leaf's log ---
 # The Chatter pane's contract — the rendered log of the leaf the selected run is CURRENTLY on
 # — asked of the function that answers the endpoint rather than of a server answering it, the
