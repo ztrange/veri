@@ -154,6 +154,54 @@ fi
 
 report "$name"
 
+# The needs-user branch again, this time for what the user is left with. Parking stops the
+# run; unless the stop is written on the issue thread the only account of *why* is a leaf log
+# inside a worktree, which is exactly the reading this criterion exists to spare them.
+#
+# The branch is longer than the 250 characters `win` reads either side of a match, and the
+# claim spans the whole of it — the answer file is named at the top of the bullet and the
+# park several lines down — so this case slices the bullet itself rather than a window:
+# from the line that opens it to the line that opens the next outcome's.
+needs_user_open='exit 1 — the step needs the user'
+needs_user_close='exit 3'
+
+# needs_user_branch — that slice, normalised through `plain` like the section is. The open
+# marker carries its em dash so the one-line summary of all three outcomes above ("exit 1
+# the step needs the user and is parked") cannot be mistaken for the branch itself.
+needs_user_branch() {
+  awk -v o="$needs_user_open" -v c="$needs_user_close" \
+    '!inside && index($0, o) { inside = 1 }
+     inside && index($0, c) && !index($0, o) { exit }
+     inside' "$skill_path" | plain
+}
+branch="$(needs_user_branch)"
+
+# The mirror, spelled once for the guard and the window both: the two ways this document
+# tells the conductor to write on the issue thread — the bare `gh issue comment <n> --body`
+# of *Starting*, and the "post a `### …` comment" every narration section uses.
+issue_mirror='gh issue comment|post a [^.]{0,120}comment'
+
+name="$skill_md's needs-user branch mirrors the parked step to the issue thread, carrying the leaf's answer and the verifier's last rejection reason"
+problems=()
+
+if [[ -n "$unreadable" ]]; then
+  problems+=("$unreadable what a parked step leaves the user could not be established")
+elif [[ -z "${branch// /}" ]]; then
+  problems+=("$skill_md's revise section has no '$needs_user_open' branch to read — what a parked step leaves the user could not be established")
+else
+  if ! grep -qE "($issue_mirror)" <<<"$branch"; then
+    problems+=("$skill_md's needs-user branch parks the step without posting anything to the issue thread, so the one account of why the run stopped is a leaf log inside a worktree")
+  else
+    posted="$(grep -oE ".{0,250}($issue_mirror).{0,250}" <<<"$branch" | head -1)"
+    grep -qE 'exhausted-answer' <<<"$posted" ||
+      problems+=("$skill_md's needs-user branch posts to the issue thread without carrying .tdd/exhausted-answer.txt, so the user reads that the step was parked and never the leaf's own account of why")
+    grep -qE 'reason' <<<"$posted" ||
+      problems+=("$skill_md's needs-user branch posts to the issue thread without carrying the verifier's last rejection reason, so the user is asked to decide about a step without the objection that stopped it")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
