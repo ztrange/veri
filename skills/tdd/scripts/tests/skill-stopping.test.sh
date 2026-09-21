@@ -173,6 +173,33 @@ if load_section; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+name="the Stopping section writes exactly one event.sh stop mode=<mode> at=<at> mark, with at one of unplanned, planned, green, step-done or unsettled, and names classify-bail.sh nowhere"
+problems=()
+if load_section; then
+  # grep -c answers 1 when it matches nothing, and this suite runs under `set -o pipefail`,
+  # so the count is taken with `|| true`: "no mark at all" is a problem to report, not a
+  # reason for the case to die before it reports it.
+  marks="$(grep -cE 'event\.sh stop' <<<"$section" || true)"
+  if [[ "$marks" -eq 0 ]]; then
+    problems+=("the Stopping section never writes an event.sh stop mark — nothing in the run log would say the run paused")
+  elif [[ "$marks" -ne 1 ]]; then
+    problems+=("the Stopping section writes $marks event.sh stop marks; a stop is one boundary, so it is one mark")
+  fi
+
+  require 'event\.sh stop mode=<mode> at=<at>' \
+    "the Stopping section never spells the mark event.sh stop mode=<mode> at=<at> — a mark missing either key says which run paused but not where"
+
+  for at in 'unplanned' 'planned' 'green' 'step-done' 'unsettled'; do
+    require "at=$at" \
+      "the Stopping section never names at=$at — a boundary it cannot spell is one the mark would record as some other one"
+  done
+
+  refuse 'classify-bail\.sh' \
+    "the Stopping section calls classify-bail.sh; a stop has no cause, so there is no system/process classification to make"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
