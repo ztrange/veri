@@ -22,12 +22,17 @@ lib="$(dirname "$0")/lib"
 # shellcheck source=lib/main-working-tree.sh
 source "$lib/main-working-tree.sh"
 
-# Every refusal below is the same two moves — say why on stderr, exit 2 — so they are made
-# in one place and each site says only what is wrong. The `stop-run: ` prefix lives here for
-# the same reason: four copies of a script's own name are four chances for one of them to go
-# on saying it after a rename.
-refuse() {
+# Everything this script says, it says on stderr under its own name — stdout is the run names
+# and nothing else, because an operator's script reads it. The prefix is written once here so
+# that copies of a script's own name are not copies to go on saying it after a rename.
+complain() {
   echo "stop-run: $1" >&2
+}
+
+# Every refusal below is the same two moves — say why, exit 2 — so they are made in one place
+# and each site says only what is wrong.
+refuse() {
+  complain "$1"
   exit 2
 }
 
@@ -35,9 +40,9 @@ refuse() {
 # understood perfectly and there was simply no live run answering to it, which is this
 # repository's exit 3 rather than its 2. The write is what the separation is really for — a
 # request left in a finished run's .tdd/stop is not a no-op but a trap, still sitting there
-# when that issue is next resumed.
+# when that issue is next resumed. They share how they speak, never what they mean.
 nothing_to_do() {
-  echo "stop-run: $1" >&2
+  complain "$1"
   exit 3
 }
 
