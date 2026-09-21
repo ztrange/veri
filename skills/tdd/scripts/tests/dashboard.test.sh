@@ -1507,6 +1507,89 @@ fi
 
 report "$name"
 
+# --- the Chatter endpoint on a verifier leaf: the log every leaf writes, not the duplicate ---
+# Criterion 1 of #384. `.out` is a shell redirection the conductor types on a DEVELOPER leaf's
+# launch line alone (SKILL.md:617); a verifier goes through verify.sh, whose outer redirect
+# goes to /dev/null (SKILL.md:307), so no verify-*.out is ever written. What every leaf does
+# get is supervise.sh's own capture of its combined output, `.tdd/<leaf>.log`
+# (supervise.sh:211) — the same bytes the .out holds for the leaves that have both.
+#
+# So this fixture run is currently on a verifier, and that leaf's transcript is there as
+# verify-red.log with no .out beside it: an endpoint that spells a leaf's transcript `.out`
+# finds nothing and answers the empty string, which is the pane going blank for the whole
+# verifier half of a run. What "rendered" means is render-leaf-log.sh's answer, as in the case
+# above, so the case renders the fixture with that script and compares.
+name="chatter_json returns the current verifier leaf's transcript, which is written as .log and never as .out"
+problems=()
+vlog_repo="$(repo chatterverifier)"
+
+vlog_run="$(fabricate_run "$vlog_repo" 59 tdd/59-lamps-flare)"
+cat > "$vlog_run/.tdd/issue-59.md" <<'EOF'
+# Plan for #59 — lamps flare
+
+- [ ] a lamp stops flaring
+EOF
+cat > "$vlog_run/.tdd/verify-red.log" <<'EOF'
+{"type": "system", "subtype": "init", "session_id": "s3", "tools": ["Bash"]}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Reading the new case against the spec."}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_5", "name": "Bash", "input": {"command": "make test", "description": "Run the suite"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"tool_use_id": "toolu_5", "type": "tool_result", "content": "FAIL - a lamp stops flaring\n----\n9 passed, 1 failed", "is_error": true}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "VERDICT: PASS"}]}}
+EOF
+vlog_now="$(date +%s)"
+cat > "$vlog_run/.tdd/events.jsonl" <<EOF
+{"ts": $((vlog_now - 200)), "issue": "59", "actor": "conductor", "phase": "", "step": "a lamp stops flaring", "event": "step-start", "attempt": "", "skill_commit": "abc", "seq": 1}
+{"ts": $((vlog_now - 120)), "issue": "59", "actor": "verifier", "phase": "red", "step": "a lamp stops flaring", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "verify-red", "seq": 2}
+EOF
+
+"$HERE/../render-leaf-log.sh" < "$vlog_run/.tdd/verify-red.log" > "$work/chatter-want-verify.txt" 2>/dev/null ||
+  problems+=("render-leaf-log.sh could not render the verifier leaf log this case compares against")
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+elif [[ "${#problems[@]}" -eq 0 ]]; then
+  call_endpoint "$vlog_repo" chatter_json "$work/chatter-verifier.err" \
+    '{"issue": ["59"]}' "$work/chatter-verifier-59.json"
+  if [[ ! -f "$work/chatter-verifier-59.json" ]]; then
+    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-verifier.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+try:
+    with open(sys.argv[1]) as f:
+        got = json.load(f)
+except ValueError:
+    with open(sys.argv[1]) as f:
+        print("chatter_json for issue 59 returned something that is not JSON; it starts: %r"
+              % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or "chatter" not in got:
+    print("chatter_json for issue 59 returned %s; want an object with a \"chatter\" key"
+          % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+# The rendering as the renderer’s own text or as its lines, as the case above reads it.
+chatter = got["chatter"]
+if isinstance(chatter, list):
+    chatter = "\n".join(str(line) for line in chatter)
+if not isinstance(chatter, str):
+    print("chatter_json for issue 59 returned chatter=%s; want the rendered log as text or as "
+          "its lines" % json.dumps(chatter, sort_keys=True)[:300])
+    sys.exit()
+with open(sys.argv[2]) as f:
+    want = f.read()
+if chatter.strip("\n") != want.strip("\n"):
+    blank = " — the empty string, which is what a run whose current leaf is a verifier gets " \
+            "from a transcript spelled `.out`" if not chatter.strip() else ""
+    print("chatter_json for issue 59 returned %r%s; want render-leaf-log.sh’s rendering of "
+          "verify-red.log, the transcript of the verifier the run’s newest launch event "
+          "names, which is %r" % (chatter[:400], blank, want[:400]))
+' "$work/chatter-verifier-59.json" "$work/chatter-want-verify.txt")
+  fi
+fi
+
+report "$name"
+
 # --- the Chatter endpoint follows the run: a new current leaf switches what it returns ---
 # The pane's other half of the contract: "the leaf the run is CURRENTLY on" is a question
 # re-asked of the run on every poll, not one answered once. The case above pins WHICH leaf a

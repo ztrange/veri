@@ -207,18 +207,29 @@ def output_tail(text):
     return "\n".join(text.splitlines()[-TAIL_LINES:])
 
 
-# Where one leaf's log lives: `.tdd/<leaf>.out` under the run, which is where the conductor's
-# leaves write. Spelled here alone, so the reader that walks every log and the reader that
-# wants one named leaf's cannot disagree about it. No run, or no leaf, names no log.
+# Where one leaf's transcript lives. `.tdd/<leaf>.log` is supervise.sh's own capture of the
+# leaf's combined output (supervise.sh:211), and supervise.sh is the choke point EVERY leaf
+# goes through; `.tdd/<leaf>.out` is a shell redirection the conductor types on a developer
+# leaf's launch line alone (SKILL.md:617), so a verifier — launched through verify.sh, whose
+# outer redirect goes to /dev/null (SKILL.md:307) — never gets one. Where both exist they are
+# the same bytes, so the log every leaf writes is what is read, and the redirection only where
+# a run wrote no `.log` beside it (#384). No run, or no leaf, names no log.
 def leaf_log(run, leaf):
-    return os.path.join(run, ".tdd", "%s.out" % leaf) if run and leaf else ""
+    if not run or not leaf:
+        return ""
+    supervised = os.path.join(run, ".tdd", "%s.log" % leaf)
+    if os.path.exists(supervised):
+        return supervised
+    return os.path.join(run, ".tdd", "%s.out" % leaf)
 
 
-# Every leaf log of one run, in a stable order — the whole set, asked for as the glob of any
-# leaf name. A run still being born has none, which is the empty list and not an error, and
-# so is the empty run name: glob answers nothing for the empty path.
+# Every leaf log of one run, in a stable order — the whole set, as the glob of any leaf name.
+# Spelled here rather than through leaf_log above, because that one answers about a named leaf
+# and so decides between the two spellings by asking whether the file is there, which no glob
+# pattern can be. A run still being born has none, which is the empty list and not an error,
+# and so is the empty run name.
 def leaf_logs(run):
-    return sorted(glob.glob(leaf_log(run, "*")))
+    return sorted(glob.glob(os.path.join(run, ".tdd", "*.out"))) if run else []
 
 
 # One leaf log's records: its stream-json lines, parsed, one per line and in the order the
