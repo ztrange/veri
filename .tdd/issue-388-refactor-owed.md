@@ -4,3 +4,5 @@
 - cases 2, 3 and 5 of claude-md-counts.test.sh repeat one block — name the arrivals, `present` each, then guard on `${#problems[@]}` before calling `moved_by` — which could become one `moved_case <name> <files…>` helper; it is code this cycle did not write, so it was left alone here
 ### The Stopping section runs `push-branch.sh` and, on its exit 1, records `push=rejected` with the sha its stderr names, launching no reconcile leaf and bailing not at all
 - `stopping_section`'s `tr -d '*`' | tr '[:upper:]' '[:lower:]'` is the same markup-stripping as `skill-push-reconcile.test.sh`'s `plain()`; sharing it would need a helper file the suites deliberately do without
+### `no-nested-suites.test.sh` is green again: `claude-md-counts.test.sh`'s new case no longer names another suite in a shape that guard reads as launching it
+- extract cases 2, 3 and 5's shared `present …` / `if [[ ${#problems[@]} -eq 0 ]]` / `moved_by` block into one helper taking the added script and suites (out of scope this cycle — pre-existing code)
