@@ -107,6 +107,14 @@ verify_refactor='verify\.sh (--step [^ ]+ )?(--fast-cmd [^ ]+ )?refactor'
 # copy of this one.
 reset_command='git (reset|checkout|restore|clean)'
 
+# The question "is the tree dirty?", spelled once for the same reason the two constants above
+# are. Three probes ask for this exact command across two sections: case 3's, of the Draft PR
+# step that refuses to open a PR while it answers non-empty, and case 9's two, of the Resume
+# that captures its answer before throwing the tree away. The command is the same question in
+# both, and a document that started asking it another way has to fail every probe at once —
+# independent literals would let one of them go on matching a check SKILL.md no longer makes.
+dirty_tree='git status --porcelain'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -591,7 +599,7 @@ if records_from draft_pr_instructions \
     "$skill_md has no ### 4. Draft PR section to read — what guards the PR could not be checked"; then
   # The gate comes before the PR is opened, or it is not a gate: a check made once a human
   # has been asked to look cannot refuse anything.
-  precedes 'git status --porcelain' 'gh pr create' \
+  precedes "$dirty_tree" 'gh pr create' \
     "$skill_md's Draft PR step never checks git status --porcelain, so the transform a killed refactor leaf left uncommitted reaches the PR with no verifier having seen it" \
     "$skill_md's Draft PR step no longer opens the PR, so there is nothing for the check to guard" \
     "$skill_md's Draft PR step checks the tree only after gh pr create, so the dirty worktree is already up for review by the time anything notices"
@@ -599,7 +607,7 @@ if records_from draft_pr_instructions \
   # What that gate asks, and what it does with the answer. Both conditions belong to the one
   # instruction: a run stopped here is stopped for the same reason either way — the PR would
   # otherwise carry work no verifier has passed.
-  if reads 'checks the worktree is clean before the PR is opened' 'git status --porcelain'; then
+  if reads 'checks the worktree is clean before the PR is opened' "$dirty_tree"; then
     says 'next-pending-refactor\.sh' \
       "$skill_md's Draft PR step checks only that the tree is clean, so a ledger whose last step is committed but still marked refactor-pending opens a PR with that step's refactor never verified"
     says 'refuse|do not open|does not open|stop|bail|must not|never' \
@@ -780,16 +788,12 @@ name="$skill_md's Resume captures the dirty paths before it resets and names the
 problems=()
 if text_from resume_instructions \
   "$skill_md has no ## Resume section to read — whether the reset says what it discarded could not be checked"; then
-  # The capture, spelled once here rather than twice below: the probe for the capture and the
-  # probe for its order ask for the same string, and two literals would let the order probe go
-  # on matching a spelling the presence probe had stopped accepting.
-  capture='git status --porcelain'
-  if [[ ! "$records_text" =~ $capture ]]; then
+  if [[ ! "$records_text" =~ $dirty_tree ]]; then
     problems+=("$skill_md's Resume never captures git status --porcelain, so nothing knows what the reset is about to discard and a killed leaf's files vanish unnamed")
   else
     # A capture followed, later in the same text, by a reset. Greedy or not, the match exists
     # only if some capture precedes some reset — which is the whole claim.
-    [[ "$records_text" =~ $capture.*$reset_command ]] ||
+    [[ "$records_text" =~ $dirty_tree.*$reset_command ]] ||
       problems+=("$skill_md's Resume captures git status --porcelain only after the reset, where the tree is already clean, so the comment names nothing however faithfully it reports what it captured")
   fi
   # Whichever record carries it — the sub-step that resets or the one that posts — the
