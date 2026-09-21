@@ -326,18 +326,22 @@ expect_suites "fail-closed: a range whose only changed file matches no rule prin
   "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh\nskills/tdd/scripts/tests/unit/baz.test.sh')"
 
 # 15. a widened answer says why: the script names on stderr the file that forced the widening,
-#     so the next unplaced kind is visible rather than silent. docs/notes.md matches no rule, so
-#     the answer is every suite; stderr must name that file, not merely be non-empty.
+#     so the next unplaced kind is visible rather than silent. notes.md at the repository root
+#     matches no rule, so the answer is every suite; stderr must name that file, not merely be
+#     non-empty. The unplaced fixture is a root file rather than one in the generated-
+#     documentation tree — which case 14 uses and may, since it only ever writes the path out —
+#     because this case has to quote the path back in an assertion, and no-docs-reads.test.sh
+#     rightly refuses a suite line that names that tree outside a comment or fixture text.
 new_repo widening-names-the-file
-mkdir -p "$s/tests" "$repo/docs"
+mkdir -p "$s/tests"
 printf 'foo\n' > "$s/foo.sh"
 printf '# foo suite\n' > "$s/tests/foo.test.sh"
-printf '# notes\n' > "$repo/docs/notes.md"
+printf '# notes\n' > "$repo/notes.md"
 commit_base
-printf '# notes 2\n' > "$repo/docs/notes.md"
+printf '# notes 2\n' > "$repo/notes.md"
 commit_head
 err="$(run_affected 2>&1 >/dev/null)"; code=$?
-if [[ "$code" == 0 && "$err" == *"docs/notes.md"* ]]; then ok; else
+if [[ "$code" == 0 && "$err" == *"notes.md"* ]]; then ok; else
   no "a widened answer names on stderr the file that forced the widening (code=$code, stderr=${err:-<empty>})"
 fi
 
