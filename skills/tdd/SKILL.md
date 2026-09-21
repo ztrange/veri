@@ -1191,7 +1191,12 @@ answer. Each is a branch of its own:
   $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of '<STEP>' '<criterion>' …   # every line of the answer in ONE call
   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-split anchor='<STEP>' added=<count> at=exhausted
   ```
+  The `at=exhausted` is what tells this split apart from a Green leaf's volunteered
+  one: both grow the plan through `add-ledger-step.sh` and both write `step-added` and
+  `step-split`, so without it a log reader cannot say whether the plan grew because a leaf
+  asked or because the budget ran out — and those are different facts about the run.
   Then loop back to `next-unchecked.sh`, which now hands over the first of them. The ledger is
   committed before the run goes on because the committed ledger is what a resumed run reads:
   uncommitted, the replacement steps are lost and the step that could not be satisfied is
@@ -1203,7 +1208,12 @@ answer. Each is a branch of its own:
   to make. **Park the step** — stop the run there, carrying that answer and the verifier's
   last rejection reason (`.tdd/verify-<phase>.reason`), and leave the plan as it is so the
   user's decision picks the run back up. This is a deliberate escalation, not a failure to
-  split.
+  split, so it carries a mark of its own rather than the split's or the bail's — it is the
+  one outcome that stops the run without bailing it, and a log holding neither reads as a run
+  that stopped saying nothing:
+  ```
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-escalated anchor='<STEP>'
+  ```
 - **exit 3 — neither answer.** The leaf volunteered no split and asked for no decision, so
   there is nothing new to act on: **bail the step** with cause `revise-exhausted` as a
   **process** failure (the methodology could not satisfy the blind verifier within budget),
