@@ -41,6 +41,11 @@ REF="refs/veri/attempts/409/3/develop-green-1"
 # filesystem check and be no commit at all.
 ref_resolves() { git_q "$1" rev-parse --verify --quiet "$REF^{commit}" >/dev/null 2>&1; }
 
+# copy_path <repo> <mark> <ext> — where preservation puts the leaf's <ext> file in <repo> for
+# those same coordinates under <mark>. The name is the criterion itself — step, phase, attempt
+# and the mark that triggered the preservation — so it is built in one place, not per case.
+copy_path() { printf '%s/.tdd/attempts/3-develop-green-1-%s.%s' "$1" "$2" "$3"; }
+
 # new_repo <path> — a throwaway repo at <path>, on `main`, carrying one commit that tracks
 # stop-run.sh. -b main names the default branch rather than inheriting init.defaultBranch.
 new_repo() {
@@ -102,8 +107,8 @@ mkdir -p "$repo/.tdd"
 printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 printf 'final result text\n' > "$repo/.tdd/develop-green.out"
 preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
-log_copy="$repo/.tdd/attempts/3-develop-green-1-reject.log"
-out_copy="$repo/.tdd/attempts/3-develop-green-1-reject.out"
+log_copy="$(copy_path "$repo" reject log)"
+out_copy="$(copy_path "$repo" reject out)"
 log_text="$([[ -f "$log_copy" ]] && cat "$log_copy" || echo "<missing>")"
 out_text="$([[ -f "$out_copy" ]] && cat "$out_copy" || echo "<missing>")"
 { [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] \
@@ -120,8 +125,8 @@ new_repo "$repo"
 mkdir -p "$repo/.tdd"
 printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 preserve "$repo" 409 3 develop-green 1 stuck >/dev/null 2>&1; code=$?
-log_copy="$repo/.tdd/attempts/3-develop-green-1-stuck.log"
-out_copy="$repo/.tdd/attempts/3-develop-green-1-stuck.out"
+log_copy="$(copy_path "$repo" stuck log)"
+out_copy="$(copy_path "$repo" stuck out)"
 log_text="$([[ -f "$log_copy" ]] && cat "$log_copy" || echo "<missing>")"
 out_there="$([[ -e "$out_copy" ]] && echo yes || echo no)"
 { [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] && [[ "$out_there" == no ]]; } \
