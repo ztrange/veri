@@ -75,6 +75,13 @@ calls_event() {
   [[ "$1" =~ event\.sh[[:space:]]+"$2"([^a-z0-9-]|$) ]]
 }
 
+# insertion_re — how this document spells a call to `add-ledger-step.sh`, as a regex over a
+# lowercased record: the call, not a mention. Every script the document orders run is written
+# `$S/<script>`, and preflight names `add-ledger-step.sh` bare while reading its budget, so the
+# `$S/` prefix is what tells the two apart. Three cases below ask it of a record, so the
+# spelling is one decision rather than three.
+insertion_re='\$s/add-ledger-step\.sh'
+
 # have_records <what> — the guard every case that reads the document opens with. Fail closed:
 # no records means SKILL.md was renamed or emptied and not one probe below ran, which must not
 # read as a pass. Returns non-zero with the problem already filed, naming <what> went unchecked,
@@ -295,9 +302,7 @@ problems=()
 if have_records 'the step-added mark'; then
   insertions=0
   while IFS= read -r line; do
-    # The call, not a mention: every script this document orders run is written `$S/<script>`,
-    # and preflight names `add-ledger-step.sh` bare while reading its budget.
-    [[ "$line" =~ \$s/add-ledger-step\.sh ]] || continue
+    [[ "$line" =~ $insertion_re ]] || continue
     insertions=$((insertions + 1))
     calls_event "$line" step-added ||
       problems+=("$skill_md inserts a step with no \`event.sh step-added\` beside it: $(printf '%.130s' "$line")")
@@ -319,7 +324,7 @@ name="$skill_md marks the Refactor section's own plan insertion with an event.sh
 problems=()
 if have_records "the Refactor section's step-added mark"; then
   mark step-added "grows the plan with the leaf's \`NEW_STEP:\` values beside the refactor-pending clear" \
-    '\$s/add-ledger-step\.sh' 'clear-refactor-pending\.sh' 'new_step:'
+    "$insertion_re" 'clear-refactor-pending\.sh' 'new_step:'
 fi
 report "$name"
 
@@ -343,7 +348,7 @@ if have_records 'the exhausted-budget marks'; then
     if [[ "$line" =~ exhausted-answer && "$line" =~ instead-of ]]; then split_rec="$line"
     elif [[ "$line" =~ exhausted-answer && "$line" =~ park ]]; then park_rec="$line"
     elif [[ "$line" =~ exit[[:space:]]+3 && "$line" =~ revise-exhausted ]]; then bail_rec="$line"
-    elif [[ "$line" =~ \$s/add-ledger-step\.sh && "$line" =~ [[:space:]]before[[:space:]] && "$line" =~ split: ]]; then volunteered_rec="$line"
+    elif [[ "$line" =~ $insertion_re && "$line" =~ [[:space:]]before[[:space:]] && "$line" =~ split: ]]; then volunteered_rec="$line"
     fi
   done <<< "$records"
 
