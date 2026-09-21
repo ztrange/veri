@@ -265,6 +265,24 @@ commit_head
 expect_suites "rule 5: a diff touching only files rules 1–4 match never falls back to the full suite" \
   "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh\nskills/tdd/scripts/tests/claude-md-guard.test.sh\nskills/tdd/scripts/tests/foo.test.sh')"
 
+# 12. rule 6: a change whose only touched file is a prompt under scripts/prompts/ → the suites
+#     that name that prompt, not every suite. alpha's suite reads prompts/develop-red.md the way
+#     build-develop-prompt.test.sh reads "$HERE/../prompts/develop-reconcile.md"; beta's names a
+#     different prompt and gamma's names none, so neither may appear — and neither may the full
+#     tier, which is what an unplaced file falls back to.
+new_repo rule6-prompt
+mkdir -p "$s/tests" "$s/prompts"
+printf '# red template\n' > "$s/prompts/develop-red.md"
+printf '# green template\n' > "$s/prompts/develop-green.md"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/../prompts/develop-red.md"\n' > "$s/tests/alpha.test.sh"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/../prompts/develop-green.md"\n' > "$s/tests/beta.test.sh"
+printf '# gamma suite\n' > "$s/tests/gamma.test.sh"
+commit_base
+printf '# red template 2\n' > "$s/prompts/develop-red.md"
+commit_head
+expect_suites "rule 6: a change to the prompt prompts/develop-red.md prints every suite that names it, and no others" \
+  "skills/tdd/scripts/tests/alpha.test.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
