@@ -106,12 +106,15 @@ refactor="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched
 
 # 4. the revise prompt carries the verifier's rejection reason verbatim and offers the
 #    IMPOSSIBLE outcome
-cat > "$work/reason.md" <<'REASON'
-REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\chars.
-REASON
+# Spelled once, and asserted on by every case that builds a prompt from this file — case
+# 35 as well as this one. A second copy of it is a copy whose backslash has to be escaped
+# again for the pattern side of `==`, which is where the assertion that silently matches
+# nothing hides.
+reason_text='REJECT: the case asserts on zorblat()'"'"'s log line, not its return value — & {tricky}\chars.'
+printf '%s\n' "$reason_text" > "$work/reason.md"
 revise="$("$BUILD" revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md" 2>/dev/null)"; code=$?
 [[ "$code" -eq 0 ]] \
-  && [[ "$revise" == *"REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."* ]] \
+  && [[ "$revise" == *"$reason_text"* ]] \
   && [[ "$revise" == *'IMPOSSIBLE'* ]] \
   && ok || no "develop-revise carries the rejection reason verbatim and the IMPOSSIBLE outcome (exit $code)"
 
@@ -1210,7 +1213,7 @@ exhausted="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/
 problems=""
 [[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
 [[ "$exhausted" == *"$step_text"* ]] || problems="$problems; does not carry the step"
-[[ "$exhausted" == *"REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."* ]]   || problems="$problems; does not carry the rejection reason verbatim"
+[[ "$exhausted" == *"$reason_text"* ]] || problems="$problems; does not carry the rejection reason verbatim"
 [[ "$exhausted" == *'zorblat("Frob & Nitz/Quux")'* ]] || problems="$problems; does not carry the issue spec"
 refusal_bad=""
 refuses "exhausted missing reason" "$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/absent.md"
