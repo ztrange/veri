@@ -73,6 +73,14 @@ first_line_matching() {
   grep -nE -m1 -- "$1" <<<"$section" | cut -d: -f1
 }
 
+# reset_line — the 1-based number of the line where the section reaches for the tree, empty
+# when it never does. Both cases ask their ordering question against this one line, so the
+# pattern that finds it is written once: a copy that drifted would leave one of them measuring
+# "before" against a line the other does not call the reset.
+reset_line() {
+  first_line_matching 'git reset --hard head'
+}
+
 # ---------------------------------------------------------------------------
 name="the Stopping section waits with wait-leaf.sh on every .tdd/<name>.pid still running supervise.sh <name> before it touches the tree, and reaches only for git reset --hard HEAD, never git checkout"
 problems=()
@@ -85,7 +93,7 @@ if load_section; then
   grep -qE 'supervise\.sh <name> ' <<<"$section" \
     || problems+=("the Stopping section never names 'supervise.sh <name> ' — a pid file alone does not say the process is still that leaf's supervisor")
 
-  reset_at="$(first_line_matching 'git reset --hard head')"
+  reset_at="$(reset_line)"
   if [[ -z "$reset_at" ]]; then
     problems+=("the Stopping section never drops the tree with git reset --hard HEAD")
   elif [[ -n "$wait_at" && "$wait_at" -gt "$reset_at" ]]; then
@@ -110,7 +118,7 @@ if load_section; then
     || problems+=("the Stopping section never records at=unsettled — the mark would claim a boundary the tree never reached")
 
   guard_at="$(first_line_matching 'rebase-merge')"
-  reset_at="$(first_line_matching 'git reset --hard head')"
+  reset_at="$(reset_line)"
   if [[ -n "$guard_at" && -n "$reset_at" && "$guard_at" -gt "$reset_at" ]]; then
     problems+=("the Stopping section drops the tree (line $reset_at) before it checks for an interrupted rebase or merge (line $guard_at) — the reset it must refuse has already run")
   fi
