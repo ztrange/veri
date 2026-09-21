@@ -58,6 +58,17 @@ print(obj[key] if key in obj else "<<missing>>")
 ' "$1" "$2" 2>/dev/null
 }
 
+# wrote_log <tree> — sets `log` to the events log under <tree> and answers whether the wrapper
+# wrote one at all. Both cases that read a mark back ask this first: jget over a file that is
+# not there answers `<<missing>>` for every key, so an absent log would otherwise be reported
+# once per key read instead of once.
+wrote_log() {
+  log="$1/.tdd/events.jsonl"
+  [[ -f "$log" ]] && return 0
+  problems+=("want one line appended to .tdd/events.jsonl, but no such file under $1")
+  return 1
+}
+
 # wrapped <tree> <issue> <phase> <tier> <suites> <cmd> [args …] — one run of the wrapper under
 # <tree>, quietly, handing back the status it handed its caller. Every case below is one or
 # more of these, so the launch line is spelled here once: `env` sets the run context for that
@@ -82,16 +93,13 @@ wrapped() {
 name="timed-test-run.sh <tier> <suites> <cmd>: runs the command, writes one test-run event carrying tier, suites and seconds, and exits with the command's own status"
 problems=()
 work="$(mktemp -d)"
-log="$work/.tdd/events.jsonl"
 suites='skills/tdd/scripts/tests/unit/next-unchecked.test.sh skills/tdd/scripts/tests/event.test.sh'
 wrapped "$work" 342 green fast "$suites" sh -c 'exit 7' && code=0 || code=$?
 
 [[ "$code" == 7 ]] ||
   problems+=("want the command's own exit status 7, got $code")
 
-if [[ ! -f "$log" ]]; then
-  problems+=("want one line appended to .tdd/events.jsonl, but no such file under $work")
-else
+if wrote_log "$work"; then
   # Exactly one line for exactly one run: a wrapper that marked both a start and an end would
   # make every reader of this log count each run twice.
   lines="$(wc -l < "$log" | tr -d ' ')"
@@ -221,16 +229,13 @@ name="timed-test-run.sh records the command's own exit status on the test-run ev
 problems=()
 for want in 7 0; do
   work="$(mktemp -d)"
-  log="$work/.tdd/events.jsonl"
   wrapped "$work" 383 red fast 'skills/tdd/scripts/tests/event.test.sh' sh -c "exit $want" &&
     code=0 || code=$?
 
   [[ "$code" == "$want" ]] ||
     problems+=("want the command's own exit status $want back from the wrapper, got $code")
 
-  if [[ ! -f "$log" ]]; then
-    problems+=("want one line appended to .tdd/events.jsonl, but no such file under $work")
-  else
+  if wrote_log "$work"; then
     got_status="$(jget "$log" status)"
     [[ "$got_status" == "$want" ]] ||
       problems+=("status for a command that exited $want: want $want, got $(printf '%q' "$got_status")")
