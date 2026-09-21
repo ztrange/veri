@@ -45,6 +45,9 @@
 #   8. SKILL.md's Resume resets the worktree BEFORE it asks `next-pending-refactor.sh`, so a
 #      resume that finds no step carrying the mark still discards what a killed leaf left
 #      uncommitted (issue #194).
+#   9. SKILL.md's Resume captures `git status --porcelain` BEFORE that reset and says the
+#      `### ▶️ Resuming` comment names the paths it discarded, so the work a killed leaf left
+#      is thrown away loudly rather than silently (issue #194).
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -743,6 +746,49 @@ if records_from resume_instructions \
     before_ask="${resume_text%%next-pending-refactor.sh*}"
     [[ "$before_ask" =~ $reset_command ]] ||
       problems+=("$skill_md's Resume resets the worktree only after asking next-pending-refactor.sh, so a resume where that ask exits 3 continues on top of what a leaf killed in Red or Green left uncommitted, and the Draft PR step then refuses a tree nothing will ever clean")
+  fi
+fi
+report "$name"
+
+# 9. One criterion — what the reset tells the thread it threw away — and so one case. Case 8
+#    pins that the reset runs before the ask, on every resume; this one pins that it is not
+#    silent. A killed leaf's stray work is real work — #194 records a 235-line untracked test
+#    file left by a Red leaf a usage limit killed — and `git reset --hard` destroys it without
+#    a word. The content is not preserved (decided 2026-09-16); naming the paths is the whole
+#    requirement, and it has two halves that only work together: the capture has to happen
+#    *before* the reset, because afterwards `git status --porcelain` has nothing left to
+#    report, and the names it captured have to reach the `### ▶️ Resuming` comment, which is
+#    the one thing a human reads about a resume. Either half alone leaves the same silence.
+#
+#    Read as text order over the whole section, for the reason case 8 is: the capture and the
+#    reset will sit in one record — a bullet and the fenced block under it are one record here
+#    — so `ordinal` cannot tell which the session runs first, while the order of the two
+#    strings in what it reads is exactly that.
+name="$skill_md's Resume captures the dirty paths before it resets and names them in the ### ▶️ Resuming comment"
+problems=()
+if records_from resume_instructions \
+  "$skill_md has no ## Resume section to read — whether the reset says what it discarded could not be checked"; then
+  resume_text="$(printf '%s' "$records" | tr '\n' ' ')"
+  # The capture, spelled once here rather than twice below: the probe for the capture and the
+  # probe for its order ask for the same string, and two literals would let the order probe go
+  # on matching a spelling the presence probe had stopped accepting.
+  capture='git status --porcelain'
+  if [[ ! "$resume_text" =~ $capture ]]; then
+    problems+=("$skill_md's Resume never captures git status --porcelain, so nothing knows what the reset is about to discard and a killed leaf's files vanish unnamed")
+  else
+    # A capture followed, later in the same text, by a reset. Greedy or not, the match exists
+    # only if some capture precedes some reset — which is the whole claim.
+    [[ "$resume_text" =~ $capture.*$reset_command ]] ||
+      problems+=("$skill_md's Resume captures git status --porcelain only after the reset, where the tree is already clean, so the comment names nothing however faithfully it reports what it captured")
+  fi
+  # Whichever record carries it — the sub-step that resets or the one that posts — the
+  # instruction wanted is the one that says the comment carries the paths. Anchored on both
+  # the comment and a path rather than on a sub-step number, because a fix is free to say it
+  # in either place and both are the same instruction to the session that reads it.
+  if reads 'says the ### ▶️ Resuming comment names the paths the reset discarded' \
+      '▶️ resuming' '(path|file)'; then
+    says '(discard|threw away|thrown away|throw away|stray|reset)' \
+      "$skill_md's Resume mentions paths in the ### ▶️ Resuming comment without saying they are what the reset discarded, so the thread names files without recording that they are gone"
   fi
 fi
 report "$name"
