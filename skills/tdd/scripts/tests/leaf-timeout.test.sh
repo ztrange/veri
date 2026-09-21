@@ -61,49 +61,65 @@ report() {
   fi
 }
 
+# capture <command>… — run one call to the script with each stream on its own file and its
+# exit status kept, and capture_done — drop the two files again. Every probe below is the
+# same three lines around a different command line, so they are written here once: the two
+# mktemps, the call whose non-zero status `set -e` is not on to trap, and the removal.
+# `probe_out`, `probe_err` and `probe_code` are globals because a function can hand back one
+# string and this hands back three, and because a command substitution would run the call in
+# a subshell whose assignments do not outlive it. Every call goes through `env`, so a probe
+# that clears VERI_TIMEOUT and one that sets it are the same shape here.
+capture() {
+  probe_out="$(mktemp)" probe_err="$(mktemp)"
+  "$@" >"$probe_out" 2>"$probe_err" && probe_code=0 || probe_code=$?
+}
+
+capture_done() {
+  rm -f "$probe_out" "$probe_err"
+}
+
 # good_probe <baseline> <want> — a baseline the script must answer, in the shape
-# assert_answer names. Separate files per stream, since the case is about which stream
-# carries what.
+# assert_answer names.
 # `env -u` clears VERI_TIMEOUT for the child only, so the answer is a fact about the script
 # and not about whatever the surrounding run exported (hermetic-suites.test.sh's concern).
 good_probe() {
-  local baseline="$1" want="$2" out err code
-  out="$(mktemp)" err="$(mktemp)"
-  env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$baseline" >"$out" 2>"$err" && code=0 || code=$?
-  assert_answer "baseline $baseline" "$want" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  local baseline="$1" want="$2"
+  capture env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$baseline"
+  assert_answer "baseline $baseline" "$want"
+  capture_done
 }
 
-# assert_answer <label> <want> <code> <stdout-file> <stderr-file> — the three things every
-# answered call owes, whichever call produced it: exit 0, exactly <want> on stdout and, because
-# a valid call is not a diagnosable one, nothing on stderr. Named once for the same reason
-# assert_fail_closed is: an answer is one shape, and the five probes below differ only in how
-# they call the script and what number they expect, never in what an answer looks like.
+# assert_answer <label> <want> — the three things every answered call owes, whichever call
+# produced it: exit 0, exactly <want> on stdout and, because a valid call is not a diagnosable
+# one, nothing on stderr. Named once for the same reason assert_fail_closed is: an answer is one
+# shape, and the five probes below differ only in how they call the script and what number they
+# expect, never in what an answer looks like. It reads the call `capture` just ran rather than
+# being handed its three results, so the probes never carry them from one function to the next.
 # `$(cat …)` eats the trailing newline, so the stdout check is both "the right value" and
 # "nothing else printed alongside it". Appends to the caller's `problems`, a case-level global.
 assert_answer() {
-  local label="$1" want="$2" code="$3" out="$4" err="$5"
-  [[ "$code" == 0 ]] ||
-    problems+=("$label: want exit 0, got $code")
-  [[ "$(cat "$out")" == "$want" ]] ||
-    problems+=("$label: want $want on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ ! -s "$err" ]] ||
-    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$err")")")
+  local label="$1" want="$2"
+  [[ "$probe_code" == 0 ]] ||
+    problems+=("$label: want exit 0, got $probe_code")
+  [[ "$(cat "$probe_out")" == "$want" ]] ||
+    problems+=("$label: want $want on stdout, got: $(printf '%q' "$(cat "$probe_out")")")
+  [[ ! -s "$probe_err" ]] ||
+    problems+=("$label: want nothing on stderr, got: $(printf '%q' "$(cat "$probe_err")")")
 }
 
-# assert_fail_closed <label> <code> <stdout-file> <stderr-file> — the three things every
-# refusal owes, whichever way the unusable value arrived. Named once because a refusal is
-# one shape: exit 2 ("no answer could be obtained", not exit 1's clean negative), nothing
-# on stdout so a conductor reading it in a command substitution cannot capture a refusal
-# as a timeout, and a diagnostic on stderr so a human is told which value was wrong.
+# assert_fail_closed <label> — the three things every refusal owes, whichever way the unusable
+# value arrived. Named once because a refusal is one shape: exit 2 ("no answer could be
+# obtained", not exit 1's clean negative), nothing on stdout so a conductor reading it in a
+# command substitution cannot capture a refusal as a timeout, and a diagnostic on stderr so a
+# human is told which value was wrong. Reads the call `capture` just ran, as assert_answer does.
 # Appends to the caller's `problems`, which the case sets up as a global.
 assert_fail_closed() {
-  local label="$1" code="$2" out="$3" err="$4"
-  [[ "$code" == 2 ]] ||
-    problems+=("$label: want exit 2, got $code")
-  [[ ! -s "$out" ]] ||
-    problems+=("$label: want nothing on stdout, got: $(printf '%q' "$(cat "$out")")")
-  [[ -s "$err" ]] ||
+  local label="$1"
+  [[ "$probe_code" == 2 ]] ||
+    problems+=("$label: want exit 2, got $probe_code")
+  [[ ! -s "$probe_out" ]] ||
+    problems+=("$label: want nothing on stdout, got: $(printf '%q' "$(cat "$probe_out")")")
+  [[ -s "$probe_err" ]] ||
     problems+=("$label: want a diagnostic on stderr, got nothing")
 }
 
@@ -113,11 +129,9 @@ assert_fail_closed() {
 # on an empty array while accepting "$@" with no positionals.
 bad_probe() {
   local label="$1"; shift
-  local out err code
-  out="$(mktemp)" err="$(mktemp)"
-  env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$@" >"$out" 2>"$err" && code=0 || code=$?
-  assert_fail_closed "$label" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  capture env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$@"
+  assert_fail_closed "$label"
+  capture_done
 }
 
 # override_probe <veri-timeout> <baseline> — VERI_TIMEOUT set to a usable value: the script
@@ -126,11 +140,10 @@ bad_probe() {
 # so a script that quietly re-derived would print the other number and the probe would say
 # so. Nothing on stderr: an explicit knob honoured is not a diagnosable event.
 override_probe() {
-  local timeout="$1" baseline="$2" out err code
-  out="$(mktemp)" err="$(mktemp)"
-  VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" "$baseline" >"$out" 2>"$err" && code=0 || code=$?
-  assert_answer "VERI_TIMEOUT=$timeout baseline $baseline" "$timeout" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  local timeout="$1" baseline="$2"
+  capture env VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" "$baseline"
+  assert_answer "VERI_TIMEOUT=$timeout baseline $baseline" "$timeout"
+  capture_done
 }
 
 # bad_override_probe <veri-timeout> — VERI_TIMEOUT set to something that is not a whole
@@ -138,11 +151,10 @@ override_probe() {
 # refusal must be about the override, so falling back to the derivation would be caught
 # here as output on stdout where there should be none.
 bad_override_probe() {
-  local timeout="$1" out err code
-  out="$(mktemp)" err="$(mktemp)"
-  VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" 200 >"$out" 2>"$err" && code=0 || code=$?
-  assert_fail_closed "VERI_TIMEOUT=$timeout" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  local timeout="$1"
+  capture env VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" 200
+  assert_fail_closed "VERI_TIMEOUT=$timeout"
+  capture_done
 }
 
 # refactor_probe <budget> <baseline> <want> — the timeout the run's REFACTOR leaf gets: the
@@ -154,16 +166,15 @@ bad_override_probe() {
 # child in both branches: this half of the contract is about the derivation, and the
 # override half is probed separately below.
 refactor_probe() {
-  local budget="$1" baseline="$2" want="$3" out err code label
-  out="$(mktemp)" err="$(mktemp)"
+  local budget="$1" baseline="$2" want="$3" label
   label="VERI_REFACTOR_BUDGET=$budget baseline $baseline refactor"
   if [[ "$budget" == unset ]]; then
-    env -u VERI_TIMEOUT -u VERI_REFACTOR_BUDGET "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
+    capture env -u VERI_TIMEOUT -u VERI_REFACTOR_BUDGET "$LEAF_TIMEOUT" "$baseline" refactor
   else
-    env -u VERI_TIMEOUT VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
+    capture env -u VERI_TIMEOUT VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor
   fi
-  assert_answer "$label" "$want" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  assert_answer "$label" "$want"
+  capture_done
 }
 
 # refactor_override_probe <veri-timeout> <budget> <baseline> — the refactor leaf under an
@@ -172,12 +183,11 @@ refactor_probe() {
 # product is some other number, so a script that scaled the override too would print that
 # product and be named here.
 refactor_override_probe() {
-  local timeout="$1" budget="$2" baseline="$3" out err code label
-  out="$(mktemp)" err="$(mktemp)"
+  local timeout="$1" budget="$2" baseline="$3" label
   label="VERI_TIMEOUT=$timeout VERI_REFACTOR_BUDGET=$budget baseline $baseline refactor"
-  VERI_TIMEOUT="$timeout" VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor >"$out" 2>"$err" && code=0 || code=$?
-  assert_answer "$label" "$timeout" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  capture env VERI_TIMEOUT="$timeout" VERI_REFACTOR_BUDGET="$budget" "$LEAF_TIMEOUT" "$baseline" refactor
+  assert_answer "$label" "$timeout"
+  capture_done
 }
 
 # full_tier_probe <fast> <full> <want> — a recorded pair of tier measurements: the run's
@@ -188,12 +198,11 @@ refactor_override_probe() {
 # quick fast tier whose own derivation is the 900 s floor, so a script still sizing from the
 # fast measurement prints 900 and the probe names it.
 full_tier_probe() {
-  local fast="$1" full="$2" want="$3" out err code label
-  out="$(mktemp)" err="$(mktemp)"
+  local fast="$1" full="$2" want="$3" label
   label="fast $fast full $full"
-  env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$fast" --full "$full" >"$out" 2>"$err" && code=0 || code=$?
-  assert_answer "$label" "$want" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  capture env -u VERI_TIMEOUT "$LEAF_TIMEOUT" "$fast" --full "$full"
+  assert_answer "$label" "$want"
+  capture_done
 }
 
 # full_tier_override_probe <veri-timeout> <fast> <full> — the tier pair handed in with an
@@ -203,12 +212,11 @@ full_tier_probe() {
 # measurement displace the override — the one new way this shape could break the invariant —
 # prints that other number and the probe names it.
 full_tier_override_probe() {
-  local timeout="$1" fast="$2" full="$3" out err code label
-  out="$(mktemp)" err="$(mktemp)"
+  local timeout="$1" fast="$2" full="$3" label
   label="VERI_TIMEOUT=$timeout fast $fast full $full"
-  VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" "$fast" --full "$full" >"$out" 2>"$err" && code=0 || code=$?
-  assert_answer "$label" "$timeout" "$code" "$out" "$err"
-  rm -f "$out" "$err"
+  capture env VERI_TIMEOUT="$timeout" "$LEAF_TIMEOUT" "$fast" --full "$full"
+  assert_answer "$label" "$timeout"
+  capture_done
 }
 
 # 1. The whole of this step's criterion, as one case: with VERI_TIMEOUT unset the script
