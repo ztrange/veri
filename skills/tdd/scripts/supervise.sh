@@ -61,6 +61,8 @@ shift
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/leaf-model.sh
 source "$HERE/lib/leaf-model.sh"
+# shellcheck source=lib/preserve.sh
+source "$HERE/lib/preserve.sh"
 
 heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
@@ -375,17 +377,17 @@ trap on_signal TERM INT HUP
 #
 # A no-op on every other status, so an untroubled leaf costs nothing, and on a run with no
 # issue/step in its environment or no HEAD to hang a commit off, which is what the suites'
-# bare temporary directories are. Preservation never changes what this supervision reports:
-# its failure is said on stderr and dropped, the way harvest-usage.sh's is, because a run that
-# loses its evidence is better off than one that loses its leaf's status to a failed
-# `git update-ref`.
+# bare temporary directories are. Those three tests are this script's alone; what happens once
+# they pass — the snapshot, the copies, and the rule that a failed preservation is said on
+# stderr and dropped rather than allowed to change what this supervision reports, the way
+# harvest-usage.sh's failure is — is `preserve_attempt`'s, shared with verify.sh's own
+# troubled-step branch (lib/preserve.sh).
 preserve_killed_attempt() {
   local attempt="$1"
   [[ "$status" == "killed-stuck" ]] || return 0
   [[ -n "${VERI_ISSUE:-}" && -n "${VERI_STEP:-}" ]] || return 0
   git rev-parse --verify -q HEAD >/dev/null 2>&1 || return 0
-  "$HERE/preserve-attempt.sh" "$VERI_ISSUE" "$VERI_STEP" "$name" "$attempt" stuck >&2 \
-    || echo "supervise[$name]: could not preserve the stuck attempt (issue $VERI_ISSUE step $VERI_STEP $name attempt $attempt)" >&2
+  preserve_attempt "supervise[$name]" "$VERI_ISSUE" "$VERI_STEP" "$name" "$attempt" stuck
 }
 
 # First attempt plus up to $retries extra attempts. A normal result (success/failure)

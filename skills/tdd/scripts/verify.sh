@@ -65,6 +65,8 @@ target="${4:-}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/leaf-model.sh
 source "$HERE/lib/leaf-model.sh"
+# shellcheck source=lib/preserve.sh
+source "$HERE/lib/preserve.sh"
 
 # The verifier leaf's name, spelled once. Four things below are derived from it and must agree
 # — the name supervise.sh supervises under, the `.tdd/<name>.prompt` and `.tdd/<name>.log`
@@ -358,11 +360,10 @@ if [[ "$word" != PASS ]]; then
   # means no event was logged, and without the run's issue and step there is no name to file under.
   attempt="${role##*VERI_ATTEMPT=}"
   if [[ -n "$tree_before" && -n "$role" && -n "${VERI_ISSUE:-}" && -n "${VERI_STEP:-}" ]]; then
-    # Preservation never changes a verdict: it runs after the verdict is decided and its failure is
-    # reported, not propagated. A run that loses its evidence is worse off than one that does not,
-    # but a run that loses its verdict to a failed `git update-ref` has lost the step itself.
-    "$HERE/preserve-attempt.sh" "$VERI_ISSUE" "$VERI_STEP" "$leaf_name" "$attempt" "$trouble" \
-      || echo "verify: could not preserve the $trouble attempt (issue $VERI_ISSUE step $VERI_STEP $leaf_name attempt $attempt)" >&2
+    # Preservation never changes a verdict: it runs after the verdict is decided, and the rule
+    # that its own failure is reported rather than propagated is `preserve_attempt`'s, stated
+    # once there (lib/preserve.sh) for this caller and for supervise.sh's killed-stuck one.
+    preserve_attempt verify "$VERI_ISSUE" "$VERI_STEP" "$leaf_name" "$attempt" "$trouble"
   fi
 fi
 
