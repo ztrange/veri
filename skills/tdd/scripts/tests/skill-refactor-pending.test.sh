@@ -91,6 +91,19 @@ mark='⟂ refactor pending'
 # one of them go on matching a call SKILL.md no longer makes.
 verify_refactor='verify\.sh (--step [^ ]+ )?(--fast-cmd [^ ]+ )?refactor'
 
+# The command family that counts as "the worktree was reset", spelled once for the same
+# reason. Two probes ask for it of two different slices — case 6's, of the instruction that
+# relaunches the refactor leaf, and case 8's, of everything Resume says before it asks
+# `next-pending-refactor.sh` — and which command discards the work is not either criterion's
+# claim; that something does, at that point, is. Independent spellings would let one probe go
+# on accepting a form the other had stopped accepting, and a probe that no longer matches the
+# document fails loudly only when it is the one asked.
+#
+# `says_reset_reenter_verify` keeps its own, deliberately: it additionally accepts `git
+# stash`, which is a different claim about what the document may prescribe, not a drifted
+# copy of this one.
+reset_command='git (reset|checkout|restore|clean)'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -469,7 +482,7 @@ says_reset_reenter_verify() {
 # what the document already does, and a probe answered by that would pass a resume that reads
 # the number and then hands the leaf the full budget anyway.
 says_reset_and_reduced_budget() {
-  local reset_re='git (checkout|restore|reset|clean)'
+  local reset_re="$reset_command"
   local reduced_re='reduc|minus|subtract|net of|what is left|left of|remaining|\$\(\('
   [[ "$instruction" =~ $reset_re ]] ||
     miss "$skill_md's Resume relaunches the refactor leaf without first resetting the worktree, so the transform the killed leaf left half-applied on disk is carried into the relaunched leaf and into the PR unverified"
@@ -714,12 +727,9 @@ report "$name"
 #    record today, which ties their positions and would pass the document exactly as it is.
 name="$skill_md's Resume resets the worktree before it asks next-pending-refactor.sh, so a resume with no step carrying the mark still discards the stray work"
 problems=()
-# The Resume section as one string, in the order a session reads it. The reset family is the
-# one `says_reset_reenter_verify` and `says_reset_and_reduced_budget` already accept, spelled
-# the same way for the same reason: which command discards the work is not this criterion's
-# claim — that something does, before the ask — is.
+# The Resume section as one string, in the order a session reads it. The reset it is read for
+# is `$reset_command`, the family case 6 asks of its own slice.
 resume_text="$(resume_instructions | tr '\n' ' ')"
-resume_reset_re='git (reset|checkout|restore|clean)'
 if [[ -z "$resume_text" ]]; then
   # Fail closed, like `records_from`: an empty slice means the heading moved, and then the
   # probe below was never run at all — which must not read as a pass.
@@ -730,7 +740,7 @@ else
   # Everything the section says before the first mention of the ask. A reset in there runs on
   # both of the ask's answers; a reset only after it runs on one.
   before_ask="${resume_text%%next-pending-refactor.sh*}"
-  [[ "$before_ask" =~ $resume_reset_re ]] ||
+  [[ "$before_ask" =~ $reset_command ]] ||
     problems+=("$skill_md's Resume resets the worktree only after asking next-pending-refactor.sh, so a resume where that ask exits 3 continues on top of what a leaf killed in Red or Green left uncommitted, and the Draft PR step then refuses a tree nothing will ever clean")
 fi
 report "$name"
