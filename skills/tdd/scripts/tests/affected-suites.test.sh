@@ -45,11 +45,16 @@ new_repo() {
   s="$repo/skills/tdd/scripts"
 }
 
+# run_affected — affected-suites.sh on the case's $base..$head, inside $repo. Every caller
+# invokes it inside a command substitution, and that subshell is what keeps the `cd` from
+# reaching the rest of the suite; the caller attaches whatever redirections it wants.
+run_affected() { cd "$repo" && "$AFFECTED" "$base..$head"; }
+
 # expect_suites <name> <expected> — run affected-suites.sh on $base..$head inside $repo and
 # pass when it exits 0 printing exactly <expected>; otherwise fail <name>, with a diff.
 expect_suites() {
   local name="$1" expected="$2" out code
-  out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
+  out="$(run_affected 2>/dev/null)"; code=$?
   if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
     no "$name (code=$code)"
     diff <(printf '%s\n' "$expected") <(printf '%s\n' "$out") | sed 's/^/    /'
@@ -105,7 +110,7 @@ printf '# wolf suite\n' > "$s/tests/wolf.test.sh"
 commit_base
 git_q "$repo" commit -q --allow-empty -m "head" >/dev/null 2>&1
 head="$(git -C "$repo" rev-parse HEAD)"
-out="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>/dev/null)"; code=$?
+out="$(run_affected 2>/dev/null)"; code=$?
 if [[ "$code" == 3 && -z "$out" ]]; then ok; else
   no "empty diff → exit 3 and prints nothing (code=$code, stdout=${out:-<empty>})"
 fi
@@ -331,7 +336,7 @@ printf '# notes\n' > "$repo/docs/notes.md"
 commit_base
 printf '# notes 2\n' > "$repo/docs/notes.md"
 commit_head
-err="$(cd "$repo" && "$AFFECTED" "$base..$head" 2>&1 >/dev/null)"; code=$?
+err="$(run_affected 2>&1 >/dev/null)"; code=$?
 if [[ "$code" == 0 && "$err" == *"docs/notes.md"* ]]; then ok; else
   no "a widened answer names on stderr the file that forced the widening (code=$code, stderr=${err:-<empty>})"
 fi
