@@ -76,6 +76,19 @@ win() {
   grep -oE ".{0,250}$1.{0,250}" <<<"$section" | head -1
 }
 
+# The three things the section is probed for by name, spelled once each for the guard that
+# looks for them and the window read around them, the way skill-green-split.test.sh spells its
+# own `add-ledger-step.sh` probe: a suite re-pointed at a renamed script or a reworded answer
+# cannot then go on telling a reader it searched for both spellings. `$s` and not `$S` because
+# `plain` folds the section's case; the `$` and the `.` are escaped because these are extended
+# regexes and not paths.
+outcome_reader='\$s/exhausted-outcome\.sh'
+add_ledger_step='\$s/add-ledger-step\.sh'
+needs_user='needs_user|needs-user|needs the user'
+# The bail cause the third outcome keeps, likewise spelled once: it is both the token the
+# section must still carry and the anchor the window around it is read from.
+bail_cause='revise-exhausted'
+
 name="$skill_md's exhausted-budget branch launches the exhausted leaf and acts on exhausted-outcome.sh's three answers: replace the step on a split, park it on needs-user, bail revise-exhausted on neither"
 problems=()
 
@@ -90,10 +103,10 @@ else
   # 2. The reader. The leaf answers in free-form prose around its report lines, and
   #    exhausted-outcome.sh is what resolves that to one of the three outcomes — a
   #    conductor reading the report itself makes the branch a judgement per run.
-  if ! grep -qE '\$s/exhausted-outcome\.sh' <<<"$section"; then
+  if ! grep -qE "$outcome_reader" <<<"$section"; then
     problems+=("$skill_md's revise section never runs exhausted-outcome.sh on the exhausted leaf's report, so which of the three outcomes it reported is decided by reading rather than by exit code")
   else
-    outcome="$(win '\$s/exhausted-outcome\.sh')"
+    outcome="$(win "$outcome_reader")"
     grep -qE 'exit 0|exits? 0' <<<"$outcome" ||
       problems+=("$skill_md's revise section runs exhausted-outcome.sh without saying exit 0 is the split, so the conductor cannot tell the split answer from the other two")
     grep -qE 'exit 1|exits? 1' <<<"$outcome" ||
@@ -105,10 +118,10 @@ else
   # 3. The split branch: the criteria the leaf named take the place of the step that could
   #    not be satisfied — `instead-of`, not `before`, because the step itself is what was
   #    wrong — and the run carries on from the first of them.
-  if ! grep -qE '\$s/add-ledger-step\.sh' <<<"$section"; then
+  if ! grep -qE "$add_ledger_step" <<<"$section"; then
     problems+=("$skill_md's revise section never runs add-ledger-step.sh on a split at exhaustion, so the criteria the leaf named are narrated and the plan the run reads is unchanged")
   else
-    added="$(win '\$s/add-ledger-step\.sh')"
+    added="$(win "$add_ledger_step")"
     grep -qE 'instead-of' <<<"$added" ||
       problems+=("$skill_md's revise section grows the ledger at exhaustion with a placement other than instead-of, so the step nothing could satisfy stays in the plan alongside the criteria that replaced it")
     grep -qE 'commit' <<<"$added" ||
@@ -120,20 +133,20 @@ else
   # 4. The needs-user branch: a leaf that says the step needs a decision the run has no
   #    authority to make is answered by parking the step, not by bailing it as a
   #    methodology failure.
-  if ! grep -qE 'needs_user|needs-user|needs the user' <<<"$section"; then
+  if ! grep -qE "$needs_user" <<<"$section"; then
     problems+=("$skill_md's revise section never names the needs-user answer, so a leaf that escalates a step to the user is treated as one that volunteered nothing")
   else
-    parked="$(win 'needs_user|needs-user|needs the user')"
+    parked="$(win "$needs_user")"
     grep -qE 'park' <<<"$parked" ||
       problems+=("$skill_md's revise section names the needs-user answer without parking the step on it, so an escalation the leaf made deliberately ends as the same bail as saying nothing")
   fi
 
   # 5. And the third outcome, unchanged: neither answer is still the bail the section does
   #    today, with the same cause token a human's classification is read from.
-  if ! grep -qE 'revise-exhausted' <<<"$section"; then
+  if ! grep -qE "$bail_cause" <<<"$section"; then
     problems+=("$skill_md's revise section no longer names the revise-exhausted cause, so a leaf that volunteered neither answer leaves the conductor to invent a stop for a step it already had one for")
   else
-    bailed="$(win 'revise-exhausted')"
+    bailed="$(win "$bail_cause")"
     grep -qE 'bail' <<<"$bailed" ||
       problems+=("$skill_md's revise section names revise-exhausted without bailing on it, so the outcome that should end the step exactly as today carries on instead")
   fi
