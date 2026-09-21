@@ -21,6 +21,10 @@
 #   2. That section refuses the tree when an interrupted rebase or merge is present —
 #      `rebase-merge`, `rebase-apply` or `MERGE_HEAD` — recording `at=unsettled` instead of
 #      resetting, and it checks for that before it reaches the reset.
+#   3. That section runs `push-branch.sh` and answers its exit 1 — the remote rejected a
+#      non-fast-forward — by recording `push=rejected` with the sha its stderr names. It
+#      launches no reconcile leaf (a stop launches no leaves at all) and does not bail: a
+#      rejected push leaves the run paused and resumable, not ended.
 #
 # Run: scripts/tests/skill-stopping.test.sh
 set -uo pipefail
@@ -122,6 +126,28 @@ if load_section; then
   if [[ -n "$guard_at" && -n "$reset_at" && "$guard_at" -gt "$reset_at" ]]; then
     problems+=("the Stopping section drops the tree (line $reset_at) before it checks for an interrupted rebase or merge (line $guard_at) — the reset it must refuse has already run")
   fi
+fi
+report "$name"
+
+# ---------------------------------------------------------------------------
+name="the Stopping section runs push-branch.sh and records push=rejected with the sha its stderr names on exit 1, launching no reconcile leaf and bailing not at all"
+problems=()
+if load_section; then
+  grep -qE 'push-branch\.sh' <<<"$section" \
+    || problems+=("the Stopping section never runs push-branch.sh — a stopped run would leave its commits only in the worktree")
+  grep -qE 'exit 1' <<<"$section" \
+    || problems+=("the Stopping section says nothing about push-branch.sh exit 1 — the rejected push it must record is the one case it has to answer for")
+  grep -qE 'push=rejected' <<<"$section" \
+    || problems+=("the Stopping section never records push=rejected — the comment would claim a push that the remote refused")
+  grep -qE 'stderr' <<<"$section" \
+    || problems+=("the Stopping section never names push-branch.sh's stderr, which is where the remote's sha is printed")
+  grep -qE 'sha' <<<"$section" \
+    || problems+=("the Stopping section never names the sha the rejected push is recorded with — without it a resume cannot tell whose commits the remote holds")
+
+  grep -qE 'detach-leaf\.sh|build-develop-prompt\.sh reconcile|develop-reconcile' <<<"$section" \
+    && problems+=("the Stopping section launches the reconcile leaf; a stop launches no leaves")
+  grep -qE 'classify-bail\.sh|event\.sh bail' <<<"$section" \
+    && problems+=("the Stopping section bails on the rejected push; a stop is not a bail")
 fi
 report "$name"
 
