@@ -150,13 +150,17 @@ supervising() {
 # The leaf's name is the pid file's, so the glob finds the candidates and supervising() is
 # what decides: a pid whose process is gone or is something else is skipped in silence, since
 # a stale pid file is the ordinary state of a finished leaf and not a failure to report.
-# .tdd/conductor.pid is among the files the glob turns up and is refused by that same check,
-# a conductor running run-conductor.sh rather than supervise.sh — this never signals it.
+# .tdd/conductor.pid is among the files the glob turns up, and it is skipped by name rather
+# than left to supervising(): that check asks what a pid is running, and a conductor is the
+# process that reads the very request this command has just written, so a run whose conductor
+# happened to answer it would be killed by its own stop. The name is the only thing about that
+# file that cannot change under us, so the name is what keeps it out.
 stop_leaves() {
   local pidfile name pid
   for pidfile in "$1"/.tdd/*.pid; do
     [[ -f "$pidfile" ]] || continue
     name="$(basename "$pidfile" .pid)"
+    [[ "$name" != conductor ]] || continue
     pid="$(pid_in "$pidfile")" || continue
     supervising "$pid" "$name" || continue
     kill -TERM "$pid" 2>/dev/null || true
