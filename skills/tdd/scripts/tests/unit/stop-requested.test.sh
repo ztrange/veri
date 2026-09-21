@@ -25,6 +25,15 @@ run_stop() {
   out="$(cd "$work" && "$STOP" 2>/dev/null)" && code=0 || code=$?
 }
 
+# run_stop_err — as run_stop, but the diagnostic is kept in `err` rather than dropped: a
+# malformed request is the one case that asserts on stderr as well, because "nothing on
+# stdout" and "a diagnostic somewhere" are together what keeps a conductor from reading a
+# complaint as a mode.
+run_stop_err() {
+  out="$(cd "$work" && "$STOP" 2>"$work/stderr")" && code=0 || code=$?
+  err="$(cat "$work/stderr")"
+}
+
 # 1. each of the three modes a stop request may name comes back on stdout, exit 0 — one
 #    case over the three because they are one behaviour: the mode is passed through, not
 #    interpreted, and a conductor branches on the word it reads.
@@ -52,6 +61,33 @@ if [[ "$code" == 3 && -z "$out" ]]; then
 else
   fail=$((fail + 1)); echo "FAIL - no stop request: nothing on stdout, exit 3"
   echo "    want exit 3 and empty stdout, got exit $code and stdout '$out'"
+fi
+
+# 3. a malformed stop request — a first line that is not one of the three modes, and an
+#    empty one — is no answer at all: nothing on stdout, a diagnostic on stderr, exit 2.
+#    One case over the three fixtures because they are one behaviour: whatever a conductor
+#    capturing stdout reads, it must never be a diagnostic wearing a mode's place. The
+#    third fixture is a zero-byte file rather than a bare newline: its first line is empty
+#    the same way, but the read that takes it hits end-of-file, so a script that lets that
+#    read decide its fate exits on the read's own status with nothing said.
+problems=""
+for line in "bogus" ""; do
+  printf '%s\n' "$line" > "$work/.tdd/stop"
+  run_stop_err
+  if [[ "$code" != 2 || -n "$out" || -z "$err" ]]; then
+    problems+="    first line '$line': want exit 2, empty stdout and a diagnostic on stderr, got exit $code, stdout '$out' and stderr '$err'"$'\n'
+  fi
+done
+: > "$work/.tdd/stop"
+run_stop_err
+if [[ "$code" != 2 || -n "$out" || -z "$err" ]]; then
+  problems+="    a zero-byte file: want exit 2, empty stdout and a diagnostic on stderr, got exit $code, stdout '$out' and stderr '$err'"$'\n'
+fi
+if [[ -z "$problems" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1)); echo "FAIL - a malformed stop request: nothing on stdout, a diagnostic on stderr, exit 2"
+  printf '%s' "$problems"
 fi
 
 echo "----"
