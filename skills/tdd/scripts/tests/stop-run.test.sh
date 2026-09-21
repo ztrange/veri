@@ -88,6 +88,16 @@ reaped_pid() {
   wait "$reaped" 2>/dev/null
 }
 
+# dead_conductor <run-path> — live_conductor's opposite, and the run two cases below name:
+# one whose .tdd/conductor.pid is there and readable and holds a reaped pid, so nobody
+# answers for the number in it. The .tdd/ directory is made the same way, which is what makes
+# a .tdd/stop missing there the script declining to write rather than nowhere to write it.
+dead_conductor() {
+  mkdir -p "$1/.tdd"
+  reaped_pid
+  printf '%s\n' "$reaped" > "$1/.tdd/conductor.pid"
+}
+
 # The conductor of run 5, live from here to the end of the suite: its pid is one a buggy stop
 # could signal, so every refusal below checks it is still answering.
 live_conductor "$run"
@@ -299,9 +309,8 @@ rm -f "$run/.tdd/stop"
 live2="$repo/.tdd/wt/7"
 live_conductor "$live2"
 
-dead="$repo/.tdd/wt/9"; mkdir -p "$dead/.tdd"
-reaped_pid; dead_pid="$reaped"
-printf '%s\n' "$dead_pid" > "$dead/.tdd/conductor.pid"
+dead="$repo/.tdd/wt/9"
+dead_conductor "$dead"
 
 run_stop --mode at-leaf --all
 check_code 0
@@ -351,8 +360,8 @@ check_no_stop "$dead"
 label="--all with no live run"
 quiet="$work/quiet"
 git init -q -b main "$quiet" >/dev/null 2>&1
-quiet_dead="$quiet/.tdd/wt/9"; mkdir -p "$quiet_dead/.tdd"
-printf '%s\n' "$dead_pid" > "$quiet_dead/.tdd/conductor.pid"
+quiet_dead="$quiet/.tdd/wt/9"
+dead_conductor "$quiet_dead"
 run_stop_in "$quiet" --all
 check_code 3
 check_no_stop "$quiet_dead"
