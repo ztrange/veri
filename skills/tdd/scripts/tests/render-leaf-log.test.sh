@@ -40,10 +40,17 @@ check "renders text, tool calls and truncated results one per line" \
 < 3 passed, 0 failed
 The case is added and fails as predicted.'
 
+# The input both of the non-JSON cases give the renderer: one record it can render, then a
+# line it cannot. Written once because the two assert on different halves of the same run —
+# case 2 on the status it exits with, case 3 on what it left on stdout.
+render_after_bad_line() {  # render_after_bad_line — the renderer's own stdout, stderr and status
+  printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}' \
+    'not json at all' | "$RENDER"
+}
+
 # 2. a line that is not JSON is no answer the renderer can give — exit 2, not a traceback's 1
 name="exits 2 on a line that is not JSON"
-printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}' \
-  'not json at all' | "$RENDER" >/dev/null 2>&1
+render_after_bad_line >/dev/null 2>&1
 rc=$?
 if [[ "$rc" -eq 2 ]]; then pass=$((pass + 1)); else
   fail=$((fail + 1)); echo "FAIL - $name"
@@ -56,9 +63,7 @@ fi
 #    to guess whether the pane gets what the script managed — it gets nothing (#384).
 name="the header says a non-JSON line discards the records already rendered"
 header="$(sed -n '2,/^set -euo pipefail$/p' "$RENDER" | sed -n 's/^#[[:space:]]\{0,1\}//p')"
-rendered_before="$(printf '%s\n' \
-  '{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}' \
-  'not json at all' | "$RENDER" 2>/dev/null)"
+rendered_before="$(render_after_bad_line 2>/dev/null)"
 if [[ -n "$rendered_before" ]]; then
   fail=$((fail + 1)); echo "FAIL - $name"
   echo "    expected the script to print nothing, got: $rendered_before"
