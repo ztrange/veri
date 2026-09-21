@@ -1207,10 +1207,12 @@ answer. Each is a branch of its own:
   the criterion is wrong, contradicts another, or needs a decision this run has no authority
   to make. **Park the step** — stop the run there, carrying that answer and the verifier's
   last rejection reason (`.tdd/verify-<phase>.reason`), and leave the plan as it is so the
-  user's decision picks the run back up. This is a deliberate escalation, not a failure to
-  split, so it carries a mark of its own rather than the split's or the bail's — it is the
-  one outcome that stops the run without bailing it, and a log holding neither reads as a run
-  that stopped saying nothing:
+  user's decision picks the run back up. Post a `### ⏸️ Parked — <phase> (needs the user)`
+  comment carrying `.tdd/exhausted-answer.txt` verbatim and that rejection reason, so what the
+  user has to decide about is on the thread they already read rather than in a leaf log inside
+  a worktree. This is a deliberate escalation, not a failure to split, so it carries a mark of
+  its own rather than the split's or the bail's — it is the one outcome that stops the run
+  without bailing it, and a log holding neither reads as a run that stopped saying nothing:
   ```
   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-escalated anchor='<STEP>'
   ```
