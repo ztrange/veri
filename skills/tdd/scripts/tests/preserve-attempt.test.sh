@@ -32,6 +32,15 @@ ident=(GIT_AUTHOR_NAME=veri GIT_AUTHOR_EMAIL=veri@example.test
 # git_q <repo> <args…> — git run against <repo> under that identity.
 git_q() { local repo="$1"; shift; env "${ident[@]}" git -C "$repo" "$@"; }
 
+# Every case calls the script with the same coordinates — issue 409, step 3, develop-green,
+# attempt 1 — so the one ref they all expect is spelled out once rather than per case.
+REF="refs/veri/attempts/409/3/develop-green-1"
+
+# ref_resolves <repo> — 0 when $REF names a commit in <repo>. Asked of git rather than of the
+# filesystem, for the reason in the header: a file written under .git by hand would pass a
+# filesystem check and be no commit at all.
+ref_resolves() { git_q "$1" rev-parse --verify --quiet "$REF^{commit}" >/dev/null 2>&1; }
+
 # new_repo <path> — a throwaway repo at <path>, on `main`, carrying one commit that tracks
 # stop-run.sh. -b main names the default branch rather than inheriting init.defaultBranch.
 new_repo() {
@@ -57,11 +66,10 @@ repo="$work/repo"
 new_repo "$repo"
 printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
-ref="refs/veri/attempts/409/3/develop-green-1"
-git_q "$repo" rev-parse --verify --quiet "$ref^{commit}" >/dev/null 2>&1; resolved=$?
-shown="$(git_q "$repo" show "$ref:stop-run.sh" 2>&1)"
+ref_resolves "$repo"; resolved=$?
+shown="$(git_q "$repo" show "$REF:stop-run.sh" 2>&1)"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$shown" == "rejected work" ]]; } \
-  && ok || no "commits the worktree to $ref and git show reads it back (code=$code resolved=$resolved shown='$shown')"
+  && ok || no "commits the worktree to $REF and git show reads it back (code=$code resolved=$resolved shown='$shown')"
 
 # 2. preserving leaves the work branch untouched — HEAD, the index and `git log` read the same
 #    after as before, so a rebase-merge of the branch carries none of the preserved commit. The
@@ -126,8 +134,7 @@ repo="$work/nooutputatall"
 new_repo "$repo"
 printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 3 develop-green 1 bail >/dev/null 2>&1; code=$?
-ref="refs/veri/attempts/409/3/develop-green-1"
-git_q "$repo" rev-parse --verify --quiet "$ref^{commit}" >/dev/null 2>&1; resolved=$?
+ref_resolves "$repo"; resolved=$?
 copies="$(ls "$repo/.tdd/attempts" 2>/dev/null | tr '\n' ' ')"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ -z "$copies" ]]; } \
   && ok || no "preserves the tree and exits 0 when the leaf wrote neither log nor output (code=$code resolved=$resolved copies='$copies')"
@@ -143,8 +150,7 @@ mkdir -p "$repo/.tdd"
 printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 printf 'final result text\n' > "$repo/.tdd/develop-green.out"
 preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
-ref="refs/veri/attempts/409/3/develop-green-1"
-git_q "$repo" rev-parse --verify --quiet "$ref^{commit}" >/dev/null 2>&1; resolved=$?
+ref_resolves "$repo"; resolved=$?
 attempts_there="$([[ -e "$repo/.tdd/attempts" ]] && echo yes || echo no)"
 copies="$(ls "$repo/.tdd/attempts" 2>/dev/null | tr '\n' ' ')"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$attempts_there" == no ]] && [[ -z "$copies" ]]; } \
