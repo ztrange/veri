@@ -727,21 +727,23 @@ report "$name"
 #    record today, which ties their positions and would pass the document exactly as it is.
 name="$skill_md's Resume resets the worktree before it asks next-pending-refactor.sh, so a resume with no step carrying the mark still discards the stray work"
 problems=()
-# The Resume section as one string, in the order a session reads it. The reset it is read for
-# is `$reset_command`, the family case 6 asks of its own slice.
-resume_text="$(resume_instructions | tr '\n' ' ')"
-if [[ -z "$resume_text" ]]; then
-  # Fail closed, like `records_from`: an empty slice means the heading moved, and then the
-  # probe below was never run at all — which must not read as a pass.
-  problems+=("$skill_md has no ## Resume section to read — whether the reset comes before the ask could not be checked")
-elif [[ ! "$resume_text" =~ next-pending-refactor\.sh ]]; then
-  problems+=("$skill_md's Resume never asks next-pending-refactor.sh, so there is no ask for the reset to come before — case 2 says what that ask is for")
-else
-  # Everything the section says before the first mention of the ask. A reset in there runs on
-  # both of the ask's answers; a reset only after it runs on one.
-  before_ask="${resume_text%%next-pending-refactor.sh*}"
-  [[ "$before_ask" =~ $reset_command ]] ||
-    problems+=("$skill_md's Resume resets the worktree only after asking next-pending-refactor.sh, so a resume where that ask exits 3 continues on top of what a leaf killed in Red or Green left uncommitted, and the Draft PR step then refuses a tree nothing will ever clean")
+# `records_from` opens this case as it opens the others, so the fail-closed rule — an empty
+# slice means the heading moved, and then no probe below ran at all — stays spelled in the one
+# place, rather than as a guard here that could drift from it. What this case needs that the
+# others do not is the section's records as ONE string: text order is what it reads, and the
+# reset it reads for is `$reset_command`, the family case 6 asks of its own slice.
+if records_from resume_instructions \
+  "$skill_md has no ## Resume section to read — whether the reset comes before the ask could not be checked"; then
+  resume_text="$(printf '%s' "$records" | tr '\n' ' ')"
+  if [[ ! "$resume_text" =~ next-pending-refactor\.sh ]]; then
+    problems+=("$skill_md's Resume never asks next-pending-refactor.sh, so there is no ask for the reset to come before — case 2 says what that ask is for")
+  else
+    # Everything the section says before the first mention of the ask. A reset in there runs
+    # on both of the ask's answers; a reset only after it runs on one.
+    before_ask="${resume_text%%next-pending-refactor.sh*}"
+    [[ "$before_ask" =~ $reset_command ]] ||
+      problems+=("$skill_md's Resume resets the worktree only after asking next-pending-refactor.sh, so a resume where that ask exits 3 continues on top of what a leaf killed in Red or Green left uncommitted, and the Draft PR step then refuses a tree nothing will ever clean")
+  fi
 fi
 report "$name"
 
