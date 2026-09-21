@@ -67,11 +67,14 @@ printf '%s\n' "$cond_pid" > "$run/.tdd/conductor.pid"
 #    take a leaf down over a typo.
 problems=""
 
-# note <what-went-wrong> — one line of the case's diff, indented and headed by the refusal
-# being checked. Every check below says only its own half; the shape they share is written
-# once here. `$label` is check_refused's own local, which this function reads because bash
-# scopes `local` dynamically — a function called from there sees the caller's locals.
-note() { problems+="    $label: $1"$'\n'; }
+# note <what-went-wrong> — one line of the case's diff, indented and, where there is one,
+# headed by the refusal being checked. Every check below says only its own half; the shape
+# they share — the indent, the newline, the append — is written once here. `$label` is
+# check_refused's own local, which this function reads because bash scopes `local`
+# dynamically: a function called from there sees the caller's locals. A case that checks one
+# command rather than a family of them sets no label, and `:+` leaves the head off for it
+# rather than dying on the unset name under `set -u`.
+note() { problems+="    ${label:+$label: }$1"$'\n'; }
 
 # report <name> — close a case whose checks collected into `problems`: nothing collected is
 # a pass, otherwise one FAIL line for the case and the lines note() wrote under it, so the
@@ -136,15 +139,15 @@ report "--mode with no value exits 2 with the script's own complaint, writes no 
 #    and the step asks for the run to be named, not for a format.
 problems=""
 out="$(cd "$repo" && "$STOP" --mode now 5 2>"$work/stderr")" && code=0 || code=$?
-[[ "$code" == 0 ]] || problems+="    want exit 0, got exit $code (stderr: $(cat "$work/stderr"))"$'\n'
-[[ "$out" == *5* ]] || problems+="    want the run named on stdout, got '$out'"$'\n'
+[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $(cat "$work/stderr"))"
+[[ "$out" == *5* ]] || note "want the run named on stdout, got '$out'"
 if [[ ! -f "$run/.tdd/stop" ]]; then
-  problems+="    want $run/.tdd/stop holding 'now', it was not written"$'\n'
+  note "want $run/.tdd/stop holding 'now', it was not written"
 else
   written="$(cat "$run/.tdd/stop")"
-  [[ "$written" == "now" ]] || problems+="    want .tdd/stop to hold 'now', it holds '$written'"$'\n'
+  [[ "$written" == "now" ]] || note "want .tdd/stop to hold 'now', it holds '$written'"
   lines="$(grep -c '' "$run/.tdd/stop")"
-  [[ "$lines" == 1 ]] || problems+="    want 'now' as the only line of .tdd/stop, it has $lines lines"$'\n'
+  [[ "$lines" == 1 ]] || note "want 'now' as the only line of .tdd/stop, it has $lines lines"
 fi
 
 report "--mode now <n> writes now as the only line of that run's .tdd/stop, names the run on stdout and exits 0"
