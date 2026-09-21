@@ -44,6 +44,18 @@ refuses() {
   line="$(missing_argument_offender "$SCRIPTS" "$@")" || offenders+=( "$line" )
 }
 
+# verdict <name> — one case's result: green unless `refuses` recorded an offender above, and
+# the offender lines are what a failing case prints in place of a diff. Both cases below are
+# judged the same way, so the block lives here once rather than once per roster.
+verdict() {
+  if (( ${#offenders[@]} > 0 )); then
+    fail=$((fail + 1)); echo "FAIL - $1"
+    printf '    %s\n' "${offenders[@]}"
+  else
+    pass=$((pass + 1))
+  fi
+}
+
 # 1. called with no arguments at all — the emptiest bad-arguments case there is — every script
 #    that requires a positional argument refuses with exit 2 and says how it is called.
 name="a script requiring a positional argument exits 2 with a usage line when called with none"
@@ -77,12 +89,7 @@ offenders=()
 for script in "${roster[@]}"; do
   refuses "$script"
 done
-if (( ${#offenders[@]} > 0 )); then
-  fail=$((fail + 1)); echo "FAIL - $name"
-  printf '    %s\n' "${offenders[@]}"
-else
-  pass=$((pass + 1))
-fi
+verdict "$name"
 
 # 2. the same contract one argument in: each call below passes everything the script needs
 #    except its last required argument, so the refusal it owes is for a LATER position than
@@ -108,12 +115,7 @@ refuses timed-test-run.sh all ''                          # a suite list may be 
 refuses verify.sh green                                   # no <issue-spec-file>
 refuses verify.sh green spec                              # no <test-path> — the shape #270 reports
 refuses verify.sh --step                                  # no step text
-if (( ${#offenders[@]} > 0 )); then
-  fail=$((fail + 1)); echo "FAIL - $name"
-  printf '    %s\n' "${offenders[@]}"
-else
-  pass=$((pass + 1))
-fi
+verdict "$name"
 
 echo "----"
 echo "$pass passed, $fail failed"
