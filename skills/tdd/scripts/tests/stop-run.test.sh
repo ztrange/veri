@@ -267,8 +267,8 @@ done | sort | tr '\n' ' ')"
 [[ "$named" == "5 7 " ]] ||
   note "want the two live runs named on stdout, got '$named' from '$out'"
 
-for live_run in "$run" "$live2"; do
-  check_stop "$live_run" at-leaf
+for stopped in "$run" "$live2"; do
+  check_stop "$stopped" at-leaf
 done
 
 [[ ! -e "$dead/.tdd/stop" ]] ||
