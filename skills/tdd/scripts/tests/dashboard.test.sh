@@ -380,6 +380,31 @@ if sorted(issues) != sorted(want_issues):
     sys.exit()
 '
 
+# The half of a Tests case that is the same in all three of them: the answer call_endpoint
+# wrote, loaded and checked to be an object with a "tests" array. Handed <body> <issue> and
+# whatever else the case names after them, it leaves `runs` that array and `got` the whole
+# answer, and says which half of a malformed one broke rather than dying on it. What differs
+# between the three cases is only what they compare those runs to — the program each appends
+# to this one — so the shape check is written here once.
+tests_runs='
+import json, sys
+
+body, issue = sys.argv[1], sys.argv[2]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("tests_json for issue %s returned something that is not JSON; it starts: %r"
+              % (issue, f.read()[:200]))
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
+    print("tests_json for issue %s returned %s; want an object with a \"tests\" array"
+          % (issue, json.dumps(got, sort_keys=True)[:300]))
+    sys.exit()
+runs = got["tests"]
+'
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
@@ -1165,24 +1190,9 @@ else
   if [[ ! -f "$work/tests-direct-51.json" ]]; then
     problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-direct.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
+    add_problems < <(python3 -c "$tests_runs"'
 red_fail = "FAIL - a lamp flickers\n----\n11 passed, 1 failed"
 red_pass = "----\n12 passed, 0 failed"
-try:
-    with open(sys.argv[1]) as f:
-        got = json.load(f)
-except ValueError:
-    with open(sys.argv[1]) as f:
-        print("tests_json for issue 51 returned something that is not JSON; it starts: %r"
-              % f.read()[:200])
-    sys.exit()
-if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
-    print("tests_json for issue 51 returned %s; want an object with a \"tests\" array"
-          % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-runs = got["tests"]
 if len(runs) != 2:
     print("tests_json for issue 51 returned %d test runs, %s; want the two `make test` calls "
           "in its own leaf log — neither its `git log` call nor run 52\u2019s `make test`"
@@ -1202,7 +1212,7 @@ for entry, passed, output in zip(runs, (False, True), (red_fail, red_pass)):
     elif output.splitlines()[-1] not in tail:
         print("the `make test` whose output is %r came back tail=%r; want it to carry that "
               "output’s last line, %r" % (output, tail, output.splitlines()[-1]))
-' "$work/tests-direct-51.json")
+' "$work/tests-direct-51.json" 51)
   fi
 fi
 
@@ -1250,17 +1260,12 @@ else
   if [[ ! -f "$work/tests-noexec-53.json" ]]; then
     problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-noexec.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-with open(sys.argv[1]) as f:
-    got = json.load(f)
-runs = got.get("tests") if isinstance(got, dict) else None
-if not isinstance(runs, list) or len(runs) != 1 or runs[0].get("command") != sys.argv[2]:
+    add_problems < <(python3 -c "$tests_runs"'
+if len(runs) != 1 or runs[0].get("command") != sys.argv[3]:
     print("tests_json for issue 53 returned %s; want the one leaf test run of its own test "
           "command, %r — the marker below says nothing if the endpoint never read it"
-          % (json.dumps(got, sort_keys=True)[:400], sys.argv[2]))
-' "$work/tests-noexec-53.json" "$tnoexec_cmd")
+          % (json.dumps(got, sort_keys=True)[:400], sys.argv[3]))
+' "$work/tests-noexec-53.json" 53 "$tnoexec_cmd")
     if [[ -e "$tnoexec_marker" ]]; then
       problems+=("the run's test command left $(printf '%q' "$tnoexec_marker") behind, so tests_json executed $(printf '%q' "$tnoexec_cmd") instead of only reading it out of the spec and matching it in the leaf log")
     fi
@@ -1317,20 +1322,12 @@ else
   if [[ ! -f "$work/tests-marks-54.json" ]]; then
     problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-marks.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-with open(sys.argv[1]) as f:
-    got = json.load(f)
-runs = got.get("tests") if isinstance(got, dict) else None
-if not isinstance(runs, list):
-    print("tests_json for issue 54 returned %s; want an object with a \"tests\" array"
-          % json.dumps(got, sort_keys=True)[:300])
-elif len(runs) != 3:
+    add_problems < <(python3 -c "$tests_runs"'
+if len(runs) != 3:
     print("tests_json for issue 54 returned %d test runs, %s; want one per `test-run` mark "
           "in that run’s event log, 3 — not the 1 bare `make test` Bash call in its leaf log"
           % (len(runs), json.dumps(runs, sort_keys=True)[:400]))
-' "$work/tests-marks-54.json")
+' "$work/tests-marks-54.json" 54)
   fi
 fi
 
