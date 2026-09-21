@@ -69,12 +69,19 @@ def run_ended(run):
 # calls it, because a run that is still spending has a committed report that stopped being
 # true when the step after it started. For a run that ended it is
 # `.tdd/issue-<n>-metrics.md` verbatim — the account of the run as it was written, which
-# outlives a log that may since have been pruned; a run that ended without one leaves the
-# empty string rather than a recomputation of the same log the file was written from.
+# outlives a log that may since have been pruned.
+#
+# A run that ended without one is not recomputed either: the log the file would be written
+# from is the same one, and the missing file is the thing worth saying. It used to leave the
+# empty string, which reads on the page as "this run had nothing to report" rather than "the
+# report is missing" (#295). So it leaves a MARKER naming the file that is not there — the
+# only thing a viewer can tell apart from a real empty report.
 def issue_report(run, issue):
     committed = os.path.join(run, ".tdd", "issue-%s-metrics.md" % issue)
     if run_ended(run):
-        return open(committed).read() if os.path.exists(committed) else ""
+        if os.path.exists(committed):
+            return open(committed).read()
+        return "(no report: this run ended without committing .tdd/issue-%s-metrics.md)" % issue
     return capture([metrics_sh, issue], cwd=run).decode("utf-8", "replace")
 
 
