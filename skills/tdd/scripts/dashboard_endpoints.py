@@ -77,11 +77,15 @@ def run_ended(run):
 # report is missing" (#295). So it leaves a MARKER naming the file that is not there — the
 # only thing a viewer can tell apart from a real empty report.
 def issue_report(run, issue):
-    committed = os.path.join(run, ".tdd", "issue-%s-metrics.md" % issue)
+    # The report's path under the run, spelled once: the file that is read when it is there
+    # and the file the marker names when it is not are the same one, and two spellings of it
+    # would let the marker name a path the reader never looked at.
+    report = os.path.join(".tdd", "issue-%s-metrics.md" % issue)
+    committed = os.path.join(run, report)
     if run_ended(run):
         if os.path.exists(committed):
             return open(committed).read()
-        return "(no report: this run ended without committing .tdd/issue-%s-metrics.md)" % issue
+        return "(no report: this run ended without committing %s)" % report
     return capture([metrics_sh, issue], cwd=run).decode("utf-8", "replace")
 
 
