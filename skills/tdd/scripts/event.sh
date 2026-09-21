@@ -46,8 +46,7 @@
 # line to a reader, and this does not manufacture the ambiguity, only fails to hide it.
 set -euo pipefail
 
-# Bad arguments are exit 2, not the 1 a `${1:?…}` expansion aborts with: a caller who
-# passed nothing made no call whose result could be a negative answer (#270).
+# Exit 2, not the 1 a `${1:?…}` expansion aborts with — CLAUDE.md, "Exit codes are the API" (#270).
 # The refusal comes before the mkdir below, so a mis-called event.sh leaves no trace.
 [[ -n "${1:-}" ]] || { echo "usage: event.sh <event> [key=value …]" >&2; exit 2; }
 event="$1"

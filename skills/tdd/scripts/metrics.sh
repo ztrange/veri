@@ -144,8 +144,7 @@
 # worktree, in other words, which is where the conductor calls this from.
 set -euo pipefail
 
-# Bad arguments are exit 2, not the 1 a `${1:?…}` expansion aborts with: a caller who
-# passed nothing made no call whose result could be a negative answer (#270).
+# Exit 2, not the 1 a `${1:?…}` expansion aborts with — CLAUDE.md, "Exit codes are the API" (#270).
 # The number is what the report is ABOUT: it names the file the conductor commits and the
 # issue the thread belongs to, so a call that omits it has not said which run it means.
 [[ -n "${1:-}" ]] || { echo "usage: metrics.sh <issue-number>" >&2; exit 2; }

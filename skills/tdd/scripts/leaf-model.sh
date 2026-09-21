@@ -40,8 +40,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/leaf-model.sh
 source "$HERE/lib/leaf-model.sh"
 
-# Bad arguments are exit 2, not the 1 a `${1:?…}` expansion aborts with: a caller who
-# passed nothing made no call whose result could be a negative answer (#270).
+# Exit 2, not the 1 a `${1:?…}` expansion aborts with — CLAUDE.md, "Exit codes are the API" (#270).
 [[ -n "${1:-}" ]] || { echo "usage: leaf-model.sh <leaf-name>" >&2; exit 2; }
 name="$1"
 
