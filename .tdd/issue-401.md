@@ -4,4 +4,4 @@
 - [x] a range touching both a prompt and a suite answers with that suite and the prompt's suites, and does not widen to every suite ⟦criterion 2⟧
 - [x] a file that matches no placement rule still widens the answer to every suite ⟦criterion 3⟧
 - [x] a widened answer names on stderr the file that forced the widening ⟦criterion 4⟧
-- [x] the widening-names-the-file case pins stderr without any suite line naming a path in the generated-documentation tree, so no-docs-reads.test.sh stays green ⟦criterion 4⟧ ⟂ refactor pending
+- [x] the widening-names-the-file case pins stderr without any suite line naming a path in the generated-documentation tree, so no-docs-reads.test.sh stays green ⟦criterion 4⟧
