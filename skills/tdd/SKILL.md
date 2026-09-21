@@ -441,9 +441,19 @@ unauthenticated baseline never gets a cycle.
    keeps the baseline and every later leaf on one command: detected after the baseline, the
    issue's line would arrive too late to be the command the baseline proved green. Note how
    long the run took and keep it as `baseline`, the elapsed wall time in whole seconds
-   (round up); step 7 sizes the run's hard timeout from it. This measurement is free — the
-   run happens anyway — and it is the only one taken, so a suite that gets slower mid-run
-   does not move the timeout under a leaf.
+   (round up). This measurement is free — the run happens anyway — and it is taken once, so
+   a suite that gets slower mid-run does not move the timeout under a leaf.
+
+   **Then time the full tier too.** Get its command from
+   `$S/detect-test-command.sh --tier all --issue "$body"`, run it once, and keep its elapsed
+   wall time in whole seconds (round up) as `full`; step 7 sizes the run's hard timeout from
+   that number, not from `baseline`. The full-tier run is the work a leaf actually does — a
+   verifier runs this very command and a developer leaf runs the suites covering the files it
+   touched — while no leaf runs the fast tier at all, so a timeout timed off the fast one
+   bounds work nobody does: that is how #300's green leaf was killed at the 900 s floor
+   twice over while it was working. It is timed here, with the same single-measurement rule,
+   and costs one full-tier run the Draft PR gate pays for anyway. If it is red, stop and
+   report, for the same reason a red fast tier stops the run.
 4. **Default branch.** Capture it for the PR base:
    `gh repo view --json defaultBranchRef -q .defaultBranchRef.name`.
 5. **Tunables parse.** Run `$S/refactor-budget.sh 0` once. **Exit 2** means
@@ -474,12 +484,16 @@ unauthenticated baseline never gets a cycle.
    launch, by which time the branch, the worktree and the plan already exist and a typo costs
    a bail to undo. An empty print is the normal answer for a run that chose no model, so exit
    0 with nothing on stdout means continue.
-7. **Size the run's hard timeout from the baseline.** Hand step 3's `baseline` to
-   `$S/leaf-timeout.sh` and **export** the result, so every leaf of the run is launched
-   under it rather than under the supervisor's fixed 900 s default:
+7. **Size the run's hard timeout from the full-tier measurement.** Hand step 3's `baseline`
+   and its `full` measurement to `$S/leaf-timeout.sh` and **export** the result, so every
+   leaf of the run is launched under it rather than under the supervisor's fixed 900 s
+   default:
    ```
-   timeout="$($S/leaf-timeout.sh "$baseline")" && export VERI_TIMEOUT="$timeout"
+   timeout="$($S/leaf-timeout.sh "$baseline" --full "$full")" && export VERI_TIMEOUT="$timeout"
    ```
+   `--full` says which of the two measurements the timeout is sized from: the full-tier one
+   displaces the fast one rather than mixing with it, because a leaf runs the full tier and
+   never the fast one.
    The script keeps a quick suite on today's 900 s and gives a slow one 6 × its baseline —
    which is what stops a leaf whose own test command takes minutes being killed as stuck
    while it is working (#71: a 900 s cap against a 140-250 s suite, two bails, both steps
@@ -591,10 +605,11 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    ledger is the source of truth and each step will be blind-verified. The test command is
    in that comment so a wrong one is visible on the thread before the first leaf starts,
    rather than after a cycle has paid for it. The comment also states the hard timeout
-   preflight step 7 settled on and where it came from — `timeout 1200 s (6 × a 200 s
-   baseline)`, or `timeout 900 s (floor; 5 s baseline)`, or `timeout 900 s (VERI_TIMEOUT set
-   by hand)` — so a reader of the thread can see which number every leaf of this run is
-   under and why. On #71 that had to be reconstructed from the timestamps of two bails.
+   preflight step 7 settled on and where it came from, **naming the tier the measurement was
+   of** — `timeout 1200 s (6 × a 200 s full-tier baseline)`, or `timeout 900 s (floor; 40 s
+   full-tier baseline)`, or `timeout 900 s (VERI_TIMEOUT set by hand)` — so a reader of the
+   thread can see which number every leaf of this run is under, why, and that it was timed
+   against the work a leaf does rather than against the fast tier no leaf runs. On #71 that had to be reconstructed from the timestamps of two bails.
    Beside those two, the comment names the **skill commit** this run started on —
    `git -C "$S" rev-parse HEAD`, the version of the procedure and scripts you are executing.
    The thread is where a human reads a run back, so it is where the version has to be: a

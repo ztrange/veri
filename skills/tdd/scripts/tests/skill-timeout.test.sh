@@ -150,6 +150,39 @@ then
 fi
 report "$name"
 
+# 2. The same four things, now about the tier the measurement is of (issue #377). Preflight
+#    times the FAST tier — `make unit` on this repo since #341, a few seconds — but no leaf
+#    runs it: a developer leaf runs the suites covering the files it touched and a verifier
+#    runs the full tier. A timeout sized from the fast measurement therefore bounds work
+#    nobody does, which is how #300's green leaf was killed at the 900 s floor twice over
+#    while it was working. So the measurement handed to `leaf-timeout.sh` has to be of the
+#    full tier, and the plan comment has to say which tier the number came from — a reader
+#    who cannot tell the two apart cannot tell this bug from a run that is simply slow.
+name="$skill_md's preflight times the full tier, hands that measurement to leaf-timeout.sh and exports it as VERI_TIMEOUT for every leaf, and the plan comment names the tier the number came from"
+problems=()
+
+# `full` as a word, hyphen included on the right so `full-tier` counts and `fully` does not.
+full_re='(^|[^a-z])full(-[a-z]+)?([^a-z-]|$)'
+
+if records_of preflight '^### [0-9]+\..*[Pp]reflight' \
+  "$skill_md has no numbered '### … Preflight' section — what preflight does with the timeout could not be read"
+then
+  claim 'times a full-tier run, the work a leaf actually does' \
+    "$full_re" "$elapsed_re"
+  claim 'hands the full-tier measurement to leaf-timeout.sh' \
+    'leaf-timeout\.sh' "$full_re"
+  claim 'exports the result as VERI_TIMEOUT so every leaf of the run is launched under it' \
+    'veri_timeout' 'export|every leaf|each leaf|all leaves|every launch|rest of the run'
+fi
+
+if records_of plan '^### [0-9]+\..*[Pp]lan' \
+  "$skill_md has no numbered '### … plan' section — what the plan comment states could not be read"
+then
+  claim 'has the plan comment name the tier the timeout was derived from' \
+    'timeout' 'comment' "$full_re|tier"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
