@@ -56,6 +56,16 @@ stopping_section() {
     | tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
+# load_section — put the `## Stopping` section in `section` for a case's probes to read, or
+# record the fail-closed problem and return 1 when the document has no such section: no probe
+# below can say anything about a section that is not there.
+load_section() {
+  section="$(stopping_section)"
+  [[ -n "$section" ]] && return 0
+  problems+=("$skill_md has no ## Stopping section — nothing could be checked")
+  return 1
+}
+
 # first_line_matching <pattern> — the 1-based number of the section's first line matching
 # <pattern>, or empty when none does. Ordering is asked of these numbers rather than of a
 # single joined blob, so "before" means what a reader means by it.
@@ -66,11 +76,7 @@ first_line_matching() {
 # ---------------------------------------------------------------------------
 name="the Stopping section waits with wait-leaf.sh on every .tdd/<name>.pid still running supervise.sh <name> before it touches the tree, and reaches only for git reset --hard HEAD, never git checkout"
 problems=()
-section="$(stopping_section)"
-if [[ -z "$section" ]]; then
-  # Fail closed: no section means not one probe below ran.
-  problems+=("$skill_md has no ## Stopping section — nothing could be checked")
-else
+if load_section; then
   wait_at="$(first_line_matching 'wait-leaf\.sh')"
   [[ -n "$wait_at" ]] \
     || problems+=("the Stopping section never calls wait-leaf.sh")
@@ -94,11 +100,7 @@ report "$name"
 # ---------------------------------------------------------------------------
 name="the Stopping section resets nothing and records at=unsettled when rebase-merge, rebase-apply or MERGE_HEAD is present in the worktree"
 problems=()
-section="$(stopping_section)"
-if [[ -z "$section" ]]; then
-  # Fail closed: no section means not one probe below ran.
-  problems+=("$skill_md has no ## Stopping section — nothing could be checked")
-else
+if load_section; then
   for state in 'rebase-merge' 'rebase-apply' 'merge_head'; do
     grep -qE -- "$state" <<<"$section" \
       || problems+=("the Stopping section never names $state — an interrupted rebase or merge it cannot see is one it would reset away")
