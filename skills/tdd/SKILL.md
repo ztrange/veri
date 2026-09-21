@@ -1537,6 +1537,21 @@ leaves the run resumable. Run this sequence in order.
    the reconcile leaf *Reconciling a rejected push* would otherwise launch is not an option;
    and a stop has no cause, so a rejected push is not a bail either — the run stays paused
    and resumable, and the resume reconciles. Exit **2** is recorded the same way.
+4. **Mark the stop**, exactly once, with the boundary the run actually reached. `<at>` is
+   read off the committed ledger: `at=unplanned` when there is no ledger yet, `at=planned`
+   when the ledger is committed and no step is green, `at=green` when the newest ledger
+   commit ticked a step that still carries `⟂ refactor pending`, `at=step-done` when every
+   ticked step has had that mark taken off again, and `at=unsettled` when step 2 refused the
+   tree — that last one wins over the others, because where the tree stands is the first
+   thing a resume has to deal with.
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh stop mode=<mode> at=<at>
+   ```
+   That is the whole record of the pause, and it is never a `bail` mark: a stop has no
+   cause, so there is no system-versus-process label to derive and nothing to derive it
+   from. Both keys ride on the one line — `mode` says which checkpoint the operator's stop
+   was taken at, `at` says how far the work got — so a reader who asks "where did this run
+   pause?" reads one mark, not two.
 
 ## Resume
 
