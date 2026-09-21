@@ -205,6 +205,64 @@ fi
 
 report "a second call for the same run overwrites the mode already in .tdd/stop"
 
+# 6. `--all` writes the mode into every live run's .tdd/stop and into no other. The operator
+#    who types it is stopping the queue, not one issue, so the command has to reach every run
+#    that is actually running — a second live run left out would go on working after the
+#    operator was told the queue was stopped — and it has to stop there: a run whose conductor
+#    has exited is over, and a request left in its .tdd/stop would ambush that issue at its
+#    next resume rather than stopping anything now. So the fixture holds all three kinds at
+#    once: run 5, live since the top of the suite, a second live run 7, and a run 9 whose
+#    conductor.pid names a pid nobody answers for. Its .tdd/ exists, so a .tdd/stop missing
+#    there is the script declining to write rather than the directory not being there.
+#
+#    Stdout is read as one run per line, each line's basename compared against the live runs'
+#    numbers, for the reason case 3 gives — the run may be named by its path or by its number,
+#    and both are the run named — but a substring check cannot serve here: the temporary tree
+#    these runs live under is named by mktemp, so a bare `*9*` would match the path of a run
+#    the command must not have touched.
+problems=""
+rm -f "$run/.tdd/stop"
+
+live2="$repo/.tdd/wt/7"; mkdir -p "$live2/.tdd"
+sleep 60 &
+live2_pid=$!; alive+=("$live2_pid")
+printf '%s\n' "$live2_pid" > "$live2/.tdd/conductor.pid"
+
+# A real pid that is no longer a process: a background `sleep 0` already reaped, so the
+# number names nothing and `kill -0` fails on it (wait-leaf.test.sh:232's idiom).
+dead="$repo/.tdd/wt/9"; mkdir -p "$dead/.tdd"
+sleep 0 &
+dead_pid=$!
+wait "$dead_pid" 2>/dev/null
+printf '%s\n' "$dead_pid" > "$dead/.tdd/conductor.pid"
+
+run_stop --mode at-leaf --all
+[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
+
+named="$(printf '%s\n' "$out" | while read -r line; do
+  [[ -n "$line" ]] && basename "$line"
+done | sort | tr '\n' ' ')"
+[[ "$named" == "5 7 " ]] ||
+  note "want the two live runs named on stdout, got '$named' from '$out'"
+
+for live_run in "$run" "$live2"; do
+  if [[ ! -f "$live_run/.tdd/stop" ]]; then
+    note "want $live_run/.tdd/stop holding 'at-leaf', it was not written"
+  else
+    written="$(cat "$live_run/.tdd/stop")"
+    [[ "$written" == "at-leaf" ]] ||
+      note "want $live_run/.tdd/stop to hold 'at-leaf', it holds '$written'"
+    lines="$(grep -c '' "$live_run/.tdd/stop")"
+    [[ "$lines" == 1 ]] ||
+      note "want 'at-leaf' as the only line of $live_run/.tdd/stop, it has $lines lines"
+  fi
+done
+
+[[ ! -e "$dead/.tdd/stop" ]] ||
+  note "want no .tdd/stop for the run whose conductor is gone, found one holding '$(cat "$dead/.tdd/stop")'"
+
+report "--all writes the mode into every live run's .tdd/stop and into no other"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

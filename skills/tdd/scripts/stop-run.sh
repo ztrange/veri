@@ -73,9 +73,40 @@ fi
 # conductor's worktree is itself under .tdd/wt/, so resolving from here would look for runs
 # inside one run (#166, the rule status.sh:158-164 already follows).
 main_tree="$(main_working_tree)"
-run="$main_tree/.tdd/wt/$issue"
 
-# The mode as the only line of the file, because stop-requested.sh reads it as one word, and
-# `>` rather than `>>` because the last write is the request that stands.
-printf '%s\n' "$mode" > "$run/.tdd/stop"
-echo "$run"
+# live_run <run-path> — whether a conductor is still running inside this run's worktree, the
+# reading issue-worktree.sh:109-116 already makes: `.tdd/conductor.pid` holds a number and
+# `kill -0` answers for it. `kill -0` sends no signal; it only says whether there is a process
+# to send one to. Every other case — no file, an unreadable one, something that is not a
+# number, a pid nobody answers for — is the same answer, not live, which is what keeps a run
+# whose conductor has exited out of `--all`: a request left in its .tdd/stop would ambush that
+# issue at its next resume rather than stopping anything now.
+live_run() {
+  local pid
+  pid="$(cat "$1/.tdd/conductor.pid" 2>/dev/null || true)"
+  [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null
+}
+
+# request_stop <run-path> — the write, and the one line of stdout that says it happened. The
+# mode is the only line of the file, because stop-requested.sh reads it as one word, and `>`
+# rather than `>>` because the last write is the request that stands. Naming the run on stdout
+# is how an operator learns which runs the command actually reached, so the two belong
+# together: a write nobody is told about is indistinguishable from a run that was skipped.
+request_stop() {
+  printf '%s\n' "$mode" > "$1/.tdd/stop"
+  echo "$1"
+}
+
+if (( all == 1 )); then
+  # The glob, not `git worktree list`: a run is a directory under .tdd/wt/, and `[[ -d ]]`
+  # also answers the case of a repository with no runs at all, where bash leaves the pattern
+  # itself standing as the one word of the loop.
+  for candidate in "$main_tree"/.tdd/wt/*; do
+    [[ -d "$candidate" ]] || continue
+    if live_run "$candidate"; then
+      request_stop "$candidate"
+    fi
+  done
+else
+  request_stop "$main_tree/.tdd/wt/$issue"
+fi
