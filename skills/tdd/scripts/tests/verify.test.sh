@@ -877,6 +877,50 @@ pres_paired="$(if [[ -n "$pres_copy" ]] && cmp -s "$pres_copy" "$pres_dir/.tdd/v
   || no "a REJECT preserves the attempt under the ref and the copy name its own verdict event pairs with (code=$pres_code want 1; event issue=$event_issue step=$event_step phase=$event_phase attempt=$event_attempt; ref=$pres_ref resolved=$pres_resolved; git show said '$pres_shown'; log copy='${pres_copy:-<none>}' matches .tdd/verify-green.log: $pres_paired)"
 
 
+# 28. the no-verdict half of the same criterion (issue #409): a verifier leaf that exits cleanly
+#     and prints no VERDICT: line renders a malformed verdict, and that is a troubled step as
+#     surely as a REJECT is — the tree it judged is still uncommitted and `.tdd/verify-green.log`
+#     is still the only record of what it tried. So this attempt is preserved too, under its own
+#     ref and its own copies. Case 27's arm cannot answer for this one: it reaches preservation
+#     through a parsed REJECT, where this one reaches it with no verdict parsed at all.
+#
+#     "Its own" is what the mark says, so the mark is read here rather than left to
+#     preserve-attempt.test.sh the way case 27 leaves it: a run that ended with no VERDICT: line
+#     is filed under `no-verdict`, not under the `malformed` a garbled line gets, and the copy is
+#     looked for under the very cause the verdict event carries — the same pairing-by-substitution
+#     case 27 makes for the issue, step, phase and attempt.
+#
+#     VERI_NO_VERDICT_RETRIES=0 is pinned rather than inherited (see hermetic-suites.test.sh) and
+#     spends one launch rather than the default's two: the relaunch axis is case 24's subject, and
+#     this case is about what the verification preserves once it is out of retries.
+nv_dir="$work/preserve-no-verdict"
+fixture_repo "$nv_dir" argv
+printf 'the work no verdict was rendered on\n' > "$nv_dir/src.txt"
+nv_issue=409
+nv_step=5
+( export VERI_ISSUE="$nv_issue" VERI_STEP="$nv_step" VERI_NO_VERDICT_RETRIES=0
+  verify_in "$nv_dir" green 'the leaf rambled and never rendered a verdict' >/dev/null 2>&1 )
+nv_code=$?
+
+nv_issue_seen="$(verdict_field_in "$nv_dir" issue)"
+nv_step_seen="$(verdict_field_in "$nv_dir" step)"
+nv_phase="$(verdict_field_in "$nv_dir" phase)"
+nv_attempt="$(verdict_field_in "$nv_dir" attempt)"
+nv_cause="$(verdict_field_in "$nv_dir" cause)"
+nv_ref="refs/veri/attempts/$nv_issue_seen/$nv_step_seen/verify-$nv_phase-$nv_attempt"
+git -C "$nv_dir" rev-parse --verify --quiet "$nv_ref^{commit}" >/dev/null 2>&1; nv_resolved=$?
+nv_shown="$(git -C "$nv_dir" show "$nv_ref:src.txt" 2>&1)"
+nv_copy="$nv_dir/.tdd/attempts/$nv_step_seen-verify-$nv_phase-$nv_attempt-$nv_cause.log"
+nv_paired="$(if [[ -f "$nv_copy" ]] && cmp -s "$nv_copy" "$nv_dir/.tdd/verify-green.log"; then echo yes; else echo no; fi)"
+{ [[ "$nv_code" == 2 ]] \
+  && [[ "$nv_issue_seen" == "$nv_issue" ]] && [[ "$nv_step_seen" == "$nv_step" ]] \
+  && [[ "$nv_cause" == no-verdict ]] \
+  && [[ "$nv_resolved" == 0 ]] \
+  && [[ "$nv_shown" == "the work no verdict was rendered on" ]] \
+  && [[ "$nv_paired" == yes ]]; } && ok \
+  || no "a malformed verdict with no VERDICT: line preserves the attempt under its own ref and copies (code=$nv_code want 2; event issue=$nv_issue_seen step=$nv_step_seen phase=$nv_phase attempt=$nv_attempt cause=$nv_cause want no-verdict; ref=$nv_ref resolved=$nv_resolved; git show said '$nv_shown'; log copy='$nv_copy' matches .tdd/verify-green.log: $nv_paired)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
