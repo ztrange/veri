@@ -443,7 +443,7 @@ report "$name"
 #    it reports the count as wrong, not as one nobody moved when this suite arrived. Same
 #    shape as cases 2 and 3, asked of this issue's single arrival, so `moved_by` is given
 #    the one file. The reads are case 1's, taken once above — `n_suites` and `idiom`.
-name="$claude_md's counts moved with skill-stopping.test.sh"
+name="$claude_md's counts moved with the Stopping section's suite"
 problems=()
 
 stopping_suite="skills/tdd/scripts/tests/skill-stopping.test.sh"
