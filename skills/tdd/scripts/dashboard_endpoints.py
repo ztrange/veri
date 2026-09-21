@@ -213,14 +213,21 @@ def output_tail(text):
 # leaf's launch line alone (SKILL.md:617), so a verifier — launched through verify.sh, whose
 # outer redirect goes to /dev/null (SKILL.md:307) — never gets one. Where both exist they are
 # the same bytes, so the log every leaf writes is what is read, and the redirection only where
-# a run wrote no `.log` beside it (#384). No run, or no leaf, names no log.
+# a run wrote no `.log` beside it (#384). No run, or no leaf, names no log. The two suffixes
+# are named here rather than spelled at each use, because leaf_logs below has to glob for the
+# same one this falls back to and a second spelling of it would be a set of logs that disagreed
+# with the log.
+SUPERVISED_LOG = ".log"
+CONDUCTOR_OUT = ".out"
+
+
 def leaf_log(run, leaf):
     if not run or not leaf:
         return ""
-    supervised = os.path.join(run, ".tdd", "%s.log" % leaf)
+    supervised = os.path.join(run, ".tdd", leaf + SUPERVISED_LOG)
     if os.path.exists(supervised):
         return supervised
-    return os.path.join(run, ".tdd", "%s.out" % leaf)
+    return os.path.join(run, ".tdd", leaf + CONDUCTOR_OUT)
 
 
 # Every leaf log of one run, in a stable order — the whole set, as the glob of any leaf name.
@@ -229,7 +236,7 @@ def leaf_log(run, leaf):
 # pattern can be. A run still being born has none, which is the empty list and not an error,
 # and so is the empty run name.
 def leaf_logs(run):
-    return sorted(glob.glob(os.path.join(run, ".tdd", "*.out"))) if run else []
+    return sorted(glob.glob(os.path.join(run, ".tdd", "*" + CONDUCTOR_OUT))) if run else []
 
 
 # One leaf log's records: its stream-json lines, parsed, one per line and in the order the
