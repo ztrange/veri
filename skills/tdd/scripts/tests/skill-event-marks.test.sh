@@ -352,6 +352,15 @@ if have_records 'the exhausted-budget marks'; then
   # the shell command that follows it in the same fenced block is not read as part of it.
   event_calls() { grep -oE 'event\.sh [a-z][a-z-]*( [a-z]+=[^ ]+)*' <<< "$1"; }
 
+  # mark_names <calls> — the mark name of each of those calls, one per line: the name alone is
+  # what two outcomes have to differ in for a log reader to tell them apart at a glance, its
+  # keys aside.
+  mark_names() { awk '{print $2}' <<< "$1"; }
+
+  # The split branch's calls, read once: both halves below ask about them — the split's own,
+  # against the volunteered split's, and the park's, against these.
+  split_calls="$(event_calls "$split_rec")"
+
   # The split branch, and the half of this criterion nothing else pins: its mark must say
   # something the volunteered split's does not.
   if [[ -z "$split_rec" ]]; then
@@ -363,7 +372,7 @@ if have_records 'the exhausted-budget marks'; then
     while IFS= read -r call; do
       [[ -n "$call" ]] || continue
       [[ "$volunteered_rec" == *"$call"* ]] || distinct="$call"
-    done <<< "$(event_calls "$split_rec")"
+    done <<< "$split_calls"
     [[ -n "$distinct" ]] ||
       problems+=("$skill_md marks the split a run reaches at exhaustion with nothing a leaf-volunteered split does not write too, so the log cannot say which of the two grew the plan: $(printf '%.130s' "$split_rec")")
   fi
@@ -380,10 +389,10 @@ if have_records 'the exhausted-budget marks'; then
     else
       # And a mark of its own: a park logged under the name the split writes is a third
       # outcome the log still reads as the first.
-      split_names="$(event_calls "$split_rec" | awk '{print $2}')"
+      split_names="$(mark_names "$split_calls")"
       own=""
       while IFS= read -r call; do
-        grep -qxF "$(awk '{print $2}' <<< "$call")" <<< "$split_names" || own="$call"
+        grep -qxF "$(mark_names "$call")" <<< "$split_names" || own="$call"
       done <<< "$park_calls"
       [[ -n "$own" ]] ||
         problems+=("$skill_md marks the parked step only with marks the split branch writes too, so the escalated outcome is not distinguishable from the split one")
