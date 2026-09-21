@@ -127,10 +127,16 @@ run_stop() { run_stop_in "$repo" "$@"; }
 # the reader go and rerun the command by hand to see it would be the slower one.
 check_code() { [[ "$code" == "$1" ]] || note "want exit $1, got exit $code (stderr: $err)"; }
 
-check_refused() {  # check_refused <label> [args…]
-  local label="$1"; shift
+# check_refused_in <dir> <label> [args…] — one refusal, checked whole: exit 2, nothing on
+# stdout, the script's own complaint on stderr, no .tdd/stop for the live run the command did
+# not name properly, and both its live pids still answering. The directory is a parameter
+# because one refusal below is a command typed where no repository is, and that one is a
+# refusal like any other — checking it by hand would be a second copy of these six checks, and
+# a copy is where one of them goes missing.
+check_refused_in() {
+  local dir="$1" label="$2"; shift 2
   local out code err
-  run_stop "$@"
+  run_stop_in "$dir" "$@"
   check_code 2
   [[ -z "$out" ]] || note "want empty stdout, got '$out'"
   # The complaint has to be the script's own — the `stop-run: ` prefix refuse() writes — and
@@ -145,6 +151,11 @@ check_refused() {  # check_refused <label> [args…]
     note "want the conductor $run_conductor_pid untouched, it is gone"
   rm -f "$run/.tdd/stop"
 }
+
+# check_refused <label> [args…] — the same, from the repository the suite has been building
+# all along, which is where every refusal but that one is typed.
+check_refused() { check_refused_in "$repo" "$@"; }
+
 check_refused "an unknown --mode value" --mode bogus 5
 check_refused "both an issue and --all" --mode now 5 --all
 check_refused "neither an issue nor --all"
@@ -329,20 +340,10 @@ report "an issue with no worktree, an issue whose conductor names no live proces
 #    request left behind or a TERM sent from a command that never resolved a tree would reach
 #    a run the operator's shell was not even standing in.
 problems=""
-label=""
 rm -f "$run/.tdd/stop"
 
 outside="$work/outside"; mkdir -p "$outside"
-run_stop_in "$outside" --mode now 5
-check_code 2
-[[ -z "$out" ]] || note "want empty stdout, got '$out'"
-[[ "$err" == "stop-run: "* ]] || note "want a complaint of the script's own, got '$err'"
-[[ ! -e "$run/.tdd/stop" ]] ||
-  note "want no .tdd/stop written, found one holding '$(cat "$run/.tdd/stop")'"
-kill -0 "$sup_pid" 2>/dev/null ||
-  note "want the live supervisor $sup_pid untouched, it is gone"
-kill -0 "$run_conductor_pid" 2>/dev/null ||
-  note "want the conductor $run_conductor_pid untouched, it is gone"
+check_refused_in "$outside" "no main working tree" --mode now 5
 
 report "a command typed where no main working tree resolves exits 2, writes no .tdd/stop and signals nothing"
 
