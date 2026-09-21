@@ -1212,11 +1212,9 @@ problems=""
 [[ "$exhausted" == *"$step_text"* ]] || problems="$problems; does not carry the step"
 [[ "$exhausted" == *"REJECT: the case asserts on zorblat()'s log line, not its return value — & {tricky}\\chars."* ]]   || problems="$problems; does not carry the rejection reason verbatim"
 [[ "$exhausted" == *'zorblat("Frob & Nitz/Quux")'* ]] || problems="$problems; does not carry the issue spec"
-no_reason_err="$work/exhausted-no-reason.err"
-no_reason_out="$("$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/absent.md" 2>"$no_reason_err")"; code=$?
-[[ "$code" -eq 2 ]] || problems="$problems; a missing reason file exited $code, want 2"
-[[ -z "$no_reason_out" ]] || problems="$problems; a missing reason file printed a prompt"
-[[ -s "$no_reason_err" ]] || problems="$problems; a missing reason file gave no diagnostic"
+refusal_bad=""
+refuses "exhausted missing reason" "$BUILD" exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/absent.md"
+[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
 [[ -z "$problems" ]] \
   && ok || no "develop-exhausted carries the step, the verifier's last rejection reason and the issue spec, and refuses a missing reason file with exit 2 (${problems#; })"
 
