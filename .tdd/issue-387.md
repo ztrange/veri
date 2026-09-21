@@ -4,7 +4,7 @@
 - [x] stop-run.sh --mode with no value following it prints a named complaint on stderr and exits 2, instead of dying on an unbound $2 with exit 1 ⟦added⟧ ⟦criterion 9⟧
 - [x] stop-run.sh --mode now <n> writes `now` as the only line of that run's .tdd/stop, names the run on stdout and exits 0 ⟦criterion 1⟧
 - [x] stop-run.sh <n> with no --mode writes at-ledger ⟦criterion 2⟧
-- [ ] a second call for the same run overwrites the mode already in .tdd/stop ⟦criterion 3⟧
+- [x] a second call for the same run overwrites the mode already in .tdd/stop ⟦criterion 3⟧
 - [ ] stop-run.sh --all writes the mode into every live run's .tdd/stop and into no other ⟦criterion 4⟧
 - [ ] an issue with no worktree, an issue whose .tdd/conductor.pid names no live process, and --all with no live run each exit 3 and write no .tdd/stop ⟦criterion 5⟧
 - [ ] no main working tree to resolve exits 2 and writes nothing

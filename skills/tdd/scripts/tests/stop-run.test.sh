@@ -183,6 +183,28 @@ fi
 
 report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
 
+# 5. A second call for the same run overwrites the mode already in .tdd/stop. The file holds
+#    one request, not a history of them: stop-requested.sh reads it as one word, so a mode
+#    appended beside the one already there is a request the conductor cannot answer, and an
+#    operator who typed `at-ledger` and then thought better of it would find the gentler mode
+#    still standing. Case 4 left `at-ledger` there, which is what makes this a second call at
+#    all — the run is stopped again with `now`, and what the file holds afterwards is `now`
+#    alone, on one line, with the call reported as a success like any other.
+problems=""
+run_stop --mode now 5
+[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
+if [[ ! -f "$run/.tdd/stop" ]]; then
+  note "want $run/.tdd/stop holding 'now', it was not written"
+else
+  written="$(cat "$run/.tdd/stop")"
+  [[ "$written" == "now" ]] ||
+    note "want the second call's mode alone, .tdd/stop holds '$written'"
+  lines="$(grep -c '' "$run/.tdd/stop")"
+  [[ "$lines" == 1 ]] || note "want 'now' as the only line of .tdd/stop, it has $lines lines"
+fi
+
+report "a second call for the same run overwrites the mode already in .tdd/stop"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
