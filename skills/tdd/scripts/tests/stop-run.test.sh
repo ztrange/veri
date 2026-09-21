@@ -101,6 +101,36 @@ else
   fail=$((fail + 1)); echo "FAIL - $name"; printf '%s' "$problems"
 fi
 
+# 2. `--mode` typed with nothing after it is a refusal like any other, and must read as one.
+#    Left to `set -u`, the option's own value expansion dies before the contract is ever
+#    checked: bash says its piece, the exit code is not 2, and an operator's wrapper that
+#    branches on the codes cannot tell a mistyped command from the plumbing breaking. So the
+#    complaint has to be the script's own — the `stop-run: ` prefix every other refusal
+#    carries — and not bash's, which names the script's path and a line number instead.
+problems=""
+label="--mode with no value"
+
+out="$(cd "$repo" && "$STOP" --mode 2>"$work/stderr")" && code=0 || code=$?
+err="$(cat "$work/stderr")"
+[[ "$code" == 2 ]] || note "want exit 2, got exit $code"
+[[ -z "$out" ]] || note "want empty stdout, got '$out'"
+[[ "$err" == "stop-run: "* ]] ||
+  note "want a complaint of the script's own, got '$err'"
+[[ ! -e "$run/.tdd/stop" ]] ||
+  note "want no .tdd/stop written, found one holding '$(cat "$run/.tdd/stop")'"
+kill -0 "$sup_pid" 2>/dev/null ||
+  note "want the live supervisor $sup_pid untouched, it is gone"
+kill -0 "$cond_pid" 2>/dev/null ||
+  note "want the conductor $cond_pid untouched, it is gone"
+rm -f "$run/.tdd/stop"
+
+name="--mode with no value exits 2 with the script's own complaint, writes no .tdd/stop and signals nothing"
+if [[ -z "$problems" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1)); echo "FAIL - $name"; printf '%s' "$problems"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
