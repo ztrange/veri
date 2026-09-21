@@ -18,13 +18,13 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/.tdd"
 
-# run_stop — run the script from the run's worktree, leaving its stdout in `out`, its exit
-# code in `code` and its stderr in `err`. Most cases assert on `out` and `code` alone,
+# run_stop [args…] — run the script from the run's worktree with the arguments given,
+# leaving its stdout in `out`, its exit code in `code` and its stderr in `err`. Most cases assert on `out` and `code` alone,
 # since what a conductor at a checkpoint captures is stdout; the malformed ones read `err`
 # too, because "nothing on stdout" and "a diagnostic somewhere" are together what keeps a
 # conductor from reading a complaint as a mode.
 run_stop() {
-  out="$(cd "$work" && "$STOP" 2>"$work/stderr")" && code=0 || code=$?
+  out="$(cd "$work" && "$STOP" "$@" 2>"$work/stderr")" && code=0 || code=$?
   err="$(cat "$work/stderr")"
 }
 
@@ -88,6 +88,24 @@ done
 : > "$work/.tdd/stop"
 check_malformed "a zero-byte file"
 verdict "a malformed stop request: nothing on stdout, a diagnostic on stderr, exit 2"
+
+# 4. --clear removes the stop request and exits 0, and exits 0 when there was none to
+#    remove. One case over the two states because idempotence is the behaviour: both
+#    callers — the stop sequence at its end, and the claim at a run's first step — must be
+#    able to clear without first asking whether there is anything there.
+problems=""
+printf '%s\n' "at-ledger" > "$work/.tdd/stop"
+run_stop --clear
+if [[ "$code" != 0 || -e "$work/.tdd/stop" ]]; then
+  exists="gone"; [[ -e "$work/.tdd/stop" ]] && exists="still there"
+  problems+="    with a stop request: want exit 0 and .tdd/stop gone, got exit $code and the file $exists"$'\n'
+fi
+rm -f "$work/.tdd/stop"
+run_stop --clear
+if [[ "$code" != 0 ]]; then
+  problems+="    with no stop request: want exit 0, got exit $code"$'\n'
+fi
+verdict "--clear removes a stop request and exits 0, with or without one to remove"
 
 echo "----"
 echo "$pass passed, $fail failed"
