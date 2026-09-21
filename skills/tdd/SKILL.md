@@ -1158,9 +1158,60 @@ For attempt `k = 1 … REVISE_BUDGET`:
    - **REJECT (exit 1):** if attempts remain, loop; otherwise fall through to the bail below.
    - **Malformed / killed-stuck (exit 2):** **bail** (system failure).
 
-If all `REVISE_BUDGET` attempts are still `REJECT`, **bail the step** as a **process
-failure** (the methodology could not satisfy the blind verifier within budget), recording
-the **last rejection reason**.
+If all `REVISE_BUDGET` attempts are still `REJECT`, the step is **not** bailed on the spot. A
+criterion no blind verifier could be satisfied about in that many attempts is usually a
+criterion carrying more than one behaviour — the very condition `SPLIT:` exists for — so send
+one last leaf and ask it which of the two is true of this step, rather than deciding that
+yourself. The reason file the last re-verify overwrote is the whole of what it is told:
+
+```
+$S/build-develop-prompt.sh exhausted .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/develop-exhausted.prompt
+rm -f .tdd/develop-exhausted.exit .tdd/develop-exhausted.pid
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-exhausted $S/run-leaf.sh .tdd/develop-exhausted.prompt --permission-mode bypassPermissions > .tdd/develop-exhausted.out 2> .tdd/develop-exhausted.err
+$S/wait-leaf.sh develop-exhausted   # foreground; on exit 3 call it again
+```
+
+That leaf answers in prose around its report lines, so **read its answer with the script, not
+by eye** — which outcome it holds is an exit code, never a judgement made per run:
+
+```
+$S/exhausted-outcome.sh < .tdd/develop-exhausted.out > .tdd/exhausted-answer.txt; echo $?
+```
+**exit 0** is the split, **exit 1** the step needs the user and is parked, **exit 3** neither
+answer. Each is a branch of its own:
+
+- **exit 0 — split.** `.tdd/exhausted-answer.txt` holds the criteria the leaf named, one per
+  line, and they **replace** the step nothing could satisfy rather than queue ahead of it —
+  the criterion itself was what was wrong. Restore the tree first, since the step's rejected
+  work is uncommitted and would otherwise become the first replacement step's inherited
+  start, then grow the plan in **one** call and commit it:
+  ```
+  git reset --hard HEAD
+  git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
+  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of '<STEP>' '<criterion>' …   # every line of the answer in ONE call
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
+  git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
+  ```
+  Then loop back to `next-unchecked.sh`, which now hands over the first of them. The ledger is
+  committed before the run goes on because the committed ledger is what a resumed run reads:
+  uncommitted, the replacement steps are lost and the step that could not be satisfied is
+  handed out again. **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`** — see
+  *Bailing* — exactly as a Green leaf's volunteered split does when it meets
+  `VERI_STEP_GROWTH`: the criteria are filed under `## Owed steps` and the plan is unchanged.
+- **exit 1 — the step needs the user.** `.tdd/exhausted-answer.txt` holds the leaf's answer:
+  the criterion is wrong, contradicts another, or needs a decision this run has no authority
+  to make. **Park the step** — stop the run there, carrying that answer and the verifier's
+  last rejection reason (`.tdd/verify-<phase>.reason`), and leave the plan as it is so the
+  user's decision picks the run back up. This is a deliberate escalation, not a failure to
+  split.
+- **exit 3 — neither answer.** The leaf volunteered no split and asked for no decision, so
+  there is nothing new to act on: **bail the step** with cause `revise-exhausted` as a
+  **process** failure (the methodology could not satisfy the blind verifier within budget),
+  recording the **last rejection reason** — exactly the stop this section took before the
+  leaf above existed.
+
+A **supervisor exit 2** on that leaf is a bail like any other developer leaf's
+(`killed-stuck`, a system failure): nothing answered, so no outcome was reported.
 
 `REVISE_BUDGET` (verdict axis) is **independent** of the supervisor's `VERI_STUCK_RETRIES`
 (liveness axis) and of `VERI_REFACTOR_BUDGET` (cost axis): the first governs a leaf that
