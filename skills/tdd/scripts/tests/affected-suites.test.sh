@@ -45,10 +45,11 @@ new_repo() {
   s="$repo/skills/tdd/scripts"
 }
 
-# run_affected — affected-suites.sh on the case's $base..$head, inside $repo. Every caller
-# invokes it inside a command substitution, and that subshell is what keeps the `cd` from
-# reaching the rest of the suite; the caller attaches whatever redirections it wants.
-run_affected() { cd "$repo" && "$AFFECTED" "$base..$head"; }
+# run_affected [range] — affected-suites.sh inside $repo, on the case's $base..$head unless the
+# caller names a range of its own (case 2 hands it malformed ones). Every caller invokes it
+# inside a command substitution, and that subshell is what keeps the `cd` from reaching the rest
+# of the suite; the caller attaches whatever redirections it wants.
+run_affected() { cd "$repo" && "$AFFECTED" "${1:-$base..$head}"; }
 
 # expect_suites <name> <expected> — run affected-suites.sh on $base..$head inside $repo and
 # pass when it exits 0 printing exactly <expected>; otherwise fail <name>, with a diff.
@@ -89,7 +90,7 @@ printf 'wolf\n' > "$s/wolf.sh"
 commit_head
 bad=""
 for arg in "$head" "$head..no-such-rev" "no-such-rev..$head"; do
-  err="$(cd "$repo" && "$AFFECTED" "$arg" 2>&1 >/dev/null)"; code=$?
+  err="$(run_affected "$arg" 2>&1 >/dev/null)"; code=$?
   if [[ "$code" != 2 || -z "$err" ]]; then
     bad="${arg/$head/<head>}: code=$code, stderr=${err:-<empty>}"
     break
