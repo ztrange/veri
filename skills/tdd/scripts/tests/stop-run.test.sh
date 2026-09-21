@@ -162,6 +162,27 @@ fi
 
 report "--mode now <n> writes now as the only line of that run's .tdd/stop, names the run on stdout and exits 0"
 
+# 4. The default: a command with no `--mode` at all writes `at-ledger`. That is the mode an
+#    operator gets by typing the least, so it is the one the script must pick when nothing
+#    says otherwise — the stop that waits for the ledger's next checkpoint, the gentlest of
+#    the three, since a default that took a leaf down at once would make the shortest command
+#    the most destructive one. The file written by case 3 is removed first: what this case
+#    asks is which mode a bare call chooses, not what a second call does to a file already
+#    there, which is its own step.
+problems=""
+rm -f "$run/.tdd/stop"
+run_stop 5
+[[ "$code" == 0 ]] || note "want exit 0, got exit $code (stderr: $err)"
+if [[ ! -f "$run/.tdd/stop" ]]; then
+  note "want $run/.tdd/stop holding 'at-ledger', it was not written"
+else
+  written="$(cat "$run/.tdd/stop")"
+  [[ "$written" == "at-ledger" ]] ||
+    note "want .tdd/stop to hold 'at-ledger', it holds '$written'"
+fi
+
+report "<n> with no --mode writes at-ledger into that run's .tdd/stop"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
