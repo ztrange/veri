@@ -94,17 +94,29 @@ main_tree="$(main_working_tree)"
 # happened is that the command was typed in the wrong place.
 [[ -n "$main_tree" ]] || refuse "no main working tree here — type this inside the repository"
 
+# pid_in <pid-file> — the number that pid file holds, or nothing and a 1 when it holds none.
+# Both readings below start here, and both want the same three cases folded into one answer:
+# no file, an unreadable one, and something that is not a number all mean there is no process
+# for the caller to go on and ask about. A pid file is written by a process that may have died
+# before finishing it, so none of the three is a failure worth reporting on its own.
+pid_in() {
+  local pid
+  pid="$(cat "$1" 2>/dev/null || true)"
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+  printf '%s' "$pid"
+}
+
 # live_run <run-path> — whether a conductor is still running inside this run's worktree, the
 # reading issue-worktree.sh:109-116 already makes: `.tdd/conductor.pid` holds a number and
 # `kill -0` answers for it. `kill -0` sends no signal; it only says whether there is a process
-# to send one to. Every other case — no file, an unreadable one, something that is not a
-# number, a pid nobody answers for — is the same answer, not live, which is what keeps a run
-# whose conductor has exited out of `--all`: a request left in its .tdd/stop would ambush that
-# issue at its next resume rather than stopping anything now.
+# to send one to. A pid file with no number in it and a pid nobody answers for are the same
+# answer, not live, which is what keeps a run whose conductor has exited out of `--all`: a
+# request left in its .tdd/stop would ambush that issue at its next resume rather than
+# stopping anything now.
 live_run() {
   local pid
-  pid="$(cat "$1/.tdd/conductor.pid" 2>/dev/null || true)"
-  [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null
+  pid="$(pid_in "$1/.tdd/conductor.pid")" || return 1
+  kill -0 "$pid" 2>/dev/null
 }
 
 # request_stop <run-path> — the write, and the one line of stdout that says it happened. The
@@ -145,8 +157,7 @@ stop_leaves() {
   for pidfile in "$1"/.tdd/*.pid; do
     [[ -f "$pidfile" ]] || continue
     name="$(basename "$pidfile" .pid)"
-    pid="$(cat "$pidfile" 2>/dev/null || true)"
-    [[ "$pid" =~ ^[0-9]+$ ]] || continue
+    pid="$(pid_in "$pidfile")" || continue
     supervising "$pid" "$name" || continue
     kill -TERM "$pid" 2>/dev/null || true
   done
