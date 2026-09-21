@@ -283,6 +283,23 @@ commit_head
 expect_suites "rule 6: a change to the prompt prompts/develop-red.md prints every suite that names it, and no others" \
   "skills/tdd/scripts/tests/alpha.test.sh"
 
+# 13. rule 6 alongside rule 3: a range touching both a prompt and a suite → that suite and the
+#     suites naming the prompt, and no widening. prompts/develop-red.md is named by alpha's
+#     suite, and tests/delta.test.sh changes as a file in its own right; gamma's suite names no
+#     prompt and did not change, so an answer that widened to the full tier would carry it.
+new_repo rule6-prompt-and-suite
+mkdir -p "$s/tests" "$s/prompts"
+printf '# red template\n' > "$s/prompts/develop-red.md"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\ncat "$HERE/../prompts/develop-red.md"\n' > "$s/tests/alpha.test.sh"
+printf '# delta suite\n' > "$s/tests/delta.test.sh"
+printf '# gamma suite\n' > "$s/tests/gamma.test.sh"
+commit_base
+printf '# red template 2\n' > "$s/prompts/develop-red.md"
+printf '# delta suite 2\n' > "$s/tests/delta.test.sh"
+commit_head
+expect_suites "rule 6: a prompt and a suite in one range print that suite and the prompt's suites, without widening" \
+  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/delta.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
