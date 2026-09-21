@@ -3,3 +3,6 @@
 ### A leaf transcript carrying the plain-text result appended after its stream-json records renders that transcript, rather than the empty string
 - the four Chatter cases each spell their stream-json fixture records inline; a `fabricate_transcript` helper would remove that repetition, but every record differs in its text and tool id and the switch case needs two that render differently, so the helper would take a parameter per varying field and buy little
 - `os.path.join(run, ".tdd", …)` is spelled in `leaf_log`, `leaf_logs`, `test_command` and `events_of`; one `run_file(run, name)` would say where a run keeps its files once — mostly code this cycle did not write
+### render-leaf-log.sh's header states what the script actually does with a line that is not JSON
+- the three `fail=$((fail + 1)); echo "FAIL - $name"` pairs in cases 2 and 3 could go behind one helper — left unapplied because no suite here defines one (`grep -ln 'fail()' skills/tdd/scripts/tests/*.test.sh skills/tdd/scripts/tests/unit/*.test.sh` → no matches), so the inline form is the convention to match
+- `truncated(text, limit)` in render-leaf-log.sh has one caller passing 80, and recomputes `text.splitlines()` after `first_line` already did — out of scope: that function is pre-existing (#255), not code this cycle wrote
