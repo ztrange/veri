@@ -27,14 +27,18 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   lines+=( "$line" )
 done
 
-# The split criteria: every `SPLIT:` line's tail, in the order the leaf gave them.
+# One pass over the lines: the split criteria are every `SPLIT:` line's tail, in the order the
+# leaf gave them, and a `NEEDS_USER:` line yields both its own tail and its index, since the
+# lines below it continue the answer.
 criteria=()
 uidx=-1
+utail=""
 for i in "${!lines[@]}"; do
   if [[ "${lines[$i]}" =~ ^SPLIT:[[:space:]]*(.*)$ ]]; then
     criteria+=( "${BASH_REMATCH[1]}" )
   elif [[ "${lines[$i]}" =~ ^NEEDS_USER:[[:space:]]*(.*)$ ]]; then
     uidx=$i
+    utail="${BASH_REMATCH[1]}"
   fi
 done
 
@@ -46,8 +50,7 @@ fi
 # The needs-user answer: the label line's tail plus the lines that continue it, which is how a
 # leaf writes a sentence long enough to wrap.
 if (( uidx >= 0 )); then
-  [[ "${lines[$uidx]}" =~ ^NEEDS_USER:[[:space:]]*(.*)$ ]]
-  answer=( "${BASH_REMATCH[1]}" "${lines[@]:uidx+1}" )
+  answer=( "$utail" "${lines[@]:uidx+1}" )
   printf '%s\n' "${answer[@]}"
   exit 1
 fi
