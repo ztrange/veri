@@ -318,10 +318,15 @@ done
 # The word is derived from $vcode rather than from the reason, because $vcode is what this
 # script already turned the leaf's output into — one derivation, not two that must agree.
 # `*` covers 2 and nothing else can reach here: parse-verdict.sh exits 0, 1 or 2 only.
+# The mark that names the trouble is read out of the same branch (issue #409): a verification
+# that did not PASS is one a human will want to read back, and what it is called must be one of
+# the words the issue's list uses, not a second spelling of the verdict. REJECT is `reject`; a
+# malformed verdict is `no-verdict` when that is what $cause already says it was — the leaf
+# finished and printed no VERDICT: line — and `malformed` when the line was there and unreadable.
 case "$vcode" in
   0) word=PASS ;;
-  1) word=REJECT ;;
-  *) word=malformed ;;
+  1) word=REJECT;    trouble=reject ;;
+  *) word=malformed; trouble="${cause:-malformed}" ;;
 esac
 
 # The mark's other payload value, named beside $word above so the call below reads as the two
@@ -334,6 +339,32 @@ esac
 reason_line="${reason%%$'\n'*}"
 
 mark verdict verdict="$word" reason="$reason_line" ${cause:+cause="$cause"}
+
+# A verdict that was not a PASS is a troubled step, and a troubled step's evidence is about to be
+# destroyed: the rejected tree is never committed (a green commit lands only after verify-green
+# PASSes) and `.tdd/verify-<phase>.log` is reused by the next step's leaf of the same name. So the
+# worktree as the developer left it goes to a side ref and the leaf's own output is copied beside
+# it (issue #409). This script is where that can be decided, for the same reason the `verdict` mark
+# above is: it is the only place the phase and the verdict are both known.
+#
+# The ref and the copies are named out of the very values the event above was written with — the
+# run's VERI_ISSUE and VERI_STEP, and the attempt read back out of $role, which is what `mark` fed
+# to event.sh — so a reader holding the `verdict` line gets to the preserved material by
+# substituting its own fields, rather than by knowing a second naming convention.
+if [[ "$word" != PASS ]]; then
+  # Four things must hold before anything is written, and each says "there is nothing to pair":
+  # $tree_before is this script's own spelling of "a repo here to guard" (the tests drive verify.sh
+  # in a bare temporary directory, where there is no HEAD to hang a commit off), an empty $role
+  # means no event was logged, and without the run's issue and step there is no name to file under.
+  attempt="${role##*VERI_ATTEMPT=}"
+  if [[ -n "$tree_before" && -n "$role" && -n "${VERI_ISSUE:-}" && -n "${VERI_STEP:-}" ]]; then
+    # Preservation never changes a verdict: it runs after the verdict is decided and its failure is
+    # reported, not propagated. A run that loses its evidence is worse off than one that does not,
+    # but a run that loses its verdict to a failed `git update-ref` has lost the step itself.
+    "$HERE/preserve-attempt.sh" "$VERI_ISSUE" "$VERI_STEP" "$leaf_name" "$attempt" "$trouble" \
+      || echo "verify: could not preserve the $trouble attempt (issue $VERI_ISSUE step $VERI_STEP $leaf_name attempt $attempt)" >&2
+  fi
+fi
 
 printf '%s\n' "$reason"
 exit "$vcode"

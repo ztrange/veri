@@ -808,6 +808,86 @@ HOME="$gitconfig_home" \
 { [[ "$code" == 2 ]] && [[ "$out" == *.gitconfig* ]]; } && ok \
   || no "a verifier leaf that changed the operator's global git config exits 2 naming the file (code=$code want 2; stdout='$out' want .gitconfig named)"
 
+# 27. a REJECT verdict makes the verification preserve that attempt, and what it preserves pairs
+#     with the verdict event (issue #409). A rejected tree is never committed to the work branch —
+#     a green commit lands only after verify-green PASSes — so the side ref under
+#     refs/veri/attempts/ is the only place the rejected file ever exists once the next step
+#     overwrites `.tdd/verify-green.log`. verify.sh is the script that holds the verdict, so it is
+#     the one that can know a verification is worth preserving.
+#
+#     "Pairs with the verdict event" is asserted as such rather than against hardcoded names: the
+#     issue, step, phase and attempt are READ OFF the `verdict` line this verification wrote, and
+#     the ref and the preserved copy are looked for under exactly those four values. A reader who
+#     has the event in front of them gets to the preserved material by substitution, which is the
+#     whole of the claim. The two launched values are also asserted for what they are, because an
+#     event whose fields came back empty would otherwise let a path built out of them agree with
+#     a preservation that recorded nothing.
+#
+#     The mark that ends the preserved name is deliberately not pinned here — criterion 3's own
+#     case in preserve-attempt.test.sh covers the naming, and this case is about the pairing — so
+#     the copy is matched by the step-phase-attempt prefix and identified by its contents being
+#     the leaf's log byte for byte.
+#
+#     The fixture is a repo, since the subject is a real ref: one commit, then the rejected work
+#     uncommitted on top of it, the shape verify-green is called in. Its .gitignore covers `.tdd/`
+#     — the rule ensure-run-state-ignored.sh installs in a real run — and `argv`, which the stub
+#     writes during the leaf's own run: without that second line the recorded argv is an untracked
+#     file appearing mid-verification, and case 11's tamper check would exit 2 before any verdict.
+pres_dir="$work/preserve-reject"
+git init -q -b main "$pres_dir" >/dev/null 2>&1
+git -C "$pres_dir" config user.name veri
+git -C "$pres_dir" config user.email veri@example.test
+printf 'the developer committed this\n' > "$pres_dir/src.txt"
+printf '.tdd/\nargv\n' > "$pres_dir/.gitignore"
+git -C "$pres_dir" add -A >/dev/null 2>&1
+git -C "$pres_dir" commit -q -m "initial" >/dev/null 2>&1
+printf 'the work the verifier rejected\n' > "$pres_dir/src.txt"
+pres_issue=409
+pres_step=4
+( export VERI_ISSUE="$pres_issue" VERI_STEP="$pres_step"
+  verify_in "$pres_dir" green 'VERDICT: REJECT
+REASON: the helper it asserts on is still private.' >/dev/null 2>&1 )
+pres_code=$?
+
+# pres_field <key> — the value of <key> on the one `verdict` line the verification above wrote,
+# the same probe verdict_field makes, against this case's own directory.
+pres_field() {
+  python3 -c '
+import sys, json
+hits = []
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == "verdict":
+        hits.append(obj)
+if len(hits) != 1:
+    print("<<%d verdict lines>>" % len(hits))
+else:
+    print(hits[0].get(sys.argv[2], "<<missing>>"))
+' "$pres_dir/.tdd/events.jsonl" "$1" 2>/dev/null || echo '<<no event log>>'
+}
+
+event_issue="$(pres_field issue)"
+event_step="$(pres_field step)"
+event_phase="$(pres_field phase)"
+event_attempt="$(pres_field attempt)"
+pres_ref="refs/veri/attempts/$event_issue/$event_step/verify-$event_phase-$event_attempt"
+git -C "$pres_dir" rev-parse --verify --quiet "$pres_ref^{commit}" >/dev/null 2>&1; pres_resolved=$?
+pres_shown="$(git -C "$pres_dir" show "$pres_ref:src.txt" 2>&1)"
+# The preserved copy, found by the prefix the event's own fields build. `ls` rather than a glob
+# into an array: an unmatched glob comes back as the pattern itself, which reads as a found file.
+pres_copy="$(ls "$pres_dir/.tdd/attempts/$event_step-verify-$event_phase-$event_attempt-"*.log 2>/dev/null | head -1)"
+pres_paired="$(if [[ -n "$pres_copy" ]] && cmp -s "$pres_copy" "$pres_dir/.tdd/verify-green.log"; then echo yes; else echo no; fi)"
+{ [[ "$pres_code" == 1 ]] \
+  && [[ "$event_issue" == "$pres_issue" ]] && [[ "$event_step" == "$pres_step" ]] \
+  && [[ "$pres_resolved" == 0 ]] \
+  && [[ "$pres_shown" == "the work the verifier rejected" ]] \
+  && [[ "$pres_paired" == yes ]]; } && ok \
+  || no "a REJECT preserves the attempt under the ref and the copy name its own verdict event pairs with (code=$pres_code want 1; event issue=$event_issue step=$event_step phase=$event_phase attempt=$event_attempt; ref=$pres_ref resolved=$pres_resolved; git show said '$pres_shown'; log copy='${pres_copy:-<none>}' matches .tdd/verify-green.log: $pres_paired)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
