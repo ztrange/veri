@@ -1,2 +1,5 @@
 ### While the run's current leaf is a verifier, /api/chatter renders that verifier's transcript rather than the empty string
 - the three Chatter cases each hand-write `.tdd/issue-<n>.md`; `fabricate_plan` already writes that ledger for the Tests cases, but it also writes a spec no Chatter case reads and only ever one unchecked step, so reusing it would change the fixtures rather than only their spelling
+### A leaf transcript carrying the plain-text result appended after its stream-json records renders that transcript, rather than the empty string
+- the four Chatter cases each spell their stream-json fixture records inline; a `fabricate_transcript` helper would remove that repetition, but every record differs in its text and tool id and the switch case needs two that render differently, so the helper would take a parameter per varying field and buy little
+- `os.path.join(run, ".tdd", …)` is spelled in `leaf_log`, `leaf_logs`, `test_command` and `events_of`; one `run_file(run, name)` would say where a run keeps its files once — mostly code this cycle did not write
