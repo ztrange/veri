@@ -46,9 +46,20 @@ while :; do sleep 0.2; done
 S
 chmod +x "$stubbin/supervise.sh"
 
-"$stubbin/supervise.sh" develop-red 5 &
-sup_pid=$!; alive+=("$sup_pid")
-printf '%s\n' "$sup_pid" > "$run/.tdd/develop-red.pid"
+# live_supervisor <run-path> <leaf-name> — a live leaf supervisor of that run, which is what
+# every case that looks at a signal needs: the stub launched the way a real one is, as
+# `supervise.sh <name> <issue>`, and its pid in <run>/.tdd/<name>.pid, which is the pair the
+# script reads a supervisor out of. The pid is left in `supervisor_pid` for the case that
+# named it and added to `alive` so the trap kills it whichever way the suite ends — the same
+# shape live_conductor() below has, for the same reasons.
+live_supervisor() {
+  "$stubbin/supervise.sh" "$2" "$(basename "$1")" &
+  supervisor_pid=$!; alive+=("$supervisor_pid")
+  printf '%s\n' "$supervisor_pid" > "$1/.tdd/$2.pid"
+}
+
+live_supervisor "$run" develop-red
+sup_pid="$supervisor_pid"
 
 # live_conductor <run-path> — a run whose conductor is live, which is what every case that
 # expects a write needs and what `--all` picks its runs by: the directory the run keeps its
@@ -345,9 +356,8 @@ report "an issue with no worktree, an issue whose conductor names no live proces
 # the two cases below ask is what a command the script refuses leaves untouched, and that needs
 # a live supervisor there to be untouched: one is launched here and develop-red.pid points at
 # it again, so the check reads a pid that is alive for any reason but the one under test.
-"$stubbin/supervise.sh" develop-red 5 &
-sup_pid=$!; alive+=("$sup_pid")
-printf '%s\n' "$sup_pid" > "$run/.tdd/develop-red.pid"
+live_supervisor "$run" develop-red
+sup_pid="$supervisor_pid"
 
 # 8. A command typed where no main working tree can be resolved exits 2, the same as any
 #    other command this script cannot make sense of. `git worktree list` says nothing
@@ -385,11 +395,9 @@ problems=""
 label=""
 rm -f "$run/.tdd/stop"
 
-# A live leaf supervisor of run 5, launched exactly as a real one is, so the args string the
-# script asks `ps` for is the one a real launch would show.
-"$stubbin/supervise.sh" develop-green 5 &
-green_sup=$!; alive+=("$green_sup")
-printf '%s\n' "$green_sup" > "$run/.tdd/develop-green.pid"
+# A live leaf supervisor of run 5, the pid this case expects a TERM to reach.
+live_supervisor "$run" develop-green
+green_sup="$supervisor_pid"
 
 # A pid file of the same shape whose process is not that leaf's supervisor at all: it is live
 # and answers `kill -0` exactly as the supervisor does, and a plain `sleep` is its whole command
