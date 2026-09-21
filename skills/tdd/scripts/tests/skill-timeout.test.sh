@@ -131,6 +131,14 @@ plan_records() {
     "$skill_md has no numbered '### … plan' section — what the plan comment states could not be read"
 }
 
+# claim_exports_timeout — the claim both cases make word for word: the derived number has to
+# reach the environment every leaf is launched from. That is the same assertion whichever tier
+# the measurement was of, so it is written once and called from each case.
+claim_exports_timeout() {
+  claim 'exports the result as VERI_TIMEOUT so every leaf of the run is launched under it' \
+    'veri_timeout' 'export|every leaf|each leaf|all leaves|every launch|rest of the run'
+}
+
 # 1. The whole of this step's criterion, as one case: the procedure has to measure, derive,
 #    export and announce, and three of those four are individually useless. A timing step
 #    whose number reaches nothing changes no leaf; a derivation nobody exports changes no
@@ -148,8 +156,7 @@ then
     'baseline' "$elapsed_re"
   claim 'hands that measurement to leaf-timeout.sh' \
     'leaf-timeout\.sh' "$elapsed_re|baseline"
-  claim 'exports the result as VERI_TIMEOUT so every leaf of the run is launched under it' \
-    'veri_timeout' 'export|every leaf|each leaf|all leaves|every launch|rest of the run'
+  claim_exports_timeout
 fi
 
 if plan_records
@@ -179,8 +186,7 @@ then
     "$full_re" "$elapsed_re"
   claim 'hands the full-tier measurement to leaf-timeout.sh' \
     'leaf-timeout\.sh' "$full_re"
-  claim 'exports the result as VERI_TIMEOUT so every leaf of the run is launched under it' \
-    'veri_timeout' 'export|every leaf|each leaf|all leaves|every launch|rest of the run'
+  claim_exports_timeout
 fi
 
 if plan_records
