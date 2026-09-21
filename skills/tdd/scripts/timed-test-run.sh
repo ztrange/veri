@@ -19,6 +19,11 @@
 # the line goes through event.sh, which reads the run context out of the environment the
 # caller already exports — nothing about the run is restated on this command line.
 #
+# `status` is the command's own exit status, the same one handed back to the caller, under the
+# key supervise.sh already records an exit code by. Without it a `test-run` line looked the
+# same whether the suite was green or red, so a reader could say what a run cost but not what
+# it answered.
+#
 # `seconds` is wall time, from bash's own `printf '%(%s)T'` clock in the same unit event.sh's
 # `ts` uses (seconds since the epoch), so a reader subtracts two marks without parsing a
 # calendar and this script forks no `date`. It is recorded, never asserted on: what counts as
@@ -48,6 +53,7 @@ code=$?
 
 printf -v ended '%(%s)T' -1
 
-"$HERE/event.sh" test-run "tier=$tier" "suites=$suites" "seconds=$((ended - started))"
+"$HERE/event.sh" test-run "tier=$tier" "suites=$suites" "seconds=$((ended - started))" \
+  "status=$code"
 
 exit "$code"

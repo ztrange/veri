@@ -201,6 +201,40 @@ rm -rf "$work"
 report "$name"
 
 
+# 4. Whether the wrapped run passed. Cases 1–3 pin the tier, the suites and the seconds; the
+#    one thing a reader of the mark could not say is the answer the run gave — a `test-run`
+#    line looked the same whether the suite was green or red. The exit status the wrapper
+#    already hands back to its caller goes on the line too, under `status`, the key supervise.sh
+#    already writes an exit code under (`supervise.sh:417`).
+#
+#    Two wrapped runs, each in its own tree so each log holds the one line jget reads: `sh -c
+#    'exit 7'`, whose 7 is neither 0 nor 1 and so catches a status hardcoded to either, and
+#    `true`, which catches a status that merely records "it failed" for every run alike.
+name="timed-test-run.sh records the command's own exit status on the test-run event, so a reader can say whether that run passed"
+problems=()
+for want in 7 0; do
+  work="$(mktemp -d)"
+  log="$work/.tdd/events.jsonl"
+  if [[ "$want" == 0 ]]; then cmd=(true); else cmd=(sh -c "exit $want"); fi
+  ( cd "$work" && env VERI_ISSUE=383 VERI_ACTOR=developer VERI_PHASE=red VERI_STEP=1 \
+      VERI_ATTEMPT=1 "$TIMED" fast 'skills/tdd/scripts/tests/event.test.sh' "${cmd[@]}" ) \
+    >/dev/null 2>&1 && code=0 || code=$?
+
+  [[ "$code" == "$want" ]] ||
+    problems+=("want the command's own exit status $want back from the wrapper, got $code")
+
+  if [[ ! -f "$log" ]]; then
+    problems+=("want one line appended to .tdd/events.jsonl, but no such file under $work")
+  else
+    got_status="$(jget "$log" status)"
+    [[ "$got_status" == "$want" ]] ||
+      problems+=("status for a command that exited $want: want $want, got $(printf '%q' "$got_status")")
+  fi
+  rm -rf "$work"
+done
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
