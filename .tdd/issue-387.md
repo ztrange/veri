@@ -1,6 +1,6 @@
 # Plan for #387 — stop-run.sh: the operator's stop command, and the TERM that `now` sends to the live leaf's supervisor
 
-- [ ] an unknown --mode value, both an issue and --all, neither, and a non-integer issue each exit 2, write no .tdd/stop and signal nothing ⟦criterion 9⟧
+- [x] an unknown --mode value, both an issue and --all, neither, and a non-integer issue each exit 2, write no .tdd/stop and signal nothing ⟦criterion 9⟧ ⟂ refactor pending
 - [ ] stop-run.sh --mode now <n> writes `now` as the only line of that run's .tdd/stop, names the run on stdout and exits 0 ⟦criterion 1⟧
 - [ ] stop-run.sh <n> with no --mode writes at-ledger ⟦criterion 2⟧
 - [ ] a second call for the same run overwrites the mode already in .tdd/stop ⟦criterion 3⟧
