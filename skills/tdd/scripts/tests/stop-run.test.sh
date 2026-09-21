@@ -18,10 +18,14 @@ pass=0 fail=0
 work="$(mktemp -d)"
 alive=()
 # The stubs standing in for live processes are killed before the tree goes, so the suite
-# leaves nothing running whichever way it ends.
+# leaves nothing running whichever way it ends. Each is then waited for, because a kill only
+# asks: case 11's stub traps TERM and writes a file under "$work" on its way out, and an
+# `rm -rf` racing that write left a "No such file or directory" line on stderr after the
+# count line — which the `test` recipe reads as a suite that never reached it.
 cleanup() {
   local pid
   for pid in ${alive[@]+"${alive[@]}"}; do kill "$pid" 2>/dev/null; done
+  for pid in ${alive[@]+"${alive[@]}"}; do wait "$pid" 2>/dev/null; done
   rm -rf "$work"
 }
 trap cleanup EXIT
