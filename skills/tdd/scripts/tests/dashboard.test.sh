@@ -857,6 +857,77 @@ fi
 
 report "$name"
 
+# --- the Metrics endpoint's payload for an ended run whose committed report is MISSING ---
+# Both endings commit `.tdd/issue-<n>-metrics.md` before the run stops, but a bail that never
+# reached that step of the Bailing procedure leaves a run whose log says ended and whose report
+# is not there. `run_ended` is still true, so the pane quotes a file that does not exist — and
+# quoting nothing reads on the page as "this run had nothing to report" rather than "the report
+# is missing". So the reading for that run is a marker: never the empty string, and naming the
+# file that is not there, which is the whole of what tells it apart from a real empty report.
+# Asked of metrics_json directly (#330), with no dashboard.sh started; the run carries no
+# committed report at all, so a function that returned the file's contents has nothing to
+# return and only a marker can pass.
+name="metrics_json, called directly, reports a marker for an ended run whose committed metrics file is missing"
+problems=()
+mgone_repo="$(repo metricsgone)"
+
+mgone_run="$(fabricate_run "$mgone_repo" 34 tdd/34-lamps-gutter)"
+cat > "$mgone_run/.tdd/issue-34.md" <<'EOF'
+# Plan for #34 — lamps gutter
+
+- [x] a lamp exists
+- [ ] a lamp gutters
+EOF
+mgone_now="$(date +%s)"
+cat > "$mgone_run/.tdd/events.jsonl" <<EOF
+{"ts": $((mgone_now - 9000)), "issue": "34", "actor": "conductor", "phase": "", "step": "a lamp gutters", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((mgone_now - 8900)), "issue": "34", "actor": "developer", "phase": "red", "step": "a lamp gutters", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((mgone_now - 8800)), "issue": "34", "actor": "conductor", "phase": "red", "step": "a lamp gutters", "event": "bail", "attempt": "1", "skill_commit": "abc", "reason": "killed-stuck"}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+elif [[ -e "$mgone_run/.tdd/issue-34-metrics.md" ]]; then
+  problems+=("the fixture run has a committed .tdd/issue-34-metrics.md, so the case says nothing")
+else
+  call_endpoint "$mgone_repo" metrics_json "$work/metrics-gone.err" '{}' "$work/metrics-gone.json"
+  if [[ ! -f "$work/metrics-gone.json" ]]; then
+    problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-gone.err")")
+  else
+    add_problems < <(python3 -c '
+import json, sys
+
+body = sys.argv[1]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("metrics_json returned something that is not JSON; it starts: %r" % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
+    print("metrics_json returned %s; want an object with an \"issues\" object keyed by "
+          "issue number" % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+issues = got["issues"]
+if sorted(issues) != ["34"]:
+    print("metrics_json reports issues %s; want the one ended run 34"
+          % json.dumps(sorted(issues)))
+    sys.exit()
+report = issues["34"]
+if not report.strip():
+    print("issue 34 ended with a bail mark and has no committed "
+          ".tdd/issue-34-metrics.md, so its report has to be a marker a viewer can tell "
+          "apart from a real empty report: metrics_json returned %r" % report)
+elif "issue-34-metrics.md" not in report:
+    print("issue 34 has no committed .tdd/issue-34-metrics.md, so its report has to name "
+          "the file that is missing: metrics_json returned %r" % report[:300])
+' "$work/metrics-gone.json")
+  fi
+fi
+
+report "$name"
+
 # --- the Metrics endpoint keys a run by its own directory, and runs metrics.sh once for it ---
 # Ledgers are committed, so a run worktree carries a copy of every earlier issue's plan: the
 # run under `.tdd/wt/7/` here holds issue-3.md and issue-5.md beside its own issue-7.md. The
