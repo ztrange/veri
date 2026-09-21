@@ -1,0 +1,2 @@
+### While the run's current leaf is a verifier, /api/chatter renders that verifier's transcript rather than the empty string
+- the three Chatter cases each hand-write `.tdd/issue-<n>.md`; `fabricate_plan` already writes that ledger for the Tests cases, but it also writes a spec no Chatter case reads and only ever one unchecked step, so reusing it would change the fixtures rather than only their spelling
