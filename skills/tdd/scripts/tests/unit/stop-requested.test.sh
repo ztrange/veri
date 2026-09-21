@@ -18,13 +18,20 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/.tdd"
 
+# run_stop — run the script from the run's worktree, leaving its stdout in `out` and its exit
+# code in `code`. stderr is dropped: what a case here asserts on is what a conductor at a
+# checkpoint captures, which is stdout alone.
+run_stop() {
+  out="$(cd "$work" && "$STOP" 2>/dev/null)" && code=0 || code=$?
+}
+
 # 1. each of the three modes a stop request may name comes back on stdout, exit 0 — one
 #    case over the three because they are one behaviour: the mode is passed through, not
 #    interpreted, and a conductor branches on the word it reads.
 problems=""
 for mode in at-ledger at-leaf now; do
   printf '%s\n' "$mode" > "$work/.tdd/stop"
-  out="$(cd "$work" && "$STOP" 2>/dev/null)" && code=0 || code=$?
+  run_stop
   if [[ "$code" != 0 || "$out" != "$mode" ]]; then
     problems+="    $mode: want exit 0 and stdout '$mode', got exit $code and stdout '$out'"$'\n'
   fi
@@ -39,7 +46,7 @@ fi
 # 2. no stop request at all: nothing on stdout, exit 3 — "nothing to do", not an error, so
 #    a conductor's checkpoint tells a missing file apart from a malformed one.
 rm -f "$work/.tdd/stop"
-out="$(cd "$work" && "$STOP" 2>/dev/null)" && code=0 || code=$?
+run_stop
 if [[ "$code" == 3 && -z "$out" ]]; then
   pass=$((pass + 1))
 else
