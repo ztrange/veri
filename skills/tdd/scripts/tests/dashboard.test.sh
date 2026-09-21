@@ -351,6 +351,35 @@ with open(sys.argv[5]) as f:
     want = [json.loads(raw) for raw in f if raw.strip()]
 '
 
+# The half of a metrics payload case that is the same in all three of them: the answer
+# call_endpoint wrote, loaded and checked to be an object with an "issues" object keyed by the
+# runs the fixture made. Handed <body> <issue>[,<issue>…] and whatever else the case names
+# after them, it leaves `issues` keyed by issue number, and says which half of a malformed
+# answer broke rather than dying on it. What differs between the three cases is only what they
+# compare those reports to — the program each appends to this one — so the shape check and the
+# roster check are written here once.
+metrics_issues='
+import json, sys
+
+body, want_issues = sys.argv[1], sys.argv[2].split(",")
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("metrics_json returned something that is not JSON; it starts: %r" % f.read()[:200])
+    sys.exit()
+if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
+    print("metrics_json returned %s; want an object with an \"issues\" object keyed by "
+          "issue number" % json.dumps(got, sort_keys=True)[:300])
+    sys.exit()
+issues = got["issues"]
+if sorted(issues) != sorted(want_issues):
+    print("metrics_json reports issues %s; want the runs %s"
+          % (json.dumps(sorted(issues)), json.dumps(sorted(want_issues))))
+    sys.exit()
+'
+
 # --- no argument: the page at / on the default port, and exit 0 on SIGINT ---
 name="dashboard.sh with no argument serves the page at / on port 8765 and exits 0 when sent SIGINT"
 problems=()
@@ -745,26 +774,8 @@ else
   if [[ ! -f "$work/metrics-direct.json" ]]; then
     problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-direct.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-body, live_path, committed_path = sys.argv[1], sys.argv[2], sys.argv[3]
-try:
-    with open(body) as f:
-        got = json.load(f)
-except ValueError:
-    with open(body) as f:
-        print("metrics_json returned something that is not JSON; it starts: %r" % f.read()[:200])
-    sys.exit()
-if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
-    print("metrics_json returned %s; want an object with an \"issues\" object keyed by "
-          "issue number" % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-issues = got["issues"]
-if sorted(issues) != ["31", "32"]:
-    print("metrics_json reports issues %s; want the two runs 31 and 32"
-          % json.dumps(sorted(issues)))
-    sys.exit()
+    add_problems < <(python3 -c "$metrics_issues"'
+live_path, committed_path = sys.argv[3], sys.argv[4]
 with open(live_path) as f:
     live = f.read()
 with open(committed_path) as f:
@@ -779,7 +790,8 @@ if issues["32"] != committed:
     print("issue 32 ended with a done mark, so its report has to be the committed "
           ".tdd/issue-32-metrics.md: metrics_json returned %r, and the committed file holds "
           "%r" % (issues["32"][:300], committed[:300]))
-' "$work/metrics-direct.json" "$work/metrics-direct-live.md" "$mdirect_done/.tdd/issue-32-metrics.md")
+' "$work/metrics-direct.json" 31,32 "$work/metrics-direct-live.md" \
+      "$mdirect_done/.tdd/issue-32-metrics.md")
   fi
 fi
 
@@ -825,33 +837,14 @@ else
   if [[ ! -f "$work/metrics-bail.json" ]]; then
     problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-bail.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-body, committed_path = sys.argv[1], sys.argv[2]
-try:
-    with open(body) as f:
-        got = json.load(f)
-except ValueError:
-    with open(body) as f:
-        print("metrics_json returned something that is not JSON; it starts: %r" % f.read()[:200])
-    sys.exit()
-if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
-    print("metrics_json returned %s; want an object with an \"issues\" object keyed by "
-          "issue number" % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-issues = got["issues"]
-if sorted(issues) != ["33"]:
-    print("metrics_json reports issues %s; want the one bailed run 33"
-          % json.dumps(sorted(issues)))
-    sys.exit()
-with open(committed_path) as f:
+    add_problems < <(python3 -c "$metrics_issues"'
+with open(sys.argv[3]) as f:
     committed = f.read()
 if issues["33"] != committed:
     print("issue 33 ended with a bail mark, so its report has to be the committed "
           ".tdd/issue-33-metrics.md verbatim: metrics_json returned %r, and the committed "
           "file holds %r" % (issues["33"][:300], committed[:300]))
-' "$work/metrics-bail.json" "$mbail_run/.tdd/issue-33-metrics.md")
+' "$work/metrics-bail.json" 33 "$mbail_run/.tdd/issue-33-metrics.md")
   fi
 fi
 
@@ -894,26 +887,7 @@ else
   if [[ ! -f "$work/metrics-gone.json" ]]; then
     problems+=("calling $module.metrics_json wrote nothing: $(tail -n 1 "$work/metrics-gone.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-body = sys.argv[1]
-try:
-    with open(body) as f:
-        got = json.load(f)
-except ValueError:
-    with open(body) as f:
-        print("metrics_json returned something that is not JSON; it starts: %r" % f.read()[:200])
-    sys.exit()
-if not isinstance(got, dict) or not isinstance(got.get("issues"), dict):
-    print("metrics_json returned %s; want an object with an \"issues\" object keyed by "
-          "issue number" % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-issues = got["issues"]
-if sorted(issues) != ["34"]:
-    print("metrics_json reports issues %s; want the one ended run 34"
-          % json.dumps(sorted(issues)))
-    sys.exit()
+    add_problems < <(python3 -c "$metrics_issues"'
 report = issues["34"]
 if not report.strip():
     print("issue 34 ended with a bail mark and has no committed "
@@ -922,7 +896,7 @@ if not report.strip():
 elif "issue-34-metrics.md" not in report:
     print("issue 34 has no committed .tdd/issue-34-metrics.md, so its report has to name "
           "the file that is missing: metrics_json returned %r" % report[:300])
-' "$work/metrics-gone.json")
+' "$work/metrics-gone.json" 34)
   fi
 fi
 
