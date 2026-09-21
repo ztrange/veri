@@ -50,12 +50,25 @@ chmod +x "$stubbin/supervise.sh"
 sup_pid=$!; alive+=("$sup_pid")
 printf '%s\n' "$sup_pid" > "$run/.tdd/develop-red.pid"
 
-# The conductor of that run: a live process too, so the run reads as live and the pid is one
-# a buggy stop could signal. It is a plain background `sleep`, since nothing looks at its
-# command line — .tdd/conductor.pid is read for liveness and for nothing else.
-sleep 60 &
-cond_pid=$!; alive+=("$cond_pid")
-printf '%s\n' "$cond_pid" > "$run/.tdd/conductor.pid"
+# live_conductor <run-path> — a run whose conductor is live, which is what every case that
+# expects a write needs and what `--all` picks its runs by: the directory the run keeps its
+# state in, a process standing in for the conductor, and that process's pid in
+# .tdd/conductor.pid, the whole of what liveness is read from. A plain background `sleep`
+# serves, since nothing looks at a conductor's command line — .tdd/conductor.pid is read for
+# liveness and for nothing else. The pid is left in `conductor_pid` for a case that wants to
+# check it was not signalled, and added to `alive` so the trap kills it whichever way the
+# suite ends.
+live_conductor() {
+  mkdir -p "$1/.tdd"
+  sleep 60 &
+  conductor_pid=$!; alive+=("$conductor_pid")
+  printf '%s\n' "$conductor_pid" > "$1/.tdd/conductor.pid"
+}
+
+# The conductor of run 5, live from here to the end of the suite: its pid is one a buggy stop
+# could signal, so every refusal below checks it is still answering.
+live_conductor "$run"
+run_conductor_pid="$conductor_pid"
 
 # 1. Every refusal the argument contract names — an unknown mode, both an issue and --all,
 #    neither, and an issue that is not a positive integer — exits 2 and leaves the repository
@@ -120,8 +133,8 @@ check_refused() {  # check_refused <label> [args…]
     note "want no .tdd/stop written, found one holding '$(cat "$run/.tdd/stop")'"
   kill -0 "$sup_pid" 2>/dev/null ||
     note "want the live supervisor $sup_pid untouched, it is gone"
-  kill -0 "$cond_pid" 2>/dev/null ||
-    note "want the conductor $cond_pid untouched, it is gone"
+  kill -0 "$run_conductor_pid" 2>/dev/null ||
+    note "want the conductor $run_conductor_pid untouched, it is gone"
   rm -f "$run/.tdd/stop"
 }
 check_refused "an unknown --mode value" --mode bogus 5
@@ -226,10 +239,8 @@ report "a second call for the same run overwrites the mode already in .tdd/stop"
 problems=""
 rm -f "$run/.tdd/stop"
 
-live2="$repo/.tdd/wt/7"; mkdir -p "$live2/.tdd"
-sleep 60 &
-live2_pid=$!; alive+=("$live2_pid")
-printf '%s\n' "$live2_pid" > "$live2/.tdd/conductor.pid"
+live2="$repo/.tdd/wt/7"
+live_conductor "$live2"
 
 # A real pid that is no longer a process: a background `sleep 0` already reaped, so the
 # number names nothing and `kill -0` fails on it (wait-leaf.test.sh:232's idiom).
