@@ -66,11 +66,18 @@ case "$phase" in
   reconcile) want=6 ;;
   *) echo "build-develop-prompt: unknown phase '$phase' (want $phases)" >&2; exit 2 ;;
 esac
-(( $# >= want )) || {
-  echo "build-develop-prompt: $phase needs $want arguments, got $#" >&2
+# refuse <what> — the shape every bad-arguments refusal past the phase word takes: say what
+# was wrong with the call, quote the whole usage line back, and exit 2 because no answer
+# could be obtained from a call that was never made. Spelled once, here, because the arity
+# check below and `need` beneath it are the same three lines otherwise, and two copies of a
+# refusal is where the one that exits with the wrong code hides.
+refuse() {
+  echo "build-develop-prompt: $1" >&2
   echo "$USAGE" >&2
   exit 2
 }
+
+(( $# >= want )) || refuse "$phase needs $want arguments, got $#"
 
 # need <var> <value> <what> — assign <value> to <var>, or refuse the call naming <what>.
 #
@@ -80,17 +87,14 @@ esac
 # could be obtained". The arity check above already refuses a short call with 2, so the
 # expansions could only ever have fired on an argument passed *empty*; that is the same
 # bad-arguments case and owes the same code. Spelled once here because ten copies of a
-# three-line refusal is where the wrong one hides.
+# refusal is where the wrong one hides; the refusal itself is `refuse` above, shared with
+# the arity check.
 #
 # `printf -v` rather than a `$(…)` command substitution: this builder runs once per leaf and
 # CLAUDE.md's fork budget counts what a per-leaf helper costs, so the assignment happens in
 # this shell rather than in ten subshells.
 need() {
-  [[ -n "$2" ]] || {
-    echo "build-develop-prompt: missing $3" >&2
-    echo "$USAGE" >&2
-    exit 2
-  }
+  [[ -n "$2" ]] || refuse "missing $3"
   printf -v "$1" '%s' "$2"
 }
 
