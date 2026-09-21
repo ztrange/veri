@@ -269,9 +269,15 @@ def tests_json(query):
     # That is why the mark and not the leaf log is what this counts: test_runs' string match
     # against the spec's command could never hold again, and the pane went empty on a live run
     # that had already run its suite seven times.
+    # Each entry says which suites that run covered and whether it came back green, both read
+    # off the mark itself: `suites` is the list timed-test-run.sh was handed (empty for a
+    # whole-suite tier, which covers them all and names none), and `status` is the test
+    # command's own exit status, so a run passed when that status was success.
     marks = events_marked(run, "test-run")
     if marks:
-        tests = [{"command": command} for _ in marks]
+        tests = [{"command": command,
+                  "suites": mark.get("suites", ""),
+                  "passed": mark.get("status") == "0"} for mark in marks]
     else:
         # A run whose log carries no mark is still read out of its leaf logs, which is the
         # only thing a run predating #342 has to be read out of.

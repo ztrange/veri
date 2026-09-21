@@ -1333,6 +1333,65 @@ fi
 
 report "$name"
 
+# --- each Tests entry names the suites its run covered and whether it passed ---
+# Counting the marks is half the pane: a reader watching a run wants to know WHICH suites a
+# test run covered and whether it came back green. Both are on the mark already — `suites` is
+# the list timed-test-run.sh was handed (empty for a whole-suite tier), and `status` is the
+# test command's own exit status, recorded since this issue's first step. So each entry names
+# the suites its mark carries and says whether that status was success.
+#
+# The fixture's three marks disagree on both axes on purpose: one whole-suite run that passed,
+# one named-suite run that failed, one named-suite run that passed. An endpoint handing back
+# the same fields for all three — or none of them — is not answering "which suites, and did it
+# pass".
+name="tests_json entries name the suites their test-run mark covered and whether that run passed"
+problems=()
+tfields_repo="$(repo testsfields)"
+
+tfields_run="$(fabricate_run "$tfields_repo" 56 tdd/56-lamps-gutter)"
+cat > "$tfields_run/.tdd/issue-56.md" <<'EOF'
+# Plan for #56 — lamps gutter
+
+- [ ] a lamp gutters
+EOF
+cat > "$tfields_run/.tdd/issue-56-spec.md" <<'EOF'
+## What to build
+
+A lamp that gutters.
+
+Test command: make test
+EOF
+tfields_now="$(date +%s)"
+cat > "$tfields_run/.tdd/events.jsonl" <<EOF
+{"ts": $((tfields_now - 300)), "issue": "56", "actor": "conductor", "phase": "", "step": "a lamp gutters", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((tfields_now - 240)), "issue": "56", "actor": "", "phase": "", "step": "a lamp gutters", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "fast", "suites": "", "seconds": "3", "status": "0"}
+{"ts": $((tfields_now - 180)), "issue": "56", "actor": "", "phase": "", "step": "a lamp gutters", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "affected", "suites": "skills/tdd/scripts/tests/gutter.test.sh", "seconds": "9", "status": "1"}
+{"ts": $((tfields_now - 120)), "issue": "56", "actor": "", "phase": "", "step": "a lamp gutters", "event": "test-run", "attempt": "", "skill_commit": "abc", "tier": "target", "suites": "skills/tdd/scripts/tests/flicker.test.sh", "seconds": "8", "status": "0"}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  call_endpoint "$tfields_repo" tests_json "$work/tests-fields.err" \
+    '{"issue": ["56"]}' "$work/tests-fields-56.json"
+  if [[ ! -f "$work/tests-fields-56.json" ]]; then
+    problems+=("calling $module.tests_json wrote nothing: $(tail -n 1 "$work/tests-fields.err")")
+  else
+    add_problems < <(python3 -c "$tests_runs"'
+want = [{"suites": "", "passed": True},
+        {"suites": "skills/tdd/scripts/tests/gutter.test.sh", "passed": False},
+        {"suites": "skills/tdd/scripts/tests/flicker.test.sh", "passed": True}]
+got = [{"suites": r.get("suites"), "passed": r.get("passed")} for r in runs]
+if got != want:
+    print("tests_json for issue 56 returned %s; want each entry to name the suites its "
+          "`test-run` mark covered and whether that run passed: %s"
+          % (json.dumps(got, sort_keys=True)[:400], json.dumps(want, sort_keys=True)))
+' "$work/tests-fields-56.json" 56)
+  fi
+fi
+
+report "$name"
+
 # --- the Chatter endpoint's payload, asked of chatter_json directly: the current leaf's log ---
 # The Chatter pane's contract — the rendered log of the leaf the selected run is CURRENTLY on
 # — asked of the function that answers the endpoint rather than of a server answering it, the
