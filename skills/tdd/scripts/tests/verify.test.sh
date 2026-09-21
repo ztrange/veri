@@ -246,13 +246,12 @@ verdict_run() {
   verify_in "$dir" "$2" "$3" >/dev/null 2>&1
 }
 
-# verdict_field <arm> <key> — the value of <key> on the one `verdict` line of the event log
-# the arm's run wrote, or a diagnostic in `<<…>>` when there is no such line, more than one,
-# or no log at all. python3 rather than jq, the dependency event.test.sh and extract-result.sh
-# already rely on. The arm names a directory, not a file: where the log lands under it —
-# `.tdd/events.jsonl`, relative to the verification's cwd — is said once here rather than in
-# each assertion.
-verdict_field() {
+# verdict_field_in <dir> <key> — the value of <key> on the one `verdict` line of the event log
+# a verification run in <dir> wrote, or a diagnostic in `<<…>>` when there is no such line, more
+# than one, or no log at all. python3 rather than jq, the dependency event.test.sh and
+# extract-result.sh already rely on. <dir> names the verification's cwd, not a file: where the log
+# lands under it — `.tdd/events.jsonl` — is said once here rather than at each call site.
+verdict_field_in() {
   python3 -c '
 import sys, json
 hits = []
@@ -267,7 +266,13 @@ if len(hits) != 1:
     print("<<%d verdict lines>>" % len(hits))
 else:
     print(hits[0].get(sys.argv[2], "<<missing>>"))
-' "$verdict_work/$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo '<<no event log>>'
+' "$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo '<<no event log>>'
+}
+
+# verdict_field <arm> <key> — the same probe against one arm of the case below, whose directories
+# all sit under $verdict_work.
+verdict_field() {
+  verdict_field_in "$verdict_work/$1" "$2"
 }
 
 verdict_run pass green 'I ran it.
@@ -849,30 +854,10 @@ pres_step=4
 REASON: the helper it asserts on is still private.' >/dev/null 2>&1 )
 pres_code=$?
 
-# pres_field <key> — the value of <key> on the one `verdict` line the verification above wrote,
-# the same probe verdict_field makes, against this case's own directory.
-pres_field() {
-  python3 -c '
-import sys, json
-hits = []
-for line in open(sys.argv[1]).read().splitlines():
-    try:
-        obj = json.loads(line)
-    except Exception:
-        continue
-    if isinstance(obj, dict) and obj.get("event") == "verdict":
-        hits.append(obj)
-if len(hits) != 1:
-    print("<<%d verdict lines>>" % len(hits))
-else:
-    print(hits[0].get(sys.argv[2], "<<missing>>"))
-' "$pres_dir/.tdd/events.jsonl" "$1" 2>/dev/null || echo '<<no event log>>'
-}
-
-event_issue="$(pres_field issue)"
-event_step="$(pres_field step)"
-event_phase="$(pres_field phase)"
-event_attempt="$(pres_field attempt)"
+event_issue="$(verdict_field_in "$pres_dir" issue)"
+event_step="$(verdict_field_in "$pres_dir" step)"
+event_phase="$(verdict_field_in "$pres_dir" phase)"
+event_attempt="$(verdict_field_in "$pres_dir" attempt)"
 pres_ref="refs/veri/attempts/$event_issue/$event_step/verify-$event_phase-$event_attempt"
 git -C "$pres_dir" rev-parse --verify --quiet "$pres_ref^{commit}" >/dev/null 2>&1; pres_resolved=$?
 pres_shown="$(git -C "$pres_dir" show "$pres_ref:src.txt" 2>&1)"
