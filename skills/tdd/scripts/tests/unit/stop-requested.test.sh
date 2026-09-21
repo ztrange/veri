@@ -36,6 +36,17 @@ else
   printf '%s' "$problems"
 fi
 
+# 2. no stop request at all: nothing on stdout, exit 3 — "nothing to do", not an error, so
+#    a conductor's checkpoint tells a missing file apart from a malformed one.
+rm -f "$work/.tdd/stop"
+out="$(cd "$work" && "$STOP" 2>/dev/null)" && code=0 || code=$?
+if [[ "$code" == 3 && -z "$out" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1)); echo "FAIL - no stop request: nothing on stdout, exit 3"
+  echo "    want exit 3 and empty stdout, got exit $code and stdout '$out'"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

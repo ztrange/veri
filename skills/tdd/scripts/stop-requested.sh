@@ -7,10 +7,15 @@
 # captures stdout and branches on the word, so nothing but the mode is ever printed there.
 # The mode is passed through, not interpreted: what a conductor does with it is its own.
 #
+# No file is no request: nothing on stdout, exit 3 — nothing to do, not an error.
+#
 # Usage:   stop-requested.sh
+# Exits:   0 a mode was printed | 3 no stop request
 set -euo pipefail
 
 file=".tdd/stop"
+
+[[ -f "$file" ]] || exit 3
 
 IFS= read -r mode < "$file"
 printf '%s\n' "$mode"
