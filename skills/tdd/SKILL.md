@@ -1265,10 +1265,16 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    conductor and every leaf together — so a resumed worktree may carry uncommitted work from
    a killed **Red** or **Green** leaf just as readily as from a killed refactor one. No
    verifier has seen any of it and none of it may reach the PR, so throw it away **before**
-   the ask, not under one of its answers:
+   the ask, not under one of its answers — and capture what it is about to discard first,
+   because after the reset `git status --porcelain` has nothing left to report:
    ```
+   stray="$(git status --porcelain)"
    git reset --hard HEAD
    ```
+   `$stray` holds the paths that reset discarded. Carry it to sub-step 4, whose
+   `### ▶️ Resuming` comment names those paths: a killed leaf's stray work is real work — the
+   run that prompted this left a 235-line untracked test file behind — and it has to go
+   loudly, not in silence.
    Then `$S/next-pending-refactor.sh < .tdd/issue-<n>.md` prints the first checked step whose
    refactor-pending mark is still there — a step the previous run left **green but not
    tidied**, because it was killed between that step's green commit and its
@@ -1302,7 +1308,9 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    loop continues from exactly there, so **STEP** is that step's description, bound here
    instead of at the top of the cycle loop. Already-checked steps (and their commits) are
    kept.
-4. Post a `### ▶️ Resuming` comment naming that step, and mark the pick-up in the log —
+4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
+   paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
+   by no verifier and now gone. Mark the pick-up in the log —
    `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh resume` — then run
    the cycle loop as normal. Go to the **draft PR** only when
    `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
