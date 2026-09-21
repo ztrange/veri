@@ -214,16 +214,15 @@ report "$name"
 #    already hands back to its caller goes on the line too, under `status`, the key supervise.sh
 #    already writes an exit code under (`supervise.sh:417`).
 #
-#    Two wrapped runs, each in its own tree so each log holds the one line jget reads: `sh -c
-#    'exit 7'`, whose 7 is neither 0 nor 1 and so catches a status hardcoded to either, and
-#    `true`, which catches a status that merely records "it failed" for every run alike.
+#    Two wrapped runs of `sh -c "exit <want>"`, each in its own tree so each log holds the one
+#    line jget reads: 7, which is neither 0 nor 1 and so catches a status hardcoded to either,
+#    and 0, which catches a status that merely records "it failed" for every run alike.
 name="timed-test-run.sh records the command's own exit status on the test-run event, so a reader can say whether that run passed"
 problems=()
 for want in 7 0; do
   work="$(mktemp -d)"
   log="$work/.tdd/events.jsonl"
-  if [[ "$want" == 0 ]]; then cmd=(true); else cmd=(sh -c "exit $want"); fi
-  wrapped "$work" 383 red fast 'skills/tdd/scripts/tests/event.test.sh' "${cmd[@]}" &&
+  wrapped "$work" 383 red fast 'skills/tdd/scripts/tests/event.test.sh' sh -c "exit $want" &&
     code=0 || code=$?
 
   [[ "$code" == "$want" ]] ||
