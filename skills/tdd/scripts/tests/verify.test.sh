@@ -406,6 +406,28 @@ state_delta() {
   diff <(printf '%s\n' "$1") <(printf '%s\n' "$2") | tr '\n' ';'
 }
 
+# fixture_repo <dir> [<extra ignored path>…] — the repo every case that needs a real one starts
+# from: one commit of src.txt as the developer committed it, with `.tdd/` ignored the way
+# ensure-run-state-ignored.sh does it in a real run, plus whatever else the caller names.
+#
+# `git init <dir>` creates the directory and its leading ones, so the path is named once here and
+# made by the same command that makes it a repo. The identity goes in the repo's own config: a
+# repo made by `git init` under a test has none and git refuses to commit without one, and a case
+# whose commit runs inside the leaf's stub is somewhere no helper of this suite reaches with a
+# command line — one identity, set where every caller finds it.
+fixture_repo() {
+  local dir="$1" extra
+  shift
+  git init -q -b main "$dir" >/dev/null 2>&1
+  git -C "$dir" config user.name veri
+  git -C "$dir" config user.email veri@example.test
+  printf 'the developer committed this\n' > "$dir/src.txt"
+  printf '.tdd/\n' > "$dir/.gitignore"
+  for extra in "$@"; do printf '%s\n' "$extra" >> "$dir/.gitignore"; done
+  git -C "$dir" add -A >/dev/null 2>&1
+  git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
+}
+
 # tamper_run <arm> <mutation> — a fresh repo at $tamper_work/<arm> holding one commit and the
 # developer's uncommitted work, then one PASS verification in it whose leaf runs <mutation>
 # first. Sets $out and $code to verify.sh's stdout and exit status, and $delta to what
@@ -414,20 +436,8 @@ state_delta() {
 # difference, and taking it here is what keeps the pairing of the before with the after from
 # being respelled once per arm.
 tamper_run() {
-  # `git init <dir>` creates the directory and its leading ones, so the arm's path is named
-  # once here and made by the same command that makes it a repo.
   local dir="$tamper_work/$1" before after
-  git init -q -b main "$dir" >/dev/null 2>&1
-  # An identity in the repo's own config: a repo made by `git init` under a test has none and
-  # git refuses to commit without one. In the config rather than on each command line because
-  # the arm whose mutation is a commit runs that commit inside the leaf's stub, where no helper
-  # of this suite reaches it — one identity, set where every caller finds it.
-  git -C "$dir" config user.name veri
-  git -C "$dir" config user.email veri@example.test
-  printf 'the developer committed this\n' > "$dir/src.txt"
-  printf '.tdd/\n' > "$dir/.gitignore"
-  git -C "$dir" add -A >/dev/null 2>&1
-  git -C "$dir" commit -q -m "initial" >/dev/null 2>&1
+  fixture_repo "$dir"
   # The uncommitted half of the fixture, written after that commit so it is exactly what a
   # developer leaf would have left in the tree when the conductor called for verification.
   printf 'the developer is still editing this\n' > "$dir/src.txt"
@@ -839,13 +849,7 @@ HOME="$gitconfig_home" \
 #     writes during the leaf's own run: without that second line the recorded argv is an untracked
 #     file appearing mid-verification, and case 11's tamper check would exit 2 before any verdict.
 pres_dir="$work/preserve-reject"
-git init -q -b main "$pres_dir" >/dev/null 2>&1
-git -C "$pres_dir" config user.name veri
-git -C "$pres_dir" config user.email veri@example.test
-printf 'the developer committed this\n' > "$pres_dir/src.txt"
-printf '.tdd/\nargv\n' > "$pres_dir/.gitignore"
-git -C "$pres_dir" add -A >/dev/null 2>&1
-git -C "$pres_dir" commit -q -m "initial" >/dev/null 2>&1
+fixture_repo "$pres_dir" argv
 printf 'the work the verifier rejected\n' > "$pres_dir/src.txt"
 pres_issue=409
 pres_step=4
