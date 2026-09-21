@@ -123,6 +123,32 @@ check_refused "--mode with no value" --mode
 
 report "--mode with no value exits 2 with the script's own complaint, writes no .tdd/stop and signals nothing"
 
+# 3. The write itself, on the mode that also stops a run at once: `--mode now <n>` finds the
+#    named run under the MAIN working tree, writes `now` as the only line of its .tdd/stop,
+#    names the run on stdout and exits 0. Three halves, all of them what a caller sees: the
+#    conductor reads that file with stop-requested.sh, so a second line or a different word
+#    there is a request it cannot answer; an operator reads stdout to learn which runs the
+#    command actually reached, so a silent success is indistinguishable from one that found
+#    nothing; and exit 0 is what separates this from the exit 3 a dead run gets.
+#
+#    Stdout is checked for the issue number rather than one exact spelling of the run's
+#    name: naming the run by its path and naming it by its number are both the run named,
+#    and the step asks for the run to be named, not for a format.
+problems=""
+out="$(cd "$repo" && "$STOP" --mode now 5 2>"$work/stderr")" && code=0 || code=$?
+[[ "$code" == 0 ]] || problems+="    want exit 0, got exit $code (stderr: $(cat "$work/stderr"))"$'\n'
+[[ "$out" == *5* ]] || problems+="    want the run named on stdout, got '$out'"$'\n'
+if [[ ! -f "$run/.tdd/stop" ]]; then
+  problems+="    want $run/.tdd/stop holding 'now', it was not written"$'\n'
+else
+  written="$(cat "$run/.tdd/stop")"
+  [[ "$written" == "now" ]] || problems+="    want .tdd/stop to hold 'now', it holds '$written'"$'\n'
+  lines="$(grep -c '' "$run/.tdd/stop")"
+  [[ "$lines" == 1 ]] || problems+="    want 'now' as the only line of .tdd/stop, it has $lines lines"$'\n'
+fi
+
+report "--mode now <n> writes now as the only line of that run's .tdd/stop, names the run on stdout and exits 0"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
