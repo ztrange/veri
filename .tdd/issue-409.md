@@ -1,6 +1,6 @@
 # Plan for #409 — A step that hit trouble loses its evidence: leaf logs are keyed by leaf name and overwritten by the next step
 
-- [ ] preserve-attempt.sh commits the worktree as it stands to a ref under refs/veri/attempts/ named by issue, step, phase and attempt, and git show reads that commit's tree back ⟦criterion 1⟧
+- [x] preserve-attempt.sh commits the worktree as it stands to a ref under refs/veri/attempts/ named by issue, step, phase and attempt, and git show reads that commit's tree back ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] preserving leaves the work branch untouched: the branch's HEAD, index and git log output are the same before and after, so a rebase-merge of the branch carries none of the preserved commit ⟦criterion 2⟧
 - [ ] preserve-attempt.sh also copies the leaf's progress log and its final-output file to preserved names carrying the step, phase, attempt and the mark that triggered the preservation ⟦criterion 3⟧
 - [ ] a REJECT or a malformed verdict makes verify.sh preserve that attempt, and the preserved names pair with the verdict event ⟦criterion 1⟧
