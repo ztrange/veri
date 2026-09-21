@@ -76,6 +76,18 @@ live_conductor() {
   printf '%s\n' "$conductor_pid" > "$1/.tdd/conductor.pid"
 }
 
+# reaped_pid — a real pid that is no longer a process, left in `reaped`: a background
+# `sleep 0` waited for, so the number named something once and names nothing now, and
+# `kill -0` fails on it (wait-leaf.test.sh:232's idiom). Two fixtures below are built out of
+# it — a conductor that is not live, and the stale pid file a finished leaf leaves behind —
+# and both want a number that really was a pid rather than an invented one, since what they
+# ask about is the reading of a pid file, not the parsing of it.
+reaped_pid() {
+  sleep 0 &
+  reaped=$!
+  wait "$reaped" 2>/dev/null
+}
+
 # The conductor of run 5, live from here to the end of the suite: its pid is one a buggy stop
 # could signal, so every refusal below checks it is still answering.
 live_conductor "$run"
@@ -287,12 +299,8 @@ rm -f "$run/.tdd/stop"
 live2="$repo/.tdd/wt/7"
 live_conductor "$live2"
 
-# A real pid that is no longer a process: a background `sleep 0` already reaped, so the
-# number names nothing and `kill -0` fails on it (wait-leaf.test.sh:232's idiom).
 dead="$repo/.tdd/wt/9"; mkdir -p "$dead/.tdd"
-sleep 0 &
-dead_pid=$!
-wait "$dead_pid" 2>/dev/null
+reaped_pid; dead_pid="$reaped"
 printf '%s\n' "$dead_pid" > "$dead/.tdd/conductor.pid"
 
 run_stop --mode at-leaf --all
@@ -406,13 +414,10 @@ sleep 60 &
 impostor=$!; alive+=("$impostor")
 printf '%s\n' "$impostor" > "$run/.tdd/verify-green.pid"
 
-# And one whose process is simply gone — a background `sleep 0` already reaped, so the number
-# names nothing (case 6's idiom). No signal not sent can be watched for, so what this one is
-# here for is the exit code: a stale pid file is the ordinary state of a finished leaf, and a
-# run whose stop was written must not be reported as a failure over one.
-sleep 0 &
-stale_pid=$!
-wait "$stale_pid" 2>/dev/null
+# And one whose process is simply gone. No signal not sent can be watched for, so what this
+# one is here for is the exit code: a stale pid file is the ordinary state of a finished leaf,
+# and a run whose stop was written must not be reported as a failure over one.
+reaped_pid; stale_pid="$reaped"
 printf '%s\n' "$stale_pid" > "$run/.tdd/verify-refactor.pid"
 
 # gone <pid> — whether a signalled process has finished going, in 50 ms steps rather than one
