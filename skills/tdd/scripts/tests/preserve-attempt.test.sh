@@ -46,6 +46,11 @@ ref_resolves() { git_q "$1" rev-parse --verify --quiet "$REF^{commit}" >/dev/nul
 # and the mark that triggered the preservation — so it is built in one place, not per case.
 copy_path() { printf '%s/.tdd/attempts/3-develop-green-1-%s.%s' "$1" "$2" "$3"; }
 
+# copy_text <path> — the preserved file's contents, or the literal <missing> when it was never
+# written. A failure message that says <missing> distinguishes "preserved the wrong bytes" from
+# "preserved nothing", which an empty string would not.
+copy_text() { if [[ -f "$1" ]]; then cat "$1"; else echo "<missing>"; fi; }
+
 # new_repo <path> — a throwaway repo at <path>, on `main`, carrying one commit that tracks
 # stop-run.sh. -b main names the default branch rather than inheriting init.defaultBranch.
 new_repo() {
@@ -109,8 +114,8 @@ printf 'final result text\n' > "$repo/.tdd/develop-green.out"
 preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
 log_copy="$(copy_path "$repo" reject log)"
 out_copy="$(copy_path "$repo" reject out)"
-log_text="$([[ -f "$log_copy" ]] && cat "$log_copy" || echo "<missing>")"
-out_text="$([[ -f "$out_copy" ]] && cat "$out_copy" || echo "<missing>")"
+log_text="$(copy_text "$log_copy")"
+out_text="$(copy_text "$out_copy")"
 { [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] \
     && [[ "$out_text" == "final result text" ]] \
     && [[ -f "$repo/.tdd/develop-green.log" ]] && [[ -f "$repo/.tdd/develop-green.out" ]]; } \
@@ -127,7 +132,7 @@ printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 preserve "$repo" 409 3 develop-green 1 stuck >/dev/null 2>&1; code=$?
 log_copy="$(copy_path "$repo" stuck log)"
 out_copy="$(copy_path "$repo" stuck out)"
-log_text="$([[ -f "$log_copy" ]] && cat "$log_copy" || echo "<missing>")"
+log_text="$(copy_text "$log_copy")"
 out_there="$([[ -e "$out_copy" ]] && echo yes || echo no)"
 { [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] && [[ "$out_there" == no ]]; } \
   && ok || no "preserves the log of a leaf that wrote no final output, with exit 0 (code=$code log='$log_text' out_copy=$out_there)"
