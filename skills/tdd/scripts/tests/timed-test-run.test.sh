@@ -58,6 +58,19 @@ print(obj[key] if key in obj else "<<missing>>")
 ' "$1" "$2" 2>/dev/null
 }
 
+# wrapped <tree> <issue> <phase> <tier> <suites> <cmd> [args …] — one run of the wrapper under
+# <tree>, quietly, handing back the status it handed its caller. Every case below is one or
+# more of these, so the launch line is spelled here once: `env` sets the run context for that
+# child only, so an answer is a fact about the script and not about whatever the shell running
+# `make test` exported (hermetic-suites.test.sh's concern), and the three keys no case varies —
+# actor, step, attempt — are fixed here rather than restated at each call.
+wrapped() {
+  local tree="$1" issue="$2" phase="$3" tier="$4" suites="$5"
+  shift 5
+  ( cd "$tree" && env VERI_ISSUE="$issue" VERI_ACTOR=developer VERI_PHASE="$phase" \
+      VERI_STEP=1 VERI_ATTEMPT=1 "$TIMED" "$tier" "$suites" "$@" ) >/dev/null 2>&1
+}
+
 # 1. The whole of this step's criterion, as one case: one wrapped run writes one `test-run`
 #    line carrying its tier, its suites and its seconds, and hands the caller back the
 #    command's own status.
@@ -66,16 +79,12 @@ print(obj[key] if key in obj else "<<missing>>")
 #    success, or event.sh's, or a plain "the command failed", is caught rather than passed.
 #    The suites argument holds two paths separated by a space, which is what a caller already
 #    has in hand: affected-suites.sh prints one suite path per line and a caller joins them.
-#    `env` sets the run context for this child only, so the answer is a fact about the script
-#    and not about whatever the shell running `make test` exported (hermetic-suites.test.sh's
-#    concern).
 name="timed-test-run.sh <tier> <suites> <cmd>: runs the command, writes one test-run event carrying tier, suites and seconds, and exits with the command's own status"
 problems=()
 work="$(mktemp -d)"
 log="$work/.tdd/events.jsonl"
 suites='skills/tdd/scripts/tests/unit/next-unchecked.test.sh skills/tdd/scripts/tests/event.test.sh'
-( cd "$work" && env VERI_ISSUE=342 VERI_ACTOR=developer VERI_PHASE=green VERI_STEP=1 \
-    VERI_ATTEMPT=1 "$TIMED" fast "$suites" sh -c 'exit 7' ) >/dev/null 2>&1 && code=0 || code=$?
+wrapped "$work" 342 green fast "$suites" sh -c 'exit 7' && code=0 || code=$?
 
 [[ "$code" == 7 ]] ||
   problems+=("want the command's own exit status 7, got $code")
@@ -124,8 +133,7 @@ report "$name"
 name="a log carrying timed-test-run.sh's own test-run marks renders at least one row under the report's per-tier section"
 problems=()
 work="$(mktemp -d)"
-( cd "$work" && env VERI_ISSUE=373 VERI_ACTOR=developer VERI_PHASE=green VERI_STEP=1 \
-    VERI_ATTEMPT=1 "$TIMED" fast 'skills/tdd/scripts/tests/event.test.sh' true ) >/dev/null 2>&1 ||
+wrapped "$work" 373 green fast 'skills/tdd/scripts/tests/event.test.sh' true ||
   problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
 
 report_out="$work/report.md"
@@ -183,8 +191,7 @@ name="a log carrying timed-test-run.sh's own test-run marks gives tier-usual.sh 
 problems=()
 work="$(mktemp -d)"
 for _ in 1 2; do
-  ( cd "$work" && env VERI_ISSUE=373 VERI_ACTOR=developer VERI_PHASE=green VERI_STEP=1 \
-      VERI_ATTEMPT=1 "$TIMED" fast 'skills/tdd/scripts/tests/event.test.sh' true ) >/dev/null 2>&1 ||
+  wrapped "$work" 373 green fast 'skills/tdd/scripts/tests/event.test.sh' true ||
     problems+=("want the wrapped run to exit 0 like the command it ran, it did not")
 done
 
@@ -216,9 +223,8 @@ for want in 7 0; do
   work="$(mktemp -d)"
   log="$work/.tdd/events.jsonl"
   if [[ "$want" == 0 ]]; then cmd=(true); else cmd=(sh -c "exit $want"); fi
-  ( cd "$work" && env VERI_ISSUE=383 VERI_ACTOR=developer VERI_PHASE=red VERI_STEP=1 \
-      VERI_ATTEMPT=1 "$TIMED" fast 'skills/tdd/scripts/tests/event.test.sh' "${cmd[@]}" ) \
-    >/dev/null 2>&1 && code=0 || code=$?
+  wrapped "$work" 383 red fast 'skills/tdd/scripts/tests/event.test.sh' "${cmd[@]}" &&
+    code=0 || code=$?
 
   [[ "$code" == "$want" ]] ||
     problems+=("want the command's own exit status $want back from the wrapper, got $code")
