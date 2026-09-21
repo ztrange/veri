@@ -48,6 +48,9 @@
 #   9. SKILL.md's Resume captures `git status --porcelain` BEFORE that reset and says the
 #      `### ▶️ Resuming` comment names the paths it discarded, so the work a killed leaf left
 #      is thrown away loudly rather than silently (issue #194).
+#  10. SKILL.md's Draft PR step's refusal names a remedy that applies with a dirty tree, no
+#      step pending and none unchecked, and says the run reaches the PR after it, so the
+#      combination case 3's gate refuses has a way out rather than a loop (issue #194).
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -804,6 +807,40 @@ if text_from resume_instructions \
       '▶️ resuming' '(path|file)'; then
     says '(discard|threw away|thrown away|throw away|stray|reset)' \
       "$skill_md's Resume mentions paths in the ### ▶️ Resuming comment without saying they are what the reset discarded, so the thread names files without recording that they are gone"
+  fi
+fi
+report "$name"
+
+# 10. One criterion — the refusal has a way out on every combination of its two answers, and
+#     so one case. Case 3 pins the gate: a non-empty `git status --porcelain` or a pending step
+#     stops the run before `gh pr create`. What #194 found is that the remedy the same record
+#     names is conditional — "for a pending step" — and one combination falls outside it: a
+#     dirty tree with nothing pending and nothing unchecked. There, Resume sub-step 2 exits 3,
+#     sub-step 3 finds no step to run, and control arrives back at a gate that refuses the same
+#     tree again. Neither finished nor failed, and an unattended conductor has nothing to do but
+#     repeat it.
+#
+#     The case belongs beside case 3 rather than in skill-draft-pr.test.sh because it is the
+#     same record and the same refusal: what this criterion adds is the answer that record owes
+#     once it has refused, and a probe of it written against another suite's slice would drift
+#     from the gate it is the other half of.
+#
+#     Read from the record the refusal lives in, the way case 3 reads it, and asked for the two
+#     conditions in the writer's own words: the tree is dirty with no step pending, and none
+#     unchecked either. `no ` with its space rather than a bare `no`, and within one sentence,
+#     because the record already carries "do **not** open the PR" a few words ahead of "for a
+#     pending step" — a looser probe would read that refusal as the answer to it.
+name="$skill_md's Draft PR step names a remedy for a dirty tree with no step pending and none unchecked, and reaches the PR after it"
+problems=()
+if records_from draft_pr_instructions \
+    "$skill_md has no ### 4. Draft PR section to read — whether its refusal has a remedy could not be checked"; then
+  if reads 'refuses to open the PR while the worktree is dirty' "$dirty_tree"; then
+    says '(no |nothing |none |without a )[^.]{0,40}pending' \
+      "$skill_md's Draft PR step refuses a dirty tree but names a remedy only for a step that is pending, so a run whose tree is dirty with nothing pending is sent to a branch that exits 3 and arrives back at the same refusal"
+    says 'unchecked' \
+      "$skill_md's Draft PR step's refusal never says what happens when no step is unchecked either, which is the combination that loops: the cycle loop has nothing left to run and the gate refuses the same tree for ever"
+    says '(come back|comes back|return here|returns here|open the pr|gh pr create)' \
+      "$skill_md's Draft PR step's refusal names a remedy without saying the run reaches the PR after it, so a conductor that has cleaned the tree is left with no instruction saying it may now go on"
   fi
 fi
 report "$name"

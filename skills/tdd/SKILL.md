@@ -1002,7 +1002,13 @@ one more cycle, not a loop — and the bail names every suite still red, not onl
    step that is checked but still only green. On either, **do not open the PR**: for a
    pending step go to *Resume* sub-step 2, which resets the stray work and re-enters that
    step's refactor loop, and come back here only once both questions have gone quiet — an
-   empty status, and `next-pending-refactor.sh` exiting 3.
+   empty status, and `next-pending-refactor.sh` exiting 3. With **no step pending and none
+   unchecked**, a dirty tree is all that is left, and the remedy is *Resume* sub-step 2's
+   reset on its own: go there anyway — its reset runs before its ask, so it discards the
+   stray work whatever the ask answers — let sub-steps 2 and 3 both exit 3, let sub-step 4's
+   `### ▶️ Resuming` comment name the paths that reset discarded, and then come back here
+   and open the PR. That work was seen by no verifier and was never going to reach the PR,
+   so discarding it loudly is the outcome; refusing the same tree for ever is not.
 2. **Open the draft PR, close the run's log with its URL, then render the metrics, commit
    them and put them in the PR body** — one sub-step, in this order, from inside the worktree.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
