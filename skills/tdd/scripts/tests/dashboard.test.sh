@@ -405,6 +405,42 @@ if not isinstance(got, dict) or not isinstance(got.get("tests"), list):
 runs = got["tests"]
 '
 
+# The half of a Chatter case that is the same in both of the two below: the answer
+# call_endpoint wrote, loaded and checked to be an object with a "chatter" key, beside the
+# rendering the case compares it against. Handed <body> <issue> <want-file>, it leaves
+# `chatter` that answer’s rendering and `want` render-leaf-log.sh’s own, both with their
+# surrounding blank lines off, and says which half of a malformed answer broke rather than
+# dying on it. What differs between the cases is only what they say when the two disagree.
+chatter_rendering='
+import json, sys
+
+body, issue = sys.argv[1], sys.argv[2]
+try:
+    with open(body) as f:
+        got = json.load(f)
+except ValueError:
+    with open(body) as f:
+        print("chatter_json for issue %s returned something that is not JSON; it starts: %r"
+              % (issue, f.read()[:200]))
+    sys.exit()
+if not isinstance(got, dict) or "chatter" not in got:
+    print("chatter_json for issue %s returned %s; want an object with a \"chatter\" key"
+          % (issue, json.dumps(got, sort_keys=True)[:300]))
+    sys.exit()
+# The rendering as the renderer’s own text or as its lines, since one line per thing said or
+# done is what the renderer promises and a list of them says the same thing.
+chatter = got["chatter"]
+if isinstance(chatter, list):
+    chatter = "\n".join(str(line) for line in chatter)
+if not isinstance(chatter, str):
+    print("chatter_json for issue %s returned chatter=%s; want the rendered log as text or as "
+          "its lines" % (issue, json.dumps(chatter, sort_keys=True)[:300]))
+    sys.exit()
+with open(sys.argv[3]) as f:
+    want = f.read().strip("\n")
+chatter = chatter.strip("\n")
+'
+
 # The ledger and spec every Tests case fabricates before an endpoint will answer about its
 # run: the `.tdd/issue-<n>.md` run_for_issue looks for, and the `.tdd/issue-<n>-spec.md` whose
 # `Test command:` line tests_json reads. Those two facts are the whole of what any case here
@@ -1471,37 +1507,12 @@ elif [[ "${#problems[@]}" -eq 0 ]]; then
   if [[ ! -f "$work/chatter-direct-54.json" ]]; then
     problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-direct.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-try:
-    with open(sys.argv[1]) as f:
-        got = json.load(f)
-except ValueError:
-    with open(sys.argv[1]) as f:
-        print("chatter_json for issue 54 returned something that is not JSON; it starts: %r"
-              % f.read()[:200])
-    sys.exit()
-if not isinstance(got, dict) or "chatter" not in got:
-    print("chatter_json for issue 54 returned %s; want an object with a \"chatter\" key"
-          % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-# The rendered log as either the renderer’s own text or the lines of it, since one line per
-# thing said or done is what the renderer promises and a list of them says the same thing.
-chatter = got["chatter"]
-if isinstance(chatter, list):
-    chatter = "\n".join(str(line) for line in chatter)
-if not isinstance(chatter, str):
-    print("chatter_json for issue 54 returned chatter=%s; want the rendered log as text or as "
-          "its lines" % json.dumps(chatter, sort_keys=True)[:300])
-    sys.exit()
-with open(sys.argv[2]) as f:
-    want = f.read()
-if chatter.strip("\n") != want.strip("\n"):
+    add_problems < <(python3 -c "$chatter_rendering"'
+if chatter != want:
     print("chatter_json for issue 54 returned %r; want render-leaf-log.sh’s rendering of "
           "verify-green.out, the leaf the run’s newest launch event names, which is %r"
           % (chatter[:400], want[:400]))
-' "$work/chatter-direct-54.json" "$work/chatter-want.txt")
+' "$work/chatter-direct-54.json" 54 "$work/chatter-want.txt")
   fi
 fi
 
@@ -1553,38 +1564,14 @@ elif [[ "${#problems[@]}" -eq 0 ]]; then
   if [[ ! -f "$work/chatter-verifier-59.json" ]]; then
     problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-verifier.err")")
   else
-    add_problems < <(python3 -c '
-import json, sys
-
-try:
-    with open(sys.argv[1]) as f:
-        got = json.load(f)
-except ValueError:
-    with open(sys.argv[1]) as f:
-        print("chatter_json for issue 59 returned something that is not JSON; it starts: %r"
-              % f.read()[:200])
-    sys.exit()
-if not isinstance(got, dict) or "chatter" not in got:
-    print("chatter_json for issue 59 returned %s; want an object with a \"chatter\" key"
-          % json.dumps(got, sort_keys=True)[:300])
-    sys.exit()
-# The rendering as the renderer’s own text or as its lines, as the case above reads it.
-chatter = got["chatter"]
-if isinstance(chatter, list):
-    chatter = "\n".join(str(line) for line in chatter)
-if not isinstance(chatter, str):
-    print("chatter_json for issue 59 returned chatter=%s; want the rendered log as text or as "
-          "its lines" % json.dumps(chatter, sort_keys=True)[:300])
-    sys.exit()
-with open(sys.argv[2]) as f:
-    want = f.read()
-if chatter.strip("\n") != want.strip("\n"):
+    add_problems < <(python3 -c "$chatter_rendering"'
+if chatter != want:
     blank = " — the empty string, which is what a run whose current leaf is a verifier gets " \
             "from a transcript spelled `.out`" if not chatter.strip() else ""
     print("chatter_json for issue 59 returned %r%s; want render-leaf-log.sh’s rendering of "
           "verify-red.log, the transcript of the verifier the run’s newest launch event "
           "names, which is %r" % (chatter[:400], blank, want[:400]))
-' "$work/chatter-verifier-59.json" "$work/chatter-want-verify.txt")
+' "$work/chatter-verifier-59.json" 59 "$work/chatter-want-verify.txt")
   fi
 fi
 
