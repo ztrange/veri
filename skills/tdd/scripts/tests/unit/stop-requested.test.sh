@@ -28,6 +28,18 @@ run_stop() {
   err="$(cat "$work/stderr")"
 }
 
+# verdict <name> — report one case from the `problems` the case just filled: empty is a
+# pass, otherwise a FAIL line naming the case and the indented lines it collected. Same
+# accounting idiom as red-divergence.test.sh's verdict().
+verdict() {
+  if [[ -z "$problems" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1)); echo "FAIL - $1"
+    printf '%s' "$problems"
+  fi
+}
+
 # 1. each of the three modes a stop request may name comes back on stdout, exit 0 — one
 #    case over the three because they are one behaviour: the mode is passed through, not
 #    interpreted, and a conductor branches on the word it reads.
@@ -39,23 +51,17 @@ for mode in at-ledger at-leaf now; do
     problems+="    $mode: want exit 0 and stdout '$mode', got exit $code and stdout '$out'"$'\n'
   fi
 done
-if [[ -z "$problems" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - a stop request's mode comes back on stdout, exit 0"
-  printf '%s' "$problems"
-fi
+verdict "a stop request's mode comes back on stdout, exit 0"
 
 # 2. no stop request at all: nothing on stdout, exit 3 — "nothing to do", not an error, so
 #    a conductor's checkpoint tells a missing file apart from a malformed one.
 rm -f "$work/.tdd/stop"
 run_stop
-if [[ "$code" == 3 && -z "$out" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - no stop request: nothing on stdout, exit 3"
-  echo "    want exit 3 and empty stdout, got exit $code and stdout '$out'"
+problems=""
+if [[ "$code" != 3 || -n "$out" ]]; then
+  problems="    want exit 3 and empty stdout, got exit $code and stdout '$out'"$'\n'
 fi
+verdict "no stop request: nothing on stdout, exit 3"
 
 # 3. a malformed stop request — a first line that is not one of the three modes, and an
 #    empty one — is no answer at all: nothing on stdout, a diagnostic on stderr, exit 2.
@@ -66,8 +72,8 @@ fi
 #    read decide its fate exits on the read's own status with nothing said.
 #
 # check_malformed <what the fixture already written is> — run the script over it and add a
-# line to `problems` unless all three halves of the verdict hold. One function over the
-# three fixtures because the verdict is the same one; only the fixture differs.
+# line to `problems` unless all three halves hold at once. One function over the three
+# fixtures because what is demanded of them is the same; only the fixture differs.
 check_malformed() {
   run_stop
   if [[ "$code" != 2 || -n "$out" || -z "$err" ]]; then
@@ -81,12 +87,7 @@ for line in "bogus" ""; do
 done
 : > "$work/.tdd/stop"
 check_malformed "a zero-byte file"
-if [[ -z "$problems" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - a malformed stop request: nothing on stdout, a diagnostic on stderr, exit 2"
-  printf '%s' "$problems"
-fi
+verdict "a malformed stop request: nothing on stdout, a diagnostic on stderr, exit 2"
 
 echo "----"
 echo "$pass passed, $fail failed"
