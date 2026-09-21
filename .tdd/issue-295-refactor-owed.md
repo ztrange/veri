@@ -1,0 +1,2 @@
+### an ended run whose committed `.tdd/issue-<n>-metrics.md` is missing reports a marker a viewer can tell apart from a real empty report, never the empty string
+- extract the bailed-run events.jsonl fixture shared by the metrics-bail and metrics-gone cases into a helper — not applied because every case in this suite writes its own log heredoc verbatim, which is what lets a reader see what the case is about
