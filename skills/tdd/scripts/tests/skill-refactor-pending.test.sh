@@ -51,6 +51,9 @@
 #  10. SKILL.md's Draft PR step's refusal names a remedy that applies with a dirty tree, no
 #      step pending and none unchecked, and says the run reaches the PR after it, so the
 #      combination case 3's gate refuses has a way out rather than a loop (issue #194).
+#  11. SKILL.md's Resume says a leaf killed in Red or Green leaves the same stray work a
+#      killed refactor leaf does, so the reset cases 8 and 9 pin reads as prescribed rather
+#      than as an unexplained extra command (issue #194).
 #
 # Each half is asked of ONE instruction, the way skill-event-marks.test.sh asks for a mark
 # beside the comment it mirrors: the clear and the commit that carries it belong in the
@@ -853,6 +856,37 @@ if records_from draft_pr_instructions \
       "$skill_md's Draft PR step's refusal never says what happens when no step is unchecked either, which is the combination that loops: the cycle loop has nothing left to run and the gate refuses the same tree for ever"
     says '(come back|comes back|return here|returns here|open the pr|gh pr create)' \
       "$skill_md's Draft PR step's refusal names a remedy without saying the run reaches the PR after it, so a conductor that has cleaned the tree is left with no instruction saying it may now go on"
+  fi
+fi
+report "$name"
+
+# 11. One criterion — the section says WHY the reset is unconditional — and so one case. Cases
+#     8 and 9 pin what a resume does: it resets before the ask, and it names what it threw
+#     away. Neither asks the document to say what that reset is for, and a command with no
+#     reason beside it is the first thing a later rewording moves back under the pending
+#     branch, which is exactly the regression #194 is the record of. The reason is one fact:
+#     the kill mode that leaves stray work is not particular to a refactor leaf — a usage limit
+#     takes the conductor and every leaf together, so a leaf killed in Red or Green leaves the
+#     same uncommitted, unverified work behind that a killed refactor leaf does.
+#
+#     Read from the record that says what a resumed worktree may be carrying, and probed for
+#     the two halves of the claim within one sentence: both phases named in one breath, and
+#     that breath tying them to the killed refactor leaf. Bounded with `[^.]` rather than asked
+#     of the record as a whole, because this record also says "**green but not tidied**" and
+#     "that step's green commit and its verify-refactor" further down — unbounded probes would
+#     read those as the claim and pass a Resume that had dropped the sentence entirely. The
+#     `[^a-z]` guards are there for the same reason at word level: `or` is a substring of
+#     "refactor", "worktree" and "before", all of which this record says repeatedly, so a
+#     conjunction probed as a bare substring would find one between any two of the `$green`s.
+name="$skill_md's Resume says a leaf killed in Red or Green leaves the same stray work a killed refactor leaf does"
+problems=()
+if records_from resume_instructions \
+    "$skill_md has no ## Resume section to read — what it says a resumed worktree may be carrying could not be checked"; then
+  if reads 'says what a killed leaf leaves in a resumed worktree' 'killed' '(uncommitted|stray)'; then
+    says '[^a-z](red|green)[^.]{0,30}[^a-z](or|and)[^a-z][^.]{0,30}(green|red)[^a-z]' \
+      "$skill_md's Resume never names Red and Green together as phases a kill leaves stray work from, so the unconditional reset reads as being about the refactor leaf alone and the next rewording puts it back under the pending branch"
+    says '[^a-z](red|green)[^.]{0,30}[^a-z](or|and)[^a-z][^.]{0,30}(green|red)[^a-z][^.]{0,80}refactor' \
+      "$skill_md's Resume names Red and Green without saying their killed leaf leaves the same stray work a killed refactor one does, so nothing says the two paths are one kill mode and a reader is left thinking only the pending step's tree is dirty"
   fi
 fi
 report "$name"
