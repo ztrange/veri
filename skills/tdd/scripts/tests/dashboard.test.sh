@@ -451,6 +451,29 @@ def want(path):
         return f.read().strip("\n")
 '
 
+# chatter_answer <repo> <issue> <tag> — ask <repo>'s chatter_json about <issue> once and leave
+# the answer it wrote on `$answer`, or leave `$answer` empty after filing why the case has none
+# to compare: the module never loaded, a fixture this case needs was already a problem, or the
+# call raised and wrote nothing. Every Chatter case that asks once shares this half; what
+# differs between them is only what they compare the answer to. The one that asks twice over a
+# run that moves between the two calls spells its own, since what it pins is what happens in
+# between.
+chatter_answer() {  # chatter_answer <repo> <issue> <tag>
+  local repo="$1" issue="$2" tag="$3" err="$work/$3.err"
+  answer=""
+  if [[ -n "$module_problem" ]]; then
+    problems+=("$module_problem")
+    return
+  fi
+  [[ "${#problems[@]}" -eq 0 ]] || return
+  call_endpoint "$repo" chatter_json "$err" "{\"issue\": [\"$issue\"]}" "$work/$tag-$issue.json"
+  if [[ ! -f "$work/$tag-$issue.json" ]]; then
+    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$err")")
+    return
+  fi
+  answer="$work/$tag-$issue.json"
+}
+
 # The ledger and spec every Tests case fabricates before an endpoint will answer about its
 # run: the `.tdd/issue-<n>.md` run_for_issue looks for, and the `.tdd/issue-<n>-spec.md` whose
 # `Test command:` line tests_json reads. Those two facts are the whole of what any case here
@@ -1509,22 +1532,15 @@ EOF
 "$HERE/../render-leaf-log.sh" < "$chat_run/.tdd/verify-green.out" > "$work/chatter-want.txt" 2>/dev/null ||
   problems+=("render-leaf-log.sh could not render the fixture leaf log this case compares against")
 
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-elif [[ "${#problems[@]}" -eq 0 ]]; then
-  call_endpoint "$chat_repo" chatter_json "$work/chatter-direct.err" \
-    '{"issue": ["54"]}' "$work/chatter-direct-54.json"
-  if [[ ! -f "$work/chatter-direct-54.json" ]]; then
-    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-direct.err")")
-  else
-    add_problems < <(python3 -c "$chatter_rendering"'
+chatter_answer "$chat_repo" 54 chatter-direct
+if [[ -n "$answer" ]]; then
+  add_problems < <(python3 -c "$chatter_rendering"'
 got, wanted = chatter(sys.argv[1], 54), want(sys.argv[2])
 if got is not None and got != wanted:
     print("chatter_json for issue 54 returned %r; want render-leaf-log.sh’s rendering of "
           "verify-green.out, the leaf the run’s newest launch event names, which is %r"
           % (got[:400], wanted[:400]))
-' "$work/chatter-direct-54.json" "$work/chatter-want.txt")
-  fi
+' "$answer" "$work/chatter-want.txt")
 fi
 
 report "$name"
@@ -1567,15 +1583,9 @@ EOF
 "$HERE/../render-leaf-log.sh" < "$vlog_run/.tdd/verify-red.log" > "$work/chatter-want-verify.txt" 2>/dev/null ||
   problems+=("render-leaf-log.sh could not render the verifier leaf log this case compares against")
 
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-elif [[ "${#problems[@]}" -eq 0 ]]; then
-  call_endpoint "$vlog_repo" chatter_json "$work/chatter-verifier.err" \
-    '{"issue": ["59"]}' "$work/chatter-verifier-59.json"
-  if [[ ! -f "$work/chatter-verifier-59.json" ]]; then
-    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-verifier.err")")
-  else
-    add_problems < <(python3 -c "$chatter_rendering"'
+chatter_answer "$vlog_repo" 59 chatter-verifier
+if [[ -n "$answer" ]]; then
+  add_problems < <(python3 -c "$chatter_rendering"'
 got, wanted = chatter(sys.argv[1], 59), want(sys.argv[2])
 if got is not None and got != wanted:
     blank = " — the empty string, which is what a run whose current leaf is a verifier gets " \
@@ -1583,8 +1593,7 @@ if got is not None and got != wanted:
     print("chatter_json for issue 59 returned %r%s; want render-leaf-log.sh’s rendering of "
           "verify-red.log, the transcript of the verifier the run’s newest launch event "
           "names, which is %r" % (got[:400], blank, wanted[:400]))
-' "$work/chatter-verifier-59.json" "$work/chatter-want-verify.txt")
-  fi
+' "$answer" "$work/chatter-want-verify.txt")
 fi
 
 report "$name"
@@ -1633,15 +1642,9 @@ EOF
 "$HERE/../render-leaf-log.sh" < "$work/chatter-tail-records.jsonl" > "$work/chatter-want-tail.txt" 2>/dev/null ||
   problems+=("render-leaf-log.sh could not render the stream-json records this case compares against")
 
-if [[ -n "$module_problem" ]]; then
-  problems+=("$module_problem")
-elif [[ "${#problems[@]}" -eq 0 ]]; then
-  call_endpoint "$tail_repo" chatter_json "$work/chatter-tail.err" \
-    '{"issue": ["61"]}' "$work/chatter-tail-61.json"
-  if [[ ! -f "$work/chatter-tail-61.json" ]]; then
-    problems+=("calling $module.chatter_json wrote nothing: $(tail -n 1 "$work/chatter-tail.err")")
-  else
-    add_problems < <(python3 -c "$chatter_rendering"'
+chatter_answer "$tail_repo" 61 chatter-tail
+if [[ -n "$answer" ]]; then
+  add_problems < <(python3 -c "$chatter_rendering"'
 got, wanted = chatter(sys.argv[1], 61), want(sys.argv[2])
 if got is not None and wanted not in got:
     blank = " — the empty string, which is what a transcript with the result text appended " \
@@ -1650,8 +1653,7 @@ if got is not None and wanted not in got:
     print("chatter_json for issue 61 returned %r%s; want an answer carrying "
           "render-leaf-log.sh’s rendering of develop-green.log’s stream-json records, "
           "which is %r" % (got[:400], blank, wanted[:400]))
-' "$work/chatter-tail-61.json" "$work/chatter-want-tail.txt")
-  fi
+' "$answer" "$work/chatter-want-tail.txt")
 fi
 
 report "$name"
