@@ -17,9 +17,10 @@
 #   called with no arguments, the audit prints one offender line naming that script and the
 #   status it came back with, and returns 1.
 #
-# Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0,
-# sleep 0. The planted script is a `#!/bin/sh` two-liner that answers before doing any work
-# (#322), so the case starts one process and waits on nothing.
+# Admitted to the fast tier (#336) by its own usage count, which unit-tier.test.sh reads off
+# one line: git 0, python3 0, server 0, sleep 0.
+# The planted scripts are `#!/bin/sh` two-liners that answer before doing any work (#322), so
+# the cases start one process apiece and wait on nothing.
 #
 # Run: scripts/tests/unit/missing-argument-guard.test.sh
 set -uo pipefail
@@ -63,6 +64,50 @@ if [[ "$rc" -ne 1 || "$(cat "$out")" != "$want" ]]; then
 else
   pass=$((pass + 1))
 fi
+
+# 2. the guard's other half, and the reason it reads source as well as exit codes: a script
+#    whose refusal is a bare `${N:?…}` expansion. That expansion aborts the shell with 1, and
+#    it can sit on a position no roster call reaches — a `${4:?…}` guarding the fourth
+#    argument of a script whose first three are checked properly. Reading the tree instead of
+#    calling it also covers a script added tomorrow by existing, with no roster to edit.
+name="the guard names a script guarding a required argument with a bare \${N:?…} expansion"
+scan="$scratch/scan"
+mkdir -p "$scan"
+cat > "$scan/bare.sh" <<'STUB'
+#!/usr/bin/env bash
+n="${1:?usage: bare.sh <n>}"
+echo "$n"
+STUB
+cat > "$scan/checked.sh" <<'STUB'
+#!/usr/bin/env bash
+[[ -n "${1:-}" ]] || { echo "usage: checked.sh <n>" >&2; exit 2; }
+echo "$1"
+STUB
+# The prose at the head of eight scripts quotes the very shape it is telling the reader not
+# to use, so a scan that read comments would make the guard red for explaining itself. A
+# whole line commented out is skipped; a `${N:?…}` in a trailing comment beside code is not,
+# and there is no case for that here because it is not a promise the scan makes.
+cat > "$scan/explains.sh" <<'STUB'
+#!/usr/bin/env bash
+  # Checked rather than read through `${1:?…}`, which aborts the shell with status 1.
+[[ -n "${1:-}" ]] || { echo "usage: explains.sh <n>" >&2; exit 2; }
+STUB
+chmod +x "$scan/bare.sh" "$scan/checked.sh" "$scan/explains.sh"
+
+(
+  source "$LIB"
+  bare_expansion_offenders "$scan"
+) > "$out" 2> "$err"
+rc=$?
+want='bare.sh:2: guards $1 with a bare ${N:?…} expansion, which exits 1, not 2'
+if [[ "$rc" -ne 1 || "$(cat "$out")" != "$want" ]]; then
+  fail=$((fail + 1))
+  echo "FAIL - $name (want exit 1 and stdout '$want'):"
+  show_run "$rc" "$out" "$err"
+else
+  pass=$((pass + 1))
+fi
+
 
 echo "----"
 echo "$pass passed, $fail failed"
