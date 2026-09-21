@@ -57,11 +57,19 @@ def events_of(run):
         return [json.loads(raw) for raw in f if raw.strip()]
 
 
+# The lines of one run's log carrying one of the marks named — which field of a line says
+# which mark it is, asked here and not by each reader that wants a kind of mark. Both of
+# them below read a mark this way: the one that decides a run has ended, and the one the
+# Tests pane counts.
+def events_marked(run, *marks):
+    return [event for event in events_of(run) if event.get("event") in marks]
+
+
 # A run has ENDED when its log carries the mark that ends one — `done` or `bail`, the same
 # pair status.sh reads for its `state` (status.sh:76). That, and not a clock, is what splits
 # the two readings below: a run still going is recomputed, an ended one is quoted.
 def run_ended(run):
-    return any(e.get("event") in ("done", "bail") for e in events_of(run))
+    return bool(events_marked(run, "done", "bail"))
 
 
 # One issue's report, which is the whole of the split the criterion names. For a run still
@@ -245,16 +253,6 @@ def test_runs(run, command):
     return found
 
 
-# The `test-run` marks of one run's event log: one line per test-command run, appended by
-# timed-test-run.sh:45 since #342, when a leaf stopped typing its test command as a bare Bash
-# call and started invoking the wrapper by absolute path instead (#383). That is why the mark
-# and not the leaf log is what the Tests pane counts: test_runs' string match against the
-# spec's command could never hold again, and the pane went empty on a live run that had
-# already run its suite seven times.
-def test_run_marks(run):
-    return [event for event in events_of(run) if event.get("event") == "test-run"]
-
-
 # Answered for the selected run alone, the way every endpoint has since #343: the run is
 # `.tdd/wt/<issue>` and no other, so a second run whose leaves ran the same command is not
 # reported here. An issue with no run of its own, or one whose spec names no test command,
@@ -265,7 +263,13 @@ def tests_json(query):
     issue = selected_issue(query)
     run = run_for_issue(issue)
     command = test_command(run, issue)
-    marks = test_run_marks(run)
+    # One entry per `test-run` mark of the run's own log: one such line per test-command run,
+    # appended by timed-test-run.sh:45 since #342, when a leaf stopped typing its test command
+    # as a bare Bash call and started invoking the wrapper by absolute path instead (#383).
+    # That is why the mark and not the leaf log is what this counts: test_runs' string match
+    # against the spec's command could never hold again, and the pane went empty on a live run
+    # that had already run its suite seven times.
+    marks = events_marked(run, "test-run")
     if marks:
         tests = [{"command": command} for _ in marks]
     else:
