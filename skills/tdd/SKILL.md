@@ -1517,11 +1517,11 @@ leaves the run resumable. Run this sequence in order.
    an exit 3, as everywhere else — until it returns 0, 1 or 2. Under mode `now` that wait
    ends at once: `stop-run.sh` has already sent that supervisor its TERM, and
    `supervise.sh:350-355` recorded a 2 in the completion file.
-2. **Settle the tree.** Only now, and only with `git reset --hard HEAD`: a non-empty `git
-   status --porcelain` is the half-done step, and dropping it leaves every completed step's
-   commit intact. That reset is the only reach for the tree this section has: restoring a
-   path out of some other tree is not what dropping a half-done step means. Say in the
-   narration what was dropped.
+2. **Settle the tree.** Only now, and only with `git reset --hard HEAD` — a non-empty `git
+   status --porcelain` is the half-done step, dropped exactly as *Bailing* step 1 drops it
+   and for the reason given there. That reset is the only reach for the tree this section
+   has: restoring a path out of some other tree is not what dropping a half-done step
+   means. Say in the narration what was dropped.
 
 ## Resume
 
