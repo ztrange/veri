@@ -39,15 +39,20 @@ shopt -u patsub_replacement 2>/dev/null || true
 # The call this script accepts, spelled once: both refusals below quote it back.
 USAGE="usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 
+# Both flags take a value and neither may be given an empty one, so the refusal is written
+# once for the pair and names whichever flag `$1` holds, the way verify.sh's own loop does —
+# two spellings of it are two chances for the one a caller is shown to be the stale one. The
+# inner `case` is then all that is left of what the two arms differ in: which name the value
+# lands in.
 step="" fast_cmd=""
 while :; do
   case "${1:-}" in
-    --step)
-      [[ -n "${2:-}" ]] || { echo "build-verify-prompt: --step needs the step text" >&2; echo "$USAGE" >&2; exit 2; }
-      step="$2" ;;
-    --fast-cmd)
-      [[ -n "${2:-}" ]] || { echo "build-verify-prompt: --fast-cmd needs the command" >&2; echo "$USAGE" >&2; exit 2; }
-      fast_cmd="$2" ;;
+    --step|--fast-cmd)
+      [[ -n "${2:-}" ]] || { echo "build-verify-prompt: $1 needs a value" >&2; echo "$USAGE" >&2; exit 2; }
+      case "$1" in
+        --step) step="$2" ;;
+        *) fast_cmd="$2" ;;
+      esac ;;
     *) break ;;
   esac
   shift 2
