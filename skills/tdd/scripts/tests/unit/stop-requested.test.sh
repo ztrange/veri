@@ -137,6 +137,30 @@ problems=""
 check_refused "--clear --bogus" --clear --bogus
 verdict "--clear with a trailing argument exits 2 and leaves .tdd/stop as it was"
 
+# 7. Where this suite lives and what its header says, asked of the suite itself. The fast
+#    tier is a directory — `make unit` globs skills/tdd/scripts/tests/unit/*.test.sh, so a
+#    suite runs there by being there, and unit-tier.test.sh case 1 pins that every suite on
+#    disk under it is named by the target. What that leaves unasked is the half a human
+#    owes: the admission bar is judged by reading a suite's source, so the header has to
+#    say which bar it clears, in the words the bar is written in — no git, no network, no
+#    servers, no real sleep, no nested suites. A suite whose header only counts its own
+#    usage tells the next reader what it does, not what it promises.
+problems=""
+tier_dir="skills/tdd/scripts/tests/unit"
+self="$HERE/$(basename "$0")"
+case "$HERE" in
+  */"$tier_dir") ;;
+  *) problems+="    want this suite under $tier_dir/, found it in $HERE"$'\n' ;;
+esac
+# The header: the comment lines after the shebang, up to the first line that is not one —
+# the same slice unit-tier.test.sh reads a moved suite's usage count from.
+header="$(sed -n '2,$p' "$self" | sed '/^#/!q' | grep '^#')"
+for phrase in "fast tier" "no git" "no network" "no server" "no real sleep" "no nested suite"; do
+  grep -qi -- "$phrase" <<< "$header" ||
+    problems+="    this suite's header does not say '$phrase', so it does not state the bar it clears"$'\n'
+done
+verdict "this suite lives in the fast tier's directory and its header states the bar it clears"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
