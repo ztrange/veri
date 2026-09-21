@@ -115,6 +115,22 @@ claim() {
 # measurement is usually called.
 elapsed_re='(^|[^a-z])(time|timed|times|timing|elapsed|wall|duration|sec)([^a-z-]|$)'
 
+# preflight_records / plan_records — the two sections every case here reads, each naming its
+# heading regex and its missing-section problem once, so a case says which section it is about
+# and nothing else. Both are matched by the word rather than by the number, so renumbering the
+# procedure does not fail a case; `[0-9]+\.` is what tells the preflight step from `### Loop 0.
+# Preflight — none of its own`, the loop's section, which delegates every check to here. The
+# plan section holds the step that mirrors the plan to the issue thread, and the criterion is
+# that THAT comment carry the number.
+preflight_records() {
+  records_of preflight '^### [0-9]+\..*[Pp]reflight' \
+    "$skill_md has no numbered '### … Preflight' section — what preflight does with the timeout could not be read"
+}
+plan_records() {
+  records_of plan '^### [0-9]+\..*[Pp]lan' \
+    "$skill_md has no numbered '### … plan' section — what the plan comment states could not be read"
+}
+
 # 1. The whole of this step's criterion, as one case: the procedure has to measure, derive,
 #    export and announce, and three of those four are individually useless. A timing step
 #    whose number reaches nothing changes no leaf; a derivation nobody exports changes no
@@ -126,11 +142,7 @@ elapsed_re='(^|[^a-z])(time|timed|times|timing|elapsed|wall|duration|sec)([^a-z-
 name="$skill_md's preflight times the baseline run, derives the timeout with leaf-timeout.sh and exports it as VERI_TIMEOUT for every leaf, and the plan comment states it with the baseline it came from"
 problems=()
 
-# The preflight section, matched by the word rather than by its number, so renumbering the
-# procedure does not fail this case. `[0-9]+\.` is what tells it from `### Loop 0.
-# Preflight — none of its own`, the loop's section, which delegates every check to here.
-if records_of preflight '^### [0-9]+\..*[Pp]reflight' \
-  "$skill_md has no numbered '### … Preflight' section — what preflight does with the timeout could not be read"
+if preflight_records
 then
   claim 'times the green-baseline run it already does' \
     'baseline' "$elapsed_re"
@@ -140,10 +152,7 @@ then
     'veri_timeout' 'export|every leaf|each leaf|all leaves|every launch|rest of the run'
 fi
 
-# The plan section, matched the same way: the step that mirrors the plan to the issue
-# thread lives in it, and the criterion is that THAT comment carry the number.
-if records_of plan '^### [0-9]+\..*[Pp]lan' \
-  "$skill_md has no numbered '### … plan' section — what the plan comment states could not be read"
+if plan_records
 then
   claim 'has the plan comment state the timeout and the baseline it was derived from' \
     'timeout' 'baseline' 'comment'
@@ -164,8 +173,7 @@ problems=()
 # `full` as a word, hyphen included on the right so `full-tier` counts and `fully` does not.
 full_re='(^|[^a-z])full(-[a-z]+)?([^a-z-]|$)'
 
-if records_of preflight '^### [0-9]+\..*[Pp]reflight' \
-  "$skill_md has no numbered '### … Preflight' section — what preflight does with the timeout could not be read"
+if preflight_records
 then
   claim 'times a full-tier run, the work a leaf actually does' \
     "$full_re" "$elapsed_re"
@@ -175,8 +183,7 @@ then
     'veri_timeout' 'export|every leaf|each leaf|all leaves|every launch|rest of the run'
 fi
 
-if records_of plan '^### [0-9]+\..*[Pp]lan' \
-  "$skill_md has no numbered '### … plan' section — what the plan comment states could not be read"
+if plan_records
 then
   claim 'has the plan comment name the tier the timeout was derived from' \
     'timeout' 'comment' "$full_re|tier"
