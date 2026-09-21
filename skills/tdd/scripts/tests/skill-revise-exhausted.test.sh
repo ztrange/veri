@@ -183,13 +183,18 @@ branch="$(needs_user_branch)"
 # of *Starting*, and the "post a `### …` comment" every narration section uses.
 issue_mirror='gh issue comment|post a [^.]{0,120}comment'
 
+# The claim both fail-closed messages end in, spelled once: the two ways this case can fail
+# to read anything — no section at all, or a section with no such branch — leave the reader
+# with the same thing unestablished, and a second spelling is one that can drift from it.
+unestablished="what a parked step leaves the user could not be established"
+
 name="$skill_md's needs-user branch mirrors the parked step to the issue thread, carrying the leaf's answer and the verifier's last rejection reason"
 problems=()
 
 if [[ -n "$unreadable" ]]; then
-  problems+=("$unreadable what a parked step leaves the user could not be established")
+  problems+=("$unreadable $unestablished")
 elif [[ -z "${branch// /}" ]]; then
-  problems+=("$skill_md's revise section has no '$needs_user_open' branch to read — what a parked step leaves the user could not be established")
+  problems+=("$skill_md's revise section has no '$needs_user_open' branch to read — $unestablished")
 else
   if ! grep -qE "($issue_mirror)" <<<"$branch"; then
     problems+=("$skill_md's needs-user branch parks the step without posting anything to the issue thread, so the one account of why the run stopped is a leaf log inside a worktree")
