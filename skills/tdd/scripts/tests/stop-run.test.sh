@@ -127,6 +127,16 @@ run_stop() { run_stop_in "$repo" "$@"; }
 # the reader go and rerun the command by hand to see it would be the slower one.
 check_code() { [[ "$code" == "$1" ]] || note "want exit $1, got exit $code (stderr: $err)"; }
 
+# check_no_stop <run-path> — the half every case that expects no write asks about, and the
+# half that matters more than the exit code: a request left in a run the command was not meant
+# to reach is not a no-op but a trap, still sitting there when that run next reads it. The
+# note names the run, so one helper serves the refused commands, the dead run `--all` skipped
+# and the two runs that got exit 3, and a failure still says which file was written.
+check_no_stop() {
+  [[ ! -e "$1/.tdd/stop" ]] ||
+    note "want no .tdd/stop for $1, found one holding '$(cat "$1/.tdd/stop")'"
+}
+
 # check_refused_in <dir> <label> [args…] — one refusal, checked whole: exit 2, nothing on
 # stdout, the script's own complaint on stderr, no .tdd/stop for the live run the command did
 # not name properly, and both its live pids still answering. The directory is a parameter
@@ -143,8 +153,7 @@ check_refused_in() {
   # not bash's: a `set -u` death over an option's missing value names this file and a line
   # number, says nothing about what the operator got wrong, and does not exit 2.
   [[ "$err" == "stop-run: "* ]] || note "want a complaint of the script's own, got '$err'"
-  [[ ! -e "$run/.tdd/stop" ]] ||
-    note "want no .tdd/stop written, found one holding '$(cat "$run/.tdd/stop")'"
+  check_no_stop "$run"
   kill -0 "$sup_pid" 2>/dev/null ||
     note "want the live supervisor $sup_pid untouched, it is gone"
   kill -0 "$run_conductor_pid" 2>/dev/null ||
@@ -282,8 +291,7 @@ for stopped in "$run" "$live2"; do
   check_stop "$stopped" at-leaf
 done
 
-[[ ! -e "$dead/.tdd/stop" ]] ||
-  note "want no .tdd/stop for the run whose conductor is gone, found one holding '$(cat "$dead/.tdd/stop")'"
+check_no_stop "$dead"
 
 report "--all writes the mode into every live run's .tdd/stop and into no other"
 
@@ -313,8 +321,7 @@ check_code 3
 label="an issue whose conductor is not live"
 run_stop 9
 check_code 3
-[[ ! -e "$dead/.tdd/stop" ]] ||
-  note "want no .tdd/stop written, found one holding '$(cat "$dead/.tdd/stop")'"
+check_no_stop "$dead"
 
 label="--all with no live run"
 quiet="$work/quiet"
@@ -323,8 +330,7 @@ quiet_dead="$quiet/.tdd/wt/9"; mkdir -p "$quiet_dead/.tdd"
 printf '%s\n' "$dead_pid" > "$quiet_dead/.tdd/conductor.pid"
 run_stop_in "$quiet" --all
 check_code 3
-[[ ! -e "$quiet_dead/.tdd/stop" ]] ||
-  note "want no .tdd/stop written, found one holding '$(cat "$quiet_dead/.tdd/stop")'"
+check_no_stop "$quiet_dead"
 
 report "an issue with no worktree, an issue whose conductor names no live process, and --all with no live run each exit 3 and write no .tdd/stop"
 
