@@ -63,6 +63,26 @@ shown="$(git_q "$repo" show "$ref:stop-run.sh" 2>&1)"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$shown" == "rejected work" ]]; } \
   && ok || no "commits the worktree to $ref and git show reads it back (code=$code resolved=$resolved shown='$shown')"
 
+# 2. preserving leaves the work branch untouched — HEAD, the index and `git log` read the same
+#    after as before, so a rebase-merge of the branch carries none of the preserved commit. The
+#    index is made to differ from HEAD first (a staged file), so "unchanged" is a real claim
+#    rather than one an empty index would satisfy by accident.
+repo="$work/untouched"
+new_repo "$repo"
+printf 'rejected work\n' > "$repo/stop-run.sh"
+printf 'staged\n' > "$repo/staged.txt"
+git_q "$repo" add staged.txt >/dev/null 2>&1
+head_before="$(git_q "$repo" rev-parse HEAD 2>&1)"
+index_before="$(git_q "$repo" ls-files -s 2>&1)"
+log_before="$(git_q "$repo" log --oneline 2>&1)"
+preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
+head_after="$(git_q "$repo" rev-parse HEAD 2>&1)"
+index_after="$(git_q "$repo" ls-files -s 2>&1)"
+log_after="$(git_q "$repo" log --oneline 2>&1)"
+{ [[ "$code" == 0 ]] && [[ "$head_after" == "$head_before" ]] \
+    && [[ "$index_after" == "$index_before" ]] && [[ "$log_after" == "$log_before" ]]; } \
+  && ok || no "leaves HEAD, the index and git log untouched (code=$code head=$head_before/$head_after index_changed=$([[ "$index_after" == "$index_before" ]] && echo no || echo yes) log_changed=$([[ "$log_after" == "$log_before" ]] && echo no || echo yes))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
