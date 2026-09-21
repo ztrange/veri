@@ -73,6 +73,19 @@ problems=""
 # scopes `local` dynamically — a function called from there sees the caller's locals.
 note() { problems+="    $label: $1"$'\n'; }
 
+# report <name> — close a case whose checks collected into `problems`: nothing collected is
+# a pass, otherwise one FAIL line for the case and the lines note() wrote under it, so the
+# output says which half of the contract broke rather than just that the case did. Same
+# helper detach-leaf.test.sh:48 carries, over this suite's string rather than its array.
+report() {
+  local name="$1"
+  if [[ -z "$problems" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1)); echo "FAIL - $name"; printf '%s' "$problems"
+  fi
+}
+
 check_refused() {  # check_refused <label> [args…]
   local label="$1"; shift
   local out code err
@@ -97,12 +110,7 @@ check_refused "both an issue and --all" --mode now 5 --all
 check_refused "neither an issue nor --all"
 check_refused "a non-integer issue" --mode now five
 
-name="an unknown --mode, both an issue and --all, neither, and a non-integer issue each exit 2, write no .tdd/stop and signal nothing"
-if [[ -z "$problems" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - $name"; printf '%s' "$problems"
-fi
+report "an unknown --mode, both an issue and --all, neither, and a non-integer issue each exit 2, write no .tdd/stop and signal nothing"
 
 # 2. `--mode` typed with nothing after it is a refusal like any other, and must read as one.
 #    Left to `set -u`, the option's own value expansion dies before the contract is ever
@@ -113,12 +121,7 @@ fi
 problems=""
 check_refused "--mode with no value" --mode
 
-name="--mode with no value exits 2 with the script's own complaint, writes no .tdd/stop and signals nothing"
-if [[ -z "$problems" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1)); echo "FAIL - $name"; printf '%s' "$problems"
-fi
+report "--mode with no value exits 2 with the script's own complaint, writes no .tdd/stop and signals nothing"
 
 echo "----"
 echo "$pass passed, $fail failed"
