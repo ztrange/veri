@@ -21,8 +21,8 @@ metrics_sh = sys.argv[4]
 # only garble the body. `cwd=None` runs it in the server's own working directory, which is
 # the target repo dashboard.sh was started from, and `stdin=None` leaves the child the
 # server's own stdin — a reader with a file for the script to read hands it over open.
-def capture(argv, cwd=None, stdin=None):
-    done = subprocess.run(argv, cwd=cwd, stdin=stdin, stdout=subprocess.PIPE,
+def capture(argv, cwd=None, stdin=None, feed=None):
+    done = subprocess.run(argv, cwd=cwd, stdin=stdin, input=feed, stdout=subprocess.PIPE,
                           stderr=subprocess.DEVNULL, check=False)
     return done.stdout
 
@@ -332,17 +332,37 @@ def tests_json(query):
 # rather than re-implemented, the way runs_json runs status.sh: what "rendered" means is
 # render-leaf-log.sh's answer, so the pane cannot drift into a second spelling of it. It
 # reads the log on stdin and writes the rendered lines out; a log it cannot render (exit 2
-# on a line that is not JSON) leaves whatever it managed, since `check=False` here as
-# everywhere above.
+# on a line that is not JSON) leaves NOTHING, not what it managed, because it writes its
+# accumulated output only after the loop that exit leaves (render-leaf-log.sh:33-46).
 render_leaf_log_sh = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   "render-leaf-log.sh")
+
+
+# So what the renderer is handed is the log's stream-json records alone, and not the blank
+# line and plain-text result run-leaf.sh appends after them once the leaf closes
+# (run-leaf.sh:82-83). Handed the whole file, the renderer refuses on that tail and throws
+# away every record it had already rendered, so the pane went blank the moment a leaf
+# finished — developer leaves included (#384). The tail is dropped here rather than tolerated
+# there because "a line that is not JSON is no answer the renderer can give" is the renderer's
+# own contract (render-leaf-log.sh:11), and it is the caller holding a log of two parts that
+# knows which part is a transcript.
+def record_lines(log):
+    kept = []
+    with open(log, "rb") as f:
+        for raw in f:
+            try:
+                json.loads(raw)
+            except ValueError:
+                continue
+            kept.append(raw)
+    return b"".join(kept)
 
 
 def rendered_log(log):
     if not log or not os.path.exists(log):
         return ""
-    with open(log, "rb") as f:
-        return capture([render_leaf_log_sh], stdin=f).decode("utf-8", "replace")
+    return capture([render_leaf_log_sh],
+                   feed=record_lines(log)).decode("utf-8", "replace")
 
 
 # The leaf a run is CURRENTLY on: the name its newest `launch` event carries, which is the
