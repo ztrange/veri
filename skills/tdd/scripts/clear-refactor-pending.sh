@@ -11,7 +11,8 @@
 # Usage:   clear-refactor-pending.sh .tdd/issue-<n>.md '<substring of the step>'
 set -euo pipefail
 
-file="${1:?usage: clear-refactor-pending.sh <ledger-file> <matcher>}"
+[[ -n "${1:-}" ]] || { echo "usage: clear-refactor-pending.sh <ledger-file> <matcher>" >&2; exit 2; }
+file="$1"
 matcher="${2:-}"
 
 # The mark spelled as tick-ledger.sh --refactor-pending writes it. Nothing in it is a regex

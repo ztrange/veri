@@ -11,7 +11,8 @@
 # Usage:   criterion-finished.sh <k> < .tdd/issue-<n>.md
 set -euo pipefail
 
-k="${1:?usage: criterion-finished.sh <k> < .tdd/issue-<n>.md}"
+[[ -n "${1:-}" ]] || { echo "usage: criterion-finished.sh <k> < .tdd/issue-<n>.md" >&2; exit 2; }
+k="$1"
 tag=" ⟦criterion ${k}⟧"
 pending=" ⟂ refactor pending"
 done_re="^[[:space:]]*- \[x\] .*${tag}$"

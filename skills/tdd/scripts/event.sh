@@ -46,9 +46,11 @@
 # line to a reader, and this does not manufacture the ambiguity, only fails to hide it.
 set -euo pipefail
 
-# `${1:?msg}` expands $1, but if it is unset or empty it aborts the shell with msg on stderr
-# — before the mkdir below, so a mis-called event.sh leaves no trace.
-event="${1:?usage: event.sh <event> [key=value …]}"
+# Bad arguments are exit 2, not the 1 a `${1:?…}` expansion aborts with: a caller who
+# passed nothing made no call whose result could be a negative answer (#270).
+# The refusal comes before the mkdir below, so a mis-called event.sh leaves no trace.
+[[ -n "${1:-}" ]] || { echo "usage: event.sh <event> [key=value …]" >&2; exit 2; }
+event="$1"
 shift
 
 mkdir -p .tdd

@@ -32,8 +32,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/leaf-role.sh
 source "$HERE/lib/leaf-role.sh"
 
-# `${1:?msg}` expands $1, but aborts the shell with msg on stderr if it is unset or empty.
-name="${1:?usage: leaf-role.sh <leaf-name>}"
+# Bad arguments are exit 2, not the 1 a `${1:?…}` expansion aborts with: a caller who
+# passed nothing made no call whose result could be a negative answer (#270).
+[[ -n "${1:-}" ]] || { echo "usage: leaf-role.sh <leaf-name>" >&2; exit 2; }
+name="$1"
 
 # The last statement: `leaf_role` prints on stdout and returns 0, or prints its own
 # diagnostic on stderr and returns 2 — this script exits with whatever it returns, the same

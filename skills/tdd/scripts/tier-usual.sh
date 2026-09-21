@@ -17,7 +17,8 @@
 # event.sh writes it (event.sh:60) and the way metrics.sh reads it — the issue's worktree.
 set -euo pipefail
 
-tier="${1:?usage: tier-usual.sh <tier>}"
+[[ -n "${1:-}" ]] || { echo "usage: tier-usual.sh <tier>" >&2; exit 2; }
+tier="$1"
 
 log=".tdd/events.jsonl"
 

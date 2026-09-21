@@ -13,7 +13,8 @@
 # (the issue is left untouched). Requires an authenticated `gh`.
 set -euo pipefail
 
-n="${1:?usage: tick-issue-criterion.sh <issue-number> <matcher>}"
+[[ -n "${1:-}" ]] || { echo "usage: tick-issue-criterion.sh <issue-number> <matcher>" >&2; exit 2; }
+n="$1"
 matcher="${2:-}"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

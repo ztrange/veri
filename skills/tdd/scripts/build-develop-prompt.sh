@@ -41,10 +41,10 @@ shopt -u patsub_replacement 2>/dev/null || true
 # The phase list is spelled once, here, so the usage line and the unknown-phase refusal
 # below cannot name different sets.
 phases="red|green|refactor|revise|reconcile"
-(( $# >= 1 )) || {
-  echo "build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..." >&2
-  exit 2
-}
+# Spelled once, and quoted back by both refusals below: a caller who dropped an argument
+# later than the phase word is as entitled to see the whole call as one who passed nothing.
+USAGE="build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
+(( $# >= 1 )) || { echo "$USAGE" >&2; exit 2; }
 phase="$1"
 
 # Both argument questions — is the phase one we have, and did the caller pass enough for it
@@ -67,7 +67,9 @@ case "$phase" in
   *) echo "build-develop-prompt: unknown phase '$phase' (want $phases)" >&2; exit 2 ;;
 esac
 (( $# >= want )) || {
-  echo "build-develop-prompt: $phase needs $want arguments, got $#" >&2; exit 2
+  echo "build-develop-prompt: $phase needs $want arguments, got $#" >&2
+  echo "$USAGE" >&2
+  exit 2
 }
 
 # `revise` names the phase it is redoing *before* the three arguments every phase shares,

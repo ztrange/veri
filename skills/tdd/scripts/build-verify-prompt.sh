@@ -35,19 +35,33 @@ shopt -u patsub_replacement 2>/dev/null || true
 # The step is a flag, never read from ambient VERI_STEP, so only the caller can scope a
 # verdict. Without it the prompt is what it always was: a resumed run passes no step.
 # --fast-cmd is a flag for the same reason: an ambient VERI_TEST_CMD is never read.
+#
+# The call this script accepts, spelled once: both refusals below quote it back.
+USAGE="usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]"
+
 step="" fast_cmd=""
 while :; do
   case "${1:-}" in
-    --step) step="${2:?--step needs the step text}" ;;
-    --fast-cmd) fast_cmd="${2:?--fast-cmd needs the command}" ;;
+    --step)
+      [[ -n "${2:-}" ]] || { echo "build-verify-prompt: --step needs the step text" >&2; echo "$USAGE" >&2; exit 2; }
+      step="$2" ;;
+    --fast-cmd)
+      [[ -n "${2:-}" ]] || { echo "build-verify-prompt: --fast-cmd needs the command" >&2; echo "$USAGE" >&2; exit 2; }
+      fast_cmd="$2" ;;
     *) break ;;
   esac
   shift 2
 done
 
-phase="${1:?usage: build-verify-prompt.sh <phase> <issue-spec-file> <test-path> [<target-test-id>]}"
-spec_file="${2:?missing <issue-spec-file>}"
-test_path="${3:?missing <test-path>}"
+# Every required positional is checked here, in one place, rather than each being read
+# through a `${N:?…}` expansion: that expansion aborts the shell with status 1, the code
+# reserved for an answer the call came back with, and a call missing an argument came back
+# with none — which is exit 2 (#270). `$#` is asked first and `[[ … && … ]]` stops at the
+# first false operand, so `$2` and `$3` are only read once they exist.
+[[ $# -ge 3 && -n "$1" && -n "$2" && -n "$3" ]] || { echo "$USAGE" >&2; exit 2; }
+phase="$1"
+spec_file="$2"
+test_path="$3"
 target="${4:-the target test}"
 
 case "$phase" in

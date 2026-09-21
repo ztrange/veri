@@ -11,7 +11,8 @@
 # Prints the touched files comma-joined, in `git diff --name-only` order.
 set -euo pipefail
 
-commit="${1:?usage: refactor-touched.sh <commit>}"
+[[ -n "${1:-}" ]] || { echo "usage: refactor-touched.sh <commit>" >&2; exit 2; }
+commit="$1"
 
 # A commit the repository cannot resolve is a plumbing failure, not an empty answer: without
 # this check `git diff` fails, `grep -v` then reads no input and returns 1 under `pipefail`,

@@ -18,7 +18,8 @@
 # Tunables (env): VERI_POLL poll interval secs (default 1).
 set -uo pipefail
 
-name="${1:?usage: wait-leaf.sh <name> [max-seconds]}"
+[[ -n "${1:-}" ]] || { echo "usage: wait-leaf.sh <name> [max-seconds]" >&2; exit 2; }
+name="$1"
 max="${2:-540}"
 poll="${VERI_POLL:-1}"
 

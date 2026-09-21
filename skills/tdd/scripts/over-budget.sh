@@ -34,9 +34,16 @@
 # expression that applies it.
 set -euo pipefail
 
-tier="${1:?usage: over-budget.sh <tier> <seconds> <usual>}"
-seconds="${2:?missing <seconds>}"
-usual="${3:?missing <usual>}"
+# All three positionals are required, and all three are checked here rather than read
+# through a `${N:?…}` expansion: that expansion aborts the shell with status 1, and 1 is
+# this script's own clean negative — "the run is not over budget". A caller who dropped an
+# argument would read that as a verdict. Bad arguments are exit 2 (#270). `$#` is asked
+# first and `[[ … && … ]]` stops at the first false operand, so `$2` and `$3` are only read
+# once they exist.
+[[ $# -ge 3 && -n "$1" && -n "$2" && -n "$3" ]] || { echo "usage: over-budget.sh <tier> <seconds> <usual>" >&2; exit 2; }
+tier="$1"
+seconds="$2"
+usual="$3"
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 

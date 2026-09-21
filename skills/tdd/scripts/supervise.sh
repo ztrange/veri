@@ -49,9 +49,14 @@
 # which is no `--model` flag at all).
 set -uo pipefail
 
-name="${1:?usage: supervise.sh <name> <cmd> [args...]}"
+# The call this script accepts, spelled once: both refusals below quote it back, so a
+# caller who dropped either required argument is shown the whole call, not half of it.
+USAGE="usage: supervise.sh <name> <cmd> [args...]"
+
+[[ -n "${1:-}" ]] || { echo "$USAGE" >&2; exit 2; }
+name="$1"
 shift
-[[ $# -ge 1 ]] || { echo "supervise: missing <cmd>" >&2; exit 2; }
+[[ $# -ge 1 ]] || { echo "supervise: missing <cmd>" >&2; echo "$USAGE" >&2; exit 2; }
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/leaf-model.sh
