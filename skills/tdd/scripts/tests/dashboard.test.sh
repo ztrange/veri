@@ -451,6 +451,16 @@ def want(path):
         return f.read().strip("\n")
 '
 
+# want_rendering <fixture> <want> <what> — render <fixture> with render-leaf-log.sh itself and
+# leave its answer on <want>, or file the refusal as this case's problem. Every Chatter case
+# compares against the renderer's own answer rather than a second spelling of its rules — a
+# case that spelled them again would pass a pane that rendered the log its own way — so all
+# five of those renderings go through here, and <what> names which fixture went unrendered.
+want_rendering() {  # want_rendering <fixture> <want> <what>
+  "$HERE/../render-leaf-log.sh" < "$1" > "$2" 2>/dev/null ||
+    problems+=("render-leaf-log.sh could not render $3, which this case compares against")
+}
+
 # chatter_answer <repo> <issue> <tag> — ask <repo>'s chatter_json about <issue> once and leave
 # the answer it wrote on `$answer`, or leave `$answer` empty after filing why the case has none
 # to compare: the module never loaded, a fixture this case needs was already a problem, or the
@@ -1529,8 +1539,7 @@ cat > "$chat_run/.tdd/events.jsonl" <<EOF
 {"ts": $((chat_now - 100)), "issue": "54", "actor": "verifier", "phase": "green", "step": "a lamp stops buzzing", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "verify-green", "seq": 3}
 EOF
 
-"$HERE/../render-leaf-log.sh" < "$chat_run/.tdd/verify-green.out" > "$work/chatter-want.txt" 2>/dev/null ||
-  problems+=("render-leaf-log.sh could not render the fixture leaf log this case compares against")
+want_rendering "$chat_run/.tdd/verify-green.out" "$work/chatter-want.txt" "the fixture leaf log"
 
 chatter_answer "$chat_repo" 54 chatter-direct
 if [[ -n "$answer" ]]; then
@@ -1580,8 +1589,7 @@ cat > "$vlog_run/.tdd/events.jsonl" <<EOF
 {"ts": $((vlog_now - 120)), "issue": "59", "actor": "verifier", "phase": "red", "step": "a lamp stops flaring", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "verify-red", "seq": 2}
 EOF
 
-"$HERE/../render-leaf-log.sh" < "$vlog_run/.tdd/verify-red.log" > "$work/chatter-want-verify.txt" 2>/dev/null ||
-  problems+=("render-leaf-log.sh could not render the verifier leaf log this case compares against")
+want_rendering "$vlog_run/.tdd/verify-red.log" "$work/chatter-want-verify.txt" "the verifier leaf log"
 
 chatter_answer "$vlog_repo" 59 chatter-verifier
 if [[ -n "$answer" ]]; then
@@ -1639,8 +1647,7 @@ cat > "$tail_run/.tdd/events.jsonl" <<EOF
 {"ts": $((tail_now - 150)), "issue": "61", "actor": "developer", "phase": "green", "step": "a lamp stops flickering", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-green", "seq": 2}
 EOF
 
-"$HERE/../render-leaf-log.sh" < "$work/chatter-tail-records.jsonl" > "$work/chatter-want-tail.txt" 2>/dev/null ||
-  problems+=("render-leaf-log.sh could not render the stream-json records this case compares against")
+want_rendering "$work/chatter-tail-records.jsonl" "$work/chatter-want-tail.txt" "the stream-json records"
 
 chatter_answer "$tail_repo" 61 chatter-tail
 if [[ -n "$answer" ]]; then
@@ -1699,10 +1706,8 @@ cat > "$switch_run/.tdd/events.jsonl" <<EOF
 {"ts": $((switch_now - 390)), "issue": "55", "actor": "developer", "phase": "red", "step": "a lamp dims", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red", "seq": 2}
 EOF
 
-"$HERE/../render-leaf-log.sh" < "$switch_run/.tdd/develop-red.out" > "$work/switch-want-red.txt" 2>/dev/null ||
-  problems+=("render-leaf-log.sh could not render the develop-red fixture this case compares against")
-"$HERE/../render-leaf-log.sh" < "$switch_run/.tdd/develop-green.out" > "$work/switch-want-green.txt" 2>/dev/null ||
-  problems+=("render-leaf-log.sh could not render the develop-green fixture this case compares against")
+want_rendering "$switch_run/.tdd/develop-red.out" "$work/switch-want-red.txt" "the develop-red fixture"
+want_rendering "$switch_run/.tdd/develop-green.out" "$work/switch-want-green.txt" "the develop-green fixture"
 
 if [[ -n "$module_problem" ]]; then
   problems+=("$module_problem")
