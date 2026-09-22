@@ -187,9 +187,25 @@ done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
   END { flush_pending() }
 ' "${FILES[@]}")
 
+# 1. the whole-tree rule: every non-exempt suite, every line, no launch of another suite.
 name="no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here"
 
+scanned=("${problems[@]}")
 report "$name"
+
+# 2. the other half of that rule, stated as its own case because a false positive fails the
+#    run just as loudly as a missed launch and is fixed somewhere else entirely: a suite that
+#    names another suite WITHOUT starting it must not be reported. affected-suites.test.sh is
+#    where that shape lives (#416) — it writes a scratch fixture file at $s/tests/<name> and
+#    quotes the same basename in its case names, because the suite under test is
+#    affected-suites.sh and that basename is a line of the ANSWER it prints. It launches
+#    nothing; the four mentions are data, not a command. Read from case 1's own scan rather
+#    than a second pass, so this case costs nothing and cannot disagree with it.
+problems=()
+for p in "${scanned[@]}"; do
+  [[ "$p" == affected-suites.test.sh:*claude-md-counts.test.sh* ]] && problems+=("$p")
+done
+report "affected-suites.test.sh's fixture and case-name mentions of claude-md-counts.test.sh are not read as launching it"
 
 echo "----"
 echo "$pass passed, $fail failed"

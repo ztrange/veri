@@ -113,8 +113,10 @@ foo_bar_tree() {
 
 # counts_suite — tests/claude-md-counts.test.sh, which cases 21–23 all hold steady across their
 # range: it is the suite the add-or-delete rule names, so a case that wrote it only at the head end
-# would be adding a suite rather than keeping one there throughout.
-counts_suite() { printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"; }
+# would be adding a suite rather than keeping one there throughout. The path is spelled in full
+# rather than through $s because no-nested-suites.test.sh reads a real suite's basename after a
+# $-prefixed path as one being launched; the repo-relative form is the shape it knows is data.
+counts_suite() { printf '# counts suite\n' > "$repo/skills/tdd/scripts/tests/claude-md-counts.test.sh"; }
 
 # write_ledger <mark> / write_refactor_owed <mark> — the two `.tdd/` files every green commit
 # carries, and which cases 16–18 and 20 span: the ledger with its one step ticked or not, and
@@ -509,7 +511,7 @@ commit_base
 printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
 printf '# rookie unit suite\n' > "$s/tests/unit/rookie.test.sh"
 commit_head
-expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls in claude-md-counts.test.sh" \
+expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
   skills/tdd/scripts/tests/claude-md-counts.test.sh \
   skills/tdd/scripts/tests/newbie.test.sh \
   skills/tdd/scripts/tests/unit/rookie.test.sh
@@ -526,7 +528,7 @@ counts_suite
 commit_base
 printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
 commit_head
-expect_suites "editing an existing suite's contents does not pull in claude-md-counts.test.sh" \
+expect_suites "editing an existing suite's contents does not pull in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
 # 23. a script file added or deleted under scripts/ pulls in claude-md-counts.test.sh too: CLAUDE.md
@@ -543,7 +545,7 @@ commit_base
 rm "$s/bar.sh"
 printf 'newbie\n' > "$s/newbie.sh"
 commit_head
-expect_suites "a range that adds or deletes a script under scripts/ pulls in claude-md-counts.test.sh" \
+expect_suites "a range that adds or deletes a script under scripts/ pulls in skills/tdd/scripts/tests/claude-md-counts.test.sh" \
   skills/tdd/scripts/tests/bar.test.sh \
   skills/tdd/scripts/tests/claude-md-counts.test.sh \
   skills/tdd/scripts/tests/newbie.test.sh
