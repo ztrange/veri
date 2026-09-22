@@ -56,8 +56,9 @@ detacher="detach-leaf.sh"
 # The other two scripts a launch line names, written down once for the same reason: the leaf
 # **launcher** (SKILL.md:67), which case 5 requires every launch to go through, and the verify
 # script, which is what makes a launch line a verifier's. Both are spelled into that case's
-# failure messages as well as probed with, so a rename cannot leave a message naming a script
-# the probe no longer looks for.
+# failure messages as well as probed with — and into `launch_lines`, which recognises a launch
+# line BY them — so a rename cannot leave a message, or a probe, naming a script the others no
+# longer look for.
 launcher="supervise.sh"
 verifier="verify.sh"
 
@@ -117,14 +118,21 @@ fenced_lines() {
 
 # launch_lines — the leaf launch lines of SKILL.md, each prefixed with its line number.
 #
-# A launch line is a fenced line that names `supervise.sh` or `verify.sh`: those two
-# scripts are what a leaf is launched as — a developer leaf through the supervisor, a
-# verifier through the `bash -c` wrapper that records the verdict. `wait-leaf.sh` and
-# `build-develop-prompt.sh` share those fences and launch nothing, so they are not matched;
-# the script inventory's `$S/supervise.sh <name> <cmd> [args...]` and *Bailing*'s
-# `verify.sh exited 2` are prose, so they are not either.
+# A launch line is a fenced line that names `$launcher` or `$verifier`: those two scripts are
+# what a leaf is launched as — a developer leaf through the supervisor, a verifier through the
+# `bash -c` wrapper that records the verdict. `wait-leaf.sh` and `build-develop-prompt.sh`
+# share those fences and launch nothing, so they are not matched; the script inventory's
+# `$S/supervise.sh <name> <cmd> [args...]` and *Bailing*'s `verify.sh exited 2` are prose, so
+# they are not either.
+#
+# The alternation is built from those two variables rather than spelling the names a second
+# time here: `${launcher//./\\.}` is a pattern substitution — every `.` in the name replaced
+# by `\.` — which turns the literal script name into the ERE `fenced_lines` wants, where a
+# bare `.` would match any character. Same escaping `arg_after` does in skill-leaf-env.test.sh,
+# and for the same reason: a script name is text, and only this line knows it is about to
+# become a regex.
 launch_lines() {
-  fenced_lines 'supervise\.sh|verify\.sh'
+  fenced_lines "${launcher//./\\.}|${verifier//./\\.}"
 }
 
 # section_prose <heading-prefix> — the prose of the `## ` section whose heading starts with
