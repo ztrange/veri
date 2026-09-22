@@ -972,13 +972,23 @@ code=$?
 [[ "$code" == 0 ]] ||
   problems+=("want exit 0 from session-cost.sh, got $code")
 
+# row_names <session-id> <text> — true when the report's row for <session-id> names <text>.
+# The row is found by the id's first eight characters, the way case 7 finds one, and <text>
+# is then matched fixed-string against that row alone. The four sites below and in case 11
+# ask exactly this and differ only in the complaint they file, so the reading — including
+# the redirection that keeps the id search's SIGPIPE off the answer (#422) — is written
+# here once rather than four times over.
+row_names() {
+  grep -Fq "$2" < <(grep -F "${1:0:8}" <<< "$out")
+}
+
 # First half: the row is identified by the session id, as case 7 identifies one, and has
 # to name the harness that opened it. `claude-desktop` and `sdk-cli` share no substring,
 # so a fixed-string match on either cannot be answered by the other.
 for i in 0 1 2; do
-  grep -Fq claude-desktop < <(grep -F "${desktop_ids[$i]:0:8}" <<< "$out") ||
+  row_names "${desktop_ids[$i]}" claude-desktop ||
     problems+=("session ${desktop_ids[$i]:0:8}: want its row to name the entrypoint claude-desktop, it does not")
-  grep -Fq sdk-cli < <(grep -F "${leaf_ids[$i]:0:8}" <<< "$out") ||
+  row_names "${leaf_ids[$i]}" sdk-cli ||
     problems+=("session ${leaf_ids[$i]:0:8}: want its row to name the entrypoint sdk-cli, it does not")
 done
 
@@ -1081,9 +1091,9 @@ code=$?
 # the harness it belongs to. `conductor` and `cli` share no substring, so a fixed-string
 # match on either cannot be answered by the other.
 for i in 0 1 2; do
-  grep -Fq conductor < <(grep -F "${conductor_ids[$i]:0:8}" <<< "$out") ||
+  row_names "${conductor_ids[$i]}" conductor ||
     problems+=("session ${conductor_ids[$i]:0:8}: no entrypoint key, want its row to name it a conductor, it does not")
-  grep -Fq cli < <(grep -F "${cli_ids[$i]:0:8}" <<< "$out") ||
+  row_names "${cli_ids[$i]}" cli ||
     problems+=("session ${cli_ids[$i]:0:8}: want its row to name the entrypoint cli, it does not")
 done
 
