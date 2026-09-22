@@ -176,6 +176,26 @@ copies="$(copies_in "$repo")"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$attempts_there" == no ]] && [[ -z "$copies" ]]; } \
   && ok || no "copies nothing when no mark is given, log present (code=$code resolved=$resolved attempts_dir=$attempts_there copies='$copies')"
 
+# 7. preservation puts the developer's rationale nowhere a verifier leaf reads: the preserved
+#    commit is unreachable from HEAD — `git log` on the branch never walks into it, and a blind
+#    verifier reading `git diff <base-sha>..HEAD` never sees it either — and the commit's own
+#    message carries the coordinates and nothing else. The leaf's log and final output are made
+#    to carry an unmistakable rationale sentence first, so "no rationale in the message" is a
+#    claim about a string that was sitting right there to be copied into it.
+repo="$work/blind"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+rationale="I used a helper because the verifier rejected the inline version"
+printf '%s\n' "$rationale" > "$repo/.tdd/develop-green.log"
+printf '%s\n' "$rationale" > "$repo/.tdd/develop-green.out"
+printf 'rejected work\n' > "$repo/stop-run.sh"
+preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
+git_q "$repo" merge-base --is-ancestor "$REF" HEAD >/dev/null 2>&1; reachable=$?
+message="$(git_q "$repo" log -1 --format=%B "$REF" 2>&1)"
+{ [[ "$code" == 0 ]] && [[ "$reachable" != 0 ]] \
+    && [[ "$message" == "attempt: issue 409 step 3 develop-green attempt 1" ]]; } \
+  && ok || no "leaves the preserved commit unreachable from HEAD, with a message carrying no rationale (code=$code reachable=$([[ "$reachable" == 0 ]] && echo yes || echo no) message='$message')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
