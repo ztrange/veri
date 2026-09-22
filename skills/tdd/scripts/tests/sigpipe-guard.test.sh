@@ -142,12 +142,15 @@ write_plant() {
   chmod 755 "$path"
 }
 
-# plant_offender — write the suite the guard must catch, at `offender_path`: it declares
-# `pipefail` and ends a pipeline in `grep -q`, so the status it asserts on is its own
-# printf's, not grep's. That is the shape of both sites this issue repairs.
+# plant_offender <reader> — write the suite the guard must catch, at `offender_path`: it
+# declares `pipefail` and ends a pipeline in the reader it is handed, so the status it
+# asserts on is its own printf's rather than the reader's. That is the shape of both sites
+# this issue repairs, and the reader is an argument because which of the two a case plants
+# changes nothing else about the fixture — as `probe_plant_is_what_it_claims` already says
+# of the premises asked of it afterwards.
 plant_offender() {
   write_plant "$offender_path" "$PIPEFAIL_LINE" \
-    'the pipeline below is the shape the guard has to catch.' "$(probe_line body "$GREP_Q")"
+    'the pipeline below is the shape the guard has to catch.' "$(probe_line body "$1")"
 }
 
 # plant_innocent — write the suite the guard must leave alone, at `innocent_path`: the same
@@ -204,7 +207,7 @@ plant() {
   open_tree "$OFFENDER" || return 1
   innocent_path="$tree/$TESTS_DIR/$INNOCENT"
 
-  plant_offender
+  plant_offender "$GREP_Q"
   plant_innocent
 
   seal_tree
@@ -305,14 +308,6 @@ probe_guard_leaves_the_innocent_alone() {
 # two shapes it was asked about.
 HEAD_OFFENDER='probes-head-under-pipefail.test.sh'
 
-# plant_head_offender — write the suite the guard must catch, at `offender_path`: it
-# declares `pipefail` and ends a pipeline in `head`, so the status it asserts on is its own
-# printf's rather than the reader's.
-plant_head_offender() {
-  write_plant "$offender_path" "$PIPEFAIL_LINE" \
-    'the pipeline below is the shape the guard has to catch.' "$(probe_line body "$HEAD_R")"
-}
-
 # plant_head — the tree the head case is asked about. A tree of its own rather than a third
 # file in `plant`'s, so that case's fixtures stay the pair its contract is written about —
 # but the same variable names, because the two cases run one after the other and each tears
@@ -324,7 +319,7 @@ plant_head_offender() {
 plant_head() {
   open_tree "$HEAD_OFFENDER" || return 1
 
-  plant_head_offender
+  plant_offender "$HEAD_R"
 
   seal_tree
 }
@@ -422,7 +417,7 @@ exempt() {
 plant_exempt() {
   open_tree "$EXEMPT_OFFENDER" || return 1
 
-  plant_offender
+  plant_offender "$GREP_Q"
 
   seal_tree
 }
