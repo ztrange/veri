@@ -51,10 +51,14 @@ new_repo() {
 # of the suite; the caller attaches whatever redirections it wants.
 run_affected() { cd "$repo" && "$AFFECTED" "${1:-$base..$head}"; }
 
-# expect_suites <name> <expected> — run affected-suites.sh on $base..$head inside $repo and
-# pass when it exits 0 printing exactly <expected>; otherwise fail <name>, with a diff.
+# expect_suites <name> <suite>… — run affected-suites.sh on $base..$head inside $repo and pass
+# when it exits 0 printing exactly those suites, one per line, in the order given; otherwise fail
+# <name>, with a diff. Every case's expectation is a list of paths, so the joining belongs here
+# rather than in a `$(printf …)` at each call site.
 expect_suites() {
-  local name="$1" expected="$2" out code
+  local name="$1" expected out code
+  shift
+  expected="$(printf '%s\n' "$@")"
   out="$(run_affected 2>/dev/null)"; code=$?
   if [[ "$code" == 0 && "$out" == "$expected" ]]; then ok; else
     no "$name (code=$code)"
@@ -144,7 +148,8 @@ printf 'zulu 2\n' > "$s/zulu.sh"
 printf '# wolf suite 2\n' > "$s/tests/wolf.test.sh"
 commit_head
 expect_suites "resolvable range → one suite per line, sorted, no duplicate" \
-  "$(printf 'skills/tdd/scripts/tests/unit/zulu.test.sh\nskills/tdd/scripts/tests/wolf.test.sh')"
+  skills/tdd/scripts/tests/unit/zulu.test.sh \
+  skills/tdd/scripts/tests/wolf.test.sh
 
 # 2. a malformed argument → exit 2 and a diagnostic on stderr. Three shapes: a single
 #    revision with no `..` (which git diff alone would read as "against the working tree"
@@ -221,7 +226,8 @@ commit_base
 printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
 commit_head
 expect_suites "rule 2: a change to scripts/lib/bar.sh prints the suite of every script that sources it, and no others" \
-  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
+  skills/tdd/scripts/tests/alpha.test.sh \
+  skills/tdd/scripts/tests/beta.test.sh
 
 # 7. rule 3: a change to a suite file itself → that suite. Only tests/foo.test.sh changes; the
 #    script it covers and a neighbour's suite stay untouched, so the answer must be the suite
@@ -251,7 +257,8 @@ commit_base
 printf '# plan 2\n' > "$s/tests/fixtures/plan.md"
 commit_head
 expect_suites "rule 3: a change to the fixture tests/fixtures/plan.md prints every suite that references it by name" \
-  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh')"
+  skills/tdd/scripts/tests/alpha.test.sh \
+  skills/tdd/scripts/tests/beta.test.sh
 
 # 9. rule 4: a change to SKILL.md, CLAUDE.md and the Makefile → their guard suites, the suites
 #    whose own contract is to read that document. Each guard names its document the way this
@@ -274,7 +281,9 @@ printf '# tdd 2\n' > "$repo/skills/tdd/SKILL.md"
 printf 'test:\n\techo hi 2\n' > "$repo/Makefile"
 commit_head
 expect_suites "rule 4: a change to SKILL.md, CLAUDE.md and Makefile prints their guard suites" \
-  "$(printf 'skills/tdd/scripts/tests/claude-md-guard.test.sh\nskills/tdd/scripts/tests/makefile-guard.test.sh\nskills/tdd/scripts/tests/skill-md-guard.test.sh')"
+  skills/tdd/scripts/tests/claude-md-guard.test.sh \
+  skills/tdd/scripts/tests/makefile-guard.test.sh \
+  skills/tdd/scripts/tests/skill-md-guard.test.sh
 
 # 10. rule 5: a change to one file rule 1 places and one file no rule places → every suite, the
 #    full tier, not rule 1's suite alone. foo.sh is placed by rule 1; docs/notes.md is no script,
@@ -295,7 +304,9 @@ printf 'foo 2\n' > "$s/foo.sh"
 printf '# notes 2\n' > "$repo/docs/notes.md"
 commit_head
 expect_suites "rule 5: a rule-1 file plus a file no rule matches prints every suite, not the rule-1 suite alone" \
-  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh\nskills/tdd/scripts/tests/unit/baz.test.sh')"
+  skills/tdd/scripts/tests/bar.test.sh \
+  skills/tdd/scripts/tests/foo.test.sh \
+  skills/tdd/scripts/tests/unit/baz.test.sh
 
 # 11. rule 5's converse: a change touching only files rules 1–4 place → exactly the suites those
 #    rules name, never the full tier. foo.sh is placed by rule 1, lib/bar.sh (sourced by
@@ -323,7 +334,10 @@ printf '# plan 2\n' > "$s/tests/fixtures/plan.md"
 printf '# veri 2\n' > "$repo/CLAUDE.md"
 commit_head
 expect_suites "rule 5: a diff touching only files rules 1–4 match never falls back to the full suite" \
-  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/beta.test.sh\nskills/tdd/scripts/tests/claude-md-guard.test.sh\nskills/tdd/scripts/tests/foo.test.sh')"
+  skills/tdd/scripts/tests/alpha.test.sh \
+  skills/tdd/scripts/tests/beta.test.sh \
+  skills/tdd/scripts/tests/claude-md-guard.test.sh \
+  skills/tdd/scripts/tests/foo.test.sh
 
 # 12. rule 6: a change whose only touched file is a prompt under scripts/prompts/ → the suites
 #     that name that prompt, not every suite. alpha's suite reads prompts/develop-red.md the way
@@ -358,7 +372,8 @@ printf '# red template 2\n' > "$s/prompts/develop-red.md"
 printf '# delta suite 2\n' > "$s/tests/delta.test.sh"
 commit_head
 expect_suites "rule 6: a prompt and a suite in one range print that suite and the prompt's suites, without widening" \
-  "$(printf 'skills/tdd/scripts/tests/alpha.test.sh\nskills/tdd/scripts/tests/delta.test.sh')"
+  skills/tdd/scripts/tests/alpha.test.sh \
+  skills/tdd/scripts/tests/delta.test.sh
 
 # 14. fail-closed: a range whose only changed file matches no rule → every suite, kept whole
 #     after rule 6. docs/notes.md is no script, lib file, suite, fixture, prompt or guarded
@@ -378,7 +393,9 @@ commit_base
 printf '# notes 2\n' > "$repo/docs/notes.md"
 commit_head
 expect_suites "fail-closed: a range whose only changed file matches no rule prints every suite" \
-  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh\nskills/tdd/scripts/tests/unit/baz.test.sh')"
+  skills/tdd/scripts/tests/bar.test.sh \
+  skills/tdd/scripts/tests/foo.test.sh \
+  skills/tdd/scripts/tests/unit/baz.test.sh
 
 # 15. a widened answer says why: the script names on stderr the file that forced the widening,
 #     so the next unplaced kind is visible rather than silent. notes.md at the repository root
@@ -440,7 +457,8 @@ write_ledger x
 printf '# notes 2\n' > "$repo/notes.md"
 commit_head
 expect_suites "fail-closed: run state alongside a file no rule places still prints every suite" \
-  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh')"
+  skills/tdd/scripts/tests/bar.test.sh \
+  skills/tdd/scripts/tests/foo.test.sh
 
 # 19. a widening caused by two unplaced files names both of them on stderr, not just one. Case 15
 #     pins that the line names the file when there is one; the answer this case asks for is that
@@ -492,7 +510,9 @@ printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
 printf '# rookie unit suite\n' > "$s/tests/unit/rookie.test.sh"
 commit_head
 expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls in claude-md-counts.test.sh" \
-  "$(printf 'skills/tdd/scripts/tests/claude-md-counts.test.sh\nskills/tdd/scripts/tests/newbie.test.sh\nskills/tdd/scripts/tests/unit/rookie.test.sh')"
+  skills/tdd/scripts/tests/claude-md-counts.test.sh \
+  skills/tdd/scripts/tests/newbie.test.sh \
+  skills/tdd/scripts/tests/unit/rookie.test.sh
 
 # 22. editing an existing suite's *contents* does not pull in claude-md-counts.test.sh: only adding
 #     or removing a suite file changes a count on disk, and that suite asserts on the counts, not on
@@ -524,7 +544,9 @@ rm "$s/bar.sh"
 printf 'newbie\n' > "$s/newbie.sh"
 commit_head
 expect_suites "a range that adds or deletes a script under scripts/ pulls in claude-md-counts.test.sh" \
-  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/claude-md-counts.test.sh\nskills/tdd/scripts/tests/newbie.test.sh')"
+  skills/tdd/scripts/tests/bar.test.sh \
+  skills/tdd/scripts/tests/claude-md-counts.test.sh \
+  skills/tdd/scripts/tests/newbie.test.sh
 
 echo "----"
 echo "$pass passed, $fail failed"
