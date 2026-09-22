@@ -8,4 +8,4 @@
 - [x] A range that adds or deletes a file under `tests/` or `tests/unit/` includes `claude-md-counts.test.sh` in the affected set ⟦criterion 6⟧
 - [x] Editing an existing suite's contents does not include `claude-md-counts.test.sh` ⟦criterion 7⟧
 - [x] A range that adds or deletes a script under `scripts/` also includes `claude-md-counts.test.sh`, since CLAUDE.md hand-types the script count beside the suite count
-- [x] The full suite is green: `no-nested-suites.test.sh` does not read `affected-suites.test.sh`'s fixture and expectation mentions of `claude-md-counts.test.sh` as launching it ⟦added⟧ ⟂ refactor pending
+- [x] The full suite is green: `no-nested-suites.test.sh` does not read `affected-suites.test.sh`'s fixture and expectation mentions of `claude-md-counts.test.sh` as launching it ⟦added⟧
