@@ -1,6 +1,6 @@
 # Plan for #416 — affected-suites.sh widens on every green commit's run state
 
-- [ ] A range of a `.tdd/` ledger file plus one source change answers only that source change's suites, placing the run state as affecting none ⟦criterion 1⟧
+- [x] A range of a `.tdd/` ledger file plus one source change answers only that source change's suites, placing the run state as affecting none ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A range whose files are all `.tdd/` run state exits 3 — nothing to do — rather than printing an empty answer ⟦criterion 2⟧
 - [ ] An unplaced path that is not `.tdd/` run state still widens the answer to every suite ⟦criterion 3⟧
 - [ ] The widening stderr line still names every unplaced file that caused it ⟦criterion 4⟧
