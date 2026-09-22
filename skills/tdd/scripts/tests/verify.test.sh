@@ -1043,6 +1043,62 @@ sup_malformed_code=$sv_code
   || no "a supervised verification hands the conductor the verdict text and verify.sh's own code (REJECT arm: wait=$sup_reject_code want 1, reason='$sup_reject_reason' want the verifier's own line; malformed arm: wait=$sup_malformed_code want 2)"
 
 
+# 31. a verifier killed before it answered leaves NO `verdict` line in the run's event log,
+#     while one that answered leaves its own (issue #415). Case 9 pins the line a verification
+#     writes; nothing there says a verification that never got a verdict must write none, and
+#     that absence is what keeps a stalled wait legible: the conductor's wait on a dead verifier
+#     now ends with a code, and a reader asking the log "what did this verification decide"
+#     must find the question unanswered rather than answered by a word this script invented for
+#     a leaf that was killed mid-thought.
+#
+#     Two arms in two directories, differing in the leaf alone: the hung stub the supervisor
+#     kills (VERI_STUCK_RETRIES=0 and the injected clock, as case 6 drives it) against the
+#     canned-REJECT stub. The killed arm's log is also asked for the supervisor's own `exit`
+#     mark, so "no verdict line" is read as the absence of that one event rather than as the
+#     absence of a log — a run that died before it ever wrote an event would satisfy the first
+#     reading and say nothing about the criterion.
+
+# events_of_in <dir> <event> — how many lines of the event log a run in <dir> left carry that
+# event name, or 0 where there is no log at all. The same python3 reader `verdict_field_in`
+# uses, counting rather than reading a field: the claim here is about a line existing, and the
+# `<<N verdict lines>>` that probe prints for anything but exactly one answers a different
+# question.
+events_of_in() {
+  python3 -c '
+import sys, json
+count = 0
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == sys.argv[2]:
+        count += 1
+print(count)
+' "$1/.tdd/events.jsonl" "$2" 2>/dev/null || echo 0
+}
+
+killed_log_dir="$work/no-verdict-event-killed"
+mkdir -p "$killed_log_dir"
+( cd "$killed_log_dir" && env CLAUDE_BIN="$stubdir/claude-hang" VERI_STUCK_RETRIES=0 \
+    VERI_HEARTBEAT=1 "$VERIFY" red "$work/spec.md" tests/test_slugify.py test_lowercases ) \
+  >/dev/null 2>&1
+killed_log_code=$?
+
+answered_log_dir="$work/no-verdict-event-answered"
+mkdir -p "$answered_log_dir"
+verify_in "$answered_log_dir" red 'VERDICT: REJECT
+REASON: The test asserts on a private helper, not observable behavior.' >/dev/null 2>&1
+answered_log_code=$?
+
+killed_verdicts="$(events_of_in "$killed_log_dir" verdict)"
+killed_exits="$(events_of_in "$killed_log_dir" exit)"
+answered_verdicts="$(events_of_in "$answered_log_dir" verdict)"
+{ [[ "$killed_log_code" == 2 ]] && [[ "$killed_verdicts" == 0 ]] && [[ "$killed_exits" -ge 1 ]] \
+  && [[ "$answered_log_code" == 1 ]] && [[ "$answered_verdicts" == 1 ]]; } && ok \
+  || no "a killed verifier leaves no verdict event while an answering one leaves its own (killed arm: code=$killed_log_code want 2, verdict lines=$killed_verdicts want 0, exit marks=$killed_exits want at least 1; answering arm: code=$answered_log_code want 1, verdict lines=$answered_verdicts want 1)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

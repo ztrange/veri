@@ -5,5 +5,5 @@
 - [x] A supervised verifier launch passes verify.sh only the phase, the spec file, the test path and the test id — or the base sha for refactor — so nothing the supervisor adds can carry the developer's rationale ⟦criterion 3⟧
 - [x] A supervised verification still writes only the verdict text to .tdd/verify-<phase>.reason, and a malformed verdict still reaches the conductor as 2 while a REJECT reaches it as 1 ⟦criterion 4⟧
 - [x] The launch guard is known to go red: a planted verifier launch line missing supervise.sh makes the suite fail and name that line, so the contradiction cannot return as prose ⟦criterion 5⟧
-- [ ] A verifier killed before it answered leaves no verdict event in the run's event log while one that answered does, so a stalled wait is never read as a verdict ⟦criterion 6⟧
+- [x] A verifier killed before it answered leaves no verdict event in the run's event log while one that answered does, so a stalled wait is never read as a verdict ⟦criterion 6⟧
 - [ ] A verification whose leaf is working while the launch wrapper around it stays silent is not killed for that silence, so supervising the wrapper adds no second heartbeat window
