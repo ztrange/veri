@@ -489,6 +489,21 @@ commit_head
 expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls in claude-md-counts.test.sh" \
   "$(printf 'skills/tdd/scripts/tests/claude-md-counts.test.sh\nskills/tdd/scripts/tests/newbie.test.sh\nskills/tdd/scripts/tests/unit/rookie.test.sh')"
 
+# 22. editing an existing suite's *contents* does not pull in claude-md-counts.test.sh: only adding
+#     or removing a suite file changes a count on disk, and that suite asserts on the counts, not on
+#     any suite's text. Case 21 pins the adding half; this pins that the rule is the file's arrival
+#     or departure rather than any touch under tests/, so a range that edits a suite pays for that
+#     suite alone. tests/claude-md-counts.test.sh exists at both ends and is untouched, so it is
+#     what an answer reading a modification as a count change — or a widened one — would carry.
+new_repo suite-edited-counts
+foo_tree
+printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"
+commit_base
+printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
+commit_head
+expect_suites "editing an existing suite's contents does not pull in claude-md-counts.test.sh" \
+  "skills/tdd/scripts/tests/foo.test.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
