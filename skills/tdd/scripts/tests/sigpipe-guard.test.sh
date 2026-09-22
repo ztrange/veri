@@ -308,18 +308,17 @@ probe_guard_leaves_the_innocent_alone() {
 # two shapes it was asked about.
 HEAD_OFFENDER='probes-head-under-pipefail.test.sh'
 
-# plant_head — the tree the head case is asked about. A tree of its own rather than a third
-# file in `plant`'s, so that case's fixtures stay the pair its contract is written about —
-# but the same variable names, because the two cases run one after the other and each tears
-# its tree down before the next begins, so there is only ever one plant in hand.
-#
-# One fixture here and no innocent: the criterion this case pins is that the head shape is
-# named at all, and what keeps the guard from answering "every line is one" is already
-# pinned by the case above, over the same guard.
-plant_head() {
-  open_tree "$HEAD_OFFENDER" || return 1
+# plant_lone_offender <suite-name> <reader> — a tree holding one offending suite and the
+# guard, and no innocent: the criterion each case below it pins is that its shape is named
+# at all, and what keeps the guard from answering "every line is one" is already pinned by
+# case 1, over the same guard. A tree of its own per case, rather than another file in case
+# 1's, so that case's fixtures stay the pair its contract is written about — but the same
+# variable names throughout, because the cases run one after another and each tears its tree
+# down before the next begins, so there is only ever one plant in hand.
+plant_lone_offender() {
+  open_tree "$1" || return 1
 
-  plant_offender "$HEAD_R"
+  plant_offender "$2"
 
   seal_tree
 }
@@ -355,7 +354,7 @@ report "$name"
 #    ends a pipeline in `head` is named as `<suite>:<line>` too. `head` is the other half of
 #    the shape the issue names — `docs/tests/` alone holds dozens of sites — and a guard that
 #    caught only `grep -q` would let the next one in. One fixture and one run, for the reason
-#    `plant_head` gives.
+#    `plant_lone_offender` gives.
 name="no-sigpipe-pipelines.test.sh names a suite that declares pipefail and ends a pipeline in head as <suite>:<line>"
 problems=()
 tree=""
@@ -366,7 +365,7 @@ offender_line=""
 guard_out=""
 guard_code=0
 
-if probe_guard_is_there && plant_head; then
+if probe_guard_is_there && plant_lone_offender "$HEAD_OFFENDER" "$HEAD_R"; then
   probe_plant_is_what_it_claims "$HEAD_R"
   run_guard
   probe_guard_names_the_offender_with_its_line "$HEAD_OFFENDER" "$HEAD_R"
@@ -407,19 +406,6 @@ exempt() {
     !added && index($0, decl) == 1 { print entry; added = 1 }
   ' "$GUARD_PATH" > "$tree/guard.next" && mv "$tree/guard.next" "$guard_copy"
   chmod 755 "$guard_copy"
-}
-
-# plant_exempt — the tree this case is asked about: one suite that declares `pipefail` and
-# ends a pipeline in `grep -q`, and the guard. One fixture and no innocent, for the reason
-# `plant_head` gives — what keeps the guard from naming every line is pinned by case 1, over
-# the same guard. The entry itself is not written here: each half of the case writes its own,
-# after the premises below have been asked about the plant they both rest on.
-plant_exempt() {
-  open_tree "$EXEMPT_OFFENDER" || return 1
-
-  plant_offender "$GREP_Q"
-
-  seal_tree
 }
 
 # probe_guard_carries_an_exemption_table — the premise both halves rest on, and the one that
@@ -483,7 +469,8 @@ probe_guard_refuses_a_reasonless_entry() {
 #    plant and one table, run twice — the same site, exempted with a reason and then with
 #    none — because that is the pair the criterion states: what the table buys and what it
 #    costs to use it. Two trees would ask the second half about a site the first never
-#    silenced.
+#    silenced. The entry itself is not planted with the tree: each half of the case writes
+#    its own, after the premises below have been asked about the plant they both rest on.
 name="no-sigpipe-pipelines.test.sh passes over a site its exemption table lists with a reason, and fails naming an entry whose reason is missing"
 problems=()
 tree=""
@@ -494,7 +481,7 @@ offender_line=""
 guard_out=""
 guard_code=0
 
-if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_exempt; then
+if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_lone_offender "$EXEMPT_OFFENDER" "$GREP_Q"; then
   if probe_plant_is_what_it_claims "$GREP_Q"; then
     exempt_key="$EXEMPT_OFFENDER:$offender_line"
 
