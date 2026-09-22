@@ -107,6 +107,11 @@ foo_bar_tree() {
   printf '# bar suite\n' > "$s/tests/bar.test.sh"
 }
 
+# counts_suite — tests/claude-md-counts.test.sh, which cases 21–23 all hold steady across their
+# range: it is the suite the add-or-delete rule names, so a case that wrote it only at the head end
+# would be adding a suite rather than keeping one there throughout.
+counts_suite() { printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"; }
+
 # write_ledger <mark> / write_refactor_owed <mark> — the two `.tdd/` files every green commit
 # carries, and which cases 16–18 and 20 span: the ledger with its one step ticked or not, and
 # the refactor-owed file beside it. <mark> is ' ' or 'x', and is the whole of what makes either
@@ -481,7 +486,7 @@ expect_suites "a green commit's shape — ledger, refactor-owed file and a sourc
 new_repo suite-added-counts
 foo_tree
 mkdir -p "$s/tests/unit"
-printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"
+counts_suite
 commit_base
 printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
 printf '# rookie unit suite\n' > "$s/tests/unit/rookie.test.sh"
@@ -497,7 +502,7 @@ expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls 
 #     what an answer reading a modification as a count change — or a widened one — would carry.
 new_repo suite-edited-counts
 foo_tree
-printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"
+counts_suite
 commit_base
 printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
 commit_head
@@ -513,7 +518,7 @@ expect_suites "editing an existing suite's contents does not pull in claude-md-c
 #     suite are untouched, so tests/foo.test.sh is what a widened answer would carry.
 new_repo script-added-counts
 foo_bar_tree
-printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"
+counts_suite
 commit_base
 rm "$s/bar.sh"
 printf 'newbie\n' > "$s/newbie.sh"
