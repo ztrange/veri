@@ -310,6 +310,46 @@ x_race="$(timed race-sup 20 PATH="$racebin:$clockbin:$PATH")"
 promptly "$x_race" 1 && ok \
   || no "returns the recorded code when the completion file lands just before the supervisor exits, not the dead-supervisor 2 (got '<code> <secs>'=$x_race want '1 <=10')"
 
+# 9. the same death, under a VERIFIER's name, and the document's half of that answer (#415).
+#    Until #415 the verifier's wrapper — the `bash -c` that runs `verify.sh` and records its
+#    verdict — was launched through `detach-leaf.sh` alone, so nothing ever wrote
+#    `.tdd/verdict-<phase>.pid`, the liveness branch above was skipped for every verification,
+#    and a verifier that died before writing its completion file left the conductor on the
+#    deadline branch only: exit 3, which SKILL.md tells it to retry with no bound. That is how
+#    #297 sat dead. Supervising the wrapper under the name the conductor waits on is what makes
+#    cases 5 and 6 fire for a verifier too, and this case asks for that answer where it matters:
+#    a wait named `verdict-<phase>` whose recorded supervisor is gone ends with 2 long before
+#    its budget, rather than polling to the deadline and answering 3.
+#
+#    The document is the other half, for the reason case 4 states: the script's contract is
+#    worth nothing if the procedure the conductor follows does not read that 2 the way it reads
+#    a killed developer leaf's. A developer leaf's 2 is spelled out where it is launched
+#    ("the leaf hung or ran away — **bail** cleanly … do not retry"); the verifier's paragraph
+#    said only that the wait returns the verdict, so a 2 with no verdict behind it — no reason
+#    text written, the reason file empty or left from a previous attempt — had nowhere in the
+#    document to land. So one paragraph naming `verdict-<phase>` must name all three: the
+#    supervisor dying without recording a status, `killed-stuck`, and the **bail** that
+#    follows. Matched on meaning rather than a sentence: any of "without recording a status"
+#    or a supervisor that died, dies, exited or is gone satisfies the first, so the prose can
+#    be rewritten without rewriting this case. Read as a paragraph (`awk RS=""`) for case 4's
+#    reason — prose here wraps at ~90 columns, and three file-wide greps would match three
+#    unrelated sections.
+( sleep 0 ) &
+v_pid=$!
+wait "$v_pid"
+printf '%s\n' "$v_pid" > "$work/.tdd/verdict-red.pid"
+v_dead="$(timed verdict-red 20)"
+v_stderr="$(cat "$work/verdict-red.err")"
+
+verdict_para="$(awk 'BEGIN { RS = "" }
+  /verdict-<phase>/ && tolower($0) ~ /killed-stuck/ && tolower($0) ~ /bail/ &&
+  (tolower($0) ~ /without recording a status/ ||
+   tolower($0) ~ /supervisor[^.]*(died|dies|exited|is gone)/) { print; exit }' "$SKILL")"
+
+{ promptly "$v_dead" 2 && [[ "$v_stderr" == *verdict-red* ]] &&
+  [[ -n "$verdict_para" ]]; } && ok \
+  || no "a verifier wait whose supervisor died exits 2 well before its budget, and SKILL.md reports that 2 the way it reports a killed developer leaf (got '<code> <secs>'=$v_dead want '2 <=10'; stderr='$v_stderr' want it to name verdict-red; SKILL.md paragraph naming verdict-<phase>, a supervisor that died without recording a status, killed-stuck and the bail: ${verdict_para:-<none>})"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

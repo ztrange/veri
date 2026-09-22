@@ -328,6 +328,14 @@ already owns. `wait-leaf.sh` then returns **the verdict**: 0 PASS, 1 REJECT, 2 m
 killed-stuck. The reason is read back from `.tdd/verify-<phase>.reason`, the file the revise
 step takes as a path.
 
+Supervising that wrapper gives the wait a second way to end, and it is the one a developer
+leaf's **2** already means: `wait-leaf.sh verdict-<phase>` also exits **2** when that
+supervisor died without recording a status — nothing wrote the completion file, so there is
+no verdict behind the code and `.tdd/verify-<phase>.reason` is empty or left over from an
+earlier attempt. Read it as a **killed-stuck** verifier, exactly as *Develop (red)* reads a
+killed developer leaf: **bail** cleanly (see *Bailing*), do not retry, and do not quote the
+reason file for a verdict nothing wrote.
+
 **Never launch a leaf in a background Bash call and then wait for its notification.** The
 conductor often runs as a print-mode session (`claude -p "/tdd <n>"` — one of the two
 unattended modes below), and in print mode that notification never arrives: the turn ends, the
