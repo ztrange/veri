@@ -95,6 +95,7 @@ declare -A EXEMPT=(
   [run-conductor-argv-guard.test.sh]="pins that run-conductor.test.sh's case 4 still catches the argv-shape regression #221 fixed; the criterion is what THAT SUITE reports over a broken product, which a static read cannot establish since more than one fix satisfies it (its own header says so)"
   [docs-read-guard.test.sh]="copies no-docs-reads.test.sh (the guard #143 added) into a planted tree with a genuine documentation-tree read and asserts the guard still catches it; the guard's whole job is to catch that read, so only running it proves it still can"
   [docs-read-guard-plant.test.sh]="the same plant-the-bug seam verification one level up: runs a scratch copy of docs-read-guard.test.sh against a stubbed no-docs-reads.test.sh to pin that IT still reports the guard's absence correctly"
+  [verifier-launch-guard.test.sh]="plants the #297 bypass back into a copy of SKILL.md — a verifier launch line with the supervisor cut out of it — and runs skill-leaf-launch.test.sh over it to pin that its case 5 still fails and still names that line; every launch in the document is correct today, so that guard passes over this tree whether it checks anything or not, and only running it over the plant says otherwise"
   [prose-drift-red.test.sh]="its subject is the verdict \`make test\`'s own runner reaches over a tree — \`make -C \$planted test TESTS=refactor-budget.test.sh\` — not the product; only the real recipe over the real suite produces that verdict"
 )
 
