@@ -28,6 +28,11 @@
 #   5. Every launch line that names `verify.sh` names `supervise.sh` too, so a verifier is
 #      launched through the supervisor the way a developer leaf is (issue #415) — the
 #      invariant SKILL.md:17 states and line 322 broke.
+#   6. Every supervised verifier launch passes `verify.sh` the blind parameter list and
+#      nothing else — the phase, the spec file, the test path and the test id, or the base
+#      sha for `refactor`, behind verify.sh's own `--step` and `--fast-cmd` flags — so
+#      nothing the supervisor put in front of that call can carry the developer's rationale
+#      to a verifier that is blind by construction (issue #415).
 #
 # Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
 # *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
@@ -292,6 +297,55 @@ else
     [[ "$text" == *"$launcher"* ]] ||
       problems+=("$skill_md:$lineno reaches $verifier without $launcher: $text")
   done <<< "$verifier_launches"
+fi
+
+report "$name"
+
+# blind_args <launch-line> — what one supervised verifier launch passes `verify.sh`: the
+# text between the script's own name and the redirect that captures its verdict. That
+# redirect ends the argument list — everything after it is the wrapper's business, not the
+# verifier's — so a line whose redirect is missing yields the rest of itself and fails the
+# case below, which is the fail-closed answer for a launch whose parameters cannot be read.
+blind_args() {
+  local tail="${1#*"$verifier" }"
+  printf '%s' "${tail%% > .tdd/verify-*}"
+}
+
+# The whole argument list a supervised verifier launch is allowed to pass, as one anchored
+# pattern: verify.sh's own two flags — the step the verdict is scoped to (#223) and, for a
+# call that can judge green, the fast tier's command (#341) — then the phase, the spec file,
+# the test path, and the target, which is the test id in every phase but `refactor`, where it
+# is the step's green commit. Anchored at BOTH ends because the criterion is *only these*:
+# an unanchored pattern would pass a line that carries all of them and something else after.
+blind_re="^--step '<STEP>'( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])$"
+
+# 6. The verifier is blind **by construction**: `build-verify-prompt.sh` has no parameter for
+#    the developer's rationale, so it cannot leak one, and a launch that passes verify.sh
+#    only the phase, the spec file, the test path and the test id — or the base sha, for
+#    refactor — keeps that guarantee end to end. Routing the launch through the supervisor
+#    (case 5) put a leaf name, a `bash -c` and a quoted wrapper in front of that call, and
+#    none of it may reach the verifier (issue #415). Read off the same launch lines case 5
+#    reads: their argument list whole, not a prefix of it, so an argument ADDED to one fails
+#    here rather than being judged on whether it looks harmless.
+name="$skill_md passes $verifier only the blind parameters on every supervised verifier launch"
+problems=()
+
+# A supervised verifier launch is a launch line naming both scripts AND the spec file — the
+# mark skill-verify-step.test.sh uses to tell a call a conductor copies as it stands from the
+# shape it is copied FROM. *Launching a leaf*'s template (SKILL.md:322) names both scripts and
+# abbreviates the parameters as `<phase> …`, so it is a launch shape, not a launch: its
+# ellipsis is what the concrete launches below fill in, and reading it as a call would fail
+# this case on the document's own way of introducing it.
+supervised_launches="$(launch_lines | grep -F "$verifier" | grep -F "$launcher" |
+  grep -E '<spec-file>|\.tdd/issue-<n>-spec\.md' || true)"
+if [[ -z "$supervised_launches" ]]; then
+  unreadable "launch line naming $verifier, $launcher and a spec file inside a fenced block" "what a supervised verifier launch passes"
+else
+  while IFS=$'\t' read -r lineno text; do
+    args="$(blind_args "$text")"
+    [[ "$args" =~ $blind_re ]] ||
+      problems+=("$skill_md:$lineno passes $verifier more than the blind parameters: $args")
+  done <<< "$supervised_launches"
 fi
 
 report "$name"
