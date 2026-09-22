@@ -73,15 +73,23 @@ expect_nothing_to_do() {
   fi
 }
 
-# foo_bar_tree — the fixture cases 4, 7, 16 and 18 share: foo.sh and bar.sh under $s, each with
-# a suite of its own under tests/. The first three expect tests/foo.test.sh alone, so bar's
-# untouched suite is the one an answer that widened, or that read the change as the neighbour's,
-# would carry; case 18 expects both, bar's being what says the answer did widen.
-foo_bar_tree() {
+# foo_tree — the smallest tree a case can assert a narrow answer against: foo.sh under $s with
+# a suite of its own under tests/. Cases 15, 17, 19 and 21 build on it directly; the first three
+# expect an answer that is not foo's suite, so tests/foo.test.sh is what says the answer widened
+# or wandered.
+foo_tree() {
   mkdir -p "$s/tests"
   printf 'foo\n' > "$s/foo.sh"
-  printf 'bar\n' > "$s/bar.sh"
   printf '# foo suite\n' > "$s/tests/foo.test.sh"
+}
+
+# foo_bar_tree — foo_tree with a second script, bar.sh, and a suite of its own, which cases 4, 7,
+# 16, 18 and 20 share. All but case 18 expect tests/foo.test.sh alone, so bar's untouched suite is
+# the one an answer that widened, or that read the change as the neighbour's, would carry; case 18
+# expects both, bar's being what says the answer did widen.
+foo_bar_tree() {
+  foo_tree
+  printf 'bar\n' > "$s/bar.sh"
   printf '# bar suite\n' > "$s/tests/bar.test.sh"
 }
 
@@ -361,9 +369,7 @@ expect_suites "fail-closed: a range whose only changed file matches no rule prin
 #     because this case has to quote the path back in an assertion, and no-docs-reads.test.sh
 #     rightly refuses a suite line that names that tree outside a comment or fixture text.
 new_repo widening-names-the-file
-mkdir -p "$s/tests"
-printf 'foo\n' > "$s/foo.sh"
-printf '# foo suite\n' > "$s/tests/foo.test.sh"
+foo_tree
 printf '# notes\n' > "$repo/notes.md"
 commit_base
 printf '# notes 2\n' > "$repo/notes.md"
@@ -394,9 +400,7 @@ expect_suites "run state: a .tdd/ ledger alongside a script change prints exactl
 #     than "nothing to do"; exit 3 is the code that already says the latter (case 3), so the
 #     two ways of having no suites to run answer alike (issue #416).
 new_repo run-state-only
-mkdir -p "$s/tests"
-printf 'foo\n' > "$s/foo.sh"
-printf '# foo suite\n' > "$s/tests/foo.test.sh"
+foo_tree
 write_ledger ' '
 write_refactor_owed ' '
 commit_base
@@ -429,9 +433,7 @@ expect_suites "fail-closed: run state alongside a file no rule places still prin
 #     both are root files rather than ones in the generated-documentation tree for case 15's
 #     reason — the assertion quotes the paths back.
 new_repo widening-names-every-file
-mkdir -p "$s/tests"
-printf 'foo\n' > "$s/foo.sh"
-printf '# foo suite\n' > "$s/tests/foo.test.sh"
+foo_tree
 printf '# notes\n' > "$repo/notes.md"
 printf '# memo\n' > "$repo/memo.md"
 commit_base
@@ -469,9 +471,8 @@ expect_suites "a green commit's shape — ledger, refactor-owed file and a sourc
 #     (issue #416). The range adds one suite under each directory the count covers; foo.sh and its
 #     suite are untouched, so tests/foo.test.sh is what a widened answer would carry.
 new_repo suite-added-counts
+foo_tree
 mkdir -p "$s/tests/unit"
-printf 'foo\n' > "$s/foo.sh"
-printf '# foo suite\n' > "$s/tests/foo.test.sh"
 printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"
 commit_base
 printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
