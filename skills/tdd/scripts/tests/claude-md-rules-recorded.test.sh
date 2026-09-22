@@ -56,11 +56,15 @@ claude_path="$ROOT/$claude_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probe collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which rule is no longer recorded rather than just that one is not.
-report() {
-  local name="$1"
+# run_case <name> <probe> — one case: empty the `problems` array, run <probe> to collect into
+# it, then close the case. An empty array is a pass, otherwise one FAIL line for the case and
+# one indented line per problem, so the output says which rule is no longer recorded rather
+# than just that one is not. Written once so a case is added as its name and its probe, never
+# as another copy of the reset-run-and-report around them.
+run_case() {
+  local name="$1" probe="$2"
+  problems=()
+  "$probe"
   if [[ "${#problems[@]}" -eq 0 ]]; then
     pass=$((pass + 1))
   else
@@ -212,12 +216,8 @@ probe_every_rule_is_carried_by_one_record() {
 #    One case rather than one per rule, because what the next agent needs is not a count of
 #    surviving sentences but a document that still holds every rule it is the record of — and
 #    the problem lines say which rule left with its paragraph.
-name="$claude_md still states every rule it is the only record of, in full or in one sentence with a pointer"
-problems=()
-
-probe_every_rule_is_carried_by_one_record
-
-report "$name"
+run_case "$claude_md still states every rule it is the only record of, in full or in one sentence with a pointer" \
+  probe_every_rule_is_carried_by_one_record
 
 # probe_budgets_invariant_names_the_fourth_axis — issue #219 gave the verifier a relaunch
 # budget of its own, `VERI_NO_VERDICT_RETRIES`, for a leaf that exited cleanly without a
@@ -237,12 +237,8 @@ probe_budgets_invariant_names_the_fourth_axis() {
 
 # 2. One criterion, one case: the budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth
 #    axis and why it is not merged with VERI_STUCK_RETRIES (#219).
-name="$claude_md's budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth axis and why it is not merged with VERI_STUCK_RETRIES"
-problems=()
-
-probe_budgets_invariant_names_the_fourth_axis
-
-report "$name"
+run_case "$claude_md's budgets invariant names VERI_NO_VERDICT_RETRIES as a fourth axis and why it is not merged with VERI_STUCK_RETRIES" \
+  probe_budgets_invariant_names_the_fourth_axis
 
 # probe_blind_invariant_names_the_base_sha — issue #151 gave the refactor verifier a 4th
 # positional, `<base-sha>`, the step's green commit, so it can review what the refactor
@@ -260,12 +256,8 @@ probe_blind_invariant_names_the_base_sha() {
 
 # 3. One criterion, one case: the blind-verifier invariant names the base-sha parameter and
 #    why a sha cannot leak rationale (#151).
-name="$claude_md's blind-verifier invariant names the refactor base-sha parameter and why a sha cannot leak rationale"
-problems=()
-
-probe_blind_invariant_names_the_base_sha
-
-report "$name"
+run_case "$claude_md's blind-verifier invariant names the refactor base-sha parameter and why a sha cannot leak rationale" \
+  probe_blind_invariant_names_the_base_sha
 
 # probe_budgets_invariant_names_the_fifth_axis — issue #360 gave the plan itself a budget,
 # `VERI_STEP_GROWTH`: how many steps one ledger may hold marked `⟦added⟧`, so a run that
@@ -285,12 +277,8 @@ probe_budgets_invariant_names_the_fifth_axis() {
 
 # 4. One criterion, one case: the budgets invariant names VERI_STEP_GROWTH as a fifth axis,
 #    plan growth, never merged with the other four (#360).
-name="$claude_md's budgets invariant names VERI_STEP_GROWTH as a fifth axis, plan growth, never merged with the other four"
-problems=()
-
-probe_budgets_invariant_names_the_fifth_axis
-
-report "$name"
+run_case "$claude_md's budgets invariant names VERI_STEP_GROWTH as a fifth axis, plan growth, never merged with the other four" \
+  probe_budgets_invariant_names_the_fifth_axis
 
 # The section a suite in this directory is written under, exactly as the document spells it:
 # the rule below belongs to it and not to the document at large, because the reader it is
@@ -334,12 +322,8 @@ probe_idiom_records_the_sigpipe_rule() {
 # 5. One criterion, one case: the section an author writing a suite reads states the
 #    pipefail/SIGPIPE rule, in one record rather than in fragments a reader has to assemble
 #    (#422).
-name="$claude_md's testing idiom section states the pipefail/SIGPIPE rule"
-problems=()
-
-probe_idiom_records_the_sigpipe_rule
-
-report "$name"
+run_case "$claude_md's testing idiom section states the pipefail/SIGPIPE rule" \
+  probe_idiom_records_the_sigpipe_rule
 
 echo "----"
 echo "$pass passed, $fail failed"
