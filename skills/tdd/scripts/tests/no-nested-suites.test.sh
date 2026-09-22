@@ -172,8 +172,6 @@ done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
       before = (RSTART > 1) ? substr(rest, RSTART - 1, 1) : ""
       rest = substr(rest, RSTART + RLENGTH)
       if (!(tok in is_suite) || tok == self) continue
-      # A table key addressing a site — `[other.test.sh:66]=` — names a line of that suite,
-      # which is not something any shell can launch. Never a launch, so never a problem.
       if (before == "[" && rest ~ /^:[0-9]+\]/) continue
       pathform = (index(line, dir "/" tok) > 0) || (index(line, dir "/unit/" tok) > 0)
       if (pathform) {
