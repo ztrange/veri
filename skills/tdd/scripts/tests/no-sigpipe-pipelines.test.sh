@@ -23,6 +23,12 @@
 #   name in the table below, and only with the reason that says why; an entry carrying no
 #   reason fails the run rather than silencing anything.
 #
+#   And the same asked of `make test` itself: no suite that target would run ends a pipeline
+#   that way either. That is the sentence the rule exists for — the baseline preflight reads,
+#   the Green leaf runs and both blind verifiers run is the run that goes red on Linux while
+#   the Mac that launched it stayed green — and the target's roster is not this directory's
+#   glob: it descends into the fast tier under `unit/` too.
+#
 # `pipefail` is half of the condition, and the half that makes the shape a bug rather than a
 # habit. Without it the pipeline's status is the reader's own, the writer's SIGPIPE never
 # reaches the assertion, and there is nothing here to catch — so a suite that does not
@@ -43,6 +49,10 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# The repository itself, four directories up: what case 2 asks `make` about, and what the
+# repo-relative paths a roster line carries are resolved against.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
 
 # The declaration that makes the shape a bug: `set -uo pipefail`, `set -o pipefail`, or any
 # other spelling of the option on a `set` line.
@@ -75,7 +85,15 @@ PIPE_INTO_READER="(^|[^|])\\|[[:space:]]*[^|]*(^|[[:space:]])$READER"
 # is a site someone once wanted quiet, and the next reader has no way to tell the two apart,
 # so an entry with no reason fails the run instead of excusing anything.
 declare -A EXEMPT=(
-  # Nothing today: this issue repaired every site it found rather than listing them.
+  # The one site this issue did not repair. It is not a line of the suite at all: it is a
+  # line of the `#!/bin/sh` stub `claude` the suite writes out in a quoted heredoc, and that
+  # stub declares no `pipefail` of its own — so the writer's SIGPIPE is the status of
+  # nothing there, the `sed` feeding it is one `$(…)` whose value is then tested with
+  # `[ -n "$base" ]`, and the repair this file prescribes is not available either, since
+  # process substitution is bash's and the stub is POSIX sh by design. A text read cannot
+  # tell a heredoc from the shell around it, which is why the entry is here rather than in
+  # the pattern.
+  [run-conductor.test.sh:66]="a line of the POSIX-sh stub \`claude\` the suite writes in a heredoc, not of the suite: that shell sets no pipefail, so the sed's SIGPIPE is never a status anything reads, and bash's process substitution is not available there to repair it with"
 )
 
 pass=0 fail=0
@@ -151,6 +169,63 @@ problems=()
 
 probe_every_exemption_carries_a_reason
 probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader
+
+report "$name"
+
+# roster <target> — the suite paths <target> would run, one repo-relative path per line.
+# `make -n` prints the recipe with the target's wildcards already expanded and executes none
+# of it, which is the only way to ask this question: running `make test` to find out what
+# `make test` runs is the recursion, and it costs ~154 s besides. Same idiom as
+# no-docs-reads.test.sh's roster helper and suite-lanes.test.sh's, which read their targets'
+# lists the same way.
+roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
+
+# probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader — the same
+# question asked of the roster `make test` would run rather than of this directory's glob,
+# and answered the same way, line by line, through the same exemption table. A roster entry
+# is exempted by its basename, as the table's `<suite>:<line>` key says: a site is one site
+# whichever of the two probes reaches it, and one key per site is what keeps a reason from
+# having to be written twice.
+#
+# An empty roster is a problem rather than a pass: a probe that finds no suite to read has
+# not established that none of them ends a pipeline that way, and a recipe reworded past the
+# `-n` expansion this reads would otherwise turn the case green by saying nothing.
+probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader() {
+  local rel name hit lineno text
+  local -a listed=()
+  while IFS= read -r rel; do
+    [[ -n "$rel" ]] || continue
+    listed+=("$rel")
+    declares_pipefail "$ROOT/$rel" || continue
+    name="$(basename "$rel")"
+    while IFS= read -r hit; do
+      lineno="${hit%%:*}"
+      text="${hit#*:}"
+      [[ "$text" =~ ^[[:space:]]*# ]] && continue
+      [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
+      problems+=("$rel:$lineno ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — asserts on the writer's SIGPIPE rather than the reader's answer: $(flat "$text")")
+    done < <(grep -nE "$PIPE_INTO_READER" "$ROOT/$rel")
+  done < <(roster test)
+  [[ "${#listed[@]}" -gt 0 ]] ||
+    problems+=("\`make -n test\` named no suite at all, so nothing was read: the roster this case asks about could not be obtained")
+  return 0
+}
+
+# 2. The same rule asked of the target instead of the directory. Case 1 is the rule an
+#    author breaks, and it finds its suites by globbing the directory they are written in.
+#    This case is the consequence the rule is for: `make test` is what preflight reads its
+#    baseline off, what every Green leaf runs and what both blind verifiers run, and it is
+#    the run that goes red on Linux while the Mac that launched it stayed green. So what has
+#    to hold is that nothing *that target runs* reads its own writer's SIGPIPE as an answer.
+#
+#    The two are not the same file list: the target also runs the fast tier under `unit/`,
+#    which case 1's glob does not descend into, and a suite named into the target from
+#    outside this directory would reach the baseline the same way. Asking the target itself
+#    costs one `make -n`.
+name="no suite \`make test\` runs that declares pipefail ends a pipeline in a reader that leaves before EOF"
+problems=()
+
+probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"
 

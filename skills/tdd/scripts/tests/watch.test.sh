@@ -85,8 +85,8 @@ db="$(make --no-print-directory -np -C "$ROOT" watch 2>&1)" && code=0 || code=$?
   problems+=("want make -n watch to exit 0, got $code: $(grep -m1 '\*\*\*' <<< "$db")")
 [[ -n "$(phony_rule watch)" ]] || problems+=("no phony watch: entry in make's database")
 for t in test unit merge-gates; do
-  prereqs watch | grep -qx "$t" && problems+=("watch depends on $t")
-  prereqs "$t" | grep -qx watch && problems+=("$t depends on watch")
+  grep -qx "$t" < <(prereqs watch) && problems+=("watch depends on $t")
+  grep -qx watch < <(prereqs "$t") && problems+=("$t depends on watch")
 done
 report "$name"
 
@@ -292,7 +292,7 @@ report "$name"
 name="watch.test.sh: run by make test's glob, not by make unit's"
 problems=()
 roster() { make --no-print-directory -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
-roster test | grep -qx 'skills/tdd/scripts/tests/watch.test.sh' ||
+grep -qx 'skills/tdd/scripts/tests/watch.test.sh' < <(roster test) ||
   problems+=("make -n test does not list skills/tdd/scripts/tests/watch.test.sh")
 in_unit="$(roster unit | grep '/watch\.test\.sh$')"
 [[ -z "$in_unit" ]] || problems+=("make -n unit lists $in_unit; want it absent from the fast tier")

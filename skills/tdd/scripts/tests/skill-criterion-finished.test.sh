@@ -75,7 +75,7 @@ section_records() {
 # nothing on exit 3, plus <extra-regex> if non-empty. Fails closed when no record ticks at all.
 gated_tick() {
   local label="$1" head="$2" extra="$3" rec
-  rec="$(section_records "$head" | grep -F 'tick-issue-criterion.sh' | head -1)"
+  rec="$(head -1 < <(section_records "$head" | grep -F 'tick-issue-criterion.sh'))"
   if [[ -z "$rec" ]]; then
     problems+=("$label: no instruction under '$head' runs tick-issue-criterion.sh — the gate could not be checked")
     return
@@ -104,9 +104,9 @@ report "$name"
 name="$skill_md's step 2 tells the conductor to end each ledger step with ⟦criterion k⟧ and to leave a gap step without one"
 problems=()
 plan_recs="$(section_records '### 2. Scope & plan → the ledger')"
-grep -F '⟦criterion k⟧' <<<"$plan_recs" | grep -Eq '(^| )end(s|ing)? ' ||
+grep -Eq '(^| )end(s|ing)? ' < <(grep -F '⟦criterion k⟧' <<<"$plan_recs") ||
   problems+=("plan guidance: no instruction in step 2 tells the conductor to end a ledger step with ⟦criterion k⟧")
-grep -F '⟦criterion' <<<"$plan_recs" | grep -F 'gap' | grep -Eq '(without|no |none|omit)' ||
+grep -Eq '(without|no |none|omit)' < <(grep -F '⟦criterion' <<<"$plan_recs" | grep -F 'gap') ||
   problems+=("plan guidance: no instruction in step 2 says a gap step carries no ⟦criterion k⟧")
 report "$name"
 

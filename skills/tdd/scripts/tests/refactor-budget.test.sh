@@ -227,7 +227,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 stated() {
   local hit
   [[ -f "$1" ]] || { echo '<no-file>'; return; }
-  hit="$(tr '\n' ' ' < "$1" | grep -oE "$2" | head -1)"
+  hit="$(head -1 < <(tr '\n' ' ' < "$1" | grep -oE "$2"))"
   [[ -n "$hit" ]] || { echo '<none>'; return; }
   printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
 }

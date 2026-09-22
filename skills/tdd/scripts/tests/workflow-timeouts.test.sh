@@ -203,7 +203,7 @@ for wf in "$ROOT"/.github/workflows/*.yml "$ROOT"/.github/workflows/*.yaml; do
   while IFS= read -r job; do
     [[ -n "$job" ]] || continue
     jobs_seen=$((jobs_seen + 1))
-    job_block "$wf" "$job" | grep -qE '^    timeout-minutes:[ ]*[0-9]+' \
+    grep -qE '^    timeout-minutes:[ ]*[0-9]+' < <(job_block "$wf" "$job") \
       || problems+=("${wf##*/}: job '$job' declares no job-level timeout-minutes")
   done < <(job_names "$wf")
   [[ "$jobs_seen" -gt 0 ]] || problems+=("${wf##*/}: no jobs found — the sweep read nothing")

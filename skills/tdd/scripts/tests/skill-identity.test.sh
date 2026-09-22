@@ -246,7 +246,7 @@ while IFS= read -r f; do
   exempt "$f" && continue
   # Quote the first offending line, trimmed: the case is about a file set, but the fix is
   # always a line, and finding it again by hand is the tedious half.
-  where="$(cd "$ROOT" && git grep -nE -e "$cmd_re" -- "$f" | head -1 | cut -c1-100)"
+  where="$(cd "$ROOT" && head -1 < <(git grep -nE -e "$cmd_re" -- "$f") | cut -c1-100)"
   problems+=("$f still names an old command: $where")
 done <<< "$swept"
 report "$name"
@@ -310,7 +310,7 @@ claim() {
 # somewhere, and by case 7, which reads its bullets out of wherever it leads.
 loop_md_path() {
   local p
-  p="$(inputs_text "$1" | grep -oE '[A-Za-z0-9_./-]+\.md' | grep -vE '(^|/)SKILL\.md$' | head -1)"
+  p="$(head -1 < <(inputs_text "$1" | grep -oE '[A-Za-z0-9_./-]+\.md' | grep -vE '(^|/)SKILL\.md$'))"
   [[ -n "$p" ]] || return 0
   case "$p" in
     */*) printf '%s\n' "$p" ;;
@@ -476,7 +476,7 @@ else
     [[ -n "$hit" ]] || continue
     problems+=("$skill_md names $loop_base outside '## Inputs', so a single-issue run is sent to read it too — $hit")
   done <<< "$outside"
-  grep -E 'Procedure' "$ROOT/$loop_md" | grep -qF 'SKILL.md' ||
+  grep -qF 'SKILL.md' < <(grep -E 'Procedure' "$ROOT/$loop_md") ||
     problems+=("$loop_md never sends an issue back to $skill_md's Procedure, so a scope run no longer reaches the procedure it used to")
 fi
 report "$name"

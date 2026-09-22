@@ -221,7 +221,7 @@ while IFS= read -r hit; do
   n="${hit%%:*}" text="${hit#*:}"
   [[ "$text" == *"$detacher"* ]] \
     || missed "line$n:no-$detacher"
-  sed -n "${n},$(( n + 6 ))p" "$SKILL" | grep -q 'wait-leaf\.sh' \
+  grep -q 'wait-leaf\.sh' < <(sed -n "${n},$(( n + 6 ))p" "$SKILL") \
     || missed "line$n:no-foreground-wait"
 done < <(grep -n -e '\$S/supervise\.sh' -e '\$S/verify\.sh' "$SKILL" | grep '\.tdd/')
 

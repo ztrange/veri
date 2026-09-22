@@ -713,7 +713,7 @@ killed_causes="$(causes_in "$cause_dir/killed")"
 no_verdict_cause_count="$(printf '%s' "$no_verdict_causes" | grep -c '^' || true)"
 no_verdict_distinct="$(printf '%s\n' "$no_verdict_causes" | sort -u)"
 { [[ "$no_verdict_cause_count" -eq 2 ]] && [[ "$(printf '%s\n' "$no_verdict_distinct" | grep -c '^')" -eq 1 ]] \
-  && [[ -n "$killed_causes" ]] && ! printf '%s\n' "$killed_causes" | grep -qxF "$no_verdict_distinct"; } && ok \
+  && [[ -n "$killed_causes" ]] && ! grep -qxF "$no_verdict_distinct" <<< "$killed_causes"; } && ok \
   || no "a clean exit with no VERDICT: line is logged under a cause distinct from a killed verifier's, on the relaunch and on the final exit 2 (no-verdict causes: $no_verdict_cause_count lines '${no_verdict_causes//$'\n'/|}' want 2 lines of one cause; killed causes: '${killed_causes//$'\n'/|}' must be non-empty and not contain it)"
 
 # 25. a relaunch leaves the blind-verifier guarantee where it was, issue #219: the relaunched
@@ -740,7 +740,7 @@ printf '%s' "$("$HERE/../build-verify-prompt.sh" --fast-cmd "make unit" green "$
 prompt_launches="$(cat "$prompt_dir/launches" 2>/dev/null || echo 0)"
 { [[ "$prompt_launches" == 2 ]] && cmp -s "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" \
   && cmp -s "$prompt_dir/expected" "$prompt_dir/prompt.1"; } && ok \
-  || no "a relaunched verifier's prompt is byte-identical to the first attempt's and to build-verify-prompt.sh's four-argument output (launches=$prompt_launches want 2; diff first→relaunch: $(diff "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" 2>&1 | head -5 | tr '\n' '|'); diff builder→first: $(diff "$prompt_dir/expected" "$prompt_dir/prompt.1" 2>&1 | head -5 | tr '\n' '|'))"
+  || no "a relaunched verifier's prompt is byte-identical to the first attempt's and to build-verify-prompt.sh's four-argument output (launches=$prompt_launches want 2; diff first→relaunch: $(head -5 < <(diff "$prompt_dir/prompt.1" "$prompt_dir/prompt.2" 2>&1) | tr '\n' '|'); diff builder→first: $(head -5 < <(diff "$prompt_dir/expected" "$prompt_dir/prompt.1" 2>&1) | tr '\n' '|'))"
 
 # verify.sh refactor passes the base sha through to the verifier prompt (#151). The sha is the
 # 4th positional, and what reaches the leaf is read off the stub's recorded argv — the prompt the
@@ -751,7 +751,7 @@ verify_in "$sha_dir" refactor 'VERDICT: PASS
 REASON: behaviour preserved.' >/dev/null 2>"$sha_dir/err"
 sha_code=$?
 { [[ "$sha_code" == 0 ]] && grep -qF 'git diff 0123abc..HEAD' "$sha_dir/argv" 2>/dev/null; } && ok \
-  || no "verify.sh refactor passes the base sha through to the verifier prompt (code=$sha_code; prompt lines naming a sha: $(grep -o 'git diff [^ ]*' "$sha_dir/argv" 2>/dev/null | head -1); stderr: $(head -1 "$sha_dir/err"))"
+  || no "verify.sh refactor passes the base sha through to the verifier prompt (code=$sha_code; prompt lines naming a sha: $(head -1 < <(grep -o 'git diff [^ ]*' "$sha_dir/argv" 2>/dev/null)); stderr: $(head -1 "$sha_dir/err"))"
 rm -rf "$sha_dir"
 
 # verify.sh --step '<STEP>' hands the step to the verifier prompt, and only the flag does (#223).
@@ -867,7 +867,7 @@ git -C "$pres_dir" rev-parse --verify --quiet "$pres_ref^{commit}" >/dev/null 2>
 pres_shown="$(git -C "$pres_dir" show "$pres_ref:src.txt" 2>&1)"
 # The preserved copy, found by the prefix the event's own fields build. `ls` rather than a glob
 # into an array: an unmatched glob comes back as the pattern itself, which reads as a found file.
-pres_copy="$(ls "$pres_dir/.tdd/attempts/$event_step-verify-$event_phase-$event_attempt-"*.log 2>/dev/null | head -1)"
+pres_copy="$(head -1 < <(ls "$pres_dir/.tdd/attempts/$event_step-verify-$event_phase-$event_attempt-"*.log 2>/dev/null))"
 pres_paired="$(if [[ -n "$pres_copy" ]] && cmp -s "$pres_copy" "$pres_dir/.tdd/verify-green.log"; then echo yes; else echo no; fi)"
 { [[ "$pres_code" == 1 ]] \
   && [[ "$event_issue" == "$pres_issue" ]] && [[ "$event_step" == "$pres_step" ]] \

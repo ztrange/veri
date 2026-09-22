@@ -78,7 +78,7 @@ section="$(refactor_section)"
 # grep — the one on the development machine this repository holds itself portable to —
 # refuses an interval whose bound is over 255.
 win() {
-  grep -oE ".{0,250}$1.{0,250}" <<<"$section" | head -1
+  head -1 < <(grep -oE ".{0,250}$1.{0,250}" <<<"$section")
 }
 
 name="$skill_md's Refactor section appends the step's structural leftovers to the run's owed file and commits that file with the step's refactor-pending clear"

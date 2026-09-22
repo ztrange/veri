@@ -106,7 +106,7 @@ why() { flat "$( { grep -E '^FAIL - ' <<< "$1"; tail -5 <<< "$1"; } )"; }
 # whether the plant really parted them.
 figure() {
   local hit
-  hit="$(grep -oE "$2" "$1" | head -1)"
+  hit="$(head -1 < <(grep -oE "$2" "$1"))"
   [[ -n "$hit" ]] || { echo '<none>'; return; }
   printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
 }

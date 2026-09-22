@@ -105,14 +105,14 @@ flag() {
 # which is what `claude` reads and what a bare `grep` for the two words separately cannot
 # tell from them landing at opposite ends of the command line.
 valued() {
-  grep -A1 -x -- "$1" "$argv" | grep -qx -- "$2" ||
+  grep -qx -- "$2" < <(grep -A1 -x -- "$1" "$argv") ||
     problems+=("the launch does not carry $1 $2")
 }
 
 # prompt_base — the base directory the last launch's prompt handed the conductor, or
 # nothing when the prompt names none.
 prompt_base() {
-  sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null | head -n 1
+  head -n 1 < <(sed -n 's/^Base directory for this skill: //p' "$prompt" 2>/dev/null)
 }
 
 # differing_files <expected> <copy> — the files under <expected>, one path per line, that

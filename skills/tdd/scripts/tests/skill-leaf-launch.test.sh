@@ -233,7 +233,7 @@ if [[ -z "$clears" ]]; then
   unreadable "line clearing a completion file inside a fenced block" "how a launch resets a leaf"
 else
   while IFS=$'\t' read -r lineno text; do
-    exitfile="$(printf '%s\n' "$text" | grep -o '\.tdd/[^ ]*\.exit' | head -n 1)"
+    exitfile="$(head -n 1 < <(grep -o '\.tdd/[^ ]*\.exit' <<< "$text"))"
     pidfile="${exitfile%.exit}.pid"
     [[ "$text" == *"$pidfile"* ]] ||
       problems+=("$skill_md:$lineno clears $exitfile but not $pidfile: $text")

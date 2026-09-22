@@ -155,7 +155,7 @@ unreadable_problem() {
 # when 250 would reach a neighbouring bullet that answers its question for it.
 win() {
   local radius="${2:-250}"
-  grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section" | head -1
+  head -1 < <(grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section")
 }
 
 # What a refusal looks like, spelled once for the two probes that ask for one. Both checks
@@ -181,7 +181,7 @@ else
   #    come back round for the next transform.
   [[ "$section" =~ $one_leaf ]] ||
     problems+=("$skill_md's Refactor section never says one leaf applies the step's transforms, so the conductor is not told that the cold start and the spec re-read are paid once rather than once per transform")
-  relaunch="$(grep -oE 'repeatedly|(each|every|the next) iteration' <<<"$section" | head -1)"
+  relaunch="$(head -1 < <(grep -oE 'repeatedly|(each|every|the next) iteration' <<<"$section"))"
   [[ -z "$relaunch" ]] ||
     problems+=("$skill_md's Refactor section still launches a leaf per transform — it says '$relaunch' — so the leaf-per-transform cost this issue measured is still prescribed")
 
@@ -318,7 +318,7 @@ if [[ -z "$cycle" ]]; then
 else
   [[ "$cycle" =~ $one_leaf ]] ||
     problems+=("$context_md's Cycle entry never says the refactor step is one leaf, so the glossary still describes the cycle as spending a leaf per transform")
-  stale_cycle="$(grep -oE 'per leaf|until none remain|per leaf invocation' <<<"$cycle" | head -1)"
+  stale_cycle="$(head -1 < <(grep -oE 'per leaf|until none remain|per leaf invocation' <<<"$cycle"))"
   [[ -z "$stale_cycle" ]] ||
     problems+=("$context_md's Cycle entry still says '$stale_cycle', so the entry a reader learns the cycle from is ADR-0010's shape and contradicts the procedure SKILL.md now runs")
 fi
@@ -328,7 +328,7 @@ if [[ -z "$invariant" ]]; then
 else
   [[ "$invariant" =~ $one_leaf ]] ||
     problems+=("$claude_md's budget invariant never says one leaf spends the step's refactor budget, so the cost axis is still explained as a leaf per transform")
-  stale_invariant="$(grep -oE 'asked for one always finds one|one transform per leaf|a transform per leaf' <<<"$invariant" | head -1)"
+  stale_invariant="$(head -1 < <(grep -oE 'asked for one always finds one|one transform per leaf|a transform per leaf' <<<"$invariant"))"
   [[ -z "$stale_invariant" ]] ||
     problems+=("$claude_md's budget invariant still explains the budget by '$stale_invariant', which is only true of a leaf asked for a single transform")
 fi
@@ -439,7 +439,7 @@ else
     # killed-stuck bullets from the end of the PASS one, and this probe would then be
     # answered by a bail that is not this one's.
     clause="$(win "$owed_claim" 150)"
-    bailed="$(grep -oE 'bail|abort' <<<"$clause" | head -1)"
+    bailed="$(head -1 < <(grep -oE 'bail|abort' <<<"$clause"))"
     [[ -z "$bailed" ]] ||
       problems+=("$skill_md's Refactor section says '$bailed' where it narrates add-ledger-step.sh exit 1, so a ledger whose growth budget is full ends a run whose step verified PASS — the owed steps are recorded and the plan simply did not grow, which is nothing to stop for")
   fi

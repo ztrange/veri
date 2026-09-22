@@ -75,7 +75,7 @@ if [[ -z "$all" ]]; then
   problems+=("$skill_md has no instructions to read — nothing could be checked")
 else
   for site in 'tick-ledger\.sh --refactor-pending' 'clear-refactor-pending\.sh'; do
-    rec="$(grep -E "push-branch\.sh" <<<"$all" | grep -E -- "$site" | head -1)"
+    rec="$(head -1 < <(grep -E "push-branch\.sh" <<<"$all" | grep -E -- "$site"))"
     if [[ -z "$rec" ]]; then
       problems+=("no instruction runs push-branch.sh beside $site — the call site could not be read")
       continue

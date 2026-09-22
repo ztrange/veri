@@ -25,7 +25,7 @@ pass=0 fail=0
 check() {
   local name="$1" cause="$2" exp_code="$3" exp_out="$4" out code first
   out="$("$CLASSIFY" "$cause")" && code=0 || code=$?
-  first="$(printf '%s\n' "$out" | head -n1)"
+  first="$(head -n1 <<< "$out")"
   if [[ "$code" == "$exp_code" && "$first" == "$exp_out" ]]; then
     pass=$((pass + 1))
   else

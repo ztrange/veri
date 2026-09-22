@@ -651,10 +651,10 @@ session_figure "the flat session's context read"     5c72e0b4 "$want_flat_total"
 # something rather than leaving the division to be done by hand is the criterion.
 ramp_words='un-?cleared|never cleared|not cleared|ramp'
 
-grep -F a8f3d1c6 <<< "$out" | grep -Eqi "$ramp_words" ||
+grep -Eqi "$ramp_words" < <(grep -F a8f3d1c6 <<< "$out") ||
   problems+=("the ramping session: want its row to name it as un-cleared in words, matching /$ramp_words/, not found")
 
-! grep -F 5c72e0b4 <<< "$out" | grep -Eqi "$ramp_words" ||
+! grep -Eqi "$ramp_words" < <(grep -F 5c72e0b4 <<< "$out") ||
   problems+=("the flat session: its context read is exactly its preamble x its requests, so it must NOT be named as un-cleared, but a line naming it matches /$ramp_words/")
 
 [[ "${#problems[@]}" -eq 0 ]] ||
@@ -976,9 +976,9 @@ code=$?
 # to name the harness that opened it. `claude-desktop` and `sdk-cli` share no substring,
 # so a fixed-string match on either cannot be answered by the other.
 for i in 0 1 2; do
-  grep -F "${desktop_ids[$i]:0:8}" <<< "$out" | grep -Fq claude-desktop ||
+  grep -Fq claude-desktop < <(grep -F "${desktop_ids[$i]:0:8}" <<< "$out") ||
     problems+=("session ${desktop_ids[$i]:0:8}: want its row to name the entrypoint claude-desktop, it does not")
-  grep -F "${leaf_ids[$i]:0:8}" <<< "$out" | grep -Fq sdk-cli ||
+  grep -Fq sdk-cli < <(grep -F "${leaf_ids[$i]:0:8}" <<< "$out") ||
     problems+=("session ${leaf_ids[$i]:0:8}: want its row to name the entrypoint sdk-cli, it does not")
 done
 
@@ -1081,9 +1081,9 @@ code=$?
 # the harness it belongs to. `conductor` and `cli` share no substring, so a fixed-string
 # match on either cannot be answered by the other.
 for i in 0 1 2; do
-  grep -F "${conductor_ids[$i]:0:8}" <<< "$out" | grep -Fq conductor ||
+  grep -Fq conductor < <(grep -F "${conductor_ids[$i]:0:8}" <<< "$out") ||
     problems+=("session ${conductor_ids[$i]:0:8}: no entrypoint key, want its row to name it a conductor, it does not")
-  grep -F "${cli_ids[$i]:0:8}" <<< "$out" | grep -Fq cli ||
+  grep -Fq cli < <(grep -F "${cli_ids[$i]:0:8}" <<< "$out") ||
     problems+=("session ${cli_ids[$i]:0:8}: want its row to name the entrypoint cli, it does not")
 done
 

@@ -59,7 +59,7 @@ section() {
   sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
   [[ -n "$sec_start" ]] || { sec_end=0; return 1; }
   local next
-  next="$(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#' | head -1 | cut -d: -f1)"
+  next="$(head -1 < <(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#') | cut -d: -f1)"
   if [[ -n "$next" ]]; then
     sec_end=$((sec_start + next - 1))
   else
