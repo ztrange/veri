@@ -1,0 +1,2 @@
+### A wait on a verifier whose supervisor died ends with exit 2 instead of polling to its deadline, and SKILL.md reports that verifier the way it reports a killed developer leaf ⟦criterion 2⟧
+- extract the `awk BEGIN{RS=""} … {print;exit}` paragraph-matcher shared by case 4's `warning` and case 9's `verdict_para` into one helper — only the scaffolding is shared, so the helper would take an awk condition as a string argument, which I judged worse than the duplication
