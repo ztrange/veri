@@ -1018,12 +1018,14 @@ quiet_leaf_rc="$(cat "$quiet_fail_dir/.tdd/verify-green.rc" 2>/dev/null)"
 # the conductor's own wait on it; sets $sv_code to what the wait returned and $sv_reason to the
 # reason file it left behind. `detach-leaf.sh` is left out of the shape: a detached launch and a
 # foreground one differ only in who reaps the supervisor, and neither the reason file nor the
-# recorded code is written by the reaping.
+# recorded code is written by the reaping. Nothing here clears a stale completion file or pid
+# either: each call gets a directory of its own, and clearing `.tdd/verdict-<phase>.exit`
+# before the leaf runs is supervise.sh's own job — the half of the deferral that makes a
+# record found afterwards this leaf's, which a helper doing it too would hide.
 supervised_verdict() {
   local dir="$1" phase="$2" text="$3"
   mkdir -p "$dir/.tdd"
   ( cd "$dir"
-    rm -f ".tdd/verdict-$phase.exit" ".tdd/verdict-$phase.pid"
     env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$dir/argv" FAKE_OUT_TEXT="$text" \
       "$HERE/../supervise.sh" "verdict-$phase" bash -c "$VERIFY --step '<STEP>' $phase '$work/spec.md' tests/test_slugify.py test_lowercases > .tdd/verify-$phase.reason 2> .tdd/verify-$phase.err; echo \$? > .tdd/verdict-$phase.exit" > /dev/null 2>&1
     "$HERE/../wait-leaf.sh" "verdict-$phase" 1 )
