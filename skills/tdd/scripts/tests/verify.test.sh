@@ -1004,6 +1004,43 @@ quiet_leaf_rc="$(cat "$quiet_fail_dir/.tdd/verify-green.rc" 2>/dev/null)"
 
 
 
+# 30. the launch shape SKILL.md spells for a verifier, run end to end (issue #415). Routing the
+#     verifier through the supervisor put a `supervise.sh verdict-<phase>` in front of the
+#     `bash -c` wrapper that captures the verdict, and the wrapper's two outputs are what the
+#     conductor reads: `.tdd/verify-<phase>.reason`, which it mirrors to the issue thread, and
+#     `.tdd/verdict-<phase>.exit`, which `wait-leaf.sh` hands back as the verdict it branches on
+#     — 1 REJECT (enter the revise loop), 2 malformed (bail as a system failure). Both must still
+#     be verify.sh's own: a reason file carrying anything the supervisor printed would be
+#     mirrored as the verifier's objection, and a code that is the wrapper's rather than the
+#     verifier's would send a rejected step on as though it had passed.
+#
+# supervised_verdict <dir> <phase> <fake-out-text> — one verification launched that way, with
+# the conductor's own wait on it; sets $sv_code to what the wait returned and $sv_reason to the
+# reason file it left behind. `detach-leaf.sh` is left out of the shape: a detached launch and a
+# foreground one differ only in who reaps the supervisor, and neither the reason file nor the
+# recorded code is written by the reaping.
+supervised_verdict() {
+  local dir="$1" phase="$2" text="$3"
+  mkdir -p "$dir/.tdd"
+  ( cd "$dir"
+    rm -f ".tdd/verdict-$phase.exit" ".tdd/verdict-$phase.pid"
+    env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$dir/argv" FAKE_OUT_TEXT="$text" \
+      "$HERE/../supervise.sh" "verdict-$phase" bash -c "$VERIFY --step '<STEP>' $phase '$work/spec.md' tests/test_slugify.py test_lowercases > .tdd/verify-$phase.reason 2> .tdd/verify-$phase.err; echo \$? > .tdd/verdict-$phase.exit" > /dev/null 2>&1
+    "$HERE/../wait-leaf.sh" "verdict-$phase" 1 )
+  sv_code=$?
+  sv_reason="$(cat "$dir/.tdd/verify-$phase.reason" 2>/dev/null)"
+}
+
+supervised_verdict "$work/supervised-reject" red 'VERDICT: REJECT
+REASON: The test asserts on a private helper, not observable behavior.'
+sup_reject_code=$sv_code sup_reject_reason="$sv_reason"
+supervised_verdict "$work/supervised-malformed" red 'the leaf rambled and never rendered a verdict'
+sup_malformed_code=$sv_code
+{ [[ "$sup_reject_code" == 1 ]] && [[ "$sup_malformed_code" == 2 ]] \
+  && [[ "$sup_reject_reason" == 'The test asserts on a private helper, not observable behavior.' ]]; } && ok \
+  || no "a supervised verification hands the conductor the verdict text and verify.sh's own code (REJECT arm: wait=$sup_reject_code want 1, reason='$sup_reject_reason' want the verifier's own line; malformed arm: wait=$sup_malformed_code want 2)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
