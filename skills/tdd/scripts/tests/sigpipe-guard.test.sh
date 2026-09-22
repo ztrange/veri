@@ -625,6 +625,18 @@ plant_wrapped_offender() {
   seal_tree
 }
 
+# probe_line_above_ends_in_the_pipe — the premise both wrapped plants rest on: the line above
+# the marked one really ends in the `|` that feeds it, so the two lines are one pipeline and
+# there is something there for the guard to read across the break. Asked of the file rather
+# than of what the planter meant to write, and written once because it is the same question
+# whichever of the two wrapped shapes a case planted.
+probe_line_above_ends_in_the_pipe() {
+  local before
+  before="$(sed -n "$((offender_line - 1))p" "$offender_path")"
+  [[ "$before" =~ \|[[:space:]]*$ ]] ||
+    problems+=("the line above the planted offender's marked line does not end in the pipe that feeds it, so the two lines are not one pipeline at all: $(flat "$before")")
+}
+
 # probe_wrapped_plant_is_what_it_claims <reader> — the wrapped plant's premises, which are
 # not the contiguous plant's: the marked line has to hold the reader and no pipe of its own,
 # the line above it has to end in the pipe that feeds it, and the suite has to declare
@@ -633,15 +645,13 @@ plant_wrapped_offender() {
 # non-zero when there is no marked line, since every premise after that is about a line
 # there is none of.
 probe_wrapped_plant_is_what_it_claims() {
-  local reader="$1" before
+  local reader="$1"
   probe_marked_line_is_findable || return 1
   [[ "$marked" == *"$reader"* ]] ||
     problems+=("the planted offender's marked line $offender_line does not open with $reader, so there is no wrapped reader there to catch: $(flat "$marked")")
   [[ "$marked" != *"|"* ]] ||
     problems+=("the planted offender's marked line $offender_line carries a pipe of its own, so it is the contiguous shape case 1 already pins rather than the wrapped one: $(flat "$marked")")
-  before="$(sed -n "$((offender_line - 1))p" "$offender_path")"
-  [[ "$before" =~ \|[[:space:]]*$ ]] ||
-    problems+=("the line above the planted offender's marked line does not end in the pipe that feeds it, so the two lines are not one pipeline at all: $(flat "$before")")
+  probe_line_above_ends_in_the_pipe
   probe_plant_declares_pipefail
 }
 
@@ -705,15 +715,13 @@ plant_both_readings_offender() {
 # without asking anything. Returns non-zero when there is no marked line, since every
 # premise after that is about a line there is none of.
 probe_both_readings_plant_is_what_it_claims() {
-  local first="$1" second="$2" before
+  local first="$1" second="$2"
   probe_marked_line_is_findable || return 1
   [[ "$marked" == *"$first"* ]] ||
     problems+=("the planted offender's marked line $offender_line does not open with $first, so the wrapped reading never reaches it and one report is all there was ever going to be: $(flat "$marked")")
   [[ "$marked" == *"|"*"$second"* ]] ||
     problems+=("the planted offender's marked line $offender_line does not pipe into $second further along itself, so the contiguous reading never reaches it and one report is all there was ever going to be: $(flat "$marked")")
-  before="$(sed -n "$((offender_line - 1))p" "$offender_path")"
-  [[ "$before" =~ \|[[:space:]]*$ ]] ||
-    problems+=("the line above the planted offender's marked line does not end in the pipe that feeds it, so the two lines are not one pipeline at all: $(flat "$before")")
+  probe_line_above_ends_in_the_pipe
   probe_plant_declares_pipefail
 }
 
