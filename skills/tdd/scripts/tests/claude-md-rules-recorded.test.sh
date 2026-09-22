@@ -128,15 +128,23 @@ one_record_matches() {
   return 1
 }
 
-# record_carries <problem> <regex>... — the shape every invariant case below shares: pass when
-# one record of the document matches all of <regex>, and collect <problem> when none does.
+# records_carry <text> <problem> <regex>... — the shape every invariant case below shares:
+# pass when one record of <text> matches all of <regex>, and collect <problem> when none does.
 # Written once so an invariant is added as the regexes that carry it and the message naming
-# what left, never as another copy of the guard-and-append around them.
-record_carries() {
-  local problem="$1"
-  shift
-  one_record_matches "$ALL_RECORDS" "$@" && return
+# what left, never as another copy of the guard-and-append around them. <text> is a parameter
+# because a rule is asked either of the whole document or of one section of it, and those two
+# readings differ in nothing but which records they read.
+records_carry() {
+  local text="$1" problem="$2"
+  shift 2
+  one_record_matches "$text" "$@" && return
   problems+=("$problem")
+}
+
+# record_carries <problem> <regex>... — `records_carry` over the whole document, which is how
+# every rule that belongs to no one section is asked.
+record_carries() {
+  records_carry "$ALL_RECORDS" "$@"
 }
 
 # The roster: one rule per line, `;`-separated — the rule as a failure message names it,
@@ -312,16 +320,15 @@ probe_idiom_records_the_sigpipe_rule() {
     return
   fi
 
-  one_record_matches "$idiom_records" \
+  records_carry "$idiom_records" \
+    "$claude_md has no single record in its '$IDIOM_HEADING' section stating that a suite declaring pipefail never ends a pipeline in grep -q or head, that the status asserted on is then the writer's SIGPIPE, which case says so (no-sigpipe-pipelines), and what the repair is" \
     'pipefail' \
     'grep -[a-z]*q' \
     '[^a-z]head' \
     'sigpipe' \
     'no-sigpipe-pipelines' \
     '/dev/null|redirect|to eof' \
-    'never|must not|does not|no suite' && return
-
-  problems+=("$claude_md has no single record in its '$IDIOM_HEADING' section stating that a suite declaring pipefail never ends a pipeline in grep -q or head, that the status asserted on is then the writer's SIGPIPE, which case says so (no-sigpipe-pipelines), and what the repair is")
+    'never|must not|does not|no suite'
 }
 
 # 5. One criterion, one case: the section an author writing a suite reads states the
