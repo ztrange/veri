@@ -224,23 +224,36 @@ probe_guard_is_there() {
   }
 }
 
-# probe_plant_is_what_it_claims — the plant's premises, asserted rather than assumed. The
-# offending line has to be findable by its mark, has to really feed a writer into the
-# early-exiting reader, and the suite holding it has to really declare `pipefail`, or
-# `offender_line` below is a number the guard was never owed. The innocent has to carry the
-# same reader and no `pipefail`, or "the guard said nothing about it" is true of a fixture
-# with nothing to say about.
+# probe_plant_is_what_it_claims <reader> — a plant's premises, asserted rather than assumed.
+# The offending line has to be findable by its mark, has to really feed a writer into the
+# reader the case planted, and the suite holding it has to really declare `pipefail`, or
+# `offender_line` is a number the guard was never owed.
+#
+# The reader is an argument because all three cases plant the same shape and differ in
+# nothing but which reader their pipeline ends in: which one a case plants is the case's
+# business, and what makes any of them a plant worth running the guard over is this probe's.
+# Returns non-zero when there is no marked line, since every premise below is about a line
+# there is none of, so a case that gates on it stops rather than reporting a plant it never
+# made.
 probe_plant_is_what_it_claims() {
+  local reader="$1"
   [[ "$offender_line" =~ ^[0-9]+$ ]] || {
     problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
-    return
+    return 1
   }
   local marked
   marked="$(sed -n "${offender_line}p" "$offender_path")"
-  [[ "$marked" == *"|"*"$GREP_Q"* ]] ||
-    problems+=("the planted offender's line $offender_line does not end a pipeline in $GREP_Q, so there is nothing there to catch: $(flat "$marked")")
+  [[ "$marked" == *"|"*"$reader"* ]] ||
+    problems+=("the planted offender's line $offender_line does not end a pipeline in $reader, so there is nothing there to catch: $(flat "$marked")")
   grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
     problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
+}
+
+# probe_innocent_is_what_it_claims — the contrast fixture's own premises, which only case 1
+# plants one of: it has to carry the same reader and no `pipefail`, or "the guard said
+# nothing about it" is true of a fixture with nothing to say about. Apart from the offender's
+# premises above because a case that plants no innocent has no such premise to ask.
+probe_innocent_is_what_it_claims() {
   grep -qF -- "$GREP_Q" "$innocent_path" ||
     problems+=("the planted innocent carries no such pipeline at all, so a guard that refuses every pipeline into a grep would still pass this case")
   ! grep -qF -- "$PIPEFAIL_LINE" "$innocent_path" ||
@@ -316,23 +329,6 @@ plant_head() {
   seal_tree
 }
 
-# probe_head_plant_is_what_it_claims — the head plant's premises, asserted rather than
-# assumed: a single marked line, that line really feeding the writer into `head`, and the
-# suite holding it really declaring `pipefail`. Without all three, `offender_line` is a
-# number the guard was never owed.
-probe_head_plant_is_what_it_claims() {
-  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
-    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
-    return
-  }
-  local marked
-  marked="$(sed -n "${offender_line}p" "$offender_path")"
-  [[ "$marked" == *"|"*"$HEAD_R"* ]] ||
-    problems+=("the planted offender's line $offender_line does not end a pipeline in $HEAD_R, so there is nothing there to catch: $(flat "$marked")")
-  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
-    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
-}
-
 # 1. One criterion, one case: the guard fails over a `pipefail` suite that ends a pipeline
 #    in `grep -q`, says where, and says nothing about the same pipeline without `pipefail`.
 #    Both halves are probed over one run of the guard against one tree holding both
@@ -350,7 +346,8 @@ guard_out=""
 guard_code=0
 
 if probe_guard_is_there && plant; then
-  probe_plant_is_what_it_claims
+  probe_plant_is_what_it_claims "$GREP_Q"
+  probe_innocent_is_what_it_claims
   run_guard
   probe_guard_names_the_offender_with_its_line "$OFFENDER" "$GREP_Q"
   probe_guard_leaves_the_innocent_alone
@@ -375,7 +372,7 @@ guard_out=""
 guard_code=0
 
 if probe_guard_is_there && plant_head; then
-  probe_head_plant_is_what_it_claims
+  probe_plant_is_what_it_claims "$HEAD_R"
   run_guard
   probe_guard_names_the_offender_with_its_line "$HEAD_OFFENDER" "$HEAD_R"
 fi
@@ -441,24 +438,6 @@ probe_guard_carries_an_exemption_table() {
   }
 }
 
-# probe_exempt_plant_is_what_it_claims — the plant's premises, asserted rather than assumed:
-# a single marked line, that line really feeding a writer into `grep -q`, and the suite
-# holding it really declaring `pipefail`. Without all three the guard was never owed a
-# complaint about it, and "the exemption silenced the guard" would be true of a tree that had
-# nothing to silence.
-probe_exempt_plant_is_what_it_claims() {
-  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
-    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
-    return 1
-  }
-  local marked
-  marked="$(sed -n "${offender_line}p" "$offender_path")"
-  [[ "$marked" == *"|"*"$GREP_Q"* ]] ||
-    problems+=("the planted offender's line $offender_line does not end a pipeline in $GREP_Q, so there is nothing there for an exemption to excuse: $(flat "$marked")")
-  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
-    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the guard owes no complaint to exempt")
-}
-
 # probe_entry_is_in_the_table <key> — the premise the run that follows rests on: the entry
 # `exempt` wrote is really in the guard's copy. Without it, a silent guard is a guard that
 # read no table rather than one that honoured an entry.
@@ -521,7 +500,7 @@ guard_out=""
 guard_code=0
 
 if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_exempt; then
-  if probe_exempt_plant_is_what_it_claims; then
+  if probe_plant_is_what_it_claims "$GREP_Q"; then
     exempt_key="$EXEMPT_OFFENDER:$offender_line"
 
     exempt "$exempt_key" "$EXEMPT_REASON"
