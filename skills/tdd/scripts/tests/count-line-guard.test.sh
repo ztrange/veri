@@ -777,7 +777,9 @@ report "$name"
 guard_sites() {
   local text="$1" site sites=()
   while IFS= read -r site; do
-    grep -v '^[[:space:]]*#' "$site" | grep -qF "$text" && sites+=("$(basename "$site")")
+    local body
+    body="$(grep -v '^[[:space:]]*#' "$site")"
+    grep -qF "$text" <<< "$body" && sites+=("$(basename "$site")")
   done < <(printf '%s\n' "$MAKEFILE"; find "$ROOT/skills/tdd/scripts" -name '*.sh' -not -path '*/tests/*' | sort)
   # Nothing at all when nothing matched, rather than one empty line: the caller counts lines,
   # and a blank one would read as a place the decision is written.
@@ -812,9 +814,9 @@ probe_both_invocations_word_it_the_same() {
   local made ran
   have_runner "so there is no second invocation to compare the recipe against" || return
   recipe "$FIXTURE"
-  made="$(grep -F "$GUARD_MESSAGE" <<< "$recipe_out" | head -n 1)"
+  made="$(grep -F "$GUARD_MESSAGE" <<< "$recipe_out" | awk 'NR==1')"
   direct "$RUNNER" "$FIXTURE_PATH"
-  ran="$(grep -F "$GUARD_MESSAGE" <<< "$direct_out" | head -n 1)"
+  ran="$(grep -F "$GUARD_MESSAGE" <<< "$direct_out" | awk 'NR==1')"
   [[ -n "$made" && -n "$ran" ]] || {
     problems+=("one of the two invocations did not report the countless suite at all; 'make test' said: $(flat "$recipe_out") and the runner said: $(flat "$direct_out")")
     return

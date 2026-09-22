@@ -106,10 +106,10 @@ timed_through() {
 # step 1 ran the same suite two different ways.
 names_suite_runner() {
   local label="$1" prompt="$2"
-  if ! plain <<< "$prompt" | grep -qF 'run-suite.sh'; then
+  if ! plain <<< "$prompt" | grep -F 'run-suite.sh' > /dev/null; then
     problems+=("$label's prompt never names run-suite.sh, the invocation for running one suite")
   fi
-  if plain <<< "$prompt" | grep -qF 'convention like any other'; then
+  if plain <<< "$prompt" | grep -F 'convention like any other' > /dev/null; then
     problems+=("$label's prompt still leaves how to run one suite for the leaf to establish")
   fi
 }
