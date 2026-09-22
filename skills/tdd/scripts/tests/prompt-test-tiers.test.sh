@@ -48,9 +48,16 @@ plain() {
 
 # runs_affected <phase label> <prompt> — the prompt has a line that tells the leaf to run
 # what affected-suites.sh prints, not merely one that mentions the script.
+#
+# Every probe here reads a here-string rather than a pipe, because `grep -q` leaves on its
+# first match: piped into one, a writer with bytes still to push dies of SIGPIPE, `pipefail`
+# hands that 141 up as the pipeline's status, and the probe answers about its writer instead
+# of about the prompt (#422). Folding and filtering into variables first puts the status on
+# the reader alone, where the question is.
 runs_affected() {
-  local label="$1" prompt="$2"
-  if ! plain <<< "$prompt" | grep -E 'affected-suites\.sh' | grep -qE '\brun'; then
+  local label="$1" prompt="$2" named
+  named="$(grep -E 'affected-suites\.sh' <<< "$(plain <<< "$prompt")")"
+  if ! grep -qE '\brun' <<< "$named"; then
     problems+=("$label's prompt never tells its leaf to run the suites affected-suites.sh prints")
   fi
 }
@@ -59,12 +66,13 @@ runs_affected() {
 # `--tier fast`, tells the leaf to run what affected-suites.sh prints, and no longer tells it
 # to run, or keep green, the full suite.
 runs_fast_plus_affected() {
-  local label="$1" prompt="$2"
-  if ! plain <<< "$prompt" | grep -qF -- '--tier fast'; then
+  local label="$1" prompt="$2" folded
+  folded="$(plain <<< "$prompt")"
+  if ! grep -qF -- '--tier fast' <<< "$folded"; then
     problems+=("$label's prompt never names the fast command (detect-test-command.sh --tier fast)")
   fi
   runs_affected "$label" "$prompt"
-  if plain <<< "$prompt" | grep -qE "run (the )?(project's )?full (test )?suite|full suite (is )?green"; then
+  if grep -qE "run (the )?(project's )?full (test )?suite|full suite (is )?green" <<< "$folded"; then
     problems+=("$label's prompt still tells its leaf to run, or keep green, the full suite")
   fi
 }
@@ -75,15 +83,16 @@ runs_fast_plus_affected() {
 # named — the wrapper's first argument, and what every later reader groups by.
 timed_through() {
   local label="$1" prompt="$2"; shift 2
-  local runnable="" cand tier
+  local runnable="" cand tier folded
   while read -r cand; do
     [[ -x "$cand" ]] && runnable="$cand"
   done < <(grep -oE '[^ `]*timed-test-run\.sh' <<< "$prompt")
   if [[ -z "$runnable" ]]; then
     problems+=("$label's prompt never names timed-test-run.sh at a path the leaf can run")
   fi
+  folded="$(plain <<< "$prompt")"
   for tier in "$@"; do
-    if ! plain <<< "$prompt" | grep -qE "timed-test-run\.sh $tier\b"; then
+    if ! grep -qE "timed-test-run\.sh $tier\b" <<< "$folded"; then
       problems+=("$label's prompt never tells its leaf to run through timed-test-run.sh under tier $tier")
     fi
   done
@@ -222,6 +231,52 @@ fi
 timed_through "verify-green's check 1" "$check1" target
 report "$name"
 
+# 9. The probes above answer from the prompt they read, not from the writer feeding them
+#    (#422). Each one pipes `plain` into a reader that leaves on its first match; on a glibc
+#    pipe a writer with more than 4096 bytes still to push then dies of SIGPIPE, `pipefail`
+#    hands that 141 up as the pipeline's status, and the probe reports a problem about a
+#    prompt that says the right thing. On this Mac the race cannot happen — BSD grep buffers
+#    ~16 KB, so the writer needs one write — which is why #416 was green here and red on CI.
+#    So the preemption is injected rather than raced for: `plain` is replaced by one that
+#    writes the same bytes and then returns 141, the status a writer killed by SIGPIPE
+#    leaves, and the probes must reach the same verdict as they do with it intact — on a
+#    prompt that matches and on one that does not.
+name="the prompt probes give the same verdict on a matching and a non-matching prompt when the writer is preempted"
+problems=()
+
+# verdict <prompt> — what the probes collect for one prompt: the count first, then one line
+# per problem, so two runs compare as text. `problems` is declared local here, so the probes
+# append to this array rather than to the case's own.
+verdict() {
+  local problems=()
+  runs_fast_plus_affected develop-green "$1"
+  timed_through develop-green "$1" fast affected
+  printf '%s\n' "${#problems[@]}" "${problems[@]}"
+}
+
+unpreempted="$(declare -f plain)"
+matching="$green"   # case 4's prompt, which every probe above accepts
+missing='a prompt that names none of it'
+honest_match="$(verdict "$matching")"
+honest_miss="$(verdict "$missing")"
+plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; return 141; }
+preempted_match="$(verdict "$matching")"
+preempted_miss="$(verdict "$missing")"
+eval "$unpreempted"
+
+if [[ "$honest_match" != 0 ]]; then
+  problems+=("with the writer intact the probes already object to a matching prompt (${honest_match%%$'\n'*} problems), so a verdict that survives preemption would only be two wrong answers agreeing")
+fi
+if [[ "${honest_miss%%$'\n'*}" == 0 ]]; then
+  problems+=("with the writer intact the probes accept a prompt that names none of it, so a verdict that survives preemption would prove nothing")
+fi
+if [[ "$preempted_match" != "$honest_match" ]]; then
+  problems+=("a preempted writer changes the probes' verdict on a matching prompt: ${honest_match%%$'\n'*} problems become ${preempted_match%%$'\n'*}")
+fi
+if [[ "$preempted_miss" != "$honest_miss" ]]; then
+  problems+=("a preempted writer changes the probes' verdict on a non-matching prompt: ${honest_miss%%$'\n'*} problems become ${preempted_miss%%$'\n'*}")
+fi
+report "$name"
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
