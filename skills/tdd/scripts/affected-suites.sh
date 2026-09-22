@@ -93,5 +93,8 @@ if [[ -n "$unplaced" ]]; then
     if [[ -f "$suite" ]]; then echo "$suite"; fi
   done | sort -u
 else
+  # Every changed file placed as affecting no suite (run state alone) is "nothing to do", the
+  # same answer as an empty diff: an empty stdout would read to a leaf as an empty tier (#416).
+  [[ -n "$placed" ]] || exit 3
   printf '%s' "$placed" | sort -u
 fi
