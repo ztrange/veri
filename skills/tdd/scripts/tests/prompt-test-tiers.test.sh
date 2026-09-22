@@ -122,7 +122,7 @@ verify_red="$("$VERIFY" red "$work/spec.md" 'tests/zorblat.test.sh' 'zorblat cas
   problems+=("build-verify-prompt.sh red exited $?")
 runs_affected develop-red "$red"
 runs_affected verify-red "$verify_red"
-if plain <<< "$red" | grep -qE 'run the suite that holds the new case'; then
+if grep -qE 'run the suite that holds the new case' <<< "$(plain <<< "$red")"; then
   problems+=("develop-red still tells its leaf to run the one suite that holds the new case")
 fi
 report "$name"
@@ -133,7 +133,7 @@ name="verify-refactor's checklist item 1 names affected-suites.sh, not the proje
 problems=()
 verify_refactor="$("$VERIFY" --fast-cmd 'make unit' refactor "$work/spec.md" 'tests/zorblat.test.sh' 'abc1234' 2>/dev/null)" ||
   problems+=("build-verify-prompt.sh refactor exited $?")
-item1="$(plain <<< "$verify_refactor" | numbered_item '^ 1\. still green')"
+item1="$(numbered_item '^ 1\. still green' <<< "$(plain <<< "$verify_refactor")")"
 if [[ -z "$item1" ]]; then
   problems+=("verify-refactor's prompt has no checklist item 1 ('1. still green')")
 fi
@@ -150,7 +150,7 @@ name="develop-refactor runs affected-suites.sh fed refactor-touched.sh's output 
 problems=()
 refactor="$("$DEVELOP" refactor "$work/spec.md" 'QWIXTLE step' 'make test' 'src/zorblat.sh' 2>/dev/null)" ||
   problems+=("build-develop-prompt.sh refactor exited $?")
-after_each="$(plain <<< "$refactor" | numbered_item 'after each transform')"
+after_each="$(numbered_item 'after each transform' <<< "$(plain <<< "$refactor")")"
 if [[ -z "$after_each" ]]; then
   problems+=("develop-refactor's prompt has no numbered item saying what runs after each transform")
 fi
