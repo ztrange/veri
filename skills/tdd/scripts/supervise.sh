@@ -258,8 +258,7 @@ attempt_once() {
   # and both halves of that subtraction are `now`. The mtime is used only as the change
   # detector — any different value is a write, whatever it says about when — so its own scale
   # never reaches `$silence`.
-  last_m="$(mtime_of "$log")"
-  seen_at="$t0"
+  if (( heartbeat_watched )); then last_m="$(mtime_of "$log")"; seen_at="$t0"; fi
 
   while :; do
     if [[ -f "$rcfile" ]]; then
@@ -271,16 +270,18 @@ attempt_once() {
     if (( t - t0 >= timeout )); then
       status="killed-stuck"; reason="hard timeout ${timeout}s exceeded"; kill_tree; break
     fi
-    m="$(mtime_of "$log")"
-    if [[ "$m" != "$last_m" ]]; then last_m="$m"; seen_at="$t"; fi
-    silence=$(( t - seen_at ))
-    # Strict '>' for the one rounding the reading above still has: `silence` is a difference
-    # of two whole-second `now` readings, so a sub-second gap straddling a second boundary
-    # reads as a whole second of it. That must not kill an active or just-relaunched leaf at
-    # exactly the window; a genuine hang keeps climbing past it and is still killed.
-    if (( heartbeat_watched )) && (( silence > heartbeat )); then
-      status="killed-stuck"; reason="no heartbeat for ${silence}s (window ${heartbeat}s)"
-      kill_tree; break
+    if (( heartbeat_watched )); then
+      m="$(mtime_of "$log")"
+      if [[ "$m" != "$last_m" ]]; then last_m="$m"; seen_at="$t"; fi
+      silence=$(( t - seen_at ))
+      # Strict '>' for the one rounding the reading above still has: `silence` is a difference
+      # of two whole-second `now` readings, so a sub-second gap straddling a second boundary
+      # reads as a whole second of it. That must not kill an active or just-relaunched leaf at
+      # exactly the window; a genuine hang keeps climbing past it and is still killed.
+      if (( silence > heartbeat )); then
+        status="killed-stuck"; reason="no heartbeat for ${silence}s (window ${heartbeat}s)"
+        kill_tree; break
+      fi
     fi
     sleep "$poll"
   done
