@@ -366,9 +366,11 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 #    typeable there as in a developer leaf, and a guard the documentation targets carry is
 #    worth nothing in a process that cannot see the variable it reads. It is a second case
 #    rather than more lines in the first because it is a second wiring: the prefix goes on a
-#    `detach-leaf.sh bash -c "…"` whose command is verify.sh, and the variable then has one more
-#    process to cross — verify.sh itself — before supervise.sh and run-leaf.sh carry it the
-#    rest of the way.
+#    `detach-leaf.sh supervise.sh verdict-<phase> bash -c "…"` whose command is verify.sh, and
+#    the variable then has one more process to cross — verify.sh itself — before supervise.sh
+#    and run-leaf.sh carry it the rest of the way. What supervises that wrapper is matched as
+#    `.*` between the detacher and the `bash -c`, so the case reads a verifier launch whatever
+#    is named there rather than only the unsupervised shape #415 replaced.
 #
 #    The variable still travels in the ENVIRONMENT, so `build-verify-prompt.sh` keeps the
 #    four parameters it has and the verifier stays blind: there is still no argument through
@@ -400,7 +402,7 @@ check_verifier_launch() {
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
-  '\$S/detach-leaf\.sh bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
+  '\$S/detach-leaf\.sh .*bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
   "a verifier through verify.sh against a spec file" \
   check_verifier_launch
 

@@ -25,6 +25,9 @@
 #      earlier leaf of the same name cannot end a later wait early.
 #   4. The script inventory's `wait-leaf.sh` entry says a 2 also means the supervisor died
 #      without recording a status, and that it takes the killed-stuck branch (issue #173).
+#   5. Every launch line that names `verify.sh` names `supervise.sh` too, so a verifier is
+#      launched through the supervisor the way a developer leaf is (issue #415) — the
+#      invariant SKILL.md:17 states and line 322 broke.
 #
 # Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
 # *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
@@ -49,6 +52,14 @@ skill_path="$ROOT/$skill_md"
 # scripts a launch line is recognised BY below — and `detach-leaf.sh` is "the detaching half
 # of a detached launch" (SKILL.md:84). wait-leaf.test.sh case 4 names it the same way.
 detacher="detach-leaf.sh"
+
+# The other two scripts a launch line names, written down once for the same reason: the leaf
+# **launcher** (SKILL.md:67), which case 5 requires every launch to go through, and the verify
+# script, which is what makes a launch line a verifier's. Both are spelled into that case's
+# failure messages as well as probed with, so a rename cannot leave a message naming a script
+# the probe no longer looks for.
+launcher="supervise.sh"
+verifier="verify.sh"
 
 # The section case 2 reads, written down once for the same reason: it is both an argument to
 # the probe — `section_prose` matches on it as a heading prefix — and a name three failure
@@ -250,6 +261,29 @@ else
     fault "does not say that 2 takes the killed-stuck branch"
   [[ -z "$faults" ]] ||
     problems+=("$skill_md $waiter entry $faults")
+fi
+
+report "$name"
+
+# 5. A verifier is a leaf, and SKILL.md:17 says every leaf goes through the supervisor — so
+#    a launch line that reaches `verify.sh` without naming `supervise.sh` contradicts the
+#    document's own invariant, and the contradiction is what stalled #297 (issue #415).
+#    Nothing gave that verifier a heartbeat or a timeout, so when it died before writing
+#    `.tdd/verdict-<phase>.exit` the conductor waited on a file nothing would ever write.
+#    Read off the same launch lines case 1 reads, narrowed to the ones that name the verify
+#    script: the criterion is about how a VERIFIER is launched, and a developer launch line
+#    naming only the supervisor is case 1's business, not this one's.
+name="$skill_md launches every verifier through $launcher, the way it launches a developer leaf"
+problems=()
+
+verifier_launches="$(launch_lines | grep -F "$verifier" || true)"
+if [[ -z "$verifier_launches" ]]; then
+  unreadable "launch line naming $verifier inside a fenced block" "how a verifier is launched"
+else
+  while IFS=$'\t' read -r lineno text; do
+    [[ "$text" == *"$launcher"* ]] ||
+      problems+=("$skill_md:$lineno reaches $verifier without $launcher: $text")
+  done <<< "$verifier_launches"
 fi
 
 report "$name"
