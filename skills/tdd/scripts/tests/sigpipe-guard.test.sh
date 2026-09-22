@@ -252,6 +252,17 @@ probe_guard_is_there() {
   }
 }
 
+# probe_plant_declares_pipefail — the premise all three plants share, and the half of the
+# condition that makes the shape a bug rather than a habit: the fixture really turns the
+# option on. Without it the pipeline's status is the reader's own, the writer's SIGPIPE never
+# reaches the assertion, and the guard is owed nothing about the line. One copy rather than
+# three, because it is the same sentence asked of the same file by whichever premises probe
+# a case runs.
+probe_plant_declares_pipefail() {
+  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
+    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
+}
+
 # probe_marked_line_is_findable — the premise every premises probe below opens with, and the
 # one that answers while the mark named no line at all: the comment `probe_line` ends the
 # offending line in named exactly one line, so there is an address to ask the guard for. The
@@ -283,8 +294,7 @@ probe_plant_is_what_it_claims() {
   probe_marked_line_is_findable || return 1
   [[ "$marked" == *"|"*"$reader"* ]] ||
     problems+=("the planted offender's line $offender_line does not end a pipeline in $reader, so there is nothing there to catch: $(flat "$marked")")
-  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
-    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
+  probe_plant_declares_pipefail
 }
 
 # probe_innocent_is_what_it_claims — the contrast fixture's own premises, which only case 1
@@ -632,8 +642,7 @@ probe_wrapped_plant_is_what_it_claims() {
   before="$(sed -n "$((offender_line - 1))p" "$offender_path")"
   [[ "$before" =~ \|[[:space:]]*$ ]] ||
     problems+=("the line above the planted offender's marked line does not end in the pipe that feeds it, so the two lines are not one pipeline at all: $(flat "$before")")
-  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
-    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
+  probe_plant_declares_pipefail
 }
 
 # 5. One criterion, one case: the guard reads the pipeline, not the line. A suite that
@@ -705,8 +714,7 @@ probe_both_readings_plant_is_what_it_claims() {
   before="$(sed -n "$((offender_line - 1))p" "$offender_path")"
   [[ "$before" =~ \|[[:space:]]*$ ]] ||
     problems+=("the line above the planted offender's marked line does not end in the pipe that feeds it, so the two lines are not one pipeline at all: $(flat "$before")")
-  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
-    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
+  probe_plant_declares_pipefail
 }
 
 # probe_guard_names_the_site_once <suite> — the criterion's own half: the address is printed
