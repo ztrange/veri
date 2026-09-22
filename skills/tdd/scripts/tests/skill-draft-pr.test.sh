@@ -282,7 +282,7 @@ if draft_pr_or_problem "whether the run's refactor leftovers reach the PR body";
       problems+=("$skill_md's Draft PR step renders the owed section without putting it in the PR body, so the leftovers are printed where only the conductor sees them: $(printf '%.120s' "$render")")
     grep -F 'refactor-owed' <<< "$records" |
       grep -E 'exits? 3' |
-      grep -qE 'omit|left out|leaves it out|no section|nothing' ||
+      grep -E 'omit|left out|leaves it out|no section|nothing' > /dev/null ||
       problems+=("$skill_md's Draft PR step never says an exit 3 from refactor-owed.sh render leaves the section out, so a run whose every refactor finished clean gets a ## Refactor owed heading promising leftovers nobody left")
   fi
 fi

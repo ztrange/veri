@@ -571,6 +571,177 @@ drop_tree
 
 report "$name"
 
+# The suite the wrapped case plants. A name of its own, like every other plant here, because
+# all of them exist in the same run and a failure message has to say which shape it was
+# asked about.
+WRAPPED_OFFENDER='probes-wrapped-under-pipefail.test.sh'
+
+# probe_line_wrapped <body-variable> <reader> — the same offending pipeline as `probe_line`,
+# written the way a long one is really written: the pipe ends one line and the reader opens
+# the next. Two lines of bash, one pipeline — the shell joins them, the writer still dies of
+# SIGPIPE on a closed pipe, and `pipefail` still hands that 141 up as the status the suite
+# asserts on. The mark goes on the reader's line, because that is the line the repair is
+# made on and so the address the guard owes.
+#
+# Assembled by printf, like `probe_line` and for the same reason: a line of this file
+# ending in a pipe with a reader on the line below would be this suite's own first offence
+# once the guard reads that shape.
+probe_line_wrapped() {
+  printf 'printf "%%s\\n" "$%s" |\n%s  # %s\n' "$1" "$2" "$MARK"
+}
+
+# plant_wrapped_offender <suite-name> <reader> — a tree holding one suite whose pipeline is
+# split across two lines, and the guard. Alongside `plant_lone_offender` rather than an
+# argument to it, because the two differ in the one thing this case is about: how the
+# offending pipeline is laid out on the page.
+plant_wrapped_offender() {
+  open_tree "$1" || return 1
+
+  write_plant "$offender_path" "$PIPEFAIL_LINE" \
+    'the pipeline below is the same shape, wrapped across two lines.' \
+    "$(probe_line_wrapped body "$2")"
+
+  seal_tree
+}
+
+# probe_wrapped_plant_is_what_it_claims <reader> — the wrapped plant's premises, which are
+# not the contiguous plant's: the marked line has to hold the reader and no pipe of its own,
+# the line above it has to end in the pipe that feeds it, and the suite has to declare
+# `pipefail`. Without all three, a guard that says nothing is a guard handed something that
+# is not the shape rather than one that failed to read across the line break. Returns
+# non-zero when there is no marked line, since every premise after that is about a line
+# there is none of.
+probe_wrapped_plant_is_what_it_claims() {
+  local reader="$1" marked before
+  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
+    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
+    return 1
+  }
+  marked="$(sed -n "${offender_line}p" "$offender_path")"
+  [[ "$marked" == *"$reader"* ]] ||
+    problems+=("the planted offender's marked line $offender_line does not open with $reader, so there is no wrapped reader there to catch: $(flat "$marked")")
+  [[ "$marked" != *"|"* ]] ||
+    problems+=("the planted offender's marked line $offender_line carries a pipe of its own, so it is the contiguous shape case 1 already pins rather than the wrapped one: $(flat "$marked")")
+  before="$(sed -n "$((offender_line - 1))p" "$offender_path")"
+  [[ "$before" =~ \|[[:space:]]*$ ]] ||
+    problems+=("the line above the planted offender's marked line does not end in the pipe that feeds it, so the two lines are not one pipeline at all: $(flat "$before")")
+  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
+    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
+}
+
+# 5. One criterion, one case: the guard reads the pipeline, not the line. A suite that
+#    declares `pipefail` and ends a pipeline in an early-exiting reader is the same offence
+#    whether it is written on one line or wrapped over two, and the wrapped spelling is the
+#    ordinary one for a long pipeline — so a guard that only ever looks at a line on its own
+#    is one an author escapes by pressing return, without ever meaning to. The address owed
+#    is the reader's line: that is where the repair is made.
+name="no-sigpipe-pipelines.test.sh names a suite whose pipeline is split across two lines, the pipe ending one and the early-exiting reader opening the next, as <suite>:<line>"
+begin_case
+
+if probe_guard_is_there && plant_wrapped_offender "$WRAPPED_OFFENDER" "$GREP_Q"; then
+  if probe_wrapped_plant_is_what_it_claims "$GREP_Q"; then
+    run_guard
+    probe_guard_names_the_offender_with_its_line "$WRAPPED_OFFENDER" "$GREP_Q"
+  fi
+fi
+drop_tree
+
+report "$name"
+
+# The suite the both-readings case plants. A name of its own, like every other plant here,
+# because all of them exist in the same run and a failure message has to say which shape it
+# was asked about.
+BOTH_READINGS_OFFENDER='probes-both-readings-under-pipefail.test.sh'
+
+# probe_line_both_readings <body-variable> <first-reader> <second-reader> — one wrapped
+# pipeline whose second line answers to both of the guard's readings at once: it opens with
+# an early-exiting reader, fed by the `|` ending the line above it, and it goes on to feed a
+# second early-exiting reader through a pipe of its own. It is the ordinary way a long
+# pipeline is written once it has three stages, not a contrivance — and it is one line of
+# bash with one repair to make on it.
+#
+# Assembled by printf, like `probe_line` and `probe_line_wrapped`, for the reason the header
+# gives: a line of this file spelling the shape whole would be the guard's own first
+# offender.
+probe_line_both_readings() {
+  printf 'printf "%%s\\n" "$%s" |\n  %s | %s  # %s\n' "$1" "$2" "$3" "$MARK"
+}
+
+# plant_both_readings_offender <suite-name> <first-reader> <second-reader> — a tree holding
+# one suite carrying that line, and the guard. Alongside the other planters rather than an
+# argument to one of them, because what this case is about is the one thing they differ in:
+# how the offending pipeline is laid out on the page.
+plant_both_readings_offender() {
+  open_tree "$1" || return 1
+
+  write_plant "$offender_path" "$PIPEFAIL_LINE" \
+    'the pipeline below is wrapped and goes on piping on the line below.' \
+    "$(probe_line_both_readings body "$2" "$3")"
+
+  seal_tree
+}
+
+# probe_both_readings_plant_is_what_it_claims <first-reader> <second-reader> — this plant's
+# premises, which are neither the contiguous plant's nor the wrapped one's: the marked line
+# has to open with the first reader, has to pipe into the second one further along itself,
+# and has to be fed by a `|` ending the line above it — all three, or a guard that reported
+# the site once did so because only one reading ever reached it, and the case would pass
+# without asking anything. Returns non-zero when there is no marked line, since every
+# premise after that is about a line there is none of.
+probe_both_readings_plant_is_what_it_claims() {
+  local first="$1" second="$2" marked before
+  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
+    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
+    return 1
+  }
+  marked="$(sed -n "${offender_line}p" "$offender_path")"
+  [[ "$marked" == *"$first"* ]] ||
+    problems+=("the planted offender's marked line $offender_line does not open with $first, so the wrapped reading never reaches it and one report is all there was ever going to be: $(flat "$marked")")
+  [[ "$marked" == *"|"*"$second"* ]] ||
+    problems+=("the planted offender's marked line $offender_line does not pipe into $second further along itself, so the contiguous reading never reaches it and one report is all there was ever going to be: $(flat "$marked")")
+  before="$(sed -n "$((offender_line - 1))p" "$offender_path")"
+  [[ "$before" =~ \|[[:space:]]*$ ]] ||
+    problems+=("the line above the planted offender's marked line does not end in the pipe that feeds it, so the two lines are not one pipeline at all: $(flat "$before")")
+  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
+    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
+}
+
+# probe_guard_names_the_site_once <suite> — the criterion's own half: the address is printed
+# exactly once. A site is a line to repair, not a reading that matched, and an author handed
+# the same `<suite>:<line>` twice is being told there are two things wrong with it — so the
+# count is the assertion, and it is asserted on the guard's output rather than on how the
+# guard is built, which is the only place a caller can see it. The failure message quotes
+# every line that named the site, since what went wrong is how many of them there are.
+probe_guard_names_the_site_once() {
+  local suite="$1" named count
+  named="$(grep -F "$suite:$offender_line" <<< "$guard_out")"
+  count="$(grep -cF "$suite:$offender_line" <<< "$guard_out")"
+  [[ "$count" -eq 1 ]] ||
+    problems+=("want the guard to name $suite:$offender_line exactly once, since one line is one site to repair however many readings of the file reached it; it named it $count times: $(flat "$named")")
+}
+
+# 6. One criterion, one case: a line both readings reach is still one site. The wrapped
+#    reading and the contiguous one are two ways of finding the same offence, and a line
+#    that opens with an early-exiting reader fed from the line above and then pipes into a
+#    second one answers to both — so the guard has to report the address once. Not a
+#    cosmetic preference: the report is a work list, and a site listed twice says there are
+#    two repairs to make at one line. Its address is asked for by the same probe the other
+#    cases use, so this case pins the count on top of what a red verdict already owes rather
+#    than in place of it.
+name="no-sigpipe-pipelines.test.sh names a line both of its readings reach — opened by an early-exiting reader fed from the line above, and piping into another — exactly once"
+begin_case
+
+if probe_guard_is_there && plant_both_readings_offender "$BOTH_READINGS_OFFENDER" "$HEAD_R" "$GREP_Q"; then
+  if probe_both_readings_plant_is_what_it_claims "$HEAD_R" "$GREP_Q"; then
+    run_guard
+    probe_guard_names_the_offender_with_its_line "$BOTH_READINGS_OFFENDER" "$GREP_Q"
+    probe_guard_names_the_site_once "$BOTH_READINGS_OFFENDER"
+  fi
+fi
+drop_tree
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
