@@ -505,6 +505,72 @@ drop_tree
 
 report "$name"
 
+# The suite this case plants and then takes away. A name of its own, like the head and
+# exemption cases', because every plant in this run must be distinguishable in a failure
+# message — and here doubly so: half of what this case asserts is that the guard stops
+# saying this name once the file carrying it is gone.
+REMOVABLE_OFFENDER='probes-removable-under-pipefail.test.sh'
+
+# unplant — take the planted offender back out of the tree, leaving the guard's copy alone
+# in it. `rm` rather than a rewrite of the file into something innocent, because the
+# criterion is about the plant being removed: a suite edited until it no longer offends
+# would pin that the guard re-reads a file, not that its verdict follows the tree.
+unplant() {
+  rm -f "$offender_path"
+}
+
+# probe_plant_is_gone — the premise the second run rests on, and the one that answers while
+# nothing has actually been removed: the offending file is no longer in the tree the guard
+# is about to read. Without it a green second run is a guard that ignored an offender that
+# is still there, which is the opposite of what this case is for. Returns non-zero so the
+# case stops rather than asking about a tree it never changed.
+probe_plant_is_gone() {
+  [[ ! -e "$offender_path" ]] || {
+    problems+=("the planted offender is still at $offender_path, so the run below reads the same tree as the one before it and the guard's second verdict says nothing about removal")
+    return 1
+  }
+}
+
+# probe_guard_is_green_once_the_plant_is_removed <suite> — the other half of the criterion,
+# and the half that makes the first half evidence: a guard that fails whatever it is handed
+# names a planted offender too. Both halves of green, because a guard that exited 0 while
+# still printing the removed suite's address would send the next author to a file that is
+# not there: it passes, and it has nothing to say about the suite that left.
+probe_guard_is_green_once_the_plant_is_removed() {
+  local suite="$1" named
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want the guard to pass over the tree once $suite is removed, since the only offending site in it left with that file; it exited $guard_code and said: $(flat "$guard_out")")
+  named="$(grep -F "$suite" <<< "$guard_out")"
+  [[ -z "$named" ]] ||
+    problems+=("the guard still named $suite after that file was removed from the tree, so its verdict is not a read of the tree in front of it: $(flat "$named")")
+}
+
+# 4. One criterion, one case: the guard is watched to go red on a planted offender and green
+#    again once the plant is removed. The pair is the case — over one tree, the same guard
+#    copy, run twice with nothing changed between the runs but the presence of the offending
+#    file. Red alone is satisfied by a guard that fails whatever it is handed, and green
+#    alone by one that passes whatever it is handed; only the two answers from one tree say
+#    the verdict follows the site. Cases 1 to 3 ask what a red verdict must say and what the
+#    table buys; this one asks that the verdict is about the tree at all.
+name="no-sigpipe-pipelines.test.sh is red over a planted offender, naming it, and green again once the plant is removed"
+begin_case
+
+if probe_guard_is_there && plant_lone_offender "$REMOVABLE_OFFENDER" "$GREP_Q"; then
+  if probe_plant_is_what_it_claims "$GREP_Q"; then
+    run_guard
+    probe_guard_names_the_offender_with_its_line "$REMOVABLE_OFFENDER" "$GREP_Q"
+
+    unplant
+    if probe_plant_is_gone; then
+      run_guard
+      probe_guard_is_green_once_the_plant_is_removed "$REMOVABLE_OFFENDER"
+    fi
+  fi
+fi
+drop_tree
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
