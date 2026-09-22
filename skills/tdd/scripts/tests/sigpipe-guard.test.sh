@@ -158,33 +158,32 @@ plant_innocent() {
     'the same pipeline, with the status the readers own.' "$(probe_line body "$GREP_Q")"
 }
 
-# plant — build the scratch tree the case is asked about and leave its path in `tree`, the
-# three files in it in `offender_path`, `innocent_path` and `guard_copy`, and the line
-# number of the offending line in `offender_line`. Both fixtures are whole suites down to
-# the count line, because the guard is run over the directory rather than handed a file,
-# and a directory of half-suites is not the thing it will meet.
-#
-# The tree is made a git repository with both fixtures staged. Nothing in the contract says
-# how the guard enumerates the suites it reads, and `git ls-files` is as reasonable an
-# answer as a glob; an unstaged plant would make this case report on that choice instead of
-# on the detection it is asking about.
-plant() {
+# open_tree <offender-name> — make the scratch tree a case is asked about, leave its path in
+# `tree`, and name the two files every case has one of: the offending suite at
+# `offender_path` and the guard's copy at `guard_copy`. Where each file lands is named once,
+# here, rather than reassembled at each place that writes, copies, greps or runs one; `tree`
+# is only known from the line above them, so these cannot sit with the constants at the top
+# of the file. Returns non-zero, with the broken premise recorded, when there is no tree to
+# plant in.
+open_tree() {
   tree="$(mktemp -d)" || {
-    problems+=("could not make a scratch tree to plant the two suites in, so the criterion went unasked")
+    problems+=("could not make a scratch tree to plant this case's suites in, so the criterion went unasked")
     return 1
   }
   mkdir -p "$tree/$TESTS_DIR"
 
-  # Where each of the three files lands, named once here rather than reassembled at each
-  # place that writes, copies, greps or runs one. `tree` is only known from the line above,
-  # so these cannot sit with the constants at the top of the file.
-  offender_path="$tree/$TESTS_DIR/$OFFENDER"
-  innocent_path="$tree/$TESTS_DIR/$INNOCENT"
+  offender_path="$tree/$TESTS_DIR/$1"
   guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
+}
 
-  plant_offender
-  plant_innocent
-
+# seal_tree — what every case does once its fixtures are written: copy the guard in, stage
+# the tree, and leave the offending line's number in `offender_line`.
+#
+# The tree is made a git repository with its fixtures staged. Nothing in the contract says
+# how the guard enumerates the suites it reads, and `git ls-files` is as reasonable an
+# answer as a glob; an unstaged plant would make a case report on that choice instead of on
+# the detection it is asking about.
+seal_tree() {
   cp "$GUARD_PATH" "$guard_copy"
   git init -q "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
@@ -192,9 +191,23 @@ plant() {
   offender_line="$(grep -n "$MARK" "$offender_path" | cut -d: -f1)"
   # Not the status of that assignment (#183): a grep that found no mark must not make the
   # case skip its probes and report an empty `problems` array as a pass. Whether the plant
-  # is what it claims is `probe_plant_is_what_it_claims`'s question, and it names the broken
-  # premise when the answer is no.
+  # is what it claims is a premises probe's question, and it names the broken premise when
+  # the answer is no.
   return 0
+}
+
+# plant — the tree case 1 is asked about: both fixtures, and the guard, in one directory.
+# Both fixtures are whole suites down to the count line, because the guard is run over the
+# directory rather than handed a file, and a directory of half-suites is not the thing it
+# will meet.
+plant() {
+  open_tree "$OFFENDER" || return 1
+  innocent_path="$tree/$TESTS_DIR/$INNOCENT"
+
+  plant_offender
+  plant_innocent
+
+  seal_tree
 }
 
 # probe_guard_is_there — the premise every probe below rests on, and the one that answers
@@ -283,37 +296,20 @@ plant_head_offender() {
     'the pipeline below is the shape the guard has to catch.' "$(probe_line body "$HEAD_R")"
 }
 
-# plant_head — the tree the head case is asked about, left in `tree`, with the planted
-# suite in `offender_path`, the guard's copy in `guard_copy` and the offending line's number
-# in `offender_line`. A tree of its own rather than a third file in `plant`'s, so that
-# case's fixtures stay the pair its contract is written about — but the same variable names,
-# because the two cases run one after the other and each tears its tree down before the next
-# begins, so there is only ever one plant in hand. A parallel `head_`-prefixed set of names
-# for the same five things bought nothing and made every probe below need a copy per case.
+# plant_head — the tree the head case is asked about. A tree of its own rather than a third
+# file in `plant`'s, so that case's fixtures stay the pair its contract is written about —
+# but the same variable names, because the two cases run one after the other and each tears
+# its tree down before the next begins, so there is only ever one plant in hand.
 #
 # One fixture here and no innocent: the criterion this case pins is that the head shape is
 # named at all, and what keeps the guard from answering "every line is one" is already
 # pinned by the case above, over the same guard.
 plant_head() {
-  tree="$(mktemp -d)" || {
-    problems+=("could not make a scratch tree to plant a suite in, so the criterion went unasked")
-    return 1
-  }
-  mkdir -p "$tree/$TESTS_DIR"
-
-  offender_path="$tree/$TESTS_DIR/$HEAD_OFFENDER"
-  guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
+  open_tree "$HEAD_OFFENDER" || return 1
 
   plant_head_offender
 
-  cp "$GUARD_PATH" "$guard_copy"
-  git init -q "$tree" >/dev/null 2>&1
-  git -C "$tree" add -A >/dev/null 2>&1
-
-  offender_line="$(grep -n "$MARK" "$offender_path" | cut -d: -f1)"
-  # Not the status of that assignment, for the reason `plant` gives: a grep that found no
-  # mark must not make the case skip its probes and report a pass.
-  return 0
+  seal_tree
 }
 
 # probe_head_plant_is_what_it_claims — the head plant's premises, asserted rather than
