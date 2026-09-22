@@ -409,6 +409,27 @@ commit_head
 expect_suites "fail-closed: run state alongside a file no rule places still prints every suite" \
   "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh')"
 
+# 19. a widening caused by two unplaced files names both of them on stderr, not just one. Case 15
+#     pins that the line names the file when there is one; the answer this case asks for is that
+#     the list does not lose the rest, so the next unplaced kind stays visible even when it
+#     arrives beside another one. notes.md and memo.md at the repository root each match no rule;
+#     both are root files rather than ones in the generated-documentation tree for case 15's
+#     reason — the assertion quotes the paths back.
+new_repo widening-names-every-file
+mkdir -p "$s/tests"
+printf 'foo\n' > "$s/foo.sh"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# notes\n' > "$repo/notes.md"
+printf '# memo\n' > "$repo/memo.md"
+commit_base
+printf '# notes 2\n' > "$repo/notes.md"
+printf '# memo 2\n' > "$repo/memo.md"
+commit_head
+err="$(run_affected 2>&1 >/dev/null)"; code=$?
+if [[ "$code" == 0 && "$err" == *"notes.md"* && "$err" == *"memo.md"* ]]; then ok; else
+  no "a widening caused by two unplaced files names both on stderr (code=$code, stderr=${err:-<empty>})"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
