@@ -3,3 +3,7 @@
 - inline plant_offender and plant_innocent into plant — each is now a single write_plant call, and the indirection names nothing the call site does not say
 ### `prompt-test-tiers.test.sh`'s prompt probes give the same verdict on a matching and a non-matching prompt whether or not the writer is preempted ⟦criterion 1⟧
 - `runs_fast_plus_affected` and `timed_through` each fold the prompt and then call `runs_affected`, which folds the same prompt a third time; one fold passed down would do
+### Every remaining site the guard names is repaired or exempted, so the guard passes over the whole tree as it stands ⟦criterion 4⟧
+- supervise.test.sh: `stated` (:270) and the two `head -1 < <(grep -oE '<label> [0-9]+' …) | grep -oE '[0-9]+'` sites (:324, :1581) all read the first match's number; one helper could serve all three, at the cost of the `<no-heartbeat-kill>` / `<none>` sentinels those messages carry
+- unit-tier.test.sh: three `grep -q<text> < <(grep -F <selector> <<< "$out")` sites (:150, :157, :228) ask the same "a line of make unit's output naming X also says Y" question with three spellings
+- `next="$(head -1 < <(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#') | cut -d: -f1)"` is byte-identical in skill-commit.test.sh:62, skill-preflight-launchable.test.sh:95 and skill-test-command.test.sh:72, as is the `.{0,250}` window helper in skill-green-split.test.sh:94, skill-refactor-owed.test.sh:81 and skill-revise-exhausted.test.sh:78 — cross-suite, so removing it needs a shared test lib the house idiom does not have
