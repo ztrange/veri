@@ -68,10 +68,10 @@ implementation-pinning test anyway to force a pass.
    one suite picked by hand — against the **unmodified** production code, and record whether
    the new case FAILS or PASSES. The only question this phase asks is whether that one case
    fails; the suite holding the new case is among those it prints, and the others read the
-   same files, and must stay green. How this
-   repository runs one suite is a convention like any other — establish it under **Read the
-   conventions out of the repository** at the top of this prompt, from the files that are
-   already there. If the repository has no way to run one suite on its own, fall back to
+   same files, and must stay green. Run one suite through
+   `run-suite.sh <suite>` — the one invocation for a single suite, so that every leaf on this
+   step runs it the same way and none of them is handed a suite that died partway and still
+   exited 0. If that runner cannot run a suite in this repository, fall back to
    the test command above and say so in your report.
    Make that run through the wrapper `{{TIMED_TEST_RUN}}`, which records what the run cost
    and names the tier it belongs to:

@@ -49,9 +49,11 @@ which file it sits in:
 3. Run the suites `affected-suites.sh` prints for the files `refactor-touched.sh` printed —
    the ones listed above — after each transform, not the full suite: they answer what one transform could plausibly break, and answer it in a fraction of the
    time. Those suites must stay green; revert a transform that turns them red rather than
-   leave a red suite behind, and carry on with the next candidate. How this repository runs
-   one suite is a convention like any other — establish it under **Read the conventions out
-   of the repository** at the top of this prompt, from the files that are already there.
+   leave a red suite behind, and carry on with the next candidate. Run one suite through
+   `run-suite.sh <suite>` — the one invocation for a single suite, so that every leaf on this
+   step runs it the same way and none of them is handed a suite that died partway and still
+   exited 0. If that runner cannot run a suite in this repository, fall back to the test
+   command above and say so in your report.
    Make each of those runs through the wrapper `{{TIMED_TEST_RUN}}`, which records what the
    run cost and names the tier it belongs to:
 

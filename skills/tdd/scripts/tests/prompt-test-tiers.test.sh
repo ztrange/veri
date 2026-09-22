@@ -98,6 +98,41 @@ timed_through() {
   done
 }
 
+# names_suite_runner <label> <prompt> — the prompt names run-suite.sh, the runner one suite
+# is run through in this repository (#418), and no longer leaves that invocation for the leaf
+# to work out for itself. The second half is what the first would otherwise not catch: a
+# prompt that names the runner and still says the leaf should establish the convention has
+# named no single invocation at all, which is how the developer and the verifier of #415's
+# step 1 ran the same suite two different ways.
+names_suite_runner() {
+  local label="$1" prompt="$2"
+  if ! plain <<< "$prompt" | grep -qF 'run-suite.sh'; then
+    problems+=("$label's prompt never names run-suite.sh, the invocation for running one suite")
+  fi
+  if plain <<< "$prompt" | grep -qF 'convention like any other'; then
+    problems+=("$label's prompt still leaves how to run one suite for the leaf to establish")
+  fi
+}
+
+# names_runner_fallback <label> <prompt> — the numbered item that names run-suite.sh also
+# tells the leaf what to run when the runner is not there (#418). A leaf works in the target
+# repository, not in veri's own, and most target repositories have no run-suite.sh at all: a
+# prompt that names it and stops leaves that leaf with no invocation, which is the same gap
+# — a leaf choosing for itself — that naming the runner was meant to close. The item is read
+# on its own through numbered_item, so a fallback sentence elsewhere in the prompt, about
+# some other run, cannot satisfy the probe.
+names_runner_fallback() {
+  local label="$1" prompt="$2" item
+  item="$(plain <<< "$prompt" | numbered_item 'run-suite\.sh')"
+  if [[ -z "$item" ]]; then
+    problems+=("$label's prompt has no numbered item naming run-suite.sh")
+    return
+  fi
+  if ! grep -qE 'fall back' <<< "$item"; then
+    problems+=("$label's prompt never tells its leaf what to run when the repository has no run-suite.sh")
+  fi
+}
+
 # numbered_item <ere> — from the prompt on stdin, the first numbered item (`N. ` up to the
 # next `N. `) whose text matches <ere>, printed as the item's own lines. <ere> is matched
 # against the item joined onto one line (each line preceded by a space), so a template may
@@ -231,7 +266,79 @@ fi
 timed_through "verify-green's check 1" "$check1" target
 report "$name"
 
-# 9. The probes above answer from the prompt they read, not from the writer feeding them
+# The developer prompts that run a single suite, as <label> <prompt> pairs: the two cases
+# below both probe this set, and spelling it once is what keeps them from drifting apart — a
+# prompt added to one roster and not the other would be a prompt that names the runner with no
+# fallback behind it, or owes a fallback for a runner it never names. The three prompts are
+# the ones cases 1, 4 and 3 built, read again rather than built a second time; revise and
+# reconcile run the whole test command instead, so they run no single suite.
+suite_running_prompts=(develop-red "$red" develop-green "$green" develop-refactor "$refactor")
+
+# probe_prompts <probe> <roster array name> — call <probe> once per <label> <prompt> pair in
+# the named roster. Both rosters below are probed by two cases each, so the loop lives here
+# once: a case says which roster and which probe, and nothing else.
+probe_prompts() {
+  local probe="$1" i
+  local -n roster="$2"
+  for ((i = 0; i < ${#roster[@]}; i += 2)); do
+    "$probe" "${roster[i]}" "${roster[i + 1]}"
+  done
+}
+
+# 9. Every developer prompt that runs suites names the same single-suite invocation (#418,
+#    criterion 2) — probed by names_suite_runner above, whose header carries why naming the
+#    runner and dropping the sentence that left the invocation to the leaf are both what it
+#    demands.
+name="every developer prompt that runs a suite names run-suite.sh as the single-suite invocation"
+problems=()
+probe_prompts names_suite_runner suite_running_prompts
+report "$name"
+
+# 10. Every developer prompt that names run-suite.sh says what to run when the target
+#     repository has no such runner (#418, criterion 2) — probed by names_runner_fallback
+#     above, whose header carries why the item that names the runner is the one that owes the
+#     fallback.
+name="every developer prompt that names run-suite.sh tells its leaf what to run when the repository has none"
+problems=()
+probe_prompts names_runner_fallback suite_running_prompts
+report "$name"
+
+# 11. Every blind verifier prompt names that same single-suite invocation (#418,
+#     criterion 3) — probed by names_suite_runner above, whose header carries why naming the
+#     runner and dropping the sentence that left the invocation to the leaf are both what it
+#     demands. This case is separate from case 9 because a verifier's PASS is what lets a
+#     green commit land: a verifier reading a suite that died partway as green is the one
+#     leaf whose mistake ends the step. All four are blind verifiers that run a suite and
+#     render a verdict on what it printed — the three that run the affected suites, and
+#     verify-pin, whose check 1 runs the target test against unmodified code. The prompts
+#     are the ones cases 1, 4, 2 and 7 built, read again rather than built a second time.
+#     The roster is spelled once, above, for the same reason the developers' is: a verifier
+#     added to one of the two cases and not the other would name the runner with no fallback
+#     behind it, or owe a fallback for a runner it never names.
+verifier_prompts=(
+  verify-red "$verify_red"
+  verify-green "$verify_green"
+  verify-refactor "$verify_refactor"
+  verify-pin "$verify_pin"
+)
+name="every blind verifier prompt names run-suite.sh as the single-suite invocation"
+problems=()
+probe_prompts names_suite_runner verifier_prompts
+report "$name"
+
+# 12. Every blind verifier prompt that names run-suite.sh says what to run when the target
+#     repository has no such runner (#418, criterion 3) — probed by names_runner_fallback
+#     above, whose header carries why the item that names the runner is the one that owes the
+#     fallback. Separate from case 10 for case 11's reason: a verifier left with an
+#     invocation the target repository cannot run is the leaf whose choice ends the step.
+#     The roster is case 11's, read again rather than built a second time.
+name="every blind verifier prompt that names run-suite.sh tells its leaf what to run when the repository has none"
+problems=()
+probe_prompts names_runner_fallback verifier_prompts
+report "$name"
+
+
+# 13. The probes above answer from the prompt they read, not from the writer feeding them
 #    (#422) — the inversion runs_affected's header describes, and what every probe reading
 #    a here-string rather than a pipe is for. On this Mac the race behind it cannot happen:
 #    BSD grep buffers ~16 KB, so the writer needs one write, while a glibc pipe holds 4096

@@ -30,6 +30,27 @@ unit: GUARD_PATH = $(UNIT_GUARD_BIN):
 # literal `$`, so grep is handed an end-of-line anchor.
 COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$
 
+# What a suite that never printed that line is told, as a printf format taking the suite's
+# name. It is a variable for the same reason COUNT_LINE is one, and now for a second: these
+# two texts are the whole of the guard's judgement — what a count line looks like, and what
+# a suite lacking one is called — and they are read by two invocations, `make test` below and
+# skills/tdd/scripts/run-suite.sh over a single suite. Written out in both, they would be two
+# guards that agree only until someone tightens the pattern or rewords the refusal in one of
+# them, and a leaf's verdict on a partially-dead suite would then depend on how it happened to
+# invoke it (#418). So they are declared here, once, and the runner asks make for them through
+# the `count-line-guard` target below rather than restating them.
+COUNTLESS := %s: never reached its count line\n
+
+# count-line-guard — print those two definitions as shell assignments, for run-suite.sh to
+# eval. make is asked rather than the Makefile read, because the value of a make variable is
+# make's to say: `$$` above is an escape, and a reader parsing the line out with sed would have
+# to re-implement that and every other expansion to arrive at the string grep is actually
+# handed. Nothing in the repository's own test or docs lanes depends on this target; it exists
+# so the guard has one home.
+.PHONY: count-line-guard
+count-line-guard:
+	@printf "COUNT_LINE='%s'\nCOUNTLESS='%s'\n" '$(COUNT_LINE)' '$(COUNTLESS)'
+
 # A suite's exit code alone is not trusted (#157). Every suite here declares `set -u`, and
 # under it a word rather than a number inside `[[ … -le … ]]` is read as a variable name; an
 # unset name kills the script, and a script killed that way exits with the status of the
@@ -121,7 +142,7 @@ test unit:
 	  { $(OFFLINE_ENV) "$$t" < /dev/null; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
-	    printf '%s: never reached its count line\n' "$$suite_name"; fail=1; \
+	    printf '$(COUNTLESS)' "$$suite_name"; fail=1; \
 	  }; \
 	  while IFS= read -r reached; do \
 	    printf '%s: tried the network: %s\n' "$$suite_name" "$$reached"; fail=1; \
