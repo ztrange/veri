@@ -1,6 +1,6 @@
 # Plan for #422 — a pipefail suite reads its writer's SIGPIPE as the answer
 
-- [x] A guard names `<suite>:<line>` and fails the run when a suite that declares `pipefail` ends a pipeline in `grep -*q` ⟦criterion 2⟧ ⟂ refactor pending
+- [x] A guard names `<suite>:<line>` and fails the run when a suite that declares `pipefail` ends a pipeline in `grep -*q` ⟦criterion 2⟧
 - [ ] The same guard also names a pipeline that ends in `head` ⟦criterion 2⟧
 - [ ] The guard exempts a site listed in an exemption table carrying a reason per entry, and refuses an entry whose reason is missing ⟦criterion 2⟧
 - [ ] A planted offender turns the guard red naming it, and the guard is green again once the plant is removed ⟦criterion 3⟧
