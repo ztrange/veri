@@ -366,6 +366,26 @@ commit_head
 expect_suites "run state: a .tdd/ ledger alongside a script change prints exactly that script's suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
+# 17. run state alone: a range whose every changed file is `.tdd/` run state → exit 3 and
+#     nothing on stdout. Placing run state as affecting no suite leaves such a range with no
+#     suite to print, and an empty answer would read to a leaf as "the tier is empty" rather
+#     than "nothing to do"; exit 3 is the code that already says the latter (case 3), so the
+#     two ways of having no suites to run answer alike (issue #416).
+new_repo run-state-only
+mkdir -p "$s/tests" "$repo/.tdd"
+printf 'foo\n' > "$s/foo.sh"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
+printf 'refactor owed\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+commit_base
+printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
+printf 'refactor owed 2\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+commit_head
+out="$(run_affected 2>/dev/null)"; code=$?
+if [[ "$code" == 3 && -z "$out" ]]; then ok; else
+  no "run state alone → exit 3 and prints nothing (code=$code, stdout=${out:-<empty>})"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
