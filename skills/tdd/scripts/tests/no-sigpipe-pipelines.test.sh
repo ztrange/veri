@@ -79,6 +79,17 @@ READER="($GREP_READER|$HEAD_READER)"
 # file spelling the whole shape would be its own first offender.
 PIPE_INTO_READER="(^|[^|])\\|[[:space:]]*[^|]*(^|[[:space:]])$READER"
 
+# A pipeline is not a line: the shell joins a line whose last token is a `|` to the one
+# below it, so the ordinary way to write a long pipeline — the pipe ending one line and the
+# reader opening the next — is the same offence written differently, and a guard that only
+# reads a line on its own is one an author escapes by pressing return. The two halves are
+# matched a line apart: this one is the trailing `|`, again not one of a `||`.
+WRAPPING_PIPE='(^|[^|])\|[[:space:]]*$'
+# And this one is the reader opening the line below it, with nothing but indentation before
+# it — a reader further along that line is fed by something else on it, not by the pipe
+# above.
+READER_OPENS="^[[:space:]]*$READER"
+
 # EXEMPT[<suite>:<line>]="<reason>" — a site where the reader's early exit is the point,
 # each with the sentence that says why: what the writer is, and why its SIGPIPE cannot be
 # mistaken for the answer there. The reason is what makes an entry an exemption; a bare key
@@ -121,6 +132,25 @@ flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 # rather than once per line, because it is a property of the file.
 declares_pipefail() { grep -Eq "$PIPEFAIL_DECL" "$1"; }
 
+# wrapped_sites <file> — the lines of <file> that open with an early-exiting reader and are
+# fed by a `|` ending the line above them, one `<lineno>:<text>` per line. Two greps and a
+# lookup rather than a line-by-line read of the file: each half is a question grep answers
+# over the whole file at once, and what makes the pair a pipeline is only that their line
+# numbers are one apart.
+wrapped_sites() {
+  local file="$1" hit lineno
+  local -A ends_in_pipe=()
+  while IFS= read -r hit; do
+    ends_in_pipe["${hit%%:*}"]=1
+  done < <(grep -nE "$WRAPPING_PIPE" "$file")
+  while IFS= read -r hit; do
+    lineno="${hit%%:*}"
+    [[ -n "${ends_in_pipe[$((lineno - 1))]:-}" ]] || continue
+    printf '%s\n' "$hit"
+  done < <(grep -nE "$READER_OPENS" "$file")
+  return 0
+}
+
 # unexempted_sites <file> — the lines of <file> that feed a writer into a reader leaving
 # before EOF and are neither a comment nor an exemption, one `<lineno>:<text>` per line.
 # Both cases ask exactly this of a file and differ only in the consequence they then name,
@@ -130,6 +160,7 @@ declares_pipefail() { grep -Eq "$PIPEFAIL_DECL" "$1"; }
 # pipeline's status there, so there is nothing to report.
 unexempted_sites() {
   local file="$1" name hit lineno text
+  local -A seen=()
   declares_pipefail "$file" || return 0
   name="$(basename "$file")"
   while IFS= read -r hit; do
@@ -137,8 +168,13 @@ unexempted_sites() {
     text="${hit#*:}"
     [[ "$text" =~ ^[[:space:]]*# ]] && continue
     [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
+    # One site is one report however many of the two readings reached it: a line that is
+    # both fed by the pipe above it and ends a pipeline of its own is still one line to
+    # repair.
+    [[ -n "${seen[$lineno]:-}" ]] && continue
+    seen["$lineno"]=1
     printf '%s:%s\n' "$lineno" "$text"
-  done < <(grep -nE "$PIPE_INTO_READER" "$file")
+  done < <(grep -nE "$PIPE_INTO_READER" "$file"; wrapped_sites "$file")
   return 0
 }
 

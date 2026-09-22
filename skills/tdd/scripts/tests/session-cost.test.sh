@@ -1003,7 +1003,7 @@ band() {
   local harness="$1"
   grep -F "$harness" <<< "$out" |
     grep -E "$(anchored "$2")" | grep -E "$(anchored "$3")" | grep -E "$(anchored "$4")" |
-    grep -q . ||
+    grep . > /dev/null ||
       problems+=("the $harness band: want one line naming $harness and stating min $2, median $3 and max $4 together, no line states all three")
 }
 
