@@ -76,6 +76,17 @@ report() {
 # model-knobs-recorded.test.sh both use on this document.
 plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
 
+# The awk program `records` and `section_records` both split their input with, named once
+# because the two read the same document and a copy that drifted would leave one of them
+# answering a different question about it. A program rather than a function because awk is
+# what does the splitting, and the only difference between the two readers is what they hand
+# it: the whole file, or one section of it.
+RECORD_SPLIT='/^([-*] |\| )/ { if (rec != "") print rec; rec = $0; next }
+              /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+              rec == "" { rec = $0; next }
+              { rec = rec " " $0 }
+              END { if (rec != "") print rec }'
+
 # records — the document as one line per record, normalised through `plain`. A record runs
 # from a `- `, a `* ` or a `| ` in column one, or from the first line after a blank, up to
 # the next such line or the next blank. Table rows start one of their own because half this
@@ -84,11 +95,17 @@ plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
 # a record onto one line is also what keeps a claim split over a line break readable as one
 # sentence. Same shape as model-knobs-recorded.test.sh's `records`.
 records() {
-  awk '/^([-*] |\| )/ { if (rec != "") print rec; rec = $0; next }
-       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
-       rec == "" { rec = $0; next }
-       { rec = rec " " $0 }
-       END { if (rec != "") print rec }' "$claude_path" | plain
+  awk "$RECORD_SPLIT" "$claude_path" | plain
+}
+
+# section_records <heading> — the records of ONE section of the document: from the heading to
+# the next `## `, split and normalised exactly as `records` splits the whole file. Read by
+# heading where a rule belongs to a section rather than to the document, which is the reading
+# lane-rule-recorded.test.sh uses on this same file: a sentence three sections away answers
+# for prose the agent reading that section does not have in front of it.
+section_records() {
+  awk -v heading="$1" '$0 == heading { f = 1; next } f && /^## / { exit } f' "$claude_path" |
+    awk "$RECORD_SPLIT" | plain
 }
 
 # The document as records, read once: the four cases below all ask their question of the same
@@ -264,6 +281,56 @@ name="$claude_md's budgets invariant names VERI_STEP_GROWTH as a fifth axis, pla
 problems=()
 
 probe_budgets_invariant_names_the_fifth_axis
+
+report "$name"
+
+# The section a suite in this directory is written under, exactly as the document spells it:
+# the rule below belongs to it and not to the document at large, because the reader it is
+# written for is an author part-way through a new suite, and that author is reading this
+# section.
+IDIOM_HEADING="## Testing idiom"
+
+# probe_idiom_records_the_sigpipe_rule — issue #422: a suite that declares `set -uo pipefail`
+# and ends a pipeline in a reader that leaves before EOF — a `grep` whose options carry `q`,
+# or a `head` — asserts on its own writer's SIGPIPE rather than on the reader's answer. The
+# writer dies of 141 on the closed pipe, `pipefail` hands that up as the pipeline's status,
+# and the assertion is inverted. It is green on the development Mac and red on CI, so the
+# leaf and the blind verifier both say green and the PR is red; it cost two consecutive runs
+# (#418, #416). `no-sigpipe-pipelines.test.sh` fails the run when a suite is written that
+# way, but a guard is read after the fact — the author who reads this section first is the
+# one who never writes the shape. Asked of ONE record of the *Testing idiom* section, like
+# the roster above: the option that makes it a bug, both readers, the signal, the guard by
+# name, the repair, and the verb that makes it a rule rather than a note.
+probe_idiom_records_the_sigpipe_rule() {
+  local idiom_records
+  idiom_records="$(section_records "$IDIOM_HEADING")"
+
+  # Fail closed: an empty section matches no regex, and saying so names the repair — the
+  # heading moved — rather than reporting a rule missing from prose nobody could read.
+  if [[ -z "${idiom_records// /}" ]]; then
+    problems+=("$claude_md has no '$IDIOM_HEADING' section to read, so nothing states the pipefail/SIGPIPE rule where the agent writing a suite would find it")
+    return
+  fi
+
+  one_record_matches "$idiom_records" \
+    'pipefail' \
+    'grep -[a-z]*q' \
+    '[^a-z]head' \
+    'sigpipe' \
+    'no-sigpipe-pipelines' \
+    '/dev/null|redirect|to eof' \
+    'never|must not|does not|no suite' && return
+
+  problems+=("$claude_md has no single record in its '$IDIOM_HEADING' section stating that a suite declaring pipefail never ends a pipeline in grep -q or head, that the status asserted on is then the writer's SIGPIPE, which case says so (no-sigpipe-pipelines), and what the repair is")
+}
+
+# 5. One criterion, one case: the section an author writing a suite reads states the
+#    pipefail/SIGPIPE rule, in one record rather than in fragments a reader has to assemble
+#    (#422).
+name="$claude_md's testing idiom section states the pipefail/SIGPIPE rule"
+problems=()
+
+probe_idiom_records_the_sigpipe_rule
 
 report "$name"
 

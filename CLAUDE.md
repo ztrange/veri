@@ -189,6 +189,17 @@ until commit `c4a6bdb`, and the run still said `all suites green` (#157). A non-
 still fails a suite, count line or not; the check lives in the recipe once, so a suite added
 under the glob is covered by existing.
 
+**That same `pipefail` is why a suite never ends a pipeline in `grep -q` or `head`** (#422).
+Both readers leave before EOF, so a writer with bytes still to push dies of SIGPIPE on the
+closed pipe, `pipefail` hands that 141 up as the pipeline's status, and the assertion built on
+it is inverted — green on this Mac, where BSD grep's ~16 kB buffer lets the writer finish in
+one `write()`, and red on CI, where glibc's 4 kB pipe buffer makes it two. Repair by letting
+the reader consume to EOF (`grep -F … > /dev/null` in place of `grep -qF …`) or by feeding it
+with a redirection rather than a pipe, which moves the status off the writer — never with
+`trap '' PIPE` or by dropping `pipefail`, which is what makes the rest of these suites honest
+(#157). `no-sigpipe-pipelines.test.sh` fails the run naming `<suite>:<line>`, against an
+exemption table carrying a reason per entry, the way `no-nested-suites.test.sh` does.
+
 **`skills/tdd/scripts/tests/unit/` is the fast tier**, run alone by `make unit` and also by
 `make test`. A suite belongs there only if it clears the admission bar: about 100 ms per
 case, and no git, network, servers, real waits (`sleep`) or nested suites — judged by
