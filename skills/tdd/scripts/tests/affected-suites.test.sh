@@ -430,6 +430,26 @@ if [[ "$code" == 0 && "$err" == *"notes.md"* && "$err" == *"memo.md"* ]]; then o
   no "a widening caused by two unplaced files names both on stderr (code=$code, stderr=${err:-<empty>})"
 fi
 
+# 20. a whole green commit's shape: the ledger, the refactor-owed file and a real source change in
+#     one range → exactly that source change's suite. This is the range every green commit makes,
+#     and the one the regression was measured on (issue #416): before the run-state rule, the two
+#     `.tdd/` files fell through together and widened the answer to all 104 suites in the tier
+#     whose whole purpose is not to run them. Case 16 pins the ledger alone beside a change;
+#     this pins the pair, so a rule narrowed back to `.tdd/issue-<n>.md` would show up here.
+#     bar.sh and its suite are untouched, so a widened answer is the one carrying tests/bar.test.sh.
+new_repo green-commit-shape
+foo_bar_tree
+mkdir -p "$repo/.tdd"
+printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
+printf 'refactor owed\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+commit_base
+printf 'foo 2\n' > "$s/foo.sh"
+printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
+printf 'refactor owed 2\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+commit_head
+expect_suites "a green commit's shape — ledger, refactor-owed file and a source change — prints exactly that script's suite" \
+  "skills/tdd/scripts/tests/foo.test.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
