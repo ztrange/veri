@@ -232,11 +232,11 @@ timed_through "verify-green's check 1" "$check1" target
 report "$name"
 
 # 9. The probes above answer from the prompt they read, not from the writer feeding them
-#    (#422). Each one pipes `plain` into a reader that leaves on its first match; on a glibc
-#    pipe a writer with more than 4096 bytes still to push then dies of SIGPIPE, `pipefail`
-#    hands that 141 up as the pipeline's status, and the probe reports a problem about a
-#    prompt that says the right thing. On this Mac the race cannot happen — BSD grep buffers
-#    ~16 KB, so the writer needs one write — which is why #416 was green here and red on CI.
+#    (#422) — the inversion runs_affected's header describes, and what every probe reading
+#    a here-string rather than a pipe is for. On this Mac the race behind it cannot happen:
+#    BSD grep buffers ~16 KB, so the writer needs one write, while a glibc pipe holds 4096
+#    bytes and a writer with more still to push is preempted between two — which is why
+#    #416 was green here and red on CI.
 #    So the preemption is injected rather than raced for: `plain` is replaced by one that
 #    writes the same bytes and then returns 141, the status a writer killed by SIGPIPE
 #    leaves, and the probes must reach the same verdict as they do with it intact — on a
