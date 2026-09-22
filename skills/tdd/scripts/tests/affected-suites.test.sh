@@ -62,6 +62,17 @@ expect_suites() {
   fi
 }
 
+# expect_nothing_to_do <name> — run affected-suites.sh on $base..$head inside $repo and pass when
+# it exits 3 printing nothing: the answer cases 3 and 17 share, an empty diff and a range of run
+# state alone being the two ways of having no suite to run.
+expect_nothing_to_do() {
+  local name="$1" out code
+  out="$(run_affected 2>/dev/null)"; code=$?
+  if [[ "$code" == 3 && -z "$out" ]]; then ok; else
+    no "$name (code=$code, stdout=${out:-<empty>})"
+  fi
+}
+
 # foo_bar_tree — the fixture cases 4, 7 and 16 share: foo.sh and bar.sh under $s, each with a
 # suite of its own under tests/. Every one of the three expects tests/foo.test.sh alone, so
 # bar's untouched suite is the one an answer that widened, or that read the change as the
@@ -123,10 +134,7 @@ printf '# wolf suite\n' > "$s/tests/wolf.test.sh"
 commit_base
 git_q "$repo" commit -q --allow-empty -m "head" >/dev/null 2>&1
 head="$(git -C "$repo" rev-parse HEAD)"
-out="$(run_affected 2>/dev/null)"; code=$?
-if [[ "$code" == 3 && -z "$out" ]]; then ok; else
-  no "empty diff → exit 3 and prints nothing (code=$code, stdout=${out:-<empty>})"
-fi
+expect_nothing_to_do "empty diff → exit 3 and prints nothing"
 
 # 4. rule 1: a change to a script under skills/tdd/scripts/ → exactly its own suite. The tree
 #    also holds a second script with a suite of its own, untouched, so an answer that listed
@@ -381,10 +389,7 @@ commit_base
 printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
 printf 'refactor owed 2\n' > "$repo/.tdd/issue-416-refactor-owed.md"
 commit_head
-out="$(run_affected 2>/dev/null)"; code=$?
-if [[ "$code" == 3 && -z "$out" ]]; then ok; else
-  no "run state alone → exit 3 and prints nothing (code=$code, stdout=${out:-<empty>})"
-fi
+expect_nothing_to_do "run state alone → exit 3 and prints nothing"
 
 echo "----"
 echo "$pass passed, $fail failed"
