@@ -346,6 +346,25 @@ if [[ "$code" == 0 && "$err" == *"notes.md"* ]]; then ok; else
   no "a widened answer names on stderr the file that forced the widening (code=$code, stderr=${err:-<empty>})"
 fi
 
+# 16. run state: a `.tdd/` ledger alongside one source change → exactly that source change's
+#     suite. Every green commit carries `.tdd/issue-<n>.md`, so a range spanning one used to
+#     fall to the fail-closed branch and widen the whole answer to every suite (issue #416).
+#     foo.sh is placed by rule 1; bar's suite covers nothing that changed, so a widened answer
+#     would carry it.
+new_repo run-state-ledger
+mkdir -p "$s/tests" "$repo/.tdd"
+printf 'foo\n' > "$s/foo.sh"
+printf 'bar\n' > "$s/bar.sh"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# bar suite\n' > "$s/tests/bar.test.sh"
+printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
+commit_base
+printf 'foo 2\n' > "$s/foo.sh"
+printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
+commit_head
+expect_suites "run state: a .tdd/ ledger alongside a script change prints exactly that script's suite" \
+  "skills/tdd/scripts/tests/foo.test.sh"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

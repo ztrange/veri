@@ -62,6 +62,10 @@ suite_of() {
       else
         echo "$scripts/tests/$name.test.sh"
       fi ;;
+    .tdd/*)
+      # Run state, not an input to any suite: the ledger is rewritten by every green commit, so
+      # a range spanning one would otherwise fall through and widen the whole answer (#416).
+      ;;
     *) return 1 ;;
   esac
 }
