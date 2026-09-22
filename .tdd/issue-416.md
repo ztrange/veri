@@ -5,6 +5,6 @@
 - [x] An unplaced path that is not `.tdd/` run state still widens the answer to every suite ⟦criterion 3⟧
 - [x] The widening stderr line still names every unplaced file that caused it ⟦criterion 4⟧
 - [x] A green-commit-shaped range — ledger, refactor-owed file and a real source change together — answers narrowly, pinning the regression ⟦criterion 5⟧
-- [ ] A range that adds or deletes a file under `tests/` or `tests/unit/` includes `claude-md-counts.test.sh` in the affected set ⟦criterion 6⟧
+- [x] A range that adds or deletes a file under `tests/` or `tests/unit/` includes `claude-md-counts.test.sh` in the affected set ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] Editing an existing suite's contents does not include `claude-md-counts.test.sh` ⟦criterion 7⟧
 - [ ] A range that adds or deletes a script under `scripts/` also includes `claude-md-counts.test.sh`, since CLAUDE.md hand-types the script count beside the suite count

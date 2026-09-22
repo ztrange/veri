@@ -450,6 +450,24 @@ commit_head
 expect_suites "a green commit's shape — ledger, refactor-owed file and a source change — prints exactly that script's suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
+# 21. a suite file added under tests/ or tests/unit/ pulls in claude-md-counts.test.sh, the suite
+#     that checks the counts CLAUDE.md hand-types against the files on disk. It asserts on a count
+#     of files, not on any file's contents, so no touched path points at it and a run that added a
+#     suite used to discover the broken count only in a later full-tier run, one phase too late
+#     (issue #416). The range adds one suite under each directory the count covers; foo.sh and its
+#     suite are untouched, so tests/foo.test.sh is what a widened answer would carry.
+new_repo suite-added-counts
+mkdir -p "$s/tests/unit"
+printf 'foo\n' > "$s/foo.sh"
+printf '# foo suite\n' > "$s/tests/foo.test.sh"
+printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"
+commit_base
+printf '# newbie suite\n' > "$s/tests/newbie.test.sh"
+printf '# rookie unit suite\n' > "$s/tests/unit/rookie.test.sh"
+commit_head
+expect_suites "a range that adds a suite file under tests/ or tests/unit/ pulls in claude-md-counts.test.sh" \
+  "$(printf 'skills/tdd/scripts/tests/claude-md-counts.test.sh\nskills/tdd/scripts/tests/newbie.test.sh\nskills/tdd/scripts/tests/unit/rookie.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -86,6 +86,14 @@ while IFS= read -r f; do
   fi
 done <<<"$files"
 
+# A suite file added or deleted changes the counts CLAUDE.md hand-types against the files on
+# disk, which claude-md-counts.test.sh is the suite that checks. It asserts on a count of files
+# rather than on any file's contents, so no touched path points at it and a run that added a
+# suite used to discover the broken count only in a later full-tier run (#416).
+if [[ -n "$(git diff --name-only --diff-filter=AD "$range" -- "$scripts/tests")" ]]; then
+  placed+="$scripts/tests/claude-md-counts.test.sh"$'\n'
+fi
+
 if [[ -n "$unplaced" ]]; then
   # Say which file widened the answer, so the next unplaced kind is visible rather than silent.
   printf 'affected-suites: no rule places %s; widening to every suite\n' "$unplaced" >&2
