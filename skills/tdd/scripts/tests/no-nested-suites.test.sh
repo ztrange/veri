@@ -200,8 +200,8 @@ report "no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches an
 #    nothing; the four mentions are data, not a command. Read from case 1's own scan rather
 #    than a second pass, so this case costs nothing and cannot disagree with it.
 problems=()
-for p in "${scanned[@]}"; do
-  [[ "$p" == affected-suites.test.sh:*claude-md-counts.test.sh* ]] && problems+=("$p")
+for reported in "${scanned[@]}"; do
+  [[ "$reported" == affected-suites.test.sh:*claude-md-counts.test.sh* ]] && problems+=("$reported")
 done
 report "affected-suites.test.sh's fixture and case-name mentions of claude-md-counts.test.sh are not read as launching it"
 
