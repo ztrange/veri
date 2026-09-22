@@ -34,6 +34,13 @@
 #     (SUBJECT_NAME='run-conductor.test.sh', an array of `GUARDS`). A bare name is never used
 #     for anything else in this tree: nothing here compares two suites' names as plain text.
 #
+# A bare name is read as one of those two only when it stands for the suite itself. A table
+# key addressing a LINE of another suite — `[other.test.sh:66]="<reason>"`, the shape
+# no-sigpipe-pipelines.test.sh's exemption table uses — is not: `other.test.sh:66` is an
+# address, and no shell can launch one. So a bare name bracketed as a key and followed by
+# `:<line>]` is passed over, which is why that table's own keys do not need an exemption
+# here.
+#
 # A third shape — the other suite's FULL repo-relative path, quoted, with no `$` in front
 # ("skills/tdd/scripts/tests/name.test.sh") — is common and mostly harmless on its own:
 # claude-md-counts.test.sh's `present()` and `moved()` read dozens of them just to confirm a
@@ -162,8 +169,12 @@ done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
     rest = line
     while (match(rest, /[a-z0-9_-]+\.test\.sh/)) {
       tok = substr(rest, RSTART, RLENGTH)
+      before = (RSTART > 1) ? substr(rest, RSTART - 1, 1) : ""
       rest = substr(rest, RSTART + RLENGTH)
       if (!(tok in is_suite) || tok == self) continue
+      # A table key addressing a site — `[other.test.sh:66]=` — names a line of that suite,
+      # which is not something any shell can launch. Never a launch, so never a problem.
+      if (before == "[" && rest ~ /^:[0-9]+\]/) continue
       pathform = (index(line, dir "/" tok) > 0) || (index(line, dir "/unit/" tok) > 0)
       if (pathform) {
         pending_n++
