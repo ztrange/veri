@@ -7,6 +7,10 @@
 #   * heartbeat — activity on the leaf's progress log within a window tells "slow but
 #     working" from "hung". A leaf silent past the window is killed.
 #   * hard timeout — a leaf that exceeds the wall-clock cap is killed even if still noisy.
+# The heartbeat is the leaf's; a `verdict-<phase>` supervision is the wrapper around a
+# verifier leaf that is already supervised under its own name, so it keeps only the hard
+# timeout and never kills for a silence that is the wrapper's rather than the verifier's
+# (issue #415 — the reasoning is where `heartbeat_watched` is set, below).
 # A killed leaf is retried up to VERI_STUCK_RETRIES times (default 1) on a fresh attempt; if
 # it still can't recover it is reported as `killed-stuck`, which the conductor turns into a
 # clean bail — unless its log already holds the leaf's closing result record, in which case the
@@ -72,6 +76,26 @@ heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
 poll="${VERI_POLL:-1}"
 retries="${VERI_STUCK_RETRIES:-1}"
+
+# Whether the heartbeat above is one of this supervision's two sensors at all — it is, for a
+# leaf, and it is not for the wrapper around a verifier (issue #415). `supervise.sh
+# verdict-<phase>` watches SKILL.md's `bash -c "verify.sh … > .reason 2> .err; echo $? >
+# .exit"`, and that wrapper sends every byte the verification produces to the reason and err
+# files and to `.tdd/verify-<phase>.log`, where the `supervise.sh verify-<phase>` INSIDE
+# verify.sh puts the leaf's own stream. So `.tdd/verdict-<phase>.log` — the only thing a
+# heartbeat here can watch — stays empty however hard the verifier is working, and a window
+# measured over that silence kills every verification that outlives it.
+#
+# The leaf itself is already supervised, under its own name and its own window, so the silence
+# that matters is already measured in the one place stuck-detection policy lives (ADR-0002). A
+# window here would be a SECOND one over the same verification — a second way to raise
+# killed-stuck, blind to the signal the first one reads — which would make the fix for a
+# stalled wait a new way to lose a working verification. What the wrapper is supervised for is
+# a completion file on every path, so the wait can end (#415's stalled `wait-leaf.sh
+# verdict-<phase>`), not a second stuck-detector; the hard timeout, which needs no progress to
+# read, still bounds it.
+heartbeat_watched=1
+case "$name" in verdict-*) heartbeat_watched=0 ;; esac
 
 # A malformed VERI_KILL_POLL is a misconfigured run, not a decision — the same fail-closed
 # rule refactor-budget.sh applies to VERI_REFACTOR_BUDGET: a diagnostic on stderr and exit 2,
@@ -254,7 +278,7 @@ attempt_once() {
     # of two whole-second `now` readings, so a sub-second gap straddling a second boundary
     # reads as a whole second of it. That must not kill an active or just-relaunched leaf at
     # exactly the window; a genuine hang keeps climbing past it and is still killed.
-    if (( silence > heartbeat )); then
+    if (( heartbeat_watched )) && (( silence > heartbeat )); then
       status="killed-stuck"; reason="no heartbeat for ${silence}s (window ${heartbeat}s)"
       kill_tree; break
     fi

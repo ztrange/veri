@@ -1586,6 +1586,55 @@ preserve_logged="$(while read -r f; do
   || no "a killed-stuck leaf preserves the relaunched attempt and the final one, each as its own tree and log (code=$preserve_code want 2; refs=$preserve_ref_count want 2 under refs/veri/attempts/$preserve_issue/$preserve_step/, attempts per tree='$preserve_trees' want '1 2'; log copies=$preserve_copy_count want 2, attempt each logged='$preserve_logged' want '1 2')"
 
 
+# 36. a verification whose leaf is working while the launch wrapper around it stays silent is
+#     not killed for that silence (issue #415). Routing the verifier through this supervisor put
+#     a `supervise.sh verdict-<phase>` around SKILL.md's `bash -c` wrapper, and that wrapper
+#     sends verify.sh's stdout to `.tdd/verify-<phase>.reason` and its stderr to
+#     `.tdd/verify-<phase>.err` — so it writes nothing at all to the log THIS supervision
+#     watches, however hard the verifier leaf inside it is working. A heartbeat window measured
+#     over that silence kills every verification that outlives it, which would make the fix for
+#     a stalled wait a new way to lose a working one: the leaf inside is already supervised
+#     under `verify-<phase>`, and supervising the wrapper must add no second window.
+#
+#     The stub is that wrapper in miniature: the verification's progress goes to
+#     `.tdd/verify-red.log`, where the `supervise.sh verify-red` inside verify.sh puts it, the
+#     verdict text to the reason file, and verify.sh's own verdict code to
+#     `.tdd/verdict-red.exit`, the record the conductor's wait reads. Both land only if the
+#     wrapper is allowed to reach its last line, which is what this case is asking.
+#     Case 4's arithmetic, one level out: six seconds of injected life against a two-second
+#     window, never more than one second between the inner leaf's writes, so the verification
+#     survives only if the wrapper's own silence is not what is measured.
+#
+#     A run directory of its own, the shape case 35 takes and for the same kind of reason:
+#     cases 23 to 27 run under the name `verify-red` in `$work`, so the log this leaf's progress
+#     lands in already exists there, and an earlier case's writes to it must not be able to
+#     stand in for progress this one made.
+cat > "$stub/leaf-quiet-wrapper" <<'L'
+#!/bin/sh
+: > .test-clock-reads
+mkdir -p .tdd
+for i in 1 2 3 4 5 6; do
+  echo "verifier: tick $i" >> .tdd/verify-red.log
+  clock-jump 1; await-poll
+done
+printf 'The test pins the criterion as observable behavior.\n' > .tdd/verify-red.reason
+echo 0 > .tdd/verdict-red.exit
+exit 0
+L
+chmod +x "$stub/leaf-quiet-wrapper"
+
+quiet_wrapper_work="$work/quiet-wrapper"
+mkdir -p "$quiet_wrapper_work"
+( cd "$quiet_wrapper_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=2 VERI_TIMEOUT=30 \
+    VERI_POLL=0.02 VERI_KILL_POLL=0.01 "$SUP" verdict-red "$stub/leaf-quiet-wrapper" ) \
+  > /dev/null 2> "$quiet_wrapper_work/err"
+quiet_wrapper_code=$?
+quiet_wrapper_recorded="$(cat "$quiet_wrapper_work/.tdd/verdict-red.exit" 2>/dev/null || echo '<missing>')"
+quiet_wrapper_reason="$(cat "$quiet_wrapper_work/.tdd/verify-red.reason" 2>/dev/null)"
+{ [[ "$quiet_wrapper_code" == 0 ]] && [[ "$quiet_wrapper_recorded" == 0 ]] \
+  && [[ "$quiet_wrapper_reason" == 'The test pins the criterion as observable behavior.' ]]; } && ok \
+  || no "a working verification is not killed for its wrapper's silence: 6s of inner progress against a 2s window → the verdict the verifier recorded (code=$quiet_wrapper_code want 0, recorded=$quiet_wrapper_recorded want 0, reason='$quiet_wrapper_reason' want the verifier's own line, err=$(cat "$quiet_wrapper_work/err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
