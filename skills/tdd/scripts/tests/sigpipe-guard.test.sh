@@ -117,6 +117,7 @@ begin_case() {
   innocent_path=""
   guard_copy=""
   offender_line=""
+  marked=""
   guard_out=""
   guard_code=0
 }
@@ -251,6 +252,21 @@ probe_guard_is_there() {
   }
 }
 
+# probe_marked_line_is_findable — the premise every premises probe below opens with, and the
+# one that answers while the mark named no line at all: the comment `probe_line` ends the
+# offending line in named exactly one line, so there is an address to ask the guard for. The
+# line it named is left in `marked` for the checks that follow it, which is why this is a
+# probe rather than a `$(…)`: a problem recorded inside a command substitution is recorded in
+# a subshell and lost. Returns non-zero so a probe that gates on it stops rather than asking
+# after a line there is none of.
+probe_marked_line_is_findable() {
+  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
+    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
+    return 1
+  }
+  marked="$(sed -n "${offender_line}p" "$offender_path")"
+}
+
 # probe_plant_is_what_it_claims <reader> — a plant's premises, asserted rather than assumed.
 # The offending line has to be findable by its mark, has to really feed a writer into the
 # reader the case planted, and the suite holding it has to really declare `pipefail`, or
@@ -264,12 +280,7 @@ probe_guard_is_there() {
 # made.
 probe_plant_is_what_it_claims() {
   local reader="$1"
-  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
-    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
-    return 1
-  }
-  local marked
-  marked="$(sed -n "${offender_line}p" "$offender_path")"
+  probe_marked_line_is_findable || return 1
   [[ "$marked" == *"|"*"$reader"* ]] ||
     problems+=("the planted offender's line $offender_line does not end a pipeline in $reader, so there is nothing there to catch: $(flat "$marked")")
   grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
@@ -612,12 +623,8 @@ plant_wrapped_offender() {
 # non-zero when there is no marked line, since every premise after that is about a line
 # there is none of.
 probe_wrapped_plant_is_what_it_claims() {
-  local reader="$1" marked before
-  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
-    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
-    return 1
-  }
-  marked="$(sed -n "${offender_line}p" "$offender_path")"
+  local reader="$1" before
+  probe_marked_line_is_findable || return 1
   [[ "$marked" == *"$reader"* ]] ||
     problems+=("the planted offender's marked line $offender_line does not open with $reader, so there is no wrapped reader there to catch: $(flat "$marked")")
   [[ "$marked" != *"|"* ]] ||
@@ -689,12 +696,8 @@ plant_both_readings_offender() {
 # without asking anything. Returns non-zero when there is no marked line, since every
 # premise after that is about a line there is none of.
 probe_both_readings_plant_is_what_it_claims() {
-  local first="$1" second="$2" marked before
-  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
-    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
-    return 1
-  }
-  marked="$(sed -n "${offender_line}p" "$offender_path")"
+  local first="$1" second="$2" before
+  probe_marked_line_is_findable || return 1
   [[ "$marked" == *"$first"* ]] ||
     problems+=("the planted offender's marked line $offender_line does not open with $first, so the wrapped reading never reaches it and one report is all there was ever going to be: $(flat "$marked")")
   [[ "$marked" == *"|"*"$second"* ]] ||
