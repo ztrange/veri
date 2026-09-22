@@ -109,51 +109,44 @@ probe_line() {
   printf 'printf "%%s\\n" "$%s" | %s  # %s\n' "$1" "$GREP_Q" "$MARK"
 }
 
-# plant_offender — write the suite the guard must catch, at `offender_path`: it declares
-# `pipefail` and ends a pipeline in `grep -q`, so the status it asserts on is its own
-# printf's, not grep's. That is the shape of both sites this issue repairs.  A whole suite
-# down to the count line, and executable, because the guard meets it in a directory of
-# runnable suites.
-plant_offender() {
+# write_plant <path> <set-line> <comment> <probe-line> — write one fixture suite, whole and
+# executable. The three fixtures differ only in what they declare, what their comment says
+# and which reader their marked pipeline ends in; the suite skeleton around those three is
+# written once, here, rather than copied per fixture. Whole down to the count line, and
+# executable, because the guard meets them in a directory of runnable suites rather than
+# being handed a file.
+write_plant() {
+  local path="$1" set_line="$2" comment="$3" probe="$4"
   {
     echo '#!/usr/bin/env bash'
-    echo '# Unit tests for a prompt template — the pipeline below is the shape the guard has to catch.'
-    echo "$PIPEFAIL_LINE"
+    echo "# Unit tests for a prompt template — $comment"
+    echo "$set_line"
     echo 'body="$(printf "line %s\n" $(seq 1 400))"'
     echo 'want="line 3"'
     echo 'pass=0 fail=0'
-    echo 'if '"$(probe_line body)"
-  } > "$offender_path"
-  cat >> "$offender_path" <<'EOF'
-then pass=1; else fail=1; fi
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
-EOF
-  chmod 755 "$offender_path"
+    echo 'if '"$probe"
+    echo 'then pass=1; else fail=1; fi'
+    echo 'echo "----"'
+    echo 'echo "$pass passed, $fail failed"'
+    echo '[[ "$fail" -eq 0 ]]'
+  } > "$path"
+  chmod 755 "$path"
+}
+
+# plant_offender — write the suite the guard must catch, at `offender_path`: it declares
+# `pipefail` and ends a pipeline in `grep -q`, so the status it asserts on is its own
+# printf's, not grep's. That is the shape of both sites this issue repairs.
+plant_offender() {
+  write_plant "$offender_path" "$PIPEFAIL_LINE" \
+    'the pipeline below is the shape the guard has to catch.' "$(probe_line body)"
 }
 
 # plant_innocent — write the suite the guard must leave alone, at `innocent_path`: the same
 # writer into the same `grep -q`, with no `pipefail` declared, so the pipeline's status is
-# the reader's own and the writer's SIGPIPE never reaches it. Whole and executable for the
-# same reasons.
+# the reader's own and the writer's SIGPIPE never reaches it.
 plant_innocent() {
-  {
-    echo '#!/usr/bin/env bash'
-    echo '# Unit tests for a prompt template — the same pipeline, with the status the readers own.'
-    echo 'set -u'
-    echo 'body="$(printf "line %s\n" $(seq 1 400))"'
-    echo 'want="line 3"'
-    echo 'pass=0 fail=0'
-    echo 'if '"$(probe_line body)"
-  } > "$innocent_path"
-  cat >> "$innocent_path" <<'EOF'
-then pass=1; else fail=1; fi
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
-EOF
-  chmod 755 "$innocent_path"
+  write_plant "$innocent_path" 'set -u' \
+    'the same pipeline, with the status the readers own.' "$(probe_line body)"
 }
 
 # plant — build the scratch tree the case is asked about and leave its path in `tree`, the
@@ -289,24 +282,10 @@ head_probe_line() {
 
 # plant_head_offender — write the suite the guard must catch, at `head_offender_path`: it
 # declares `pipefail` and ends a pipeline in `head`, so the status it asserts on is its own
-# printf's rather than the reader's. A whole suite down to the count line, and executable,
-# because the guard meets it in a directory of runnable suites.
+# printf's rather than the reader's.
 plant_head_offender() {
-  {
-    echo '#!/usr/bin/env bash'
-    echo '# Unit tests for a prompt template — the pipeline below is the shape the guard has to catch.'
-    echo "$PIPEFAIL_LINE"
-    echo 'body="$(printf "line %s\n" $(seq 1 400))"'
-    echo 'pass=0 fail=0'
-    echo 'if '"$(head_probe_line body)"
-  } > "$head_offender_path"
-  cat >> "$head_offender_path" <<'EOF'
-then pass=1; else fail=1; fi
-echo "----"
-echo "$pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
-EOF
-  chmod 755 "$head_offender_path"
+  write_plant "$head_offender_path" "$PIPEFAIL_LINE" \
+    'the pipeline below is the shape the guard has to catch.' "$(head_probe_line body)"
 }
 
 # plant_head — the tree the head case is asked about, left in `head_tree`, with the planted
