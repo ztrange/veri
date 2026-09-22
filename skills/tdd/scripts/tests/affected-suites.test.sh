@@ -62,6 +62,18 @@ expect_suites() {
   fi
 }
 
+# foo_bar_tree — the fixture cases 4, 7 and 16 share: foo.sh and bar.sh under $s, each with a
+# suite of its own under tests/. Every one of the three expects tests/foo.test.sh alone, so
+# bar's untouched suite is the one an answer that widened, or that read the change as the
+# neighbour's, would carry.
+foo_bar_tree() {
+  mkdir -p "$s/tests"
+  printf 'foo\n' > "$s/foo.sh"
+  printf 'bar\n' > "$s/bar.sh"
+  printf '# foo suite\n' > "$s/tests/foo.test.sh"
+  printf '# bar suite\n' > "$s/tests/bar.test.sh"
+}
+
 # 1. a resolvable range → one suite per line, sorted, no duplicate. The range touches
 #    wolf.sh and its own suite, so both name tests/wolf.test.sh and a list that kept every
 #    answer would carry it twice; and zulu.sh, whose suite is under tests/unit/, so the diff
@@ -120,11 +132,7 @@ fi
 #    also holds a second script with a suite of its own, untouched, so an answer that listed
 #    every suite, or the neighbour's, would not pass for "exactly that suite".
 new_repo rule1
-mkdir -p "$s/tests"
-printf 'foo\n' > "$s/foo.sh"
-printf 'bar\n' > "$s/bar.sh"
-printf '# foo suite\n' > "$s/tests/foo.test.sh"
-printf '# bar suite\n' > "$s/tests/bar.test.sh"
+foo_bar_tree
 commit_base
 printf 'foo 2\n' > "$s/foo.sh"
 commit_head
@@ -169,11 +177,7 @@ expect_suites "rule 2: a change to scripts/lib/bar.sh prints the suite of every 
 #    script it covers and a neighbour's suite stay untouched, so the answer must be the suite
 #    alone — not read as a change to foo.sh, and not widened to every suite.
 new_repo rule3-suite
-mkdir -p "$s/tests"
-printf 'foo\n' > "$s/foo.sh"
-printf 'bar\n' > "$s/bar.sh"
-printf '# foo suite\n' > "$s/tests/foo.test.sh"
-printf '# bar suite\n' > "$s/tests/bar.test.sh"
+foo_bar_tree
 commit_base
 printf '# foo suite 2\n' > "$s/tests/foo.test.sh"
 commit_head
@@ -352,11 +356,8 @@ fi
 #     foo.sh is placed by rule 1; bar's suite covers nothing that changed, so a widened answer
 #     would carry it.
 new_repo run-state-ledger
-mkdir -p "$s/tests" "$repo/.tdd"
-printf 'foo\n' > "$s/foo.sh"
-printf 'bar\n' > "$s/bar.sh"
-printf '# foo suite\n' > "$s/tests/foo.test.sh"
-printf '# bar suite\n' > "$s/tests/bar.test.sh"
+foo_bar_tree
+mkdir -p "$repo/.tdd"
 printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
 commit_base
 printf 'foo 2\n' > "$s/foo.sh"
