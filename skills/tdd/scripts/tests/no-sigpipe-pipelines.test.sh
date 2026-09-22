@@ -252,8 +252,15 @@ probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader() {
       problems+=("$rel:${site%%:*} ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — asserts on the writer's SIGPIPE rather than the reader's answer: $(flat "${site#*:}")")
     done < <(unexempted_sites "$ROOT/$rel")
   done < <(roster test)
+  # An empty roster is something this case found, not an offence it discovered: a tree with
+  # no Makefile — every scratch tree sigpipe-guard.test.sh plants — has no suite `make test`
+  # would run, so nothing in it reads its own writer's SIGPIPE as an answer and there is
+  # nothing to fail over. Failing there would make the guard's verdict about such a tree
+  # unreadable: red whatever was planted in it. What replaces the failure is not silence —
+  # the finding is said, naming the question that was asked, so an empty roster in a real
+  # tree is still visible to whoever reads the output.
   [[ "${#listed[@]}" -gt 0 ]] ||
-    problems+=("\`make -n test\` named no suite at all, so nothing was read: the roster this case asks about could not be obtained")
+    echo "note: \`make -n test\` named no suite at all, so no roster was read: nothing this case could ask about"
   return 0
 }
 

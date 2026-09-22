@@ -761,6 +761,81 @@ drop_tree
 
 report "$name"
 
+# The fragment of the guard's roster case name that a FAIL line naming that case carries —
+# its subject is what `make test` runs, which is the one thing no other case of the guard
+# says. Enough to tell that case's verdict apart from the directory case's, and no more of
+# the sentence than that, since the rest of it is wording rather than contract.
+ROSTER_CASE='`make test` runs'
+
+# The question the roster case asks, and so the thing it has to name when it reports what it
+# found: `make -n test` is where the roster comes from, and a note that never names it says
+# nothing an author can act on.
+ROSTER_QUESTION='make -n test'
+
+# plant_bare_tree — a scratch tree holding nothing but the guard's own copy: no fixture, and
+# so no offending site anywhere in it. What makes it the tree this case needs is what every
+# plant here already lacks and no case has yet asked about — there is no Makefile in it, so
+# `make -n test` can name no suite at all.
+plant_bare_tree() {
+  open_tree "$OFFENDER" || return 1
+
+  cp "$GUARD_PATH" "$guard_copy"
+  git init -q "$tree" >/dev/null 2>&1
+  git -C "$tree" add -A >/dev/null 2>&1
+}
+
+# probe_tree_has_no_makefile — the premise this case rests on, and the one that answers while
+# the tree can be asked about `make test` after all: there is no Makefile in it, so the
+# roster read comes back empty and the case below is about an empty roster rather than about
+# a roster that happened to hold nothing offending. Returns non-zero so the case stops rather
+# than reading a verdict that is not the one it asked for.
+probe_tree_has_no_makefile() {
+  [[ ! -e "$tree/Makefile" ]] || {
+    problems+=("the scratch tree carries a Makefile at $tree/Makefile, so \`make -n test\` there may name suites and this case is not about an empty roster at all")
+    return 1
+  }
+}
+
+# probe_guard_reports_the_empty_roster_without_failing — the criterion, and both halves of
+# it. A roster read that comes back empty is something the guard found, not an offence it
+# discovered: the tree in front of it has no Makefile, no suite it would run reads its own
+# writer's SIGPIPE as an answer because there is no such suite, and failing the run there
+# turns every scratch plant this suite builds into a red verdict that says nothing about the
+# plant. So the roster case must not be reported as a failure — and it must still say what
+# it found, naming `make -n test`, or the difference between "the roster was empty" and "the
+# roster was clean" is invisible to whoever reads the output.
+probe_guard_reports_the_empty_roster_without_failing() {
+  local failures named said
+  failures="$(grep -F 'FAIL - ' <<< "$guard_out")"
+  named="$(grep -F "$ROSTER_CASE" <<< "$failures")"
+  [[ -z "$named" ]] ||
+    problems+=("the guard failed its roster case over a tree whose \`$ROSTER_QUESTION\` names no suite, so every scratch plant is red for the tree's missing Makefile rather than for what was planted in it: $(flat "$named")")
+  said="$(grep -F "$ROSTER_QUESTION" <<< "$guard_out")"
+  [[ -n "$said" ]] ||
+    problems+=("no line of the guard's output names \`$ROSTER_QUESTION\` at all, so the empty roster went unsaid and a reader cannot tell a roster that held nothing from one that was never read; it said: $(flat "$guard_out")")
+}
+
+# 7. One criterion, one case: an empty roster is a finding, not a failure. The roster case
+#    reads what `make test` would run, and in a tree with no Makefile it reads nothing —
+#    which is every scratch tree the cases above plant, since a plant is a tests directory
+#    and a guard copy and nothing else. Failing there makes the guard's verdict about the
+#    plant unreadable: the run is red whatever was planted, so "the guard is green once the
+#    plant is removed" cannot be asked at all. What replaces the failure is not silence: the
+#    case says what it found, naming the question it asked, so an empty roster in a real
+#    tree is still visible to whoever reads the output.
+name="no-sigpipe-pipelines.test.sh says what its roster read found when \`make -n test\` names no suite, instead of failing the run"
+begin_case
+
+if probe_guard_is_there && plant_bare_tree; then
+  if probe_tree_has_no_makefile; then
+    run_guard
+    probe_guard_reports_the_empty_roster_without_failing
+  fi
+fi
+drop_tree
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
