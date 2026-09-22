@@ -334,10 +334,11 @@ promptly "$x_race" 1 && ok \
 #    be rewritten without rewriting this case. Read as a paragraph (`awk RS=""`) for case 4's
 #    reason — prose here wraps at ~90 columns, and three file-wide greps would match three
 #    unrelated sections.
-( sleep 0 ) &
-v_pid=$!
-wait "$v_pid"
-printf '%s\n' "$v_pid" > "$work/.tdd/verdict-red.pid"
+#
+#    The dead supervisor is case 5's reaped pid, as case 8's is: one reaped process names a
+#    death for every case that needs one, and spawning a second would say nothing case 5's
+#    own comment does not already say about why it is a real, exited pid.
+printf '%s\n' "$dead_pid" > "$work/.tdd/verdict-red.pid"
 v_dead="$(timed verdict-red 20)"
 v_stderr="$(cat "$work/verdict-red.err")"
 
