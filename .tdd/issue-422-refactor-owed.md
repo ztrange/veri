@@ -12,3 +12,5 @@
 - `probe_guard_names_the_site_once` greps `guard_out` twice for the same address, once for `named` and once for `count` — left undone because deriving the count from `named` needs a special case for the empty match (`wc -l` says 1 where `grep -c` says 0), so it is more code, not less
 ### the guard's roster case says what it found when `make -n test` names no suite, instead of failing the run — so a tree that has no Makefile (every scratch plant `sigpipe-guard.test.sh` builds) gets the guard's real verdict ⟦added⟧ ⟦criterion 4⟧
 - `probe_guard_names_the_site_once` greps `guard_out` twice for the same `<suite>:<line>`, once for the text and once for the count; one read would need an empty-string special case, so the second grep is currently the shorter spelling
+### `CLAUDE.md`'s testing idiom section states the pipefail/SIGPIPE rule once ⟦criterion 5⟧
+- `records()` now has one caller (`ALL_RECORDS`) and is `awk "$RECORD_SPLIT" … | plain`; inlining it would drop an indirection, at the cost of the symmetry with `section_records` and of the comment that documents what a record is
