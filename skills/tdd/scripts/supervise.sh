@@ -27,7 +27,9 @@
 # Status: exit 0 success · 1 leaf-failure · 2 killed-stuck. A one-line status (with the
 # kill cause) is written to stderr, and the same code is recorded in the completion file
 # `.tdd/<name>.exit` on every path — so a leaf launched detached can be waited on by
-# polling that file instead of by reading this script's stdout.
+# polling that file instead of by reading this script's stdout. The one exception is a leaf
+# that recorded a code in that file itself, as the verifier's launch wrapper does with
+# `verify.sh`'s verdict code: the leaf's own record is the answer and is left alone (#415).
 #
 # Three kinds of event are appended to the run's event log, `.tdd/events.jsonl` (issue #107,
 # ADR-0014): one `launch` — the leaf's name, the command behind it, the model it runs on
@@ -349,6 +351,12 @@ mark launch name="$name" cmd="$*" model="$model"
 # watching a slow leaf. `$$` rather than `$BASHPID`: this is the top-level shell.
 echo $$ > "$pidfile"
 
+# The completion file is cleared here, before any leaf runs, so that a record found in it at
+# the foot of this script can only be one this supervision's leaf wrote — which is what the
+# write down there defers to (issue #415). A file left under this name by an earlier
+# supervision would otherwise be read as this leaf's own answer.
+rm -f "$exitfile"
+
 # A supervisor sent TERM, INT or HUP must still leave an answer (issue #173). The leaf runs in
 # a process group of its own (`set -m` in attempt_once), so the signal never reaches it: the
 # handler takes the leaf's tree down with `kill_tree`, then records 2 in the completion file —
@@ -459,5 +467,18 @@ cat "$log"
 # killed-stuck (where the leaf's subshell never gets to write `.tdd/<name>.rc` at all).
 # A leaf launched detached is waited on by polling this, so it must carry the 0/1/2 of the
 # exit-code contract rather than the leaf's raw code that `.rc` records.
-printf '%s\n' "$ec" > "$exitfile"
+#
+# Unless the leaf recorded a code in it first (issue #415). A verifier is launched as a
+# wrapper that runs `verify.sh` and writes ITS exit code to this very file — SKILL.md's
+# `supervise.sh verdict-<phase> bash -c "… ; echo \$? > .tdd/verdict-<phase>.exit"` — and that
+# code is the verdict the conductor branches on: 1 a REJECT to revise, 2 a verdict nothing
+# could be parsed from. The wrapper's own status is `echo`'s, which is 0 whatever the verifier
+# said, so overwriting the record here would hand every rejected verification on as a pass.
+# The file was cleared before the leaf was launched, so a record present now is this leaf's.
+# It stands only when it is a plain code, the one thing wait-leaf.sh will accept: a truncated
+# or garbled record is no answer at all, and a wait left polling one to its deadline is the
+# failure this file exists to prevent.
+leaf_code=""
+[[ -f "$exitfile" ]] && read -r leaf_code < "$exitfile"
+[[ "$leaf_code" =~ ^[0-9]+$ ]] || printf '%s\n' "$ec" > "$exitfile"
 exit "$ec"
