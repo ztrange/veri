@@ -46,9 +46,10 @@ exactly as you found it.
    later steps triangulate those.
 2. Iterate against the suite that holds the target case, not the full suite: that one
    suite answers the only question each iteration asks, and answers it in a fraction of
-   the time. How this repository runs one suite is a convention like any other —
-   establish it under **Read the conventions out of the repository** at the top of this
-   prompt, from the files that are already there.
+   the time. Run one suite through `run-suite.sh <suite>` — the one invocation for a single
+   suite, so that every leaf on this step runs it the same way and none of them is handed a
+   suite that died partway and still exited 0. If that runner cannot run a suite in this
+   repository, fall back to the test command above and say so in your report.
 3. Exactly once, immediately before you write the `SUITE:` report line, run the fast
    command, `{{FAST_CMD}}` (`detect-test-command.sh --tier fast` prints it), then run
    the suites that `affected-suites.sh` prints for your change, and confirm both runs are

@@ -64,6 +64,38 @@ MAKEFILE="$ROOT/Makefile"
 TESTS_DIR='skills/tdd/scripts/tests'
 ADDED_NAME='newly-added.test.sh'
 
+# The other way a suite is run in this tree, and case 9's subject: the runner a leaf is told to
+# use when it runs ONE suite rather than the whole tier. `make test TESTS=<suite>` is the only
+# single-suite invocation cases 1 to 8 ask anything of, and it leaks TESTS into every nested
+# make, which is why a human — and, until #418, a leaf — ran the file itself instead and got no
+# count-line check at all. Absolute, because the case runs it from wherever this suite started.
+RUNNER="$ROOT/skills/tdd/scripts/run-suite.sh"
+
+# The name case 10 writes its own one-line suite under, inside a scratch directory of its own.
+# That case asks what the runner puts in a suite's ENVIRONMENT, which no fixture on disk can
+# answer without reporting it, and the fixtures here judge the runner's verdict rather than
+# its environment — so the suite that reports it is written by the case, the way case 3 writes
+# the tree it adds a suite to. The name is not one this directory holds, so nothing globs it.
+ENV_SUITE_NAME='reports-tests-var.test.sh'
+
+# Case 12's scratch tree, named here beside the other fixtures it stands in for. The runner
+# reads the guard out of the Makefile at its own grandparent's parent, so the only way to put a
+# root in front of it that cannot answer for the guard is to stand a copy of the runner up in
+# one — the same move case 3 makes when it needs a tree with a suite this one does not have.
+# The suite written in there reaches its count line and reports nothing failed, so a runner
+# that shrugged off the unanswerable root would come back 0 over it.
+GUARDLESS_SUITE_NAME='answers-green.test.sh'
+
+# The two texts case 11 counts, and the reason it counts them at all: a guard written twice is
+# two guards, and the one a leaf meets depends on how it invoked the suite. The first is what a
+# countless suite's refusal says — the `%s: …` message cases 1 and 9 both read — and the second
+# is the substring every spelling of the count-line pattern contains, whether it is written as
+# make's `COUNT_LINE := ^[0-9]+ passed, [0-9]+ failed$$` or a shell script's single-quoted copy.
+# Substrings rather than whole lines, because what must not exist twice is the decision, not a
+# particular way of writing it down.
+GUARD_MESSAGE=': never reached its count line'
+GUARD_PATTERN='passed, [0-9]+ failed'
+
 # The line every suite under skills/tdd/scripts/tests/ prints last, and so the thing the
 # runner now looks for — the Makefile names it once as `COUNT_LINE` for the same reason.
 # Anchored, because "the suite reached its count line" is a claim about a whole line: an
@@ -125,16 +157,30 @@ recipe() {
   recipe_out="$(make -C "$ROOT" test TESTS="$1" 2>&1)" && recipe_code=0 || recipe_code=$?
 }
 
-# direct <fixture path> — the other run this suite makes, and the reason the fixtures are held
-# by absolute path as well: one fixture on its own, outside the recipe, its combined output left
-# in `direct_out` and its exit status in `direct_code`. Every premise probe below needs it where
-# the cases need `recipe` above, because what a premise asserts is the shape of the fixture
-# itself — it dies, it exits 0, it ends in a count line — and a run through the recipe would be
-# answering for the runner in the same breath. Written once because the way a status is caught
-# here is not the obvious one: this suite does not run under `set -e`, so the exit code has to be
-# taken on the spot, and `&& … || …` is the only form that survives a fixture that fails.
+# direct <command> [argument]... — every run this suite makes that does not go through `make`,
+# and the reason the fixtures are held by absolute path as well: a fixture on its own, or the
+# single-suite runner over one, its combined output left in `direct_out` and its exit status in
+# `direct_code`. Every premise probe below needs it where the cases need `recipe` above, because
+# what a premise asserts is the shape of the fixture itself — it dies, it exits 0, it ends in a
+# count line — and a run through the recipe would be answering for the runner in the same breath;
+# case 9 needs it for the runner, which is the same run with a command in front of the fixture.
+# Written once because the way a status is caught here is not the obvious one: this suite does not
+# run under `set -e`, so the exit code has to be taken on the spot, and `&& … || …` is the only
+# form that survives a fixture that fails.
 direct() {
-  direct_out="$("$1" 2>&1)" && direct_code=0 || direct_code=$?
+  direct_out="$("$@" 2>&1)" && direct_code=0 || direct_code=$?
+}
+
+# have_runner <consequence> — the premise the three probes below the recipe's own share: the
+# single-suite runner is there to be run. Written once and asked rather than assumed, because a
+# runner that is not there exits non-zero too — the shell's 127 for a name it cannot find — so a
+# probe that only read the exit status would be answered by the runner's own absence. Each caller
+# passes what its own case loses when the runner is missing; the problem line carries the path,
+# which is the same whoever asks. Returns 1 so a caller ends with `|| return`.
+have_runner() {
+  [[ -x "$RUNNER" ]] && return 0
+  problems+=("there is no executable single-suite runner at $RUNNER, $1")
+  return 1
 }
 
 # probe_fixture_dies_quietly — the premise the case rests on, asserted rather than assumed:
@@ -629,7 +675,296 @@ probe_unswallowed_git_reach_fails_visibly
 
 report "$name"
 
-# 9. The pipeline-fed matches above answer from the text they read, not from the writer
+# probe_runner_refuses_the_countless_suite — the criterion, asked of the single-suite runner
+# rather than of the recipe. The recipe's guard reaches only the suites its glob or a TESTS=
+# override hands it, so a leaf running one suite on its own had nothing checking it: not the
+# exit code, which this fixture shows lying, and not the count line, which nothing read. The
+# probes run in the order a reader needs them — the runner exists, it refuses, the refusal
+# names the suite — and the first is not an assumption this case may skip: a runner that is
+# not there exits non-zero too (the shell's 127 for a name it cannot find), so the exit-code
+# probe alone would be answered by the runner's own absence.
+#
+# The fixture goes in by absolute path, since this suite's own working directory is whoever
+# ran it, and it is the same fixture case 1 hands the recipe: the criterion is that the two
+# invocations agree about it, which a second fixture of its own would not ask.
+probe_runner_refuses_the_countless_suite() {
+  have_runner "so a leaf that runs one suite has nothing to run it through and its count line goes unread" || return
+  direct "$RUNNER" "$FIXTURE_PATH"
+  [[ "$direct_code" != 0 ]] ||
+    problems+=("want the runner to fail over a suite that died without reaching its count line; it exited 0 and said: $(flat "$direct_out")")
+  blames "$direct_out" "$FIXTURE_NAME" ", so its refusal does not say which suite died"
+}
+
+# 9. The same fixture, the same verdict, through the other invocation: one suite run directly
+#    through this repository's suite runner is refused and named, exactly as case 1's `make
+#    test` refuses and names it. Cases 1 to 8 all go through the recipe, which is the whole of
+#    where the guard lived — so a leaf that ran a suite by itself read a partially-dead suite
+#    as green, and on #415 the leaf that did so was the blind verifier whose PASS lets a green
+#    commit land (#418).
+name="the suite runner over a suite that exits 0 without reaching its count line fails and names it"
+problems=()
+
+probe_fixture_dies_quietly
+probe_runner_refuses_the_countless_suite
+
+report "$name"
+
+# probe_runner_runs_the_named_suite_with_no_TESTS — the criterion, asked of the environment the
+# runner hands the suite it was told to run. `make test TESTS=<suite>` is the invocation this
+# repository had for running one suite, and a command-line variable is exported to the recipe
+# and to every make nested under it, so a suite that shells out to `make` gets its own TESTS
+# silently narrowed — which is why CLAUDE.md sends a human to the suite file itself instead.
+# A runner that reached for that same override would carry the leak into the leaves along with
+# the guard.
+#
+# The suite it runs is written here rather than taken from fixtures/: what is being asked is
+# what reaches a suite's environment, so the suite has to report it, and it reaches its count
+# line so the guard case 9 pins is not what answers this case. TESTS is removed from the
+# runner's own environment first (`env -u`), because a value inherited from whoever ran this
+# file would otherwise read as one the runner set.
+probe_runner_runs_the_named_suite_with_no_TESTS() {
+  local tree probe seen
+  have_runner "so there is no invocation to ask this of" || return
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch directory to write a suite into, so the criterion went unasked")
+    return
+  }
+  probe="$tree/$ENV_SUITE_NAME"
+  cat > "$probe" <<'SUITE'
+#!/usr/bin/env bash
+# Written by count-line-guard.test.sh. It judges nothing: it writes down whether TESTS was in
+# the environment it was run in, then reaches its count line so the runner has nothing else to
+# say about it.
+set -uo pipefail
+printf 'TESTS=%s\n' "${TESTS-<unset>}"
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$probe"
+
+  direct env -u TESTS "$RUNNER" "$probe"
+  seen="$(grep -E '^TESTS=' <<< "$direct_out" | tail -n 1)"
+  [[ -n "$seen" ]] ||
+    problems+=("the runner never ran the suite it was named, so nothing here says what its environment held; it exited $direct_code and said: $(flat "$direct_out")")
+  [[ "$direct_code" == 0 ]] ||
+    problems+=("want the runner to pass a suite that reaches its count line with nothing failed; it exited $direct_code and said: $(flat "$direct_out")")
+  [[ -z "$seen" || "$seen" == 'TESTS=<unset>' ]] ||
+    problems+=("the runner put TESTS in the named suite's environment ($seen), so a make nested inside that suite inherits it and runs that one suite instead of its own")
+
+  rm -rf "$tree"
+}
+
+# 10. The runner names the suite it runs without going through TESTS=. Case 9 is satisfied by a
+#     runner that shells out to `make test TESTS=<suite>` — that is the single-suite invocation
+#     this repository already had, and it would inherit the guard for free — but a command-line
+#     variable is exported into every nested make, so a suite that itself calls `make` would
+#     have its own TESTS overwritten by the name of the suite being run. That leak is the whole
+#     reason a leaf ran the suite file directly in the first place, so the runner that replaces
+#     the direct run must not reintroduce it (#418).
+name="the suite runner runs the suite it is named with no TESTS in that suite's environment"
+problems=()
+
+probe_runner_runs_the_named_suite_with_no_TESTS
+
+report "$name"
+
+# guard_sites <text> — the files of this tree that make a decision containing <text>, one per
+# line, by basename. "Make a decision" is why comment lines are dropped first: both the Makefile
+# and run-suite.sh explain the count-line contract in prose at length, and a guard that moved
+# out of one of them would rightly leave the sentence saying where it went behind. What must
+# not appear twice is the code. The scope is this repository's own runnable sources — the
+# Makefile and the scripts under skills/tdd/scripts — with tests/ left out, since the suites and
+# the fixtures quote both texts on purpose and are not what either invocation reads at run time.
+guard_sites() {
+  local text="$1" site sites=()
+  while IFS= read -r site; do
+    grep -v '^[[:space:]]*#' "$site" | grep -qF "$text" && sites+=("$(basename "$site")")
+  done < <(printf '%s\n' "$MAKEFILE"; find "$ROOT/skills/tdd/scripts" -name '*.sh' -not -path '*/tests/*' | sort)
+  # Nothing at all when nothing matched, rather than one empty line: the caller counts lines,
+  # and a blank one would read as a place the decision is written.
+  ((${#sites[@]})) && printf '%s\n' "${sites[@]}"
+}
+
+# probe_one_guard_behind_both_invocations — the criterion. Each of the two decisions a guard
+# makes — what a count line looks like, and what a suite that never printed one is told — has to
+# be written in exactly one runnable place, because two places is two guards: `make test` reads
+# one of them and the single-suite runner reads the other, and nothing makes a change to either
+# reach the other. Not one place is as wrong in the other direction: zero would mean the guard
+# went away entirely, which cases 1 and 9 would then be reading off nothing.
+probe_one_guard_behind_both_invocations() {
+  local pair text label sites n
+  for pair in "$GUARD_MESSAGE|what a countless suite is told" "$GUARD_PATTERN|what a count line looks like"; do
+    text="${pair%%|*}"
+    label="${pair#*|}"
+    mapfile -t sites < <(guard_sites "$text")
+    n="${#sites[@]}"
+    [[ "$n" -eq 1 ]] ||
+      problems+=("$label is decided in $n place(s) — ${sites[*]:-nowhere} — so 'make test' and the suite runner do not share one guard and can drift apart about it")
+  done
+}
+
+# probe_both_invocations_word_it_the_same — the visible half of the same criterion, and the thing
+# a leaf actually meets: the one fixture, run both ways, has to come back refused in the very
+# same words. Two guards that agree today pass this and fail the probe above; one guard cannot
+# fail either. The line compared is the refusal itself rather than the whole run, since the
+# recipe also prints its own `== <suite>` header and its closing verdict, which the runner over
+# a single suite has no reason to.
+probe_both_invocations_word_it_the_same() {
+  local made ran
+  have_runner "so there is no second invocation to compare the recipe against" || return
+  recipe "$FIXTURE"
+  made="$(grep -F "$GUARD_MESSAGE" <<< "$recipe_out" | head -n 1)"
+  direct "$RUNNER" "$FIXTURE_PATH"
+  ran="$(grep -F "$GUARD_MESSAGE" <<< "$direct_out" | head -n 1)"
+  [[ -n "$made" && -n "$ran" ]] || {
+    problems+=("one of the two invocations did not report the countless suite at all; 'make test' said: $(flat "$recipe_out") and the runner said: $(flat "$direct_out")")
+    return
+  }
+  [[ "$made" == "$ran" ]] ||
+    problems+=("the two invocations word the refusal differently: 'make test' said '$made' and the runner said '$ran'")
+}
+
+# 11. The two invocations are one guard, not two that agree for now. Cases 1 and 9 pin each
+#     invocation's verdict on the same countless fixture separately, and both would go on
+#     passing with the pattern and the message written out twice — which is how they stood when
+#     this case was added, the recipe holding its own copy and run-suite.sh a second one. A
+#     second copy is a guard that only looks like the first: tighten the pattern in one place,
+#     or reword the refusal, and the invocation that did not get the change reports a different
+#     suite as green (#418).
+name="the make target and the suite runner refuse a countless suite from one guard, in the same words"
+problems=()
+recipe_out=""
+recipe_code=0
+
+probe_one_guard_behind_both_invocations
+probe_both_invocations_word_it_the_same
+
+report "$name"
+
+# ran_in_root <makefile body> — stand this repository's runner up in a fresh tree of its own
+# whose Makefile is the one given, run it there over a suite that reaches its count line with
+# nothing failed, and take the tree away again; the run is left in `direct_out`/`direct_code`
+# like every other. The runner's copy sits at the path the real one sits at relative to the
+# root, since that relative position is how it finds the Makefile it asks. All of it is written
+# once because case 12's two probes differ in exactly one thing — what `make count-line-guard`
+# answers in each — and in nothing about standing the tree up, running it or clearing it away.
+# Returns 1, having said so, when the tree could not be made: the probe then has no run to read
+# and ends with `|| return`, rather than asking its question of an empty `direct_out`.
+ran_in_root() {
+  local tree body="$1" probe
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch directory to stand a runner up in, so the question went unasked")
+    return 1
+  }
+  probe="$tree/$GUARDLESS_SUITE_NAME"
+  mkdir -p "$tree/skills/tdd/scripts"
+  cp "$RUNNER" "$tree/skills/tdd/scripts/run-suite.sh"
+  # A newline of its own, so a body written as a `count-line-guard:` rule and its recipe line is
+  # a Makefile whatever the caller's heredoc left behind.
+  printf '%s\n' "$body" > "$tree/Makefile"
+  cat > "$probe" <<'SUITE'
+#!/usr/bin/env bash
+# Written by count-line-guard.test.sh. It asserts nothing about this tree: it reaches its count
+# line and reports nothing failed, so the only thing a runner can have to say about it comes
+# from the runner's own state rather than from the suite.
+set -uo pipefail
+echo "1 passed, 0 failed"
+SUITE
+  chmod +x "$probe"
+
+  direct "$tree/skills/tdd/scripts/run-suite.sh" "$probe"
+  rm -rf "$tree"
+}
+
+# probe_root_that_answers_the_guard_runs_the_suite — the premise case 12 rests on, and not one
+# it may assume: a copy of the runner standing in a tree that is not this repository could fail
+# to run a suite for any number of reasons that have nothing to do with the guard, and the case
+# below would then read that failure as the refusal it is looking for. So the same copy, in the
+# same shape of tree, over the same suite, with a Makefile that DOES answer for the guard has to
+# come back 0 first.
+probe_root_that_answers_the_guard_runs_the_suite() {
+  local body
+  # A Makefile that answers for the guard the way this repository's own does, written out here
+  # rather than borrowed from $ROOT: what this premise needs is a root that answers at all, and
+  # a copy of the real Makefile would drag its every other target into the scratch tree with it.
+  # The heredoc is quoted, so make gets `$$` (its own escape for a literal `$`) and printf gets
+  # the `\n` that COUNTLESS carries, neither of them touched by this suite's shell.
+  body="$(cat <<'MK'
+count-line-guard:
+	@printf "COUNT_LINE='%s'\nCOUNTLESS='%s'\n" '^[0-9]+ passed, [0-9]+ failed$$' '%s: never reached its count line\n'
+MK
+)"
+  ran_in_root "$body" || return
+  [[ "$direct_code" == 0 ]] ||
+    problems+=("the runner does not pass a green suite even in a scratch root whose make answers for the guard; it exited $direct_code and said: $(flat "$direct_out") — so nothing below distinguishes a refused guard from a copy that cannot run at all")
+}
+
+# probe_root_that_cannot_answer_the_guard_is_refused — the criterion's other edge. The runner
+# does not carry the guard, it asks the Makefile for it, so there is a state in which it holds
+# no guard at all: a root whose `count-line-guard` answers nothing. A runner that went on from
+# there would check a suite against an empty pattern, which every line matches, and hand back
+# the suite's own exit code — the very 0 that #157 established lies, and for every suite rather
+# than only a partially-dead one. So no suite may be reported out of that state: it is exit 2,
+# "no answer could be obtained" (CLAUDE.md, "Exit codes are the API"), said in words that name
+# what could not be read, since a bare 2 is also what a missing argument earns.
+probe_root_that_cannot_answer_the_guard_is_refused() {
+  # The target exists and answers nothing — the state the runner's own eval lands in whenever
+  # the guard cannot be read, reached here in the one line that names it rather than by hiding
+  # the Makefile, so what is under test is the empty answer and not a missing file.
+  ran_in_root "count-line-guard:
+	@:" || return
+  [[ "$direct_code" == 2 ]] ||
+    problems+=("want exit 2 from a runner whose root cannot answer for the guard — no answer could be obtained — got $direct_code, and it said: $(flat "$direct_out")")
+  ! grep -Fq "$GUARD_MESSAGE" <<< "$direct_out" ||
+    problems+=("the runner reported a verdict on the suite while holding no guard to judge it by: $(flat "$direct_out")")
+  grep -Eqi 'could not read.*guard' <<< "$direct_out" ||
+    problems+=("the runner did not say that it could not read the guard, so a caller cannot tell this 2 from any other; it said: $(flat "$direct_out")")
+}
+
+# 12. The runner holds no guard of its own, and says so rather than guessing. Cases 9 and 11
+#     make the guard one text in one place, which case 10's runner then has to go and fetch —
+#     and fetching can come back empty. Left unchecked that is worse than the hole #418 opened:
+#     an empty pattern is matched by every line, so every suite run through the runner would
+#     pass its count-line check and be reported on its exit code alone, which is the one thing
+#     #157 established cannot be trusted. The state is a root whose `make count-line-guard`
+#     answers nothing; the answer owed is exit 2 with no verdict on the suite.
+name="the suite runner whose root cannot answer for the guard reports no suite and exits 2"
+problems=()
+
+probe_root_that_answers_the_guard_runs_the_suite
+probe_root_that_cannot_answer_the_guard_is_refused
+
+report "$name"
+
+# probe_runner_refuses_the_countless_suite_as_a_clean_negative — the criterion itself, asked of
+# the code the refusal comes back as. Case 9 asks the partially-dead fixture of the direct
+# invocation and wants a non-zero, which was the whole of what #418 opened: a leaf running one
+# suite by itself read it as 0. But non-zero is two answers in this repository, and the two mean
+# opposite things to a conductor — 1 is a clean negative, the suite ran and what came back about
+# the tree under it is that it is not green; 2 is "no answer could be obtained", the plumbing
+# broke and nothing was established either way (CLAUDE.md, "Exit codes are the API"). Case 12
+# spends that 2 on the runner's own unreadable guard, so a runner that answered 2 here as well
+# would pass case 9 while telling every caller that the partially-dead suite had not been judged
+# — and a partially-dead suite unjudged is exactly the state #415's blind verifier was in.
+probe_runner_refuses_the_countless_suite_as_a_clean_negative() {
+  have_runner "so the one invocation a leaf is told to use for a single suite cannot be asked what a countless suite earns" || return
+  direct "$RUNNER" "$FIXTURE_PATH"
+  [[ "$direct_code" == 1 ]] ||
+    problems+=("want exit 1 from the runner over a suite that died without its count line — the suite ran and the tree under it is not green — got $direct_code, and it said: $(flat "$direct_out")")
+  blames "$direct_out" "$FIXTURE_NAME" ", so its refusal does not say which suite died"
+}
+
+# 13. The direct invocation's verdict on the deliberately partially-dead fixture is a clean
+#     negative, named — the guard pinned against that fixture run directly, and not only through
+#     the `make test` target cases 1 to 8 ask of (criterion 5 of #418). The fixture is the one
+#     case 1 hands the recipe, since what is being pinned is that the shape #157 found — asserts
+#     a while, dies, still exits 0 — cannot come back green however a leaf reached it.
+name="the partially-dead fixture run directly through the suite runner is refused as a clean negative, named"
+problems=()
+
+probe_fixture_dies_quietly
+probe_runner_refuses_the_countless_suite_as_a_clean_negative
+
+# 14. The pipeline-fed matches above answer from the text they read, not from the writer
 #    feeding them (#422). A probe that folds a document through a pipeline and asserts on
 #    that pipeline's status asks two questions at once: what the text says, and whether the
 #    writer survived to EOF. On a glibc pipe a reader that leaves early closes it under a
