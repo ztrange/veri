@@ -90,6 +90,17 @@ promptly() {
   [[ "$rc" == "$want" ]] && [[ "$secs" =~ ^[0-9]+$ ]] && [[ "$secs" -le 10 ]]
 }
 
+# names <stderr> <token>… — true when a wait's diagnostic contains every token. A wait that
+# ends on a dead supervisor owes the same diagnostic in every case that provokes one — the
+# leaf's name, and the pid it found gone — so the conjunction of glob matches is named once
+# here rather than spelled out per case. The text is passed in rather than the leaf's name
+# because each case also quotes it in its own `no` line.
+names() {
+  local text="$1" token
+  shift
+  for token in "$@"; do [[ "$text" == *"$token"* ]] || return 1; done
+}
+
 # 1. the recorded supervisor code, returned as soon as the file lands. Three arms, one per
 #    status in the contract, because "the recorded code" means the file's contents and not
 #    a fixed answer that happens to match one of them — a script that always exited 0 would
@@ -239,7 +250,7 @@ printf '%s\n' "$dead_pid" > "$work/.tdd/dead-sup.pid"
 d_dead="$(timed dead-sup 20)"
 d_stderr="$(cat "$work/dead-sup.err")"
 { promptly "$d_dead" 2 &&
-  [[ "$d_stderr" == *dead-sup* ]] && [[ "$d_stderr" == *"$dead_pid"* ]]; } && ok \
+  names "$d_stderr" dead-sup "$dead_pid"; } && ok \
   || no "exits 2 well before its budget, naming the leaf and the dead pid on stderr, when the recorded supervisor has exited and no completion file exists (got '<code> <secs>'=$d_dead want '2 <=10'; stderr='$d_stderr' want it to name dead-sup and $dead_pid)"
 
 # 6. a recorded pid that is alive but is not a supervise.sh for that name → the same exit 2 as
@@ -257,7 +268,7 @@ r_reused="$(timed reused-sup 20)"
 r_stderr="$(cat "$work/reused-sup.err")"
 kill "$imp_pid" 2>/dev/null; wait "$imp_pid" 2>/dev/null
 { promptly "$r_reused" 2 &&
-  [[ "$r_stderr" == *reused-sup* ]] && [[ "$r_stderr" == *"$imp_pid"* ]]; } && ok \
+  names "$r_stderr" reused-sup "$imp_pid"; } && ok \
   || no "exits 2 well before its budget when the recorded pid is alive but is not a supervise.sh for that leaf (pid reuse), naming the leaf and the pid on stderr (got '<code> <secs>'=$r_reused want '2 <=10'; stderr='$r_stderr' want it to name reused-sup and $imp_pid)"
 
 # 7. a recorded supervisor that is still running → still exit 3 once the budget is spent, and a
@@ -347,7 +358,7 @@ verdict_para="$(awk 'BEGIN { RS = "" }
   (tolower($0) ~ /without recording a status/ ||
    tolower($0) ~ /supervisor[^.]*(died|dies|exited|is gone)/) { print; exit }' "$SKILL")"
 
-{ promptly "$v_dead" 2 && [[ "$v_stderr" == *verdict-red* ]] &&
+{ promptly "$v_dead" 2 && names "$v_stderr" verdict-red &&
   [[ -n "$verdict_para" ]]; } && ok \
   || no "a verifier wait whose supervisor died exits 2 well before its budget, and SKILL.md reports that 2 the way it reports a killed developer leaf (got '<code> <secs>'=$v_dead want '2 <=10'; stderr='$v_stderr' want it to name verdict-red; SKILL.md paragraph naming verdict-<phase>, a supervisor that died without recording a status, killed-stuck and the bail: ${verdict_para:-<none>})"
 
