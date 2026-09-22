@@ -4,3 +4,6 @@
 ### A range that adds or deletes a script under `scripts/` also includes `claude-md-counts.test.sh`, since CLAUDE.md hand-types the script count beside the suite count
 - move the counts-rule `git diff` into the narrow branch of affected-suites.sh, so a widened answer does not pay for a `placed` it discards
 - hoist the repeated `skills/tdd/scripts/tests/` prefix out of the ~30 expectation paths into a variable — not applied because a literal expected path is what makes the assertion readable against the script's own output
+### The full suite is green: `no-nested-suites.test.sh` does not read `affected-suites.test.sh`'s fixture and expectation mentions of `claude-md-counts.test.sh` as launching it
+- extract the six repetitions of the literal `skills/tdd/scripts/tests/claude-md-counts.test.sh` in affected-suites.test.sh into one variable — deliberately not taken, since those mentions are the fixture no-nested-suites.test.sh case 2 asserts on
+- fold `write_ledger` and `write_refactor_owed` onto one writer, so `mkdir -p "$repo/.tdd"` is spelled once instead of twice
