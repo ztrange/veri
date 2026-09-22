@@ -132,6 +132,16 @@ one_record_matches() {
   return 1
 }
 
+# no_records <text> <problem> — collect <problem> and exit 0 when <text> holds no record at
+# all, so a caller reads `no_records … && return`. The fail-closed half of every case:
+# whitespace matches no regex, so text that could not be read would otherwise report the rule
+# missing rather than the reading broken, and the two want different repairs. Written once so
+# a case that reads a new slice of the document cannot forget it.
+no_records() {
+  [[ -z "${1// /}" ]] || return 1
+  problems+=("$2")
+}
+
 # records_carry <text> <problem> <regex>... — the shape every invariant case below shares:
 # pass when one record of <text> matches all of <regex>, and collect <problem> when none does.
 # Written once so an invariant is added as the regexes that carry it and the message naming
@@ -199,10 +209,8 @@ ROWS
 probe_every_rule_is_carried_by_one_record() {
   local row rule
 
-  if [[ -z "${ALL_RECORDS// /}" ]]; then
-    problems+=("$claude_md could not be read, so no rule could be looked for in it")
-    return
-  fi
+  no_records "$ALL_RECORDS" \
+    "$claude_md could not be read, so no rule could be looked for in it" && return
 
   while IFS= read -r row; do
     [[ -n "$row" ]] || continue
@@ -301,12 +309,9 @@ probe_idiom_records_the_sigpipe_rule() {
   local idiom_records
   idiom_records="$(section_records "$IDIOM_HEADING")"
 
-  # Fail closed: an empty section matches no regex, and saying so names the repair — the
-  # heading moved — rather than reporting a rule missing from prose nobody could read.
-  if [[ -z "${idiom_records// /}" ]]; then
-    problems+=("$claude_md has no '$IDIOM_HEADING' section to read, so nothing states the pipefail/SIGPIPE rule where the agent writing a suite would find it")
-    return
-  fi
+  # The repair an unreadable section wants is the heading, not the prose: say so.
+  no_records "$idiom_records" \
+    "$claude_md has no '$IDIOM_HEADING' section to read, so nothing states the pipefail/SIGPIPE rule where the agent writing a suite would find it" && return
 
   records_carry "$idiom_records" \
     "$claude_md has no single record in its '$IDIOM_HEADING' section stating that a suite declaring pipefail never ends a pipeline in grep -q or head, that the status asserted on is then the writer's SIGPIPE, which case says so (no-sigpipe-pipelines), and what the repair is" \
