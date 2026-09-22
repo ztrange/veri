@@ -27,16 +27,11 @@ exitfile=".tdd/$name.exit"
 pidfile=".tdd/$name.pid"
 deadline=$(( $(date +%s) + max ))
 
-# number_in <file> — echo the plain number on the file's first line, or fail when there is
-# none. A file seen between its creation and its write reads back empty, and an empty read is
-# not a number, so that case fails too and the caller keeps polling.
-number_in() {
-  local n=""
-  [[ -f "$1" ]] || return 1
-  read -r n < "$1" 2>/dev/null || true
-  [[ "$n" =~ ^[0-9]+$ ]] || return 1
-  printf '%s\n' "$n"
-}
+# `number_in` is shared with supervise.sh, which has to accept exactly what this wait does —
+# the lib file's header is where that coupling is written down.
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/number-in.sh
+source "$HERE/lib/number-in.sh"
 
 # recorded_code — echo the supervisor's final code, or fail when the file holds no status
 # yet. Only a plain code ends the wait.
