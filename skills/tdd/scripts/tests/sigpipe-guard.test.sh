@@ -104,6 +104,30 @@ report() {
   fi
 }
 
+# begin_case — the state every case starts from: an empty `problems` array, and every
+# variable a plant, a run or a probe leaves behind cleared. Written once rather than copied
+# into each case, because the list is what a variable added tomorrow would be forgotten
+# from, and a case that reads what the one before it left is a case probing the previous
+# tree — which, for `tree` itself, is a case tearing that tree down twice and its own not at
+# all.
+begin_case() {
+  problems=()
+  tree=""
+  offender_path=""
+  innocent_path=""
+  guard_copy=""
+  offender_line=""
+  guard_out=""
+  guard_code=0
+}
+
+# drop_tree — the scratch tree a case planted, removed, which every case owes before it
+# reports. Guarded on the name because a case whose `open_tree` failed has no tree to
+# remove.
+drop_tree() {
+  [[ -z "$tree" ]] || rm -rf "$tree"
+}
+
 # flat <text> — one line of it, for a failure message: newlines become slashes so a run's
 # output quoted inside an indented problem line stays one line. Pure parameter expansion
 # rather than a pipe into `tr`, which is two processes per problem line.
@@ -330,14 +354,7 @@ plant_lone_offender() {
 #    isolation could answer "every pipeline here is one" to the first and be caught by
 #    nothing.
 name="no-sigpipe-pipelines.test.sh names a suite that declares pipefail and ends a pipeline in grep -q as <suite>:<line>, and says nothing about the same pipeline without pipefail"
-problems=()
-tree=""
-offender_path=""
-innocent_path=""
-guard_copy=""
-offender_line=""
-guard_out=""
-guard_code=0
+begin_case
 
 if probe_guard_is_there && plant; then
   probe_plant_is_what_it_claims "$GREP_Q"
@@ -346,7 +363,7 @@ if probe_guard_is_there && plant; then
   probe_guard_names_the_offender_with_its_line "$OFFENDER" "$GREP_Q"
   probe_guard_leaves_the_innocent_alone
 fi
-[[ -z "$tree" ]] || rm -rf "$tree"
+drop_tree
 
 report "$name"
 
@@ -356,21 +373,14 @@ report "$name"
 #    caught only `grep -q` would let the next one in. One fixture and one run, for the reason
 #    `plant_lone_offender` gives.
 name="no-sigpipe-pipelines.test.sh names a suite that declares pipefail and ends a pipeline in head as <suite>:<line>"
-problems=()
-tree=""
-offender_path=""
-innocent_path=""
-guard_copy=""
-offender_line=""
-guard_out=""
-guard_code=0
+begin_case
 
 if probe_guard_is_there && plant_lone_offender "$HEAD_OFFENDER" "$HEAD_R"; then
   probe_plant_is_what_it_claims "$HEAD_R"
   run_guard
   probe_guard_names_the_offender_with_its_line "$HEAD_OFFENDER" "$HEAD_R"
 fi
-[[ -z "$tree" ]] || rm -rf "$tree"
+drop_tree
 
 report "$name"
 
@@ -472,14 +482,7 @@ probe_guard_refuses_a_reasonless_entry() {
 #    silenced. The entry itself is not planted with the tree: each half of the case writes
 #    its own, after the premises below have been asked about the plant they both rest on.
 name="no-sigpipe-pipelines.test.sh passes over a site its exemption table lists with a reason, and fails naming an entry whose reason is missing"
-problems=()
-tree=""
-offender_path=""
-innocent_path=""
-guard_copy=""
-offender_line=""
-guard_out=""
-guard_code=0
+begin_case
 
 if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_lone_offender "$EXEMPT_OFFENDER" "$GREP_Q"; then
   if probe_plant_is_what_it_claims "$GREP_Q"; then
@@ -498,7 +501,7 @@ if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_lone_
     fi
   fi
 fi
-[[ -z "$tree" ]] || rm -rf "$tree"
+drop_tree
 
 report "$name"
 
