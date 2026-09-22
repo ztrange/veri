@@ -65,6 +65,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib/leaf-model.sh"
 # shellcheck source=lib/preserve.sh
 source "$HERE/lib/preserve.sh"
+# shellcheck source=lib/number-in.sh
+source "$HERE/lib/number-in.sh"
 
 heartbeat="${VERI_HEARTBEAT:-180}"
 timeout="${VERI_TIMEOUT:-900}"
@@ -475,10 +477,10 @@ cat "$log"
 # could be parsed from. The wrapper's own status is `echo`'s, which is 0 whatever the verifier
 # said, so overwriting the record here would hand every rejected verification on as a pass.
 # The file was cleared before the leaf was launched, so a record present now is this leaf's.
-# It stands only when it is a plain code, the one thing wait-leaf.sh will accept: a truncated
-# or garbled record is no answer at all, and a wait left polling one to its deadline is the
-# failure this file exists to prevent.
-leaf_code=""
-[[ -f "$exitfile" ]] && read -r leaf_code < "$exitfile"
-[[ "$leaf_code" =~ ^[0-9]+$ ]] || printf '%s\n' "$ec" > "$exitfile"
+# It stands only when `number_in` accepts it, which is wait-leaf.sh's own test for an answer
+# (lib/number-in.sh, shared with it for that reason): a truncated or garbled record is no
+# answer at all, and a wait left polling one to its deadline is the failure this file exists
+# to prevent. Its stdout is discarded — only the verdict on the record is wanted here, not the
+# record, which is already where it belongs.
+number_in "$exitfile" >/dev/null || printf '%s\n' "$ec" > "$exitfile"
 exit "$ec"
