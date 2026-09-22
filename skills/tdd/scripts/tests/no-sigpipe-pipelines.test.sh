@@ -237,11 +237,8 @@ roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 # and answered the same way, line by line, through the same exemption table. A roster entry
 # is exempted by its basename, as the table's `<suite>:<line>` key says: a site is one site
 # whichever of the two probes reaches it, and one key per site is what keeps a reason from
-# having to be written twice.
-#
-# An empty roster is a problem rather than a pass: a probe that finds no suite to read has
-# not established that none of them ends a pipeline that way, and a recipe reworded past the
-# `-n` expansion this reads would otherwise turn the case green by saying nothing.
+# having to be written twice. What an empty roster means, and why it is said rather than
+# failed over, is at the line that says it.
 probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader() {
   local rel site
   local -a listed=()
