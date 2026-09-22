@@ -204,17 +204,24 @@ open_tree() {
   guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
 }
 
-# seal_tree — what every case does once its fixtures are written: copy the guard in, stage
-# the tree, and leave the offending line's number in `offender_line`.
-#
-# The tree is made a git repository with its fixtures staged. Nothing in the contract says
-# how the guard enumerates the suites it reads, and `git ls-files` is as reasonable an
-# answer as a glob; an unstaged plant would make a case report on that choice instead of on
-# the detection it is asking about.
-seal_tree() {
+# install_guard — the guard's own copy put into the tree, and the tree staged. Every plant
+# owes exactly these two, whether or not it wrote a fixture: the guard has to be inside the
+# tree to be run there, and the tree is made a git repository with what is in it staged
+# because nothing in the contract says how the guard enumerates the suites it reads —
+# `git ls-files` is as reasonable an answer as a glob, and an unstaged plant would make a
+# case report on that choice instead of on the detection it is asking about. Written once
+# rather than in each planter, because a plant with no fixture to find a mark in owes this
+# and nothing else.
+install_guard() {
   cp "$GUARD_PATH" "$guard_copy"
   git init -q "$tree" >/dev/null 2>&1
   git -C "$tree" add -A >/dev/null 2>&1
+}
+
+# seal_tree — what a case that wrote a fixture does once it has: install the guard, and
+# leave the offending line's number in `offender_line`.
+seal_tree() {
+  install_guard
 
   offender_line="$(grep -n "$MARK" "$offender_path" | cut -d: -f1)"
   # Not the status of that assignment (#183): a grep that found no mark must not make the
@@ -779,9 +786,7 @@ ROSTER_QUESTION='make -n test'
 plant_bare_tree() {
   open_tree "$OFFENDER" || return 1
 
-  cp "$GUARD_PATH" "$guard_copy"
-  git init -q "$tree" >/dev/null 2>&1
-  git -C "$tree" add -A >/dev/null 2>&1
+  install_guard
 }
 
 # probe_tree_has_no_makefile — the premise this case rests on, and the one that answers while
