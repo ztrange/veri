@@ -121,6 +121,27 @@ flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 # rather than once per line, because it is a property of the file.
 declares_pipefail() { grep -Eq "$PIPEFAIL_DECL" "$1"; }
 
+# unexempted_sites <file> — the lines of <file> that feed a writer into a reader leaving
+# before EOF and are neither a comment nor an exemption, one `<lineno>:<text>` per line.
+# Both cases ask exactly this of a file and differ only in the consequence they then name,
+# so the reading — the pipefail condition, the pattern, the comment skip and the table
+# lookup keyed on the suite's basename — is written here once rather than in each of them.
+# A file that declares no `pipefail` names no site: the writer's SIGPIPE is not the
+# pipeline's status there, so there is nothing to report.
+unexempted_sites() {
+  local file="$1" name hit lineno text
+  declares_pipefail "$file" || return 0
+  name="$(basename "$file")"
+  while IFS= read -r hit; do
+    lineno="${hit%%:*}"
+    text="${hit#*:}"
+    [[ "$text" =~ ^[[:space:]]*# ]] && continue
+    [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
+    printf '%s:%s\n' "$lineno" "$text"
+  done < <(grep -nE "$PIPE_INTO_READER" "$file")
+  return 0
+}
+
 # probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader — the criterion. Every
 # suite in this directory that declares `pipefail` is asked for the lines that feed a writer
 # into either early-exiting reader; a comment is not one, because a comment cannot run anything
@@ -129,18 +150,13 @@ declares_pipefail() { grep -Eq "$PIPEFAIL_DECL" "$1"; }
 # The suites are found by globbing this directory rather than by a list, because the list is
 # what the next one would be added outside of; `make test` finds them the same way.
 probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
-  local f name hit lineno text
+  local f name site
   for f in "$HERE"/*.test.sh; do
     [[ -e "$f" ]] || continue
-    declares_pipefail "$f" || continue
     name="$(basename "$f")"
-    while IFS= read -r hit; do
-      lineno="${hit%%:*}"
-      text="${hit#*:}"
-      [[ "$text" =~ ^[[:space:]]*# ]] && continue
-      [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
-      problems+=("$name:$lineno ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so the status asserted on is the writer's SIGPIPE rather than the reader's answer: $(flat "$text")")
-    done < <(grep -nE "$PIPE_INTO_READER" "$f")
+    while IFS= read -r site; do
+      problems+=("$name:${site%%:*} ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so the status asserted on is the writer's SIGPIPE rather than the reader's answer: $(flat "${site#*:}")")
+    done < <(unexempted_sites "$f")
   done
   return 0
 }
@@ -191,20 +207,14 @@ roster() { make -C "$ROOT" -n "$1" 2>&1 | grep -o '[^ ]*\.test\.sh' | sort -u; }
 # not established that none of them ends a pipeline that way, and a recipe reworded past the
 # `-n` expansion this reads would otherwise turn the case green by saying nothing.
 probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader() {
-  local rel name hit lineno text
+  local rel site
   local -a listed=()
   while IFS= read -r rel; do
     [[ -n "$rel" ]] || continue
     listed+=("$rel")
-    declares_pipefail "$ROOT/$rel" || continue
-    name="$(basename "$rel")"
-    while IFS= read -r hit; do
-      lineno="${hit%%:*}"
-      text="${hit#*:}"
-      [[ "$text" =~ ^[[:space:]]*# ]] && continue
-      [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
-      problems+=("$rel:$lineno ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — asserts on the writer's SIGPIPE rather than the reader's answer: $(flat "$text")")
-    done < <(grep -nE "$PIPE_INTO_READER" "$ROOT/$rel")
+    while IFS= read -r site; do
+      problems+=("$rel:${site%%:*} ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so \`make test\` — the baseline preflight reads, the Green leaf runs and both blind verifiers run — asserts on the writer's SIGPIPE rather than the reader's answer: $(flat "${site#*:}")")
+    done < <(unexempted_sites "$ROOT/$rel")
   done < <(roster test)
   [[ "${#listed[@]}" -gt 0 ]] ||
     problems+=("\`make -n test\` named no suite at all, so nothing was read: the roster this case asks about could not be obtained")
