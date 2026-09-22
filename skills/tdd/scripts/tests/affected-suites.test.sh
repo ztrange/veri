@@ -85,6 +85,21 @@ foo_bar_tree() {
   printf '# bar suite\n' > "$s/tests/bar.test.sh"
 }
 
+# write_ledger <mark> / write_refactor_owed <mark> — the two `.tdd/` files every green commit
+# carries, and which cases 16–18 and 20 span: the ledger with its one step ticked or not, and
+# the refactor-owed file beside it. <mark> is ' ' or 'x', and is the whole of what makes either
+# end of a case's range differ, so a case calls these once before commit_base and again before
+# commit_head. Each makes the `.tdd/` directory, so a case that writes run state needs no
+# mkdir of its own for it.
+write_ledger() {
+  mkdir -p "$repo/.tdd"
+  printf -- '- [%s] step one\n' "$1" > "$repo/.tdd/issue-416.md"
+}
+write_refactor_owed() {
+  mkdir -p "$repo/.tdd"
+  printf 'refactor owed [%s]\n' "$1" > "$repo/.tdd/issue-416-refactor-owed.md"
+}
+
 # 1. a resolvable range → one suite per line, sorted, no duplicate. The range touches
 #    wolf.sh and its own suite, so both name tests/wolf.test.sh and a list that kept every
 #    answer would carry it twice; and zulu.sh, whose suite is under tests/unit/, so the diff
@@ -365,11 +380,10 @@ fi
 #     would carry it.
 new_repo run-state-ledger
 foo_bar_tree
-mkdir -p "$repo/.tdd"
-printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
+write_ledger ' '
 commit_base
 printf 'foo 2\n' > "$s/foo.sh"
-printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
+write_ledger x
 commit_head
 expect_suites "run state: a .tdd/ ledger alongside a script change prints exactly that script's suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
@@ -380,14 +394,14 @@ expect_suites "run state: a .tdd/ ledger alongside a script change prints exactl
 #     than "nothing to do"; exit 3 is the code that already says the latter (case 3), so the
 #     two ways of having no suites to run answer alike (issue #416).
 new_repo run-state-only
-mkdir -p "$s/tests" "$repo/.tdd"
+mkdir -p "$s/tests"
 printf 'foo\n' > "$s/foo.sh"
 printf '# foo suite\n' > "$s/tests/foo.test.sh"
-printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
-printf 'refactor owed\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+write_ledger ' '
+write_refactor_owed ' '
 commit_base
-printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
-printf 'refactor owed 2\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+write_ledger x
+write_refactor_owed x
 commit_head
 expect_nothing_to_do "run state alone → exit 3 and prints nothing"
 
@@ -399,11 +413,10 @@ expect_nothing_to_do "run state alone → exit 3 and prints nothing"
 #     their suites (issue #416).
 new_repo run-state-with-unplaced
 foo_bar_tree
-mkdir -p "$repo/.tdd"
-printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
+write_ledger ' '
 printf '# notes\n' > "$repo/notes.md"
 commit_base
-printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
+write_ledger x
 printf '# notes 2\n' > "$repo/notes.md"
 commit_head
 expect_suites "fail-closed: run state alongside a file no rule places still prints every suite" \
@@ -439,13 +452,12 @@ fi
 #     bar.sh and its suite are untouched, so a widened answer is the one carrying tests/bar.test.sh.
 new_repo green-commit-shape
 foo_bar_tree
-mkdir -p "$repo/.tdd"
-printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
-printf 'refactor owed\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+write_ledger ' '
+write_refactor_owed ' '
 commit_base
 printf 'foo 2\n' > "$s/foo.sh"
-printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
-printf 'refactor owed 2\n' > "$repo/.tdd/issue-416-refactor-owed.md"
+write_ledger x
+write_refactor_owed x
 commit_head
 expect_suites "a green commit's shape — ledger, refactor-owed file and a source change — prints exactly that script's suite" \
   "skills/tdd/scripts/tests/foo.test.sh"
