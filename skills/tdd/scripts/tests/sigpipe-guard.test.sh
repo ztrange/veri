@@ -383,6 +383,164 @@ fi
 
 report "$name"
 
+# The suite the exemption case plants, and the entry the case writes about it. A name of its
+# own, like the head case's, because all three plants exist in the same run and a failure
+# message has to say which of them it was asked about.
+EXEMPT_OFFENDER='probes-exempted-under-pipefail.test.sh'
+
+# The exemption table's own line, which is what an entry is added after. Named here because
+# two things need it identically: the premise that asks whether the guard carries a table at
+# all, and the injection that puts an entry in it.
+EXEMPT_DECL='declare -A EXEMPT=('
+
+# The reason a real entry carries — one sentence saying why the early exit is the point at
+# that site, which is the only thing an exemption is ever for. Its content is nothing the
+# guard reads; that it is non-empty is the whole of what the second half of this case is
+# about.
+EXEMPT_REASON='the early exit is the point here: the probe asks whether the first match exists at all, and its writer is one line long'
+
+# exempt <key> <reason> — put the guard's own copy back and add exactly one entry to its
+# exemption table. The copy is rewritten first because this case runs the guard twice, once
+# per half of the criterion, and each run must meet a table holding only the entry its own
+# probe is about rather than the one the other left behind.
+#
+# awk rather than sed: the reason is arbitrary prose and sed would read a `/` or a `&` in it
+# as syntax. The entry goes immediately after the table's opening line, which is where a
+# human adding one puts it.
+exempt() {
+  local key="$1" reason="$2" entry
+  entry="  [$key]=\"$reason\""
+  awk -v entry="$entry" -v decl="$EXEMPT_DECL" '
+    { print }
+    !added && index($0, decl) == 1 { print entry; added = 1 }
+  ' "$GUARD_PATH" > "$tree/guard.next" && mv "$tree/guard.next" "$guard_copy"
+  chmod 755 "$guard_copy"
+}
+
+# plant_exempt — the tree this case is asked about: one suite that declares `pipefail` and
+# ends a pipeline in `grep -q`, and the guard. One fixture and no innocent, for the reason
+# `plant_head` gives — what keeps the guard from naming every line is pinned by case 1, over
+# the same guard. The entry itself is not written here: each half of the case writes its own,
+# after the premises below have been asked about the plant they both rest on.
+plant_exempt() {
+  open_tree "$EXEMPT_OFFENDER" || return 1
+
+  plant_offender
+
+  seal_tree
+}
+
+# probe_guard_carries_an_exemption_table — the premise both halves rest on, and the one that
+# answers while the guard has no table yet: there is somewhere to record a site where the
+# early exit is the point. Returns non-zero so the case stops here rather than running a
+# guard whose table it never managed to write into.
+probe_guard_carries_an_exemption_table() {
+  grep -qF -- "$EXEMPT_DECL" "$GUARD_PATH" || {
+    problems+=("$GUARD carries no exemption table ('$EXEMPT_DECL'), so a site where leaving before EOF is the point cannot be recorded with its reason and the only way past the guard is to stop declaring pipefail")
+    return 1
+  }
+}
+
+# probe_exempt_plant_is_what_it_claims — the plant's premises, asserted rather than assumed:
+# a single marked line, that line really feeding a writer into `grep -q`, and the suite
+# holding it really declaring `pipefail`. Without all three the guard was never owed a
+# complaint about it, and "the exemption silenced the guard" would be true of a tree that had
+# nothing to silence.
+probe_exempt_plant_is_what_it_claims() {
+  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
+    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
+    return 1
+  }
+  local marked
+  marked="$(sed -n "${offender_line}p" "$offender_path")"
+  [[ "$marked" == *"|"*"$GREP_Q"* ]] ||
+    problems+=("the planted offender's line $offender_line does not end a pipeline in $GREP_Q, so there is nothing there for an exemption to excuse: $(flat "$marked")")
+  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
+    problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the guard owes no complaint to exempt")
+}
+
+# probe_entry_is_in_the_table <key> — the premise the run that follows rests on: the entry
+# `exempt` wrote is really in the guard's copy. Without it, a silent guard is a guard that
+# read no table rather than one that honoured an entry.
+probe_entry_is_in_the_table() {
+  grep -qF -- "[$1]" "$guard_copy" || {
+    problems+=("the entry [$1] is not in the guard copy's exemption table, so what the run below reports is not about an exemption at all")
+    return 1
+  }
+}
+
+# probe_guard_exempts_the_listed_site <key> — the first half of the criterion: a site listed
+# in the table with a reason is not a failure. Both halves of that, because a guard that
+# named the site in a softer voice and still exited non-zero would leave the run red and the
+# author with nothing to do about it: the guard passes, and says nothing about the site.
+probe_guard_exempts_the_listed_site() {
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want the guard to pass over a site listed in its exemption table as [$1] with a reason; it exited $guard_code and said: $(flat "$guard_out")")
+  local named
+  named="$(grep -F "$EXEMPT_OFFENDER:$offender_line" <<< "$guard_out")"
+  [[ -z "$named" ]] ||
+    problems+=("the guard still named $EXEMPT_OFFENDER:$offender_line, which its exemption table lists as [$1] with a reason: $(flat "$named")")
+}
+
+# probe_guard_refuses_a_reasonless_entry <key> — the second half: an entry with no reason is
+# not an exemption. A table whose entries may be bare keys is a list of sites someone once
+# wanted quiet, and the next reader has no way to tell a considered exemption from a silenced
+# complaint — which is why the reason is what makes the entry, and its absence has to fail
+# the run rather than exempt anything.
+#
+# The output has to say `reason` on the line naming the key, or a guard that simply ignored
+# the bare entry and reported the site as the offence it is would pass this probe while
+# telling the author nothing about what is wrong with their table.
+probe_guard_refuses_a_reasonless_entry() {
+  local key="$1" named
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail over the exemption entry [$key], which carries no reason; it exited 0 and said: $(flat "$guard_out")")
+  named="$(grep -F "$key" <<< "$guard_out")"
+  [[ -n "$named" ]] || {
+    problems+=("no line of the guard's output names the reasonless exemption entry [$key]; it said: $(flat "$guard_out")")
+    return
+  }
+  grep -qF -- 'reason' <<< "$named" ||
+    problems+=("the guard named $key but never said its reason is what is missing, so the author is told a pipeline is there rather than that their exemption is not one: $(flat "$named")")
+}
+
+# 3. One criterion, one case: the exemption table is what lets a site where the early exit is
+#    the point stay as it is, and a reason is what makes an entry one. Both halves over one
+#    plant and one table, run twice — the same site, exempted with a reason and then with
+#    none — because that is the pair the criterion states: what the table buys and what it
+#    costs to use it. Two trees would ask the second half about a site the first never
+#    silenced.
+name="no-sigpipe-pipelines.test.sh passes over a site its exemption table lists with a reason, and fails naming an entry whose reason is missing"
+problems=()
+tree=""
+offender_path=""
+innocent_path=""
+guard_copy=""
+offender_line=""
+guard_out=""
+guard_code=0
+
+if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_exempt; then
+  if probe_exempt_plant_is_what_it_claims; then
+    exempt_key="$EXEMPT_OFFENDER:$offender_line"
+
+    exempt "$exempt_key" "$EXEMPT_REASON"
+    if probe_entry_is_in_the_table "$exempt_key"; then
+      run_guard
+      probe_guard_exempts_the_listed_site "$exempt_key"
+    fi
+
+    exempt "$exempt_key" ""
+    if probe_entry_is_in_the_table "$exempt_key"; then
+      run_guard
+      probe_guard_refuses_a_reasonless_entry "$exempt_key"
+    fi
+  fi
+fi
+[[ -z "$tree" ]] || rm -rf "$tree"
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

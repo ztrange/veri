@@ -19,7 +19,9 @@
 #   No suite under this directory that declares `pipefail` ends a pipeline in a reader that
 #   leaves before EOF — a `grep` whose options carry `q`, or a `head`. A suite that does is
 #   reported as `<suite>:<line>` — the address, not the file, because that is what sends the
-#   next author to the site.
+#   next author to the site. A site where leaving before EOF is the point is exempted by
+#   name in the table below, and only with the reason that says why; an entry carrying no
+#   reason fails the run rather than silencing anything.
 #
 # `pipefail` is half of the condition, and the half that makes the shape a bug rather than a
 # habit. Without it the pipeline's status is the reader's own, the writer's SIGPIPE never
@@ -67,6 +69,15 @@ READER="($GREP_READER|$HEAD_READER)"
 # file spelling the whole shape would be its own first offender.
 PIPE_INTO_READER="(^|[^|])\\|[[:space:]]*[^|]*(^|[[:space:]])$READER"
 
+# EXEMPT[<suite>:<line>]="<reason>" — a site where the reader's early exit is the point,
+# each with the sentence that says why: what the writer is, and why its SIGPIPE cannot be
+# mistaken for the answer there. The reason is what makes an entry an exemption; a bare key
+# is a site someone once wanted quiet, and the next reader has no way to tell the two apart,
+# so an entry with no reason fails the run instead of excusing anything.
+declare -A EXEMPT=(
+  # Nothing today: this issue repaired every site it found rather than listing them.
+)
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -109,8 +120,22 @@ probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
       lineno="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
+      [[ -n "${EXEMPT[$name:$lineno]:-}" ]] && continue
       problems+=("$name:$lineno ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so the status asserted on is the writer's SIGPIPE rather than the reader's answer: $(flat "$text")")
     done < <(grep -nE "$PIPE_INTO_READER" "$f")
+  done
+  return 0
+}
+
+# probe_every_exemption_carries_a_reason — the table's own contract. An entry whose value
+# is empty exempts nothing: it is reported here, named by its key, and the complaint says
+# that the reason is what is missing — so the author is told their exemption is not one
+# rather than left reading a pipeline report they thought they had already answered.
+probe_every_exemption_carries_a_reason() {
+  local key
+  for key in "${!EXEMPT[@]}"; do
+    [[ -n "${EXEMPT[$key]}" ]] && continue
+    problems+=("the exemption entry [$key] carries no reason, so it exempts nothing: an entry is an exemption only when it says why the reader's early exit is the point at that site")
   done
   return 0
 }
@@ -118,10 +143,13 @@ probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
 # 1. One criterion, one case: nothing in this directory reads its own writer's SIGPIPE as an
 #    answer. One case rather than one per suite, because the rule is about the directory — a
 #    suite added tomorrow is covered by existing, and a per-suite roster would be the list
-#    the glob above exists to avoid.
+#    the glob above exists to avoid. The table's own contract is probed in the same case:
+#    an entry with no reason is not an exemption, and saying so is part of saying the
+#    directory is clean.
 name="no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF"
 problems=()
 
+probe_every_exemption_carries_a_reason
 probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"
