@@ -73,6 +73,20 @@ expect_nothing_to_do() {
   fi
 }
 
+# expect_widening_names <name> <file>… — run affected-suites.sh on $base..$head inside $repo and
+# pass when it exits 0 with stderr naming every <file>: the widening diagnostic cases 15 and 19
+# assert on. Every <file> is required rather than any, since what case 19 asks is that a second
+# unplaced file does not fall off the line the first one put there.
+expect_widening_names() {
+  local name="$1" err code f named=1
+  shift
+  err="$(run_affected 2>&1 >/dev/null)"; code=$?
+  for f in "$@"; do [[ "$err" == *"$f"* ]] || named=0; done
+  if [[ "$code" == 0 && "$named" == 1 ]]; then ok; else
+    no "$name (code=$code, stderr=${err:-<empty>})"
+  fi
+}
+
 # foo_tree — the smallest tree a case can assert a narrow answer against: foo.sh under $s with
 # a suite of its own under tests/. Cases 15, 17, 19 and 21 build on it directly; the first three
 # expect an answer that is not foo's suite, so tests/foo.test.sh is what says the answer widened
@@ -374,10 +388,7 @@ printf '# notes\n' > "$repo/notes.md"
 commit_base
 printf '# notes 2\n' > "$repo/notes.md"
 commit_head
-err="$(run_affected 2>&1 >/dev/null)"; code=$?
-if [[ "$code" == 0 && "$err" == *"notes.md"* ]]; then ok; else
-  no "a widened answer names on stderr the file that forced the widening (code=$code, stderr=${err:-<empty>})"
-fi
+expect_widening_names "a widened answer names on stderr the file that forced the widening" notes.md
 
 # 16. run state: a `.tdd/` ledger alongside one source change → exactly that source change's
 #     suite. Every green commit carries `.tdd/issue-<n>.md`, so a range spanning one used to
@@ -440,10 +451,7 @@ commit_base
 printf '# notes 2\n' > "$repo/notes.md"
 printf '# memo 2\n' > "$repo/memo.md"
 commit_head
-err="$(run_affected 2>&1 >/dev/null)"; code=$?
-if [[ "$code" == 0 && "$err" == *"notes.md"* && "$err" == *"memo.md"* ]]; then ok; else
-  no "a widening caused by two unplaced files names both on stderr (code=$code, stderr=${err:-<empty>})"
-fi
+expect_widening_names "a widening caused by two unplaced files names both on stderr" notes.md memo.md
 
 # 20. a whole green commit's shape: the ledger, the refactor-owed file and a real source change in
 #     one range → exactly that source change's suite. This is the range every green commit makes,
