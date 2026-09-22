@@ -188,10 +188,8 @@ done < <(awk -v suites="$SUITE_LIST" -v dir="$suites_dir" '
 ' "${FILES[@]}")
 
 # 1. the whole-tree rule: every non-exempt suite, every line, no launch of another suite.
-name="no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here"
-
 scanned=("${problems[@]}")
-report "$name"
+report "no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches another real suite outside the exemptions recorded here"
 
 # 2. the other half of that rule, stated as its own case because a false positive fails the
 #    run just as loudly as a missed launch and is fixed somewhere else entirely: a suite that
