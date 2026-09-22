@@ -255,21 +255,25 @@ run_guard() {
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
-# probe_guard_names_the_offender_with_its_line — the criterion, and it asks for both halves
-# of what a guard is: a failure, and an address. Not "the output mentions the suite" — a
-# guard that listed every suite it read would satisfy that — but `<suite>:<line>`, which is
-# the only thing that sends the next author to the site rather than to the file.
+# probe_guard_names_the_offender_with_its_line <suite> <reader> — the criterion, and it asks
+# for both halves of what a guard is: a failure, and an address. Not "the output mentions the
+# suite" — a guard that listed every suite it read would satisfy that — but `<suite>:<line>`,
+# which is the only thing that sends the next author to the site rather than to the file.
+#
+# The planted suite and the reader its pipeline ends in are arguments because both cases ask
+# this of their own run of the guard and differ in nothing else: which shape the plant
+# carries is the case's business, and what a guard owes for either is this probe's.
 probe_guard_names_the_offender_with_its_line() {
+  local suite="$1" reader="$2" named
   [[ "$guard_code" != 0 ]] ||
-    problems+=("want the guard to fail over a suite that declares '$PIPEFAIL_LINE' and ends a pipeline in $GREP_Q; it exited 0 and said: $(flat "$guard_out")")
-  local named
-  named="$(grep -F "$OFFENDER" <<< "$guard_out")"
+    problems+=("want the guard to fail over a suite that declares '$PIPEFAIL_LINE' and ends a pipeline in $reader; it exited 0 and said: $(flat "$guard_out")")
+  named="$(grep -F "$suite" <<< "$guard_out")"
   [[ -n "$named" ]] || {
-    problems+=("no line of the guard's output names $OFFENDER, whose line $offender_line ends a pipeline in $GREP_Q under '$PIPEFAIL_LINE'; it said: $(flat "$guard_out")")
+    problems+=("no line of the guard's output names $suite, whose line $offender_line ends a pipeline in $reader under '$PIPEFAIL_LINE'; it said: $(flat "$guard_out")")
     return
   }
-  grep -qF -- "$OFFENDER:$offender_line" <<< "$named" ||
-    problems+=("the guard named $OFFENDER but not as $OFFENDER:$offender_line, where the pipeline is; the lines naming it were: $(flat "$named")")
+  grep -qF -- "$suite:$offender_line" <<< "$named" ||
+    problems+=("the guard named $suite but not as $suite:$offender_line, where the pipeline is; the lines naming it were: $(flat "$named")")
 }
 
 # probe_guard_leaves_the_innocent_alone — the other half of the condition the criterion
@@ -329,22 +333,6 @@ probe_head_plant_is_what_it_claims() {
     problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
 }
 
-# probe_guard_names_the_head_offender_with_its_line — the criterion: the guard fails, and it
-# says where. `head` is the other half of the shape the issue names — `docs/tests/` alone
-# holds dozens of sites — and a guard that caught only `grep -q` would let the next one in.
-probe_guard_names_the_head_offender_with_its_line() {
-  [[ "$guard_code" != 0 ]] ||
-    problems+=("want the guard to fail over a suite that declares '$PIPEFAIL_LINE' and ends a pipeline in $HEAD_R; it exited 0 and said: $(flat "$guard_out")")
-  local named
-  named="$(grep -F "$HEAD_OFFENDER" <<< "$guard_out")"
-  [[ -n "$named" ]] || {
-    problems+=("no line of the guard's output names $HEAD_OFFENDER, whose line $offender_line ends a pipeline in $HEAD_R under '$PIPEFAIL_LINE'; it said: $(flat "$guard_out")")
-    return
-  }
-  grep -qF -- "$HEAD_OFFENDER:$offender_line" <<< "$named" ||
-    problems+=("the guard named $HEAD_OFFENDER but not as $HEAD_OFFENDER:$offender_line, where the pipeline is; the lines naming it were: $(flat "$named")")
-}
-
 # 1. One criterion, one case: the guard fails over a `pipefail` suite that ends a pipeline
 #    in `grep -q`, says where, and says nothing about the same pipeline without `pipefail`.
 #    Both halves are probed over one run of the guard against one tree holding both
@@ -364,7 +352,7 @@ guard_code=0
 if probe_guard_is_there && plant; then
   probe_plant_is_what_it_claims
   run_guard
-  probe_guard_names_the_offender_with_its_line
+  probe_guard_names_the_offender_with_its_line "$OFFENDER" "$GREP_Q"
   probe_guard_leaves_the_innocent_alone
 fi
 [[ -z "$tree" ]] || rm -rf "$tree"
@@ -372,8 +360,10 @@ fi
 report "$name"
 
 # 2. The same guard, the other early-exiting reader: a suite that declares `pipefail` and
-#    ends a pipeline in `head` is named as `<suite>:<line>` too. One fixture and one run,
-#    for the reason `plant_head` gives.
+#    ends a pipeline in `head` is named as `<suite>:<line>` too. `head` is the other half of
+#    the shape the issue names — `docs/tests/` alone holds dozens of sites — and a guard that
+#    caught only `grep -q` would let the next one in. One fixture and one run, for the reason
+#    `plant_head` gives.
 name="no-sigpipe-pipelines.test.sh names a suite that declares pipefail and ends a pipeline in head as <suite>:<line>"
 problems=()
 tree=""
@@ -387,7 +377,7 @@ guard_code=0
 if probe_guard_is_there && plant_head; then
   probe_head_plant_is_what_it_claims
   run_guard
-  probe_guard_names_the_head_offender_with_its_line
+  probe_guard_names_the_offender_with_its_line "$HEAD_OFFENDER" "$HEAD_R"
 fi
 [[ -z "$tree" ]] || rm -rf "$tree"
 
