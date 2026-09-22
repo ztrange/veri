@@ -347,7 +347,7 @@ arg_after() {
 check_developer_launch() {
   local launch="$1" leaf prompt
   leaf="$(arg_after supervise.sh "$launch")"
-  prompt="$(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$launch" | head -1)"
+  prompt="$(head -1 < <(grep -oE '\.tdd/[A-Za-z0-9_.-]+\.prompt' <<< "$launch"))"
   if [[ -z "$prompt" ]]; then
     problem "launches $leaf with no .tdd/<name>.prompt file to run, so its leaf could not be started"
     return

@@ -48,7 +48,7 @@ git -C "$main_repo" -c user.name=veri -c user.email=veri@example.test \
   commit -q --allow-empty -m initial >/dev/null 2>&1
 linked="$work/linked"
 git -C "$main_repo" worktree add -q -b side "$linked" main >/dev/null 2>&1
-first_line="$(git -C "$main_repo" worktree list --porcelain | head -n 1)"
+first_line="$(head -n 1 < <(git -C "$main_repo" worktree list --porcelain))"
 want_main="${first_line#worktree }"
 
 problems=()

@@ -91,7 +91,7 @@ unreadable=""
 # the one on the development machine this repository holds itself portable to — refuses an
 # interval whose bound is over 255.
 win() {
-  grep -oE ".{0,250}$1.{0,250}" <<<"$section" | head -1
+  head -1 < <(grep -oE ".{0,250}$1.{0,250}" <<<"$section")
 }
 
 # The invocation the plan's growth is found by, spelled once for the probes that count it and

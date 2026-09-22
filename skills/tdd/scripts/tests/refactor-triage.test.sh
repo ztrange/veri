@@ -279,7 +279,7 @@ loop_lines="$(refactor_loop)"
 # the empty string when none does. Position is what turns two "is it there?" probes into the
 # one question the ordering claim asks.
 line_of() {
-  grep -nE "$1" <<<"$loop_lines" | head -1 | cut -d: -f1
+  head -1 < <(grep -nE "$1" <<<"$loop_lines") | cut -d: -f1
 }
 
 name="$skill_md's refactor loop calls refactor-triage.sh on each committed transform and stops on exit 3 and exit 2"

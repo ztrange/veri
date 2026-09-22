@@ -144,7 +144,7 @@ plant() {
     { print }
   ' "$SKILL_PATH" > "$planted_skill"
 
-  planted_line="$(grep -nF "$FRAGMENT" "$SKILL_PATH" | head -1 | cut -d: -f1)"
+  planted_line="$(head -1 < <(grep -nF "$FRAGMENT" "$SKILL_PATH") | cut -d: -f1)"
   # Not the status of that assignment (#183). A grep that found no launch line to plant on
   # would otherwise make `plant` return non-zero, the case skip every probe, and `report`
   # count an empty `problems` array as a pass — a guard suite saying the one thing it must

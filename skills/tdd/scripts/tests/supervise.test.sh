@@ -271,7 +271,7 @@ ROOT="$(cd "$HERE/../../../.." && pwd)"
 stated() {
   local hit
   [[ -f "$1" ]] || { echo '<no-file>'; return; }
-  hit="$(tr '\n' ' ' < "$1" | grep -oE "$2" | head -1)"
+  hit="$(head -1 < <(tr '\n' ' ' < "$1" | grep -oE "$2"))"
   [[ -n "$hit" ]] || { echo '<none>'; return; }
   printf '%s' "$hit" | grep -oE '[0-9]+' | tail -1
 }
@@ -321,7 +321,7 @@ killed_window() {
   ( cd "$work" && env "${hbenv[@]}" \
       VERI_STUCK_RETRIES=0 VERI_TIMEOUT=5000 VERI_POLL=0.02 \
       "$SUP" "$name" "$stub/leaf-hang" >/dev/null 2>"$work/err-$name" )
-  grep -oE 'window [0-9]+s' "$work/err-$name" | head -1 | grep -oE '[0-9]+' \
+  head -1 < <(grep -oE 'window [0-9]+s' "$work/err-$name") | grep -oE '[0-9]+' \
     || echo '<no-heartbeat-kill>'
 }
 
@@ -1267,7 +1267,7 @@ header_text="$(awk 'NR > 1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$S
 header_misses=""
 while IFS='|' read -r where regex; do
   [[ -n "$where" ]] || continue
-  printf '%s' "$header_text" | grep -qE "$regex" || header_misses="$header_misses $where"
+  grep -qE "$regex" <<< "$header_text" || header_misses="$header_misses $where"
 done <<'CLAIMS'
 stream-finishes-before-rc|(finish|complete)[a-z]* .{0,120}before .{0,80}(rc file|rcfile|\.rc)
 kill-is-not-proof|kill.{0,160}not proof
@@ -1578,7 +1578,7 @@ preserve_copies="$(ls "$preserve_work/.tdd/attempts/$preserve_step-develop-red-"
 preserve_copy_count="$(printf '%s\n' "$preserve_copies" | grep -c . || true)"
 preserve_logged="$(while read -r f; do
     [[ -n "$f" ]] || continue
-    grep -oE 'leaf: attempt [0-9]+' "$f" | head -1 | grep -oE '[0-9]+' || true
+    head -1 < <(grep -oE 'leaf: attempt [0-9]+' "$f") | grep -oE '[0-9]+' || true
   done <<< "$preserve_copies" | sort | xargs)"
 { [[ "$preserve_code" == 2 ]] \
   && [[ "$preserve_ref_count" == 2 ]] && [[ "$preserve_trees" == "1 2" ]] \

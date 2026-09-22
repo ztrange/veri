@@ -145,13 +145,13 @@ chmod +x "$scratch/no-count-line.test.sh" "$scratch/reaches-gh.test.sh"
 run_make unit UNIT_TESTS="$scratch/no-count-line.test.sh"
 [[ "$code" != 0 ]] ||
   problems+=("want 'make unit' to fail a suite that never reached its count line; it exited 0 and said: $(flat "$out")")
-grep -F 'no-count-line.test.sh' <<< "$out" | grep -qF 'never reached its count line' ||
+grep -qF 'never reached its count line' < <(grep -F 'no-count-line.test.sh' <<< "$out") ||
   problems+=("no line of 'make unit' names no-count-line.test.sh and says it never reached its count line: $(flat "$out")")
 
 run_make unit UNIT_TESTS="$scratch/reaches-gh.test.sh"
 [[ "$code" != 0 ]] ||
   problems+=("want 'make unit' to fail a suite that ran gh; it exited 0 and said: $(flat "$out")")
-grep -F 'reaches-gh.test.sh: tried the network:' <<< "$out" | grep -qF 'veri-unit-gh-probe' ||
+grep -qF 'veri-unit-gh-probe' < <(grep -F 'reaches-gh.test.sh: tried the network:' <<< "$out") ||
   problems+=("no 'tried the network' line of 'make unit' names reaches-gh.test.sh with the gh call carrying veri-unit-gh-probe: $(flat "$out")")
 
 report "$name"
@@ -222,7 +222,7 @@ chmod +x "$scratch/calls-real-vcs.test.sh" "$scratch/mocks-vcs.test.sh"
 run_make unit UNIT_TESTS="$scratch/calls-real-vcs.test.sh"
 [[ "$code" != 0 ]] ||
   problems+=("want 'make unit' to fail a suite that ran real git; it exited 0 and said: $(flat "$out")")
-grep -v '^== ' <<< "$out" | grep -qw git ||
+grep -qw git < <(grep -v '^== ' <<< "$out") ||
   problems+=("no line of 'make unit' over a suite that ran real git names git: $(flat "$out")")
 
 run_make test TESTS="$scratch/calls-real-vcs.test.sh" UNIT_TESTS=

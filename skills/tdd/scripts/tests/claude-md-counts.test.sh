@@ -200,7 +200,7 @@ unit_claim=".*${BEFORE}plus $NUM [A-Za-z ]*under .unit..*"
 # same passage the last one answers; the `$BEFORE` in the patterns is what stops the
 # capture starting in the middle of a count.
 claimed() {
-  sed -nE "s/$2/\\$3/p" <<< "$1" | head -1
+  head -1 < <(sed -nE "s/$2/\\$3/p" <<< "$1")
 }
 
 # check <what> <claimed> <n> — one stated count against the fact on disk. Accepts either

@@ -6,5 +6,5 @@
 - [x] A planted offender turns the guard red naming it, and the guard is green again once the plant is removed ⟦criterion 3⟧
 - [x] `prompt-test-tiers.test.sh`'s prompt probes give the same verdict on a matching and a non-matching prompt whether or not the writer is preempted ⟦criterion 1⟧
 - [x] `count-line-guard.test.sh`'s pipeline-fed matches give the same verdict on a matching and a non-matching input whether or not the writer is preempted ⟦criterion 1⟧
-- [ ] Every remaining site the guard names is repaired or exempted, so the guard passes over the whole tree as it stands ⟦criterion 4⟧
+- [x] Every remaining site the guard names is repaired or exempted, so the guard passes over the whole tree as it stands ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] `CLAUDE.md`'s testing idiom section states the pipefail/SIGPIPE rule once ⟦criterion 5⟧

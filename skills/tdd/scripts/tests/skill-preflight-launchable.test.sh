@@ -92,7 +92,7 @@ section() {
   sec_start="$(awk -v h="$1" 'index($0, h) == 1 { print NR; exit }' "$md")"
   [[ -n "$sec_start" ]] || { sec_end=0; return 1; }
   local next
-  next="$(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#' | head -1 | cut -d: -f1)"
+  next="$(head -1 < <(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#') | cut -d: -f1)"
   if [[ -n "$next" ]]; then
     sec_end=$((sec_start + next - 1))
   else
@@ -169,7 +169,7 @@ if preflight_or_problem "a $growth check"; then
   growth_at="$(call_at "$growth")"
   if [[ -z "$growth_at" ]]; then
     problems+=("$skill_md's '$preflight' section never names $growth, so a run whose plan-growth budget cannot be read starts anyway and only finds out when a leaf first tries to grow the plan")
-  elif ! item_around "$growth_at" | grep -qiE 'exits? 2'; then
+  elif ! grep -qiE 'exits? 2' < <(item_around "$growth_at"); then
     problems+=("$skill_md:$growth_at names $growth in a preflight item that spells no exit 2, so the document mentions the budget without refusing a run that cannot read it — the way item 5 refuses a bad VERI_REFACTOR_BUDGET")
   fi
 fi

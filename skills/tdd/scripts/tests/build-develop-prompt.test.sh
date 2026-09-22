@@ -921,7 +921,7 @@ rc_tpl="$HERE/../prompts/develop-reconcile.md"
 if [[ ! -r "$rc_tpl" ]]; then
   problems="$problems; no template prompts/develop-reconcile.md"
 elif grep -Eq -e '--force($|[^-]|-($|[^w]))' "$rc_tpl" \
-  || grep -o -e '--force-with-lease[^[:space:]`]*' "$rc_tpl" | grep -vq -e '^--force-with-lease='; then
+  || grep -vq -e '^--force-with-lease=' < <(grep -o -e '--force-with-lease[^[:space:]`]*' "$rc_tpl"); then
   problems="$problems; template offers a --force that is not a pinned --force-with-lease="
 fi
 refusal_bad=""

@@ -127,7 +127,7 @@ problems=()
 if draft_pr_or_problem "whether the step still pushes"; then
   grep -qF 'gh pr create' <<< "$records" ||
     problems+=("$skill_md's Draft PR step never runs gh pr create, so there is no PR being opened against the pushed branch at all")
-  pushes="$(grep -F 'git push' <<< "$records" | head -1)"
+  pushes="$(head -1 < <(grep -F 'git push' <<< "$records"))"
   [[ -z "$pushes" ]] ||
     problems+=("$skill_md's Draft PR step still pushes the branch itself, so the procedure reads as though the branch reaches the remote only once the run is review-ready: $(printf '%.120s' "$pushes")")
 fi
@@ -137,7 +137,7 @@ report "$name"
 # whose heading starts with <heading prefix>, or nothing when there is no such section or
 # no such branch in it. Any heading ends one of these, the document's innermost level.
 pass_record() {
-  section_records "$1" '^#' | grep -E '^ *- \*\*pass' | head -1
+  head -1 < <(section_records "$1" '^#' | grep -E '^ *- \*\*pass')
 }
 
 # 2. The criterion, as one case: the branch reaches the remote at both of the points that
@@ -186,7 +186,7 @@ if draft_pr_or_problem "which command its full-suite gate runs"; then
   names_the_full_gate "$records" ||
     problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
 fi
-invariant="$(section_records '## Guardrails' '^## ' | grep -F 'before you open the pr' | head -1)"
+invariant="$(head -1 < <(section_records '## Guardrails' '^## ' | grep -F 'before you open the pr'))"
 if [[ -z "$invariant" ]]; then
   problems+=("$skill_md's Guardrails has no invariant about opening the PR to read — which command it gates on could not be checked")
 elif ! names_the_full_gate "$invariant"; then
@@ -207,7 +207,7 @@ name="$skill_md's Draft PR step adds a repair step to the ledger on a red full r
 problems=()
 
 if draft_pr_or_problem "what a red full run does"; then
-  repair="$(grep -F 'repair step' <<< "$records" | grep -wF 'red' | grep -F 'ledger' | head -1)"
+  repair="$(head -1 < <(grep -F 'repair step' <<< "$records" | grep -wF 'red' | grep -F 'ledger'))"
   if [[ -z "$repair" ]]; then
     problems+=("$skill_md's Draft PR step has no record adding a repair step to the ledger on a red full run, so a suite only the full command reaches still ends the run in a bail")
   else
@@ -230,7 +230,7 @@ name="$skill_md's Draft PR step bails on a second red full run after a repair st
 problems=()
 
 if draft_pr_or_problem "what a second red full run does"; then
-  second="$(grep -wF 'bail' <<< "$records" | grep -E 'second red|red again' | grep -F 'repair step' | head -1)"
+  second="$(head -1 < <(grep -wF 'bail' <<< "$records" | grep -E 'second red|red again' | grep -F 'repair step'))"
   if [[ -z "$second" ]]; then
     problems+=("$skill_md's Draft PR step has no record bailing on a second red full run after a repair step, so a repair that does not take can loop instead of ending the run")
   elif ! grep -qE 'every (suite still red|red suite|failing suite|still-red suite)' <<< "$second"; then
@@ -256,7 +256,7 @@ name="$skill_md's Draft PR step puts refactor-owed.sh render's output in the PR 
 problems=()
 
 if draft_pr_or_problem "whether the run's refactor leftovers reach the PR body"; then
-  render="$(grep -F 'refactor-owed.sh render' <<< "$records" | head -1)"
+  render="$(head -1 < <(grep -F 'refactor-owed.sh render' <<< "$records"))"
   if [[ -z "$render" ]]; then
     problems+=("$skill_md's Draft PR step never runs refactor-owed.sh render, so every step's structural leftovers stay in a committed file nobody reading the PR is pointed at")
   else

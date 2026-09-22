@@ -40,7 +40,7 @@ report() {
 # `$` and `'` are ordinary characters in one. Suite-local helper, the same idiom
 # refactor-triage.test.sh's own `line_of` follows.
 line_of() {
-  grep -nF "$2" "$1" | head -1 | cut -d: -f1
+  head -1 < <(grep -nF "$2" "$1") | cut -d: -f1
 }
 
 # under_step <file> <step> <transform> — probe that <file> carries <transform>, and carries

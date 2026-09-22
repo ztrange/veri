@@ -69,7 +69,7 @@ section() {
   # The next heading, counted from the line after this one so the section's own heading
   # cannot close it; none means the section runs to the end of the file.
   local next
-  next="$(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#' | head -1 | cut -d: -f1)"
+  next="$(head -1 < <(tail -n "+$((sec_start + 1))" "$md" | grep -nE '^#') | cut -d: -f1)"
   if [[ -n "$next" ]]; then
     sec_end=$((sec_start + next - 1))
   else

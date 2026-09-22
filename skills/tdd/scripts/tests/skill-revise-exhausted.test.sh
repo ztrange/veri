@@ -75,7 +75,7 @@ unreadable=""
 # rounder, larger number because BSD grep — the one on the development machine this
 # repository holds itself portable to — refuses an interval whose bound is over 255.
 win() {
-  grep -oE ".{0,250}$2.{0,250}" <<<"$1" | head -1
+  head -1 < <(grep -oE ".{0,250}$2.{0,250}" <<<"$1")
 }
 
 # The three things the section is probed for by name, spelled once each for the guard that
