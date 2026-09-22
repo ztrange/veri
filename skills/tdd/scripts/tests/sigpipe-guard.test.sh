@@ -779,12 +779,18 @@ ROSTER_CASE='`make test` runs'
 # nothing an author can act on.
 ROSTER_QUESTION='make -n test'
 
+# The name this case hands `open_tree`, which writes no file at that path: the bare tree
+# holds no fixture at all, so `offender_path` is the one thing `open_tree` sets that nothing
+# here goes on to read. A name of its own rather than `OFFENDER`, which is case 1's planted
+# suite — a reader who meets it here looks for a plant that was never made.
+ABSENT_OFFENDER='no-suite-is-planted.test.sh'
+
 # plant_bare_tree — a scratch tree holding nothing but the guard's own copy: no fixture, and
 # so no offending site anywhere in it. What makes it the tree this case needs is what every
 # plant here already lacks and no case has yet asked about — there is no Makefile in it, so
 # `make -n test` can name no suite at all.
 plant_bare_tree() {
-  open_tree "$OFFENDER" || return 1
+  open_tree "$ABSENT_OFFENDER" || return 1
 
   install_guard
 }
