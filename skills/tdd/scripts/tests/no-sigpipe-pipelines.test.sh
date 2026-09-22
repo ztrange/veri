@@ -16,9 +16,10 @@
 # Repairing those sites fixes today; this suite is what stops the next one being written.
 #
 # Contract under test:
-#   No suite under this directory that declares `pipefail` ends a pipeline in a `grep` whose
-#   options carry `q`. A suite that does is reported as `<suite>:<line>` — the address, not
-#   the file, because that is what sends the next author to the site.
+#   No suite under this directory that declares `pipefail` ends a pipeline in a reader that
+#   leaves before EOF — a `grep` whose options carry `q`, or a `head`. A suite that does is
+#   reported as `<suite>:<line>` — the address, not the file, because that is what sends the
+#   next author to the site.
 #
 # `pipefail` is half of the condition, and the half that makes the shape a bug rather than a
 # habit. Without it the pipeline's status is the reader's own, the writer's SIGPIPE never
@@ -45,13 +46,22 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # other spelling of the option on a `set` line.
 PIPEFAIL_DECL='^[[:space:]]*set[[:space:]].*pipefail'
 
-# The reader half: a grep whose short-option cluster carries `q`, which is `grep -q`,
+# One reader half: a grep whose short-option cluster carries `q`, which is `grep -q`,
 # `grep -qF --`, `grep -Eqi` and `grep -vq` alike. The cluster has to be one of the option
 # words that follow the command — everything before it is another option word — rather than
 # a dash-word anywhere on the line, or `[[ "$(… | grep -c '^')" -eq 1 ]]` reads as one on
 # the strength of its `-eq` (verify.test.sh:715, which counts lines and asserts on the
 # count, so its reader consumes to EOF and there is nothing there to catch).
-READER='(grep|egrep|fgrep)([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q'
+GREP_READER='(grep|egrep|fgrep)([[:space:]]+-[A-Za-z]*)*[[:space:]]+-[A-Za-z]*q'
+# The other: `head`, which leaves as soon as it has the lines it was asked for, with the
+# same consequence for the writer behind it — a closed pipe, SIGPIPE, and `pipefail`
+# handing that 141 up as the pipeline's status. A different reason to leave, the same
+# inversion. It has to be a whole command word, or `ahead`, `header` and `$HEAD_SHA` all
+# read as one; no option list is required after it, because a bare `head` is `head -n 10`.
+HEAD_READER='head([[:space:]]|$)'
+# Either reader, for the one pattern below: what makes the shape a bug is that the reader
+# leaves before EOF, not which of the two it is.
+READER="($GREP_READER|$HEAD_READER)"
 # The pipe half, prefixed to it: a `|` that is not one of a `||`, which is a boolean and not
 # a pipeline at all. Written as two halves for the reason the header gives — a line of this
 # file spelling the whole shape would be its own first offender.
@@ -84,7 +94,7 @@ declares_pipefail() { grep -Eq "$PIPEFAIL_DECL" "$1"; }
 
 # probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader — the criterion. Every
 # suite in this directory that declares `pipefail` is asked for the lines that feed a writer
-# into a `grep` carrying `q`; a comment is not one, because a comment cannot run anything
+# into either early-exiting reader; a comment is not one, because a comment cannot run anything
 # and the prose here discusses the shape at length.
 #
 # The suites are found by globbing this directory rather than by a list, because the list is
@@ -99,7 +109,7 @@ probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
       lineno="${hit%%:*}"
       text="${hit#*:}"
       [[ "$text" =~ ^[[:space:]]*# ]] && continue
-      problems+=("$name:$lineno ends a pipeline in a grep that exits on its first match, under a suite that declares pipefail, so the status asserted on is the writer's SIGPIPE rather than the reader's answer: $(flat "$text")")
+      problems+=("$name:$lineno ends a pipeline in a reader that leaves before EOF, under a suite that declares pipefail, so the status asserted on is the writer's SIGPIPE rather than the reader's answer: $(flat "$text")")
     done < <(grep -nE "$PIPE_INTO_READER" "$f")
   done
   return 0
@@ -109,7 +119,7 @@ probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader() {
 #    answer. One case rather than one per suite, because the rule is about the directory — a
 #    suite added tomorrow is covered by existing, and a per-suite roster would be the list
 #    the glob above exists to avoid.
-name="no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a grep that exits on its first match"
+name="no suite under skills/tdd/scripts/tests/ that declares pipefail ends a pipeline in a reader that leaves before EOF"
 problems=()
 
 probe_no_pipefail_suite_ends_a_pipeline_in_an_early_exiting_reader
