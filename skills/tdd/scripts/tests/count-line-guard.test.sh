@@ -629,6 +629,60 @@ probe_unswallowed_git_reach_fails_visibly
 
 report "$name"
 
+# 9. The pipeline-fed matches above answer from the text they read, not from the writer
+#    feeding them (#422). A probe that folds a document through a pipeline and asserts on
+#    that pipeline's status asks two questions at once: what the text says, and whether the
+#    writer survived to EOF. On a glibc pipe a reader that leaves early closes it under a
+#    writer with bytes still to push, the writer dies of SIGPIPE, `pipefail` hands that 141
+#    up as the pipeline's status, and the assertion is inverted — green on this Mac, where
+#    BSD buffering makes the writer need one write, and red on CI. That is how #418 was lost
+#    in this very suite. So the preemption is injected rather than raced for: `plain`, the
+#    fold case 5's probe reads its document through, is replaced by one that writes the same
+#    bytes and then returns 141, the status a writer killed by SIGPIPE leaves, and the probe
+#    must reach the same verdict as it does with the fold intact — on a document that carries
+#    both facts and on one that carries neither.
+name="the pipeline-fed matches give the same verdict on a matching and a non-matching input when the writer is preempted"
+problems=()
+
+# verdict <CLAUDE.md path> — what the pipeline-fed probe collects for one document: the count
+# first, then one line per problem, so two runs compare as text. Both `problems` and `idiom`
+# are declared local here, so the probe fills this function's copies rather than the case's.
+verdict() {
+  local CLAUDE_MD="$1" idiom="" problems=()
+  probe_idiom_records_the_check
+  printf '%s\n' "${#problems[@]}" "${problems[@]}"
+}
+
+unpreempted="$(declare -f plain)"
+barren="$(mktemp)" || {
+  problems+=("could not write a document carrying neither fact, so half the criterion went unasked")
+  barren=/dev/null
+}
+printf '## Testing idiom\nSuites live beside the scripts they cover and match the house style.\n\n## Next\n' > "$barren"
+
+honest_match="$(verdict "$CLAUDE_MD")"
+honest_miss="$(verdict "$barren")"
+plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; return 141; }
+preempted_match="$(verdict "$CLAUDE_MD")"
+preempted_miss="$(verdict "$barren")"
+eval "$unpreempted"
+rm -f "$barren"
+
+if [[ "$honest_match" != 0 ]]; then
+  problems+=("with the fold intact the probe already objects to CLAUDE.md (${honest_match%%$'\n'*} problems), so a verdict that survives preemption would only be two wrong answers agreeing")
+fi
+if [[ "${honest_miss%%$'\n'*}" == 0 ]]; then
+  problems+=("with the fold intact the probe accepts a document carrying neither fact, so a verdict that survives preemption would prove nothing")
+fi
+if [[ "$preempted_match" != "$honest_match" ]]; then
+  problems+=("a preempted writer changes the pipeline-fed verdict on a matching input: ${honest_match%%$'\n'*} problems become ${preempted_match%%$'\n'*}")
+fi
+if [[ "$preempted_miss" != "$honest_miss" ]]; then
+  problems+=("a preempted writer changes the pipeline-fed verdict on a non-matching input: ${honest_miss%%$'\n'*} problems become ${preempted_miss%%$'\n'*}")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
