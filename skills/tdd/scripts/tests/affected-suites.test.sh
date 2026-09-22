@@ -504,6 +504,23 @@ commit_head
 expect_suites "editing an existing suite's contents does not pull in claude-md-counts.test.sh" \
   "skills/tdd/scripts/tests/foo.test.sh"
 
+# 23. a script file added or deleted under scripts/ pulls in claude-md-counts.test.sh too: CLAUDE.md
+#     hand-types the script count beside the suite count, and that suite checks both against the
+#     files on disk. Case 21 pins the suite half of the same rule; this pins the script half, over a
+#     range that both adds one script and deletes another, so a rule written for arrivals alone
+#     would show up here. tests/bar.test.sh survives the deletion of bar.sh, so nothing under tests/
+#     is added or deleted and the suite rule cannot be what supplies the answer; foo.sh and its
+#     suite are untouched, so tests/foo.test.sh is what a widened answer would carry.
+new_repo script-added-counts
+foo_bar_tree
+printf '# counts suite\n' > "$s/tests/claude-md-counts.test.sh"
+commit_base
+rm "$s/bar.sh"
+printf 'newbie\n' > "$s/newbie.sh"
+commit_head
+expect_suites "a range that adds or deletes a script under scripts/ pulls in claude-md-counts.test.sh" \
+  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/claude-md-counts.test.sh\nskills/tdd/scripts/tests/newbie.test.sh')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

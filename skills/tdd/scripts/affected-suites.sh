@@ -86,11 +86,14 @@ while IFS= read -r f; do
   fi
 done <<<"$files"
 
-# A suite file added or deleted changes the counts CLAUDE.md hand-types against the files on
-# disk, which claude-md-counts.test.sh is the suite that checks. It asserts on a count of files
-# rather than on any file's contents, so no touched path points at it and a run that added a
-# suite used to discover the broken count only in a later full-tier run (#416).
-if [[ -n "$(git diff --name-only --diff-filter=AD "$range" -- "$scripts/tests")" ]]; then
+# A suite or script file added or deleted changes the counts CLAUDE.md hand-types against the
+# files on disk, which claude-md-counts.test.sh is the suite that checks. It asserts on a count
+# of files rather than on any file's contents, so no touched path points at it and a run that
+# added a suite used to discover the broken count only in a later full-tier run (#416). The
+# second pathspec is `:(glob)` so its `*` stops at a `/`, matching the `scripts/*.sh` the
+# document counts and not the libs, prompts and suites nested below it.
+if [[ -n "$(git diff --name-only --diff-filter=AD "$range" -- \
+             "$scripts/tests" ":(glob)$scripts/*.sh")" ]]; then
   placed+="$scripts/tests/claude-md-counts.test.sh"$'\n'
 fi
 

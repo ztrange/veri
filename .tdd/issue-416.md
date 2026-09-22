@@ -7,4 +7,4 @@
 - [x] A green-commit-shaped range — ledger, refactor-owed file and a real source change together — answers narrowly, pinning the regression ⟦criterion 5⟧
 - [x] A range that adds or deletes a file under `tests/` or `tests/unit/` includes `claude-md-counts.test.sh` in the affected set ⟦criterion 6⟧
 - [x] Editing an existing suite's contents does not include `claude-md-counts.test.sh` ⟦criterion 7⟧
-- [ ] A range that adds or deletes a script under `scripts/` also includes `claude-md-counts.test.sh`, since CLAUDE.md hand-types the script count beside the suite count
+- [x] A range that adds or deletes a script under `scripts/` also includes `claude-md-counts.test.sh`, since CLAUDE.md hand-types the script count beside the suite count ⟂ refactor pending
