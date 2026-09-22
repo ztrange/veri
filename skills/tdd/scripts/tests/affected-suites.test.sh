@@ -73,10 +73,10 @@ expect_nothing_to_do() {
   fi
 }
 
-# foo_bar_tree — the fixture cases 4, 7 and 16 share: foo.sh and bar.sh under $s, each with a
-# suite of its own under tests/. Every one of the three expects tests/foo.test.sh alone, so
-# bar's untouched suite is the one an answer that widened, or that read the change as the
-# neighbour's, would carry.
+# foo_bar_tree — the fixture cases 4, 7, 16 and 18 share: foo.sh and bar.sh under $s, each with
+# a suite of its own under tests/. The first three expect tests/foo.test.sh alone, so bar's
+# untouched suite is the one an answer that widened, or that read the change as the neighbour's,
+# would carry; case 18 expects both, bar's being what says the answer did widen.
 foo_bar_tree() {
   mkdir -p "$s/tests"
   printf 'foo\n' > "$s/foo.sh"
@@ -390,6 +390,24 @@ printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
 printf 'refactor owed 2\n' > "$repo/.tdd/issue-416-refactor-owed.md"
 commit_head
 expect_nothing_to_do "run state alone → exit 3 and prints nothing"
+
+# 18. fail-closed survives the run-state rule: a range of `.tdd/` run state alongside a file no
+#     rule places → every suite. Placing run state as affecting no suite (cases 16 and 17) must
+#     not swallow the widening notes.md owes: the two kinds of "no suite of its own" are
+#     different answers, run state being known to affect none and an unplaced path being a file
+#     nothing knows about. foo.sh and bar.sh are untouched, so only a widened answer carries
+#     their suites (issue #416).
+new_repo run-state-with-unplaced
+foo_bar_tree
+mkdir -p "$repo/.tdd"
+printf -- '- [ ] step one\n' > "$repo/.tdd/issue-416.md"
+printf '# notes\n' > "$repo/notes.md"
+commit_base
+printf -- '- [x] step one\n' > "$repo/.tdd/issue-416.md"
+printf '# notes 2\n' > "$repo/notes.md"
+commit_head
+expect_suites "fail-closed: run state alongside a file no rule places still prints every suite" \
+  "$(printf 'skills/tdd/scripts/tests/bar.test.sh\nskills/tdd/scripts/tests/foo.test.sh')"
 
 echo "----"
 echo "$pass passed, $fail failed"
