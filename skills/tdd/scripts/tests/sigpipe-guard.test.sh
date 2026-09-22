@@ -275,39 +275,42 @@ probe_guard_leaves_the_innocent_alone() {
 # two shapes it was asked about.
 HEAD_OFFENDER='probes-head-under-pipefail.test.sh'
 
-# plant_head_offender — write the suite the guard must catch, at `head_offender_path`: it
+# plant_head_offender — write the suite the guard must catch, at `offender_path`: it
 # declares `pipefail` and ends a pipeline in `head`, so the status it asserts on is its own
 # printf's rather than the reader's.
 plant_head_offender() {
-  write_plant "$head_offender_path" "$PIPEFAIL_LINE" \
+  write_plant "$offender_path" "$PIPEFAIL_LINE" \
     'the pipeline below is the shape the guard has to catch.' "$(probe_line body "$HEAD_R")"
 }
 
-# plant_head — the tree the head case is asked about, left in `head_tree`, with the planted
-# suite in `head_offender_path`, the guard's copy in `head_guard_copy` and the offending
-# line's number in `head_offender_line`. A tree of its own rather than a third file in
-# `plant`'s, so that case's fixtures stay the pair its contract is written about.
+# plant_head — the tree the head case is asked about, left in `tree`, with the planted
+# suite in `offender_path`, the guard's copy in `guard_copy` and the offending line's number
+# in `offender_line`. A tree of its own rather than a third file in `plant`'s, so that
+# case's fixtures stay the pair its contract is written about — but the same variable names,
+# because the two cases run one after the other and each tears its tree down before the next
+# begins, so there is only ever one plant in hand. A parallel `head_`-prefixed set of names
+# for the same five things bought nothing and made every probe below need a copy per case.
 #
 # One fixture here and no innocent: the criterion this case pins is that the head shape is
 # named at all, and what keeps the guard from answering "every line is one" is already
 # pinned by the case above, over the same guard.
 plant_head() {
-  head_tree="$(mktemp -d)" || {
+  tree="$(mktemp -d)" || {
     problems+=("could not make a scratch tree to plant a suite in, so the criterion went unasked")
     return 1
   }
-  mkdir -p "$head_tree/$TESTS_DIR"
+  mkdir -p "$tree/$TESTS_DIR"
 
-  head_offender_path="$head_tree/$TESTS_DIR/$HEAD_OFFENDER"
-  head_guard_copy="$head_tree/$TESTS_DIR/$GUARD_NAME"
+  offender_path="$tree/$TESTS_DIR/$HEAD_OFFENDER"
+  guard_copy="$tree/$TESTS_DIR/$GUARD_NAME"
 
   plant_head_offender
 
-  cp "$GUARD_PATH" "$head_guard_copy"
-  git init -q "$head_tree" >/dev/null 2>&1
-  git -C "$head_tree" add -A >/dev/null 2>&1
+  cp "$GUARD_PATH" "$guard_copy"
+  git init -q "$tree" >/dev/null 2>&1
+  git -C "$tree" add -A >/dev/null 2>&1
 
-  head_offender_line="$(grep -n "$MARK" "$head_offender_path" | cut -d: -f1)"
+  offender_line="$(grep -n "$MARK" "$offender_path" | cut -d: -f1)"
   # Not the status of that assignment, for the reason `plant` gives: a grep that found no
   # mark must not make the case skip its probes and report a pass.
   return 0
@@ -315,42 +318,35 @@ plant_head() {
 
 # probe_head_plant_is_what_it_claims — the head plant's premises, asserted rather than
 # assumed: a single marked line, that line really feeding the writer into `head`, and the
-# suite holding it really declaring `pipefail`. Without all three, `head_offender_line` is a
+# suite holding it really declaring `pipefail`. Without all three, `offender_line` is a
 # number the guard was never owed.
 probe_head_plant_is_what_it_claims() {
-  [[ "$head_offender_line" =~ ^[0-9]+$ ]] || {
-    problems+=("the planted offender has no single marked line to name (found '$head_offender_line'), so the criterion cannot be asked")
+  [[ "$offender_line" =~ ^[0-9]+$ ]] || {
+    problems+=("the planted offender has no single marked line to name (found '$offender_line'), so the criterion cannot be asked")
     return
   }
   local marked
-  marked="$(sed -n "${head_offender_line}p" "$head_offender_path")"
+  marked="$(sed -n "${offender_line}p" "$offender_path")"
   [[ "$marked" == *"|"*"$HEAD_R"* ]] ||
-    problems+=("the planted offender's line $head_offender_line does not end a pipeline in $HEAD_R, so there is nothing there to catch: $(flat "$marked")")
-  grep -qF -- "$PIPEFAIL_LINE" "$head_offender_path" ||
+    problems+=("the planted offender's line $offender_line does not end a pipeline in $HEAD_R, so there is nothing there to catch: $(flat "$marked")")
+  grep -qF -- "$PIPEFAIL_LINE" "$offender_path" ||
     problems+=("the planted offender never declares '$PIPEFAIL_LINE', so its pipeline's status is the reader's own and the shape is not a bug at all")
-}
-
-# run_head_guard — run the guard over the head plant once, leaving what it said in
-# `head_out` and how it exited in `head_code`, for the same reason `run_guard` is a step of
-# its own: the probe below asks about that one run.
-run_head_guard() {
-  head_out="$("$head_guard_copy" 2>&1)" && head_code=0 || head_code=$?
 }
 
 # probe_guard_names_the_head_offender_with_its_line — the criterion: the guard fails, and it
 # says where. `head` is the other half of the shape the issue names — `docs/tests/` alone
 # holds dozens of sites — and a guard that caught only `grep -q` would let the next one in.
 probe_guard_names_the_head_offender_with_its_line() {
-  [[ "$head_code" != 0 ]] ||
-    problems+=("want the guard to fail over a suite that declares '$PIPEFAIL_LINE' and ends a pipeline in $HEAD_R; it exited 0 and said: $(flat "$head_out")")
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail over a suite that declares '$PIPEFAIL_LINE' and ends a pipeline in $HEAD_R; it exited 0 and said: $(flat "$guard_out")")
   local named
-  named="$(grep -F "$HEAD_OFFENDER" <<< "$head_out")"
+  named="$(grep -F "$HEAD_OFFENDER" <<< "$guard_out")"
   [[ -n "$named" ]] || {
-    problems+=("no line of the guard's output names $HEAD_OFFENDER, whose line $head_offender_line ends a pipeline in $HEAD_R under '$PIPEFAIL_LINE'; it said: $(flat "$head_out")")
+    problems+=("no line of the guard's output names $HEAD_OFFENDER, whose line $offender_line ends a pipeline in $HEAD_R under '$PIPEFAIL_LINE'; it said: $(flat "$guard_out")")
     return
   }
-  grep -qF -- "$HEAD_OFFENDER:$head_offender_line" <<< "$named" ||
-    problems+=("the guard named $HEAD_OFFENDER but not as $HEAD_OFFENDER:$head_offender_line, where the pipeline is; the lines naming it were: $(flat "$named")")
+  grep -qF -- "$HEAD_OFFENDER:$offender_line" <<< "$named" ||
+    problems+=("the guard named $HEAD_OFFENDER but not as $HEAD_OFFENDER:$offender_line, where the pipeline is; the lines naming it were: $(flat "$named")")
 }
 
 # 1. One criterion, one case: the guard fails over a `pipefail` suite that ends a pipeline
@@ -384,19 +380,20 @@ report "$name"
 #    for the reason `plant_head` gives.
 name="no-sigpipe-pipelines.test.sh names a suite that declares pipefail and ends a pipeline in head as <suite>:<line>"
 problems=()
-head_tree=""
-head_offender_path=""
-head_guard_copy=""
-head_offender_line=""
-head_out=""
-head_code=0
+tree=""
+offender_path=""
+innocent_path=""
+guard_copy=""
+offender_line=""
+guard_out=""
+guard_code=0
 
 if probe_guard_is_there && plant_head; then
   probe_head_plant_is_what_it_claims
-  run_head_guard
+  run_guard
   probe_guard_names_the_head_offender_with_its_line
 fi
-[[ -z "$head_tree" ]] || rm -rf "$head_tree"
+[[ -z "$tree" ]] || rm -rf "$tree"
 
 report "$name"
 
