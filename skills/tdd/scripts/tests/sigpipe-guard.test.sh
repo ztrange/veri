@@ -66,11 +66,18 @@ TESTS_DIR='skills/tdd/scripts/tests'
 OFFENDER='probes-under-pipefail.test.sh'
 INNOCENT='probes-without-pipefail.test.sh'
 
-# The reader half of the offending line, written once because three places must spell it
-# identically: `plant_offender` and `plant_innocent` print it into their fixtures, and
-# `probe_plant_is_what_it_claims` asserts it is really there. Kept apart from the `|` for
-# the reason the header gives.
+# The two reader halves an offending line can end in, side by side because they are one
+# kind of thing — a reader that leaves before EOF — and `probe_line` takes either. Each is
+# written once because three places must spell it identically: the planters print it into
+# their fixtures and a premises probe asserts it is really there. Kept apart from the `|`
+# for the reason the header gives, and for one more in the head case's: once the guard
+# catches that shape, a line of this suite spelling it whole would be its own first
+# offender.
 GREP_Q='grep -qF -- "$want"'
+# `head` stops as soon as it has the lines it was asked for, and a writer with more to push
+# then dies of SIGPIPE exactly as it does into `grep -q` — same inversion, a different
+# reason for the reader to leave.
+HEAD_R='head -n 1'
 
 # The declaration that makes the shape a bug rather than a habit. The offender carries it;
 # the innocent carries `set -u` alone.
@@ -102,11 +109,13 @@ report() {
 # rather than a pipe into `tr`, which is two processes per problem line.
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
-# probe_line <body-variable> — the offending line, assembled: a writer whose output is fed
-# into the early-exiting reader, marked so this suite can find it again. Built here, from
-# GREP_Q, rather than written out whole, for the reason the header gives.
+# probe_line <body-variable> <reader> — the offending line, assembled: a writer whose output
+# is fed into an early-exiting reader, marked so this suite can find it again. Built here,
+# from the reader constants above, rather than written out whole, for the reason the header
+# gives. One template for both readers, because what makes the line an offence is the writer
+# feeding a reader that leaves — not which reader it is.
 probe_line() {
-  printf 'printf "%%s\\n" "$%s" | %s  # %s\n' "$1" "$GREP_Q" "$MARK"
+  printf 'printf "%%s\\n" "$%s" | %s  # %s\n' "$1" "$2" "$MARK"
 }
 
 # write_plant <path> <set-line> <comment> <probe-line> — write one fixture suite, whole and
@@ -138,7 +147,7 @@ write_plant() {
 # printf's, not grep's. That is the shape of both sites this issue repairs.
 plant_offender() {
   write_plant "$offender_path" "$PIPEFAIL_LINE" \
-    'the pipeline below is the shape the guard has to catch.' "$(probe_line body)"
+    'the pipeline below is the shape the guard has to catch.' "$(probe_line body "$GREP_Q")"
 }
 
 # plant_innocent — write the suite the guard must leave alone, at `innocent_path`: the same
@@ -146,7 +155,7 @@ plant_offender() {
 # the reader's own and the writer's SIGPIPE never reaches it.
 plant_innocent() {
   write_plant "$innocent_path" 'set -u' \
-    'the same pipeline, with the status the readers own.' "$(probe_line body)"
+    'the same pipeline, with the status the readers own.' "$(probe_line body "$GREP_Q")"
 }
 
 # plant — build the scratch tree the case is asked about and leave its path in `tree`, the
@@ -261,31 +270,17 @@ probe_guard_leaves_the_innocent_alone() {
     problems+=("the guard named $INNOCENT, which ends the same pipeline in $GREP_Q without declaring '$PIPEFAIL_LINE': $(flat "$named")")
 }
 
-# The second early-exiting reader the issue names. `head` stops as soon as it has the lines
-# it was asked for, and a writer with more to push then dies of SIGPIPE exactly as it does
-# into `grep -q` — same inversion, a different reason for the reader to leave. Kept apart
-# from the `|` for the reason GREP_Q is, and for one more: once the guard catches this
-# shape, a line of this suite spelling it whole would be its own first offender.
-HEAD_R='head -n 1'
-
 # The suite the head case plants. A name of its own rather than a second use of OFFENDER
 # because both plants exist in the same run, and a failure message has to say which of the
 # two shapes it was asked about.
 HEAD_OFFENDER='probes-head-under-pipefail.test.sh'
-
-# head_probe_line <body-variable> — the offending line for the head shape: the same writer,
-# feeding a reader that stops before EOF for a different reason, marked so this suite can
-# find it again. Assembled from HEAD_R rather than written out whole, as probe_line is.
-head_probe_line() {
-  printf '%s="$(printf "%%s\\n" "$%s" | %s)"  # %s\n' 'first' "$1" "$HEAD_R" "$MARK"
-}
 
 # plant_head_offender — write the suite the guard must catch, at `head_offender_path`: it
 # declares `pipefail` and ends a pipeline in `head`, so the status it asserts on is its own
 # printf's rather than the reader's.
 plant_head_offender() {
   write_plant "$head_offender_path" "$PIPEFAIL_LINE" \
-    'the pipeline below is the shape the guard has to catch.' "$(head_probe_line body)"
+    'the pipeline below is the shape the guard has to catch.' "$(probe_line body "$HEAD_R")"
 }
 
 # plant_head — the tree the head case is asked about, left in `head_tree`, with the planted
