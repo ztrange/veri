@@ -254,12 +254,18 @@ verdict() {
   printf '%s\n' "${#problems[@]}" "${problems[@]}"
 }
 
+# The preempted writer is `plain` itself with 141 appended, not a second copy of its body:
+# `declare -f plain` prints the whole definition as text, so stripping the name off the
+# front of it and eval'ing the rest under another one gives `honest_plain`, the same fold
+# the probes above run. Repeating the body here instead would let the case go on exercising
+# a fold `plain` no longer does. The same saved text puts `plain` back afterwards.
 unpreempted="$(declare -f plain)"
+eval "honest_plain${unpreempted#plain}"
 matching="$green"   # case 4's prompt, which every probe above accepts
 missing='a prompt that names none of it'
 honest_match="$(verdict "$matching")"
 honest_miss="$(verdict "$missing")"
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; return 141; }
+plain() { honest_plain; return 141; }
 preempted_match="$(verdict "$matching")"
 preempted_miss="$(verdict "$missing")"
 eval "$unpreempted"
