@@ -43,6 +43,11 @@
 #      double quotes, because the title is the planning leaf's own English and an
 #      apostrophe in it closes a single-quoted one early — and every fenced command
 #      carrying `<STEP>` follows that rule (issue #431).
+#   9. Every documented command line that passes a FRAGMENT of the step's title follows that
+#      same rule — the `tick-ledger.sh`, `clear-refactor-pending.sh` and
+#      `tick-issue-criterion.sh` calls handed a distinctive substring of STEP to find the
+#      checkbox they tick — read over the whole document, prose included, since three of
+#      those calls are written inline in a sentence rather than in a fenced block (#431).
 #
 # Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
 # *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
@@ -106,6 +111,20 @@ section="Launching a leaf"
 step_ph="<STEP>"
 double_quoted_step="\"$step_ph\""
 single_quoted_step="'$step_ph'"
+
+# The same three shapes for a FRAGMENT of the title — the substring `tick-ledger.sh`,
+# `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find the step they
+# act on. A fragment of the planning leaf's English is the planning leaf's English, so it
+# carries an apostrophe exactly as readily as the whole title does and is bound by the same
+# rule; the document spells it several ways — `<substring>`, `<distinctive substring of
+# STEP>`, `<anchor substring>` — so the placeholder is an ERE matching any of them rather
+# than the one literal `$step_ph` is. Written down here beside the whole title's three
+# shapes, for the reason those are: the probe narrows on them and its failure messages quote
+# them, and a document that renames the placeholder must not leave one reading a shape no
+# other looks for.
+fragment_ph="<[^<>]*substring[^<>]*>"
+double_quoted_fragment="\"$fragment_ph\""
+single_quoted_fragment="'$fragment_ph'"
 
 pass=0 fail=0
 
@@ -544,6 +563,68 @@ else
     fi
     faulted "$lineno" "$text"
   done <<< "$steps"
+fi
+
+report "$name"
+
+# document_lines <ERE> — every line of SKILL.md matching <ERE>, prefixed with its line
+# number, fenced or not. `fenced_lines` above reads only the commands set off in a block,
+# which is the right scope for a launch; this is the wider one, because a command the
+# document hands a conductor is as often written inline in a sentence — the script inventory
+# is entirely inline code, and the `tick-issue-criterion.sh` call at the end of Green is a
+# command wrapped across two prose lines. A conductor types what it reads either way.
+document_lines() {
+  PAT="$1" awk '$0 ~ ENVIRON["PAT"] { printf "%d\t%s\n", NR, $0 }' "$skill_path"
+}
+
+# fragment_lines — every documented command line that passes a FRAGMENT of the step's title,
+# each prefixed with its line number, in whichever way it is quoted, so that the case below
+# reads the lines that carry one rather than only the lines that carry one wrongly — a probe
+# narrowed to the broken shape would go quiet the moment the document had none left, and a
+# case with nothing to read is a case that cannot fail.
+#
+# A line carries a fragment if it holds the placeholder; it is a *command* line if it names a
+# script or quotes that placeholder as an argument. The second half of that test is what
+# keeps the prose mention at *Scoping the plan* — the `<substring>` for ticking, named in a
+# sentence and passed to nothing — out of a case about how arguments are quoted, and the
+# first is what still catches a line that names a script and passes the fragment bare.
+fragment_lines() {
+  document_lines "$fragment_ph" | grep -E "\\\$S/|$single_quoted_fragment|$double_quoted_fragment" || true
+}
+
+# 9. The step-title rule is about the planning leaf's English reaching a command line, and a
+#    fragment of that English is still that English: `tick-ledger.sh`,
+#    `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are each handed a distinctive
+#    substring of STEP to find the checkbox they tick, and every one of those calls still
+#    spells it `'<substring>'`. A step titled *that shell's stderr* gives the conductor
+#    `'that shell'` followed by junk the shell never accepts — the same unterminated quote
+#    case 8 is about, one argument over (issue #431).
+#
+#    So the rule case 8 requires the document to state once is required here to hold of every
+#    line that carries text taken from the title, not only of the lines that carry the whole
+#    of it. Read over the whole document rather than over the fenced blocks alone, because
+#    three of these calls are written inline in prose — the script inventory's entries, and
+#    the issue-mirroring call Green ends with — and a conductor copies those as readily as it
+#    copies a fenced one.
+name="$skill_md double-quotes every documented command line that passes a fragment of the step's title"
+problems=()
+
+fragments="$(fragment_lines)"
+if [[ -z "$fragments" ]]; then
+  unreadable "command line passing a fragment of the step's title" "how a fragment of the step's title reaches a command line"
+else
+  while IFS=$'\t' read -r lineno text; do
+    faults=""
+    # Same two readings as case 8, and in the same order and for the same reason: the
+    # single-quoted shape is the one the incident happens in and names itself, and the
+    # second reading catches a fragment left bare or quoted with something else.
+    if [[ "$text" =~ $single_quoted_fragment ]]; then
+      fault "single-quotes a fragment of the step title"
+    elif ! [[ "$text" =~ $double_quoted_fragment ]]; then
+      fault "carries a fragment of the step title that is not double-quoted"
+    fi
+    faulted "$lineno" "$text"
+  done <<< "$fragments"
 fi
 
 report "$name"

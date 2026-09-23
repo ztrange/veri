@@ -142,14 +142,14 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   travels in argv and its exit code is `verify.sh`'s.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
-- `$S/tick-criterion.sh '<substring>'` — the pure text transform both tick wrappers
+- `$S/tick-criterion.sh "<substring>"` — the pure text transform both tick wrappers
   delegate to: reads a checkbox body on stdin, flips the first unchecked `- [ ]` matching
   the substring, writes it back on stdout. **Exit 3** if nothing matched.
-- `$S/tick-issue-criterion.sh <n> '<substring>'` — tick a criterion checkbox in the
+- `$S/tick-issue-criterion.sh <n> "<substring>"` — tick a criterion checkbox in the
   issue body (the human-facing mirror).
 - `$S/next-unchecked.sh < .tdd/issue-<n>.md` — print the **first unchecked ledger step**'s
   description; **exit 3** when none remain (the loop-done / nothing-to-resume signal).
-- `$S/tick-ledger.sh [--refactor-pending] .tdd/issue-<n>.md '<substring>'` — check a step off
+- `$S/tick-ledger.sh [--refactor-pending] .tdd/issue-<n>.md "<substring>"` — check a step off
   in the **committed ledger**, in place (staged + committed together with that step's green
   code). **Exit 3** if no unchecked step matched the substring — the file is left untouched,
   so a green commit that ticked nothing says so instead of reading as done.
@@ -163,13 +163,13 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   `next-unchecked.sh` hands the loop and the tick wrappers match on. **Exit 0** when it
   printed one; **exit 3** with empty stdout when no step carries the mark — every green step
   has been tidied, so a resume has no refactor loop to re-enter.
-- `$S/clear-refactor-pending.sh .tdd/issue-<n>.md '<substring>'` — the counterpart of
+- `$S/clear-refactor-pending.sh .tdd/issue-<n>.md "<substring>"` — the counterpart of
   `tick-ledger.sh --refactor-pending`: **strip the ` ⟂ refactor pending` mark** from the first
   ticked step matching the substring, in place, once that step's refactor has been verified.
   Nothing on stdout. **Exit 0** when it cleared the mark; **exit 3** when no ticked step both
   matched and carried it — the file is left byte-identical, because nothing is written unless
   the transform found its line.
-- `$S/add-ledger-step.sh <ledger> after|before '<anchor substring>' '<text>' […]` — **grow
+- `$S/add-ledger-step.sh <ledger> after|before "<anchor substring>" '<text>' […]` — **grow
   the plan mid-run**: insert each text as `- [ ] <text> ⟦added⟧ ⟦criterion k⟧` directly after
   the anchor step, or directly before it, inheriting the anchor's criterion. `VERI_STEP_GROWTH`
   (default 3) bounds how many `⟦added⟧` steps one ledger may hold, on a **fifth axis** of its
@@ -319,13 +319,18 @@ leaves every one of that leaf's events with an empty `issue` and an empty `step`
 reader can attribute the leaf to a step only by interleaving timestamps with `step-start`.
 
 **The step's title reaches every command line in double quotes** — `VERI_STEP="<STEP>"`,
-`--step "<STEP>"`, and the same on every other command on this page that carries `<STEP>`.
+`--step "<STEP>"`, and the same on every other command on this page that carries the
+title or **a fragment of it** — the `"<substring>"` `tick-ledger.sh`,
+`clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find the checkbox
+they tick is a piece of that same English, so it is quoted the same way.
 One rule, because the title is the planning leaf's own English and an apostrophe is
 ordinary in it: a single-quoted `'<STEP>'` closes on that apostrophe — *that shell's
 stderr* becomes `'that shell'` followed by junk — and the line dies in the shell you type
-it into, before anything is launched (#431). Inside double quotes an apostrophe is an
-ordinary character. The other placeholders on those lines stay single-quoted; they are
-paths, commands and ids, and none of them carries the planning leaf's prose.
+it into, before anything is launched (#431). A fragment fails the same way one argument
+over: `'that shell'` again, and again before anything runs. Inside double quotes an
+apostrophe is an ordinary character. The other placeholders on those lines stay
+single-quoted; they are paths, commands and ids, and none of them carries the planning
+leaf's prose.
 
 A **verifier** (`verify.sh`, which goes through the supervisor too) takes the same shape
 with one wrinkle: the verify verb is reached through `run-verdict.sh`, the **verdict
@@ -836,7 +841,7 @@ following step. The phase sub-steps are:
      verify-refactor are still ahead of it, so a run interrupted between here and them must
      resume into that loop rather than read the tick as *done*.
      ```
-     $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md '<distinctive substring of STEP>'
+     $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "<distinctive substring of STEP>"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
      $S/push-branch.sh
      ```
@@ -966,7 +971,7 @@ following step. The phase sub-steps are:
      ```
      $S/add-ledger-step.sh .tdd/issue-<n>.md after "<STEP>" '<NEW_STEP: value>' …   # every NEW_STEP: value in ONE call
      VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
-     $S/clear-refactor-pending.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
+     $S/clear-refactor-pending.sh .tdd/issue-<n>.md "<distinctive substring of STEP>"
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
      ```
@@ -994,7 +999,7 @@ following step. The phase sub-steps are:
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
-     '<substring>'`, the human mirror); on exit **3** tick nothing, since a step serving it is
+     "<substring>"`, the human mirror); on exit **3** tick nothing, since a step serving it is
      still open or pending. Mark
      the same moment in the log —
      `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-done` — then
@@ -1098,13 +1103,13 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   type, because no production code was written (the verifier reverted its own mutation, so
   the tree holds only the new test and the ticked ledger):
   ```
-  $S/tick-ledger.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
+  $S/tick-ledger.sh .tdd/issue-<n>.md "<distinctive substring of STEP>"
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
-  **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`) — on exit **3** tick
+  **issue body** (`$S/tick-issue-criterion.sh <n> "<substring>"`) — on exit **3** tick
   nothing — and mark it in the log —
   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=pin $S/event.sh pin`.
   The step is **done** — **no Green and no Refactor**, since there is no new production
