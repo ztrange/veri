@@ -51,6 +51,15 @@ report() {
   fi
 }
 
+# have_skill_md — true when the SKILL.md every case below reads exists; otherwise it records
+# the one problem that explains why nothing else could be checked. Both cases need the same
+# guard and the same sentence, so it is written down once here rather than at each of them.
+have_skill_md() {
+  [[ -f "$ROOT/$skill_md" ]] && return 0
+  problems+=("want a SKILL.md at $skill_md, found none")
+  return 1
+}
+
 # frontmatter_name <file> — the value of the first `name:` inside the leading `---` block,
 # empty if the block or the field is missing. Only the first counts: the exit at the closing
 # `---` stops a later `name:` in the prose from answering for it. Same helper, and the same
@@ -105,7 +114,7 @@ name="$skill_md is the /$want_name skill and asks only for what the optional des
 problems=()
 [[ -d "$ROOT/$skill_dir" ]] ||
   problems+=("want a directory at $skill_dir, found none")
-if [[ -f "$ROOT/$skill_md" ]]; then
+if have_skill_md; then
   got="$(frontmatter_name "$ROOT/$skill_md")"
   [[ "$got" == "$want_name" ]] ||
     problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
@@ -122,8 +131,6 @@ if [[ -f "$ROOT/$skill_md" ]]; then
     says 'one[^.]{0,40}round|single[^.]{0,40}round|one[^.]{0,40}question|no essay' \
       "$skill_md never says the asking is one short round"
   fi
-else
-  problems+=("want a SKILL.md at $skill_md, found none")
 fi
 report "$name"
 
@@ -144,7 +151,7 @@ want_headings='## What happened
 ## Environment
 ## Acceptance criteria
 ## Blocked by'
-if [[ -f "$ROOT/$skill_md" ]]; then
+if have_skill_md; then
   template="$(issue_body_template "$ROOT/$skill_md")"
   if [[ -z "$template" ]]; then
     problems+=("$skill_md quotes no issue body: no fenced block in it holds a '## What happened' line")
@@ -160,8 +167,6 @@ if [[ -f "$ROOT/$skill_md" ]]; then
     [[ "$blocked" == "None." ]] ||
       problems+=("$skill_md's issue body: want 'None.' under '## Blocked by', got $(printf '%q' "$blocked")")
   fi
-else
-  problems+=("want a SKILL.md at $skill_md, found none")
 fi
 report "$name"
 
