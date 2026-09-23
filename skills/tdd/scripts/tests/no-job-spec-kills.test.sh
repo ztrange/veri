@@ -88,21 +88,32 @@ report() {
 # processes per problem line.
 flat() { local s="$1"; printf '%s' "${s//$'\n'/\/}"; }
 
+# split_site <line> — a `<file>:<line>:<text>` line taken apart into `site_file`, `site_line`
+# and `site_text`. Both readers of that shape go through here: the filter below, which needs
+# the address to look an exemption up and the text to tell a comment from a kill, and the
+# probe under it, which needs the same three to write its report. Counting the two colons in
+# one place is what keeps those two readings from drifting apart — a grep hit whose path held
+# a colon would otherwise be split one way here and another way there.
+split_site() {
+  local rest
+  site_file="${1%%:*}"
+  rest="${1#*:}"
+  site_line="${rest%%:*}"
+  site_text="${rest#*:}"
+}
+
 # sites — every line under the subject directory that ends a background process by a job
 # spec and is neither a comment nor an exemption, one `<file>:<line>:<text>` per line. One
 # recursive grep rather than a walk and a grep per file: the question is the same of every
 # file, and the paths it prints are already the addresses a report quotes. `-I` because a
 # compiled artefact under the tree — `__pycache__` — is not a file anyone writes a kill in.
 sites() {
-  local hit rest file lineno text
+  local hit
   while IFS= read -r hit; do
-    file="${hit%%:*}"
-    rest="${hit#*:}"
-    lineno="${rest%%:*}"
-    text="${rest#*:}"
-    [[ "$text" =~ ^[[:space:]]*# ]] && continue
-    [[ -n "${EXEMPT[$file:$lineno]:-}" ]] && continue
-    printf '%s:%s:%s\n' "$file" "$lineno" "$text"
+    split_site "$hit"
+    [[ "$site_text" =~ ^[[:space:]]*# ]] && continue
+    [[ -n "${EXEMPT[$site_file:$site_line]:-}" ]] && continue
+    printf '%s\n' "$hit"
   done < <(cd "$ROOT" && grep -rInE -- "$JOB_SPEC_KILL" "$SUBJECT")
   return 0
 }
@@ -111,10 +122,10 @@ sites() {
 # report, addressed `<file>:<line>`, quoting the line so the author sees what was matched
 # rather than having to go and guess.
 probe_no_file_kills_by_job_spec() {
-  local site rest
+  local site
   while IFS= read -r site; do
-    rest="${site#*:}"
-    problems+=("${site%%:*}:${rest%%:*} ends a background process by a job spec, which names it only in the job table of the shell that started it: once that shell is gone the kill reaches nobody and the process is left running, reparented to PID 1. Kill the pid it recorded instead — see skills/tdd/scripts/lib/background.sh: $(flat "${rest#*:}")")
+    split_site "$site"
+    problems+=("$site_file:$site_line ends a background process by a job spec, which names it only in the job table of the shell that started it: once that shell is gone the kill reaches nobody and the process is left running, reparented to PID 1. Kill the pid it recorded instead — see skills/tdd/scripts/lib/background.sh: $(flat "$site_text")")
   done < <(sites)
   return 0
 }
