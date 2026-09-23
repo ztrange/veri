@@ -21,11 +21,15 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   esac
 done
 
-# The verdict is the line's first word: the leaf prompts invite a trailing clause after it
-# ("PREDICTION: MATCHED — the run printed the assertion the step predicted"), and a leaf
-# being helpful must not cost the step a revise attempt (issue #428). Anything whose first
-# word is neither verdict is still unreadable, so the strict 1/2 distinction holds.
-case "${prediction%% *}" in
+# The verdict is the line's first word, less any punctuation it ends in: the leaf prompts
+# invite a trailing clause after it ("PREDICTION: MATCHED — the run printed the assertion
+# the step predicted"), and a comma, semicolon, colon or full stop joins that clause as
+# naturally as a space does ("PREDICTION: DIVERGED, but only in the message"). A leaf being
+# helpful must not cost the step a revise attempt (issues #428, #433). The match stays
+# whole-word rather than a substring, so anything that is neither verdict once stripped is
+# still unreadable and the strict 1/2 distinction holds.
+verdict="${prediction%% *}"
+case "${verdict%[,;:.]}" in
   DIVERGED) ;;
   MATCHED)  exit 3 ;;
   *)        exit 2 ;;
