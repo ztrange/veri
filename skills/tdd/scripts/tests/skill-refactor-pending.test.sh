@@ -419,6 +419,26 @@ says_exit_codes() {
     "never names exit 3, so the one code that is not an error — nothing matched, nothing pending — has no documented meaning and reads as the plumbing having broken"
 }
 
+# says_removal_verb — the one thing `clear-refactor-pending.sh`'s entry owes about what it does
+# to the ledger: a verb meaning *remove*. Asked of the entry's prose, not of the whole record,
+# because the record opens with the script's own name and `records_of` flattens it into the
+# line the probe matches — so the literal `clear-refactor-pending.sh` supplies `clear`, one of
+# the alternatives, and the probe was true whatever the entry went on to say (#411). Stripping
+# every occurrence of the name `reads_entry` matched on leaves exactly the writer's sentences,
+# which is what this probe is about: a filename is the thing being documented, never the
+# documentation of it.
+#
+# A function rather than a second `entry_says` at the call site, because case 12 has to ask
+# this very probe against a planted entry to know it can go red at all; a regex spelled twice
+# would let the copy under test pass while case 4's own kept matching its subject's name.
+says_removal_verb() {
+  local whole="$instruction"
+  instruction="${whole//"$entry_script"/}"
+  entry_says 'strip|remove|drop|clear|delete' \
+    "never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
+  instruction="$whole"
+}
+
 # says_pending_until_verified — the two things each of the two repository documents owes about
 # a ticked step: the mark it wears, spelled, and the verification that is the only thing that
 # takes the mark off again. Both records owe the same pair and both mislead the same way
@@ -679,8 +699,7 @@ if records_from scripts_instructions \
   if reads_entry clear-refactor-pending.sh; then
     entry_says "$mark" \
       "never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
-    entry_says 'strip|remove|drop|clear|delete' \
-      "never says it takes the mark off the step, so what the script does to the ledger is left to be guessed from its name"
+    says_removal_verb
     says_exit_codes
   fi
 fi
@@ -893,6 +912,53 @@ if records_from resume_instructions \
     says '[^a-z](red|green)[^.]{0,30}[^a-z](or|and)[^a-z][^.]{0,30}(green|red)[^a-z][^.]{0,80}refactor' \
       "$skill_md's Resume names Red and Green without saying their killed leaf leaves the same stray work a killed refactor one does, so nothing says the two paths are one kill mode and a reader is left thinking only the pending step's tree is dirty"
   fi
+fi
+report "$name"
+
+# 12. One criterion — the removal-verb probe of case 4 can go red — and so one case. Case 4
+#     asks whether the `clear-refactor-pending.sh` entry names a verb meaning *remove*, and it
+#     asks it of the whole record: `records_of` flattens the bullet to one line and that line
+#     opens with the script's own name, so the literal `clear-refactor-pending.sh` supplies
+#     `clear` — one of the five alternatives — before any prose is consulted. The probe is
+#     therefore true whatever the entry says, which is the failure class #297 is the record of:
+#     a check that cannot fail for the fault it exists to catch (#411).
+#
+#     Asked of a planted entry rather than of the document, because the document is right
+#     today — SKILL.md does say "strip" — so nothing read from it distinguishes a probe that
+#     reads the prose from one that reads the filename. The plant is the smallest entry that
+#     separates them: it spells the mark and both exit codes, and it names what the script does
+#     without any of the five verbs, so only a probe that looks past the name it opens with can
+#     report against it. The probe itself is called, not copied — a second spelling of the
+#     regex here would pass with case 4's own left exactly as it is.
+name="case 4's removal-verb probe reports a problem naming the clear-refactor-pending.sh entry when only the filename that opens it supplies a removal verb"
+problems=()
+planted_entry_dir="$(mktemp -d)"
+cat > "$planted_entry_dir/SKILL.md" <<'PLANTED'
+## The scripts (this skill's `scripts/` directory)
+
+- `$S/clear-refactor-pending.sh .tdd/issue-<n>.md '<substring>'` — the counterpart of
+  `tick-ledger.sh --refactor-pending`: the first ticked step matching the substring no longer
+  carries the ` ⟂ refactor pending` mark afterwards, once that step's refactor has been
+  verified. Nothing on stdout. **Exit 0** when it did its work; **exit 3** when no ticked step
+  both matched and carried the mark.
+PLANTED
+planted_skill_path="$skill_path"
+skill_path="$planted_entry_dir/SKILL.md"
+probe_problems=()
+if records_from scripts_instructions \
+    "the planted entry's ## The scripts section could not be read, so the removal-verb probe was never asked"; then
+  if reads_entry clear-refactor-pending.sh; then
+    says_removal_verb
+  fi
+fi
+probe_problems=("${problems[@]}")
+problems=()
+skill_path="$planted_skill_path"
+rm -rf "$planted_entry_dir"
+if [[ "${#probe_problems[@]}" -eq 0 ]]; then
+  problems+=("the removal-verb probe reported nothing against an entry whose only removal verb is the \`clear-refactor-pending.sh\` filename that opens it, so the probe is satisfied by its own subject's name and stays true however the entry's prose is reworded")
+elif [[ ! "${probe_problems[*]}" =~ clear-refactor-pending\.sh ]]; then
+  problems+=("the removal-verb probe reported a problem that never names the clear-refactor-pending.sh entry, so a run it turns red does not say which of the list's entries to fix")
 fi
 report "$name"
 
