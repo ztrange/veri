@@ -108,6 +108,15 @@ gone() {
   poll_until "$2" dead "$1"
 }
 
+# survived <pid> — a case's premise that <pid> really did outlive the shell that started it,
+# so there was something for that shell to report. Without it a case could go green over a
+# report about a process that had already died on its own. It appends to `problems` rather
+# than returning a status, the way the assertions it sits among do.
+survived() {
+  kill -0 "$1" 2>/dev/null \
+    || problems+=("the process bg_start recorded as $1 was already gone when its starting shell exited, so there was nothing to report")
+}
+
 # make_victim <path> <pid-file> — a background process that reports its own pid and then
 # `exec`s a sleep, so the pid in the file is the pid still running when the kill arrives, and
 # the record can be checked to be that process rather than a number that merely looks like one.
@@ -194,11 +203,7 @@ else
   victims+=("$victim2_pid")
   said="$(tr '\n' ' ' < "$exit_err")"
 
-  # The premise: the victim really did outlive the shell that started it. Without it the case
-  # could go green over a report about a process that had already died on its own.
-  if [[ "$victim2_pid" =~ ^[0-9]+$ ]] && ! kill -0 "$victim2_pid" 2>/dev/null; then
-    problems+=("the process bg_start recorded as $victim2_pid was already gone when its starting shell exited, so there was nothing to report")
-  fi
+  if [[ "$victim2_pid" =~ ^[0-9]+$ ]]; then survived "$victim2_pid"; fi
 
   grep -F "$victim2_pid" "$exit_err" > /dev/null \
     || problems+=("the shell that started pid $victim2_pid exited while it was still running and did not name it: stderr said '$said'")
@@ -239,12 +244,8 @@ else
   if [[ ! "$victim3a_pid" =~ ^[0-9]+$ || ! "$victim3b_pid" =~ ^[0-9]+$ ]]; then
     problems+=("two bg_start calls on one record left '$victim3a_pid' and '$victim3b_pid' in $record3, not two pids")
   else
-    # The premise: both really did outlive the shell that started them, so both were there
-    # to be reported. Without it the count below could be right for the wrong reason.
-    for probe_pid in "$victim3a_pid" "$victim3b_pid"; do
-      kill -0 "$probe_pid" 2>/dev/null \
-        || problems+=("the process bg_start recorded as $probe_pid was already gone when its starting shell exited, so there was nothing to report")
-    done
+    # Both, since the count below could otherwise be right for the wrong reason.
+    for probe_pid in "$victim3a_pid" "$victim3b_pid"; do survived "$probe_pid"; done
 
     for probe_pid in "$victim3a_pid" "$victim3b_pid"; do
       lines="$(grep -c -F "$probe_pid" "$pair_err" || true)"
