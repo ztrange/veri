@@ -39,10 +39,13 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/.." && pwd)"
 
-# The launcher twice — the path a failure message quotes, and the same path resolved for the
-# probes to copy — so no message can name a file the probes did not look for.
-LAUNCHER='skills/tdd/scripts/run-verdict.sh'
-LAUNCHER_PATH="$SCRIPTS/run-verdict.sh"
+# The launcher's own name, once — the way VERIFIER below names the verifier's — and the paths
+# built from it: the repository-relative one a failure message quotes, and the resolved one the
+# probes look for. Built rather than spelled at each use so no message can name a file the
+# probes did not look for, and so the staged copy the run invokes is that same name again.
+LAUNCHER_NAME='run-verdict.sh'
+LAUNCHER="skills/tdd/scripts/$LAUNCHER_NAME"
+LAUNCHER_PATH="$SCRIPTS/$LAUNCHER_NAME"
 
 # The verifier the launcher is supposed to reach, named once: the stub is written under this
 # name, and the failure messages spell it.
@@ -134,7 +137,7 @@ STUB
 probe_title_reaches_the_verifier() {
   local out code matches
   rm -f "$argv_file"
-  out="$( cd "$run" && VERI_STUB_ARGV="$argv_file" "$scripts/run-verdict.sh" \
+  out="$( cd "$run" && VERI_STUB_ARGV="$argv_file" "$scripts/$LAUNCHER_NAME" \
             --step "$STEP" red spec.md suite.test.sh case-1 2>&1 )" && code=0 || code=$?
 
   [[ -f "$argv_file" ]] || {
@@ -149,7 +152,7 @@ probe_title_reaches_the_verifier() {
 
 # 1. One criterion — a step title carrying an apostrophe reaches the verifier intact — and so
 #    one case.
-name="run-verdict.sh runs $VERIFIER with the step title as an argument, so an apostrophe in it survives the launch"
+name="$LAUNCHER_NAME runs $VERIFIER with the step title as an argument, so an apostrophe in it survives the launch"
 problems=()
 scripts=""
 run=""
