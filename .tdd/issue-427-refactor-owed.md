@@ -1,0 +1,2 @@
+### The attempt ref name carries the step index read from the committed ledger rather than the step prose
+- the ledger checkbox grammar now exists in five variants (`preserve-attempt.sh`, `next-unchecked.sh:16`, `criterion-finished.sh:18`, `next-pending-refactor.sh:18`, `metrics.sh:270`) — a shared reader would remove it, but each asks a different question and one is Python, so it is outside this cycle's bounds
