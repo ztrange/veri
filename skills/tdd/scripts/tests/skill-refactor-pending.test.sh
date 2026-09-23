@@ -439,6 +439,45 @@ says_removal_verb() {
   instruction="$whole"
 }
 
+# reference_list_probes — every probe the script reference list's three entries owe, asked of
+# the records a reader has already left in `$records`. The roster itself, not a description of
+# it: case 4 asks it of SKILL.md and case 14 asks it of a planted list carrying none of what it
+# asks for, so that each probe is watched going red once. Spelled once for the reason
+# `says_removal_verb` already is one function — a second copy of these regexes would go red at
+# the watch while case 4's own kept matching whatever it had drifted into matching, which is
+# the shape of the fault #411 found.
+reference_list_probes() {
+  # tick-ledger.sh — the writer. Its entry already documents the plain tick, so what the flag
+  # owes the list is the second thing that one write does: the flag's own name, the mark it
+  # appends (spelled, because that literal is what the reader matches on), and the code a
+  # ledger with no matching step answers with either way.
+  if reads_entry tick-ledger.sh; then
+    entry_says '--refactor-pending' \
+      "never mentions --refactor-pending, so the flag the green commit must tick with is invisible to a session that reads the list to find out how to tick"
+    entry_says "$mark" \
+      "never spells the mark the flag appends, so nothing connects that write to the \`$mark\` string next-pending-refactor.sh matches, and either side can be reworded without the other noticing"
+    entry_says 'exits? 3' \
+      "never names exit 3, so a green commit whose substring matched no unchecked step looks like it ticked, and the step is committed as green with no mark and no tick"
+  fi
+
+  # next-pending-refactor.sh — the reader, and the only one of the three whose answer is on
+  # stdout, so its entry owes what that answer is as well as the two codes.
+  if reads_entry next-pending-refactor.sh; then
+    entry_says 'prints?[^.]*step' \
+      "never says it prints the pending step, so a resumed conductor is not told that stdout is the step to re-enter the refactor loop on"
+    says_exit_codes
+  fi
+
+  # clear-refactor-pending.sh — the eraser. Nothing on stdout, so what its entry owes instead
+  # is which mark it takes off, and that it does so in the ledger itself.
+  if reads_entry clear-refactor-pending.sh; then
+    entry_says "$mark" \
+      "never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
+    says_removal_verb
+    says_exit_codes
+  fi
+}
+
 # says_pending_until_verified — the two things each of the two repository documents owes about
 # a ticked step: the mark it wears, spelled, and the verification that is the only thing that
 # takes the mark off again. Both records owe the same pair and both mislead the same way
@@ -673,35 +712,7 @@ name="$skill_md's script reference list documents tick-ledger.sh --refactor-pend
 problems=()
 if records_from scripts_instructions \
     "$skill_md has no ## The scripts section to read — what the reference list documents could not be checked"; then
-  # tick-ledger.sh — the writer. Its entry already documents the plain tick, so what the flag
-  # owes the list is the second thing that one write does: the flag's own name, the mark it
-  # appends (spelled, because that literal is what the reader matches on), and the code a
-  # ledger with no matching step answers with either way.
-  if reads_entry tick-ledger.sh; then
-    entry_says '--refactor-pending' \
-      "never mentions --refactor-pending, so the flag the green commit must tick with is invisible to a session that reads the list to find out how to tick"
-    entry_says "$mark" \
-      "never spells the mark the flag appends, so nothing connects that write to the \`$mark\` string next-pending-refactor.sh matches, and either side can be reworded without the other noticing"
-    entry_says 'exits? 3' \
-      "never names exit 3, so a green commit whose substring matched no unchecked step looks like it ticked, and the step is committed as green with no mark and no tick"
-  fi
-
-  # next-pending-refactor.sh — the reader, and the only one of the three whose answer is on
-  # stdout, so its entry owes what that answer is as well as the two codes.
-  if reads_entry next-pending-refactor.sh; then
-    entry_says 'prints?[^.]*step' \
-      "never says it prints the pending step, so a resumed conductor is not told that stdout is the step to re-enter the refactor loop on"
-    says_exit_codes
-  fi
-
-  # clear-refactor-pending.sh — the eraser. Nothing on stdout, so what its entry owes instead
-  # is which mark it takes off, and that it does so in the ledger itself.
-  if reads_entry clear-refactor-pending.sh; then
-    entry_says "$mark" \
-      "never spells the mark it removes, so the list documents an eraser without saying what it erases and nothing ties it to the flag that wrote the mark"
-    says_removal_verb
-    says_exit_codes
-  fi
+  reference_list_probes
 fi
 report "$name"
 
@@ -983,6 +994,79 @@ problems=()
 if [[ "${#probe_problems[@]}" -ne 0 ]]; then
   problems+=("the removal-verb probe reported a problem against $skill_md's own entry for clear-refactor-pending.sh, whose prose does name a verb meaning to remove, so the strip that lets the probe read that prose is taking the verb with it and a true entry is turned red: ${probe_problems[*]}")
 fi
+report "$name"
+
+# 14. One criterion — the rest of case 4's probes can go red too — and so one case. Case 12
+#     watches the removal-verb probe fail; this one watches the other nine, for the same
+#     reason and against the same risk: a probe of an entry that opens with the script's own
+#     name is free to be answered by that name rather than by the prose, and #411 found one
+#     that was. Nine of them were read and none matches its subject's filename today — but
+#     "today" is a reading, not a watch, and the entries they are asked of are right, so
+#     nothing the document yields tells a probe that reads the prose from one that reads
+#     something else.
+#
+#     Asked of planted entries for the same reason case 12 is, and of all three at once
+#     because the roster is one list: the plant is the smallest reference list that answers
+#     the anchor `reads_entry` matches on — one bullet per script, opening with its name —
+#     and says nothing else any of the nine ask for. Every one of them must report, and must
+#     report under the entry it was asked of, since the two exit-code probes carry the same
+#     sentence for two different scripts and a roster that asked both of one entry would
+#     otherwise read as complete.
+#
+#     `reference_list_probes` is the roster itself, asked here and at case 4 — not a second
+#     copy of the ten regexes, which is the mistake `says_removal_verb` already exists to
+#     avoid one probe down: a copy would go red here while case 4's own probe went on
+#     matching whatever it had drifted into matching.
+name="case 4's other nine probes each report a problem, under the entry they were asked of, against reference-list entries that carry none of what they ask for"
+problems=()
+blank_entry_dir="$(mktemp -d)"
+cat > "$blank_entry_dir/SKILL.md" <<'PLANTED'
+## The scripts (this skill's `scripts/` directory)
+
+- `$S/tick-ledger.sh .tdd/issue-<n>.md '<substring>'` — the ledger is rewritten so the first
+  unchecked step matching the substring is ticked.
+- `$S/next-pending-refactor.sh .tdd/issue-<n>.md` — reads the ledger and answers about the
+  first ticked step whose tidying is still owed.
+- `$S/clear-refactor-pending.sh .tdd/issue-<n>.md '<substring>'` — the counterpart of the
+  tick above, run once that step's refactor has been verified. Nothing on stdout.
+PLANTED
+blank_skill_path="$skill_path"
+skill_path="$blank_entry_dir/SKILL.md"
+probe_problems=()
+if records_from scripts_instructions \
+    "the planted entries' ## The scripts section could not be read, so case 4's probes were never asked"; then
+  reference_list_probes
+fi
+probe_problems=("${problems[@]}")
+problems=()
+skill_path="$blank_skill_path"
+rm -rf "$blank_entry_dir"
+# Each probe of the roster, as the entry it is asked of and the fragment of the fact it
+# reports that tells it from its neighbours — and, for the two exit-code probes, from the
+# same probe asked of the other entry, whose sentence is identical and whose name is not.
+# The removal-verb probe is not among them: case 12 is its watch.
+for want in \
+  "tick-ledger.sh|never mentions --refactor-pending" \
+  "tick-ledger.sh|never spells the mark the flag appends" \
+  "tick-ledger.sh|never names exit 3, so a green commit" \
+  "next-pending-refactor.sh|never says it prints the pending step" \
+  "next-pending-refactor.sh|never names exit 0" \
+  "next-pending-refactor.sh|never names exit 3, so the one code" \
+  "clear-refactor-pending.sh|never spells the mark it removes" \
+  "clear-refactor-pending.sh|never names exit 0" \
+  "clear-refactor-pending.sh|never names exit 3, so the one code"; do
+  want_entry="${want%%|*}"
+  want_fact="${want#*|}"
+  found=""
+  for reported in "${probe_problems[@]}"; do
+    if [[ "$reported" == *"entry for $want_entry"* && "$reported" == *"$want_fact"* ]]; then
+      found=yes
+    fi
+  done
+  if [[ -z "$found" ]]; then
+    problems+=("no probe reported that $skill_md's entry for $want_entry \"$want_fact\", though the planted entry carries none of it — so that probe is answered by something other than the prose it asks about, the way the removal-verb one was answered by the filename, and it stays true however the entry is reworded")
+  fi
+done
 report "$name"
 
 echo "----"
