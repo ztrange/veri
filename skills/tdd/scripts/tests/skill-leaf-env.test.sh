@@ -47,8 +47,8 @@
 # concurrent, interleaved on the same machine, 2026-09-19) and dropping wait-leaf.sh's
 # ps-based fast-fail on a dead supervisor (issue #297) from the launches' own wait. Reverted
 # here under a standing rule that this suite's cases assert BEHAVIOUR, not scheduling shape:
-# launches are one round again, one after another, each waited on through wait-leaf.sh as
-# before (#297's protection is back); "all ten start before any finishes" and "case 3 reads
+# launches are one round again, one after another, each waited on to completion before the
+# next starts (#297's protection is back); "all ten start before any finishes" and "case 3 reads
 # only after every launch has completed" were pure scheduling-shape assertions with nothing
 # to prove once launches are serial, and are gone with the concurrency they were about. What
 # #333 was actually protecting — a broken launch line named alone while its neighbours still
@@ -164,6 +164,32 @@ chmod +x "$stub/claude"
 # `line` is `scan_launches`'s, holding the document's own spelling, and a local of that name
 # here would shadow it — so the `origin` file below would record the substituted copy as
 # though it were what the document says.
+
+# launch_over <dir> — succeed once nothing in <dir> is supervising a leaf any more: every
+# `.tdd/<name>.pid` the launch wrote names a process that is gone. This is what tells the
+# wait below that no completion file is ever going to arrive, for the derived leaf name or
+# for any other (#297): `wait-leaf.sh`'s own fast-fail reads the pid file of the ONE name it
+# was given, and a derived name no launch writes has no pid file to read, so that fast-fail
+# never fires and the wait runs to its whole fixed budget.
+#
+# A tree holding no pid file at all is NOT over. That is the moment between `detach-leaf.sh`
+# returning and the supervisor recording itself, and it is every launch's first few
+# milliseconds — read as "over", it would end every wait before the leaf had started.
+#
+# `kill -0` rather than `ps`-matching the supervisor's argv the way wait-leaf.sh does: a
+# recycled pid here can only make this wait LONGER, never end it early, so the cheap test is
+# the safe one. The tree is this launch's own, so every pid file in it belongs to this launch.
+launch_over() {
+  local pidfile pid found=0
+  for pidfile in "$1"/.tdd/*.pid; do
+    [[ -f "$pidfile" ]] || continue
+    found=1
+    pid="$(cat "$pidfile" 2>/dev/null)" || continue
+    kill -0 "$pid" 2>/dev/null && return 1
+  done
+  (( found ))
+}
+
 launched_test_cmd() {
   local leaf="$1" launch="$2"
   shift 2
@@ -193,18 +219,33 @@ launched_test_cmd() {
   done
   # The line launches through `detach-leaf.sh`, which returns at once and leaves the leaf in
   # a session of its own — so a shell `wait` has nothing to wait on, and the tree would be
-  # read while the leaf still ran. What makes this probe foreground is what makes the
-  # conductor's: `wait-leaf.sh` on the completion file the leaf's supervisor writes on every
-  # path, `.tdd/<leaf>.exit` — for a verifier too, since verify.sh supervises its leaf under
-  # that same `verify-<phase>` name. The stub writes `seen` before it exits, so the file
-  # landing means the answer is already there. Bounded by the supervisor's own ceiling
-  # (VERI_TIMEOUT), so a leaf that ran is never cut short, and a line that reached no
-  # supervisor at all still comes back as `<no leaf ran>` rather than hanging the suite.
+  # read while the leaf still ran. What makes this probe foreground is the completion file
+  # the leaf's supervisor writes on every path, `.tdd/<leaf>.exit` — for a verifier too,
+  # since verify.sh supervises its leaf under that same `verify-<phase>` name. The stub
+  # writes `seen` before it exits, so the file landing means the answer is already there.
+  #
+  # Two things end the wait, and the second is why it is spelled here rather than left to
+  # `wait-leaf.sh <leaf> 60`: the file landing, OR the launch being over without it. A
+  # derived leaf name no launch writes gets no completion file AND no pid file, so the
+  # fast-fail wait-leaf.sh has — a recorded pid that no longer supervises — has nothing to
+  # read and never fires, and the wait ran out the full budget on an answer already
+  # determined: six verifier lines × 60 s is the 5:05 issue #297 measured, with CI
+  # cancelling `make test` at the `gates` job's cap. `launch_over` is that same fast-fail
+  # asked of the launch instead of of one name.
+  #
+  # The budget stays as the last resort it was, for a launch that reached no supervisor at
+  # all and so wrote no pid file to go looking at: that line still comes back as
+  # `<no leaf ran>` rather than hanging the suite.
   ( cd "$dir" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
       S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
       VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
-      bash -c "$launch
-\"$SCRIPTS/wait-leaf.sh\" \"$leaf\" 60" ) >/dev/null 2>&1
+      bash -c "$launch" ) >/dev/null 2>&1
+  local deadline=$(( SECONDS + 60 ))
+  until [[ -f "$dir/.tdd/$leaf.exit" ]]; do
+    launch_over "$dir" && break
+    (( SECONDS >= deadline )) && break
+    sleep 0.2
+  done
   # The answer, and then the one thing that ties it to the leaf name the CALLER derived.
   # The stub writes `seen` whatever the leaf is called, so a caller whose derived name no
   # launch writes would otherwise read the right answer back off a file its own name had
@@ -650,6 +691,58 @@ FIXTURE
 
 run_case "a launch writing no completion file under the derived leaf name is reported, naming that line" \
   scan_wrong_leaf_name
+
+# 7. The other half of the fault issue #297 names, and the half case 6 cannot answer: how
+#    LONG the wrong answer takes to arrive. `wait-leaf.sh` ends a wait early when the leaf's
+#    own `.tdd/<name>.pid` names a process that is no longer supervising it — but a derived
+#    name no launch writes has no pid file either, so that fast-fail never fires and the wait
+#    runs to its whole fixed budget. That is the 5:05 the issue measured: six verifier lines
+#    times 60 s, with CI cancelling `make test` at the `gates` job's cap. A probe that
+#    answers "slower" where it should answer "red" is the fault; answering red 60 s late is
+#    still that fault, because what a reader sees is a suite that hangs.
+#
+#    Asked of one correct developer-shaped fixture launch of this probe's own, run under a
+#    leaf name no launch writes — case 6's injected fault, timed. The launch itself is over
+#    in well under a second: its supervisor writes its own completion file and exits, so from
+#    that moment on there is nothing left that could ever write the derived name's, and every
+#    further second of waiting is spent on an answer already determined.
+#
+#    The assertion is on elapsed seconds because the criterion IS elapsed seconds — this is
+#    the one call's own latency, not a timing taken across a suite run, and there is no other
+#    observable difference between waiting out the budget and not. The ceiling is far below
+#    the budget and far above a real launch, so it can only be crossed by a wait that ran on
+#    after its supervisor was gone.
+#
+# The wait budget `launched_test_cmd` passes wait-leaf.sh, and the ceiling this case holds
+# the answer to. Spelled apart from each other on purpose: the case is not asserting that the
+# budget is any particular number, only that an answer arrives long before it.
+PROMPT_CEILING=15
+
+# scan_prompt_answer — the case's body, in the other cases' shape: it collects into
+# `run_case`'s `problems`, and `lineno`/`line` are its own so the tree `launched_test_cmd`
+# makes records this fixture's line rather than one of the document's.
+scan_prompt_answer() {
+  local lineno line launch started elapsed
+  lineno="prompt-answer-1"
+  read -r line <<'FIXTURE'
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-prompt $S/run-leaf.sh .tdd/fixture-prompt.prompt
+FIXTURE
+  launch="$(runnable "$line")" || {
+    problems+=("the prompt-answer fixture names a placeholder this probe cannot supply")
+    return
+  }
+  # Called through `launched_test_cmd` rather than `expect_sentinel`: what it answers is case
+  # 6's question and is discarded here, so this case's `problems` holds its own verdict alone
+  # and needs no folding.
+  started=$SECONDS
+  launched_test_cmd "fixture-prompt-no-such-leaf" "$launch" ".tdd/fixture-prompt.prompt" >/dev/null
+  elapsed=$(( SECONDS - started ))
+  (( elapsed < PROMPT_CEILING )) ||
+    problems+=("a launch whose derived leaf name no completion file is written under was answered after ${elapsed}s, want under ${PROMPT_CEILING}s: the wait ran on past the supervisor that had already exited")
+}
+
+run_case "a derived leaf name no launch writes is answered once its supervisor is gone, not at the end of the wait budget" \
+  scan_prompt_answer
 
 echo "----"
 echo "$pass passed, $fail failed"
