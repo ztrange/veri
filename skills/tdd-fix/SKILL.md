@@ -62,7 +62,7 @@ from the intake, and write `unknown` where the user left a gap unanswered.
 
 ## Environment
 
-<version, OS, command — whatever a reader needs and could not guess; `unknown` if not given>
+<the environment that matters, from the intake>
 
 ## Acceptance criteria
 
