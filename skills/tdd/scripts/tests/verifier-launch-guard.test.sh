@@ -213,10 +213,11 @@ run_guard_over() {
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
-# probe_guard_is_green_unplanted — the half that makes the other half mean something. The
-# guard is run over the tree with the document exactly as committed: it has to pass, and its
-# own count line has to say nothing failed. A guard red over this tree is red over every
-# tree, and the plant below would prove nothing about it.
+# probe_guard_is_green_unplanted — the half that makes the other half mean something, and
+# the same half for every case here, whatever its plant contradicts. The guard is run over
+# the tree with the document exactly as committed: it has to pass, and its own count line has
+# to say nothing failed. A guard red over this tree is red over every tree, and the plant
+# below would prove nothing about it.
 probe_guard_is_green_unplanted() {
   local failures
   run_guard_over "$SKILL_PATH"
@@ -387,19 +388,6 @@ probe_step_plant_is_what_it_claims() {
   return 0
 }
 
-# probe_step_guard_is_green_unplanted — the half that makes the others mean something: the
-# guard over the document exactly as committed has to pass, or its red below is red over
-# everything.
-probe_step_guard_is_green_unplanted() {
-  local failures
-  run_guard_over "$SKILL_PATH"
-  failures="$(failures_in "$guard_out")"
-  [[ "$guard_code" == 0 ]] ||
-    problems+=("want ${GUARD##*/} to pass over $SKILL as committed — red there says nothing about the plant; it exited $guard_code and said: $(flat "$guard_out")")
-  [[ "$failures" == 0 ]] ||
-    problems+=("want ${GUARD##*/}'s own count line to state 0 failed over $SKILL as committed; it stated '$failures': $(flat "$guard_out")")
-}
-
 # probe_step_guard_names_the_planted_line — the first half of the criterion: not that the
 # guard fails, but that it fails at an address a writer can open — the file and the line —
 # and at no other, since every other command in the document is correct.
@@ -463,7 +451,7 @@ guard_code=0
 
 if probe_guard_is_there && plant_step_title; then
   if probe_step_plant_is_what_it_claims; then
-    probe_step_guard_is_green_unplanted
+    probe_guard_is_green_unplanted
     probe_step_guard_names_the_planted_line
     if probe_exemption_with_a_reason_excuses_the_line; then
       probe_exemption_without_a_reason_excuses_nothing
