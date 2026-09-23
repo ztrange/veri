@@ -25,11 +25,9 @@
 # inside a subshell which then EXITS, and the kill is issued from a different subshell
 # afterwards. That is the whole discrimination — a `kill %1` in the second shell reaches
 # nothing, because its job table never held the victim — and no cheaper probe establishes it.
-# The victim reports its own pid so the record can be checked to be that process and not a
-# number that merely looks like one; it is `sleep 60`, not a busy loop, so a broken helper
-# leaves an idle process for the trap below rather than a spinner like the ones that made
-# this issue. Nothing here waits on a timer: the two waits end on a file appearing and on a
-# pid going away, on the budget `poll_until` below explains.
+# What the victim itself is, and why, is `make_victim` below. Nothing here waits on a timer:
+# the two waits end on a file appearing and on a pid going away, on the budget `poll_until`
+# below explains.
 #
 # Run: scripts/tests/background-kill.test.sh
 set -uo pipefail
@@ -99,20 +97,27 @@ gone() {
   poll_until "$2" dead "$1"
 }
 
+# make_victim <path> <pid-file> — a background process that reports its own pid and then
+# `exec`s a sleep, so the pid in the file is the pid still running when the kill arrives, and
+# the record can be checked to be that process rather than a number that merely looks like one.
+# It is a sleep and not a busy loop, so a broken helper leaves an idle process for the trap
+# above rather than a spinner like the ones that made this issue. `#!/bin/sh`, like every stub
+# in these suites, since Homebrew's bash costs three times as much to start.
+make_victim() {
+  cat > "$1" <<VICTIM
+#!/bin/sh
+printf '%s\n' "\$\$" > "$2"
+exec sleep 60
+VICTIM
+  chmod +x "$1"
+}
+
 # 1. A recorded pid kills a process whose starting shell is gone.
 record="$work/started.pids"
 self_pid="$work/victim.pid"
 
-# The victim: `#!/bin/sh`, like every stub in these suites, since Homebrew's bash costs three
-# times as much to start. It reports its own pid and then `exec`s the sleep, so the pid in the
-# file is the pid of the process that is still running when the kill arrives.
 victim="$work/victim"
-cat > "$victim" <<VICTIM
-#!/bin/sh
-printf '%s\n' "\$\$" > "$self_pid"
-exec sleep 60
-VICTIM
-chmod +x "$victim"
+make_victim "$victim" "$self_pid"
 
 problems=()
 victim_pid=""
@@ -164,12 +169,7 @@ record2="$work/abandoned.pids"
 self_pid2="$work/victim2.pid"
 
 victim2="$work/victim2"
-cat > "$victim2" <<VICTIM2
-#!/bin/sh
-printf '%s\n' "\$\$" > "$self_pid2"
-exec sleep 60
-VICTIM2
-chmod +x "$victim2"
+make_victim "$victim2" "$self_pid2"
 
 problems=()
 victim2_pid=""
@@ -199,19 +199,6 @@ else
 fi
 
 report "a process still running when its starting shell exits is reported on that shell's stderr, naming its pid and what started it"
-
-# make_victim <path> <pid-file> — a background process that reports its own pid and then
-# `exec`s a sleep, so the pid in the file is the pid still running when the kill arrives.
-# `#!/bin/sh`, like every stub in these suites, since Homebrew's bash costs three times as
-# much to start.
-make_victim() {
-  cat > "$1" <<VICTIM
-#!/bin/sh
-printf '%s\n' "\$\$" > "$2"
-exec sleep 60
-VICTIM
-  chmod +x "$1"
-}
 
 # 3. One record started into twice is reported once per survivor, not once per call. The
 # report walks the records this shell started something into, so a record remembered twice
