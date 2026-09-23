@@ -170,14 +170,22 @@ plant() {
   return 0
 }
 
-# install_guard — the guard's own copy put into the tree, and the tree staged. Called by the
-# plant, and again by `exempt` below, which rewrites that copy: a run of the guard is only
-# ever over the tree as git knows it.
+# stage_guard — the copy of the guard in the tree made runnable and put in git's index. Both
+# the writers of that copy end here — the plant's own install below and the `exempt` that
+# rewrites it per run — because a run of the guard is only ever over the tree as git knows
+# it, and a copy that is staged but not executable, or executable but not staged, answers
+# about a tree that is not the one the case is asking about.
+stage_guard() {
+  chmod 755 "$guard_copy"
+  git -C "$tree" add -A >/dev/null 2>&1
+}
+
+# install_guard — the guard's own copy put into the tree, and the tree made a repository.
+# Called by the plant; `exempt` below writes that copy again for each of its runs.
 install_guard() {
   cp "$GUARD_PATH" "$guard_copy"
-  chmod 755 "$guard_copy"
   git init -q "$tree" >/dev/null 2>&1
-  git -C "$tree" add -A >/dev/null 2>&1
+  stage_guard
 }
 
 # drop_tree — the scratch tree this case planted, removed. Guarded on the name because a
@@ -201,8 +209,7 @@ exempt() {
     { print }
     !added && index($0, decl) == 1 { print entry; added = 1 }
   ' "$GUARD_PATH" > "$tree/guard.next" && mv "$tree/guard.next" "$guard_copy"
-  chmod 755 "$guard_copy"
-  git -C "$tree" add -A >/dev/null 2>&1
+  stage_guard
 }
 
 # probe_guard_is_there — the premise every probe below rests on, and the one that answers
