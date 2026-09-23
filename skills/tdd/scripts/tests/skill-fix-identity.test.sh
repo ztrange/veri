@@ -99,6 +99,17 @@ issue_body_template() {
   ' "$1"
 }
 
+# criteria_block <template> — the lines under `## Acceptance criteria` in the quoted issue
+# body, up to the next heading, normalised the way body_text normalises prose: emphasis and
+# backticks dropped, case folded, joined onto one line. The block is read out of the template
+# rather than out of the surrounding prose because the template is what a session copies into
+# `gh issue create`, and so it is the only place a criterion the skill writes can come from.
+criteria_block() {
+  awk '/^##[[:space:]]+Acceptance criteria[[:space:]]*$/ { seen = 1; next }
+       seen && /^##[^#]/ { exit }
+       seen { print }' <<<"$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+}
+
 # says <regex> <fact> — one thing the body has to carry, written as the regex of any wording
 # that would carry it; <fact> names it once if nothing matches.
 says() {
@@ -166,6 +177,40 @@ if have_skill_md; then
                     seen && NF { print; exit }' <<<"$template")"
     [[ "$blocked" == "None." ]] ||
       problems+=("$skill_md's issue body: want 'None.' under '## Blocked by', got $(printf '%q' "$blocked")")
+  fi
+fi
+report "$name"
+
+# 3. The criteria it writes are the shape veri can act on. A criterion is what the planner
+#    turns into steps and what a blind verifier is judged against, so a bug filed with one
+#    vague criterion covering three separate misbehaviours plans as one step that cannot go
+#    green, and a criterion phrased as a wish ("the bug is fixed") gives the verifier nothing
+#    to run. The criterion this case pins is the pair: one criterion per manifestation, each
+#    in the reproduction-fails-now-and-passes-after-the-fix shape. Read, like case 2, out of
+#    the template the SKILL.md quotes — prose about criteria is not what gets copied into the
+#    issue.
+name="$skill_md's issue body writes one acceptance criterion per manifestation, each failing now and passing after the fix"
+problems=()
+if have_skill_md; then
+  template="$(issue_body_template "$ROOT/$skill_md")"
+  if [[ -z "$template" ]]; then
+    problems+=("$skill_md quotes no issue body: no fenced block in it holds a '## What happened' line")
+  else
+    text="$(criteria_block "$template")"
+    if [[ -z "${text// /}" ]]; then
+      # Fail closed, as case 1 does: an empty section means not one of the four claims
+      # below was tested, which must not read as four passes.
+      problems+=("$skill_md's issue body has nothing under '## Acceptance criteria'")
+    else
+      says '- \[ \]' \
+        "$skill_md's issue body writes no '- [ ]' checkbox under '## Acceptance criteria'"
+      says 'one[^.]{0,40}per manifestation|per manifestation' \
+        "$skill_md's issue body never says one criterion per manifestation"
+      says '(reproduction|repro)[^.]{0,80}fails[^.]{0,80}(current|today|now|unfixed)' \
+        "$skill_md's issue body never says the reproduction fails on the current code"
+      says 'passes[^.]{0,60}(after the fix|once fixed|when fixed)' \
+        "$skill_md's issue body never says the reproduction passes after the fix"
+    fi
   fi
 fi
 report "$name"
