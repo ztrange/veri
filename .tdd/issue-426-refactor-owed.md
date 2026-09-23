@@ -6,3 +6,5 @@
 ### A verdict launcher that cannot start the verifier records 2, the no-answer code, and never 1 ⟦criterion 2⟧
 - merge `stage` and `stage_broken` into one `stage <verifier-state>` (working|missing|unrunnable) — now that the copy and the run directory are shared they differ only in which verify.sh they leave behind; not taken because each case deliberately owns its own tree and its own cwd, so case 2 still answers when case 1 never staged
 - the #424 apostrophe story is told twice, in `run-verdict.sh`'s header and the suite's; not taken because the blind verifier reads either file alone
+### The verdict launcher clears the phase reason file before the verifier runs, so a reason left by an earlier step can never be read as this verdict ⟦criterion 3⟧
+- fold the three stagers' shared shape (copy_scripts_to + own run dir) into one stage_tree helper — held back because each case's tree and cwd variables are deliberately distinct, so a shared pair could let a probe read the previous case's tree when its own staging failed
