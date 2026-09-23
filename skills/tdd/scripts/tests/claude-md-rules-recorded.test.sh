@@ -330,6 +330,69 @@ probe_idiom_records_the_sigpipe_rule() {
 run_case "$claude_md's testing idiom section states the pipefail/SIGPIPE rule" \
   probe_idiom_records_the_sigpipe_rule
 
+# count_matching_records <text> <regex>... — how many records of <text> match every regex.
+# `one_record_matches` answers whether a rule is recorded at all, which is what every case
+# above asks of this document; the case below has to answer "once", so it needs the number
+# rather than the first hit. Two copies of one rule are two records to keep in step, and the
+# trim this suite exists to survive takes one of them away without the other — after which
+# the document states the rule and contradicts it, which is worse than either.
+count_matching_records() {
+  local text="$1" line re n=0
+  shift
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    n=$((n + 1))
+  done <<< "$text"
+  printf '%s\n' "$n"
+}
+
+# The job-spec rule as the regexes any wording carrying it would match, in the order a reader
+# meets them: the shape that is forbidden, the shape written out, the name used instead, the
+# helper that does it, the guard that fails the run, and the verb that makes the whole a rule
+# rather than a story about last September. Named once because the case below asks the same
+# list twice over — of the document, and of the count.
+#
+# No element spells a kill of a numbered job: `no-job-spec-kills.test.sh` reads every file
+# under skills/, this one included, and a regex that spelled the whole shape would be its
+# first offender.
+JOB_SPEC_RULE=(
+  'job spec'
+  'kill %'
+  'pid'
+  'bg_start|bg_kill|background\.sh'
+  'no-job-spec-kills'
+  'never|must not|not by'
+)
+
+# probe_job_spec_rule_is_stated_once — issue #424: a background process started with `&` and
+# ended by a job spec survives the shell that started it, because a job spec names a row in
+# that shell's own job table and the table dies with it. It cost twelve hours of ten orphaned
+# busy-loops at ~988% of CPU on 2026-09-22, silently distorting every timing this repository
+# measures. `no-job-spec-kills.test.sh` fails the run on the next site, but a guard is read
+# after the fact by an author who has already written the line; this document is what the
+# agent reads before it opens a file. Asked of ONE record, like every rule above — and asked
+# for exactly one, which no other case here needs: the criterion is that the rule is stated
+# once, and a document holding it twice is one trim away from holding two halves of it.
+probe_job_spec_rule_is_stated_once() {
+  local found
+  found="$(count_matching_records "$ALL_RECORDS" "${JOB_SPEC_RULE[@]}")"
+
+  case "$found" in
+    1) ;;
+    0)
+      problems+=("$claude_md has no single record stating that a background process is killed by the pid it recorded and never by a job spec, naming bg_start/bg_kill as what does it and no-job-spec-kills as the guard that fails the run on the next site") ;;
+    *)
+      problems+=("$claude_md states the job-spec kill rule in $found records rather than once, so the next trim can take one copy away and leave the document stating a rule it also contradicts") ;;
+  esac
+}
+
+# 6. One criterion, one case: the document states once that a background process is killed by
+#    its recorded pid and never by a job spec (#424).
+run_case "$claude_md states once that a background process is killed by its recorded pid, never by a job spec" \
+  probe_job_spec_rule_is_stated_once
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
