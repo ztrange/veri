@@ -91,6 +91,17 @@ write_ledger() {
   git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
 }
 
+# leaf_output <repo> <log-text> [<out-text>] — the files run-leaf.sh leaves behind in <repo>
+# for the develop-green phase: the progress log always, and the final-output file only when
+# <out-text> is given, because a leaf killed before it wrote one is a case of its own. Their
+# names are what preservation reads, so they are spelled here rather than in each case.
+leaf_output() {
+  local repo="$1" log_text="$2" out_text="${3:-}"
+  mkdir -p "$repo/.tdd"
+  printf '%s\n' "$log_text" > "$repo/.tdd/develop-green.log"
+  if [[ -n "$out_text" ]]; then printf '%s\n' "$out_text" > "$repo/.tdd/develop-green.out"; fi
+}
+
 # preserve <repo> <args…> — call the script from <repo>, under the same identity: the commit
 # it makes is git's, and a machine with no configured user (CI) must not decide whether this
 # case can run at all.
@@ -138,9 +149,7 @@ log_after="$(git_q "$repo" log --oneline 2>&1)"
 #    that wrote them may still be the one a retry reads back.
 repo="$work/leafoutput"
 new_repo "$repo"
-mkdir -p "$repo/.tdd"
-printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
-printf 'final result text\n' > "$repo/.tdd/develop-green.out"
+leaf_output "$repo" 'streamed progress' 'final result text'
 preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
 log_copy="$(copy_path "$repo" 3 reject log)"
 out_copy="$(copy_path "$repo" 3 reject out)"
@@ -157,8 +166,7 @@ out_text="$(copy_text "$out_copy")"
 #    nothing to copy.
 repo="$work/nooutput"
 new_repo "$repo"
-mkdir -p "$repo/.tdd"
-printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
+leaf_output "$repo" 'streamed progress'
 preserve "$repo" 409 3 develop-green 1 stuck >/dev/null 2>&1; code=$?
 log_copy="$(copy_path "$repo" 3 stuck log)"
 out_copy="$(copy_path "$repo" 3 stuck out)"
@@ -186,9 +194,7 @@ copies="$(copies_in "$repo")"
 repo="$work/nomark"
 new_repo "$repo"
 printf 'rejected work\n' > "$repo/stop-run.sh"
-mkdir -p "$repo/.tdd"
-printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
-printf 'final result text\n' > "$repo/.tdd/develop-green.out"
+leaf_output "$repo" 'streamed progress' 'final result text'
 preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
 ref_resolves "$repo"; resolved=$?
 attempts_there="$([[ -e "$(attempts_dir "$repo")" ]] && echo yes || echo no)"
@@ -204,10 +210,8 @@ copies="$(copies_in "$repo")"
 #    claim about a string that was sitting right there to be copied into it.
 repo="$work/blind"
 new_repo "$repo"
-mkdir -p "$repo/.tdd"
 rationale="I used a helper because the verifier rejected the inline version"
-printf '%s\n' "$rationale" > "$repo/.tdd/develop-green.log"
-printf '%s\n' "$rationale" > "$repo/.tdd/develop-green.out"
+leaf_output "$repo" "$rationale" "$rationale"
 printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
 git_q "$repo" merge-base --is-ancestor "$REF" HEAD >/dev/null 2>&1; reachable=$?
@@ -262,8 +266,7 @@ repo="$work/ledgercopies"
 new_repo "$repo"
 prose="A leaf's output is kept under refs/veri, not the branch"
 write_ledger "$repo" "The first step, already done" "$prose"
-printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
-printf 'final result text\n' > "$repo/.tdd/develop-green.out"
+leaf_output "$repo" 'streamed progress' 'final result text'
 preserve "$repo" 409 "$prose" develop-green 1 reject >/dev/null 2>&1; code=$?
 log_text="$(copy_text "$(copy_path "$repo" 2 reject log)")"
 out_text="$(copy_text "$(copy_path "$repo" 2 reject out)")"
