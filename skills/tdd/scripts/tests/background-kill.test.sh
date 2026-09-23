@@ -55,14 +55,25 @@ report() {
 }
 
 work="$(mktemp -d)"
+
+# Every pid a case has started, appended as soon as the case knows it, so the cleanup below
+# needs no roster of its own to keep in step with the cases.
+victims=()
+
+# end_victim <pid> — make sure <pid> is not running, quietly. A pid that is already gone, or
+# an empty one a case never got, is not an error: the point of the call is that nothing is
+# left running.
+end_victim() {
+  [[ -n "$1" ]] || return 0
+  kill -KILL "$1" 2>/dev/null || true
+}
+
 # The victim outlives the shell that started it by design, so a run that ends before the kill
 # — a failing case, an interrupt — must not leave it behind: this suite's own cleanup kills
 # it by the pid it read, which is the same rule the helper under test is here to enforce.
 cleanup() {
   local pid
-  for pid in "${victim_pid:-}" "${victim2_pid:-}" "${victim3a_pid:-}" "${victim3b_pid:-}" "${victim4_pid:-}"; do
-    if [[ -n "$pid" ]]; then kill -KILL "$pid" 2>/dev/null || true; fi
-  done
+  for pid in "${victims[@]}"; do end_victim "$pid"; done
   rm -rf "$work"
 }
 trap cleanup EXIT
@@ -120,7 +131,6 @@ victim="$work/victim"
 make_victim "$victim" "$self_pid"
 
 problems=()
-victim_pid=""
 
 # The starting shell, and it exits: a subshell that sources the helper, starts the victim
 # through it, and returns. From here on there is no job table anywhere that holds the victim.
@@ -142,7 +152,7 @@ else
     || problems+=("bg_start recorded '$recorded' in $record, but the process it started reported pid '$actual'")
 
   if [[ "$recorded" =~ ^[0-9]+$ ]]; then
-    victim_pid="$recorded"
+    victims+=("$recorded")
     # The premise: the victim is alive when the kill goes out. Without it a case could go
     # green over a process that had already died of something else.
     kill -0 "$recorded" 2>/dev/null \
@@ -172,7 +182,6 @@ victim2="$work/victim2"
 make_victim "$victim2" "$self_pid2"
 
 problems=()
-victim2_pid=""
 
 exit_err="$work/abandoned.err"
 ( source "$LIB" && bg_start "$record2" "$victim2" ) > /dev/null 2>"$exit_err"
@@ -182,6 +191,7 @@ if ! appeared "$record2" "$PATIENCE"; then
   problems+=("sourcing $LIB and calling bg_start: recorded no pid in $record2 (exit $exit_code, stderr: '$(tr '\n' ' ' < "$exit_err")')")
 else
   read -r victim2_pid _ < "$record2" || true
+  victims+=("$victim2_pid")
   said="$(tr '\n' ' ' < "$exit_err")"
 
   # The premise: the victim really did outlive the shell that started it. Without it the case
@@ -195,7 +205,7 @@ else
   grep -F "$victim2" "$exit_err" > /dev/null \
     || problems+=("the report does not name what started the survivor ('$victim2'): stderr said '$said'")
 
-  kill -KILL "$victim2_pid" 2>/dev/null || true
+  end_victim "$victim2_pid"
 fi
 
 report "a process still running when its starting shell exits is reported on that shell's stderr, naming its pid and what started it"
@@ -213,8 +223,6 @@ make_victim "$victim3a" "$self_pid3a"
 make_victim "$victim3b" "$self_pid3b"
 
 problems=()
-victim3a_pid=""
-victim3b_pid=""
 
 pair_err="$work/pair.err"
 ( source "$LIB" && bg_start "$record3" "$victim3a" && bg_start "$record3" "$victim3b" ) \
@@ -225,6 +233,7 @@ if ! appeared "$record3" "$PATIENCE"; then
   problems+=("sourcing $LIB and calling bg_start twice on one record: recorded nothing in $record3 (exit $pair_code, stderr: '$(tr '\n' ' ' < "$pair_err")')")
 else
   { read -r victim3a_pid _; read -r victim3b_pid _; } < "$record3" || true
+  victims+=("$victim3a_pid" "$victim3b_pid")
   said3="$(tr '\n' ' ' < "$pair_err")"
 
   if [[ ! "$victim3a_pid" =~ ^[0-9]+$ || ! "$victim3b_pid" =~ ^[0-9]+$ ]]; then
@@ -244,8 +253,8 @@ else
     done
   fi
 
-  kill -KILL "$victim3a_pid" 2>/dev/null || true
-  kill -KILL "$victim3b_pid" 2>/dev/null || true
+  end_victim "$victim3a_pid"
+  end_victim "$victim3b_pid"
 fi
 
 report "a record started into twice names each survivor once when the starting shell exits, not once per bg_start call"
@@ -271,6 +280,7 @@ removed_err="$work/removed.err"
 removed_code=$?
 
 read -r victim4_pid _ < "$kept4" 2>/dev/null || true
+victims+=("$victim4_pid")
 
 if [[ -e "$record4" ]]; then
   problems+=("the case never reached the state it is about: $record4 still exists after the shell that made it exited (exit $removed_code)")
