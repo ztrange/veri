@@ -70,9 +70,15 @@ ledger_step_index() {
 
 # The prose itself when the ledger cannot name the step — an absent ledger, or one no line of
 # which carries what the caller was handed — which is what the callers passing an index
-# already rely on.
+# already rely on. A title is a sentence, though, and `git check-ref-format` takes none of what
+# a sentence is made of: a space ends the ref name, a slash starts a new path component, and an
+# apostrophe is only legal by accident of what git forbids. So the fallback keeps the one class
+# of character every git accepts — letters, digits and the dash — and writes every other byte
+# as a dash, which is legible enough to recognise the step by and legal wherever it lands. A
+# caller that passed an index, and the ledger lookup above, both come through it unchanged.
 step_ref="$step"
 if ledger_step_index ".tdd/issue-$issue.md" "$step"; then step_ref="$LEDGER_STEP_INDEX"; fi
+step_ref="${step_ref//[^0-9A-Za-z-]/-}"
 
 # HEAD as the parent so `git show` on the ref reads as the attempt's own diff rather than as
 # every file in the repository.

@@ -220,6 +220,24 @@ refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
   && ok || no "names the ref by the step's ledger index, not its prose (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
 
+# 9. and a step the ledger cannot name is preserved all the same, under a ref name git accepts:
+#    the fallback has only the title to go on, and a title is a sentence — spaces, an
+#    apostrophe, a slash — none of which `git check-ref-format` allows, so the fallback wrote no
+#    ref at all and the snapshot was silently lost (issue #427). The repo carries no ledger, so
+#    the title is all there is; what the ref is called is the green leaf's to choose, and what
+#    this case asks is only that git accepts it and reads the attempt's tree back through it.
+repo="$work/prosetitle"
+new_repo "$repo"
+prose="A leaf's tree is kept under refs/veri, not the branch"
+printf 'rejected work\n' > "$repo/stop-run.sh"
+preserve "$repo" 409 "$prose" develop-green 1 >/dev/null 2>&1; code=$?
+found="$(git_q "$repo" for-each-ref --count=1 --format='%(refname)' refs/veri/attempts/409 2>/dev/null)"
+git_q "$repo" check-ref-format "$found" >/dev/null 2>&1; legal=$?
+shown="$(git_q "$repo" show "$found:stop-run.sh" 2>&1)"
+{ [[ "$code" == 0 ]] && [[ -n "$found" ]] && [[ "$legal" == 0 ]] \
+    && [[ "$shown" == "rejected work" ]]; } \
+  && ok || no "preserves the attempt under a ref git accepts when the step title carries spaces, an apostrophe and a slash (code=$code ref='$found' legal=$([[ "$legal" == 0 ]] && echo yes || echo no) shown='$shown')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
