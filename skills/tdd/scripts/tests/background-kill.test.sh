@@ -4,15 +4,11 @@
 # never a job spec (issue #424).
 # Zero-dependency plain-shell asserts, same idiom as detach-leaf.test.sh.
 #
-# Why this exists: `kill %1` reaches a job through the JOB TABLE of the shell that started
-# it, and that table dies with the shell. Observed 2026-09-22 on this machine: ten orphaned
-# busy-loops, every one PPID 1, at ~988% of CPU between them, twelve and thirteen hours old.
-# They had been started with `… & … & …` and killed with `kill %1 %2 … 2>/dev/null` from a
-# later context whose job table no longer held them, and the redirection swallowed the
-# complaint. Every timing this repository quotes — `make profile`, a speed PR's body, the
-# wall-clock figures in `.tdd/issue-<n>-metrics.md` — was taken against that load for half a
-# day, and nothing veri logs said so. A pid is not a job spec: it is a system-wide name, so a
-# kill that uses it works from any shell, including one that never started the process.
+# Why this exists: a job spec dies with the shell that owns the job table it names, where a
+# pid is a system-wide name a kill can use from any shell — `lib/background.sh`'s own header
+# carries that mechanism and the ten orphaned busy-loops it cost this machine on 2026-09-22,
+# and is the one copy of it. What follows is what only a test can say: how the two halves of
+# that claim are watched.
 #
 # Contract under test (this step only):
 #   source lib/background.sh
@@ -29,7 +25,7 @@
 # number that merely looks like one; it is `sleep 60`, not a busy loop, so a broken helper
 # leaves an idle process for the trap below rather than a spinner like the ones that made
 # this issue. Nothing here waits on a timer: the two waits end on a file appearing and on a
-# pid going away, and the budget only bounds how long a failing run takes to say so.
+# pid going away, on the budget `poll_until` below explains.
 #
 # Run: scripts/tests/background-kill.test.sh
 set -uo pipefail
