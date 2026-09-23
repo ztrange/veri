@@ -915,21 +915,16 @@ if records_from resume_instructions \
 fi
 report "$name"
 
-# 12. One criterion — the removal-verb probe of case 4 can go red — and so one case. Case 4
-#     asks whether the `clear-refactor-pending.sh` entry names a verb meaning *remove*, and it
-#     asks it of the whole record: `records_of` flattens the bullet to one line and that line
-#     opens with the script's own name, so the literal `clear-refactor-pending.sh` supplies
-#     `clear` — one of the five alternatives — before any prose is consulted. The probe is
-#     therefore true whatever the entry says, which is the failure class #297 is the record of:
-#     a check that cannot fail for the fault it exists to catch (#411).
+# 12. One criterion — the removal-verb probe of case 4 can go red — and so one case. What that
+#     probe would be true of whatever the prose said, and why it strips the name before asking,
+#     is `says_removal_verb`'s own note above; this case is the watch that it does.
 #
 #     Asked of a planted entry rather than of the document, because the document is right
 #     today — SKILL.md does say "strip" — so nothing read from it distinguishes a probe that
 #     reads the prose from one that reads the filename. The plant is the smallest entry that
 #     separates them: it spells the mark and both exit codes, and it names what the script does
 #     without any of the five verbs, so only a probe that looks past the name it opens with can
-#     report against it. The probe itself is called, not copied — a second spelling of the
-#     regex here would pass with case 4's own left exactly as it is.
+#     report against it.
 name="case 4's removal-verb probe reports a problem naming the clear-refactor-pending.sh entry when only the filename that opens it supplies a removal verb"
 problems=()
 planted_entry_dir="$(mktemp -d)"
