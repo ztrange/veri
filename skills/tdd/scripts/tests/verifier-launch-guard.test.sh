@@ -219,6 +219,18 @@ run_guard_over() {
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
+# probe_only_this_address <line> — every address the guard's last run named has to be
+# $SKILL:<line> and nothing else. Not "the guard failed": a guard deleted down to `exit 1`
+# would satisfy that, and so would one that listed every documented line in the document —
+# and the rest of those lines are correct, so a red naming them is a list to read rather
+# than a line to go and fix.
+probe_only_this_address() {
+  local want="$SKILL:$1" addresses
+  addresses="$(grep -oE "${SKILL//./\\.}:[0-9]+" <<< "$guard_out" | sort -u | tr '\n' ' ')"
+  [[ "$addresses" == "$want " ]] ||
+    problems+=("${GUARD##*/} named the addresses '$addresses' over that document, want only $want — the document's other documented lines are correct and a red naming them is a list rather than a fix")
+}
+
 # probe_guard_is_green_unplanted — the half that makes the other half mean something, and
 # the same half for every case here, whatever its plant contradicts. The guard is run over
 # the tree with the document exactly as committed: it has to pass, and its own count line has
@@ -244,7 +256,7 @@ probe_guard_is_green_unplanted() {
 # are still correct; a red that named them too would be a list to read rather than a line to
 # go and fix.
 probe_guard_names_the_planted_launch() {
-  local failures named addresses
+  local failures named
   run_guard_over "$planted_skill"
   failures="$(failures_in "$guard_out")"
   [[ "$guard_code" != 0 ]] ||
@@ -258,9 +270,7 @@ probe_guard_names_the_planted_launch() {
     grep -qF "$MISSING" <<< "$named" ||
       problems+=("${GUARD##*/} named $SKILL:$planted_line without saying $MISSING is what it no longer goes through; the lines naming it were: $(flat "$named")")
   fi
-  addresses="$(grep -oE "${SKILL//./\\.}:[0-9]+" <<< "$guard_out" | sort -u | tr '\n' ' ')"
-  [[ "$addresses" == "$SKILL:$planted_line " ]] ||
-    problems+=("${GUARD##*/} named the addresses '$addresses' over that document, want only $SKILL:$planted_line — the document's other launch lines are correct and a red naming them is a list rather than a fix")
+  probe_only_this_address "$planted_line"
 }
 
 # 1. One criterion — the launch guard is known to go red at the planted launch, and green
@@ -391,16 +401,14 @@ probe_step_plant_is_what_it_claims() {
 # guard fails, but that it fails at an address a writer can open — the file and the line —
 # and at no other, since every other command in the document is correct.
 probe_step_guard_names_the_planted_line() {
-  local failures addresses
+  local failures
   run_guard_over "$planted_step_skill"
   failures="$(failures_in "$guard_out")"
   [[ "$guard_code" != 0 ]] ||
     problems+=("want ${GUARD##*/} to fail over a $SKILL whose $step_line carries $STEP_SINGLE; it exited 0 and said: $(flat "$guard_out")")
   [[ "$failures" != 0 && "$failures" != '<none>' ]] ||
     problems+=("want ${GUARD##*/}'s own count line to state a failure over that document; it stated '$failures': $(flat "$guard_out")")
-  addresses="$(grep -oE "${SKILL//./\\.}:[0-9]+" <<< "$guard_out" | sort -u | tr '\n' ' ')"
-  [[ "$addresses" == "$SKILL:$step_line " ]] ||
-    problems+=("${GUARD##*/} named the addresses '$addresses' over that document, want only $SKILL:$step_line — the document's other command lines are correct and a red naming them is a list rather than a fix")
+  probe_only_this_address "$step_line"
 }
 
 # probe_exemption_with_a_reason_excuses_the_line — the second half: the same planted document
