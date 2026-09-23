@@ -10,24 +10,57 @@
 # swallowed the complaint. A pid is a system-wide name instead, so a kill that uses one works
 # from any shell, including one that never started the process.
 #
+# A kill that is never issued is the other half of the same incident, and it leaves no trace
+# at all: the starting shell exits, the child is reparented to PID 1, and the only shell that
+# ever knew what it was is gone. So `bg_start` also arms an EXIT trap that says so on the
+# starting shell's own stderr, naming the pid and the command — the survivor is then a line
+# someone can act on rather than a process nobody can name.
+#
 # `return`, never `exit`: this runs in the caller's own shell once sourced, so an `exit` here
 # would tear the caller down where a refusal is meant to be an answer it reads.
 
-# bg_start <record> <cmd> [args…] — run <cmd> in the background and append its pid to
-# <record>, the file `bg_kill` later reads. `$!` is the pid of the child the shell just
-# forked, asked for immediately, because a later `$!` is some other background command's.
+# The record files this shell has started something into, read by the EXIT trap below. A
+# record is added once, so a shell that starts two processes into one file still reports each
+# survivor once.
+_bg_records=()
+
+# _bg_report_survivors — one line on stderr per recorded process still running. Called from
+# the EXIT trap `bg_start` arms, so it runs in the shell that did the starting, which is the
+# last moment anything knows what the pid was.
+_bg_report_survivors() {
+  local record pid cmd
+  for record in ${_bg_records+"${_bg_records[@]}"}; do
+    [[ -r "$record" ]] || continue
+    while read -r pid cmd; do
+      if kill -0 "$pid" 2>/dev/null; then
+        printf 'background process still running at exit: pid %s started by %s (kill it: kill %s)\n' \
+          "$pid" "$cmd" "$pid" >&2
+      fi
+    done < "$record"
+  done
+}
+
+# bg_start <record> <cmd> [args…] — run <cmd> in the background and append its pid and the
+# command to <record>, the file `bg_kill` later reads. `$!` is the pid of the child the shell
+# just forked, asked for immediately, because a later `$!` is some other background command's.
 bg_start() {
   local record="${1:?usage: bg_start <record> <cmd> [args...]}"
   shift
   "$@" &
-  printf '%s\n' "$!" >> "$record"
+  printf '%s %s\n' "$!" "$*" >> "$record"
+  local known
+  for known in ${_bg_records+"${_bg_records[@]}"}; do
+    [[ "$known" == "$record" ]] && return 0
+  done
+  _bg_records+=("$record")
+  trap _bg_report_survivors EXIT
 }
 
 # bg_kill <record> — kill every process <record> names. A pid whose process is already gone is
 # not an error — the point of the call is that nothing recorded is left running.
 bg_kill() {
   local record="${1:?usage: bg_kill <record>}" pid
-  while read -r pid; do
+  while read -r pid _; do
     kill "$pid" 2>/dev/null || true
   done < "$record"
 }
