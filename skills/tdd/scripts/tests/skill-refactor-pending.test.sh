@@ -1013,9 +1013,7 @@ name="$skill_md's clear-refactor-pending.sh entry names a removal verb in its ow
 problems=()
 if records_from scripts_instructions \
     "$skill_md has no ## The scripts section to read — whether the removal-verb probe stays green against it could not be checked"; then
-  if reads_entry clear-refactor-pending.sh; then
-    says_removal_verb
-  fi
+  removal_verb_probe
 fi
 probe_problems=("${problems[@]}")
 problems=()
