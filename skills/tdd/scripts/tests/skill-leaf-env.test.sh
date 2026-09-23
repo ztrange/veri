@@ -332,6 +332,27 @@ run_case() {
   report "$name"
 }
 
+# only_complaint_about <needle> <what-was-asked> — fold the fixture launches a case just ran
+# into that case's own verdict: exactly one complaint, and it names <needle>. A fixture case
+# runs real launch lines of its own, and each of those reports through `problem` into
+# `run_case`'s `problems` the way a document line does — so what the array holds when the
+# launches are done is the launches' evidence, not the case's answer. This empties it and
+# puts back the one complaint the case is actually making, `<what-was-asked> reported: …`,
+# quoting whatever the launches said.
+#
+# Written once because two cases ask that same question of their fixtures and differ only in
+# the needle and the phrase: kept per-case, the emptying and the `-ne 1` could drift, and a
+# copy that forgot to empty `problems` would report its fixture's deliberate fault as the
+# case's own failure while still looking like it had asserted something.
+only_complaint_about() {
+  local needle="$1" asked="$2"
+  local got=( "${problems[@]}" )
+  problems=()
+  if [[ "${#got[@]}" -ne 1 || "${got[0]}" != *"$needle"* ]]; then
+    problems+=("$asked reported: ${got[*]:-<nothing>}")
+  fi
+}
+
 # arg_after <script> <launch> — echo the word <launch> passes <script> as its first argument:
 # the leaf's name for supervise.sh, the phase for verify.sh. Both checks below read one, and
 # they differ only in which script they read it after — so the `sed` is here rather than once
@@ -529,7 +550,7 @@ run_case "every leaf $skill_md launches leaves events carrying the run's issue a
 # reports either of them, or reports nothing, or reports more than the one complaint, has
 # found a real scoping bug rather than the fixture's own deliberate fault.
 scan_fixture_naming() {
-  local fixture i=0 lineno line launch got
+  local fixture i=0 lineno line launch
   read -r -d '' fixture <<'FIXTURE' || true
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-good-1 $S/run-leaf.sh .tdd/fixture-good-1.prompt
 VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-bad $S/run-leaf.sh .tdd/fixture-bad.prompt
@@ -548,11 +569,7 @@ FIXTURE
   # The loop above leaves this case's real verdict in `problems` — the three fixture
   # launches' own complaints, not this case's question. Fold them into the one thing
   # actually being asked: exactly one complaint, naming the line that was actually broken.
-  got=("${problems[@]}")
-  problems=()
-  if [[ "${#got[@]}" -ne 1 || "${got[0]}" != *"fixture-bad"* ]]; then
-    problems+=("the fixture's three launches (only the middle one broken) reported: ${got[*]:-<nothing>}")
-  fi
+  only_complaint_about "fixture-bad" "the fixture's three launches (only the middle one broken)"
 }
 
 run_case "a single broken launch line is reported by name, alone, while unrelated lines report nothing" \
@@ -614,7 +631,7 @@ run_case "report()'s FAIL line, its indented problem line, and the count line ke
 # `run_case`'s `problems` the way the scans above do, and `lineno`/`line` are its own, so
 # `expect_sentinel`'s complaint quotes this fixture's line rather than one of the document's.
 scan_wrong_leaf_name() {
-  local lineno line launch got
+  local lineno line launch
   lineno="wrong-leaf-name-1"
   read -r line <<'FIXTURE'
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-named $S/run-leaf.sh .tdd/fixture-named.prompt
@@ -628,11 +645,7 @@ FIXTURE
   # As in the fixture-naming case above, the launch's own complaint is the evidence, not this
   # case's verdict: fold it into the one thing actually being asked — exactly one complaint,
   # naming the launch line whose completion file never landed.
-  got=("${problems[@]}")
-  problems=()
-  if [[ "${#got[@]}" -ne 1 || "${got[0]}" != *"$line"* ]]; then
-    problems+=("a launch whose leaf name no completion file is written under reported: ${got[*]:-<nothing>}")
-  fi
+  only_complaint_about "$line" "a launch whose leaf name no completion file is written under"
 }
 
 run_case "a launch writing no completion file under the derived leaf name is reported, naming that line" \
