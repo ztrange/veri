@@ -382,6 +382,86 @@ drop_tree
 
 report "$name"
 
+# remove_plant — the planted offender taken out of the tree, and git's index told about it,
+# so the run after this differs from the run before it in exactly one thing: the file that
+# broke the rule is no longer there. The index is kept in step for the same reason `plant`
+# put it there at all — nothing in the guard's contract says how it enumerates what it
+# reads, and a removal git still held would leave the run below reporting on that choice
+# rather than on the tree as it now stands.
+remove_plant() {
+  rm -f "$offender_path"
+  git -C "$tree" add -A >/dev/null 2>&1
+}
+
+# probe_plant_is_red_first — the premise the criterion's own sentence opens with, and the
+# one that makes the green below mean anything: over this tree, as planted, the guard is red
+# and the failure it reports is the planted line's address. Without it a guard that passed
+# over everything would satisfy the half under it, and a green bar would be recorded for a
+# check that never fired. Returns non-zero so the case stops rather than removing a plant
+# whose detection was never observed.
+probe_plant_is_red_first() {
+  [[ "$guard_code" != 0 ]] || {
+    problems+=("want the guard to fail over the tree as planted, whose $OFFENDER_REL ends a background process by a job spec at line $offender_line; it exited 0 and said: $(flat "$guard_out")")
+    return 1
+  }
+  [[ -n "$(naming "$OFFENDER_REL:$offender_line")" ]] || {
+    problems+=("the guard failed over the tree as planted but named no site at $OFFENDER_REL:$offender_line, so its red is not this plant's and the green below would say nothing; it said: $(flat "$guard_out")")
+    return 1
+  }
+}
+
+# probe_plant_is_gone — the other premise, asserted rather than assumed: `remove_plant`
+# really took the file out. A removal that silently failed would leave the run below meeting
+# the same tree as the run above, and the case would report on a guard's answer to a
+# question it was never asked.
+probe_plant_is_gone() {
+  [[ ! -e "$offender_path" ]] || {
+    problems+=("$OFFENDER_REL is still in the planted tree, so the run below is not the one this case asks about")
+    return 1
+  }
+}
+
+# probe_guard_is_green_once_the_plant_is_removed — the criterion. The same guard, over the
+# same tree, with the one offending file gone: it passes, and says nothing about the file
+# that is no longer there. Both halves, because a guard that kept naming a site it had once
+# read — from a cache, from git's index, from a roster written when it first ran — would
+# leave the next author deleting a file and still reading their own complaint back.
+probe_guard_is_green_once_the_plant_is_removed() {
+  local named
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want the guard to pass over the same tree once the planted offender is removed; it exited $guard_code and said: $(flat "$guard_out")")
+  named="$(naming "$OFFENDER_NAME")"
+  [[ -z "$named" ]] ||
+    problems+=("the guard still named $OFFENDER_NAME, whose file is no longer in the tree: $(flat "$named")")
+}
+
+# 2. One criterion, one case: the guard's red is the plant's, and it goes away with the
+#    plant. The red half above is this case's premise rather than its subject — case 1 is
+#    what asks how the guard reports an offender — because "green again" is a claim about a
+#    change: a guard that always passed and a guard that always failed each satisfy one half
+#    of the sentence, and only the pair over one tree, before and after the one removal, says
+#    the answer came from the file. This is the discipline the repository asks of a guard
+#    written by hand — break it on purpose, watch it go red, put it back — asked of this one
+#    on every run rather than once, on the day it was written, by whoever wrote it.
+name="no-job-spec-kills.test.sh goes red naming the planted offender and green again once that file is removed"
+problems=()
+
+if probe_guard_is_there && plant; then
+  if probe_plant_is_what_it_claims; then
+    run_guard
+    if probe_plant_is_red_first; then
+      remove_plant
+      if probe_plant_is_gone; then
+        run_guard
+        probe_guard_is_green_once_the_plant_is_removed
+      fi
+    fi
+  fi
+fi
+drop_tree
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
