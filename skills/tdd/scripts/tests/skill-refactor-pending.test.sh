@@ -98,7 +98,12 @@ mark='⟂ refactor pending'
 # (#223). Three probes ask for that shape — the read that finds the cycle loop's call, and
 # the two that ask what each call site hands it — and a third independent spelling would let
 # one of them go on matching a call SKILL.md no longer makes.
-verify_refactor='verify\.sh (--step [^ ]+ )?(--fast-cmd [^ ]+ )?refactor'
+#
+# Either script's name opens it, because since #426 the cycle loop's launch reaches the verify
+# verb by exec'ing it through `run-verdict.sh` — the launcher takes verify.sh's own arguments
+# in verify.sh's own order — while Resume's prose still names `verify.sh` itself. The sha is
+# what this case is about, and it sits in the same slot behind either name.
+verify_refactor='(verify|run-verdict)\.sh (--step [^ ]+ )?(--fast-cmd [^ ]+ )?refactor'
 
 # The command family that counts as "the worktree was reset", spelled once for the same
 # reason. Two probes ask for it of two different slices — case 6's, of the instruction that

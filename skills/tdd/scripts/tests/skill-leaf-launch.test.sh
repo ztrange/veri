@@ -25,14 +25,20 @@
 #      earlier leaf of the same name cannot end a later wait early.
 #   4. The script inventory's `wait-leaf.sh` entry says a 2 also means the supervisor died
 #      without recording a status, and that it takes the killed-stuck branch (issue #173).
-#   5. Every launch line that names `verify.sh` names `supervise.sh` too, so a verifier is
+#   5. Every launch line that reaches the verifier — by naming `verify.sh` or the verdict
+#      launcher `run-verdict.sh` that execs it — names `supervise.sh` too, so a verifier is
 #      launched through the supervisor the way a developer leaf is (issue #415) — the
 #      invariant SKILL.md:17 states and line 322 broke.
-#   6. Every supervised verifier launch passes `verify.sh` the blind parameter list and
-#      nothing else — the phase, the spec file, the test path and the test id, or the base
-#      sha for `refactor`, behind verify.sh's own `--step` and `--fast-cmd` flags — so
-#      nothing the supervisor put in front of that call can carry the developer's rationale
-#      to a verifier that is blind by construction (issue #415).
+#   6. Every supervised verifier launch passes the blind parameter list and nothing else —
+#      the phase, the spec file, the test path and the test id, or the base sha for
+#      `refactor`, behind verify.sh's own `--step` and `--fast-cmd` flags — so nothing the
+#      supervisor put in front of that call can carry the developer's rationale to a
+#      verifier that is blind by construction (issue #415). Read at the verdict launcher,
+#      which since #426 is where that list is typed: it passes its argv to `verify.sh`
+#      untouched, so an argument added to the launch is an argument the verifier gets.
+#   7. Every verifier launch invokes the verdict launcher `run-verdict.sh` and inlines no
+#      `bash -c` command string, so the step's own title reaches the verifier as one argv
+#      element rather than as shell text a second shell has to parse (issue #426).
 #
 # Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
 # *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
@@ -60,12 +66,26 @@ detacher="detach-leaf.sh"
 
 # The other two scripts a launch line names, written down once for the same reason: the leaf
 # **launcher** (SKILL.md:67), which case 5 requires every launch to go through, and the verify
-# script, which is what makes a launch line a verifier's. Both are spelled into that case's
+# script, which a launch may still reach a verifier by. Both are spelled into that case's
 # failure messages as well as probed with — and into `launch_lines`, which recognises a launch
 # line BY them — so a rename cannot leave a message, or a probe, naming a script the others no
 # longer look for.
 launcher="supervise.sh"
 verifier="verify.sh"
+
+# The script case 7 requires every verifier launch to invoke, and the leaf name that case
+# recognises one BY. Both written down once, for the reason the three above are: the leaf
+# name is what a failure message quotes as well as what the probe narrows on, and the
+# launcher's name is spelled into the message that says a line does not invoke it.
+#
+# `verdict-` rather than `verify.sh` is what a verifier launch is recognised by here,
+# because the criterion is precisely that `verify.sh` stops being the name on that line:
+# narrowing on it would make a fixed launch invisible to the case that asked for the fix.
+# For the same reason the launcher's name joins `launch_lines`' alternation and is what
+# cases 5 and 6 narrow on: once a launch reaches the verifier through it, a probe still
+# looking only for `verify.sh` reads a fixed document as one with no verifier launch at all.
+verdict_launcher="run-verdict.sh"
+verdict_leaf="verdict-"
 
 # The section case 2 reads, written down once for the same reason: it is both an argument to
 # the probe — `section_prose` matches on it as a heading prefix — and a name three failure
@@ -137,7 +157,7 @@ fenced_lines() {
 # and for the same reason: a script name is text, and only this line knows it is about to
 # become a regex.
 launch_lines() {
-  fenced_lines "${launcher//./\\.}|${verifier//./\\.}"
+  fenced_lines "${launcher//./\\.}|${verifier//./\\.}|${verdict_launcher//./\\.}"
 }
 
 # section_prose <heading-prefix> — the prose of the `## ` section whose heading starts with
@@ -289,9 +309,9 @@ report "$name"
 name="$skill_md launches every verifier through $launcher, the way it launches a developer leaf"
 problems=()
 
-verifier_launches="$(launch_lines | grep -F "$verifier" || true)"
+verifier_launches="$(launch_lines | grep -E -- "${verifier//./\\.}|${verdict_launcher//./\\.}" || true)"
 if [[ -z "$verifier_launches" ]]; then
-  unreadable "launch line naming $verifier inside a fenced block" "how a verifier is launched"
+  unreadable "launch line naming $verifier or $verdict_launcher inside a fenced block" "how a verifier is launched"
 else
   while IFS=$'\t' read -r lineno text; do
     [[ "$text" == *"$launcher"* ]] ||
@@ -307,7 +327,7 @@ report "$name"
 # verifier's — so a line whose redirect is missing yields the rest of itself and fails the
 # case below, which is the fail-closed answer for a launch whose parameters cannot be read.
 blind_args() {
-  local tail="${1#*"$verifier" }"
+  local tail="${1#*"$verdict_launcher" }"
   printf '%s' "${tail%% > .tdd/verify-*}"
 }
 
@@ -336,16 +356,46 @@ problems=()
 # abbreviates the parameters as `<phase> …`, so it is a launch shape, not a launch: its
 # ellipsis is what the concrete launches below fill in, and reading it as a call would fail
 # this case on the document's own way of introducing it.
-supervised_launches="$(launch_lines | grep -F "$verifier" | grep -F "$launcher" |
+supervised_launches="$(launch_lines | grep -F "$verdict_launcher" | grep -F "$launcher" |
   grep -E '<spec-file>|\.tdd/issue-<n>-spec\.md' || true)"
 if [[ -z "$supervised_launches" ]]; then
-  unreadable "launch line naming $verifier, $launcher and a spec file inside a fenced block" "what a supervised verifier launch passes"
+  unreadable "launch line naming $verdict_launcher, $launcher and a spec file inside a fenced block" "what a supervised verifier launch passes"
 else
   while IFS=$'\t' read -r lineno text; do
     args="$(blind_args "$text")"
     [[ "$args" =~ $blind_re ]] ||
       problems+=("$skill_md:$lineno passes $verifier more than the blind parameters: $args")
   done <<< "$supervised_launches"
+fi
+
+report "$name"
+
+# 7. The step's title is the conductor's own English, written by the planning leaf, and the
+#    launch above wrapped `verify.sh` in a `bash -c "…"` that inlined it into a `'<STEP>'`
+#    inside a `"…"`. A title carrying an apostrophe — `that shell's stderr` — closed that
+#    quote early and the launch died with `bash: -c: unexpected EOF while looking for
+#    matching `\''` (issue #426), observed on the #424 run. Passing the call through
+#    `run-verdict.sh` instead puts the title in argv, where no second shell parses it.
+#
+#    Both halves are one launch: naming the launcher is what makes the title an argument,
+#    and a `bash -c` left in front of it is the shape the incident happened in, still there
+#    for a conductor to copy. Read off the launch lines narrowed by the leaf name every
+#    verifier launch is given, so the shape at *Launching a leaf* is judged with the five
+#    concrete launches that fill it in.
+name="$skill_md invokes $verdict_launcher on every verifier launch, with no inlined bash -c command string"
+problems=()
+
+verdict_launches="$(launch_lines | grep -F "$launcher $verdict_leaf" || true)"
+if [[ -z "$verdict_launches" ]]; then
+  unreadable "launch line naming $launcher and a ${verdict_leaf}<phase> leaf inside a fenced block" "how a verdict is launched"
+else
+  while IFS=$'\t' read -r lineno text; do
+    faults=""
+    [[ "$text" == *"$verdict_launcher"* ]] || fault "does not invoke $verdict_launcher"
+    [[ "$text" == *"bash -c"* ]] && fault "still inlines the verifier call in a bash -c command string"
+    [[ -z "$faults" ]] ||
+      problems+=("$skill_md:$lineno $faults: $text")
+  done <<< "$verdict_launches"
 fi
 
 report "$name"
