@@ -1,0 +1,2 @@
+### A PREDICTION verdict word carrying trailing punctuation is read as that verdict, for both verdicts and for comma, semicolon, colon and full stop
+- move red-divergence.sh's parsing behind functions with a `[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"` guard and have the unit suite source it rather than exec it, the #339 unit-tier pattern — out of this cycle's bounds, since the cycle touched only the verdict lines
