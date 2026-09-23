@@ -120,8 +120,12 @@ printf 'the test pins the criterion and fails for the reason it names\n'
 STUB
   chmod +x "$scripts/$VERIFIER"
 
+  # The two files the call below names, and nothing else: the launcher's cwd needs whatever
+  # its arguments point at, and a `.tdd` for output the stub never writes would only suggest
+  # the verifier reports through one — the reason and exit files are the conductor's
+  # redirections, not verify.sh's own writes.
   run="$work/run"
-  mkdir -p "$run/.tdd"
+  mkdir -p "$run"
   printf '# spec\n' > "$run/spec.md"
   printf '# test\n' > "$run/suite.test.sh"
 }
