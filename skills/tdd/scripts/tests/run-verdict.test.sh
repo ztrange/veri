@@ -77,6 +77,22 @@ CALL=(--step "$STEP" "$PHASE" "$SPEC" "$TEST_PATH" case-1)
 
 pass=0 fail=0
 
+# launch <scripts-dir> <run-dir> [NAME=VALUE …] — run the launcher out of <scripts-dir>, from
+# <run-dir> as its cwd, with the one call every case makes, and leave what it said in `out`
+# and the status it handed its supervisor in `code`.
+#
+# Every case asks its question about that status or about what the launcher's own run left
+# behind, so the three things that must not vary between them — the cwd, `${CALL[@]}` and the
+# capture of stderr with stdout — are spelled here once. The environment is what genuinely
+# differs: each stub reads the paths it records through from its own variables, and only the
+# case that staged it knows them.
+launch() {
+  local scripts_dir="$1" run_dir="$2"
+  shift 2
+  out="$( cd "$run_dir" && env "$@" "$scripts_dir/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" &&
+    code=0 || code=$?
+}
+
 # report <name> — close a case whose probes collected into the `problems` array: an empty
 # array is a pass, otherwise one FAIL line for the case and one indented line per problem, so
 # the output says which half of the contract broke rather than just that the case did. Same
@@ -186,8 +202,7 @@ STUB
 probe_title_reaches_the_verifier() {
   local out code matches
   rm -f "$argv_file"
-  out="$( cd "$run" && VERI_STUB_ARGV="$argv_file" \
-            "$scripts/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" && code=0 || code=$?
+  launch "$scripts" "$run" VERI_STUB_ARGV="$argv_file"
 
   [[ -f "$argv_file" ]] || {
     problems+=("$LAUNCHER never reached $VERIFIER with the title \"$STEP\" — it exited $code and said: $(flat "$out")")
@@ -252,7 +267,7 @@ probe_unstartable_verifier_is_no_answer() {
     return
   }
 
-  out="$( cd "$broken_run" && "$broken/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" && code=0 || code=$?
+  launch "$broken" "$broken_run"
 
   [[ "$code" != 1 ]] ||
     problems+=("with $how, $LAUNCHER exited 1 — the code for a verdict the verifier gave, from a verifier that never ran; it said: $(flat "$out")")
@@ -318,8 +333,8 @@ STUB
 # phase's reason file was nothing.
 probe_stale_reason_is_gone_before_the_verifier_runs() {
   local out code
-  out="$( cd "$watching_run" && VERI_STUB_SEEN="$seen" VERI_STUB_REASON="$watching_run/$REASON" \
-            "$watching/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" && code=0 || code=$?
+  launch "$watching" "$watching_run" \
+    VERI_STUB_SEEN="$seen" VERI_STUB_REASON="$watching_run/$REASON"
 
   [[ -f "$seen" ]] || {
     problems+=("$LAUNCHER never reached $VERIFIER, so the case says nothing about $REASON — it exited $code and said: $(flat "$out")")
