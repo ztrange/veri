@@ -37,3 +37,41 @@ message, just with four gaps in it rather than one.
 
 Take the answers as given; a gap the user leaves unanswered is recorded as unknown rather
 than chased a second time.
+
+## The issue body
+
+The body you hand `gh issue create` carries **exactly these six headings, in this order**,
+and nothing else at that level. They are not a suggestion of shape: `capture-spec.sh` copies
+the issue's text into the spec a leaf is given and the plan is read out of those headings, so
+a bug filed under a heading of your own invention is a bug veri cannot pick up. Fill each one
+from the intake, and write `unknown` where the user left a gap unanswered.
+
+```
+## What happened
+
+<the user's own account, one short paragraph>
+
+## Expected
+
+<what should have happened instead>
+
+## Steps to reproduce
+
+1. <the first step>
+2. <the next one, until the bug shows>
+
+## Environment
+
+<version, OS, command — whatever a reader needs and could not guess; `unknown` if not given>
+
+## Acceptance criteria
+
+- [ ] <one per manifestation: the reproduction fails on the current code and passes after the fix>
+
+## Blocked by
+
+None.
+```
+
+`## Blocked by` holds the literal line `None.` — the section is there so a reader sees
+nothing is blocking, and leaving it empty says something else.
