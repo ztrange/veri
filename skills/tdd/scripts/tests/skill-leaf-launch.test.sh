@@ -141,23 +141,31 @@ fenced_lines() {
   ' "$skill_path"
 }
 
+# name_re <script>... — the script names as one ERE alternation, ready to match the literal
+# names inside SKILL.md.
+#
+# Every `.` in a name is replaced by `\.` — `${n//./\\.}` is a pattern substitution — because
+# a script name is text and a bare `.` in an ERE matches any character. Same escaping
+# `arg_after` does in skill-leaf-env.test.sh. It is a function rather than the idiom written
+# out at each probe because the probes narrow on different subsets of the same three names,
+# and an escape spelled once per subset is an escape that can be got wrong in one of them
+# while the others go on passing.
+name_re() {
+  local out="" n
+  for n in "$@"; do out+="|${n//./\\.}"; done
+  printf '%s' "${out#|}"
+}
+
 # launch_lines — the leaf launch lines of SKILL.md, each prefixed with its line number.
 #
-# A launch line is a fenced line that names `$launcher` or `$verifier`: those two scripts are
-# what a leaf is launched as — a developer leaf through the supervisor, a verifier through the
-# `bash -c` wrapper that records the verdict. `wait-leaf.sh` and `build-develop-prompt.sh`
-# share those fences and launch nothing, so they are not matched; the script inventory's
-# `$S/supervise.sh <name> <cmd> [args...]` and *Bailing*'s `verify.sh exited 2` are prose, so
-# they are not either.
-#
-# The alternation is built from those two variables rather than spelling the names a second
-# time here: `${launcher//./\\.}` is a pattern substitution — every `.` in the name replaced
-# by `\.` — which turns the literal script name into the ERE `fenced_lines` wants, where a
-# bare `.` would match any character. Same escaping `arg_after` does in skill-leaf-env.test.sh,
-# and for the same reason: a script name is text, and only this line knows it is about to
-# become a regex.
+# A launch line is a fenced line that names `$launcher`, `$verifier` or `$verdict_launcher`:
+# those three scripts are what a leaf is launched as — a developer leaf through the
+# supervisor, a verifier through the verdict launcher that execs the verify verb.
+# `wait-leaf.sh` and `build-develop-prompt.sh` share those fences and launch nothing, so they
+# are not matched; the script inventory's `$S/supervise.sh <name> <cmd> [args...]` and
+# *Bailing*'s `verify.sh exited 2` are prose, so they are not either.
 launch_lines() {
-  fenced_lines "${launcher//./\\.}|${verifier//./\\.}|${verdict_launcher//./\\.}"
+  fenced_lines "$(name_re "$launcher" "$verifier" "$verdict_launcher")"
 }
 
 # section_prose <heading-prefix> — the prose of the `## ` section whose heading starts with
@@ -309,7 +317,7 @@ report "$name"
 name="$skill_md launches every verifier through $launcher, the way it launches a developer leaf"
 problems=()
 
-verifier_launches="$(launch_lines | grep -E -- "${verifier//./\\.}|${verdict_launcher//./\\.}" || true)"
+verifier_launches="$(launch_lines | grep -E -- "$(name_re "$verifier" "$verdict_launcher")" || true)"
 if [[ -z "$verifier_launches" ]]; then
   unreadable "launch line naming $verifier or $verdict_launcher inside a fenced block" "how a verifier is launched"
 else
