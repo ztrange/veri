@@ -4,3 +4,5 @@
 - fold `prose_paragraphs` and `section_prose` into one awk scanner over SKILL.md — both skip fences and differ only in whether they narrow to a section and keep line numbers
 ### Every documented command line carrying text taken from the step's title follows the step-title rule — including the four lines that pass a fragment of it, tick-ledger.sh and clear-refactor-pending.sh and tick-issue-criterion.sh — and a test fails the run naming a line that single-quotes one
 - fold `fenced_lines` and `document_lines` into one awk reader — not applied because the only fold available adds a fence parameter no existing case requires, which is the untested generality the phase forbids
+### The guard fails naming file and line when a SKILL.md launch line inlines an unescaped step title, against an exemption table carrying a reason per entry
+- probe_exemption_without_a_reason_excuses_nothing still spells out its own status-and-count-line pair rather than calling probe_guard_is_red, because its failure sentence names the reasonless entry; splitting that sentence from the check would let it reuse the helper
