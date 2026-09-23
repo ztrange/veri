@@ -121,6 +121,18 @@ SENTINEL='make sentinel-test-cmd'
 SENTINEL_ISSUE=143
 SENTINEL_STEP='pin the sentinel step'
 
+# How every launch below is run: `env` with the three run-context variables cleared, so the
+# only way one of them can reach the far end is the launch line's own prefix. That clearing
+# is the load-bearing part, and it is one array because every probe here owes it and a second
+# spelling could quietly leave one variable inherited. Every `make test` of veri's own
+# repository runs inside a development run and therefore already has all three in its
+# environment — so a leaf inheriting them from this suite's own caller would answer for a
+# launch line that carries no prefix at all. A suite's answer must be a fact about the thing
+# under test, not about the shell that ran it (#87). Watched happen, not reasoned about: run
+# from a #163 development leaf before the unsets were added, case 3 read back `issue='163'`
+# and this run's own step text off launch lines that set neither.
+cleared_run_context=(env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP)
+
 # The leaf, as far as run-leaf.sh can tell. Into the file its own launch names in `SEEN` it
 # records the one thing this suite asks about — what VERI_TEST_CMD says in the leaf's own
 # environment, or `<unset>` when it says nothing — and then emits the minimal stream-json for
@@ -148,14 +160,6 @@ chmod +x "$stub/claude"
 # `CLAUDE_BIN` is how run-leaf.sh's own header says a test swaps the binary, and it has to
 # come from here for the same reason the variable under test does: it can only reach the
 # leaf by being inherited.
-#
-# `env -u` on all three variables is the load-bearing part. Every `make test` of veri's own
-# repository runs inside a development run and therefore already has them in its environment —
-# so a leaf inheriting them from this suite's own caller would answer for a launch line that
-# carries no prefix at all. A suite's answer must be a fact about the thing under test, not
-# about the shell that ran it (#87). Watched happen, not reasoned about: run from a #163
-# development leaf before the unsets were added, case 3 read back `issue='163'` and this run's
-# own step text off launch lines that set neither.
 #
 # The supervisor's windows are shrunk the way supervise.test.sh shrinks them, so nothing
 # here waits on wall time; retries are pinned off because a stub leaf that failed to record
@@ -236,7 +240,7 @@ launched_test_cmd() {
   # The budget stays as the last resort it was, for a launch that reached no supervisor at
   # all and so wrote no pid file to go looking at: that line still comes back as
   # `<no leaf ran>` rather than hanging the suite.
-  ( cd "$dir" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
+  ( cd "$dir" && "${cleared_run_context[@]}" \
       S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
       VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
       bash -c "$launch" ) >/dev/null 2>&1
@@ -848,14 +852,12 @@ STUB
     > "$tree/.tdd/develop-red.prompt"
   printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$APOSTROPHE_STEP" \
     > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
-  # `env -u` on the three run-context variables for the reason `launched_test_cmd` gives: a
-  # `make test` of this repository runs inside a development run and already carries them, so
-  # a recorder inheriting them from this suite's own caller would answer for a line that set
-  # nothing. The launching shell's stderr is kept, because the two failures read differently
-  # and a reader has to tell them apart: a line the shell refused outright launched nothing,
-  # while a title that arrived truncated at the apostrophe, or wearing quotes a second parse
-  # left on it, says the launch ran and mangled it.
-  err="$( cd "$tree" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
+  # Run with the run context cleared, like every other probe here. The launching shell's
+  # stderr is kept, because the two failures read differently and a reader has to tell them
+  # apart: a line the shell refused outright launched nothing, while a title that arrived
+  # truncated at the apostrophe, or wearing quotes a second parse left on it, says the launch
+  # ran and mangled it.
+  err="$( cd "$tree" && "${cleared_run_context[@]}" \
             S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
   got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
   [[ "$got" == "$APOSTROPHE_STEP" ]] ||
