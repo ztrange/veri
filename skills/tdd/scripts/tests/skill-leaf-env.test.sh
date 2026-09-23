@@ -316,6 +316,15 @@ runnable() {
   printf '%s\n' "$launch"
 }
 
+# no_launch <shape> — record the one fault a case has when the document holds no line of
+# the shape it is about: it examined nothing, and would otherwise pass while asserting about
+# no launch at all. Not routed through `problem`, which quotes a line and a number this case
+# never found; written once because every case that scans for a shape reports this same fault
+# and only the shape differs, so kept per case the spellings could drift apart.
+no_launch() {
+  problems+=("$skill_md has no line launching $1 — the launch this case is about could not be found")
+}
+
 # take_line <numbered-grep-hit> [step] — open one line of the document for a case to work
 # on: split the hit into the `lineno` and `line` every failure message quotes, and put its
 # runnable copy in `launch`. Returns 1, having complained, when `runnable` refuses the line.
@@ -341,11 +350,8 @@ take_line() {
 # scan_launches <pattern> <shape> <check> — find every launch line in the document matching
 # <pattern> and hand each runnable one, substituted, to the shell function named <check>,
 # which asks of it whatever its case is about. <shape> names the launch the pattern is looking
-# for, and is used only to complain when the document holds no matching line at all, since a
-# case that silently examined nothing would otherwise pass while asserting about no launch.
-# The complaint's frame is built here rather than spelled at each call: both cases report the
-# same fault and only the shape they were looking for differs, so kept per-case the two
-# spellings of that one message could drift apart.
+# for, and is used only for `no_launch`'s complaint when the document holds no matching line
+# at all.
 #
 # Both cases scan the same way and differ only in what they then ask, so the scan is written
 # once. Each line it finds is opened by `take_line`, which carries the split and the refusal
@@ -357,7 +363,7 @@ scan_launches() {
   local lines numbered lineno line launch
   lines="$(grep -nE "$pattern" "$md")"
   if [[ -z "$lines" ]]; then
-    problems+=("$skill_md has no line launching $shape — the launch this case is about could not be found")
+    no_launch "$shape"
     return
   fi
   while IFS= read -r numbered; do
@@ -818,7 +824,7 @@ scan_step_title() {
   local lineno line numbered launch stage seen tree err got
   numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-red \$S/run-leaf\.sh' "$md"))"
   if [[ -z "$numbered" ]]; then
-    problems+=("$skill_md has no line launching develop-red through supervise.sh into run-leaf.sh — the launch this case is about could not be found")
+    no_launch "develop-red through supervise.sh into run-leaf.sh"
     return
   fi
   take_line "$numbered" "$APOSTROPHE_STEP" || return
