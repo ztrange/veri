@@ -3,3 +3,6 @@
 - move `run-verdict.test.sh` into `tests/unit/` — it uses no git, network, server or `sleep` and runs one case — but admission wants the #339 pattern, and the launcher `exec`s rather than exposing functions to source, so the move is its own piece of work
 ### Every documented verifier launch line in SKILL.md invokes that verdict launcher rather than an inlined bash -c command string ⟦criterion 1⟧
 - hold `run-verdict.sh` in a variable in skill-leaf-env.test.sh, where it is spelled literally at :402, :408 and :409 — not taken because that suite spells every script name literally (supervise.sh, run-leaf.sh, detach-leaf.sh), so changing one alone is inconsistent and changing all of them tidies code this cycle did not write
+### A verdict launcher that cannot start the verifier records 2, the no-answer code, and never 1 ⟦criterion 2⟧
+- merge `stage` and `stage_broken` into one `stage <verifier-state>` (working|missing|unrunnable) — now that the copy and the run directory are shared they differ only in which verify.sh they leave behind; not taken because each case deliberately owns its own tree and its own cwd, so case 2 still answers when case 1 never staged
+- the #424 apostrophe story is told twice, in `run-verdict.sh`'s header and the suite's; not taken because the blind verifier reads either file alone
