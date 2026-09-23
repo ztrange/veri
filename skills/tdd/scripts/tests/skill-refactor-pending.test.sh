@@ -957,6 +957,34 @@ elif [[ ! "${probe_problems[*]}" =~ clear-refactor-pending\.sh ]]; then
 fi
 report "$name"
 
+# 13. One criterion — that same removal-verb probe still reports nothing against the document
+#     as it stands — and so one case. It is case 12's claim in the other direction, and the two
+#     are not one case: case 12 holds that the strip lets the entry's prose be read, and this
+#     one holds that the strip takes nothing the prose needed away with it. A
+#     `says_removal_verb` that removed too much — the whole record, or every word carrying the
+#     name's stem — would satisfy case 12 exactly and then turn red against an entry that does
+#     say "strip".
+#
+#     Asked of the document rather than of a plant, because "a true entry stays green" is a
+#     claim about the entry this repository actually ships, and a plant would only re-state the
+#     regex. Its own case rather than left to case 4, because case 4 collects eight probes under
+#     one name: a strip that over-reached would turn that case red under a heading about exit
+#     codes and what the list prints, saying nothing about the verb or about why.
+name="$skill_md's clear-refactor-pending.sh entry names a removal verb in its own prose, so case 4's removal-verb probe reports nothing against the document as committed"
+problems=()
+if records_from scripts_instructions \
+    "$skill_md has no ## The scripts section to read — whether the removal-verb probe stays green against it could not be checked"; then
+  if reads_entry clear-refactor-pending.sh; then
+    says_removal_verb
+  fi
+fi
+probe_problems=("${problems[@]}")
+problems=()
+if [[ "${#probe_problems[@]}" -ne 0 ]]; then
+  problems+=("the removal-verb probe reported a problem against $skill_md's own entry for clear-refactor-pending.sh, whose prose does name a verb meaning to remove, so the strip that lets the probe read that prose is taking the verb with it and a true entry is turned red: ${probe_problems[*]}")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
