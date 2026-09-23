@@ -239,6 +239,33 @@ shown="$(git_q "$repo" show "$found:stop-run.sh" 2>&1)"
     && [[ "$shown" == "rejected work" ]]; } \
   && ok || no "preserves the attempt under a ref git accepts when the step title carries spaces, an apostrophe and a slash (code=$code ref='$found' legal=$([[ "$legal" == 0 ]] && echo yes || echo no) shown='$shown')"
 
+# 10. and the leaf's own copies are named from that same index too: the ref is not the only
+#     place the step's prose is spelled into a path. `.tdd/attempts/<step>-<phase>-<attempt>-
+#     <mark>.log` built out of a title carrying a slash names a directory that does not exist,
+#     so the copy fails and the preservation reports a failure for a leaf whose log was sitting
+#     right there (issue #427). The ledger names this step 2, so both copies are `2-...` and
+#     nothing nested is written beside them.
+repo="$work/ledgercopies"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+prose="A leaf's output is kept under refs/veri, not the branch"
+{ printf '# Plan for #409\n\n'
+  printf -- '- [x] The first step, already done\n'
+  printf -- '- [ ] %s\n' "$prose"; } > "$repo/.tdd/issue-409.md"
+git_q "$repo" add .tdd/issue-409.md >/dev/null 2>&1
+git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
+printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
+printf 'final result text\n' > "$repo/.tdd/develop-green.out"
+preserve "$repo" 409 "$prose" develop-green 1 reject >/dev/null 2>&1; code=$?
+log_text="$(copy_text "$(attempts_dir "$repo")/2-develop-green-1-reject.log")"
+out_text="$(copy_text "$(attempts_dir "$repo")/2-develop-green-1-reject.out")"
+entries="$(copies_in "$repo")"
+{ [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] \
+    && [[ "$out_text" == "final result text" ]] \
+    && [[ "$entries" == "2-develop-green-1-reject.log 2-develop-green-1-reject.out " ]]; } \
+  && ok || no "names the leaf's copies by the step's ledger index, so a title carrying a slash writes no nested path (code=$code log='$log_text' out='$out_text' entries='$entries')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
