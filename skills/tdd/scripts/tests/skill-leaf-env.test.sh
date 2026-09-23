@@ -653,6 +653,31 @@ scan_message_format() {
 run_case "report()'s FAIL line, its indented problem line, and the count line keep their shape" \
   scan_message_format
 
+# unwritten_leaf_fixture <tag> — set this case's `lineno`, `line`, `launch`, `leaf` and
+# `prompt` to ONE correct developer-shaped launch line of this probe's own, supervising
+# `fixture-<tag>`; return 1, having recorded the problem, when the document's placeholders
+# cannot be supplied. The names are assigned rather than returned because `lineno` and `line`
+# are the pair `problem` and `launched_test_cmd` read out of the calling case's scope.
+#
+# Written once because the two cases below launch the same line under a leaf name no launch
+# writes and differ only in what they ask of the answer — case 6 that the launch is reported,
+# case 7 that the report arrives before the wait budget. Two copies of the line, its
+# substitution and its refusal could drift into testing two different fixtures while still
+# claiming to be the two halves of one fault.
+unwritten_leaf_fixture() {
+  local tag="$1"
+  lineno="$tag-1"
+  leaf="fixture-$tag"
+  prompt=".tdd/$leaf.prompt"
+  read -r line <<FIXTURE
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' \$S/detach-leaf.sh \$S/supervise.sh $leaf \$S/run-leaf.sh $prompt
+FIXTURE
+  launch="$(runnable "$line")" || {
+    problems+=("the $tag fixture names a placeholder this probe cannot supply")
+    return 1
+  }
+}
+
 # 6. The fault issue #297 names, which none of the cases above can answer: the leaf name a
 #    launch line is expected to produce is used only to tell `wait-leaf.sh` which completion
 #    file to wait for, and nothing asserts on it. The stub writes its `seen` file whatever the
@@ -672,17 +697,10 @@ run_case "report()'s FAIL line, its indented problem line, and the count line ke
 # `run_case`'s `problems` the way the scans above do, and `lineno`/`line` are its own, so
 # `expect_sentinel`'s complaint quotes this fixture's line rather than one of the document's.
 scan_wrong_leaf_name() {
-  local lineno line launch
-  lineno="wrong-leaf-name-1"
-  read -r line <<'FIXTURE'
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-named $S/run-leaf.sh .tdd/fixture-named.prompt
-FIXTURE
-  launch="$(runnable "$line")" || {
-    problems+=("the wrong-leaf-name fixture names a placeholder this probe cannot supply")
-    return
-  }
+  local lineno line launch leaf prompt
+  unwritten_leaf_fixture wrong-leaf-name || return
   # The name asked for is not the one the line supervises, and no launch anywhere writes it.
-  expect_sentinel "fixture-named-no-such-leaf" "$launch" ".tdd/fixture-named.prompt"
+  expect_sentinel "$leaf-no-such-leaf" "$launch" "$prompt"
   # As in the fixture-naming case above, the launch's own complaint is the evidence, not this
   # case's verdict: fold it into the one thing actually being asked — exactly one complaint,
   # naming the launch line whose completion file never landed.
@@ -722,20 +740,13 @@ PROMPT_CEILING=15
 # `run_case`'s `problems`, and `lineno`/`line` are its own so the tree `launched_test_cmd`
 # makes records this fixture's line rather than one of the document's.
 scan_prompt_answer() {
-  local lineno line launch started elapsed
-  lineno="prompt-answer-1"
-  read -r line <<'FIXTURE'
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-prompt $S/run-leaf.sh .tdd/fixture-prompt.prompt
-FIXTURE
-  launch="$(runnable "$line")" || {
-    problems+=("the prompt-answer fixture names a placeholder this probe cannot supply")
-    return
-  }
+  local lineno line launch leaf prompt started elapsed
+  unwritten_leaf_fixture prompt-answer || return
   # Called through `launched_test_cmd` rather than `expect_sentinel`: what it answers is case
   # 6's question and is discarded here, so this case's `problems` holds its own verdict alone
   # and needs no folding.
   started=$SECONDS
-  launched_test_cmd "fixture-prompt-no-such-leaf" "$launch" ".tdd/fixture-prompt.prompt" >/dev/null
+  launched_test_cmd "$leaf-no-such-leaf" "$launch" "$prompt" >/dev/null
   elapsed=$(( SECONDS - started ))
   (( elapsed < PROMPT_CEILING )) ||
     problems+=("a launch whose derived leaf name no completion file is written under was answered after ${elapsed}s, want under ${PROMPT_CEILING}s: the wait ran on past the supervisor that had already exited")
