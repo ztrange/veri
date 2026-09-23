@@ -108,6 +108,12 @@ gone() {
   poll_until "$2" dead "$1"
 }
 
+# flat <file> — <file>'s contents on one line. A problem message is printed as one indented
+# line, so a multi-line stderr quoted raw inside it would break out of that shape.
+flat() {
+  tr '\n' ' ' < "$1"
+}
+
 # survived <pid> — a case's premise that <pid> really did outlive the shell that started it,
 # so there was something for that shell to report. Without it a case could go green over a
 # report about a process that had already died on its own. It appends to `problems` rather
@@ -148,7 +154,7 @@ start_err="$work/start.err"
 start_code=$?
 
 if ! appeared "$record" "$PATIENCE"; then
-  problems+=("sourcing $LIB and calling bg_start: recorded no pid in $record (exit $start_code, stderr: '$(tr '\n' ' ' < "$start_err")')")
+  problems+=("sourcing $LIB and calling bg_start: recorded no pid in $record (exit $start_code, stderr: '$(flat "$start_err")')")
 else
   # The first field of the first recorded line, so a record that also names what started the
   # process reads the same way as one that holds the bare number.
@@ -173,7 +179,7 @@ else
     kill_code=$?
 
     gone "$recorded" "$PATIENCE" \
-      || problems+=("after bg_kill (exit $kill_code, stderr: '$(tr '\n' ' ' < "$kill_err")') the recorded process $recorded is still running — a kill that named a job spec reaches nothing from a shell whose job table never held it")
+      || problems+=("after bg_kill (exit $kill_code, stderr: '$(flat "$kill_err")') the recorded process $recorded is still running — a kill that named a job spec reaches nothing from a shell whose job table never held it")
   fi
 fi
 
@@ -197,11 +203,11 @@ exit_err="$work/abandoned.err"
 exit_code=$?
 
 if ! appeared "$record2" "$PATIENCE"; then
-  problems+=("sourcing $LIB and calling bg_start: recorded no pid in $record2 (exit $exit_code, stderr: '$(tr '\n' ' ' < "$exit_err")')")
+  problems+=("sourcing $LIB and calling bg_start: recorded no pid in $record2 (exit $exit_code, stderr: '$(flat "$exit_err")')")
 else
   read -r victim2_pid _ < "$record2" || true
   victims+=("$victim2_pid")
-  said="$(tr '\n' ' ' < "$exit_err")"
+  said="$(flat "$exit_err")"
 
   if [[ "$victim2_pid" =~ ^[0-9]+$ ]]; then survived "$victim2_pid"; fi
 
@@ -235,11 +241,11 @@ pair_err="$work/pair.err"
 pair_code=$?
 
 if ! appeared "$record3" "$PATIENCE"; then
-  problems+=("sourcing $LIB and calling bg_start twice on one record: recorded nothing in $record3 (exit $pair_code, stderr: '$(tr '\n' ' ' < "$pair_err")')")
+  problems+=("sourcing $LIB and calling bg_start twice on one record: recorded nothing in $record3 (exit $pair_code, stderr: '$(flat "$pair_err")')")
 else
   { read -r victim3a_pid _; read -r victim3b_pid _; } < "$record3" || true
   victims+=("$victim3a_pid" "$victim3b_pid")
-  said3="$(tr '\n' ' ' < "$pair_err")"
+  said3="$(flat "$pair_err")"
 
   if [[ ! "$victim3a_pid" =~ ^[0-9]+$ || ! "$victim3b_pid" =~ ^[0-9]+$ ]]; then
     problems+=("two bg_start calls on one record left '$victim3a_pid' and '$victim3b_pid' in $record3, not two pids")
@@ -287,7 +293,7 @@ if [[ -e "$record4" ]]; then
   problems+=("the case never reached the state it is about: $record4 still exists after the shell that made it exited (exit $removed_code)")
 fi
 if [[ -s "$removed_err" ]]; then
-  problems+=("a shell whose record was removed before it exited still said something on stderr: '$(tr '\n' ' ' < "$removed_err")' — a record it can no longer read is not a survivor to report")
+  problems+=("a shell whose record was removed before it exited still said something on stderr: '$(flat "$removed_err")' — a record it can no longer read is not a survivor to report")
 fi
 
 report "a shell whose record file is gone by the time it exits reports nothing, rather than failing to read it on the caller's stderr"
