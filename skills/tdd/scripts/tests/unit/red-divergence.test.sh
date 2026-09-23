@@ -100,5 +100,35 @@ run_on "$report"
 [[ "$code" == 2 ]] || problems+=("PREDICTION: probably: want exit 2, got $code")
 verdict "$name"
 
+# 4. The leaf prompts invite a trailing clause after the verdict word — "PREDICTION: MATCHED
+#    — the run printed the assertion the step predicted" is a leaf being helpful. The
+#    verdict is the first word; whatever follows it is commentary, so the line is read as
+#    that verdict rather than costing the step a revise attempt (issue #428).
+name="PREDICTION line with a trailing clause after the verdict word is read as that verdict"
+problems=()
+report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
+TARGET_TEST: slugify lowercases the title
+AGAINST_UNMODIFIED: FAILS
+FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
+PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'
+PREDICTION: MATCHED — the run printed the assertion the step predicted"
+run_on "$report"
+[[ "$code" == 3 ]] || problems+=("MATCHED with a trailing clause: want exit 3, got $code")
+[[ -z "$out" ]] || problems+=("MATCHED with a trailing clause: want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
+predicted='slugify: command not found'
+fail_output='FAIL - slugify lowercases the title (want exit 0, got 127)'
+note='the suite died on a missing helper before it reached the assertion'
+report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
+TARGET_TEST: slugify lowercases the title
+AGAINST_UNMODIFIED: FAILS
+FAIL_OUTPUT: $fail_output
+PREDICTED_FAILURE: $predicted
+PREDICTION: DIVERGED — it died on a missing helper instead
+PREDICTION_NOTE: $note"
+run_on "$report"
+[[ "$code" == 0 ]] || problems+=("DIVERGED with a trailing clause: want exit 0, got $code")
+[[ "$out" == *"$note"* ]] || problems+=("DIVERGED with a trailing clause: stdout does not carry the PREDICTION_NOTE value '$note'")
+verdict "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
