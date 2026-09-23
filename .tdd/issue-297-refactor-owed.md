@@ -1,0 +1,3 @@
+### A launch that writes no completion file under the leaf name the probe derived is reported as a failing launch line, naming that line, instead of being read back from the stub's file and passed
+- fold the four developer-shaped fixture launch lines (three in `scan_fixture_naming`, one in `scan_wrong_leaf_name`) into one builder taking the leaf name — not taken, because case 4's middle line's missing `VERI_TEST_CMD` prefix is its deliberate fault, and a builder turns that fault into a parameter instead of something a reader sees in the fixture's own text
+- both fixture cases spell their own "`runnable` refused, complain and return" step; it could move into the shared helper the way the fold just did, at the cost of the two complaints losing their own words
