@@ -200,5 +200,16 @@ for mark in ',' ';' ':' '.'; do
 done
 verdict "$name"
 
+# 8. Stripping that punctuation must not have loosened the match either: the first word is
+#    still the whole verdict, so a word that is not one of the two once its trailing mark is
+#    off has no recognisable verdict and is still exit 2 — even when a verdict word follows
+#    it in the clause the mark joins (issue #433).
+name="PREDICTION line whose first word is not a verdict once its punctuation is stripped exits 2"
+problems=()
+for mark in ',' ';' ':' '.'; do
+  reads_unreadable "PREDICTION: probably$mark MATCHED anyway"
+done
+verdict "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
