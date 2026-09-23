@@ -56,6 +56,12 @@ VERIFIER='verify.sh'
 # the expected value at once: what the launcher is given is what the verifier must receive.
 STEP="A background process is killed by the pid recorded when it started, never by that shell's own job spec"
 
+# The other two arguments the call carries, named once: the launcher is run from a directory
+# holding these files, and the same names go on its command line, so a staged tree can never
+# disagree with the call that points at it.
+SPEC='spec.md'
+TEST_PATH='suite.test.sh'
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -111,6 +117,18 @@ copy_scripts_to() {
   done
 }
 
+# make_run_dir <dir> — the cwd a case launches from, holding the two files the call names and
+# nothing else: the launcher's cwd needs whatever its arguments point at, and a `.tdd` for
+# output the stub never writes would only suggest the verifier reports through one — the
+# reason and exit files are the conductor's redirections, not verify.sh's own writes.
+make_run_dir() {
+  local dir="$1"
+  rm -rf "$dir"
+  mkdir -p "$dir" || return 1
+  printf '# spec\n' > "$dir/$SPEC"
+  printf '# test\n' > "$dir/$TEST_PATH"
+}
+
 # stage — build the tree the launcher runs in and leave the run's cwd in `run`, the recorded
 # argv path in `argv_file`.
 #
@@ -130,14 +148,8 @@ printf 'the test pins the criterion and fails for the reason it names\n'
 STUB
   chmod +x "$scripts/$VERIFIER"
 
-  # The two files the call below names, and nothing else: the launcher's cwd needs whatever
-  # its arguments point at, and a `.tdd` for output the stub never writes would only suggest
-  # the verifier reports through one — the reason and exit files are the conductor's
-  # redirections, not verify.sh's own writes.
   run="$work/run"
-  mkdir -p "$run"
-  printf '# spec\n' > "$run/spec.md"
-  printf '# test\n' > "$run/suite.test.sh"
+  make_run_dir "$run"
 }
 
 # probe_title_reaches_the_verifier — the criterion. The launcher is run with the title as one
@@ -152,7 +164,7 @@ probe_title_reaches_the_verifier() {
   local out code matches
   rm -f "$argv_file"
   out="$( cd "$run" && VERI_STUB_ARGV="$argv_file" "$scripts/$LAUNCHER_NAME" \
-            --step "$STEP" red spec.md suite.test.sh case-1 2>&1 )" && code=0 || code=$?
+            --step "$STEP" red "$SPEC" "$TEST_PATH" case-1 2>&1 )" && code=0 || code=$?
 
   [[ -f "$argv_file" ]] || {
     problems+=("$LAUNCHER never reached $VERIFIER with the title \"$STEP\" — it exited $code and said: $(flat "$out")")
@@ -196,10 +208,7 @@ stage_broken() {
   esac
 
   broken_run="$work/broken-run"
-  rm -rf "$broken_run"
-  mkdir -p "$broken_run"
-  printf '# spec\n' > "$broken_run/spec.md"
-  printf '# test\n' > "$broken_run/suite.test.sh"
+  make_run_dir "$broken_run"
 }
 
 # probe_unstartable_verifier_is_no_answer <state> <how it reads in a message> — stage the
@@ -221,7 +230,7 @@ probe_unstartable_verifier_is_no_answer() {
   }
 
   out="$( cd "$broken_run" && "$broken/$LAUNCHER_NAME" \
-            --step "$STEP" red spec.md suite.test.sh case-1 2>&1 )" && code=0 || code=$?
+            --step "$STEP" red "$SPEC" "$TEST_PATH" case-1 2>&1 )" && code=0 || code=$?
 
   [[ "$code" != 1 ]] ||
     problems+=("with $how, $LAUNCHER exited 1 — the code for a verdict the verifier gave, from a verifier that never ran; it said: $(flat "$out")")
