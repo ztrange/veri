@@ -131,6 +131,18 @@ fragment_ph="<[^<>]*substring[^<>]*>"
 double_quoted_fragment="\"$fragment_ph\""
 single_quoted_fragment="'$fragment_ph'"
 
+# EXEMPT[<file>:<line>]="<reason>" — a documented line allowed to carry the step's title in
+# the broken shape, each with the sentence that says why that line has to keep it. The reason
+# is what makes an entry an exemption; a bare key is a line someone once wanted quiet, and the
+# next reader cannot tell the two apart, so an entry with no reason excuses nothing and the
+# line is reported as it would have been. The key is the repository-relative path and the
+# line, because that is the address the report itself quotes — an exemption answers a report,
+# so it is written in the same words. Empty today, and the declaration stays so that a line
+# that must keep the shape can be answered by name rather than by deleting the check. Same
+# reader no-job-spec-kills.test.sh and no-sigpipe-pipelines.test.sh keep their tables behind.
+declare -A EXEMPT=(
+)
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -190,6 +202,9 @@ read_quoted_lines() {
   local lines="$1" noun="$2" ph="$3" single="$4" double="$5"
   local lineno text
   while IFS=$'\t' read -r lineno text; do
+    # The table first, so an exempted line is never read: a report an entry has answered by
+    # name is a report the author already acted on.
+    [[ -n "${EXEMPT[$skill_md:$lineno]:-}" ]] && continue
     faults=""
     if [[ "$text" =~ $single ]]; then
       fault "single-quotes $noun"

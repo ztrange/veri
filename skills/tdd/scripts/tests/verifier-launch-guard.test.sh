@@ -43,6 +43,12 @@
 # is not copied, and no line below names a path in it, which is what no-docs-reads.test.sh
 # asks of every suite in this directory.
 #
+# Case 2 below is the same seam one incident later, and lives here rather than in a suite of
+# its own because its subject is the same one: what skill-leaf-launch.test.sh reports about a
+# documented launch line planted wrong. There the plant is the #297 bypass; there it is the
+# #431 one — the step's title back in single quotes, which an apostrophe in the planning
+# leaf's own English closes early. Its own header, beside it, says the rest.
+#
 # Run: skills/tdd/scripts/tests/verifier-launch-guard.test.sh
 set -uo pipefail
 
@@ -267,6 +273,202 @@ if probe_guard_is_there && plant; then
   probe_plant_is_what_it_claims
   probe_guard_is_green_unplanted
   probe_guard_names_the_planted_launch
+fi
+report "$name"
+
+# ---------------------------------------------------------------------------------------
+# The second plant, and the same shape as the first: a contradiction written into a copy of
+# the document, and the guard asked about it.
+#
+# Why this one exists (issue #431): the step's title is the planning leaf's own English, so
+# it carries an apostrophe as readily as any sentence does, and `VERI_STEP='<STEP>'` — the
+# shape every documented command used until this issue — closes that quote on the title's
+# own `'`. The line dies in the conductor's shell before anything is launched. #426 removed
+# the nested `bash -c` and left the outer single quotes, which is how the same incident
+# arrived twice. The document follows the double-quote rule everywhere today, so the guard
+# that holds it there — case 8 of skill-leaf-launch.test.sh — passes over this tree whether
+# it still checks anything or not, and only running it over a planted document says
+# otherwise.
+#
+# Contract under test:
+#   Over a copy of this tree whose one documented launch line has had `VERI_STEP="<STEP>"`
+#   put back into single quotes, skill-leaf-launch.test.sh fails, and the address it names
+#   is that line — `skills/tdd/SKILL.md:<n>`, file and line, and no other address. The same
+#   line named in the guard's own exemption table WITH a reason is excused, because a
+#   documented line that has to keep the broken shape must be answerable by name rather than
+#   by deleting the check; named with an EMPTY reason it is not excused, because an entry
+#   that says nothing is a site someone wanted quiet and the next reader cannot tell the two
+#   apart. That is what "an exemption table carrying a reason per entry" means here, and it
+#   is asserted as behaviour: what the guard reports over the same planted document with the
+#   table empty, with a reason, and with a reason missing.
+#
+# The table is read where every other guard in this directory keeps one — a `declare -A
+# EXEMPT=(` in the guard itself, keyed `<file>:<line>` and valued with the sentence that says
+# why — so no-job-spec-kills.test.sh's reader and this one describe the same thing.
+
+# The line the plant rewrites, found by a literal unique to it: the canonical launch in
+# *Launching a leaf*. A literal, matched as a literal, for the reason the first plant gives —
+# `$` and `.` are characters in it, not a pattern.
+STEP_ANCHOR='$S/detach-leaf.sh $S/supervise.sh <name>'
+
+# The two shapes that line carries the title in: the rule the document states, and the one
+# the incident happened in. The plant turns the first into the second; both are quoted into
+# this case's failure messages, so they are written down once here.
+STEP_DOUBLE='VERI_STEP="<STEP>"'
+STEP_SINGLE="VERI_STEP='<STEP>'"
+
+# The exemption table's declaration, as every guard in this directory spells it, and the key
+# and reason an entry for the planted line would carry. The key is `<file>:<line>` because
+# that is the address the guard's own complaint quotes: an exemption answers a report, so it
+# is written in the same words the report is.
+EXEMPT_DECL='declare -A EXEMPT=('
+EXEMPT_REASON='planted by verifier-launch-guard.test.sh to ask what an exemption with a reason does'
+
+# exempting <reason> — a copy of the guard whose exemption table names the planted line with
+# <reason>, left at the path this prints. An empty <reason> is the reasonless entry the
+# second half of the criterion is about. Prints nothing when the guard has no table to write
+# into, which is the caller's cue to report that instead of asking a question of a table that
+# does not exist.
+exempting() {
+  local reason="$1" out="$scratch/guard-exempt-${2}.test.sh"
+  grep -qF "$EXEMPT_DECL" "$GUARD_PATH" || return 1
+  DECL="$EXEMPT_DECL" ENTRY="  [\"$SKILL:$step_line\"]=\"$reason\"" awk '
+    { print }
+    !done && index($0, ENVIRON["DECL"]) > 0 { print ENVIRON["ENTRY"]; done = 1 }
+  ' "$GUARD_PATH" > "$out"
+  printf '%s' "$out"
+}
+
+# plant_step_title — the tree the guard runs in and the document it is asked about, built
+# the way `plant` above builds its own: the guard and the document and nothing else, the
+# planted copy staged outside the tree so the same tree can be asked twice. The rewrite is
+# one literal substitution on the one line carrying the anchor.
+plant_step_title() {
+  tree="$scratch/step-tree"
+  mkdir -p "$tree/${SKILL%/*}" "$tree/${GUARD%/*}" || {
+    problems+=("could not make a scratch tree to plant the document in, so the criterion went unasked")
+    return 1
+  }
+  guard_copy="$tree/$GUARD"
+  cp "$GUARD_PATH" "$guard_copy"
+
+  step_line="$(head -1 < <(grep -nF "$STEP_ANCHOR" "$SKILL_PATH") | cut -d: -f1)"
+  planted_step_skill="$scratch/planted-step-SKILL.md"
+  LINE="$step_line" FROM="$STEP_DOUBLE" TO="$STEP_SINGLE" awk '
+    NR == ENVIRON["LINE"] && (i = index($0, ENVIRON["FROM"])) > 0 {
+      $0 = substr($0, 1, i - 1) ENVIRON["TO"] substr($0, i + length(ENVIRON["FROM"]))
+    }
+    { print }
+  ' "$SKILL_PATH" > "$planted_step_skill"
+  return 0
+}
+
+# probe_step_plant_is_what_it_claims — the plant's premises, asserted rather than assumed,
+# for the reason the first plant's are: an address the guard was never owed, or a document
+# changed twice, would make everything below mean something else.
+probe_step_plant_is_what_it_claims() {
+  [[ "$step_line" =~ ^[0-9]+$ ]] || {
+    problems+=("no line of $SKILL carries '$STEP_ANCHOR' (found '$step_line'), so there is no documented launch to put the title's quotes back on and the criterion cannot be asked")
+    return 1
+  }
+  local carriers before after changed
+  carriers="$(grep -cF "$STEP_ANCHOR" "$SKILL_PATH")"
+  [[ "$carriers" == 1 ]] ||
+    problems+=("$SKILL carries '$STEP_ANCHOR' on $carriers lines, want exactly 1 — with more than one the plant's address is a guess")
+  before="$(sed -n "${step_line}p" "$SKILL_PATH")"
+  after="$(sed -n "${step_line}p" "$planted_step_skill")"
+  [[ "$before" == *"$STEP_DOUBLE"* ]] ||
+    problems+=("$SKILL:$step_line does not carry $STEP_DOUBLE to begin with, so single-quoting it contradicts nothing: $(flat "$before")")
+  [[ "$after" == *"$STEP_SINGLE"* ]] ||
+    problems+=("the planted $SKILL:$step_line does not carry $STEP_SINGLE, so nothing was planted: $(flat "$after")")
+  changed="$(diff "$SKILL_PATH" "$planted_step_skill" | grep -c '^[<>]')"
+  [[ "$changed" == 2 ]] ||
+    problems+=("the plant rewrote $changed lines of $SKILL, want exactly one line rewritten (2 diff lines) — a red over a document changed twice is not about the step title")
+  return 0
+}
+
+# probe_step_guard_is_green_unplanted — the half that makes the others mean something: the
+# guard over the document exactly as committed has to pass, or its red below is red over
+# everything.
+probe_step_guard_is_green_unplanted() {
+  local failures
+  run_guard_over "$SKILL_PATH"
+  failures="$(failures_in "$guard_out")"
+  [[ "$guard_code" == 0 ]] ||
+    problems+=("want ${GUARD##*/} to pass over $SKILL as committed — red there says nothing about the plant; it exited $guard_code and said: $(flat "$guard_out")")
+  [[ "$failures" == 0 ]] ||
+    problems+=("want ${GUARD##*/}'s own count line to state 0 failed over $SKILL as committed; it stated '$failures': $(flat "$guard_out")")
+}
+
+# probe_step_guard_names_the_planted_line — the first half of the criterion: not that the
+# guard fails, but that it fails at an address a writer can open — the file and the line —
+# and at no other, since every other command in the document is correct.
+probe_step_guard_names_the_planted_line() {
+  local failures addresses
+  run_guard_over "$planted_step_skill"
+  failures="$(failures_in "$guard_out")"
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want ${GUARD##*/} to fail over a $SKILL whose $step_line carries $STEP_SINGLE; it exited 0 and said: $(flat "$guard_out")")
+  [[ "$failures" != 0 && "$failures" != '<none>' ]] ||
+    problems+=("want ${GUARD##*/}'s own count line to state a failure over that document; it stated '$failures': $(flat "$guard_out")")
+  addresses="$(grep -oE "${SKILL//./\\.}:[0-9]+" <<< "$guard_out" | sort -u | tr '\n' ' ')"
+  [[ "$addresses" == "$SKILL:$step_line " ]] ||
+    problems+=("${GUARD##*/} named the addresses '$addresses' over that document, want only $SKILL:$step_line — the document's other command lines are correct and a red naming them is a list rather than a fix")
+}
+
+# probe_exemption_with_a_reason_excuses_the_line — the second half: the same planted document
+# read by a guard whose table names that line with a reason has to pass. Without this a
+# documented line that must keep the shape leaves no way out but deleting the check.
+probe_exemption_with_a_reason_excuses_the_line() {
+  local guard_with_reason failures
+  guard_with_reason="$(exempting "$EXEMPT_REASON" reason)" || {
+    problems+=("${GUARD##*/} carries no exemption table — no '$EXEMPT_DECL' line — so a documented line that has to keep $STEP_SINGLE can only be answered by deleting the check")
+    return 1
+  }
+  cp "$guard_with_reason" "$guard_copy"
+  run_guard_over "$planted_step_skill"
+  failures="$(failures_in "$guard_out")"
+  [[ "$guard_code" == 0 && "$failures" == 0 ]] ||
+    problems+=("want ${GUARD##*/} to pass over that document once its table names $SKILL:$step_line with a reason; it exited $guard_code, its count line stated '$failures' and it said: $(flat "$guard_out")")
+}
+
+# probe_exemption_without_a_reason_excuses_nothing — and the rest of it: an entry whose
+# reason is empty is not an exemption. The guard still fails, and still names the line, so
+# the author is told their exemption is not one rather than left with a silenced report.
+probe_exemption_without_a_reason_excuses_nothing() {
+  local guard_no_reason failures
+  guard_no_reason="$(exempting '' noreason)" || return 1
+  cp "$guard_no_reason" "$guard_copy"
+  run_guard_over "$planted_step_skill"
+  failures="$(failures_in "$guard_out")"
+  [[ "$guard_code" != 0 && "$failures" != 0 && "$failures" != '<none>' ]] ||
+    problems+=("want ${GUARD##*/} to fail over that document when its table names $SKILL:$step_line with no reason — an entry that says nothing excuses nothing; it exited $guard_code, its count line stated '$failures' and it said: $(flat "$guard_out")")
+  grep -F "$SKILL:$step_line" <<< "$guard_out" > /dev/null ||
+    problems+=("${GUARD##*/} failed over that document without naming $SKILL:$step_line, the line the reasonless entry did not excuse; it said: $(flat "$guard_out")")
+}
+
+# 2. One criterion — the guard names file and line when a documented launch line inlines an
+#    unescaped step title, against an exemption table carrying a reason per entry — and so
+#    one case: the plant, the exemption that answers it and the entry that does not are three
+#    readings of the same guard over the same planted document, and any one of them alone
+#    would be satisfied by a guard that reported everything or nothing.
+name="${GUARD##*/} fails over a $SKILL whose launch line carries $STEP_SINGLE, naming that line and nothing else, unless its exemption table names it with a reason"
+problems=()
+tree=""
+guard_copy=""
+planted_step_skill=""
+step_line=""
+guard_out=""
+guard_code=0
+
+if probe_guard_is_there && plant_step_title; then
+  if probe_step_plant_is_what_it_claims; then
+    probe_step_guard_is_green_unplanted
+    probe_step_guard_names_the_planted_line
+    if probe_exemption_with_a_reason_excuses_the_line; then
+      probe_exemption_without_a_reason_excuses_nothing
+    fi
+  fi
 fi
 report "$name"
 
