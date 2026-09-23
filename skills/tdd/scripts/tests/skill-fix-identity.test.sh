@@ -72,6 +72,24 @@ body_text() {
        body { print }' "$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
+# issue_body_template <file> — the first fenced block that carries a "## What happened" line:
+# the issue body the skill tells the session to hand `gh issue create`, quoted verbatim rather
+# than described, so this case reads the headings the way GitHub will receive them. Prints
+# nothing when no such block exists. Unlike body_text above it normalises nothing: a heading
+# is the literal line the conductor's spec capture looks for, so case and spacing count.
+issue_body_template() {
+  awk '
+    /^[[:space:]]*```/ {
+      if (inside) { if (found) { printf "%s", buf; exit } ; inside = 0; next }
+      inside = 1; buf = ""; found = 0; next
+    }
+    inside {
+      buf = buf $0 "\n"
+      if ($0 ~ /^##[[:space:]]+What happened[[:space:]]*$/) found = 1
+    }
+  ' "$1"
+}
+
 # says <regex> <fact> — one thing the body has to carry, written as the regex of any wording
 # that would carry it; <fact> names it once if nothing matches.
 says() {
@@ -103,6 +121,44 @@ if [[ -f "$ROOT/$skill_md" ]]; then
       "$skill_md never says it asks only for what the description left out"
     says 'one[^.]{0,40}round|single[^.]{0,40}round|one[^.]{0,40}question|no essay' \
       "$skill_md never says the asking is one short round"
+  fi
+else
+  problems+=("want a SKILL.md at $skill_md, found none")
+fi
+report "$name"
+
+# 2. The body it files is the one the conductor can read. `capture-spec.sh` copies the issue's
+#    text into the spec a leaf is given, and the planner reads headings out of it, so the six
+#    headings and their order are the interface between the two commands — a bug filed under
+#    "## Repro" is a bug veri cannot pick up. Asserted against the template the SKILL.md quotes
+#    rather than against prose about it, because the template is what a session copies; and
+#    asserted as the exact list, in order, so a seventh heading is a failure too — "exactly the
+#    six" is the criterion, not "at least the six". `## Blocked by` holding `None.` is part of
+#    the same fact: the section exists so a reader sees there is nothing blocking, and an empty
+#    one says something different from `None.`.
+name="$skill_md quotes an issue body carrying exactly the six headings the conductor reads, with Blocked by holding None."
+problems=()
+want_headings='## What happened
+## Expected
+## Steps to reproduce
+## Environment
+## Acceptance criteria
+## Blocked by'
+if [[ -f "$ROOT/$skill_md" ]]; then
+  template="$(issue_body_template "$ROOT/$skill_md")"
+  if [[ -z "$template" ]]; then
+    problems+=("$skill_md quotes no issue body: no fenced block in it holds a '## What happened' line")
+  else
+    got_headings="$(grep '^##[^#]' <<<"$template" || true)"
+    if [[ "$got_headings" != "$want_headings" ]]; then
+      problems+=("$skill_md's issue body has the wrong headings:")
+      problems+=("  want: $(printf '%s' "$want_headings" | tr '\n' '/')")
+      problems+=("  got:  $(printf '%s' "$got_headings" | tr '\n' '/')")
+    fi
+    blocked="$(awk '/^##[[:space:]]+Blocked by[[:space:]]*$/ { seen = 1; next }
+                    seen && NF { print; exit }' <<<"$template")"
+    [[ "$blocked" == "None." ]] ||
+      problems+=("$skill_md's issue body: want 'None.' under '## Blocked by', got $(printf '%q' "$blocked")")
   fi
 else
   problems+=("want a SKILL.md at $skill_md, found none")
