@@ -478,6 +478,48 @@ reference_list_probes() {
   fi
 }
 
+# removal_verb_probe — case 4's removal-verb probe, on its own: the reader that lands in
+# `clear-refactor-pending.sh`'s entry and the one probe asked of it. Named because three cases
+# ask exactly it — case 4 as one of the roster, case 12 against a planted entry that must turn
+# it red, case 13 against the document that must not — and a copy of the pair at any of them
+# could read a different entry than the probe under watch.
+removal_verb_probe() {
+  if reads_entry clear-refactor-pending.sh; then
+    says_removal_verb
+  fi
+}
+
+# probes_against_planted <probe-function> <nothing-to-read fact> — the probes <probe-function>
+# asks, asked of a planted `## The scripts` section read on this function's stdin rather than of
+# the repository's own SKILL.md, leaving what they reported in `probe_problems` and `problems`
+# back to empty.
+#
+# Two cases watch a probe of case 4 go red, and neither can do it against the document: the
+# document is right today, so nothing read from it tells a probe that reads an entry's prose
+# from one answered by the filename that opens it (#411). Both therefore plant the smallest
+# section that separates the two, point `$skill_path` at it, ask the probes, and put the path
+# back. Every step of that is load-bearing — the path is restored so the cases after read the
+# real document again, `problems` is emptied so what a probe reported becomes the case's
+# evidence rather than its verdict, and the plant is removed — so it is spelled once here: a
+# second copy is free to leave one step out, and the copy that forgot to empty `problems` would
+# report a plant's own problems as the suite's.
+probes_against_planted() {
+  local probes="$1" unreadable="$2"
+  local planted_dir real_skill_path
+  planted_dir="$(mktemp -d)"
+  cat > "$planted_dir/SKILL.md"
+  real_skill_path="$skill_path"
+  skill_path="$planted_dir/SKILL.md"
+  problems=()
+  if records_from scripts_instructions "$unreadable"; then
+    "$probes"
+  fi
+  probe_problems=("${problems[@]}")
+  problems=()
+  skill_path="$real_skill_path"
+  rm -rf "$planted_dir"
+}
+
 # says_pending_until_verified — the two things each of the two repository documents owes about
 # a ticked step: the mark it wears, spelled, and the verification that is the only thing that
 # takes the mark off again. Both records owe the same pair and both mislead the same way
@@ -937,9 +979,8 @@ report "$name"
 #     without any of the five verbs, so only a probe that looks past the name it opens with can
 #     report against it.
 name="case 4's removal-verb probe reports a problem naming the clear-refactor-pending.sh entry when only the filename that opens it supplies a removal verb"
-problems=()
-planted_entry_dir="$(mktemp -d)"
-cat > "$planted_entry_dir/SKILL.md" <<'PLANTED'
+probes_against_planted removal_verb_probe \
+    "the planted entry's ## The scripts section could not be read, so the removal-verb probe was never asked" <<'PLANTED'
 ## The scripts (this skill's `scripts/` directory)
 
 - `$S/clear-refactor-pending.sh .tdd/issue-<n>.md '<substring>'` — the counterpart of
@@ -948,19 +989,6 @@ cat > "$planted_entry_dir/SKILL.md" <<'PLANTED'
   verified. Nothing on stdout. **Exit 0** when it did its work; **exit 3** when no ticked step
   both matched and carried the mark.
 PLANTED
-planted_skill_path="$skill_path"
-skill_path="$planted_entry_dir/SKILL.md"
-probe_problems=()
-if records_from scripts_instructions \
-    "the planted entry's ## The scripts section could not be read, so the removal-verb probe was never asked"; then
-  if reads_entry clear-refactor-pending.sh; then
-    says_removal_verb
-  fi
-fi
-probe_problems=("${problems[@]}")
-problems=()
-skill_path="$planted_skill_path"
-rm -rf "$planted_entry_dir"
 if [[ "${#probe_problems[@]}" -eq 0 ]]; then
   problems+=("the removal-verb probe reported nothing against an entry whose only removal verb is the \`clear-refactor-pending.sh\` filename that opens it, so the probe is satisfied by its own subject's name and stays true however the entry's prose is reworded")
 elif [[ ! "${probe_problems[*]}" =~ clear-refactor-pending\.sh ]]; then
@@ -1018,9 +1046,8 @@ report "$name"
 #     avoid one probe down: a copy would go red here while case 4's own probe went on
 #     matching whatever it had drifted into matching.
 name="case 4's other nine probes each report a problem, under the entry they were asked of, against reference-list entries that carry none of what they ask for"
-problems=()
-blank_entry_dir="$(mktemp -d)"
-cat > "$blank_entry_dir/SKILL.md" <<'PLANTED'
+probes_against_planted reference_list_probes \
+    "the planted entries' ## The scripts section could not be read, so case 4's probes were never asked" <<'PLANTED'
 ## The scripts (this skill's `scripts/` directory)
 
 - `$S/tick-ledger.sh .tdd/issue-<n>.md '<substring>'` — the ledger is rewritten so the first
@@ -1030,17 +1057,6 @@ cat > "$blank_entry_dir/SKILL.md" <<'PLANTED'
 - `$S/clear-refactor-pending.sh .tdd/issue-<n>.md '<substring>'` — the counterpart of the
   tick above, run once that step's refactor has been verified. Nothing on stdout.
 PLANTED
-blank_skill_path="$skill_path"
-skill_path="$blank_entry_dir/SKILL.md"
-probe_problems=()
-if records_from scripts_instructions \
-    "the planted entries' ## The scripts section could not be read, so case 4's probes were never asked"; then
-  reference_list_probes
-fi
-probe_problems=("${problems[@]}")
-problems=()
-skill_path="$blank_skill_path"
-rm -rf "$blank_entry_dir"
 # Each probe of the roster, as the entry it is asked of and the fragment of the fact it
 # reports that tells it from its neighbours — and, for the two exit-code probes, from the
 # same probe asked of the other entry, whose sentence is identical and whose name is not.
