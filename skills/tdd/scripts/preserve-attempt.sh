@@ -38,11 +38,31 @@ trap 'rm -rf "$scratch"' EXIT
 GIT_INDEX_FILE="$index" git add -A
 tree="$(GIT_INDEX_FILE="$index" git write-tree)"
 
+# The ref name carries the step's INDEX in the committed ledger, never the step's own prose
+# (issue #427): a plan step is a sentence with spaces, and often an apostrophe or a slash, none
+# of which `git check-ref-format` accepts — so a ref built out of the title is no ref at all and
+# `git update-ref` refuses it, which is why the snapshots this script promises had never been
+# written. The ledger already numbers its steps by position, which is short, stable and legal.
+# A substring match rather than equality, because a ticked step's line carries `⟂ refactor
+# pending` after the prose the caller was handed.
+ledger=".tdd/issue-$issue.md"
+step_ref="$step"
+if [[ -f "$ledger" ]]; then
+  box_re='^[[:space:]]*- \[[ xX]\] (.*)$'
+  n=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" =~ $box_re ]]; then
+      n=$((n + 1))
+      if [[ "${BASH_REMATCH[1]}" == *"$step"* ]]; then step_ref="$n"; break; fi
+    fi
+  done < "$ledger"
+fi
+
 # HEAD as the parent so `git show` on the ref reads as the attempt's own diff rather than as
 # every file in the repository.
 commit="$(git commit-tree "$tree" -p HEAD \
   -m "attempt: issue $issue step $step $phase attempt $attempt")"
-git update-ref "refs/veri/attempts/$issue/$step/$phase-$attempt" "$commit"
+git update-ref "refs/veri/attempts/$issue/$step_ref/$phase-$attempt" "$commit"
 
 # The tree is what a reader wants first, but it is not the whole record: the tree says what the
 # leaf produced, and the leaf's own log is the only place what it *tried* survives. So when the

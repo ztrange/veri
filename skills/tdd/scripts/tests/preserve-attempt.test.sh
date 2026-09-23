@@ -196,6 +196,30 @@ message="$(git_q "$repo" log -1 --format=%B "$REF" 2>&1)"
     && [[ "$message" == "attempt: issue 409 step 3 develop-green attempt 1" ]]; } \
   && ok || no "leaves the preserved commit unreachable from HEAD, with a message carrying no rationale (code=$code reachable=$([[ "$reachable" == 0 ]] && echo yes || echo no) message='$message')"
 
+# 8. the ref name carries the step's INDEX in the committed ledger, not the step's own prose:
+#    a plan step is a sentence with spaces, and often an apostrophe or a slash, none of which
+#    `git check-ref-format` accepts — so a ref built out of the title is no ref at all and the
+#    snapshot is silently never written (issue #427). The ledger already numbers its steps by
+#    position, which is short, stable and legal, so the second unchecked-or-checked step of
+#    issue 409's ledger is preserved under `.../409/2/...` however it is worded.
+repo="$work/ledgerindex"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+prose="A leaf's output is kept under refs/veri, not the branch"
+{ printf '# Plan for #409\n\n'
+  printf -- '- [x] The first step, already done\n'
+  printf -- '- [ ] %s\n' "$prose"
+  printf -- '- [ ] A third step nobody is on\n'; } > "$repo/.tdd/issue-409.md"
+git_q "$repo" add .tdd/issue-409.md >/dev/null 2>&1
+git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
+printf 'rejected work\n' > "$repo/stop-run.sh"
+preserve "$repo" 409 "$prose" develop-green 1 >/dev/null 2>&1; code=$?
+indexed="refs/veri/attempts/409/2/develop-green-1"
+git_q "$repo" rev-parse --verify --quiet "$indexed^{commit}" >/dev/null 2>&1; resolved=$?
+refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1 | tr '\n' ' ')"
+{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
+  && ok || no "names the ref by the step's ledger index, not its prose (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
