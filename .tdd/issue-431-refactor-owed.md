@@ -2,3 +2,5 @@
 - the fixture-file writer is spelled twice — `launched_test_cmd`'s "the %s this launch names, which the stub never reads" loop and `scan_step_title`'s fixed `.tdd/develop-red.prompt` line; one writer would need the step-title probe to name its files the way the loop does
 ### SKILL.md states the step-title rule in one place and every documented launch line follows it
 - fold `prose_paragraphs` and `section_prose` into one awk scanner over SKILL.md — both skip fences and differ only in whether they narrow to a section and keep line numbers
+### Every documented command line carrying text taken from the step's title follows the step-title rule — including the four lines that pass a fragment of it, tick-ledger.sh and clear-refactor-pending.sh and tick-issue-criterion.sh — and a test fails the run naming a line that single-quotes one
+- fold `fenced_lines` and `document_lines` into one awk reader — not applied because the only fold available adds a fence parameter no existing case requires, which is the untested generality the phase forbids
