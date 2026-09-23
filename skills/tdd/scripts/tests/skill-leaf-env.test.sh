@@ -316,6 +316,28 @@ runnable() {
   printf '%s\n' "$launch"
 }
 
+# take_line <numbered-grep-hit> [step] — open one line of the document for a case to work
+# on: split the hit into the `lineno` and `line` every failure message quotes, and put its
+# runnable copy in `launch`. Returns 1, having complained, when `runnable` refuses the line.
+#
+# It assigns rather than echoes because the three results have to reach the caller together
+# and a command substitution would put the two the caller's `problem` reads in a subshell of
+# its own. The assignments land on the caller's own locals, bash resolving a name through the
+# functions that called this one — the same scoping `problem` and `report` already use.
+#
+# One copy because both halves are quiet when a copy loses them: a split spelled differently
+# names the wrong line, and a dropped refusal lets an unsubstituted `<…>` reach the shell as
+# a redirection, so the case goes green having run nothing. The refusal's wording is a third:
+# kept per caller, the two spellings of one complaint could drift apart.
+take_line() {
+  lineno="${1%%:*}"
+  line="${1#*:}"
+  launch="$(runnable "$line" "${2-}")" || {
+    problem "names a placeholder this probe cannot supply, so its launch could not be run"
+    return 1
+  }
+}
+
 # scan_launches <pattern> <shape> <check> — find every launch line in the document matching
 # <pattern> and hand each runnable one, substituted, to the shell function named <check>,
 # which asks of it whatever its case is about. <shape> names the launch the pattern is looking
@@ -326,12 +348,10 @@ runnable() {
 # spellings of that one message could drift apart.
 #
 # Both cases scan the same way and differ only in what they then ask, so the scan is written
-# once. Two halves of it are easy to lose in a copy and quiet when lost: the numbered-grep
-# split into the `lineno` and `line` that every failure message quotes, and `runnable`'s
-# refusal, without which an unsubstituted `<…>` reaches the shell as a redirection and the case
-# goes green having run nothing. `lineno` and `line` are declared here and `problem` reads them
-# from the check, which bash allows — a function sees the locals of the function that called
-# it — so they stay out of the global scope the two cases share.
+# once. Each line it finds is opened by `take_line`, which carries the split and the refusal
+# that go with it. `lineno`, `line` and `launch` are declared here, assigned there and read by
+# `problem` from the check, which bash allows — a function sees the locals of the functions
+# that called it — so they stay out of the global scope the two cases share.
 scan_launches() {
   local pattern="$1" shape="$2" check="$3"
   local lines numbered lineno line launch
@@ -342,12 +362,7 @@ scan_launches() {
   fi
   while IFS= read -r numbered; do
     [[ -n "$numbered" ]] || continue
-    lineno="${numbered%%:*}"
-    line="${numbered#*:}"
-    launch="$(runnable "$line")" || {
-      problem "names a placeholder this probe cannot supply, so its launch could not be run"
-      continue
-    }
+    take_line "$numbered" || continue
     "$check" "$launch"
   done <<< "$lines"
 }
@@ -806,12 +821,7 @@ scan_step_title() {
     problems+=("$skill_md has no line launching develop-red through supervise.sh into run-leaf.sh — the launch this case is about could not be found")
     return
   fi
-  lineno="${numbered%%:*}"
-  line="${numbered#*:}"
-  launch="$(runnable "$line" "$APOSTROPHE_STEP")" || {
-    problem "names a placeholder this probe cannot supply, so its launch could not be run"
-    return
-  }
+  take_line "$numbered" "$APOSTROPHE_STEP" || return
   # The scripts directory the line is run against: every script it ships, with the detacher —
   # the first process a launch starts, and so the first place the title is observable at all —
   # replaced by a recorder. `#!/bin/sh` like every other stub here (#322): Homebrew's bash
