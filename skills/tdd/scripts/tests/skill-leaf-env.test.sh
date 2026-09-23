@@ -205,7 +205,20 @@ launched_test_cmd() {
       VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
       bash -c "$launch
 \"$SCRIPTS/wait-leaf.sh\" \"$leaf\" 60" ) >/dev/null 2>&1
-  cat "$seen" 2>/dev/null || echo '<no leaf ran>'
+  # The answer, and then the one thing that ties it to the leaf name the CALLER derived.
+  # The stub writes `seen` whatever the leaf is called, so a caller whose derived name no
+  # launch writes would otherwise read the right answer back off a file its own name had
+  # nothing to do with — passing, after waiting out the whole wait budget for a completion
+  # file no supervisor will ever write (#297). `.tdd/<leaf>.exit` is written under that name
+  # and no other, so its absence is exactly the fault: the name is wrong.
+  #
+  # Asked after `seen` rather than before it, so the two faults keep their own words: a line
+  # that reached no supervisor at all writes neither file and still says `<no leaf ran>`,
+  # rather than being reported for a naming fault it never got far enough to have.
+  local answer
+  answer="$(cat "$seen" 2>/dev/null)" || { echo '<no leaf ran>'; return; }
+  [[ -f "$dir/.tdd/$leaf.exit" ]] || { echo "<no completion file under leaf $leaf>"; return; }
+  printf '%s\n' "$answer"
 }
 
 # expect_sentinel <leaf> <launch-line> <file>... — run one launch line and record a problem
@@ -581,6 +594,49 @@ scan_message_format() {
 
 run_case "report()'s FAIL line, its indented problem line, and the count line keep their shape" \
   scan_message_format
+
+# 6. The fault issue #297 names, which none of the cases above can answer: the leaf name a
+#    launch line is expected to produce is used only to tell `wait-leaf.sh` which completion
+#    file to wait for, and nothing asserts on it. The stub writes its `seen` file whatever the
+#    leaf is called, so a launch whose leaf name the probe derived WRONG still reads the right
+#    answer back and passes — after waiting out the whole wait budget for a completion file no
+#    supervisor will ever write. Watched on purpose while fixing #223 (commit be98562):
+#    renaming the derived leaf `verify-` to `verifyX-` left this suite at 3 passed, 0 failed
+#    and took 5:05 instead of 10 s. That is how #223's `--step` regression stayed invisible —
+#    a test that answers "slower" where it should answer "red" cannot fail for that fault.
+#
+#    Asked of one correct developer-shaped fixture launch of this probe's own, run under a
+#    leaf name no launch writes — the injected fault, made on purpose — rather than by
+#    breaking one of the document's own ten lines: the line itself is right, so the only thing
+#    left to report is the completion file that never landed under the derived name.
+#
+# scan_wrong_leaf_name — the case's body, in the other cases' shape: it collects into
+# `run_case`'s `problems` the way the scans above do, and `lineno`/`line` are its own, so
+# `expect_sentinel`'s complaint quotes this fixture's line rather than one of the document's.
+scan_wrong_leaf_name() {
+  local lineno line launch got
+  lineno="wrong-leaf-name-1"
+  read -r line <<'FIXTURE'
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh fixture-named $S/run-leaf.sh .tdd/fixture-named.prompt
+FIXTURE
+  launch="$(runnable "$line")" || {
+    problems+=("the wrong-leaf-name fixture names a placeholder this probe cannot supply")
+    return
+  }
+  # The name asked for is not the one the line supervises, and no launch anywhere writes it.
+  expect_sentinel "fixture-named-no-such-leaf" "$launch" ".tdd/fixture-named.prompt"
+  # As in the fixture-naming case above, the launch's own complaint is the evidence, not this
+  # case's verdict: fold it into the one thing actually being asked — exactly one complaint,
+  # naming the launch line whose completion file never landed.
+  got=("${problems[@]}")
+  problems=()
+  if [[ "${#got[@]}" -ne 1 || "${got[0]}" != *"$line"* ]]; then
+    problems+=("a launch whose leaf name no completion file is written under reported: ${got[*]:-<nothing>}")
+  fi
+}
+
+run_case "a launch writing no completion file under the derived leaf name is reported, naming that line" \
+  scan_wrong_leaf_name
 
 echo "----"
 echo "$pass passed, $fail failed"
