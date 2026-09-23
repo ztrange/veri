@@ -21,6 +21,10 @@ set -euo pipefail
 [[ -n "${1:-}" && -n "${2:-}" && -n "${3:-}" && -n "${4:-}" ]] \
   || { echo "usage: preserve-attempt.sh <issue> <step> <phase> <attempt> [<mark>]" >&2; exit 2; }
 issue="$1" step="$2" phase="$3" attempt="$4"
+# The four coordinates as one phrase, because two readers have to agree on it: the preserved
+# commit's own message and the failure line below. A reader of the run's .err pairs the one with
+# the other by that text, so it is written once rather than kept in step by hand.
+coords="issue $issue step $step $phase attempt $attempt"
 
 # Every git command below runs from the top of the worktree rather than wherever the caller
 # stood, so `git add -A` sees the whole tree on any git old enough to read a pathspec as
@@ -81,8 +85,7 @@ step_ref="${step_ref//[^0-9A-Za-z-]/-}"
 
 # HEAD as the parent so `git show` on the ref reads as the attempt's own diff rather than as
 # every file in the repository.
-commit="$(git commit-tree "$tree" -p HEAD \
-  -m "attempt: issue $issue step $step $phase attempt $attempt")"
+commit="$(git commit-tree "$tree" -p HEAD -m "attempt: $coords")"
 # A ref name derived as above is legal, but legal is not the same as writable: git also refuses
 # a name whose path collides with a ref that is already there (`refs/veri/attempts/409/3` as a
 # ref makes `.../409/3/develop-green-1` a file under a file). Preservation stays best-effort to
@@ -91,7 +94,7 @@ commit="$(git commit-tree "$tree" -p HEAD \
 # silence around it is exactly what let the prose-ref bug survive unnoticed (issue #427).
 ref="refs/veri/attempts/$issue/$step_ref/$phase-$attempt"
 if ! git update-ref "$ref" "$commit"; then
-  echo "preserve-attempt.sh: could not preserve issue $issue step $step $phase attempt $attempt to $ref" >&2
+  echo "preserve-attempt.sh: could not preserve $coords to $ref" >&2
   exit 1
 fi
 
