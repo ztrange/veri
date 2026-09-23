@@ -153,6 +153,15 @@ unreadable() {
   problems+=("$skill_md has no $1 — $2 could not be read")
 }
 
+# lowered — stdin, case-folded. Three cases read a passage of the document for what it says
+# rather than for how it is capitalised — the launch section's prose, `wait-leaf.sh`'s
+# inventory entry, the step-title rule's paragraph — and each of them folded the case with
+# its own `tr`. One name for it, so the folding a probe is written against is the folding it
+# gets.
+lowered() {
+  tr '[:upper:]' '[:lower:]'
+}
+
 # fenced_lines <ERE> — the lines of SKILL.md INSIDE a fenced block that match <ERE>, each
 # prefixed with its line number. The fence is what tells a command the conductor runs from
 # prose about it, so every probe of the commands reads through here. The fence regex allows
@@ -242,7 +251,7 @@ report "$name"
 name="$skill_md's *$section* says why nohup alone is not enough"
 problems=()
 
-prose="$(section_prose "$section" | tr '[:upper:]' '[:lower:]')"
+prose="$(section_prose "$section" | lowered)"
 if [[ -z "$prose" ]]; then
   unreadable "*$section* section" "the reason given for the launch shape"
 else
@@ -315,7 +324,7 @@ waiter="wait-leaf.sh"
 name="$skill_md's $waiter entry says a 2 also means the supervisor died without recording a status, and takes the killed-stuck branch"
 problems=()
 
-entry="$(inventory_entry "$waiter" | tr '[:upper:]' '[:lower:]')"
+entry="$(inventory_entry "$waiter" | lowered)"
 if [[ -z "$entry" ]]; then
   unreadable "script inventory entry for $waiter" "what its exit codes mean"
 else
@@ -505,11 +514,11 @@ elif [[ "$rule_count" -gt 1 ]]; then
 else
   ruleno="$(cut -f1 <<< "$rules")"
   ruletext="$(cut -f2- <<< "$rules")"
-  lowered="$(tr '[:upper:]' '[:lower:]' <<< "$ruletext")"
+  ruletext_lc="$(lowered <<< "$ruletext")"
   faults=""
-  [[ "$ruletext" == *"$double_quoted_step"* || "$lowered" == *"double quote"* ]] ||
+  [[ "$ruletext" == *"$double_quoted_step"* || "$ruletext_lc" == *"double quote"* ]] ||
     fault "does not say the title is carried in double quotes"
-  [[ "$lowered" == *apostrophe* ]] ||
+  [[ "$ruletext_lc" == *apostrophe* ]] ||
     fault "does not say why: a title carrying an apostrophe closes a single-quoted one early"
   [[ -z "$faults" ]] ||
     problems+=("$skill_md:$ruleno states the step-title rule but $faults")
