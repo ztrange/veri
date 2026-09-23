@@ -62,6 +62,13 @@ STEP="A background process is killed by the pid recorded when it started, never 
 SPEC='spec.md'
 TEST_PATH='suite.test.sh'
 
+# The whole call, once. Both cases launch with exactly this argv — a well-formed call in the
+# documented shape, `--step <title> <phase> <spec> <test-path> <target>` — and differ only in
+# the tree they launch it over: a real verifier under case 1, one that cannot start under
+# case 2. Spelled at each call site, the two could drift into asking about different calls,
+# and case 2's exit 2 would then be evidence about a call shape case 1 never ran.
+CALL=(--step "$STEP" red "$SPEC" "$TEST_PATH" case-1)
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -163,8 +170,8 @@ STUB
 probe_title_reaches_the_verifier() {
   local out code matches
   rm -f "$argv_file"
-  out="$( cd "$run" && VERI_STUB_ARGV="$argv_file" "$scripts/$LAUNCHER_NAME" \
-            --step "$STEP" red "$SPEC" "$TEST_PATH" case-1 2>&1 )" && code=0 || code=$?
+  out="$( cd "$run" && VERI_STUB_ARGV="$argv_file" \
+            "$scripts/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" && code=0 || code=$?
 
   [[ -f "$argv_file" ]] || {
     problems+=("$LAUNCHER never reached $VERIFIER with the title \"$STEP\" — it exited $code and said: $(flat "$out")")
@@ -229,8 +236,7 @@ probe_unstartable_verifier_is_no_answer() {
     return
   }
 
-  out="$( cd "$broken_run" && "$broken/$LAUNCHER_NAME" \
-            --step "$STEP" red "$SPEC" "$TEST_PATH" case-1 2>&1 )" && code=0 || code=$?
+  out="$( cd "$broken_run" && "$broken/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" && code=0 || code=$?
 
   [[ "$code" != 1 ]] ||
     problems+=("with $how, $LAUNCHER exited 1 — the code for a verdict the verifier gave, from a verifier that never ran; it said: $(flat "$out")")
