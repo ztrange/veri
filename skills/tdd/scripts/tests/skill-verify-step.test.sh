@@ -6,7 +6,7 @@
 # glob by existing.
 #
 # Why this exists (issue #223): `verify.sh` and `build-verify-prompt.sh` now take an
-# optional `--step '<STEP>'` flag, and every `verify-*.md` prompt shows that step and scopes
+# optional `--step "<STEP>"` flag, and every `verify-*.md` prompt shows that step and scopes
 # the verdict to it. The flag is worth exactly as much as the call sites that pass it — and
 # it is a FLAG and only a flag, never read from an ambient `VERI_STEP` (verify.sh:34-40), so
 # the `VERI_STEP='<STEP>'` prefix those launch lines already carry for the event log does
@@ -17,7 +17,7 @@
 #
 # Contract under test:
 #   Every `verify.sh` call SKILL.md tells the conductor to run — the red, pin, green,
-#   refactor, revise re-verify and resume launches — passes `--step '<STEP>'` before
+#   refactor, revise re-verify and resume launches — passes `--step "<STEP>"` before
 #   verify.sh's positionals; and every one that can judge green — the green launch and the
 #   revise re-verify, whose phase is `<phase>` — passes `--fast-cmd '<fast-cmd>'` after it.
 #
@@ -43,8 +43,10 @@ skill_path="$ROOT/$skill_md"
 
 # What a call has to carry, written down once so the probe and the message it fails with
 # cannot drift apart: verify.sh's own flag, spelled with the placeholder the document uses
-# for the ledger's step text everywhere else.
-flag="--step '<STEP>'"
+# for the ledger's step text everywhere else, in the DOUBLE quotes SKILL.md's step-title rule
+# now sets (#431): a title is the planning leaf's own English, and an apostrophe in it closes
+# a single-quoted `'<STEP>'` early, killing the line in the shell the conductor typed it into.
+flag='--step "<STEP>"'
 
 # The one pattern the probe below matches a launch line with, built from that same `flag` so
 # the two cannot drift: nothing in the flag's spelling is an ERE metacharacter, so it goes in

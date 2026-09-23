@@ -135,7 +135,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   check: the verifier confirms the test passes now, **fails** under a behaviour-removing
   mutation it applies and then reverts itself, and is behaviour-level — the same trivial
   / over-coupled / too-complex bar as `red`.
-- `$S/run-verdict.sh [--step '<STEP>'] [--fast-cmd '<cmd>'] <red|green|refactor|pin> <spec-file> <test-path> [target]`
+- `$S/run-verdict.sh [--step "<STEP>"] [--fast-cmd '<cmd>'] <red|green|refactor|pin> <spec-file> <test-path> [target]`
   — the **verdict launcher**: `verify.sh`'s own call, argument for argument, reached as a
   command rather than as a shell string. This is what `supervise.sh verdict-<phase>` runs;
   it passes every argument through untouched and `exec`s the verify verb, so the step title
@@ -180,7 +180,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   one growth is made of goes in **one call**: the script takes them all at once and reads the
   budget once per call, so a call per text would refuse a third text that one call either fits
   whole or files whole. Every insertion is marked in the log beside the call it made —
-  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added
   anchor='<anchor>' added=<count>` — because a plan that changes with no record leaves the
   log unable to say which steps the run chose for itself; an exit 1 owes the same mark with
   `added=0`, since a step the budget refused is still a decision the run made.
@@ -283,7 +283,7 @@ leaf** (red, green, refactor, revise) is launched straight through the superviso
 
 ```
 rm -f .tdd/<name>.exit .tdd/<name>.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh <name> <cmd> [args...] > .tdd/<name>.out 2> .tdd/<name>.err
 $S/wait-leaf.sh <name>
 ```
 
@@ -318,6 +318,15 @@ is being solved or which step of its plan the leaf is on — so a launch that om
 leaves every one of that leaf's events with an empty `issue` and an empty `step`, and a
 reader can attribute the leaf to a step only by interleaving timestamps with `step-start`.
 
+**The step's title reaches every command line in double quotes** — `VERI_STEP="<STEP>"`,
+`--step "<STEP>"`, and the same on every other command on this page that carries `<STEP>`.
+One rule, because the title is the planning leaf's own English and an apostrophe is
+ordinary in it: a single-quoted `'<STEP>'` closes on that apostrophe — *that shell's
+stderr* becomes `'that shell'` followed by junk — and the line dies in the shell you type
+it into, before anything is launched (#431). Inside double quotes an apostrophe is an
+ordinary character. The other placeholders on those lines stay single-quoted; they are
+paths, commands and ids, and none of them carries the planning leaf's prose.
+
 A **verifier** (`verify.sh`, which goes through the supervisor too) takes the same shape
 with one wrinkle: the verify verb is reached through `run-verdict.sh`, the **verdict
 launcher**, rather than typed into a `bash -c "…"` command string. The string is what broke
@@ -328,7 +337,7 @@ second shell ever parses it —
 
 ```
 rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step '<STEP>' <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "<STEP>" <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
 $S/wait-leaf.sh verdict-<phase>
 ```
 
@@ -649,7 +658,7 @@ Green → Refactor) for the next step; let **STEP** be that step's description:
 
 ```
 $S/next-unchecked.sh < .tdd/issue-<n>.md        # exit 3 ⇒ all steps done → go to step 4 (PR)
-VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-start
+VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-start
 ```
 
 The `event.sh` line is this step's **mark** in the run's event log — the step has no issue
@@ -671,7 +680,7 @@ following step. The phase sub-steps are:
    the full suite, against the unmodified code, since the only question Red asks is whether
    that one case fails — and launch the leaf **through the supervisor**:
    ```
-   $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' > .tdd/develop-red.prompt
+   $S/build-develop-prompt.sh red .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' > .tdd/develop-red.prompt
    rm -f .tdd/develop-red.exit .tdd/develop-red.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
@@ -724,7 +733,7 @@ following step. The phase sub-steps are:
      the report had no prediction to read), mark it with
      `$S/event.sh prediction-diverged` so the divergence is in the run log, preserve the
      attempt beside that mark with
-     `$S/preserve-attempt.sh <n> '<STEP>' develop-red 1 prediction-diverged` so the tree the
+     `$S/preserve-attempt.sh <n> "<STEP>" develop-red 1 prediction-diverged` so the tree the
      surprising test came from survives the next leaf that overwrites it (best-effort: note
      it if it fails and carry on), and enter the
      **revise loop** for red exactly as a verify-red `REJECT` does (see *Revising on a
@@ -737,7 +746,7 @@ following step. The phase sub-steps are:
    retype:
    ```
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step '<STEP>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "<STEP>" red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    ```
    That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —
@@ -747,7 +756,7 @@ following step. The phase sub-steps are:
    instead and continue at *Already satisfied — the pin*:
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step '<STEP>' pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step "<STEP>" pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
    $S/wait-leaf.sh verdict-pin     # foreground; on exit 3 call it again
    ```
    Either way, note the **wait's exit code** — the verdict — and read the reason back out of
@@ -777,9 +786,9 @@ following step. The phase sub-steps are:
    code, no generality the test does not demand, the **test itself untouched**, full suite
    green — and launch **through the supervisor** (exit **2** → **bail**):
    ```
-   $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' > .tdd/develop-green.prompt
+   $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' > .tdd/develop-green.prompt
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
    ```
    The test path and target test id are the ones Red's report gave you. The leaf's report is
@@ -796,10 +805,10 @@ following step. The phase sub-steps are:
    ```
    git reset --hard HEAD
    git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it; one git already tracked the reset restored
-   $S/add-ledger-step.sh .tdd/issue-<n>.md before '<STEP>' '<SPLIT: value>' …   # every SPLIT: value in ONE call
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
+   $S/add-ledger-step.sh .tdd/issue-<n>.md before "<STEP>" '<SPLIT: value>' …   # every SPLIT: value in ONE call
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-split anchor='<STEP>' added=<count>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-split anchor="<STEP>" added=<count>
    ```
    One call and not one per criterion, under the script's own one-call rule above. A split is
    the one thing that changes a step's plan without a green commit of its own, so `step-split`
@@ -815,7 +824,7 @@ following step. The phase sub-steps are:
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step '<STEP>' --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
    $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
    ```
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
@@ -855,9 +864,9 @@ following step. The phase sub-steps are:
    ```
    $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 3
    touched="$($S/refactor-touched.sh HEAD)"
-   $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
+   $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
    ```
    **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
@@ -908,7 +917,7 @@ following step. The phase sub-steps are:
 3. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step '<STEP>' --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
    — one verdict on the final state (**full suite** still green, code up to standard, no
@@ -937,7 +946,7 @@ following step. The phase sub-steps are:
    the budget, and why it stopped (`nothing-left`, `budget`, `malformed`, `nothing-structural` for triage exit **3** or
    `structural-owed` for triage exit **0**):
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
    ```
    Then **record the leftovers themselves**, which is not a log mark and does not belong in
    that line: the narration above is a comment and `.tdd/develop-refactor.out` is overwritten
@@ -945,7 +954,7 @@ following step. The phase sub-steps are:
    step**. It copies them — never the cosmetic ones — into the run's owed file under this
    step's name, where the Draft PR renders every step's, not just the last one's:
    ```
-   $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md '<STEP>' < .tdd/develop-refactor.out
+   $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" < .tdd/develop-refactor.out
    ```
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
      **grow the plan with the leaf's `NEW_STEP:` values and the passing verify-refactor
@@ -955,8 +964,8 @@ following step. The phase sub-steps are:
      `.tdd/verify-refactor.log` — the unhandled edge case it proposes rather than REJECTs
      for:
      ```
-     $S/add-ledger-step.sh .tdd/issue-<n>.md after '<STEP>' '<NEW_STEP: value>' …   # every NEW_STEP: value in ONE call
-     VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
+     $S/add-ledger-step.sh .tdd/issue-<n>.md after "<STEP>" '<NEW_STEP: value>' …   # every NEW_STEP: value in ONE call
+     VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md '<distinctive substring of STEP>'
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
@@ -965,7 +974,7 @@ following step. The phase sub-steps are:
      what `append` wrote is untracked until then, and a file left beside the worktree is
      lost with it.
      Every `NEW_STEP:` value from both — the leaf's and the verdict's — goes in **one**
-     call, under the script's own one-call rule, anchored `after '<STEP>'` so the
+     call, under the script's own one-call rule, anchored `after "<STEP>"` so the
      triangulating step lands next to the code it triangulates. Neither reporting a value — the leaf's
      `NEW_STEP: none` and no `NEW_STEP:` line in the verdict — is no call and no mark at all.
      **exit 1** is that one call meeting the plan-growth budget: the values are filed as
@@ -988,7 +997,7 @@ following step. The phase sub-steps are:
      '<substring>'`, the human mirror); on exit **3** tick nothing, since a step serving it is
      still open or pending. Mark
      the same moment in the log —
-     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-done` — then
+     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-done` — then
      loop back to the top of **step 3** for the next unchecked ledger step.
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
@@ -1097,7 +1106,7 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
   **issue body** (`$S/tick-issue-criterion.sh <n> '<substring>'`) — on exit **3** tick
   nothing — and mark it in the log —
-  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=pin $S/event.sh pin`.
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=pin $S/event.sh pin`.
   The step is **done** — **no Green and no Refactor**, since there is no new production
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
   ledger step.
@@ -1126,15 +1135,15 @@ For attempt `k = 1 … REVISE_BUDGET`:
 1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
    the verifier's **rejection reason verbatim**, and mark the same attempt in the log:
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
    ```
 2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
    **through the supervisor** (exit **2 → bail**, system failure):
    ```
-   $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/revise-<phase>-<k>.prompt
+   $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/revise-<phase>-<k>.prompt
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
    ```
    The reason travels as a **file**, not as prose you paste in — that is why the verify step
@@ -1159,7 +1168,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
      re-verifying**: skip the re-verification entirely, keep the reason the script wrote to
      `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead), mark
      it with `$S/event.sh prediction-diverged`, preserve the attempt beside that mark with
-     `$S/preserve-attempt.sh <n> '<STEP>' revise-red <k> prediction-diverged` (best-effort:
+     `$S/preserve-attempt.sh <n> "<STEP>" revise-red <k> prediction-diverged` (best-effort:
      note it if it fails and carry on), and treat the attempt exactly as a `REJECT`
      does — if attempts remain, loop to attempt `k+1` with that reason; otherwise fall
      through to the budget-exhausted bail below.
@@ -1169,7 +1178,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
 4. **Re-verify (blind, same phase).**
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step '<STEP>' --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
    $S/wait-leaf.sh verdict-<phase>      # foreground; on exit 3 call it again
    ```
    — overwriting the reason file, so attempt `k+1` carries the newest objection. The
@@ -1189,9 +1198,9 @@ one last leaf and ask it which of the two is true of this step, rather than deci
 yourself. The reason file the last re-verify overwrote is the whole of what it is told:
 
 ```
-$S/build-develop-prompt.sh exhausted .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/develop-exhausted.prompt
+$S/build-develop-prompt.sh exhausted .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/develop-exhausted.prompt
 rm -f .tdd/develop-exhausted.exit .tdd/develop-exhausted.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-exhausted $S/run-leaf.sh .tdd/develop-exhausted.prompt --permission-mode bypassPermissions > .tdd/develop-exhausted.out 2> .tdd/develop-exhausted.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh develop-exhausted $S/run-leaf.sh .tdd/develop-exhausted.prompt --permission-mode bypassPermissions > .tdd/develop-exhausted.out 2> .tdd/develop-exhausted.err
 $S/wait-leaf.sh develop-exhausted   # foreground; on exit 3 call it again
 ```
 
@@ -1212,10 +1221,10 @@ answer. Each is a branch of its own:
   ```
   git reset --hard HEAD
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
-  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of '<STEP>' '<criterion>' …   # every line of the answer in ONE call
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-added anchor='<STEP>' added=<count>
+  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "<STEP>" '<criterion>' …   # every line of the answer in ONE call
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-split anchor='<STEP>' added=<count> at=exhausted
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-split anchor="<STEP>" added=<count> at=exhausted
   ```
   The `at=exhausted` is what tells this split apart from a Green leaf's volunteered
   one: both grow the plan through `add-ledger-step.sh` and both write `step-added` and
@@ -1238,7 +1247,7 @@ answer. Each is a branch of its own:
   its own rather than the split's or the bail's — it is the one outcome that stops the run
   without bailing it, and a log holding neither reads as a run that stopped saying nothing:
   ```
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh step-escalated anchor='<STEP>'
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-escalated anchor="<STEP>"
   ```
 - **exit 3 — neither answer.** The leaf volunteered no split and asked for no decision, so
   there is nothing new to act on: **bail the step** with cause `revise-exhausted` as a
@@ -1266,9 +1275,9 @@ supervisor** like every other:
 
 ```
 cp .tdd/issue-<n>.md .tdd/reconcile-ledger.before
-$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md '<STEP>' '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
+$S/build-develop-prompt.sh reconcile .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' <branch> <remote-sha> > .tdd/develop-reconcile.prompt
 rm -f .tdd/develop-reconcile.exit .tdd/develop-reconcile.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh develop-reconcile $S/run-leaf.sh .tdd/develop-reconcile.prompt --permission-mode bypassPermissions > .tdd/develop-reconcile.out 2> .tdd/develop-reconcile.err
 $S/wait-leaf.sh develop-reconcile   # foreground; on exit 3 call it again
 ```
 
@@ -1310,7 +1319,7 @@ To bail:
    of this bail will want, and the very next step throws it away — so snapshot it before the
    reset, from inside the worktree:
    ```
-   $S/preserve-attempt.sh <n> '<STEP>' <phase> <attempt> bail
+   $S/preserve-attempt.sh <n> "<STEP>" <phase> <attempt> bail
    ```
    `<phase>` is the leaf whose trouble caused the bail (`develop-green`, `verify-red`, …) and
    `<attempt>` its number (`1` outside the revise loop, `k` inside it). Best-effort: note it
@@ -1338,7 +1347,7 @@ To bail:
    `.tdd/revise-<phase>-*.log`) for forensics. Mark the stop in the log too, with the cause
    token and the classification step 3 derived from it:
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
    ```
 7. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
    failing step (see *Resume*).
@@ -1400,7 +1409,7 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    `refactor-budget.sh 0` then skips the leaf — the step is tidied as far as it was funded
    to be. Run its **verify-refactor** after it — the check the interruption skipped — with
    `$green` as the cycle loop's `<green-sha>`:
-   `verify.sh --step '<STEP>' --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
+   `verify.sh --step "<STEP>" --fast-cmd '<fast-cmd>' refactor <spec-file> <test-path> "$green"`, launched as there. Its
    PASS clears the mark and commits the cleared ledger exactly as in the cycle loop; then
    come back here and ask sub-step 2 again.
 3. `next-unchecked.sh < .tdd/issue-<n>.md` gives the **first unchecked step** — the cycle
@@ -1410,7 +1419,7 @@ is nothing to re-create or switch. The **resume check** then finds an existing
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP='<STEP>' $S/event.sh resume` — then run
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh resume` — then run
    the cycle loop as normal. Go to the **draft PR** only when
    `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
    checked, and every checked step's refactor is verified.

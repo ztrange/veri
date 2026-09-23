@@ -39,6 +39,10 @@
 #   7. Every verifier launch invokes the verdict launcher `run-verdict.sh` and inlines no
 #      `bash -c` command string, so the step's own title reaches the verifier as one argv
 #      element rather than as shell text a second shell has to parse (issue #426).
+#   8. The document states in ONE place how the step's title reaches a command line — in
+#      double quotes, because the title is the planning leaf's own English and an
+#      apostrophe in it closes a single-quoted one early — and every fenced command
+#      carrying `<STEP>` follows that rule (issue #431).
 #
 # Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
 # *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
@@ -345,7 +349,7 @@ blind_args() {
 # the test path, and the target, which is the test id in every phase but `refactor`, where it
 # is the step's green commit. Anchored at BOTH ends because the criterion is *only these*:
 # an unanchored pattern would pass a line that carries all of them and something else after.
-blind_re="^--step '<STEP>'( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])$"
+blind_re="^--step \"<STEP>\"( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])$"
 
 # 6. The verifier is blind **by construction**: `build-verify-prompt.sh` has no parameter for
 #    the developer's rationale, so it cannot leak one, and a launch that passes verify.sh
@@ -404,6 +408,115 @@ else
     [[ -z "$faults" ]] ||
       problems+=("$skill_md:$lineno $faults: $text")
   done <<< "$verdict_launches"
+fi
+
+report "$name"
+
+# prose_paragraphs — every blank-line-separated paragraph of SKILL.md that is OUTSIDE a
+# fenced block, one per output line with its internal newlines folded to spaces, prefixed
+# with the line the paragraph starts on. The document's commands are read by
+# `fenced_lines`; this is the other half — what a conductor is TOLD, as opposed to what it
+# types — and it is a paragraph rather than a line because a rule stated over three wrapped
+# lines is one statement, and counting the places a rule is stated is what case 8 does.
+#
+# `section_prose` above reads one section and drops its line numbers; this reads the whole
+# document and keeps them, because case 8's question is *where else* the rule is stated, and
+# an answer that cannot name the other place is not one a writer can act on.
+prose_paragraphs() {
+  awk '
+    /^[[:space:]]*```/ { flush(); fence = !fence; next }
+    fence { next }
+    /^[[:space:]]*$/ { flush(); next }
+    { if (para == "") start = NR; para = para (para == "" ? "" : " ") $0 }
+    END { flush() }
+    function flush() { if (para != "") printf "%d\t%s\n", start, para; para = "" }
+  ' "$skill_path"
+}
+
+# step_lines — the fenced lines that carry the step's title, each prefixed with its line
+# number: every command the document hands a conductor with `<STEP>` in it. Not narrowed to
+# the leaf launches, because the title reaches a command line on more than those — the
+# prompt builder, `event.sh`, `add-ledger-step.sh`, `preserve-attempt.sh` — and one rule for
+# all of them is what the criterion asks for.
+step_lines() {
+  fenced_lines '<STEP>'
+}
+
+# 8. The step's title is the planning leaf's own English, and the document's every command
+#    still spells it `'<STEP>'` — a single-quoted literal in the shell the conductor types
+#    the line into. A title carrying an apostrophe closes that quote early and the line dies
+#    before anything is launched (issue #431):
+#
+#        bash: -c: line 1: unexpected EOF while looking for matching `''
+#
+#    #426 fixed the INNER half of this — the `bash -c "…"` a verifier call was nested in, so
+#    that no second shell parses the title — and left the outer one, which is on every
+#    command here and not only the verifier's. The rule is the one the develop-red launch
+#    already follows since this issue's first step: the title is carried in DOUBLE quotes,
+#    where an apostrophe is an ordinary character.
+#
+#    Two halves, one criterion, because a rule the commands do not follow is not a rule and
+#    a command shape with no rule behind it is the next edit's to get wrong:
+#
+#      - the rule is stated, and stated ONCE. A paragraph that says how the title is quoted
+#        is what a conductor improvising a command it does not find here reads; two of them
+#        are two rules the moment one is edited. The reason is required with it for the
+#        reason case 2 requires nohup's: a rule whose cost is invisible is a rule the next
+#        incident-driven edit undoes.
+#      - every fenced command carrying the title follows it: `"<STEP>"` everywhere, and
+#        `'<STEP>'` nowhere.
+#
+#    Both halves are read where case 1 reads its launches — the fenced blocks, and the prose
+#    with the fences dropped — and for the same reason case 1 gives: *Launching a leaf* has
+#    to stay free to quote the broken shape `'<STEP>'` while explaining it, and a case that
+#    banned that text from the document would ban its own explanation with it.
+name="$skill_md states the step-title rule in one place, and every fenced command carrying the title follows it"
+problems=()
+
+# The rule's paragraph, recognised by what it is about rather than by its wording: it names
+# the step title — as the English words, or as the placeholder every command spells — and it
+# says something about quoting. Anything that does both is a statement of this rule, which is
+# what makes "in one place" answerable at all.
+rules="$(prose_paragraphs | grep -i -E 'quot' | grep -E 'step title|<STEP>' || true)"
+rule_count="$(grep -c . <<< "$rules")"
+if [[ "$rule_count" -eq 0 ]]; then
+  problems+=("$skill_md states no rule for how a step title reaches a command line — no paragraph outside a fenced block says how the title is quoted")
+elif [[ "$rule_count" -gt 1 ]]; then
+  problems+=("$skill_md states the step-title rule in $rule_count places, at lines $(cut -f1 <<< "$rules" | paste -sd, -) — one rule, or the next edit moves one of them")
+else
+  ruleno="$(cut -f1 <<< "$rules")"
+  ruletext="$(cut -f2- <<< "$rules")"
+  lowered="$(tr '[:upper:]' '[:lower:]' <<< "$ruletext")"
+  faults=""
+  [[ "$ruletext" == *'"<STEP>"'* || "$lowered" == *"double quote"* ]] ||
+    fault "does not say the title is carried in double quotes"
+  [[ "$lowered" == *apostrophe* ]] ||
+    fault "does not say why: a title carrying an apostrophe closes a single-quoted one early"
+  [[ -z "$faults" ]] ||
+    problems+=("$skill_md:$ruleno states the step-title rule but $faults")
+fi
+
+steps="$(step_lines)"
+if [[ -z "$steps" ]]; then
+  unreadable "line carrying <STEP> inside a fenced block" "how the step's title reaches a command line"
+else
+  while IFS=$'\t' read -r lineno text; do
+    faults=""
+    # One fault per line, and the single-quoted shape names itself: it is the one the
+    # incident happened in, and a line carrying it is not also worth being told that the
+    # title is therefore not double-quoted. The second reading is what catches the other
+    # ways a title can reach a command line bare — unquoted, or quoted with something else.
+    # Every occurrence, not just the first: a launch spells the title twice — once into the
+    # environment and once as the verdict launcher's `--step` — so the double-quoted ones are
+    # struck out and what is left is asked whether it still carries the title bare.
+    if [[ "$text" == *"'<STEP>'"* ]]; then
+      fault "inlines the step title in single quotes"
+    elif [[ "${text//\"<STEP>\"/}" == *"<STEP>"* ]]; then
+      fault "carries a step title that is not double-quoted"
+    fi
+    [[ -z "$faults" ]] ||
+      problems+=("$skill_md:$lineno $faults: $text")
+  done <<< "$steps"
 fi
 
 report "$name"
