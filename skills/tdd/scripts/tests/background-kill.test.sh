@@ -66,29 +66,34 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# appeared <file> <seconds> — true once <file> holds something, polled fifty times a second up
-# to a budget, returning on the first look that finds it.
-appeared() {
-  local looks=0 cap=$(( $2 * 50 ))
+# poll_until <seconds> <cmd> [args…] — true once <cmd> succeeds, looked at fifty times a
+# second up to a budget and returning on the first look that succeeds. The budget only bounds
+# how long a failing run takes to say so: a passing run never reaches it.
+poll_until() {
+  local cap=$(( $1 * 50 )) looks=0
+  shift
   while [[ "$looks" -lt "$cap" ]]; do
-    [[ -s "$1" ]] && return 0
+    "$@" && return 0
     looks=$((looks + 1))
     sleep 0.02
   done
-  [[ -s "$1" ]]
+  "$@"
 }
 
-# gone <pid> <seconds> — true once <pid> is no longer a running process, polled the same way.
-# A killed process is not gone the instant the signal is sent, so the answer is waited for
-# rather than read once.
-gone() {
-  local looks=0 cap=$(( $2 * 50 ))
-  while [[ "$looks" -lt "$cap" ]]; do
-    kill -0 "$1" 2>/dev/null || return 0
-    looks=$((looks + 1))
-    sleep 0.02
-  done
+# dead <pid> — true once <pid> is no longer a running process. A killed process is not gone
+# the instant the signal is sent, which is why callers poll this rather than read it once.
+dead() {
   ! kill -0 "$1" 2>/dev/null
+}
+
+# appeared <file> <seconds> — true once <file> holds something.
+appeared() {
+  poll_until "$2" test -s "$1"
+}
+
+# gone <pid> <seconds> — true once <pid> is no longer a running process.
+gone() {
+  poll_until "$2" dead "$1"
 }
 
 # 1. A recorded pid kills a process whose starting shell is gone.
