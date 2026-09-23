@@ -122,5 +122,15 @@ run_on "$(surprise_report 'PREDICTION: DIVERGED — it died on a missing helper 
 [[ "$out" == *"$note"* ]] || problems+=("DIVERGED with a trailing clause: stdout does not carry the PREDICTION_NOTE value '$note'")
 verdict "$name"
 
+# 5. Reading the verdict as the line's first word must not have loosened into a search for
+#    a verdict word anywhere in it: a line whose first word is neither verdict has no
+#    recognisable verdict, so it is still exit 2 even when one appears in its trailing
+#    clause (issue #428, criterion 2).
+name="PREDICTION line whose first word is not a verdict exits 2 even when a verdict word follows"
+problems=()
+run_on "$(as_predicted_report 'PREDICTION: probably MATCHED, hard to say')"
+[[ "$code" == 2 ]] || problems+=("want exit 2, got $code")
+verdict "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
