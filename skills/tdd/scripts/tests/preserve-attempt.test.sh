@@ -274,6 +274,23 @@ entries="$(copies_in "$repo")"
   && ok || no "names the leaf's copies by the step's ledger index, so a title carrying a slash writes no nested path (code=$code log='$log_text' out='$out_text' entries='$entries')"
 
 
+# 11. a preserve that fails for a reason deriving a legal name cannot fix — here a ref already
+#     sitting where the attempt's own ref needs a directory — says so on stderr and exits
+#     non-zero, rather than passing silently (issue #427). That silence is the whole reason the
+#     prose-ref bug survived: preservation is best-effort to every caller, so a reader of the
+#     run's .err has only what this script says to go on, and git's own plumbing fatal names a
+#     ref rather than the attempt it belonged to.
+repo="$work/otherfailure"
+new_repo "$repo"
+git_q "$repo" update-ref "refs/veri/attempts/409/3" HEAD >/dev/null 2>&1
+printf 'rejected work\n' > "$repo/stop-run.sh"
+err="$(preserve "$repo" 409 3 develop-green 1 2>&1 >/dev/null)"; code=$?
+said=no
+if [[ "$err" == *preserve-attempt.sh* && "$err" == *409* && "$err" == *develop-green* ]]; then said=yes; fi
+{ [[ "$code" != 0 ]] && [[ "$said" == yes ]]; } \
+  && ok || no "says on stderr that it could not preserve the attempt when the ref write fails for another reason (code=$code said=$said err='$err')"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

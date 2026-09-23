@@ -83,7 +83,17 @@ step_ref="${step_ref//[^0-9A-Za-z-]/-}"
 # every file in the repository.
 commit="$(git commit-tree "$tree" -p HEAD \
   -m "attempt: issue $issue step $step $phase attempt $attempt")"
-git update-ref "refs/veri/attempts/$issue/$step_ref/$phase-$attempt" "$commit"
+# A ref name derived as above is legal, but legal is not the same as writable: git also refuses
+# a name whose path collides with a ref that is already there (`refs/veri/attempts/409/3` as a
+# ref makes `.../409/3/develop-green-1` a file under a file). Preservation stays best-effort to
+# every caller, so the one thing this script owes a reader of the run's .err is a line saying
+# which attempt was lost — git's own fatal names a ref, not the attempt it belonged to, and the
+# silence around it is exactly what let the prose-ref bug survive unnoticed (issue #427).
+ref="refs/veri/attempts/$issue/$step_ref/$phase-$attempt"
+if ! git update-ref "$ref" "$commit"; then
+  echo "preserve-attempt.sh: could not preserve issue $issue step $step $phase attempt $attempt to $ref" >&2
+  exit 1
+fi
 
 # The tree is what a reader wants first, but it is not the whole record: the tree says what the
 # leaf produced, and the leaf's own log is the only place what it *tried* survives. So when the
