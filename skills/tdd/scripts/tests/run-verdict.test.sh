@@ -68,12 +68,16 @@ TEST_PATH='suite.test.sh'
 PHASE='red'
 REASON=".tdd/verify-$PHASE.reason"
 
-# The whole call, once. Both cases launch with exactly this argv — a well-formed call in the
-# documented shape, `--step <title> <phase> <spec> <test-path> <target>` — and differ only in
-# the tree they launch it over: a real verifier under case 1, one that cannot start under
-# case 2. Spelled at each call site, the two could drift into asking about different calls,
-# and case 2's exit 2 would then be evidence about a call shape case 1 never ran.
-CALL=(--step "$STEP" "$PHASE" "$SPEC" "$TEST_PATH" case-1)
+# The whole call, once. Every case launches with exactly this argv — a well-formed call in the
+# documented shape, `--step <title> <phase> <spec> <test-path> <target>` — and they differ only
+# in the tree they launch it over: a real verifier, one that cannot start, one watching the
+# phase's reason file. Spelled at each call site, they could drift into asking about different
+# calls, and one case's exit 2 would then be evidence about a call shape another never ran.
+#
+# The target test id is the one argument no case has anything to say about: the launcher passes
+# it through untouched and every stub ignores it, so it is named for what it is rather than
+# after whichever case was written first.
+CALL=(--step "$STEP" "$PHASE" "$SPEC" "$TEST_PATH" a-target-test-id)
 
 pass=0 fail=0
 
