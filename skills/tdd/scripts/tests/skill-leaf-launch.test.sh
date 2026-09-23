@@ -118,10 +118,15 @@ single_quoted_step="'$step_ph'"
 # carries an apostrophe exactly as readily as the whole title does and is bound by the same
 # rule; the document spells it several ways — `<substring>`, `<distinctive substring of
 # STEP>`, `<anchor substring>` — so the placeholder is an ERE matching any of them rather
-# than the one literal `$step_ph` is. Written down here beside the whole title's three
-# shapes, for the reason those are: the probe narrows on them and its failure messages quote
-# them, and a document that renames the placeholder must not leave one reading a shape no
-# other looks for.
+# than the one literal `$step_ph` is, and `[^<>]` is what keeps a match inside one
+# placeholder rather than letting it span from one to the next. ERE is the one dialect both
+# readers speak: `grep -E` selects the lines and `read_quoted_lines` reads them with `=~` and
+# `sed -E`, never with a glob — `[^<>]*` means "one non-bracket character, then anything at
+# all" to `[[ … == … ]]`, which is not this pattern and does not match `'<substring>'` or
+# `'<anchor substring>'`. Written down here beside the whole title's three shapes, for the
+# reason those are: the probe narrows on them and its failure messages quote them, and a
+# document that renames the placeholder must not leave one reading a shape no other looks
+# for.
 fragment_ph="<[^<>]*substring[^<>]*>"
 double_quoted_fragment="\"$fragment_ph\""
 single_quoted_fragment="'$fragment_ph'"
@@ -152,13 +157,47 @@ fault() {
 
 # faulted <lineno> <text> — close one document line's reading, on the `faults` string the
 # caller opened empty before it: nothing wrong is nothing recorded, and otherwise one
-# problem naming the line, what is wrong with it and the line itself. Three cases end a
-# launch line the same way — 1, 7 and 8 — so the shape lives here rather than being retyped
-# at each of them, where one could stop quoting the offending line while the others went on
-# doing it.
+# problem naming the line, what is wrong with it and the line itself. Cases 1 and 7 end a
+# launch line through here directly and cases 8 and 9 through the reader below, so the shape
+# lives here rather than being retyped at each of them, where one could stop quoting the
+# offending line while the others went on doing it.
 faulted() {
   [[ -z "$faults" ]] ||
     problems+=("$skill_md:$1 $faults: $2")
+}
+
+# read_quoted_lines <lines> <noun> <ph> <single> <double> — hold every numbered document line
+# in <lines> to the step-title rule, where <noun> names what the line carries, <ph> is the
+# placeholder it spells it as and <single>/<double> are that placeholder's two quoted shapes.
+# One fault per line, and the single-quoted shape names itself: it is the one the incident
+# happened in, and a line carrying it is not also worth being told that what it carries is
+# therefore not double-quoted. The second reading is what catches the other ways the text can
+# reach a command line bare — unquoted, or quoted with something else. Every occurrence, not
+# just the first: a launch spells the title twice — once into the environment and once as the
+# verdict launcher's `--step` — so the double-quoted ones are struck out and what is left is
+# asked whether it still carries it bare.
+#
+# Cases 8 and 9 are the same reading over two texts — the whole title, and a fragment of it —
+# because it is one rule and the fragment fails it one argument over. So the reading lives
+# here rather than being retyped at each, where one could go on being tightened while the
+# other read the document the old way and called it a pass. The three patterns go in as EREs,
+# and are read as EREs — `=~` for the first reading, `sed -E` for the strike-out the second
+# needs — because the fragment's placeholder is a character class matching the several ways
+# the document spells it, and a class means something else to a glob. The whole title's
+# placeholder is its own literal and reads the same either way, so ERE for both is the choice
+# that lets one reading serve two texts without one of them being read wrong.
+read_quoted_lines() {
+  local lines="$1" noun="$2" ph="$3" single="$4" double="$5"
+  local lineno text
+  while IFS=$'\t' read -r lineno text; do
+    faults=""
+    if [[ "$text" =~ $single ]]; then
+      fault "single-quotes $noun"
+    elif [[ "$(sed -E "s|$double||g" <<< "$text")" =~ $ph ]]; then
+      fault "carries $noun outside double quotes"
+    fi
+    faulted "$lineno" "$text"
+  done <<< "$lines"
 }
 
 # unreadable <missing> <subject> — record the problem a probe that printed NOTHING leaves
@@ -547,22 +586,8 @@ steps="$(step_lines)"
 if [[ -z "$steps" ]]; then
   unreadable "line carrying $step_ph inside a fenced block" "how the step's title reaches a command line"
 else
-  while IFS=$'\t' read -r lineno text; do
-    faults=""
-    # One fault per line, and the single-quoted shape names itself: it is the one the
-    # incident happened in, and a line carrying it is not also worth being told that the
-    # title is therefore not double-quoted. The second reading is what catches the other
-    # ways a title can reach a command line bare — unquoted, or quoted with something else.
-    # Every occurrence, not just the first: a launch spells the title twice — once into the
-    # environment and once as the verdict launcher's `--step` — so the double-quoted ones are
-    # struck out and what is left is asked whether it still carries the title bare.
-    if [[ "$text" == *"$single_quoted_step"* ]]; then
-      fault "inlines the step title in single quotes"
-    elif [[ "${text//"$double_quoted_step"/}" == *"$step_ph"* ]]; then
-      fault "carries a step title that is not double-quoted"
-    fi
-    faulted "$lineno" "$text"
-  done <<< "$steps"
+  read_quoted_lines "$steps" "the step title" \
+    "$step_ph" "$single_quoted_step" "$double_quoted_step"
 fi
 
 report "$name"
@@ -613,18 +638,8 @@ fragments="$(fragment_lines)"
 if [[ -z "$fragments" ]]; then
   unreadable "command line passing a fragment of the step's title" "how a fragment of the step's title reaches a command line"
 else
-  while IFS=$'\t' read -r lineno text; do
-    faults=""
-    # Same two readings as case 8, and in the same order and for the same reason: the
-    # single-quoted shape is the one the incident happens in and names itself, and the
-    # second reading catches a fragment left bare or quoted with something else.
-    if [[ "$text" =~ $single_quoted_fragment ]]; then
-      fault "single-quotes a fragment of the step title"
-    elif ! [[ "$text" =~ $double_quoted_fragment ]]; then
-      fault "carries a fragment of the step title that is not double-quoted"
-    fi
-    faulted "$lineno" "$text"
-  done <<< "$fragments"
+  read_quoted_lines "$fragments" "a fragment of the step title" \
+    "$fragment_ph" "$single_quoted_fragment" "$double_quoted_fragment"
 fi
 
 report "$name"
