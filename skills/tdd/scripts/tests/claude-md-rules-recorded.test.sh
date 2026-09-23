@@ -121,15 +121,26 @@ ALL_RECORDS="$(records)"
 # `records` prints them) matches every regex, 1 otherwise. Asked of one record at a time for
 # the reason the header gives: fragments of a rule sections apart must not answer for it.
 one_record_matches() {
-  local text="$1" line re
+  local text="$1" line
   shift
   while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    return 0
+    all_regexes_match "$line" "$@" && return 0
   done <<< "$text"
   return 1
+}
+
+# all_regexes_match <line> <regex>... — exit 0 when <line> matches every regex, 1 otherwise.
+# The one place a rule is compared against a record, because `one_record_matches` and
+# `count_matching_records` differ only in what they do with the answer — whether any record
+# carries the rule, and how many do — and a second copy of the comparison is a place for the
+# two readings of the same roster line to drift apart.
+all_regexes_match() {
+  local line="$1" re
+  shift
+  for re in "$@"; do
+    [[ "$line" =~ $re ]] || return 1
+  done
+  return 0
 }
 
 # no_records <text> <problem> — collect <problem> and exit 0 when <text> holds no record at
@@ -337,13 +348,10 @@ run_case "$claude_md's testing idiom section states the pipefail/SIGPIPE rule" \
 # trim this suite exists to survive takes one of them away without the other — after which
 # the document states the rule and contradicts it, which is worse than either.
 count_matching_records() {
-  local text="$1" line re n=0
+  local text="$1" line n=0
   shift
   while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    n=$((n + 1))
+    all_regexes_match "$line" "$@" && n=$((n + 1))
   done <<< "$text"
   printf '%s\n' "$n"
 }
