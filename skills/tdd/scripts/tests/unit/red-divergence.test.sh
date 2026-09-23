@@ -76,6 +76,34 @@ surprise_report() {
   report "$fail_output" "$predicted" "$@"
 }
 
+# The three answers the parser can give about a PREDICTION: line, one helper each, so a case
+# that varies only the line it feeds says just that. Each fills `problems` for the enclosing
+# case, naming the line it fed, and picks the report shape the answer needs: a MATCHED or
+# unreadable line rides an as-predicted report, where nothing is a value the reason must
+# carry, and a DIVERGED one rides a surprise report, whose note the reason then has to name.
+
+# reads_matched <PREDICTION: line> — the parser read MATCHED: exit 3 and not a byte of output.
+reads_matched() {
+  run_on "$(as_predicted_report "$1")"
+  [[ "$code" == 3 ]] || problems+=("$1: want exit 3, got $code")
+  [[ -z "$out" ]] || problems+=("$1: want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
+}
+
+# reads_diverged <PREDICTION: line> — the parser read DIVERGED: exit 0, and the reason it
+# printed carries the report's PREDICTION_NOTE value for the revise leaf.
+reads_diverged() {
+  run_on "$(surprise_report "$1" "PREDICTION_NOTE: $note")"
+  [[ "$code" == 0 ]] || problems+=("$1: want exit 0, got $code")
+  [[ "$out" == *"$note"* ]] || problems+=("$1: stdout does not carry the PREDICTION_NOTE value '$note'")
+}
+
+# reads_unreadable [PREDICTION: line] — the parser found no verdict it recognises: exit 2.
+# With no argument the report carries no PREDICTION: line at all, which is the same answer.
+reads_unreadable() {
+  run_on "$(as_predicted_report "$@")"
+  [[ "$code" == 2 ]] || problems+=("${1:-no PREDICTION: line}: want exit 2, got $code")
+}
+
 # 1. DIVERGED → exit 0, and the reason carries all three of the report's values, so the
 #    revise leaf is told what was predicted, what actually failed, and why they differ.
 name="DIVERGED report exits 0 and prints its PREDICTED_FAILURE, FAIL_OUTPUT and PREDICTION_NOTE"
@@ -91,10 +119,8 @@ verdict "$name"
 # 2. MATCHED → exit 3 (nothing to do) and not a byte of output, so the conductor carries
 #    on to verify-red exactly as it did before there was a divergence gate.
 name="MATCHED report exits 3 and prints nothing"
-run_on "$(as_predicted_report 'PREDICTION: MATCHED')"
 problems=()
-[[ "$code" == 3 ]] || problems+=("want exit 3, got $code")
-[[ -z "$out" ]] || problems+=("want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
+reads_matched 'PREDICTION: MATCHED'
 verdict "$name"
 
 # 3. A prediction nobody can read — no PREDICTION: line at all, or a value that is neither
@@ -102,10 +128,8 @@ verdict "$name"
 #    the way it handles DIVERGED rather than sending the step on to a blind verify-red.
 name="report with no PREDICTION: line, or an unrecognised value, exits 2"
 problems=()
-run_on "$(as_predicted_report)"
-[[ "$code" == 2 ]] || problems+=("no PREDICTION: line: want exit 2, got $code")
-run_on "$(as_predicted_report 'PREDICTION: probably')"
-[[ "$code" == 2 ]] || problems+=("PREDICTION: probably: want exit 2, got $code")
+reads_unreadable
+reads_unreadable 'PREDICTION: probably'
 verdict "$name"
 
 # 4. The leaf prompts invite a trailing clause after the verdict word — "PREDICTION: MATCHED
@@ -114,12 +138,8 @@ verdict "$name"
 #    that verdict rather than costing the step a revise attempt (issue #428).
 name="PREDICTION line with a trailing clause after the verdict word is read as that verdict"
 problems=()
-run_on "$(as_predicted_report 'PREDICTION: MATCHED — the run printed the assertion the step predicted')"
-[[ "$code" == 3 ]] || problems+=("MATCHED with a trailing clause: want exit 3, got $code")
-[[ -z "$out" ]] || problems+=("MATCHED with a trailing clause: want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
-run_on "$(surprise_report 'PREDICTION: DIVERGED — it died on a missing helper instead' "PREDICTION_NOTE: $note")"
-[[ "$code" == 0 ]] || problems+=("DIVERGED with a trailing clause: want exit 0, got $code")
-[[ "$out" == *"$note"* ]] || problems+=("DIVERGED with a trailing clause: stdout does not carry the PREDICTION_NOTE value '$note'")
+reads_matched 'PREDICTION: MATCHED — the run printed the assertion the step predicted'
+reads_diverged 'PREDICTION: DIVERGED — it died on a missing helper instead'
 verdict "$name"
 
 # 5. Reading the verdict as the line's first word must not have loosened into a search for
@@ -128,8 +148,7 @@ verdict "$name"
 #    clause (issue #428, criterion 2).
 name="PREDICTION line whose first word is not a verdict exits 2 even when a verdict word follows"
 problems=()
-run_on "$(as_predicted_report 'PREDICTION: probably MATCHED, hard to say')"
-[[ "$code" == 2 ]] || problems+=("want exit 2, got $code")
+reads_unreadable 'PREDICTION: probably MATCHED, hard to say'
 verdict "$name"
 
 # prompt_verdicts <prompt file> — the verdicts a leaf prompt's `PREDICTION:` report line
@@ -178,10 +197,8 @@ verdict "$name"
 name="PREDICTION verdict word carrying trailing punctuation is read as that verdict"
 problems=()
 for mark in ',' ';' ':' '.'; do
-  run_on "$(as_predicted_report "PREDICTION: MATCHED$mark but only in the message")"
-  [[ "$code" == 3 ]] || problems+=("MATCHED$mark want exit 3, got $code")
-  run_on "$(surprise_report "PREDICTION: DIVERGED$mark but only in the message" "PREDICTION_NOTE: $note")"
-  [[ "$code" == 0 ]] || problems+=("DIVERGED$mark want exit 0, got $code")
+  reads_matched "PREDICTION: MATCHED$mark but only in the message"
+  reads_diverged "PREDICTION: DIVERGED$mark but only in the message"
 done
 verdict "$name"
 
