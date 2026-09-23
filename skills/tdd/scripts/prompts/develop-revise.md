@@ -65,7 +65,7 @@ and comes back to this step later, so leave the working tree exactly as you foun
 OUTCOME: REWRITTEN | IMPOSSIBLE — <what you changed, or why the step cannot be met as stated>
 AGAINST_UNMODIFIED: FAILS | PASSES | N/A — <does the test fail against the unmodified production code; N/A if you did not touch a test>
 PREDICTED_FAILURE: <redoing red only — the assertion the rewritten test was predicted to fire on, the values it fires on and the shape of the message, as predicted before running; N/A otherwise>
-PREDICTION: MATCHED | DIVERGED | N/A — <whether the run printed what you predicted; N/A unless you are redoing red>
+PREDICTION: MATCHED | DIVERGED — <whether the run printed what you predicted; redoing red only, so omit this line entirely otherwise>
 
 or, when the green you are redoing is a step too big for one, those lines replaced by one
 to three of:
