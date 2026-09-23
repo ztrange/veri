@@ -94,21 +94,31 @@ probe_launcher_is_there() {
   }
 }
 
+# copy_scripts_to <dir> — a copy of the real scripts directory at <dir>, which is where every
+# case runs the launcher from: it resolves its verifier as a sibling, so what sits beside it
+# is the whole of what a case controls.
+#
+# The directory is copied whole (its libs and prompts with it) rather than the launcher alone,
+# because what a script here may reach for through its own directory is its business and not
+# this suite's. Each case then replaces the ONE file it is about — `verify.sh` — leaving this
+# function with no opinion on the verifier, which is what lets both cases share it.
+copy_scripts_to() {
+  local dir="$1" d
+  mkdir -p "$dir" || return 1
+  cp "$SCRIPTS"/*.sh "$dir"/ 2>/dev/null
+  for d in lib prompts; do
+    if [[ -d "$SCRIPTS/$d" ]]; then cp -R "$SCRIPTS/$d" "$dir/$d"; fi
+  done
+}
+
 # stage — build the tree the launcher runs in and leave the run's cwd in `run`, the recorded
 # argv path in `argv_file`.
 #
-# The scripts directory is copied whole (its libs and prompts with it) rather than the
-# launcher alone, because what a script here may reach for through its own directory is its
-# business and not this suite's; the ONE file that is not the real thing is `verify.sh`, which
-# is replaced by the stub. The stub is `#!/bin/sh` for the reason #322 gives — a stub is
-# forked per case and bash 5 starts three times slower than sh.
+# The verifier is the stub, which is `#!/bin/sh` for the reason #322 gives — a stub is forked
+# per case and bash 5 starts three times slower than sh.
 stage() {
   scripts="$work/scripts"
-  mkdir -p "$scripts" || return 1
-  cp "$SCRIPTS"/*.sh "$scripts"/ 2>/dev/null
-  for d in lib prompts; do
-    if [[ -d "$SCRIPTS/$d" ]]; then cp -R "$SCRIPTS/$d" "$scripts/$d"; fi
-  done
+  copy_scripts_to "$scripts" || return 1
 
   argv_file="$work/verifier.argv"
   cat > "$scripts/$VERIFIER" <<'STUB'
@@ -178,11 +188,7 @@ stage_broken() {
   local state="$1"
   broken="$work/broken"
   rm -rf "$broken"
-  mkdir -p "$broken" || return 1
-  cp "$SCRIPTS"/*.sh "$broken"/ 2>/dev/null
-  for d in lib prompts; do
-    if [[ -d "$SCRIPTS/$d" ]]; then cp -R "$SCRIPTS/$d" "$broken/$d"; fi
-  done
+  copy_scripts_to "$broken" || return 1
 
   case "$state" in
     missing)   rm -f "$broken/$VERIFIER" ;;
