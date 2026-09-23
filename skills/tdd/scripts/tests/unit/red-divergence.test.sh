@@ -41,20 +41,44 @@ verdict() {
   fi
 }
 
-# 1. DIVERGED → exit 0, and the reason carries all three of the report's values, so the
-#    revise leaf is told what was predicted, what actually failed, and why they differ.
-name="DIVERGED report exits 0 and prints its PREDICTED_FAILURE, FAIL_OUTPUT and PREDICTION_NOTE"
+# The report every case feeds the script, in its two shapes. They differ only in the values
+# the reason has to carry and in the PREDICTION: line — which is the thing under test, so
+# each case supplies its own, plus any line that follows it, as arguments.
 predicted='slugify: command not found'
 fail_output='FAIL - slugify lowercases the title (want exit 0, got 127)'
 note='the suite died on a missing helper before it reached the assertion'
-report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
+
+# report <fail-output> <predicted-failure> <trailing-line>... — a red leaf's report, printed
+# with no trailing newline, the way the leaf's own report reaches the script on stdin.
+report() {
+  local text line
+  text="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
 TARGET_TEST: slugify lowercases the title
 AGAINST_UNMODIFIED: FAILS
-FAIL_OUTPUT: $fail_output
-PREDICTED_FAILURE: $predicted
-PREDICTION: DIVERGED
-PREDICTION_NOTE: $note"
-run_on "$report"
+FAIL_OUTPUT: $1
+PREDICTED_FAILURE: $2"
+  for line in "${@:3}"; do text+="
+$line"; done
+  printf '%s' "$text"
+}
+
+# matched_report <trailing-line>... — the run failed on the assertion the leaf predicted, so
+# nothing in it is a value the reason has to carry.
+matched_report() {
+  report "FAIL - slugify lowercases the title (want 'a-b', got 'A B')" \
+         "the assertion on the slug, want 'a-b', got 'A B'" "$@"
+}
+
+# diverged_report <trailing-line>... — the run died on a missing helper instead, so its three
+# values are the ones a DIVERGED reason is asserted to carry.
+diverged_report() {
+  report "$fail_output" "$predicted" "$@"
+}
+
+# 1. DIVERGED → exit 0, and the reason carries all three of the report's values, so the
+#    revise leaf is told what was predicted, what actually failed, and why they differ.
+name="DIVERGED report exits 0 and prints its PREDICTED_FAILURE, FAIL_OUTPUT and PREDICTION_NOTE"
+run_on "$(diverged_report 'PREDICTION: DIVERGED' "PREDICTION_NOTE: $note")"
 problems=()
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
 [[ "$out" == *"$predicted"* ]] || problems+=("stdout does not carry the PREDICTED_FAILURE value '$predicted'")
@@ -66,13 +90,7 @@ verdict "$name"
 # 2. MATCHED → exit 3 (nothing to do) and not a byte of output, so the conductor carries
 #    on to verify-red exactly as it did before there was a divergence gate.
 name="MATCHED report exits 3 and prints nothing"
-report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
-TARGET_TEST: slugify lowercases the title
-AGAINST_UNMODIFIED: FAILS
-FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
-PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'
-PREDICTION: MATCHED"
-run_on "$report"
+run_on "$(matched_report 'PREDICTION: MATCHED')"
 problems=()
 [[ "$code" == 3 ]] || problems+=("want exit 3, got $code")
 [[ -z "$out" ]] || problems+=("want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
@@ -83,20 +101,9 @@ verdict "$name"
 #    the way it handles DIVERGED rather than sending the step on to a blind verify-red.
 name="report with no PREDICTION: line, or an unrecognised value, exits 2"
 problems=()
-report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
-TARGET_TEST: slugify lowercases the title
-AGAINST_UNMODIFIED: FAILS
-FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
-PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'"
-run_on "$report"
+run_on "$(matched_report)"
 [[ "$code" == 2 ]] || problems+=("no PREDICTION: line: want exit 2, got $code")
-report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
-TARGET_TEST: slugify lowercases the title
-AGAINST_UNMODIFIED: FAILS
-FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
-PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'
-PREDICTION: probably"
-run_on "$report"
+run_on "$(matched_report 'PREDICTION: probably')"
 [[ "$code" == 2 ]] || problems+=("PREDICTION: probably: want exit 2, got $code")
 verdict "$name"
 
@@ -106,26 +113,10 @@ verdict "$name"
 #    that verdict rather than costing the step a revise attempt (issue #428).
 name="PREDICTION line with a trailing clause after the verdict word is read as that verdict"
 problems=()
-report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
-TARGET_TEST: slugify lowercases the title
-AGAINST_UNMODIFIED: FAILS
-FAIL_OUTPUT: FAIL - slugify lowercases the title (want 'a-b', got 'A B')
-PREDICTED_FAILURE: the assertion on the slug, want 'a-b', got 'A B'
-PREDICTION: MATCHED — the run printed the assertion the step predicted"
-run_on "$report"
+run_on "$(matched_report 'PREDICTION: MATCHED — the run printed the assertion the step predicted')"
 [[ "$code" == 3 ]] || problems+=("MATCHED with a trailing clause: want exit 3, got $code")
 [[ -z "$out" ]] || problems+=("MATCHED with a trailing clause: want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
-predicted='slugify: command not found'
-fail_output='FAIL - slugify lowercases the title (want exit 0, got 127)'
-note='the suite died on a missing helper before it reached the assertion'
-report="TEST_PATH: skills/tdd/scripts/tests/unit/slugify.test.sh
-TARGET_TEST: slugify lowercases the title
-AGAINST_UNMODIFIED: FAILS
-FAIL_OUTPUT: $fail_output
-PREDICTED_FAILURE: $predicted
-PREDICTION: DIVERGED — it died on a missing helper instead
-PREDICTION_NOTE: $note"
-run_on "$report"
+run_on "$(diverged_report 'PREDICTION: DIVERGED — it died on a missing helper instead' "PREDICTION_NOTE: $note")"
 [[ "$code" == 0 ]] || problems+=("DIVERGED with a trailing clause: want exit 0, got $code")
 [[ "$out" == *"$note"* ]] || problems+=("DIVERGED with a trailing clause: stdout does not carry the PREDICTION_NOTE value '$note'")
 verdict "$name"
