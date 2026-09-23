@@ -36,12 +36,17 @@ if [[ ! -x "$HERE/verify.sh" ]]; then
 fi
 
 # The phase this verdict is for, read the way verify.sh reads it — the first positional, after
-# the same `--step`/`--fast-cmd` value pairs — off a copy of argv, so what is exec'd below is
-# still the caller's own arguments, unexamined and unmodified. Which phase names are valid
-# stays verify.sh's judgement: an unrecognised word here only names a reason file nothing
-# wrote, and clearing that is harmless.
+# the value-taking options `lib/verify-options.sh` names for both of us — off a copy of argv,
+# so what is exec'd below is still the caller's own arguments, unexamined and unmodified. That
+# list is shared rather than copied because a copy of it here would be the one that goes stale:
+# a new option verify.sh read a value after would be read as the phase here, and the reason
+# file this script then cleared would be one nothing writes, leaving the real one stale — the
+# #424 failure back again. Which phase names are valid stays verify.sh's judgement: an
+# unrecognised word here only names a reason file nothing wrote, and clearing that is harmless.
+# shellcheck source=lib/verify-options.sh
+source "$HERE/lib/verify-options.sh"
 args=("$@")
-while [[ "${args[0]:-}" == --step || "${args[0]:-}" == --fast-cmd ]]; do
+while verify_takes_a_value "${args[0]:-}"; do
   args=("${args[@]:2}")
 done
 phase="${args[0]:-}"
