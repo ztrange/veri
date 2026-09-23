@@ -62,23 +62,24 @@ $line"; done
   printf '%s' "$text"
 }
 
-# matched_report <trailing-line>... — the run failed on the assertion the leaf predicted, so
-# nothing in it is a value the reason has to carry.
-matched_report() {
+# as_predicted_report <trailing-line>... — the run failed on the assertion the leaf predicted,
+# so nothing in it is a value the reason has to carry. Named for the run, not for a verdict:
+# a case feeds it PREDICTION: probably, and none at all, as readily as PREDICTION: MATCHED.
+as_predicted_report() {
   report "FAIL - slugify lowercases the title (want 'a-b', got 'A B')" \
          "the assertion on the slug, want 'a-b', got 'A B'" "$@"
 }
 
-# diverged_report <trailing-line>... — the run died on a missing helper instead, so its three
-# values are the ones a DIVERGED reason is asserted to carry.
-diverged_report() {
+# surprise_report <trailing-line>... — the run died on a missing helper instead of failing the
+# way the leaf predicted, so its three values are the ones a DIVERGED reason must carry.
+surprise_report() {
   report "$fail_output" "$predicted" "$@"
 }
 
 # 1. DIVERGED → exit 0, and the reason carries all three of the report's values, so the
 #    revise leaf is told what was predicted, what actually failed, and why they differ.
 name="DIVERGED report exits 0 and prints its PREDICTED_FAILURE, FAIL_OUTPUT and PREDICTION_NOTE"
-run_on "$(diverged_report 'PREDICTION: DIVERGED' "PREDICTION_NOTE: $note")"
+run_on "$(surprise_report 'PREDICTION: DIVERGED' "PREDICTION_NOTE: $note")"
 problems=()
 [[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
 [[ "$out" == *"$predicted"* ]] || problems+=("stdout does not carry the PREDICTED_FAILURE value '$predicted'")
@@ -90,7 +91,7 @@ verdict "$name"
 # 2. MATCHED → exit 3 (nothing to do) and not a byte of output, so the conductor carries
 #    on to verify-red exactly as it did before there was a divergence gate.
 name="MATCHED report exits 3 and prints nothing"
-run_on "$(matched_report 'PREDICTION: MATCHED')"
+run_on "$(as_predicted_report 'PREDICTION: MATCHED')"
 problems=()
 [[ "$code" == 3 ]] || problems+=("want exit 3, got $code")
 [[ -z "$out" ]] || problems+=("want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
@@ -101,9 +102,9 @@ verdict "$name"
 #    the way it handles DIVERGED rather than sending the step on to a blind verify-red.
 name="report with no PREDICTION: line, or an unrecognised value, exits 2"
 problems=()
-run_on "$(matched_report)"
+run_on "$(as_predicted_report)"
 [[ "$code" == 2 ]] || problems+=("no PREDICTION: line: want exit 2, got $code")
-run_on "$(matched_report 'PREDICTION: probably')"
+run_on "$(as_predicted_report 'PREDICTION: probably')"
 [[ "$code" == 2 ]] || problems+=("PREDICTION: probably: want exit 2, got $code")
 verdict "$name"
 
@@ -113,10 +114,10 @@ verdict "$name"
 #    that verdict rather than costing the step a revise attempt (issue #428).
 name="PREDICTION line with a trailing clause after the verdict word is read as that verdict"
 problems=()
-run_on "$(matched_report 'PREDICTION: MATCHED — the run printed the assertion the step predicted')"
+run_on "$(as_predicted_report 'PREDICTION: MATCHED — the run printed the assertion the step predicted')"
 [[ "$code" == 3 ]] || problems+=("MATCHED with a trailing clause: want exit 3, got $code")
 [[ -z "$out" ]] || problems+=("MATCHED with a trailing clause: want no output, got '$(printf '%s' "$out" | tr '\n' '|')'")
-run_on "$(diverged_report 'PREDICTION: DIVERGED — it died on a missing helper instead' "PREDICTION_NOTE: $note")"
+run_on "$(surprise_report 'PREDICTION: DIVERGED — it died on a missing helper instead' "PREDICTION_NOTE: $note")"
 [[ "$code" == 0 ]] || problems+=("DIVERGED with a trailing clause: want exit 0, got $code")
 [[ "$out" == *"$note"* ]] || problems+=("DIVERGED with a trailing clause: stdout does not carry the PREDICTION_NOTE value '$note'")
 verdict "$name"
