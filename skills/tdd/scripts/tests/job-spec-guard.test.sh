@@ -257,6 +257,14 @@ run_guard() {
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
+# naming <needle> — the lines of the last run's output that carry <needle>, empty when none
+# do. Every probe below asks that one question of `guard_out` — did the guard say anything
+# about this file, this address, this entry — and the answer is quoted back in whatever the
+# probe reports, so the author reads the guard's own words rather than a verdict about them.
+# A here-string rather than a pipe, so a grep that stops reading cannot hand a SIGPIPE up as
+# this suite's status.
+naming() { grep -F "$1" <<< "$guard_out"; }
+
 # probe_guard_names_the_offender_with_its_line — the criterion, and it asks for both halves
 # of what a guard is: a failure, and an address. Not "the output mentions the file" — a guard
 # that listed every file it read would satisfy that — but `<file>:<line>`, which is the only
@@ -265,7 +273,7 @@ probe_guard_names_the_offender_with_its_line() {
   local named
   [[ "$guard_code" != 0 ]] ||
     problems+=("want the guard to fail over a file under skills/ that kills a background process by a job spec; it exited 0 and said: $(flat "$guard_out")")
-  named="$(grep -F "$OFFENDER_NAME" <<< "$guard_out")"
+  named="$(naming "$OFFENDER_NAME")"
   [[ -n "$named" ]] || {
     problems+=("no line of the guard's output names $OFFENDER_REL, whose line $offender_line kills a background process by a job spec; it said: $(flat "$guard_out")")
     return
@@ -281,7 +289,7 @@ probe_guard_names_the_offender_with_its_line() {
 # complaint.
 probe_guard_leaves_the_innocent_alone() {
   local named
-  named="$(grep -F "$INNOCENT_NAME" <<< "$guard_out")"
+  named="$(naming "$INNOCENT_NAME")"
   [[ -z "$named" ]] ||
     problems+=("the guard named $INNOCENT_REL, which kills the same process by the pid it recorded: $(flat "$named")")
 }
@@ -304,7 +312,7 @@ probe_guard_exempts_the_listed_site() {
   local named
   [[ "$guard_code" == 0 ]] ||
     problems+=("want the guard to pass over a site listed in its exemption table as [$1] with a reason; it exited $guard_code and said: $(flat "$guard_out")")
-  named="$(grep -F "$OFFENDER_REL:$offender_line" <<< "$guard_out")"
+  named="$(naming "$OFFENDER_REL:$offender_line")"
   [[ -z "$named" ]] ||
     problems+=("the guard still named $OFFENDER_REL:$offender_line, which its exemption table lists as [$1] with a reason: $(flat "$named")")
 }
@@ -322,7 +330,7 @@ probe_guard_refuses_a_reasonless_entry() {
   local key="$1" named
   [[ "$guard_code" != 0 ]] ||
     problems+=("want the guard to fail over the exemption entry [$key], which carries no reason; it exited 0 and said: $(flat "$guard_out")")
-  named="$(grep -F "$key" <<< "$guard_out")"
+  named="$(naming "$key")"
   [[ -n "$named" ]] || {
     problems+=("no line of the guard's output names the reasonless exemption entry [$key]; it said: $(flat "$guard_out")")
     return
