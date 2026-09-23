@@ -132,6 +132,26 @@ run_on "$(as_predicted_report 'PREDICTION: probably MATCHED, hard to say')"
 [[ "$code" == 2 ]] || problems+=("want exit 2, got $code")
 verdict "$name"
 
+# prompt_verdicts <prompt file> — the verdicts a leaf prompt's `PREDICTION:` report line
+# offers, one per line. The line reads `PREDICTION: A | B — <gloss>`: drop the label, drop the
+# trailing gloss the em dash introduces, split what is left on `|`, and trim each alternative
+# of the spaces the template sets around it.
+prompt_verdicts() {
+  local line alts offered_verdict
+  local -a offers
+  while IFS= read -r line; do
+    alts="${line#PREDICTION: }"
+    alts="${alts%% — *}"
+    IFS='|' read -r -a offers <<< "$alts"
+    for offered_verdict in "${offers[@]}"; do
+      offered_verdict="${offered_verdict#"${offered_verdict%%[![:space:]]*}"}"
+      offered_verdict="${offered_verdict%"${offered_verdict##*[![:space:]]}"}"
+      [[ -n "$offered_verdict" ]] || continue
+      printf '%s\n' "$offered_verdict"
+    done
+  done < <(grep '^PREDICTION: ' "$1")
+}
+
 # 6. The contract is stated twice — in the report template a red leaf fills in, and in the
 #    parser that reads the line back — so the two must offer the same verdicts. Every
 #    alternative a prompt's `PREDICTION:` line names is fed to the parser, and none of them
@@ -142,21 +162,11 @@ problems=()
 prompts_dir="$HERE/../../prompts"
 offered=0
 for prompt in "$prompts_dir"/*.md; do
-  while IFS= read -r line; do
-    # The line reads `PREDICTION: A | B — <gloss>`: drop the label, drop the trailing gloss
-    # the em dash introduces, and what is left is the verdicts the template offers.
-    alts="${line#PREDICTION: }"
-    alts="${alts%% — *}"
-    IFS='|' read -r -a offers <<< "$alts"
-    for offered_verdict in "${offers[@]}"; do
-      offered_verdict="${offered_verdict#"${offered_verdict%%[![:space:]]*}"}"
-      offered_verdict="${offered_verdict%"${offered_verdict##*[![:space:]]}"}"
-      [[ -n "$offered_verdict" ]] || continue
-      offered=$((offered + 1))
-      run_on "$(as_predicted_report "PREDICTION: $offered_verdict")"
-      [[ "$code" != 2 ]] || problems+=("$(basename "$prompt") offers '$offered_verdict' and the parser reads it as no verdict at all (exit 2)")
-    done
-  done < <(grep '^PREDICTION: ' "$prompt")
+  while IFS= read -r offered_verdict; do
+    offered=$((offered + 1))
+    run_on "$(as_predicted_report "PREDICTION: $offered_verdict")"
+    [[ "$code" != 2 ]] || problems+=("$(basename "$prompt") offers '$offered_verdict' and the parser reads it as no verdict at all (exit 2)")
+  done < <(prompt_verdicts "$prompt")
 done
 (( offered )) || problems+=("no prompt under $prompts_dir carries a PREDICTION: report line to check")
 verdict "$name"
