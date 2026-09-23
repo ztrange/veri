@@ -52,8 +52,7 @@ tree="$(GIT_INDEX_FILE="$index" git write-tree)"
 # rather than stdout, the way lib/candidate-line.sh's `structural_candidate` answers: a value
 # read back through `$(…)` is a fork per preservation for a line this shell already has.
 # The reading is a function so the scan's own names — the grammar, the counter, the line —
-# are `local` and never reach the copy step at the foot of the script, which has a `$step` of
-# its own to think about.
+# are `local` and never reach the rest of the script.
 ledger_step_index() {
   local ledger="$1" prose="$2"
   local box_re='^[[:space:]]*- \[[ xX]\] (.*)$'
@@ -97,7 +96,10 @@ git update-ref "refs/veri/attempts/$issue/$step_ref/$phase-$attempt" "$commit"
 mark="${5:-}"
 if [[ -n "$mark" ]]; then
   mkdir -p .tdd/attempts
-  base=".tdd/attempts/$step-$phase-$attempt-$mark"
+  # `$step_ref`, not `$step`, for the same reason the ref above uses it (issue #427): this is a
+  # path too, so a title carrying a slash names a directory nobody made, `cp` fails, and under
+  # `set -e` the preservation reports a failure for a log that was sitting right there.
+  base=".tdd/attempts/$step_ref-$phase-$attempt-$mark"
   # Each copy is conditional on its own source: a leaf killed before it wrote a final-output
   # file still has a log worth keeping, and a missing one is not a failure of preservation.
   # `if` rather than `[[ … ]] && cp`, because under `set -e` a false test as the script's last
