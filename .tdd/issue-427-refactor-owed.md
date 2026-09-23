@@ -4,3 +4,5 @@
 - preserve-attempt.sh:100 builds `.tdd/attempts/$step-…` from the raw prose title while the ref uses the derived `$step_ref` — the legal name is computed and the second name-building site ignores it (deferred to the NEW_STEP below, since applying it changes an untested filename)
 - the suite repeats `printf 'rejected work\n' > "$repo/stop-run.sh"` in six cases; a helper plus a named constant would dedup it, at the cost of moving cases 1 and 9's literal expectation away from their assertions
 - the ledger path `.tdd/issue-$issue.md` is spelled at preserve-attempt.sh:80 and metrics.sh:158; a lib would dedup it but no such lib exists and the checkbox-grammar-per-script pattern is the house one
+### The leaf log and output copied beside the ref are named from that same index, so a title carrying a slash writes no nested path
+- cases 3, 4, 7 and 10 each write the leaf's `.tdd/<phase>.log` / `.out` inline; a `write_leaf_output <repo> [<log-text>] [<out-text>]` helper would state that shape once — left because the four cases differ in which of the two files they write and with what text, and a helper covering all four risks a signature no case forces
