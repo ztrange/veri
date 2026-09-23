@@ -1,2 +1,6 @@
 ### The attempt ref name carries the step index read from the committed ledger rather than the step prose
 - the ledger checkbox grammar now exists in five variants (`preserve-attempt.sh`, `next-unchecked.sh:16`, `criterion-finished.sh:18`, `next-pending-refactor.sh:18`, `metrics.sh:270`) — a shared reader would remove it, but each asks a different question and one is Python, so it is outside this cycle's bounds
+### A step whose title contains spaces, apostrophes or slashes has its attempt preserved under a ref name git accepts
+- preserve-attempt.sh:100 builds `.tdd/attempts/$step-…` from the raw prose title while the ref uses the derived `$step_ref` — the legal name is computed and the second name-building site ignores it (deferred to the NEW_STEP below, since applying it changes an untested filename)
+- the suite repeats `printf 'rejected work\n' > "$repo/stop-run.sh"` in six cases; a helper plus a named constant would dedup it, at the cost of moving cases 1 and 9's literal expectation away from their assertions
+- the ledger path `.tdd/issue-$issue.md` is spelled at preserve-attempt.sh:80 and metrics.sh:158; a lib would dedup it but no such lib exists and the checkbox-grammar-per-script pattern is the house one
