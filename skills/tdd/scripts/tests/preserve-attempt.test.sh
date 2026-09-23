@@ -52,10 +52,12 @@ attempts_dir() { printf '%s/.tdd/attempts' "$1"; }
 # names what it found instead.
 copies_in() { ls "$(attempts_dir "$1")" 2>/dev/null | tr '\n' ' '; }
 
-# copy_path <repo> <mark> <ext> — where preservation puts the leaf's <ext> file in <repo> for
-# those same coordinates under <mark>. The name is the criterion itself — step, phase, attempt
-# and the mark that triggered the preservation — so it is built in one place, not per case.
-copy_path() { printf '%s/3-develop-green-1-%s.%s' "$(attempts_dir "$1")" "$2" "$3"; }
+# copy_path <repo> <step> <mark> <ext> — where preservation puts the leaf's <ext> file in
+# <repo> for step <step> under <mark>. The name is the criterion itself — step, phase, attempt
+# and the mark that triggered the preservation — so it is built in one place, not per case. The
+# step is a parameter for the same reason ref_resolves takes its ref: the case that pins the
+# ledger-index naming expects a different number, and the name is built the same way.
+copy_path() { printf '%s/%s-develop-green-1-%s.%s' "$(attempts_dir "$1")" "$2" "$3" "$4"; }
 
 # copy_text <path> — the preserved file's contents, or the literal <missing> when it was never
 # written. A failure message that says <missing> distinguishes "preserved the wrong bytes" from
@@ -123,8 +125,8 @@ mkdir -p "$repo/.tdd"
 printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 printf 'final result text\n' > "$repo/.tdd/develop-green.out"
 preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
-log_copy="$(copy_path "$repo" reject log)"
-out_copy="$(copy_path "$repo" reject out)"
+log_copy="$(copy_path "$repo" 3 reject log)"
+out_copy="$(copy_path "$repo" 3 reject out)"
 log_text="$(copy_text "$log_copy")"
 out_text="$(copy_text "$out_copy")"
 { [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] \
@@ -141,8 +143,8 @@ new_repo "$repo"
 mkdir -p "$repo/.tdd"
 printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 preserve "$repo" 409 3 develop-green 1 stuck >/dev/null 2>&1; code=$?
-log_copy="$(copy_path "$repo" stuck log)"
-out_copy="$(copy_path "$repo" stuck out)"
+log_copy="$(copy_path "$repo" 3 stuck log)"
+out_copy="$(copy_path "$repo" 3 stuck out)"
 log_text="$(copy_text "$log_copy")"
 out_there="$([[ -e "$out_copy" ]] && echo yes || echo no)"
 { [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] && [[ "$out_there" == no ]]; } \
@@ -257,8 +259,8 @@ git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
 printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 printf 'final result text\n' > "$repo/.tdd/develop-green.out"
 preserve "$repo" 409 "$prose" develop-green 1 reject >/dev/null 2>&1; code=$?
-log_text="$(copy_text "$(attempts_dir "$repo")/2-develop-green-1-reject.log")"
-out_text="$(copy_text "$(attempts_dir "$repo")/2-develop-green-1-reject.out")"
+log_text="$(copy_text "$(copy_path "$repo" 2 reject log)")"
+out_text="$(copy_text "$(copy_path "$repo" 2 reject out)")"
 entries="$(copies_in "$repo")"
 { [[ "$code" == 0 ]] && [[ "$log_text" == "streamed progress" ]] \
     && [[ "$out_text" == "final result text" ]] \
