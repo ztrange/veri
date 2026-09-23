@@ -731,29 +731,29 @@ run_case "a launch writing no completion file under the derived leaf name is rep
 #    the budget and far above a real launch, so it can only be crossed by a wait that ran on
 #    after its supervisor was gone.
 #
-# The wait budget `launched_test_cmd` passes wait-leaf.sh, and the ceiling this case holds
+# The wait budget `launched_test_cmd`'s own wait runs to, and the ceiling this case holds
 # the answer to. Spelled apart from each other on purpose: the case is not asserting that the
 # budget is any particular number, only that an answer arrives long before it.
-PROMPT_CEILING=15
+ANSWER_CEILING=15
 
-# scan_prompt_answer — the case's body, in the other cases' shape: it collects into
+# scan_answer_latency — the case's body, in the other cases' shape: it collects into
 # `run_case`'s `problems`, and `lineno`/`line` are its own so the tree `launched_test_cmd`
 # makes records this fixture's line rather than one of the document's.
-scan_prompt_answer() {
+scan_answer_latency() {
   local lineno line launch leaf prompt started elapsed
-  unwritten_leaf_fixture prompt-answer || return
+  unwritten_leaf_fixture answer-latency || return
   # Called through `launched_test_cmd` rather than `expect_sentinel`: what it answers is case
   # 6's question and is discarded here, so this case's `problems` holds its own verdict alone
   # and needs no folding.
   started=$SECONDS
   launched_test_cmd "$leaf-no-such-leaf" "$launch" "$prompt" >/dev/null
   elapsed=$(( SECONDS - started ))
-  (( elapsed < PROMPT_CEILING )) ||
-    problems+=("a launch whose derived leaf name no completion file is written under was answered after ${elapsed}s, want under ${PROMPT_CEILING}s: the wait ran on past the supervisor that had already exited")
+  (( elapsed < ANSWER_CEILING )) ||
+    problems+=("a launch whose derived leaf name no completion file is written under was answered after ${elapsed}s, want under ${ANSWER_CEILING}s: the wait ran on past the supervisor that had already exited")
 }
 
 run_case "a derived leaf name no launch writes is answered once its supervisor is gone, not at the end of the wait budget" \
-  scan_prompt_answer
+  scan_answer_latency
 
 echo "----"
 echo "$pass passed, $fail failed"
