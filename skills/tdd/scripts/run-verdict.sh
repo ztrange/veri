@@ -24,6 +24,17 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# A verifier this process cannot start produced no answer at all, so the code for that is 2 and
+# never 1: `1` is reserved for a verdict the verifier gave, and a conductor reading it spends a
+# revise attempt arguing with a working test — the #424 damage. Left to `exec`, the two ways
+# the start fails come back as the shell's own 127 (nothing there) and 126 (there, not
+# executable), neither of which a conductor reads as a bail. One test of the verifier as an
+# executable file answers both before the point of no return.
+if [[ ! -x "$HERE/verify.sh" ]]; then
+  echo "run-verdict.sh: cannot start the verifier: $HERE/verify.sh is missing or not executable" >&2
+  exit 2
+fi
+
 # `exec` rather than a call: this process has nothing left to do after the verifier's, so the
 # supervisor watching it watches verify.sh directly, and the verdict's exit code is verify.sh's
 # own rather than one relayed through a second shell.
