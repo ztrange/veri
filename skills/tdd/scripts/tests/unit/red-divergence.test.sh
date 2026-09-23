@@ -107,12 +107,10 @@ reads_unreadable() {
 # 1. DIVERGED → exit 0, and the reason carries all three of the report's values, so the
 #    revise leaf is told what was predicted, what actually failed, and why they differ.
 name="DIVERGED report exits 0 and prints its PREDICTED_FAILURE, FAIL_OUTPUT and PREDICTION_NOTE"
-run_on "$(surprise_report 'PREDICTION: DIVERGED' "PREDICTION_NOTE: $note")"
 problems=()
-[[ "$code" == 0 ]] || problems+=("want exit 0, got $code")
+reads_diverged 'PREDICTION: DIVERGED'
 [[ "$out" == *"$predicted"* ]] || problems+=("stdout does not carry the PREDICTED_FAILURE value '$predicted'")
 [[ "$out" == *"$fail_output"* ]] || problems+=("stdout does not carry the FAIL_OUTPUT value '$fail_output'")
-[[ "$out" == *"$note"* ]] || problems+=("stdout does not carry the PREDICTION_NOTE value '$note'")
 if (( ${#problems[@]} )); then problems+=("it printed: $(printf '%s' "$out" | tr '\n' '|')"); fi
 verdict "$name"
 
