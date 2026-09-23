@@ -45,18 +45,34 @@ tree="$(GIT_INDEX_FILE="$index" git write-tree)"
 # written. The ledger already numbers its steps by position, which is short, stable and legal.
 # A substring match rather than equality, because a ticked step's line carries `⟂ refactor
 # pending` after the prose the caller was handed.
-ledger=".tdd/issue-$issue.md"
-step_ref="$step"
-if [[ -f "$ledger" ]]; then
-  box_re='^[[:space:]]*- \[[ xX]\] (.*)$'
-  n=0
+#
+# ledger_step_index <ledger> <prose> — when <ledger> holds a checkbox step whose text contains
+# <prose>, sets LEDGER_STEP_INDEX to that step's 1-based position and returns 0; otherwise
+# returns 1 and leaves LEDGER_STEP_INDEX alone, so a caller reads it only on a 0. A variable
+# rather than stdout, the way lib/candidate-line.sh's `structural_candidate` answers: a value
+# read back through `$(…)` is a fork per preservation for a line this shell already has.
+# The reading is a function so the scan's own names — the grammar, the counter, the line —
+# are `local` and never reach the copy step at the foot of the script, which has a `$step` of
+# its own to think about.
+ledger_step_index() {
+  local ledger="$1" prose="$2"
+  local box_re='^[[:space:]]*- \[[ xX]\] (.*)$'
+  local line n=0
+  [[ -f "$ledger" ]] || return 1
   while IFS= read -r line || [[ -n "$line" ]]; do
     if [[ "$line" =~ $box_re ]]; then
       n=$((n + 1))
-      if [[ "${BASH_REMATCH[1]}" == *"$step"* ]]; then step_ref="$n"; break; fi
+      if [[ "${BASH_REMATCH[1]}" == *"$prose"* ]]; then LEDGER_STEP_INDEX="$n"; return 0; fi
     fi
   done < "$ledger"
-fi
+  return 1
+}
+
+# The prose itself when the ledger cannot name the step — an absent ledger, or one no line of
+# which carries what the caller was handed — which is what the callers passing an index
+# already rely on.
+step_ref="$step"
+if ledger_step_index ".tdd/issue-$issue.md" "$step"; then step_ref="$LEDGER_STEP_INDEX"; fi
 
 # HEAD as the parent so `git show` on the ref reads as the attempt's own diff rather than as
 # every file in the repository.
