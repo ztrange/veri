@@ -74,6 +74,18 @@ new_repo() {
   git_q "$1" commit -q -m "initial" >/dev/null 2>&1
 }
 
+# The worktree edit preservation exists to capture: stop-run.sh differing from the commit that
+# tracks it. Two cases read this text back out of the preserved tree and seven write it, so it is
+# one name rather than a string repeated either side of the script under test.
+REJECTED="rejected work"
+
+# dirty_repo <path> — new_repo carrying that edit, which is the fixture nearly every case starts
+# from; the ones that do not are the ones about the leaf's own output, not its tree.
+dirty_repo() {
+  new_repo "$1"
+  printf '%s\n' "$REJECTED" > "$1/stop-run.sh"
+}
+
 # write_ledger <repo> <step…> — issue 409's committed plan ledger in <repo>, one checkbox line
 # per <step> in the order given, the first already ticked and the rest unchecked. A ticked line
 # first because the index the script derives counts every checkbox, done or not; committed
@@ -114,12 +126,11 @@ preserve() {
 #    `git show` reads that commit's tree back — the rejected file, which no commit on the
 #    branch ever carried
 repo="$work/repo"
-new_repo "$repo"
-printf 'rejected work\n' > "$repo/stop-run.sh"
+dirty_repo "$repo"
 preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
 ref_resolves "$repo"; resolved=$?
 shown="$(git_q "$repo" show "$REF:stop-run.sh" 2>&1)"
-{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$shown" == "rejected work" ]]; } \
+{ [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]] && [[ "$shown" == "$REJECTED" ]]; } \
   && ok || no "commits the worktree to $REF and git show reads it back (code=$code resolved=$resolved shown='$shown')"
 
 # 2. preserving leaves the work branch untouched — HEAD, the index and `git log` read the same
@@ -127,8 +138,7 @@ shown="$(git_q "$repo" show "$REF:stop-run.sh" 2>&1)"
 #    index is made to differ from HEAD first (a staged file), so "unchanged" is a real claim
 #    rather than one an empty index would satisfy by accident.
 repo="$work/untouched"
-new_repo "$repo"
-printf 'rejected work\n' > "$repo/stop-run.sh"
+dirty_repo "$repo"
 printf 'staged\n' > "$repo/staged.txt"
 git_q "$repo" add staged.txt >/dev/null 2>&1
 head_before="$(git_q "$repo" rev-parse HEAD 2>&1)"
@@ -179,8 +189,7 @@ out_there="$([[ -e "$out_copy" ]] && echo yes || echo no)"
 #    preservation still reports success. Nothing is copied, so a reader is never handed an
 #    empty file that reads as "the leaf said nothing" when the truth is it never wrote one.
 repo="$work/nooutputatall"
-new_repo "$repo"
-printf 'rejected work\n' > "$repo/stop-run.sh"
+dirty_repo "$repo"
 preserve "$repo" 409 3 develop-green 1 bail >/dev/null 2>&1; code=$?
 ref_resolves "$repo"; resolved=$?
 copies="$(copies_in "$repo")"
@@ -192,8 +201,7 @@ copies="$(copies_in "$repo")"
 #    untroubled step is the common case, and it must cost what it costs today: no .tdd/attempts
 #    directory, no copies in it.
 repo="$work/nomark"
-new_repo "$repo"
-printf 'rejected work\n' > "$repo/stop-run.sh"
+dirty_repo "$repo"
 leaf_output "$repo" 'streamed progress' 'final result text'
 preserve "$repo" 409 3 develop-green 1 >/dev/null 2>&1; code=$?
 ref_resolves "$repo"; resolved=$?
@@ -209,10 +217,9 @@ copies="$(copies_in "$repo")"
 #    to carry an unmistakable rationale sentence first, so "no rationale in the message" is a
 #    claim about a string that was sitting right there to be copied into it.
 repo="$work/blind"
-new_repo "$repo"
+dirty_repo "$repo"
 rationale="I used a helper because the verifier rejected the inline version"
 leaf_output "$repo" "$rationale" "$rationale"
-printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 3 develop-green 1 reject >/dev/null 2>&1; code=$?
 git_q "$repo" merge-base --is-ancestor "$REF" HEAD >/dev/null 2>&1; reachable=$?
 message="$(git_q "$repo" log -1 --format=%B "$REF" 2>&1)"
@@ -227,10 +234,9 @@ message="$(git_q "$repo" log -1 --format=%B "$REF" 2>&1)"
 #    position, which is short, stable and legal, so the second unchecked-or-checked step of
 #    issue 409's ledger is preserved under `.../409/2/...` however it is worded.
 repo="$work/ledgerindex"
-new_repo "$repo"
+dirty_repo "$repo"
 prose="A leaf's output is kept under refs/veri, not the branch"
 write_ledger "$repo" "The first step, already done" "$prose" "A third step nobody is on"
-printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 "$prose" develop-green 1 >/dev/null 2>&1; code=$?
 indexed="refs/veri/attempts/409/2/develop-green-1"
 ref_resolves "$repo" "$indexed"; resolved=$?
@@ -245,15 +251,14 @@ refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1
 #    the title is all there is; what the ref is called is the green leaf's to choose, and what
 #    this case asks is only that git accepts it and reads the attempt's tree back through it.
 repo="$work/prosetitle"
-new_repo "$repo"
+dirty_repo "$repo"
 prose="A leaf's tree is kept under refs/veri, not the branch"
-printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 "$prose" develop-green 1 >/dev/null 2>&1; code=$?
 found="$(git_q "$repo" for-each-ref --count=1 --format='%(refname)' refs/veri/attempts/409 2>/dev/null)"
 git_q "$repo" check-ref-format "$found" >/dev/null 2>&1; legal=$?
 shown="$(git_q "$repo" show "$found:stop-run.sh" 2>&1)"
 { [[ "$code" == 0 ]] && [[ -n "$found" ]] && [[ "$legal" == 0 ]] \
-    && [[ "$shown" == "rejected work" ]]; } \
+    && [[ "$shown" == "$REJECTED" ]]; } \
   && ok || no "preserves the attempt under a ref git accepts when the step title carries spaces, an apostrophe and a slash (code=$code ref='$found' legal=$([[ "$legal" == 0 ]] && echo yes || echo no) shown='$shown')"
 
 # 10. and the leaf's own copies are named from that same index too: the ref is not the only
@@ -284,9 +289,8 @@ entries="$(copies_in "$repo")"
 #     run's .err has only what this script says to go on, and git's own plumbing fatal names a
 #     ref rather than the attempt it belonged to.
 repo="$work/otherfailure"
-new_repo "$repo"
+dirty_repo "$repo"
 git_q "$repo" update-ref "refs/veri/attempts/409/3" HEAD >/dev/null 2>&1
-printf 'rejected work\n' > "$repo/stop-run.sh"
 err="$(preserve "$repo" 409 3 develop-green 1 2>&1 >/dev/null)"; code=$?
 said=no
 if [[ "$err" == *preserve-attempt.sh* && "$err" == *409* && "$err" == *develop-green* ]]; then said=yes; fi
