@@ -40,8 +40,12 @@ set -euo pipefail
 # The call this script accepts, spelled once: both refusals below quote it back.
 USAGE="usage: verify.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]"
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/verify-options.sh
+source "$HERE/lib/verify-options.sh"
+
 flag_args=()
-while [[ "${1:-}" == --step || "${1:-}" == --fast-cmd ]]; do
+while verify_takes_a_value "${1:-}"; do
   [[ -n "${2:-}" ]] || { echo "verify: $1 needs a value" >&2; echo "$USAGE" >&2; exit 2; }
   flag_args+=( "$1" "$2" )
   shift 2
@@ -62,7 +66,6 @@ spec_file="$2"
 test_path="$3"
 target="${4:-}"
 
-HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/leaf-model.sh
 source "$HERE/lib/leaf-model.sh"
 # shellcheck source=lib/preserve.sh
