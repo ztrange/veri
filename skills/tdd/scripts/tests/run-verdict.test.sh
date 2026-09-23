@@ -167,6 +167,76 @@ if probe_launcher_is_there && stage; then
 fi
 report "$name"
 
+# stage_broken <state> — the same tree `stage` builds, minus a verifier the launcher can
+# start: `missing` leaves no verify.sh at all, `unrunnable` leaves one the kernel refuses to
+# execute. Both are "cannot start the verifier", which is the one thing the case asks about;
+# a guard that only looked for the file would answer the first and not the second.
+#
+# Its own copy of the scripts directory and its own cwd, so the case says nothing about the
+# tree case 1 ran in and answers even if that one never got staged.
+stage_broken() {
+  local state="$1"
+  broken="$work/broken"
+  rm -rf "$broken"
+  mkdir -p "$broken" || return 1
+  cp "$SCRIPTS"/*.sh "$broken"/ 2>/dev/null
+  for d in lib prompts; do
+    if [[ -d "$SCRIPTS/$d" ]]; then cp -R "$SCRIPTS/$d" "$broken/$d"; fi
+  done
+
+  case "$state" in
+    missing)   rm -f "$broken/$VERIFIER" ;;
+    unrunnable) printf '#!/bin/sh\nexit 0\n' > "$broken/$VERIFIER"; chmod -x "$broken/$VERIFIER" ;;
+  esac
+
+  broken_run="$work/broken-run"
+  rm -rf "$broken_run"
+  mkdir -p "$broken_run"
+  printf '# spec\n' > "$broken_run/spec.md"
+  printf '# test\n' > "$broken_run/suite.test.sh"
+}
+
+# probe_unstartable_verifier_is_no_answer <state> <how it reads in a message> — stage the
+# launcher over a verifier in that state, run it with an otherwise well-formed call, and read
+# the status it hands its supervisor.
+#
+# Two claims, because the criterion makes two. **Never 1**: that is the code CLAUDE.md
+# reserves for a real answer — the verifier ran and said REJECT — and a launch that never
+# started one has no answer to report, so a conductor reading 1 here spends a revise attempt
+# arguing with a working test, which is exactly what the #424 run did. **2**: the code for no
+# answer obtained, the one `classify-bail.sh` turns into a system-failure label a human reads.
+# The status is the observable: it is what `supervise.sh` records into
+# `.tdd/verdict-<phase>.exit` and what `wait-leaf.sh` hands back.
+probe_unstartable_verifier_is_no_answer() {
+  local state="$1" how="$2" out code
+  stage_broken "$state" || {
+    problems+=("could not stage a tree with $how")
+    return
+  }
+
+  out="$( cd "$broken_run" && "$broken/$LAUNCHER_NAME" \
+            --step "$STEP" red spec.md suite.test.sh case-1 2>&1 )" && code=0 || code=$?
+
+  [[ "$code" != 1 ]] ||
+    problems+=("with $how, $LAUNCHER exited 1 — the code for a verdict the verifier gave, from a verifier that never ran; it said: $(flat "$out")")
+  [[ "$code" == 2 ]] ||
+    problems+=("with $how, $LAUNCHER exited $code, want 2 — the code for no answer obtained; it said: $(flat "$out")")
+  return 0
+}
+
+# 2. A launcher that cannot start the verifier produced no answer, and says so with the code
+#    reserved for that — never with the one that means the verifier spoke.
+name="$LAUNCHER_NAME exits 2, and never 1, when it cannot start $VERIFIER"
+problems=()
+broken=""
+broken_run=""
+
+if probe_launcher_is_there; then
+  probe_unstartable_verifier_is_no_answer missing "no $VERIFIER to start"
+  probe_unstartable_verifier_is_no_answer unrunnable "a $VERIFIER it cannot execute"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
