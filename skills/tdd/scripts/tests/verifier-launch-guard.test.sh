@@ -219,6 +219,19 @@ run_guard_over() {
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
 }
 
+# probe_guard_is_red <what the plant did> — the guard's last run has to have failed, by its
+# status AND by its own count line. Both, for the reason `failures_in` gives: a suite that
+# dies partway routinely comes back 0 (#157), so a status alone would let a guard that never
+# reached the check read as one that made it.
+probe_guard_is_red() {
+  local what="$1" failures
+  failures="$(failures_in "$guard_out")"
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want ${GUARD##*/} to fail over a $SKILL whose $what; it exited 0 and said: $(flat "$guard_out")")
+  [[ "$failures" != 0 && "$failures" != '<none>' ]] ||
+    problems+=("want ${GUARD##*/}'s own count line to state a failure over that document; it stated '$failures': $(flat "$guard_out")")
+}
+
 # probe_only_this_address <line> — every address the guard's last run named has to be
 # $SKILL:<line> and nothing else. Not "the guard failed": a guard deleted down to `exit 1`
 # would satisfy that, and so would one that listed every documented line in the document —
@@ -256,13 +269,9 @@ probe_guard_is_green_unplanted() {
 # are still correct; a red that named them too would be a list to read rather than a line to
 # go and fix.
 probe_guard_names_the_planted_launch() {
-  local failures named
+  local named
   run_guard_over "$planted_skill"
-  failures="$(failures_in "$guard_out")"
-  [[ "$guard_code" != 0 ]] ||
-    problems+=("want ${GUARD##*/} to fail over a $SKILL whose $planted_line reaches $VERIFIER without $MISSING; it exited 0 and said: $(flat "$guard_out")")
-  [[ "$failures" != 0 && "$failures" != '<none>' ]] ||
-    problems+=("want ${GUARD##*/}'s own count line to state a failure over that document; it stated '$failures': $(flat "$guard_out")")
+  probe_guard_is_red "$planted_line reaches $VERIFIER without $MISSING"
   named="$(grep -F "$SKILL:$planted_line" <<< "$guard_out")"
   if [[ -z "$named" ]]; then
     problems+=("no line of ${GUARD##*/}'s output names $SKILL:$planted_line, the launch the plant cut $MISSING out of; it said: $(flat "$guard_out")")
@@ -401,13 +410,8 @@ probe_step_plant_is_what_it_claims() {
 # guard fails, but that it fails at an address a writer can open — the file and the line —
 # and at no other, since every other command in the document is correct.
 probe_step_guard_names_the_planted_line() {
-  local failures
   run_guard_over "$planted_step_skill"
-  failures="$(failures_in "$guard_out")"
-  [[ "$guard_code" != 0 ]] ||
-    problems+=("want ${GUARD##*/} to fail over a $SKILL whose $step_line carries $STEP_SINGLE; it exited 0 and said: $(flat "$guard_out")")
-  [[ "$failures" != 0 && "$failures" != '<none>' ]] ||
-    problems+=("want ${GUARD##*/}'s own count line to state a failure over that document; it stated '$failures': $(flat "$guard_out")")
+  probe_guard_is_red "$step_line carries $STEP_SINGLE"
   probe_only_this_address "$step_line"
 }
 
