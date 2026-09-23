@@ -130,6 +130,17 @@ copy_scripts_to() {
   done
 }
 
+# install_stub <dir> — write this function's stdin into <dir> as the verifier the launcher
+# will reach, and make it executable. Both stub-driven cases write a different script under
+# the same name in the same way, and the name and the chmod are the part that has to agree:
+# a stub written under another name is a verifier the launcher never runs, and one left
+# unexecutable is case 2's fixture rather than a working verifier — either way the case would
+# report on something other than what it asks about.
+install_stub() {
+  cat > "$1/$VERIFIER"
+  chmod +x "$1/$VERIFIER"
+}
+
 # make_run_dir <dir> — the cwd a case launches from, holding the two files the call names and
 # nothing else: the launcher's cwd needs whatever its arguments point at, and a `.tdd` for
 # output the stub never writes would only suggest the verifier reports through one — the
@@ -152,14 +163,13 @@ stage() {
   copy_scripts_to "$scripts" || return 1
 
   argv_file="$work/verifier.argv"
-  cat > "$scripts/$VERIFIER" <<'STUB'
+  install_stub "$scripts" <<'STUB'
 #!/bin/sh
 # Stub verifier: record the argv handed to it, one argument per line, and answer like a
 # verifier that passed — what this case reads is the record, not the verdict.
 for a in "$@"; do printf '%s\n' "$a"; done > "$VERI_STUB_ARGV"
 printf 'the test pins the criterion and fails for the reason it names\n'
 STUB
-  chmod +x "$scripts/$VERIFIER"
 
   run="$work/run"
   make_run_dir "$run"
@@ -288,7 +298,7 @@ stage_watching_reason() {
 
   seen="$work/reason-seen"
   rm -f "$seen"
-  cat > "$watching/$VERIFIER" <<'STUB'
+  install_stub "$watching" <<'STUB'
 #!/bin/sh
 # Stub verifier: copy the phase's reason file, as it stands now, into the record this case
 # reads — an unreadable or absent file records as nothing, which is the same answer as a
@@ -296,7 +306,6 @@ stage_watching_reason() {
 cat "$VERI_STUB_REASON" > "$VERI_STUB_SEEN" 2>/dev/null || : > "$VERI_STUB_SEEN"
 printf 'the test pins the criterion and fails for the reason it names\n'
 STUB
-  chmod +x "$watching/$VERIFIER"
 
   watching_run="$work/watching-run"
   make_run_dir "$watching_run" || return 1
