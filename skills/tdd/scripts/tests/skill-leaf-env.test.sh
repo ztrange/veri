@@ -493,16 +493,17 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 # `runnable`'s table spells them, so the tree holds the spec and the test the line is about to
 # hand verify.sh.
 #
-# The option pair `--step '<STEP>'` (#223) comes before that positional, so it is dropped here
+# The option pair `--step "<STEP>"` (#223) comes before that positional, so it is dropped here
 # rather than read past: `arg_after` stops at the first word, which is the flag itself, and the
 # leaf would be named `verify---step`. The tree that name points at is one no launch writes, so
 # `wait-leaf.sh` would wait out its whole timeout on every verifier line and the case would
 # still pass — six lines × 60 s, which is how this suite went from 9 s to 5 min and had CI
 # cancel `make test` at its cap. The step's own text is quoted and holds spaces, so the pair is
-# matched as `--step '<up to the closing quote>'`.
+# matched as `--step <up to the closing quote>` — in either quote, since the title moved to
+# double quotes (#431) and `--fast-cmd` beside it did not.
 check_verifier_launch() {
   local launch="$1" leaf
-  leaf="verify-$(arg_after run-verdict.sh "$(sed -E "s/ --(step|fast-cmd) '[^']*'//g" <<< "$launch")")"
+  leaf="verify-$(arg_after run-verdict.sh "$(sed -E "s/ --(step|fast-cmd) ('[^']*'|\"[^\"]*\")//g" <<< "$launch")")"
   expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 

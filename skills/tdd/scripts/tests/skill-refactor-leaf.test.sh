@@ -395,7 +395,7 @@ else
     added="$(win "$add_ledger_step")"
     grep -qE 'new_step' <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the leaf's NEW_STEP: values, so what the inserted step says is left to judgement")
-    grep -qE "after '?<step>" <<<"$added" ||
+    grep -qE "after ['\"]?<step>" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
   fi
 
