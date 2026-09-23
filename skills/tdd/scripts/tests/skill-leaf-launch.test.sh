@@ -131,6 +131,17 @@ fault() {
   faults="${faults:+$faults, and }$1"
 }
 
+# faulted <lineno> <text> — close one document line's reading, on the `faults` string the
+# caller opened empty before it: nothing wrong is nothing recorded, and otherwise one
+# problem naming the line, what is wrong with it and the line itself. Three cases end a
+# launch line the same way — 1, 7 and 8 — so the shape lives here rather than being retyped
+# at each of them, where one could stop quoting the offending line while the others went on
+# doing it.
+faulted() {
+  [[ -z "$faults" ]] ||
+    problems+=("$skill_md:$1 $faults: $2")
+}
+
 # unreadable <missing> <subject> — record the problem a probe that printed NOTHING leaves
 # behind, onto the same `problems` array a fault ends up in. Both cases fail closed through
 # here: a probe comes back empty when the fences moved, when the launches went, or when the
@@ -211,8 +222,7 @@ else
     faults=""
     [[ "$text" == *"$detacher"* ]] || fault "does not go through $detacher"
     [[ "$text" == *nohup* ]] && fault "still uses nohup"
-    [[ -z "$faults" ]] ||
-      problems+=("$skill_md:$lineno $faults: $text")
+    faulted "$lineno" "$text"
   done <<< "$launches"
 fi
 
@@ -415,8 +425,7 @@ else
     faults=""
     [[ "$text" == *"$verdict_launcher"* ]] || fault "does not invoke $verdict_launcher"
     [[ "$text" == *"bash -c"* ]] && fault "still inlines the verifier call in a bash -c command string"
-    [[ -z "$faults" ]] ||
-      problems+=("$skill_md:$lineno $faults: $text")
+    faulted "$lineno" "$text"
   done <<< "$verdict_launches"
 fi
 
@@ -524,8 +533,7 @@ else
     elif [[ "${text//"$double_quoted_step"/}" == *"$step_ph"* ]]; then
       fault "carries a step title that is not double-quoted"
     fi
-    [[ -z "$faults" ]] ||
-      problems+=("$skill_md:$lineno $faults: $text")
+    faulted "$lineno" "$text"
   done <<< "$steps"
 fi
 
