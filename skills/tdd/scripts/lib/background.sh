@@ -48,11 +48,19 @@ bg_start() {
   shift
   "$@" &
   printf '%s %s\n' "$!" "$*" >> "$record"
+  _bg_remember "$record"
+}
+
+# _bg_remember <record> — add <record> to the list the EXIT trap reads, at most once, and arm
+# that trap the first time this shell has anything to report. Once is the whole point: a shell
+# that started two processes into one record would otherwise read it twice at exit and name
+# every survivor in it twice over.
+_bg_remember() {
   local known
   for known in ${_bg_records+"${_bg_records[@]}"}; do
-    [[ "$known" == "$record" ]] && return 0
+    [[ "$known" == "$1" ]] && return 0
   done
-  _bg_records+=("$record")
+  _bg_records+=("$1")
   trap _bg_report_survivors EXIT
 }
 
