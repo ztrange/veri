@@ -74,6 +74,23 @@ new_repo() {
   git_q "$1" commit -q -m "initial" >/dev/null 2>&1
 }
 
+# write_ledger <repo> <step…> — issue 409's committed plan ledger in <repo>, one checkbox line
+# per <step> in the order given, the first already ticked and the rest unchecked. A ticked line
+# first because the index the script derives counts every checkbox, done or not; committed
+# rather than merely written because that is the shape a run's ledger is in by the time an
+# attempt is preserved. Two cases need one, of different lengths, so the shape of a ledger is
+# written here rather than in each of them.
+write_ledger() {
+  local repo="$1"; shift
+  local box='x' step
+  mkdir -p "$repo/.tdd"
+  { printf '# Plan for #409\n\n'
+    for step in "$@"; do printf -- '- [%s] %s\n' "$box" "$step"; box=' '; done
+  } > "$repo/.tdd/issue-409.md"
+  git_q "$repo" add .tdd/issue-409.md >/dev/null 2>&1
+  git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
+}
+
 # preserve <repo> <args…> — call the script from <repo>, under the same identity: the commit
 # it makes is git's, and a machine with no configured user (CI) must not decide whether this
 # case can run at all.
@@ -207,14 +224,8 @@ message="$(git_q "$repo" log -1 --format=%B "$REF" 2>&1)"
 #    issue 409's ledger is preserved under `.../409/2/...` however it is worded.
 repo="$work/ledgerindex"
 new_repo "$repo"
-mkdir -p "$repo/.tdd"
 prose="A leaf's output is kept under refs/veri, not the branch"
-{ printf '# Plan for #409\n\n'
-  printf -- '- [x] The first step, already done\n'
-  printf -- '- [ ] %s\n' "$prose"
-  printf -- '- [ ] A third step nobody is on\n'; } > "$repo/.tdd/issue-409.md"
-git_q "$repo" add .tdd/issue-409.md >/dev/null 2>&1
-git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
+write_ledger "$repo" "The first step, already done" "$prose" "A third step nobody is on"
 printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 "$prose" develop-green 1 >/dev/null 2>&1; code=$?
 indexed="refs/veri/attempts/409/2/develop-green-1"
@@ -249,13 +260,8 @@ shown="$(git_q "$repo" show "$found:stop-run.sh" 2>&1)"
 #     nothing nested is written beside them.
 repo="$work/ledgercopies"
 new_repo "$repo"
-mkdir -p "$repo/.tdd"
 prose="A leaf's output is kept under refs/veri, not the branch"
-{ printf '# Plan for #409\n\n'
-  printf -- '- [x] The first step, already done\n'
-  printf -- '- [ ] %s\n' "$prose"; } > "$repo/.tdd/issue-409.md"
-git_q "$repo" add .tdd/issue-409.md >/dev/null 2>&1
-git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
+write_ledger "$repo" "The first step, already done" "$prose"
 printf 'streamed progress\n' > "$repo/.tdd/develop-green.log"
 printf 'final result text\n' > "$repo/.tdd/develop-green.out"
 preserve "$repo" 409 "$prose" develop-green 1 reject >/dev/null 2>&1; code=$?
