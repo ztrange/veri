@@ -135,6 +135,11 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   check: the verifier confirms the test passes now, **fails** under a behaviour-removing
   mutation it applies and then reverts itself, and is behaviour-level — the same trivial
   / over-coupled / too-complex bar as `red`.
+- `$S/run-verdict.sh [--step '<STEP>'] [--fast-cmd '<cmd>'] <red|green|refactor|pin> <spec-file> <test-path> [target]`
+  — the **verdict launcher**: `verify.sh`'s own call, argument for argument, reached as a
+  command rather than as a shell string. This is what `supervise.sh verdict-<phase>` runs;
+  it passes every argument through untouched and `exec`s the verify verb, so the step title
+  travels in argv and its exit code is `verify.sh`'s.
 - `$S/parse-verdict.sh` — extracts `PASS|REJECT` + reason from a leaf's output (used by
   `verify.sh`).
 - `$S/tick-criterion.sh '<substring>'` — the pure text transform both tick wrappers
@@ -314,17 +319,22 @@ leaves every one of that leaf's events with an empty `issue` and an empty `step`
 reader can attribute the leaf to a step only by interleaving timestamps with `step-start`.
 
 A **verifier** (`verify.sh`, which goes through the supervisor too) takes the same shape
-with one wrinkle: the code that matters is the verifier's **verdict**, not the supervisor's
-status, so the detached shell records that verdict in a completion file of its own —
+with one wrinkle: the verify verb is reached through `run-verdict.sh`, the **verdict
+launcher**, rather than typed into a `bash -c "…"` command string. The string is what broke
+on a step title carrying an apostrophe (#426) — `--step '<STEP>'` inside a `"…"` closes on
+the title's own `'`, and the launch dies before any verifier runs. The launcher takes the
+title as one element of its argv and hands it on as one element of `verify.sh`'s, so no
+second shell ever parses it —
 
 ```
 rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-<phase> bash -c "$S/verify.sh --step '<STEP>' <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err; echo \$? > .tdd/verdict-<phase>.exit" > /dev/null 2>&1
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step '<STEP>' <phase> … > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
 $S/wait-leaf.sh verdict-<phase>
 ```
 
 — named `verdict-<phase>`, never `verify-<phase>`, which the verifier leaf's own supervisor
-already owns. `wait-leaf.sh` then returns **the verdict**: 0 PASS, 1 REJECT, 2 malformed or
+already owns. `run-verdict.sh` **execs** the verify verb, so the code the supervisor sees is
+`verify.sh`'s own and the completion file it records is the verdict. `wait-leaf.sh` then returns **the verdict**: 0 PASS, 1 REJECT, 2 malformed or
 killed-stuck. The reason is read back from `.tdd/verify-<phase>.reason`, the file the revise
 step takes as a path.
 
@@ -727,7 +737,7 @@ following step. The phase sub-steps are:
    retype:
    ```
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-red bash -c "$S/verify.sh --step '<STEP>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err; echo \$? > .tdd/verdict-red.exit" > /dev/null 2>&1
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step '<STEP>' red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    ```
    That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —
@@ -737,7 +747,7 @@ following step. The phase sub-steps are:
    instead and continue at *Already satisfied — the pin*:
    ```
    rm -f .tdd/verdict-pin.exit .tdd/verdict-pin.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-pin bash -c "$S/verify.sh --step '<STEP>' pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err; echo \$? > .tdd/verdict-pin.exit" > /dev/null 2>&1
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-pin $S/run-verdict.sh --step '<STEP>' pin .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-pin.reason 2> .tdd/verify-pin.err
    $S/wait-leaf.sh verdict-pin     # foreground; on exit 3 call it again
    ```
    Either way, note the **wait's exit code** — the verdict — and read the reason back out of
@@ -805,7 +815,7 @@ following step. The phase sub-steps are:
 2. **Verify (blind)** — the verifier shape again, and the wait's code is again the verdict:
    ```
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-green bash -c "$S/verify.sh --step '<STEP>' --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err; echo \$? > .tdd/verdict-green.exit" > /dev/null 2>&1
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step '<STEP>' --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
    $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
    ```
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
@@ -898,7 +908,7 @@ following step. The phase sub-steps are:
 3. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-refactor bash -c "$S/verify.sh --step '<STEP>' --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err; echo \$? > .tdd/verdict-refactor.exit" > /dev/null 2>&1
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step '<STEP>' --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
    $S/wait-leaf.sh verdict-refactor  # foreground; on exit 3 call it again
    ```
    — one verdict on the final state (**full suite** still green, code up to standard, no
@@ -1159,7 +1169,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
 4. **Re-verify (blind, same phase).**
    ```
    rm -f .tdd/verdict-<phase>.exit .tdd/verdict-<phase>.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-<phase> bash -c "$S/verify.sh --step '<STEP>' --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err; echo \$? > .tdd/verdict-<phase>.exit" > /dev/null 2>&1
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP='<STEP>' $S/detach-leaf.sh $S/supervise.sh verdict-<phase> $S/run-verdict.sh --step '<STEP>' --fast-cmd '<fast-cmd>' <phase> .tdd/issue-<n>-spec.md <test-path> [target] > .tdd/verify-<phase>.reason 2> .tdd/verify-<phase>.err
    $S/wait-leaf.sh verdict-<phase>      # foreground; on exit 3 call it again
    ```
    — overwriting the reason file, so attempt `k+1` carries the newest objection. The

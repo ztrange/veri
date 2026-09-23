@@ -25,8 +25,8 @@
 #
 # Contract under test:
 #   Over a copy of this tree whose one `verdict-red` launch line has had the supervisor and
-#   its leaf name cut out of it — the #297 shape, `detach-leaf.sh` straight to the `bash -c`
-#   wrapper around `verify.sh` — skill-leaf-launch.test.sh fails, and the line it names is
+#   its leaf name cut out of it — the #297 shape, `detach-leaf.sh` straight to the verdict
+#   launcher that execs `verify.sh` — skill-leaf-launch.test.sh fails, and the line it names is
 #   that launch: SKILL.md with the planted line's number, saying `supervise.sh` is what is
 #   missing. Over the same tree with the document unplanted it passes.
 #
@@ -66,7 +66,7 @@ SKILL_PATH="$ROOT/$SKILL"
 # A literal, matched and removed as a literal — `$S` is the document's own abbreviation for
 # the scripts directory and `.` is a character in a filename, so nothing here becomes a
 # regex. Cutting the pair rather than just the script name is what makes the plant the #297
-# shape exactly: `detach-leaf.sh` handing the `bash -c` wrapper straight to the verifier.
+# shape exactly: `detach-leaf.sh` handing the verdict launcher straight to the verifier.
 FRAGMENT='$S/supervise.sh verdict-red '
 
 # The script the planted line no longer names, and the word the guard's complaint about it
@@ -75,8 +75,11 @@ MISSING='supervise.sh'
 
 # The other script the planted line still names, asserted present by the plant's own probe:
 # the guard recognises a verifier launch BY this name, so a plant that removed it would take
-# the line out of the guard's scope instead of making it wrong.
-VERIFIER='verify.sh'
+# the line out of the guard's scope instead of making it wrong. Since #426 that name is the
+# verdict launcher's rather than `verify.sh`'s — the launch reaches the verifier by exec'ing
+# it through `run-verdict.sh`, so a launch line no longer spells `verify.sh` at all and a
+# plant still asserting that name would be asserting about a document nobody has.
+VERIFIER='run-verdict.sh'
 
 pass=0 fail=0
 scratch="$(mktemp -d)"

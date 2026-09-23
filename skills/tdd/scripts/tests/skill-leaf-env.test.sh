@@ -366,22 +366,25 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 #    typeable there as in a developer leaf, and a guard the documentation targets carry is
 #    worth nothing in a process that cannot see the variable it reads. It is a second case
 #    rather than more lines in the first because it is a second wiring: the prefix goes on a
-#    `detach-leaf.sh supervise.sh verdict-<phase> bash -c "…"` whose command is verify.sh, and
-#    the variable then has one more process to cross — verify.sh itself — before supervise.sh
-#    and run-leaf.sh carry it the rest of the way. What supervises that wrapper is matched as
-#    `.*` between the detacher and the `bash -c`, so the case reads a verifier launch whatever
-#    is named there rather than only the unsupervised shape #415 replaced.
+#    `detach-leaf.sh supervise.sh verdict-<phase> run-verdict.sh …`, the verdict launcher that
+#    execs verify.sh (#426, where the `bash -c "…"` command string it replaced was found to
+#    break on a step title carrying an apostrophe), and the variable then has one more process
+#    to cross — verify.sh itself — before supervise.sh and run-leaf.sh carry it the rest of the
+#    way. What supervises the launcher is matched as `.*` between the detacher and it, so the
+#    case reads a verifier launch whatever is named there rather than only the unsupervised
+#    shape #415 replaced.
 #
 #    The variable still travels in the ENVIRONMENT, so `build-verify-prompt.sh` keeps the
 #    four parameters it has and the verifier stays blind: there is still no argument through
 #    which the developer's rationale could reach it.
 #
 #    The lines are found by what they do, the way case 1 finds its own: a detached launch of
-#    verify.sh naming the spec file it judges against is a line a conductor copies as it
-#    stands. The shape at the head of the document (SKILL.md:247) spells its arguments as an
+#    the verdict launcher naming the spec file it judges against is a line a conductor copies
+#    as it stands. The shape at the head of the document (SKILL.md:247) spells its arguments as an
 #    ellipsis rather than naming a spec, so — like the generic `supervise.sh` shape above —
 #    there is nothing there to run and no leaf that could see anything.
-# The phase is verify.sh's first positional argument, and `verify-<phase>` is both the leaf's
+# The phase is the launcher's first positional argument — verify.sh's own, passed through
+# untouched — and `verify-<phase>` is both the leaf's
 # name and the tree this launch runs in — read from the substituted copy, since the revise
 # loop's line says `<phase>` where a run says `red`. The two files named are spelled as
 # `runnable`'s table spells them, so the tree holds the spec and the test the line is about to
@@ -396,14 +399,14 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 # matched as `--step '<up to the closing quote>'`.
 check_verifier_launch() {
   local launch="$1" leaf
-  leaf="verify-$(arg_after verify.sh "$(sed -E "s/ --(step|fast-cmd) '[^']*'//g" <<< "$launch")")"
+  leaf="verify-$(arg_after run-verdict.sh "$(sed -E "s/ --(step|fast-cmd) '[^']*'//g" <<< "$launch")")"
   expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
 }
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
   scan_launches \
-  '\$S/detach-leaf\.sh .*bash -c "\$S/verify\.sh .*\.tdd/issue-<n>-spec\.md' \
-  "a verifier through verify.sh against a spec file" \
+  '\$S/detach-leaf\.sh .*\$S/run-verdict\.sh .*\.tdd/issue-<n>-spec\.md' \
+  "a verifier through run-verdict.sh against a spec file" \
   check_verifier_launch
 
 # 3. The second thing a leaf launch has to carry, and the one #163 measured missing: the run
