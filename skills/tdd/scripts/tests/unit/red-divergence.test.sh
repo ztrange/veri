@@ -171,5 +171,19 @@ done
 (( offered )) || problems+=("no prompt under $prompts_dir carries a PREDICTION: report line to check")
 verdict "$name"
 
+# 7. Punctuation is at least as natural a way to attach that clause as a space is —
+#    "PREDICTION: DIVERGED, but only in the message" is the same leaf being helpful — so the
+#    verdict word is read with its trailing punctuation stripped, for both verdicts and for
+#    each of the four marks a clause is joined with (issue #433).
+name="PREDICTION verdict word carrying trailing punctuation is read as that verdict"
+problems=()
+for mark in ',' ';' ':' '.'; do
+  run_on "$(as_predicted_report "PREDICTION: MATCHED$mark but only in the message")"
+  [[ "$code" == 3 ]] || problems+=("MATCHED$mark want exit 3, got $code")
+  run_on "$(surprise_report "PREDICTION: DIVERGED$mark but only in the message" "PREDICTION_NOTE: $note")"
+  [[ "$code" == 0 ]] || problems+=("DIVERGED$mark want exit 0, got $code")
+done
+verdict "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
