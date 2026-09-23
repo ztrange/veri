@@ -121,14 +121,26 @@ failures_in() {
   printf '%s' "${line% failed}"
 }
 
-# plant — build the scratch tree the guard is run inside, and the planted document it is run
-# against. Leaves the tree's path in `tree`, the guard's copy in `guard_copy`, the rewritten
-# document in `planted_skill` and the line number it rewrote in `planted_line`.
-#
-# The tree holds only what the guard resolves against its own repo root: itself, and the
-# document. The planted document is staged OUTSIDE the tree, because the case runs the guard
-# twice over the same tree — unplanted first, then planted — and `run_guard_over` is what
-# puts one of the two in place.
+# make_plant_tree <name> — the tree a plant runs the guard inside, left in `tree` with the
+# guard's copy in `guard_copy`. It holds only what the guard resolves against its own repo
+# root — itself, and the document — so in particular the generated tree is not copied, which
+# is what no-docs-reads.test.sh asks of every suite here. The document itself is not put in
+# it: each case runs the guard over the same tree twice, unplanted then planted, and
+# `run_guard_over` is what puts one of the two in place. Non-zero when the tree cannot be
+# made, so the caller stops rather than reporting on a tree it never built.
+make_plant_tree() {
+  tree="$scratch/$1"
+  mkdir -p "$tree/${SKILL%/*}" "$tree/${GUARD%/*}" || {
+    problems+=("could not make a scratch tree to plant the document in, so the criterion went unasked")
+    return 1
+  }
+  guard_copy="$tree/$GUARD"
+  cp "$GUARD_PATH" "$guard_copy"
+}
+
+# plant — the tree `make_plant_tree` builds, and the planted document the guard is asked
+# about in it. Leaves the rewritten document in `planted_skill` and the line number it
+# rewrote in `planted_line`.
 #
 # The rewrite is one literal deletion on the first line carrying it, done with awk's
 # `index`/`substr` rather than sed so that neither `$` nor `.` in the fragment has to be
@@ -136,13 +148,7 @@ failures_in() {
 # skill-leaf-launch.test.sh passes its patterns that way: `awk -v` would process the
 # backslash escapes of anything spelled with one.
 plant() {
-  tree="$scratch/tree"
-  mkdir -p "$tree/${SKILL%/*}" "$tree/${GUARD%/*}" || {
-    problems+=("could not make a scratch tree to plant the document in, so the criterion went unasked")
-    return 1
-  }
-  guard_copy="$tree/$GUARD"
-  cp "$GUARD_PATH" "$guard_copy"
+  make_plant_tree tree || return 1
 
   planted_skill="$scratch/planted-SKILL.md"
   FRAG="$FRAGMENT" awk '
@@ -340,18 +346,11 @@ exempting() {
   printf '%s' "$out"
 }
 
-# plant_step_title — the tree the guard runs in and the document it is asked about, built
-# the way `plant` above builds its own: the guard and the document and nothing else, the
-# planted copy staged outside the tree so the same tree can be asked twice. The rewrite is
-# one literal substitution on the one line carrying the anchor.
+# plant_step_title — the same pair for this case: the tree `make_plant_tree` builds, and the
+# document planted in `planted_step_skill` with the line it rewrote in `step_line`. The
+# rewrite is one literal substitution on the one line carrying the anchor.
 plant_step_title() {
-  tree="$scratch/step-tree"
-  mkdir -p "$tree/${SKILL%/*}" "$tree/${GUARD%/*}" || {
-    problems+=("could not make a scratch tree to plant the document in, so the criterion went unasked")
-    return 1
-  }
-  guard_copy="$tree/$GUARD"
-  cp "$GUARD_PATH" "$guard_copy"
+  make_plant_tree step-tree || return 1
 
   step_line="$(head -1 < <(grep -nF "$STEP_ANCHOR" "$SKILL_PATH") | cut -d: -f1)"
   planted_step_skill="$scratch/planted-step-SKILL.md"
