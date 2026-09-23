@@ -35,6 +35,29 @@ if [[ ! -x "$HERE/verify.sh" ]]; then
   exit 2
 fi
 
+# The phase this verdict is for, read the way verify.sh reads it — the first positional, after
+# the same `--step`/`--fast-cmd` value pairs — off a copy of argv, so what is exec'd below is
+# still the caller's own arguments, unexamined and unmodified. Which phase names are valid
+# stays verify.sh's judgement: an unrecognised word here only names a reason file nothing
+# wrote, and clearing that is harmless.
+args=("$@")
+while [[ "${args[0]:-}" == --step || "${args[0]:-}" == --fast-cmd ]]; do
+  args=("${args[@]:2}")
+done
+phase="${args[0]:-}"
+
+# Clear the phase's reason file before the verifier starts. The conductor's launch line
+# redirects the verifier's stdout into `.tdd/verify-<phase>.reason`, so that file is written
+# only if the verifier both starts and speaks; a launch that dies before either leaves the
+# PREVIOUS step's reason sitting there, and on the #424 run a conductor read a 23-minute-old
+# REJECT as this step's verdict. Truncating here makes "no verdict was produced" look like
+# what it is — an empty file — rather than like an answer. The file is only truncated, never
+# created: a `.tdd` that does not exist is a tree no conductor is running in, and a launcher
+# that conjured one would be writing outside its job.
+if [[ -n "$phase" && -f ".tdd/verify-$phase.reason" ]]; then
+  : > ".tdd/verify-$phase.reason"
+fi
+
 # `exec` rather than a call: this process has nothing left to do after the verifier's, so the
 # supervisor watching it watches verify.sh directly, and the verdict's exit code is verify.sh's
 # own rather than one relayed through a second shell.

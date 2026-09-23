@@ -62,12 +62,18 @@ STEP="A background process is killed by the pid recorded when it started, never 
 SPEC='spec.md'
 TEST_PATH='suite.test.sh'
 
+# The phase the call names, and the reason file that belongs to it — spelled once, because a
+# case that seeded a reason file for one phase and launched another would be watching a file
+# nothing in the run was ever going to touch, and would pass for that reason alone.
+PHASE='red'
+REASON=".tdd/verify-$PHASE.reason"
+
 # The whole call, once. Both cases launch with exactly this argv — a well-formed call in the
 # documented shape, `--step <title> <phase> <spec> <test-path> <target>` — and differ only in
 # the tree they launch it over: a real verifier under case 1, one that cannot start under
 # case 2. Spelled at each call site, the two could drift into asking about different calls,
 # and case 2's exit 2 would then be evidence about a call shape case 1 never ran.
-CALL=(--step "$STEP" red "$SPEC" "$TEST_PATH" case-1)
+CALL=(--step "$STEP" "$PHASE" "$SPEC" "$TEST_PATH" case-1)
 
 pass=0 fail=0
 
@@ -255,6 +261,76 @@ broken_run=""
 if probe_launcher_is_there; then
   probe_unstartable_verifier_is_no_answer missing "no $VERIFIER to start"
   probe_unstartable_verifier_is_no_answer unrunnable "a $VERIFIER it cannot execute"
+fi
+report "$name"
+
+# The reason an earlier step left behind. On the #424 run the file under it was 23 minutes old
+# and belonged to the step before, and a conductor reading the contract literally took it for
+# this step's verdict. Its apostrophe is incidental here; what matters is that no byte of it
+# may still be readable when the verifier runs.
+STALE="REJECT: the previous step's test does not pin the criterion it names"
+
+# stage_watching_reason — the tree case 3 runs in: a copy of the scripts directory whose
+# verify.sh records what the phase's reason file held AT THE MOMENT IT RAN, and a cwd holding
+# a `.tdd/` with that file already seeded stale.
+#
+# The record, not the file's final state, is what the case reads, because the criterion is
+# about an ordering: cleared BEFORE the verifier runs. A launcher that truncated the file
+# afterwards — or a stub whose own output happened to overwrite it — would leave a clean file
+# behind and still have let the verifier see the previous step's reason.
+#
+# Its own copy and its own cwd, for the reason `stage_broken` has its own: the case must
+# answer even if neither of the others got staged.
+stage_watching_reason() {
+  watching="$work/watching"
+  rm -rf "$watching"
+  copy_scripts_to "$watching" || return 1
+
+  seen="$work/reason-seen"
+  rm -f "$seen"
+  cat > "$watching/$VERIFIER" <<'STUB'
+#!/bin/sh
+# Stub verifier: copy the phase's reason file, as it stands now, into the record this case
+# reads — an unreadable or absent file records as nothing, which is the same answer as a
+# cleared one and the answer this case wants.
+cat "$VERI_STUB_REASON" > "$VERI_STUB_SEEN" 2>/dev/null || : > "$VERI_STUB_SEEN"
+printf 'the test pins the criterion and fails for the reason it names\n'
+STUB
+  chmod +x "$watching/$VERIFIER"
+
+  watching_run="$work/watching-run"
+  make_run_dir "$watching_run" || return 1
+  mkdir -p "$watching_run/$(dirname "$REASON")" || return 1
+  printf '%s\n' "$STALE" > "$watching_run/$REASON"
+}
+
+# probe_stale_reason_is_gone_before_the_verifier_runs — the criterion. Launch over the seeded
+# tree and read the record the verifier left: it ran at all, and what it could see in the
+# phase's reason file was nothing.
+probe_stale_reason_is_gone_before_the_verifier_runs() {
+  local out code
+  out="$( cd "$watching_run" && VERI_STUB_SEEN="$seen" VERI_STUB_REASON="$watching_run/$REASON" \
+            "$watching/$LAUNCHER_NAME" "${CALL[@]}" 2>&1 )" && code=0 || code=$?
+
+  [[ -f "$seen" ]] || {
+    problems+=("$LAUNCHER never reached $VERIFIER, so the case says nothing about $REASON — it exited $code and said: $(flat "$out")")
+    return
+  }
+
+  [[ ! -s "$seen" ]] ||
+    problems+=("when $VERIFIER ran, $REASON still held the previous step's reason: $(flat "$(cat "$seen")") — want it cleared before the verifier starts, so nothing left there can be read as this verdict")
+}
+
+# 3. The reason file a previous step wrote is cleared before this verdict's verifier runs, so
+#    no byte of it can come back as this step's answer.
+name="$LAUNCHER_NAME clears $REASON before $VERIFIER runs, so an earlier step's reason cannot be read as this verdict"
+problems=()
+watching=""
+watching_run=""
+seen=""
+
+if probe_launcher_is_there && stage_watching_reason; then
+  probe_stale_reason_is_gone_before_the_verifier_runs
 fi
 report "$name"
 
