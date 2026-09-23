@@ -279,9 +279,12 @@ expect_sentinel() {
     problem "launches $leaf, whose leaf saw VERI_TEST_CMD=$got, want $SENTINEL"
 }
 
-# runnable <line> — echo one launch line as a conductor types it, with the document's
+# runnable <line> [step] — echo one launch line as a conductor types it, with the document's
 # placeholders supplied; or echo nothing and return 1 when the line names one this probe
-# cannot supply.
+# cannot supply. <step> is what `<STEP>` becomes, defaulting to the sentinel the first cases
+# use: it is a parameter because case 8 asks the same lines about a DIFFERENT title — one
+# carrying an apostrophe — and a second copy of this table would be a second chance to get
+# the substitutions wrong.
 #
 # Two spellings of the same launch are kept apart on purpose, and this is where the second
 # one is made: the caller's `line` is what the document says, and is what every message
@@ -298,12 +301,12 @@ expect_sentinel() {
 # because the document leaves it unquoted, so a value with a space in it would arrive as two
 # arguments and the probe would be testing its own fixture.
 runnable() {
-  local launch="$1"
+  local launch="$1" step="${2:-$SENTINEL_STEP}"
   launch="${launch//<test-cmd>/$SENTINEL}"
   launch="${launch//<phase>/red}"
   launch="${launch//<k>/1}"
   launch="${launch//<n>/$SENTINEL_ISSUE}"
-  launch="${launch//<STEP>/$SENTINEL_STEP}"
+  launch="${launch//<STEP>/$step}"
   launch="${launch//<test-path>/probe.test.sh}"
   launch="${launch//<target-test-id>/probe-target}"
   launch="${launch//<green-sha>/0123abc}"  # refactor's 4th slot must be a sha (#151)
@@ -754,6 +757,97 @@ scan_answer_latency() {
 
 run_case "a derived leaf name no launch writes is answered once its supervisor is gone, not at the end of the wait budget" \
   scan_answer_latency
+
+# 8. The step's TITLE, and the one character every launch line in this document still
+#    breaks on (issue #431). #426 took the verify call out of a nested `bash -c "…"` so that
+#    no SECOND shell parses the title — that was the inner half. The outer half is still
+#    here: every launch spells `VERI_STEP='<STEP>'`, a single-quoted literal in the shell the
+#    conductor itself types the line into, so a title carrying an apostrophe — and the
+#    planning leaf is what writes the titles — closes that quote early and the line dies
+#    before anything is launched:
+#
+#        bash: -c: line 1: unexpected EOF while looking for matching `''
+#
+#    Two runs have already paid for it by hand: #424 crashed on it, and #297 and #426 routed
+#    around it with a git-ignored `.tdd/vwrap.sh` argv wrapper or by choosing titles with no
+#    apostrophe. Neither is a fix — a wrapper nobody commits is one the next run does not
+#    have, and choosing the titles is not the conductor's to choose.
+#
+#    Asked the way cases 1 and 2 ask their own question — by RUNNING a line of the document,
+#    not by grepping it — but of one launch and not of all ten, because the hazard is the
+#    mechanism rather than the line: every launch carries the title the same way, and what a
+#    document-wide sweep is for is the guard over the lines, not this case.
+#
+#    The run is shallow on purpose. `$S` here is a copy of the scripts directory whose
+#    `detach-leaf.sh` records the VERI_STEP it was launched with and returns, so nothing
+#    starts a supervisor, a detached session, a `claude` or a leaf, and nothing waits: the
+#    quoting hazard is entirely in the ONE shell that types the line, which is the shell this
+#    case runs. That the environment then crosses the supervisor and reaches the leaf is case
+#    3 above, already asked — of a title with no apostrophe in it.
+#
+#    What the copy holds is the whole scripts directory, and the tree the line runs in holds
+#    the run's committed ledger, because the criterion is that the title ARRIVES and not which
+#    route the document picks for it: a launch that stops inlining the title and reaches it
+#    through a shipped script, or through the ledger the title is written in, is run with both
+#    present and answers this case on its own terms.
+#
+# The title under test, and the expected value at once: what the conductor is given is what
+# the leaf must receive. A real ledger line from this repository's own history, in its own
+# voice, carrying the one character the launch breaks on.
+APOSTROPHE_STEP="A background process is killed by the pid recorded when it started, never by that shell's own job spec"
+
+# scan_step_title — the case's body, in the other cases' shape: it records what it finds into
+# `run_case`'s `problems`, and `lineno`/`line` are its own locals so `problem` builds this
+# case's messages out of the document line it actually ran.
+scan_step_title() {
+  local lineno line numbered launch stage seen tree err got
+  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-red \$S/run-leaf\.sh' "$md"))"
+  if [[ -z "$numbered" ]]; then
+    problems+=("$skill_md has no line launching develop-red through supervise.sh into run-leaf.sh — the launch this case is about could not be found")
+    return
+  fi
+  lineno="${numbered%%:*}"
+  line="${numbered#*:}"
+  launch="$(runnable "$line" "$APOSTROPHE_STEP")" || {
+    problem "names a placeholder this probe cannot supply, so its launch could not be run"
+    return
+  }
+  # The scripts directory the line is run against: every script it ships, with the detacher —
+  # the first process a launch starts, and so the first place the title is observable at all —
+  # replaced by a recorder. `#!/bin/sh` like every other stub here (#322): Homebrew's bash
+  # costs ~12 ms to start and a recorder buys nothing for it. The suites are not copied; the
+  # line names none of them, and copying them would be ~100 files for nothing.
+  stage="$WORK/step-title-scripts"
+  seen="$WORK/step-title-seen"
+  tree="$WORK/step-title-tree"
+  mkdir -p "$stage" "$tree/.tdd"
+  cp "$SCRIPTS"/*.sh "$stage/"
+  cp -R "$SCRIPTS/lib" "$SCRIPTS/prompts" "$stage/"
+  cat > "$stage/detach-leaf.sh" <<'STUB'
+#!/bin/sh
+printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
+STUB
+  chmod +x "$stage/detach-leaf.sh"
+  printf 'the prompt this launch names, which the recorder never reads\n' \
+    > "$tree/.tdd/develop-red.prompt"
+  printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$APOSTROPHE_STEP" \
+    > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  # `env -u` on the three run-context variables for the reason `launched_test_cmd` gives: a
+  # `make test` of this repository runs inside a development run and already carries them, so
+  # a recorder inheriting them from this suite's own caller would answer for a line that set
+  # nothing. The launching shell's stderr is kept, because the two failures read differently
+  # and a reader has to tell them apart: a line the shell refused outright launched nothing,
+  # while a title that arrived truncated at the apostrophe, or wearing quotes a second parse
+  # left on it, says the launch ran and mangled it.
+  err="$( cd "$tree" && env -u VERI_TEST_CMD -u VERI_ISSUE -u VERI_STEP \
+            S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
+  got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
+  [[ "$got" == "$APOSTROPHE_STEP" ]] ||
+    problem "launched with the step title <$APOSTROPHE_STEP>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
+}
+
+run_case "a step title carrying an apostrophe reaches the leaf $skill_md launches with it intact" \
+  scan_step_title
 
 echo "----"
 echo "$pass passed, $fail failed"
