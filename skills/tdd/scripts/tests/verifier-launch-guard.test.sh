@@ -193,10 +193,8 @@ probe_plant_is_what_it_claims() {
     problems+=("no line of $SKILL carries '$FRAGMENT' (found '$planted_line'), so there is no supervised verifier launch to cut it out of and the criterion cannot be asked")
     return
   }
-  local carriers before after changed
-  carriers="$(grep -cF "$FRAGMENT" "$SKILL_PATH")"
-  [[ "$carriers" == 1 ]] ||
-    problems+=("$SKILL carries '$FRAGMENT' on $carriers lines, want exactly 1 — with more than one the plant's address is a guess")
+  local before after
+  probe_one_carrier "$FRAGMENT"
   before="$(sed -n "${planted_line}p" "$SKILL_PATH")"
   after="$(sed -n "${planted_line}p" "$planted_skill")"
   [[ "$before" == *"$VERIFIER"* && "$before" == *"$MISSING"* ]] ||
@@ -205,9 +203,7 @@ probe_plant_is_what_it_claims() {
     problems+=("the planted $SKILL:$planted_line no longer reaches $VERIFIER, so the guard has no verifier launch there to judge: $(flat "$after")")
   [[ "$after" != *"$MISSING"* ]] ||
     problems+=("the planted $SKILL:$planted_line still names $MISSING, so nothing was planted: $(flat "$after")")
-  changed="$(diff "$SKILL_PATH" "$planted_skill" | grep -c '^[<>]')"
-  [[ "$changed" == 2 ]] ||
-    problems+=("the plant rewrote $changed lines of $SKILL, want exactly one line rewritten (2 diff lines) — a red over a document changed twice is not about the launch")
+  probe_one_line_rewritten "$planted_skill" launch
 }
 
 # run_guard_over <document> — put <document> in the tree as the document the guard reads,
@@ -217,6 +213,27 @@ probe_plant_is_what_it_claims() {
 run_guard_over() {
   cp "$1" "$tree/$SKILL"
   guard_out="$("$guard_copy" 2>&1)" && guard_code=0 || guard_code=$?
+}
+
+# probe_one_carrier <text> — the document has to carry <text> on exactly one line. Every
+# plant here finds its line by a literal unique to it, and with more than one carrier the
+# address it went on to rewrite is a guess rather than a fact.
+probe_one_carrier() {
+  local carriers
+  carriers="$(grep -cF "$1" "$SKILL_PATH")"
+  [[ "$carriers" == 1 ]] ||
+    problems+=("$SKILL carries '$1' on $carriers lines, want exactly 1 — with more than one the plant's address is a guess")
+}
+
+# probe_one_line_rewritten <planted document> <what the plant is about> — the planted copy
+# has to differ from the committed document on one line and no other (two diff lines, the
+# `<` and the `>`). A red over a document changed twice is not about <what the plant is
+# about>, and every case here rests on it being.
+probe_one_line_rewritten() {
+  local changed
+  changed="$(diff "$SKILL_PATH" "$1" | grep -c '^[<>]')"
+  [[ "$changed" == 2 ]] ||
+    problems+=("the plant rewrote $changed lines of $SKILL, want exactly one line rewritten (2 diff lines) — a red over a document changed twice is not about the $2")
 }
 
 # probe_guard_is_red <what the plant did> — the guard's last run has to have failed, by its
@@ -390,19 +407,15 @@ probe_step_plant_is_what_it_claims() {
     problems+=("no line of $SKILL carries '$STEP_ANCHOR' (found '$step_line'), so there is no documented launch to put the title's quotes back on and the criterion cannot be asked")
     return 1
   }
-  local carriers before after changed
-  carriers="$(grep -cF "$STEP_ANCHOR" "$SKILL_PATH")"
-  [[ "$carriers" == 1 ]] ||
-    problems+=("$SKILL carries '$STEP_ANCHOR' on $carriers lines, want exactly 1 — with more than one the plant's address is a guess")
+  local before after
+  probe_one_carrier "$STEP_ANCHOR"
   before="$(sed -n "${step_line}p" "$SKILL_PATH")"
   after="$(sed -n "${step_line}p" "$planted_step_skill")"
   [[ "$before" == *"$STEP_DOUBLE"* ]] ||
     problems+=("$SKILL:$step_line does not carry $STEP_DOUBLE to begin with, so single-quoting it contradicts nothing: $(flat "$before")")
   [[ "$after" == *"$STEP_SINGLE"* ]] ||
     problems+=("the planted $SKILL:$step_line does not carry $STEP_SINGLE, so nothing was planted: $(flat "$after")")
-  changed="$(diff "$SKILL_PATH" "$planted_step_skill" | grep -c '^[<>]')"
-  [[ "$changed" == 2 ]] ||
-    problems+=("the plant rewrote $changed lines of $SKILL, want exactly one line rewritten (2 diff lines) — a red over a document changed twice is not about the step title")
+  probe_one_line_rewritten "$planted_step_skill" "step title"
   return 0
 }
 
