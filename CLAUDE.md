@@ -200,6 +200,19 @@ with a redirection rather than a pipe, which moves the status off the writer —
 (#157). `no-sigpipe-pipelines.test.sh` fails the run naming `<suite>:<line>`, against an
 exemption table carrying a reason per entry, the way `no-nested-suites.test.sh` does.
 
+**A background process is killed by the pid recorded when it started, never by a job spec**
+(#424). `kill %…` names a row in the job table of the shell that started the process, and
+that table dies with the shell: once it is gone the number means nothing, the child is
+reparented to PID 1, and nothing is left that knows its identity — which on 2026-09-22 left
+ten orphaned busy-loops at ~988% of CPU for twelve hours, quietly distorting every timing
+this repository measures, `make profile` included. Start it with `bg_start` and end it with
+`bg_kill` from `lib/background.sh`: a pid is a system-wide name, so the kill lands from any
+shell. The EXIT trap `bg_start` arms only *reports* a survivor by pid and command on the
+starting shell's stderr — a killed process's own cleanup never runs, so a trap is a warning
+someone can act on, never the thing that guarantees the child dies.
+`no-job-spec-kills.test.sh` fails the run naming `<file>:<line>`, against an exemption table
+carrying a reason per entry.
+
 **`skills/tdd/scripts/tests/unit/` is the fast tier**, run alone by `make unit` and also by
 `make test`. A suite belongs there only if it clears the admission bar: about 100 ms per
 case, and no git, network, servers, real waits (`sleep`) or nested suites — judged by
