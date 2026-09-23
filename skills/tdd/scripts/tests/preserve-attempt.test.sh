@@ -36,10 +36,11 @@ git_q() { local repo="$1"; shift; env "${ident[@]}" git -C "$repo" "$@"; }
 # attempt 1 — so the one ref they all expect is spelled out once rather than per case.
 REF="refs/veri/attempts/409/3/develop-green-1"
 
-# ref_resolves <repo> — 0 when $REF names a commit in <repo>. Asked of git rather than of the
-# filesystem, for the reason in the header: a file written under .git by hand would pass a
-# filesystem check and be no commit at all.
-ref_resolves() { git_q "$1" rev-parse --verify --quiet "$REF^{commit}" >/dev/null 2>&1; }
+# ref_resolves <repo> [<ref>] — 0 when <ref>, $REF by default, names a commit in <repo>. Asked
+# of git rather than of the filesystem, for the reason in the header: a file written under .git
+# by hand would pass a filesystem check and be no commit at all. The ref is a parameter because
+# the case that pins the ledger-index name expects a different one, and the reading is the same.
+ref_resolves() { git_q "$1" rev-parse --verify --quiet "${2:-$REF}^{commit}" >/dev/null 2>&1; }
 
 # attempts_dir <repo> — the directory preservation puts its copies in. A case asks whether it
 # exists at all as well as what is in it, and copy_path builds names under it, so the path is
@@ -215,7 +216,7 @@ git_q "$repo" commit -q -m "plan: scope #409" >/dev/null 2>&1
 printf 'rejected work\n' > "$repo/stop-run.sh"
 preserve "$repo" 409 "$prose" develop-green 1 >/dev/null 2>&1; code=$?
 indexed="refs/veri/attempts/409/2/develop-green-1"
-git_q "$repo" rev-parse --verify --quiet "$indexed^{commit}" >/dev/null 2>&1; resolved=$?
+ref_resolves "$repo" "$indexed"; resolved=$?
 refs="$(git_q "$repo" for-each-ref --format='%(refname)' refs/veri/attempts 2>&1 | tr '\n' ' ')"
 { [[ "$code" == 0 ]] && [[ "$resolved" == 0 ]]; } \
   && ok || no "names the ref by the step's ledger index, not its prose (code=$code resolved=$([[ "$resolved" == 0 ]] && echo yes || echo no) refs='$refs')"
