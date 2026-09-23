@@ -97,6 +97,16 @@ verdict_leaf="verdict-"
 # leave the messages pointing at a section that is no longer called that.
 section="Launching a leaf"
 
+# The placeholder every command spells the step's title as, and the two shapes case 8 tells
+# apart: `$double_quoted_step`, the rule SKILL.md states, and `$single_quoted_step`, the shape
+# the incident happened in. Written down once for the reason the script names above are: the
+# placeholder is what four probes narrow on AND what their failure messages quote, and the
+# two quoted shapes are built from it here rather than retyped, so a document that renames
+# the placeholder cannot leave one probe reading a shape no other looks for.
+step_ph="<STEP>"
+double_quoted_step="\"$step_ph\""
+single_quoted_step="'$step_ph'"
+
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
@@ -349,7 +359,7 @@ blind_args() {
 # the test path, and the target, which is the test id in every phase but `refactor`, where it
 # is the step's green commit. Anchored at BOTH ends because the criterion is *only these*:
 # an unanchored pattern would pass a line that carries all of them and something else after.
-blind_re="^--step \"<STEP>\"( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])$"
+blind_re="^--step $double_quoted_step( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])$"
 
 # 6. The verifier is blind **by construction**: `build-verify-prompt.sh` has no parameter for
 #    the developer's rationale, so it cannot leak one, and a launch that passes verify.sh
@@ -439,7 +449,7 @@ prose_paragraphs() {
 # prompt builder, `event.sh`, `add-ledger-step.sh`, `preserve-attempt.sh` — and one rule for
 # all of them is what the criterion asks for.
 step_lines() {
-  fenced_lines '<STEP>'
+  fenced_lines "$step_ph"
 }
 
 # 8. The step's title is the planning leaf's own English, and the document's every command
@@ -477,7 +487,7 @@ problems=()
 # the step title — as the English words, or as the placeholder every command spells — and it
 # says something about quoting. Anything that does both is a statement of this rule, which is
 # what makes "in one place" answerable at all.
-rules="$(prose_paragraphs | grep -i -E 'quot' | grep -E 'step title|<STEP>' || true)"
+rules="$(prose_paragraphs | grep -i -E 'quot' | grep -F -e 'step title' -e "$step_ph" || true)"
 rule_count="$(grep -c . <<< "$rules")"
 if [[ "$rule_count" -eq 0 ]]; then
   problems+=("$skill_md states no rule for how a step title reaches a command line — no paragraph outside a fenced block says how the title is quoted")
@@ -488,7 +498,7 @@ else
   ruletext="$(cut -f2- <<< "$rules")"
   lowered="$(tr '[:upper:]' '[:lower:]' <<< "$ruletext")"
   faults=""
-  [[ "$ruletext" == *'"<STEP>"'* || "$lowered" == *"double quote"* ]] ||
+  [[ "$ruletext" == *"$double_quoted_step"* || "$lowered" == *"double quote"* ]] ||
     fault "does not say the title is carried in double quotes"
   [[ "$lowered" == *apostrophe* ]] ||
     fault "does not say why: a title carrying an apostrophe closes a single-quoted one early"
@@ -498,7 +508,7 @@ fi
 
 steps="$(step_lines)"
 if [[ -z "$steps" ]]; then
-  unreadable "line carrying <STEP> inside a fenced block" "how the step's title reaches a command line"
+  unreadable "line carrying $step_ph inside a fenced block" "how the step's title reaches a command line"
 else
   while IFS=$'\t' read -r lineno text; do
     faults=""
@@ -509,9 +519,9 @@ else
     # Every occurrence, not just the first: a launch spells the title twice — once into the
     # environment and once as the verdict launcher's `--step` — so the double-quoted ones are
     # struck out and what is left is asked whether it still carries the title bare.
-    if [[ "$text" == *"'<STEP>'"* ]]; then
+    if [[ "$text" == *"$single_quoted_step"* ]]; then
       fault "inlines the step title in single quotes"
-    elif [[ "${text//\"<STEP>\"/}" == *"<STEP>"* ]]; then
+    elif [[ "${text//"$double_quoted_step"/}" == *"$step_ph"* ]]; then
       fault "carries a step title that is not double-quoted"
     fi
     [[ -z "$faults" ]] ||
