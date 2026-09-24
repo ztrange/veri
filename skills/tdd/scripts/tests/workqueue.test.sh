@@ -150,7 +150,6 @@ cat > "$fx/issues.json" <<'JSON'
    "body": "Work.\n\n## Blocked by\n\n- #6\n"}
 ]
 JSON
-printf '[]\n' > "$fx/prs.json"
 expect_next next-unblocked 22 \
   "next prints the worker's first queued issue whose Blocked by names no open issue"
 
@@ -172,7 +171,6 @@ cat > "$fx/issues.json" <<'JSON'
    "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri-demo-node/issues/120\n"}
 ]
 JSON
-printf '[]\n' > "$fx/prs.json"
 expect_next next-foreign-url 131 \
   "next does not read a Blocked by URL naming another repository's issue as a blocker"
 
@@ -194,7 +192,6 @@ cat > "$fx/issues.json" <<'JSON'
   {"number": 132, "title": "unblocked", "labels": [], "body": "", "state": "OPEN"}
 ]
 JSON
-printf '[]\n' > "$fx/prs.json"
 expect_next next-own-url 132 \
   "next reads a Blocked by URL naming this repository, origin ending in .git, as a blocker"
 
@@ -216,7 +213,6 @@ cat > "$fx/issues.json" <<'JSON'
    "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri-demo-node/issues/120\n"}
 ]
 JSON
-printf '[]\n' > "$fx/prs.json"
 expect_next next-ssh-origin 131 \
   "next reads an SSH origin as this repository when weighing a Blocked by URL" \
   GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
