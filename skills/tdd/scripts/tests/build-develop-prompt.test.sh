@@ -1259,8 +1259,13 @@ refuses "exhausted missing reason" "$BUILD" exhausted "$work/spec.md" "$step_tex
 #
 #     The negative half reads case 1's prompt, built from the spec with no `## Bug` section,
 #     and wants every one of the three probes to find nothing.
-cat > "$work/bug-spec.md" <<'SPEC'
-zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" — see {ref}\n done.
+#
+#     The fixture is case 1's own spec with the section appended, rather than a second copy
+#     of it: the two differ in exactly the thing under test, and the positive and negative
+#     halves below then read one prompt built from each, with nothing else between them that
+#     could explain a difference.
+cp "$work/spec.md" "$work/bug-spec.md"
+cat >> "$work/bug-spec.md" <<'SPEC'
 
 ## Bug
 
