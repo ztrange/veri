@@ -144,6 +144,17 @@ sweep() {
   return 0
 }
 
+# offenders — the files in `swept` that `exempt` does not cover, one per line. Case 11 asks
+# it of both sweeps and differs only in which file it expects back, so the filter is written
+# once here rather than at each.
+offenders() {
+  local f
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    exempt "$f" || printf '%s\n' "$f"
+  done <<< "$swept"
+}
+
 # 2. The plumbing moved with the skill. Stated as the absence it has to produce rather than
 #    as a list of files to check, so a path constant hiding somewhere this test never heard
 #    of still counts: no tracked file names the old scripts directory except the exempt ones.
@@ -473,21 +484,11 @@ printf 'Invoke %s 12 and follow it.\n' "${old_cmds[0]}" > "$ROOT/${stubs[1]}"
 if ! (cd "$ROOT" && git init -q && git add -A); then
   problems+=("could not build the scratch repository at $ROOT")
 else
-  offenders=""
   sweep --fixed-strings "$old_scripts_dir" || problems+=("old-home sweep: git grep failed with exit $?")
-  while IFS= read -r f; do
-    [[ -n "$f" ]] || continue
-    exempt "$f" || offenders+="$f"$'\n'
-  done <<< "$swept"
-  [[ "$offenders" == *"${stubs[0]}"* ]] ||
+  [[ "$(offenders)" == *"${stubs[0]}"* ]] ||
     problems+=("old-home sweep: ${stubs[0]} names $old_scripts_dir but was not reported — exempt still covers it")
-  offenders=""
   sweep -E "$cmd_re" || problems+=("old-command sweep: git grep failed with exit $?")
-  while IFS= read -r f; do
-    [[ -n "$f" ]] || continue
-    exempt "$f" || offenders+="$f"$'\n'
-  done <<< "$swept"
-  [[ "$offenders" == *"${stubs[1]}"* ]] ||
+  [[ "$(offenders)" == *"${stubs[1]}"* ]] ||
     problems+=("old-command sweep: ${stubs[1]} invokes ${old_cmds[0]} but was not reported — exempt still covers it")
 fi
 rm -rf "$ROOT"
