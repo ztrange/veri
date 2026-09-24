@@ -25,3 +25,8 @@
 
 - `workqueue.sh assign` with no worker, or with a worker and no issue, exits 2 and leaves the queue file byte-identical
 - `workqueue.sh assign` refuses with exit 2, leaving the file byte-identical, when the same issue is named twice in one call
+
+## Owed steps
+
+- `solvable-issues.sh`'s `## Blocked by` parsing (its `blockers()`, `blocker_ref` and `is_open()`) lives in one shared module under `skills/tdd/scripts/lib/` that `solvable-issues.sh` imports, with its output and exit codes unchanged for every existing fixture
+- `workqueue.sh next <worker>` prints that worker's first `queued` issue whose `## Blocked by` names no open issue, skipping a blocked one, another worker's and a non-`queued` one, by calling that shared module rather than parsing blockers itself, read from `VERI_GH_JSON` fixtures
