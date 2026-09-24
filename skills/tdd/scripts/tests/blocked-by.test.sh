@@ -123,5 +123,45 @@ rm -rf "$scratch"
 check "solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own" \
   "code=3 out=" "code=$planted_code out=$planted_out"
 
+# 6. A caller that is not solvable-issues.sh gets the same answers in-process: imported from a
+#    scratch directory outside any repository, with PATH naming no gh and every way Python starts
+#    a child process replaced by a spy that records the attempt, the module must answer cases
+#    1-4 and the spy must record nothing.
+scratch="$(mktemp -d)"
+py="$(command -v python3)"
+inproc_out="$(cd "$scratch" && env PATH=/nonexistent GIT_CEILING_DIRECTORIES="$scratch" \
+  PYTHONDONTWRITEBYTECODE=1 "$py" -c '
+import os, subprocess, sys
+spawned = []
+def spy(name):
+    def trap(*args, **kwargs):
+        spawned.append(name)
+        raise RuntimeError("child process started via " + name)
+    return trap
+subprocess.Popen.__init__ = spy("subprocess.Popen")
+for name in ("system", "popen", "fork", "forkpty", "posix_spawn", "posix_spawnp",
+             "execv", "execve", "execvp", "execvpe", "spawnv", "spawnve", "spawnvp", "spawnvpe"):
+    if hasattr(os, name):
+        setattr(os, name, spy("os." + name))
+sys.path.insert(0, sys.argv[1])
+from blocked_by import blockers
+for body, slug in zip(sys.argv[2::2], sys.argv[3::2]):
+    try:
+        print(blockers(body, slug))
+    except Exception as e:
+        print("raised:", e)
+print("spawned=%s" % spawned)
+' "$LIB" "$body" acme/widgets "$none_body" acme/widgets "$absent_body" acme/widgets \
+  "$mixed_body" acme/widgets "$mixed_body" '' "$later_body" acme/widgets 2>&1)"
+rm -rf "$scratch"
+check "a caller that is not solvable-issues.sh imports the blocked-by module and gets its answers with no gh, no repository and no child process started" \
+  "[12, 34]
+[]
+[]
+[1, 34]
+[1, 56, 34]
+[3]
+spawned=[]" "$inproc_out"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
