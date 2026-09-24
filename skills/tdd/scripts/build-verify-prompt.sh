@@ -93,7 +93,15 @@ fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/verify-$phase.md"
 shared_file="$HERE/prompts/_shared.md"
-for f in "$tpl_file" "$shared_file" "$spec_file"; do
+# For plan the third positional names the proposed ledger, and this builder reads it
+# itself (below), so it joins the list of files whose unreadability is this script's
+# refusal rather than the leaf's: `cat` failing under `set -e` would exit 1, the code
+# reserved for an answer that came back, and no prompt is an answer nobody got (#439).
+readable=("$tpl_file" "$shared_file" "$spec_file")
+if [[ "$phase" == plan ]]; then
+  readable+=("$test_path")
+fi
+for f in "${readable[@]}"; do
   [[ -r "$f" ]] || { echo "build-verify-prompt: cannot read '$f'" >&2; exit 2; }
 done
 
