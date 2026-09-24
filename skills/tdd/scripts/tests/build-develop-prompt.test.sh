@@ -629,16 +629,19 @@ prompt_says "$refactor" "does not say to report nothing left to tidy when only c
 #     only its own class — case 16's `defines_class` reasoning, applied to the one anchored
 #     pattern this case owns: spelled out per class, the anchor, the `.*`, the `[^|]{0,40}` gap
 #     and the `\|` appear twice, and a bound edited on one line and not the other is a drift no
-#     diff makes loud.
-offers_class() {  # offers_class <class word>
-  local class="$1"
-  grep -qE "^CANDIDATES:.*$class[^|]{0,40}\|" <<<"$refactor" \
-    || problems="$problems; the CANDIDATES: line does not offer $class as the class"
+#     diff makes loud. It is the same shape for either report TOKEN too, so the token is the
+#     helper's first argument and case 38 calls it for `FLAGS:` rather than spelling a second
+#     copy: the complaint names whichever token its caller passed, so nothing about the
+#     sentence it records was tying the probe to this one case.
+offers_class() {  # offers_class <report token> <class word>
+  local token="$1" class="$2"
+  grep -qE "^$token:.*$class[^|]{0,40}\|" <<<"$refactor" \
+    || problems="$problems; the $token: line does not offer $class as the class"
 }
 
 problems=""
-offers_class structural
-offers_class cosmetic
+offers_class CANDIDATES structural
+offers_class CANDIDATES cosmetic
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor requires every CANDIDATES: line to carry its class, separated from the transform (${problems#; })"
 
@@ -1336,27 +1339,23 @@ prompt_lacks "$red" "a spec with no Bug section is still told to name the case a
 #     case 3 owns the exit-0 check on it. Two probe shapes, for the two halves of the criterion.
 #     The line itself is probed unfolded and anchored at `^`, the way cases 8, 18 and 33 probe
 #     theirs, because what is pinned is a report LINE the conductor greps for at the start of
-#     one; the class-carries-a-`|` probe is case 18's `offers_class`, spelled for this token
-#     because the complaint it records names this one. What each class NAMES is probed folded
+#     one; the class-carries-a-`|` probe is case 18's own `offers_class`, called with this
+#     token, since both halves of what it pins — the anchor and the `|` separating the class
+#     from what follows it — are the same claim about a different footer line. What each class
+#     NAMES is probed folded
 #     with `says_both_ways`, the way case 16 probes the structural/cosmetic definitions — a
 #     definition reads as naturally backwards as forwards, and a prompt is wrapped at ~85
 #     columns, so the claim spans two lines and only the folded probe can see it. The two
 #     halves cannot answer each other: a footer line carrying the word `beyond-spec` says
 #     nothing about what a leaf may put on it, and a paragraph defining the three classes is
 #     not a line the conductor can grep.
-flags_class() {  # flags_class <class word>
-  local class="$1"
-  grep -qE "^FLAGS:.*$class[^|]{0,40}\|" <<<"$refactor" \
-    || problems="$problems; the FLAGS: line does not offer $class as the class"
-}
-
 problems=""
 grep -qE '^FLAGS:' <<<"$refactor" || problems="$problems; no FLAGS: report line"
 grep -qE '^FLAGS:.*none' <<<"$refactor" || problems="$problems; the FLAGS: line does not offer none"
 grep -qE '^NEW_STEP:' <<<"$refactor" && problems="$problems; the report still carries a NEW_STEP: line"
-flags_class overfit
-flags_class uncovered-spec
-flags_class beyond-spec
+offers_class FLAGS overfit
+offers_class FLAGS uncovered-spec
+offers_class FLAGS beyond-spec
 says_both_ways "$refactor" "does not say overfit names code that passes the test without implementing the behaviour" \
   120 'overfit' '(without|rather than|instead of) implementing'
 says_both_ways "$refactor" "does not say uncovered-spec names a behaviour the spec requires" \
