@@ -939,6 +939,40 @@ STUB
 run_case "a launch whose completion file lands after its last recorded pid has exited is reported by what its leaf saw (#457)" \
   scan_late_completion
 
+# 10. The half of #297 that case 9's fix must not undo. Case 9 made the wait outlast the last
+#    recorded pid until a completion file lands; a launch that named its leaf wrongly must
+#    still end that wait as soon as its OWN file lands, and be reported as the naming fault it
+#    is — not waited on to the end of the budget for a file under the derived name that no
+#    supervisor will ever write. Case 7 asks that of a launch whose file lands before its pid
+#    is gone; this asks it of the order case 9 is about, where every recorded pid has exited
+#    and the completion file, under the launch's real name, arrives a second later.
+#
+# scan_late_wrong_leaf_name — the case's body, in the other cases' shape: `lineno`/`line` are
+# its own so the tree `launched_test_cmd` makes records this fixture's line.
+scan_late_wrong_leaf_name() {
+  local lineno line launch leaf prompt stage started elapsed got want
+  developer_launch_fixture late-wrong-leaf-name || return
+  stage="$WORK/late-wrong-leaf-name-scripts"
+  mkdir -p "$stage"
+  cat > "$stage/detach-leaf.sh" <<'STUB'
+#!/bin/sh
+# $1 is supervise.sh and $2 the leaf's name, as the launch line spells them.
+printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
+printf '%s\n' "$$" > ".tdd/$2.pid"
+( sleep 1; printf '0\n' > ".tdd/$2.exit" ) </dev/null >/dev/null 2>&1 &
+STUB
+  chmod +x "$stage/detach-leaf.sh"
+  want="<no completion file under leaf $leaf-no-such-leaf>"
+  started=$SECONDS
+  got="$(SCRIPTS="$stage" launched_test_cmd "$leaf-no-such-leaf" "$launch" "$prompt")"
+  elapsed=$(( SECONDS - started ))
+  [[ "$got" == "$want" && elapsed -lt ANSWER_CEILING ]] ||
+    problem "launches under a leaf name no completion file is written under, reported as <$got> after ${elapsed}s, want <$want> under ${ANSWER_CEILING}s"
+}
+
+run_case "a launch whose leaf name no completion file is written under is still reported as a naming fault, well inside the wait budget, when its own file lands late (#457)" \
+  scan_late_wrong_leaf_name
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
