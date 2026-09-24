@@ -15,21 +15,23 @@
 # inserts — and that URL blocks only when its `<owner>/<repo>` is this repository's, since
 # another project's #120 is not this one's.
 #
-# An open PR is not the only claim, because it is the LAST thing a run makes: the conductor
-# opens its draft PR after every step is green, so for the whole run before that — hours; #137
-# took about eleven — the issue would otherwise still read as takeable, and a second conductor
-# taking it lands in the live run's worktree and follows *Resume*, whose `git reset --hard
-# HEAD` throws the live leaf's uncommitted work away (#170). So a run also claims its issue
-# from its FIRST step, by writing its own pid into `.tdd/wt/<n>/.tdd/conductor.pid` under the
-# repository's main working tree, and an issue whose lock names a process that still answers
-# `kill -0` is left out here.
+# The open PR is the claim, and it is the only mark of a run every machine can see. The
+# conductor pushes the branch and opens its draft PR as the first act after the plan commit, so
+# an issue whose run is in flight — or whose run bailed and left the branch behind — carries an
+# open PR saying `Closes #<n>` from then on, and is left out here for as long as it does. veri
+# is developed from more than one computer and `origin` is all they share, so a claim recorded
+# anywhere else is one the other machine cannot read (ADR-0024). A `veri:in-flight` label would
+# be visible too, but it outlives the run that set it with nothing to clear it, and it
+# duplicates what the PR already records.
 #
-# A pid rather than a `veri:in-flight` label on the issue: a label is visible across machines,
-# but it outlives the process that set it, so a crashed or killed run leaves its issue claimed
-# until a human goes and un-claims it by hand. A pid that no longer answers reads as free on
-# the very next selection — which is what a bailed run needs, since its issue must stay
-# resumable. The cost is that the claim is local to one machine, and #102's parallel conductors
-# are local to one machine too.
+# The lock `.tdd/wt/<n>/.tdd/conductor.pid`, written under the repository's main working tree,
+# is NOT a second claim: it is the worktree guard, and it guards one machine's worktree only.
+# While the pid in there still answers `kill -0`, no second conductor on that same machine may
+# enter the live run's tree and follow *Resume*, whose `git reset --hard HEAD` throws the live
+# leaf's uncommitted work away (#170). A pid is a machine-local name — it means nothing on
+# another computer — so a lock nobody answers for frees the worktree and never the issue: a
+# bailed run's issue stays out of the pool on the strength of its still-open draft PR, whatever
+# its pid says (ADR-0024).
 #
 # The repository's issues and pull requests are read as the JSON `gh` emits:
 #   gh issue list --limit 10000 --json number,title,labels,body,state

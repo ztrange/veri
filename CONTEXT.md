@@ -139,15 +139,17 @@ _Avoid_: blocker (ok as a gloss), prerequisite
 **Solvable**:
 The property that makes an issue veri's to take right now: it is open, carries the opt-in
 label, every issue under its `## Blocked by` heading is closed, and nobody has claimed it.
-All four hold at once or the issue is not solvable. The claim is one condition observed two
-ways, because a run marks its issue at both ends of itself. The late mark is an open pull
-request saying `Closes #<n>` (such a PR means a run is in flight, or one bailed and left the
-branch behind) — but the conductor opens its draft PR only once every step is green, so it
-says nothing about the hours before that. The early mark is the lock
-`.tdd/wt/<n>/.tdd/conductor.pid`, written at the run's first step: the issue is in flight
-while the pid in there still answers `kill -0`, and takeable again the moment it does not — a
-lock nobody answers for claims no more than a missing one, which is what keeps a bailed or
-killed run's issue resumable rather than claimed until a human clears it by hand. Solvable is
+All four hold at once or the issue is not solvable. The claim is an open pull request saying
+`Closes #<n>` — the one mark of a run every machine can see, since veri is developed from more
+than one computer and `origin` is all they share. The conductor opens that draft PR as the
+first act after its plan commit, so it stands for the whole run rather than for its last
+minutes, and a bailed run leaves it open: the issue stays claimed until a human looks, which is
+what a bail is for. The lock `.tdd/wt/<n>/.tdd/conductor.pid` is not a second claim but the
+worktree **guard**, and only on the one machine that wrote it: while the pid in there still
+answers `kill -0`, no second conductor there may enter that live worktree and `git reset
+--hard` the running leaf's uncommitted work away (#170). A pid is meaningless on any other
+computer, so a lock nobody answers for frees the *worktree* and never the *issue*. ADR-0024
+records the division of labour and the three claims rejected for it. Solvable is
 therefore relative to *one* label: `VERI_LABEL` names it and `ready-for-agent` is only the
 default, so the same issue can be solvable for one loop and invisible to another. That is
 the intended use — **one label per loop** when more than one loop runs against a repository,
