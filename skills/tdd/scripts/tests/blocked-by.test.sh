@@ -72,5 +72,18 @@ check "blocked_by.blockers returns no blockers for a section reading None. and f
   "[]
 []" "$(printf '%s' "$none_body" | blockers acme/widgets; printf '%s' "$absent_body" | blockers acme/widgets)"
 
+# 3. The slug decides which URLs are local: given one, another repository's issue #56 is not a
+#    blocker; given none (the empty slug solvable-issues.sh passes without --repo), every
+#    github.com issue URL is read as local.
+mixed_body='## Blocked by
+
+- #1
+- https://github.com/other/project/issues/56
+- https://github.com/acme/widgets/issues/34
+'
+check "blocked_by.blockers ignores another repository's issue URL when a slug is given, and reads any github.com issue URL as local when none is" \
+  "[1, 34]
+[1, 56, 34]" "$(printf '%s' "$mixed_body" | blockers acme/widgets; printf '%s' "$mixed_body" | blockers '')"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
