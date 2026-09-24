@@ -174,16 +174,12 @@ report "$name"
 # three spell the phase as one alternation in angle brackets. A `plan` phase the scripts
 # take and the inventory does not list is a capability nothing tells the reader about.
 #
-# The three entries, each named by the ERE that finds it: the inventory's bullet, anchored at
-# the start of a line so the many other mentions of these scripts cannot stand in for one.
-# Written without a backslash for the same reason as the anchors above — `line_of` hands the
-# value to `awk -v`, which eats escape sequences — so `[$]` and `[.]` are the literal dollar
-# and dot.
-entry_res=(
-  "build-verify-prompt.sh:^- .[$]S/build-verify-prompt[.]sh "
-  "verify.sh:^- .[$]S/verify[.]sh "
-  "run-verdict.sh:^- .[$]S/run-verdict[.]sh "
-)
+# The three scripts, by name. Each one's inventory bullet is found by the same ERE, built
+# from that name below: the bullet anchored at the start of a line, so the many other
+# mentions of these scripts cannot stand in for one. Naming only the scripts keeps the one
+# pattern in one place — three hand-written copies of it are three chances for one of them to
+# anchor or escape differently from the other two, and to go on passing while it does.
+entry_scripts=(build-verify-prompt.sh verify.sh run-verdict.sh)
 
 # The phases an entry has to name: the four cycles, and the fifth this step adds. Read as a
 # set rather than as a spelling, so the order the entry lists them in is free.
@@ -196,9 +192,11 @@ alternation_re='[<]([a-z|]*red[a-z|]*)[>]'
 name="$skill_md's script entries for the verifier scripts name the plan phase beside the four cycle phases"
 problems=()
 
-for entry in "${entry_res[@]}"; do
-  script="${entry%%:*}"
-  entry_re="${entry#*:}"
+for script in "${entry_scripts[@]}"; do
+  # The bullet's ERE, written without a backslash for the same reason as the anchors above —
+  # `line_of` hands the value to `awk -v`, which eats escape sequences — so `[$]` is the
+  # literal dollar, and every dot of the script's name becomes the class `[.]`.
+  entry_re='^- .[$]S/'"${script//./[.]}"' '
   entry_line="$(line_of "$entry_re")"
   if [[ "$entry_line" -eq 0 ]]; then
     problems+=("$skill_md has no script-inventory entry for $script (no line matching /$entry_re/), so there is nowhere a conductor reads which phases it accepts")
