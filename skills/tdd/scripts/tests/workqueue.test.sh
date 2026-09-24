@@ -61,20 +61,30 @@ expect_next() {
   fi
 }
 
+# expect_queue <case> <want-format> <description> <subcommand> [<arg>...] — runs the
+# subcommand in $work/<case>, and counts the case passed when it exits 0 leaving
+# `.tdd/workqueue` holding exactly the lines <want-format> prints.
+expect_queue() {
+  local name="$1" want what="$3" out code got
+  want="$(printf "$2")"
+  shift 3
+  out="$(cd "$work/$name" && "$SCRIPT" "$@" 2>&1)" && code=0 || code=$?
+  got="$(cat "$work/$name/.tdd/workqueue" 2>/dev/null || printf '<no .tdd/workqueue>')"
+  if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $what"
+    echo "    exit: $code (want 0), output: $out"
+    diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+  fi
+}
+
 # 1. assign appends one queued line per issue, in the order given.
 repo="$work/assign-order"
 new_repo "$repo"
-out="$(cd "$repo" && "$SCRIPT" assign alpha 12 7 30 2>&1)" && code=0 || code=$?
-want="$(printf 'alpha\t12\tqueued\t\nalpha\t7\tqueued\t\nalpha\t30\tqueued\t')"
-got="$(cat "$repo/.tdd/workqueue" 2>/dev/null || printf '<no .tdd/workqueue>')"
-if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - assign appends one queued line per issue, in the order given"
-  echo "    exit: $code (want 0), output: $out"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+expect_queue assign-order 'alpha\t12\tqueued\t\nalpha\t7\tqueued\t\nalpha\t30\tqueued\t' \
+  "assign appends one queued line per issue, in the order given" assign alpha 12 7 30
 
 # 2. an unknown subcommand exits 2 and leaves the queue file byte-identical.
 repo="$work/unknown-subcommand"
@@ -128,17 +138,9 @@ fi
 repo="$work/assign-finished"
 new_repo "$repo"
 seed_queue "$repo" 'beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\n'
-out="$(cd "$repo" && "$SCRIPT" assign alpha 4 9 11 2>&1)" && code=0 || code=$?
-want="$(printf 'beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\nalpha\t4\tqueued\t\nalpha\t9\tqueued\t\nalpha\t11\tqueued\t')"
-got="$(cat "$repo/.tdd/workqueue")"
-if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - assign takes an issue held only as merged, parked or skipped"
-  echo "    exit: $code (want 0), output: $out"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+expect_queue assign-finished \
+  'beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\nalpha\t4\tqueued\t\nalpha\t9\tqueued\t\nalpha\t11\tqueued\t' \
+  "assign takes an issue held only as merged, parked or skipped" assign alpha 4 9 11
 
 # 6. next prints the worker's first queued issue whose `## Blocked by` names no open issue:
 #    another worker's item is not its own, and an issue blocked by an open one is skipped
@@ -243,17 +245,9 @@ expect_next next-none 3 '' \
 repo="$work/start-queued"
 new_repo "$repo"
 seed_queue "$repo" 'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\tqueued\t\nalpha\t7\tqueued\t\n'
-out="$(cd "$repo" && "$SCRIPT" start alpha 12 2>&1)" && code=0 || code=$?
-want="$(printf 'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t')"
-got="$(cat "$repo/.tdd/workqueue")"
-if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - start moves that worker's queued item to running"
-  echo "    exit: $code (want 0), output: $out"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
+expect_queue start-queued \
+  'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t' \
+  "start moves that worker's queued item to running" start alpha 12
 
 # 12. start moves only the named worker's item: another worker's queued item for the issue
 #     is not theirs to start, so it stays queued.
