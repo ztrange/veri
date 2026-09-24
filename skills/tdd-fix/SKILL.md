@@ -10,8 +10,8 @@ description: >-
 # tdd-fix — file a bug the way veri reads it
 
 You file **one** bug as a GitHub issue, on the repository this session was invoked in. You
-write no fix and run no tests: filing and fixing are two decisions, and this skill makes
-only the first.
+write no fix and run no tests yourself; the fix run is a second decision, and *The fix run*
+below is where the user makes it.
 
 ## Inputs
 
