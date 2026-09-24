@@ -753,6 +753,39 @@ prompt_says "$plan" "never holds the duty whether the verdict is PASS or REJECT"
 [[ -z "$problems" ]] && ok || no "verify-plan requires a step too big for one Red → Green → Refactor cycle to be named in the reason under either verdict (${problems#; })"
 
 
+# 39. the plan prompt states that a step carrying no ⟦criterion k⟧ tag — a gap step — is
+#     never by itself a reason to REJECT (#439). `SKILL.md:612-629` asks the planning leaf
+#     for exactly such a step: a behaviour `## What to build` asks for that no acceptance
+#     criterion covers gets a step of its own, phrased as a criterion of the planner's own
+#     and deliberately left without a tag, because `criterion-finished.sh` reads that
+#     notation to decide when a criterion may be ticked and a gap step belongs to none. A
+#     verifier given check 1 alone — for each criterion k, do the steps tagged ⟦criterion k⟧
+#     deliver it? — meets that step with no rule at all, and the reading available to it is
+#     that the step is unaccounted for: a line in the plan serving no criterion. So the
+#     well-formed plan `SKILL.md` asks for is the one this phase would send back, and the
+#     instruction the planner already follows becomes the thing that fails verification —
+#     which is worse than silence, since a REJECT costs a re-plan and the rewrite it asks
+#     for is to delete work the issue's prose needs. Two claims and a qualifier, three
+#     misses: the prompt must name the untagged step at all, must say it is not a REJECT,
+#     and must say so *by itself* — the last is load-bearing rather than hedging, because a
+#     gap step is not exempt from the plan's other duties, and an absolute "a gap step is
+#     never a REJECT" would read as a clause that immunises whatever a planner leaves
+#     untagged. Matched over the newline-flattened prompt through `prompt_says`, tolerantly
+#     of wording, for case 36's reason; the not-REJECT and by-itself windows each require
+#     REJECT in view so neither is satisfied by a sentence about something else. Every
+#     bounded repetition stays under 255, also for case 36's reason — BSD grep refuses a
+#     wider one, and a refused grep is indistinguishable here from a prompt that says
+#     nothing.
+problems=""
+prompt_says "$plan" "never names a step carrying no criterion tag" \
+  -iE -e 'gap step|untagged|(carries|carrying|with|without|has) no[^.]{0,40}criterion|no[^.]{0,20}criterion[^.]{0,20}tag'
+prompt_says "$plan" "never says such a step is not a REJECT" \
+  -iE -e '(gap step|untagged|no[^.]{0,20}criterion[^.]{0,20}tag)[^.]{0,200}(not|never|no)[^.]{0,80}REJECT'
+prompt_says "$plan" "never carries the by-itself qualifier on that exemption" \
+  -iE -e '(by itself|on its own|alone|in itself)[^.]{0,100}REJECT|REJECT[^.]{0,100}(by itself|on its own|alone|in itself)'
+[[ -z "$problems" ]] && ok || no "verify-plan states that a step carrying no criterion tag is never by itself a reason to REJECT (${problems#; })"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
