@@ -946,7 +946,7 @@ following step. The phase sub-steps are:
    carries the budget to the leaf as the number of transforms it may apply — and launch
    **through the supervisor** (exit **2** → **bail**):
    ```
-   $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 3
+   $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 4
    touched="$($S/refactor-touched.sh HEAD)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
