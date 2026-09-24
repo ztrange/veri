@@ -216,5 +216,31 @@ expect_next next-ssh-origin 131 \
   "next reads an SSH origin as this repository when weighing a Blocked by URL" \
   GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
+# 10. next exits 3 printing nothing when none of the worker's queued items is launchable: its
+#     one queued issue is blocked by an open one, its running item is not queued, and another
+#     worker's unblocked item is not its own.
+repo="$work/next-none"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t30\tqueued\t\nalpha\t31\trunning\t\nbeta\t32\tqueued\t\n'
+issues_fixture next-none <<'JSON'
+[
+  {"number": 5, "title": "open blocker", "labels": [], "body": "", "state": "OPEN"},
+  {"number": 30, "title": "blocked", "labels": [], "state": "OPEN",
+   "body": "Work.\n\n## Blocked by\n\n- #5\n"},
+  {"number": 31, "title": "running", "labels": [], "body": "", "state": "OPEN"},
+  {"number": 32, "title": "beta's", "labels": [], "body": "", "state": "OPEN"}
+]
+JSON
+out="$(cd "$repo" && VERI_GH_JSON="$work/next-none.gh" "$SCRIPT" next alpha \
+  2>"$work/next-none.err")" && code=0 || code=$?
+if [[ "$code" -eq 3 && -z "$out" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - next exits 3 with empty stdout when none of the worker's queued items is launchable"
+  echo "    exit: $code (want 3), stdout: '$out' (want '')"
+  echo "    stderr: $(cat "$work/next-none.err")"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
