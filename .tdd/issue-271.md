@@ -20,7 +20,7 @@
 - [x] Called from a linked worktree, `workqueue.sh` reads and writes `.tdd/workqueue` under the repository's main working tree, not the worktree's own
 - [x] The worker loop is documented in a `WORKER.md` beside `SKILL.md`, naming each `workqueue.sh` call (`next`, `start`, `done`, `park`) ⟦criterion 6⟧
 - [x] `SKILL.md` tells a session born as a worker to `Read` `WORKER.md`, the way it points a scope at `SCOPE-LOOP.md` ⟦criterion 6⟧
-- [x] `CONTEXT.md` defines **worker** and **work queue** ⟦criterion 6⟧ ⟂ refactor pending
+- [x] `CONTEXT.md` defines **worker** and **work queue** ⟦criterion 6⟧
 
 ## Owed steps
 
