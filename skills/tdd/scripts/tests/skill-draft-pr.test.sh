@@ -346,10 +346,14 @@ record_number() {
 }
 
 if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; then
-  pr_record="$(first_record "$records" -F 'gh pr create')"
-  if [[ -z "$pr_record" ]]; then
+  # The position first and the record read off it, rather than a `first_record` search for the
+  # same string: one read of the document answers both what the instruction says and where it
+  # sits, so the two can never be answered by different records.
+  pr_at="$(record_number -F 'gh pr create')"
+  if [[ -z "$pr_at" ]]; then
     problems+=("$skill_md's Scope & plan step never runs gh pr create, so a multi-step run puts no claim on origin until its last step and a second machine reads the issue as free for the whole of it")
   else
+    pr_record="$(sed -n "${pr_at}p" <<< "$records")"
     grep -qF -- '--draft' <<< "$pr_record" ||
       problems+=("$skill_md's Scope & plan step opens the PR without --draft, so a run one step in reads as a branch offered for review: $(printf '%.120s' "$pr_record")")
     grep -qF 'closes #<n>' <<< "$pr_record" ||
@@ -360,7 +364,6 @@ if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; t
       problems+=("$skill_md's Scope & plan step never runs push-branch.sh, so the branch the PR is opened against has never reached the remote")
 
     commit_at="$(record_number -F 'plan: scope #<n> into')"
-    pr_at="$(record_number -F 'gh pr create')"
     comment_at="$(record_number -F 'mirror the plan')"
     if [[ -z "$commit_at" || -z "$comment_at" ]]; then
       problems+=("$skill_md's Scope & plan step no longer has both the plan commit and the Plan comment to place the PR between — where it is opened could not be checked")
