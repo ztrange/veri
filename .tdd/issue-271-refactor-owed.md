@@ -1,0 +1,2 @@
+### `workqueue.sh <unknown-subcommand> …` (e.g. `workqueue.sh frobnicate alpha 12`) exits 2 and leaves `.tdd/workqueue` byte-identical (absent if it was absent) ⟦added⟧ ⟦criterion 1⟧
+- both cases in `workqueue.test.sh` repeat the same pass/fail block (`pass=$((pass + 1))` / `fail=…; echo "FAIL - …"`). With only two cases and a different diagnostic in each, that repetition doesn't justify a helper yet. It will once the `next`/`start`/`done`/`park` cases arrive.
