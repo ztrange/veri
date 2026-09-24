@@ -127,6 +127,27 @@ names() {
     problems+=("$label: want $(printf '%q' "$needle") in the report, got $(printf '%q' "$haystack")")
 }
 
+# finding <report> <branch> — set `line` to the one line of the report that names the
+# branch, and `rest` to that line with the branch name and every sha cut out of it: both
+# carry digits of their own — a sha is hex, and the branch name carries the issue number —
+# so a number left in `rest` is one the script stated. Read with mapfile rather than `head`,
+# which would leave the pipeline before EOF and hand grep's SIGPIPE up as the status under
+# `pipefail` (#422).
+finding() {
+  local report="$1" branch="$2" hits
+  mapfile -t hits < <(grep -F "$branch" <<< "$report")
+  line="${hits[0]-}"
+  rest="$(sed -E 's/[0-9a-f]{7,40}//g' <<< "${line//"$branch"/}")"
+}
+
+# states <label> <rest> <n> — one probe: <n> stands in <rest> as a number of its own, not as
+# the digits of a larger one.
+states() {
+  local label="$1" rest="$2" n="$3"
+  [[ "$rest" =~ (^|[^0-9])$n([^0-9]|$) ]] ||
+    problems+=("$label: want $n stated apart from the branch name and the sha, got $(printf '%q' "$rest")")
+}
+
 # 1. Issue #197, criterion 1: a branch on `origin` for which no PR has ever been opened is
 #    reported, naming the branch, its tip, its commit count ahead of the default branch, and
 #    the number and state of the issue its `tdd/<n>-<slug>` name refers to. This is the shape
@@ -140,24 +161,13 @@ gh_json="$(fixture "$work/case1/gh")"
 read_tip "$clone" "$branch"
 out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
 
-# The finding line — the one line of the report that names the branch. Read with mapfile
-# rather than `head`, which would leave the pipeline before EOF and hand grep's SIGPIPE up
-# as the status under `pipefail` (#422).
-mapfile -t hits < <(grep -F "$branch" <<< "$out")
-line="${hits[0]-}"
+finding "$out" "$branch"
 names "the report names the branch" "$out" "$branch"
 names "the finding names the branch's tip" "$line" "${tip:0:7}"
-
-
-# The numbers the finding states, read off the line with the sha and the branch name cut
-# out of it: both carry digits of their own — a sha is hex, and the branch name carries the
-# issue number — so a `3` left in `rest` is the script having counted the commits ahead, and
-# a `71` there is it having resolved the slug to an issue rather than just echoing the name.
-rest="$(sed -E 's/[0-9a-f]{7,40}//g' <<< "${line//"$branch"/}")"
-[[ "$rest" =~ (^|[^0-9])3([^0-9]|$) ]] ||
-  problems+=("the finding states the commits ahead of main: want 3 stated apart from the branch name and the sha, got $(printf '%q' "$rest")")
-[[ "$rest" =~ (^|[^0-9])71([^0-9]|$) ]] ||
-  problems+=("the finding names the issue the slug refers to: want 71 stated apart from the branch name, got $(printf '%q' "$rest")")
+# A `3` left in `rest` is the script having counted the commits ahead, and a `71` there is it
+# having resolved the slug to an issue rather than just echoing the name.
+states "the finding states the commits ahead of main" "$rest" 3
+states "the finding names the issue the slug refers to" "$rest" 71
 names "the finding names that issue's state" "${rest^^}" "OPEN"
 report "$name"
 
@@ -203,12 +213,9 @@ out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2> "$work/case3/stder
 err="$(cat "$work/case3/stderr")"
 names "the other branch with no PR is reported too" "$out" "$control"
 names "the report names the branch" "$out" "$branch"
-mapfile -t hits < <(grep -F "$branch" <<< "$out")
-line="${hits[0]-}"
+finding "$out" "$branch"
 names "the finding names the branch's tip" "$line" "${tip:0:7}"
-rest="$(sed -E 's/[0-9a-f]{7,40}//g' <<< "${line//"$branch"/}")"
-[[ "$rest" =~ (^|[^0-9])3([^0-9]|$) ]] ||
-  problems+=("the finding states the commits ahead of main: want 3 stated apart from the branch name and the sha, got $(printf '%q' "$rest")")
+states "the finding states the commits ahead of main" "$rest" 3
 names "the finding names the issue's state as unknown" "${rest,,}" "unknown"
 [[ "$err" != *Traceback* ]] ||
   problems+=("the script does not die on the lookup: want no traceback on stderr, got $(printf '%q' "$err")")
