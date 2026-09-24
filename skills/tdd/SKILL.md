@@ -550,7 +550,7 @@ unauthenticated baseline never gets a cycle.
    ```
    wt="$($S/issue-worktree.sh <n> <slug>)" && cd "$wt"
    ```
-   Then **claim the issue**, before anything else you do in there:
+   Then **take the worktree**, before anything else you do in there:
    ```
    mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid
    ```
@@ -567,10 +567,10 @@ unauthenticated baseline never gets a cycle.
    place two machines can still collide.
    Write **`$PPID`**, not `$$`: inside a tool call `$PPID` is your own process, which lives as
    long as this run, while `$$` is the shell of that one command — already gone when anyone
-   reads the lock, so the claim would be dead on arrival, and the number may since have been
+   reads the lock, so the guard would be dead on arrival, and the number may since have been
    handed to a stranger. **Nothing deletes it**: liveness is the whole rule, so a bail, a crash
-   or a `kill` frees the issue with no cleanup step to forget, and a resume overwrites the dead
-   pid with its own here.
+   or a `kill` frees the worktree — never the issue, which its PR goes on holding — with no
+   cleanup step to forget, and a resume overwrites the dead pid with its own here.
    **Every later step of the run happens inside that worktree**: the blind spec
    (`.tdd/issue-<n>-spec.md`), the ledger (`.tdd/issue-<n>.md`), every leaf log and prompt,
    every commit, the push and the PR. All the `.tdd/…` paths below are **relative to the
