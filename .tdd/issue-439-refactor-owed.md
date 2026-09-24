@@ -1,2 +1,4 @@
 ### build-verify-prompt.sh accepts a plan phase and builds its prompt from the issue spec and the ledger named as its third argument ⟦criterion 1⟧
 - hoist the repeated `{{SHARED}}` preamble and `### The issue's behavior spec` / `{{ISSUE_SPEC}}` block out of all five `prompts/verify-*.md` into `_shared.md` — real prose duplication, but it reaches four templates this cycle did not write and reorders every phase's prompt text, so it is a change of its own, not a tidy under this step
+### build-verify-prompt.sh exits 2 with nothing on stdout for a plan invocation that names no ledger or names one it cannot read ⟦criterion 1⟧
+- collapse case 35's two parallel invoke-capture-assert pairs in build-verify-prompt.test.sh into one loop over the two bad-ledger calls — left because the two uses do not pay for the indirection and the combined failure line gets harder to compose
