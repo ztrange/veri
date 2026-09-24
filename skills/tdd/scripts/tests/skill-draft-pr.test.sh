@@ -42,6 +42,8 @@
 #      commit and before the Plan comment (issue #195).
 #   9. SKILL.md's Green PASS branch, the one place a step is ticked, edits the PR body with
 #      the done-of-total step count read from the run's ledger (issue #195).
+#  10. SKILL.md's Draft PR step creates no PR: it retitles the open one, rewrites its body
+#      and marks it ready for review (issue #195).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -409,6 +411,52 @@ if pass_or_problem '#### Green' "whether the step tick updates the PR body"; the
     grep -qE '<done> of <total>|[0-9]+ of [0-9]+|done of|of how many' <<< "$record" ||
       problems+=("$skill_md's Green PASS branch edits the PR body without a done-of-total step count, so a reader learns the run moved but not how far it has left to go: $(printf '%.120s' "$record")")
   fi
+fi
+report "$name"
+
+# commands_of <heading prefix> <closer regex> — the command lines of the section whose
+# heading starts with <heading prefix>, leading indent stripped, a trailing `\` joined to the
+# line after it the way the shell joins one, and case folded last. Case 10 asks which `gh`
+# commands the step issues, and `records_of` cannot answer that: it glues a bullet's whole
+# fenced block into one record, so a record holding `gh pr create --title` would answer "the
+# step retitles the PR" for a document that only creates one. The continuation join is what
+# keeps a flag written on the next line — as `gh pr create`'s own `--title` is today — part of
+# the command that carries it.
+commands_of() {
+  awk -v h="$1" -v closers="$2" \
+    '$0 ~ closers { inside = (index($0, h) == 1); next } inside' "$skill_path" |
+  awk '{ sub(/^[[:space:]]+/, "")
+         buf = (cont ? buf " " $0 : $0)
+         if (buf ~ /\\$/) { sub(/\\$/, "", buf); cont = 1; next }
+         cont = 0; print buf }
+       END { if (cont) print buf }' | tr '[:upper:]' '[:lower:]'
+}
+
+# 10. The criterion, as one case (issue #195): the run has had a PR since its plan commit, so
+#     the step named for opening one must open none. A second `gh pr create` against a branch
+#     that already has an open PR is not a no-op — it is either a refusal that ends the run at
+#     its last step, or a second PR for the same branch, and then the claim another machine
+#     reads and the PR a human is asked to merge are two different pages. What is left for the
+#     step is the three edits that turn the claim into a review request: the title stops saying
+#     the work is in progress, the body is rewritten into its final form, and the draft is
+#     marked ready. The three positive probes run before the negative one so the case fails
+#     closed — a step emptied or renamed must not read as "it creates no PR" — and each probe
+#     anchors at the start of a command line, so prose naming `gh pr create` to say the step no
+#     longer runs it is not read as the step running it.
+name="$skill_md's Draft PR step creates no PR: it retitles and rewrites the open one and marks it ready for review"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; then
+  commands="$(commands_of '### 4. Draft PR' '^## |^### ')"
+  grep -qE '^gh pr edit .*--title' <<< "$commands" ||
+    problems+=("$skill_md's Draft PR step never runs gh pr edit with --title, so the PR keeps the work-in-progress title it was opened with at the plan commit and a reader of origin cannot tell the finished branch from a run mid-flight")
+  grep -qE '^gh pr edit .*--body' <<< "$commands" ||
+    problems+=("$skill_md's Draft PR step never runs gh pr edit with --body, so the body a human reads at the merge is still the one-line claim the plan commit opened")
+  grep -qE '^gh pr ready' <<< "$commands" ||
+    problems+=("$skill_md's Draft PR step never runs gh pr ready, so a finished run leaves a draft nobody is asked to review")
+  creates="$(first_record "$commands" -E '^gh pr create')"
+  [[ -z "$creates" ]] ||
+    problems+=("$skill_md's Draft PR step still runs gh pr create, so a run whose draft PR has been open since its plan commit either fails at its last step or opens a second PR for the same branch: $(printf '%.120s' "$creates")")
 fi
 report "$name"
 
