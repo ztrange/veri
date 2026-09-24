@@ -576,6 +576,25 @@ for old_dir in "${old_dirs[@]}"; do
 done
 report "$name"
 
+# 15. CLAUDE.md's opening names the product where it lives (#412). The paragraph under the
+#     title is the first thing an agent reads in this repository, and it names the directory
+#     that holds the whole product — so it must name $skill_dir/ there, and no old skill
+#     directory, which the tree no longer has. Only that first paragraph is read: the rest
+#     of the file is free to tell the rename's history.
+name="CLAUDE.md's opening paragraph names $skill_dir/ as the product and no old skill directory"
+problems=()
+claude_md="CLAUDE.md"
+opening="$(awk '/^# / && !seen { seen = 1; next }
+                seen && /^$/ && started { exit }
+                seen && /./ { started = 1; print }' "$ROOT/$claude_md")"
+[[ "$opening" == *"product is \`$skill_dir/\`"* ]] ||
+  problems+=("$claude_md opening: want it to name \`$skill_dir/\` as the product, got: ${opening:-no opening paragraph}")
+for old_dir in "${old_dirs[@]}"; do
+  [[ "$opening" != *"$old_dir/"* ]] ||
+    problems+=("$claude_md opening still names $old_dir/")
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
