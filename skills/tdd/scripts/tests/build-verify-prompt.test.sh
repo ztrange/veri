@@ -777,10 +777,11 @@ prompt_says "$plan" "never holds the duty whether the verdict is PASS or REJECT"
 #     wider one, and a refused grep is indistinguishable here from a prompt that says
 #     nothing.
 problems=""
+gap_step='gap step|untagged|no[^.]{0,20}criterion[^.]{0,20}tag'  # the untagged step, named once for the two probes that look for it
 prompt_says "$plan" "never names a step carrying no criterion tag" \
-  -iE -e 'gap step|untagged|(carries|carrying|with|without|has) no[^.]{0,40}criterion|no[^.]{0,20}criterion[^.]{0,20}tag'
+  -iE -e "$gap_step|(carries|carrying|with|without|has) no[^.]{0,40}criterion"
 prompt_says "$plan" "never says such a step is not a REJECT" \
-  -iE -e '(gap step|untagged|no[^.]{0,20}criterion[^.]{0,20}tag)[^.]{0,200}(not|never|no)[^.]{0,80}REJECT'
+  -iE -e "($gap_step)[^.]{0,200}(not|never|no)[^.]{0,80}REJECT"
 prompt_says "$plan" "never carries the by-itself qualifier on that exemption" \
   -iE -e '(by itself|on its own|alone|in itself)[^.]{0,100}REJECT|REJECT[^.]{0,100}(by itself|on its own|alone|in itself)'
 [[ -z "$problems" ]] && ok || no "verify-plan states that a step carrying no criterion tag is never by itself a reason to REJECT (${problems#; })"
