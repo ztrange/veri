@@ -6,6 +6,9 @@
 #   workqueue.sh assign <worker> <issue>...  → appends one `<worker>\t<issue>\tqueued\t` line
 #                                              per issue to `.tdd/workqueue` in the main
 #                                              working tree, in the order given
+#   workqueue.sh next <worker>               → prints that worker's first `queued` issue whose
+#                                              `## Blocked by` names no open issue, read from
+#                                              the VERI_GH_JSON fixtures
 #
 # Run: scripts/tests/workqueue.test.sh
 set -uo pipefail
@@ -108,6 +111,37 @@ else
   echo "FAIL - assign takes an issue held only as merged, parked or skipped"
   echo "    exit: $code (want 0), output: $out"
   diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
+# 6. next prints the worker's first queued issue whose `## Blocked by` names no open issue:
+#    another worker's item is not its own, and an issue blocked by an open one is skipped
+#    while one blocked only by a closed one is launchable.
+repo="$work/next-unblocked"
+new_repo "$repo"
+seed_queue "$repo" 'beta\t21\tqueued\t\nalpha\t20\tqueued\t\nalpha\t22\tqueued\t\n'
+fx="$work/next-unblocked.gh"
+mkdir -p "$fx"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {"number": 5, "title": "open blocker", "labels": [], "body": "", "state": "OPEN"},
+  {"number": 6, "title": "closed blocker", "labels": [], "body": "", "state": "CLOSED"},
+  {"number": 20, "title": "blocked", "labels": [], "state": "OPEN",
+   "body": "Work.\n\n## Blocked by\n\n- #5\n"},
+  {"number": 21, "title": "beta's", "labels": [], "body": "", "state": "OPEN"},
+  {"number": 22, "title": "unblocked", "labels": [], "state": "OPEN",
+   "body": "Work.\n\n## Blocked by\n\n- #6\n"}
+]
+JSON
+printf '[]\n' > "$fx/prs.json"
+out="$(cd "$repo" && VERI_GH_JSON="$fx" "$SCRIPT" next alpha 2>"$work/next-unblocked.err")" \
+  && code=0 || code=$?
+if [[ "$code" -eq 0 && "$out" == 22 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - next prints the worker's first queued issue whose Blocked by names no open issue"
+  echo "    exit: $code (want 0), stdout: '$out' (want '22')"
+  echo "    stderr: $(cat "$work/next-unblocked.err")"
 fi
 
 echo "$pass passed, $fail failed"
