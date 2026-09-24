@@ -70,15 +70,22 @@ frontmatter_name() {
        inside && sub(/^name:[[:space:]]*/, "") { print; exit }' "$1"
 }
 
-# body_text <file> — everything after the frontmatter block, normalised: emphasis marks and
-# backticks dropped, because `**optional**` and "optional" are the same word, the case folded,
-# and the whole joined onto one line so a sentence split over a line break still reads as one.
-# The frontmatter is excluded on purpose: a `description:` field is written for the harness's
+# fold_prose — the normalisation every `says` match is made against, reading its prose on
+# stdin: emphasis marks and backticks dropped, because `**optional**` and "optional" are the
+# same word, the case folded, and the whole joined onto one line so a sentence split over a
+# line break still reads as one. body_text and criteria_block both feed `says`, so they have
+# to normalise identically — which they do by both ending in this one pipeline.
+fold_prose() {
+  tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+}
+
+# body_text <file> — everything after the frontmatter block, folded by fold_prose above. The
+# frontmatter is excluded on purpose: a `description:` field is written for the harness's
 # command picker, and it must not be able to answer for the procedure the session reads.
 body_text() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
        inside && $0 == "---" { inside = 0; body = 1; next }
-       body { print }' "$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+       body { print }' "$1" | fold_prose
 }
 
 # issue_body_template <file> — the first fenced block that carries a "## What happened" line:
@@ -100,14 +107,14 @@ issue_body_template() {
 }
 
 # criteria_block <template> — the lines under `## Acceptance criteria` in the quoted issue
-# body, up to the next heading, normalised the way body_text normalises prose: emphasis and
-# backticks dropped, case folded, joined onto one line. The block is read out of the template
-# rather than out of the surrounding prose because the template is what a session copies into
-# `gh issue create`, and so it is the only place a criterion the skill writes can come from.
+# body, up to the next heading, folded by fold_prose the way body_text's prose is. The block
+# is read out of the template rather than out of the surrounding prose because the template is
+# what a session copies into `gh issue create`, and so it is the only place a criterion the
+# skill writes can come from.
 criteria_block() {
   awk '/^##[[:space:]]+Acceptance criteria[[:space:]]*$/ { seen = 1; next }
        seen && /^##[^#]/ { exit }
-       seen { print }' <<<"$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+       seen { print }' <<<"$1" | fold_prose
 }
 
 # have_body <what> — true when the SKILL.md has prose after its frontmatter, left in `text`
