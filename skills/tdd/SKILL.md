@@ -1024,6 +1024,14 @@ following step. The phase sub-steps are:
    for what the spec did not ask for. A flag class turned into a step of its own is what
    #175 measured: six `plan: amend` commits on `origin/main`, each buying a whole cycle and
    a refactor loop that flagged the next one.
+   - **A `beyond-spec` flag is narrated as a follow-up in the `### 🛠️ Refactor`
+     comment at 6 and in the PR body, and is not planned and not built in this run.**
+     It names an input class or an edge the issue's spec never asked for. The comment is
+     where the step accounts for itself while the run is live and the PR body is what the
+     human deciding the merge reads afterwards, so the follow-up outlives the run without
+     costing it a step: one made from a `beyond-spec` flag would build behaviour no
+     criterion of the issue states, and nothing ahead could judge it — the blind verifier
+     is given the spec, and the spec is where that behaviour is not.
 5. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid

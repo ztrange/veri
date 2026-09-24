@@ -20,10 +20,10 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — seven criteria, the procedure, the account of it, what the leaf's
+# Contract under test — eight criteria, the procedure, the account of it, what the leaf's
 # report grows, what a growth budget too full to hold it means, whose proposals that
-# growth carries, where an overfit flag is answered, and which flag class grows the plan,
-# one case each:
+# growth carries, where an overfit flag is answered, which flag class grows the plan, and
+# where a beyond-spec flag goes instead, one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -48,6 +48,8 @@
 #      resumes that step's own refactor loop with the budget it had left (issue #175).
 #   7. That section amends the plan from an `uncovered-spec` flag and from **no other**
 #      flag class (issue #175).
+#   8. That section narrates a `beyond-spec` flag as a follow-up — in the `### 🛠️ Refactor`
+#      comment and in the PR body — and neither plans nor builds it in this run (issue #175).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -650,6 +652,56 @@ else
     #    still buys a step of its own, which is the cost this issue is against.
     grep -qE '(only|alone|no other|the one (flag|class))' <<<"$uncovered" ||
       problems+=("$skill_md's Refactor section amends the plan from an uncovered-spec flag without saying that no other flag class does, so an overfit or beyond-spec flag still becomes a ledger step with a refactor loop of its own")
+  fi
+fi
+
+report "$name"
+
+# 8. One criterion — a `beyond-spec` flag is narrated as a follow-up and built by nobody in
+#    this run — and so one case. It is the third of the three classes, and the only one that
+#    is not this run's work at all: it names an input class or an edge the issue's spec never
+#    asked for, so a step made from it builds behaviour no criterion of the issue states and
+#    no verifier can judge against the spec. Narration is therefore the whole of what it
+#    earns, and narration in the two places a human actually reads: the `### 🛠️ Refactor`
+#    comment, which is where the step accounts for itself while the run is live, and the PR
+#    body, which is what the human deciding the merge reads afterwards. A flag narrated only
+#    in a comment is lost by the time the merge is decided, which is how a follow-up nobody
+#    files becomes the plan amendment #175 measured.
+#
+#    Three probes, because each names a different way the class is mishandled and a document
+#    missing one is wrong in that way: no Refactor comment and the flag never surfaces during
+#    the run, no PR body and it never outlives it, no denial and it is narrated AND planned,
+#    which costs exactly what the amendment cost.
+#
+#    Asked of the text around `beyond-spec` rather than of the section at large, the way cases
+#    1, 6 and 7 ask theirs: this section already narrates transforms, counts and leftover
+#    candidates into that same comment and that same PR body, and a probe reading the whole
+#    of it would be answered by those sentences and pass a document that never says where a
+#    beyond-spec flag goes.
+name="$skill_md's Refactor section narrates a beyond-spec flag as a follow-up in the Refactor comment and in the PR body, planning and building neither"
+problems=()
+
+if unreadable_section; then
+  # Fail closed, the same way cases 1, 3, 4, 5, 6 and 7 do: a renamed or emptied section is
+  # unreadable, not silently right.
+  problems+=("$(unreadable_problem "where a beyond-spec flag goes could not be established")")
+else
+  beyond="$(wins 'beyond-spec')"
+  if [[ -z "$beyond" ]]; then
+    problems+=("$(unnamed_class_problem beyond-spec "the class the spec never asked for is routed on the conductor's own judgement, the way the classes were before the leaf carried them")")
+  else
+    # a. It is narrated as a follow-up, in the comment the step accounts for itself in.
+    grep -qE "$(either_order 'follow.?up' '(🛠️ )?refactor comment|narrat|post' '[^.]{0,200}')" <<<"$beyond" ||
+      problems+=("$skill_md's Refactor section never says a beyond-spec flag is narrated as a follow-up in the 🛠️ Refactor comment, so what the leaf found is neither built nor said out loud and the run ends having dropped it")
+
+    # b. And it outlives the run, in the body the human deciding the merge reads.
+    grep -qE 'pr body|body of the (draft )?pr|pull request body' <<<"$beyond" ||
+      problems+=("$skill_md's Refactor section never carries a beyond-spec flag into the PR body, so the follow-up is buried in one step's comment and the human deciding the merge never sees it")
+
+    # c. And narration is ALL it earns. A flag narrated and also planned has cost exactly
+    #    what this issue measured, whatever the comment said about it.
+    grep -qE "$denial(plan|built|build)" <<<"$beyond" ||
+      problems+=("$skill_md's Refactor section narrates a beyond-spec flag without saying it is neither planned nor built in this run, so the run still builds behaviour the issue's spec never asked for")
   fi
 fi
 
