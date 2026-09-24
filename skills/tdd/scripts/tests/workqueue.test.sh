@@ -9,6 +9,8 @@
 #   workqueue.sh next <worker>               → prints that worker's first `queued` issue whose
 #                                              `## Blocked by` names no open issue, read from
 #                                              the VERI_GH_JSON fixtures
+#   workqueue.sh start <worker> <issue>      → rewrites that worker's `queued` line for the
+#                                              issue to `running`, in place
 #
 # Run: scripts/tests/workqueue.test.sh
 set -uo pipefail
@@ -233,6 +235,42 @@ issues_fixture next-none <<'JSON'
 JSON
 expect_next next-none 3 '' \
   "next exits 3 with empty stdout when none of the worker's queued items is launchable"
+
+# 11. start moves that worker's queued item to running, in place: the line keeps its position
+#     and every other line — another worker's queued item, the worker's own other queued
+#     item, and an earlier parked line for the same issue, which is the record of a finished
+#     attempt and not the item being started — is left as it was.
+repo="$work/start-queued"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\tqueued\t\nalpha\t7\tqueued\t\n'
+out="$(cd "$repo" && "$SCRIPT" start alpha 12 2>&1)" && code=0 || code=$?
+want="$(printf 'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t')"
+got="$(cat "$repo/.tdd/workqueue")"
+if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - start moves that worker's queued item to running"
+  echo "    exit: $code (want 0), output: $out"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
+# 12. start moves only the named worker's item: another worker's queued item for the issue
+#     is not theirs to start, so it stays queued.
+repo="$work/start-other-worker"
+new_repo "$repo"
+seed_queue "$repo" 'beta\t4\tqueued\t\nalpha\t12\tqueued\t\n'
+out="$(cd "$repo" && "$SCRIPT" start beta 12 2>&1)" || true
+want="$(printf 'beta\t4\tqueued\t\nalpha\t12\tqueued\t')"
+got="$(cat "$repo/.tdd/workqueue")"
+if [[ "$got" == "$want" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - start leaves another worker's queued item queued"
+  echo "    output: $out"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
