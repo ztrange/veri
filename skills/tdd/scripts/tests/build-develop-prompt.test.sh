@@ -1345,10 +1345,21 @@ prompt_lacks "$red" "a spec with no Bug section is still told to name the case a
 #     NAMES is probed folded
 #     with `says_both_ways`, the way case 16 probes the structural/cosmetic definitions — a
 #     definition reads as naturally backwards as forwards, and a prompt is wrapped at ~85
-#     columns, so the claim spans two lines and only the folded probe can see it. The two
+#     columns, so the claim spans two lines and only the folded probe can see it. Three
+#     classes, one shape, so the prompt, the gap and the complaint's `does not say <class>
+#     names` frame are spelled once in `names_class` and each caller names only its class,
+#     what that class names and the alternation that matches it — case 16's `defines_class`
+#     reasoning, and the same drift it guards: spelled out per class the 120 appears three
+#     times, and a bound widened on one and not the others is invisible in a diff. The two
 #     halves cannot answer each other: a footer line carrying the word `beyond-spec` says
 #     nothing about what a leaf may put on it, and a paragraph defining the three classes is
 #     not a line the conductor can grep.
+names_class() {  # names_class <class word> <what it names> <alternation matching that>
+  local class="$1" names="$2" pattern="$3"
+  says_both_ways "$refactor" "does not say $class names $names" \
+    120 "$class" "$pattern"
+}
+
 problems=""
 grep -qE '^FLAGS:' <<<"$refactor" || problems="$problems; no FLAGS: report line"
 grep -qE '^FLAGS:.*none' <<<"$refactor" || problems="$problems; the FLAGS: line does not offer none"
@@ -1356,12 +1367,12 @@ grep -qE '^NEW_STEP:' <<<"$refactor" && problems="$problems; the report still ca
 offers_class FLAGS overfit
 offers_class FLAGS uncovered-spec
 offers_class FLAGS beyond-spec
-says_both_ways "$refactor" "does not say overfit names code that passes the test without implementing the behaviour" \
-  120 'overfit' '(without|rather than|instead of) implementing'
-says_both_ways "$refactor" "does not say uncovered-spec names a behaviour the spec requires" \
-  120 'uncovered-spec' '(spec (requires|asks)|required by the spec)'
-says_both_ways "$refactor" "does not say beyond-spec names something the spec does not ask for" \
-  120 'beyond-spec' "(does not|doesn.t|never) (ask|require)"
+names_class overfit 'code that passes the test without implementing the behaviour' \
+  '(without|rather than|instead of) implementing'
+names_class uncovered-spec 'a behaviour the spec requires' \
+  '(spec (requires|asks)|required by the spec)'
+names_class beyond-spec 'something the spec does not ask for' \
+  "(does not|doesn.t|never) (ask|require)"
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor reports overfit code on FLAGS: lines carrying the overfit, uncovered-spec and beyond-spec classes or none, in place of NEW_STEP:, and defines what each class names (${problems#; })"
 
