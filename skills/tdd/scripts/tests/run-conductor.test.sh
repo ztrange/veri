@@ -1032,7 +1032,7 @@ report "$name"
 # with no resolvable skill commit warns on stderr, but stderr is the operator's terminal, not the
 # thread a run is read back from: the conductor must be told in its environment — the one channel
 # every process of the run inherits — as VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step
-# (2.3, the `### 🗺️ Plan` item) must name that variable, so the comment that names a pinned
+# (2.4, the `### 🗺️ Plan` item) must name that variable, so the comment that names a pinned
 # commit says "unpinned" instead of naming none. Launched with no VERI_SKILL_UNPINNED of its own,
 # so a value the child holds is one the launch put there.
 name="an unpinned launch hands the conductor VERI_SKILL_UNPINNED=1, and SKILL.md's plan-comment step names it"
@@ -1051,11 +1051,14 @@ elif ! grep -qx 'VERI_SKILL_UNPINNED=1' "$env14"; then
   problems+=("the unpinned launch handed the conductor no VERI_SKILL_UNPINNED=1 in its environment")
 fi
 
-plan_step14="$(awk '/^3\. \*\*Mirror the plan\*\*/ {on=1} on && /^$/ {exit} on' "$HERE/../../SKILL.md")"
+# The step is matched by its name, not its number: the draft PR #195 added ahead of it
+# moved it from 2.3 to 2.4, and a probe pinned to a digit fails a document that still says
+# exactly what this case is about.
+plan_step14="$(awk '/^[0-9]+\. \*\*Mirror the plan\*\*/ {on=1} on && /^$/ {exit} on' "$HERE/../../SKILL.md")"
 if [[ -z "$plan_step14" ]]; then
-  problems+=("SKILL.md has no plan-comment step (2.3, **Mirror the plan**) to read")
+  problems+=("SKILL.md has no plan-comment step (2.4, **Mirror the plan**) to read")
 elif ! grep -q 'VERI_SKILL_UNPINNED' <<< "$plan_step14"; then
-  problems+=("SKILL.md's plan-comment step (2.3) does not name VERI_SKILL_UNPINNED")
+  problems+=("SKILL.md's plan-comment step (2.4) does not name VERI_SKILL_UNPINNED")
 fi
 
 report "$name"
