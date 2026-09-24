@@ -17,6 +17,14 @@ if [[ -z "$n" ]]; then
   exit 2
 fi
 
+# Does the issue carry the `bug` label? The filter prints the label's own name when it is
+# there and nothing at all when it is not, so a non-empty answer is the label. gh is asked
+# for the body in the same question, and then asked for it again on its own below, because
+# `-q` returns the filter's output rather than the document: one filter answering both
+# questions would have to encode the label alongside the body, and any marker the body could
+# also contain is a marker the body can forge.
+bug_label="$(gh issue view "$n" --json body,labels -q '.labels[] | select(.name == "bug") | .name')"
+
 body="$(gh issue view "$n" --json body -q .body)"
 
 printf '%s\n' "$body"
@@ -31,8 +39,12 @@ part() {
   ' <<<"$body"
 }
 
-printf '\n## Bug\n'
-for heading in 'What happened' 'Expected' 'Steps to reproduce' 'Environment'; do
-  printf '\n### %s\n\n' "$heading"
-  part "$heading"
-done
+# No label, no section: an issue that reports no bug has no reproduction to describe, and a
+# `## Bug` heading over four empty parts would tell the blind verifier there is one.
+if [[ -n "$bug_label" ]]; then
+  printf '\n## Bug\n'
+  for heading in 'What happened' 'Expected' 'Steps to reproduce' 'Environment'; do
+    printf '\n### %s\n\n' "$heading"
+    part "$heading"
+  done
+fi
