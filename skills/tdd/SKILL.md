@@ -437,6 +437,11 @@ fourth case:
 - **No argument at all** — a bare invocation is the scope `plain`, so it takes the scope
   branch above with `plain` as its scope.
 
+A session born as a **worker** `<name>` takes none of those three: `Read` this skill's `WORKER.md`
+(beside this file, at `<base directory>/WORKER.md`) and run *The worker loop* from it, which
+works the issues the work queue assigns to `<name>` through the single-issue procedure. It
+lives in its own file for the same reason `SCOPE-LOOP.md` does: only a worker ever reads it.
+
 ## Procedure
 
 Work through these steps in order. If a **preflight** step fails, stop and tell the user

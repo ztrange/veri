@@ -496,5 +496,20 @@ else
   echo "    calls not named:${calls_missing:- none} (want none)"
 fi
 
+# 23. `SKILL.md` — resident in every session the skill starts — tells a session born as a
+#     worker to `Read` `WORKER.md`, the way its *Inputs* point a scope at `SCOPE-LOOP.md`: a
+#     file nothing points at is never loaded, so case 22's loop would be written and never run.
+#     Matched as one line holding `Read` and then `WORKER.md`, both in backticks, so a mention
+#     of the file in passing does not count as the instruction to load it.
+skill_doc="$HERE/../../SKILL.md"
+if grep -E '`Read`.*`WORKER\.md`' "$skill_doc" > /dev/null 2>&1; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - SKILL.md tells a session born as a worker to Read WORKER.md, the way it points a scope at SCOPE-LOOP.md"
+  echo "    lines of SKILL.md naming WORKER.md (want one holding \`Read\` then \`WORKER.md\`):"
+  grep -n 'WORKER\.md' "$skill_doc" | sed 's/^/      /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
