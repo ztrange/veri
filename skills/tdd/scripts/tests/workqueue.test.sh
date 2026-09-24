@@ -253,24 +253,7 @@ expect_queue start-queued \
   'alpha\t12\tparked\tsecond bail\nbeta\t4\tqueued\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t' \
   "start moves that worker's queued item to running" start alpha 12
 
-# 12. start moves only the named worker's item: another worker's queued item for the issue
-#     is not theirs to start, so it stays queued.
-repo="$work/start-other-worker"
-new_repo "$repo"
-seed_queue "$repo" 'beta\t4\tqueued\t\nalpha\t12\tqueued\t\n'
-out="$(cd "$repo" && "$SCRIPT" start beta 12 2>&1)" || true
-want="$(printf 'beta\t4\tqueued\t\nalpha\t12\tqueued\t')"
-got="$(cat "$repo/.tdd/workqueue")"
-if [[ "$got" == "$want" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - start leaves another worker's queued item queued"
-  echo "    output: $out"
-  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
-fi
-
-# 13. done moves that worker's running item to merged, recording the sha as its detail, in
+# 12. done moves that worker's running item to merged, recording the sha as its detail, in
 #     place: another worker's running item and the worker's own queued item are left as they
 #     were.
 repo="$work/done-running"
@@ -280,7 +263,7 @@ expect_queue done-running \
   'beta\t4\trunning\t\nalpha\t12\tmerged\tabc1234\nalpha\t7\tqueued\t' \
   "done moves that worker's running item to merged, recording the sha" done alpha 12 abc1234
 
-# 14. park moves that worker's running item to parked, recording the reason — spaces and all —
+# 13. park moves that worker's running item to parked, recording the reason — spaces and all —
 #     as its detail, in place: another worker's running item and the worker's own queued item
 #     are left as they were.
 repo="$work/park-running"
@@ -291,7 +274,7 @@ expect_queue park-running \
   "park moves that worker's running item to parked, recording the reason" \
   park alpha 12 "second bail"
 
-# 15. start, done and park naming an item another worker owns each exit 1 — a clean refusal —
+# 14. start, done and park naming an item another worker owns each exit 1 — a clean refusal —
 #     and leave the queue file byte-identical: alpha's queued 12 is not beta's to start, and
 #     alpha's running 13 is not beta's to merge or park.
 repo="$work/foreign-item"
