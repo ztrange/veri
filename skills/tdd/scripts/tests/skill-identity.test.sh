@@ -110,10 +110,7 @@ stub_name() { basename "$(dirname "$1")"; }
 # this one's. The two stubs were exempt too until #412 removed them; a file back at either
 # path is an offender like any other. Named as a predicate so the probe below reads as one
 # condition per file.
-exempt() {
-  case "$1" in .tdd/*) return 0 ;; esac
-  return 1
-}
+exempt() { [[ "$1" == .tdd/* ]]; }
 
 # sweep <git-grep-flag> <pattern> — the tracked files matching <pattern>, one per line, in the
 # global `swept`. Tracked, via `git grep`, because the repository's content is what ships.
