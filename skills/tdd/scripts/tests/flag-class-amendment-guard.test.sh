@@ -24,7 +24,7 @@
 #
 # Contract under test:
 #   Over a copy of this tree whose Refactor section grants the plan amendment to a flag class
-#   other than `uncovered-spec` — every mention of that class renamed to `beyond-spec`, so the
+#   other than `uncovered-spec` — every mention of that class renamed to `off-spec`, so the
 #   section still amends the plan and still names a class, just the wrong one —
 #   skill-refactor-leaf.test.sh fails, its own count line says so, and the case it names is the
 #   one about which class grows the plan and no other case. Over the same tree with the document
@@ -68,12 +68,17 @@ SKILL_PATH="$ROOT/$SKILL"
 COMPANIONS=(CONTEXT.md CLAUDE.md)
 
 # The class the routing rule grants the amendment to, and the class the plant hands it to
-# instead. `beyond-spec` rather than an invented word because it is one of the three classes the
-# leaf actually reports and the one furthest from earning an amendment — it names an input class
-# or edge the spec never asked for — so the planted document is a document somebody could write,
-# not a typo.
+# instead. The plant renames every mention of the granted class, so the class it renames to has
+# to be one the document does not already name — otherwise the planted document names the wrong
+# class in the routing rule and the right one everywhere else, the two are indistinguishable, and
+# the guard would be answering a different question. None of the other two classes the leaf
+# reports can serve: the document names `overfit` at the bullet that answers one inside the step
+# and `beyond-spec` at the bullet that narrates one as a follow-up, both of them rules this same
+# section owes. So the plant hands the amendment to a fourth name — a document naming a class the
+# protocol never defined is a document somebody could write, and a routing rule granted to it is
+# as wrong as one granted to a real class that has not earned it.
 CLASS='uncovered-spec'
-OTHER_CLASS='beyond-spec'
+OTHER_CLASS='off-spec'
 
 pass=0 fail=0
 scratch="$(mktemp -d)"
