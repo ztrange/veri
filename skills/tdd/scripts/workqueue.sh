@@ -15,7 +15,8 @@
 #          workqueue.sh park <worker> <issue> <reason>
 #          workqueue.sh show [<worker>]
 # Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
-#          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
+#          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand, an `assign`
+#          naming no worker or no issue, an issue
 #          already queued or running for any worker, or a lock not taken within
 #          VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is written, so the file
 #          is left byte-identical
@@ -130,6 +131,13 @@ fi
 
 if [[ "${1:-}" != assign ]]; then
   echo "workqueue.sh: unknown subcommand: ${1:-}" >&2
+  exit 2
+fi
+
+# A call naming no worker, or a worker and no issue, is refused before the lock is taken:
+# an assignment of nothing is a caller's mistake, not a no-op.
+if [[ $# -lt 3 ]]; then
+  echo "workqueue.sh: usage: workqueue.sh assign <worker> <issue>..." >&2
   exit 2
 fi
 

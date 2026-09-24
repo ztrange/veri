@@ -531,5 +531,34 @@ else
   echo "    terms not defined:$terms_missing (want none)"
 fi
 
+# 25. assign with no worker, or with a worker and no issue, exits 2 and leaves the queue file
+#     byte-identical: a call missing either argument is refused before anything is written,
+#     never read as an assignment of nothing. Both calls run against the same seeded queue,
+#     and each call's exit and file are reported, so one run says which of the two broke.
+repo="$work/assign-missing-args"
+new_repo "$repo"
+seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
+cp "$repo/.tdd/workqueue" "$work/assign-missing-args.before"
+missing_report="" missing_ok=1
+for call in "assign" "assign alpha"; do
+  # shellcheck disable=SC2086 # the call is split into its words on purpose
+  out="$(cd "$repo" && "$SCRIPT" $call 2>&1)" && code=0 || code=$?
+  if cmp -s "$work/assign-missing-args.before" "$repo/.tdd/workqueue"; then
+    file=byte-identical
+  else
+    file=changed missing_ok=0
+  fi
+  [[ "$code" -eq 2 ]] || missing_ok=0
+  missing_report="$missing_report
+    '$call': exit $code (want 2), queue file $file (want byte-identical), output: $out"
+done
+if [[ "$missing_ok" -eq 1 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - assign with no worker, or with a worker and no issue, exits 2 and leaves the queue file byte-identical"
+  echo "${missing_report#?}"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
