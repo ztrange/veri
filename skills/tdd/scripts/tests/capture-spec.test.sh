@@ -92,6 +92,62 @@ else
   printf '    %s\n' "${problems[@]}"
 fi
 
+# The second fixture: an issue with no `bug` label. Its body is the ordinary shape an issue
+# that reports no bug has — no what-happened, no steps — so nothing in it could be mistaken
+# for the report a `## Bug` section carries.
+plaindir="$tmp/plain"; mkdir -p "$plaindir"
+cat > "$plaindir/body.md" <<'BODY'
+## What to build
+
+tick-ledger.sh grows a `--dry-run` flag.
+
+## Acceptance criteria
+
+- [ ] `--dry-run` prints the tick it would make and writes nothing
+BODY
+
+# The stub for that issue: the same two questions, answered for an issue whose labels do not
+# include `bug`. `labels` is matched before `body` so a single call asking for both is answered
+# as the label question; a query the script passes (`-q`/`--jq`) is answered with what gh would
+# print after applying it — nothing, there being no label — and a raw `--json labels` with the
+# JSON document gh would return. Anything else is refused loudly.
+plainbin="$tmp/plain/bin"; mkdir -p "$plainbin"
+cat > "$plainbin/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  *labels*)
+    case "$*" in
+      *-q*|*--jq*) : ;;
+      *) echo '{"labels":[]}' ;;
+    esac ;;
+  *body*) cat "$FIXTURES/body.md" ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+STUB
+chmod +x "$plainbin/gh"
+
+# 2. No bug label, no Bug section: the spec is the issue's body and nothing more.
+name='unlabelled issue: the spec carries no ## Bug section (#112)'
+out="$tmp/plain-spec.md"; err="$tmp/plain-spec.err"
+code=0
+env PATH="$plainbin:$PATH" FIXTURES="$plaindir" "$SCRIPT" 113 > "$out" 2> "$err" || code=$?
+
+problems=()
+[[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
+section '## Bug' "$out" > "$tmp/plain-bug-section.md"
+[[ ! -s "$tmp/plain-bug-section.md" ]] ||
+  problems+=("spec has a '## Bug' section for an issue without the bug label: $(head -1 "$tmp/plain-bug-section.md")")
+grep -qF -- 'tick-ledger.sh grows a `--dry-run` flag.' "$out" ||
+  problems+=("spec is missing the issue's own body")
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  printf '    %s\n' "${problems[@]}"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
