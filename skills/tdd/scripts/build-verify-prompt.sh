@@ -75,14 +75,6 @@ case "$phase" in
   *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan)" >&2; exit 2 ;;
 esac
 
-# For plan, the third slot names the proposed ledger instead of a test under review (#439):
-# the plan is this phase's subject, so its own text goes into the prompt — a verifier given
-# only a path, in a target repository, would judge a file it was never handed.
-ledger=""
-if [[ "$phase" == plan ]]; then
-  ledger="$(cat "$test_path")"
-fi
-
 # Green and refactor name the fast command in their checks; without one the verifier would be
 # told to run a command nobody named (#341).
 if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
@@ -108,6 +100,15 @@ done
 tpl="$(cat "$tpl_file")"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
+# For plan, the third slot names the proposed ledger instead of a test under review (#439):
+# the plan is this phase's subject, so its own text goes into the prompt — a verifier given
+# only a path, in a target repository, would judge a file it was never handed. The read
+# belongs here, beside the prompt's other on-disk inputs, rather than up among the argument
+# checks: every file whose contents reach the prompt is then opened in one place.
+ledger=""
+if [[ "$phase" == plan ]]; then
+  ledger="$(cat "$test_path")"
+fi
 step_block=""
 if [[ -n "$step" ]]; then
   step_block="### The step under judgement
