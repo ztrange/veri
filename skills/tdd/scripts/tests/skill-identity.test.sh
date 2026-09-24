@@ -66,8 +66,7 @@ report() {
 # and only its first `name:` counts: the exit at the closing `---` stops a later `name:`
 # in the prose from answering for it. sub() edits $0 and returns how many replacements it
 # made, so it doubles as the "this line is the name field" test; print then emits what is
-# left, the value. Used by case 1 for the skill's own name and by case 4 for each stub's —
-# the same question asked of different files, so it is asked in one place.
+# left, the value. Used by case 1 for the skill's own name.
 frontmatter_name() {
   awk 'NR == 1 && $0 == "---" { inside = 1; next }
        inside && $0 == "---" { exit }
@@ -100,8 +99,8 @@ old_scripts_dir="$old_skill_dir/scripts"
 stubs=("$old_skill_dir/SKILL.md" "skills/solve-issues/SKILL.md")
 
 # stub_name <stub-path> — the old name a stub answers to, which is its own directory's name:
-# Claude Code resolves a command by the directory it loads the skill from. Case 4 wants it
-# bare, to compare against the stub's frontmatter, and case 5 wants it slash-led, as a user
+# Claude Code resolves a command by the directory it loads the skill from. Case 10 wants it
+# bare, as the directory that must be gone, and case 5 wants it slash-led, as a user
 # types it; deriving both from here keeps `stubs` the one place either old name is spelled,
 # which is what lets this file sweep the repository for strings it must not itself contain.
 stub_name() { basename "$(dirname "$1")"; }
@@ -171,47 +170,11 @@ report "$name"
 #    below are left as they were, so the cases above still cite the right ones, and
 #    no-docs-reads.test.sh is what keeps the read from coming back.
 
-# skill_body <file> — everything after the frontmatter block: the instruction a session
-# actually reads. The frontmatter is excluded on purpose, because a stub's `description:`
-# goes on describing the old command, and it must not be able to answer for the body.
-skill_body() {
-  awk 'NR == 1 && $0 == "---" { inside = 1; next }
-       inside && $0 == "---" { inside = 0; body = 1; next }
-       body { print }' "$1"
-}
-
-# 4. What the move leaves behind. Deleting the old names would strand any session already
-#    invoked on one mid-run, so both keep a SKILL.md — a stub that does the one thing a
-#    stub does: send the session on with the arguments it was given. That is three
-#    observable facts per file, and all three are needed. The file has to be there at all;
-#    its frontmatter has to still declare the OLD name, since that field is what Claude Code
-#    resolves the old command by, and a stub renamed to `tdd` would answer to
-#    nothing; and the body has to name both `/tdd` and `$ARGUMENTS` — the destination, and
-#    the harness's own spelling for "the arguments this invocation carried", used that way
-#    by every SKILL.md in this repo. A body naming only `/tdd` documents a rename; one that
-#    forwards is what keeps the old command working.
-name='both old-name SKILL.md stubs forward $ARGUMENTS to /tdd'
-problems=()
-for stub in "${stubs[@]}"; do
-  old_name="$(stub_name "$stub")"
-  if [[ ! -f "$ROOT/$stub" ]]; then
-    problems+=("want a stub at $stub, found none")
-    continue
-  fi
-  got="$(frontmatter_name "$ROOT/$stub")"
-  [[ "$got" == "$old_name" ]] ||
-    problems+=("$stub frontmatter: want name '$old_name', got $(printf '%q' "$got")")
-  body="$(skill_body "$ROOT/$stub")"
-  case "$body" in
-    */tdd*) ;;
-    *) problems+=("$stub body never names /tdd, so it forwards nowhere") ;;
-  esac
-  case "$body" in
-    *'$ARGUMENTS'*) ;;
-    *) problems+=("$stub body never names \$ARGUMENTS, so it forwards no arguments") ;;
-  esac
-done
-report "$name"
+# 4. was "both old-name SKILL.md stubs forward $ARGUMENTS to /tdd": it read each stub's
+#    frontmatter for its old name and its body for `/tdd` and `$ARGUMENTS`. The stubs were
+#    never installed — Claude Code resolves a command from the directories symlinked into
+#    ~/.claude/skills, and only skills/tdd is — so they forwarded nothing, and #412 deleted
+#    them; case 10 pins their absence. The numbers are left as they were, as for case 3.
 
 # The two old commands as a user types them: a slash, then the name each stub answers to.
 old_cmds=()
@@ -479,6 +442,20 @@ else
   grep -qF 'SKILL.md' < <(grep -E 'Procedure' "$ROOT/$loop_md") ||
     problems+=("$loop_md never sends an issue back to $skill_md's Procedure, so a scope run no longer reaches the procedure it used to")
 fi
+report "$name"
+
+# 10. The old names are gone, not forwarded (#412). The stubs case 4 pinned were never
+#     installed — Claude Code resolves a command from the directories symlinked into
+#     ~/.claude/skills, and only skills/tdd is — so they forwarded nothing. Stated as the
+#     observable absence: neither old directory exists in the tree. Each is spelled through
+#     `stubs` and `stub_name`, so this file still never writes an old home out in full.
+name="neither old skill directory is left in the tree"
+problems=()
+for stub in "${stubs[@]}"; do
+  old_dir="skills/$(stub_name "$stub")"
+  [[ ! -e "$ROOT/$old_dir" ]] ||
+    problems+=("want no $old_dir/, found one")
+done
 report "$name"
 
 echo "----"
