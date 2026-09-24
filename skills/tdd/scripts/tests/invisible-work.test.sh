@@ -81,6 +81,18 @@ unpr_branch_clone() {
   echo "$clone"
 }
 
+# read_tip <clone> <branch> — set `tip` to <branch>'s tip as `origin` holds it, which is the
+# sha the finding has to name. Set as a variable rather than printed, because a command
+# substitution would run this in a subshell and lose the problem it records; and checked for
+# being there at all: an empty `tip` would make a probe ask whether the empty string is in
+# the report, which anything answers.
+read_tip() {
+  local clone="$1" branch="$2"
+  tip="$(git_q "$clone" rev-parse "refs/remotes/origin/$branch" 2>/dev/null)"
+  [[ -n "$tip" ]] ||
+    problems+=("the fixture put $branch on origin: want a tip sha for refs/remotes/origin/$branch, got none")
+}
+
 # push_control_branch <dir> <branch> — a second branch with no PR, pushed to the `origin` of
 # the case unpr_branch_clone built in <dir> and fetched into its clone, so a case that
 # expects a branch left out can tell "left out" from "the script printed nothing at all".
@@ -125,12 +137,7 @@ problems=()
 branch="tdd/71-walkthrough-version-the-commentary-too"
 clone="$(unpr_branch_clone "$work/case1" "$branch" 3)"
 gh_json="$(fixture "$work/case1/gh")"
-# The tip as `origin` holds it, which is the sha the finding has to name. Read here rather
-# than handed back by the helper, and checked for being there at all: an empty `tip` would
-# make the probe below ask whether the empty string is in the report, which anything answers.
-tip="$(git_q "$clone" rev-parse "refs/remotes/origin/$branch" 2>/dev/null)"
-[[ -n "$tip" ]] ||
-  problems+=("the fixture put $branch on origin: want a tip sha for refs/remotes/origin/$branch, got none")
+read_tip "$clone" "$branch"
 out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
 
 # The finding line — the one line of the report that names the branch. Read with mapfile
@@ -191,9 +198,7 @@ control="chore/nobody-opened-a-pr"
 clone="$(unpr_branch_clone "$work/case3" "$branch" 3)"
 push_control_branch "$work/case3" "$control"
 gh_json="$(fixture "$work/case3/gh")"
-tip="$(git_q "$clone" rev-parse "refs/remotes/origin/$branch" 2>/dev/null)"
-[[ -n "$tip" ]] ||
-  problems+=("the fixture put $branch on origin: want a tip sha for refs/remotes/origin/$branch, got none")
+read_tip "$clone" "$branch"
 out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2> "$work/case3/stderr")"
 err="$(cat "$work/case3/stderr")"
 names "the other branch with no PR is reported too" "$out" "$control"
