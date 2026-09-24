@@ -358,9 +358,9 @@ cat > "$gh_json/prs.json" <<JSON
  {"headRefName": "$closed", "state": "CLOSED", "body": ""},
  {"headRefName": "$opened", "state": "OPEN", "body": "Closes #150"}]
 JSON
-git_q "$clone" branch -q "$merged" "origin/$merged"
-git_q "$clone" branch -q "$closed" "origin/$closed"
-git_q "$clone" branch -q "$opened" "origin/$opened"
+for branch in "$merged" "$closed" "$opened"; do
+  git_q "$clone" branch -q "$branch" "origin/$branch"
+done
 git_q "$work/case8/src" push -q origin --delete "$merged" "$closed" "$opened"
 git_q "$clone" fetch -q --prune origin
 git_q "$clone" checkout -q -b "$control" main
