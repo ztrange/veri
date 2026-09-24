@@ -8,6 +8,12 @@
 # So when the issue carries the `bug` label the spec gains a `## Bug` section carrying the
 # issue's what-happened, expected, steps to reproduce and environment.
 #
+# Case 3 is the other half of the same criterion: a script nobody calls changes nothing, and
+# the one caller is prose — `SKILL.md` step 1, where the conductor writes the spec. It lives
+# here rather than in one of the `skill-*` suites for refactor-triage.test.sh case 4's reason:
+# the sentence under test is a statement *about this script*, and a reader repairing it comes
+# here to find out what it actually writes.
+#
 # Run: scripts/tests/capture-spec.test.sh
 set -uo pipefail
 
@@ -141,6 +147,47 @@ section '## Bug' "$out" > "$tmp/plain-bug-section.md"
   problems+=("spec has a '## Bug' section for an issue without the bug label: $(head -1 "$tmp/plain-bug-section.md")")
 grep -qF -- 'tick-ledger.sh grows a `--dry-run` flag.' "$out" ||
   problems+=("spec is missing the issue's own body")
+
+report "$name"
+
+# The document twice — the path as every problem message spells it, and the same path
+# resolved for the probe to read — so a message can never name a file the probe did not open.
+# The suite sits at skills/<skill>/scripts/tests, so four levels up is the repo root.
+ROOT="$(cd "$HERE/../../../.." && pwd)"
+skill_md="skills/tdd/SKILL.md"
+skill_path="$ROOT/$skill_md"
+
+# spec_writes — every line of the procedure that redirects into the blind spec, `<line>:<text>`
+# per match. The redirect is what identifies the write: the spec's path is named a dozen times
+# in the document as an argument handed to a prompt builder or a verifier, and only the line
+# that points a `>` at it is the one that creates the file. The `>` has to be a word of its own
+# — preceded by a space or starting the line — because the document writes its placeholders in
+# angle brackets, so `run-verdict.sh … <phase> .tdd/issue-<n>-spec.md` ends a placeholder in a
+# `>` immediately before the path and reads as a redirect otherwise (SKILL.md:1219 does).
+spec_writes() {
+  grep -nE '(^|[[:space:]])>[[:space:]]*\.tdd/issue-<n>-spec\.md' "$skill_path" || true
+}
+
+# 3. The conductor writes the spec through this script. `gh issue view -q .body` is the issue's
+#    body and nothing else, so a document that still types it captures no `## Bug` section
+#    whatever the issue is labelled — the two cases above would pass and no run would produce
+#    what they describe.
+name='SKILL.md writes the blind spec through capture-spec.sh, not a bare gh issue view (#112)'
+problems=()
+writes="$(spec_writes)"
+if [[ -z "$writes" ]]; then
+  # Fail closed: a procedure with no write at all is reported as unreadable rather than probed
+  # as an empty list, which would let "nothing captures the spec" read as a pass.
+  problems+=("$skill_md has no command redirecting into .tdd/issue-<n>-spec.md, so where the conductor captures the spec could not be established")
+else
+  while IFS= read -r hit; do
+    line="${hit%%:*}" text="${hit#*:}"
+    grep -qF -- 'capture-spec.sh' <<<"$text" ||
+      problems+=("$skill_md:$line writes the blind spec without capture-spec.sh, so no spec ever carries a ## Bug section:$text")
+    ! grep -qE 'gh issue view' <<<"$text" ||
+      problems+=("$skill_md:$line still captures the spec with a bare gh issue view:$text")
+  done <<<"$writes"
+fi
 
 report "$name"
 

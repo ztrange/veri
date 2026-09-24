@@ -223,6 +223,10 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   phase's narration** in the issue thread, and do nothing else with it: **nothing branches on
   this check** — not the phase's verdict, not a retry, not a bail. A slow run is a remark, and
   a run that is not slow leaves you an empty capture and therefore nothing to paste.
+- `$S/capture-spec.sh <n>` — the **blind spec**, on stdout: the issue's body, plus a `## Bug`
+  section carrying its what-happened, expected, steps to reproduce and environment when the
+  issue carries the `bug` label (and nothing extra when it does not). Redirect it into
+  `.tdd/issue-<n>-spec.md` (step 3). Exit 2 on a missing issue number.
 - `$S/ensure-run-state-ignored.sh [repo-root]` — make the **target repo** ignore veri's run
   scratch (`.tdd/*.log`, `.rc`, `.prompt`, `.reason`, the blind spec) while keeping the ledger
   tracked. Writes the rule to **both** the worktree's `.gitignore` (committed, so the first
@@ -577,8 +581,12 @@ unauthenticated baseline never gets a cycle.
    own, no cycle, nothing to revert.
 3. **Write the behavior spec to a file** the verifier leaves will read — inside the worktree,
    which you are now in:
-   `mkdir -p .tdd && gh issue view <n> --json body -q .body > .tdd/issue-<n>-spec.md`.
+   `mkdir -p .tdd && $S/capture-spec.sh <n> > .tdd/issue-<n>-spec.md`.
    (The verifier is blind; this on-disk spec — never your narration — is what it sees.)
+   The script writes the issue's body, and for an issue labelled `bug` one more section,
+   `## Bug`, carrying the report's what-happened, expected, steps to reproduce and
+   environment: a bug's Red is a reproduction (ADR-0015), and this file is the only channel
+   the developer and the blind verifier have to learn what it must reproduce.
 4. **Ignore run state.** `$S/ensure-run-state-ignored.sh` writes the same rule — ignore
    `.tdd/*` except the ledger — into **two** files, and needs both. Into the worktree's
    `.gitignore`, which is committed: if the script prints `added`, commit it as the branch's
