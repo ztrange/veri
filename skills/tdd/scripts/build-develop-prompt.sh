@@ -162,8 +162,29 @@ esac
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/develop-$phase.md"
 shared_file="$HERE/prompts/_develop-shared.md"
-for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file"; do
-  [[ -n "$f" ]] || continue  # only revise and exhausted have a reason file; every other phase leaves it empty
+
+# The reproduction paragraph, and the one condition under which it is emitted (#112). An
+# issue labelled `bug` reaches the leaf through the one channel there is — `capture-spec.sh`
+# copies the report into the blind spec under a `## Bug` heading — so the spec's own text is
+# what this asks, rather than a new positional: the builder's arity per phase is the
+# conductor's contract and does not change for a bug. No section, no paragraph, and not a
+# word of difference: a leaf told to reproduce a report nobody filed has nothing to
+# reproduce, and would go looking for one in a spec that is the whole of what it can see.
+#
+# Asked here, ahead of the readability loop, so the paragraph's file joins the other three
+# in it rather than carrying a second copy of the same refusal further down. grep's own
+# stderr is discarded because an unreadable spec is that loop's refusal to make, in the one
+# wording every missing file gets; grep answers "no section" for it meanwhile, which costs
+# nothing, since the loop refuses the call two lines later.
+bug_file=""
+if grep -qE '^## Bug[[:space:]]*$' "$spec_file" 2>/dev/null; then
+  bug_file="$HERE/prompts/_develop-red-bug.md"
+fi
+
+for f in "$tpl_file" "$shared_file" "$spec_file" "$reason_file" "$bug_file"; do
+  # only revise and exhausted have a reason file, and only a bug spec a reproduction
+  # paragraph; every other phase leaves the variable empty
+  [[ -n "$f" ]] || continue
   [[ -r "$f" ]] || { echo "build-develop-prompt: cannot read '$f'" >&2; exit 2; }
 done
 
@@ -173,19 +194,8 @@ spec="$(cat "$spec_file")"
 reason=""
 if [[ -n "$reason_file" ]]; then reason="$(cat "$reason_file")"; fi
 
-# The reproduction paragraph, and the one condition under which it is emitted (#112). An
-# issue labelled `bug` reaches the leaf through the one channel there is — `capture-spec.sh`
-# copies the report into the blind spec under a `## Bug` heading — so the spec's own text is
-# what this asks, rather than a new positional: the builder's arity per phase is the
-# conductor's contract and does not change for a bug. No section, no paragraph, and not a
-# word of difference: a leaf told to reproduce a report nobody filed has nothing to
-# reproduce, and would go looking for one in a spec that is the whole of what it can see.
 bug_reproduction=""
-if grep -qE '^## Bug[[:space:]]*$' "$spec_file"; then
-  bug_file="$HERE/prompts/_develop-red-bug.md"
-  [[ -r "$bug_file" ]] || { echo "build-develop-prompt: cannot read '$bug_file'" >&2; exit 2; }
-  bug_reproduction="$(cat "$bug_file")"
-fi
+if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
 
 # Literal substitution via bash parameter expansion — no sed, and with the
 # patsub_replacement guard above holding, so &, \, / and {} in the spec or the step text
