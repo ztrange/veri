@@ -494,8 +494,8 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 # hand verify.sh.
 #
 # The option pair `--step "<STEP>"` (#223) comes before that positional, so it is dropped here
-# rather than read past: `arg_after` stops at the first word, which is the flag itself, and the
-# leaf would be named `verify---step`. The tree that name points at is one no launch writes, so
+# rather than read past: the read below takes the first word after the launcher, which would
+# be the flag itself, and the leaf would be named `verify---step`. The tree that name points at is one no launch writes, so
 # `wait-leaf.sh` would wait out its whole timeout on every verifier line and the case would
 # still pass — six lines × 60 s, which is how this suite went from 9 s to 5 min and had CI
 # cancel `make test` at its cap. The step's own text is quoted and holds spaces, so the pair is
@@ -508,12 +508,14 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 # leaf starts, so a tree missing either would answer `<no leaf ran>` for a launch that is
 # correctly wired — the probe reporting its own fixture.
 check_verifier_launch() {
-  local launch="$1" leaf clean subjects
+  local launch="$1" clean phase spec subject
   clean="$(sed -E "s/ --(step|fast-cmd) ('[^']*'|\"[^\"]*\")//g" <<< "$launch")"
-  leaf="verify-$(arg_after run-verdict.sh "$clean")"
-  # The two positionals after the phase: the spec file, then the file under judgement.
-  read -r -a subjects <<< "$(sed -E "s|.*run-verdict\.sh +[^ ]+ +([^ ]+) +([^ ]+).*|\1 \2|" <<< "$clean")"
-  expect_sentinel "$leaf" "$launch" "${subjects[@]}"
+  # The launcher's three positionals in one read of the words that follow it: the phase, the
+  # spec file, and the file under judgement. Split by the shell rather than by a second
+  # pattern naming `run-verdict.sh` again — two spellings of the launcher's name are two
+  # chances for a renamed launcher to leave one of them reading a line it no longer matches.
+  read -r phase spec subject _ <<< "${clean#*run-verdict.sh }"
+  expect_sentinel "verify-$phase" "$launch" "$spec" "$subject"
 }
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
