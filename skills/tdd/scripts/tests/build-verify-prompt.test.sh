@@ -833,6 +833,40 @@ done
 [[ -z "$problems" ]] && ok || no "verify-plan carries only the issue spec and the ledger, and no cycle phase's prompt carries a ledger (${problems#; })"
 
 
+# 41. the plan prompt treats a step that restates a criterion as a mechanism as delivering
+#     it only when that mechanism is sufficient for the criterion as written, and directs a
+#     REJECT when no step establishes the criterion as written (#439). Check 1 already tells
+#     the verifier that a step true of "some mechanism the criterion might be built from is
+#     not the criterion being delivered", which reads as a ban on mechanism steps — and a
+#     plan is entitled to name mechanism: "a verdict launcher script" was the right design on
+#     #426 and the plan naming it was not wrong for naming it. What made that plan pass while
+#     its criterion stayed unmet is the thing this case pins instead: a mechanism step
+#     delivers the criterion exactly when the mechanism it names is **sufficient** for the
+#     criterion as written, and #426's two steps were not — a launcher that quotes the title
+#     for the inner shell leaves the outer one untouched, so every step was true and the
+#     criterion "a step title containing an apostrophe launches its verifier successfully,
+#     for every phase" was false. A verifier given the ban alone has no test to apply to a
+#     mechanism step; given sufficiency, it has the same test the criterion itself states.
+#
+#     The second half is the verdict that judgement has to reach. Check 1's REJECT clause
+#     constrains the *reason* — name the criterion and the part no step covers — and a
+#     constraint on a reason is not a direction to render the verdict: the prompt can be
+#     satisfied by a PASS whose reason names nothing, because nothing told the verifier that
+#     an unestablished criterion IS a REJECT. Case 37 closed the sufficient half of the
+#     biconditional for PASS; this closes the other end, so the two cannot both be inferred
+#     away. Two claims, two misses, each named, for case 36's reason. Matched over the
+#     newline-flattened prompt, tolerantly of wording and of markdown emphasis, since the
+#     behaviour is the instruction reaching the verifier rather than the sentence it is spelled
+#     with; every bounded repetition stays under 255, for case 36's reason — BSD grep refuses
+#     a wider one outright and its non-zero exit reads exactly like a prompt that says nothing.
+problems=""
+prompt_says "$plan" "never makes a mechanism step deliver the criterion only when that mechanism is sufficient for it" \
+  -iE -e 'mechanism[^.]{0,200}(sufficient|suffices|enough)|(sufficient|suffices|enough)[^.]{0,200}mechanism'
+prompt_says "$plan" "never directs a REJECT when no step establishes the criterion as written" \
+  -iE -e 'REJECT[^.]{0,200}(no step|nothing)[^.]{0,150}(establish|deliver)|(no step|nothing)[^.]{0,150}(establish|deliver)[^.]{0,200}REJECT'
+[[ -z "$problems" ]] && ok || no "verify-plan makes a mechanism step deliver a criterion only when the mechanism is sufficient for it as written, and directs a REJECT when no step establishes the criterion (${problems#; })"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

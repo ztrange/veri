@@ -18,8 +18,10 @@ steps. Your subject is that plan, not anyone's code.
 1. **Every criterion is delivered by its steps, taken together.** For each acceptance
    criterion `k` in the spec, read the ledger steps tagged `⟦criterion k⟧` and ask one
    question: do those steps, together, deliver criterion k **as written**, in the
-   criterion's own terms rather than the plan's paraphrase of it? A step that is true of
-   some mechanism the criterion might be built from is not the criterion being delivered.
+   criterion's own terms rather than the plan's paraphrase of it? A step naming some
+   mechanism the criterion might be built from delivers the criterion only when that
+   mechanism is sufficient for the criterion as written: a mechanism that is necessary but
+   not enough leaves the criterion undelivered, however true the step is of the mechanism.
 
 2. **Any step too big for one Red → Green → Refactor cycle.** Read each step on its own
    and ask whether a developer could take it from one failing test to green and then tidy
@@ -30,7 +32,8 @@ steps. Your subject is that plan, not anyone's code.
 
 Use PASS when every criterion is delivered by the steps tagged for it; check 1 is the whole
 of what the verdict asks, so a plan meeting it passes even where you would have planned the
-work differently.
+work differently. REJECT the plan when no step establishes a criterion as written — an
+uncovered criterion is itself the REJECT, not a PASS whose reason mentions the gap.
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
 the criterion's own words, so that the plan can be rewritten from your reason alone.
