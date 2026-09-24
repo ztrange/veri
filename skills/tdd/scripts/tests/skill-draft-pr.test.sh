@@ -90,18 +90,23 @@ records_of() {
     END { flush() }' | tr '[:upper:]' '[:lower:]'
 }
 
-# section_records <heading prefix> <closer regex> — the records of the section whose
-# heading STARTS WITH <heading prefix>, where a line matching <closer regex> is what ends
-# one. Every read here is scoped to a section, because the document pushes a branch and
-# takes a PASS branch on several paths: an unscoped read would answer one criterion with
-# another path's instruction, and fail a document that had done exactly what was asked.
-# Which headings close a section is the caller's, since the levels differ by section. A
-# prefix rather than the whole heading because a heading may carry trailing prose after an
-# em dash; the prefix is what identifies it and is quotable in a problem message.
-section_records() {
+# section_lines <heading prefix> <closer regex> — the document's lines, verbatim, from the
+# heading that STARTS WITH <heading prefix> to the next line matching <closer regex>. Every
+# read here is scoped to a section, because the document pushes a branch and takes a PASS
+# branch on several paths: an unscoped read would answer one criterion with another path's
+# instruction, and fail a document that had done exactly what was asked. Which headings close
+# a section is the caller's, since the levels differ by section. A prefix rather than the
+# whole heading because a heading may carry trailing prose after an em dash; the prefix is
+# what identifies it and is quotable in a problem message. The slicing is here alone because
+# two readings are taken of the same slice — as records and as command lines — and a section
+# read two ways by two copies of this awk is a section that can come to mean two things.
+section_lines() {
   awk -v h="$1" -v closers="$2" \
-    '$0 ~ closers { inside = (index($0, h) == 1); next } inside' "$skill_path" | records_of
+    '$0 ~ closers { inside = (index($0, h) == 1); next } inside' "$skill_path"
 }
+
+# section_records <heading prefix> <closer regex> — that slice as records.
+section_records() { section_lines "$1" "$2" | records_of; }
 
 # first_record <text> [<grep-options> <pattern>]... — the first record of <text> that
 # matches every option-and-pattern pair given, or nothing when none does. Six cases ask the
@@ -423,8 +428,7 @@ report "$name"
 # keeps a flag written on the next line — as `gh pr create`'s own `--title` is today — part of
 # the command that carries it.
 commands_of() {
-  awk -v h="$1" -v closers="$2" \
-    '$0 ~ closers { inside = (index($0, h) == 1); next } inside' "$skill_path" |
+  section_lines "$1" "$2" |
   awk '{ sub(/^[[:space:]]+/, "")
          buf = (cont ? buf " " $0 : $0)
          if (buf ~ /\\$/) { sub(/\\$/, "", buf); cont = 1; next }
