@@ -85,5 +85,17 @@ check "blocked_by.blockers ignores another repository's issue URL when a slug is
   "[1, 34]
 [1, 56, 34]" "$(printf '%s' "$mixed_body" | blockers acme/widgets; printf '%s' "$mixed_body" | blockers '')"
 
+# 4. The section ends at the next `## ` heading: a `#<n>` under a later heading is not a blocker.
+later_body='## Blocked by
+
+- #3
+
+## Notes
+
+See #9.
+'
+check "blocked_by.blockers stops reading the section at the next ## heading, so a #<n> under a later heading is not a blocker" \
+  "[3]" "$(printf '%s' "$later_body" | blockers acme/widgets)"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
