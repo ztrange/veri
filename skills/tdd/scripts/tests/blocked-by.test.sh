@@ -51,5 +51,26 @@ Something.
 check "blocked_by.blockers reads both the #<n> form and the full https://github.com/<owner>/<name>/issues/<n> URL of the given repository" \
   "[12, 34]" "$(printf '%s' "$body" | blockers acme/widgets)"
 
+# 2. No blockers: a section reading `None.`, and a body with no `## Blocked by` section at all.
+none_body='## Problem
+
+Something about #7.
+
+## Blocked by
+
+None.
+'
+absent_body='## Problem
+
+Something about #7.
+
+## Acceptance criteria
+
+1. Works.
+'
+check "blocked_by.blockers returns no blockers for a section reading None. and for a body with no ## Blocked by section" \
+  "[]
+[]" "$(printf '%s' "$none_body" | blockers acme/widgets; printf '%s' "$absent_body" | blockers acme/widgets)"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
