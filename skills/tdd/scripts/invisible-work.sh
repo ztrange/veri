@@ -86,7 +86,7 @@ issues = {i["number"]: i["state"] for i in json.loads(sys.argv[1])}
 prs = json.loads(sys.argv[3])
 with_pr = {p["headRefName"] for p in prs}
 decided = {p["headRefName"] for p in prs if p["state"] in ("MERGED", "CLOSED")}
-findings = 0
+findings = []
 
 for row in sys.argv[2].splitlines():
     name, tip, ahead = row.split()
@@ -98,8 +98,7 @@ for row in sys.argv[2].splitlines():
         n = int(m.group(1))
         state = issues.get(n, "unknown")
         finding += f", issue #{n} {state}"
-    print(finding)
-    findings += 1
+    findings.append(finding)
 
 for row in sys.argv[4].splitlines():
     name, tip, lacks, worktree = row.split(" ", 3)
@@ -108,8 +107,10 @@ for row in sys.argv[4].splitlines():
     finding = f"invariant 1 (not on origin): {name} tip {tip} {lacks} commits origin lacks"
     if worktree:
         finding += f", worktree {worktree}"
+    findings.append(finding)
+
+for finding in findings:
     print(finding)
-    findings += 1
 
 # 0: a finding was printed. 3: nothing to report — the healthy state, not an error.
 sys.exit(0 if findings else 3)
