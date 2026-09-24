@@ -1303,6 +1303,27 @@ prompt_lacks "$red" "a spec with no Bug section is still told what the failure m
 [[ -z "$problems" ]] \
   && ok || no "develop-red tells a bug's leaf to write the test from Expected, drive it with Steps to reproduce and fail as What happened describes, and tells a leaf with no Bug section none of it (${problems#; })"
 
+# 37. the same paragraph's last claim: a bug's case is named so it carries the issue number
+#     (issue #112, criterion 3). A reproduction does not stop being useful once it is green —
+#     it stays as this bug's regression test — and the only thing in the test file that says
+#     which report it stands for is the number in its name. So the paragraph that tells the
+#     leaf to reproduce must also tell it how to name what it wrote, in the project's own
+#     test-naming idiom rather than a shape veri imposes: the leaf reads the suite it is
+#     adding to, and a spelling dictated here would be wrong in most repositories.
+#
+#     Probed like case 36's three, under the same one-bounded-repeat constraint, and pairing
+#     the verb with the thing named rather than either alone: `name` by itself matches the
+#     red template's own prose about the error a test names, and `#<n>` by itself would pass
+#     on a template that merely quoted the token. The negative half reads case 1's prompt for
+#     the same reason case 36's does — a spec with no `## Bug` section gets no reproduction
+#     and so owes no reproduction's name.
+problems=""
+names_with_number='(name|naming)[^.]{0,60}#<n>|#<n>[^.]{0,60}(name|naming)'
+prompt_says "$bug_red" "never says to name the case so it carries #<n>" -iE -e "$names_with_number"
+prompt_lacks "$red" "a spec with no Bug section is still told to name the case after the issue" -iE -e "$names_with_number"
+[[ -z "$problems" ]] \
+  && ok || no "develop-red tells a bug's leaf to name the case so it carries the issue's number in the project's own idiom, and tells a leaf with no Bug section nothing of it (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
