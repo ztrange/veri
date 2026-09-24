@@ -246,6 +246,23 @@ if have_skill_md && have_body labelling; then
 fi
 report "$name"
 
+# 5. The fix run is a second decision, and it costs money. Filing is free; `/tdd <n>` spends a
+#    conductor and a leaf per step, so a skill that rolls straight on from the filed issue into
+#    the run has made that spend on the user's behalf without asking. The criterion is the pair:
+#    the skill asks, once, before starting the fix run, and it invokes `/tdd` only when the
+#    answer is yes — anything else leaves the issue filed and the run unstarted. Read as prose,
+#    like cases 1 and 4: the skill ships no scripts, so the asking is only ever what its
+#    SKILL.md tells the session to do.
+name="$skill_md asks before starting the fix run and invokes /tdd only on yes"
+problems=()
+if have_skill_md && have_body "fix-run offer"; then
+  says 'ask[^.]{0,120}(before|first)[^.]{0,120}(/tdd|fix run)|(before|first)[^.]{0,120}ask[^.]{0,120}(/tdd|fix run)' \
+    "$skill_md never says it asks before starting the fix run"
+  says 'only[^.]{0,80}yes|yes[^.]{0,80}only|if[^.]{0,40}yes|on a yes' \
+    "$skill_md never says it invokes /tdd only on yes"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
