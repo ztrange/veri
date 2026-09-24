@@ -89,9 +89,9 @@ for row in sys.argv[2].splitlines():
     print(finding)
 
 for row in sys.argv[4].splitlines():
-    name, tip, lacks, worktree = (row.split(" ", 3) + [""])[:4]
+    name, tip, lacks, worktree = row.split(" ", 3)
     finding = f"invariant 1 (not on origin): {name} tip {tip} {lacks} commits origin lacks"
-    if worktree.strip():
-        finding += f", worktree {worktree.strip()}"
+    if worktree:
+        finding += f", worktree {worktree}"
     print(finding)
 ' "$issues_json" "$branches" "$prs_json" "$locals"
