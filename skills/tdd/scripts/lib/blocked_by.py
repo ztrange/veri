@@ -5,8 +5,10 @@ import re
 
 def blockers(body, repo):
     """The issue numbers named under the `## Blocked by` heading, spelled `#<n>` or as the full
-    URL GitHub renders for `repo` (`<owner>/<name>`)."""
-    ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % re.escape(repo)
+    URL GitHub renders for `repo` (`<owner>/<name>`). An empty `repo` names no repository to
+    compare against, so any github.com issue URL is read as local."""
+    slug = re.escape(repo) if repo else r"[^/\s]+/[^/\s]+"
+    ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % slug
     section = re.search(r"^## Blocked by$(.*?)(?=^## |\Z)", body, re.M | re.S)
     if not section:
         return []
