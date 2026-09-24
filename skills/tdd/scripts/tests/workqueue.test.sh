@@ -291,5 +291,22 @@ expect_unchanged foreign-item 1 \
   "park naming another worker's running item exits 1 and leaves the file byte-identical" \
   park beta 13 "second bail"
 
+# 15. start on the worker's own item that is not queued, and done or park on its own item that
+#     is not running, each exit 1 and leave the queue file byte-identical: alpha's 13 is
+#     already running, so it cannot be started again, and alpha's 12 is still queued, so it
+#     cannot be merged or parked before it has started.
+repo="$work/wrong-state"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
+expect_unchanged wrong-state 1 \
+  "start on an item not queued exits 1 and leaves the file byte-identical" \
+  start alpha 13
+expect_unchanged wrong-state 1 \
+  "done on an item not running exits 1 and leaves the file byte-identical" \
+  done alpha 12 abc1234
+expect_unchanged wrong-state 1 \
+  "park on an item not running exits 1 and leaves the file byte-identical" \
+  park alpha 12 "second bail"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
