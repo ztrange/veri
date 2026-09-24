@@ -787,6 +787,52 @@ prompt_says "$plan" "never carries the by-itself qualifier on that exemption" \
 [[ -z "$problems" ]] && ok || no "verify-plan states that a step carrying no criterion tag is never by itself a reason to REJECT (${problems#; })"
 
 
+# 40. the plan prompt carries the issue spec and the ledger and nothing else, and none of
+#     the four cycle prompts carries a ledger (#439). The blindness guarantee this builder
+#     exists to make structural is per phase, not per script: the plan phase is the one
+#     verifier whose subject is an artifact of judgement, and it is admissible only because
+#     at scoping time there is no developer and no rationale to leak. That holds as long as
+#     nothing but the spec and the ledger reaches it — so the two channels a caller could
+#     push anything else through are the ones checked here, `--step` and the fourth
+#     positional: both are accepted by the builder's argument loop for the cycle phases that
+#     need them, and a plan call carrying either must render a prompt neither appears in.
+#     Not hypothetical — `--step` carries the ledger's own line for one step, which on a
+#     re-plan is text about work already judged, and the fourth slot takes free text on
+#     three of the four cycle phases.
+#
+#     The other half is the same guarantee read backwards: the ledger is the plan phase's
+#     subject and nothing else's, so a cycle phase handed that same path must name it and
+#     never open it. A cycle verifier shown the plan would grade code against the intended
+#     design rather than against the criterion, which is exactly the leak ADR-0003 forbids
+#     and the reason this issue does not simply pass the plan to the existing four. Each
+#     cycle phase is asked for both halves — the path it was given still reaches it, and the
+#     file's text does not — because a prompt that dropped the path would satisfy a
+#     text-absence probe by carrying nothing at all. Every miss is named rather than folded
+#     into one verdict, so a leak on one phase is not covered for by the other three.
+cat > "$work/rationale-ledger.md" <<'LEDGER'
+# Plan for #439
+
+- [ ] LEDGER-BODY-MARKER a plan step no cycle verifier may be shown ⟦criterion 1⟧
+LEDGER
+leak_step='RATIONALE-LEAK the developer chose a launcher script because bash -c broke the quoting'
+problems=""
+plan_only="$("$BUILD" --step "$leak_step" plan "$work/spec.md" "$work/rationale-ledger.md" test_rationale_leak)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; the plan call exited $code"
+[[ "$plan_only" == *'slugify("Hello & World/Foo")'* ]] || problems="$problems; the plan prompt drops the issue spec"
+[[ "$plan_only" == *'LEDGER-BODY-MARKER'* ]] || problems="$problems; the plan prompt drops the ledger"
+[[ "$plan_only" != *'RATIONALE-LEAK'* ]] || problems="$problems; the plan prompt carries the --step text"
+[[ "$plan_only" != *'test_rationale_leak'* ]] || problems="$problems; the plan prompt carries the fourth positional"
+for phase in red green refactor pin; do
+  fast_for "$phase"
+  slot=test_slugify_lowercases
+  [[ "$phase" == refactor ]] && slot=0123abc  # refactor's fourth slot takes a base sha only (#151)
+  cycle="$("$BUILD" "${fast[@]}" "$phase" "$work/spec.md" "$work/rationale-ledger.md" "$slot")"
+  [[ "$cycle" == *"$work/rationale-ledger.md"* ]] || problems="$problems; verify-$phase drops the path it was given"
+  [[ "$cycle" != *'LEDGER-BODY-MARKER'* ]] || problems="$problems; verify-$phase carries the ledger's text"
+done
+[[ -z "$problems" ]] && ok || no "verify-plan carries only the issue spec and the ledger, and no cycle phase's prompt carries a ledger (${problems#; })"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
