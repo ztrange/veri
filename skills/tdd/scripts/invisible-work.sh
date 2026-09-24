@@ -9,6 +9,10 @@
 # one. An issue the repository does not have — a typo'd number, a transferred or deleted
 # issue — has its state named `unknown` rather than guessed.
 #
+# Invariant 1 (#191): work in progress never lives only in a local branch. A local branch
+# `origin` does not carry is reported with its tip, how many of its commits no `origin` ref
+# holds, and the worktree it is checked out in, when there is one.
+#
 # A branch any PR was opened for, whatever that PR's state, is not an invariant-2 finding:
 # invariant 2 is a branch with no PR at all. One whose PR is still open sits in GitHub's
 # review queue already.
@@ -47,6 +51,25 @@ while read -r ref tip; do
   branches+="$name $tip $ahead"$'\n'
 done < <(git for-each-ref --format='%(refname) %(objectname)' refs/remotes/origin/)
 
+# The worktree each local branch is checked out in: `refs/heads/<name>` -> its path.
+declare -A worktree_of=()
+while read -r key value; do
+  case "$key" in
+    worktree) path="$value" ;;
+    branch) worktree_of["$value"]="$path" ;;
+  esac
+done < <(git worktree list --porcelain)
+
+# Invariant 1 (#191): one line per local branch `origin` does not carry:
+# `<name> <tip> <commits no origin ref holds> [<worktree>]`.
+locals=""
+while read -r ref tip; do
+  name="${ref#refs/heads/}"
+  git show-ref -q --verify "refs/remotes/origin/$name" && continue
+  lacks="$(git rev-list --count "$ref" --not --remotes=origin)"
+  locals+="$name $tip $lacks ${worktree_of[$ref]:-}"$'\n'
+done < <(git for-each-ref --format='%(refname) %(objectname)' refs/heads/)
+
 exec python3 -c '
 import json, re, sys
 
@@ -64,4 +87,11 @@ for row in sys.argv[2].splitlines():
         state = issues.get(n, "unknown")
         finding += f", issue #{n} {state}"
     print(finding)
-' "$issues_json" "$branches" "$prs_json"
+
+for row in sys.argv[4].splitlines():
+    name, tip, lacks, worktree = (row.split(" ", 3) + [""])[:4]
+    finding = f"invariant 1 (not on origin): {name} tip {tip} {lacks} commits origin lacks"
+    if worktree.strip():
+        finding += f", worktree {worktree.strip()}"
+    print(finding)
+' "$issues_json" "$branches" "$prs_json" "$locals"

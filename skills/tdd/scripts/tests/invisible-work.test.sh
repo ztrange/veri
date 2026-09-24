@@ -221,6 +221,85 @@ names "the finding names the issue's state as unknown" "${rest,,}" "unknown"
   problems+=("the script does not die on the lookup: want no traceback on stderr, got $(printf '%q' "$err")")
 report "$name"
 
+# 4. Issue #197, criterion 2: a local branch absent from `origin` is reported, naming the
+#    branch, its tip, how many commits it holds that `origin` does not, and the worktree
+#    holding it. This is invariant 1 (#191), the shape that nearly lost 71 commits across
+#    #150, #163, #170 and #174: runs that lived only in worktrees on one machine, with no
+#    branch on `origin` for any of them. The branch is cut from `main`, which `origin` does
+#    hold, so of its four commits past the initial one exactly four are ones `origin` lacks.
+#    The worktree path is matched as the case wrote it or as the filesystem resolves it,
+#    since a temporary directory on macOS sits behind the `/var` -> `/private/var` symlink.
+name="invisible-work.sh: a local branch absent from origin is reported with its tip, the commits origin lacks and its worktree"
+problems=()
+clone="$(unpr_branch_clone "$work/case4" "chore/pushed-already" 1)"
+gh_json="$(fixture "$work/case4/gh")"
+branch="tdd/150-a-run-that-never-reached-origin"
+wt="$work/case4/wt-150"
+git_q "$clone" worktree add -q -b "$branch" "$wt" main
+for ((i = 1; i <= 4; i++)); do
+  git_q "$wt" commit -q --allow-empty -m "feat: step $i of a run only this machine holds (#150)"
+done
+tip="$(git_q "$wt" rev-parse HEAD)"
+wt_real="$(cd "$wt" && pwd -P)"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
+
+finding "$out" "$branch"
+names "the report names the branch" "$out" "$branch"
+names "the finding names the branch's tip" "$line" "${tip:0:7}"
+[[ "$line" == *"$wt"* || "$line" == *"$wt_real"* ]] ||
+  problems+=("the finding names the worktree holding it: want $(printf '%q' "$wt_real") in the finding, got $(printf '%q' "$line")")
+# The worktree path carries digits of its own (`wt-150`, and the temporary directory's
+# name), so it is cut out of the line before `finding` cuts the rest and the count is read.
+line="${line//"$wt_real"/}"; line="${line//"$wt"/}"
+finding "$line" "$branch"
+states "the finding states the commits origin does not hold" "$rest" 4
+report "$name"
+
+# 5. Issue #197, criterion 2, the other side of it: invariant 1 is a local branch `origin`
+#    does NOT carry, so a local branch that is on `origin` too is left out of the report. The
+#    case's local branch shares its name with a branch on `origin` whose PR is open, which
+#    keeps it out of the invariant-2 half as well — so any line naming it is an invariant-1
+#    finding the filter should have withheld. A second local branch, never pushed, must still
+#    be reported: without it, a script that printed nothing would pass this case too.
+name="invisible-work.sh: a local branch that origin carries too is left out of the report"
+problems=()
+pushed="chore/pushed-already"
+clone="$(unpr_branch_clone "$work/case5" "$pushed" 1)"
+gh_json="$(fixture "$work/case5/gh")"
+cat > "$gh_json/prs.json" <<JSON
+[{"headRefName": "$pushed", "state": "OPEN", "body": ""}]
+JSON
+git_q "$clone" branch -q "$pushed" "origin/$pushed"
+control="tdd/163-a-run-only-this-machine-holds"
+git_q "$clone" branch -q "$control" main
+git_q "$clone" checkout -q "$control"
+git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed (#163)"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
+names "the local branch origin lacks is still reported" "$out" "$control"
+[[ "$out" != *"$pushed"* ]] ||
+  problems+=("the local branch origin carries is left out: want no $(printf '%q' "$pushed") in the report, got $(printf '%q' "$out")")
+report "$name"
+
+# 6. Issue #197, criterion 2, the worktree clause's other side: the worktree is named "if
+#    any", so a local branch origin lacks that no worktree holds is still reported, and its
+#    finding says nothing about a worktree — not an empty one, not the clone's own. The
+#    branch is committed to from the clone's main checkout, which then returns to `main`,
+#    so the branch exists only as a ref, checked out nowhere.
+name="invisible-work.sh: a local branch absent from origin that no worktree holds is reported with no worktree"
+problems=()
+clone="$(unpr_branch_clone "$work/case6" "chore/pushed-already" 1)"
+gh_json="$(fixture "$work/case6/gh")"
+branch="tdd/170-a-run-checked-out-nowhere"
+git_q "$clone" checkout -q -b "$branch" main
+git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed (#170)"
+git_q "$clone" checkout -q main
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
+finding "$out" "$branch"
+names "the report names the branch" "$out" "$branch"
+[[ "${line,,}" != *worktree* ]] ||
+  problems+=("the finding names no worktree: want no worktree in the finding, got $(printf '%q' "$line")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
