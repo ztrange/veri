@@ -13,10 +13,12 @@
 # criterion: after the ledger is committed (there is no plan to read before that) and before
 # the first step (a plan caught wrong after step 3 has already been paid for).
 #
-# Contract under test — one case, the criterion's two halves:
-#   SKILL.md launches the `plan` verdict between the instruction that commits the ledger and
-#   the heading that opens the cycle loop, and the prose in that same span says a REJECT
-#   rewrites the plan and re-verifies it, rather than ending the run.
+# Contract under test — two cases, one per criterion:
+#   1. SKILL.md launches the `plan` verdict between the instruction that commits the ledger
+#      and the heading that opens the cycle loop, and the prose in that same span says a
+#      REJECT rewrites the plan and re-verifies it, rather than ending the run.
+#   2. The same span sends the third outcome — exit 2, no verdict rendered at all — down the
+#      **system** failure bail, rather than letting it read as a PASS.
 #
 # Run: skills/tdd/scripts/tests/skill-plan-verify.test.sh
 set -uo pipefail
@@ -45,6 +47,10 @@ loop_re='^### 3[.] The cycle loop'
 # `verify.sh` itself, which the prose still names directly. The phase is a bare word after
 # the script and whatever flags the call carries.
 plan_launch_re='(run-verdict|verify)[.]sh.* plan '
+# The outcome that carries no verdict, named by the code every script in this suite's subject
+# speaks: exit 2 is "no answer could be obtained" — killed stuck, or output with no parseable
+# `VERDICT:` line. The parentheses are classes for the same reason the dots above are.
+exit2_re='[(]exit 2[)]'
 
 pass=0 fail=0
 
@@ -76,6 +82,28 @@ span_text() {
     tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
+# line_in_span <from> <to> <ere> — like `line_of`, but blind to everything outside the span:
+# the document names exit 2 in a dozen other places, and only this span's answer is the
+# criterion's subject.
+line_in_span() {
+  awk -v a="$1" -v b="$2" -v re="$3" \
+    'n == 0 && NR > a && NR < b && match($0, re) { n = NR } END { print n + 0 }' "$skill_path"
+}
+
+# bullet_text <from> <to> <ere> — the span's first bullet matching <ere> together with the
+# lines that continue it (a bullet ends at the next bullet or at a blank line), lowercased and
+# flattened. The directive under test is one sentence wrapped across lines, and it is that
+# bullet's own text that has to carry it: the span as a whole already says "bail" for the
+# REJECT path, so a probe over the whole span would pass on the wrong bullet's words.
+bullet_text() {
+  awk -v a="$1" -v b="$2" -v re="$3" '
+    NR <= a || NR >= b { next }
+    !inb && match($0, re) { inb = 1; print; next }
+    inb && ($0 ~ /^[[:space:]]*$/ || $0 ~ /^- /) { inb = 0 }
+    inb { print }
+  ' "$skill_path" | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
+}
+
 name="SKILL.md verifies the plan between the ledger commit and the first step, and a REJECT rewrites it and re-verifies"
 problems=()
 
@@ -104,6 +132,34 @@ else
       *) problems+=("$skill_md says nothing matching '$want' between $span_desc, so the span does not say that a REJECT rewrites the plan and re-verifies it rather than ending the run") ;;
     esac
   done
+fi
+
+report "$name"
+
+# Case 2 — the same span's answer to the third exit code. A verifier leaf that was killed
+# stuck, or one whose output carries no parseable `VERDICT:` line, leaves `wait-leaf.sh`
+# exiting 2: no verdict was rendered at all. The two real verdicts are already written down
+# above; the criterion here is that the third outcome is not quietly folded into the good one
+# — a plan nobody looked at must bail the run as a **system** failure, never continue as if
+# it had PASSed.
+name="SKILL.md bails as a system failure when the plan verification rendered no verdict"
+problems=()
+
+if [[ "$commit_line" -eq 0 || "$loop_line" -eq 0 ]]; then
+  problems+=("$skill_md is missing a landmark of the plan-verification span (ledger commit line $commit_line, cycle loop line $loop_line), so there is no span in which to read what an unobtainable verdict does")
+else
+  exit2_line="$(line_in_span "$commit_line" "$loop_line" "$exit2_re")"
+  if [[ "$exit2_line" -eq 0 ]]; then
+    problems+=("$skill_md says nothing about /$exit2_re/ between the ledger commit (line $commit_line) and the cycle loop (line $loop_line), so a plan verification that rendered no verdict has no documented outcome and reads as the PASS the conductor falls through to")
+  else
+    bullet="$(bullet_text "$commit_line" "$loop_line" "$exit2_re")"
+    for want in bail system; do
+      case "$bullet" in
+        *"$want"*) ;;
+        *) problems+=("$skill_md's exit-2 outcome for the plan verdict (line $exit2_line) says nothing matching '$want', so a run whose plan verifier rendered no verdict is not sent down the system-failure bail: $bullet") ;;
+      esac
+    done
+  fi
 fi
 
 report "$name"
