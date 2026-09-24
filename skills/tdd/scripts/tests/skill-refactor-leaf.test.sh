@@ -150,15 +150,24 @@ unreadable_problem() {
   printf "%s has no '%s' section to read — %s" "$skill_md" "$refactor_heading" "$1"
 }
 
-# win <extended-regex> [radius] — the section text within <radius> characters either side of
-# the first match, or the empty string when there is none: the text a reader meets while
-# working out what to do about that check. The default 250 rather than a rounder, larger
-# number because BSD grep — the one on the development machine this repository holds itself
-# portable to — refuses an interval whose bound is over 255. A probe passes a narrower radius
-# when 250 would reach a neighbouring bullet that answers its question for it.
-win() {
+# windows <extended-regex> [radius] — the section text within <radius> characters either side
+# of every match, one window per line, or nothing when there is none. The default 250 rather
+# than a rounder, larger number because BSD grep — the one on the development machine this
+# repository holds itself portable to — refuses an interval whose bound is over 255. A probe
+# passes a narrower radius when 250 would reach a neighbouring bullet that answers its
+# question for it. `win` and `wins` below are the two readings of this one answer, and they
+# share it so that a radius clamped for BSD grep in one is clamped in the other too.
+windows() {
   local radius="${2:-250}"
-  head -1 < <(grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section")
+  grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section"
+}
+
+# win <extended-regex> [radius] — the first of those windows, or the empty string when there
+# is none: the text a reader meets while working out what to do about that check. The reader
+# consumes to EOF through the process substitution rather than a pipe, so `head` leaving early
+# never lands on the writer as a SIGPIPE `pipefail` would hand up as the probe's answer (#422).
+win() {
+  head -1 < <(windows "$@")
 }
 
 # phrase <extended-regex> <text> — the first phrase of <text> that matches, or the empty
@@ -171,15 +180,14 @@ phrase() {
   head -1 < <(grep -oE "$1" <<<"$2")
 }
 
-# wins <extended-regex> [radius] — every one of `win`'s windows rather than the first, joined
+# wins <extended-regex> [radius] — every one of those windows rather than the first, joined
 # onto one line. Case 6 asks about a word the section already uses for something else: the
 # refactor template's account of itself says the leaf flags overfit code, and the PASS branch
 # says the leaf was forbidden to generalize it, so the FIRST overfit in this section is never
 # the routing rule that case is about. Taking only that one would fail a document that carries
 # the rule perfectly well a paragraph further down.
 wins() {
-  local radius="${2:-250}"
-  grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section" | tr '\n' ' '
+  windows "$@" | tr '\n' ' '
 }
 
 # What a refusal looks like, spelled once for the two probes that ask for one. Both checks
