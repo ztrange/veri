@@ -144,5 +144,96 @@ else
   echo "    stderr: $(cat "$work/next-unblocked.err")"
 fi
 
+# 7. next does not read a `## Blocked by` URL naming another repository's issue as a blocker:
+#    this repository is the one its `origin` names, and only a URL naming that one blocks. #131
+#    names https://github.com/ztrange/veri-demo-node/issues/120, and #120 is also a real, open
+#    issue HERE — so a reading that ignores the owner/name in the URL finds 120 open and
+#    withholds #131, printing nothing.
+repo="$work/next-foreign-url"
+new_repo "$repo"
+git -C "$repo" remote add origin https://github.com/ztrange/veri.git
+seed_queue "$repo" 'alpha\t131\tqueued\t\n'
+fx="$work/next-foreign-url.gh"
+mkdir -p "$fx"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {"number": 120, "title": "open here", "labels": [], "body": "", "state": "OPEN"},
+  {"number": 131, "title": "blocked elsewhere", "labels": [], "state": "OPEN",
+   "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri-demo-node/issues/120\n"}
+]
+JSON
+printf '[]\n' > "$fx/prs.json"
+out="$(cd "$repo" && VERI_GH_JSON="$fx" "$SCRIPT" next alpha 2>"$work/next-foreign-url.err")" \
+  && code=0 || code=$?
+if [[ "$code" -eq 0 && "$out" == 131 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - next does not read a Blocked by URL naming another repository's issue as a blocker"
+  echo "    exit: $code (want 0), stdout: '$out' (want '131')"
+  echo "    stderr: $(cat "$work/next-foreign-url.err")"
+fi
+
+# 8. an `origin` URL ending in `.git` still names this repository: a `## Blocked by` URL to an
+#    open issue HERE blocks, so #131 is skipped and #132 is the one printed. Read with `.git`
+#    left on, the repository would be `ztrange/veri.git`, the URL would look foreign, and #131
+#    would be printed.
+repo="$work/next-own-url"
+new_repo "$repo"
+git -C "$repo" remote add origin https://github.com/ztrange/veri.git
+seed_queue "$repo" 'alpha\t131\tqueued\t\nalpha\t132\tqueued\t\n'
+fx="$work/next-own-url.gh"
+mkdir -p "$fx"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {"number": 120, "title": "open here", "labels": [], "body": "", "state": "OPEN"},
+  {"number": 131, "title": "blocked here", "labels": [], "state": "OPEN",
+   "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri/issues/120\n"},
+  {"number": 132, "title": "unblocked", "labels": [], "body": "", "state": "OPEN"}
+]
+JSON
+printf '[]\n' > "$fx/prs.json"
+out="$(cd "$repo" && VERI_GH_JSON="$fx" "$SCRIPT" next alpha 2>"$work/next-own-url.err")" \
+  && code=0 || code=$?
+if [[ "$code" -eq 0 && "$out" == 132 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - next reads a Blocked by URL naming this repository, origin ending in .git, as a blocker"
+  echo "    exit: $code (want 0), stdout: '$out' (want '132')"
+  echo "    stderr: $(cat "$work/next-own-url.err")"
+fi
+
+# 9. an SSH `origin` — `git@github.com:<owner>/<name>.git` — names this repository too, so a
+#    URL to another repository's #120 does not block #131 even though #120 is open here. Read
+#    as no repository at all, any github.com URL would count as local and #131 would be held.
+#    The script runs with no global or system git config, so an ambient `url.<x>.insteadOf`
+#    rule cannot rewrite the SSH URL into the HTTPS form case 7 already covers.
+repo="$work/next-ssh-origin"
+new_repo "$repo"
+git -C "$repo" remote add origin git@github.com:ztrange/veri.git
+seed_queue "$repo" 'alpha\t131\tqueued\t\n'
+fx="$work/next-ssh-origin.gh"
+mkdir -p "$fx"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {"number": 120, "title": "open here", "labels": [], "body": "", "state": "OPEN"},
+  {"number": 131, "title": "blocked elsewhere", "labels": [], "state": "OPEN",
+   "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri-demo-node/issues/120\n"}
+]
+JSON
+printf '[]\n' > "$fx/prs.json"
+out="$(cd "$repo" && GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 VERI_GH_JSON="$fx" \
+  "$SCRIPT" next alpha 2>"$work/next-ssh-origin.err")" \
+  && code=0 || code=$?
+if [[ "$code" -eq 0 && "$out" == 131 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - next reads an SSH origin as this repository when weighing a Blocked by URL"
+  echo "    exit: $code (want 0), stdout: '$out' (want '131')"
+  echo "    stderr: $(cat "$work/next-ssh-origin.err")"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
