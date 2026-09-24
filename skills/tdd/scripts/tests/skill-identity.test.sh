@@ -105,16 +105,13 @@ stubs=("$old_skill_dir/SKILL.md" "skills/solve-issues/SKILL.md")
 # itself contain.
 stub_name() { basename "$(dirname "$1")"; }
 
-# exempt <path> — true for the files allowed to go on naming the old home: the two stubs,
-# and anything under .tdd/, whose ledgers are run state quoting each issue's own words back
-# verbatim, including this one's. Named as a predicate so the probe below reads as one
-# condition per file rather than a loop whose exit has to be counted out in levels.
+# exempt <path> — true for the files allowed to go on naming the old home: anything under
+# .tdd/, whose ledgers are run state quoting each issue's own words back verbatim, including
+# this one's. The two stubs were exempt too until #412 removed them; a file back at either
+# path is an offender like any other. Named as a predicate so the probe below reads as one
+# condition per file.
 exempt() {
   case "$1" in .tdd/*) return 0 ;; esac
-  local stub
-  for stub in "${stubs[@]}"; do
-    [[ "$1" == "$stub" ]] && return 0
-  done
   return 1
 }
 
@@ -456,6 +453,45 @@ for stub in "${stubs[@]}"; do
   [[ ! -e "$ROOT/$old_dir" ]] ||
     problems+=("want no $old_dir/, found one")
 done
+report "$name"
+
+# 11. With the stubs gone, their paths are no longer exempt (#412). Asked of a scratch
+#     repository rather than this one, since this one no longer has a file at either path:
+#     each stub path is tracked there again, one naming the old scripts directory and the
+#     other invoking an old command, and cases 2 and 5's own sweeps are run over it through
+#     `exempt`. Both files must come back as offenders — a stub path that still answers
+#     true to `exempt` would let the old home back in under the one name nobody checks.
+#     The fixture's contents are assembled from the same variables as the sweeps, so this
+#     file still spells neither old home nor old command out.
+name="a tracked file at a former stub path fails both sweeps: exempt no longer covers the stub paths"
+problems=()
+real_root="$ROOT"
+ROOT="$(mktemp -d)"
+mkdir -p "$ROOT/$(dirname "${stubs[0]}")" "$ROOT/$(dirname "${stubs[1]}")"
+printf 'scripts live at %s/run.sh\n' "$old_scripts_dir" > "$ROOT/${stubs[0]}"
+printf 'Invoke %s 12 and follow it.\n' "${old_cmds[0]}" > "$ROOT/${stubs[1]}"
+if ! (cd "$ROOT" && git init -q && git add -A); then
+  problems+=("could not build the scratch repository at $ROOT")
+else
+  offenders=""
+  sweep --fixed-strings "$old_scripts_dir" || problems+=("old-home sweep: git grep failed with exit $?")
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    exempt "$f" || offenders+="$f"$'\n'
+  done <<< "$swept"
+  [[ "$offenders" == *"${stubs[0]}"* ]] ||
+    problems+=("old-home sweep: ${stubs[0]} names $old_scripts_dir but was not reported — exempt still covers it")
+  offenders=""
+  sweep -E "$cmd_re" || problems+=("old-command sweep: git grep failed with exit $?")
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    exempt "$f" || offenders+="$f"$'\n'
+  done <<< "$swept"
+  [[ "$offenders" == *"${stubs[1]}"* ]] ||
+    problems+=("old-command sweep: ${stubs[1]} invokes ${old_cmds[0]} but was not reported — exempt still covers it")
+fi
+rm -rf "$ROOT"
+ROOT="$real_root"
 report "$name"
 
 echo "----"
