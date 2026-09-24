@@ -46,6 +46,8 @@
 #      and marks it ready for review (issue #195).
 #  11. SKILL.md's `## Resume` section reuses the open PR its branch already carries and never
 #      opens a second one (issue #195).
+#  12. SKILL.md's `## Bailing` section leaves that PR open carrying the bail diagnostic —
+#      it neither closes it nor still says to open none (issue #195).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -502,6 +504,35 @@ if section_or_problem '## Resume' '^## ' "what a resumed run does with the PR it
     grep -qE 'no open pr|no pr|none|no such pr' <<< "$creates" ||
       problems+=("$skill_md's Resume section runs gh pr create without conditioning it on there being no open PR to reuse, so a resume of a run that already opened one leaves the issue claimed by two pages: $(printf '%.120s' "$creates")")
   fi
+fi
+report "$name"
+
+# 12. The criterion, as one case (issue #195): the run has had a draft PR since its plan
+#     commit, and a bail is the ending that most needs it. The PR is the cross-machine claim —
+#     `solvable-issues.sh` leaves out an issue an open PR says `Closes #<n>` for — so a bail
+#     that took the PR down would hand the issue back to the pool for the next machine to
+#     re-take and re-bail, and would discard the visible record a bail exists to leave. A bail
+#     also means a human has to look, and the draft PR is where they look: the diagnostic the
+#     issue thread gets has to reach the PR too, or the page a reader opens says a run is in
+#     progress when it stopped. So what is pinned is the pair: the section puts the bail
+#     diagnostic on the PR, and it neither closes that PR nor still instructs the run to open
+#     none. The positive probe runs first so the case fails closed — a Bailing section emptied
+#     of every PR instruction must not read as "it leaves the PR open" by never naming one.
+name="$skill_md's Bailing section leaves the draft PR open carrying the bail diagnostic, and opens no PR"
+problems=()
+
+if section_or_problem '## Bailing' '^## ' "what a bailed run does with the draft PR its branch already carries"; then
+  # The command lines for the positive probe, the way cases 10 and 11 ask theirs: prose
+  # naming a `gh pr` command to explain a neighbouring step is not the bail issuing it.
+  commands="$(commands_of '## Bailing' '^## ')"
+  grep -qE '^gh pr comment|^gh pr edit .*--body' <<< "$commands" ||
+    problems+=("$skill_md's Bailing section runs neither gh pr comment nor gh pr edit --body, so the bail diagnostic reaches the issue thread and never the draft PR a human is pointed at, which still reads as a run in progress")
+  closes="$(first_record "$commands" -E '^gh pr close')"
+  [[ -z "$closes" ]] ||
+    problems+=("$skill_md's Bailing section closes the PR, so the issue goes back into solvable-issues.sh's pool for the next machine to re-take and re-bail, and the visible record of the bail is gone: $(printf '%.120s' "$closes")")
+  opens_none="$(first_record "$records" -F 'open no pr')"
+  [[ -z "$opens_none" ]] ||
+    problems+=("$skill_md's Bailing section still tells the run to open no PR, an instruction whose premise went with #195: the PR has been open since the plan commit, so there is nothing here to withhold: $(printf '%.120s' "$opens_none")")
 fi
 report "$name"
 

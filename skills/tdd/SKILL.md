@@ -1432,8 +1432,20 @@ To bail:
    ```
    VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
    ```
-7. **Open no PR.** The ledger's completed steps stay checked, so a re-run resumes from the
-   failing step (see *Resume*).
+7. **Leave the draft PR open, and put the bail diagnostic on it.** Step 2.3 opened it at the
+   plan commit, and it is the run's claim on this issue: `solvable-issues.sh` leaves out an
+   issue an open PR says `Closes #<n>` for, so taking it down would hand the issue back to
+   the pool for the next machine to re-take and re-bail, and would discard the visible record
+   a bail exists to leave. A bail also means a human has to look, and the draft PR is where
+   they look — so the comment sub-step 6 posted to the issue thread reaches the PR too, or the
+   page a reader opens still says a run is in progress when it stopped:
+   ```
+   gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
+   gh pr comment <pr-url> --body "<the same ### ⛔ Bailed — <phase> (<classification> failure) comment, or a link to the issue comment sub-step 6 posted>"
+   ```
+   It stays a **draft**: nobody is asked to review a run that stopped. The ledger's completed
+   steps stay checked, so a re-run resumes from the failing step (see *Resume*) and edits this
+   same PR rather than opening another.
 8. Report to the user: the phase, the **classification** (system vs process), the reason,
    the branch name, and the **worktree path** — the logs named above are inside it, and it
    is where a re-run will resume. Leave it in place; only a merged PR retires it.
