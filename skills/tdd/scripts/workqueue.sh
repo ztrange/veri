@@ -29,6 +29,16 @@ if [[ "${1:-}" == next ]]; then
   else
     issues_json="$(gh issue list --state all --limit 10000 --json number,body,state)"
   fi
+  # This repository's owner/name, which blocked_by.blockers compares a `## Blocked by` URL
+  # against the way solvable-issues.sh does: read off `origin`'s URL — `https://github.com/
+  # <owner>/<name>.git` or `git@github.com:<owner>/<name>.git` — and empty with no origin,
+  # which reads any github.com issue URL as local.
+  origin_url="$(git remote get-url origin 2>/dev/null || true)"
+  origin_url="${origin_url%.git}"
+  repo=""
+  if [[ "$origin_url" =~ [:/]([^/:]+/[^/]+)$ ]]; then
+    repo="${BASH_REMATCH[1]}"
+  fi
   PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
 import json, sys
 
@@ -43,10 +53,10 @@ with open(sys.argv[3]) as f:
         owner, issue, state = line.rstrip("\n").split("\t")[:3]
         if owner != worker or state != "queued":
             continue
-        if all(n not in open_issues for n in blocked_by.blockers(bodies.get(int(issue), ""), "")):
+        if all(n not in open_issues for n in blocked_by.blockers(bodies.get(int(issue), ""), sys.argv[4])):
             print(issue)
             break
-' "$issues_json" "$2" "$queue"
+' "$issues_json" "$2" "$queue" "$repo"
 fi
 
 if [[ "${1:-}" != assign ]]; then
