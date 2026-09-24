@@ -84,6 +84,24 @@ expect_queue() {
   fi
 }
 
+# expect_unchanged <case> <want-exit> <description> <subcommand> [<arg>...] — runs the
+# subcommand in $work/<case>, and counts the case passed when it exits <want-exit> leaving
+# `.tdd/workqueue` byte-identical to what it held before the run.
+expect_unchanged() {
+  local name="$1" want_code="$2" what="$3" out code
+  shift 3
+  cp "$work/$name/.tdd/workqueue" "$work/$name.before"
+  out="$(cd "$work/$name" && "$SCRIPT" "$@" 2>&1)" && code=0 || code=$?
+  if [[ "$code" -eq "$want_code" ]] && cmp -s "$work/$name.before" "$work/$name/.tdd/workqueue"; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $what"
+    echo "    exit: $code (want $want_code), output: $out"
+    diff "$work/$name.before" "$work/$name/.tdd/workqueue" 2>&1 | sed 's/^/    /'
+  fi
+}
+
 # 1. assign appends one queued line per issue, in the order given.
 repo="$work/assign-order"
 new_repo "$repo"
@@ -94,16 +112,8 @@ expect_queue assign-order 'alpha\t12\tqueued\t\nalpha\t7\tqueued\t\nalpha\t30\tq
 repo="$work/unknown-subcommand"
 new_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\n'
-cp "$repo/.tdd/workqueue" "$work/unknown-subcommand.before"
-out="$(cd "$repo" && "$SCRIPT" frobnicate alpha 12 2>&1)" && code=0 || code=$?
-if [[ "$code" -eq 2 ]] && cmp -s "$work/unknown-subcommand.before" "$repo/.tdd/workqueue"; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - an unknown subcommand exits 2 and leaves the queue file byte-identical"
-  echo "    exit: $code (want 2), output: $out"
-  diff "$work/unknown-subcommand.before" "$repo/.tdd/workqueue" 2>&1 | sed 's/^/    /'
-fi
+expect_unchanged unknown-subcommand 2 \
+  "an unknown subcommand exits 2 and leaves the queue file byte-identical" frobnicate alpha 12
 
 # 3. an unknown subcommand in a repo with no queue exits 2 and creates no queue file.
 repo="$work/unknown-subcommand-no-queue"
@@ -123,19 +133,10 @@ fi
 repo="$work/assign-held"
 new_repo "$repo"
 seed_queue "$repo" 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n'
-cp "$repo/.tdd/workqueue" "$work/assign-held.before"
-out_q="$(cd "$repo" && "$SCRIPT" assign alpha 4 2>&1)" && code_q=0 || code_q=$?
-out_r="$(cd "$repo" && "$SCRIPT" assign alpha 9 2>&1)" && code_r=0 || code_r=$?
-if [[ "$code_q" -eq 2 && "$code_r" -eq 2 ]] \
-  && cmp -s "$work/assign-held.before" "$repo/.tdd/workqueue"; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - assign refuses with exit 2 an issue already queued or running for any worker"
-  echo "    queued issue: exit $code_q (want 2), output: $out_q"
-  echo "    running issue: exit $code_r (want 2), output: $out_r"
-  diff "$work/assign-held.before" "$repo/.tdd/workqueue" 2>&1 | sed 's/^/    /'
-fi
+expect_unchanged assign-held 2 \
+  "assign refuses with exit 2 an issue already queued for another worker" assign alpha 4
+expect_unchanged assign-held 2 \
+  "assign refuses with exit 2 an issue already running for another worker" assign alpha 9
 
 # 5. an issue held only as merged, parked or skipped is free: assign takes it with exit 0 and
 #    appends a queued line — only queued and running hold an issue.
@@ -280,21 +281,15 @@ expect_queue park-running \
 repo="$work/foreign-item"
 new_repo "$repo"
 seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
-cp "$repo/.tdd/workqueue" "$work/foreign-item.before"
-out_s="$(cd "$repo" && "$SCRIPT" start beta 12 2>&1)" && code_s=0 || code_s=$?
-out_d="$(cd "$repo" && "$SCRIPT" done beta 13 abc1234 2>&1)" && code_d=0 || code_d=$?
-out_p="$(cd "$repo" && "$SCRIPT" park beta 13 "second bail" 2>&1)" && code_p=0 || code_p=$?
-if [[ "$code_s" -eq 1 && "$code_d" -eq 1 && "$code_p" -eq 1 ]] \
-  && cmp -s "$work/foreign-item.before" "$repo/.tdd/workqueue"; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - start, done and park naming another worker's item exit 1 and leave the file byte-identical"
-  echo "    start: exit $code_s (want 1), output: $out_s"
-  echo "    done: exit $code_d (want 1), output: $out_d"
-  echo "    park: exit $code_p (want 1), output: $out_p"
-  diff "$work/foreign-item.before" "$repo/.tdd/workqueue" 2>&1 | sed 's/^/    /'
-fi
+expect_unchanged foreign-item 1 \
+  "start naming another worker's queued item exits 1 and leaves the file byte-identical" \
+  start beta 12
+expect_unchanged foreign-item 1 \
+  "done naming another worker's running item exits 1 and leaves the file byte-identical" \
+  done beta 13 abc1234
+expect_unchanged foreign-item 1 \
+  "park naming another worker's running item exits 1 and leaves the file byte-identical" \
+  park beta 13 "second bail"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
