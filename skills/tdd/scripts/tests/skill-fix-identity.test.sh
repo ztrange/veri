@@ -110,6 +110,17 @@ criteria_block() {
        seen { print }' <<<"$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
+# have_body <what> — true when the SKILL.md has prose after its frontmatter, left in `text`
+# for the caller; otherwise it records that <what> could not be read. Cases 1 and 4 both read
+# that prose and both have to fail closed on an empty body — an unread body must not read as
+# a handful of passes — so the guard is written once and named by what the caller was after.
+have_body() {
+  text="$(body_text "$ROOT/$skill_md")"
+  [[ -n "${text// /}" ]] && return 0
+  problems+=("$skill_md has no body after its frontmatter — the $1 could not be read")
+  return 1
+}
+
 # have_template — true when the SKILL.md quotes an issue body, left in `template` for the
 # caller; otherwise it records the one problem that explains why nothing else could be read.
 # Cases 2 and 3 both read that block and both fail the same way when it is missing, so the
@@ -140,12 +151,7 @@ if have_skill_md; then
   got="$(frontmatter_name "$ROOT/$skill_md")"
   [[ "$got" == "$want_name" ]] ||
     problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
-  text="$(body_text "$ROOT/$skill_md")"
-  if [[ -z "${text// /}" ]]; then
-    # Fail closed: an empty body means not one claim below was tested, which must not read
-    # as three passes.
-    problems+=("$skill_md has no body after its frontmatter — the intake could not be read")
-  else
+  if have_body intake; then
     says 'description[^.]{0,80}optional|optional[^.]{0,80}description|omit[^.]{0,80}description' \
       "$skill_md never says the one-line description is optional"
     says '(only|just)[^.]{0,100}(left out|did not answer|didn.t answer|missing|unanswered)|(left out|did not answer|didn.t answer|unanswered)[^.]{0,100}(only|just)' \
@@ -228,21 +234,15 @@ report "$name"
 #    the session does about labels is only ever what its SKILL.md tells it to.
 name="$skill_md labels the issue bug and the scope's opt-in label, creating bug where the repo lacks it"
 problems=()
-if have_skill_md; then
-  text="$(body_text "$ROOT/$skill_md")"
-  if [[ -z "${text// /}" ]]; then
-    # Fail closed, as cases 1 and 3 do: an empty body must not read as four passes.
-    problems+=("$skill_md has no body after its frontmatter — the labelling could not be read")
-  else
-    says 'labels?[^.]{0,120}bug' \
-      "$skill_md never says the issue is labelled bug"
-    says 'ready-for-agent[^.:]{0,80}default|default[^.]{0,80}ready-for-agent' \
-      "$skill_md never says ready-for-agent is the opt-in label by default"
-    says 'ready-for-agent:[^ ]*[^.]{0,100}scope|scope[^.]{0,100}ready-for-agent:' \
-      "$skill_md never says a named scope makes the opt-in label ready-for-agent:<scope>"
-    says 'creates?[^.]{0,120}bug label|bug label[^.]{0,120}(if|when)[^.]{0,80}(lacks|missing|absent|removed|no )|gh label create' \
-      "$skill_md never says it creates the bug label where the repo lacks it"
-  fi
+if have_skill_md && have_body labelling; then
+  says 'labels?[^.]{0,120}bug' \
+    "$skill_md never says the issue is labelled bug"
+  says 'ready-for-agent[^.:]{0,80}default|default[^.]{0,80}ready-for-agent' \
+    "$skill_md never says ready-for-agent is the opt-in label by default"
+  says 'ready-for-agent:[^ ]*[^.]{0,100}scope|scope[^.]{0,100}ready-for-agent:' \
+    "$skill_md never says a named scope makes the opt-in label ready-for-agent:<scope>"
+  says 'creates?[^.]{0,120}bug label|bug label[^.]{0,120}(if|when)[^.]{0,80}(lacks|missing|absent|removed|no )|gh label create' \
+    "$skill_md never says it creates the bug label where the repo lacks it"
 fi
 report "$name"
 
