@@ -134,8 +134,13 @@ prs_json="$(gh_json prs.json pr list --limit 10000 --json body,state)"
 source "$(dirname "$0")/lib/main-working-tree.sh"
 main_tree="$(main_working_tree)"
 
-exec python3 -c '
+# The `## Blocked by` reading comes from lib/blocked_by.py (#460), reached the way status.sh
+# reaches event_log: PYTHONPATH naming the lib, so a second reader imports the same parsing
+# rather than copying it.
+PYTHONPATH="$(cd "$(dirname "$0")" && pwd)/lib" exec python3 -c '
 import json, os, re, sys
+
+import blocked_by
 
 issues = json.loads(sys.argv[1])
 prs = json.loads(sys.argv[2])
@@ -163,16 +168,6 @@ claimed = {
     if is_open(pr)
     for n in re.findall(r"\bCloses #(\d+)", pr.get("body") or "")
 }
-
-# A blocker is spelled `#<n>` or as the full URL GitHub itself renders and autocompletes, and
-# the owner and name in that URL are part of the reference rather than decoration around the
-# digits: an issue #120 exists in a fork, in a dependency and in the demo repo veri is pointed
-# at, so reading the number alone invents a blocker out of some other project. Which repository
-# "this one" is comes from `--repo`; with nothing said there is nothing to compare against, so
-# any github.com issue URL is read as local — the same assumption gh makes when it falls back
-# to the repo of the working directory.
-slug_pattern = re.escape(this_repo) if this_repo else r"[^/\s]+/[^/\s]+"
-blocker_ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % slug_pattern
 
 # `os.kill(pid, 0)` is `kill -0`: it sends no signal and answers only whether the process is
 # there to send one to. A process owned by another user answers PermissionError — it exists,
@@ -205,12 +200,6 @@ def in_flight(number):
         return False
     return alive(pid)
 
-def blockers(body):
-    """The issue numbers named under the `## Blocked by` heading, up to the next heading.
-    A section reading `None.` names none, and so does a body with no such section."""
-    section = re.search(r"^## Blocked by$(.*?)(?=^## |\Z)", body, re.M | re.S)
-    return [int(n) for n in re.findall(blocker_ref, section.group(1))] if section else []
-
 # Whether an issue carries a label, asked the same way whoever is asking: the opt-in label
 # that decides whether an issue may be taken at all, and the `bug` label that decides where it
 # sorts, are two questions about one field, and `gh` writes that field as a list of objects
@@ -229,7 +218,7 @@ def solvable(issue):
     still_open = number in open_issues
     opted_in = has_label(issue, label)
     unclaimed = number not in claimed and not in_flight(number)
-    unblocked = all(n not in open_issues for n in blockers(issue.get("body", "")))
+    unblocked = all(n not in open_issues for n in blocked_by.blockers(issue.get("body", ""), this_repo))
     return still_open and opted_in and unclaimed and unblocked
 
 # The order the surviving set is printed in — the only thing the caller reads as "what to do

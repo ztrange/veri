@@ -97,5 +97,31 @@ See #9.
 check "blocked_by.blockers stops reading the section at the next ## heading, so a #<n> under a later heading is not a blocker" \
   "[3]" "$(printf '%s' "$later_body" | blockers acme/widgets)"
 
+# 5. solvable-issues.sh takes its answer from this module rather than a parsing of its own: a
+#    copy of the script beside a planted blocked_by.py that names #99 as every body's blocker
+#    must hold back issue 5, whose own section reads `None.`, for as long as #99 is open. A
+#    script still parsing the section itself would read `None.` and list 5.
+scratch="$(mktemp -d)"
+mkdir -p "$scratch/scripts" "$scratch/gh" "$scratch/cwd"
+cp "$HERE/../solvable-issues.sh" "$scratch/scripts/"
+cp -R "$LIB" "$scratch/scripts/lib"
+rm -rf "$scratch/scripts/lib/__pycache__"
+printf 'def blockers(*args, **kwargs):\n    return [99]\n' > "$scratch/scripts/lib/blocked_by.py"
+printf '[]\n' > "$scratch/gh/prs.json"
+cat > "$scratch/gh/issues.json" <<'JSON'
+[
+  {"number": 5, "title": "takeable", "state": "OPEN",
+   "labels": [{"name": "ready-for-agent"}], "body": "## Blocked by\n\nNone.\n"},
+  {"number": 99, "title": "the planted blocker", "state": "OPEN",
+   "labels": [], "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+planted_out="$(cd "$scratch/cwd" && env -u VERI_LABEL -u VERI_PRIORITY_LABEL \
+  VERI_GH_JSON="$scratch/gh" PYTHONDONTWRITEBYTECODE=1 \
+  "$scratch/scripts/solvable-issues.sh" 2>/dev/null)" && planted_code=0 || planted_code=$?
+rm -rf "$scratch"
+check "solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own" \
+  "code=3 out=" "code=$planted_code out=$planted_out"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
