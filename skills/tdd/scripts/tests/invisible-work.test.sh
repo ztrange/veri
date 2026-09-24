@@ -81,6 +81,17 @@ unpr_branch_clone() {
   echo "$clone"
 }
 
+# push_control_branch <dir> <branch> — a second branch with no PR, pushed to the `origin` of
+# the case unpr_branch_clone built in <dir> and fetched into its clone, so a case that
+# expects a branch left out can tell "left out" from "the script printed nothing at all".
+push_control_branch() {
+  local dir="$1" branch="$2"
+  git_q "$dir/src" checkout -q -b "$branch" main
+  git_q "$dir/src" commit -q --allow-empty -m "chore: work with no PR"
+  git_q "$dir/src" push -q origin "$branch"
+  git_q "$dir/clone" fetch -q origin
+}
+
 # fixture <dir> — the `VERI_GH_JSON` override's two documents, in the exact shape
 # solvable-issues.sh already establishes for them: what `gh issue list --json …` and
 # `gh pr list --json …` emit. `prs.json` is an empty list because the whole of the case is
@@ -154,10 +165,7 @@ problems=()
 branch="tdd/71-walkthrough-version-the-commentary-too"
 control="chore/nobody-opened-a-pr"
 clone="$(unpr_branch_clone "$work/case2" "$branch" 2)"
-git_q "$work/case2/src" checkout -q -b "$control" main
-git_q "$work/case2/src" commit -q --allow-empty -m "chore: work with no PR"
-git_q "$work/case2/src" push -q origin "$control"
-git_q "$clone" fetch -q origin
+push_control_branch "$work/case2" "$control"
 gh_json="$(fixture "$work/case2/gh")"
 cat > "$gh_json/prs.json" <<JSON
 [{"headRefName": "$branch", "state": "OPEN", "body": "Closes #71"}]
@@ -181,10 +189,7 @@ problems=()
 branch="tdd/999-an-issue-nobody-filed"
 control="chore/nobody-opened-a-pr"
 clone="$(unpr_branch_clone "$work/case3" "$branch" 3)"
-git_q "$work/case3/src" checkout -q -b "$control" main
-git_q "$work/case3/src" commit -q --allow-empty -m "chore: work with no PR"
-git_q "$work/case3/src" push -q origin "$control"
-git_q "$clone" fetch -q origin
+push_control_branch "$work/case3" "$control"
 gh_json="$(fixture "$work/case3/gh")"
 tip="$(git_q "$clone" rev-parse "refs/remotes/origin/$branch" 2>/dev/null)"
 [[ -n "$tip" ]] ||
