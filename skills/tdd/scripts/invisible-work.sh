@@ -11,7 +11,9 @@
 #
 # Invariant 1 (#191): work in progress never lives only in a local branch. A local branch
 # `origin` does not carry is reported with its tip, how many of its commits no `origin` ref
-# holds, and the worktree it is checked out in, when there is one.
+# holds, and the worktree it is checked out in, when there is one. A local branch whose PR was
+# merged or closed is residue — its branch on `origin` deleted after the decision, as GitHub's
+# "delete branch on merge" leaves every clone — a cleanup question, not a finding.
 #
 # The default branch is never reported: it needs no PR, being where PRs land.
 #
@@ -78,7 +80,9 @@ exec python3 -c '
 import json, re, sys
 
 issues = {i["number"]: i["state"] for i in json.loads(sys.argv[1])}
-with_pr = {p["headRefName"] for p in json.loads(sys.argv[3])}
+prs = json.loads(sys.argv[3])
+with_pr = {p["headRefName"] for p in prs}
+decided = {p["headRefName"] for p in prs if p["state"] in ("MERGED", "CLOSED")}
 
 for row in sys.argv[2].splitlines():
     name, tip, ahead = row.split()
@@ -94,6 +98,8 @@ for row in sys.argv[2].splitlines():
 
 for row in sys.argv[4].splitlines():
     name, tip, lacks, worktree = row.split(" ", 3)
+    if name in decided:
+        continue
     finding = f"invariant 1 (not on origin): {name} tip {tip} {lacks} commits origin lacks"
     if worktree:
         finding += f", worktree {worktree}"
