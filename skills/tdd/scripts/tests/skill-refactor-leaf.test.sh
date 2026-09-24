@@ -765,7 +765,7 @@ else
     problems+=("$skill_md's Refactor section never mentions triangulation at all, so there is no ceiling on it to read and an overfit flag raised inside one is answered with another")
   else
     # a. The ceiling itself: once per step, not once per flag.
-    grep -qE "at most once|only once|once (per|a) step|(${denial_word}) (a )?(second|further|another) (triangulat[a-z]*|time)|(${denial_word}) triangulat[a-z]* (it |them )?(again|a second time)" <<<"$triangulation" ||
+    grep -qE "at most once|only once|once (per|a) step|(${denial_word}) ((a )?(second|further|another) (triangulat[a-z]*|time)|triangulat[a-z]* (it |them )?(again|a second time))" <<<"$triangulation" ||
       problems+=("$skill_md's Refactor section puts no ceiling on a step's triangulation, so the loop it resumes can flag the same code again and buy a second pair — the #107 chain this issue is against, moved inside one step")
 
     # b. And what the flag that hits the ceiling earns instead. Narration, the way a
