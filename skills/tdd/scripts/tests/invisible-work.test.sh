@@ -7,7 +7,7 @@
 # `origin` at all (#191). Nothing checked either; this script is that check, and it reads
 # and never writes.
 #
-# Contract under test, this suite's first case only:
+# Contract under test, case 1:
 #   invisible-work.sh, run in a clone where `origin` carries a branch no PR was ever
 #   opened for → that branch is reported, and the report names its tip, how many commits
 #   it is ahead of the default branch, and the number and state of the issue its
@@ -141,6 +141,31 @@ rest="$(sed -E 's/[0-9a-f]{7,40}//g' <<< "${line//"$branch"/}")"
 [[ "$rest" =~ (^|[^0-9])71([^0-9]|$) ]] ||
   problems+=("the finding names the issue the slug refers to: want 71 stated apart from the branch name, got $(printf '%q' "$rest")")
 names "the finding names that issue's state" "${rest^^}" "OPEN"
+report "$name"
+
+# 2. Issue #197, criterion 1, the other side of it: invariant 2 is a branch with NO PR at all,
+#    so a branch on `origin` whose PR is still open is left out of the report — that branch is
+#    visible in GitHub's review queue already. A second branch on the same `origin` has no PR
+#    and must still be reported: without it, a script that printed nothing, or died before
+#    printing, would leave the open-PR branch out too and pass this case for the wrong reason.
+#    `prs.json` is what `gh pr list --state all --json headRefName,state` emits.
+name="invisible-work.sh: a branch on origin whose PR is still open is left out of the report"
+problems=()
+branch="tdd/71-walkthrough-version-the-commentary-too"
+control="chore/nobody-opened-a-pr"
+clone="$(unpr_branch_clone "$work/case2" "$branch" 2)"
+git_q "$work/case2/src" checkout -q -b "$control" main
+git_q "$work/case2/src" commit -q --allow-empty -m "chore: work with no PR"
+git_q "$work/case2/src" push -q origin "$control"
+git_q "$clone" fetch -q origin
+gh_json="$(fixture "$work/case2/gh")"
+cat > "$gh_json/prs.json" <<JSON
+[{"headRefName": "$branch", "state": "OPEN", "body": "Closes #71"}]
+JSON
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
+names "the branch with no PR is still reported" "$out" "$control"
+[[ "$out" != *"$branch"* ]] ||
+  problems+=("the branch with an open PR is left out: want no $(printf '%q' "$branch") in the report, got $(printf '%q' "$out")")
 report "$name"
 
 echo "----"
