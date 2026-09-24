@@ -175,6 +175,23 @@ label. `plain` is the default scope and is the bare `ready-for-agent` label; any
 scope is `ready-for-agent:<scope>`. One scope per loop — two loops on one scope collide.
 _Avoid_: pool, queue, label (as the user-facing name)
 
+**Worker**:
+A named, long-lived session that drains its own items of the work queue one at a time —
+`next`, `start`, run the conductor, then `done` or `park` — until `next` finds nothing
+launchable. It keeps the judgement calls (merging, reading a bail); the queue's state
+changes are `workqueue.sh`'s. The loop it follows is `skills/tdd/WORKER.md`.
+_Avoid_: thread (ok as a gloss), leaf, actor
+
+**Work queue**:
+The file `.tdd/workqueue` in the main working tree, written only by `workqueue.sh`, that
+assigns issues to workers in order and records what became of each: one line per item,
+`<worker>	<issue>	<state>	<detail>`, with `state` one of `queued`, `running`, `merged`,
+`parked`, `skipped`. Lines are never deleted, so it is also the record of what each worker
+did, and no issue is `queued` or `running` for two workers at once. Local to one machine,
+like the conductor's pid lock; it does not decide what is assigned — that is the selection
+layer's job.
+_Avoid_: handoff, backlog, scope (a scope is a label's pool, not an assignment)
+
 **Bug**:
 A kind of issue, marked by the `bug` label, reporting behaviour the code has and should
 not: what happened, what was expected, and how to get there. A scope's bugs are taken
