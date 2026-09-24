@@ -4,5 +4,5 @@
 - [x] The blocked-by module returns no blockers for a section reading `None.` and for a body with no `## Blocked by` section at all ⟦criterion 3⟧
 - [x] The blocked-by module ignores an issue URL naming another repository when a repository slug is given, and reads any github.com issue URL as local when none is ⟦criterion 3⟧
 - [x] The blocked-by module stops reading the section at the next `## ` heading, so a `#<n>` under a later heading is not a blocker ⟦criterion 3⟧
-- [x] solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own, with solvable-issues.test.sh passing unmodified ⟦criterion 2⟧ ⟂ refactor pending
+- [x] solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own, with solvable-issues.test.sh passing unmodified ⟦criterion 2⟧
 - [ ] A caller that is not solvable-issues.sh can import the blocked-by module and get its answers with no gh, no repository and no child process started ⟦criterion 4⟧
