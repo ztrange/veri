@@ -286,6 +286,26 @@ moved_by() {
   fi
 }
 
+# moved_with <script> <suite> — the question cases 2 and 5 both ask of an issue that adds
+# one script and one suite: are both on disk, and did all three counts move off the number
+# true of the tree without them. Written once so the two cases cannot drift into asking it
+# differently. Returns non-zero when either file is missing — `present` has already recorded
+# the problem, and `moved`'s <n>-1 would be measuring against the wrong tree — so a caller
+# with a question of its own to add skips it the same way.
+moved_with() {
+  local script="$1" suite="$2"
+  present "$script"
+  present "$suite"
+  if [[ "${#problems[@]}" -ne 0 ]]; then return 1; fi
+  if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
+    moved "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$script"
+  fi
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
+    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$suite"
+    moved "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$script"
+  fi
+}
+
 # 1. The criterion. The counts are read off the document and the files off the disk, and
 #    every one of them has to agree.
 name="$claude_md's stated script and suite counts match the scripts and suites on disk"
@@ -322,24 +342,7 @@ report "$name"
 name="$claude_md's counts moved with refactor-triage.sh and its suite"
 problems=()
 
-added_script="skills/tdd/scripts/refactor-triage.sh"
-added_suite="skills/tdd/scripts/tests/refactor-triage.test.sh"
-
-present "$added_script"
-present "$added_suite"
-
-# Only ask about the move when both files are on disk: `present` has already recorded the
-# problem otherwise, and `moved`'s <n>-1 would be measuring against the wrong tree.
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
-    moved "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$added_script"
-  fi
-
-  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
-    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$added_suite"
-    moved "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$added_script"
-  fi
-fi
+moved_with "skills/tdd/scripts/refactor-triage.sh" "skills/tdd/scripts/tests/refactor-triage.test.sh"
 
 report "$name"
 
@@ -412,23 +415,11 @@ report "$name"
 name="$claude_md's counts moved with invisible-work.sh and its suite, and its prose names the script the procedure does not call"
 problems=()
 
-utility_script="skills/tdd/scripts/invisible-work.sh"
-utility_suite="skills/tdd/scripts/tests/invisible-work.test.sh"
-
-present "$utility_script"
-present "$utility_suite"
-
-if [[ "${#problems[@]}" -eq 0 ]]; then
-  if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
-    moved "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$utility_script"
-    if [[ "$intro" != *"invisible-work.sh"* ]]; then
-      problems+=("$claude_md's opening paragraph counts '<n> bash scripts it calls' without naming invisible-work.sh, a script the procedure never calls")
-    fi
-  fi
-
-  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
-    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$utility_suite"
-    moved "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$utility_script"
+# An unreadable preamble has already recorded its problem inside `moved_with`, so the name is
+# only looked for in prose that is there.
+if moved_with "skills/tdd/scripts/invisible-work.sh" "skills/tdd/scripts/tests/invisible-work.test.sh"; then
+  if [[ -n "${intro// /}" && "$intro" != *"invisible-work.sh"* ]]; then
+    problems+=("$claude_md's opening paragraph counts '<n> bash scripts it calls' without naming invisible-work.sh, a script the procedure never calls")
   fi
 fi
 
