@@ -1,0 +1,2 @@
+### An importable Python module under skills/tdd/scripts/lib/ returns the issue numbers a body names under `## Blocked by`, reading both the `#<n>` form and the full `https://github.com/<owner>/<name>/issues/<n>` URL of the given repository ⟦criterion 1⟧
+- make solvable-issues.sh import blocked_by.blockers in place of its own blocker_ref/blockers() — deferred to plan step 5 (criterion 2), which needs the missing-section and no-repo behaviour from steps 2–3 first
