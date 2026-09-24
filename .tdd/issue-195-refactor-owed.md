@@ -11,3 +11,5 @@
 - skill-draft-pr.test.sh:496-498 spells the section identity `'## Resume' '^## '` twice, once to `section_or_problem` and once to `commands_of`; one slice feeding both readings would say it once, but case 10 has the same shape and is out of this cycle's bounds
 ### SKILL.md Bailing leaves the draft PR open carrying the bail diagnostic, in place of opening no PR
 - collapse the three identical `gh pr view --json url -q .url` command blocks in SKILL.md (step 4 line 1123, Bailing line 1443, Resume line 1521) into one — but cases 10, 11 and 12 each require their own section to issue its PR commands, so this transform turns the suite red as written and needs the criteria changed first
+### CONTEXT.md, the solvable-issues.sh header comment and a new ADR state that an open PR is the cross-machine claim and the pid lock is only the same-machine worktree guard
+- derive case 33's header paragraphs from case 16's `header` slice so the header comment's end boundary is defined once, not as `set -euo pipefail` in one case and "first non-comment line" in the other
