@@ -360,10 +360,11 @@ while IFS= read -r line; do
   [[ "$line" =~ ^[^$'\t']+$'\t'[0-9]+$'\t'(queued|running|merged|parked|skipped)$'\t'[^$'\t']*$ ]] \
     || torn="$torn [$line]"
 done < "$repo/.tdd/workqueue"
-got="$(cat "$repo/.tdd/workqueue")"
+# Every line fenced by newlines on both sides, so a whole line matches as `*\n<line>\n*`.
+lines=$'\n'"$(cat "$repo/.tdd/workqueue")"$'\n'
 for i in $(seq 1 20); do
-  [[ $'\n'"$got"$'\n' == *$'\n'"w$i"$'\t'"$i"$'\t'queued$'\t'$'\n'* ]] || missing="$missing w$i/$i:queued"
-  [[ $'\n'"$got"$'\n' == *$'\n'alpha$'\t'"$((100 + i))"$'\t'running$'\t'$'\n'* ]] \
+  [[ "$lines" == *$'\n'"w$i"$'\t'"$i"$'\t'queued$'\t'$'\n'* ]] || missing="$missing w$i/$i:queued"
+  [[ "$lines" == *$'\n'alpha$'\t'"$((100 + i))"$'\t'running$'\t'$'\n'* ]] \
     || missing="$missing alpha/$((100 + i)):running"
 done
 if [[ -z "$torn" && -z "$missing" ]]; then
