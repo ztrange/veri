@@ -24,10 +24,33 @@ pass=0 fail=0
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
+# new_fixture <dir> — one issue for the script to be run against, built from the body on
+# stdin: <dir>/body.md is that body, and <dir>/bin/gh is the stub `gh` run_spec puts first on
+# PATH. The two questions the script asks are answered from the environment the case sets: the
+# label question from $LABELS (the label's own name, or empty for an issue that carries none,
+# which is what gh prints after applying the script's own `-q` filter) and the body question
+# from $FIXTURES/body.md. `labels` is matched first, so a single call asking for both is
+# answered as the label question. A call it does not recognise is refused loudly rather than
+# answered with the body anyway, so a script that starts asking for something else fails here
+# instead of quietly reading the wrong fixture.
+new_fixture() {
+  mkdir -p "$1/bin"
+  cat > "$1/body.md"
+  cat > "$1/bin/gh" <<'STUB'
+#!/bin/sh
+case "$*" in
+  *labels*) [ -z "$LABELS" ] || echo "$LABELS" ;;
+  *body*) cat "$FIXTURES/body.md" ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
+esac
+STUB
+  chmod +x "$1/bin/gh"
+}
+
 # The issue body the stub serves: the four bug sections this case is about, plus the
 # ordinary spec headings every issue carries, so the body is the shape a real one has.
-bugdir="$tmp/bug"; mkdir -p "$bugdir"
-cat > "$bugdir/body.md" <<'BODY'
+bugdir="$tmp/bug"
+new_fixture "$bugdir" <<'BODY'
 ## What happened
 tick-ledger.sh ticked the same step twice.
 
@@ -44,28 +67,6 @@ bash 5.2 on macOS 15.6.
 
 - [ ] a step is ticked once
 BODY
-
-# write_gh_stub <fixture-dir> — the `gh` both cases run against, written once into
-# <fixture-dir>/bin/gh, where run_spec puts it first on PATH. The two questions the script
-# asks are answered from the environment the case sets: the label question from $LABELS (the
-# label's own name, or empty for an issue that carries none, which is what gh prints after
-# applying the script's own `-q` filter) and the body question from $FIXTURES/body.md. `labels` is matched first, so a single call asking for
-# both is answered as the label question. A call it does not recognise is refused loudly rather
-# than answered with the body anyway, so a script that starts asking for something else fails
-# here instead of quietly reading the wrong fixture.
-write_gh_stub() {
-  mkdir -p "$1/bin"
-  cat > "$1/bin/gh" <<'STUB'
-#!/bin/sh
-case "$*" in
-  *labels*) [ -z "$LABELS" ] || echo "$LABELS" ;;
-  *body*) cat "$FIXTURES/body.md" ;;
-  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
-esac
-STUB
-  chmod +x "$1/bin/gh"
-}
-write_gh_stub "$bugdir"
 
 # section <file> <heading> — the lines of one `## ` section of a markdown document, heading
 # included, ending where the next `## ` heading starts. `### ` is not a section boundary, so
@@ -125,8 +126,8 @@ report "$name"
 # The second fixture: an issue with no `bug` label. Its body is the ordinary shape an issue
 # that reports no bug has — no what-happened, no steps — so nothing in it could be mistaken
 # for the report a `## Bug` section carries.
-plaindir="$tmp/plain"; mkdir -p "$plaindir"
-cat > "$plaindir/body.md" <<'BODY'
+plaindir="$tmp/plain"
+new_fixture "$plaindir" <<'BODY'
 ## What to build
 
 tick-ledger.sh grows a `--dry-run` flag.
@@ -135,8 +136,6 @@ tick-ledger.sh grows a `--dry-run` flag.
 
 - [ ] `--dry-run` prints the tick it would make and writes nothing
 BODY
-
-write_gh_stub "$plaindir"
 
 # 2. No bug label, no Bug section: the spec is the issue's body and nothing more.
 name='unlabelled issue: the spec carries no ## Bug section (#112)'
