@@ -701,6 +701,27 @@ prompt_says "$plan" "never requires a REJECT reason to name the criterion and wh
 [[ -z "$problems" ]] && ok || no "verify-plan asks whether the steps tagged for a criterion together deliver it as written, and binds a REJECT reason to the criterion and the part no step covers (${problems#; })"
 
 
+# 37. the plan prompt directs a PASS when every criterion is delivered by the steps tagged
+#     for it (#439). The shared preamble only ever states the necessary half — "use PASS
+#     only if every check below holds" — which tells a verifier when it may not pass and
+#     never when it must. On this phase that gap is not academic: the subject is a plan, an
+#     artifact of judgement, and a verifier with no stated sufficient condition grades it
+#     against the plan it would have written itself, so a sound plan taking an approach the
+#     verifier dislikes comes back REJECT and the scoping step rewrites work that was
+#     already right. The plan phase is the run's cheapest verification precisely because it
+#     runs once and then gets out of the way; a REJECT it cannot justify from the spec costs
+#     a whole re-plan. So the prompt has to close the biconditional in the phase's own terms
+#     — every criterion delivered by the steps tagged for it IS the PASS — rather than leave
+#     the verifier to infer it from a rule about "checks". Matched over the newline-flattened
+#     prompt, tolerantly of wording, for the reason given at `prompt_says`; the window stays
+#     under 255 because BSD grep refuses a wider repetition outright and its non-zero exit
+#     reads exactly like a prompt that says nothing.
+problems=""
+prompt_says "$plan" "never directs a PASS when every criterion is delivered by the steps tagged for it" \
+  -iE -e 'PASS[^.]{0,200}every criterion[^.]{0,200}(deliver|cover)|every criterion[^.]{0,200}(deliver|cover)[^.]{0,200}PASS'
+[[ -z "$problems" ]] && ok || no "verify-plan directs a PASS when every criterion is delivered by the steps tagged for it (${problems#; })"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
