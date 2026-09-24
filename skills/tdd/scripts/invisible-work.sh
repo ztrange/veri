@@ -28,7 +28,8 @@
 # network in its tests. The JSON is read with python3, as there.
 #
 # Exit: 0 when at least one finding was printed, 3 with empty stdout when there is nothing
-# to report.
+# to report, 2 with a diagnostic on stderr and empty stdout when `origin` cannot be reached
+# or `gh` cannot be read — so a fetch failure never reads as a clean repository.
 #
 # Usage:   invisible-work.sh
 #          VERI_GH_JSON=<dir> invisible-work.sh
@@ -43,8 +44,19 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
   fi
 }
 
-issues_json="$(gh_json issues.json issue list --state all --limit 10000 --json number,state)"
-prs_json="$(gh_json prs.json pr list --state all --limit 10000 --json headRefName,state)"
+# The remote-tracking refs outlive the remote: without reaching `origin` they may name
+# branches it no longer has, so an unreachable `origin` is no answer, not an empty one.
+# `ls-remote` reads the remote and writes no ref.
+if ! git ls-remote --heads origin > /dev/null; then
+  echo "invisible-work.sh: cannot reach origin" >&2
+  exit 2
+fi
+
+if ! issues_json="$(gh_json issues.json issue list --state all --limit 10000 --json number,state)" ||
+   ! prs_json="$(gh_json prs.json pr list --state all --limit 10000 --json headRefName,state)"; then
+  echo "invisible-work.sh: cannot read issues and PRs from gh (unauthenticated?)" >&2
+  exit 2
+fi
 
 # The default branch as `origin` names it: `refs/remotes/origin/HEAD` -> `origin/main`.
 default="$(git symbolic-ref --short refs/remotes/origin/HEAD)"

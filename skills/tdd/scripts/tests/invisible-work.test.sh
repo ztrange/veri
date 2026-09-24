@@ -412,6 +412,42 @@ out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
   problems+=("nothing to report: want exit 3, got $rc")
 report "$name"
 
+# 10. Issue #197, criterion 4, the third code: when no answer could be obtained the script
+#     exits 2, says why on stderr, and prints nothing on stdout — so a caller can never read a
+#     fetch failure as a clean repository, nor a partial report as the whole one. Two clones,
+#     one per way of not knowing. In the first, `origin` is gone from disk after the clone was
+#     made: its remote-tracking refs still name a branch with no PR, so a script that trusts
+#     them without reaching `origin` prints a finding for work it cannot vouch for. In the
+#     second, `origin` is fine and `gh` cannot be read: no `VERI_GH_JSON`, and a `gh` stub
+#     first on PATH exits 4, gh's own code for an unauthenticated call. The stub says nothing
+#     on stderr, so whatever the script leaves there is its own diagnostic, not gh's.
+name="invisible-work.sh: exits 2 with a stderr diagnostic and empty stdout when the remote or gh cannot be read"
+problems=()
+clone="$(unpr_branch_clone "$work/case10-remote" "chore/nobody-opened-a-pr" 1)"
+gh_json="$(fixture "$work/case10-remote/gh")"
+rm -rf "$work/case10-remote/origin.git"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2> "$work/case10-remote/stderr")"; rc=$?
+err="$(cat "$work/case10-remote/stderr")"
+[[ "$rc" -eq 2 ]] ||
+  problems+=("origin unreachable: want exit 2, got $rc")
+[[ -z "$out" ]] ||
+  problems+=("origin unreachable: want empty stdout, got $(printf '%q' "$out")")
+[[ -n "$err" ]] ||
+  problems+=("origin unreachable: want a diagnostic on stderr, got none")
+clone="$(unpr_branch_clone "$work/case10-gh" "chore/nobody-opened-a-pr" 1)"
+mkdir -p "$work/case10-gh/bin"
+printf '#!/bin/sh\nexit 4\n' > "$work/case10-gh/bin/gh"
+chmod +x "$work/case10-gh/bin/gh"
+out="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case10-gh/bin:$PATH" "$INVISIBLE" 2> "$work/case10-gh/stderr")"; rc=$?
+err="$(cat "$work/case10-gh/stderr")"
+[[ "$rc" -eq 2 ]] ||
+  problems+=("gh unreadable: want exit 2, got $rc")
+[[ -z "$out" ]] ||
+  problems+=("gh unreadable: want empty stdout, got $(printf '%q' "$out")")
+[[ -n "$err" ]] ||
+  problems+=("gh unreadable: want a diagnostic on stderr, got none")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
