@@ -308,5 +308,30 @@ expect_unchanged wrong-state 1 \
   "park on an item not running exits 1 and leaves the file byte-identical" \
   park alpha 12 "second bail"
 
+# 16. no command ever removes a line: after assigns for two workers, each transition — start,
+#     done, park — and refused calls of every kind (an issue already held, another worker's
+#     item, an item in the wrong state, an unknown subcommand), every issue ever assigned is
+#     still the issue of some line in the queue file.
+repo="$work/never-removed"
+new_repo "$repo"
+for call in "assign alpha 12 7" "assign beta 30" "assign beta 12" "start alpha 12" \
+  "start beta 7" "done alpha 12 abc1234" "start alpha 7" "done alpha 7" "park alpha 7 why" \
+  "park alpha 30 why" "start beta 30" "frobnicate beta 30"; do
+  # shellcheck disable=SC2086
+  (cd "$repo" && "$SCRIPT" $call >/dev/null 2>&1) || true
+done
+held="$(cut -f2 "$repo/.tdd/workqueue" 2>/dev/null | tr '\n' ' ')"
+missing=""
+for issue in 12 7 30; do
+  [[ " $held" == *" $issue "* ]] || missing="$missing $issue"
+done
+if [[ -z "$missing" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - after assign, start, done, park and refused calls, every issue ever assigned is still a line"
+  echo "    missing:$missing (want none), queue issues: $held"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
