@@ -554,13 +554,17 @@ unauthenticated baseline never gets a cycle.
    ```
    mkdir -p .tdd && printf '%s\n' "$PPID" > .tdd/conductor.pid
    ```
-   That lock is what says a run is in flight. Without it the only claim on the issue is the
-   draft PR you open once every step is green, so for the hours before that — #137 took about
-   eleven — `solvable-issues.sh` still lists the issue, and a second loop takes it, lands in
-   this worktree and follows *Resume*, whose `git reset --hard HEAD` on a `⟂ refactor pending`
-   step throws your leaf's uncommitted work away (#170). With it, `solvable-issues.sh` leaves
-   the issue out and `issue-worktree.sh` refuses this worktree to another conductor, both for
-   exactly as long as the pid in there answers `kill -0`.
+   That lock is the **worktree guard**, and it guards this machine's worktree only: for
+   exactly as long as the pid in there answers `kill -0`, `issue-worktree.sh` refuses this
+   worktree to a second conductor on this computer, so none can land in a live run's tree and
+   follow *Resume*, whose `git reset --hard HEAD` on a `⟂ refactor pending` step throws your
+   leaf's uncommitted work away (#170). It is **not** the claim on the issue. A pid is a
+   machine-local name, veri is developed from more than one computer, and `origin` is all they
+   share: what keeps the issue out of `solvable-issues.sh`'s pool is the draft PR step 2.3
+   opens as the first act after the plan commit — minutes from here, and open for the rest of
+   the run, a bail included (ADR-0024). Until that PR exists this lock is the only mark of the
+   run there is, which is why the window between this worktree and the plan commit is the one
+   place two machines can still collide.
    Write **`$PPID`**, not `$$`: inside a tool call `$PPID` is your own process, which lives as
    long as this run, while `$$` is the shell of that one command — already gone when anyone
    reads the lock, so the claim would be dead on arrival, and the number may since have been
