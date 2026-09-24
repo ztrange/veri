@@ -334,6 +334,45 @@ omits "the default branch is left out" "$out" "main"
 omits "the default branch's HEAD alias is left out" "$out" "HEAD"
 report "$name"
 
+# 8. Issue #197, criterion 3, on the invariant-1 side: a local branch whose PR was merged or
+#    closed, and whose branch on `origin` was deleted after it — what GitHub's "delete branch
+#    on merge" leaves behind in every clone — is residue too, a cleanup question, so it is not
+#    reported as a local branch `origin` lacks. Both branches reached `origin`, got a decided
+#    PR, and were then deleted there and pruned here, so each exists only as a local ref. A
+#    third local branch, never pushed and with no PR, must still be reported, so an empty
+#    report cannot pass. A fourth took the same path but its PR is still OPEN: nothing was
+#    decided, so it is not residue, and with its branch gone from `origin` it is exactly the
+#    work invariant 1 is about — reported, so a skip keyed on "has any PR" cannot pass.
+name="invisible-work.sh: a local branch absent from origin whose PR was merged or closed is not reported as an invariant-1 finding"
+problems=()
+merged="tdd/4-supervised-leaves"
+closed="chore/test-runner"
+control="tdd/174-a-run-only-this-machine-holds"
+opened="tdd/150-a-run-whose-pr-is-still-open"
+clone="$(unpr_branch_clone "$work/case8" "$merged" 2)"
+push_control_branch "$work/case8" "$closed"
+push_control_branch "$work/case8" "$opened"
+gh_json="$(fixture "$work/case8/gh")"
+cat > "$gh_json/prs.json" <<JSON
+[{"headRefName": "$merged", "state": "MERGED", "body": "Closes #4"},
+ {"headRefName": "$closed", "state": "CLOSED", "body": ""},
+ {"headRefName": "$opened", "state": "OPEN", "body": "Closes #150"}]
+JSON
+git_q "$clone" branch -q "$merged" "origin/$merged"
+git_q "$clone" branch -q "$closed" "origin/$closed"
+git_q "$clone" branch -q "$opened" "origin/$opened"
+git_q "$work/case8/src" push -q origin --delete "$merged" "$closed" "$opened"
+git_q "$clone" fetch -q --prune origin
+git_q "$clone" checkout -q -b "$control" main
+git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed (#174)"
+git_q "$clone" checkout -q main
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
+names "the local branch with no PR is still reported" "$out" "$control"
+names "the local branch whose PR is still open is still reported" "$out" "$opened"
+omits "the local branch whose PR was merged is left out" "$out" "$merged"
+omits "the local branch whose PR was closed is left out" "$out" "$closed"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
