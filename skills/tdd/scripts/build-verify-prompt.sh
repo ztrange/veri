@@ -93,11 +93,32 @@ fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/verify-$phase.md"
 shared_file="$HERE/prompts/_shared.md"
+# The reproduction paragraph, and the one condition under which it is emitted (#112). An
+# issue labelled `bug` reaches the verifier through the one channel there is — `capture-spec.sh`
+# copies the report into the blind spec under a `## Bug` heading — so the spec's own text is
+# what this asks, rather than a new parameter: a fifth would be a channel the developer's
+# rationale could travel down, and the four this builder takes are the blindness guarantee
+# (ADR-0003). No section, no paragraph, and not a word of difference: a verifier told to
+# compare the failure against a report nobody filed has nothing to compare it with.
+#
+# Asked here, ahead of the readability loop, so the paragraph's file joins the others in it
+# rather than carrying a second copy of the same refusal further down. grep's own stderr is
+# discarded because an unreadable spec is that loop's refusal to make, in the one wording
+# every missing file gets; grep answers "no section" for it meanwhile, which costs nothing,
+# since the loop refuses the call two lines later.
+bug_file=""
+if grep -qE '^## Bug[[:space:]]*$' "$spec_file" 2>/dev/null; then
+  bug_file="$HERE/prompts/_verify-red-bug.md"
+fi
+
 # The ledger is read by this builder rather than by the leaf, so it joins the list of
 # files whose unreadability is this script's refusal: `cat` failing under `set -e` would
 # exit 1, the code reserved for an answer that came back, and no prompt is an answer
 # nobody got (#439).
 readable=("$tpl_file" "$shared_file" "$spec_file")
+if [[ -n "$bug_file" ]]; then
+  readable+=("$bug_file")
+fi
 if [[ "$phase" == plan ]]; then
   readable+=("$test_path")
 fi
@@ -108,6 +129,8 @@ done
 tpl="$(cat "$tpl_file")"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
+bug_reproduction=""
+if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
 # The plan is its phase's subject, so its own text goes into the prompt — a verifier given
 # only a path, in a target repository, would judge a file it was never handed. The read
 # belongs here, beside the prompt's other on-disk inputs, rather than up among the argument
@@ -134,6 +157,7 @@ fi
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{STEP\}\}/$step_block}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
+out="${out//\{\{BUG_REPRODUCTION\}\}/$bug_reproduction}"
 out="${out//\{\{LEDGER\}\}/$ledger}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"

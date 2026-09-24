@@ -103,9 +103,28 @@ five="$("$BUILD" --fast-cmd 'make unit' green "$work/spec.md" "$testpath" test_s
 # markdown wrapped at ~85 columns and grep only ever matches within one line, so any claim
 # long enough to be worth probing for reads as absent the moment a rewrap puts it across a
 # line break. `-e` because a pattern is data, not a flag.
+prompt_has() {  # prompt_has <prompt> <grep argument…> — the match itself, folded to one line
+  local prompt="$1"; shift
+  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")"
+}
+
 prompt_says() {  # prompt_says <prompt> <complaint> <grep argument…>
   local prompt="$1" complaint="$2"; shift 2
-  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" || problems="$problems; $complaint"
+  prompt_has "$prompt" "$@" || problems="$problems; $complaint"
+}
+
+# The same probe read the other way, for a claim a prompt must NOT make — case 42's negative
+# half, where the paragraph conditional on a `## Bug` section must be absent from the prompt
+# built from a spec without one. It shares `prompt_has` rather than repeating the fold and the
+# grep: two copies of the probe is where the one that folds differently hides, and a negative
+# assertion that quietly matches nothing because its input was never folded is green for the
+# wrong reason. `return 0` because the miss is recorded in `problems`, not in the function's
+# status, and a failed `grep` is this one's success. Same helper as
+# build-develop-prompt.test.sh's.
+prompt_lacks() {  # prompt_lacks <prompt> <complaint> <grep argument…> — prompt_says inverted
+  local prompt="$1" complaint="$2"; shift 2
+  ! prompt_has "$prompt" "$@" || problems="$problems; $complaint"
+  return 0
 }
 
 # The other half of what the two per-phase cases share: the roster, and the verdict they reach
@@ -865,6 +884,62 @@ prompt_says "$plan" "never makes a mechanism step deliver the criterion only whe
 prompt_says "$plan" "never directs a REJECT when no step establishes the criterion as written" \
   -iE -e 'REJECT[^.]{0,200}(no step|nothing)[^.]{0,150}(establish|deliver)|(no step|nothing)[^.]{0,150}(establish|deliver)[^.]{0,200}REJECT'
 [[ -z "$problems" ]] && ok || no "verify-plan makes a mechanism step deliver a criterion only when the mechanism is sufficient for it as written, and directs a REJECT when no step establishes the criterion (${problems#; })"
+
+# 42. the reproduction paragraph verify-red gains for a bug, and only for a bug (issue #112).
+#     For an issue labelled `bug`, Red is a reproduction (ADR-0015): the developer's case must
+#     fail with the behaviour the report describes, not with a missing symbol or a typo. The
+#     blind verifier is the only party that checks that claim by running the test, so PASS has
+#     to require the failure it observes to match *What happened*. The report reaches it
+#     through the one channel there is — `capture-spec.sh` puts it in the blind spec under a
+#     `## Bug` heading — so the paragraph is conditional on the spec carrying that section,
+#     and a spec without one must not gain a word: a verifier told to compare against a report
+#     nobody made has nothing to compare with.
+#
+#     The four parameters do not change for it, which is what the call below asserts by being
+#     case 1's call — phase, spec file, test path, test id — with a different spec file. A
+#     fifth, or a flag saying "this one is a bug", would be a channel the developer's rationale
+#     could travel down, which is the guarantee this whole suite exists for (ADR-0003).
+#
+#     Probed through `prompt_says` under case 11's constraint — at most one bounded
+#     `[^.]{0,N}` per alternation branch, every bound under 255 — and the probe pairs the
+#     paragraph's verb with the spec part it names rather than the part name alone: the bug
+#     spec is interpolated verbatim, so `### What happened` is in the prompt whatever the
+#     template says, and a probe for the bare heading would pass on a template that gained
+#     nothing. The fixture's four parts carry none of those verbs for the same reason.
+cp "$work/spec.md" "$work/bug-spec.md"
+cat >> "$work/bug-spec.md" <<'SPEC'
+
+## Bug
+
+### What happened
+
+slugify returned "HELLO_WORLD" on the ampersanded seed.
+
+### Expected
+
+slugify returns "hello-world-foo".
+
+### Steps to reproduce
+
+Call slugify("Hello & World/Foo").
+
+### Environment
+
+veri on bash 5.2, macOS 15.
+SPEC
+
+problems=""
+bug_red="$("$BUILD" red "$work/bug-spec.md" "$testpath" test_slugify_lowercases 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; with a bug spec and red's own four positionals exited $code, want 0"
+[[ "$bug_red" == *'slugify returned "HELLO_WORLD" on the ampersanded seed.'* ]] \
+  || problems="$problems; does not carry the bug report from the spec"
+observed_matches_reported='(match|matches|matching|same as)[^.]{0,80}what happened|what happened[^.]{0,80}(match|matches|matching|same as)'
+prompt_says "$bug_red" "never requires the failure it observes to match What happened" \
+  -iE -e "$observed_matches_reported"
+prompt_lacks "$red" "a spec with no Bug section still requires the failure to match What happened" \
+  -iE -e "$observed_matches_reported"
+[[ -z "$problems" ]] \
+  && ok || no "verify-red requires a bug's observed failure to match What happened, and requires nothing of the kind for a spec with no Bug section (${problems#; })"
 
 
 echo "----"
