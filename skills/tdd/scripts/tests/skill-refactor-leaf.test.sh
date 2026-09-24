@@ -190,6 +190,17 @@ wins() {
   windows "$@" | tr '\n' ' '
 }
 
+# either_order <a> <b> <gap> — one parenthesised regex for "<a> and <b> in the same clause",
+# whichever of them the writer put first: `(<a><gap><b>|<b><gap><a>)`. Every proximity probe
+# below wants that and nothing narrower — which way round a document says it is the writer's
+# business — and each of them used to spell the mirror out by hand, where the two halves can
+# drift apart unnoticed and the probe silently stops accepting one of the two orders. <gap> is
+# passed rather than fixed because what counts as "the same clause" differs: `.{0,120}` reaches
+# across a sentence boundary, `[^.]{0,200}` refuses to.
+either_order() {
+  printf '(%s%s%s|%s%s%s)' "$1" "$3" "$2" "$2" "$3" "$1"
+}
+
 # What a refusal looks like, spelled once for the two probes that ask for one. Both checks
 # below — the dirty tree and the non-refactor: commit — owe the same thing beyond the git
 # question itself: that the section says the answer STOPS the conductor rather than merely
@@ -462,7 +473,7 @@ else
   # clause, which is what keeps this from matching the other two exit 1s this section
   # carries — the rejected push's and the REJECT verdict's, neither of which has the word
   # `owed` anywhere near it.
-  owed_claim='(exit 1.{0,120}owed|owed.{0,120}exit 1)'
+  owed_claim="$(either_order 'exit 1' 'owed' '.{0,120}')"
   if ! grep -qE "$owed_claim" <<<"$section"; then
     problems+=("$skill_md's Refactor section never says what add-ledger-step.sh exit 1 means, so a conductor meeting the plan-growth budget's refusal is left to read it as the failure every other non-zero exit in this phase is, and the NEW_STEP: values it filed as owed steps go unmentioned")
   else
@@ -548,7 +559,7 @@ else
     # a. The pair itself, and that it is verified: a triangulating test written inside the
     #    step is still a red and a green the blind verifiers see, which is what tells this
     #    apart from the leaf hand-generalizing the code it flagged.
-    grep -qE "triangulat[a-z]*[^.]{0,200}verify-(red|green)|verify-(red|green)[^.]{0,200}triangulat" <<<"$flagged" ||
+    grep -qE "$(either_order 'triangulat[a-z]*' 'verify-(red|green)' '[^.]{0,200}')" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section never says an overfit flag is answered by a triangulating red and green pair, so the case the leaf named is either built unverified or not built at all")
 
     # b. And that the pair is all it is. The whole cost this issue measured is the flag
@@ -562,7 +573,7 @@ else
     # c. And that the step goes back to where it was. The refactor loop was interrupted by
     #    the flag, not ended by it, and a loop resumed with a fresh budget would let one flag
     #    buy a second step's worth of transforms.
-    grep -qE "(resum|return|back)[^.]{0,160}budget|budget[^.]{0,160}(resum|return|back)" <<<"$flagged" ||
+    grep -qE "$(either_order '(resum|return|back)' 'budget' '[^.]{0,160}')" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section never says the step resumes its own refactor loop with the budget it had left after the triangulation, so the tidying the flag interrupted is either abandoned or restarted with a budget the step has already spent")
   fi
 fi
