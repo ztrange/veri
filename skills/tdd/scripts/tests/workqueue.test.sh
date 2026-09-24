@@ -376,5 +376,42 @@ else
   echo "    writes missing:${missing:- none} (want none)"
 fi
 
+# 18. a write that cannot take the lock exits 2 without touching the file: another writer holds
+#     `.tdd/workqueue.lock`, and `assign` — told by VERI_WORKQUEUE_LOCK_WAIT=0 to wait no
+#     seconds for it — gives up rather than waiting on, leaving the queue byte-identical. The
+#     write runs in the background under a watchdog, so a writer that waits forever is killed
+#     and read as `still waiting` instead of hanging the suite; one that answers is never
+#     waited on.
+repo="$work/lock-held"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\tqueued\t\n'
+before="$(cat "$repo/.tdd/workqueue")"
+mkdir "$repo/.tdd/workqueue.lock"
+source "$HERE/../lib/background.sh"
+record="$work/lock-held.bg"
+bg_start "$record" env VERI_WORKQUEUE_LOCK_WAIT=0 sh -c 'cd "$1" && exec "$2" assign beta 7' \
+  _ "$repo" "$SCRIPT" 2>"$work/lock-held.err"
+writer="$(tail -n 1 "$record" | cut -d' ' -f1)"
+for _ in $(seq 1 60); do
+  kill -0 "$writer" 2>/dev/null || break
+  sleep 0.05
+done
+if kill -0 "$writer" 2>/dev/null; then
+  bg_kill "$record"
+  wait "$writer" 2>/dev/null
+  code="still waiting"
+else
+  wait "$writer" && code=0 || code=$?
+fi
+after="$(cat "$repo/.tdd/workqueue")"
+if [[ "$code" == 2 && "$after" == "$before" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - a write that cannot take the lock exits 2 without touching the file"
+  echo "    exit: $code (want 2), stderr: $(cat "$work/lock-held.err")"
+  diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

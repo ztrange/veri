@@ -15,8 +15,9 @@
 #          workqueue.sh park <worker> <issue> <reason>
 # Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
 #          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
-#          already queued or running for any worker — refused before anything is written,
-#          so the file is left byte-identical
+#          already queued or running for any worker, or a lock not taken within
+#          VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is written, so the file
+#          is left byte-identical
 set -euo pipefail
 
 # shellcheck source=lib/main-working-tree.sh
@@ -68,10 +69,17 @@ fi
 
 # Every write holds the lock — a directory beside the queue, since `mkdir` either creates it
 # or fails, atomically, where BSD has no flock — so concurrent workers never read the file
-# while another is rewriting it and lose that write.
+# while another is rewriting it and lose that write. A writer waits at most
+# VERI_WORKQUEUE_LOCK_WAIT seconds (default 30) for it, then exits 2 having written nothing:
+# a lock left behind by a killed writer must end in an error someone reads, not a hang.
 take_lock() {
   mkdir -p "$main_tree/.tdd"
+  local tries=$(( ${VERI_WORKQUEUE_LOCK_WAIT:-30} * 20 ))
   until mkdir "$queue.lock" 2>/dev/null; do
+    if (( tries-- <= 0 )); then
+      echo "workqueue.sh: could not take the lock $queue.lock" >&2
+      exit 2
+    fi
     sleep 0.05
   done
   trap 'rmdir "$queue.lock" 2>/dev/null || true' EXIT
