@@ -512,5 +512,24 @@ else
   grep -n 'WORKER\.md' "$skill_doc" | sed 's/^/      /'
 fi
 
+# 24. `CONTEXT.md`, the glossary every term in this repository is used by, defines **worker**
+#     and **work queue** the way it defines every other term: a line opening `**<Term>**:`
+#     that the definition follows. Matched as that heading, so a mention in passing — the
+#     `_Avoid_: … worker …` lines under **Leaf** and **Actor** — does not count; every term
+#     missing is listed, so one run says which.
+context_doc="$SKILL_DIR/../../CONTEXT.md"
+terms_missing=""
+for term in Worker 'Work queue'; do
+  grep -Ei "^\*\*$term\*\*:" "$context_doc" > /dev/null 2>&1 \
+    || terms_missing="$terms_missing **$term**"
+done
+if [[ -z "$terms_missing" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - CONTEXT.md defines worker and work queue"
+  echo "    terms not defined:$terms_missing (want none)"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
