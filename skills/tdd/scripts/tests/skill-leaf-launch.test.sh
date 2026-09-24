@@ -112,6 +112,14 @@ step_ph="<STEP>"
 double_quoted_step="\"$step_ph\""
 single_quoted_step="'$step_ph'"
 
+# The spec file a verifier launch names, as one ERE alternation: the concrete path the
+# conductor's own launches spell and the `<spec-file>` placeholder the shapes they are copied
+# from use. Written down once for the same reason the placeholders above are — case 6 narrows
+# the launch lines on it and then judges their whole argument list against it, so a document
+# that renames the placeholder must fail the case rather than quietly leave the two probes
+# looking for different files.
+spec_re="(\.tdd/issue-<n>-spec\.md|<spec-file>)"
+
 # The same three shapes for a FRAGMENT of the title — the substring `tick-ledger.sh`,
 # `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find the step they
 # act on. A fragment of the planning leaf's English is the planning leaf's English, so it
@@ -456,7 +464,7 @@ blind_args() {
 # so there is no step to scope a verdict to), its third positional is the proposed ledger
 # where a cycle phase names a test path, and it takes no target. Written as its own anchored
 # alternative, an argument added to either shape still fails this case.
-blind_re="^(--step $double_quoted_step( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|plan (\.tdd/issue-<n>-spec\.md|<spec-file>) \.tdd/issue-<n>\.md)$"
+blind_re="^(--step $double_quoted_step( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) $spec_re <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|plan $spec_re \.tdd/issue-<n>\.md)$"
 
 # 6. The verifier is blind **by construction**: `build-verify-prompt.sh` has no parameter for
 #    the developer's rationale, so it cannot leak one, and a launch that passes verify.sh
@@ -476,7 +484,7 @@ problems=()
 # ellipsis is what the concrete launches below fill in, and reading it as a call would fail
 # this case on the document's own way of introducing it.
 supervised_launches="$(launch_lines | grep -F "$verdict_launcher" | grep -F "$launcher" |
-  grep -E '<spec-file>|\.tdd/issue-<n>-spec\.md' || true)"
+  grep -E "$spec_re" || true)"
 if [[ -z "$supervised_launches" ]]; then
   unreadable "launch line naming $verdict_launcher, $launcher and a spec file inside a fenced block" "what a supervised verifier launch passes"
 else
