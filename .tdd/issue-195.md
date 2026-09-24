@@ -7,4 +7,4 @@
 - [x] SKILL.md Bailing leaves the draft PR open carrying the bail diagnostic, in place of opening no PR ⟦criterion 5⟧
 - [x] solvable-issues.sh leaves out an issue claimed by an open PR saying Closes #<n> even when no conductor pid answers ⟦criterion 5⟧
 - [x] CONTEXT.md, the solvable-issues.sh header comment and a new ADR state that an open PR is the cross-machine claim and the pid lock is only the same-machine worktree guard ⟦criterion 6⟧
-- [ ] SKILL.md step 1.2 no longer says the only claim before the PR is one opened once every step is green ⟦added⟧ ⟦criterion 6⟧
+- [x] SKILL.md step 1.2 no longer says the only claim before the PR is one opened once every step is green ⟦added⟧ ⟦criterion 6⟧ ⟂ refactor pending

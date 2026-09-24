@@ -48,6 +48,8 @@
 #      opens a second one (issue #195).
 #  12. SKILL.md's `## Bailing` section leaves that PR open carrying the bail diagnostic —
 #      it neither closes it nor still says to open none (issue #195).
+#  13. SKILL.md's step 1.2 no longer explains the pid lock by saying the draft PR is opened
+#      once every step is green (issue #195).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -539,6 +541,27 @@ if section_or_problem '## Bailing' '^## ' "what a bailed run does with the draft
   opens_none="$(first_record "$records" -F 'open no pr')"
   [[ -z "$opens_none" ]] ||
     problems+=("$skill_md's Bailing section still tells the run to open no PR, an instruction whose premise went with #195: the PR has been open since the plan commit, so there is nothing here to withhold: $(printf '%.120s' "$opens_none")")
+fi
+report "$name"
+
+# 13. The criterion, as one case (issue #195): step 1.2's pid lock is explained by saying what
+#     the run has instead of it, and what it has changed. The passage justifying the lock rests
+#     on the draft PR being opened "once every step is green" — the order #195 reversed: the PR
+#     now opens at the plan commit, minutes into the run, so the hours-long window the passage
+#     describes is gone and the sentence tells a conductor the opposite of what the procedure
+#     it is reading does. A stale rationale is not a harmless leftover here: it is the one
+#     paragraph that says which of the two signals covers what, so a reader who believes it
+#     reads the pid lock as the only claim for the whole run and the PR as an end-of-run
+#     artefact, which is the model #195 exists to replace. So what is pinned is the absence of
+#     that premise from the step that carries the lock: no record of `### 1.` says the PR is
+#     opened once every step is green.
+name="$skill_md's worktree step no longer says the draft PR is opened once every step is green"
+problems=()
+
+if step_or_problem '### 1. Read the issue' "what step 1.2 says the claim is before the PR exists"; then
+  stale="$(first_record "$records" -F 'every step is green')"
+  [[ -z "$stale" ]] ||
+    problems+=("$skill_md's worktree step still says the draft PR is opened once every step is green, the order #195 reversed — the PR now opens at the plan commit, so the window this passage gives as the reason for the pid lock no longer exists: $(printf '%.120s' "$stale")")
 fi
 report "$name"
 
