@@ -4,7 +4,7 @@
 - [x] `workqueue.sh <unknown-subcommand> …` (e.g. `workqueue.sh frobnicate alpha 12`) exits 2 and leaves `.tdd/workqueue` byte-identical (absent if it was absent) ⟦added⟧ ⟦criterion 1⟧
 - [x] `workqueue.sh frobnicate alpha 12` in a repo with no `.tdd/workqueue` exits 2 and leaves `.tdd/workqueue` absent ⟦added⟧ ⟦criterion 1⟧
 - [x] `workqueue.sh assign` refuses with exit 2, leaving the file byte-identical, an issue already `queued` or `running` for any worker ⟦criterion 1⟧
-- [ ] `workqueue.sh next <worker>` prints that worker's first `queued` issue whose `## Blocked by` names no open issue, skipping a blocked one, read from `VERI_GH_JSON` fixtures ⟦criterion 2⟧
+- [x] `workqueue.sh next <worker>` prints that worker's first `queued` issue whose `## Blocked by` names no open issue, skipping a blocked one, read from `VERI_GH_JSON` fixtures ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] `workqueue.sh next <worker>` exits 3 with empty stdout when none of that worker's `queued` items is launchable ⟦criterion 2⟧
 - [ ] `workqueue.sh start <worker> <issue>` moves that worker's `queued` item to `running` ⟦criterion 3⟧
 - [ ] `workqueue.sh done <worker> <issue> <sha>` moves that worker's `running` item to `merged`, recording the sha as its detail ⟦criterion 3⟧
