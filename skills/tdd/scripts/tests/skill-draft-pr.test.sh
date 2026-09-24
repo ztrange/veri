@@ -151,11 +151,17 @@ if step_or_problem '### 4. Draft PR' "whether the step still pushes"; then
 fi
 report "$name"
 
-# pass_record <heading prefix> — the record of the PASS branch inside the `####` section
-# whose heading starts with <heading prefix>, or nothing when there is no such section or
-# no such branch in it. Any heading ends one of these, the document's innermost level.
-pass_record() {
-  first_record "$(section_records "$1" '^#')" -E '^ *- \*\*pass'
+# pass_or_problem <heading prefix> <what> — read into `record` the PASS branch inside the
+# `####` section whose heading starts with <heading prefix>, or record the one problem that
+# says the case could not be read at all, naming <what> it could therefore not check.
+# Non-zero when there is no such section or no such branch in it, so each case below is its
+# probes alone, the way `step_or_problem` does it for a numbered step. Any heading ends one
+# of these sections, the document's innermost level.
+pass_or_problem() {
+  record="$(first_record "$(section_records "$1" '^#')" -E '^ *- \*\*pass')"
+  [[ -n "$record" ]] && return 0
+  problems+=("$skill_md has no PASS branch under '$1' to read — $2 could not be checked")
+  return 1
 }
 
 # 2. The criterion, as one case: the branch reaches the remote at both of the points that
@@ -173,10 +179,7 @@ name="$skill_md's Green PASS and verify-refactor PASS both push the branch, at t
 problems=()
 
 for heading in '#### Green' '#### Refactor loop'; do
-  record="$(pass_record "$heading")"
-  if [[ -z "$record" ]]; then
-    problems+=("$skill_md has no PASS branch under '$heading' to read — whether the branch is pushed where the ledger is written could not be checked")
-  else
+  if pass_or_problem "$heading" "whether the branch is pushed where the ledger is written"; then
     grep -qF 'push-branch.sh' <<< "$record" ||
       problems+=("$skill_md's '$heading' PASS branch never runs push-branch.sh, so the commits it ticks and commits stay on one disk until the run is review-ready: $(printf '%.120s' "$record")")
   fi
@@ -395,18 +398,17 @@ report "$name"
 name="$skill_md's Green PASS branch updates the PR body with the ledger's done-of-total step count"
 problems=()
 
-record="$(pass_record '#### Green')"
-if [[ -z "$record" ]]; then
-  problems+=("$skill_md has no PASS branch under '#### Green' to read — whether the step tick updates the PR body could not be checked")
-elif ! grep -qF 'gh pr edit' <<< "$record"; then
-  problems+=("$skill_md's Green PASS branch never runs gh pr edit, so the draft PR opened at the plan commit still reads as step 0 for the whole of a multi-step run")
-else
-  grep -qF -- '--body' <<< "$record" ||
-    problems+=("$skill_md's Green PASS branch edits the PR without --body, so nothing a reader of the PR sees carries the run's progress: $(printf '%.120s' "$record")")
-  grep -qF '.tdd/issue-<n>.md' <<< "$record" ||
-    problems+=("$skill_md's Green PASS branch edits the PR body without naming the run's .tdd/issue-<n>.md ledger as where the count is read from, so which file answers how far the run has got is left to judgement: $(printf '%.120s' "$record")")
-  grep -qE '<done> of <total>|[0-9]+ of [0-9]+|done of|of how many' <<< "$record" ||
-    problems+=("$skill_md's Green PASS branch edits the PR body without a done-of-total step count, so a reader learns the run moved but not how far it has left to go: $(printf '%.120s' "$record")")
+if pass_or_problem '#### Green' "whether the step tick updates the PR body"; then
+  if ! grep -qF 'gh pr edit' <<< "$record"; then
+    problems+=("$skill_md's Green PASS branch never runs gh pr edit, so the draft PR opened at the plan commit still reads as step 0 for the whole of a multi-step run")
+  else
+    grep -qF -- '--body' <<< "$record" ||
+      problems+=("$skill_md's Green PASS branch edits the PR without --body, so nothing a reader of the PR sees carries the run's progress: $(printf '%.120s' "$record")")
+    grep -qF '.tdd/issue-<n>.md' <<< "$record" ||
+      problems+=("$skill_md's Green PASS branch edits the PR body without naming the run's .tdd/issue-<n>.md ledger as where the count is read from, so which file answers how far the run has got is left to judgement: $(printf '%.120s' "$record")")
+    grep -qE '<done> of <total>|[0-9]+ of [0-9]+|done of|of how many' <<< "$record" ||
+      problems+=("$skill_md's Green PASS branch edits the PR body without a done-of-total step count, so a reader learns the run moved but not how far it has left to go: $(printf '%.120s' "$record")")
+  fi
 fi
 report "$name"
 
