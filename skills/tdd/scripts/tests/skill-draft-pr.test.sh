@@ -20,8 +20,8 @@
 # would go green on a document that had stopped pushing everywhere.
 #
 # Contract under test:
-#   1. SKILL.md's `### 4. Draft PR` step opens the PR against the already-pushed branch: it
-#      still runs `gh pr create`, and no instruction of that step pushes the branch first.
+#   1. No instruction of SKILL.md's `### 4. Draft PR` step pushes the branch: it readies a PR
+#      whose branch is already on the remote. Which PR commands the step runs is case 10's.
 #   2. SKILL.md's Green PASS and verify-refactor PASS branches each run `push-branch.sh`,
 #      so the branch reaches the remote at both of the points that write the ledger.
 #   3. SKILL.md's Draft PR step and its Guardrails invariant about opening the PR both name
@@ -140,18 +140,22 @@ step_or_problem() {
   return 1
 }
 
-# 1. The criterion, as one case: the step opens the PR for a branch that is already on the
-#    remote. Both halves are asked of the same slice, and the opening half is asked first so
-#    the case fails closed — a section emptied or renamed must not read as "it no longer
-#    pushes". `git push` rather than the word "push": the step's first sub-step still refuses
-#    to go on while there is nothing *fit* to push, and that refusal is #116's gate, not a
-#    push. What this criterion is about is whether the step issues the command.
-name="$skill_md's Draft PR step opens the PR against the already-pushed branch, with no push of its own"
+# 1. The criterion, as one case: the step asks for review on a branch that is already on the
+#    remote, and pushes nothing itself. It used to anchor on `gh pr create` first, so that a
+#    section emptied of its PR instruction could not read as "it no longer pushes" — since
+#    #195 that anchor is case 10's, which asks the same slice which PR commands it issues and
+#    fails closed on its own three positive probes. Asking it here too would be the same
+#    question twice, and the two answers would now have to disagree: the step must run
+#    `gh pr create` for the old probe and must not for case 10's, a requirement met only by a
+#    document that names the command in prose. What remains here is the push, and the section
+#    being unreadable is still one problem line, from `step_or_problem`. `git push` rather
+#    than the word "push": the step's first sub-step still refuses to go on while there is
+#    nothing *fit* to push, and that refusal is #116's gate, not a push. What this criterion
+#    is about is whether the step issues the command.
+name="$skill_md's Draft PR step readies the PR against the already-pushed branch, with no push of its own"
 problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step still pushes"; then
-  grep -qF 'gh pr create' <<< "$records" ||
-    problems+=("$skill_md's Draft PR step never runs gh pr create, so there is no PR being opened against the pushed branch at all")
   pushes="$(first_record "$records" -F 'git push')"
   [[ -z "$pushes" ]] ||
     problems+=("$skill_md's Draft PR step still pushes the branch itself, so the procedure reads as though the branch reaches the remote only once the run is review-ready: $(printf '%.120s' "$pushes")")
