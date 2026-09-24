@@ -583,10 +583,10 @@ unauthenticated baseline never gets a cycle.
    which you are now in:
    `mkdir -p .tdd && $S/capture-spec.sh <n> > .tdd/issue-<n>-spec.md`.
    (The verifier is blind; this on-disk spec — never your narration — is what it sees.)
-   The script writes the issue's body, and for an issue labelled `bug` one more section,
-   `## Bug`, carrying the report's what-happened, expected, steps to reproduce and
-   environment: a bug's Red is a reproduction (ADR-0015), and this file is the only channel
-   the developer and the blind verifier have to learn what it must reproduce.
+   What it writes is enumerated in its entry under *The scripts*, the one place that list
+   lives, so this step cannot fall behind it. The extra `## Bug` section it adds for an issue
+   labelled `bug` is there because a bug's Red is a reproduction (ADR-0015), and this file is
+   the only channel the developer and the blind verifier have to learn what it must reproduce.
 4. **Ignore run state.** `$S/ensure-run-state-ignored.sh` writes the same rule — ignore
    `.tdd/*` except the ledger — into **two** files, and needs both. Into the worktree's
    `.gitignore`, which is committed: if the script prints `added`, commit it as the branch's
