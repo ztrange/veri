@@ -126,16 +126,16 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   structural), this one by what it **must** carry — the same instructions on every run of a
   phase, with only the variables changing. **Build every developer prompt with it**; a
   phase's instructions live in its template, not in prose you improvise per cycle.
-- `$S/build-verify-prompt.sh <red|green|refactor|pin> <spec-file> <test-path> [target]` —
+- `$S/build-verify-prompt.sh <red|green|refactor|pin|plan> <spec-file> <test-path> [target]` —
   assemble the blind verifier prompt. Used by `verify.sh`; you rarely call it directly.
-- `$S/verify.sh <red|green|refactor|pin> <spec-file> <test-path> [target]` — the **verify
+- `$S/verify.sh <red|green|refactor|pin|plan> <spec-file> <test-path> [target]` — the **verify
   verb**: build the blind prompt → launch the verifier leaf **through the supervisor** →
   parse the verdict. Prints the verifier's **reason** on stdout; **exit 0 = PASS, 1 =
   REJECT, 2 = malformed or killed-stuck**. The `pin` phase is the *already satisfied*
   check: the verifier confirms the test passes now, **fails** under a behaviour-removing
   mutation it applies and then reverts itself, and is behaviour-level — the same trivial
   / over-coupled / too-complex bar as `red`.
-- `$S/run-verdict.sh [--step "<STEP>"] [--fast-cmd '<cmd>'] <red|green|refactor|pin> <spec-file> <test-path> [target]`
+- `$S/run-verdict.sh [--step "<STEP>"] [--fast-cmd '<cmd>'] <red|green|refactor|pin|plan> <spec-file> <test-path> [target]`
   — the **verdict launcher**: `verify.sh`'s own call, argument for argument, reached as a
   command rather than as a shell string. This is what `supervise.sh verdict-<phase>` runs;
   it passes every argument through untouched and `exec`s the verify verb, so the step title

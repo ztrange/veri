@@ -24,7 +24,7 @@
 # A call is a line naming `verify.sh` with the **spec file** among its arguments: that is
 # what tells a line a conductor copies as it stands from prose about one. The script
 # inventory's synopsis (SKILL.md:129) names the spec too and is deliberately not among them
-# — it spells the phase as the alternation `<red|green|refactor|pin>`, so it documents the
+# — it spells the phase as the alternation `<red|green|refactor|pin|plan>`, so it documents the
 # script's own usage rather than making a call. `verify.sh exited 2` in *Bailing* and the
 # `$S/verify.sh pin …` back-reference in *Already satisfied* name no spec, so neither is
 # matched either.
@@ -80,7 +80,7 @@ report() {
 # which moves with every edit above it.
 verify_calls() {
   grep -nE 'verify\.sh.*(<spec-file>|\.tdd/issue-<n>-spec\.md)' "$skill_path" |
-    grep -vF '<red|green|refactor|pin>'
+    grep -vF '<red|green|refactor|pin|plan>'
 }
 
 # 1. One criterion — every verify.sh call the conductor makes says which step it is about —
