@@ -1559,6 +1559,48 @@ paged_run "$prpagedir"
   && ok || no "an open PR older than gh's default page of 30 saying Closes #<n> still claims its issue (40 open PRs, only the oldest says Closes #7: exit=$code want 3, stdout='$out' want '')"
 
 
+# 32. The claim that crosses machines, on its own: an open PR saying `Closes #<n>` withholds its
+# issue whether or not any conductor pid answers. The pid lock cases 17 and 18 read is local to
+# one disk, so a bailed run whose lock names a reaped process — the very state case 18 puts back
+# in the pool — must STAY out of it once its draft PR is open, or a scope drain on this machine
+# or on another re-takes the issue a human has been asked to look at (#195).
+#
+# Case 4 pins the PR claim with no lock on disk, and case 18 pins the dead lock with no PR; this
+# is the pair together, which is the state #195 leaves behind: the bailed run's worktree, its lock
+# holding `$dead_pid` — case 17's reaped child, seeded through the same `claim` helper into the
+# same throwaway repository, because what a bailed run leaves on disk is what a killed one leaves
+# — and an open PR saying `Closes #175`. #175 is the only issue in the fixture, so a reading that
+# let the dead pid decide the question prints "175" and exits 0, and the criterion is the whole of
+# stdout rather than one arm of a longer list.
+fx="$(fixture claimed-by-pr-dead-pid)"
+cat > "$fx/issues.json" <<'JSON'
+[
+  {
+    "number": 175,
+    "title": "a run that bailed after opening its draft PR",
+    "labels": [{"name": "ready-for-agent"}],
+    "state": "OPEN",
+    "body": "## Blocked by\n\nNone.\n"
+  }
+]
+JSON
+cat > "$fx/prs.json" <<'JSON'
+[
+  {
+    "state": "OPEN",
+    "body": "Draft PR opened by a /tdd run that bailed.\n\nCloses #175\n"
+  }
+]
+JSON
+
+claim 175 "$dead_pid"
+
+out="$(cd "$flight_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code=0 || code=$?
+
+{ [[ "$code" == 3 ]] && [[ -z "$out" ]]; } \
+  && ok || no "an issue an open PR Closes stays out of the pool though its conductor pid is dead (exit=$code want 3, stdout='$(tr '\n' '|' <<<"$out")' want ''; dead pid=$dead_pid)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
