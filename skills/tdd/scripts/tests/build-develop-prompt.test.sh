@@ -1221,6 +1221,71 @@ refuses "exhausted missing reason" "$BUILD" exhausted "$work/spec.md" "$step_tex
 [[ -z "$problems" ]] \
   && ok || no "develop-exhausted carries the step, the verifier's last rejection reason and the issue spec, and refuses a missing reason file with exit 2 (${problems#; })"
 
+# 36. the reproduction paragraph the red prompt gains for a bug, and only for a bug (issue
+#     #112). For an issue labelled `bug`, Red is a reproduction (ADR-0015): the test encodes
+#     *Expected*, is driven by *Steps to reproduce*, and must fail with the behaviour *What
+#     happened* describes rather than with a missing symbol or a typo. That report reaches the
+#     leaf through the one channel there is — `capture-spec.sh` puts it in the blind spec under
+#     a `## Bug` heading — so the prompt's own paragraph is conditional on the spec carrying
+#     that section, and a spec without one must not gain a word: a leaf told to reproduce a
+#     report nobody made has nothing to reproduce. The builder's parameters do not change for
+#     it, which is what the call below asserts by being case 1's call with case 1's three
+#     positionals and a different spec file.
+#
+#     Probed through `prompt_says` under the constraint case 11 reasons about — at most one
+#     bounded `[^.]{0,N}` per alternation branch — and each probe pairs the paragraph's verb
+#     with the spec part it names, never a part name alone: the bug spec is interpolated into
+#     the prompt verbatim, so `### Expected` is in there whatever the template says, and a
+#     probe for the bare heading would pass on a template that gained nothing. The fixture's
+#     four parts are nonsense carrying none of those verbs for the same reason.
+#
+#     The negative half reads case 1's prompt, built from the spec with no `## Bug` section,
+#     and wants every one of the three probes to find nothing.
+cat > "$work/bug-spec.md" <<'SPEC'
+zorblat("Frob & Nitz/Quux") must return "frob-nitz-quux" — see {ref}\n done.
+
+## Bug
+
+### What happened
+
+zorblat returned "FROB_NITZ" on the quuxed seed.
+
+### Expected
+
+zorblat returns "frob-nitz-quux".
+
+### Steps to reproduce
+
+Run zorblat --seed "Frob & Nitz/Quux".
+
+### Environment
+
+veri on bash 5.2, macOS 15.
+SPEC
+
+prompt_lacks() {  # prompt_lacks <prompt> <complaint> <grep argument…> — prompt_says inverted
+  local prompt="$1" complaint="$2"; shift 2
+  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" && problems="$problems; $complaint"
+  return 0
+}
+
+problems=""
+bug_red="$("$BUILD" red "$work/bug-spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; with a bug spec and red's own three positionals exited $code, want 0"
+[[ "$bug_red" == *'zorblat returned "FROB_NITZ" on the quuxed seed.'* ]] \
+  || problems="$problems; does not carry the bug report from the spec"
+writes_expected='(write|derive|encode)[^.]{0,40}expected|expected[^.]{0,40}(write|derive|encode)'
+driven_by_steps='(drive|driven)[^.]{0,40}steps|steps[^.]{0,40}(drive|driven)'
+fails_as_reported='(fail|fails|failure)[^.]{0,60}what happened|what happened[^.]{0,60}(fail|fails|failure)'
+prompt_says "$bug_red" "never says to write the test from Expected" -iE -e "$writes_expected"
+prompt_says "$bug_red" "never says to drive it with Steps to reproduce" -iE -e "$driven_by_steps"
+prompt_says "$bug_red" "never says the failure must be the one What happened describes" -iE -e "$fails_as_reported"
+prompt_lacks "$red" "a spec with no Bug section is still told to write the test from Expected" -iE -e "$writes_expected"
+prompt_lacks "$red" "a spec with no Bug section is still told to drive it with Steps to reproduce" -iE -e "$driven_by_steps"
+prompt_lacks "$red" "a spec with no Bug section is still told what the failure must be" -iE -e "$fails_as_reported"
+[[ -z "$problems" ]] \
+  && ok || no "develop-red tells a bug's leaf to write the test from Expected, drive it with Steps to reproduce and fail as What happened describes, and tells a leaf with no Bug section none of it (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

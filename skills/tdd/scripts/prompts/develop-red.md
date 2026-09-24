@@ -41,6 +41,7 @@ that test.** Skip straight to the report below with `AGAINST_UNMODIFIED: UNTESTA
 criterion into something else it does not say, and do not write the costly or
 implementation-pinning test anyway to force a pass.
 
+{{BUG_REPRODUCTION}}
 ### The issue's behavior spec (context only — pin only the step above)
 
 {{ISSUE_SPEC}}
