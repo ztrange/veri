@@ -39,5 +39,21 @@ else
   diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
 
+# 2. an unknown subcommand exits 2 and leaves the queue file byte-identical.
+repo="$work/unknown-subcommand"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+printf 'beta\t4\tqueued\t\n' > "$repo/.tdd/workqueue"
+cp "$repo/.tdd/workqueue" "$work/unknown-subcommand.before"
+out="$(cd "$repo" && "$SCRIPT" frobnicate alpha 12 2>&1)" && code=0 || code=$?
+if [[ "$code" -eq 2 ]] && cmp -s "$work/unknown-subcommand.before" "$repo/.tdd/workqueue"; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - an unknown subcommand exits 2 and leaves the queue file byte-identical"
+  echo "    exit: $code (want 2), output: $out"
+  diff "$work/unknown-subcommand.before" "$repo/.tdd/workqueue" 2>&1 | sed 's/^/    /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
