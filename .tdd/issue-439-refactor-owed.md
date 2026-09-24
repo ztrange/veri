@@ -1,0 +1,2 @@
+### build-verify-prompt.sh accepts a plan phase and builds its prompt from the issue spec and the ledger named as its third argument ⟦criterion 1⟧
+- hoist the repeated `{{SHARED}}` preamble and `### The issue's behavior spec` / `{{ISSUE_SPEC}}` block out of all five `prompts/verify-*.md` into `_shared.md` — real prose duplication, but it reaches four templates this cycle did not write and reorders every phase's prompt text, so it is a change of its own, not a tidy under this step
