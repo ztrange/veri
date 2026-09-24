@@ -101,13 +101,20 @@ shared_file="$HERE/prompts/_shared.md"
 # (ADR-0003). No section, no paragraph, and not a word of difference: a verifier told to
 # compare the failure against a report nobody filed has nothing to compare it with.
 #
-# Asked here, ahead of the readability loop, so the paragraph's file joins the others in it
-# rather than carrying a second copy of the same refusal further down. grep's own stderr is
-# discarded because an unreadable spec is that loop's refusal to make, in the one wording
-# every missing file gets; grep answers "no section" for it meanwhile, which costs nothing,
-# since the loop refuses the call two lines later.
+# The question itself is `spec_has_bug_section`, sourced below, because the developer's
+# builder asks the same one of the same file and the two answers have to agree; lib/bug-section.sh
+# says what breaks when they do not. Asked here, ahead of the readability loop, so the
+# paragraph's file joins the others in it rather than carrying a second copy of the same
+# refusal further down.
+#
+# `||` rather than a bare `source`, so a lib file that is not there is refused the way every
+# other unreadable input to this builder is — exit 2, a diagnostic, no prompt — instead of
+# dying under `set -e` with 1, the code reserved for an answer that came back.
+# shellcheck source=lib/bug-section.sh
+source "$HERE/lib/bug-section.sh" \
+  || { echo "build-verify-prompt: cannot read '$HERE/lib/bug-section.sh'" >&2; exit 2; }
 bug_file=""
-if grep -qE '^## Bug[[:space:]]*$' "$spec_file" 2>/dev/null; then
+if spec_has_bug_section "$spec_file"; then
   bug_file="$HERE/prompts/_verify-red-bug.md"
 fi
 
