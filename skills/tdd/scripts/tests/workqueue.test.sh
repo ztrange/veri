@@ -41,20 +41,20 @@ issues_fixture() {
   cat > "$work/$1.gh/issues.json"
 }
 
-# expect_next <case> <want> <description> [<VAR>=<value>...] — runs `next alpha` in
-# $work/<case> against the fixtures in $work/<case>.gh, with any assignments given in its
-# environment, and counts the case passed when it exits 0 printing exactly <want>.
+# expect_next <case> <want-exit> <want> <description> [<VAR>=<value>...] — runs `next alpha`
+# in $work/<case> against the fixtures in $work/<case>.gh, with any assignments given in its
+# environment, and counts the case passed when it exits <want-exit> printing exactly <want>.
 expect_next() {
-  local name="$1" want="$2" what="$3" out code
-  shift 3
+  local name="$1" want_code="$2" want="$3" what="$4" out code
+  shift 4
   out="$(cd "$work/$name" && env "$@" VERI_GH_JSON="$work/$name.gh" "$SCRIPT" next alpha \
     2>"$work/$name.err")" && code=0 || code=$?
-  if [[ "$code" -eq 0 && "$out" == "$want" ]]; then
+  if [[ "$code" -eq "$want_code" && "$out" == "$want" ]]; then
     pass=$((pass + 1))
   else
     fail=$((fail + 1))
     echo "FAIL - $what"
-    echo "    exit: $code (want 0), stdout: '$out' (want '$want')"
+    echo "    exit: $code (want $want_code), stdout: '$out' (want '$want')"
     echo "    stderr: $(cat "$work/$name.err")"
   fi
 }
@@ -155,7 +155,7 @@ issues_fixture next-unblocked <<'JSON'
    "body": "Work.\n\n## Blocked by\n\n- #6\n"}
 ]
 JSON
-expect_next next-unblocked 22 \
+expect_next next-unblocked 0 22 \
   "next prints the worker's first queued issue whose Blocked by names no open issue"
 
 # 7. next does not read a `## Blocked by` URL naming another repository's issue as a blocker:
@@ -174,7 +174,7 @@ issues_fixture next-foreign-url <<'JSON'
    "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri-demo-node/issues/120\n"}
 ]
 JSON
-expect_next next-foreign-url 131 \
+expect_next next-foreign-url 0 131 \
   "next does not read a Blocked by URL naming another repository's issue as a blocker"
 
 # 8. an `origin` URL ending in `.git` still names this repository: a `## Blocked by` URL to an
@@ -193,7 +193,7 @@ issues_fixture next-own-url <<'JSON'
   {"number": 132, "title": "unblocked", "labels": [], "body": "", "state": "OPEN"}
 ]
 JSON
-expect_next next-own-url 132 \
+expect_next next-own-url 0 132 \
   "next reads a Blocked by URL naming this repository, origin ending in .git, as a blocker"
 
 # 9. an SSH `origin` — `git@github.com:<owner>/<name>.git` — names this repository too, so a
@@ -212,7 +212,7 @@ issues_fixture next-ssh-origin <<'JSON'
    "body": "Work.\n\n## Blocked by\n\n- https://github.com/ztrange/veri-demo-node/issues/120\n"}
 ]
 JSON
-expect_next next-ssh-origin 131 \
+expect_next next-ssh-origin 0 131 \
   "next reads an SSH origin as this repository when weighing a Blocked by URL" \
   GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
@@ -231,16 +231,8 @@ issues_fixture next-none <<'JSON'
   {"number": 32, "title": "beta's", "labels": [], "body": "", "state": "OPEN"}
 ]
 JSON
-out="$(cd "$repo" && VERI_GH_JSON="$work/next-none.gh" "$SCRIPT" next alpha \
-  2>"$work/next-none.err")" && code=0 || code=$?
-if [[ "$code" -eq 3 && -z "$out" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - next exits 3 with empty stdout when none of the worker's queued items is launchable"
-  echo "    exit: $code (want 3), stdout: '$out' (want '')"
-  echo "    stderr: $(cat "$work/next-none.err")"
-fi
+expect_next next-none 3 '' \
+  "next exits 3 with empty stdout when none of the worker's queued items is launchable"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
