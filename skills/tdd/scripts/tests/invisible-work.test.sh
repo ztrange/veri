@@ -540,6 +540,57 @@ names "the finding names issue 71's state as the fixture decodes it" "${rest^^}"
 omits "the finding does not name the state gh would have given" "${rest^^}" "CLOSED"
 report "$name"
 
+# 13. Issue #197, criterion 5: the script reads and never writes — it creates, moves and
+#     deletes no ref, in the clone or on `origin`. Every ref both repositories hold is read
+#     before and after one run, and the two readings must be byte-identical. The clone is
+#     built so that each of the ways a sweep could plausibly write shows up in that reading:
+#     `origin` gained a branch after the clone's last fetch and lost one the clone still
+#     tracks, so a `fetch` creates a remote-tracking ref and a `fetch --prune` deletes one; a
+#     local branch whose PR is merged, a local branch `origin` lacks in a worktree of its own,
+#     and a branch with no PR give a `push`, a `branch -D` or a `worktree remove` something
+#     to act on; and a tag and each worktree's HEAD are read too. The run must also have
+#     printed its findings, so "nothing changed" cannot be a script that died before reading
+#     anything.
+# ref_state <clone> <origin> — every ref of both repositories with the object it names or the
+# ref it points at, then each worktree's HEAD, as one text to compare.
+ref_state() {
+  local clone="$1" origin="$2"
+  git -C "$clone" for-each-ref --format='clone %(refname) %(objectname) %(symref)'
+  git -C "$clone" worktree list --porcelain
+  git -C "$origin" for-each-ref --format='origin %(refname) %(objectname) %(symref)'
+  echo "origin HEAD $(git -C "$origin" symbolic-ref HEAD)"
+}
+name="invisible-work.sh: writes to no ref — the clone's and origin's refs are byte-identical after a run"
+problems=()
+unpr="chore/nobody-opened-a-pr"
+merged="tdd/4-supervised-leaves"
+gone="chore/deleted-on-origin"
+local_only="tdd/150-a-run-that-never-reached-origin"
+clone="$(unpr_branch_clone "$work/case13" "$unpr" 1)"
+origin="$work/case13/origin.git"
+push_control_branch "$work/case13" "$merged"
+push_control_branch "$work/case13" "$gone"
+git_q "$clone" branch -q "$merged" "origin/$merged"
+git_q "$clone" tag -a -m "v0.1" v0.1 main
+git_q "$clone" worktree add -q -b "$local_only" "$work/case13/wt-150" main
+git_q "$work/case13/wt-150" commit -q --allow-empty -m "feat: a step nobody pushed (#150)"
+git_q "$work/case13/src" push -q origin --delete "$gone"
+git_q "$work/case13/src" checkout -q -b "chore/pushed-after-the-fetch" main
+git_q "$work/case13/src" commit -q --allow-empty -m "chore: work the clone has not fetched"
+git_q "$work/case13/src" push -q origin "chore/pushed-after-the-fetch"
+gh_json="$(fixture "$work/case13/gh")"
+cat > "$gh_json/prs.json" <<JSON
+[{"headRefName": "$merged", "state": "MERGED", "body": "Closes #4"}]
+JSON
+before="$(ref_state "$clone" "$origin")"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
+after="$(ref_state "$clone" "$origin")"
+names "the run reported the branch with no PR" "$out" "$unpr"
+names "the run reported the local branch origin lacks" "$out" "$local_only"
+[[ "$before" == "$after" ]] ||
+  problems+=("the refs after a run: want byte-identical to before, got this diff: $(diff <(echo "$before") <(echo "$after") | grep -E '^[<>]' | tr '\n' ';')")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
