@@ -1601,6 +1601,109 @@ out="$(cd "$flight_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code
   && ok || no "an issue an open PR Closes stays out of the pool though its conductor pid is dead (exit=$code want 3, stdout='$(tr '\n' '|' <<<"$out")' want ''; dead pid=$dead_pid)"
 
 
+# 33. The two signals cases 4, 17, 18 and 32 pin behaviourally are now a division of labour, and
+# a division of labour that lives only in the code is one the next reader re-derives from
+# whichever branch they happen to open: the open PR saying `Closes #<n>` is the claim EVERY
+# machine can see, and the `conductor.pid` lock is only the guard on ONE machine's worktree —
+# what keeps a second conductor out of a live run's tree, where *Resume*'s `git reset --hard`
+# would throw the running leaf's uncommitted work away (#170). Case 32 makes the dead lock stop
+# freeing the issue; this case makes the documents say why, because the two sentences they
+# carry today say the opposite. CONTEXT.md's **Solvable** entry calls the PR the *late* mark and
+# the lock the *early* one, and this script's header argues that "a pid that no longer answers
+# reads as free … which is what a bailed run needs" — the exact reading #195 reverses, and the
+# one a reader repairing a red case 32 would restore if nothing here stopped them.
+#
+# Read out of the **Solvable** entry and out of this script's OWN header comment, each sliced
+# and asserted non-empty first, for case 19's reason: the glossary has other entries a sentence
+# about a lock could land in, and this script has comments further down that already name a
+# worktree (`solvable-issues.sh:130, 189`), so a file-wide grep would pass on prose nowhere near
+# the paragraphs that define the two signals. The header slice runs from the line after the
+# shebang to the first line that is not a comment, split into records at its blank `#` lines,
+# because a fact is carried by ONE paragraph: "a label is visible across machines" and "an open
+# PR is not the only claim" are two paragraphs apart today, and a passage-wide match would read
+# them as the sentence this case is asking for.
+#
+# The third claim is a pointer rather than a reading: the decision itself goes in a new ADR, and
+# a suite under this directory may not open that tree — the development lane never puts the
+# documentation lane's prose on every leaf's critical path (#143, no-docs-reads.test.sh), and an
+# ADR's own text is `docs/tests/docs-gap-adr.test.sh`'s subject for exactly that reason (#137).
+# What IS this lane's is that both documents cite the record, so a reader who finds the rule
+# also finds where the three rejected options are argued.
+#
+# Every regex is loose on wording and literal only on the names a reader greps for, case 19's
+# protocol: whether the author writes "every machine", "across machines" or "cross-machine" is
+# their sentence, and that the record carries the claim is this suite's.
+CLAIM_PR='closes #|pull request|open pr|draft pr'
+CLAIM_ANY_MACHINE='every machine|any machine|other machine|another machine|all machines|across machines|cross-machine|machine-independent'
+CLAIM_WORD='claim'
+CLAIM_LOCK='conductor\.pid|pid lock|the lock|the pid'
+CLAIM_WORKTREE='worktree'
+CLAIM_GUARD='guard'
+CLAIM_LOCAL='same[- ]machine|one machine|machine-local|local'
+CLAIM_ADR='adr[ -]?[0-9]{4}'
+
+# says_all <records> <regex>… — true when SOME ONE record of <records> matches every regex. A
+# fact split across two records is not a statement, it is two sentences that happen to share a
+# word, which is why the regexes are asked of a record rather than of the passage. The records
+# reach here already case-folded, so the regexes are written in lower case once.
+says_all() {
+  local text="$1"; shift
+  local line re
+  while IFS= read -r line; do
+    for re in "$@"; do
+      [[ "$line" =~ $re ]] || continue 2
+    done
+    return 0
+  done <<<"$text"
+  return 1
+}
+
+# claim_says <passage> <tag> <records> <regex>… — one fact one passage owes, recorded as
+# `<passage>:<tag>` when no record of it carries the fact. The accumulator is spelled once here
+# so the six misses below cannot drift into being reported in six shapes — case 11's `doc_claims`
+# for passages already in hand.
+claim_says() {
+  local passage="$1" tag="$2" text="$3"; shift 3
+  says_all "$text" "$@" || claim_missing="$claim_missing $passage:$tag"
+}
+
+# The **Solvable** entry as one folded record, and this script's header as one record per
+# paragraph. Both lower-cased on the way out, so `Closes #<n>` and `closes #7` are one string to
+# every regex above.
+claim_entry="$(awk '/^\*\*Solvable\*\*:/ { keep = 1; next } keep && /^\*\*/ { exit } keep' \
+  "$REPO_ROOT/$context_md" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')"
+claim_header="$(awk 'NR == 1 { next }
+                     !/^#/ { exit }
+                     /^#[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
+                     { line = $0; sub(/^#[[:space:]]?/, "", line)
+                       rec = (rec == "" ? line : rec " " line) }
+                     END { if (rec != "") print rec }' "$SOLVABLE" | tr '[:upper:]' '[:lower:]')"
+
+claim_missing=""
+if [[ -z "${claim_entry// /}" ]]; then
+  claim_missing="$claim_missing $context_md:the-Solvable-entry-itself"
+else
+  claim_says "$context_md" the-open-PR-as-the-claim-every-machine-sees \
+    "$claim_entry" "$CLAIM_PR" "$CLAIM_ANY_MACHINE" "$CLAIM_WORD"
+  claim_says "$context_md" the-lock-as-one-machines-worktree-guard \
+    "$claim_entry" "$CLAIM_LOCK" "$CLAIM_WORKTREE" "$CLAIM_GUARD" "$CLAIM_LOCAL"
+  claim_says "$context_md" the-ADR-recording-the-decision "$claim_entry" "$CLAIM_ADR"
+fi
+
+if [[ -z "${claim_header// /}" ]]; then
+  claim_missing="$claim_missing solvable-issues.sh:the-header-comment-itself"
+else
+  claim_says solvable-issues.sh the-open-PR-as-the-claim-every-machine-sees \
+    "$claim_header" "$CLAIM_PR" "$CLAIM_ANY_MACHINE" "$CLAIM_WORD"
+  claim_says solvable-issues.sh the-lock-as-one-machines-worktree-guard \
+    "$claim_header" "$CLAIM_LOCK" "$CLAIM_WORKTREE" "$CLAIM_GUARD" "$CLAIM_LOCAL"
+  claim_says solvable-issues.sh the-ADR-recording-the-decision "$claim_header" "$CLAIM_ADR"
+fi
+
+[[ -z "$claim_missing" ]] \
+  && ok || no "$context_md's Solvable entry and solvable-issues.sh's header say an open PR is the claim every machine sees and the conductor.pid lock is only that machine's worktree guard, each citing the ADR that records it (missing:$claim_missing)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
