@@ -275,6 +275,38 @@ fi
 
 report "$name"
 
+# probe_says_the_launch_mode_is_a_trade — issue #213: interactive and print mode are a trade
+# the operator picks per run, not one right mode and one wrong one, so ONE record has to carry
+# both sides of it. Interactive: it can be steered, and it costs ~25,000 tokens a request more
+# (#207's measurement, recorded at run-conductor.sh:7). Print mode: that much cheaper, and every
+# question it would have put becomes a bail. Asked of one record for the reason case 2's
+# CANNOT_INTERVENE gives: a paragraph naming the steering and another naming the price, sections
+# apart, is two facts the reader has to put together, which is exactly how the two passages
+# #213 found came to contradict each other.
+probe_says_the_launch_mode_is_a_trade() {
+  says "that interactive and print mode are a trade picked per run — interactive can be steered and costs ~25,000 tokens a request more, print mode is that much cheaper and turns every question into a bail" \
+    "$INTERACTIVE" \
+    "$PRINT|run-conductor" \
+    'steer|intervene|redirect' \
+    '25,?000|25k' \
+    'token' \
+    'request' \
+    'cheaper|less|saves' \
+    'bail' \
+    'trade|per run|each run|every run'
+}
+
+# 4. One criterion, one case (#213): the launch section presents the two modes as a trade the
+#    operator picks per run, with what each costs and what each gives up.
+name="$skill_md presents interactive and print mode as a trade picked per run: steerable at ~25,000 tokens a request more, or that much cheaper with every question a bail"
+problems=()
+
+if need_skill_records; then
+  probe_says_the_launch_mode_is_a_trade
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

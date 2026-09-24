@@ -394,11 +394,14 @@ hand, and `$S/run-conductor.sh <n>`, which builds that same command line — the
 the prompt, the streaming flags, `--permission-mode bypassPermissions`, and the parent
 session's handles severed — and is what an unattended or scheduled launch should call.
 
-**What print mode costs you: a print-mode conductor cannot be asked a question, redirected
-or interrupted mid-run.** There is no human on the other end of its turn, so every decision
-the procedure would put to an operator becomes a bail instead — it stops and says why, and
-you read that afterwards rather than answering it at the time. Pick the interactive mode
-when the run is one you want to be able to intervene in.
+**Interactive or print mode is a trade you pick per run.** An interactive conductor can be
+steered — asked a question, redirected, interrupted mid-run — and costs ~25,000 tokens a
+request more, the harness surface an interactive session re-sends on every request (#207,
+recorded at `run-conductor.sh:7`). A print-mode conductor is that much cheaper per request,
+and cannot be steered: there is no human on the other end of its turn, so every decision the
+procedure would put to an operator becomes a bail instead — it stops and says why, and you
+read that afterwards rather than answering it at the time. Pick interactive when the run is
+one you want to be able to intervene in, print mode when it is not.
 
 **The skill snapshot: a run executes one skill from its first launch to its last.**
 `$S/run-conductor.sh <n>` does not run the skill as it sits in the clone. It fetches `origin`,
