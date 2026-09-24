@@ -886,6 +886,12 @@ following step. The phase sub-steps are:
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
      $S/push-branch.sh
      ```
+     **On a bug run that subject is `fix:`, not `feat:`** — `fix: <STEP summary> (#<n>)`.
+     The run is a bug run when the issue carries the `bug` label, the same fact step 1 read
+     to give the spec its `## Bug` section. A bug step's green repairs a reported failure
+     rather than adding a capability, and the walkthrough's capability index is computed
+     from the `feat:`/`fix:` subjects in each tag's range, so a bug step committed as
+     `feat:` files a regression repair there as a new capability.
      The push is what stops the run living on one disk until it is review-ready: the first
      call creates the remote branch, later ones fast-forward, and no PR is opened, so
      nothing asks for review before the run is ready. An unreachable remote is **not** a
@@ -1103,6 +1109,10 @@ one more cycle, not a loop — and the bail names every suite still red, not onl
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh pr edit <pr-url> --body "<the body above, followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets>"
    ```
+   `<type>` is **`fix`** on a bug run — the issue carries the `bug` label, so the title
+   starts with the `fix:` prefix, the same prefix its green commits took — and `feat`
+   otherwise. A bug run's PR titled `feat:` announces to the human deciding the merge a
+   capability the run did not add.
    One `metrics:` commit, and the report sits beside the ledger it describes — the
    `issue-<n>-metrics.md` name is already on the keep side of the run-state ignore rule, so
    nothing else has to change for it to be tracked.
