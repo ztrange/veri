@@ -13,7 +13,7 @@
 #          workqueue.sh start <worker> <issue>
 #          workqueue.sh done <worker> <issue> <merge-sha>
 #          workqueue.sh park <worker> <issue> <reason>
-#          workqueue.sh show
+#          workqueue.sh show [<worker>]
 # Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
 #          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
 #          already queued or running for any worker, or a lock not taken within
@@ -117,9 +117,10 @@ fi
 
 # `show` prints the queue grouped by worker: the worker's name on a line of its own, then one
 # tab-indented `<issue>\t<state>` line per item of that worker's, in file order. Workers come
-# in the order they first appear in the file.
+# in the order they first appear in the file. `show <worker>` prints that worker's group alone.
 if [[ "${1:-}" == show ]]; then
-  awk -F '\t' '
+  awk -F '\t' -v only="${2:-}" '
+    only != "" && $1 != only { next }
     !($1 in items) { order[++workers] = $1 }
     { items[$1] = items[$1] "\t" $2 "\t" $3 "\n" }
     END { for (w = 1; w <= workers; w++) printf "%s\n%s", order[w], items[order[w]] }
