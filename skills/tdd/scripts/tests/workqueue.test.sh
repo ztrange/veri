@@ -55,5 +55,18 @@ else
   diff "$work/unknown-subcommand.before" "$repo/.tdd/workqueue" 2>&1 | sed 's/^/    /'
 fi
 
+# 3. an unknown subcommand in a repo with no queue exits 2 and creates no queue file.
+repo="$work/unknown-subcommand-no-queue"
+new_repo "$repo"
+out="$(cd "$repo" && "$SCRIPT" frobnicate alpha 12 2>&1)" && code=0 || code=$?
+if [[ "$code" -eq 2 && ! -e "$repo/.tdd/workqueue" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - an unknown subcommand in a repo with no queue exits 2 and creates no queue file"
+  echo "    exit: $code (want 2), output: $out"
+  echo "    .tdd/workqueue: $([[ -e "$repo/.tdd/workqueue" ]] && echo present || echo absent) (want absent)"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
