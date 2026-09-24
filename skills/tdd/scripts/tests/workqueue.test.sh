@@ -21,6 +21,8 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$HERE/../workqueue.sh"
+# shellcheck source=../lib/background.sh
+source "$HERE/../lib/background.sh"
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
@@ -387,7 +389,6 @@ new_repo "$repo"
 seed_queue "$repo" 'alpha\t12\tqueued\t\n'
 before="$(cat "$repo/.tdd/workqueue")"
 mkdir "$repo/.tdd/workqueue.lock"
-source "$HERE/../lib/background.sh"
 record="$work/lock-held.bg"
 bg_start "$record" env VERI_WORKQUEUE_LOCK_WAIT=0 sh -c 'cd "$1" && exec "$2" assign beta 7' \
   _ "$repo" "$SCRIPT" 2>"$work/lock-held.err"
