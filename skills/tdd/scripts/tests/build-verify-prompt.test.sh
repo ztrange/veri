@@ -631,6 +631,31 @@ allows_new_step() {  # allows_new_step <phase label> <prompt>
 
 every_phase allows_new_step "every phase's prompt allows NEW_STEP: lines before the final VERDICT:/REASON: pair"
 
+# 34. the builder accepts a fifth phase, `plan`, and builds its prompt from the issue spec
+#     and the ledger named in the third positional (#439). The plan is the one artifact a
+#     run never verifies: a planning leaf's paraphrase silently becomes the definition of
+#     done, which is how #426 shipped every step ticked and its criterion unmet. The phase
+#     is a verifier like the other four, so it is built here, from the same two kinds of
+#     on-disk artifact — and the third slot, which for a cycle phase names the test under
+#     review, for `plan` names the proposed ledger.
+#
+#     The assertion is that the ledger's own text reaches the prompt, not merely its path:
+#     a verifier told only where the plan lives, in a target repository, judges a file it
+#     was never given. Spec and ledger are both checked, because a prompt carrying one
+#     without the other cannot answer the question the phase exists to ask — do the steps
+#     tagged for a criterion together deliver it?
+cat > "$work/ledger.md" <<'LEDGER'
+# Plan for #426
+
+- [ ] A verdict launcher script runs verify.sh with the step title as an argument ⟦criterion 1⟧
+LEDGER
+plan="$("$BUILD" plan "$work/spec.md" "$work/ledger.md")"; code=$?
+[[ "$code" -eq 0 ]] \
+  && [[ "$plan" == *'slugify("Hello & World/Foo")'* ]] \
+  && [[ "$plan" == *'A verdict launcher script runs verify.sh with the step title as an argument ⟦criterion 1⟧'* ]] \
+  && ok || no "verify-plan carries the issue spec and the ledger named as its third argument (exit $code)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
