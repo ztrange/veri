@@ -1,2 +1,4 @@
 ### An importable Python module under skills/tdd/scripts/lib/ returns the issue numbers a body names under `## Blocked by`, reading both the `#<n>` form and the full `https://github.com/<owner>/<name>/issues/<n>` URL of the given repository ⟦criterion 1⟧
 - make solvable-issues.sh import blocked_by.blockers in place of its own blocker_ref/blockers() — deferred to plan step 5 (criterion 2), which needs the missing-section and no-repo behaviour from steps 2–3 first
+### The blocked-by module ignores an issue URL naming another repository when a repository slug is given, and reads any github.com issue URL as local when none is ⟦criterion 3⟧
+- solvable-issues.sh:173-174 and :209-212 (`slug_pattern`, `blocker_ref`, `blockers()`) duplicate lib/blocked_by.py's `blockers()`; left alone because the ledger's step 5 (solvable-issues.sh takes its parsing from the module) is that change, and it has its own test
