@@ -126,21 +126,26 @@ first_record() {
   head -1 <<< "$text"
 }
 
-# step_or_problem <heading prefix> <what> — read into `records` the numbered step whose
-# heading starts with <heading prefix>, a heading of either level ending it, or record the one
+# section_or_problem <heading prefix> <closer regex> <what> — read into `records` the section
+# whose heading starts with <heading prefix>, <closer regex> ending it, or record the one
 # problem that says the case could not be read at all, naming <what> it could therefore not
 # check. Non-zero when the section is gone, so each case below is its probes alone rather than
 # its probes and its own missing-section branch: every case here asks the document for one
-# slice first, and would otherwise spell the same fetch and the same fail-closed message seven
-# times over. The heading is a parameter because the cases read two steps — `### 4. Draft PR`
-# and, since #195, `### 2. Scope & plan`, which `### 2b. Start comment` ends — and a reader per
-# step would be the same six lines twice.
-step_or_problem() {
-  records="$(section_records "$1" '^## |^### ')"
+# slice first, and would otherwise spell the same fetch and the same fail-closed message eight
+# times over. The closer is a parameter because the cases read sections at two levels — the
+# numbered steps, which a heading of either level ends, and since #195 `## Resume`, which only
+# another `## ` does.
+section_or_problem() {
+  records="$(section_records "$1" "$2")"
   [[ -n "$records" ]] && return 0
-  problems+=("$skill_md has no $1 section to read — $2 could not be checked")
+  problems+=("$skill_md has no $1 section to read — $3 could not be checked")
   return 1
 }
+
+# step_or_problem <heading prefix> <what> — that reader for a numbered step, whose closer is
+# always the same. The heading stays a parameter because the cases read two steps —
+# `### 4. Draft PR` and, since #195, `### 2. Scope & plan`, which `### 2b. Start comment` ends.
+step_or_problem() { section_or_problem "$1" '^## |^### ' "$2"; }
 
 # 1. The criterion, as one case: the step asks for review on a branch that is already on the
 #    remote, and pushes nothing itself. It used to anchor on `gh pr create` first, so that a
@@ -487,15 +492,12 @@ report "$name"
 name="$skill_md's Resume reuses the open PR already on its branch and opens no second one"
 problems=()
 
-resume_records="$(section_records '## Resume' '^## ')"
-if [[ -z "$resume_records" ]]; then
-  problems+=("$skill_md has no ## Resume section to read — what a resumed run does with the PR its branch already carries could not be checked")
-else
+if section_or_problem '## Resume' '^## ' "what a resumed run does with the PR its branch already carries"; then
   # The command lines rather than the records for the positive probe, the way case 10 asks its
   # three: prose naming `gh pr view` to explain a neighbouring step is not the resume issuing it.
   grep -qE '^gh pr view' <<< "$(commands_of '## Resume' '^## ')" ||
     problems+=("$skill_md's Resume section never runs gh pr view, so a resumed run never reads the open PR its branch already carries and has no url for the tick's gh pr edit or step 4's rewrite")
-  creates="$(first_record "$resume_records" -F 'gh pr create')"
+  creates="$(first_record "$records" -F 'gh pr create')"
   if [[ -n "$creates" ]]; then
     grep -qE 'no open pr|no pr|none|no such pr' <<< "$creates" ||
       problems+=("$skill_md's Resume section runs gh pr create without conditioning it on there being no open PR to reuse, so a resume of a run that already opened one leaves the issue claimed by two pages: $(printf '%.120s' "$creates")")
