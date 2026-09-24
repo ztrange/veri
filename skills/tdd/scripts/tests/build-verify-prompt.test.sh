@@ -656,6 +656,23 @@ plan="$("$BUILD" plan "$work/spec.md" "$work/ledger.md")"; code=$?
   && ok || no "verify-plan carries the issue spec and the ledger named as its third argument (exit $code)"
 
 
+# 35. a plan call that names no ledger, or names one the builder cannot read, refuses with
+#     exit 2 and nothing on stdout (#439). The plan phase's third positional is the one
+#     input the other four phases never read off disk — for them it is a path the verifier
+#     opens itself, for `plan` it is text this builder reads — so it is also the one that
+#     can fail here rather than in the leaf. Exit 2 is the code for "no answer could be
+#     obtained": a prompt was asked for and none exists, which is a system failure, never
+#     the clean negative 1 that a verdict of REJECT is spelled with. The silent stdout is
+#     the other half: a builder that printed a half-substituted prompt and exited non-zero
+#     would hand run-leaf.sh a template with {{LEDGER}} still in it, and the verifier would
+#     judge a plan it was shown a placeholder of.
+no_ledger="$("$BUILD" plan "$work/spec.md" 2>/dev/null)"; code=$?
+missing_ledger="$("$BUILD" plan "$work/spec.md" "$work/absent-ledger.md" 2>/dev/null)"; missing_code=$?
+[[ "$code" -eq 2 && -z "$no_ledger" ]] \
+  && [[ "$missing_code" -eq 2 && -z "$missing_ledger" ]] \
+  && ok || no "verify-plan refuses a call naming no ledger or an unreadable one with exit 2 and no stdout (no ledger: exit $code, ${#no_ledger} bytes; unreadable: exit $missing_code, ${#missing_ledger} bytes)"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
