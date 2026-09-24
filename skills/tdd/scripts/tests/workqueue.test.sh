@@ -34,6 +34,24 @@ seed_queue() {
   printf "$2" > "$1/.tdd/workqueue"
 }
 
+# expect_next <case> <want> <description> [<VAR>=<value>...] — runs `next alpha` in
+# $work/<case> against the fixtures in $work/<case>.gh, with any assignments given in its
+# environment, and counts the case passed when it exits 0 printing exactly <want>.
+expect_next() {
+  local name="$1" want="$2" what="$3" out code
+  shift 3
+  out="$(cd "$work/$name" && env "$@" VERI_GH_JSON="$work/$name.gh" "$SCRIPT" next alpha \
+    2>"$work/$name.err")" && code=0 || code=$?
+  if [[ "$code" -eq 0 && "$out" == "$want" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $what"
+    echo "    exit: $code (want 0), stdout: '$out' (want '$want')"
+    echo "    stderr: $(cat "$work/$name.err")"
+  fi
+}
+
 # 1. assign appends one queued line per issue, in the order given.
 repo="$work/assign-order"
 new_repo "$repo"
@@ -133,16 +151,8 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 printf '[]\n' > "$fx/prs.json"
-out="$(cd "$repo" && VERI_GH_JSON="$fx" "$SCRIPT" next alpha 2>"$work/next-unblocked.err")" \
-  && code=0 || code=$?
-if [[ "$code" -eq 0 && "$out" == 22 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - next prints the worker's first queued issue whose Blocked by names no open issue"
-  echo "    exit: $code (want 0), stdout: '$out' (want '22')"
-  echo "    stderr: $(cat "$work/next-unblocked.err")"
-fi
+expect_next next-unblocked 22 \
+  "next prints the worker's first queued issue whose Blocked by names no open issue"
 
 # 7. next does not read a `## Blocked by` URL naming another repository's issue as a blocker:
 #    this repository is the one its `origin` names, and only a URL naming that one blocks. #131
@@ -163,16 +173,8 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 printf '[]\n' > "$fx/prs.json"
-out="$(cd "$repo" && VERI_GH_JSON="$fx" "$SCRIPT" next alpha 2>"$work/next-foreign-url.err")" \
-  && code=0 || code=$?
-if [[ "$code" -eq 0 && "$out" == 131 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - next does not read a Blocked by URL naming another repository's issue as a blocker"
-  echo "    exit: $code (want 0), stdout: '$out' (want '131')"
-  echo "    stderr: $(cat "$work/next-foreign-url.err")"
-fi
+expect_next next-foreign-url 131 \
+  "next does not read a Blocked by URL naming another repository's issue as a blocker"
 
 # 8. an `origin` URL ending in `.git` still names this repository: a `## Blocked by` URL to an
 #    open issue HERE blocks, so #131 is skipped and #132 is the one printed. Read with `.git`
@@ -193,16 +195,8 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 printf '[]\n' > "$fx/prs.json"
-out="$(cd "$repo" && VERI_GH_JSON="$fx" "$SCRIPT" next alpha 2>"$work/next-own-url.err")" \
-  && code=0 || code=$?
-if [[ "$code" -eq 0 && "$out" == 132 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - next reads a Blocked by URL naming this repository, origin ending in .git, as a blocker"
-  echo "    exit: $code (want 0), stdout: '$out' (want '132')"
-  echo "    stderr: $(cat "$work/next-own-url.err")"
-fi
+expect_next next-own-url 132 \
+  "next reads a Blocked by URL naming this repository, origin ending in .git, as a blocker"
 
 # 9. an SSH `origin` — `git@github.com:<owner>/<name>.git` — names this repository too, so a
 #    URL to another repository's #120 does not block #131 even though #120 is open here. Read
@@ -223,17 +217,9 @@ cat > "$fx/issues.json" <<'JSON'
 ]
 JSON
 printf '[]\n' > "$fx/prs.json"
-out="$(cd "$repo" && GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 VERI_GH_JSON="$fx" \
-  "$SCRIPT" next alpha 2>"$work/next-ssh-origin.err")" \
-  && code=0 || code=$?
-if [[ "$code" -eq 0 && "$out" == 131 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - next reads an SSH origin as this repository when weighing a Blocked by URL"
-  echo "    exit: $code (want 0), stdout: '$out' (want '131')"
-  echo "    stderr: $(cat "$work/next-ssh-origin.err")"
-fi
+expect_next next-ssh-origin 131 \
+  "next reads an SSH origin as this repository when weighing a Blocked by URL" \
+  GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
