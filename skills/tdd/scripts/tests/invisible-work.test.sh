@@ -449,6 +449,43 @@ out="$(cd "$clone" && env -u VERI_GH_JSON PATH="$work/case10-gh/bin:$PATH" "$INV
 no_answer "gh unreadable" "$work/case10-gh/stderr"
 report "$name"
 
+# 11. Issue #197, criterion 5: every finding names the invariant it breaks, so a reader can
+#     tell a branch with no PR (invariant 2, #195) from a branch that never reached `origin`
+#     (invariant 1, #191) without knowing how the script found it. One clone holds one of
+#     each: a branch on `origin` no PR was ever opened for, and a local branch `origin` lacks.
+#     Each finding must name its own invariant and not the other one, and every line of the
+#     report must name one, so a line that names neither cannot hide among them. Neither
+#     branch name carries a `1` or a `2`, so the number read after `invariant` is the script's.
+# names_invariant <label> <line> <n> — one probe: <line> names invariant <n>, and no other.
+names_invariant() {
+  local label="$1" line="${2,,}" n="$3"
+  [[ "$line" =~ invariant[^0-9]*$n([^0-9]|$) ]] ||
+    problems+=("$label: want invariant $n named in the finding, got $(printf '%q' "$2")")
+  [[ ! "$line" =~ invariant[^0-9]*$((3 - n))([^0-9]|$) ]] ||
+    problems+=("$label: want only invariant $n named, got invariant $((3 - n)) in $(printf '%q' "$2")")
+}
+name="invisible-work.sh: every finding names the invariant it breaks"
+problems=()
+unpr="chore/nobody-opened-a-pr"
+local_only="chore/a-run-only-this-machine-holds"
+clone="$(unpr_branch_clone "$work/case11" "$unpr" 1)"
+gh_json="$(fixture "$work/case11/gh")"
+git_q "$clone" checkout -q -b "$local_only" main
+git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed"
+git_q "$clone" checkout -q main
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
+finding "$out" "$unpr"
+names "the report names the branch with no PR" "$out" "$unpr"
+names_invariant "the branch with no PR" "$line" 2
+finding "$out" "$local_only"
+names "the report names the local branch origin lacks" "$out" "$local_only"
+names_invariant "the local branch origin lacks" "$line" 1
+while IFS= read -r row; do
+  [[ "${row,,}" =~ invariant[^0-9]*[12]([^0-9]|$) ]] ||
+    problems+=("every finding names an invariant: want invariant 1 or 2 in $(printf '%q' "$row")")
+done <<< "$out"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
