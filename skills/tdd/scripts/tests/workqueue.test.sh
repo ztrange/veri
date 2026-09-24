@@ -448,5 +448,33 @@ seed_queue "$work/show-one" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\t
 expect_show show-one 'alpha\n\t12\trunning\n\t7\tqueued' \
   "show <worker> prints only that worker's items" alpha
 
+# 21. called from a linked worktree, the script reads and writes `.tdd/workqueue` under the
+#     repository's main working tree, not the worktree's own: `assign` run in the worktree
+#     appends to the main tree's queue, which already holds beta's 4, `show` run there prints
+#     both items, and the worktree is left with no `.tdd/workqueue` of its own.
+repo="$work/linked-worktree"
+new_repo "$repo"
+git -C "$repo" worktree add -q -b side "$work/linked-worktree.wt" >/dev/null 2>&1
+seed_queue "$repo" 'beta\t4\tqueued\t\n'
+want_queue="$(printf 'beta\t4\tqueued\t\nalpha\t7\tqueued\t')"
+want_show="$(printf 'beta\n\t4\tqueued\nalpha\n\t7\tqueued')"
+out="$(cd "$work/linked-worktree.wt" && "$SCRIPT" assign alpha 7 2>&1 \
+  && "$SCRIPT" show 2>&1)" && code=0 || code=$?
+got="$(cat "$repo/.tdd/workqueue")"
+if [[ "$code" -eq 0 && "$got" == "$want_queue" && "$out" == "$want_show" \
+  && ! -e "$work/linked-worktree.wt/.tdd/workqueue" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - called from a linked worktree, workqueue.sh reads and writes the main working tree's queue"
+  echo "    exit: $code (want 0)"
+  echo "    worktree's own .tdd/workqueue: $([[ -e "$work/linked-worktree.wt/.tdd/workqueue" ]] \
+    && echo present || echo absent) (want absent)"
+  echo "    main tree's queue:"
+  diff <(printf '%s\n' "$want_queue") <(printf '%s\n' "$got") | sed 's/^/    /'
+  echo "    show, run in the worktree:"
+  diff <(printf '%s\n' "$want_show") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
