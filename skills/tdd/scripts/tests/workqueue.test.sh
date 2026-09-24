@@ -11,6 +11,8 @@
 #                                              the VERI_GH_JSON fixtures
 #   workqueue.sh start <worker> <issue>      → rewrites that worker's `queued` line for the
 #                                              issue to `running`, in place
+#   workqueue.sh done <worker> <issue> <sha> → rewrites that worker's `running` line for the
+#                                              issue to `merged`, the sha as its detail
 #
 # Run: scripts/tests/workqueue.test.sh
 set -uo pipefail
@@ -265,6 +267,16 @@ else
   echo "    output: $out"
   diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
 fi
+
+# 13. done moves that worker's running item to merged, recording the sha as its detail, in
+#     place: another worker's running item and the worker's own queued item are left as they
+#     were.
+repo="$work/done-running"
+new_repo "$repo"
+seed_queue "$repo" 'beta\t4\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n'
+expect_queue done-running \
+  'beta\t4\trunning\t\nalpha\t12\tmerged\tabc1234\nalpha\t7\tqueued\t' \
+  "done moves that worker's running item to merged, recording the sha" done alpha 12 abc1234
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -11,6 +11,7 @@
 # Usage:   workqueue.sh assign <worker> <issue>...
 #          workqueue.sh next <worker>
 #          workqueue.sh start <worker> <issue>
+#          workqueue.sh done <worker> <issue> <merge-sha>
 # Exit:    0 done, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
 #          already queued or running for any worker — refused before anything is written,
 #          so the file is left byte-identical
@@ -63,13 +64,19 @@ sys.exit(3)
 ' "$issues_json" "$2" "$queue" "$repo"
 fi
 
-# `start` moves the worker's `queued` line for the issue to `running`, in place: every line
-# keeps its position, and the new file replaces the old one by `mv` from beside it.
-if [[ "${1:-}" == start ]]; then
+# `start` moves the worker's `queued` line for the issue to `running`, and `done` its
+# `running` line to `merged` with the sha as its detail, in place: every line keeps its
+# position, and the new file replaces the old one by `mv` from beside it.
+if [[ "${1:-}" == start || "${1:-}" == done ]]; then
+  if [[ "$1" == start ]]; then
+    from=queued to=running new_detail=""
+  else
+    from=running to=merged new_detail="$4"
+  fi
   tmp="$queue.tmp.$$"
   while IFS=$'\t' read -r owner issue state detail; do
-    if [[ "$owner" == "$2" && "$issue" == "$3" && "$state" == queued ]]; then
-      state=running
+    if [[ "$owner" == "$2" && "$issue" == "$3" && "$state" == "$from" ]]; then
+      state="$to" detail="$new_detail"
     fi
     printf '%s\t%s\t%s\t%s\n' "$owner" "$issue" "$state" "$detail"
   done < "$queue" > "$tmp"
