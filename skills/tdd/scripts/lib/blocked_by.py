@@ -8,4 +8,6 @@ def blockers(body, repo):
     URL GitHub renders for `repo` (`<owner>/<name>`)."""
     ref = r"(?:#|https://github\.com/%s/issues/)(\d+)" % re.escape(repo)
     section = re.search(r"^## Blocked by$(.*?)(?=^## |\Z)", body, re.M | re.S)
+    if not section:
+        return []
     return [int(n) for n in re.findall(ref, section.group(1))]
