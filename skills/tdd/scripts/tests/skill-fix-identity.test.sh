@@ -110,6 +110,17 @@ criteria_block() {
        seen { print }' <<<"$1" | tr -d '*`' | tr '[:upper:]' '[:lower:]' | tr '\n' ' '
 }
 
+# have_template — true when the SKILL.md quotes an issue body, left in `template` for the
+# caller; otherwise it records the one problem that explains why nothing else could be read.
+# Cases 2 and 3 both read that block and both fail the same way when it is missing, so the
+# guard and its sentence live here once, the way have_skill_md's do.
+have_template() {
+  template="$(issue_body_template "$ROOT/$skill_md")"
+  [[ -n "$template" ]] && return 0
+  problems+=("$skill_md quotes no issue body: no fenced block in it holds a '## What happened' line")
+  return 1
+}
+
 # says <regex> <fact> — one thing the body has to carry, written as the regex of any wording
 # that would carry it; <fact> names it once if nothing matches.
 says() {
@@ -162,22 +173,17 @@ want_headings='## What happened
 ## Environment
 ## Acceptance criteria
 ## Blocked by'
-if have_skill_md; then
-  template="$(issue_body_template "$ROOT/$skill_md")"
-  if [[ -z "$template" ]]; then
-    problems+=("$skill_md quotes no issue body: no fenced block in it holds a '## What happened' line")
-  else
-    got_headings="$(grep '^##[^#]' <<<"$template" || true)"
-    if [[ "$got_headings" != "$want_headings" ]]; then
-      problems+=("$skill_md's issue body has the wrong headings:")
-      problems+=("  want: $(printf '%s' "$want_headings" | tr '\n' '/')")
-      problems+=("  got:  $(printf '%s' "$got_headings" | tr '\n' '/')")
-    fi
-    blocked="$(awk '/^##[[:space:]]+Blocked by[[:space:]]*$/ { seen = 1; next }
-                    seen && NF { print; exit }' <<<"$template")"
-    [[ "$blocked" == "None." ]] ||
-      problems+=("$skill_md's issue body: want 'None.' under '## Blocked by', got $(printf '%q' "$blocked")")
+if have_skill_md && have_template; then
+  got_headings="$(grep '^##[^#]' <<<"$template" || true)"
+  if [[ "$got_headings" != "$want_headings" ]]; then
+    problems+=("$skill_md's issue body has the wrong headings:")
+    problems+=("  want: $(printf '%s' "$want_headings" | tr '\n' '/')")
+    problems+=("  got:  $(printf '%s' "$got_headings" | tr '\n' '/')")
   fi
+  blocked="$(awk '/^##[[:space:]]+Blocked by[[:space:]]*$/ { seen = 1; next }
+                  seen && NF { print; exit }' <<<"$template")"
+  [[ "$blocked" == "None." ]] ||
+    problems+=("$skill_md's issue body: want 'None.' under '## Blocked by', got $(printf '%q' "$blocked")")
 fi
 report "$name"
 
@@ -191,26 +197,21 @@ report "$name"
 #    issue.
 name="$skill_md's issue body writes one acceptance criterion per manifestation, each failing now and passing after the fix"
 problems=()
-if have_skill_md; then
-  template="$(issue_body_template "$ROOT/$skill_md")"
-  if [[ -z "$template" ]]; then
-    problems+=("$skill_md quotes no issue body: no fenced block in it holds a '## What happened' line")
+if have_skill_md && have_template; then
+  text="$(criteria_block "$template")"
+  if [[ -z "${text// /}" ]]; then
+    # Fail closed, as case 1 does: an empty section means not one of the four claims
+    # below was tested, which must not read as four passes.
+    problems+=("$skill_md's issue body has nothing under '## Acceptance criteria'")
   else
-    text="$(criteria_block "$template")"
-    if [[ -z "${text// /}" ]]; then
-      # Fail closed, as case 1 does: an empty section means not one of the four claims
-      # below was tested, which must not read as four passes.
-      problems+=("$skill_md's issue body has nothing under '## Acceptance criteria'")
-    else
-      says '- \[ \]' \
-        "$skill_md's issue body writes no '- [ ]' checkbox under '## Acceptance criteria'"
-      says 'one[^.]{0,40}per manifestation|per manifestation' \
-        "$skill_md's issue body never says one criterion per manifestation"
-      says '(reproduction|repro)[^.]{0,80}fails[^.]{0,80}(current|today|now|unfixed)' \
-        "$skill_md's issue body never says the reproduction fails on the current code"
-      says 'passes[^.]{0,60}(after the fix|once fixed|when fixed)' \
-        "$skill_md's issue body never says the reproduction passes after the fix"
-    fi
+    says '- \[ \]' \
+      "$skill_md's issue body writes no '- [ ]' checkbox under '## Acceptance criteria'"
+    says 'one[^.]{0,40}per manifestation|per manifestation' \
+      "$skill_md's issue body never says one criterion per manifestation"
+    says '(reproduction|repro)[^.]{0,80}fails[^.]{0,80}(current|today|now|unfixed)' \
+      "$skill_md's issue body never says the reproduction fails on the current code"
+    says 'passes[^.]{0,60}(after the fix|once fixed|when fixed)' \
+      "$skill_md's issue body never says the reproduction passes after the fix"
   fi
 fi
 report "$name"
