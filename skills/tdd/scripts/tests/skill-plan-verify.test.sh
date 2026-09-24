@@ -13,12 +13,17 @@
 # criterion: after the ledger is committed (there is no plan to read before that) and before
 # the first step (a plan caught wrong after step 3 has already been paid for).
 #
-# Contract under test — two cases, one per criterion:
+# Contract under test — three cases, one per criterion:
 #   1. SKILL.md launches the `plan` verdict between the instruction that commits the ledger
 #      and the heading that opens the cycle loop, and the prose in that same span says a
 #      REJECT rewrites the plan and re-verifies it, rather than ending the run.
 #   2. The same span sends the third outcome — exit 2, no verdict rendered at all — down the
 #      **system** failure bail, rather than letting it read as a PASS.
+#   3. The script inventory's own entries for the three scripts a plan verdict travels
+#      through — `build-verify-prompt.sh`, `verify.sh` and `run-verdict.sh` — name `plan`
+#      among the phases they accept. The inventory is where a conductor reads what a script
+#      takes; an entry that still spells only the four cycle phases says the plan phase does
+#      not exist, whatever the scripts themselves now accept.
 #
 # Run: skills/tdd/scripts/tests/skill-plan-verify.test.sh
 set -uo pipefail
@@ -161,6 +166,62 @@ else
     done
   fi
 fi
+
+report "$name"
+
+# Case 3 — the script inventory, which is prose rather than a launch line: the entries at
+# SKILL.md:129, :131 and :138 are where a conductor reads what each script accepts, and all
+# three spell the phase as one alternation in angle brackets. A `plan` phase the scripts
+# take and the inventory does not list is a capability nothing tells the reader about.
+#
+# The three entries, each named by the ERE that finds it: the inventory's bullet, anchored at
+# the start of a line so the many other mentions of these scripts cannot stand in for one.
+# Written without a backslash for the same reason as the anchors above — `line_of` hands the
+# value to `awk -v`, which eats escape sequences — so `[$]` and `[.]` are the literal dollar
+# and dot.
+entry_res=(
+  "build-verify-prompt.sh:^- .[$]S/build-verify-prompt[.]sh "
+  "verify.sh:^- .[$]S/verify[.]sh "
+  "run-verdict.sh:^- .[$]S/run-verdict[.]sh "
+)
+
+# The phases an entry has to name: the four cycles, and the fifth this step adds. Read as a
+# set rather than as a spelling, so the order the entry lists them in is free.
+want_phases=(red green refactor pin plan)
+
+# The pattern the alternation is read out of, named here so the comment at its use site and
+# the pattern itself cannot drift apart.
+alternation_re='[<]([a-z|]*red[a-z|]*)[>]'
+
+name="$skill_md's script entries for the verifier scripts name the plan phase beside the four cycle phases"
+problems=()
+
+for entry in "${entry_res[@]}"; do
+  script="${entry%%:*}"
+  entry_re="${entry#*:}"
+  entry_line="$(line_of "$entry_re")"
+  if [[ "$entry_line" -eq 0 ]]; then
+    problems+=("$skill_md has no script-inventory entry for $script (no line matching /$entry_re/), so there is nowhere a conductor reads which phases it accepts")
+    continue
+  fi
+  line="$(sed -n "${entry_line}p" "$skill_path")"
+  # The entry's phase alternation: the one angle-bracketed run of lowercase words and pipes
+  # that names `red`. The classes are written `[<]` and `[>]` rather than escaped because
+  # `\<` is a word boundary, not a literal, in some ERE engines this suite may meet — and the
+  # whole pattern is held in a variable because an unquoted `<` inside `[[ … ]]` is read as
+  # the redirection operator before the match is ever attempted.
+  if [[ ! "$line" =~ $alternation_re ]]; then
+    problems+=("$skill_md:$entry_line, the entry for $script, spells no phase alternation among its arguments: $line")
+    continue
+  fi
+  alternation="${BASH_REMATCH[1]}"
+  for phase in "${want_phases[@]}"; do
+    case "|$alternation|" in
+      *"|$phase|"*) ;;
+      *) problems+=("$skill_md:$entry_line, the entry for $script, spells its phases <$alternation>, which does not name '$phase' — the inventory is where a conductor reads what the script takes, so a phase missing from it is a phase the procedure never tells anyone to ask for") ;;
+    esac
+  done
+done
 
 report "$name"
 

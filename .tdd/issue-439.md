@@ -9,4 +9,4 @@
 - [x] The plan phase prompt carries only the issue spec and the ledger, and the four cycle phase prompts carry no ledger ⟦criterion 7⟧
 - [x] SKILL.md has the conductor run the plan verifier once after the ledger is committed and before the first step, and a REJECT rewrites the plan and re-verifies instead of ending the run ⟦criterion 6⟧
 - [x] SKILL.md treats a plan verification that rendered no verdict as a system failure bail rather than a PASS ⟦criterion 8⟧
-- [ ] SKILL.md's script entries for build-verify-prompt.sh, verify.sh and run-verdict.sh name the plan phase beside the four cycle phases
+- [x] SKILL.md's script entries for build-verify-prompt.sh, verify.sh and run-verdict.sh name the plan phase beside the four cycle phases ⟂ refactor pending
