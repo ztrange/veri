@@ -1502,8 +1502,21 @@ is nothing to re-create or switch. The **resume check** then finds an existing
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh resume` — then run
-   the cycle loop as normal. Go to the **draft PR** only when
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh resume` — then
+   **reuse the claim the previous run left on the branch**, which every tick of the cycle
+   loop edits and step 4 rewrites:
+   ```
+   gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
+   ```
+   A resumed run skips step 2 outright, so this is where the url comes from: it is read off
+   the branch, never remembered. It edits that PR and opens **no second one** — a second
+   `gh pr create` against a branch that already has an open PR is either a refusal that ends
+   the resume where it started, or two pages claiming one issue, which is the failure #195
+   exists to prevent. Only when this prints nothing is there **no open PR** to reuse: the
+   previous run was killed inside step 2.3's own window, between the plan commit and the
+   `gh pr create` that follows it. Then, and only then, run that sub-step's push and
+   `gh pr create` here — opening the first PR a branch has ever had is not opening a second.
+   Then run the cycle loop as normal. Go to the **draft PR** only when
    `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
    checked, and every checked step's refactor is verified.
 

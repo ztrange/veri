@@ -44,6 +44,8 @@
 #      the done-of-total step count read from the run's ledger (issue #195).
 #  10. SKILL.md's Draft PR step creates no PR: it retitles the open one, rewrites its body
 #      and marks it ready for review (issue #195).
+#  11. SKILL.md's `## Resume` section reuses the open PR its branch already carries and never
+#      opens a second one (issue #195).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -465,6 +467,39 @@ if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; the
   creates="$(first_record "$commands" -E '^gh pr create')"
   [[ -z "$creates" ]] ||
     problems+=("$skill_md's Draft PR step still runs gh pr create, so a run whose draft PR has been open since its plan commit either fails at its last step or opens a second PR for the same branch: $(printf '%.120s' "$creates")")
+fi
+report "$name"
+
+# 11. The criterion, as one case (issue #195): a resume finds the claim already on its branch
+#     and uses it. The PR is opened at the plan commit by step 2.3, and a resume skips step 2
+#     outright — so the section that governs a re-run is the only place that can say what
+#     becomes of the PR the first run left open. Said nowhere, a resumed run has no url to
+#     hand the tick's `gh pr edit` and step 4's rewrite, and the reading that fills the gap is
+#     the one this criterion forbids: open one. A second `gh pr create` against a branch that
+#     already has an open PR is either a refusal that ends the resume where it started, or a
+#     second PR for the same branch — two pages claiming one issue, which is the failure the
+#     whole of #195 exists to prevent. So what is pinned is the pair: the section reads the
+#     branch's PR with `gh pr view`, and it issues no `gh pr create` that is not conditioned on
+#     there being no open PR to reuse — the run killed inside step 2.3's own window left a
+#     branch with none, and opening the first one is not opening a second. The positive probe
+#     runs first so the case fails closed: a section that says nothing about the PR at all gets
+#     the one problem line that says so, not a pass earned by never naming `gh pr create`.
+name="$skill_md's Resume reuses the open PR already on its branch and opens no second one"
+problems=()
+
+resume_records="$(section_records '## Resume' '^## ')"
+if [[ -z "$resume_records" ]]; then
+  problems+=("$skill_md has no ## Resume section to read — what a resumed run does with the PR its branch already carries could not be checked")
+else
+  # The command lines rather than the records for the positive probe, the way case 10 asks its
+  # three: prose naming `gh pr view` to explain a neighbouring step is not the resume issuing it.
+  grep -qE '^gh pr view' <<< "$(commands_of '## Resume' '^## ')" ||
+    problems+=("$skill_md's Resume section never runs gh pr view, so a resumed run never reads the open PR its branch already carries and has no url for the tick's gh pr edit or step 4's rewrite")
+  creates="$(first_record "$resume_records" -F 'gh pr create')"
+  if [[ -n "$creates" ]]; then
+    grep -qE 'no open pr|no pr|none|no such pr' <<< "$creates" ||
+      problems+=("$skill_md's Resume section runs gh pr create without conditioning it on there being no open PR to reuse, so a resume of a run that already opened one leaves the issue claimed by two pages: $(printf '%.120s' "$creates")")
+  fi
 fi
 report "$name"
 
