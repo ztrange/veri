@@ -127,6 +127,14 @@ names() {
     problems+=("$label: want $(printf '%q' "$needle") in the report, got $(printf '%q' "$haystack")")
 }
 
+# omits <label> <haystack> <needle> — the other probe: the report leaves this out. Paired
+# with a `names` on a control in the same case, so an empty report cannot pass it alone.
+omits() {
+  local label="$1" haystack="$2" needle="$3"
+  [[ "$haystack" != *"$needle"* ]] ||
+    problems+=("$label: want no $(printf '%q' "$needle") in the report, got $(printf '%q' "$haystack")")
+}
+
 # finding <report> <branch> — set `line` to the one line of the report that names the
 # branch, and `rest` to that line with the branch name and every sha cut out of it: both
 # carry digits of their own — a sha is hex, and the branch name carries the issue number —
@@ -189,8 +197,7 @@ cat > "$gh_json/prs.json" <<JSON
 JSON
 out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
 names "the branch with no PR is still reported" "$out" "$control"
-[[ "$out" != *"$branch"* ]] ||
-  problems+=("the branch with an open PR is left out: want no $(printf '%q' "$branch") in the report, got $(printf '%q' "$out")")
+omits "the branch with an open PR is left out" "$out" "$branch"
 report "$name"
 
 # 3. Issue #197, criterion 1, when the slug names an issue the repository does not have: a
@@ -276,8 +283,7 @@ git_q "$clone" checkout -q "$control"
 git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed (#163)"
 out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
 names "the local branch origin lacks is still reported" "$out" "$control"
-[[ "$out" != *"$pushed"* ]] ||
-  problems+=("the local branch origin carries is left out: want no $(printf '%q' "$pushed") in the report, got $(printf '%q' "$out")")
+omits "the local branch origin carries is left out" "$out" "$pushed"
 report "$name"
 
 # 6. Issue #197, criterion 2, the worktree clause's other side: the worktree is named "if
