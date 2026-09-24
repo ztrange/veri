@@ -23,5 +23,5 @@ Repeat until `next` says there is nothing left:
      recording why.
 5. Go back to 1.
 
-The judgement calls — merging, reading a bail — stay yours. The queue's state changes are the
-script's: nothing else writes `.tdd/workqueue`, and no line in it is ever deleted.
+The judgement calls — merging, reading a bail — stay yours, and no line in `.tdd/workqueue` is
+ever deleted.
