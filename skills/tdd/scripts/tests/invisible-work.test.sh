@@ -403,11 +403,8 @@ names "the report names the local branch origin lacks" "$out" "$local_only"
 omits "the report leaves out the branch with a merged PR" "$out" "$merged"
 [[ "$rc" -eq 0 ]] ||
   problems+=("a local-only branch printed: want exit 0, got $rc")
+# The clean clone reuses the local clone's fixture: the same merged PR for the same branch.
 clone="$(unpr_branch_clone "$work/case9-clean" "$merged" 1)"
-gh_json="$(fixture "$work/case9-clean/gh")"
-cat > "$gh_json/prs.json" <<JSON
-[{"headRefName": "$merged", "state": "MERGED", "body": "Closes #4"}]
-JSON
 out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
 [[ -z "$out" ]] ||
   problems+=("nothing to report: want empty stdout, got $(printf '%q' "$out")")
