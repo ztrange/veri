@@ -673,6 +673,34 @@ missing_ledger="$("$BUILD" plan "$work/spec.md" "$work/absent-ledger.md" 2>/dev/
   && ok || no "verify-plan refuses a call naming no ledger or an unreadable one with exit 2 and no stdout (no ledger: exit $code, ${#no_ledger} bytes; unreadable: exit $missing_code, ${#missing_ledger} bytes)"
 
 
+# 36. the plan prompt asks the question the phase exists for — do the steps tagged
+#     ⟦criterion k⟧ together deliver criterion k *as written* — and binds a REJECT to name
+#     both the criterion and the part of it no step covers (#439). A verifier merely handed
+#     a spec and a ledger would grade the plan on whatever it thought planning meant; the
+#     failure #426 shipped was a plan that restated criterion 1 as two mechanism steps, each
+#     true of the delivered work while the criterion itself stayed unmet, so "together" and
+#     "as written" are the two words that make the question answerable at all: one step of a
+#     pair is never the unit, and the criterion's own terms are the standard rather than the
+#     plan's paraphrase of them. The REJECT half is what makes the verdict actionable — the
+#     scoping step rewrites the plan from that reason, and "the plan is too narrow" names
+#     nothing to rewrite. Three claims, three misses, so a prompt that asks the question and
+#     leaves the reason unconstrained is named for what it dropped rather than covered for
+#     by what it kept. Matched over the newline-flattened prompt, tolerantly of wording and
+#     of markdown emphasis, since the behaviour is the instruction reaching the verifier,
+#     not the sentence it is spelled with. Every bounded repetition stays under 255: BSD
+#     grep refuses a larger one outright ("maximum repetition exceeds 255"), and a refused
+#     grep exits non-zero, which `prompt_says` cannot tell from a prompt that says nothing —
+#     so an over-wide window is an assertion that can only ever miss.
+problems=""
+prompt_says "$plan" "never asks whether the steps tagged for a criterion together deliver it" \
+  -iE -e 'together[^.]{0,200}deliver|deliver[^.]{0,200}together'
+prompt_says "$plan" "never sets the criterion's own wording as the standard" \
+  -iE -e 'as written|in its own terms|the criterion.{0,20}own (words|terms|wording)'
+prompt_says "$plan" "never requires a REJECT reason to name the criterion and what no step covers" \
+  -iE -e 'REJECT[^.]{0,120}(name|identif|say|state)[^.]{0,200}criterion[^.]{0,200}(no step|nothing[^.]{0,40}cover|uncovered)'
+[[ -z "$problems" ]] && ok || no "verify-plan asks whether the steps tagged for a criterion together deliver it as written, and binds a REJECT reason to the criterion and the part no step covers (${problems#; })"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
