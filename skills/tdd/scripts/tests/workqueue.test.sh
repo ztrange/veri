@@ -13,6 +13,8 @@
 #                                              issue to `running`, in place
 #   workqueue.sh done <worker> <issue> <sha> → rewrites that worker's `running` line for the
 #                                              issue to `merged`, the sha as its detail
+#   workqueue.sh park <worker> <issue> <why> → rewrites that worker's `running` line for the
+#                                              issue to `parked`, the reason as its detail
 #
 # Run: scripts/tests/workqueue.test.sh
 set -uo pipefail
@@ -277,6 +279,17 @@ seed_queue "$repo" 'beta\t4\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t
 expect_queue done-running \
   'beta\t4\trunning\t\nalpha\t12\tmerged\tabc1234\nalpha\t7\tqueued\t' \
   "done moves that worker's running item to merged, recording the sha" done alpha 12 abc1234
+
+# 14. park moves that worker's running item to parked, recording the reason — spaces and all —
+#     as its detail, in place: another worker's running item and the worker's own queued item
+#     are left as they were.
+repo="$work/park-running"
+new_repo "$repo"
+seed_queue "$repo" 'beta\t4\trunning\t\nalpha\t12\trunning\t\nalpha\t7\tqueued\t\n'
+expect_queue park-running \
+  'beta\t4\trunning\t\nalpha\t12\tparked\tsecond bail\nalpha\t7\tqueued\t' \
+  "park moves that worker's running item to parked, recording the reason" \
+  park alpha 12 "second bail"
 
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

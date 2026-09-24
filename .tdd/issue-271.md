@@ -9,7 +9,7 @@
 - [x] `workqueue.sh next <worker>` exits 3 with empty stdout when none of that worker's `queued` items is launchable ⟦criterion 2⟧
 - [x] `workqueue.sh start <worker> <issue>` moves that worker's `queued` item to `running` ⟦criterion 3⟧
 - [x] `workqueue.sh done <worker> <issue> <sha>` moves that worker's `running` item to `merged`, recording the sha as its detail ⟦criterion 3⟧
-- [ ] `workqueue.sh park <worker> <issue> <reason>` moves that worker's `running` item to `parked`, recording the reason as its detail ⟦criterion 3⟧
+- [x] `workqueue.sh park <worker> <issue> <reason>` moves that worker's `running` item to `parked`, recording the reason as its detail ⟦criterion 3⟧ ⟂ refactor pending
 - [ ] `start`, `done` or `park` naming an item another worker owns exits 1 and leaves the file byte-identical ⟦criterion 3⟧
 - [ ] `start` on an item not `queued`, or `done`/`park` on an item not `running`, exits 1 and leaves the file byte-identical ⟦criterion 3⟧
 - [ ] After any sequence of `assign`, `start`, `done`, `park` and refused calls, every issue ever assigned is still a line in the file ⟦criterion 4⟧

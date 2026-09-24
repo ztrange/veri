@@ -12,6 +12,7 @@
 #          workqueue.sh next <worker>
 #          workqueue.sh start <worker> <issue>
 #          workqueue.sh done <worker> <issue> <merge-sha>
+#          workqueue.sh park <worker> <issue> <reason>
 # Exit:    0 done, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
 #          already queued or running for any worker — refused before anything is written,
 #          so the file is left byte-identical
@@ -64,15 +65,15 @@ sys.exit(3)
 ' "$issues_json" "$2" "$queue" "$repo"
 fi
 
-# `start` moves the worker's `queued` line for the issue to `running`, and `done` its
-# `running` line to `merged` with the sha as its detail, in place: every line keeps its
+# `start` moves the worker's `queued` line for the issue to `running`, `done` its `running`
+# line to `merged` with the sha as its detail and `park` it to `parked` with the reason, in place: every line keeps its
 # position, and the new file replaces the old one by `mv` from beside it.
-if [[ "${1:-}" == start || "${1:-}" == done ]]; then
-  if [[ "$1" == start ]]; then
-    from=queued to=running new_detail=""
-  else
-    from=running to=merged new_detail="$4"
-  fi
+if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
+  case "$1" in
+    start) from=queued to=running new_detail="" ;;
+    done) from=running to=merged new_detail="$4" ;;
+    park) from=running to=parked new_detail="$4" ;;
+  esac
   tmp="$queue.tmp.$$"
   while IFS=$'\t' read -r owner issue state detail; do
     if [[ "$owner" == "$2" && "$issue" == "$3" && "$state" == "$from" ]]; then
