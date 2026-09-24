@@ -722,6 +722,37 @@ prompt_says "$plan" "never directs a PASS when every criterion is delivered by t
 [[ -z "$problems" ]] && ok || no "verify-plan directs a PASS when every criterion is delivered by the steps tagged for it (${problems#; })"
 
 
+# 38. the plan prompt makes a step too big for one Red → Green → Refactor cycle a named
+#     one, under either verdict (#439). Criterion coverage and step size are two different
+#     failures of the same artifact, and only the first has a verdict attached to it: a plan
+#     whose steps do together deliver every criterion is a PASS by check 1, and saying so is
+#     the whole of that check, so a step that quietly bundles three cycles' work into one
+#     line rides out on that PASS with nothing recorded. It is not a REJECT either — the
+#     plan is not wrong about what it delivers, and sending it back to be rewritten over a
+#     size estimate would spend a re-plan on a judgement call. What is left is the reason
+#     line, which the conductor and the human both read whichever way the verdict goes: it
+#     is the only place an observation can land that neither passes nor fails a plan. So the
+#     duty is on the reason and is verdict-independent — "whether PASS or REJECT" is the
+#     load-bearing half, because a naming rule stated only for REJECT names nothing on the
+#     runs this phase actually passes, which is most of them. Three claims — the size
+#     judgement, the reason as its destination, the independence from the verdict — so three
+#     misses, each named, for case 36's reason. Matched over the newline-flattened prompt,
+#     tolerantly of wording, through `prompt_says`; `reason\b` rather than bare `reason`
+#     because the shared preamble's blindness clause says "the author's reasoning", and a
+#     probe a substring of that word satisfies would pass against a prompt that never
+#     mentions a step's size at all. Every window stays well under 255, for case 36's
+#     reason — a grep that refuses its own pattern exits non-zero and reads here exactly
+#     like a prompt that says nothing.
+problems=""
+prompt_says "$plan" "never judges a step too big for one Red → Green → Refactor cycle" \
+  -iE -e '(too (big|large)|too much|does not fit|not fit)[^.]{0,150}cycle'
+prompt_says "$plan" "never sends that step's name to the reason" \
+  -iE -e '(name|names|say so|state)[^.]{0,100}(REASON:|reason\b)'
+prompt_says "$plan" "never holds the duty whether the verdict is PASS or REJECT" \
+  -iE -e '(whether|either way|regardless)[^.]{0,100}(PASS|REJECT|verdict)'
+[[ -z "$problems" ]] && ok || no "verify-plan requires a step too big for one Red → Green → Refactor cycle to be named in the reason under either verdict (${problems#; })"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
