@@ -173,11 +173,26 @@ spec="$(cat "$spec_file")"
 reason=""
 if [[ -n "$reason_file" ]]; then reason="$(cat "$reason_file")"; fi
 
+# The reproduction paragraph, and the one condition under which it is emitted (#112). An
+# issue labelled `bug` reaches the leaf through the one channel there is — `capture-spec.sh`
+# copies the report into the blind spec under a `## Bug` heading — so the spec's own text is
+# what this asks, rather than a new positional: the builder's arity per phase is the
+# conductor's contract and does not change for a bug. No section, no paragraph, and not a
+# word of difference: a leaf told to reproduce a report nobody filed has nothing to
+# reproduce, and would go looking for one in a spec that is the whole of what it can see.
+bug_reproduction=""
+if grep -qE '^## Bug[[:space:]]*$' "$spec_file"; then
+  bug_file="$HERE/prompts/_develop-red-bug.md"
+  [[ -r "$bug_file" ]] || { echo "build-develop-prompt: cannot read '$bug_file'" >&2; exit 2; }
+  bug_reproduction="$(cat "$bug_file")"
+fi
+
 # Literal substitution via bash parameter expansion — no sed, and with the
 # patsub_replacement guard above holding, so &, \, / and {} in the spec or the step text
 # are carried through verbatim.
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
+out="${out//\{\{BUG_REPRODUCTION\}\}/$bug_reproduction}"
 out="${out//\{\{STEP\}\}/$step}"
 out="${out//\{\{TEST_CMD\}\}/$test_cmd}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
