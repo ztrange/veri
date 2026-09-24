@@ -1679,26 +1679,28 @@ claim_header="$(awk 'NR == 1 { next }
                        rec = (rec == "" ? line : rec " " line) }
                      END { if (rec != "") print rec }' "$SOLVABLE" | tr '[:upper:]' '[:lower:]')"
 
-claim_missing=""
-if [[ -z "${claim_entry// /}" ]]; then
-  claim_missing="$claim_missing $context_md:the-Solvable-entry-itself"
-else
-  claim_says "$context_md" the-open-PR-as-the-claim-every-machine-sees \
-    "$claim_entry" "$CLAIM_PR" "$CLAIM_ANY_MACHINE" "$CLAIM_WORD"
-  claim_says "$context_md" the-lock-as-one-machines-worktree-guard \
-    "$claim_entry" "$CLAIM_LOCK" "$CLAIM_WORKTREE" "$CLAIM_GUARD" "$CLAIM_LOCAL"
-  claim_says "$context_md" the-ADR-recording-the-decision "$claim_entry" "$CLAIM_ADR"
-fi
+# claim_passage <passage> <empty-tag> <records> — the three facts a passage owes, asked of its
+# records. The two passages owe the SAME three, which is the point of the case: a division of
+# labour recorded in one document and not the other is still one the next reader re-derives. So
+# the facts are spelled once here rather than once per passage, where a regex list added to the
+# first and forgotten on the second would leave the case green over exactly that drift. An empty
+# slice is the passage's own miss, reported before any regex is asked of nothing.
+claim_passage() {
+  local passage="$1" empty_tag="$2" text="$3"
+  if [[ -z "${text// /}" ]]; then
+    claim_missing="$claim_missing $passage:$empty_tag"
+    return
+  fi
+  claim_says "$passage" the-open-PR-as-the-claim-every-machine-sees \
+    "$text" "$CLAIM_PR" "$CLAIM_ANY_MACHINE" "$CLAIM_WORD"
+  claim_says "$passage" the-lock-as-one-machines-worktree-guard \
+    "$text" "$CLAIM_LOCK" "$CLAIM_WORKTREE" "$CLAIM_GUARD" "$CLAIM_LOCAL"
+  claim_says "$passage" the-ADR-recording-the-decision "$text" "$CLAIM_ADR"
+}
 
-if [[ -z "${claim_header// /}" ]]; then
-  claim_missing="$claim_missing solvable-issues.sh:the-header-comment-itself"
-else
-  claim_says solvable-issues.sh the-open-PR-as-the-claim-every-machine-sees \
-    "$claim_header" "$CLAIM_PR" "$CLAIM_ANY_MACHINE" "$CLAIM_WORD"
-  claim_says solvable-issues.sh the-lock-as-one-machines-worktree-guard \
-    "$claim_header" "$CLAIM_LOCK" "$CLAIM_WORKTREE" "$CLAIM_GUARD" "$CLAIM_LOCAL"
-  claim_says solvable-issues.sh the-ADR-recording-the-decision "$claim_header" "$CLAIM_ADR"
-fi
+claim_missing=""
+claim_passage "$context_md" the-Solvable-entry-itself "$claim_entry"
+claim_passage solvable-issues.sh the-header-comment-itself "$claim_header"
 
 [[ -z "$claim_missing" ]] \
   && ok || no "$context_md's Solvable entry and solvable-issues.sh's header say an open PR is the claim every machine sees and the conductor.pid lock is only that machine's worktree guard, each citing the ADR that records it (missing:$claim_missing)"
