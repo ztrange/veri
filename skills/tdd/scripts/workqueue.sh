@@ -9,7 +9,7 @@
 #   <worker>	<issue>	<state>	<detail>
 #
 # Usage:   workqueue.sh assign <worker> <issue>...
-# Exit:    0 done
+# Exit:    0 done, 2 an unknown subcommand
 set -euo pipefail
 
 # shellcheck source=lib/main-working-tree.sh
@@ -17,6 +17,11 @@ source "$(dirname "$0")/lib/main-working-tree.sh"
 
 main_tree="$(main_working_tree)"
 queue="$main_tree/.tdd/workqueue"
+
+if [[ "${1:-}" != assign ]]; then
+  echo "workqueue.sh: unknown subcommand: ${1:-}" >&2
+  exit 2
+fi
 
 worker="$2"
 shift 2
