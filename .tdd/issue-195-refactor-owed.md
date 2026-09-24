@@ -9,3 +9,5 @@
 ### SKILL.md resume reuses the open PR already on the run's branch and never creates a second one
 - SKILL.md:1512-1515 restates the "a second `gh pr create` is either a refusal or two pages claiming one issue" mechanism that step 4's sub-step 2 already states at SKILL.md:1117-1120 — removing it costs either a dereference in the Resume instruction or an edit to step 4, which this cycle did not write
 - skill-draft-pr.test.sh:496-498 spells the section identity `'## Resume' '^## '` twice, once to `section_or_problem` and once to `commands_of`; one slice feeding both readings would say it once, but case 10 has the same shape and is out of this cycle's bounds
+### SKILL.md Bailing leaves the draft PR open carrying the bail diagnostic, in place of opening no PR
+- collapse the three identical `gh pr view --json url -q .url` command blocks in SKILL.md (step 4 line 1123, Bailing line 1443, Resume line 1521) into one — but cases 10, 11 and 12 each require their own section to issue its PR commands, so this transform turns the suite red as written and needs the criteria changed first
