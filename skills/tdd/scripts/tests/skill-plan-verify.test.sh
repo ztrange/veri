@@ -87,18 +87,21 @@ if [[ "$commit_line" -eq 0 ]]; then
 elif [[ "$loop_line" -eq 0 ]]; then
   problems+=("$skill_md has no cycle-loop heading (no line matching /$loop_re/), so there is no point in the run before which the plan has to have been verified")
 else
+  # The span both probes below judge against, named once: two spellings of it are two chances
+  # for the line numbers a failure quotes to disagree with the ones the probe actually used.
+  span_desc="the ledger commit (line $commit_line) and the cycle loop (line $loop_line)"
   launch_line="$(line_of "$plan_launch_re")"
   if [[ "$launch_line" -eq 0 ]]; then
     problems+=("$skill_md never launches the plan verifier: no line matching /$plan_launch_re/, so the plan phase is a prompt nothing runs")
   elif [[ "$launch_line" -le "$commit_line" || "$launch_line" -ge "$loop_line" ]]; then
-    problems+=("$skill_md launches the plan verifier at line $launch_line, outside the span between the ledger commit (line $commit_line) and the cycle loop (line $loop_line) — before the commit there is no committed plan to verify, and after the loop opens the first step has already been paid for")
+    problems+=("$skill_md launches the plan verifier at line $launch_line, outside the span between $span_desc — before the commit there is no committed plan to verify, and after the loop opens the first step has already been paid for")
   fi
 
   span="$(span_text "$commit_line" "$loop_line")"
   for want in reject rewrit re-verif; do
     case "$span" in
       *"$want"*) ;;
-      *) problems+=("$skill_md says nothing matching '$want' between the ledger commit (line $commit_line) and the cycle loop (line $loop_line), so the span does not say that a REJECT rewrites the plan and re-verifies it rather than ending the run") ;;
+      *) problems+=("$skill_md says nothing matching '$want' between $span_desc, so the span does not say that a REJECT rewrites the plan and re-verifies it rather than ending the run") ;;
     esac
   done
 fi
