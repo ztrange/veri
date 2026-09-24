@@ -567,6 +567,17 @@ report "$name"
 # noun have to sit in one sentence rather than a paragraph apart.
 denial='(no|never|without|not)[^.]{0,80}'
 
+# What growing the plan looks like, spelled once for the two probes that name it from opposite
+# sides: case 6 asks that an overfit flag is DENIED it, case 7 that an uncovered-spec flag is
+# the one class granted it. That is one question — which words does this document use for a
+# step the plan gains — and two literals for it would let one side accept a wording the other
+# still rejects, so a document could read as both "overfit is denied an amendment" and
+# "uncovered-spec is never granted one" over the very same sentence, which is the routing
+# neither case would then be checking. The alternation is the union of how this document
+# already writes it, `add-ledger-step` among them because the script's own name is one of the
+# ways it says so.
+amendment='amend|ledger (step|line)|add-ledger-step|grow'
+
 name="$skill_md's Refactor section answers an overfit flag with one triangulating red/green pair inside the step, adding no ledger step and no second step-done, and resumes that step's refactor loop with the budget it had left"
 problems=()
 
@@ -588,7 +599,7 @@ else
     # b. And that the pair is all it is. The whole cost this issue measured is the flag
     #    becoming a ledger step, so a document that runs the pair AND amends the plan has
     #    paid for it twice.
-    grep -qE "$denial(ledger (step|line|amendment)|plan amendment|amendment)" <<<"$flagged" ||
+    grep -qE "$denial($amendment)" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section answers an overfit flag without saying the plan does not grow for it, so the triangulation becomes a ledger step with a refactor loop of its own — the #107 chain this issue is against")
     grep -qE "$denial(second )?step.done" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section answers an overfit flag without saying the step is not mirrored done a second time, so one step reports itself finished twice and the issue thread stops saying how many steps ran")
@@ -632,7 +643,7 @@ else
     problems+=("$(unnamed_class_problem uncovered-spec "no flag is routed to a plan amendment by its class and the conductor amends from whichever flag it reads")")
   else
     # a. That class becomes a plan amendment: the one flag the plan is allowed to grow for.
-    grep -qE 'amend|ledger (step|line)|add-ledger-step|grow' <<<"$uncovered" ||
+    grep -qE "$amendment" <<<"$uncovered" ||
       problems+=("$skill_md's Refactor section names the uncovered-spec class without saying it is what amends the plan, so a behaviour the spec requires and no step covers is narrated and never planned")
 
     # b. And that it is the only one. Without that, the class is named and every other flag
