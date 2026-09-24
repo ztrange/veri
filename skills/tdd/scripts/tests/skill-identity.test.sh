@@ -524,6 +524,35 @@ rm -rf "$ROOT"
 ROOT="$real_root"
 report "$name"
 
+# 13. ADR 0013's line 18 stays as written, and both sweeps still pass over it (#412). It names
+#     the old home as a path — the user-level symlink under ~/.claude/skills that the decision
+#     was about — inside a record of a decision that was true when it was made, and an ADR is
+#     not rewritten to suit a later change. Asked of a scratch repository holding that line at
+#     that record's own path, as cases 11 and 12 are, so this suite never opens the real one:
+#     neither sweep may report the record. The line is assembled from `old_skill_dir`, so this
+#     file still spells no old home out.
+name="ADR 0013's line 18, naming the old home as a path passes both sweeps"
+problems=()
+real_root="$ROOT"
+ROOT="$(mktemp -d)"
+adr_line="$(printf 'the user-level `~/.claude/%s` symlink into the primary clone silently' "$old_skill_dir")"
+mkdir -p "$ROOT/docs/adr" && printf '%s\n' "$adr_line" > "$ROOT/docs/adr/0013-issue-branch-in-its-own-worktree.md"
+if ! (cd "$ROOT" && git init -q && git add -A); then
+  problems+=("could not build the scratch repository at $ROOT")
+else
+  sweep --fixed-strings "$old_scripts_dir" || problems+=("old-home sweep: git grep failed with exit $?")
+  got="$(offenders)"
+  [[ -z "$got" ]] ||
+    problems+=("old-home sweep: want no offenders for ADR 0013's line 18, got: $got")
+  sweep -E "$cmd_re" || problems+=("old-command sweep: git grep failed with exit $?")
+  got="$(offenders)"
+  [[ -z "$got" ]] ||
+    problems+=("old-command sweep: want no offenders for ADR 0013's line 18, got: $got")
+fi
+rm -rf "$ROOT"
+ROOT="$real_root"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
