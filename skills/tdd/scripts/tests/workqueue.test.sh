@@ -543,5 +543,14 @@ expect_unchanged assign-missing-args 2 \
   "assign with a worker and no issue exits 2 and leaves the queue file byte-identical" \
   assign alpha
 
+# 26. assign naming the same issue twice in one call exits 2 and leaves the queue file
+#     byte-identical: one call cannot queue an issue twice, any more than two calls can.
+repo="$work/assign-duplicate-issue"
+new_repo "$repo"
+seed_queue "$repo" 'beta\t4\tqueued\t\n'
+expect_unchanged assign-duplicate-issue 2 \
+  "assign naming the same issue twice in one call exits 2 and leaves the queue file byte-identical" \
+  assign alpha 12 12
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
