@@ -567,14 +567,20 @@ report "$name"
 #    about ledger steps and about what a step owes, and a probe reading the whole of it would
 #    be answered by the PASS branch's `add-ledger-step.sh` sentences and pass a document that
 #    still turns every flag into a plan amendment.
-# What a denial looks like, spelled once for the two probes of case 6 that ask for one, the
-# way `refusal` above is spelled once for case 1's two. Both of those probes owe the same
-# thing beyond the noun each names — that the section says the overfit flag does NOT buy it —
-# and either probe widened on its own would accept a wording the other still rejects, leaving
-# the next writer two different answers to "what counts as denying it". The alternation is the
-# union of how this document already writes a denial; the gap is `[^.]` so the denial and its
-# noun have to sit in one sentence rather than a paragraph apart.
-denial='(no|never|without|not)[^.]{0,80}'
+# The words this document denies with, spelled once for the three probes that ask for one —
+# case 6's two and case 8's — the way `refusal` above is spelled once for case 1's two. All
+# three owe the same thing beyond the verb or noun each names: that the section says the flag
+# does NOT buy it. Two lists for that one question is how they drift — case 8's carried
+# `neither` where case 6's carried `without` — and a probe widened on its own then accepts a
+# wording the others still reject, leaving the next writer several answers to "what counts as
+# denying it". The alternation is the union of how this document already writes a denial.
+denial_word='no|never|neither|without|not'
+
+# ...and how far from its noun it may sit, for the two probes of case 6 that ask for a noun
+# phrase: the gap is `[^.]` so the denial and its noun have to sit in one sentence rather than
+# a paragraph apart. Case 8 denies a VERB, and spells the adjacency it needs at its own probe,
+# where the reason for it is written.
+denial="($denial_word)[^.]{0,80}"
 
 # What growing the plan looks like, spelled once for the two probes that name it from opposite
 # sides: case 6 asks that an overfit flag is DENIED it, case 7 that an uncovered-spec flag is
@@ -709,7 +715,7 @@ else
     #    what this issue measured, whatever the comment said about it.
     #
     #    Asked with the denial word ADJACENT to the verb rather than through `$denial`'s
-    #    `[^.]{0,80}` gap, which cases 1 and 6 use. The gap is right for those two — what
+    #    `[^.]{0,80}` gap, which case 6 uses. The gap is right for those two — what
     #    they deny is a noun phrase a writer may put words in front of — but here it reads
     #    the bullet's own rationale instead of its rule: "without costing it a step: one
     #    made from a beyond-spec flag would build behaviour no criterion of the issue
@@ -717,7 +723,7 @@ else
     #    answered by the sentence explaining WHY the class is not planned and passed a
     #    document whose clause granted both. The denial this case is about is written
     #    against the verb itself, so that is what it matches.
-    grep -qE '(not|never|neither|no) (planned|plan|built|build)' <<<"$beyond" ||
+    grep -qE "($denial_word) (planned|plan|built|build)" <<<"$beyond" ||
       problems+=("$skill_md's Refactor section narrates a beyond-spec flag without saying it is neither planned nor built in this run, so the run still builds behaviour the issue's spec never asked for")
   fi
 fi
