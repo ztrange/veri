@@ -10,8 +10,9 @@
 #
 # Usage:   workqueue.sh assign <worker> <issue>...
 #          workqueue.sh next <worker>
-# Exit:    0 done, 2 an unknown subcommand or an issue already queued or running for any
-#          worker — refused before anything is written, so the file is left byte-identical
+# Exit:    0 done, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
+#          already queued or running for any worker — refused before anything is written,
+#          so the file is left byte-identical
 set -euo pipefail
 
 # shellcheck source=lib/main-working-tree.sh
@@ -20,7 +21,8 @@ source "$(dirname "$0")/lib/main-working-tree.sh"
 main_tree="$(main_working_tree)"
 queue="$main_tree/.tdd/workqueue"
 
-# `next` prints the worker's first `queued` issue whose `## Blocked by` names no open issue.
+# `next` prints the worker's first `queued` issue whose `## Blocked by` names no open issue,
+# and exits 3 printing nothing when none of the worker's `queued` items is launchable.
 # The issues come from `gh`, or from `$VERI_GH_JSON/issues.json` the way solvable-issues.sh
 # reads its fixtures, and the section is read by lib/blocked_by.py (#460), not a copy of it.
 if [[ "${1:-}" == next ]]; then
@@ -55,7 +57,8 @@ with open(sys.argv[3]) as f:
             continue
         if all(n not in open_issues for n in blocked_by.blockers(bodies.get(int(issue), ""), sys.argv[4])):
             print(issue)
-            break
+            sys.exit(0)
+sys.exit(3)
 ' "$issues_json" "$2" "$queue" "$repo"
 fi
 
