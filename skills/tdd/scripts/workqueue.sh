@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# workqueue.sh — the only writer of `.tdd/workqueue`, the file that assigns issues to named
+# workers and records what happened to each (issue #271).
+#
+# The file lives under the repository's MAIN working tree, resolved the way
+# solvable-issues.sh resolves it (lib/main-working-tree.sh, #166), so every worktree of the
+# clone reads and writes the one queue. One item per line, tab-separated:
+#
+#   <worker>	<issue>	<state>	<detail>
+#
+# Usage:   workqueue.sh assign <worker> <issue>...
+# Exit:    0 done
+set -euo pipefail
+
+# shellcheck source=lib/main-working-tree.sh
+source "$(dirname "$0")/lib/main-working-tree.sh"
+
+main_tree="$(main_working_tree)"
+queue="$main_tree/.tdd/workqueue"
+
+worker="$2"
+shift 2
+mkdir -p "$main_tree/.tdd"
+for issue in "$@"; do
+  printf '%s\t%s\tqueued\t\n' "$worker" "$issue" >> "$queue"
+done
