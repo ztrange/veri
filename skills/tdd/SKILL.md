@@ -899,7 +899,14 @@ following step. The phase sub-steps are:
      $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "<distinctive substring of STEP>"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
      $S/push-branch.sh
+     gh pr edit --body "Closes #<n> — work in progress: <done> of <total> steps done. The ledger .tdd/issue-<n>.md is the source of truth."
      ```
+     `<done>` is the ticked checkboxes of the run's ledger `.tdd/issue-<n>.md` and
+     `<total>` all of its steps — `grep -c '^- \[x\]'` of `grep -c '^- \['` over that file,
+     counted after the tick above so the step just closed is in the number. The draft PR
+     opened at the plan commit is the only thing another machine can read for the hours a
+     multi-step run takes, and a body written once there says the same at step 1 as at step
+     7; the tick is where the count changes, so it is where the body is rewritten.
      **On a bug run that subject is `fix:`, not `feat:`** — `fix: <STEP summary> (#<n>)`.
      The run is a bug run when the issue carries the `bug` label, the same fact step 1 read
      to give the spec its `## Bug` section. A bug step's green repairs a reported failure
