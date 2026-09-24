@@ -40,6 +40,8 @@
 #   8. SKILL.md's `### 2. Scope & plan` step pushes the branch and opens the draft PR —
 #      `Closes #<n>` in the body, a title marking the work in progress — after the plan
 #      commit and before the Plan comment (issue #195).
+#   9. SKILL.md's Green PASS branch, the one place a step is ticked, edits the PR body with
+#      the done-of-total step count read from the run's ledger (issue #195).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -374,6 +376,37 @@ if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; t
         problems+=("$skill_md's Scope & plan step opens the PR at record $pr_at, after the Plan comment at record $comment_at — the comment is meant to name the PR url, and the claim is meant to be the first act after the plan commit")
     fi
   fi
+fi
+report "$name"
+
+# 9. The criterion, as one case (issue #195): the claim on origin says how far the run has
+#    got. The draft PR now opens at the plan commit, hours before the run ends, so for the
+#    whole of a multi-step issue its body is the only thing another machine can read — and a
+#    body written once at the plan commit says the same thing at step 1 and at step 7. The
+#    ledger already holds the answer: every step is a checkbox, and the tick that closes a
+#    step is where the count changes. So what is pinned is that the Green PASS branch — the
+#    one place a step is ticked and committed — also edits the PR body, and that the edit
+#    names the ledger it counts and states the count as done-of-total rather than a bare
+#    "in progress". The `gh pr edit` probe runs first so the case fails closed: a PASS branch
+#    that never edits the PR gets one problem line rather than three reading as partial
+#    progress. The record is the Green PASS branch's own, the way case 2 reads it, because an
+#    unscoped read would answer with step 4's own `gh pr edit`, which rewrites the body once
+#    at the end and is a different instruction on a different path.
+name="$skill_md's Green PASS branch updates the PR body with the ledger's done-of-total step count"
+problems=()
+
+record="$(pass_record '#### Green')"
+if [[ -z "$record" ]]; then
+  problems+=("$skill_md has no PASS branch under '#### Green' to read — whether the step tick updates the PR body could not be checked")
+elif ! grep -qF 'gh pr edit' <<< "$record"; then
+  problems+=("$skill_md's Green PASS branch never runs gh pr edit, so the draft PR opened at the plan commit still reads as step 0 for the whole of a multi-step run")
+else
+  grep -qF -- '--body' <<< "$record" ||
+    problems+=("$skill_md's Green PASS branch edits the PR without --body, so nothing a reader of the PR sees carries the run's progress: $(printf '%.120s' "$record")")
+  grep -qF '.tdd/issue-<n>.md' <<< "$record" ||
+    problems+=("$skill_md's Green PASS branch edits the PR body without naming the run's .tdd/issue-<n>.md ledger as where the count is read from, so which file answers how far the run has got is left to judgement: $(printf '%.120s' "$record")")
+  grep -qE '<done> of <total>|[0-9]+ of [0-9]+|done of|of how many' <<< "$record" ||
+    problems+=("$skill_md's Green PASS branch edits the PR body without a done-of-total step count, so a reader learns the run moved but not how far it has left to go: $(printf '%.120s' "$record")")
 fi
 report "$name"
 
