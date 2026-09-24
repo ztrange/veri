@@ -20,7 +20,8 @@ trap 'rm -rf "$tmp"' EXIT
 
 # The issue body the stub serves: the four bug sections this case is about, plus the
 # ordinary spec headings every issue carries, so the body is the shape a real one has.
-cat > "$tmp/body.md" <<'BODY'
+bugdir="$tmp/bug"; mkdir -p "$bugdir"
+cat > "$bugdir/body.md" <<'BODY'
 ## What happened
 tick-ledger.sh ticked the same step twice.
 
@@ -38,17 +39,17 @@ bash 5.2 on macOS 15.6.
 - [ ] a step is ticked once
 BODY
 
-# write_gh_stub <dir> — the `gh` both cases run against, written once into <dir>/gh and put
-# first on PATH. The two questions the script asks are answered from the environment the case
-# sets: the label question from $LABELS (the label's own name, or empty for an issue that
-# carries none, which is what gh prints after applying the script's own `-q` filter) and the
-# body question from $FIXTURES/body.md. `labels` is matched first, so a single call asking for
+# write_gh_stub <fixture-dir> — the `gh` both cases run against, written once into
+# <fixture-dir>/bin/gh, where run_spec puts it first on PATH. The two questions the script
+# asks are answered from the environment the case sets: the label question from $LABELS (the
+# label's own name, or empty for an issue that carries none, which is what gh prints after
+# applying the script's own `-q` filter) and the body question from $FIXTURES/body.md. `labels` is matched first, so a single call asking for
 # both is answered as the label question. A call it does not recognise is refused loudly rather
 # than answered with the body anyway, so a script that starts asking for something else fails
 # here instead of quietly reading the wrong fixture.
 write_gh_stub() {
-  mkdir -p "$1"
-  cat > "$1/gh" <<'STUB'
+  mkdir -p "$1/bin"
+  cat > "$1/bin/gh" <<'STUB'
 #!/bin/sh
 case "$*" in
   *labels*) [ -z "$LABELS" ] || echo "$LABELS" ;;
@@ -56,10 +57,9 @@ case "$*" in
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
 STUB
-  chmod +x "$1/gh"
+  chmod +x "$1/bin/gh"
 }
-write_gh_stub "$tmp/bin"
-stubdir="$tmp/bin"
+write_gh_stub "$bugdir"
 
 # section <file> <heading> — the lines of one `## ` section of a markdown document, heading
 # included, ending where the next `## ` heading starts. `### ` is not a section boundary, so
@@ -69,6 +69,18 @@ section() {
     /^## / { inside = ($0 == want) ; if (!inside) next }
     inside { print }
   ' "$2"
+}
+
+# run_spec <fixture-dir> <labels> <issue> <out> — the script run against the stub written
+# into <fixture-dir>, with <labels> as the issue's labels and <fixture-dir>/body.md as its
+# body, stdout in <out> and stderr beside it. Opens the case's `problems` array, holding the
+# one problem every case shares: the script did not exit 0.
+run_spec() {
+  local dir="$1" labels="$2" issue="$3" out="$4" err="$4.err" code=0
+  env PATH="$dir/bin:$PATH" FIXTURES="$dir" LABELS="$labels" "$SCRIPT" "$issue" \
+    > "$out" 2> "$err" || code=$?
+  problems=()
+  [[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
 }
 
 # report <name> — one case's verdict, read off the `problems` array the case filled: a pass
@@ -85,12 +97,8 @@ report() {
 
 # 1. The bug label puts a Bug section in the spec, carrying all four parts of the report.
 name='bug-labelled issue: the spec carries a ## Bug section with what happened, expected, steps and environment (#112)'
-out="$tmp/spec.md"; err="$tmp/spec.err"
-code=0
-env PATH="$stubdir:$PATH" FIXTURES="$tmp" LABELS=bug "$SCRIPT" 112 > "$out" 2> "$err" || code=$?
-
-problems=()
-[[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
+out="$tmp/spec.md"
+run_spec "$bugdir" bug 112 "$out"
 section '## Bug' "$out" > "$tmp/bug-section.md"
 if [[ ! -s "$tmp/bug-section.md" ]]; then
   problems+=("no '## Bug' section in the spec")
@@ -122,17 +130,12 @@ tick-ledger.sh grows a `--dry-run` flag.
 - [ ] `--dry-run` prints the tick it would make and writes nothing
 BODY
 
-write_gh_stub "$plaindir/bin"
-plainbin="$plaindir/bin"
+write_gh_stub "$plaindir"
 
 # 2. No bug label, no Bug section: the spec is the issue's body and nothing more.
 name='unlabelled issue: the spec carries no ## Bug section (#112)'
-out="$tmp/plain-spec.md"; err="$tmp/plain-spec.err"
-code=0
-env PATH="$plainbin:$PATH" FIXTURES="$plaindir" LABELS= "$SCRIPT" 113 > "$out" 2> "$err" || code=$?
-
-problems=()
-[[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
+out="$tmp/plain-spec.md"
+run_spec "$plaindir" '' 113 "$out"
 section '## Bug' "$out" > "$tmp/plain-bug-section.md"
 [[ ! -s "$tmp/plain-bug-section.md" ]] ||
   problems+=("spec has a '## Bug' section for an issue without the bug label: $(head -1 "$tmp/plain-bug-section.md")")
