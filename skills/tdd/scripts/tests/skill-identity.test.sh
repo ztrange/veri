@@ -492,6 +492,38 @@ rm -rf "$ROOT"
 ROOT="$real_root"
 report "$name"
 
+# 12. .tdd/ stays exempt from both sweeps (#412). A run's ledger quotes its issue's own words
+#     back, so it may name anything — the old home and the old commands included. Asked of a
+#     scratch repository, as case 11 is, since whether this one's .tdd/ holds such a file on
+#     any given day is not something to lean on: one tracked file there names the old scripts
+#     directory and another invokes an old command, and neither sweep may report either.
+name="a tracked file under .tdd/ naming the old home or an old command passes both sweeps"
+problems=()
+real_root="$ROOT"
+ROOT="$(mktemp -d)"
+mkdir -p "$ROOT/.tdd"
+printf 'scripts live at %s/run.sh\n' "$old_scripts_dir" > "$ROOT/.tdd/issue-1-plan.md"
+printf 'Invoke %s 12 and follow it.\n' "${old_cmds[0]}" > "$ROOT/.tdd/issue-2-plan.md"
+if ! (cd "$ROOT" && git init -q && git add -A); then
+  problems+=("could not build the scratch repository at $ROOT")
+else
+  sweep --fixed-strings "$old_scripts_dir" || problems+=("old-home sweep: git grep failed with exit $?")
+  [[ "$swept" == *".tdd/issue-1-plan.md"* ]] ||
+    problems+=("old-home sweep: .tdd/issue-1-plan.md was not matched at all, so its exemption was not tested")
+  got="$(offenders)"
+  [[ -z "$got" ]] ||
+    problems+=("old-home sweep: want no offenders under .tdd/, got: $got")
+  sweep -E "$cmd_re" || problems+=("old-command sweep: git grep failed with exit $?")
+  [[ "$swept" == *".tdd/issue-2-plan.md"* ]] ||
+    problems+=("old-command sweep: .tdd/issue-2-plan.md was not matched at all, so its exemption was not tested")
+  got="$(offenders)"
+  [[ -z "$got" ]] ||
+    problems+=("old-command sweep: want no offenders under .tdd/, got: $got")
+fi
+rm -rf "$ROOT"
+ROOT="$real_root"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
