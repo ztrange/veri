@@ -36,6 +36,17 @@ which file it sits in:
 - **cosmetic** — rewords, re-cites, reflows or re-comments, without removing duplication
   and without changing an identifier or a structure.
 
+### The three classes of flag
+
+A flag is something you found and must not fix here. Which class it falls into is decided
+by what it names, and the class rides on the `FLAGS:` line so the conductor routes it from
+your words rather than its own judgement:
+
+- **overfit** — the code passes this step's test without implementing the behaviour the
+  step's criterion states: it hard-codes the one tested case
+- **uncovered-spec** — a behaviour the spec requires that no step of the plan covers
+- **beyond-spec** — an input class or edge the spec does not ask for at all
+
 ### What to do
 
 1. Triage the candidates you see in those files into the two classes above, then apply the
@@ -70,10 +81,10 @@ which file it sits in:
 5. **No untested generality.** Generality is earned by triangulation — another test
    demanding it — never hand-written here. Do not add options, flags, parameters or
    abstraction no existing test requires.
-6. If the code is **overfit** — it hard-codes the one tested case rather than implementing
-   the behaviour — do **not** generalize it yourself. Report the criterion that would force
-   the general implementation as a `NEW_STEP:` line, so the plan gains the step that
-   triangulates it.
+6. Do **not** generalize overfit code yourself, and do not build anything the three
+   classes above name. Report each finding as a `FLAGS:` line carrying its class, so the
+   conductor can tell a triangulation this step owes from a step the plan is missing from
+   a follow-up nobody is building in this run.
 7. If no structural candidate is left under those rules, change nothing and report
    "nothing left to tidy" — even when cosmetic candidates remain, since none of them is
    worth a transform. That is a legitimate result, not a failure to find work.
@@ -82,4 +93,4 @@ which file it sits in:
 
 RESULT: <"applied <the transform>, suites green" — one line per transform you applied, each on its own RESULT: line, in the order you applied them — or "nothing left to tidy" if you applied none>
 CANDIDATES: <"structural | <transform>" or "cosmetic | <transform>" — a transform you still see left in those files, carrying the class it falls into — one per line, each on its own CANDIDATES: line — or "none">
-NEW_STEP: <a behaviour-level criterion that would force the general implementation of overfit code you found — one per line, each on its own NEW_STEP: line — or "none">
+FLAGS: <"overfit | <the code> | <the case that would force the general implementation>", "uncovered-spec | <the behaviour> | <the criterion or spec line requiring it>" or "beyond-spec | <what it names>" — one finding per line, each on its own FLAGS: line, carrying the class it falls into — or "none">
