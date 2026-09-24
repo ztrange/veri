@@ -38,41 +38,15 @@ bash 5.2 on macOS 15.6.
 - [ ] a step is ticked once
 BODY
 
-# The stub emulates `gh issue view <n> --json <fields> [-q <expr>]`: the field list and the
-# jq expression decide what comes back, so any of the ways a script might ask for a body and
-# a label list is answered rather than only one spelling of the call.
-python3 - "$tmp" <<'PY'
-import json, sys
-tmp = sys.argv[1]
-body = open(f"{tmp}/body.md").read()
-labels = [{"name": "ready-for-agent"}, {"name": "bug"}]
-open(f"{tmp}/full.json", "w").write(json.dumps({"body": body, "labels": labels}))
-open(f"{tmp}/body.json", "w").write(json.dumps({"body": body}))
-open(f"{tmp}/labels.json", "w").write(json.dumps({"labels": labels}))
-open(f"{tmp}/labels.txt", "w").write("".join(f"{l['name']}\n" for l in labels))
-PY
-
+# The stub serves the one call the script makes: the issue body. A query it does not recognise
+# is refused loudly rather than answered with the body anyway, so a script that starts asking
+# for something else fails here instead of quietly reading the wrong fixture.
 stubdir="$tmp/bin"; mkdir -p "$stubdir"
 cat > "$stubdir/gh" <<'STUB'
 #!/bin/sh
-fields=""; q=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    --json) fields="$2"; shift 2 ;;
-    -q|--jq) q="$2"; shift 2 ;;
-    *) shift ;;
-  esac
-done
-case "$q" in
-  *label*) cat "$FIXTURES/labels.txt" ;;
-  *body*)  cat "$FIXTURES/body.md" ;;
-  "")
-    case "$fields" in
-      *body*label*|*label*body*) cat "$FIXTURES/full.json" ;;
-      *label*)                   cat "$FIXTURES/labels.json" ;;
-      *)                         cat "$FIXTURES/body.json" ;;
-    esac ;;
-  *) cat "$FIXTURES/full.json" ;;
+case "$*" in
+  *body*) cat "$FIXTURES/body.md" ;;
+  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
 STUB
 chmod +x "$stubdir/gh"
