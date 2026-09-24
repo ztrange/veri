@@ -99,12 +99,6 @@ section_records() {
     '$0 ~ closers { inside = (index($0, h) == 1); next } inside' "$skill_path" | records_of
 }
 
-# draft_pr_instructions — the records of the `### 4. Draft PR` step, which a heading of
-# either level ends.
-draft_pr_instructions() {
-  section_records '### 4. Draft PR' '^## |^### '
-}
-
 # first_record <text> [<grep-options> <pattern>]... — the first record of <text> that
 # matches every option-and-pattern pair given, or nothing when none does. Six cases ask the
 # document this same question and differ only in the filters and in the complaint they then
@@ -121,16 +115,19 @@ first_record() {
   head -1 <<< "$text"
 }
 
-# draft_pr_or_problem <what> — read the `### 4. Draft PR` step into `records`, or record the
-# one problem that says the case could not be read at all, naming <what> it could therefore
-# not check. Non-zero when the section is gone, so each case below is its probes alone rather
-# than its probes and its own missing-section branch: every case here asks the document for
-# the same slice first, and would otherwise spell the same fetch and the same fail-closed
-# message six times over.
-draft_pr_or_problem() {
-  records="$(draft_pr_instructions)"
+# step_or_problem <heading prefix> <what> — read into `records` the numbered step whose
+# heading starts with <heading prefix>, a heading of either level ending it, or record the one
+# problem that says the case could not be read at all, naming <what> it could therefore not
+# check. Non-zero when the section is gone, so each case below is its probes alone rather than
+# its probes and its own missing-section branch: every case here asks the document for one
+# slice first, and would otherwise spell the same fetch and the same fail-closed message seven
+# times over. The heading is a parameter because the cases read two steps — `### 4. Draft PR`
+# and, since #195, `### 2. Scope & plan`, which `### 2b. Start comment` ends — and a reader per
+# step would be the same six lines twice.
+step_or_problem() {
+  records="$(section_records "$1" '^## |^### ')"
   [[ -n "$records" ]] && return 0
-  problems+=("$skill_md has no ### 4. Draft PR section to read — $1 could not be checked")
+  problems+=("$skill_md has no $1 section to read — $2 could not be checked")
   return 1
 }
 
@@ -143,7 +140,7 @@ draft_pr_or_problem() {
 name="$skill_md's Draft PR step opens the PR against the already-pushed branch, with no push of its own"
 problems=()
 
-if draft_pr_or_problem "whether the step still pushes"; then
+if step_or_problem '### 4. Draft PR' "whether the step still pushes"; then
   grep -qF 'gh pr create' <<< "$records" ||
     problems+=("$skill_md's Draft PR step never runs gh pr create, so there is no PR being opened against the pushed branch at all")
   pushes="$(first_record "$records" -F 'git push')"
@@ -201,7 +198,7 @@ names_the_full_gate() {
 name="$skill_md's Draft PR step and its closing invariant both run detect-test-command.sh --tier all's command exactly once, as the only full-suite gate"
 problems=()
 
-if draft_pr_or_problem "which command its full-suite gate runs"; then
+if step_or_problem '### 4. Draft PR' "which command its full-suite gate runs"; then
   names_the_full_gate "$records" ||
     problems+=("$skill_md's Draft PR step never runs detect-test-command.sh --tier all's command exactly once as the only full-suite gate, so where the full command still runs is unstated")
 fi
@@ -225,7 +222,7 @@ report "$name"
 name="$skill_md's Draft PR step adds a repair step to the ledger on a red full run, rather than bailing"
 problems=()
 
-if draft_pr_or_problem "what a red full run does"; then
+if step_or_problem '### 4. Draft PR' "what a red full run does"; then
   repair="$(first_record "$records" -F 'repair step' -wF 'red' -F 'ledger')"
   if [[ -z "$repair" ]]; then
     problems+=("$skill_md's Draft PR step has no record adding a repair step to the ledger on a red full run, so a suite only the full command reaches still ends the run in a bail")
@@ -248,7 +245,7 @@ report "$name"
 name="$skill_md's Draft PR step bails on a second red full run after a repair step, naming every suite still red"
 problems=()
 
-if draft_pr_or_problem "what a second red full run does"; then
+if step_or_problem '### 4. Draft PR' "what a second red full run does"; then
   second="$(first_record "$records" -wF 'bail' -E 'second red|red again' -F 'repair step')"
   if [[ -z "$second" ]]; then
     problems+=("$skill_md's Draft PR step has no record bailing on a second red full run after a repair step, so a repair that does not take can loop instead of ending the run")
@@ -274,7 +271,7 @@ report "$name"
 name="$skill_md's Draft PR step puts refactor-owed.sh render's output in the PR body, and omits the section on exit 3"
 problems=()
 
-if draft_pr_or_problem "whether the run's refactor leftovers reach the PR body"; then
+if step_or_problem '### 4. Draft PR' "whether the run's refactor leftovers reach the PR body"; then
   render="$(first_record "$records" -F 'refactor-owed.sh render')"
   if [[ -z "$render" ]]; then
     problems+=("$skill_md's Draft PR step never runs refactor-owed.sh render, so every step's structural leftovers stay in a committed file nobody reading the PR is pointed at")
@@ -306,7 +303,7 @@ report "$name"
 name="$skill_md's Draft PR step copies the ledger's ## Owed steps bullets into the PR body under ## Owed steps"
 problems=()
 
-if draft_pr_or_problem "whether the ledger's owed steps reach the PR body"; then
+if step_or_problem '### 4. Draft PR' "whether the ledger's owed steps reach the PR body"; then
   owed="$(grep -F 'owed steps' <<< "$records")"
   if [[ -z "$owed" ]]; then
     problems+=("$skill_md's Draft PR step never mentions the ledger's ## Owed steps section, so a step the growth budget refused is left in a committed file no reader of the PR is pointed at")
@@ -336,25 +333,20 @@ report "$name"
 name="$skill_md's Scope & plan step pushes and opens the draft PR after the plan commit, before the Plan comment"
 problems=()
 
-# The section's records in document order, so the three instructions can be placed relative
-# to one another. Any heading of either level ends it — `### 2b. Start comment` is the next.
-plan_records="$(section_records '### 2. Scope & plan' '^## |^### ')"
-
 # record_number <grep-options> <pattern> — the 1-based position of the first record of
-# `plan_records` matching, or nothing when none does. The match is collected into a variable
-# before `head` reads it: a `grep … | head -1` pipeline would let the reader leave first and
-# hand this suite's `pipefail` grep's SIGPIPE as the answer (issue #422).
+# `records` matching, or nothing when none does. The section's records are in document order,
+# so this is what places the three instructions relative to one another. The match is collected
+# into a variable before `head` reads it: a `grep … | head -1` pipeline would let the reader
+# leave first and hand this suite's `pipefail` grep's SIGPIPE as the answer (issue #422).
 record_number() {
   local hits
-  hits="$(grep -n "$1" -- "$2" <<< "$plan_records")"
+  hits="$(grep -n "$1" -- "$2" <<< "$records")"
   [[ -n "$hits" ]] || return 0
   head -1 <<< "$hits" | cut -d: -f1
 }
 
-if [[ -z "$plan_records" ]]; then
-  problems+=("$skill_md has no ### 2. Scope & plan section to read — where the run's draft PR is opened could not be checked")
-else
-  pr_record="$(first_record "$plan_records" -F 'gh pr create')"
+if step_or_problem '### 2. Scope & plan' "where the run's draft PR is opened"; then
+  pr_record="$(first_record "$records" -F 'gh pr create')"
   if [[ -z "$pr_record" ]]; then
     problems+=("$skill_md's Scope & plan step never runs gh pr create, so a multi-step run puts no claim on origin until its last step and a second machine reads the issue as free for the whole of it")
   else
@@ -364,7 +356,7 @@ else
       problems+=("$skill_md's Scope & plan step opens the PR without Closes #<n> in its body, so nothing on the PR names the issue it claims: $(printf '%.120s' "$pr_record")")
     grep -qE 'wip|work in progress' <<< "$pr_record" ||
       problems+=("$skill_md's Scope & plan step opens the PR without a title marking the work in progress, so a reader of origin cannot tell a run mid-flight from a finished branch: $(printf '%.120s' "$pr_record")")
-    grep -qF 'push-branch.sh' <<< "$plan_records" ||
+    grep -qF 'push-branch.sh' <<< "$records" ||
       problems+=("$skill_md's Scope & plan step never runs push-branch.sh, so the branch the PR is opened against has never reached the remote")
 
     commit_at="$(record_number -F 'plan: scope #<n> into')"
