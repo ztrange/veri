@@ -38,18 +38,28 @@ bash 5.2 on macOS 15.6.
 - [ ] a step is ticked once
 BODY
 
-# The stub serves the one call the script makes: the issue body. A query it does not recognise
-# is refused loudly rather than answered with the body anyway, so a script that starts asking
-# for something else fails here instead of quietly reading the wrong fixture.
-stubdir="$tmp/bin"; mkdir -p "$stubdir"
-cat > "$stubdir/gh" <<'STUB'
+# write_gh_stub <dir> — the `gh` both cases run against, written once into <dir>/gh and put
+# first on PATH. The two questions the script asks are answered from the environment the case
+# sets: the label question from $LABELS (the label's own name, or empty for an issue that
+# carries none, which is what gh prints after applying the script's own `-q` filter) and the
+# body question from $FIXTURES/body.md. `labels` is matched first, so a single call asking for
+# both is answered as the label question. A call it does not recognise is refused loudly rather
+# than answered with the body anyway, so a script that starts asking for something else fails
+# here instead of quietly reading the wrong fixture.
+write_gh_stub() {
+  mkdir -p "$1"
+  cat > "$1/gh" <<'STUB'
 #!/bin/sh
 case "$*" in
+  *labels*) [ -z "$LABELS" ] || echo "$LABELS" ;;
   *body*) cat "$FIXTURES/body.md" ;;
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
 STUB
-chmod +x "$stubdir/gh"
+  chmod +x "$1/gh"
+}
+write_gh_stub "$tmp/bin"
+stubdir="$tmp/bin"
 
 # section <file> <heading> — the lines of one `## ` section of a markdown document, heading
 # included, ending where the next `## ` heading starts. `### ` is not a section boundary, so
@@ -77,7 +87,7 @@ report() {
 name='bug-labelled issue: the spec carries a ## Bug section with what happened, expected, steps and environment (#112)'
 out="$tmp/spec.md"; err="$tmp/spec.err"
 code=0
-env PATH="$stubdir:$PATH" FIXTURES="$tmp" "$SCRIPT" 112 > "$out" 2> "$err" || code=$?
+env PATH="$stubdir:$PATH" FIXTURES="$tmp" LABELS=bug "$SCRIPT" 112 > "$out" 2> "$err" || code=$?
 
 problems=()
 [[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
@@ -112,31 +122,14 @@ tick-ledger.sh grows a `--dry-run` flag.
 - [ ] `--dry-run` prints the tick it would make and writes nothing
 BODY
 
-# The stub for that issue: the same two questions, answered for an issue whose labels do not
-# include `bug`. `labels` is matched before `body` so a single call asking for both is answered
-# as the label question; a query the script passes (`-q`/`--jq`) is answered with what gh would
-# print after applying it — nothing, there being no label — and a raw `--json labels` with the
-# JSON document gh would return. Anything else is refused loudly.
-plainbin="$tmp/plain/bin"; mkdir -p "$plainbin"
-cat > "$plainbin/gh" <<'STUB'
-#!/bin/sh
-case "$*" in
-  *labels*)
-    case "$*" in
-      *-q*|*--jq*) : ;;
-      *) echo '{"labels":[]}' ;;
-    esac ;;
-  *body*) cat "$FIXTURES/body.md" ;;
-  *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
-esac
-STUB
-chmod +x "$plainbin/gh"
+write_gh_stub "$plaindir/bin"
+plainbin="$plaindir/bin"
 
 # 2. No bug label, no Bug section: the spec is the issue's body and nothing more.
 name='unlabelled issue: the spec carries no ## Bug section (#112)'
 out="$tmp/plain-spec.md"; err="$tmp/plain-spec.err"
 code=0
-env PATH="$plainbin:$PATH" FIXTURES="$plaindir" "$SCRIPT" 113 > "$out" 2> "$err" || code=$?
+env PATH="$plainbin:$PATH" FIXTURES="$plaindir" LABELS= "$SCRIPT" 113 > "$out" 2> "$err" || code=$?
 
 problems=()
 [[ "$code" == 0 ]] || problems+=("exit want 0 got $code; stderr: $(head -2 "$err")")
