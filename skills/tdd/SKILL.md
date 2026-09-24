@@ -1020,10 +1020,10 @@ following step. The phase sub-steps are:
    amendment is made from: its behaviour is carried, verbatim as a criterion, into the same
    `add-ledger-step.sh … after "<STEP>"` call the `NEW_STEP:` values go in at 6's PASS
    branch, so the missing step is planned and built like any other. No other class amends
-   the plan — an **overfit** flag is answered inside the step at 3 and grows no ledger line,
-   and the plan never grows for what the spec did not ask for. A flag class turned into a
-   step of its own is what #175 measured: six `plan: amend` commits on `origin/main`, each
-   buying a whole cycle and a refactor loop that flagged the next one.
+   the plan — an **overfit** flag is answered inside the step at 3, and the plan never grows
+   for what the spec did not ask for. A flag class turned into a step of its own is what
+   #175 measured: six `plan: amend` commits on `origin/main`, each buying a whole cycle and
+   a refactor loop that flagged the next one.
 5. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
