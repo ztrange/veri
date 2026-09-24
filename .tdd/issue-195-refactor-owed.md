@@ -6,3 +6,6 @@
 ### SKILL.md step 4 creates no PR: it rewrites the existing one's title and body and marks it ready for review
 - skill-metrics.test.sh's order case at line ~264 (`gh pr view` before the `metrics:` commit) is a strict subset of the six-anchor whole-order case at line ~300 in the same suite: the second walks the same two anchors in the same order, so one of the two can go
 - `commands_of` (skill-draft-pr.test.sh) and `fenced_lines`/`first_fenced_line` (skill-metrics.test.sh) are two readings of the same SKILL.md command block in two suites; there is no shared test lib and the house style keeps prose suites self-contained, so removing the duplication means creating one
+### SKILL.md resume reuses the open PR already on the run's branch and never creates a second one
+- SKILL.md:1512-1515 restates the "a second `gh pr create` is either a refusal or two pages claiming one issue" mechanism that step 4's sub-step 2 already states at SKILL.md:1117-1120 — removing it costs either a dereference in the Resume instruction or an edit to step 4, which this cycle did not write
+- skill-draft-pr.test.sh:496-498 spells the section identity `'## Resume' '^## '` twice, once to `section_or_problem` and once to `commands_of`; one slice feeding both readings would say it once, but case 10 has the same shape and is out of this cycle's bounds
