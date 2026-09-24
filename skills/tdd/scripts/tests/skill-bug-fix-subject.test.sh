@@ -78,31 +78,39 @@ window() {
   head -1 < <(grep -oE ".{0,250}$2.{0,250}" <<<"$1")
 }
 
+# probe_fix_line <heading> <unestablished> <absent> <unqualified> — the one shape both
+# subject lines are read by, appending at most one problem to `problems`: the section is
+# missing (fail closed, naming the heading and what could not be established), or it never
+# names `fix:` at all, or it names it without `bug` anywhere near, which leaves a second
+# subject line in the document and nothing saying which runs take it. The three messages come
+# in from the call site because only they differ between the two lines — the branch does not.
+probe_fix_line() {
+  local heading="$1" unestablished="$2" absent="$3" unqualified="$4" text
+  text="$(section "$heading")"
+  if [[ -z "${text// /}" ]]; then
+    problems+=("$skill_md has no '$heading' section to read — $unestablished")
+  elif ! grep -qE 'fix:' <<<"$text"; then
+    problems+=("$absent")
+  else
+    grep -qE 'bug' <<<"$(window "$text" 'fix:')" || problems+=("$unqualified")
+  fi
+}
+
 # The criterion, as one case: both subject lines are the same decision — a bug's repair is
 # not a capability — and a document that said it in one place and not the other would leave
 # the run's own commits disagreeing with the PR that carries them.
 name="$skill_md gives a bug step's green commit a fix: subject and a bug run's PR title a fix: prefix"
 problems=()
 
-green="$(section "$green_heading")"
-if [[ -z "${green// /}" ]]; then
-  problems+=("$skill_md has no '$green_heading' section to read — what subject a bug step's green commit takes could not be established")
-elif ! grep -qE 'fix:' <<<"$green"; then
-  problems+=("$skill_md's '$green_heading' section never names a fix: subject, so a bug step's green commit lands as feat: and the capability index reads a repaired regression as a new capability")
-else
-  grep -qE 'bug' <<<"$(window "$green" 'fix:')" ||
-    problems+=("$skill_md's '$green_heading' section names a fix: subject without saying it is a bug step's, so the conductor is given a second subject line and nothing that says which steps take it")
-fi
+probe_fix_line "$green_heading" \
+  "what subject a bug step's green commit takes could not be established" \
+  "$skill_md's '$green_heading' section never names a fix: subject, so a bug step's green commit lands as feat: and the capability index reads a repaired regression as a new capability" \
+  "$skill_md's '$green_heading' section names a fix: subject without saying it is a bug step's, so the conductor is given a second subject line and nothing that says which steps take it"
 
-pr="$(section "$pr_heading")"
-if [[ -z "${pr// /}" ]]; then
-  problems+=("$skill_md has no '$pr_heading' section to read — what prefix a bug run's PR title takes could not be established")
-elif ! grep -qE 'fix:' <<<"$pr"; then
-  problems+=("$skill_md's '$pr_heading' section never names the fix: prefix, so a bug run opens a PR whose title announces a capability the run did not add")
-else
-  grep -qE 'bug' <<<"$(window "$pr" 'fix:')" ||
-    problems+=("$skill_md's '$pr_heading' section names the fix: prefix without saying it is a bug run's, so the conductor cannot tell which runs title their PR that way")
-fi
+probe_fix_line "$pr_heading" \
+  "what prefix a bug run's PR title takes could not be established" \
+  "$skill_md's '$pr_heading' section never names the fix: prefix, so a bug run opens a PR whose title announces a capability the run did not add" \
+  "$skill_md's '$pr_heading' section names the fix: prefix without saying it is a bug run's, so the conductor cannot tell which runs title their PR that way"
 
 report "$name"
 
