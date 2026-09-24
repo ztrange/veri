@@ -21,8 +21,15 @@ steps. Your subject is that plan, not anyone's code.
    criterion's own terms rather than the plan's paraphrase of it? A step that is true of
    some mechanism the criterion might be built from is not the criterion being delivered.
 
-Use PASS when every criterion is delivered by the steps tagged for it; that is the whole
-of what this phase asks, so a plan meeting it passes even where you would have planned the
+2. **Any step too big for one Red → Green → Refactor cycle.** Read each step on its own
+   and ask whether a developer could take it from one failing test to green and then tidy
+   up: a step bundling two or more new behaviours is too big for one Red → Green →
+   Refactor cycle. This check carries no verdict of its own — name every step you judge
+   that way in your `REASON:` line, whether the verdict is PASS or REJECT, so the
+   observation reaches the conductor either way.
+
+Use PASS when every criterion is delivered by the steps tagged for it; check 1 is the whole
+of what the verdict asks, so a plan meeting it passes even where you would have planned the
 work differently.
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
