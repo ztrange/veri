@@ -153,6 +153,17 @@ unreadable_problem() {
   printf "%s has no '%s' section to read — %s" "$skill_md" "$refactor_heading" "$1"
 }
 
+# unnamed_class_problem <class> <what-that-costs> — the message cases 6 and 7 share when the
+# section never names the flag class they are about. Both are the same complaint — the leaf's
+# FLAGS: line carries a class and the document ignores it, so the conductor routes the flag on
+# its own judgement — and both end in the same measurement, the six `plan: amend` commits #175
+# counted, which is what that judgement produced. Spelled once for the reason `unreadable_problem`
+# above is: two copies drift, and a reader then gets two different accounts of what an unrouted
+# flag costs. Only the class and the clause naming its own cost differ.
+unnamed_class_problem() {
+  printf "%s's Refactor section never names the %s class the leaf's FLAGS: line carries, so %s — the six plan: amend commits this issue counted" "$skill_md" "$1" "$2"
+}
+
 # windows <extended-regex> [radius] — the section text within <radius> characters either side
 # of every match, one window per line, or nothing when there is none. The default 250 rather
 # than a rounder, larger number because BSD grep — the one on the development machine this
@@ -566,7 +577,7 @@ if unreadable_section; then
 else
   flagged="$(wins 'overfit')"
   if [[ -z "$flagged" ]]; then
-    problems+=("$skill_md's Refactor section never names the overfit class the leaf's FLAGS: line carries, so the conductor branches on its own judgement and the six plan: amend commits this issue counted are what that judgement produced")
+    problems+=("$(unnamed_class_problem overfit "the conductor branches on its own judgement rather than on the leaf's word")")
   else
     # a. The pair itself, and that it is verified: a triangulating test written inside the
     #    step is still a red and a green the blind verifiers see, which is what tells this
@@ -618,7 +629,7 @@ if unreadable_section; then
 else
   uncovered="$(wins 'uncovered-spec')"
   if [[ -z "$uncovered" ]]; then
-    problems+=("$skill_md's Refactor section never names the uncovered-spec class the leaf's FLAGS: line carries, so no flag is routed to a plan amendment by its class and the conductor amends from whichever flag it reads — the six plan: amend commits this issue counted")
+    problems+=("$(unnamed_class_problem uncovered-spec "no flag is routed to a plan amendment by its class and the conductor amends from whichever flag it reads")")
   else
     # a. That class becomes a plan amendment: the one flag the plan is allowed to grow for.
     grep -qE 'amend|ledger (step|line)|add-ledger-step|grow' <<<"$uncovered" ||
