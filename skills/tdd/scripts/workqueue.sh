@@ -16,7 +16,7 @@
 #          workqueue.sh show [<worker>]
 # Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
 #          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand, an `assign`
-#          naming no worker or no issue, an issue
+#          naming no worker or no issue, or naming one issue twice, an issue
 #          already queued or running for any worker, or a lock not taken within
 #          VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is written, so the file
 #          is left byte-identical
@@ -143,6 +143,16 @@ fi
 
 worker="$2"
 shift 2
+# One call naming an issue twice would queue it twice, which two calls are refused: the
+# same mistake, refused the same way, before anything is written.
+declare -A named=()
+for issue in "$@"; do
+  if [[ -n "${named[$issue]:-}" ]]; then
+    echo "workqueue.sh: issue $issue is named twice" >&2
+    exit 2
+  fi
+  named[$issue]=1
+done
 take_lock
 if [[ -f "$queue" ]]; then
   while IFS=$'\t' read -r _ held state _; do
