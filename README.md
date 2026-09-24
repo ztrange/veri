@@ -39,6 +39,11 @@ A `REJECT` verdict triggers a **bounded revise loop** (≤2 attempts) before esc
 posted to the issue that classifies the cause as a **system** failure (plumbing broke) or a
 **process** failure (methodology spoke).
 
+Beside the conductor sits **`/tdd-fix <one-line description>`**, the way a bug gets filed so
+that a later `/tdd <n>` can read it: it asks only for what that line left out, opens the
+issue with the headings the conductor's spec capture copies, labels it `bug` and
+`ready-for-agent`, and then asks once whether to start the fix run.
+
 ## Design principles
 
 - **Generality comes from triangulation, never from hand-written code.** Each acceptance

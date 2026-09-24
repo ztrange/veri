@@ -270,6 +270,51 @@ if have_skill_md && have_body "fix-run offer"; then
 fi
 report "$name"
 
+# 6. The command is findable, and it is still a document rather than a program. A skill
+#    nobody is told about is a skill nobody types, and the README is where /tdd is announced,
+#    so /tdd-fix belongs in the same section rather than in a corner of its own — "beside
+#    /tdd" is the criterion, which is why the section carrying the mention has to name both.
+#    The other half is the shape ADR-0015 chose: `gh issue create` and `gh label` are the
+#    whole of this skill, so there is nothing under skills/tdd-fix/ to launch — a script
+#    appearing there is a leaf's worth of plumbing added to a command that needs none, and
+#    every case above reads prose only because of it.
+name="README.md documents /$want_name beside /tdd, and $skill_dir ships no scripts"
+problems=()
+readme="README.md"
+if [[ -f "$ROOT/$readme" ]]; then
+  # The stretch of README.md between one '## ' heading and the next that carries the
+  # /tdd-fix mention — read as a section rather than as a line, because "beside /tdd" is a
+  # claim about what surrounds the mention, not about the mention itself.
+  section="$(awk -v want="/$want_name" '
+    /^##[^#]/ { if (found) exit; buf = "" }
+    { buf = buf $0 "\n"; if (index($0, want)) found = 1 }
+    END { if (found) printf "%s", buf }
+  ' "$ROOT/$readme")"
+  if [[ -z "$section" ]]; then
+    problems+=("$readme never mentions /$want_name")
+  else
+    text="$(fold_prose <<<"$section")"
+    # /tdd, not /tdd-fix: the character class is what keeps the mention this case is about
+    # from answering for the command it is meant to sit beside.
+    says '/tdd[^-a-z]' \
+      "$readme documents /$want_name in a section that never names /tdd"
+    says 'bug' \
+      "$readme never says /$want_name files a bug"
+  fi
+else
+  problems+=("want a $readme at the repo root, found none")
+fi
+if [[ -d "$ROOT/$skill_dir" ]]; then
+  shipped=()
+  while IFS= read -r path; do
+    [[ -n "$path" ]] && shipped+=("${path#"$ROOT/"}")
+  done < <(find "$ROOT/$skill_dir" -mindepth 1 \
+    \( -name '*.sh' -o \( -type d -name scripts \) -o \( -type f -perm -u+x \) \) 2>/dev/null)
+  [[ "${#shipped[@]}" -eq 0 ]] ||
+    problems+=("$skill_dir ships scripts and is meant to ship none: ${shipped[*]}")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
