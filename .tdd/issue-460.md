@@ -6,4 +6,4 @@
 - [x] The blocked-by module stops reading the section at the next `## ` heading, so a `#<n>` under a later heading is not a blocker ⟦criterion 3⟧
 - [x] solvable-issues.sh takes its blocker parsing from the blocked-by module rather than defining its own, with solvable-issues.test.sh passing unmodified ⟦criterion 2⟧
 - [x] A caller that is not solvable-issues.sh can import the blocked-by module and get its answers with no gh, no repository and no child process started ⟦criterion 4⟧
-- [ ] solvable-issues.sh still resolves the main working tree through lib/main-working-tree.sh when run from a scratch scripts directory, so main-working-tree.test.sh passes again (repair: red on the Draft PR full-suite gate) ⟦added⟧ ⟦criterion 4⟧
+- [x] solvable-issues.sh still resolves the main working tree through lib/main-working-tree.sh when run from a scratch scripts directory, so main-working-tree.test.sh passes again (repair: red on the Draft PR full-suite gate) ⟦added⟧ ⟦criterion 4⟧
