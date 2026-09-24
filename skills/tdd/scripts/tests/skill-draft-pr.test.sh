@@ -37,6 +37,9 @@
 #      the run's own owed file, and omits the section when that render exits 3 (issue #359).
 #   7. SKILL.md's Draft PR step copies the ledger's `## Owed steps` bullets into the PR
 #      body under a `## Owed steps` heading of its own (issue #360).
+#   8. SKILL.md's `### 2. Scope & plan` step pushes the branch and opens the draft PR —
+#      `Closes #<n>` in the body, a title marking the work in progress — after the plan
+#      commit and before the Plan comment (issue #195).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -312,6 +315,69 @@ if draft_pr_or_problem "whether the ledger's owed steps reach the PR body"; then
       problems+=("$skill_md's Draft PR step speaks of ## Owed steps without naming the run's .tdd/issue-<n>.md ledger as where the bullets are read from, so the run's other owed file could be copied instead: $(printf '%.120s' "$owed")")
     grep -qF 'body' <<< "$owed" ||
       problems+=("$skill_md's Draft PR step never puts the ## Owed steps bullets in the PR body, so they stay where only the conductor sees them: $(printf '%.120s' "$owed")")
+  fi
+fi
+report "$name"
+
+# 8. The criterion, as one case (issue #195): the claim every other machine can see is made
+#    as soon as there is a commit to hang it on. A PR needs a commit ahead of the base and the
+#    plan commit is the run's first, so the draft PR opens there — not at step 4, which for a
+#    multi-step issue is hours later, and until then a second machine running `/tdd <scope>`
+#    reads the issue as free and takes it again (four such runs were live unseen on
+#    2026-09-14). What is pinned is the instruction and its place in the order: the record that
+#    runs `gh pr create` sits inside the `### 2. Scope & plan` section, after the record
+#    carrying the plan commit and before the one posting the Plan comment, and it carries the
+#    two things that make the PR a claim rather than a PR — `Closes #<n>`, which is what names
+#    the issue it claims, and a title saying the work is in progress, which is what stops a
+#    reader taking a draft for a finished branch. The `gh pr create` record is asked for first
+#    so the case fails closed: a section that never opens a PR gets one problem line rather
+#    than five reading as partial progress. The push is asked for by script name, the way case
+#    2 asks it, because `push-branch.sh` is where the not-a-bail rule lives.
+name="$skill_md's Scope & plan step pushes and opens the draft PR after the plan commit, before the Plan comment"
+problems=()
+
+# The section's records in document order, so the three instructions can be placed relative
+# to one another. Any heading of either level ends it — `### 2b. Start comment` is the next.
+plan_records="$(section_records '### 2. Scope & plan' '^## |^### ')"
+
+# record_number <grep-options> <pattern> — the 1-based position of the first record of
+# `plan_records` matching, or nothing when none does. The match is collected into a variable
+# before `head` reads it: a `grep … | head -1` pipeline would let the reader leave first and
+# hand this suite's `pipefail` grep's SIGPIPE as the answer (issue #422).
+record_number() {
+  local hits
+  hits="$(grep -n "$1" -- "$2" <<< "$plan_records")"
+  [[ -n "$hits" ]] || return 0
+  head -1 <<< "$hits" | cut -d: -f1
+}
+
+if [[ -z "$plan_records" ]]; then
+  problems+=("$skill_md has no ### 2. Scope & plan section to read — where the run's draft PR is opened could not be checked")
+else
+  pr_record="$(first_record "$plan_records" -F 'gh pr create')"
+  if [[ -z "$pr_record" ]]; then
+    problems+=("$skill_md's Scope & plan step never runs gh pr create, so a multi-step run puts no claim on origin until its last step and a second machine reads the issue as free for the whole of it")
+  else
+    grep -qF -- '--draft' <<< "$pr_record" ||
+      problems+=("$skill_md's Scope & plan step opens the PR without --draft, so a run one step in reads as a branch offered for review: $(printf '%.120s' "$pr_record")")
+    grep -qF 'closes #<n>' <<< "$pr_record" ||
+      problems+=("$skill_md's Scope & plan step opens the PR without Closes #<n> in its body, so nothing on the PR names the issue it claims: $(printf '%.120s' "$pr_record")")
+    grep -qE 'wip|work in progress' <<< "$pr_record" ||
+      problems+=("$skill_md's Scope & plan step opens the PR without a title marking the work in progress, so a reader of origin cannot tell a run mid-flight from a finished branch: $(printf '%.120s' "$pr_record")")
+    grep -qF 'push-branch.sh' <<< "$plan_records" ||
+      problems+=("$skill_md's Scope & plan step never runs push-branch.sh, so the branch the PR is opened against has never reached the remote")
+
+    commit_at="$(record_number -F 'plan: scope #<n> into')"
+    pr_at="$(record_number -F 'gh pr create')"
+    comment_at="$(record_number -F 'mirror the plan')"
+    if [[ -z "$commit_at" || -z "$comment_at" ]]; then
+      problems+=("$skill_md's Scope & plan step no longer has both the plan commit and the Plan comment to place the PR between — where it is opened could not be checked")
+    else
+      [[ "$commit_at" -lt "$pr_at" ]] ||
+        problems+=("$skill_md's Scope & plan step opens the PR at record $pr_at, before the plan commit at record $commit_at — there is no commit ahead of the base for a PR to be opened against yet")
+      [[ "$pr_at" -lt "$comment_at" ]] ||
+        problems+=("$skill_md's Scope & plan step opens the PR at record $pr_at, after the Plan comment at record $comment_at — the comment is meant to name the PR url, and the claim is meant to be the first act after the plan commit")
+    fi
   fi
 fi
 report "$name"

@@ -414,7 +414,7 @@ skill mid-run. The record is run state and is git-ignored. Two cases refuse rath
   `.tdd/events.jsonl`, where `metrics.sh` reads it.
 
 When no commit can be resolved at all the launch runs unpinned, says so on stderr, and hands
-the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.3).
+the conductor `VERI_SKILL_UNPINNED=1` for the plan comment (step 2.4).
 
 ## Inputs
 
@@ -640,7 +640,21 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
    while ignoring leaf logs.)
-3. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment listing the steps,
+3. **Push the branch and open the draft PR** — the run's claim, made as the first act after
+   the plan commit, from inside the worktree:
+   ```
+   $S/push-branch.sh
+   gh pr create --draft --base <default-branch> \
+     --title "WIP: <type>: <criterion summary> (#<n>)" \
+     --body "Closes #<n> — work in progress: <k> steps planned. The ledger .tdd/issue-<n>.md is the source of truth."
+   ```
+   An open PR saying `Closes #<n>` is the claim every other machine can see, and the plan
+   commit is the run's first — a PR needs a commit ahead of the base, so this is the
+   earliest the claim can be made. Until it exists a second machine running `/tdd <scope>`
+   reads the issue as free and takes it again, as four unseen runs did on 2026-09-14. The
+   title says **WIP** because a draft branch that reads as finished work is a second way to
+   be misread; step 4 is where the PR is retitled and readied.
+4. **Mirror the plan** to the issue thread: post a `### 🗺️ Plan` comment listing the steps,
    naming the test command preflight detected and every leaf will run, and noting that the
    ledger is the source of truth and each step will be blind-verified. The test command is
    in that comment so a wrong one is visible on the thread before the first leaf starts,
