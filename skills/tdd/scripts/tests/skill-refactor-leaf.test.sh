@@ -544,6 +544,15 @@ report "$name"
 #    about ledger steps and about what a step owes, and a probe reading the whole of it would
 #    be answered by the PASS branch's `add-ledger-step.sh` sentences and pass a document that
 #    still turns every flag into a plan amendment.
+# What a denial looks like, spelled once for the two probes of case 6 that ask for one, the
+# way `refusal` above is spelled once for case 1's two. Both of those probes owe the same
+# thing beyond the noun each names — that the section says the overfit flag does NOT buy it —
+# and either probe widened on its own would accept a wording the other still rejects, leaving
+# the next writer two different answers to "what counts as denying it". The alternation is the
+# union of how this document already writes a denial; the gap is `[^.]` so the denial and its
+# noun have to sit in one sentence rather than a paragraph apart.
+denial='(no|never|without|not)[^.]{0,80}'
+
 name="$skill_md's Refactor section answers an overfit flag with one triangulating red/green pair inside the step, adding no ledger step and no second step-done, and resumes that step's refactor loop with the budget it had left"
 problems=()
 
@@ -565,9 +574,9 @@ else
     # b. And that the pair is all it is. The whole cost this issue measured is the flag
     #    becoming a ledger step, so a document that runs the pair AND amends the plan has
     #    paid for it twice.
-    grep -qE "(no|never|without|not)[^.]{0,80}(ledger (step|line|amendment)|plan amendment|amendment)" <<<"$flagged" ||
+    grep -qE "$denial(ledger (step|line|amendment)|plan amendment|amendment)" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section answers an overfit flag without saying the plan does not grow for it, so the triangulation becomes a ledger step with a refactor loop of its own — the #107 chain this issue is against")
-    grep -qE "(no|never|without|not)[^.]{0,80}(second )?step.done" <<<"$flagged" ||
+    grep -qE "$denial(second )?step.done" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section answers an overfit flag without saying the step is not mirrored done a second time, so one step reports itself finished twice and the issue thread stops saying how many steps ran")
 
     # c. And that the step goes back to where it was. The refactor loop was interrupted by
