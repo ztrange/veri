@@ -3,7 +3,7 @@
 - [x] `workqueue.sh assign <worker> <issue>...` appends one `<worker>	<issue>	queued	` line per issue to `.tdd/workqueue`, in the order given ⟦criterion 1⟧
 - [x] `workqueue.sh <unknown-subcommand> …` (e.g. `workqueue.sh frobnicate alpha 12`) exits 2 and leaves `.tdd/workqueue` byte-identical (absent if it was absent) ⟦added⟧ ⟦criterion 1⟧
 - [x] `workqueue.sh frobnicate alpha 12` in a repo with no `.tdd/workqueue` exits 2 and leaves `.tdd/workqueue` absent ⟦added⟧ ⟦criterion 1⟧
-- [x] `workqueue.sh assign` refuses with exit 2, leaving the file byte-identical, an issue already `queued` or `running` for any worker ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `workqueue.sh assign` refuses with exit 2, leaving the file byte-identical, an issue already `queued` or `running` for any worker ⟦criterion 1⟧
 - [ ] `workqueue.sh next <worker>` prints that worker's first `queued` issue whose `## Blocked by` names no open issue, skipping a blocked one, read from `VERI_GH_JSON` fixtures ⟦criterion 2⟧
 - [ ] `workqueue.sh next <worker>` exits 3 with empty stdout when none of that worker's `queued` items is launchable ⟦criterion 2⟧
 - [ ] `workqueue.sh start <worker> <issue>` moves that worker's `queued` item to `running` ⟦criterion 3⟧
@@ -20,3 +20,8 @@
 - [ ] The worker loop is documented in a `WORKER.md` beside `SKILL.md`, naming each `workqueue.sh` call (`next`, `start`, `done`, `park`) ⟦criterion 6⟧
 - [ ] `SKILL.md` tells a session born as a worker to `Read` `WORKER.md`, the way it points a scope at `SCOPE-LOOP.md` ⟦criterion 6⟧
 - [ ] `CONTEXT.md` defines **worker** and **work queue** ⟦criterion 6⟧
+
+## Owed steps
+
+- `workqueue.sh assign` with no worker, or with a worker and no issue, exits 2 and leaves the queue file byte-identical
+- `workqueue.sh assign` refuses with exit 2, leaving the file byte-identical, when the same issue is named twice in one call
