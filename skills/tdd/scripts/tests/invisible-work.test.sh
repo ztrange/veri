@@ -486,6 +486,60 @@ while IFS= read -r row; do
 done <<< "$out"
 report "$name"
 
+# 12. Issue #197, criterion 5: the issue and PR documents are the JSON `gh` emits, parsed as
+#     JSON, and `VERI_GH_JSON` names a directory whose `issues.json` and `prs.json` stand in
+#     for `gh` entirely, so the suite drives the script with no network. The two documents are
+#     written the way a JSON encoder may legally write them and a line-oriented reader would
+#     misread: pretty-printed across lines, keys in another order, the merged PR's branch name
+#     with its `/` escaped as `\/`, and issue #71's state spelled `OPEN`. Only a JSON
+#     parser reads those as `tdd/4-supervised-leaves` and `OPEN`. A `gh` stub first on PATH
+#     answers the opposite of the fixture — the control branch's PR open, the merged one's
+#     absent, #71 closed — so a script that reached for `gh` despite the override reports
+#     what the stub says rather than what the fixture says.
+name="invisible-work.sh: reads gh's issues and PRs as JSON from the VERI_GH_JSON fixture directory, never from gh"
+problems=()
+branch="tdd/71-walkthrough-version-the-commentary-too"
+merged="tdd/4-supervised-leaves"
+control="chore/nobody-opened-a-pr"
+clone="$(unpr_branch_clone "$work/case12" "$branch" 1)"
+push_control_branch "$work/case12" "$merged"
+push_control_branch "$work/case12" "$control"
+gh_json="$work/case12/gh"
+mkdir -p "$gh_json"
+cat > "$gh_json/issues.json" <<'JSON'
+[
+  {
+    "state": "OPEN",
+    "labels": [],
+    "number": 71
+  }
+]
+JSON
+cat > "$gh_json/prs.json" <<'JSON'
+[
+  {
+    "state": "MERGED",
+    "headRefName": "tdd\/4-supervised-leaves"
+  }
+]
+JSON
+mkdir -p "$work/case12/bin"
+cat > "$work/case12/bin/gh" <<SH
+#!/bin/sh
+case "\$1" in
+  issue) echo '[{"number": 71, "state": "CLOSED"}]' ;;
+  pr) echo '[{"headRefName": "$control", "state": "OPEN"}]' ;;
+esac
+SH
+chmod +x "$work/case12/bin/gh"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" PATH="$work/case12/bin:$PATH" "$INVISIBLE" 2>/dev/null)"
+names "the branch with no PR is still reported" "$out" "$control"
+omits "the branch whose PR the fixture says merged is left out" "$out" "$merged"
+finding "$out" "$branch"
+names "the finding names issue 71's state as the fixture decodes it" "${rest^^}" "OPEN"
+omits "the finding does not name the state gh would have given" "${rest^^}" "CLOSED"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
