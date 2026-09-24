@@ -6,7 +6,8 @@
 # no PR was ever opened — not open, not closed, not merged — is reported with its tip, its
 # commit count ahead of the default branch, and, when its name has the `tdd/<n>-<slug>`
 # shape, the number and state of issue <n>: that is what tells a live run from an abandoned
-# one.
+# one. An issue the repository does not have — a typo'd number, a transferred or deleted
+# issue — has its state named `unknown` rather than guessed.
 #
 # A branch any PR was opened for, whatever that PR's state, is not an invariant-2 finding:
 # invariant 2 is a branch with no PR at all. One whose PR is still open sits in GitHub's
@@ -60,7 +61,7 @@ for row in sys.argv[2].splitlines():
     m = re.match(r"tdd/(\d+)-", name)
     if m:
         n = int(m.group(1))
-        state = issues[n]
+        state = issues.get(n, "unknown")
         finding += f", issue #{n} {state}"
     print(finding)
 ' "$issues_json" "$branches" "$prs_json"

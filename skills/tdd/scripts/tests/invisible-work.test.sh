@@ -168,6 +168,42 @@ names "the branch with no PR is still reported" "$out" "$control"
   problems+=("the branch with an open PR is left out: want no $(printf '%q' "$branch") in the report, got $(printf '%q' "$out")")
 report "$name"
 
+# 3. Issue #197, criterion 1, when the slug names an issue the repository does not have: a
+#    `tdd/<n>-<slug>` branch whose <n> is absent from `issues.json` — a typo'd number, an
+#    issue transferred or deleted — is still a branch with no PR, so it is still reported with
+#    its tip and its commits ahead, and its issue's state is named as unknown rather than
+#    guessed. The lookup that fails must not take the report down with it: a second branch
+#    with no PR sorts ahead of it on `origin`, so a script that dies on the lookup has already
+#    printed that one — partial output a caller could mistake for the whole report — and
+#    leaves a traceback on stderr.
+name="invisible-work.sh: a tdd branch whose issue is not in the repository is reported with its issue state unknown, with no traceback"
+problems=()
+branch="tdd/999-an-issue-nobody-filed"
+control="chore/nobody-opened-a-pr"
+clone="$(unpr_branch_clone "$work/case3" "$branch" 3)"
+git_q "$work/case3/src" checkout -q -b "$control" main
+git_q "$work/case3/src" commit -q --allow-empty -m "chore: work with no PR"
+git_q "$work/case3/src" push -q origin "$control"
+git_q "$clone" fetch -q origin
+gh_json="$(fixture "$work/case3/gh")"
+tip="$(git_q "$clone" rev-parse "refs/remotes/origin/$branch" 2>/dev/null)"
+[[ -n "$tip" ]] ||
+  problems+=("the fixture put $branch on origin: want a tip sha for refs/remotes/origin/$branch, got none")
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2> "$work/case3/stderr")"
+err="$(cat "$work/case3/stderr")"
+names "the other branch with no PR is reported too" "$out" "$control"
+names "the report names the branch" "$out" "$branch"
+mapfile -t hits < <(grep -F "$branch" <<< "$out")
+line="${hits[0]-}"
+names "the finding names the branch's tip" "$line" "${tip:0:7}"
+rest="$(sed -E 's/[0-9a-f]{7,40}//g' <<< "${line//"$branch"/}")"
+[[ "$rest" =~ (^|[^0-9])3([^0-9]|$) ]] ||
+  problems+=("the finding states the commits ahead of main: want 3 stated apart from the branch name and the sha, got $(printf '%q' "$rest")")
+names "the finding names the issue's state as unknown" "${rest,,}" "unknown"
+[[ "$err" != *Traceback* ]] ||
+  problems+=("the script does not die on the lookup: want no traceback on stderr, got $(printf '%q' "$err")")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
