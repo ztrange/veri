@@ -6,4 +6,4 @@
 - [x] both skill-identity sweeps pass with docs/adr/0013-issue-branch-in-its-own-worktree.md line 18 naming ~/.claude/skills/solve-issue as a path, unedited ⟦criterion 4⟧
 - [x] README.md's install step symlinks skills/tdd alone and no longer tells a new clone to symlink the two old names ⟦criterion 5⟧
 - [x] CLAUDE.md's opening paragraph names skills/tdd/ as the product rather than skills/solve-issue/ ⟦criterion 6⟧
-- [ ] claude-md-counts.test.sh passes with CLAUDE.md's stated script and suite counts unchanged once the stubs are gone ⟦criterion 7⟧
+- [x] claude-md-counts.test.sh passes with CLAUDE.md's stated script and suite counts unchanged once the stubs are gone ⟦criterion 7⟧

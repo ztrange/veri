@@ -425,6 +425,35 @@ fi
 
 report "$name"
 
+# 6. The counts are unaffected by removing the two forwarding stubs (#412). The stubs were
+#    `skills/solve-issue/` and `skills/solve-issues/`, neither under `skills/tdd/scripts/`,
+#    so taking them out moves no number CLAUDE.md states: with both gone, the three counts
+#    case 1 reads are still the files on disk. The absence is checked first and fails closed
+#    — a stub still standing means the tree this case describes is not the one on disk, and
+#    counts that agree with it would say nothing about the change.
+name="$claude_md's stated script and suite counts are unchanged once the solve-issue stubs are gone"
+problems=()
+
+for stub in "skills/solve-issue" "skills/solve-issues"; do
+  if [[ -e "$ROOT/$stub" ]]; then
+    problems+=("$stub/ is still in the tree; the stubs this case counts without are not gone")
+  fi
+done
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  nonempty script "$n_scripts" "$scripts_glob"
+  nonempty suite "$n_suites" "$suites_glob"
+  if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
+    check "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts"
+  fi
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
+    check "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites"
+    check "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts"
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
