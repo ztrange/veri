@@ -182,9 +182,13 @@ report "$name"
 #    them; case 10 pins their absence. The numbers are left as they were, as for case 3.
 
 # The two old commands as a user types them: a slash, then the name each stub answers to.
+# And the two old skill directories, each its stub's own, for the cases that ask after the
+# directory rather than the file.
 old_cmds=()
+old_dirs=()
 for stub in "${stubs[@]}"; do
   old_cmds+=("/$(stub_name "$stub")")
+  old_dirs+=("$(dirname "$stub")")
 done
 # Those two names as one alternation, since every probe that looks for either wants both:
 # case 5 anchors this to a "not part of a path" boundary to sweep the sources. Written once
@@ -452,12 +456,11 @@ report "$name"
 # 10. The old names are gone, not forwarded (#412). The stubs case 4 pinned were never
 #     installed — Claude Code resolves a command from the directories symlinked into
 #     ~/.claude/skills, and only skills/tdd is — so they forwarded nothing. Stated as the
-#     observable absence: neither old directory exists in the tree. Each is the directory
-#     of its entry in `stubs`, so this file still never writes an old home out in full.
+#     observable absence: neither old directory exists in the tree. Each comes from its
+#     entry in `old_dirs`, so this file still never writes an old home out in full.
 name="neither old skill directory is left in the tree"
 problems=()
-for stub in "${stubs[@]}"; do
-  old_dir="$(dirname "$stub")"
+for old_dir in "${old_dirs[@]}"; do
   [[ ! -e "$ROOT/$old_dir" ]] ||
     problems+=("want no $old_dir/, found one")
 done
@@ -475,7 +478,7 @@ name="a tracked file at a former stub path fails both sweeps: exempt no longer c
 problems=()
 real_root="$ROOT"
 ROOT="$(mktemp -d)"
-mkdir -p "$ROOT/$(dirname "${stubs[0]}")" "$ROOT/$(dirname "${stubs[1]}")"
+mkdir -p "$ROOT/${old_dirs[0]}" "$ROOT/${old_dirs[1]}"
 printf 'scripts live at %s/run.sh\n' "$old_scripts_dir" > "$ROOT/${stubs[0]}"
 printf 'Invoke %s 12 and follow it.\n' "${old_cmds[0]}" > "$ROOT/${stubs[1]}"
 if ! (cd "$ROOT" && git init -q && git add -A); then
@@ -567,8 +570,7 @@ links="$(awk '/^## Install$/ { inside = 1; next }
               inside && /^ln -s / { print }' "$ROOT/$readme")"
 [[ "$links" == *"/$skill_dir\" ~/.claude/skills/$want_name"* ]] ||
   problems+=("$readme ## Install: want an ln -s of $skill_dir to ~/.claude/skills/$want_name, got: ${links:-no ln -s line}")
-for stub in "${stubs[@]}"; do
-  old_dir="$(dirname "$stub")"
+for old_dir in "${old_dirs[@]}"; do
   while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     [[ "$line" == *"/$old_dir\""* ]] &&
