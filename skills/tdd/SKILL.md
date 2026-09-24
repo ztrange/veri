@@ -1013,6 +1013,14 @@ following step. The phase sub-steps are:
    refactor loop** at 1 with the **budget it had left**, asking
    `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an
    overfit flag costs the step a triangulation and never a second budget.
+   **A step's triangulation runs at most once.** The loop resumed there is another refactor
+   leaf reading the files the triangulation just generalized, so it can raise an `overfit`
+   flag about that same code a second time — and a conductor that answers the second flag
+   the way it answered the first has rebuilt #107's chain inside one step, where each flag
+   came from the refactor loop of the step the flag before it created. So a flag raised
+   inside a triangulation's own refactor loop about the same code is **narrated** in the
+   `### 🛠️ Refactor` comment at 6 as a follow-up, not triangulated again: the step keeps
+   what the second leaf saw on the record and spends nothing more on it.
 4. **An `uncovered-spec` flag is the one class that grows the plan.** A `FLAGS:` line
    whose class is **uncovered-spec** names a behaviour the issue's spec requires that **no
    ledger step covers** — the gap *Scope & plan* above asks the planner to

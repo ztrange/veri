@@ -20,10 +20,10 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — eight criteria, the procedure, the account of it, what the leaf's
+# Contract under test — nine criteria, the procedure, the account of it, what the leaf's
 # report grows, what a growth budget too full to hold it means, whose proposals that
-# growth carries, where an overfit flag is answered, which flag class grows the plan, and
-# where a beyond-spec flag goes instead, one case each:
+# growth carries, where an overfit flag is answered, which flag class grows the plan, where
+# a beyond-spec flag goes instead, and how often one step may triangulate, one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -50,6 +50,9 @@
 #      flag class (issue #175).
 #   8. That section narrates a `beyond-spec` flag as a follow-up — in the `### 🛠️ Refactor`
 #      comment and in the PR body — and neither plans nor builds it in this run (issue #175).
+##   9. That section runs a step's triangulation at most once, narrating a flag raised inside
+#      that triangulation's own refactor loop about the same code rather than triangulating
+#      it a second time (issue #175).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -725,6 +728,50 @@ else
     #    against the verb itself, so that is what it matches.
     grep -qE "($denial_word) (planned|plan|built|build)" <<<"$beyond" ||
       problems+=("$skill_md's Refactor section narrates a beyond-spec flag without saying it is neither planned nor built in this run, so the run still builds behaviour the issue's spec never asked for")
+  fi
+fi
+
+report "$name"
+
+# 9. One criterion — a step triangulates at most once — and so one case. Case 6 lets an
+#    overfit flag interrupt the step for a triangulating pair and then resume that step's own
+#    refactor loop, and that resumed loop is another refactor leaf reading the same files: it
+#    can flag the same code again, and a document that answers the second flag the way it
+#    answered the first has rebuilt the chain #107 paid for — three amendments from 01:31 to
+#    past 03:06, each one flagged by the refactor loop of the step the previous one created,
+#    only now inside a single step instead of across the ledger. So the flag raised inside a
+#    triangulation's own refactor loop about the same code is narrated, like a beyond-spec
+#    one at case 8, and never triangulated a second time.
+#
+#    Two probes, because either alone passes a half-written section: a ceiling with nothing
+#    said about what happens to the flag that hits it leaves the conductor to drop it
+#    silently, and "narrate the second flag" without the ceiling is advice a conductor that
+#    triangulates again has not disobeyed.
+#
+#    Asked of the text around `triangulat` rather than of the section at large, the way cases
+#    1, 6, 7 and 8 ask theirs: this section already narrates counts, leftovers and flags into
+#    the `### 🛠️ Refactor` comment, and a probe reading the whole of it would be answered by
+#    those sentences and pass a document that never puts a ceiling on the triangulation.
+name="$skill_md's Refactor section runs a step's triangulation at most once, narrating a flag raised inside that triangulation's own refactor loop about the same code rather than triangulating it again"
+problems=()
+
+if unreadable_section; then
+  # Fail closed, the same way cases 1, 3, 4, 5, 6, 7 and 8 do: a renamed or emptied section
+  # is unreadable, not silently right.
+  problems+=("$(unreadable_problem "whether a step's triangulation runs more than once could not be established")")
+else
+  triangulation="$(wins 'triangulat')"
+  if [[ -z "$triangulation" ]]; then
+    problems+=("$skill_md's Refactor section never mentions triangulation at all, so there is no ceiling on it to read and an overfit flag raised inside one is answered with another")
+  else
+    # a. The ceiling itself: once per step, not once per flag.
+    grep -qE "at most once|only once|once (per|a) step|(${denial_word}) (a )?(second|further|another) (triangulat[a-z]*|time)|(${denial_word}) triangulat[a-z]* (it |them )?(again|a second time)" <<<"$triangulation" ||
+      problems+=("$skill_md's Refactor section puts no ceiling on a step's triangulation, so the loop it resumes can flag the same code again and buy a second pair — the #107 chain this issue is against, moved inside one step")
+
+    # b. And what the flag that hits the ceiling earns instead. Narration, the way a
+    #    beyond-spec flag earns it at case 8: the second flag is said out loud, not dropped.
+    grep -qE "$(either_order 'narrat' '(again|a second (time|triangulation)|same code)' '[^.]{0,200}')" <<<"$triangulation" ||
+      problems+=("$skill_md's Refactor section never says a flag raised inside a triangulation's own refactor loop about the same code is narrated, so what the second flag found is dropped without a word")
   fi
 fi
 
