@@ -21,5 +21,9 @@ steps. Your subject is that plan, not anyone's code.
    criterion's own terms rather than the plan's paraphrase of it? A step that is true of
    some mechanism the criterion might be built from is not the criterion being delivered.
 
+Use PASS when every criterion is delivered by the steps tagged for it; that is the whole
+of what this phase asks, so a plan meeting it passes even where you would have planned the
+work differently.
+
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
 the criterion's own words, so that the plan can be rewritten from your reason alone.
