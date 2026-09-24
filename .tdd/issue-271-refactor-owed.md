@@ -6,3 +6,6 @@
 - fold case 12 (start leaves another worker's item queued) into expect_queue once the ownership step pins its exit code
 ### `workqueue.sh done <worker> <issue> <sha>` moves that worker's `running` item to `merged`, recording the sha as its detail ⟦criterion 3⟧
 - the `repo="$work/<case>"; new_repo "$repo"; seed_queue …` setup repeated across 12 cases of workqueue.test.sh could become one helper — mostly code earlier cycles wrote, so out of this step's bounds
+### `start`, `done` or `park` naming an item another worker owns exits 1 and leaves the file byte-identical ⟦criterion 3⟧
+- fold the repeated `repo="$work/<case>"; new_repo "$repo"; seed_queue …` setup into one helper — code earlier cycles wrote, out of this step's bounds
+- extract `blocked_by.unblocked(body, repo, open_issues)` shared by solvable-issues.sh and workqueue.sh `next` — needs blocked-by.test.sh's stand-in module, outside this step
