@@ -367,6 +367,32 @@ fi
 
 report "$name"
 
+# probe_says_what_to_do_if_a_nested_launch_guard_fires — issue #213 retires the nesting guard
+# as the REASON to prefer print mode (case 6), and must not retire the instruction with it: if a
+# guard on nested launches does fire, the operator still has to read where to go. So ONE record
+# carries the condition — a guard firing, not a standing rule — and the instruction: a plain
+# shell outside the session, `claude -p "/tdd <n>"`. Case 1 asks for the invocation next to the
+# nesting; this asks that it be said as what to do once a guard fires.
+probe_says_what_to_do_if_a_nested_launch_guard_fires() {
+  says "what to do if a nested-launch guard fires — no single passage ties the guard firing to running claude -p \"/tdd <n>\" from a plain shell outside the session" \
+    'guard' \
+    '(when|if|once) (one|it|the guard|a guard)[^.]*(fires|fired|does|trips|refuses)' \
+    'plain shell|ordinary shell|normal shell|separate shell|outside (any|the|that|this) (claude code )?session' \
+    'claude -p' \
+    '/tdd'
+}
+
+# 7. One criterion, one case (#213): the nested-session instruction survives as what to do if a
+#    nested-launch guard fires.
+name="$skill_md still says, if a nested-launch guard fires, to run the conductor from a plain shell outside the session with claude -p \"/tdd <n>\""
+problems=()
+
+if need_skill_records; then
+  probe_says_what_to_do_if_a_nested_launch_guard_fires
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
