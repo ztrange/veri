@@ -1103,33 +1103,39 @@ one more cycle, not a loop — and the bail names every suite still red, not onl
    ```
    A non-empty `git status --porcelain` is work no verifier has seen — the transform a
    killed refactor leaf left on disk — and an exit 0 from `next-pending-refactor.sh` is a
-   step that is checked but still only green. On either, **do not open the PR**: go to
+   step that is checked but still only green. On either, **do not ready the PR**: go to
    *Resume* sub-step 2, whose reset runs before its ask and so discards that work whatever
    the ask answers, and come back here only once both questions have gone quiet — an empty
    status, and `next-pending-refactor.sh` exiting 3. For a pending step sub-step 2 also
    re-enters that step's refactor loop. With **no step pending and none unchecked** the
    reset is the whole remedy: sub-steps 2 and 3 both exit 3, sub-step 4's `### ▶️ Resuming`
-   comment names the paths the reset discarded, and the run comes back here and opens the
+   comment names the paths the reset discarded, and the run comes back here and readies the
    PR — refusing the same tree for ever is not an outcome, discarding it loudly is.
-2. **Open the draft PR, close the run's log with its URL, then render the metrics, commit
-   them and put them in the PR body** — one sub-step, in this order, from inside the worktree.
-   The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
-   and the issue's wall time: a report rendered before it exists says `unknown` for both, and
-   the mark carries the PR's URL, which only `gh pr create` hands back. The body is opened
-   without the `### 📊 Metrics` block and gets it only after the `metrics:` commit is pushed,
-   so the body never quotes a file the branch does not yet carry:
+2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
+   PR into its final form and mark it ready for review** — one sub-step, in this order, from
+   inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
+   there is nothing left here for `gh pr create` to do: a second one against a branch that
+   already has an open PR is either a refusal that ends the run at its last step, or a second
+   PR for the same branch — and then the claim another machine reads and the page a human is
+   asked to merge are two different pages. Read the existing PR's URL rather than assuming the
+   run remembers it, so a resumed run edits the PR its branch already has:
    ```
-   gh pr create --draft --base <default-branch> \
-     --title "<type>: <criterion summary> (#<n>)" \
-     --body "Closes #<n> — <summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed>"
+   gh pr view --json url -q .url          # → <pr-url>, the PR step 2.3 opened
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md
    git add .tdd/issue-<n>-metrics.md
    git commit -m "metrics: what solving #<n> cost (#<n>)"
    $S/push-branch.sh
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
-   gh pr edit <pr-url> --body "<the body above, followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets>"
+   gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets>"
+   gh pr ready <pr-url>
    ```
+   The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
+   and the issue's wall time: a report rendered before it exists says `unknown` for both. The
+   body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
+   branch does not yet carry. The title drops the `WIP:` prefix step 2.3 opened it with, and
+   `gh pr ready` is what turns the run's claim into a review request: a finished run that left
+   a draft behind asks nobody to look.
    `<type>` is **`fix`** on a bug run — the issue carries the `bug` label, so the title
    starts with the `fix:` prefix, the same prefix its green commits took — and `feat`
    otherwise. A bug run's PR titled `feat:` announces to the human deciding the merge a
@@ -1556,8 +1562,8 @@ hatch.
 - The full suite must be green before you commit and before you open the PR: that is
   `detect-test-command.sh --tier all`'s command, run exactly once at the Draft PR step — the
   only full-suite gate left in the cycle.
-- The PR is always a **draft**, always carries `Closes #<n>`, and is **never merged** by
-  you.
+- The PR is opened as a **draft** at the plan commit and readied for review at the Draft PR
+  step, always carries `Closes #<n>`, and is **never merged** by you.
 - On a `REJECT`, run the **bounded revise loop** (default 2 attempts, fresh leaf carrying
   the reason); if it exhausts, **bail** (process failure). On a **killed-stuck** leaf past
   its retry budget, or an unreadable verdict, **bail** (system failure). Always preserve

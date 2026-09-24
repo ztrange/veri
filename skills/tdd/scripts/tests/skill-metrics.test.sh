@@ -17,7 +17,8 @@
 # Draft PR step AND in the Bailing section, and each contributes its own problem line.
 #
 # Contract under test (one criterion, one case):
-#   SKILL.md's `### 4. Draft PR` step runs, in this order (since #236), `gh pr create`,
+#   SKILL.md's `### 4. Draft PR` step runs, in this order (since #236, and since #195 opening
+#   no PR of its own), `gh pr view` for the URL of the PR the plan commit already opened,
 #   `event.sh done pr=<pr-url>`, `metrics.sh`, a `metrics:` commit of
 #   `.tdd/issue-<n>-metrics.md`, `push-branch.sh`, and `gh pr edit`, which carries the
 #   `### 📊 Metrics` block into the PR body; the same block goes into the final `✅ Done`
@@ -126,12 +127,14 @@ else
   first_record_line "$pr_records" 'metrics:' 'metrics.md' >/dev/null ||
     problems+=("$skill_md's Draft PR step has no instruction committing .tdd/issue-<n>-metrics.md in a metrics: commit, so the report is never beside the ledger it describes")
 
-  # The PR itself, by its command: without a `gh pr create` the step has no PR for a human
-  # to read the delivered figures on. Order is not asked here — a record holds the whole
-  # sub-step, so the commit and the create land in the same one (#267); the fenced-line cases
-  # below read SKILL.md's command block directly, where the order is expressible.
-  first_record_line "$pr_records" 'gh pr create' >/dev/null ||
-    problems+=("$skill_md's Draft PR step never runs gh pr create, so the run ends with no PR carrying the metrics it committed")
+  # The PR itself, by its command: since #195 the PR is opened at the plan commit, so what
+  # this step owes is the edit that puts the figures on it — without a `gh pr edit` the run
+  # ends with a PR carrying none of the metrics it committed. Order is not asked here — a
+  # record holds the whole sub-step, so the commit and the edit land in the same one (#267);
+  # the fenced-line cases below read SKILL.md's command block directly, where the order is
+  # expressible.
+  first_record_line "$pr_records" 'gh pr edit' >/dev/null ||
+    problems+=("$skill_md's Draft PR step never runs gh pr edit, so the run ends with no PR carrying the metrics it committed")
 
   # The block where a human reads a finished run: the closing comment. Asked of the record
   # carrying that comment's own command, so a mention of the block anywhere else in the step
@@ -231,11 +234,12 @@ report "$name"
 
 # Issue #240: since #236 the Draft PR step's commands share one fenced block, which
 # records_of folds into a single record, so the first case's record comparison can no longer
-# tell the metrics commit from `gh pr create`. This case reads the step's fenced command lines
-# one by one, with their line numbers in SKILL.md, and orders those instead: the PR is opened
-# first, and the `metrics:` commit follows it. Both anchors must exist first, so a step that
-# dropped either fails closed rather than reading as ordered.
-name="$skill_md's Draft PR command block runs gh pr create before the metrics: commit, ordered line by line"
+# tell the metrics commit from the command that names the PR. This case reads the step's
+# fenced command lines one by one, with their line numbers in SKILL.md, and orders those
+# instead: the PR's URL is read first — since #195 from the PR the plan commit opened, not
+# from a create of this step's own — and the `metrics:` commit follows it. Both anchors must
+# exist first, so a step that dropped either fails closed rather than reading as ordered.
+name="$skill_md's Draft PR command block reads the open PR's URL before the metrics: commit, ordered line by line"
 problems=()
 
 # fenced_lines — `<line number> <line>` for every line inside a ``` fence of the Draft PR
@@ -257,12 +261,12 @@ first_fenced_line() {
   return 1
 }
 
-block_pr_line="$(first_fenced_line 'gh pr create')" ||
-  problems+=("$skill_md's Draft PR command block never runs gh pr create")
+block_pr_line="$(first_fenced_line 'gh pr view')" ||
+  problems+=("$skill_md's Draft PR command block never runs gh pr view to read the open PR's URL")
 block_commit_line="$(first_fenced_line 'git commit -m "metrics:')" ||
   problems+=("$skill_md's Draft PR command block never runs git commit -m \"metrics: …\"")
 if [[ -n "${block_pr_line:-}" && -n "${block_commit_line:-}" && "$block_commit_line" -lt "$block_pr_line" ]]; then
-  problems+=("$skill_md commits the metrics report at SKILL.md:$block_commit_line, BEFORE gh pr create at SKILL.md:$block_pr_line, so the report is rendered and committed with no PR for the done mark to name")
+  problems+=("$skill_md commits the metrics report at SKILL.md:$block_commit_line, BEFORE gh pr view at SKILL.md:$block_pr_line, so the report is rendered and committed with no PR URL for the done mark to name")
 fi
 report "$name"
 
@@ -289,15 +293,15 @@ fi
 report "$name"
 
 # Issue #240, the whole order at once: the two cases above each pin one pair, and this one
-# walks the Draft PR command block's six commands in the order SKILL.md gives them — open the
-# PR, write its done mark, render, commit, push, then put the report in the body — and asks
+# walks the Draft PR command block's six commands in the order SKILL.md gives them — read the
+# open PR's URL, write its done mark, render, commit, push, then put the report in the body — and asks
 # that each sits on a later SKILL.md line than the one before it. Every anchor must exist
 # first, so a step that dropped one fails closed rather than reading as ordered.
-name="$skill_md's Draft PR command block runs gh pr create, event.sh done, metrics.sh, the metrics: commit, push-branch.sh and gh pr edit in that order"
+name="$skill_md's Draft PR command block runs gh pr view, event.sh done, metrics.sh, the metrics: commit, push-branch.sh and gh pr edit in that order"
 problems=()
 
 prev_anchor="" prev_line=""
-for anchor in 'gh pr create' 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' 'gh pr edit'; do
+for anchor in 'gh pr view' 'event.sh done pr=' 'metrics.sh <n>' 'git commit -m "metrics:' 'push-branch.sh' 'gh pr edit'; do
   if ! line="$(first_fenced_line "$anchor")"; then
     problems+=("$skill_md's Draft PR command block never runs $anchor")
     prev_anchor="" prev_line=""
@@ -334,7 +338,7 @@ report "$name"
 # its comment markers stripped and its wrapped lines joined, and its commands must appear in
 # the order the step runs them. A missing anchor is a problem of its own and leaves the last
 # found one in place, so an old paragraph still reports what it orders wrongly.
-name="skill-metrics.test.sh's header comment states the Draft PR order gh pr create, event.sh done, metrics.sh, the metrics: commit, push-branch.sh, gh pr edit"
+name="skill-metrics.test.sh's header comment states the Draft PR order gh pr view, event.sh done, metrics.sh, the metrics: commit, push-branch.sh, gh pr edit"
 problems=()
 
 suite_md="skills/tdd/scripts/tests/skill-metrics.test.sh"
@@ -344,7 +348,7 @@ if [[ -z "$contract" ]]; then
   problems+=("$suite_md has no Contract under test paragraph in its header to read")
 else
   prev_anchor="" prev_at=""
-  for anchor in 'gh pr create' 'event.sh done' 'metrics.sh' 'metrics:' 'push-branch.sh' 'gh pr edit'; do
+  for anchor in 'gh pr view' 'event.sh done' 'metrics.sh' 'metrics:' 'push-branch.sh' 'gh pr edit'; do
     if ! at="$(offset_of "$contract" "$anchor")"; then
       problems+=("$suite_md's Contract under test never names $anchor")
       continue
