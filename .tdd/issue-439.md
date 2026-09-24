@@ -1,6 +1,6 @@
 # Plan for #439 — The plan is the one artifact nothing verifies, so a narrowed criterion is certified as done
 
-- [ ] build-verify-prompt.sh accepts a plan phase and builds its prompt from the issue spec and the ledger named as its third argument ⟦criterion 1⟧
+- [x] build-verify-prompt.sh accepts a plan phase and builds its prompt from the issue spec and the ledger named as its third argument ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] build-verify-prompt.sh exits 2 with nothing on stdout for a plan invocation that names no ledger or names one it cannot read ⟦criterion 1⟧
 - [ ] The plan prompt asks whether the steps tagged for a criterion together deliver that criterion as written, and requires a REJECT reason to name the criterion and the part of it no step covers ⟦criterion 2⟧
 - [ ] The plan prompt directs a PASS when every criterion is delivered by the steps tagged for it ⟦criterion 3⟧

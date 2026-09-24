@@ -8,7 +8,8 @@
 #
 # Usage:
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
-#     phase = red | green | refactor | pin
+#     phase = red | green | refactor | pin | plan
+#              for plan the third positional names the proposed ledger, not a test (#439)
 #     --step = the ledger's own line for the step under judgement (#223): it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
 #     --fast-cmd = the fast tier's test command (#341), required for green and refactor:
@@ -70,9 +71,17 @@ test_path="$3"
 target="${4:-the target test}"
 
 case "$phase" in
-  red|green|refactor|pin) ;;
-  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin)" >&2; exit 2 ;;
+  red|green|refactor|pin|plan) ;;
+  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan)" >&2; exit 2 ;;
 esac
+
+# For plan, the third slot names the proposed ledger instead of a test under review (#439):
+# the plan is this phase's subject, so its own text goes into the prompt — a verifier given
+# only a path, in a target repository, would judge a file it was never handed.
+ledger=""
+if [[ "$phase" == plan ]]; then
+  ledger="$(cat "$test_path")"
+fi
 
 # Green and refactor name the fast command in their checks; without one the verifier would be
 # told to run a command nobody named (#341).
@@ -117,6 +126,7 @@ fi
 out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{STEP\}\}/$step_block}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
+out="${out//\{\{LEDGER\}\}/$ledger}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{BASE_SHA\}\}/$base_sha}"
