@@ -194,6 +194,20 @@ launch_over() {
   (( found ))
 }
 
+# completion_landed <dir> — succeed once the launch in <dir> has written a completion file
+# under ANY name. A pid being gone and its completion file existing are two events that
+# nothing orders (#457): a detached launch's recorded pid can die before the supervisor
+# behind it has written `.tdd/<name>.exit`, so `launch_over` alone ended the wait on a leaf
+# that had answered and was still being recorded. Any name, not the derived one, so a launch
+# that named its leaf wrongly still ends the wait as soon as its own file lands (#297).
+completion_landed() {
+  local exitfile
+  for exitfile in "$1"/.tdd/*.exit; do
+    [[ -f "$exitfile" ]] && return 0
+  done
+  return 1
+}
+
 launched_test_cmd() {
   local leaf="$1" launch="$2"
   shift 2
@@ -246,7 +260,7 @@ launched_test_cmd() {
       bash -c "$launch" ) >/dev/null 2>&1
   local deadline=$(( SECONDS + 60 ))
   until [[ -f "$dir/.tdd/$leaf.exit" ]]; do
-    launch_over "$dir" && break
+    launch_over "$dir" && completion_landed "$dir" && break
     (( SECONDS >= deadline )) && break
     sleep 0.2
   done
@@ -888,6 +902,42 @@ STUB
 
 run_case "a step title carrying an apostrophe reaches the leaf $skill_md launches with it intact" \
   scan_step_title
+
+# 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
+#    being gone and the completion file existing are two events, and nothing orders them: a
+#    detached launch returns at once, the pid its tree records can die while the supervisor
+#    behind it has not yet written `.tdd/<leaf>.exit`, and a wait that stops at the last pid
+#    reported `<no completion file under leaf …>` — the words #297 reserves for a leaf named
+#    wrongly — for a leaf that ran, saw its environment and answered. PR #456 went red on CI
+#    that way on the two verifier lines and green on a re-run of the same sha.
+#
+#    Asked of one correct developer-shaped fixture launch of this probe's own, run against a
+#    scripts directory whose detacher stands in for the whole slow chain: it records what the
+#    leaf saw, records its OWN pid — gone the moment it returns — and leaves the completion
+#    file to a writer no pid file names, which lands it a second later. So by the time the wait
+#    first looks, every recorded pid has exited and the completion file has not arrived yet,
+#    which is exactly the order the CI runner produced by being slow.
+#
+# scan_late_completion — the case's body, in the other cases' shape: `lineno`/`line` are its
+# own so `expect_sentinel`'s complaint quotes this fixture's line.
+scan_late_completion() {
+  local lineno line launch leaf prompt stage
+  unwritten_leaf_fixture late-completion || return
+  stage="$WORK/late-completion-scripts"
+  mkdir -p "$stage"
+  cat > "$stage/detach-leaf.sh" <<'STUB'
+#!/bin/sh
+# $1 is supervise.sh and $2 the leaf's name, as the launch line spells them.
+printf '%s\n' "${VERI_TEST_CMD-<unset>}" > "$SEEN"
+printf '%s\n' "$$" > ".tdd/$2.pid"
+( sleep 1; printf '0\n' > ".tdd/$2.exit" ) </dev/null >/dev/null 2>&1 &
+STUB
+  chmod +x "$stage/detach-leaf.sh"
+  SCRIPTS="$stage" expect_sentinel "$leaf" "$launch" "$prompt"
+}
+
+run_case "a launch whose completion file lands after its last recorded pid has exited is reported by what its leaf saw (#457)" \
+  scan_late_completion
 
 echo "----"
 echo "$pass passed, $fail failed"
