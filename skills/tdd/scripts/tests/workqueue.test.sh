@@ -34,6 +34,13 @@ seed_queue() {
   printf "$2" > "$1/.tdd/workqueue"
 }
 
+# issues_fixture <case> — writes stdin to $work/<case>.gh/issues.json, the one fixture
+# `next` reads through VERI_GH_JSON.
+issues_fixture() {
+  mkdir -p "$work/$1.gh"
+  cat > "$work/$1.gh/issues.json"
+}
+
 # expect_next <case> <want> <description> [<VAR>=<value>...] — runs `next alpha` in
 # $work/<case> against the fixtures in $work/<case>.gh, with any assignments given in its
 # environment, and counts the case passed when it exits 0 printing exactly <want>.
@@ -137,9 +144,7 @@ fi
 repo="$work/next-unblocked"
 new_repo "$repo"
 seed_queue "$repo" 'beta\t21\tqueued\t\nalpha\t20\tqueued\t\nalpha\t22\tqueued\t\n'
-fx="$work/next-unblocked.gh"
-mkdir -p "$fx"
-cat > "$fx/issues.json" <<'JSON'
+issues_fixture next-unblocked <<'JSON'
 [
   {"number": 5, "title": "open blocker", "labels": [], "body": "", "state": "OPEN"},
   {"number": 6, "title": "closed blocker", "labels": [], "body": "", "state": "CLOSED"},
@@ -162,9 +167,7 @@ repo="$work/next-foreign-url"
 new_repo "$repo"
 git -C "$repo" remote add origin https://github.com/ztrange/veri.git
 seed_queue "$repo" 'alpha\t131\tqueued\t\n'
-fx="$work/next-foreign-url.gh"
-mkdir -p "$fx"
-cat > "$fx/issues.json" <<'JSON'
+issues_fixture next-foreign-url <<'JSON'
 [
   {"number": 120, "title": "open here", "labels": [], "body": "", "state": "OPEN"},
   {"number": 131, "title": "blocked elsewhere", "labels": [], "state": "OPEN",
@@ -182,9 +185,7 @@ repo="$work/next-own-url"
 new_repo "$repo"
 git -C "$repo" remote add origin https://github.com/ztrange/veri.git
 seed_queue "$repo" 'alpha\t131\tqueued\t\nalpha\t132\tqueued\t\n'
-fx="$work/next-own-url.gh"
-mkdir -p "$fx"
-cat > "$fx/issues.json" <<'JSON'
+issues_fixture next-own-url <<'JSON'
 [
   {"number": 120, "title": "open here", "labels": [], "body": "", "state": "OPEN"},
   {"number": 131, "title": "blocked here", "labels": [], "state": "OPEN",
@@ -204,9 +205,7 @@ repo="$work/next-ssh-origin"
 new_repo "$repo"
 git -C "$repo" remote add origin git@github.com:ztrange/veri.git
 seed_queue "$repo" 'alpha\t131\tqueued\t\n'
-fx="$work/next-ssh-origin.gh"
-mkdir -p "$fx"
-cat > "$fx/issues.json" <<'JSON'
+issues_fixture next-ssh-origin <<'JSON'
 [
   {"number": 120, "title": "open here", "labels": [], "body": "", "state": "OPEN"},
   {"number": 131, "title": "blocked elsewhere", "labels": [], "state": "OPEN",
