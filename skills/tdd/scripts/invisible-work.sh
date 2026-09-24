@@ -8,9 +8,14 @@
 # shape, the number and state of issue <n>: that is what tells a live run from an abandoned
 # one.
 #
-# The repository's issues are read as the JSON `gh` emits:
+# A branch any PR was opened for, whatever that PR's state, is not an invariant-2 finding:
+# invariant 2 is a branch with no PR at all. One whose PR is still open sits in GitHub's
+# review queue already.
+#
+# The repository's issues and PRs are read as the JSON `gh` emits:
 #   gh issue list --state all --limit 10000 --json number,state
-# VERI_GH_JSON overrides it, naming a directory holding `issues.json` in that shape — the same override solvable-issues.sh establishes, so this runs with no
+#   gh pr list --state all --limit 10000 --json headRefName,state
+# VERI_GH_JSON overrides both, naming a directory holding `issues.json` and `prs.json` in those shapes — the same override solvable-issues.sh establishes, so this runs with no
 # network in its tests. The JSON is read with python3, as there.
 #
 # Usage:   invisible-work.sh
@@ -27,6 +32,7 @@ gh_json() {  # gh_json <fixture-file> <gh args…> -> that document on stdout
 }
 
 issues_json="$(gh_json issues.json issue list --state all --limit 10000 --json number,state)"
+prs_json="$(gh_json prs.json pr list --state all --limit 10000 --json headRefName,state)"
 
 # The default branch as `origin` names it: `refs/remotes/origin/HEAD` -> `origin/main`.
 default="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
@@ -44,9 +50,12 @@ exec python3 -c '
 import json, re, sys
 
 issues = {i["number"]: i["state"] for i in json.loads(sys.argv[1])}
+with_pr = {p["headRefName"] for p in json.loads(sys.argv[3])}
 
 for row in sys.argv[2].splitlines():
     name, tip, ahead = row.split()
+    if name in with_pr:
+        continue
     finding = f"invariant 2 (no PR): {name} tip {tip} {ahead} commits ahead"
     m = re.match(r"tdd/(\d+)-", name)
     if m:
@@ -54,4 +63,4 @@ for row in sys.argv[2].splitlines():
         state = issues[n]
         finding += f", issue #{n} {state}"
     print(finding)
-' "$issues_json" "$branches"
+' "$issues_json" "$branches" "$prs_json"

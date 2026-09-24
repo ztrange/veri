@@ -1,7 +1,7 @@
 # Plan for #197 — A maintenance utility that reports branches with no PR and local branches never pushed
 
 - [x] A branch on origin for which no PR has ever been opened is reported, naming the branch, its tip, its commit count ahead of the default branch, and the number and state of the issue its tdd slug name refers to ⟦criterion 1⟧
-- [ ] A branch on origin whose PR is still open is left out of the report, since invariant 2 is a branch with no PR at all ⟦added⟧ ⟦criterion 1⟧
+- [x] A branch on origin whose PR is still open is left out of the report, since invariant 2 is a branch with no PR at all ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A branch on origin named tdd/<n>-<slug> whose issue <n> is not among the repository's issues is still reported with its tip and commits ahead, its issue state named as unknown, and the script does not die with a traceback after partial output ⟦added⟧ ⟦criterion 1⟧
 - [ ] A local branch absent from origin is reported, naming the branch, its tip, how many commits it holds that origin does not, and the worktree holding it when there is one ⟦criterion 2⟧
 - [ ] A branch whose PR is merged or closed is left out of the report, and so is the default branch ⟦criterion 3⟧
