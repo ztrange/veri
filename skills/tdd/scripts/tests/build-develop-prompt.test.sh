@@ -94,7 +94,7 @@ green="$("$BUILD" green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$
 
 # 3. the refactor prompt names the files the cycle touched, carries the rule that bounds
 #    the tidy-up (no generality no test demands) and requires the RESULT: footer. The
-#    footer's other two lines are cases 8 (`CANDIDATES:`) and 32 (`NEW_STEP:`), each of
+#    footer's other two lines are cases 8 (`CANDIDATES:`) and 38 (`FLAGS:`), each of
 #    which carries why it pins what it pins.
 touched='scripts/zorblat.sh, tests/zorblat/test_frob & nitz.sh'
 refactor="$("$BUILD" refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched" 2>/dev/null)"; code=$?
@@ -1129,26 +1129,14 @@ says_both_ways "$refactor" "never says the suites run after a transform cover a 
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor tells the leaf to run the suites covering every file a transform touched, the out-of-list file included (${problems#; })"
 
-# 32. what the refactor leaf reports about overfit code (issue #361). Case 3 pinned a `FLAGS:`
-#     line until this case replaced it — prose naming overfit code and the case that would force
-#     the general implementation — and ADR-0022 records where that line went: narrated into the
-#     issue thread and dropped, although ADR-0009 promised the plan would gain a triangulating
-#     step. A sentence cannot be handed to `add-ledger-step.sh`; a behaviour-level criterion,
-#     one per line, can. So the line becomes `NEW_STEP:`, the protocol token the conductor
-#     greps for and passes through, offering `none` when the leaf saw no overfit code — and
-#     `FLAGS:` goes, rather than sitting beside it, since two footers for one answer let a leaf
-#     fill either and the conductor read the other. Three faces of one criterion, so one case.
-#
-#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
-#     case 3 owns the exit-0 check on it. Probed unfolded and anchored at `^`, the way case 8
-#     probes `CANDIDATES:`, because what is pinned is a report LINE the conductor greps for at
-#     the start of one, not a claim made somewhere in a sentence.
-problems=""
-grep -qE '^NEW_STEP:' <<<"$refactor" || problems="$problems; no NEW_STEP: report line"
-grep -qE '^NEW_STEP:.*none' <<<"$refactor" || problems="$problems; the NEW_STEP: line does not offer none"
-grep -q 'FLAGS:' <<<"$refactor" && problems="$problems; the report still carries a FLAGS: line"
-[[ -z "$problems" ]] \
-  && ok || no "develop-refactor ends its report with NEW_STEP: lines offering none and carries no FLAGS: line (${problems#; })"
+# 32. retired by case 38 (issue #175). This case pinned what the refactor leaf reports about
+#     overfit code: `NEW_STEP:`, offering `none`, and no `FLAGS:` line beside it. Case 38 moves
+#     that report back onto a `FLAGS:` line carrying its class, so the two are the same
+#     assertion with opposite signs — a suite holding both is unsatisfiable, and the green leaf,
+#     forbidden to edit tests, could satisfy neither. So it is retired here rather than left
+#     red, the way #361's own red retired case 3's `FLAGS:` clause into case 32. The number is
+#     kept as this note because cases 33 and 34 cite it for the shape of an anchored report-line
+#     probe; they now cite case 38, which owns that shape for this footer line.
 
 # 33. the way out of a step too big for one green (issue #363). Case 2 pins the test the green
 #     leaf must satisfy and the rule that it may not weaken it; this case pins what it may do
@@ -1163,7 +1151,7 @@ grep -q 'FLAGS:' <<<"$refactor" && problems="$problems; the report still carries
 #
 #     The prompt read is case 2's: same phase, same arguments, so there is one invocation and
 #     case 2 owns the exit-0 check on it. The report line is probed unfolded and anchored at
-#     `^`, the way cases 8 and 32 probe `CANDIDATES:` and `NEW_STEP:`, because what is pinned
+#     `^`, the way cases 8 and 38 probe `CANDIDATES:` and `FLAGS:`, because what is pinned
 #     is a report LINE the conductor greps for at the start of one. The other two are claims
 #     made somewhere in a sentence, so they go through `prompt_says`, and the third through
 #     `says_both_ways` for case 16's reason — "report SPLIT: lines, changing no production
@@ -1194,7 +1182,7 @@ says_both_ways "$green" "never says a leaf that splits changes no production cod
 #     red`: the criterion names the prompt built for `revise green`, and a probe answered by
 #     the red one would pin nothing about green. This case therefore owns the exit-0 check on
 #     that invocation. The report line is probed unfolded and anchored at `^`, the way cases
-#     8, 32 and 33 probe `CANDIDATES:`, `NEW_STEP:` and `SPLIT:`, because what is pinned is a
+#     8, 33 and 38 probe `CANDIDATES:`, `SPLIT:` and `FLAGS:`, because what is pinned is a
 #     report LINE the conductor greps for at the start of one; the other two go through
 #     `prompt_says` and `says_both_ways` exactly as case 33 asks them of green, gap 80, for
 #     the reason given there. `SPLIT` occurs nowhere in the revise prompt built today, so the
@@ -1323,6 +1311,60 @@ prompt_says "$bug_red" "never says to name the case so it carries #<n>" -iE -e "
 prompt_lacks "$red" "a spec with no Bug section is still told to name the case after the issue" -iE -e "$names_with_number"
 [[ -z "$problems" ]] \
   && ok || no "develop-red tells a bug's leaf to name the case so it carries the issue's number in the project's own idiom, and tells a leaf with no Bug section nothing of it (${problems#; })"
+
+# 38. the class a refactor flag carries, and what each class names (issue #175). Case 32 moved
+#     the overfit report from `FLAGS:` to `NEW_STEP:`, so that what a leaf found could be handed
+#     to `add-ledger-step.sh` as a criterion; the cost is that every flag then becomes a whole
+#     ledger step — red, verify-red, green, verify-green, a refactor loop and a `### ✅ Step
+#     done` — whatever it named. #175's six `plan: amend` commits are that cost paid, and
+#     #107's three amendments are it feeding itself: each was flagged by a refactor leaf of the
+#     step the previous amendment created. Only one of the three kinds of thing a leaf flags is
+#     worth a step, so the conductor has to be able to tell them apart from the leaf's words
+#     rather than its own judgement — which it can only do if the class rides on the line. So
+#     the line goes back to `FLAGS:`, now carrying `overfit` (the code passes this step's test
+#     without implementing the behaviour its criterion states), `uncovered-spec` (a behaviour
+#     the spec requires that no ledger step covers — the only one that becomes an amendment) or
+#     `beyond-spec` (an input class or edge the spec does not ask for), or `none` — and
+#     `NEW_STEP:` goes with it, rather than sitting beside it, for the reason case 32 gave when
+#     it took `FLAGS:` away: two footers for one answer let a leaf fill either and the conductor
+#     read the other. That makes this case the exact inverse of case 32, which is therefore
+#     retired here and not left beside it — a suite asserting both would be unsatisfiable, and
+#     the green leaf may not edit tests to resolve it. What the conductor then DOES with each
+#     class is `SKILL.md`'s, and the ledger's later steps.
+#
+#     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
+#     case 3 owns the exit-0 check on it. Two probe shapes, for the two halves of the criterion.
+#     The line itself is probed unfolded and anchored at `^`, the way cases 8, 18 and 33 probe
+#     theirs, because what is pinned is a report LINE the conductor greps for at the start of
+#     one; the class-carries-a-`|` probe is case 18's `offers_class`, spelled for this token
+#     because the complaint it records names this one. What each class NAMES is probed folded
+#     with `says_both_ways`, the way case 16 probes the structural/cosmetic definitions — a
+#     definition reads as naturally backwards as forwards, and a prompt is wrapped at ~85
+#     columns, so the claim spans two lines and only the folded probe can see it. The two
+#     halves cannot answer each other: a footer line carrying the word `beyond-spec` says
+#     nothing about what a leaf may put on it, and a paragraph defining the three classes is
+#     not a line the conductor can grep.
+flags_class() {  # flags_class <class word>
+  local class="$1"
+  grep -qE "^FLAGS:.*$class[^|]{0,40}\|" <<<"$refactor" \
+    || problems="$problems; the FLAGS: line does not offer $class as the class"
+}
+
+problems=""
+grep -qE '^FLAGS:' <<<"$refactor" || problems="$problems; no FLAGS: report line"
+grep -qE '^FLAGS:.*none' <<<"$refactor" || problems="$problems; the FLAGS: line does not offer none"
+grep -qE '^NEW_STEP:' <<<"$refactor" && problems="$problems; the report still carries a NEW_STEP: line"
+flags_class overfit
+flags_class uncovered-spec
+flags_class beyond-spec
+says_both_ways "$refactor" "does not say overfit names code that passes the test without implementing the behaviour" \
+  120 'overfit' '(without|rather than|instead of) implementing'
+says_both_ways "$refactor" "does not say uncovered-spec names a behaviour the spec requires" \
+  120 'uncovered-spec' '(spec (requires|asks)|required by the spec)'
+says_both_ways "$refactor" "does not say beyond-spec names something the spec does not ask for" \
+  120 'beyond-spec' "(does not|doesn.t|never) (ask|require)"
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor reports overfit code on FLAGS: lines carrying the overfit, uncovered-spec and beyond-spec classes or none, in place of NEW_STEP:, and defines what each class names (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"
