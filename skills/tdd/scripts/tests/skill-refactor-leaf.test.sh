@@ -207,14 +207,21 @@ wins() {
 }
 
 # either_order <a> <b> <gap> — one parenthesised regex for "<a> and <b> in the same clause",
-# whichever of them the writer put first: `(<a><gap><b>|<b><gap><a>)`. Every proximity probe
-# below wants that and nothing narrower — which way round a document says it is the writer's
-# business — and each of them used to spell the mirror out by hand, where the two halves can
-# drift apart unnoticed and the probe silently stops accepting one of the two orders. <gap> is
-# passed rather than fixed because what counts as "the same clause" differs: `.{0,120}` reaches
-# across a sentence boundary, `[^.]{0,200}` refuses to.
+# whichever of them the writer put first: `((<a>)<gap>(<b>)|(<b>)<gap>(<a>))`. Every proximity
+# probe below wants that and nothing narrower — which way round a document says it is the
+# writer's business — and each of them used to spell the mirror out by hand, where the two
+# halves can drift apart unnoticed and the probe silently stops accepting one of the two orders.
+# <gap> is passed rather than fixed because what counts as "the same clause" differs:
+# `.{0,120}` reaches across a sentence boundary, `[^.]{0,200}` refuses to.
+#
+# Each operand is grouped HERE rather than trusted to arrive grouped, because an alternation
+# passed in bare binds looser than the mirror this builds: `a|b` as <b> yields
+# `(<a><gap>a|b|b<gap><a>)`, whose second branch is the bare word `b` and matches anywhere in
+# the section — a probe that reads as a proximity check and is answered by one word. Grouping
+# an operand that already carries its own parentheses is a no-op, so the call sites that spell
+# them stay correct.
 either_order() {
-  printf '(%s%s%s|%s%s%s)' "$1" "$3" "$2" "$2" "$3" "$1"
+  printf '((%s)%s(%s)|(%s)%s(%s))' "$1" "$3" "$2" "$2" "$3" "$1"
 }
 
 # What a refusal looks like, spelled once for the two probes that ask for one. Both checks
