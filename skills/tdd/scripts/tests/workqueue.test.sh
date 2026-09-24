@@ -414,5 +414,23 @@ else
   diff <(printf '%s\n' "$before") <(printf '%s\n' "$after") | sed 's/^/    /'
 fi
 
+# 19. show prints every item grouped by worker, each with its issue and state: a line naming
+#     the worker, then one tab-indented `<issue>\t<state>` line per item of that worker's, in
+#     file order. Workers come in the order they first appear, so alpha's 12 and 7 are printed
+#     together although beta's 4 sits between them in the file.
+repo="$work/show-grouped"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
+want="$(printf 'alpha\n\t12\trunning\n\t7\tqueued\nbeta\n\t4\tqueued')"
+out="$(cd "$repo" && "$SCRIPT" show 2>"$work/show-grouped.err")" && code=0 || code=$?
+if [[ "$code" -eq 0 && "$out" == "$want" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - show prints every item grouped by worker, each with its issue and state"
+  echo "    exit: $code (want 0), stderr: $(cat "$work/show-grouped.err")"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
