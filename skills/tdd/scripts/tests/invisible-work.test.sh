@@ -306,6 +306,34 @@ names "the report names the branch" "$out" "$branch"
   problems+=("the finding names no worktree: want no worktree in the finding, got $(printf '%q' "$line")")
 report "$name"
 
+# 7. Issue #197, criterion 3: a branch whose PR is merged or closed is residue — a cleanup
+#    question, not a violation — so it is left out of the report, and so is the default
+#    branch itself, whether `origin` names it as `main` or through its `HEAD` alias. None of
+#    the three has a PR open, so a script that filters on open PRs alone would report them.
+#    A second branch with no PR must still be reported, so an empty report cannot pass. No
+#    branch name in the case carries `main` or `HEAD`, so either word in the report can only
+#    be the default branch reported.
+name="invisible-work.sh: a branch whose PR is merged or closed is left out of the report, and so is the default branch"
+problems=()
+merged="tdd/4-supervised-leaves"
+closed="chore/test-runner"
+control="chore/nobody-opened-a-pr"
+clone="$(unpr_branch_clone "$work/case7" "$merged" 2)"
+push_control_branch "$work/case7" "$closed"
+push_control_branch "$work/case7" "$control"
+gh_json="$(fixture "$work/case7/gh")"
+cat > "$gh_json/prs.json" <<JSON
+[{"headRefName": "$merged", "state": "MERGED", "body": "Closes #4"},
+ {"headRefName": "$closed", "state": "CLOSED", "body": ""}]
+JSON
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"
+names "the branch with no PR is still reported" "$out" "$control"
+omits "the branch with a merged PR is left out" "$out" "$merged"
+omits "the branch with a closed PR is left out" "$out" "$closed"
+omits "the default branch is left out" "$out" "main"
+omits "the default branch's HEAD alias is left out" "$out" "HEAD"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

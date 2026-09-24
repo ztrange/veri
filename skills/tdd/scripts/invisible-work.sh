@@ -13,6 +13,8 @@
 # `origin` does not carry is reported with its tip, how many of its commits no `origin` ref
 # holds, and the worktree it is checked out in, when there is one.
 #
+# The default branch is never reported: it needs no PR, being where PRs land.
+#
 # A branch any PR was opened for, whatever that PR's state, is not an invariant-2 finding:
 # invariant 2 is a branch with no PR at all. One whose PR is still open sits in GitHub's
 # review queue already.
@@ -44,9 +46,11 @@ default="$(git symbolic-ref --short refs/remotes/origin/HEAD)"
 default="${default#origin/}"
 
 # One line per branch on origin: `<name> <tip> <commits ahead of the default branch>`.
+# The default branch is not a finding, under its own name or its `HEAD` alias.
 branches=""
 while read -r ref tip; do
   name="${ref#refs/remotes/origin/}"
+  [[ "$name" == "$default" || "$name" == HEAD ]] && continue
   ahead="$(git rev-list --count "origin/$default..$ref")"
   branches+="$name $tip $ahead"$'\n'
 done < <(git for-each-ref --format='%(refname) %(objectname)' refs/remotes/origin/)
