@@ -2,8 +2,10 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/solve-issue/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus fifty-four bash scripts it calls. Read `CONTEXT.md` for the glossary — the terms
-there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
+follows, plus fifty-four bash scripts it calls — fifty-three, strictly: `invisible-work.sh`
+is counted with them but the procedure never calls it; it is a maintenance utility a human or
+a loop runs to report a branch no PR was opened for, or one not on `origin` (#197). Read
+`CONTEXT.md` for the glossary — the terms there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
 
 ## Commands
 

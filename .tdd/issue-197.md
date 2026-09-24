@@ -11,7 +11,7 @@
 - [x] Every finding names the invariant it breaks, so a reader can tell a branch with no PR from a branch that never reached origin ⟦criterion 5⟧
 - [x] The gh issue and pull request documents are read as JSON parsed with python3, under a VERI_GH_JSON fixture directory override that lets the suite drive the script with no network ⟦criterion 5⟧
 - [x] The script writes to no ref: it creates, moves and deletes nothing, and its suite proves the refs are byte-identical after a run ⟦criterion 5⟧
-- [ ] CLAUDE.md counts the new script and its suite, and the prose around those counts still describes the scripts truthfully
+- [x] CLAUDE.md counts the new script and its suite, and the prose around those counts still describes the scripts truthfully ⟂ refactor pending
 
 ## Owed steps
 

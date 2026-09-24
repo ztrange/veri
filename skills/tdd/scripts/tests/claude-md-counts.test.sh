@@ -402,6 +402,38 @@ fi
 
 report "$name"
 
+# 5. The counts moved with `invisible-work.sh` and its suite (#197), and the prose around
+#    them stays true of what was added. The opening paragraph counts "<n> bash scripts it
+#    calls" — the procedure's scripts — but `invisible-work.sh` is a maintenance utility a
+#    human or a loop runs; SKILL.md never calls it. A count that silently absorbed it would
+#    tell a reader the procedure calls one script more than it does, so the document has
+#    to name the script where it counts it: the number moves, and the sentence says which
+#    of the counted scripts the procedure does not call. The reads are case 1's.
+name="$claude_md's counts moved with invisible-work.sh and its suite, and its prose names the script the procedure does not call"
+problems=()
+
+utility_script="skills/tdd/scripts/invisible-work.sh"
+utility_suite="skills/tdd/scripts/tests/invisible-work.test.sh"
+
+present "$utility_script"
+present "$utility_suite"
+
+if [[ "${#problems[@]}" -eq 0 ]]; then
+  if readable "$intro" "$claude_md has no prose above its first '## ' heading" "the opening paragraph's script count"; then
+    moved "opening paragraph's script count" "$(claimed "$intro" "$intro_claim" 1)" "$n_scripts" "$utility_script"
+    if [[ "$intro" != *"invisible-work.sh"* ]]; then
+      problems+=("$claude_md's opening paragraph counts '<n> bash scripts it calls' without naming invisible-work.sh, a script the procedure never calls")
+    fi
+  fi
+
+  if readable "$idiom" "$claude_md has no '## $section_name' section" "the suite and script counts it states"; then
+    moved "*$section_name* suite count" "$(claimed "$idiom" "$idiom_claim" 1)" "$n_suites" "$utility_suite"
+    moved "*$section_name* script count" "$(claimed "$idiom" "$idiom_claim" 2)" "$n_scripts" "$utility_script"
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
