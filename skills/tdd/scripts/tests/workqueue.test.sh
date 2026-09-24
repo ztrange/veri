@@ -333,5 +333,47 @@ else
   echo "    missing:$missing (want none), queue issues: $held"
 fi
 
+# 17. N assign and start calls run in parallel leave a well-formed file containing every
+#     write: twenty workers each assign their own issue while alpha starts twenty of its own
+#     queued items, all at once, and afterwards every line is four tab-separated fields with a
+#     known state, every assigned issue is queued for its worker, and every started item is
+#     running — no write lost to another's rewrite, none interleaved into a torn line.
+repo="$work/parallel-writes"
+new_repo "$repo"
+seed=""
+for i in $(seq 1 20); do
+  seed="${seed}alpha\t$((100 + i))\tqueued\t\n"
+done
+seed_queue "$repo" "$seed"
+pids=()
+for i in $(seq 1 20); do
+  (cd "$repo" && "$SCRIPT" assign "w$i" "$i" >/dev/null 2>&1) &
+  pids+=("$!")
+  (cd "$repo" && "$SCRIPT" start alpha "$((100 + i))" >/dev/null 2>&1) &
+  pids+=("$!")
+done
+for pid in "${pids[@]}"; do
+  wait "$pid" || true
+done
+torn="" missing=""
+while IFS= read -r line; do
+  [[ "$line" =~ ^[^$'\t']+$'\t'[0-9]+$'\t'(queued|running|merged|parked|skipped)$'\t'[^$'\t']*$ ]] \
+    || torn="$torn [$line]"
+done < "$repo/.tdd/workqueue"
+got="$(cat "$repo/.tdd/workqueue")"
+for i in $(seq 1 20); do
+  [[ $'\n'"$got"$'\n' == *$'\n'"w$i"$'\t'"$i"$'\t'queued$'\t'$'\n'* ]] || missing="$missing w$i/$i:queued"
+  [[ $'\n'"$got"$'\n' == *$'\n'alpha$'\t'"$((100 + i))"$'\t'running$'\t'$'\n'* ]] \
+    || missing="$missing alpha/$((100 + i)):running"
+done
+if [[ -z "$torn" && -z "$missing" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - N assign and start calls run in parallel leave a well-formed file containing every write"
+  echo "    torn lines:${torn:- none} (want none)"
+  echo "    writes missing:${missing:- none} (want none)"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

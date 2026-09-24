@@ -66,6 +66,17 @@ sys.exit(3)
 ' "$issues_json" "$2" "$queue" "$repo"
 fi
 
+# Every write holds the lock — a directory beside the queue, since `mkdir` either creates it
+# or fails, atomically, where BSD has no flock — so concurrent workers never read the file
+# while another is rewriting it and lose that write.
+take_lock() {
+  mkdir -p "$main_tree/.tdd"
+  until mkdir "$queue.lock" 2>/dev/null; do
+    sleep 0.05
+  done
+  trap 'rmdir "$queue.lock" 2>/dev/null || true' EXIT
+}
+
 # `start` moves the worker's `queued` line for the issue to `running`, `done` its `running`
 # line to `merged` with the sha as its detail and `park` it to `parked` with the reason, in place: every line keeps its
 # position, and the new file replaces the old one by `mv` from beside it.
@@ -75,6 +86,7 @@ if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
     done) from=running to=merged new_detail="$4" ;;
     park) from=running to=parked new_detail="$4" ;;
   esac
+  take_lock
   tmp="$queue.tmp.$$"
   moved=0
   while IFS=$'\t' read -r owner issue state detail; do
@@ -101,6 +113,7 @@ fi
 
 worker="$2"
 shift 2
+take_lock
 if [[ -f "$queue" ]]; then
   while IFS=$'\t' read -r _ held state _; do
     [[ "$state" == queued || "$state" == running ]] || continue
@@ -113,7 +126,6 @@ if [[ -f "$queue" ]]; then
   done < "$queue"
 fi
 
-mkdir -p "$main_tree/.tdd"
 for issue in "$@"; do
   printf '%s\t%s\tqueued\t\n' "$worker" "$issue" >> "$queue"
 done
