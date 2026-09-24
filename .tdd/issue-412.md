@@ -4,6 +4,6 @@
 - [x] skill-identity.test.sh's exempt no longer answers true for the two stub paths, and its old-home and old-command sweeps still fail a repository whose tracked file at one of those paths names the old home or invokes an old name ⟦criterion 2⟧
 - [x] a file under .tdd/ that names the old home as a path or invokes an old name as a command still passes both skill-identity sweeps ⟦criterion 3⟧
 - [x] both skill-identity sweeps pass with docs/adr/0013-issue-branch-in-its-own-worktree.md line 18 naming ~/.claude/skills/solve-issue as a path, unedited ⟦criterion 4⟧
-- [x] README.md's install step symlinks skills/tdd alone and no longer tells a new clone to symlink the two old names ⟦criterion 5⟧ ⟂ refactor pending
+- [x] README.md's install step symlinks skills/tdd alone and no longer tells a new clone to symlink the two old names ⟦criterion 5⟧
 - [ ] CLAUDE.md's opening paragraph names skills/tdd/ as the product rather than skills/solve-issue/ ⟦criterion 6⟧
 - [ ] claude-md-counts.test.sh passes with CLAUDE.md's stated script and suite counts unchanged once the stubs are gone ⟦criterion 7⟧
