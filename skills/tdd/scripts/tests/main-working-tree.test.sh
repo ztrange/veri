@@ -71,6 +71,10 @@ printf '%s\n' "$$" > "$decoy/.tdd/wt/5/.tdd/conductor.pid"
 copy="$work/scripts"
 mkdir -p "$copy/lib"
 cp "$SCRIPTS/status.sh" "$SCRIPTS/solvable-issues.sh" "$copy/"
+# solvable-issues.sh imports its `## Blocked by` parsing from lib/blocked_by.py (#460); without
+# it the copy dies on the import, and a script that could not run is indistinguishable from one
+# that read the wrong tree. It is copied as is — only the main-working-tree helper is a stand-in.
+cp "$SCRIPTS/lib/blocked_by.py" "$copy/lib/"
 printf 'main_working_tree() { printf "%%s\\n" %q; }\n' "$decoy" > "$copy/lib/main-working-tree.sh"
 
 status_out="$(cd "$linked" && env -u VERI_LABEL "$copy/status.sh" 2>/dev/null)" && status_code=0 || status_code=$?
