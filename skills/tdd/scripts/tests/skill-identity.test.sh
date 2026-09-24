@@ -571,11 +571,8 @@ links="$(awk '/^## Install$/ { inside = 1; next }
 [[ "$links" == *"/$skill_dir\" ~/.claude/skills/$want_name"* ]] ||
   problems+=("$readme ## Install: want an ln -s of $skill_dir to ~/.claude/skills/$want_name, got: ${links:-no ln -s line}")
 for old_dir in "${old_dirs[@]}"; do
-  while IFS= read -r line; do
-    [[ -n "$line" ]] || continue
-    [[ "$line" == *"/$old_dir\""* ]] &&
-      problems+=("$readme ## Install still links $old_dir/: $line")
-  done <<< "$links"
+  [[ "$links" != *"/$old_dir\""* ]] ||
+    problems+=("$readme ## Install still links $old_dir/: $links")
 done
 report "$name"
 
