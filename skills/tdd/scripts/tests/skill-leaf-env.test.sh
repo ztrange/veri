@@ -973,6 +973,40 @@ STUB
 run_case "a launch whose leaf name no completion file is written under is still reported as a naming fault, well inside the wait budget, when its own file lands late (#457)" \
   scan_late_wrong_leaf_name
 
+# 11. The third outcome `launched_test_cmd` owes (#457), and the one no case above asks of it
+#    on its own: a launch line that reaches no supervisor at all — no leaf ran, so nothing
+#    wrote `seen`, a pid file or a completion file — is reported as `<no leaf ran>`, not as a
+#    naming fault it never got far enough to have. Cases 1 and 2 would only say so of a
+#    document line that broke; this breaks one on purpose.
+#
+#    Asked of one correct developer-shaped fixture launch of this probe's own, run against a
+#    scripts directory whose detacher returns having started nothing. Such a launch writes no
+#    pid file, so the wait runs to its budget — the last resort it is kept for — and the case
+#    injects the clock rather than wait it out: inside the one command substitution that runs
+#    the probe, `sleep` is a function that moves `SECONDS` past any deadline, so the wait's
+#    first nap ends it. Scoped to that subshell, so no other case sees the fake.
+#
+# scan_no_leaf_ran — the case's body, in the other cases' shape: `lineno`/`line` are its own
+# so the tree `launched_test_cmd` makes records this fixture's line.
+scan_no_leaf_ran() {
+  local lineno line launch leaf prompt stage got
+  developer_launch_fixture no-leaf-ran || return
+  stage="$WORK/no-leaf-ran-scripts"
+  mkdir -p "$stage"
+  cat > "$stage/detach-leaf.sh" <<'STUB'
+#!/bin/sh
+exit 0
+STUB
+  chmod +x "$stage/detach-leaf.sh"
+  got="$(sleep() { SECONDS=$(( SECONDS + 3600 )); }
+         SCRIPTS="$stage" launched_test_cmd "$leaf" "$launch" "$prompt")"
+  [[ "$got" == '<no leaf ran>' ]] ||
+    problem "launches nothing, reported as <$got>, want <no leaf ran>"
+}
+
+run_case "a launch line that reaches no supervisor at all is reported as <no leaf ran> (#457)" \
+  scan_no_leaf_ran
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
