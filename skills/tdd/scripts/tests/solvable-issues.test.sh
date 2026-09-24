@@ -915,8 +915,17 @@ out="$(cd "$flight_repo" && VERI_GH_JSON="$fx" "$SOLVABLE" 2>/dev/null)" && code
 # says `kill -0` or "while that process is alive" is their sentence rather than this suite's —
 # case 11's protocol on this same question.
 context_md="CONTEXT.md"
-solvable_entry="$(awk '/^\*\*Solvable\*\*:/ { keep = 1; next } keep && /^\*\*/ { exit } keep' \
-  "$REPO_ROOT/$context_md")"
+
+# solvable_entry_slice — the **Solvable** entry of CONTEXT.md, from its own heading to the next
+# bold one. Cases 19 and 33 both read that one slice, and the awk that cuts it lives here once:
+# a renamed or moved heading then moves one program rather than two that can drift into reading
+# two different parts of the glossary.
+solvable_entry_slice() {
+  awk '/^\*\*Solvable\*\*:/ { keep = 1; next } keep && /^\*\*/ { exit } keep' \
+    "$REPO_ROOT/$context_md"
+}
+
+solvable_entry="$(solvable_entry_slice)"
 
 # One claim, one miss, tagged — case 11's `doc_claims` for a slice already in hand rather than
 # a file under $REPO_ROOT. What it collapses is the same thing: the separator and the
@@ -1670,8 +1679,7 @@ claim_says() {
 # The **Solvable** entry as one folded record, and this script's header as one record per
 # paragraph. Both lower-cased on the way out, so `Closes #<n>` and `closes #7` are one string to
 # every regex above.
-claim_entry="$(awk '/^\*\*Solvable\*\*:/ { keep = 1; next } keep && /^\*\*/ { exit } keep' \
-  "$REPO_ROOT/$context_md" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')"
+claim_entry="$(solvable_entry_slice | tr '\n' ' ' | tr '[:upper:]' '[:lower:]')"
 claim_header="$(awk 'NR == 1 { next }
                      !/^#/ { exit }
                      /^#[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
