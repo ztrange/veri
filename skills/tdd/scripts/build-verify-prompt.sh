@@ -93,10 +93,10 @@ fi
 HERE="$(cd "$(dirname "$0")" && pwd)"
 tpl_file="$HERE/prompts/verify-$phase.md"
 shared_file="$HERE/prompts/_shared.md"
-# For plan the third positional names the proposed ledger, and this builder reads it
-# itself (below), so it joins the list of files whose unreadability is this script's
-# refusal rather than the leaf's: `cat` failing under `set -e` would exit 1, the code
-# reserved for an answer that came back, and no prompt is an answer nobody got (#439).
+# The ledger is read by this builder rather than by the leaf, so it joins the list of
+# files whose unreadability is this script's refusal: `cat` failing under `set -e` would
+# exit 1, the code reserved for an answer that came back, and no prompt is an answer
+# nobody got (#439).
 readable=("$tpl_file" "$shared_file" "$spec_file")
 if [[ "$phase" == plan ]]; then
   readable+=("$test_path")
@@ -108,8 +108,7 @@ done
 tpl="$(cat "$tpl_file")"
 shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
-# For plan, the third slot names the proposed ledger instead of a test under review (#439):
-# the plan is this phase's subject, so its own text goes into the prompt — a verifier given
+# The plan is its phase's subject, so its own text goes into the prompt — a verifier given
 # only a path, in a target repository, would judge a file it was never handed. The read
 # belongs here, beside the prompt's other on-disk inputs, rather than up among the argument
 # checks: every file whose contents reach the prompt is then opened in one place.
