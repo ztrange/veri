@@ -302,9 +302,27 @@ fi
 # there for case 9's reason: a prompt is markdown wrapped at ~85 columns, so any claim long
 # enough to be worth probing for spans two lines, and grep matches within one. `-e` because a
 # pattern is data, not a flag.
+prompt_has() {  # prompt_has <prompt> <grep argument…> — the match itself, folded to one line
+  local prompt="$1"; shift
+  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")"
+}
+
 prompt_says() {  # prompt_says <prompt> <complaint> <grep argument…>
   local prompt="$1" complaint="$2"; shift 2
-  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" || problems="$problems; $complaint"
+  prompt_has "$prompt" "$@" || problems="$problems; $complaint"
+}
+
+# The same probe read the other way, for a claim a prompt must NOT make — case 36's
+# negative half, where the paragraph conditional on a `## Bug` section must be absent from
+# the prompt built from a spec without one. It shares `prompt_has` rather than repeating the
+# fold and the grep: two copies of the probe is where the one that folds differently hides,
+# and a negative assertion that quietly matches nothing because its input was never folded
+# is green for the wrong reason. `return 0` because the miss is recorded in `problems`, not
+# in the function's status, and a failed `grep` is this one's success.
+prompt_lacks() {  # prompt_lacks <prompt> <complaint> <grep argument…> — prompt_says inverted
+  local prompt="$1" complaint="$2"; shift 2
+  ! prompt_has "$prompt" "$@" || problems="$problems; $complaint"
+  return 0
 }
 
 # The other half of what cases 14–16 share: the roster, and the verdict reached from it. Each
@@ -1262,12 +1280,6 @@ Run zorblat --seed "Frob & Nitz/Quux".
 
 veri on bash 5.2, macOS 15.
 SPEC
-
-prompt_lacks() {  # prompt_lacks <prompt> <complaint> <grep argument…> — prompt_says inverted
-  local prompt="$1" complaint="$2"; shift 2
-  grep -q "$@" <<<"$(tr '\n' ' ' <<<"$prompt")" && problems="$problems; $complaint"
-  return 0
-}
 
 problems=""
 bug_red="$("$BUILD" red "$work/bug-spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
