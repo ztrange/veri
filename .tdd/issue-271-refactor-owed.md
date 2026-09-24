@@ -4,3 +4,5 @@
 - extract `blocked_by.unblocked(body, repo, open_issues)` for the duplicated check in solvable-issues.sh and workqueue.sh `next`; this needs blocked-by.test.sh case 5's stand-in module to define it too, and that file is outside this step
 ### `workqueue.sh start <worker> <issue>` moves that worker's `queued` item to `running` ⟦criterion 3⟧
 - fold case 12 (start leaves another worker's item queued) into expect_queue once the ownership step pins its exit code
+### `workqueue.sh done <worker> <issue> <sha>` moves that worker's `running` item to `merged`, recording the sha as its detail ⟦criterion 3⟧
+- the `repo="$work/<case>"; new_repo "$repo"; seed_queue …` setup repeated across 12 cases of workqueue.test.sh could become one helper — mostly code earlier cycles wrote, so out of this step's bounds
