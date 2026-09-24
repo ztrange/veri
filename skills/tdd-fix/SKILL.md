@@ -75,3 +75,21 @@ None.
 
 `## Blocked by` holds the literal line `None.` — the section is there so a reader sees
 nothing is blocking, and leaving it empty says something else.
+
+## Labels
+
+Two labels go on the issue, and together they are what lets veri take it at all.
+
+- **`bug`** — it says the issue is a defect rather than a feature, and `solvable-issues.sh`
+  sorts the bugs ahead of everything but the priority band. It is one of GitHub's own default
+  labels, so it is there unless a repo removed it; where the repo lacks it, run
+  `gh label create bug --color d73a4a --description "Something isn't working"` first, because
+  filing against a label that does not exist fails the `gh issue create` outright rather than
+  quietly filing the issue unlabelled.
+- **the opt-in label** — `ready-for-agent` by default, which is the whole of the consent:
+  `solvable-issues.sh` takes only issues carrying it, so a bug without it is one veri never
+  picks up however well it is written. When the user names a scope, that same label is
+  narrowed to `ready-for-agent:<scope>` — the scope suffix replaces the plain label, it is
+  not a second one alongside it.
+
+So the filing is `gh issue create --label bug --label <the opt-in label>` with the body above.
