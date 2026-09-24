@@ -451,7 +451,12 @@ blind_args() {
 # the test path, and the target, which is the test id in every phase but `refactor`, where it
 # is the step's green commit. Anchored at BOTH ends because the criterion is *only these*:
 # an unanchored pattern would pass a line that carries all of them and something else after.
-blind_re="^--step $double_quoted_step( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])$"
+# The `plan` phase (#439) is the second alternative and is spelled out in full rather than
+# folded into the first: it carries no `--step` (the plan is verified before the first step,
+# so there is no step to scope a verdict to), its third positional is the proposed ledger
+# where a cycle phase names a test path, and it takes no target. Written as its own anchored
+# alternative, an argument added to either shape still fails this case.
+blind_re="^(--step $double_quoted_step( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) (\.tdd/issue-<n>-spec\.md|<spec-file>) <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|plan (\.tdd/issue-<n>-spec\.md|<spec-file>) \.tdd/issue-<n>\.md)$"
 
 # 6. The verifier is blind **by construction**: `build-verify-prompt.sh` has no parameter for
 #    the developer's rationale, so it cannot leak one, and a launch that passes verify.sh

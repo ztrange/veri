@@ -501,10 +501,19 @@ run_case "every leaf $skill_md launches through supervise.sh sees the run's test
 # cancel `make test` at its cap. The step's own text is quoted and holds spaces, so the pair is
 # matched as `--step <up to the closing quote>` — in either quote, since the title moved to
 # double quotes (#431) and `--fast-cmd` beside it did not.
+#
+# The two files the tree must hold are read off the launch rather than spelled here, because
+# the phase decides the second one: a cycle phase judges a test path, and `plan` judges the
+# proposed ledger (#439). `build-verify-prompt.sh` refuses a file it cannot read before any
+# leaf starts, so a tree missing either would answer `<no leaf ran>` for a launch that is
+# correctly wired — the probe reporting its own fixture.
 check_verifier_launch() {
-  local launch="$1" leaf
-  leaf="verify-$(arg_after run-verdict.sh "$(sed -E "s/ --(step|fast-cmd) ('[^']*'|\"[^\"]*\")//g" <<< "$launch")")"
-  expect_sentinel "$leaf" "$launch" ".tdd/issue-$SENTINEL_ISSUE-spec.md" "probe.test.sh"
+  local launch="$1" leaf clean subjects
+  clean="$(sed -E "s/ --(step|fast-cmd) ('[^']*'|\"[^\"]*\")//g" <<< "$launch")"
+  leaf="verify-$(arg_after run-verdict.sh "$clean")"
+  # The two positionals after the phase: the spec file, then the file under judgement.
+  read -r -a subjects <<< "$(sed -E "s|.*run-verdict\.sh +[^ ]+ +([^ ]+) +([^ ]+).*|\1 \2|" <<< "$clean")"
+  expect_sentinel "$leaf" "$launch" "${subjects[@]}"
 }
 
 run_case "every verifier $skill_md launches through verify.sh sees the run's test command as VERI_TEST_CMD" \
@@ -546,6 +555,11 @@ run_case "every verifier $skill_md launches through verify.sh sees the run's tes
 # An empty or absent log is a complaint too, and a loud one: a launch that wrote no events is
 # a leaf nothing recorded, and a case that read past it would pass for having found no line to
 # contradict it.
+# <step> is a parameter rather than the sentinel read from here, because one launch of the
+# document carries no step at all: the `plan` verifier runs before the first step and belongs
+# to no ledger line (#439). event.sh writes an unset VERI_STEP as `""`, and that empty value
+# is the truthful one — a title invented for it would attribute the leaf to a step the run has
+# not begun. The issue is asked of every launch either way.
 bad_context() {
   python3 -c '
 import sys, json
@@ -564,7 +578,7 @@ if not lines:
     print("<<no event line written>>")
 elif bad:
     print("; ".join(bad))
-' "$1" "$SENTINEL_ISSUE" "$SENTINEL_STEP" 2>/dev/null || echo '<<no event log>>'
+' "$1" "$SENTINEL_ISSUE" "$2" 2>/dev/null || echo '<<no event log>>'
 }
 
 # scan_launch_trees — the case's body, in `scan_launches`'s shape: it records what it finds
@@ -574,7 +588,7 @@ elif bad:
 # two cases already share — and two of them are `lineno` and `line`, restored from the tree's
 # `origin` file so `problem` builds this case's messages the way it builds the other two cases'.
 scan_launch_trees() {
-  local trees tree lineno line complaint
+  local trees tree lineno line complaint want_step
   # `$run/*` unquoted is the glob; with no match bash leaves the pattern itself, which is not
   # a directory — so the guard below reports that no launch ran at all rather than iterating
   # over a literal `*` or, worse, passing the case having examined nothing.
@@ -593,9 +607,14 @@ scan_launch_trees() {
         continue
       fi
       IFS=$'\t' read -r lineno line < "$tree/origin"
-      complaint="$(bad_context "$tree/.tdd/events.jsonl")"
+      # What the line itself passes decides which step its events must carry: a launch naming
+      # VERI_STEP is asked for the sentinel, and one naming none — the plan verifier — for the
+      # empty step event.sh writes when the variable is unset.
+      want_step=""
+      [[ "$line" != *VERI_STEP* ]] || want_step="$SENTINEL_STEP"
+      complaint="$(bad_context "$tree/.tdd/events.jsonl" "$want_step")"
       [[ -z "$complaint" ]] ||
-        problem "leaves events that do not carry issue=$SENTINEL_ISSUE step='$SENTINEL_STEP' ($complaint)"
+        problem "leaves events that do not carry issue=$SENTINEL_ISSUE step='$want_step' ($complaint)"
     done
   fi
 }

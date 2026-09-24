@@ -656,6 +656,39 @@ Post a short comment announcing veri has started, naming the branch (and the wor
 running in) and the number of plan steps, and noting each phase will be blind-verified:
 `gh issue comment <n> --body "..."`.
 
+### 2c. Verify the plan (blind)
+
+The plan is the run's definition of done — `criterion-finished.sh` ticks the issue's
+criterion from the ledger's own paraphrase of it — so it is verified once, here: after the
+ledger is committed (before that there is no plan on disk to read) and before the first step
+(a plan caught wrong after step 3 has already been paid for). The `plan` phase is blind like
+the other four: its inputs are the issue spec and the proposed ledger, and nothing else. It
+runs no tests, so it is the cheapest verification in the run.
+
+```
+rm -f .tdd/verdict-plan.exit .tdd/verdict-plan.pid
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> $S/detach-leaf.sh $S/supervise.sh verdict-plan $S/run-verdict.sh plan .tdd/issue-<n>-spec.md .tdd/issue-<n>.md > .tdd/verify-plan.reason 2> .tdd/verify-plan.err
+$S/wait-leaf.sh verdict-plan     # foreground; on exit 3 call it again
+```
+
+The third positional is the **ledger**, where the other phases pass a test path, and there
+is no `--step`: the plan has no step under judgement yet. Note the wait's exit code — the
+verdict — and read the reason back out of `.tdd/verify-plan.reason` to narrate it. Post a
+`### 🗺️ verify-plan — PASS|REJECT` comment carrying that reason; it names any step the
+verifier judged too big for one cycle whichever way the verdict went, so that observation
+reaches the thread even on a PASS.
+
+- **PASS (exit 0):** continue to the cycle loop.
+- **REJECT (exit 1):** the plan is wrong, not the run — **rewrite the ledger** from the
+  reason alone (it names the criterion and the part of it no step covers), commit the
+  rewrite with `git add .tdd/issue-<n>.md && git commit -m "plan: rewrite #<n> after
+  verify-plan REJECT (#<n>)"`, post the revised plan to the thread, and **re-verify** by
+  running the launch above again. Rewrite and re-verify up to `REVISE_BUDGET` times; if the
+  last re-verification is still `REJECT`, **bail** as a process failure (see *Bailing*) —
+  the plan, not a leaf, is what the methodology rejected.
+- **Malformed / killed-stuck (exit 2):** no verdict could be obtained — **bail** as a system
+  failure (see *Bailing*). A plan nobody looked at is never a PASS.
+
 ### 3. The cycle loop
 
 Loop until the ledger has no unchecked step. Each iteration runs **one full cycle** (Red →
