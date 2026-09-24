@@ -136,8 +136,11 @@ first_record() {
 # slice first, and would otherwise spell the same fetch and the same fail-closed message eight
 # times over. The closer is a parameter because the cases read sections at two levels — the
 # numbered steps, which a heading of either level ends, and since #195 `## Resume`, which only
-# another `## ` does.
+# another `## ` does. Which slice it read is recorded in `section_heading`/`section_closer`,
+# so a case wanting the same slice's command lines asks `section_commands` for them rather
+# than spelling the heading and the closer a second time.
 section_or_problem() {
+  section_heading="$1" section_closer="$2"
   records="$(section_records "$1" "$2")"
   [[ -n "$records" ]] && return 0
   problems+=("$skill_md has no $1 section to read — $3 could not be checked")
@@ -432,16 +435,19 @@ if pass_or_problem '#### Green' "whether the step tick updates the PR body"; the
 fi
 report "$name"
 
-# commands_of <heading prefix> <closer regex> — the command lines of the section whose
-# heading starts with <heading prefix>, leading indent stripped, a trailing `\` joined to the
-# line after it the way the shell joins one, and case folded last. Case 10 asks which `gh`
-# commands the step issues, and `records_of` cannot answer that: it glues a bullet's whole
-# fenced block into one record, so a record holding `gh pr create --title` would answer "the
-# step retitles the PR" for a document that only creates one. The continuation join is what
-# keeps a flag written on the next line — as `gh pr create`'s own `--title` is today — part of
-# the command that carries it.
-commands_of() {
-  section_lines "$1" "$2" |
+# section_commands — the second reading of the slice `section_or_problem` last took: its
+# command lines, leading indent stripped, a trailing `\` joined to the line after it the way
+# the shell joins one, and case folded last. Cases 10 to 12 ask which `gh` commands a section
+# issues, and `records_of` cannot answer that: it glues a bullet's whole fenced block into one
+# record, so a record holding `gh pr create --title` would answer "the step retitles the PR"
+# for a document that only creates one. The continuation join is what keeps a flag written on
+# the next line — as `gh pr create`'s own `--title` is today — part of the command that carries
+# it. It takes no arguments and re-reads what `section_or_problem` recorded, because a case
+# that named its heading and closer a second time here could name a different section than the
+# one its records came from, and then its positive and negative probes would be answered by
+# two different slices of the document.
+section_commands() {
+  section_lines "$section_heading" "$section_closer" |
   awk '{ sub(/^[[:space:]]+/, "")
          buf = (cont ? buf " " $0 : $0)
          if (buf ~ /\\$/) { sub(/\\$/, "", buf); cont = 1; next }
@@ -464,7 +470,7 @@ name="$skill_md's Draft PR step creates no PR: it retitles and rewrites the open
 problems=()
 
 if step_or_problem '### 4. Draft PR' "whether the step creates a second PR"; then
-  commands="$(commands_of '### 4. Draft PR' '^## |^### ')"
+  commands="$(section_commands)"
   grep -qE '^gh pr edit .*--title' <<< "$commands" ||
     problems+=("$skill_md's Draft PR step never runs gh pr edit with --title, so the PR keeps the work-in-progress title it was opened with at the plan commit and a reader of origin cannot tell the finished branch from a run mid-flight")
   grep -qE '^gh pr edit .*--body' <<< "$commands" ||
@@ -497,7 +503,7 @@ problems=()
 if section_or_problem '## Resume' '^## ' "what a resumed run does with the PR its branch already carries"; then
   # The command lines rather than the records for the positive probe, the way case 10 asks its
   # three: prose naming `gh pr view` to explain a neighbouring step is not the resume issuing it.
-  grep -qE '^gh pr view' <<< "$(commands_of '## Resume' '^## ')" ||
+  grep -qE '^gh pr view' <<< "$(section_commands)" ||
     problems+=("$skill_md's Resume section never runs gh pr view, so a resumed run never reads the open PR its branch already carries and has no url for the tick's gh pr edit or step 4's rewrite")
   creates="$(first_record "$records" -F 'gh pr create')"
   if [[ -n "$creates" ]]; then
@@ -524,7 +530,7 @@ problems=()
 if section_or_problem '## Bailing' '^## ' "what a bailed run does with the draft PR its branch already carries"; then
   # The command lines for the positive probe, the way cases 10 and 11 ask theirs: prose
   # naming a `gh pr` command to explain a neighbouring step is not the bail issuing it.
-  commands="$(commands_of '## Bailing' '^## ')"
+  commands="$(section_commands)"
   grep -qE '^gh pr comment|^gh pr edit .*--body' <<< "$commands" ||
     problems+=("$skill_md's Bailing section runs neither gh pr comment nor gh pr edit --body, so the bail diagnostic reaches the issue thread and never the draft PR a human is pointed at, which still reads as a run in progress")
   closes="$(first_record "$commands" -E '^gh pr close')"
