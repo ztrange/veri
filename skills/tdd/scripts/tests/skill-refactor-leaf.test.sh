@@ -20,9 +20,9 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — five criteria, the procedure, the account of it, what the leaf's
-# report grows, what a growth budget too full to hold it means, and whose proposals that
-# growth carries, one case each:
+# Contract under test — six criteria, the procedure, the account of it, what the leaf's
+# report grows, what a growth budget too full to hold it means, whose proposals that
+# growth carries, and where an overfit flag is answered, one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -42,6 +42,9 @@
 ##   5. That same one call carries the passing verify-refactor verdict's own `NEW_STEP:`
 #      values as well as the leaf's, so the unhandled edge case the refactor verifier now
 #      proposes instead of REJECTing for reaches the plan (issue #362).
+#   6. That section answers an `overfit` flag with one triangulating red/green pair inside
+#      the step that raised it — no ledger step, no second `### ✅ Step done` — and then
+#      resumes that step's own refactor loop with the budget it had left (issue #175).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -166,6 +169,17 @@ win() {
 # that one is about a match's surroundings, this one about the match itself.
 phrase() {
   head -1 < <(grep -oE "$1" <<<"$2")
+}
+
+# wins <extended-regex> [radius] — every one of `win`'s windows rather than the first, joined
+# onto one line. Case 6 asks about a word the section already uses for something else: the
+# refactor template's account of itself says the leaf flags overfit code, and the PASS branch
+# says the leaf was forbidden to generalize it, so the FIRST overfit in this section is never
+# the routing rule that case is about. Taking only that one would fail a document that carries
+# the rule perfectly well a paragraph further down.
+wins() {
+  local radius="${2:-250}"
+  grep -oE ".{0,$radius}$1.{0,$radius}" <<<"$section" | tr '\n' ' '
 }
 
 # What a refusal looks like, spelled once for the two probes that ask for one. Both checks
@@ -488,6 +502,60 @@ else
   else
     grep -qE 'verif|verdict' <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh over the leaf's NEW_STEP: values alone, so the passing verify-refactor verdict's own values never reach the ledger — the unhandled edge case the verifier stopped REJECTing for is proposed to nobody")
+  fi
+fi
+
+report "$name"
+
+# 6. One criterion — an `overfit` flag is answered inside the step that raised it — and so
+#    one case. Issue #175 measured what the absence costs: six `plan: amend` commits on
+#    `origin/main` were made from refactor flags, and #107's three ran from 01:31 to past
+#    03:06 for three one-line `fix:` commits and seventeen `refactor:` ones, because a step
+#    made from a flag has a refactor loop of its own and that loop flagged the next sibling.
+#    The flag now carries its class, so `overfit` — the code passes this step's test without
+#    implementing the behaviour this step's criterion states — is this step's own debt: one
+#    triangulating red and green pair here, and then the refactor loop this step was already
+#    in, with what was left of its budget. Its four probes are its parts, and a document
+#    missing any one of them routes the flag somewhere it costs a whole step: a pair with no
+#    "and no new ledger line" is the amendment this issue is against, and a pair that never
+#    comes back is a refactor loop abandoned mid-budget.
+#
+#    Asked of the text around the word `overfit` rather than of the section at large — the
+#    way case 1 asks its refusals — because this section already talks about triangulation,
+#    about ledger steps and about what a step owes, and a probe reading the whole of it would
+#    be answered by the PASS branch's `add-ledger-step.sh` sentences and pass a document that
+#    still turns every flag into a plan amendment.
+name="$skill_md's Refactor section answers an overfit flag with one triangulating red/green pair inside the step, adding no ledger step and no second step-done, and resumes that step's refactor loop with the budget it had left"
+problems=()
+
+if unreadable_section; then
+  # Fail closed, the same way cases 1, 3, 4 and 5 do: a renamed or emptied section is
+  # unreadable, not silently right.
+  problems+=("$(unreadable_problem "what the conductor does with an overfit flag could not be established")")
+else
+  flagged="$(wins 'overfit')"
+  if [[ -z "$flagged" ]]; then
+    problems+=("$skill_md's Refactor section never names the overfit class the leaf's FLAGS: line carries, so the conductor branches on its own judgement and the six plan: amend commits this issue counted are what that judgement produced")
+  else
+    # a. The pair itself, and that it is verified: a triangulating test written inside the
+    #    step is still a red and a green the blind verifiers see, which is what tells this
+    #    apart from the leaf hand-generalizing the code it flagged.
+    grep -qE "triangulat[a-z]*[^.]{0,200}verify-(red|green)|verify-(red|green)[^.]{0,200}triangulat" <<<"$flagged" ||
+      problems+=("$skill_md's Refactor section never says an overfit flag is answered by a triangulating red and green pair, so the case the leaf named is either built unverified or not built at all")
+
+    # b. And that the pair is all it is. The whole cost this issue measured is the flag
+    #    becoming a ledger step, so a document that runs the pair AND amends the plan has
+    #    paid for it twice.
+    grep -qE "(no|never|without|not)[^.]{0,80}(ledger (step|line|amendment)|plan amendment|amendment)" <<<"$flagged" ||
+      problems+=("$skill_md's Refactor section answers an overfit flag without saying the plan does not grow for it, so the triangulation becomes a ledger step with a refactor loop of its own — the #107 chain this issue is against")
+    grep -qE "(no|never|without|not)[^.]{0,80}(second )?step.done" <<<"$flagged" ||
+      problems+=("$skill_md's Refactor section answers an overfit flag without saying the step is not mirrored done a second time, so one step reports itself finished twice and the issue thread stops saying how many steps ran")
+
+    # c. And that the step goes back to where it was. The refactor loop was interrupted by
+    #    the flag, not ended by it, and a loop resumed with a fresh budget would let one flag
+    #    buy a second step's worth of transforms.
+    grep -qE "(resum|return|back)[^.]{0,160}budget|budget[^.]{0,160}(resum|return|back)" <<<"$flagged" ||
+      problems+=("$skill_md's Refactor section never says the step resumes its own refactor loop with the budget it had left after the triangulation, so the tidying the flag interrupted is either abandoned or restarted with a budget the step has already spent")
   fi
 fi
 
