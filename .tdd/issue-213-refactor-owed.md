@@ -1,0 +1,2 @@
+### SKILL.md's launch section presents interactive and print mode as a trade the operator picks per run: interactive can be steered and costs ~25,000 tokens a request more, print mode is that much cheaper and turns every question into a bail ⟦criterion 1⟧
+- SKILL.md:376-380 "that is not where a run belongs" contradicts the trade paragraph, but changing it is content work for plan steps 2 and 3 (criteria 2 and 3), not a behaviour-preserving transform
