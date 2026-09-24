@@ -21,6 +21,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPT="$HERE/../workqueue.sh"
+SKILL_DIR="$HERE/../.."
 # shellcheck source=../lib/background.sh
 source "$HERE/../lib/background.sh"
 work="$(mktemp -d)"
@@ -481,7 +482,7 @@ fi
 #     loop makes: `workqueue.sh next`, `start`, `done` and `park`. Each call is matched as the
 #     command a reader would type, `workqueue.sh <subcommand>`, so the word "done" in a sentence
 #     does not count as naming the call; every one missing is listed, so one run says which.
-worker_doc="$HERE/../../WORKER.md"
+worker_doc="$SKILL_DIR/WORKER.md"
 calls_missing=""
 for call in next start done park; do
   grep -Eq "workqueue\.sh[[:space:]]+$call([^[:alnum:]_-]|\$)" "$worker_doc" 2>/dev/null \
@@ -501,7 +502,7 @@ fi
 #     file nothing points at is never loaded, so case 22's loop would be written and never run.
 #     Matched as one line holding `Read` and then `WORKER.md`, both in backticks, so a mention
 #     of the file in passing does not count as the instruction to load it.
-skill_doc="$HERE/../../SKILL.md"
+skill_doc="$SKILL_DIR/SKILL.md"
 if grep -E '`Read`.*`WORKER\.md`' "$skill_doc" > /dev/null 2>&1; then
   pass=$((pass + 1))
 else
