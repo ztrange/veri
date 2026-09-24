@@ -68,5 +68,44 @@ else
   echo "    .tdd/workqueue: $([[ -e "$repo/.tdd/workqueue" ]] && echo present || echo absent) (want absent)"
 fi
 
+# 4. assign refuses with exit 2 an issue already queued or running for any worker, and
+#    leaves the queue file byte-identical.
+repo="$work/assign-held"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+printf 'beta\t4\tqueued\t\ngamma\t9\trunning\t\n' > "$repo/.tdd/workqueue"
+cp "$repo/.tdd/workqueue" "$work/assign-held.before"
+out_q="$(cd "$repo" && "$SCRIPT" assign alpha 4 2>&1)" && code_q=0 || code_q=$?
+out_r="$(cd "$repo" && "$SCRIPT" assign alpha 9 2>&1)" && code_r=0 || code_r=$?
+if [[ "$code_q" -eq 2 && "$code_r" -eq 2 ]] \
+  && cmp -s "$work/assign-held.before" "$repo/.tdd/workqueue"; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - assign refuses with exit 2 an issue already queued or running for any worker"
+  echo "    queued issue: exit $code_q (want 2), output: $out_q"
+  echo "    running issue: exit $code_r (want 2), output: $out_r"
+  diff "$work/assign-held.before" "$repo/.tdd/workqueue" 2>&1 | sed 's/^/    /'
+fi
+
+# 5. an issue held only as merged, parked or skipped is free: assign takes it with exit 0 and
+#    appends a queued line — only queued and running hold an issue.
+repo="$work/assign-finished"
+new_repo "$repo"
+mkdir -p "$repo/.tdd"
+printf 'beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\n' \
+  > "$repo/.tdd/workqueue"
+out="$(cd "$repo" && "$SCRIPT" assign alpha 4 9 11 2>&1)" && code=0 || code=$?
+want="$(printf 'beta\t4\tmerged\tabc1234\ngamma\t9\tparked\tsecond bail\nbeta\t11\tskipped\t\nalpha\t4\tqueued\t\nalpha\t9\tqueued\t\nalpha\t11\tqueued\t')"
+got="$(cat "$repo/.tdd/workqueue")"
+if [[ "$code" -eq 0 && "$got" == "$want" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - assign takes an issue held only as merged, parked or skipped"
+  echo "    exit: $code (want 0), output: $out"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$got") | sed 's/^/    /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

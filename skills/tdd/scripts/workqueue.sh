@@ -9,7 +9,8 @@
 #   <worker>	<issue>	<state>	<detail>
 #
 # Usage:   workqueue.sh assign <worker> <issue>...
-# Exit:    0 done, 2 an unknown subcommand
+# Exit:    0 done, 2 an unknown subcommand or an issue already queued or running for any
+#          worker — refused before anything is written, so the file is left byte-identical
 set -euo pipefail
 
 # shellcheck source=lib/main-working-tree.sh
@@ -25,6 +26,18 @@ fi
 
 worker="$2"
 shift 2
+if [[ -f "$queue" ]]; then
+  while IFS=$'\t' read -r _ held state _; do
+    [[ "$state" == queued || "$state" == running ]] || continue
+    for issue in "$@"; do
+      if [[ "$issue" == "$held" ]]; then
+        echo "workqueue.sh: issue $issue is already $state" >&2
+        exit 2
+      fi
+    done
+  done < "$queue"
+fi
+
 mkdir -p "$main_tree/.tdd"
 for issue in "$@"; do
   printf '%s\t%s\tqueued\t\n' "$worker" "$issue" >> "$queue"
