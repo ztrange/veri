@@ -553,6 +553,30 @@ rm -rf "$ROOT"
 ROOT="$real_root"
 report "$name"
 
+# 14. README's install step is the install that works (#412). Claude Code resolves a command
+#     from the directories symlinked into ~/.claude/skills, and the working install is one
+#     link, $skill_dir to ~/.claude/skills/$want_name — so the `## Install` section's `ln -s`
+#     lines must include that one and none naming an old skill directory, which would tell a
+#     new clone to link a directory the tree no longer has. The old directories are each
+#     stub's own, so this file still spells neither out.
+name="README.md's install step symlinks $skill_dir alone and no old skill directory"
+problems=()
+readme="README.md"
+links="$(awk '/^## Install$/ { inside = 1; next }
+              inside && /^## / { exit }
+              inside && /^ln -s / { print }' "$ROOT/$readme")"
+[[ "$links" == *"/$skill_dir\" ~/.claude/skills/$want_name"* ]] ||
+  problems+=("$readme ## Install: want an ln -s of $skill_dir to ~/.claude/skills/$want_name, got: ${links:-no ln -s line}")
+for stub in "${stubs[@]}"; do
+  old_dir="$(dirname "$stub")"
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    [[ "$line" == *"/$old_dir\""* ]] &&
+      problems+=("$readme ## Install still links $old_dir/: $line")
+  done <<< "$links"
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

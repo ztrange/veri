@@ -68,9 +68,6 @@ to this clone — then `/tdd <n>` works from any repo on the machine:
 
 ```sh
 ln -s "$(pwd)/skills/tdd" ~/.claude/skills/tdd
-# optional — the old names, kept as stubs that forward to /tdd
-ln -s "$(pwd)/skills/solve-issue"  ~/.claude/skills/solve-issue
-ln -s "$(pwd)/skills/solve-issues" ~/.claude/skills/solve-issues
 ```
 
 The skill locates its own scripts from the base directory Claude Code reports when it
