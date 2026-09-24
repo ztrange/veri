@@ -707,7 +707,17 @@ else
 
     # c. And narration is ALL it earns. A flag narrated and also planned has cost exactly
     #    what this issue measured, whatever the comment said about it.
-    grep -qE "$denial(plan|built|build)" <<<"$beyond" ||
+    #
+    #    Asked with the denial word ADJACENT to the verb rather than through `$denial`'s
+    #    `[^.]{0,80}` gap, which cases 1 and 6 use. The gap is right for those two — what
+    #    they deny is a noun phrase a writer may put words in front of — but here it reads
+    #    the bullet's own rationale instead of its rule: "without costing it a step: one
+    #    made from a beyond-spec flag would build behaviour no criterion of the issue
+    #    states" puts `without` within eighty characters of `build`, so the probe was
+    #    answered by the sentence explaining WHY the class is not planned and passed a
+    #    document whose clause granted both. The denial this case is about is written
+    #    against the verb itself, so that is what it matches.
+    grep -qE '(not|never|neither|no) (planned|plan|built|build)' <<<"$beyond" ||
       problems+=("$skill_md's Refactor section narrates a beyond-spec flag without saying it is neither planned nor built in this run, so the run still builds behaviour the issue's spec never asked for")
   fi
 fi
