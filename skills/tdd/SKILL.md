@@ -374,11 +374,11 @@ unattended, so it is the only one this procedure uses.
 
 ## Launching the conductor
 
-`/tdd <n>` is a skill, so it can be typed inside an interactive Claude Code session — but
-that is not where a run belongs. Every leaf is a `claude -p` subprocess, and a session the
-operator is already in is the situation a guard on nested launches refuses; when one fires,
-every leaf of the run dies at launch. Run the conductor from a plain shell **outside** any
-Claude Code session instead — `claude -p "/tdd <n>"`.
+`/tdd <n>` is a skill, so it can be typed inside an interactive Claude Code session. Every
+leaf is a `claude -p` subprocess, and a session the operator is already in is the situation a
+guard on nested launches refuses; when one fires, every leaf of the run dies at launch. If it
+does, run the conductor from a plain shell **outside** any Claude Code session instead —
+`claude -p "/tdd <n>"`.
 
 **veri never unsets `CLAUDECODE`, or any other such guard, itself.** The binary's refusal
 names the risk it is declining — nested sessions share runtime resources and will crash all

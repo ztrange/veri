@@ -307,6 +307,30 @@ fi
 
 report "$name"
 
+# probe_never_says_an_interactive_run_does_not_belong — issue #213's other half: once the
+# launch section presents interactive as a mode to pick deliberately (case 4), a passage
+# saying an interactive session is not where a run belongs is the contradiction #213 found,
+# and whichever of the two a reader lands on first is the guidance they follow. Two regexes,
+# one record: the interactive session, and the verdict that a run does not belong there.
+# "leaves the decision where it belongs", the CLAUDECODE paragraph's closing clause, names
+# neither a run nor a conductor and is not caught.
+probe_never_says_an_interactive_run_does_not_belong() {
+  never_says "that an interactive session is not where a run belongs" \
+    "$INTERACTIVE" \
+    'not where (a|the|your) (run|conductor) belongs|(run|conductor)s? (does|do) not belong|(is|are) not (a|the) place (for|to) (a )?(run|conductor)'
+}
+
+# 5. One criterion, one case (#213): no passage says an interactive run does not belong while
+#    case 4's passage says to pick interactive deliberately.
+name="$skill_md no longer says an interactive session is not where a run belongs"
+problems=()
+
+if need_skill_records; then
+  probe_never_says_an_interactive_run_does_not_belong
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
