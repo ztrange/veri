@@ -93,3 +93,13 @@ Two labels go on the issue, and together they are what lets veri take it at all.
   not a second one alongside it.
 
 So the filing is `gh issue create --label bug --label <the opt-in label>` with the body above.
+
+## The fix run
+
+Filing is free; the fix run is not — `/tdd <n>` spends a conductor and a leaf per step, so
+it is a second decision and it is the user's, not yours.
+
+Once the issue exists, report its number and URL and **ask, once, before starting the fix
+run**: start `/tdd <n>` now? Then **invoke `/tdd <n>` only on a yes** — on anything else
+you stop, and the bug is left filed and the run unstarted, which is a complete outcome of
+this skill rather than a half-finished one.
