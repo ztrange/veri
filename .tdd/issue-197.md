@@ -5,7 +5,7 @@
 - [x] A branch on origin named tdd/<n>-<slug> whose issue <n> is not among the repository's issues is still reported with its tip and commits ahead, its issue state named as unknown, and the script does not die with a traceback after partial output ⟦added⟧ ⟦criterion 1⟧
 - [x] A local branch absent from origin is reported, naming the branch, its tip, how many commits it holds that origin does not, and the worktree holding it when there is one ⟦criterion 2⟧
 - [x] A branch whose PR is merged or closed is left out of the report, and so is the default branch ⟦criterion 3⟧
-- [x] A local branch absent from origin whose PR was merged or closed (its origin branch deleted after the merge) is not reported as an invariant-1 finding ⟦added⟧ ⟦criterion 3⟧ ⟂ refactor pending
+- [x] A local branch absent from origin whose PR was merged or closed (its origin branch deleted after the merge) is not reported as an invariant-1 finding ⟦added⟧ ⟦criterion 3⟧
 - [ ] The script exits 0 when it printed a finding and exits 3 with empty stdout when there is nothing to report ⟦criterion 4⟧
 - [ ] The script exits 2 with a diagnostic on stderr and empty stdout when the remote is unreachable or gh cannot be read ⟦criterion 4⟧
 - [ ] Every finding names the invariant it breaks, so a reader can tell a branch with no PR from a branch that never reached origin ⟦criterion 5⟧
