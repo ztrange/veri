@@ -99,10 +99,10 @@ old_scripts_dir="$old_skill_dir/scripts"
 stubs=("$old_skill_dir/SKILL.md" "skills/solve-issues/SKILL.md")
 
 # stub_name <stub-path> — the old name a stub answers to, which is its own directory's name:
-# Claude Code resolves a command by the directory it loads the skill from. Case 10 wants it
-# bare, as the directory that must be gone, and case 5 wants it slash-led, as a user
-# types it; deriving both from here keeps `stubs` the one place either old name is spelled,
-# which is what lets this file sweep the repository for strings it must not itself contain.
+# Claude Code resolves a command by the directory it loads the skill from. Case 5 wants it
+# slash-led, as a user types it; deriving it from here keeps `stubs` the one place either old
+# name is spelled, which is what lets this file sweep the repository for strings it must not
+# itself contain.
 stub_name() { basename "$(dirname "$1")"; }
 
 # exempt <path> — true for the files allowed to go on naming the old home: the two stubs,
@@ -447,12 +447,12 @@ report "$name"
 # 10. The old names are gone, not forwarded (#412). The stubs case 4 pinned were never
 #     installed — Claude Code resolves a command from the directories symlinked into
 #     ~/.claude/skills, and only skills/tdd is — so they forwarded nothing. Stated as the
-#     observable absence: neither old directory exists in the tree. Each is spelled through
-#     `stubs` and `stub_name`, so this file still never writes an old home out in full.
+#     observable absence: neither old directory exists in the tree. Each is the directory
+#     of its entry in `stubs`, so this file still never writes an old home out in full.
 name="neither old skill directory is left in the tree"
 problems=()
 for stub in "${stubs[@]}"; do
-  old_dir="skills/$(stub_name "$stub")"
+  old_dir="$(dirname "$stub")"
   [[ ! -e "$ROOT/$old_dir" ]] ||
     problems+=("want no $old_dir/, found one")
 done
