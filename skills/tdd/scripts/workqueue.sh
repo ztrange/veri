@@ -13,7 +13,8 @@
 #          workqueue.sh start <worker> <issue>
 #          workqueue.sh done <worker> <issue> <merge-sha>
 #          workqueue.sh park <worker> <issue> <reason>
-# Exit:    0 done, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
+# Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
+#          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand or an issue
 #          already queued or running for any worker — refused before anything is written,
 #          so the file is left byte-identical
 set -euo pipefail
@@ -75,12 +76,20 @@ if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
     park) from=running to=parked new_detail="$4" ;;
   esac
   tmp="$queue.tmp.$$"
+  moved=0
   while IFS=$'\t' read -r owner issue state detail; do
     if [[ "$owner" == "$2" && "$issue" == "$3" && "$state" == "$from" ]]; then
-      state="$to" detail="$new_detail"
+      state="$to" detail="$new_detail" moved=1
     fi
     printf '%s\t%s\t%s\t%s\n' "$owner" "$issue" "$state" "$detail"
   done < "$queue" > "$tmp"
+  # No line of this worker's was in the `from` state: a clean refusal, and the file is left
+  # as it was rather than replaced.
+  if [[ "$moved" -eq 0 ]]; then
+    rm -f "$tmp"
+    echo "workqueue.sh: $2 holds no $from item for issue $3" >&2
+    exit 1
+  fi
   mv "$tmp" "$queue"
   exit 0
 fi

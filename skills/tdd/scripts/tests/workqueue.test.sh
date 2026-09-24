@@ -291,5 +291,27 @@ expect_queue park-running \
   "park moves that worker's running item to parked, recording the reason" \
   park alpha 12 "second bail"
 
+# 15. start, done and park naming an item another worker owns each exit 1 — a clean refusal —
+#     and leave the queue file byte-identical: alpha's queued 12 is not beta's to start, and
+#     alpha's running 13 is not beta's to merge or park.
+repo="$work/foreign-item"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\tqueued\t\nalpha\t13\trunning\t\n'
+cp "$repo/.tdd/workqueue" "$work/foreign-item.before"
+out_s="$(cd "$repo" && "$SCRIPT" start beta 12 2>&1)" && code_s=0 || code_s=$?
+out_d="$(cd "$repo" && "$SCRIPT" done beta 13 abc1234 2>&1)" && code_d=0 || code_d=$?
+out_p="$(cd "$repo" && "$SCRIPT" park beta 13 "second bail" 2>&1)" && code_p=0 || code_p=$?
+if [[ "$code_s" -eq 1 && "$code_d" -eq 1 && "$code_p" -eq 1 ]] \
+  && cmp -s "$work/foreign-item.before" "$repo/.tdd/workqueue"; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - start, done and park naming another worker's item exit 1 and leave the file byte-identical"
+  echo "    start: exit $code_s (want 1), output: $out_s"
+  echo "    done: exit $code_d (want 1), output: $out_d"
+  echo "    park: exit $code_p (want 1), output: $out_p"
+  diff "$work/foreign-item.before" "$repo/.tdd/workqueue" 2>&1 | sed 's/^/    /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
