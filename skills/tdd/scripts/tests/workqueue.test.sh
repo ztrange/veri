@@ -432,5 +432,21 @@ else
   diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
+# 20. show <worker> prints only that worker's items, in the same shape: beta's 4, which sits
+#     between alpha's two lines in the file, is left out, and so is its heading.
+repo="$work/show-one"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
+want="$(printf 'alpha\n\t12\trunning\n\t7\tqueued')"
+out="$(cd "$repo" && "$SCRIPT" show alpha 2>"$work/show-one.err")" && code=0 || code=$?
+if [[ "$code" -eq 0 && "$out" == "$want" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - show <worker> prints only that worker's items"
+  echo "    exit: $code (want 0), stderr: $(cat "$work/show-one.err")"
+  diff <(printf '%s\n' "$want") <(printf '%s\n' "$out") | sed 's/^/    /'
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
