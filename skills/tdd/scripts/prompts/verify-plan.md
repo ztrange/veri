@@ -34,3 +34,8 @@ work differently.
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
 the criterion's own words, so that the plan can be rewritten from your reason alone.
+
+A step carrying no `⟦criterion k⟧` tag — a gap step, which the planning leaf is asked to
+write for a behaviour the issue's prose needs and no acceptance criterion covers — is never
+by itself a reason to REJECT: it belongs to no criterion, so check 1 has no question to ask
+of it. It is still subject to check 2 like any other step.
