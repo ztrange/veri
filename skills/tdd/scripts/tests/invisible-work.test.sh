@@ -20,8 +20,8 @@
 # count of 3 is the script's answer rather than a digit that happened to fall inside a
 # sha (#197's plan, criterion 1).
 #
-# The exit code is not asserted here: which code goes with a finding, with nothing to
-# report and with a remote that cannot be read is criterion 4's own step.
+# The exit code is asserted in one case only, case 9: which code goes with a finding and
+# which with nothing to report is criterion 4's own step, pinned there and nowhere else.
 #
 # `origin` is a bare repository on disk. The behaviour under test IS a branch's presence on
 # a remote, so there is a real remote — a local path, which costs no network and is what the
@@ -371,6 +371,48 @@ names "the local branch with no PR is still reported" "$out" "$control"
 names "the local branch whose PR is still open is still reported" "$out" "$opened"
 omits "the local branch whose PR was merged is left out" "$out" "$merged"
 omits "the local branch whose PR was closed is left out" "$out" "$closed"
+report "$name"
+
+# 9. Issue #197, criterion 4: the exit code is the report's first answer. A finding printed
+#    is exit 0; nothing to report is exit 3 with nothing on stdout — the healthy state, not an
+#    error, and a caller must be able to tell it from a report without reading the text.
+#    Three clones: one whose `origin` carries a branch no PR was ever opened for; one whose
+#    only finding is a local branch `origin` lacks, since each invariant's half has to answer
+#    0 on its own; and one whose only branch off `main` has a merged PR, which is residue and
+#    so leaves nothing to report.
+name="invisible-work.sh: exits 0 when it printed a finding and 3 with empty stdout when there is nothing to report"
+problems=()
+clone="$(unpr_branch_clone "$work/case9-finding" "chore/nobody-opened-a-pr" 1)"
+gh_json="$(fixture "$work/case9-finding/gh")"
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
+names "the report names the branch with no PR" "$out" "chore/nobody-opened-a-pr"
+[[ "$rc" -eq 0 ]] ||
+  problems+=("a finding printed: want exit 0, got $rc")
+merged="tdd/4-supervised-leaves"
+local_only="tdd/150-a-run-that-never-reached-origin"
+clone="$(unpr_branch_clone "$work/case9-local" "$merged" 1)"
+gh_json="$(fixture "$work/case9-local/gh")"
+cat > "$gh_json/prs.json" <<JSON
+[{"headRefName": "$merged", "state": "MERGED", "body": "Closes #4"}]
+JSON
+git_q "$clone" checkout -q -b "$local_only" main
+git_q "$clone" commit -q --allow-empty -m "feat: a step nobody pushed (#150)"
+git_q "$clone" checkout -q main
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
+names "the report names the local branch origin lacks" "$out" "$local_only"
+omits "the report leaves out the branch with a merged PR" "$out" "$merged"
+[[ "$rc" -eq 0 ]] ||
+  problems+=("a local-only branch printed: want exit 0, got $rc")
+clone="$(unpr_branch_clone "$work/case9-clean" "$merged" 1)"
+gh_json="$(fixture "$work/case9-clean/gh")"
+cat > "$gh_json/prs.json" <<JSON
+[{"headRefName": "$merged", "state": "MERGED", "body": "Closes #4"}]
+JSON
+out="$(cd "$clone" && VERI_GH_JSON="$gh_json" "$INVISIBLE" 2>/dev/null)"; rc=$?
+[[ -z "$out" ]] ||
+  problems+=("nothing to report: want empty stdout, got $(printf '%q' "$out")")
+[[ "$rc" -eq 3 ]] ||
+  problems+=("nothing to report: want exit 3, got $rc")
 report "$name"
 
 echo "----"

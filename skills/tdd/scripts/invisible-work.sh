@@ -27,6 +27,9 @@
 # VERI_GH_JSON overrides both, naming a directory holding `issues.json` and `prs.json` in those shapes — the same override solvable-issues.sh establishes, so this runs with no
 # network in its tests. The JSON is read with python3, as there.
 #
+# Exit: 0 when at least one finding was printed, 3 with empty stdout when there is nothing
+# to report.
+#
 # Usage:   invisible-work.sh
 #          VERI_GH_JSON=<dir> invisible-work.sh
 set -euo pipefail
@@ -83,6 +86,7 @@ issues = {i["number"]: i["state"] for i in json.loads(sys.argv[1])}
 prs = json.loads(sys.argv[3])
 with_pr = {p["headRefName"] for p in prs}
 decided = {p["headRefName"] for p in prs if p["state"] in ("MERGED", "CLOSED")}
+findings = 0
 
 for row in sys.argv[2].splitlines():
     name, tip, ahead = row.split()
@@ -95,6 +99,7 @@ for row in sys.argv[2].splitlines():
         state = issues.get(n, "unknown")
         finding += f", issue #{n} {state}"
     print(finding)
+    findings += 1
 
 for row in sys.argv[4].splitlines():
     name, tip, lacks, worktree = row.split(" ", 3)
@@ -104,4 +109,8 @@ for row in sys.argv[4].splitlines():
     if worktree:
         finding += f", worktree {worktree}"
     print(finding)
+    findings += 1
+
+# 0: a finding was printed. 3: nothing to report — the healthy state, not an error.
+sys.exit(0 if findings else 3)
 ' "$issues_json" "$branches" "$prs_json" "$locals"
