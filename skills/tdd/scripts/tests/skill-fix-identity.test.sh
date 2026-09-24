@@ -215,6 +215,36 @@ if have_skill_md; then
 fi
 report "$name"
 
+# 4. The labels it puts on the issue are what makes veri able to take it at all. `bug` is what
+#    tells a reader — and `solvable-issues.sh`'s second band — that this is a defect rather than
+#    a feature, and the opt-in label is the whole of the consent: `solvable-issues.sh:100` reads
+#    `${VERI_LABEL:-ready-for-agent}`, so an issue without it is one veri never picks up, however
+#    well it is written. The scope suffix is the same label narrowed — a user who names a scope
+#    gets `ready-for-agent:<scope>`, not a second label — and the creation clause is the failure
+#    path: `bug` is GitHub's own default label, so it is there until a repo removes it, and on the
+#    repo that did, filing without creating it first is a `gh issue create` that fails rather than
+#    an issue filed unlabelled. Read as prose, like case 1: the skill ships no scripts, so what
+#    the session does about labels is only ever what its SKILL.md tells it to.
+name="$skill_md labels the issue bug and the scope's opt-in label, creating bug where the repo lacks it"
+problems=()
+if have_skill_md; then
+  text="$(body_text "$ROOT/$skill_md")"
+  if [[ -z "${text// /}" ]]; then
+    # Fail closed, as cases 1 and 3 do: an empty body must not read as four passes.
+    problems+=("$skill_md has no body after its frontmatter — the labelling could not be read")
+  else
+    says 'labels?[^.]{0,120}bug' \
+      "$skill_md never says the issue is labelled bug"
+    says 'ready-for-agent[^.:]{0,80}default|default[^.]{0,80}ready-for-agent' \
+      "$skill_md never says ready-for-agent is the opt-in label by default"
+    says 'ready-for-agent:[^ ]*[^.]{0,100}scope|scope[^.]{0,100}ready-for-agent:' \
+      "$skill_md never says a named scope makes the opt-in label ready-for-agent:<scope>"
+    says 'creates?[^.]{0,120}bug label|bug label[^.]{0,120}(if|when)[^.]{0,80}(lacks|missing|absent|removed|no )|gh label create' \
+      "$skill_md never says it creates the bug label where the repo lacks it"
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
