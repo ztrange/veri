@@ -331,6 +331,42 @@ fi
 
 report "$name"
 
+# A preference for print mode stated as a rule rather than as what to do once a guard fires:
+# the verb that makes it one (prefer, recommend, should, always, the supported or right way)
+# and the mode it points at, in one sentence. "If it does, run the conductor from a plain shell
+# outside any Claude Code session instead", the nested-launch instruction #213 keeps, directs
+# the operator only on the guard firing and carries none of those verbs, so it is not caught.
+PREFER_PRINT='(prefer|recommend|should|always|the (supported|right|proper|only) way)[^.]*(print mode|print-mode|claude -p|run-conductor|plain shell|outside (any|the|that|a) (claude code )?session)'
+
+# probe_says_print_mode_is_preferred_for_its_token_cost — issue #213: the reason SKILL.md gives
+# for picking print mode is what #207 measured, ~25,000 tokens a request cheaper (recorded at
+# run-conductor.sh:7), and never the CLAUDECODE nested-session refusal, which stopped firing on
+# 2026-09-15 (leaf-launchable.sh:14-17) and was the reason the retired "not where a run
+# belongs" sentence gave. Two halves: one record carries the cost as print mode's advantage,
+# and no record ties a standing preference for print mode to the nesting guard.
+probe_says_print_mode_is_preferred_for_its_token_cost() {
+  says "that print mode's advantage is ~25,000 tokens a request cheaper, #207's measurement" \
+    "$PRINT|run-conductor" \
+    '25,?000|25k' \
+    'token' \
+    'request' \
+    'cheaper|less|saves'
+  never_says "that print mode is preferred because of the CLAUDECODE nested-session refusal" \
+    'claudecode|nested|guard' \
+    "$PREFER_PRINT"
+}
+
+# 6. One criterion, one case (#213): print mode's reason is its token cost, and no passage
+#    gives the nested-session refusal as the reason to prefer it.
+name="$skill_md gives the ~25,000-token per-request cost as the reason for print mode, never the CLAUDECODE nested-session refusal"
+problems=()
+
+if need_skill_records; then
+  probe_says_print_mode_is_preferred_for_its_token_cost
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
