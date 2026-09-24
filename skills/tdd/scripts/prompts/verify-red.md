@@ -9,6 +9,7 @@ test is `{{TARGET_TEST}}`). Confirm the Red step is sound.
 
 {{ISSUE_SPEC}}
 
+{{BUG_REPRODUCTION}}
 ### Your checks
 
 1. **It runs and fails.** Run the suites `affected-suites.sh` prints for the change
