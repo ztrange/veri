@@ -15,7 +15,7 @@
 - [x] After any sequence of `assign`, `start`, `done`, `park` and refused calls, every issue ever assigned is still a line in the file ⟦criterion 4⟧
 - [x] N `assign`/`start` calls run in parallel leave a well-formed file containing every write ⟦criterion 5⟧
 - [x] A write that cannot take the lock exits 2 without touching the file ⟦criterion 5⟧
-- [ ] `workqueue.sh show` prints every item grouped by worker, each with its issue and state
+- [x] `workqueue.sh show` prints every item grouped by worker, each with its issue and state ⟂ refactor pending
 - [ ] `workqueue.sh show <worker>` prints only that worker's items
 - [ ] Called from a linked worktree, `workqueue.sh` reads and writes `.tdd/workqueue` under the repository's main working tree, not the worktree's own
 - [ ] The worker loop is documented in a `WORKER.md` beside `SKILL.md`, naming each `workqueue.sh` call (`next`, `start`, `done`, `park`) ⟦criterion 6⟧
