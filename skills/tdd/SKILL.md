@@ -998,7 +998,22 @@ following step. The phase sub-steps are:
      production code here is not one whose other commits can be taken on trust — and the
      step goes to verify-refactor on its green state, with what was dropped named in the
      narration.
-3. **Verify (blind, once) on the settled result.**
+3. **An `overfit` flag is answered inside this step.** The leaf's `FLAGS:` lines each carry
+   their class. A line whose class is **overfit** names code that passes this step's test
+   without implementing the criterion the step states, and names the case that would force
+   the general implementation. Stop the refactor loop there and run, for that case, one
+   triangulating **red → verify-red → green → verify-green** inside this same step, exactly
+   as the **Red** and **Green** phases above run them. An overfit flag grows **no ledger
+   step**, makes **no plan amendment** and posts **no second step-done comment**: a step is
+   mirrored done once, at the end of its own cycle, and this is not that moment — the
+   step is interrupted here, not finished, and the case is this step's own criterion
+   caught late rather than a step the plan is missing. The triangulation's own green commit is this
+   step's `<green-sha>` from here on — that is the state the tidying now starts from, so 2
+   above still reads exactly what the step's refactor produced. Then **resume this step's
+   refactor loop** at 1 with the **budget it had left**, asking
+   `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an
+   overfit flag costs the step a triangulation and never a second budget.
+4. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
@@ -1009,7 +1024,7 @@ following step. The phase sub-steps are:
    ran only the suites covering the files it touched, so a break in a suite none of its
    transforms touched surfaces here, as a REJECT the revise loop answers rather than a
    revert inside the leaf.
-4. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
+5. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
    own account of what it did — against the budget, in `refactor-budget.sh`'s own shape
