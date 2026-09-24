@@ -400,8 +400,7 @@ request more, the harness surface an interactive session re-sends on every reque
 recorded at `run-conductor.sh:7`). A print-mode conductor is that much cheaper per request,
 and cannot be steered: there is no human on the other end of its turn, so every decision the
 procedure would put to an operator becomes a bail instead — it stops and says why, and you
-read that afterwards rather than answering it at the time. Pick interactive when the run is
-one you want to be able to intervene in, print mode when it is not.
+read that afterwards rather than answering it at the time.
 
 **The skill snapshot: a run executes one skill from its first launch to its last.**
 `$S/run-conductor.sh <n>` does not run the skill as it sits in the clone. It fetches `origin`,
