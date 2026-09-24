@@ -476,5 +476,25 @@ else
   diff <(printf '%s\n' "$want_show") <(printf '%s\n' "$out") | sed 's/^/    /'
 fi
 
+# 22. the worker loop is documented in `WORKER.md` beside `SKILL.md` — the file a worker
+#     session loads, the way a scope run loads `SCOPE-LOOP.md` — and it names each call the
+#     loop makes: `workqueue.sh next`, `start`, `done` and `park`. Each call is matched as the
+#     command a reader would type, `workqueue.sh <subcommand>`, so the word "done" in a sentence
+#     does not count as naming the call; every one missing is listed, so one run says which.
+worker_doc="$HERE/../../WORKER.md"
+calls_missing=""
+for call in next start done park; do
+  grep -Eq "workqueue\.sh[[:space:]]+$call([^[:alnum:]_-]|\$)" "$worker_doc" 2>/dev/null \
+    || calls_missing="$calls_missing $call"
+done
+if [[ -f "$worker_doc" && -z "$calls_missing" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - WORKER.md beside SKILL.md documents the worker loop, naming each workqueue.sh call"
+  echo "    WORKER.md: $([[ -f "$worker_doc" ]] && echo present || echo absent) (want present)"
+  echo "    calls not named:${calls_missing:- none} (want none)"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
