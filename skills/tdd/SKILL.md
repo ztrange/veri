@@ -946,7 +946,7 @@ following step. The phase sub-steps are:
    carries the budget to the leaf as the number of transforms it may apply — and launch
    **through the supervisor** (exit **2** → **bail**):
    ```
-   $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 4
+   $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 5
    touched="$($S/refactor-touched.sh HEAD)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
@@ -1013,7 +1013,18 @@ following step. The phase sub-steps are:
    refactor loop** at 1 with the **budget it had left**, asking
    `$S/refactor-budget.sh <count>` with the transforms already landed as `<count>`, so an
    overfit flag costs the step a triangulation and never a second budget.
-4. **Verify (blind, once) on the settled result.**
+4. **An `uncovered-spec` flag is the one class that grows the plan.** A `FLAGS:` line
+   whose class is **uncovered-spec** names a behaviour the issue's spec requires that **no
+   ledger step covers** — the gap *Scope & plan* above asks the planner to
+   catch, found late by a leaf reading the code. That is the **only** flag class a plan
+   amendment is made from: its behaviour is carried, verbatim as a criterion, into the same
+   `add-ledger-step.sh … after "<STEP>"` call the `NEW_STEP:` values go in at 6's PASS
+   branch, so the missing step is planned and built like any other. No other class amends
+   the plan — an **overfit** flag is answered inside the step at 3 and grows no ledger line,
+   and the plan never grows for what the spec did not ask for. A flag class turned into a
+   step of its own is what #175 measured: six `plan: amend` commits on `origin/main`, each
+   buying a whole cycle and a refactor loop that flagged the next one.
+5. **Verify (blind, once) on the settled result.**
    ```
    rm -f .tdd/verdict-refactor.exit .tdd/verdict-refactor.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-refactor $S/run-verdict.sh --step "<STEP>" --fast-cmd '<fast-cmd>' refactor .tdd/issue-<n>-spec.md <test-path> <green-sha> > .tdd/verify-refactor.reason 2> .tdd/verify-refactor.err
@@ -1024,7 +1035,7 @@ following step. The phase sub-steps are:
    ran only the suites covering the files it touched, so a break in a suite none of its
    transforms touched surfaces here, as a REJECT the revise loop answers rather than a
    revert inside the leaf.
-5. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
+6. **Narrate + branch.** Post `### 🛠️ Refactor` (the transforms applied, or "no refactor
    warranted", plus any triangulation flagged) and `### 🔎 verify-refactor — PASS|REJECT`.
    Say **how many transforms landed** — the `git rev-list --count` figure, never the leaf's
    own account of what it did — against the budget, in `refactor-budget.sh`'s own shape

@@ -20,9 +20,10 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — six criteria, the procedure, the account of it, what the leaf's
+# Contract under test — seven criteria, the procedure, the account of it, what the leaf's
 # report grows, what a growth budget too full to hold it means, whose proposals that
-# growth carries, and where an overfit flag is answered, one case each:
+# growth carries, where an overfit flag is answered, and which flag class grows the plan,
+# one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -45,6 +46,8 @@
 #   6. That section answers an `overfit` flag with one triangulating red/green pair inside
 #      the step that raised it — no ledger step, no second `### ✅ Step done` — and then
 #      resumes that step's own refactor loop with the budget it had left (issue #175).
+#   7. That section amends the plan from an `uncovered-spec` flag and from **no other**
+#      flag class (issue #175).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -584,6 +587,47 @@ else
     #    buy a second step's worth of transforms.
     grep -qE "$(either_order '(resum|return|back)' 'budget' '[^.]{0,160}')" <<<"$flagged" ||
       problems+=("$skill_md's Refactor section never says the step resumes its own refactor loop with the budget it had left after the triangulation, so the tidying the flag interrupted is either abandoned or restarted with a budget the step has already spent")
+  fi
+fi
+
+report "$name"
+
+# 7. One criterion — the plan grows from an `uncovered-spec` flag and from no other class —
+#    and so one case. The classes the leaf now reports are three, and only one of them is a
+#    step the plan is missing: `uncovered-spec` names a behaviour the spec requires that no
+#    ledger step covers, which is the gap the planner is already asked to catch at scoping
+#    time. `overfit` is this step's own debt (case 6) and `beyond-spec` is not this run's
+#    work at all, so a document that amends the plan from a flag without saying which class
+#    buys it is the document #175 measured: six `plan: amend` commits on `origin/main`, none
+#    of them behaviour the issue's spec asked for. Two probes, because either alone passes a
+#    half-written section — one that names the class but not that it is the only one still
+#    lets every flag grow the plan, and one that says "only this class" without saying which
+#    leaves the conductor to pick.
+#
+#    Asked of the text around `uncovered-spec` rather than of the section at large, the way
+#    cases 1 and 6 ask theirs: this section already runs `add-ledger-step.sh` for the leaf's
+#    and the verifier's `NEW_STEP:` values, and a probe reading the whole section would be
+#    answered by those sentences and pass a document that never routes a flag by its class.
+name="$skill_md's Refactor section amends the plan from an uncovered-spec flag and from no other flag class"
+problems=()
+
+if unreadable_section; then
+  # Fail closed, the same way cases 1, 3, 4, 5 and 6 do: a renamed or emptied section is
+  # unreadable, not silently right.
+  problems+=("$(unreadable_problem "which flag class grows the plan could not be established")")
+else
+  uncovered="$(wins 'uncovered-spec')"
+  if [[ -z "$uncovered" ]]; then
+    problems+=("$skill_md's Refactor section never names the uncovered-spec class the leaf's FLAGS: line carries, so no flag is routed to a plan amendment by its class and the conductor amends from whichever flag it reads — the six plan: amend commits this issue counted")
+  else
+    # a. That class becomes a plan amendment: the one flag the plan is allowed to grow for.
+    grep -qE 'amend|ledger (step|line)|add-ledger-step|grow' <<<"$uncovered" ||
+      problems+=("$skill_md's Refactor section names the uncovered-spec class without saying it is what amends the plan, so a behaviour the spec requires and no step covers is narrated and never planned")
+
+    # b. And that it is the only one. Without that, the class is named and every other flag
+    #    still buys a step of its own, which is the cost this issue is against.
+    grep -qE '(only|alone|no other|the one (flag|class))' <<<"$uncovered" ||
+      problems+=("$skill_md's Refactor section amends the plan from an uncovered-spec flag without saying that no other flag class does, so an overfit or beyond-spec flag still becomes a ledger step with a refactor loop of its own")
   fi
 fi
 
