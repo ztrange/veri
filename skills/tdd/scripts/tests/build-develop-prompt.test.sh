@@ -1330,10 +1330,9 @@ prompt_lacks "$red" "a spec with no Bug section is still told to name the case a
 #     `beyond-spec` (an input class or edge the spec does not ask for), or `none` — and
 #     `NEW_STEP:` goes with it, rather than sitting beside it, for the reason case 32 gave when
 #     it took `FLAGS:` away: two footers for one answer let a leaf fill either and the conductor
-#     read the other. That makes this case the exact inverse of case 32, which is therefore
-#     retired here and not left beside it — a suite asserting both would be unsatisfiable, and
-#     the green leaf may not edit tests to resolve it. What the conductor then DOES with each
-#     class is `SKILL.md`'s, and the ledger's later steps.
+#     read the other. That makes this case the exact inverse of case 32, which is retired where
+#     it stood, for the reason its own note gives. What the conductor then DOES with each class
+#     is `SKILL.md`'s, and the ledger's later steps.
 #
 #     The prompt read is case 3's: same phase, same arguments, so there is one invocation and
 #     case 3 owns the exit-0 check on it. Two probe shapes, for the two halves of the criterion.
