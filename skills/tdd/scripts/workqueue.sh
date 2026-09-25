@@ -91,15 +91,16 @@ take_lock() {
 # line to `merged` with the sha as its detail and `park` it to `parked` with the reason, in place: every line keeps its
 # position, and the new file replaces the old one by `mv` from beside it.
 if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
-  # A `done` with no merge sha would write a `merged` line with no detail: refused before
-  # the lock is taken, so the file is left as it was.
-  if [[ "$1" == done && $# -lt 4 ]]; then
-    echo "workqueue.sh: usage: workqueue.sh done <worker> <issue> <merge-sha>" >&2
-    exit 2
-  fi
   case "$1" in
     start) from=queued to=running new_detail="" ;;
-    done) from=running to=merged new_detail="$4" ;;
+    done)
+      # A `done` with no merge sha would write a `merged` line with no detail: refused
+      # before the lock is taken, so the file is left as it was.
+      if [[ $# -lt 4 ]]; then
+        echo "workqueue.sh: usage: workqueue.sh done <worker> <issue> <merge-sha>" >&2
+        exit 2
+      fi
+      from=running to=merged new_detail="$4" ;;
     park) from=running to=parked new_detail="$4" ;;
   esac
   take_lock
