@@ -1146,8 +1146,13 @@ scan_conductor_titles() {
   local title="$EXPANDING_STEP"
   local md_lines hits numbered lineno line launch script cmd stage seen tree err got argv
   local planter i=0 rec want expected failed first
+  # The five scripts whose calls carry the title, named once: the grep that finds the lines,
+  # the recorder staged over each, and the match that says which one a line calls.
+  local callees=(event preserve-attempt tick-ledger clear-refactor-pending tick-issue-criterion)
+  local callee_re
+  callee_re="$(IFS='|'; printf '%s' "${callees[*]}")"
   mapfile -t md_lines < "$md"
-  hits="$(grep -nE '\$S/(event|preserve-attempt|tick-ledger|clear-refactor-pending|tick-issue-criterion)\.sh' "$md" |
+  hits="$(grep -nE "\\\$S/($callee_re)\\.sh" "$md" |
           grep -vE '^[0-9]+:- `')"
   if [[ -z "$hits" ]]; then
     no_launch "the conductor's own marks, preserve-attempt.sh or tick calls"
@@ -1163,7 +1168,7 @@ scan_conductor_titles() {
     printf 'BODY\n'
   } > "$bin/gh"
   chmod +x "$bin/gh"
-  for script in event preserve-attempt tick-ledger clear-refactor-pending tick-issue-criterion; do
+  for script in "${callees[@]}"; do
     cat > "$stage/$script.sh" <<'STUB'
 #!/bin/sh
 out="$SEEN.$(basename "$0" .sh)"
@@ -1175,7 +1180,7 @@ STUB
   while IFS= read -r numbered; do
     [[ -n "$numbered" ]] || continue
     lineno="${numbered%%:*}"
-    script="$(sed -E 's/.*\$S\/(event|preserve-attempt|tick-ledger|clear-refactor-pending|tick-issue-criterion)\.sh.*/\1/' <<< "$numbered")"
+    [[ "$numbered" =~ \$S/($callee_re)\.sh ]] && script="${BASH_REMATCH[1]}"
     cmd="$(conductor_command "$lineno" "$script")"
     line="$cmd"
     # A mark that carries neither VERI_STEP nor an anchor carries no title to ask about.
