@@ -750,16 +750,21 @@ title_guard() {
 #     same line is answered rather than reported. And every entry the table does hold still
 #     names a fenced line of the rewritten document that carries the title — an entry whose
 #     line moved or went excuses whatever lands there next (#437).
+#
+#     The line planted is the first fenced one carrying the title in either shape, and the
+#     refusal is asked with that line's own EXEMPT entry, if any, taken out: a document whose
+#     one such line is already single-quoted and exempted with a reason is the table doing its
+#     job, not a guard with nothing left to refuse (#437).
 name="the #431 guard still refuses a single-quoted step title and its exemption table still holds over the rewritten $skill_md (#437)"
 problems=()
 
-planted_line="$(fenced_lines "$double_quoted_step" | sed -n '1p' | cut -f1)"
+planted_line="$(step_lines | sed -n '1p' | cut -f1)"
 if [[ -z "$planted_line" ]]; then
-  unreadable "fenced line carrying $double_quoted_step" "where the #431 guard would meet a single-quoted title"
+  unreadable "fenced line carrying $step_ph" "where the #431 guard would meet a single-quoted title"
 else
   planted_doc="$(mktemp)"
   sed "${planted_line}s|$double_quoted_step|$single_quoted_step|" "$skill_path" > "$planted_doc"
-  refused="$(title_guard "$planted_doc")"
+  refused="$(unset "EXEMPT[$skill_md:$planted_line]"; title_guard "$planted_doc")"
   [[ "$refused" == *"$skill_md:$planted_line single-quotes the step title"* ]] ||
     problems+=("the guard did not refuse $single_quoted_step planted at $skill_md:$planted_line — it reported: ${refused:-nothing}")
   answered="$(EXEMPT["$skill_md:$planted_line"]="planted by case 11"; title_guard "$planted_doc")"
