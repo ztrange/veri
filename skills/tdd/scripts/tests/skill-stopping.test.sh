@@ -200,6 +200,22 @@ if load_section; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+name="the Stopping section renders metrics.sh <n> into a ### ⏹️ Stopped — <mode> comment and commits no metrics file"
+problems=()
+if load_section; then
+  require 'metrics\.sh <n>' \
+    "the Stopping section never renders metrics.sh <n> — the pause would post no record of what the run spent"
+  require '### ⏹️ stopped — <mode>' \
+    "the Stopping section never posts a '### ⏹️ Stopped — <mode>' comment — nothing on the issue would say the run paused rather than bailed"
+
+  # A metrics commit marks an ending; a stopped run will be resumed, so the section stages
+  # and commits nothing at all — the one reach for the tree it has is the reset above.
+  refuse 'git (add|commit)' \
+    "the Stopping section stages or commits — a metrics commit marks an ending, and a stop is not one"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
