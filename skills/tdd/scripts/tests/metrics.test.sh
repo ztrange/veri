@@ -230,6 +230,9 @@ def outside_tables(path):
     return [l.strip() for l in open(path).read().splitlines()
             if l.strip() and not l.strip().startswith("|")]
 
+def outcome_lines(path):
+    return [l for l in outside_tables(path) if l.startswith("Outcome:")]
+
 def quoted(said):
     return ", ".join(repr(l) for l in said) or "nothing"
 
@@ -2029,7 +2032,7 @@ render "$stopped_work" "$stopped_out"
 issue_wall_says "$stopped_out" 340
 probe "$PROBE_PRELUDE"'
 path = sys.argv[1]
-outcomes = [l for l in outside_tables(path) if l.startswith("Outcome:")]
+outcomes = outcome_lines(path)
 
 if not any("at-ledger" in l and re.search(r"\bgreen\b", l) for l in outcomes):
     complain("want an Outcome line naming the stop mode at-ledger and the at boundary green, "
@@ -2064,7 +2067,7 @@ render "$resumed_stop_work" "$resumed_stop_out"
 
 probe "$PROBE_PRELUDE"'
 path = sys.argv[1]
-outcomes = [l for l in outside_tables(path) if l.startswith("Outcome:")]
+outcomes = outcome_lines(path)
 
 if not any("no mark ending the run" in l for l in outcomes):
     complain("want an Outcome line saying the log carries no mark ending the run, "
