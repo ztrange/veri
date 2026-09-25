@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# step-budget.sh — the two money budgets (issue #449, part of #447): VERI_STEP_BUDGET, what
+# one step may spend, and VERI_RUN_BUDGET, what the whole run may.
+#
+# Usage:   step-budget.sh          # prints the resolved step budget, then the resolved run budget
+#
+# The shape is time-budget.sh's, for the same reason: the no-argument call is the preflight
+# one, at the point `refactor-budget.sh 0` already occupies in SKILL.md step 5.
+set -euo pipefail
+
+step="${VERI_STEP_BUDGET-12}"
+run="${VERI_RUN_BUDGET-120}"
+
+echo "$step"
+echo "$run"
