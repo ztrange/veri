@@ -64,21 +64,26 @@ plain() {
   tr -d '*`' | tr '[:upper:]' '[:lower:]'
 }
 
-# stopping_section — the `## Stopping` section's lines, up to the next `## ` heading, read
-# plain. Line order is kept, because whether the wait comes before the reset is half of what
-# this case asks.
-stopping_section() {
-  awk '/^## / { inside = (tolower($0) ~ /^## stopping([[:space:]]|$)/); next } inside' "$skill_path" \
-    | plain
+# skill_section <heading> — the lines of the `## <heading>` section, up to the next `## `
+# heading, read plain; <heading> is matched case-folded and as a whole word, so `Launching a
+# leaf` finds `## Launching a leaf — detach, then wait in the foreground`. Line order is kept,
+# because whether the wait comes before the reset is half of what the Stopping cases ask.
+skill_section() {
+  awk -v want="$(plain <<<"$1")" '
+    /^## / {
+      h = tolower($0); after = substr(h, length(want) + 4, 1)
+      inside = (index(h, "## " want) == 1 && (after == "" || after ~ /[[:space:]]/)); next
+    }
+    inside' "$skill_path" | plain
 }
 
-# load_section — put the `## Stopping` section in `section` for a case's probes to read, or
-# record the fail-closed problem and return 1 when the document has no such section: no probe
-# below can say anything about a section that is not there.
+# load_section <heading> — put the `## <heading>` section in `section` for a case's probes to
+# read, or record the fail-closed problem and return 1 when the document has no such section:
+# no probe below can say anything about a section that is not there.
 load_section() {
-  section="$(stopping_section)"
+  section="$(skill_section "$1")"
   [[ -n "$section" ]] && return 0
-  problems+=("$skill_md has no ## Stopping section — nothing could be checked")
+  problems+=("$skill_md has no ## $1 section — nothing could be checked")
   return 1
 }
 
@@ -122,7 +127,7 @@ after() {
 # ---------------------------------------------------------------------------
 name="the Stopping section waits with wait-leaf.sh on every .tdd/<name>.pid still running supervise.sh <name> before it touches the tree, and reaches only for git reset --hard HEAD, never git checkout"
 problems=()
-if load_section; then
+if load_section 'Stopping'; then
   wait_at="$(first_line_matching 'wait-leaf\.sh')"
   [[ -n "$wait_at" ]] \
     || problems+=("the Stopping section never calls wait-leaf.sh")
@@ -146,7 +151,7 @@ report "$name"
 # ---------------------------------------------------------------------------
 name="the Stopping section resets nothing and records at=unsettled when rebase-merge, rebase-apply or MERGE_HEAD is present in the worktree"
 problems=()
-if load_section; then
+if load_section 'Stopping'; then
   for state in 'rebase-merge' 'rebase-apply' 'merge_head'; do
     require "$state" \
       "the Stopping section never names $state — an interrupted rebase or merge it cannot see is one it would reset away"
@@ -166,7 +171,7 @@ report "$name"
 # ---------------------------------------------------------------------------
 name="the Stopping section runs push-branch.sh and records push=rejected with the sha its stderr names on exit 1, launching no reconcile leaf and bailing not at all"
 problems=()
-if load_section; then
+if load_section 'Stopping'; then
   require 'push-branch\.sh' \
     "the Stopping section never runs push-branch.sh — a stopped run would leave its commits only in the worktree"
   require 'exit 1' \
@@ -188,7 +193,7 @@ report "$name"
 # ---------------------------------------------------------------------------
 name="the Stopping section writes exactly one event.sh stop mode=<mode> at=<at> mark, with at one of unplanned, planned, green, step-done or unsettled, and names classify-bail.sh nowhere"
 problems=()
-if load_section; then
+if load_section 'Stopping'; then
   # grep -c answers 1 when it matches nothing, and this suite runs under `set -o pipefail`,
   # so the count is taken with `|| true`: "no mark at all" is a problem to report, not a
   # reason for the case to die before it reports it.
@@ -215,7 +220,7 @@ report "$name"
 # ---------------------------------------------------------------------------
 name="the Stopping section renders metrics.sh <n> into a ### ⏹️ Stopped — <mode> comment and commits no metrics file"
 problems=()
-if load_section; then
+if load_section 'Stopping'; then
   require 'metrics\.sh <n>' \
     "the Stopping section never renders metrics.sh <n> — the pause would post no record of what the run spent"
   require '### ⏹️ stopped — <mode>' \
@@ -231,7 +236,7 @@ report "$name"
 # ---------------------------------------------------------------------------
 name="the Stopping section ends the run with stop-requested.sh --clear, opening no PR, removing no worktree and deleting no .tdd/conductor.pid"
 problems=()
-if load_section; then
+if load_section 'Stopping'; then
   clear_at="$(first_line_matching 'stop-requested\.sh --clear')"
   report_at="$(first_line_matching 'metrics\.sh <n>')"
   if [[ -z "$clear_at" ]]; then
@@ -292,11 +297,8 @@ report "$name"
 # and what it does are read from the same clause rather than from anywhere in the section.
 name="Launching a leaf runs stop-requested.sh before every leaf launch: exit 3 launches as normal, at-ledger launches the leaf anyway, at-leaf and now launch nothing and go to Stopping"
 problems=()
-section="$(awk '/^## / { inside = (tolower($0) ~ /^## launching a leaf/); next } inside' "$skill_path" \
-  | plain | tr '\n' ' ' | tr -s ' ')"
-if [[ -z "$section" ]]; then
-  problems+=("$skill_md has no ## Launching a leaf section — nothing could be checked")
-else
+if load_section 'Launching a leaf'; then
+  section="$(tr '\n' ' ' <<<"$section" | tr -s ' ')"
   require 'stop-requested\.sh' \
     "the Launching a leaf section never runs stop-requested.sh — no launch asks whether a stop was requested"
   require 'before[^.;]*launch[^.;]*stop-requested\.sh|stop-requested\.sh[^.;]*before[^.;]*launch' \
