@@ -358,19 +358,6 @@ mark() {
   env $role "$HERE/event.sh" "$@"
 }
 
-# The run's `launch` mark, carrying the keys the header lists. Written here because this is
-# the one choke point every leaf goes through: a log missing one is a leaf nothing recorded
-# starting, and every key the mark carries is either what this script was handed — the name,
-# the argv — or what it resolved from that above. `$*` joins argv with a single space, the
-# spelling event.sh's header quotes for a `cmd=` payload.
-#
-# Once per supervision, not once per attempt — which is what its place here shows: outside
-# the loop below, so a retried attempt passes it by. That attempt is the `retry` mark's to
-# report, and a second `launch` would read as a second leaf.
-#
-# `model=` is written on every launch, empty when the run chose none: event.sh's rule for
-# context keys is that an absent key and a chosen-nothing key must not look alike, and a
-# per-model cost comparison joins verdicts and revise counts on exactly this field.
 # One leaf owns a worktree at a time (issue #471). In #446 `verify-green` was launched while
 # `revise-green-1` was still running, and the two wrote one tree at once: `.tdd/<name>.pid`
 # only answers for a leaf of this name, and SKILL.md removes it before every launch. So every
@@ -392,6 +379,19 @@ if [[ -s "$ownerfile" ]]; then
 fi
 [[ "$heartbeat_watched" == 0 ]] || printf '%s %s\n' "$$" "$name" > "$ownerfile"
 
+# The run's `launch` mark, carrying the keys the header lists. Written here because this is
+# the one choke point every leaf goes through: a log missing one is a leaf nothing recorded
+# starting, and every key the mark carries is either what this script was handed — the name,
+# the argv — or what it resolved from that above. `$*` joins argv with a single space, the
+# spelling event.sh's header quotes for a `cmd=` payload.
+#
+# Once per supervision, not once per attempt — which is what its place here shows: outside
+# the loop below, so a retried attempt passes it by. That attempt is the `retry` mark's to
+# report, and a second `launch` would read as a second leaf.
+#
+# `model=` is written on every launch, empty when the run chose none: event.sh's rule for
+# context keys is that an absent key and a chosen-nothing key must not look alike, and a
+# per-model cost comparison joins verdicts and revise counts on exactly this field.
 mark launch name="$name" cmd="$*" model="$model"
 
 # This supervisor's own pid, recorded before any leaf is launched (issue #173), so
