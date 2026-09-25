@@ -6,4 +6,4 @@
 - [x] A leaf silent while the machine is awake (injected clock, no suspend) is still killed as stuck once its awake silence passes VERI_HEARTBEAT, at the same threshold as today ⟦criterion 2⟧
 - [x] A noisy leaf running while the machine is awake (injected clock, no suspend) is still killed once its awake run time passes VERI_TIMEOUT, at the same threshold as today ⟦criterion 2⟧
 - [x] The injected clock a suite drives can simulate a suspend with no real sleep and no real suspend, and the two suspend cases (heartbeat and timeout) run on it, each having been watched failing against the pre-fix supervisor ⟦criterion 3⟧
-- [ ] supervise.sh's header names the clock source the watchdog measures with and states why it pauses while the machine is suspended, for macOS and for Linux ⟦criterion 4⟧
+- [x] supervise.sh's header names the clock source the watchdog measures with and states why it pauses while the machine is suspended, for macOS and for Linux ⟦criterion 4⟧ ⟂ refactor pending

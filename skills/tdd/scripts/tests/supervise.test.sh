@@ -1995,6 +1995,29 @@ rm -f "$work/.test-suspended" "$work/.tdd/asleep-an-hour.rc"
 sup asleep-an-hour 180 900 leaf-asleep-an-hour
 woke_with_own_exit asleep-an-hour "#472: a leaf asleep an hour across a simulated suspend, against the default 180s heartbeat and 900s VERI_TIMEOUT, is killed by neither and finishes with its own exit code"
 
+# 49. supervise.sh's header names the clock both windows are measured on and says why that
+#     clock pauses while the machine is suspended, for macOS and for Linux (issue #472). Cases
+#     43–48 pin what the watchdog does across a suspend; this one pins that the reason is
+#     written where a reader of the script starts, so the next person to find a monotonic clock
+#     where `date +%s` used to be does not put the wall clock back. Case 28's shape: the header
+#     is extracted first (`header_text`, above), so a sentence at the helper's own definition
+#     does not answer for it, and each claim is bounded so two unrelated sentences cannot match
+#     as one. Loose on wording, tight on the four claims: the clock is named, each platform is
+#     named beside suspend/sleep, and the clock is said to stop advancing across it.
+clock_misses=""
+while IFS='|' read -r where regex; do
+  [[ -n "$where" ]] || continue
+  grep -qE "$regex" <<< "$header_text" || clock_misses="$clock_misses $where"
+done <<'CLAIMS'
+clock-source|monotonic
+macos|macOS.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}macOS
+linux|Linux.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}Linux
+pauses-in-suspend|(not advance|stop[a-z]* advancing|pause[a-z]*|stand[a-z]* still|stop[a-z]*).{0,160}(suspend|asleep|sleep)
+CLAIMS
+
+[[ -z "$clock_misses" ]] && ok \
+  || no "#472: supervise.sh's header names the watchdog's clock source and why it pauses while the machine is suspended, for macOS and Linux (unstated:$clock_misses)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

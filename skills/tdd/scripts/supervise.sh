@@ -6,7 +6,14 @@
 # and watches it two ways:
 #   * heartbeat — activity on the leaf's progress log within a window tells "slow but
 #     working" from "hung". A leaf silent past the window is killed.
-#   * hard timeout — a leaf that exceeds the wall-clock cap is killed even if still noisy.
+#   * hard timeout — a leaf that exceeds the time cap is killed even if still noisy.
+# Both windows count only time the machine spent awake (issue #472). The clock is Python's
+# time.monotonic(): on macOS that is mach_absolute_time(), which does not advance while the
+# Mac is asleep, and on Linux it is CLOCK_MONOTONIC, which does not advance while the machine
+# is suspended. The wall clock (`date +%s`) keeps running through a suspend, so an hour with
+# the lid closed would read as an hour of silence and kill a leaf that never hung — the
+# heartbeat slides by whatever the wall clock moved across one poll beyond this clock, and the
+# hard timeout is measured on this clock alone.
 # The heartbeat is the leaf's; a `verdict-<phase>` supervision is the wrapper around a
 # verifier leaf that is already supervised under its own name, so it keeps only the hard
 # timeout and never kills for a silence that is the wrapper's rather than the verifier's
