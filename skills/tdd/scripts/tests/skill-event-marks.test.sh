@@ -231,6 +231,10 @@ else
   call="${call//<count>/7}"
   call="${call//<VERI_REFACTOR_BUDGET>/5}"
   call="${call//<reason>/budget}"
+  # The mark reads its step out of the committed ledger (#437), which stands with the tidied
+  # step ticked and pending its refactor when the mark is written.
+  mkdir -p "$fixture/.tdd"
+  printf -- '- [x] %s ⟂ refactor pending\n- [ ] %s\n' "$tidied" "$untidied" > "$fixture/.tdd/issue-230.md"
   for s in "$tidied" "$untidied"; do
     ( cd "$fixture" && VERI_ISSUE=230 VERI_ACTOR=developer VERI_STEP="$s" VERI_PHASE=refactor \
         VERI_ATTEMPT=1 "$S/event.sh" launch name=develop-refactor ) ||

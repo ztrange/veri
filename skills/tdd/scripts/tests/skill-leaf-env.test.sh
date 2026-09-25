@@ -1080,6 +1080,149 @@ scan_every_step_title() {
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every other developer and verifier leaf $skill_md launches with it, byte-identical (#437)" \
   scan_every_step_title
 
+# 8f. The same three characters, asked of the lines the conductor types for ITSELF rather
+#    than to launch a leaf (issue #437): the `event.sh` marks that set VERI_STEP or name an
+#    `anchor=`, the `preserve-attempt.sh` calls, and the fragment `tick-ledger.sh`,
+#    `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find a checkbox.
+#    A mark carrying a title nobody wrote puts the run log's `step` out of step with the
+#    ledger; a fragment carrying one ticks nothing, or the wrong box.
+#
+#    Each line is run the way 8b runs its own, against a copy of the scripts directory in
+#    which those five scripts are a recorder writing down the VERI_STEP it saw and its argv.
+#    The lines are found by the script they call, not by how they spell the title, so a line
+#    that stops typing `"<STEP>"` is still asked. Some sit in a code block and some inline in
+#    prose, in backticks and sometimes wrapped onto the next line; `conductor_command` cuts
+#    the command out of either. The reference entries under *Scripts* (`- \`$S/…\``) are
+#    signatures, not lines anyone types, and are left out.
+#
+#    Where a line runs in a run, the ledger stands in one of three states — the step
+#    unchecked, ticked and pending its refactor, or ticked and done — and a line may read the
+#    title out of the ledger in whichever one it runs beside. The case does not map lines to
+#    states; it runs each beside all three and asks that one of them delivers the title whole.
+#    Every placeholder that names the title, or a fragment of it or an anchor step, is given
+#    the title; every other `<…>` a probe word, since the recorder reads none of them.
+#
+#    `tick-issue-criterion.sh` is the one exception to "the title": it ticks a box in the
+#    ISSUE body, whose criteria are the issue's own words and not the ledger's — a step is
+#    reworded when it is planned, so a matcher cut from the step's title finds nothing there.
+#    Its matcher must be criterion <k>'s own text as the issue writes it, so the case serves
+#    an issue body through a stub `gh` whose criterion 2 differs from the title and carries
+#    the same three characters, a checkbox outside `## Acceptance criteria` ahead of it, and
+#    asks for that text byte-identical.
+#
+# CRITERION_TEXT — criterion 2 of the issue the stub `gh` serves: distinct from the step title,
+# and carrying a dollar sign, a backtick and a double quote of its own.
+CRITERION_TEXT='The issue'"'"'s own words: `echo $SHELL` in "quotes" and $HOME, as the issue wrote them'
+#
+# plant_done_ledger <tree> <step> — the ledger once the step's refactor is verified: <step>
+# ticked with its mark cleared, a later step unchecked.
+plant_done_ledger() {
+  printf '# Plan for #%s\n\n- [x] %s\n- [ ] a later step the run has not reached\n' \
+    "$SENTINEL_ISSUE" "$2" > "$1/.tdd/issue-$SENTINEL_ISSUE.md"
+}
+
+# conductor_command <lineno> <script> — echo the command on document line <lineno> that calls
+# `$S/<script>.sh`: the whole line when it is a code-block line, else the backtick span it
+# sits in, joined across the following lines until that span closes.
+conductor_command() {
+  local n="$1" script="$2" text before after
+  text="${md_lines[n-1]}"
+  if [[ "$text" != *'`'* ]]; then
+    text="${text#"${text%%[![:space:]]*}"}"
+    printf '%s\n' "${text%%  # *}"
+    return
+  fi
+  before="${text%%"\$S/$script.sh"*}"
+  after="${text#"$before"}"
+  while [[ "$after" != *'`'* ]] && (( n < ${#md_lines[@]} )); do
+    text="${md_lines[n]}"
+    after+=" ${text#"${text%%[![:space:]]*}"}"
+    n=$((n + 1))
+  done
+  printf '%s%s\n' "${before##*\`}" "${after%%\`*}"
+}
+
+scan_conductor_titles() {
+  local title="$EXPANDING_STEP"
+  local md_lines hits numbered lineno line launch script cmd stage seen tree err got argv
+  local planter i=0 rec want expected failed first
+  mapfile -t md_lines < "$md"
+  hits="$(grep -nE '\$S/(event|preserve-attempt|tick-ledger|clear-refactor-pending|tick-issue-criterion)\.sh' "$md" |
+          grep -vE '^[0-9]+:- `')"
+  if [[ -z "$hits" ]]; then
+    no_launch "the conductor's own marks, preserve-attempt.sh or tick calls"
+    return
+  fi
+  stage_recorder conductor-title
+  local bin="$WORK/conductor-title-bin"
+  mkdir -p "$bin"
+  {
+    printf '#!/bin/sh\ncat <<'"'"'BODY'"'"'\n'
+    printf '## Problem\n\n- [ ] a checkbox in the prose, not a criterion\n\n'
+    printf '## Acceptance criteria\n\n- [ ] the first criterion\n- [ ] %s\n      wrapped onto a second line\n\nTest command: `make test`\n' "$CRITERION_TEXT"
+    printf 'BODY\n'
+  } > "$bin/gh"
+  chmod +x "$bin/gh"
+  for script in event preserve-attempt tick-ledger clear-refactor-pending tick-issue-criterion; do
+    cat > "$stage/$script.sh" <<'STUB'
+#!/bin/sh
+out="$SEEN.$(basename "$0" .sh)"
+printf '%s\n' "${VERI_STEP-<unset>}" > "$out"
+for a in "$@"; do printf '%s\n' "$a" >> "$out"; done
+STUB
+    chmod +x "$stage/$script.sh"
+  done
+  while IFS= read -r numbered; do
+    [[ -n "$numbered" ]] || continue
+    lineno="${numbered%%:*}"
+    script="$(sed -E 's/.*\$S\/(event|preserve-attempt|tick-ledger|clear-refactor-pending|tick-issue-criterion)\.sh.*/\1/' <<< "$numbered")"
+    cmd="$(conductor_command "$lineno" "$script")"
+    line="$cmd"
+    # A mark that carries neither VERI_STEP nor an anchor carries no title to ask about.
+    [[ "$script" != event || "$cmd" == *VERI_STEP* || "$cmd" == *anchor=* ]] || continue
+    launch="${cmd//<n>/$SENTINEL_ISSUE}"
+    launch="${launch//<STEP>/$title}"
+    launch="${launch//<distinctive substring of STEP>/$title}"
+    launch="${launch//<substring>/$title}"
+    launch="${launch//<anchor>/$title}"
+    launch="${launch//<phase>/red}"
+    launch="${launch//<k>/2}"
+    launch="$(sed -E 's/<[^<>]*>/probe/g' <<< "$launch")"
+    failed="" first="" expected="$title"
+    [[ "$script" != tick-issue-criterion ]] || expected="$CRITERION_TEXT"
+    for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
+      i=$((i + 1))
+      tree="$WORK/conductor-title-$i-tree" seen="$WORK/conductor-title-$i-seen"
+      mkdir -p "$tree/.tdd"
+      "$planter" "$tree" "$title"
+      PATH="$bin:$PATH" run_recorded '<not run>'
+      failed=""
+      if [[ ! -f "$seen.$script" ]]; then
+        failed="$script.sh was never run"
+      else
+        mapfile -t rec < "$seen.$script"
+        [[ "$cmd" != *VERI_STEP* || "${rec[0]}" == "$title" ]] ||
+          failed+="VERI_STEP=<${rec[0]}> "
+        [[ "$cmd" != *anchor=* ]] || printf '%s\n' "${rec[@]:1}" | grep -xF "anchor=$title" > /dev/null ||
+          failed+="no argument anchor=<$title> "
+        case "$script" in
+          preserve-attempt|tick-issue-criterion) want="${rec[2]-<none>}" ;;
+          tick-ledger|clear-refactor-pending) want="${rec[${#rec[@]}-1]}" ;;
+          *) want="$title" ;;
+        esac
+        [[ "$want" == "$expected" ]] || failed+="title argument <$want> "
+      fi
+      [[ -n "$failed" ]] || break
+      [[ -n "$first" ]] || first="$failed(the typing shell said: ${err//$'\n'//})"
+    done
+    [[ -z "$failed" ]] ||
+      problem "passes $script.sh <$expected>, which arrived as $first beside every ledger state"
+  done <<< "$hits"
+}
+
+run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every event.sh mark, preserve-attempt.sh call and tick fragment the conductor types from $skill_md, byte-identical (#437)" \
+  scan_conductor_titles
+
 # 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
 #    being gone and the completion file existing are two events, and nothing orders them: a
 #    detached launch returns at once, the pid its tree records can die while the supervisor

@@ -180,7 +180,7 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
   one growth is made of goes in **one call**: the script takes them all at once and reads the
   budget once per call, so a call per text would refuse a third text that one call either fits
   whole or files whole. Every insertion is marked in the log beside the call it made —
-  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added
   anchor='<anchor>' added=<count>` — because a plan that changes with no record leaves the
   log unable to say which steps the run chose for itself; an exit 1 owes the same mark with
   `added=0`, since a step the budget refused is still a decision the run made.
@@ -337,11 +337,14 @@ launch reads `VERI_STEP` out of the committed ledger inside its own command subs
 `next-unchecked.sh` before the step's green commit ticks it, `next-pending-refactor.sh`
 after, and `next-pending-refactor.sh || next-unchecked.sh` where the phase could be either —
 and a verifier's launch reads `--step` the same way, so the title never passes through the
-line as text. Where a command still spells the title, it is in double quotes —
-`"<STEP>"`, and the same on every other command on this page that carries the
-title or **a fragment of it** — the `"<substring>"` `tick-ledger.sh`,
+line as text. The conductor's own lines read it the same way: every `event.sh` mark's
+`VERI_STEP` and `anchor=`, every `preserve-attempt.sh` call, and the matcher `tick-ledger.sh`,
 `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find the checkbox
-they tick is a piece of that same English, so it is quoted the same way.
+they tick — once the step is ticked and cleared, as the last `- [x]` line of the ledger.
+`tick-issue-criterion.sh` is the exception: it ticks the **issue body**, whose criteria are
+the issue's own words and not the ledger's reworded steps, so its matcher is criterion k's
+first line read out of that body's `## Acceptance criteria` — still data, never retyped. Where a
+command still spells the title, it is in double quotes — `"<STEP>"`.
 One rule, because the title is the planning leaf's own English and an apostrophe is
 ordinary in it: a single-quoted `'<STEP>'` closes on that apostrophe — *that shell's
 stderr* becomes `'that shell'` followed by junk — and the line dies in the shell you type
@@ -744,7 +747,7 @@ Green → Refactor) for the next step; let **STEP** be that step's description:
 
 ```
 $S/next-unchecked.sh < .tdd/issue-<n>.md        # exit 3 ⇒ all steps done → go to step 4 (PR)
-VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-start
+VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-start
 ```
 
 The `event.sh` line is this step's **mark** in the run's event log — the step has no issue
@@ -819,7 +822,7 @@ following step. The phase sub-steps are:
      the report had no prediction to read), mark it with
      `$S/event.sh prediction-diverged` so the divergence is in the run log, preserve the
      attempt beside that mark with
-     `$S/preserve-attempt.sh <n> "<STEP>" develop-red 1 prediction-diverged` so the tree the
+     `$S/preserve-attempt.sh <n> "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" develop-red 1 prediction-diverged` so the tree the
      surprising test came from survives the next leaf that overwrites it (best-effort: note
      it if it fails and carry on), and enter the
      **revise loop** for red exactly as a verify-red `REJECT` does (see *Revising on a
@@ -891,12 +894,13 @@ following step. The phase sub-steps are:
    ```
    git reset --hard HEAD
    git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it; one git already tracked the reset restored
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-split anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
    $S/add-ledger-step.sh .tdd/issue-<n>.md before "<STEP>" '<SPLIT: value>' …   # every SPLIT: value in ONE call
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
    git add -A && git commit -m "plan: split <STEP summary> into <count> smaller steps (#<n>)"
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-split anchor="<STEP>" added=<count>
    ```
-   One call and not one per criterion, under the script's own one-call rule above. A split is
+   The two marks go first because they read the step's title out of the ledger, and the
+   insertion puts the first split step ahead of it there (#437). One call and not one per criterion, under the script's own one-call rule above. A split is
    the one thing that changes a step's plan without a green commit of its own, so `step-split`
    is what tells the run log the step was split rather than silently restarted — beside the
    `step-added` mark the insertion owes as any other does, which says the plan grew but not
@@ -922,7 +926,7 @@ following step. The phase sub-steps are:
      verify-refactor are still ahead of it, so a run interrupted between here and them must
      resume into that loop rather than read the tick as *done*.
      ```
-     $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "<distinctive substring of STEP>"
+     $S/tick-ledger.sh --refactor-pending .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "feat: <STEP summary> (#<n>)"
      $S/push-branch.sh
      gh pr edit --body "Closes #<n> — work in progress: <done> of <total> steps done. The ledger .tdd/issue-<n>.md is the source of truth."
@@ -1088,7 +1092,7 @@ following step. The phase sub-steps are:
    the budget, and why it stopped (`nothing-left`, `budget`, `malformed`, `nothing-structural` for triage exit **3** or
    `structural-owed` for triage exit **0**):
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
    ```
    Then **record the leftovers themselves**, which is not a log mark and does not belong in
    that line: the narration above is a comment and `.tdd/develop-refactor.out` is overwritten
@@ -1109,9 +1113,9 @@ following step. The phase sub-steps are:
      follow-ups in the `### 🛠️ Refactor` comment and the PR body, since the step's refactor
      loop has already closed and no triangulation reopens it:
      ```
+     VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" added=<count>
      $S/add-ledger-step.sh .tdd/issue-<n>.md after "<STEP>" '<leaf or verdict uncovered-spec behaviour>' …   # every one in ONE call
-     VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
-     $S/clear-refactor-pending.sh .tdd/issue-<n>.md "<distinctive substring of STEP>"
+     $S/clear-refactor-pending.sh .tdd/issue-<n>.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)"
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
      $S/push-branch.sh
      ```
@@ -1137,10 +1141,10 @@ following step. The phase sub-steps are:
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
-     "<substring>"`, the human mirror); on exit **3** tick nothing, since a step serving it is
+     "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p')"`, the human mirror); on exit **3** tick nothing, since a step serving it is
      still open or pending. Mark
      the same moment in the log —
-     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-done` — then
+     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" $S/event.sh step-done` — then
      loop back to the top of **step 3** for the next unchecked ledger step.
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
@@ -1251,15 +1255,15 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   type, because no production code was written (the verifier reverted its own mutation, so
   the tree holds only the new test and the ticked ledger):
   ```
-  $S/tick-ledger.sh .tdd/issue-<n>.md "<distinctive substring of STEP>"
+  $S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
-  **issue body** (`$S/tick-issue-criterion.sh <n> "<substring>"`) — on exit **3** tick
+  **issue body** (`$S/tick-issue-criterion.sh <n> "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p')"`) — on exit **3** tick
   nothing — and mark it in the log —
-  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=pin $S/event.sh pin`.
+  `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" VERI_PHASE=pin $S/event.sh pin`.
   The step is **done** — **no Green and no Refactor**, since there is no new production
   code to write or to tidy. Loop back to the top of **step 3** for the next unchecked
   ledger step.
@@ -1288,7 +1292,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
 1. **Mirror.** Post a `### ♻️ Revise <phase> — attempt <k>/<REVISE_BUDGET>` comment carrying
    the verifier's **rejection reason verbatim**, and mark the same attempt in the log:
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" VERI_PHASE=<phase> VERI_ATTEMPT=<k> $S/event.sh revise budget=<REVISE_BUDGET>
    ```
 2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
@@ -1321,7 +1325,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
      re-verifying**: skip the re-verification entirely, keep the reason the script wrote to
      `.tdd/verify-red.reason` (on exit 2 write your own one-line reason there instead), mark
      it with `$S/event.sh prediction-diverged`, preserve the attempt beside that mark with
-     `$S/preserve-attempt.sh <n> "<STEP>" revise-red <k> prediction-diverged` (best-effort:
+     `$S/preserve-attempt.sh <n> "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" revise-red <k> prediction-diverged` (best-effort:
      note it if it fails and carry on), and treat the attempt exactly as a `REJECT`
      does — if attempts remain, loop to attempt `k+1` with that reason; otherwise fall
      through to the budget-exhausted bail below.
@@ -1374,12 +1378,13 @@ answer. Each is a branch of its own:
   ```
   git reset --hard HEAD
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-split at=exhausted anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
   $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "<STEP>" '<criterion>' …   # every line of the answer in ONE call
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-split anchor="<STEP>" added=<count> at=exhausted
   ```
-  The `at=exhausted` is what tells this split apart from a Green leaf's volunteered
+  The marks go first for the reason the Green split's do: they read the title out of the
+  ledger, and `instead-of` takes the step out of it (#437). The `at=exhausted` is what tells this split apart from a Green leaf's volunteered
   one: both grow the plan through `add-ledger-step.sh` and both write `step-added` and
   `step-split`, so without it a log reader cannot say whether the plan grew because a leaf
   asked or because the budget ran out — and those are different facts about the run.
@@ -1400,7 +1405,7 @@ answer. Each is a branch of its own:
   its own rather than the split's or the bail's — it is the one outcome that stops the run
   without bailing it, and a log holding neither reads as a run that stopped saying nothing:
   ```
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-escalated anchor="<STEP>"
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-escalated anchor="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)"
   ```
 - **exit 3 — neither answer.** The leaf volunteered no split and asked for no decision, so
   there is nothing new to act on: **bail the step** with cause `revise-exhausted` as a
@@ -1472,7 +1477,7 @@ To bail:
    of this bail will want, and the very next step throws it away — so snapshot it before the
    reset, from inside the worktree:
    ```
-   $S/preserve-attempt.sh <n> "<STEP>" <phase> <attempt> bail
+   $S/preserve-attempt.sh <n> "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" <phase> <attempt> bail
    ```
    `<phase>` is the leaf whose trouble caused the bail (`develop-green`, `verify-red`, …) and
    `<attempt>` its number (`1` outside the revise loop, `k` inside it). Best-effort: note it
@@ -1500,7 +1505,7 @@ To bail:
    `.tdd/revise-<phase>-*.log`) for forensics. Mark the stop in the log too, with the cause
    token and the classification step 3 derived from it:
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" VERI_PHASE=<phase> $S/event.sh bail cause=<cause> classification="$classification"
    ```
 7. **Leave the draft PR open, and put the bail diagnostic on it.** Step 2.3 opened it at the
    plan commit, and it is the run's claim on this issue: `solvable-issues.sh` leaves out an
@@ -1560,7 +1565,7 @@ leaves the run resumable. Run this sequence in order.
    tree — that last one wins over the others, because where the tree stands is the first
    thing a resume has to deal with.
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh stop mode=<mode> at=<at>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh stop mode=<mode> at=<at>
    ```
    That is the whole record of the pause, and it is never a `bail` mark: a stop has no
    cause, so there is no system-versus-process label to derive and nothing to derive it
@@ -1644,7 +1649,7 @@ is nothing to re-create or switch. The **resume check** then finds an existing
 4. Post a `### ▶️ Resuming` comment naming that step and, when `$stray` is non-empty, the
    paths it lists, said as what they are: the stray work sub-step 2's reset discarded, seen
    by no verifier and now gone. Mark the pick-up in the log —
-   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh resume` — then
+   `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh resume` — then
    **reuse the claim the previous run left on the branch**, which every tick of the cycle
    loop edits and step 4 rewrites:
    ```
