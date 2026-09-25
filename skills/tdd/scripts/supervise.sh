@@ -117,6 +117,10 @@ pidfile=".tdd/$name.pid"
 
 now() { date +%s; }
 
+# Whole seconds of time the machine spent awake, from the executable VERI_AWAKE_CLOCK names —
+# empty when it names none, and the watchdog then measures on `now` alone (issue #472).
+awake_clock="${VERI_AWAKE_CLOCK:-}"
+
 # Seconds-since-epoch of $1's last modification — the heartbeat sensor. There is no portable
 # `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two
 # must be tried one at a time, into a variable, with the answer validated — NOT chained with
@@ -259,6 +263,14 @@ attempt_once() {
   # detector — any different value is a write, whatever it says about when — so its own scale
   # never reaches `$silence`.
   if (( heartbeat_watched )); then last_m="$(mtime_of "$log")"; seen_at="$t0"; fi
+  # A suspended machine is not a silent leaf (issue #472): whatever the wall clock moved across
+  # one poll beyond what the awake clock moved is time the machine spent asleep, and the
+  # heartbeat window is slid forward by it so it does not count as silence. A negative gap is
+  # slid too, unclamped: the two clocks are read a moment apart, so a whole-second tick can land
+  # between them and one poll's gap is +1 and the next -1; summed, the gaps telescope to exactly
+  # the wall time the awake clock did not see, where clamping each at zero would keep every +1.
+  prev_t="$t0"
+  [[ -z "$awake_clock" ]] || prev_a="$("$awake_clock")"
 
   while :; do
     if [[ -f "$rcfile" ]]; then
@@ -267,6 +279,12 @@ attempt_once() {
       break
     fi
     t="$(now)"
+    if [[ -n "$awake_clock" ]]; then
+      a="$("$awake_clock")"
+      asleep=$(( (t - prev_t) - (a - prev_a) ))
+      seen_at=$(( ${seen_at:-0} + asleep ))
+      prev_t="$t" prev_a="$a"
+    fi
     if (( t - t0 >= timeout )); then
       status="killed-stuck"; reason="hard timeout ${timeout}s exceeded"; kill_tree; break
     fi
