@@ -76,8 +76,8 @@ load_section() {
   return 1
 }
 
-# require <pattern> <problem> — record <problem> unless the section matches <pattern>; and
-# refuse <pattern> <problem> — record <problem> when it does. Every probe below but the two
+# require <pattern> <problem> — record <problem> unless the text in `section` matches
+# <pattern>; and refuse <pattern> <problem> — record <problem> when it does. Every probe below but the two
 # ordering ones is one of these two shapes, so what they share — which text is read, how it
 # is matched, where a problem lands — is written once here rather than eleven times, and a
 # case reads as the list of claims it makes.
@@ -252,25 +252,22 @@ report "$name"
 # the next bullet or heading, read plain like the section above.
 name="SKILL.md's script reference list has an entry for stop-requested.sh saying what it prints and which exit codes it answers with"
 problems=()
-entry="$(awk '
+# The entry is loaded where the section's text goes, so its probes are the same require.
+section="$(awk '
   /^## / { in_list = ($0 ~ /^## The scripts/); in_entry = 0; next }
   !in_list { next }
   /^- `\$S\// { in_entry = ($0 ~ /^- `\$S\/stop-requested\.sh/) }
   in_entry' "$skill_path" | plain)"
-if [[ -z "$entry" ]]; then
+if [[ -z "$section" ]]; then
   problems+=("the script reference list has no \$S/stop-requested.sh entry — the Stopping section's two calls have no contract to read")
 else
   for mode in 'at-ledger' 'at-leaf' 'now'; do
-    grep -qE -- "$mode" <<<"$entry" \
-      || problems+=("the stop-requested.sh entry never names the mode $mode it can print")
+    require "$mode" "the stop-requested.sh entry never names the mode $mode it can print"
   done
-  grep -qE -- 'stdout' <<<"$entry" \
-    || problems+=("the stop-requested.sh entry never says the mode is printed on stdout")
-  grep -qE -- '--clear' <<<"$entry" \
-    || problems+=("the stop-requested.sh entry never names --clear, the Stopping section's second call")
+  require 'stdout' "the stop-requested.sh entry never says the mode is printed on stdout"
+  require '--clear' "the stop-requested.sh entry never names --clear, the Stopping section's second call"
   for code in 0 2 3; do
-    grep -qE -- "exits? ([0-9]+[ ,/]+(or |and )?)*$code([^0-9]|\$)" <<<"$entry" \
-      || problems+=("the stop-requested.sh entry never names exit $code")
+    require "exits? ([0-9]+[ ,/]+(or |and )?)*$code([^0-9]|\$)" "the stop-requested.sh entry never names exit $code"
   done
 fi
 report "$name"
