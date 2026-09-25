@@ -787,8 +787,8 @@ following step. The phase sub-steps are:
 #### The step's cost check
 
 Every leaf of a step that runs **before its green commit** — develop-red, each verify-red,
-each revise attempt of red or green, develop-green, each verify-green — is followed, once its
-wait has returned, by `$S/step-cost.sh '<STEP>'`: what the step's leaves have spent so far,
+each revise attempt of red or green, develop-green, each verify-green — is followed by
+`$S/step-cost.sh '<STEP>'`: what the step's leaves have spent so far,
 read off their `usage` events, against the step budget `step-budget.sh` printed in preflight.
 The check runs only once that leaf has exited and `supervise.sh` has harvested its `usage`
 event, because a check made while the leaf is still going reads a figure short of what the
