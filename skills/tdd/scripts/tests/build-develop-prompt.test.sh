@@ -1375,6 +1375,25 @@ names_class beyond-spec 'something the spec does not ask for' \
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor reports overfit code on FLAGS: lines carrying the overfit, uncovered-spec and beyond-spec classes or none, in place of NEW_STEP:, and defines what each class names (${problems#; })"
 
+# 39. the prompt for a step that crossed its spend budget (issue #450, part of #447). The
+#     parent reacts to a cost crossing the way #408 reacts to a spent revise budget — one leaf
+#     asked whether the step is two behaviours — but case 35's `exhausted` phase cannot serve
+#     it: that phase needs the verifier's last rejection, and a crossing often has none. So
+#     `over-budget` takes the cost fact in the reason file's place: what the step has spent and
+#     the budget it was given, two decimal figures. This case pins the four things the prompt
+#     must carry — the step, both figures and the issue spec — and nothing else of the phase;
+#     the figures are distinctive (`3.47`, `2.50`) so neither can match a number the template
+#     happens to contain. Its own invocation and exit-0 check, since no other case builds it.
+over_budget="$("$BUILD" over-budget "$work/spec.md" "$step_text" "$test_cmd" 3.47 2.50 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+[[ "$over_budget" == *"$step_text"* ]] || problems="$problems; does not carry the step"
+[[ "$over_budget" == *'3.47'* ]] || problems="$problems; does not carry the spent figure"
+[[ "$over_budget" == *'2.50'* ]] || problems="$problems; does not carry the budget figure"
+[[ "$over_budget" == *'zorblat("Frob & Nitz/Quux")'* ]] || problems="$problems; does not carry the issue spec"
+[[ -z "$problems" ]] \
+  && ok || no "develop-over-budget carries the step, the spent figure, the budget figure and the issue spec (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
