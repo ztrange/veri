@@ -26,6 +26,12 @@
 #      launches no reconcile leaf (a stop launches no leaves at all) and does not bail: a
 #      rejected push leaves the run paused and resumable, not ended.
 #
+# And where the run looks for a request (issue #389): the only irreversible spend a run makes
+# is a leaf launch, so the first checkpoint sits in front of every one, spelled once in
+# *Launching a leaf* — `stop-requested.sh` runs before the launch; exit 3 launches as normal,
+# `at-ledger` launches the leaf anyway (every leaf between two ledger commits is on the way to
+# the next one), and `at-leaf` and `now` launch nothing and go to *Stopping*.
+#
 # Run: scripts/tests/skill-stopping.test.sh
 set -uo pipefail
 
@@ -276,6 +282,35 @@ else
   for code in 0 2 3; do
     require "exits? ([0-9]+[ ,/]+(or |and )?)*$code([^0-9]|\$)" "the stop-requested.sh entry never names exit $code"
   done
+fi
+report "$name"
+
+# ---------------------------------------------------------------------------
+# The first checkpoint lives in *Launching a leaf*, not in this section, so the case loads
+# that section where the probes read — joined onto one line, so a sentence wrapped over two
+# lines is one sentence, and every pattern kept inside one clause with `[^.;]*`, so a mode
+# and what it does are read from the same clause rather than from anywhere in the section.
+name="Launching a leaf runs stop-requested.sh before every leaf launch: exit 3 launches as normal, at-ledger launches the leaf anyway, at-leaf and now launch nothing and go to Stopping"
+problems=()
+section="$(awk '/^## / { inside = (tolower($0) ~ /^## launching a leaf/); next } inside' "$skill_path" \
+  | plain | tr '\n' ' ' | tr -s ' ')"
+if [[ -z "$section" ]]; then
+  problems+=("$skill_md has no ## Launching a leaf section — nothing could be checked")
+else
+  require 'stop-requested\.sh' \
+    "the Launching a leaf section never runs stop-requested.sh — no launch asks whether a stop was requested"
+  require 'before[^.;]*launch[^.;]*stop-requested\.sh|stop-requested\.sh[^.;]*before[^.;]*launch' \
+    "the Launching a leaf section never says stop-requested.sh runs before a leaf is launched"
+  require 'exit 3[^.;]*launch' \
+    "the Launching a leaf section never says stop-requested.sh's exit 3 launches as normal"
+  require 'at-ledger[^.;]*launch' \
+    "the Launching a leaf section never says mode at-ledger launches the leaf anyway"
+  for mode in 'at-leaf' 'now'; do
+    require "(^|[^a-z-])$mode([^a-z-]|\$)[^.;]*launch(es)? nothing" \
+      "the Launching a leaf section never says mode $mode launches nothing"
+  done
+  require 'launch(es)? nothing[^.;]*stopping' \
+    "the Launching a leaf section never sends a launch-nothing mode to Stopping"
 fi
 report "$name"
 
