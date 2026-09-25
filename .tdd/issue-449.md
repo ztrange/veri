@@ -7,5 +7,5 @@
 - [x] Both budget variables invalid at once exits 2 and prints nothing on stdout, not the first figure then a failure ⟦criterion 5⟧
 - [x] Either budget variable exported as the empty string exits 2 rather than falling back to its default ⟦criterion 6⟧
 - [x] A budget of 0 is accepted for either variable and printed back ⟦criterion 7⟧
-- [x] step-budget.sh given any argument exits 2 ⟦criterion 8⟧ ⟂ refactor pending
+- [x] step-budget.sh given any argument exits 2 ⟦criterion 8⟧
 - [ ] The step-budget suite lives in skills/tdd/scripts/tests/unit/ and its header states the fast-tier bar: no git, no network, no servers, no real sleep, no nested suites ⟦criterion 9⟧
