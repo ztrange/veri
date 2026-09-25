@@ -405,10 +405,11 @@ def add_cost(phase, step, line):
 # end is the mark below — a log holding several runs of one issue walls only the last (#229).
 opening = None
 
-# The mark that ended the run, either outcome, and None in the log of a run that has not
+# The mark that ended the run, any outcome, and None in the log of a run that has not
 # ended. Kept whole rather than as its timestamp beside itself: the issue wall reads its `ts`
 # and the outcome line reads its payload — the PR a `done` carries, the cause and
-# classification a `bail` does — and two names for one mark is one of them going stale.
+# classification a `bail` does, the mode and boundary a `stop` does — and two names for one
+# mark is one of them going stale.
 ending = None
 
 with open(path) as f:
@@ -423,7 +424,7 @@ with open(path) as f:
         ts = line.get("ts")
         if opening is None or event == "resume":
             opening = ts
-        if event in ("done", "bail"):
+        if event in ("done", "bail", "stop"):
             ending = line
         # The two brackets of a step, read before anything classifies the line below, since
         # neither is a leaf event and both would otherwise fall through to nothing.
@@ -632,6 +633,9 @@ if ending is None:
 elif ending.get("event") == "done":
     print("Outcome: the run landed — its draft PR is %s."
           % (ending.get("pr") or UNKNOWN))
+elif ending.get("event") == "stop":
+    print("Outcome: the run was stopped — mode %s, at %s."
+          % (ending.get("mode") or UNKNOWN, ending.get("at") or UNKNOWN))
 else:
     print("Outcome: the run bailed — %s, a %s failure."
           % (ending.get("cause") or UNKNOWN, ending.get("classification") or UNKNOWN))

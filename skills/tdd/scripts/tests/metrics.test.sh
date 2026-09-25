@@ -2004,6 +2004,43 @@ tier_seconds_say "$tier_out" fast=4,6,5 all=120,100,140
 report_on "$name" "$tier_out"
 
 
+# A fixture for a run the operator stopped (#390): its log's ending mark is the `stop
+# mode=at-ledger at=green` the conductor writes on *Stopping* (SKILL.md), and no `done` or
+# `bail` follows it. The stop lands at 60340, 340 s after the log's first event, so an issue
+# wall ended anywhere else — or left unknown — is not the figure this case wants. The mode and
+# the boundary are two different words, and the Outcome line has to name both.
+fixture_work stopped_work
+
+halted="a step of a run the operator stopped at the ledger"
+
+sv "$halted" 60000 conductor ""    step-start ""
+sv "$halted" 60200 conductor ""    step-done  ""
+sv "$halted" 60340 conductor green stop       "" '"mode": "at-ledger", "at": "green"'
+
+plan_of "$halted"
+
+
+name="a log whose ending mark is stop prints an Outcome line naming the mode and the at boundary, and ends the issue wall at the stop"
+problems=()
+
+stopped_out="$stopped_work/report.md"
+render "$stopped_work" "$stopped_out"
+
+issue_wall_says "$stopped_out" 340
+probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+outcomes = [l for l in outside_tables(path) if l.startswith("Outcome:")]
+
+if not any("at-ledger" in l and re.search(r"\bgreen\b", l) for l in outcomes):
+    complain("want an Outcome line naming the stop mode at-ledger and the at boundary green, "
+             "the report has: %s" % quoted(outcomes))
+
+print("\n".join(problems))
+' "$stopped_out"
+
+report_on "$name" "$stopped_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
