@@ -1559,6 +1559,11 @@ leaves the run resumable. Run this sequence in order.
    `$S/run-conductor.sh <n>`. The metrics go into the comment and nowhere else: **no
    metrics file is written or committed**. Committing them marks an ending, as *Done* and
    *Bailing* do, and a stopped run will be resumed.
+6. **Clear and end.** Run `$S/stop-requested.sh --clear`, so the request does not outlive
+   the stop it asked for and pause the resumed run at its first checkpoint, then end the
+   run. Open **no** PR and ready none; leave the worktree where it is; leave
+   `.tdd/conductor.pid` in place. The resume picks all three up, and liveness is the whole
+   rule (step 1.2): the conductor exiting is what frees the issue.
 
 ## Resume
 

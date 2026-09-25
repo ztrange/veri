@@ -7,5 +7,5 @@
 - [x] `no-nested-suites.test.sh` is green again: `claude-md-counts.test.sh`'s new case no longer names another suite in a shape that guard reads as launching it ⟦added⟧ ⟦criterion 3⟧
 - [x] The Stopping section writes exactly one `event.sh stop mode=<mode> at=<at>` mark, with `at` one of `unplanned`, `planned`, `green`, `step-done` or `unsettled`, and names `classify-bail.sh` nowhere ⟦criterion 4⟧
 - [x] The Stopping section renders `metrics.sh <n>` into a `### ⏹️ Stopped — <mode>` comment and commits no metrics file ⟦criterion 5⟧
-- [ ] The Stopping section ends the run with `stop-requested.sh --clear`, opening no PR, removing no worktree and deleting no `.tdd/conductor.pid` ⟦criterion 6⟧
+- [x] The Stopping section ends the run with `stop-requested.sh --clear`, opening no PR, removing no worktree and deleting no `.tdd/conductor.pid` ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] SKILL.md's script reference list has an entry for `stop-requested.sh` saying what it prints and which exit codes it answers with, so the Stopping section's two calls read their contract where every other script's is read
