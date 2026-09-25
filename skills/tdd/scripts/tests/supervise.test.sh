@@ -1769,6 +1769,38 @@ dead_second="no"; [[ -e "$dead_work/second-ran" ]] && dead_second="yes"
   && [[ "$dead_code" == 0 ]] && [[ "$dead_second" == yes ]]; } && ok \
   || no "#471: a record left by a supervised leaf whose process is gone does not refuse the next launch (first leaf pid=${dead_leaf:-<never started>}; record='$dead_record' want '$dead_sup revise-green-1'; code=$dead_code want 0, second leaf ran=$dead_second want yes, stderr='$(cat "$dead_work/err")')"
 
+# 41. a launch after the previous supervised leaf FINISHED runs as today (issue #471): the
+#     ownership rule refuses only a live leaf, so the ordinary sequence of a run is untouched.
+#     A leaf finishes; SKILL.md's recipe removes its files and relaunches it under the same
+#     name, the revise relaunch's shape; that one finishes and a leaf under a different name
+#     follows. Each launch exits 0 and runs its leaf, which appends its argument to `ran`, so
+#     the file must read the three in order. The record is read after the first launch so the
+#     case cannot pass on a worktree that was never claimed. A run directory of its own.
+done_work="$work/finished-owner"
+mkdir -p "$done_work"
+cat > "$stub/leaf-mark" <<'L'
+#!/bin/sh
+echo "$1" >> ran
+exit 0
+L
+chmod +x "$stub/leaf-mark"
+( cd "$done_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-mark" first ) >/dev/null 2>"$done_work/err1"
+done_code1=$?
+done_record="$(cat "$done_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
+( cd "$done_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
+( cd "$done_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-mark" second ) >/dev/null 2>"$done_work/err2"
+done_code2=$?
+( cd "$done_work" && rm -f .tdd/verify-green.exit .tdd/verify-green.pid )
+( cd "$done_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" verify-green "$stub/leaf-mark" third ) >/dev/null 2>"$done_work/err3"
+done_code3=$?
+done_ran="$(tr '\n' ' ' < "$done_work/ran" 2>/dev/null)"
+{ [[ "$done_record" == *' revise-green-1' ]] && [[ "$done_code1" == 0 ]] && [[ "$done_code2" == 0 ]] \
+  && [[ "$done_code3" == 0 ]] && [[ "$done_ran" == 'first second third ' ]]; } && ok \
+  || no "#471: a launch after the previous supervised leaf finished runs as today, under the same name and a different one (record='$done_record' want '<pid> revise-green-1'; codes=$done_code1/$done_code2/$done_code3 want 0/0/0; ran='$done_ran' want 'first second third '; stderr='$(cat "$done_work/err2" "$done_work/err3" 2>/dev/null)')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
