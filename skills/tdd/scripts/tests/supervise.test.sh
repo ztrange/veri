@@ -1707,6 +1707,36 @@ fi
   && [[ "$same_err" == *revise-green-1* ]] && [[ "$same_err" =~ (^|[^0-9])$same_sup([^0-9]|$) ]]; } && ok \
   || no "#471: a launch is refused while a leaf supervised under the same name is alive in the same worktree (first leaf pid=${same_leaf:-<never started>}; code=$same_code want 2, second leaf ran=$same_second want no, stderr='$same_err' want it to name revise-green-1 and pid $same_sup)"
 
+# 39. the refusal survives SKILL.md's launch recipe (issue #471). Every recipe begins
+#     `rm -f .tdd/<name>.exit .tdd/<name>.pid`, and for a revise relaunch under the live
+#     leaf's own name that line deletes the very pidfile the live supervision wrote — the
+#     trace #446's conductor removed before launching over a running leaf. So the record the
+#     refusal reads must be one that line does not touch: after the rm, the relaunch is still
+#     exit 2, starts no leaf, and names the live leaf and its pid. Case 38's shape and stubs,
+#     with the recipe's rm run between the two launches; a run directory of its own.
+rm_work="$work/live-owner-after-rm"
+mkdir -p "$rm_work"
+( cd "$rm_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+rm_sup=$!
+for _ in $(seq 1 50); do [[ -s "$rm_work/leaf-pid" ]] && break; sleep 0.1; done
+rm_leaf="$(tr -d '[:space:]' < "$rm_work/leaf-pid" 2>/dev/null)"
+( cd "$rm_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
+( cd "$rm_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$rm_work/err"
+rm_code=$?
+rm_second="no"; [[ -e "$rm_work/second-ran" ]] && rm_second="yes"
+rm_err="$(cat "$rm_work/err")"
+kill -TERM "$rm_sup" 2>/dev/null
+wait "$rm_sup"
+if [[ -n "$rm_leaf" ]]; then
+  for _ in $(seq 1 20); do kill -0 "$rm_leaf" 2>/dev/null || break; sleep 0.1; done
+  kill -0 "$rm_leaf" 2>/dev/null && kill -KILL "$rm_leaf" 2>/dev/null
+fi
+{ [[ -n "$rm_leaf" ]] && [[ "$rm_code" == 2 ]] && [[ "$rm_second" == no ]] \
+  && [[ "$rm_err" == *revise-green-1* ]] && [[ "$rm_err" =~ (^|[^0-9])$rm_sup([^0-9]|$) ]]; } && ok \
+  || no "#471: a launch is still refused after the pre-launch rm -f .tdd/<name>.exit .tdd/<name>.pid while the first leaf is alive (first leaf pid=${rm_leaf:-<never started>}; code=$rm_code want 2, second leaf ran=$rm_second want no, stderr='$rm_err' want it to name revise-green-1 and pid $rm_sup)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
