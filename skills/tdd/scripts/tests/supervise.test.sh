@@ -1975,6 +1975,26 @@ rm -f "$work/.test-inside-window"
   && grep -F 'hard timeout 4s exceeded' "$work/err" > /dev/null; } && ok \
   || no "#472: a noisy leaf running 2s then on past a 4s VERI_TIMEOUT of awake time (no suspend) survives the first and is killed on the hard timeout (code=$code want 2, survived inside the timeout=$runaway_inside want yes, err=$(cat "$work/err"))"
 
+# 48. the injected clock simulates the suspend #472 was filed for — an hour asleep, against the
+#     default 180 s heartbeat and 900 s timeout at once — with no real sleep and no real
+#     suspend: `clock-suspend 3600` moves the wall clock an hour and the awake clock not at all.
+#     Cases 43 and 45 each cross one window by a second; this one crosses both by far more than
+#     either, the way the lid close in #446 did. The pre-fix supervisor, measuring both windows
+#     on the wall clock, kills this leaf on the hard timeout (exit 2); the leaf must instead
+#     wake, write again and finish with its own exit code (exit 1, 3 in .rc).
+cat > "$stub/leaf-asleep-an-hour" <<'L'
+#!/bin/sh
+: > .test-clock-reads
+echo "leaf: starting"
+clock-suspend 3600
+await-poll; await-poll
+echo "leaf: awake again"; exit 3
+L
+chmod +x "$stub/leaf-asleep-an-hour"
+rm -f "$work/.test-suspended" "$work/.tdd/asleep-an-hour.rc"
+sup asleep-an-hour 180 900 leaf-asleep-an-hour
+woke_with_own_exit asleep-an-hour "#472: a leaf asleep an hour across a simulated suspend, against the default 180s heartbeat and 900s VERI_TIMEOUT, is killed by neither and finishes with its own exit code"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
