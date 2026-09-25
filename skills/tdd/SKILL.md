@@ -309,6 +309,12 @@ budget: **call `wait-leaf.sh` again**, as many times as it takes. Only a 0, 1 or
 answer. Read the leaf's report from `.tdd/<name>.out` — the captured stdout — instead of
 from the launcher's stdout, which the detached call no longer hands you.
 
+Never `nohup … &` in place of that detach: `nohup` makes the leaf ignore a hang-up (SIGHUP),
+but it leaves it in the **process group** of the Bash call that launched it, so a harness
+that signals that group when the call ends takes the leaf with it. A leaf killed that way
+writes no completion file, so the wait above returns exit 3 forever and you read that as
+"still running" — the run stalls with nothing to say why.
+
 **Before every leaf launch, ask whether a stop was requested: run `$S/stop-requested.sh`**
 ahead of the `rm -f`, for a developer leaf and a verifier alike. On exit 3 no stop is
 pending: launch as normal. On exit 0 branch on the mode it printed — `at-ledger` launches the
@@ -322,12 +328,6 @@ the one that loses nothing.
 stop kills the live leaf, so its wait comes back 2 exactly as a hung leaf's does: a pending
 `now` explains the 2, and the run goes to *Stopping* instead of *Bailing*. Any other answer
 leaves the 2 to be read as the phase below reads it.
-
-Never `nohup … &` in place of that detach: `nohup` makes the leaf ignore a hang-up (SIGHUP),
-but it leaves it in the **process group** of the Bash call that launched it, so a harness
-that signals that group when the call ends takes the leaf with it. A leaf killed that way
-writes no completion file, so the wait above returns exit 3 forever and you read that as
-"still running" — the run stalls with nothing to say why.
 
 The launch carries `VERI_TEST_CMD`: the run's test command, reaching the leaf through its
 **environment** rather than its prompt, so the verifier stays blind. It is a prefix on the
