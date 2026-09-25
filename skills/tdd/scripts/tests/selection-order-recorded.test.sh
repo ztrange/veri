@@ -58,38 +58,10 @@ claude_path="$ROOT/$claude_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which document is missing which sentence rather than just that one is.
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
-
-# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
-# below is written one way and still matches prose that marked the same words up as
-# `priority` or **first**. The normalisation model-knobs-recorded.test.sh uses on these
-# same documents.
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
-
-# records — markdown on stdin, one line per paragraph or bullet, normalised through
-# `plain`. A record runs from a `- ` or a `* ` in column one, or from the first line after
-# a blank, up to the next such line or the next blank; joining it onto one line is what
-# lets a claim ask whether ONE passage carries a whole fact, rather than two sentences
-# sections apart that happen to share a word. Same shape as model-knobs-recorded.test.sh.
-records() {
-  awk '/^[-*] / { if (rec != "") print rec; rec = $0; next }
-       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
-       rec == "" { rec = $0; next }
-       { rec = rec " " $0 }
-       END { if (rec != "") print rec }' | plain
-}
+# report, plain, records, bullet and says: the helpers the *-recorded.test.sh suites
+# share (issue #225). `bullet` reads "$skill_path"; `says` reads the passage_ globals.
+# shellcheck source=record-helpers.sh
+source "$HERE/record-helpers.sh"
 
 # entry <term> — one CONTEXT.md glossary entry as a single normalised line: from its
 # `**<term>**:` heading to the `_Avoid_` line that closes it, the next entry's heading or
@@ -102,18 +74,6 @@ entry() {
     $0 ~ want { inside = 1; next }
     inside && (/^_Avoid_/ || /^\*\*/ || /^## /) { exit }
     inside' "$context_path" | plain | tr '\n' ' '
-}
-
-# bullet <regex> — the one top-level `- ` bullet of SKILL.md whose first line matches, as
-# one normalised line. The tunable belongs in the bullet that documents the script that
-# reads it: a file-wide read would answer "yes, it is in there" for a document that named
-# the label only in a narration example, which is not where an operator looking up a
-# tunable is reading.
-bullet() {
-  awk -v want="$1" '
-    $0 ~ want { inside = 1; print; next }
-    inside && /^([-*] |#)/ { exit }
-    inside' "$skill_path" | plain | tr '\n' ' '
 }
 
 # The claims, as the regexes that carry them. Written once each because four passages ask
@@ -167,23 +127,6 @@ need_solvable_bullet() {
 need_claude_md_records() {
   need_passage "$claude_md" "$(records < "$claude_path")" \
     "$claude_md could not be read, so nothing could be asked of what it records"
-}
-
-# says <fact> <regex>... — one fact the passage last read has to carry: some ONE record of
-# it has to match every <regex>, and one problem naming the passage and the fact is appended
-# if none does. A pair split across two records is not a statement — it is two sentences that
-# happen to share a word — which is why the regexes are asked of a record and not of the
-# passage as a whole.
-says() {
-  local fact="$1" line re
-  shift
-  while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    return 0
-  done <<< "$passage_text"
-  problems+=("$passage_from does not say $fact")
 }
 
 # states_the_order <what> — the three-band order in one record of the passage last read:
