@@ -62,6 +62,16 @@ run_budget VERI_STEP_BUDGET=7.5 VERI_RUN_BUDGET=42.25 --
 expect 0 $'7.5\n42.25'
 verdict "a set VERI_STEP_BUDGET then a set VERI_RUN_BUDGET, decimals included, printed in that order"
 
+# 3. VERI_STEP_BUDGET set to a word, not a non-negative decimal number, with VERI_RUN_BUDGET
+#    left at its default: exit 2, nothing on stdout, and the stderr diagnostic names the
+#    variable at fault.
+run_budget VERI_STEP_BUDGET=twelve --
+expect 2 ''
+if [[ "$err" != *VERI_STEP_BUDGET* ]]; then
+  problems+="    want stderr naming VERI_STEP_BUDGET, got '$err'"$'\n'
+fi
+verdict "a VERI_STEP_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
