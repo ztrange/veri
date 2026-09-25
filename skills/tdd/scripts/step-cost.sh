@@ -28,7 +28,7 @@ awk -v step="$step" -v all="$all" '
     sub("\"$", "", rest)
     return rest
   }
-  all || value($0, "step") == step { sum += value($0, "total_cost_usd"); seen = 1 }
+  value($0, "event") == "usage" && (all || value($0, "step") == step) { sum += value($0, "total_cost_usd"); seen = 1 }
   END {
     if (!seen) exit 3
     printf "%.2f\n", sum
