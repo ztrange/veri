@@ -239,7 +239,7 @@ recover_finished_leaf() {
 # everything below speaks, so nothing down there reads the number itself. `$pid` is the one
 # non-answer that must stay global anyway: `kill_tree` is a separate function and reads it.
 attempt_once() {
-  local t0 t silence rc last_m seen_at m
+  local t0 t silence rc last_m seen_at m prev_t prev_a a asleep
   : > "$log"
   rm -f "$rcfile"
 
