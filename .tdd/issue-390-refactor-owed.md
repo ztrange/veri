@@ -1,0 +1,2 @@
+### status.sh renders a run whose log ends with a stop mark as `stopped <mode>`, and with STATUS_JSON/--json reports "state": "stopped" with the mode in a stop_mode key ⟦criterion 1⟧
+- status.test.sh has about seven `printf '%s' "$out" | python3 -c 'json.loads…'` snippets (lines 210, 298, 330, 355, 372, 415, 446, 481) that could share one helper. Only the one at line 210 is from this cycle, so the extraction would mostly rewrite code this cycle did not write, which puts it out of bounds.
