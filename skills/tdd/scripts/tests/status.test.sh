@@ -194,6 +194,12 @@ missing=()
 [[ "$out" == *"attempt 2 "* ]] || missing+=("attempt 2")
 expect_nothing_missing "a finished run's line reports its last step's attempt count, not attempt 0, when the done event carries an empty step"
 
+# The `stop mode=at-leaf at=planned` mark the conductor writes on *Stopping*, appended to <run>'s log.
+stop_mark() {  # stop_mark <run> <n> <ts>
+  printf '{"ts": %s, "issue": "%s", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "stop", "attempt": "", "skill_commit": "abc", "mode": "at-leaf", "at": "planned"}\n' \
+    "$3" "$2" >> "$1/.tdd/events.jsonl"
+}
+
 # --- a stopped run: `stopped <mode>`, and in --json "state": "stopped" with stop_mode (#390) ---
 # #16 launched develop-red, then the operator stopped it at the next leaf: its log ends in the
 # `stop mode=at-leaf at=planned` mark the conductor writes on *Stopping*. Both events are recent,
@@ -201,8 +207,7 @@ expect_nothing_missing "a finished run's line reports its last step's attempt co
 paused="$(repo paused)"
 now="$(date +%s)"
 run="$(launched_run "$paused" 16 $((now - 20)))"
-printf '{"ts": %s, "issue": "16", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "stop", "attempt": "", "skill_commit": "abc", "mode": "at-leaf", "at": "planned"}\n' \
-  "$((now - 10))" >> "$run/.tdd/events.jsonl"
+stop_mark "$run" 16 "$((now - 10))"
 missing=()
 run_in "$paused"
 [[ "$out" == *"stopped at-leaf"* ]] || missing+=("stopped at-leaf")
@@ -225,8 +230,7 @@ expect_nothing_missing "a run whose log ends with a stop mark reads stopped <mod
 resumed="$(repo resumed)"
 now="$(date +%s)"
 run="$(launched_run "$resumed" 17 $((now - 30)))"
-printf '{"ts": %s, "issue": "17", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "stop", "attempt": "", "skill_commit": "abc", "mode": "at-leaf", "at": "planned"}\n' \
-  "$((now - 20))" >> "$run/.tdd/events.jsonl"
+stop_mark "$run" 17 "$((now - 20))"
 printf '{"ts": %s, "issue": "17", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "resume", "attempt": "", "skill_commit": "abc"}\n' \
   "$((now - 10))" >> "$run/.tdd/events.jsonl"
 missing=()
