@@ -92,6 +92,29 @@ run_cost --run
 expect 3 ""
 verdict "--run against a log with no usage event prints nothing, exit 3"
 
+# 5. --steps prints one `<dollars> <leaves>` line per step that has a `usage` event, in the
+#    order the log first mentions each, exit 0. "step two" is mentioned first although "step
+#    one" sorts first, and the two steps' leaf counts differ, so neither a sorted nor a
+#    count-blind reader comes out the same. Then a log with no `usage` event is nothing to
+#    do: nothing on stdout, exit 3.
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}
+{"ts": 2, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30134540000000004"}
+{"ts": 3, "issue": "448", "actor": "verifier", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "0.5"}
+{"ts": 4, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.12"}
+{"ts": 5, "issue": "448", "actor": "developer", "phase": "green", "step": "step two", "event": "usage", "total_cost_usd": "0.25"}
+EOF
+run_cost --steps
+expect 0 $'1.75 3\n0.42 2'
+found="$problems"
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "verdict", "verdict": "PASS"}
+EOF
+run_cost --steps
+expect 3 ""
+problems="$found$problems"
+verdict "--steps prints one dollars-and-leaves line per step in first-mention order, exit 0; none is exit 3"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
