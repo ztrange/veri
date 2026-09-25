@@ -1,6 +1,6 @@
 # Plan for #225 — The three docs-record suites duplicate their report/plain/records/bullet/says helpers
 
-- [x] A shared helper file under skills/tdd/scripts/tests/, not named *.test.sh and not picked up by make test's suite glob, when sourced defines report and plain with the same behaviour as the copies in the four *-recorded.test.sh suites that carry them ⟦criterion 1⟧ ⟂ refactor pending
+- [x] A shared helper file under skills/tdd/scripts/tests/, not named *.test.sh and not picked up by make test's suite glob, when sourced defines report and plain with the same behaviour as the copies in the four *-recorded.test.sh suites that carry them ⟦criterion 1⟧
 - [ ] The shared helper file, when sourced, also defines records, bullet and says with the same behaviour as the copies in selection-order-recorded.test.sh and model-knobs-recorded.test.sh ⟦criterion 1⟧
 - [ ] selection-order-recorded.test.sh and model-knobs-recorded.test.sh source the shared file and define no report, plain, records, bullet or says of their own ⟦criterion 1⟧
 - [ ] lane-rule-recorded.test.sh and unit-tier-recorded.test.sh source the shared file and define no report or plain of their own, while each keeps its own different says ⟦criterion 1⟧
