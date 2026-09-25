@@ -164,6 +164,14 @@ case "$phase" in
   over-budget)
     need spent "${5:-}" '<spent>'
     need budget "${6:-}" '<budget>'
+    # Numbers by regex, and nothing else — the same fail-closed shape as the verifier's
+    # `<base-sha>`: these are the only two parameters the phase adds, so a figure is all
+    # they can carry, never a rationale. Checked here, before any template is read, so a
+    # bad call is refused for the figure rather than for whatever file happens to be absent.
+    for figure in "<spent>=$spent" "<budget>=$budget"; do
+      [[ "${figure#*=}" =~ ^[0-9]+(\.[0-9]+)?$ ]] \
+        || refuse "${figure%%=*} '${figure#*=}' is not a non-negative decimal number"
+    done
     ;;
 esac
 

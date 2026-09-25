@@ -1433,6 +1433,28 @@ grep -iE 'simply expensive[^.]*(no|neither)[^.]*SPLIT:[^.]*NEEDS_USER:' <<<"$ove
 [[ -z "$problems" ]] \
   && ok || no "develop-over-budget gives the \"neither — one behaviour, simply expensive\" answer its own report shape, printing no SPLIT: and no NEEDS_USER: line (${problems#; })"
 
+# 43. the over-budget figures are numbers by regex (issue #450, criterion 4). `<spent>` and
+#     `<budget>` are the only two parameters the phase adds, and they may carry a non-negative
+#     decimal figure and nothing else — the same fail-closed shape as the verifier's
+#     `<base-sha>`, so the phase opens no channel a rationale could reach a leaf through. Each
+#     bad figure below sits beside a good one, so the call is wrong in exactly one place, and
+#     each is refused the way case 5 refuses: exit 2, a diagnostic, no prompt. The last call
+#     runs case 5's template-less copy: a figure validated before any template is read is
+#     refused for the figure, naming it, never for the missing template or lib file.
+refusal_bad=""
+for bad in -1 3, qwixnum 1e3 .5 '3.47 because'; do
+  refuses "spent '$bad'"  "$BUILD" over-budget "$work/spec.md" "$step_text" "$test_cmd" "$bad" 2.50
+  refuses "budget '$bad'" "$BUILD" over-budget "$work/spec.md" "$step_text" "$test_cmd" 3.47 "$bad"
+done
+refuses "spent 'qwixnum' with no template" "$work/no-prompts/build-develop-prompt.sh" \
+  over-budget "$work/spec.md" "$step_text" "$test_cmd" qwixnum 2.50
+grep -F 'cannot read' "$work/err.txt" > /dev/null \
+  && refusal_bad="$refusal_bad; with no template, refused for an unreadable file rather than the figure"
+grep -F 'qwixnum' "$work/err.txt" > /dev/null \
+  || refusal_bad="$refusal_bad; with no template, the diagnostic does not name the bad figure"
+[[ -z "$refusal_bad" ]] \
+  && ok || no "develop-over-budget refuses a <spent> or <budget> that is not a non-negative decimal number with exit 2, a diagnostic and no prompt, before any template is read (${refusal_bad#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
