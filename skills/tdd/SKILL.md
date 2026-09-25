@@ -1552,6 +1552,13 @@ leaves the run resumable. Run this sequence in order.
    from. Both keys ride on the one line — `mode` says which checkpoint the operator's stop
    was taken at, `at` says how far the work got — so a reader who asks "where did this run
    pause?" reads one mark, not two.
+5. **Report.** Render `$S/metrics.sh <n>` — after the mark, so it reads it — straight into
+   a `### 📊 Metrics` block, and post one `### ⏹️ Stopped — <mode>` comment carrying that
+   block, the boundary reached (`at=<at>`), what step 2 dropped, the branch, the worktree
+   path, any `push=rejected sha=<remote-sha>`, and the resume command
+   `$S/run-conductor.sh <n>`. The metrics go into the comment and nowhere else: **no
+   metrics file is written or committed**. Committing them marks an ending, as *Done* and
+   *Bailing* do, and a stopped run will be resumed.
 
 ## Resume
 
