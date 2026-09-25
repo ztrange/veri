@@ -132,6 +132,28 @@ run_cost --run
 expect 0 "1.30"
 verdict "a usage event with an absent or empty total_cost_usd contributes zero and still counts as a leaf"
 
+# 7. events that are not `usage` events are ignored by all three calls: a `verdict` or
+#    `test-run` line carrying a step creates no step and adds no cost. "step three" is
+#    mentioned only by a verdict, and first, so a reader that took it for a step would list
+#    it ahead of "step one"; the test-run line on "step one" carries a cost, so a reader that
+#    summed it would come out 5.00 higher.
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "verifier", "phase": "red", "step": "step three", "event": "verdict", "verdict": "PASS"}
+{"ts": 2, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
+{"ts": 3, "issue": "448", "actor": "developer", "phase": "green", "step": "step one", "event": "test-run", "exit": "0", "total_cost_usd": "5.0"}
+{"ts": 4, "issue": "448", "actor": "verifier", "phase": "green", "step": "step one", "event": "usage", "total_cost_usd": "0.20"}
+{"ts": 5, "issue": "448", "actor": "verifier", "phase": "green", "step": "step one", "event": "verdict", "verdict": "PASS"}
+EOF
+run_cost --steps
+expect 0 "0.50 2"
+run_cost "step one"
+expect 0 "0.50"
+run_cost "step three"
+expect 3 ""
+run_cost --run
+expect 0 "0.50"
+verdict "events that are not usage events create no step and add no cost in any of the three calls"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
