@@ -1469,6 +1469,23 @@ refuses "over-budget with four arguments"  "$BUILD" over-budget "$work/spec.md" 
 [[ -z "$refusal_bad" ]] \
   && ok || no "develop-over-budget with fewer than five arguments after the phase exits 2, with a diagnostic and no prompt (${refusal_bad#; })"
 
+# 45. the over-budget prompt names no rejection reason and no verdict, and takes no parameter
+#     that could carry one (issue #450, criterion 6). A crossing is a cost fact, not a judgement,
+#     so nothing the verifier says may reach this leaf: the prompt carries no rejection-reason
+#     section and no verdict word, and a reason file handed over past the five arguments the
+#     phase takes changes nothing — the prompt built with it is byte-identical to case 39's,
+#     and case 4's rejection text appears nowhere in it. The figures are the only other inputs,
+#     and case 43 already holds them to numbers. Case 39's build is reused.
+over_budget_extra="$("$BUILD" over-budget "$work/spec.md" "$step_text" "$test_cmd" 3.47 2.50 "$work/reason.md" 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; with a reason file appended, exited $code, want 0"
+[[ "$over_budget_extra" == "$over_budget" ]] || problems="$problems; a reason file appended past <budget> changed the prompt"
+[[ "$over_budget_extra" != *"$reason_text"* ]] || problems="$problems; carries the rejection reason handed to it"
+grep -iE 'rejection reason' <<<"$over_budget_flat" > /dev/null && problems="$problems; names a rejection reason"
+grep -E 'REJECT|VERDICT' <<<"$over_budget" > /dev/null && problems="$problems; names a verdict"
+[[ -z "$problems" ]] \
+  && ok || no "develop-over-budget names no rejection reason and no verdict, and takes no parameter that could carry one (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
