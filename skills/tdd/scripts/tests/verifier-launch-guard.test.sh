@@ -349,13 +349,13 @@ report "$name"
 # EXEMPT=(` in the guard itself, keyed `<file>:<line>` and valued with the sentence that says
 # why — so no-job-spec-kills.test.sh's reader and this one describe the same thing.
 
-# The line the plant rewrites, found by a literal unique to it: the develop-red prompt
-# build. #437 made every leaf launch and every conductor mark read the title out of the
-# ledger, which left no line spelling `VERI_STEP="<STEP>"` to put back into single quotes;
-# the prompt builder still takes the title as a double-quoted argument, and the guard holds
+# The line the plant rewrites, found by a literal unique to it: the refactor-owed append.
+# #437 made every leaf launch, every conductor mark, every prompt build and every ledger
+# anchor read the title out of the ledger, which left no such line spelling `"<STEP>"` to put
+# back into single quotes; the append still takes the title as a double-quoted argument, and the guard holds
 # every fenced command carrying `<STEP>` to the same rule. A literal, matched as a literal,
 # for the reason the first plant gives — `$` and `.` are characters in it, not a pattern.
-STEP_ANCHOR='$S/build-develop-prompt.sh red '
+STEP_ANCHOR='$S/refactor-owed.sh append '
 
 # The two shapes that line carries the title in: the rule the document states, and the one
 # the incident happened in. The plant turns the first into the second; both are quoted into

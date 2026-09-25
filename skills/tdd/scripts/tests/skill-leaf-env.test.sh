@@ -1228,6 +1228,84 @@ STUB
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every event.sh mark, preserve-attempt.sh call and tick fragment the conductor types from $skill_md, byte-identical (#437)" \
   scan_conductor_titles
 
+# 8g. The same three characters, asked of the two remaining lines that hand a script the
+#    title (issue #437): every `build-develop-prompt.sh` call, whose title becomes the step a
+#    developer prompt tells its leaf to pin, and every `add-ledger-step.sh` call, whose anchor
+#    names the step the plan grows beside. A prompt carrying a title nobody wrote sends the
+#    developer after the wrong step; an anchor carrying one matches no step, or another one.
+#
+#    Run the way 8f runs its lines, against a copy of the scripts directory in which the two
+#    scripts are a recorder writing down their argv, beside all three ledger states, asking
+#    that one of them delivers the title whole. The title is the argument after the spec path
+#    for `build-develop-prompt.sh` — the revise form puts its phase ahead of that path, so the
+#    position alone would not do — and the argument after `after`, `before` or `instead-of`
+#    for `add-ledger-step.sh`. Prose that names a script in backticks with no argument, and
+#    the reference entries under *Scripts*, are not lines anyone types, and are left out.
+scan_prompt_titles() {
+  local title="$EXPANDING_STEP"
+  local md_lines hits numbered lineno line launch script cmd stage seen tree err got argv
+  local planter i=0 rec k want failed first
+  mapfile -t md_lines < "$md"
+  hits="$(grep -nE '\$S/(build-develop-prompt|add-ledger-step)\.sh' "$md" |
+          grep -vE '^[0-9]+:- `')"
+  if [[ -z "$hits" ]]; then
+    no_launch "build-develop-prompt.sh or add-ledger-step.sh"
+    return
+  fi
+  stage_recorder prompt-title
+  for script in build-develop-prompt add-ledger-step; do
+    cat > "$stage/$script.sh" <<'STUB'
+#!/bin/sh
+out="$SEEN.$(basename "$0" .sh)"
+: > "$out"
+for a in "$@"; do printf '%s\n' "$a" >> "$out"; done
+STUB
+    chmod +x "$stage/$script.sh"
+  done
+  while IFS= read -r numbered; do
+    [[ -n "$numbered" ]] || continue
+    lineno="${numbered%%:*}"
+    [[ "$numbered" =~ \$S/(build-develop-prompt|add-ledger-step)\.sh ]] && script="${BASH_REMATCH[1]}"
+    cmd="$(conductor_command "$lineno" "$script")"
+    line="$cmd"
+    [[ "$cmd" == *"$script.sh "* ]] || continue
+    launch="${cmd//<n>/$SENTINEL_ISSUE}"
+    launch="${launch//<STEP>/$title}"
+    launch="${launch//<phase>/red}"
+    launch="${launch//<k>/2}"
+    launch="$(sed -E 's/<[^<>]*>/probe/g' <<< "$launch")"
+    first=""
+    for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
+      i=$((i + 1))
+      tree="$WORK/prompt-title-$i-tree" seen="$WORK/prompt-title-$i-seen"
+      mkdir -p "$tree/.tdd"
+      "$planter" "$tree" "$title"
+      run_recorded '<not run>'
+      failed=""
+      if [[ ! -f "$seen.$script" ]]; then
+        failed="$script.sh was never run "
+      else
+        mapfile -t rec < "$seen.$script"
+        want='<none>'
+        for (( k = 0; k + 1 < ${#rec[@]}; k++ )); do
+          case "$script:${rec[k]}" in
+            build-develop-prompt:*-spec.md|add-ledger-step:after|add-ledger-step:before|add-ledger-step:instead-of)
+              want="${rec[k+1]}"; break ;;
+          esac
+        done
+        [[ "$want" == "$title" ]] || failed="title argument <$want> "
+      fi
+      [[ -n "$failed" ]] || break
+      [[ -n "$first" ]] || first="$failed(the typing shell said: ${err//$'\n'//})"
+    done
+    [[ -z "$failed" ]] ||
+      problem "passes $script.sh <$title>, which arrived as $first beside every ledger state"
+  done <<< "$hits"
+}
+
+run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every build-develop-prompt.sh prompt and add-ledger-step.sh anchor the conductor types from $skill_md, byte-identical (#437)" \
+  scan_prompt_titles
+
 # 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
 #    being gone and the completion file existing are two events, and nothing orders them: a
 #    detached launch returns at once, the pid its tree records can die while the supervisor

@@ -473,7 +473,8 @@ else
     added="$(win "$add_ledger_step")"
     grep -qE "'<[^>]*behaviou?r>'" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the flags' behaviours, so what the inserted step says is left to judgement")
-    grep -qE "after ['\"]?<step>" <<<"$added" ||
+    # The anchor is the step's title, spelled `<STEP>` or read out of the ledger (#437).
+    grep -qE "after ['\"]?(<step>|\\$\\(\\\$s/next-pending-refactor\\.sh)" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
   fi
 
