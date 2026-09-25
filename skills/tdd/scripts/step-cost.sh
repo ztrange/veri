@@ -25,18 +25,18 @@ if [[ $# -ne 1 ]]; then
   echo "step-cost.sh: expected exactly one argument, got $#; $usage" >&2
   exit 2
 fi
-step="$1"
-if [[ "$step" == -* && "$step" != --run && "$step" != --steps ]]; then
-  echo "step-cost.sh: unknown option '$step'; $usage" >&2
-  exit 2
-fi
+step="$1" all=0 per_step=0
+case "$step" in
+  --run)   all=1 ;;
+  --steps) per_step=1 ;;
+  -*)
+    echo "step-cost.sh: unknown option '$step'; $usage" >&2
+    exit 2 ;;
+esac
 if [[ ! -r .tdd/events.jsonl ]]; then
   echo "step-cost.sh: cannot read .tdd/events.jsonl in $PWD — run from the run's worktree" >&2
   exit 2
 fi
-all=0 per_step=0
-[[ "$step" == --run ]] && all=1
-[[ "$step" == --steps ]] && per_step=1
 
 awk -v step="$step" -v all="$all" -v per_step="$per_step" '
   # value <line> <key> — the string value of "key": "…" on one event line, or empty.
