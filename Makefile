@@ -151,6 +151,17 @@ test unit:
 	echo "----"; \
 	if [ $$fail -eq 0 ]; then echo "all suites green"; else echo "SUITES FAILED"; exit 1; fi
 
+# `make go-build` builds the one binary the ported scripts' shims exec (skills/tdd/scripts/go,
+# standard library only, ~1 s from clean). A shim builds it itself on first call when `go` is
+# on PATH, so this target is for building ahead of a run, or for a machine where the first
+# call should not pay the build. `make go-test` is the in-process unit tier for those ports.
+GO_DIR := $(CURDIR)/skills/tdd/scripts/go
+.PHONY: go-build go-test
+go-build:
+	@cd $(GO_DIR) && go build -o bin/veri .
+go-test:
+	@cd $(GO_DIR) && go test ./...
+
 # `make profile` runs the suites `test` runs, under the same offline environment, through
 # profile.sh: one line per case at or above VERI_PROFILE_THRESHOLD seconds, slowest first
 # (#329). A tool a human runs on demand — not part of `test`, and nothing gates on it.

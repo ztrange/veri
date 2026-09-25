@@ -1,85 +1,16 @@
-#!/usr/bin/env bash
-# push-branch.sh — copy the run's branch to the remote, from the worktree it runs in
-# (issue #191).
+#!/bin/sh
+# push-branch.sh — shim: the logic lives in go/pushbranch (see go/main.go). The contract is
+# unchanged (issue #191, #232): run from the issue's worktree; an unreachable origin is retried
+# VERI_PUSH_RETRIES times with a VERI_PUSH_BACKOFF-second wait doubled per retry and exits 0
+# after a push-failed event; a non-fast-forward rejection exits 1 after one attempt with a
+# push-rejected event; a non-integer tunable exits 2 before any push; an event that cannot be
+# written exits 2. event.sh is found beside this shim, which is why VERI_SCRIPTS_DIR is set.
 #
-# The conductor calls this at the two points that already write to the ledger: after a
-# step's green commit, and after a verify-refactor PASS clears the mark. Until then a run's
-# commits live on exactly one disk, and a run interrupted before the draft PR is opened is
-# invisible to everyone and recoverable by nobody.
-#
-# Usage:   push-branch.sh          # run from the issue's worktree
-#
-# **An unreachable remote is not a bail, so that failure exits 0.** (A non-fast-forward
-# rejection is different, and exits 1: see the loop below.) A run
-# whose network is down is still a correct run, and the conductor branches on the exit
-# code: anything but 0 would stop a methodology that is working for a transport problem.
-# The push is a copy, so a failed one owes the run nothing — HEAD, the commit count and the
-# ledger are the local run's, untouched by whether the copy landed. What a failure does owe
-# is a record, because nothing stops and nothing is narrated as an error: the failure goes
-# to `.tdd/events.jsonl` through event.sh, and that line is the only way a human reading the
-# run afterwards learns the branch is not on the remote.
-
-# record <event> [key=value…] — append an event, or exit 2 if it cannot be written. A log
-# that cannot be written is a system failure, whichever push outcome it was recording.
-# event.sh is found beside this script only here, when an event is written, so a unit suite
-# that mocks `record` runs main with no `dirname` on PATH.
-record() {
-  local here
-  here="$(cd "$(dirname "$0")" && pwd)"
-  "$here/event.sh" "$@" || exit 2
-}
-
-# main — the whole script. Its logic lives behind this function so a unit suite can source
-# the file and run nothing (#339); executed directly, the guard at the bottom calls it.
-main() {
-  set -uo pipefail
-
-  local retries backoff tunable attempt out branch remote_sha
-
-  # `--set-upstream` so the first call creates the remote branch and later ones fast-forward
-  # against it; `HEAD` rather than a branch name so the script reads the branch off the
-  # worktree it was run in instead of being told, the way every other conductor script does.
-  # The push's own output is kept: it is what says WHY the copy did not land, and a reader of
-  # the event log gets no second chance to ask git.
-  #
-  # A failed push is retried VERI_PUSH_RETRIES more times (extra attempts after the first,
-  # the same semantics as VERI_STUCK_RETRIES): an unreachable origin is usually a blip. Only
-  # when every attempt has failed does the run hear about it — one stderr line and one event,
-  # however many attempts it took. Between attempts the script waits VERI_PUSH_BACKOFF
-  # seconds, doubled after each wait (2, 4, 8 by default); none follows the last attempt.
-  retries="${VERI_PUSH_RETRIES:-3}"
-  backoff="${VERI_PUSH_BACKOFF:-2}"
-  # A non-integer tunable is bad arguments, caught before any push: `(( attempt <= retries ))`
-  # would otherwise read a word as a variable name and a fraction as a syntax error.
-  for tunable in "VERI_PUSH_RETRIES=$retries" "VERI_PUSH_BACKOFF=$backoff"; do
-    if [[ ! "${tunable#*=}" =~ ^[0-9]+$ ]]; then
-      echo "push-branch.sh: ${tunable%%=*} must be a non-negative integer, got '${tunable#*=}'" >&2
-      exit 2
-    fi
-  done
-  attempt=0
-  while (( attempt <= retries )); do
-    attempt=$((attempt + 1))
-    if out="$(git push --set-upstream origin HEAD 2>&1)"; then
-      exit 0
-    fi
-    # A ref rejection is not a blip: the remote holds commits HEAD does not, so every retry
-    # would fail identically. Name the remote's sha and exit 1 — whether to force or rebase
-    # is a judgement, and it belongs to a leaf, not to this script.
-    if [[ "$out" == *"[rejected]"* && ( "$out" == *non-fast-forward* || "$out" == *"fetch first"* || "$out" == *"stale info"* ) ]]; then
-      branch="$(git rev-parse --abbrev-ref HEAD)"
-      remote_sha="$(git ls-remote origin "refs/heads/$branch" | cut -f1)"
-      echo "push rejected (non-fast-forward): origin/$branch is at $remote_sha" >&2
-      record push-rejected remote_sha="$remote_sha" error="$out"
-      exit 1
-    fi
-    if (( attempt <= retries )); then
-      sleep "$backoff"
-      backoff=$((backoff * 2))
-    fi
-  done
-  echo "push-branch.sh: push failed after $attempt attempts; the branch is not on the remote" >&2
-  record push-failed error="$out" attempts="$attempt"
-}
-
-[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"
+# /bin/sh rather than bash: the shim only execs, and sh starts in a third of the time.
+here="${0%/*}"; [ "$here" = "$0" ] && here=.
+bin="$here/go/bin/veri"
+if [ ! -x "$bin" ]; then
+  command -v go >/dev/null 2>&1 || { echo "push-branch.sh: $bin is not built and go is not on PATH; run \`make go-build\`" >&2; exit 2; }
+  (cd "$here/go" && go build -o bin/veri .) || exit 2
+fi
+VERI_SCRIPTS_DIR="$here" exec "$bin" push-branch "$@"

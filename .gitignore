@@ -10,3 +10,7 @@ __pycache__/
 .tdd/*
 !.tdd/issue-*.md
 .tdd/issue-*-spec.md
+
+# the Go build of the ported scripts (skills/tdd/scripts/go): built by the shims on first
+# call, or by `make go-build`; never committed
+skills/tdd/scripts/go/bin/
