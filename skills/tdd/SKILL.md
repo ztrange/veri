@@ -313,7 +313,10 @@ from the launcher's stdout, which the detached call no longer hands you.
 ahead of the `rm -f`, for a developer leaf and a verifier alike. On exit 3 no stop is
 pending: launch as normal. On exit 0 branch on the mode it printed — `at-ledger` launches the
 leaf anyway, because every leaf between two ledger commits is on the way to the next one, and
-`at-leaf` or `now` launch nothing and go to *Stopping*.
+`at-leaf` or `now` launch nothing and go to *Stopping*. On exit 2 treat it as a stop in mode
+`at-ledger`, narrating that the request was unreadable: a `.tdd/stop` exists, so somebody
+meant to stop this run, and only how urgently is in doubt — the mode that cannot be wrong is
+the one that loses nothing.
 
 Never `nohup … &` in place of that detach: `nohup` makes the leaf ignore a hang-up (SIGHUP),
 but it leaves it in the **process group** of the Bash call that launched it, so a harness

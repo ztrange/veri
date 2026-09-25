@@ -385,6 +385,22 @@ if load_section 'Already satisfied'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# An unreadable request is still a request: `.tdd/stop` exists, so somebody meant to stop the
+# run and only the urgency is in doubt, and the mode that cannot be wrong is the one that
+# loses nothing. The checkpoints are spelled once in *Launching a leaf*, so that is where the
+# exit 2 answer is read — joined, and each claim kept inside one clause as the case above does.
+name="Launching a leaf treats stop-requested.sh exit 2 as a stop in mode at-ledger, narrating that the request was unreadable"
+problems=()
+if load_section 'Launching a leaf'; then
+  section="$(joined)"
+  require 'exit 2[^.;]*at-ledger' \
+    "the Launching a leaf section never says stop-requested.sh's exit 2 is a stop in mode at-ledger"
+  require 'exit 2[^.;]*unreadable|unreadable[^.;]*exit 2' \
+    "the Launching a leaf section never says to narrate that the stop request was unreadable on exit 2"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
