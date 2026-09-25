@@ -214,6 +214,13 @@ plant_ledger() {
   printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$2" > "$1/.tdd/issue-$SENTINEL_ISSUE.md"
 }
 
+# plant_ticked_ledger <tree> <step> — the sentinel issue's committed ledger as it stands when
+# develop-refactor launches: <step> ticked and awaiting its refactor, a later step unchecked.
+plant_ticked_ledger() {
+  printf '# Plan for #%s\n\n- [x] %s ⟂ refactor pending\n- [ ] a later step the run has not reached\n' \
+    "$SENTINEL_ISSUE" "$2" > "$1/.tdd/issue-$SENTINEL_ISSUE.md"
+}
+
 launched_test_cmd() {
   local leaf="$1" launch="$2"
   shift 2
@@ -244,8 +251,7 @@ launched_test_cmd() {
   # develop-refactor launches after the step's green commit has ticked it, so its tree holds
   # the ledger as it stands then: the step ticked with its `⟂ refactor pending` mark.
   if [[ "$leaf" == develop-refactor ]]; then
-    printf '# Plan for #%s\n\n- [x] %s ⟂ refactor pending\n' "$SENTINEL_ISSUE" "$SENTINEL_STEP" \
-      > "$dir/.tdd/issue-$SENTINEL_ISSUE.md"
+    plant_ticked_ledger "$dir" "$SENTINEL_STEP"
   else
     plant_ledger "$dir" "$SENTINEL_STEP"
   fi
@@ -949,13 +955,6 @@ run_case "a step title carrying a dollar sign, a backtick and a double quote rea
 #    launches the step's green commit has already ticked it. The ledger it runs beside holds
 #    the step ticked with its `⟂ refactor pending` mark, and an unchecked step after it — so
 #    a launch that asks the ledger for the next unchecked title hands the leaf the wrong step.
-#
-# plant_ticked_ledger <tree> <step> — the sentinel issue's committed ledger as it stands when
-# develop-refactor launches: <step> ticked and awaiting its refactor, a later step unchecked.
-plant_ticked_ledger() {
-  printf '# Plan for #%s\n\n- [x] %s ⟂ refactor pending\n- [ ] a later step the run has not reached\n' \
-    "$SENTINEL_ISSUE" "$2" > "$1/.tdd/issue-$SENTINEL_ISSUE.md"
-}
 
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the develop-refactor leaf $skill_md launches after the step is ticked, byte-identical (#437)" \
   scan_step_title "$EXPANDING_STEP" expanding-step-title-refactor develop-refactor plant_ticked_ledger
