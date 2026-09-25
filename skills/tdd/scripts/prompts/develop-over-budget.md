@@ -5,6 +5,11 @@
 This step has crossed the spend budget it was given. You are a fresh leaf — you never saw
 the attempts that spent it. You are not here to attempt the step again.
 
+A crossing is not a verdict. Nothing has rejected this work, and the step may well be
+correct. Ask whether it is more than one behaviour, or whether it needs a decision this run
+has no authority to make — and "neither — this step is one behaviour that is simply
+expensive" is an honest answer the run can act on as well.
+
 ### The step
 
 {{STEP}}
