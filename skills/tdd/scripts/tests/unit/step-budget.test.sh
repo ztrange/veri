@@ -92,6 +92,16 @@ run_budget VERI_STEP_BUDGET=twelve VERI_RUN_BUDGET=-5 --
 expect 2 ''
 verdict "both budgets invalid at once exits 2 and prints nothing on stdout, not the first figure then a failure"
 
+# 6. each name exported as the empty string, the other left unset: exit 2 and nothing on
+#    stdout, never the default — an operator who exported the name meant to set it.
+run_budget VERI_STEP_BUDGET= --
+expect 2 ''
+expect_err_names VERI_STEP_BUDGET
+run_budget VERI_RUN_BUDGET= --
+expect 2 ''
+expect_err_names VERI_RUN_BUDGET
+verdict "either budget exported as the empty string exits 2 rather than falling back to its default"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
