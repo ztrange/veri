@@ -266,21 +266,22 @@ report "$name"
 #    the way a reader checks it: a top-level `source` or `.` line naming the file, and no
 #    line opening a function by one of the five names. The subshell sources in cases 2 and 3
 #    are indented and name `$helpers_path`, so they answer neither question.
-shared_helpers=(report plain records bullet says)
 
-# probe_suite_uses_shared_helpers <stem> — one problem when the suite <stem>.test.sh does
-# not source the shared file at its top level, and one per helper it still defines itself.
+# probe_suite_uses_shared_helpers <stem> <helper>... — one problem when the suite
+# <stem>.test.sh does not source the shared file at its top level, and one per <helper> it
+# still defines itself.
 # Given the stem, not the file name: a sibling suite's name written out in full outside a
 # comment is what no-nested-suites.test.sh reads as launching it, and this only reads it.
 probe_suite_uses_shared_helpers() {
   local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text fn
+  shift
   if ! text="$(cat "$ROOT/$suite_rel" 2>/dev/null)"; then
     problems+=("$suite_rel could not be read")
     return
   fi
   [[ "$text" =~ (^|$'\n')(source|\.)[[:space:]][^$'\n']*record-helpers\.sh ]] ||
     problems+=("$suite_rel does not source record-helpers.sh at its top level")
-  for fn in "${shared_helpers[@]}"; do
+  for fn in "$@"; do
     [[ "$text" =~ (^|$'\n')[[:space:]]*(function[[:space:]]+)?$fn[[:space:]]*\(\) ]] &&
       problems+=("$suite_rel still defines its own $fn")
   done
@@ -289,8 +290,9 @@ probe_suite_uses_shared_helpers() {
 name="the selection-order-recorded and model-knobs-recorded suites source $helpers_rel and define no report, plain, records, bullet or says of their own"
 problems=()
 
-probe_suite_uses_shared_helpers selection-order-recorded
-probe_suite_uses_shared_helpers model-knobs-recorded
+for stem in selection-order-recorded model-knobs-recorded; do
+  probe_suite_uses_shared_helpers "$stem" report plain records bullet says
+done
 
 report "$name"
 
@@ -312,9 +314,8 @@ probe_suite_keeps_own_says() {
 name="the lane-rule-recorded and unit-tier-recorded suites source $helpers_rel and define no report or plain of their own, while each keeps its own says"
 problems=()
 
-shared_helpers=(report plain)
 for stem in lane-rule-recorded unit-tier-recorded; do
-  probe_suite_uses_shared_helpers "$stem"
+  probe_suite_uses_shared_helpers "$stem" report plain
   probe_suite_keeps_own_says "$stem"
 done
 
