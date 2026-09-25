@@ -68,25 +68,10 @@ DOCS_LANE='docs[ -]lane|documentation lane|docs issue|docs merge'
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which half of the rule is unrecorded rather than just that some half is.
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
-
-# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
-# below is written one way and still matches prose that marked the same words up as
-# `make docs` or **never**. The normalisation count-line-guard.test.sh and
-# skill-suite-runs.test.sh use on this document, for the same reason.
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
+# report and plain: the helpers the *-recorded.test.sh suites share (issue #225). This
+# suite's `says` asks a different question and stays below, defined after the source.
+# shellcheck source=record-helpers.sh
+source "$HERE/record-helpers.sh"
 
 # section <heading> — that section of the document as one line: from the heading to the next
 # `## `, normalised through `plain` and with its line breaks turned into spaces. Read by
