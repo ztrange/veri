@@ -1194,6 +1194,11 @@ verifier judges the fix against the full command, not the fast one.
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
 
+With a stop request pending, this step is **not interrupted** and runs to completion: once
+`next-unchecked.sh` exits 3 there is no next ledger commit, and what remains launches no leaf
+and loses nothing. So no checkpoint runs here — sub-step 4 asks once, clears the request with
+`$S/stop-requested.sh --clear` and says so in the final comment.
+
 1. **Ask the two questions that decide whether there is anything fit to push, and refuse to
    go on while either says no** — both from inside the worktree, before a human is asked to
    look:
@@ -1257,6 +1262,9 @@ one more cycle, not a loop — and the bail names every suite still red, not onl
 4. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
    under it, pasted verbatim from the file just committed. It mirrors the
    `$S/event.sh done pr=<pr-url>` mark sub-step 2 already wrote, so it writes no second one.
+   Before posting it, run `$S/stop-requested.sh`; on exit 0 or 2 run
+   `$S/stop-requested.sh --clear` and add a line to the comment saying that a stop arrived
+   after the last step, so the run finished rather than pausing — on exit 3 add nothing.
 
 **The worktree stays.** Do not remove it here: it holds the run's leaf logs and is where a
 resume would land if the PR comes back for more work. It is removed once the PR is **merged**
