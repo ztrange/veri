@@ -209,6 +209,59 @@ probe_claude_md_names_them_and_why
 
 report "$name"
 
+# 2. The docs-record suites' shared helpers (issue #225): one file under this directory,
+#    named outside make test's `*.test.sh` glob so it is sourced and never run as a suite,
+#    that defines `report` and `plain` behaving the way every *-recorded.test.sh suite's own
+#    copy does. Asked of fixed inputs and outputs rather than of this suite's copy, so the
+#    case still means something once that copy is gone. Run in a subshell with the local
+#    definitions unset first, so a pass is the shared file's answer and never this suite's,
+#    and so its counters and `problems` never touch this suite's own.
+helpers_rel="skills/tdd/scripts/tests/record-helpers.sh"
+helpers_path="$ROOT/$helpers_rel"
+
+probe_shared_report_and_plain() {
+  if [[ "$helpers_rel" == *.test.sh ]]; then
+    problems+=("$helpers_rel is named *.test.sh, so make test would run it as a suite")
+    return
+  fi
+  if [[ ! -f "$helpers_path" ]]; then
+    problems+=("$helpers_rel does not exist, so there is no shared report or plain to source")
+    return
+  fi
+
+  local got expected
+  got="$(
+    unset -f report plain
+    pass=0 fail=0
+    # shellcheck source=/dev/null
+    source "$helpers_path"
+    printf 'plain: %s\n' "$(printf '**Never** `VERI_MODEL` Merged\n' | plain)"
+    problems=()
+    report "a clean case"
+    printf 'after clean: %s passed, %s failed\n' "$pass" "$fail"
+    problems=("first problem" "second problem")
+    report "a broken case"
+    printf 'after broken: %s passed, %s failed\n' "$pass" "$fail"
+  )"
+  expected="plain: never veri_model merged
+after clean: 1 passed, 0 failed
+FAIL - a broken case
+    first problem
+    second problem
+after broken: 1 passed, 1 failed"
+
+  [[ "$got" == "$expected" ]] && return 0
+  problems+=("sourcing $helpers_rel and calling plain and report printed:" \
+    "$got" "where the *-recorded.test.sh suites' own copies print:" "$expected")
+}
+
+name="$helpers_rel, not named *.test.sh, when sourced defines report and plain with the same behaviour as the *-recorded.test.sh suites' copies"
+problems=()
+
+probe_shared_report_and_plain
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
