@@ -568,6 +568,22 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# The Draft PR step's exemption from the checkpoints has one exception: the repair step a red
+# full run appends is a step like any other — it launches leaves and ends in a ledger commit —
+# so both checkpoints apply to it. A reader who takes "no checkpoint runs here" for the whole
+# step would let a stop requested during a repair run on to its end. Read from the step's
+# `### 4. Draft PR` heading to the end of Procedure, joined, so the claim may sit anywhere in it.
+name="the Draft PR step says both checkpoints apply to the repair step a red full run appends, like any other step"
+problems=()
+if load_section 'Procedure'; then
+  section="$(ledger_branch '^### 4\. draft pr' '^### 5\.')"
+  section="$(joined)"
+  require "$(either_order 'repair step' '(both|the two) checkpoints')" \
+    "the Draft PR step never says both checkpoints apply to the repair step a red full run appends — a stop requested during a repair would run on to its end"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
