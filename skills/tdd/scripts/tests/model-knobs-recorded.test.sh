@@ -396,6 +396,62 @@ done
 
 report "$name"
 
+# 8. The shared file keeps the plain-shell idiom and brings in nothing from outside the repo
+#    (issue #225). Sourced in a subshell whose PATH names no directory, over counters a
+#    suite already moved: sourcing it prints nothing, fails nothing, leaves `pass` and
+#    `fail` where the suite put them — the counters and the count line stay the suite's —
+#    and defines no function but the five, which is what a test framework would add. And
+#    each of the four suites still sets its own `pass=0 fail=0` at top level, and every
+#    top-level `source` or `.` line it has names a path under its own `$HERE` or `$ROOT`.
+probe_shared_helpers_plain_shell() {
+  need_helpers_file "report, plain, records, bullet or says" || return
+
+  local got expected
+  got="$(
+    unset -f report plain records bullet says
+    before="$(declare -F | sed 's/^declare -f //')"
+    pass=3 fail=5
+    out="$(
+      PATH="/nonexistent-$$"
+      # shellcheck source=/dev/null
+      source "$helpers_path" 2>&1
+      printf 'status %s\n' "$?"
+    )"
+    # shellcheck source=/dev/null
+    PATH="/nonexistent-$$" source "$helpers_path" > /dev/null 2>&1
+    printf 'sourcing printed: [%s]\n' "$out"
+    printf 'counters: %s passed, %s failed\n' "$pass" "$fail"
+    printf 'new functions: [%s]\n' "$(declare -F | sed 's/^declare -f //' | grep -vxF "$before" | tr '\n' ' ')"
+  )"
+  expected="sourcing printed: [status 0]
+counters: 3 passed, 5 failed
+new functions: [bullet plain records report says ]"
+  same_as_copies "nothing but its definitions" "a plain-shell helper file with no dependency" "$got" "$expected"
+
+  local stem suite_rel text line
+  for stem in selection-order-recorded lane-rule-recorded unit-tier-recorded model-knobs-recorded; do
+    suite_rel="skills/tdd/scripts/tests/$stem.test.sh"
+    if ! text="$(cat "$ROOT/$suite_rel" 2>/dev/null)"; then
+      problems+=("$suite_rel could not be read")
+      continue
+    fi
+    [[ "$text" =~ (^|$'\n')pass=0\ fail=0($'\n'|$) ]] ||
+      problems+=("$suite_rel does not set its own pass=0 fail=0 at top level")
+    while IFS= read -r line; do
+      [[ "$line" =~ ^(source|\.)[[:space:]] ]] || continue
+      [[ "$line" =~ ^(source|\.)[[:space:]]+\"?\$\{?(HERE|ROOT)\}?/ ]] ||
+        problems+=("$suite_rel sources a path outside its own \$HERE or \$ROOT: $line")
+    done <<< "$text"
+  done
+}
+
+name="$helpers_rel keeps the plain-shell idiom — sourcing it with no PATH prints nothing, leaves the suite's pass/fail counters alone and defines only the five helpers — and the four suites keep their own counters and source nothing outside the repo"
+problems=()
+
+probe_shared_helpers_plain_shell
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
