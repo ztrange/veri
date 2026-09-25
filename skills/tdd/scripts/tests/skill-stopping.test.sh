@@ -613,33 +613,43 @@ report "$name"
 # And where a scope run stops (issue #391): SCOPE-LOOP.md drains a scope one issue at a time,
 # and its *Loop 4* stop conditions are the only thing that ends the drain. A stopped issue
 # satisfied none of them, so an operator who stopped the issue in flight got the issue stopped
-# and the loop carrying on to the next one. Loop 4 is read from its `### Loop 4` heading to
-# the next `### `, split into its bullets; the stop condition is the bullet whose bold label
-# names a stop, joined — the bail bullet's own "continue at Loop 1" must not answer for it.
+# and the loop carrying on to the next one. Read from the stop-condition bullet alone, so the
+# bail bullet's own "continue at Loop 1" must not answer for it.
 scope_loop_md="skills/tdd/SCOPE-LOOP.md"
-name="SCOPE-LOOP.md's Loop 4 stop conditions list an issue that ended in a stop, and say the loop then reports and stops without going back to Loop 1 or selecting another issue"
-problems=()
-section="$(awk '
-  /^### / { inside = ($0 ~ /^### Loop 4\./); next }
-  inside' "$ROOT/$scope_loop_md" | plain)"
-if [[ -z "$section" ]]; then
-  problems+=("$scope_loop_md has no ### Loop 4 section — nothing could be checked")
-else
+
+# load_scope_stop <problem> — put SCOPE-LOOP.md's stopped-issue condition in `section`,
+# joined, for a case's probes to read: *Loop 4* from its `### Loop 4` heading to the next
+# `### `, split into its bullets, and the bullet whose bold label names a stop. Records the
+# fail-closed problem and returns 1 when there is no Loop 4, or <problem> when Loop 4 has no
+# such bullet. Every #391 case reads that bullet, so they slice it by one rule here.
+load_scope_stop() {
+  section="$(awk '
+    /^### / { inside = ($0 ~ /^### Loop 4\./); next }
+    inside' "$ROOT/$scope_loop_md" | plain)"
+  if [[ -z "$section" ]]; then
+    problems+=("$scope_loop_md has no ### Loop 4 section — nothing could be checked")
+    return 1
+  fi
   section="$(awk '
     /^- / { inside = ($0 ~ /^- [^.]*stop/) }
     /^[^- ]/ { inside = 0 }
     inside' <<<"$section")"
   if [[ -z "$section" ]]; then
-    problems+=("$scope_loop_md's Loop 4 lists no issue that ended in a stop — a stopped issue leaves the loop carrying on to the next one")
-  else
-    section="$(joined)"
-    require '(^|[^a-z])reports?[^.;]*stops?' \
-      "the stopped-issue condition never says the loop reports and stops"
-    require '(not|never)[^.;]*(go(es)? back|return)[^.;]*loop 1' \
-      "the stopped-issue condition never says the loop does not go back to Loop 1"
-    require "$(either_order '(not|never|no)[^.;]*(select|pick|take|start)' '(another|next|other) issue')" \
-      "the stopped-issue condition never says the loop does not select another issue"
+    problems+=("$1")
+    return 1
   fi
+  section="$(joined)"
+}
+
+name="SCOPE-LOOP.md's Loop 4 stop conditions list an issue that ended in a stop, and say the loop then reports and stops without going back to Loop 1 or selecting another issue"
+problems=()
+if load_scope_stop "$scope_loop_md's Loop 4 lists no issue that ended in a stop — a stopped issue leaves the loop carrying on to the next one"; then
+  require '(^|[^a-z])reports?[^.;]*stops?' \
+    "the stopped-issue condition never says the loop reports and stops"
+  require '(not|never)[^.;]*(go(es)? back|return)[^.;]*loop 1' \
+    "the stopped-issue condition never says the loop does not go back to Loop 1"
+  require "$(either_order '(not|never|no)[^.;]*(select|pick|take|start)' '(another|next|other) issue')" \
+    "the stopped-issue condition never says the loop does not select another issue"
 fi
 report "$name"
 
@@ -650,25 +660,11 @@ report "$name"
 # no business overruling it. Read from the same stop-condition bullet as the case above.
 name="SCOPE-LOOP.md says a stop, unlike a bail, has no continue-past option — no --continue-on-bail equivalent, because a stop is the operator speaking"
 problems=()
-section="$(awk '
-  /^### / { inside = ($0 ~ /^### Loop 4\./); next }
-  inside' "$ROOT/$scope_loop_md" | plain)"
-if [[ -z "$section" ]]; then
-  problems+=("$scope_loop_md has no ### Loop 4 section — nothing could be checked")
-else
-  section="$(awk '
-    /^- / { inside = ($0 ~ /^- [^.]*stop/) }
-    /^[^- ]/ { inside = 0 }
-    inside' <<<"$section")"
-  if [[ -z "$section" ]]; then
-    problems+=("$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked")
-  else
-    section="$(joined)"
-    require "$(either_order '(^|[^a-z])(no|not|never|nothing)[^a-z]' '(--continue-on-bail|continue[- ]past)')" \
-      "the stopped-issue condition never says a stop has no --continue-on-bail equivalent"
-    require '(^|[^a-z])operator' \
-      "the stopped-issue condition never says a stop is the operator speaking"
-  fi
+if load_scope_stop "$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked"; then
+  require "$(either_order '(^|[^a-z])(no|not|never|nothing)[^a-z]' '(--continue-on-bail|continue[- ]past)')" \
+    "the stopped-issue condition never says a stop has no --continue-on-bail equivalent"
+  require '(^|[^a-z])operator' \
+    "the stopped-issue condition never says a stop is the operator speaking"
 fi
 report "$name"
 
