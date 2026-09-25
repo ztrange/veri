@@ -63,12 +63,13 @@ def conductor_answers(pid_file):
 
 
 now = int(time.time())
-if ended is not None and ended.get("event") == "done":
-    state = "done %s" % ended.get("pr", "")
-elif ended is not None and ended.get("event") == "stop":
-    state = "stopped %s" % ended.get("mode", "")
-elif ended is not None:
-    state = "bailed %s %s" % (ended.get("phase", ""), ended.get("classification", ""))
+end = ended or {}
+if end.get("event") == "done":
+    state = "done %s" % end.get("pr", "")
+elif end.get("event") == "stop":
+    state = "stopped %s" % end.get("mode", "")
+elif end.get("event") == "bail":
+    state = "bailed %s %s" % (end.get("phase", ""), end.get("classification", ""))
 elif newest is not None and now - int(newest["ts"]) > int(sys.argv[3]) \
         and not conductor_answers(sys.argv[2]):
     state = "stale"
@@ -77,7 +78,6 @@ else:
 if last is None:
     sys.exit()
 if os.environ.get("STATUS_JSON") == "1":
-    end = ended or {}
     print(json.dumps({"phase": last.get("phase", ""), "actor": last.get("actor", ""),
                       "leaf": last.get("name", ""), "elapsed_seconds": now - int(last["ts"]),
                       "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
