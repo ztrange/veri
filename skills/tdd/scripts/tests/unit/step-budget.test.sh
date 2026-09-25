@@ -56,6 +56,12 @@ run_budget --
 expect 0 $'12\n120'
 verdict "neither budget set prints 12 then 120, each on its own line, exit 0"
 
+# 2. both names set, to decimals and to values unlike each other and unlike the defaults: each
+#    printed back as given, the step budget first and the run budget second, exit 0.
+run_budget VERI_STEP_BUDGET=7.5 VERI_RUN_BUDGET=42.25 --
+expect 0 $'7.5\n42.25'
+verdict "a set VERI_STEP_BUDGET then a set VERI_RUN_BUDGET, decimals included, printed in that order"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
