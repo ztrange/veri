@@ -145,7 +145,8 @@ else
     problems+=("$skill_md's Green section runs add-ledger-step.sh $calls times, so a step's SPLIT: criteria are inserted a call at a time and the growth budget is read once per criterion rather than once for the split")
   else
     added="$(win "$add_ledger_step")"
-    grep -qE "before ['\"]?<step>" <<<"$added" ||
+    # The anchor is the step's title, spelled `<STEP>` or read out of the ledger (#437).
+    grep -qE "before ['\"]?(<step>|\\$\\(\\\$s/next-unchecked\\.sh)" <<<"$added" ||
       problems+=("$skill_md's Green section runs add-ledger-step.sh without anchoring the insertion before the step being split, so the smaller steps land after the step they were supposed to come first")
     grep -qE 'commit' <<<"$added" ||
       problems+=("$skill_md's Green section grows the ledger on a SPLIT: without committing it, so the split steps are lost the moment the run is resumed from the committed ledger")
