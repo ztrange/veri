@@ -227,6 +227,13 @@ need_helpers_file() {
   return 1
 }
 
+# same_as_copies <helpers> <copies> <got> <expected> — what calling the shared <helpers>
+# printed is what <copies> print, or one problem quoting both.
+same_as_copies() {
+  [[ "$3" == "$4" ]] && return 0
+  problems+=("sourcing $helpers_rel and calling $1 printed:" "$3" "where $2 print:" "$4")
+}
+
 probe_shared_report_and_plain() {
   if [[ "$helpers_rel" == *.test.sh ]]; then
     problems+=("$helpers_rel is named *.test.sh, so make test would run it as a suite")
@@ -255,9 +262,7 @@ FAIL - a broken case
     second problem
 after broken: 1 passed, 1 failed"
 
-  [[ "$got" == "$expected" ]] && return 0
-  problems+=("sourcing $helpers_rel and calling plain and report printed:" \
-    "$got" "where the *-recorded.test.sh suites' own copies print:" "$expected")
+  same_as_copies "plain and report" "the *-recorded.test.sh suites' own copies" "$got" "$expected"
 }
 
 name="$helpers_rel, not named *.test.sh, when sourced defines report and plain with the same behaviour as the *-recorded.test.sh suites' copies"
@@ -302,9 +307,8 @@ bullet: [- alpha one   still alpha ]
 says found: 0, 0 problems
 says missing: doc.md does not say baz"
 
-  [[ "$got" == "$expected" ]] && return 0
-  problems+=("sourcing $helpers_rel and calling records, bullet and says printed:" \
-    "$got" "where the selection-order-recorded suite's and this suite's own copies print:" "$expected")
+  same_as_copies "records, bullet and says" "the selection-order-recorded suite's and this suite's own copies" \
+    "$got" "$expected"
 }
 
 name="$helpers_rel, when sourced, also defines records, bullet and says with the same behaviour as the selection-order-recorded and model-knobs-recorded suites' copies"
