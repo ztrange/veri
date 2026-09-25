@@ -202,6 +202,17 @@ expect 0 "0.30"
 [[ -z "$err" ]] || problems+="    under make unit's shims stderr said '$err', want nothing"$'\n'
 verdict "the header states the fast-tier bar and the script answers under make unit's git, python3, gh and curl shims"
 
+# 10. step-cost.sh's own header says the figure is leaf spend only, and why: the conductor's
+#     own spending is in no `usage` event. A figure that reads as "what this step cost" and
+#     silently leaves the conductor out gets quoted wrongly later, so the caveat sits where
+#     a reader of the script meets it. The header is read as one line — the comment marks
+#     stripped, its lines joined by spaces — so a rewrap of the sentence is not a failure.
+header="$(sed -n '2,$p' "$STEP_COST" | sed '/^#/!q' | grep '^#' | sed 's/^# *//' | tr '\n' ' ')"
+for part in 'leaf spend only' "conductor's own spending is in no \`usage\` event"; do
+  grep -F "$part" <<< "$header" > /dev/null || problems+="    the header comment does not state '$part'"$'\n'
+done
+verdict "step-cost.sh's header says it reports leaf spend only and the conductor's spending is in no usage event"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
