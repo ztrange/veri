@@ -552,5 +552,14 @@ expect_unchanged assign-duplicate-issue 2 \
   "assign naming the same issue twice in one call exits 2 and leaves the queue file byte-identical" \
   assign alpha 12 12
 
+# 27. assign given an empty issue argument exits 2 and leaves the queue file byte-identical:
+#     an empty word names no issue, so queuing it would write a line with no issue field.
+repo="$work/assign-empty-issue"
+new_repo "$repo"
+seed_queue "$repo" 'beta\t4\tqueued\t\n'
+expect_unchanged assign-empty-issue 2 \
+  "assign given an empty issue argument exits 2 and leaves the queue file byte-identical" \
+  assign alpha ''
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
