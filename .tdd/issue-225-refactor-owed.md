@@ -1,2 +1,4 @@
 ### A shared helper file under skills/tdd/scripts/tests/, not named *.test.sh and not picked up by make test's suite glob, when sourced defines report and plain with the same behaviour as the copies in the four *-recorded.test.sh suites that carry them ⟦criterion 1⟧
 - model-knobs-recorded.test.sh still defines its own `report` and `plain`, which duplicate record-helpers.sh. Plan step 3 removes this: it makes the suite source the shared file and drop its local copies. Doing it here would turn that step green before its red test is written, so it is left for that step.
+### The shared helper file, when sourced, also defines records, bullet and says with the same behaviour as the copies in selection-order-recorded.test.sh and model-knobs-recorded.test.sh ⟦criterion 1⟧
+- model-knobs-recorded.test.sh's local report, plain, records, bullet and says duplicate record-helpers.sh (the ledger's next step removes them)
