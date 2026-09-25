@@ -1,6 +1,6 @@
 # Plan for #450 — `build-develop-prompt.sh` accepts an `over-budget` phase naming the cost fact, not a rejection reason
 
-- [x] `build-develop-prompt.sh over-budget <spec> <step> <cmd> <spent> <budget>` renders a prompt carrying the step text, the spent figure, the budget figure and the issue spec ⟦criterion 1⟧ ⟂ refactor pending
+- [x] `build-develop-prompt.sh over-budget <spec> <step> <cmd> <spent> <budget>` renders a prompt carrying the step text, the spent figure, the budget figure and the issue spec ⟦criterion 1⟧
 - [ ] The rendered over-budget prompt asks for the same two report shapes the exhausted phase asks for (SPLIT: lines or the needs-user answer), so exhausted-outcome.sh reads it unchanged ⟦criterion 2⟧
 - [ ] The rendered over-budget prompt states that a crossing is not a verdict and that "one behaviour, simply expensive" is an available answer ⟦criterion 3⟧
 - [ ] A spent or budget figure that is not a non-negative decimal number exits 2 and renders nothing, both validated before any template is read ⟦criterion 4⟧
