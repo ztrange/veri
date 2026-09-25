@@ -32,13 +32,14 @@ awk -v step="$step" -v all="$all" -v per_step="$per_step" '
     sub("\"$", "", rest)
     return rest
   }
-  per_step && value($0, "event") == "usage" {
+  value($0, "event") != "usage" { next }
+  per_step {
     s = value($0, "step")
     if (!(s in leaves)) order[++steps] = s
     dollars[s] += value($0, "total_cost_usd"); leaves[s]++; seen = 1
     next
   }
-  value($0, "event") == "usage" && (all || value($0, "step") == step) { sum += value($0, "total_cost_usd"); seen = 1 }
+  all || value($0, "step") == step { sum += value($0, "total_cost_usd"); seen = 1 }
   END {
     if (!seen) exit 3
     if (per_step) {
