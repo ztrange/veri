@@ -609,6 +609,40 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# And where a scope run stops (issue #391): SCOPE-LOOP.md drains a scope one issue at a time,
+# and its *Loop 4* stop conditions are the only thing that ends the drain. A stopped issue
+# satisfied none of them, so an operator who stopped the issue in flight got the issue stopped
+# and the loop carrying on to the next one. Loop 4 is read from its `### Loop 4` heading to
+# the next `### `, split into its bullets; the stop condition is the bullet whose bold label
+# names a stop, joined — the bail bullet's own "continue at Loop 1" must not answer for it.
+scope_loop_md="skills/tdd/SCOPE-LOOP.md"
+name="SCOPE-LOOP.md's Loop 4 stop conditions list an issue that ended in a stop, and say the loop then reports and stops without going back to Loop 1 or selecting another issue"
+problems=()
+section="$(awk '
+  /^### / { inside = ($0 ~ /^### Loop 4\./); next }
+  inside' "$ROOT/$scope_loop_md" | plain)"
+if [[ -z "$section" ]]; then
+  problems+=("$scope_loop_md has no ### Loop 4 section — nothing could be checked")
+else
+  section="$(awk '
+    /^- / { inside = ($0 ~ /^- [^.]*stop/) }
+    /^[^- ]/ { inside = 0 }
+    inside' <<<"$section")"
+  if [[ -z "$section" ]]; then
+    problems+=("$scope_loop_md's Loop 4 lists no issue that ended in a stop — a stopped issue leaves the loop carrying on to the next one")
+  else
+    section="$(joined)"
+    require '(^|[^a-z])reports?[^.;]*stops?' \
+      "the stopped-issue condition never says the loop reports and stops"
+    require '(not|never)[^.;]*(go(es)? back|return)[^.;]*loop 1' \
+      "the stopped-issue condition never says the loop does not go back to Loop 1"
+    require "$(either_order '(not|never|no)[^.;]*(select|pick|take|start)' '(another|next|other) issue')" \
+      "the stopped-issue condition never says the loop does not select another issue"
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

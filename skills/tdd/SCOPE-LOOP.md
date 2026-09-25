@@ -102,6 +102,8 @@ Stop and report when any of these holds:
   record the bail and continue at *Loop 1*; the bailed issue leaves a pushed branch and no
   PR, so it stays in the solvable set and would be retried immediately — **skip it** for
   the rest of this invocation rather than re-running it.
+- **A stop.** The issue just run ended in a stop. The loop reports and stops: it does not
+  go back to *Loop 1*, and it does not select another issue.
 - **An empty list.** `solvable-issues.sh` exits 3 — the drain is complete.
 - **The cap.** `${VERI_MAX_ISSUES:-0}` is non-zero and that many issues have been
   attempted. Say the cap stopped the loop and that re-invoking the same command continues.
