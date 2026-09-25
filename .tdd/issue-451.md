@@ -7,7 +7,7 @@
 - [x] SKILL.md runs each cost check only once the leaf has exited and its `usage` event has been harvested
 - [x] SKILL.md states that the cost check fires at most once per step and is not re-armed once its branch has run ⟦criterion 3⟧
 - [x] SKILL.md states that `step-cost.sh` exit 3 (no leaf of this step has reported yet) is not a crossing ⟦criterion 4⟧
-- [ ] SKILL.md's crossing branch builds the `over-budget` prompt, launches its leaf through `supervise.sh` the way the exhausted leaf is launched, and reads its answer with `exhausted-outcome.sh`, never by eye ⟦criterion 5⟧
+- [x] SKILL.md's crossing branch builds the `over-budget` prompt, launches its leaf through `supervise.sh` the way the exhausted leaf is launched, and reads its answer with `exhausted-outcome.sh`, never by eye ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] The over-budget exit 0 branch restores the tree (`git reset --hard HEAD`, `git clean -f -- <test-path>`) before growing the plan, grows it in one `add-ledger-step.sh instead-of` call, and commits the plan before the run continues ⟦criterion 6⟧
 - [ ] The over-budget exit 0 branch treats `add-ledger-step.sh` exit 1 as a `step-too-big` bail ⟦criterion 7⟧
 - [ ] The over-budget exit 1 branch parks the step carrying the leaf's answer and the spent and budget figures, and leaves the plan unchanged ⟦criterion 8⟧
