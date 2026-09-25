@@ -876,6 +876,39 @@ run_case "a derived leaf name no launch writes is answered once its supervisor i
 #    through a shipped script, or through the ledger the title is written in, is run with both
 #    present and answers this case on its own terms.
 #
+# stage_recorder <tag> — the scripts directory and the tree a step-title case runs its line
+# against: every script the skill ships, with the detacher — the first process a launch
+# starts, and so the first place the title is observable at all — replaced by a recorder.
+# It writes the VERI_STEP it was launched with to `$SEEN`, and whatever follows `--step` in
+# the argv it was handed — the argv a verifier's `run-verdict.sh` would have received — to
+# `$SEEN.argv`; a developer launch carries no `--step`, and its case never reads that file.
+# `#!/bin/sh` like every other stub here (#322): Homebrew's bash costs ~12 ms to start and a
+# recorder buys nothing for it. The suites are not copied; the line names none of them, and
+# copying them would be ~100 files for nothing.
+#
+# It assigns the caller's `stage`, `seen` and `tree` rather than echoing them, the way
+# `take_line` assigns its three: all three have to reach the caller together. Written once
+# because cases 8 to 8d stage the same copy, and a recorder spelled twice records two ways.
+stage_recorder() {
+  stage="$WORK/$1-scripts"
+  seen="$WORK/$1-seen"
+  tree="$WORK/$1-tree"
+  mkdir -p "$stage" "$tree/.tdd"
+  cp "$SCRIPTS"/*.sh "$stage/"
+  cp -R "$SCRIPTS/lib" "$SCRIPTS/prompts" "$stage/"
+  cat > "$stage/detach-leaf.sh" <<'STUB'
+#!/bin/sh
+printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
+step='<no --step argument>'
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = --step ]; then step="${2-<--step with no value>}"; break; fi
+  shift
+done
+printf '%s\n' "$step" > "$SEEN.argv"
+STUB
+  chmod +x "$stage/detach-leaf.sh"
+}
+
 # The title under test, and the expected value at once: what the conductor is given is what
 # the leaf must receive. A real ledger line from this repository's own history, in its own
 # voice, carrying the one character the launch breaks on.
@@ -900,22 +933,7 @@ scan_step_title() {
     return
   fi
   take_line "$numbered" "$title" || return
-  # The scripts directory the line is run against: every script it ships, with the detacher —
-  # the first process a launch starts, and so the first place the title is observable at all —
-  # replaced by a recorder. `#!/bin/sh` like every other stub here (#322): Homebrew's bash
-  # costs ~12 ms to start and a recorder buys nothing for it. The suites are not copied; the
-  # line names none of them, and copying them would be ~100 files for nothing.
-  stage="$WORK/$tag-scripts"
-  seen="$WORK/$tag-seen"
-  tree="$WORK/$tag-tree"
-  mkdir -p "$stage" "$tree/.tdd"
-  cp "$SCRIPTS"/*.sh "$stage/"
-  cp -R "$SCRIPTS/lib" "$SCRIPTS/prompts" "$stage/"
-  cat > "$stage/detach-leaf.sh" <<'STUB'
-#!/bin/sh
-printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
-STUB
-  chmod +x "$stage/detach-leaf.sh"
+  stage_recorder "$tag"
   printf 'the prompt this launch names, which the recorder never reads\n' \
     > "$tree/.tdd/$leaf.prompt"
   "$planter" "$tree" "$title"
@@ -977,23 +995,7 @@ scan_verdict_step_title() {
     return
   fi
   take_line "$numbered" "$title" || return
-  stage="$WORK/$tag-scripts"
-  seen="$WORK/$tag-seen"
-  tree="$WORK/$tag-tree"
-  mkdir -p "$stage" "$tree/.tdd"
-  cp "$SCRIPTS"/*.sh "$stage/"
-  cp -R "$SCRIPTS/lib" "$SCRIPTS/prompts" "$stage/"
-  cat > "$stage/detach-leaf.sh" <<'STUB'
-#!/bin/sh
-printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
-step='<no --step argument>'
-while [ "$#" -gt 0 ]; do
-  if [ "$1" = --step ]; then step="${2-<--step with no value>}"; break; fi
-  shift
-done
-printf '%s\n' "$step" > "$SEEN.argv"
-STUB
-  chmod +x "$stage/detach-leaf.sh"
+  stage_recorder "$tag"
   plant_ledger "$tree" "$title"
   err="$( cd "$tree" && "${cleared_run_context[@]}" \
             S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
