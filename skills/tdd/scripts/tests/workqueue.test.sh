@@ -587,23 +587,24 @@ expect_unchanged done-empty-sha 2 \
 #     the detail would make a fifth field, a newline a second line — either one corrupts the
 #     file the script is the only writer of. Each reason gets its own repo, seeded alike.
 park_outcome() {
-  local name="$1" reason="$2" code
+  local name="$1" reason="$2" queue="$work/$1/.tdd/workqueue" code lines
   new_repo "$work/$name"
   seed_queue "$work/$name" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
-  cp "$work/$name/.tdd/workqueue" "$work/$name.before"
+  cp "$queue" "$work/$name.before"
   (cd "$work/$name" && "$SCRIPT" park alpha 12 "$reason" >/dev/null 2>&1) && code=0 || code=$?
   if [[ "$code" -ne 0 ]]; then
-    if cmp -s "$work/$name.before" "$work/$name/.tdd/workqueue"; then
+    if cmp -s "$work/$name.before" "$queue"; then
       echo refused
     else
       echo "corrupt (exit $code, file changed)"
     fi
-  elif [[ "$(wc -l < "$work/$name/.tdd/workqueue" | tr -d ' ')" == 2 ]] &&
-    awk -F '\t' 'NF != 4 { bad = 1 } END { exit bad }' "$work/$name/.tdd/workqueue"; then
+    return
+  fi
+  lines="$(wc -l < "$queue" | tr -d ' ')"
+  if [[ "$lines" == 2 ]] && awk -F '\t' 'NF != 4 { bad = 1 } END { exit bad }' "$queue"; then
     echo well-formed
   else
-    echo "corrupt (exit 0, $(wc -l < "$work/$name/.tdd/workqueue" | tr -d ' ') lines," \
-      "fields per line: $(awk -F '\t' '{ printf "%s ", NF }' "$work/$name/.tdd/workqueue"))"
+    echo "corrupt (exit 0, $lines lines, fields per line: $(awk -F '\t' '{ printf "%s ", NF }' "$queue"))"
   fi
 }
 tab_outcome="$(park_outcome park-reason-tab "$(printf 'first\tsecond')")"
