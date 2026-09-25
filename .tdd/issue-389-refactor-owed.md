@@ -1,0 +1,2 @@
+### SKILL.md runs `stop-requested.sh` immediately after the refactor-pending clear's push, and after a pin's `test:` commit, and stops there on any mode ⟦criterion 2⟧
+- SKILL.md spells the post-ledger-commit checkpoint three times (lines 960, 1150, 1273); it could be spelled once and referenced, but each case in skill-stopping.test.sh reads its own branch's slice for the any-mode sentence, so moving it means rewriting those tests, which is more than a behaviour-preserving tidy
