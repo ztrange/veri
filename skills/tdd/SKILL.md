@@ -187,6 +187,13 @@ with `VERI_NEW_SKILL=1` is the sha changing partway down that file.
 - `$S/classify-bail.sh <cause>` — deterministically classify a bail cause
   (`killed-stuck`/`no-verdict` → `system`, `revise-exhausted` → `process`; unknown → exit
   non-zero). Used in the *Bailing* step so the classification is consistent, not ad-hoc.
+- `$S/stop-requested.sh [--clear]` — **has an operator asked this run to stop, and how?**
+  Run from the worktree, it reads `.tdd/stop`. **Exit 0** = a stop was requested: the mode —
+  `at-ledger`, `at-leaf` or `now` — is printed on stdout and nothing else, so capture it and
+  enter *Stopping* with it. **Exit 3** = no request, nothing on stdout; carry on. **Exit 2** =
+  the file's first line is not one of the three modes, or an argument the script does not
+  take: nothing on stdout, the complaint on stderr, `.tdd/stop` left as it was. `--clear`
+  removes `.tdd/stop` and exits 0 whether or not it was there — the last act of *Stopping*.
 - `$S/refactor-budget.sh <count>` — **bound the refactor loop**, so a step costs the same on
   every run. Given the number of transforms applied so far this step, it decides whether
   another one may run: **exit 0** = still under budget (launch the next transform leaf),

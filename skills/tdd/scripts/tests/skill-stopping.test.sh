@@ -239,6 +239,36 @@ if load_section; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# The Stopping section calls stop-requested.sh twice — for the mode it was entered with, and
+# with --clear at its end — so the script's contract belongs where every other script's is
+# read: its own entry in "The scripts" list, from its `- `$S/stop-requested.sh` bullet up to
+# the next bullet or heading, markup dropped and case folded like the section above.
+name="SKILL.md's script reference list has an entry for stop-requested.sh saying what it prints and which exit codes it answers with"
+problems=()
+entry="$(awk '
+  /^## / { in_list = ($0 ~ /^## The scripts/); in_entry = 0; next }
+  !in_list { next }
+  /^- `\$S\// { in_entry = ($0 ~ /^- `\$S\/stop-requested\.sh/) }
+  in_entry' "$skill_path" | tr -d '*`' | tr '[:upper:]' '[:lower:]')"
+if [[ -z "$entry" ]]; then
+  problems+=("the script reference list has no \$S/stop-requested.sh entry — the Stopping section's two calls have no contract to read")
+else
+  for mode in 'at-ledger' 'at-leaf' 'now'; do
+    grep -qE -- "$mode" <<<"$entry" \
+      || problems+=("the stop-requested.sh entry never names the mode $mode it can print")
+  done
+  grep -qE -- 'stdout' <<<"$entry" \
+    || problems+=("the stop-requested.sh entry never says the mode is printed on stdout")
+  grep -qE -- '--clear' <<<"$entry" \
+    || problems+=("the stop-requested.sh entry never names --clear, the Stopping section's second call")
+  for code in 0 2 3; do
+    grep -qE -- "exits? ([0-9]+[ ,/]+(or |and )?)*$code([^0-9]|\$)" <<<"$entry" \
+      || problems+=("the stop-requested.sh entry never names exit $code")
+  done
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
