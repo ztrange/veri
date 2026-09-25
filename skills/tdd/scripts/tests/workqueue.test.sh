@@ -571,5 +571,15 @@ expect_unchanged done-missing-sha 2 \
   "done with a worker and an issue but no merge sha exits 2 and leaves the queue file byte-identical" \
   done alpha 12
 
+# 29. done given an empty merge sha argument exits 2 and leaves the queue file
+#     byte-identical: an empty word names no commit, so it is no more a sha than a missing
+#     one, and a merged line with an empty detail is never written.
+repo="$work/done-empty-sha"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
+expect_unchanged done-empty-sha 2 \
+  "done given an empty merge sha argument exits 2 and leaves the queue file byte-identical" \
+  done alpha 12 ''
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

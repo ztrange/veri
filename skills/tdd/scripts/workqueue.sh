@@ -94,9 +94,9 @@ if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
   case "$1" in
     start) from=queued to=running new_detail="" ;;
     done)
-      # A `done` with no merge sha would write a `merged` line with no detail: refused
-      # before the lock is taken, so the file is left as it was.
-      if [[ $# -lt 4 ]]; then
+      # A `done` with no merge sha, or an empty one, would write a `merged` line with no
+      # detail: refused before the lock is taken, so the file is left as it was.
+      if [[ -z "${4:-}" ]]; then
         echo "workqueue.sh: usage: workqueue.sh done <worker> <issue> <merge-sha>" >&2
         exit 2
       fi
