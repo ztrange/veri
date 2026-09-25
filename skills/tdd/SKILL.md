@@ -1367,6 +1367,9 @@ For attempt `k = 1 … REVISE_BUDGET`:
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
    $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — red or green only — see *The step's cost check*
    ```
+   The `step-cost.sh` line runs only when `<phase>` is red or green: a refactor-phase revise
+   never runs it, because the refactor phase comes after the step's green commit and *The
+   step's cost check* runs no check past that commit.
    The reason travels as a **file**, not as prose you paste in — that is why the verify step
    redirected it. The template tells the leaf it is fresh, that the reason is the whole of
    what it has to work from, that the work is on disk, and that it must answer *that

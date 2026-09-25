@@ -2,7 +2,7 @@
 
 - [x] SKILL.md's preflight calls `step-budget.sh` beside `refactor-budget.sh 0`, and its exit 2 is a preflight-class stop before any leaf is launched ⟦criterion 1⟧
 - [x] SKILL.md places a `step-cost.sh` cost check against the step budget after develop-red, after each verify-red, after each revise attempt, after develop-green and after each verify-green ⟦criterion 2⟧
-- [ ] SKILL.md says in prose, not only in an inline comment, that the shared revise block runs `step-cost.sh` only when the phase being revised is red or green, never for a refactor-phase revise ⟦added⟧ ⟦criterion 2⟧
+- [x] SKILL.md says in prose, not only in an inline comment, that the shared revise block runs `step-cost.sh` only when the phase being revised is red or green, never for a refactor-phase revise ⟦added⟧ ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] SKILL.md places no cost check after the step's green commit — not in the refactor loop, not after verify-refactor — and says why ⟦criterion 2⟧
 - [ ] SKILL.md runs each cost check only once the leaf has exited and its `usage` event has been harvested
 - [ ] SKILL.md states that the cost check fires at most once per step and is not re-armed once its branch has run ⟦criterion 3⟧

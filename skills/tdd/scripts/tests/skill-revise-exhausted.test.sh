@@ -250,6 +250,35 @@ fi
 
 report "$name"
 
+# The shared revise block serves red, green and refactor alike, and only the first two run
+# before the green commit, so its cost check must be skipped for a refactor-phase revise. An
+# inline comment in the fenced command is the only place that said so; a conductor reading
+# the section's prose is told nothing, so the rule has to be a sentence of that prose.
+
+# revise_prose_sentences — the revise section with its fenced blocks dropped, normalised
+# through `plain`, one sentence per line: what the section says outside its commands.
+revise_prose_sentences() {
+  awk -v h="$revise_heading" \
+    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit }
+     inside && /^[[:space:]]*```/ { fenced = !fenced; next }
+     inside && !fenced' "$skill_path" |
+    plain |
+    awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
+}
+
+name="$skill_md says in the prose of '$revise_heading', not only in an inline comment, that a refactor-phase revise runs no $step_cost"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what the revise block says about its cost check could not be established")
+elif ! revise_prose_sentences |
+  grep -F -- "$step_cost" | grep -F -- 'refactor' |
+  grep -E -- "(^|[^a-z])(never|not|no)([^a-z]|$)|n't" > /dev/null; then
+  problems+=("no sentence of '$revise_heading' outside its fenced commands names $step_cost and refactor together and says the check does not run for a refactor-phase revise — the red-or-green-only rule lives only in an inline comment")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
