@@ -1,6 +1,6 @@
 # Plan for #437 — A step title containing $, a backtick or a double quote is still mangled — and now silently, since #431's rule is double quotes
 
-- [ ] A step title containing a dollar sign, a backtick and a double quote reaches a developer leaf launched by SKILL.md's documented launch line byte-identical in its VERI_STEP environment ⟦criterion 1⟧
+- [x] A step title containing a dollar sign, a backtick and a double quote reaches a developer leaf launched by SKILL.md's documented launch line byte-identical in its VERI_STEP environment ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] A step title containing a dollar sign, a backtick and a double quote reaches a verifier launched by SKILL.md's documented verdict launch line byte-identical, both in its VERI_STEP environment and in its --step argument ⟦criterion 1⟧
 - [ ] The conductor's own title-carrying command lines in SKILL.md, the event.sh marks and preserve-attempt.sh calls and the title fragments handed to tick-ledger.sh, clear-refactor-pending.sh and tick-issue-criterion.sh, pass a title with a dollar sign, a backtick and a double quote through byte-identical
 - [ ] The pin probes with one title carrying all three characters at once and goes red when a launch line is put back to the hand-typed double-quoted form of #431 ⟦criterion 2⟧
