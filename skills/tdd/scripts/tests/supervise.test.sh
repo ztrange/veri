@@ -1896,6 +1896,28 @@ rm -f "$work/.test-suspended"
 { [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
   || no "#472: with VERI_AWAKE_CLOCK unset, a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
 
+# 45. time the machine spends SUSPENDED does not count toward the hard timeout either (issue
+#     #472). The same injected clock as case 43, with the windows swapped: a 30 s heartbeat the
+#     leaf never nears, and a 2 s VERI_TIMEOUT the leaf's suspend of one second past it would
+#     cross on the wall clock while its awake time stays well under it. The leaf waits for the
+#     supervisor to read the clock twice across the suspend, then exits 3 — so the supervisor
+#     must report the leaf's own failure (exit 1, 3 in .rc), never killed-stuck (exit 2).
+cat > "$stub/leaf-suspended-timeout" <<'L'
+#!/bin/sh
+: > .test-clock-reads
+echo "leaf: starting"
+clock-suspend "$(( ${VERI_TIMEOUT:-999} + 1 ))"
+await-poll; await-poll
+echo "leaf: awake again"; exit 3
+L
+chmod +x "$stub/leaf-suspended-timeout"
+rm -f "$work/.test-suspended" "$work/.tdd/suspended-timeout.rc"
+sup suspended-timeout 30 2 leaf-suspended-timeout
+susp_rc="$(cat "$work/.tdd/suspended-timeout.rc" 2>/dev/null || echo '<missing>')"
+rm -f "$work/.test-suspended"
+{ [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
+  || no "#472: a leaf whose run spans a 3s suspend past a 2s VERI_TIMEOUT, awake time under it, is not killed for the timeout and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -243,7 +243,7 @@ recover_finished_leaf() {
 # everything below speaks, so nothing down there reads the number itself. `$pid` is the one
 # non-answer that must stay global anyway: `kill_tree` is a separate function and reads it.
 attempt_once() {
-  local t0 t silence rc last_m seen_at m prev_t prev_a a asleep
+  local t0 t silence rc last_m seen_at m prev_t prev_a a asleep slept=0
   : > "$log"
   rm -f "$rcfile"
 
@@ -274,10 +274,11 @@ attempt_once() {
   if (( heartbeat_watched )); then last_m="$(mtime_of "$log")"; seen_at="$t0"; fi
   # A suspended machine is not a silent leaf (issue #472): whatever the wall clock moved across
   # one poll beyond what the awake clock moved is time the machine spent asleep, and the
-  # heartbeat window is slid forward by it so it does not count as silence. A negative gap is
-  # slid too, unclamped: the two clocks are read a moment apart, so a whole-second tick can land
-  # between them and one poll's gap is +1 and the next -1; summed, the gaps telescope to exactly
-  # the wall time the awake clock did not see, where clamping each at zero would keep every +1.
+  # heartbeat window is slid forward by it so it does not count as silence, and `slept` keeps it
+  # out of the hard timeout's elapsed time the same way. A negative gap is slid too, unclamped:
+  # the two clocks are read a moment apart, so a whole-second tick can land between them and one
+  # poll's gap is +1 and the next -1; summed, the gaps telescope to exactly the wall time the
+  # awake clock did not see, where clamping each at zero would keep every +1.
 
   while :; do
     if [[ -f "$rcfile" ]]; then
@@ -289,8 +290,9 @@ attempt_once() {
     a="$("$awake_clock")"
     asleep=$(( (t - prev_t) - (a - prev_a) ))
     seen_at=$(( ${seen_at:-0} + asleep ))
+    slept=$(( slept + asleep ))
     prev_t="$t" prev_a="$a"
-    if (( t - t0 >= timeout )); then
+    if (( t - t0 - slept >= timeout )); then
       status="killed-stuck"; reason="hard timeout ${timeout}s exceeded"; kill_tree; break
     fi
     if (( heartbeat_watched )); then
