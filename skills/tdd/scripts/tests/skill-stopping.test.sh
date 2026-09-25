@@ -626,11 +626,13 @@ scope_loop_section() {
     inside' "$ROOT/$scope_loop_md"
 }
 
-# load_scope_stop <problem> — put SCOPE-LOOP.md's stopped-issue condition in `section`,
+# load_scope_stop [<problem>] — put SCOPE-LOOP.md's stopped-issue condition in `section`,
 # joined, for a case's probes to read: *Loop 4* from its `### Loop 4` heading to the next
 # `### `, split into its bullets, and the bullet whose bold label names a stop. Records the
 # fail-closed problem and returns 1 when there is no Loop 4, or <problem> when Loop 4 has no
-# such bullet. Every #391 case reads that bullet, so they slice it by one rule here.
+# such bullet — by default, that nothing could be checked. Every #391 case reads that bullet,
+# so they slice it by one rule here.
+scope_stop_unchecked="$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked"
 load_scope_stop() {
   section="$(scope_loop_section 4 | plain)"
   if [[ -z "$section" ]]; then
@@ -642,7 +644,7 @@ load_scope_stop() {
     /^[^- ]/ { inside = 0 }
     inside' <<<"$section")"
   if [[ -z "$section" ]]; then
-    problems+=("$1")
+    problems+=("${1:-$scope_stop_unchecked}")
     return 1
   fi
   section="$(joined)"
@@ -667,7 +669,7 @@ report "$name"
 # no business overruling it. Read from the same stop-condition bullet as the case above.
 name="SCOPE-LOOP.md says a stop, unlike a bail, has no continue-past option — no --continue-on-bail equivalent, because a stop is the operator speaking"
 problems=()
-if load_scope_stop "$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked"; then
+if load_scope_stop; then
   require "$(either_order '(^|[^a-z])(no|not|never|nothing)[^a-z]' '(--continue-on-bail|continue[- ]past)')" \
     "the stopped-issue condition never says a stop has no --continue-on-bail equivalent"
   require '(^|[^a-z])operator' \
@@ -709,7 +711,7 @@ report "$name"
 # not answer for it, and the drain must come after the resume, not before it.
 name="SCOPE-LOOP.md says re-invoking the same command after a stop resumes the stopped issue from its committed ledger and then carries on draining the scope"
 problems=()
-if load_scope_stop "$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked"; then
+if load_scope_stop; then
   require 're-?invok(e|es|ing)[^.;]*same command' \
     "the stopped-issue condition never says to re-invoke the same command"
   require "$(either_order 'resum' 'committed ledger')" \
