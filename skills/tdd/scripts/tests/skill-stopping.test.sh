@@ -131,6 +131,16 @@ after() {
   [[ -n "$1" && -n "$2" && "$1" -gt "$2" ]]
 }
 
+# ledger_branch <start> <end> — the lines of `section` from its first line matching <start> to
+# the first line after it matching <end>: one ledger commit's branch. Both probes of a ledger
+# commit slice through this, so no two of them read a different branch for the same commit.
+ledger_branch() {
+  start="$1" end="$2" awk '
+    !inside && $0 ~ ENVIRON["start"] { inside = 1 }
+    inside { print }
+    inside && $0 ~ ENVIRON["end"] { exit }' <<<"$section"
+}
+
 # ledger_checkpoint <what> <start> <end> <anchor> — probe one ledger commit's branch for the
 # checkpoint that follows it. The branch is read out of `section` from its first line matching
 # <start> to the first line after it matching <end>; stop-requested.sh must come after the
@@ -140,10 +150,7 @@ after() {
 # commit's checkpoint held to a looser rule than another's.
 ledger_checkpoint() {
   local what="$1" anchor="$4" anchor_at stop_at
-  section="$(start="$2" end="$3" awk '
-    !inside && $0 ~ ENVIRON["start"] { inside = 1 }
-    inside { print }
-    inside && $0 ~ ENVIRON["end"] { exit }' <<<"$section")"
+  section="$(ledger_branch "$2" "$3")"
   if [[ -z "$section" ]]; then
     problems+=("$what has no branch to read — nothing could be checked")
     return
@@ -408,14 +415,11 @@ report "$name"
 # the push's own exit 2, earlier in the green branch, is a bail and says nothing about a stop.
 name="the three ledger-commit checkpoints send stop-requested.sh exit 2 to Stopping as at-ledger, narrating that the request was unreadable"
 problems=()
-# ledger_exit2 <what> <start> <end> — probe one ledger commit's branch, sliced as
-# ledger_checkpoint slices it, for the exit 2 answer after its stop-requested.sh call.
+# ledger_exit2 <what> <start> <end> — probe one ledger commit's branch, sliced by
+# ledger_branch, for the exit 2 answer after its stop-requested.sh call.
 ledger_exit2() {
   local what="$1" text
-  text="$(start="$2" end="$3" awk '
-    !inside && $0 ~ ENVIRON["start"] { inside = 1 }
-    inside { print }
-    inside && $0 ~ ENVIRON["end"] { exit }' <<<"$section" | tr '\n' ' ' | tr -s ' ')"
+  text="$(ledger_branch "$2" "$3" | tr '\n' ' ' | tr -s ' ')"
   if [[ "$text" != *stop-requested.sh* ]]; then
     problems+=("$what has no stop-requested.sh checkpoint to read — nothing could be checked")
     return
