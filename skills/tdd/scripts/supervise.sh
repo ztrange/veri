@@ -237,13 +237,14 @@ recover_finished_leaf() {
 # took, which the `exit` mark at the foot of this script reports. They are not `local` because
 # a run's last attempt is what every line below reads. Everything else the watchdog needs is,
 # so the list above is the whole of what this function says to the rest of the script: the
-# launch stamp `$t0` (the loop's hard-timeout baseline, and the subtraction below turns it
-# into `secs`), the loop's clock reading `$t` and its silence measure `$silence`, and `$rc`,
-# the leaf's own raw exit code — which `status` already summarises into the vocabulary
-# everything below speaks, so nothing down there reads the number itself. `$pid` is the one
-# non-answer that must stay global anyway: `kill_tree` is a separate function and reads it.
+# launch stamps `$t0` (the subtraction below turns it into `secs`) and `$a0` (the awake
+# clock's, the hard timeout's baseline), the loop's clock reading `$t` and its silence measure
+# `$silence`, and `$rc`, the leaf's own raw exit code — which `status` already summarises into
+# the vocabulary everything below speaks, so nothing down there reads the number itself.
+# `$pid` is the one non-answer that must stay global anyway: `kill_tree` is a separate
+# function and reads it.
 attempt_once() {
-  local t0 t silence rc last_m seen_at m prev_t prev_a a asleep slept=0
+  local t0 a0 t silence rc last_m seen_at m prev_t prev_a a asleep
   : > "$log"
   rm -f "$rcfile"
 
@@ -251,7 +252,8 @@ attempt_once() {
   # moves time before the second reading would otherwise land between them, and the awake
   # time it moved would read as time asleep (issue #472).
   t0="$(now)"
-  prev_t="$t0" prev_a="$("$awake_clock")"
+  a0="$("$awake_clock")"
+  prev_t="$t0" prev_a="$a0"
 
   # Launch the leaf in its own process group (job-control monitor mode) so we can kill the
   # whole tree — including any grandchild like `sleep` — in one signal. A trailing rc file
@@ -274,11 +276,11 @@ attempt_once() {
   if (( heartbeat_watched )); then last_m="$(mtime_of "$log")"; seen_at="$t0"; fi
   # A suspended machine is not a silent leaf (issue #472): whatever the wall clock moved across
   # one poll beyond what the awake clock moved is time the machine spent asleep, and the
-  # heartbeat window is slid forward by it so it does not count as silence, and `slept` keeps it
-  # out of the hard timeout's elapsed time the same way. A negative gap is slid too, unclamped:
-  # the two clocks are read a moment apart, so a whole-second tick can land between them and one
-  # poll's gap is +1 and the next -1; summed, the gaps telescope to exactly the wall time the
-  # awake clock did not see, where clamping each at zero would keep every +1.
+  # heartbeat window is slid forward by it so it does not count as silence. The hard timeout
+  # needs no such slide: it is measured on the awake clock alone, from `$a0`. A negative gap is
+  # slid too, unclamped: the two clocks are read a moment apart, so a whole-second tick can land
+  # between them and one poll's gap is +1 and the next -1; summed, the gaps telescope to exactly
+  # the wall time the awake clock did not see, where clamping each at zero would keep every +1.
 
   while :; do
     if [[ -f "$rcfile" ]]; then
@@ -290,9 +292,8 @@ attempt_once() {
     a="$("$awake_clock")"
     asleep=$(( (t - prev_t) - (a - prev_a) ))
     seen_at=$(( ${seen_at:-0} + asleep ))
-    slept=$(( slept + asleep ))
     prev_t="$t" prev_a="$a"
-    if (( t - t0 - slept >= timeout )); then
+    if (( a - a0 >= timeout )); then
       status="killed-stuck"; reason="hard timeout ${timeout}s exceeded"; kill_tree; break
     fi
     if (( heartbeat_watched )); then
