@@ -33,6 +33,13 @@ expect() {
   fi
 }
 
+# refused <call> — add to `problems` unless the run just made exited 2, silent on stdout,
+# with a diagnostic of the script's own on stderr; <call> names it in the line.
+refused() {
+  expect 2 ""
+  [[ "$err" == step-cost.sh:* ]] || problems+="    $1: stderr '$err' is not step-cost.sh's own diagnostic"$'\n'
+}
+
 # verdict <name> — report one case from the `problems` the case just filled: empty is a
 # pass, otherwise a FAIL line naming the case and the indented lines it collected. Then
 # empty it for the next case. Same accounting idiom as stop-requested.test.sh's verdict().
@@ -161,12 +168,6 @@ verdict "events that are not usage events create no step and add no cost in any 
 #    extra` read as if the extra word were not there would print a figure and exit 0. The
 #    diagnostic is the script's own, opening `step-cost.sh:`, so a missing log is refused by
 #    the script and not left to whatever the tool reading it happens to print.
-# refused <call> — add to `problems` unless the run just made exited 2, silent on stdout,
-# with a diagnostic of the script's own on stderr; <call> names it in the line.
-refused() {
-  expect 2 ""
-  [[ "$err" == step-cost.sh:* ]] || problems+="    $1: stderr '$err' is not step-cost.sh's own diagnostic"$'\n'
-}
 cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
 EOF
