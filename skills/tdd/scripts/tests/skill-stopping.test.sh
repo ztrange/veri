@@ -700,6 +700,25 @@ else
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# And how a stopped scope run picks up again (issue #391): the stop condition ends the loop,
+# and an operator reading it has to know what the same command does next. It resumes the
+# stopped issue from its committed ledger — the single-issue resume, no new machinery — and
+# then carries on draining the scope rather than ending with that one issue. Read from the
+# same stop-condition bullet as the cases above, so Loop 5's general mid-issue sentence must
+# not answer for it, and the drain must come after the resume, not before it.
+name="SCOPE-LOOP.md says re-invoking the same command after a stop resumes the stopped issue from its committed ledger and then carries on draining the scope"
+problems=()
+if load_scope_stop "$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked"; then
+  require 're-?invok(e|es|ing)[^.;]*same command' \
+    "the stopped-issue condition never says to re-invoke the same command"
+  require "$(either_order 'resum' 'committed ledger')" \
+    "the stopped-issue condition never says the stopped issue resumes from its committed ledger"
+  require 'resum[^.;]*(carr(y|ies|ying) on|continu(e|es|ing)|keep(s|ing)? going)[^.;]*(drain|scope)' \
+    "the stopped-issue condition never says the resumed run then carries on draining the scope"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
