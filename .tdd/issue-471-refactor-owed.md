@@ -1,0 +1,2 @@
+### A launch through supervise.sh under one name is refused while a stub leaf supervised under a different name is still alive in the same worktree — exit 2, no second leaf started, stderr naming the live leaf and its pid ⟦criterion 5⟧
+- `supervise.test.sh` case 37's post-case "kill the leaf if it survived" loop (the lines under `if [[ -n "$owner_leaf" ]]`) repeats case 30's (`term_leaf`, line ~1337) and could become one helper. Case 30 also records whether the leaf was alive, so a shared helper would need to return that. It is two lines, so I left it.
