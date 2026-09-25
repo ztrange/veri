@@ -309,6 +309,12 @@ budget: **call `wait-leaf.sh` again**, as many times as it takes. Only a 0, 1 or
 answer. Read the leaf's report from `.tdd/<name>.out` — the captured stdout — instead of
 from the launcher's stdout, which the detached call no longer hands you.
 
+**Before every leaf launch, ask whether a stop was requested: run `$S/stop-requested.sh`**
+ahead of the `rm -f`, for a developer leaf and a verifier alike. On exit 3 no stop is
+pending: launch as normal. On exit 0 branch on the mode it printed — `at-ledger` launches the
+leaf anyway, because every leaf between two ledger commits is on the way to the next one, and
+`at-leaf` or `now` launch nothing and go to *Stopping*.
+
 Never `nohup … &` in place of that detach: `nohup` makes the leaf ignore a hang-up (SIGHUP),
 but it leaves it in the **process group** of the Bash call that launched it, so a harness
 that signals that group when the call ends takes the leaf with it. A leaf killed that way
