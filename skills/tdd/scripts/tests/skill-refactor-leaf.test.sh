@@ -56,6 +56,9 @@
 #  10. That section's account of the leaf's report footer names exactly the report lines the
 #      built refactor prompt asks for — no line the prompt does not emit, none it emits left
 #      out (issue #175).
+#  11. SKILL.md grows the plan from the refactor leaf's FLAGS: classes alone: the one
+#      add-ledger-step.sh call is fed from uncovered-spec flags, and nowhere does the
+#      document read a NEW_STEP: or CANDIDATES: line of the leaf's into the plan (issue #175).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -830,6 +833,48 @@ else
       problems+=("$skill_md's Refactor section never names $label:, a line the built refactor prompt asks the leaf for, so the leaf writes it and nothing in the procedure reads it")
   done
 fi
+
+report "$name"
+
+# 11. One criterion — the plan grows from the leaf's FLAGS: classes alone — and so one case.
+#     Case 10 established that the built refactor prompt asks for no `NEW_STEP:` line: the
+#     overfit finding moved onto a classed `FLAGS:` line. A procedure that still feeds "the
+#     leaf's NEW_STEP: values" to add-ledger-step.sh reads a line no leaf writes, so the one
+#     class that is allowed to grow the plan (case 7) never reaches the call that grows it;
+#     and a procedure that grew the plan from `CANDIDATES:` would turn leftover tidying into
+#     ledger steps, the cost #175 measured. Asked of the whole document rather than the
+#     Refactor section, because the criterion says anywhere: a second reader of the leaf's
+#     report elsewhere would be the same hole.
+#
+#     Three probes, the criterion's parts: the call is fed from the flag class, no sentence
+#     reads the leaf's NEW_STEP:, and no sentence grows the plan from CANDIDATES:.
+name="$skill_md grows the plan from the refactor leaf's FLAGS: classes alone, reading no NEW_STEP: or CANDIDATES: line of the leaf's into it"
+problems=()
+
+whole="$(plain <"$skill_path" | tr '\n' ' ')"
+
+if unreadable_section; then
+  problems+=("$(unreadable_problem "what the plan is grown from could not be established")")
+else
+  # a. The one plan-growing call names the flag class it is fed from.
+  grown="$(win "$add_ledger_step")"
+  if [[ -z "$grown" ]]; then
+    problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so an uncovered-spec flag is never planned")
+  else
+    grep -F 'uncovered-spec' >/dev/null <<<"$grown" ||
+      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying its texts are the leaf's uncovered-spec FLAGS: lines, so the plan grows from something other than the class that is allowed to grow it")
+  fi
+fi
+
+# b. No sentence reads a NEW_STEP: line of the leaf's — the built prompt asks for none.
+leaf_new_step="$(phrase "$(either_order "leaf's" 'new_step' '[^.]{0,30}')" "$whole")"
+[[ -z "$leaf_new_step" ]] ||
+  problems+=("$skill_md still reads a NEW_STEP: line from the refactor leaf — it says '$leaf_new_step' — a line the built refactor prompt never asks for, so the conductor grows the plan from a report line no leaf writes")
+
+# c. No sentence grows the plan from CANDIDATES: — those are leftovers a follow-up owes.
+candidate_growth="$(phrase "$(either_order 'candidates:' "($amendment)" '[^.]{0,80}')" "$whole")"
+[[ -z "$candidate_growth" ]] ||
+  problems+=("$skill_md grows the plan from the leaf's CANDIDATES: lines — it says '$candidate_growth' — so leftover tidying becomes ledger steps with refactor loops of their own")
 
 report "$name"
 

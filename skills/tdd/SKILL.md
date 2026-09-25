@@ -1027,7 +1027,7 @@ following step. The phase sub-steps are:
    ledger step covers** — the gap *Scope & plan* above asks the planner to
    catch, found late by a leaf reading the code. That is the **only** flag class a plan
    amendment is made from: its behaviour is carried, verbatim as a criterion, into the same
-   `add-ledger-step.sh … after "<STEP>"` call the `NEW_STEP:` values go in at 6's PASS
+   `add-ledger-step.sh … after "<STEP>"` call the verdict's `NEW_STEP:` values go in at 6's PASS
    branch, so the missing step is planned and built like any other. No other class amends
    the plan — an **overfit** flag is answered inside the step at 3, and the plan never grows
    for what the spec did not ask for. A flag class turned into a step of its own is what
@@ -1084,14 +1084,14 @@ following step. The phase sub-steps are:
    $S/refactor-owed.sh append .tdd/issue-<n>-refactor-owed.md "<STEP>" < .tdd/develop-refactor.out
    ```
    - **PASS:** the step's cycle is complete — the step is tidied, not merely green, so
-     **grow the plan with the leaf's `NEW_STEP:` values and the passing verify-refactor
-     verdict's own, then clear the refactor-pending mark and commit the grown, cleared
+     **grow the plan with the behaviours of the leaf's `uncovered-spec` flags (4 above) and the
+     passing verify-refactor verdict's `NEW_STEP:` values, then clear the refactor-pending mark and commit the grown, cleared
      ledger first**, before anything outside the repository says the step is done. The
      verifier's are the `NEW_STEP:` lines before the final `VERDICT:`/`REASON:` pair in
      `.tdd/verify-refactor.log` — the unhandled edge case it proposes rather than REJECTs
      for:
      ```
-     $S/add-ledger-step.sh .tdd/issue-<n>.md after "<STEP>" '<NEW_STEP: value>' …   # every NEW_STEP: value in ONE call
+     $S/add-ledger-step.sh .tdd/issue-<n>.md after "<STEP>" '<uncovered-spec behaviour | NEW_STEP: value>' …   # every one in ONE call
      VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="<STEP>" $S/event.sh step-added anchor="<STEP>" added=<count>
      $S/clear-refactor-pending.sh .tdd/issue-<n>.md "<distinctive substring of STEP>"
      git add -A && git commit -m "chore: refactor verified for <STEP summary> (#<n>)"
@@ -1100,10 +1100,10 @@ following step. The phase sub-steps are:
      `git add -A` is what carries `.tdd/issue-<n>-refactor-owed.md` into that same commit:
      what `append` wrote is untracked until then, and a file left beside the worktree is
      lost with it.
-     Every `NEW_STEP:` value from both — the leaf's and the verdict's — goes in **one**
+     Every uncovered-spec behaviour and every verdict `NEW_STEP:` value goes in **one**
      call, under the script's own one-call rule, anchored `after "<STEP>"` so the
-     triangulating step lands next to the code it triangulates. Neither reporting a value — the leaf's
-     `NEW_STEP: none` and no `NEW_STEP:` line in the verdict — is no call and no mark at all.
+     triangulating step lands next to the code it triangulates. Neither reporting one — no `uncovered-spec` flag
+     and no `NEW_STEP:` line in the verdict — is no call and no mark at all.
      **exit 1** is that one call meeting the plan-growth budget: the values are filed as
      owed steps rather than planned — the script's own entry above says how — and
      `next-unchecked.sh` never finds them there, so the run does not plan what it recorded.
