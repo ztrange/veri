@@ -153,11 +153,32 @@ n="$(wc -l < .test-clock-reads)"
 for _ in $(seq 1 500); do [ "$(wc -l < .test-clock-reads)" -gt "$n" ] && exit 0; sleep 0.01; done
 exit 1
 C
-chmod +x "$stub/date" "$stub/stat" "$stub/clock-jump" "$stub/await-poll"
+# The awake clock (issue #472): whole seconds the machine spent awake, which the supervisor
+# reads from the executable VERI_AWAKE_CLOCK names. A `clock-jump` is awake time, so this stub
+# answers real time plus every jump, minus every second `clock-suspend` (case 43) put in
+# ./.test-suspended. Named for every case below, so a jump is silence and not a suspend; the
+# case that asks for the supervisor's own real clock unsets it.
+cat > "$stub/awake-clock" <<'C'
+#!/bin/sh
+exec python3 -c '
+import time
+offset = suspended = 0
+try:
+    offset = int(open(".test-clock").read().split()[-1])
+except (OSError, IndexError):
+    pass
+try:
+    suspended = sum(int(x) for x in open(".test-suspended").read().split())
+except OSError:
+    pass
+print(int(time.time()) + offset - suspended)'
+C
+chmod +x "$stub/date" "$stub/stat" "$stub/clock-jump" "$stub/await-poll" "$stub/awake-clock"
 
 # On PATH for everything this suite starts, so the supervisor reads the injected clock and a
 # stub leaf can call the helpers by name.
 export PATH="$stub:$PATH"
+export VERI_AWAKE_CLOCK="$stub/awake-clock"
 
 # sup <name> <heartbeat> <timeout> <leaf> -> sets $out / $code (runs in $work)
 # VERI_STUCK_RETRIES=0 is pinned, not inherited: every case here is about a single attempt,
@@ -1844,21 +1865,6 @@ cat > "$stub/clock-suspend" <<'C'
 #!/bin/sh
 clock-jump "$1" && echo "$1" >> .test-suspended
 C
-cat > "$stub/awake-clock" <<'C'
-#!/bin/sh
-exec python3 -c '
-import time
-offset = suspended = 0
-try:
-    offset = int(open(".test-clock").read().split()[-1])
-except (OSError, IndexError):
-    pass
-try:
-    suspended = sum(int(x) for x in open(".test-suspended").read().split())
-except OSError:
-    pass
-print(int(time.time()) + offset - suspended)'
-C
 cat > "$stub/leaf-suspended" <<'L'
 #!/bin/sh
 : > .test-clock-reads
@@ -1867,7 +1873,7 @@ clock-suspend "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
 await-poll; await-poll
 echo "leaf: awake again"; exit 3
 L
-chmod +x "$stub/clock-suspend" "$stub/awake-clock" "$stub/leaf-suspended"
+chmod +x "$stub/clock-suspend" "$stub/leaf-suspended"
 rm -f "$work/.test-clock" "$work/.test-clock-reads" "$work/.test-suspended"
 out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=2 VERI_TIMEOUT=30 VERI_POLL=0.02 \
           VERI_KILL_POLL=0.01 VERI_AWAKE_CLOCK="$stub/awake-clock" \
@@ -1877,6 +1883,22 @@ susp_rc="$(cat "$work/.tdd/suspended.rc" 2>/dev/null || echo '<missing>')"
 rm -f "$work/.test-suspended"
 { [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
   || no "#472: a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
+
+# 44. a run nobody configured measures awake time too (issue #472). Case 43 names the awake
+#     clock; here VERI_AWAKE_CLOCK is unset, so the supervisor must fall back to a REAL clock
+#     that does not advance while the machine is suspended. The stubbed `date` and `stat` are
+#     the wall clock and jump past the window; the real awake clock the supervisor reads does
+#     not see that jump, which is exactly what a suspend looks like to it. The same leaf as
+#     case 43 must therefore finish with its own exit code, never killed-stuck.
+rm -f "$work/.test-clock" "$work/.test-clock-reads" "$work/.test-suspended" "$work/.tdd/suspended.rc"
+out="$( cd "$work" && env -u VERI_AWAKE_CLOCK VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=2 VERI_TIMEOUT=30 \
+          VERI_POLL=0.02 VERI_KILL_POLL=0.01 \
+          "$SUP" suspended "$stub/leaf-suspended" 2>"$work/err" )"
+code=$?
+susp_rc="$(cat "$work/.tdd/suspended.rc" 2>/dev/null || echo '<missing>')"
+rm -f "$work/.test-suspended"
+{ [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
+  || no "#472: with VERI_AWAKE_CLOCK unset, a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
 
 echo "----"
 echo "$pass passed, $fail failed"
