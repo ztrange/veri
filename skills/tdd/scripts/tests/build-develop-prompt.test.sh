@@ -1394,6 +1394,19 @@ problems=""
 [[ -z "$problems" ]] \
   && ok || no "develop-over-budget carries the step, the spent figure, the budget figure and the issue spec (${problems#; })"
 
+# 40. the over-budget prompt's report shapes (issue #450, criterion 2). Its answer is read by
+#     `exhausted-outcome.sh`, unchanged by this issue, which recognises exactly two shapes: a
+#     line starting `SPLIT:` (one per split criterion) and a line starting `NEEDS_USER:` (the
+#     needs-user answer). A prompt that asked for anything else would get an answer that reader
+#     resolves to "neither", so the case pins both labels as report lines, anchored at the start
+#     of a line the way the reader's own `^SPLIT:` / `^NEEDS_USER:` patterns are. Case 39's
+#     build is reused, since this asks a different question of the same prompt.
+problems=""
+grep -qE '^SPLIT:' <<<"$over_budget" || problems="$problems; no SPLIT: report line"
+grep -qE '^NEEDS_USER:' <<<"$over_budget" || problems="$problems; no NEEDS_USER: report line"
+[[ -z "$problems" ]] \
+  && ok || no "develop-over-budget asks for SPLIT: lines or a NEEDS_USER: answer, the two shapes exhausted-outcome.sh reads (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

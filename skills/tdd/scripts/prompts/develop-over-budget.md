@@ -21,3 +21,14 @@ Budget: {{BUDGET}}
 ### The test command
 
 {{TEST_CMD}}
+
+### Report (last lines of your output)
+
+If the step is more than one behaviour, one to three lines, each a behaviour-level criterion
+small enough to be one red-green cycle of its own, in the order they must be built:
+
+SPLIT: <a behaviour-level criterion, one per line, in the order they must be built>
+
+If it needs a decision this run has no authority to make, one line naming that decision:
+
+NEEDS_USER: <the decision, stated so the user can answer it>
