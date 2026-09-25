@@ -1737,6 +1737,38 @@ fi
   && [[ "$rm_err" == *revise-green-1* ]] && [[ "$rm_err" =~ (^|[^0-9])$rm_sup([^0-9]|$) ]]; } && ok \
   || no "#471: a launch is still refused after the pre-launch rm -f .tdd/<name>.exit .tdd/<name>.pid while the first leaf is alive (first leaf pid=${rm_leaf:-<never started>}; code=$rm_code want 2, second leaf ran=$rm_second want no, stderr='$rm_err' want it to name revise-green-1 and pid $rm_sup)"
 
+# 40. a record left by a supervised leaf whose process is gone refuses nothing (issue #471).
+#     A supervisor that dies — SIGKILL, which no handler sees — never gets to clear what it
+#     recorded, so the worktree keeps a trace of a leaf that is no longer there. That trace
+#     must not become a permanent block: the next launch runs its leaf and answers as it
+#     would have with no record at all. Case 37's stubs: the first supervisor is KILLed rather
+#     than TERMed, so its own cleanup cannot run, and its leaf is killed after it, so neither
+#     pid is alive. The record is read before the relaunch so the case cannot pass on a
+#     worktree that was never claimed. The relaunch is the revise relaunch's shape: the same
+#     name, after SKILL.md's pre-launch rm. A run directory of its own.
+dead_work="$work/dead-owner"
+mkdir -p "$dead_work"
+( cd "$dead_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+dead_sup=$!
+for _ in $(seq 1 50); do [[ -s "$dead_work/leaf-pid" ]] && break; sleep 0.1; done
+dead_leaf="$(tr -d '[:space:]' < "$dead_work/leaf-pid" 2>/dev/null)"
+kill -KILL "$dead_sup" 2>/dev/null
+wait "$dead_sup" 2>/dev/null
+if [[ -n "$dead_leaf" ]]; then
+  kill -KILL "$dead_leaf" 2>/dev/null
+  for _ in $(seq 1 20); do kill -0 "$dead_leaf" 2>/dev/null || break; sleep 0.1; done
+fi
+dead_record="$(cat "$dead_work/.tdd/leaf.owner" 2>/dev/null || echo '<missing>')"
+( cd "$dead_work" && rm -f .tdd/revise-green-1.exit .tdd/revise-green-1.pid )
+( cd "$dead_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$dead_work/err"
+dead_code=$?
+dead_second="no"; [[ -e "$dead_work/second-ran" ]] && dead_second="yes"
+{ [[ -n "$dead_leaf" ]] && [[ "$dead_record" == "$dead_sup revise-green-1" ]] \
+  && [[ "$dead_code" == 0 ]] && [[ "$dead_second" == yes ]]; } && ok \
+  || no "#471: a record left by a supervised leaf whose process is gone does not refuse the next launch (first leaf pid=${dead_leaf:-<never started>}; record='$dead_record' want '$dead_sup revise-green-1'; code=$dead_code want 0, second leaf ran=$dead_second want yes, stderr='$(cat "$dead_work/err")')"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
