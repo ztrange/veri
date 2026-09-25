@@ -20,10 +20,11 @@
 # code smuggled past the blind verifier of the phase that was supposed to be
 # behavior-preserving. Neither is visible to verify-refactor, which judges the settled tree.
 #
-# Contract under test — nine criteria, the procedure, the account of it, what the leaf's
+# Contract under test — ten criteria, the procedure, the account of it, what the leaf's
 # report grows, what a growth budget too full to hold it means, whose proposals that
 # growth carries, where an overfit flag is answered, which flag class grows the plan, where
-# a beyond-spec flag goes instead, and how often one step may triangulate, one case each:
+# a beyond-spec flag goes instead, how often one step may triangulate, and which report
+# lines the plan grows from, one case each:
 #   1. SKILL.md's Refactor section launches ONE leaf for the step rather than one per
 #      transform; before verify-refactor it asks `git status --porcelain` and refuses to go
 #      on while the tree is dirty; it asks the subjects of the commits since the green
@@ -47,18 +48,23 @@
 #      the step that raised it — no ledger step, no second `### ✅ Step done` — and then
 #      resumes that step's own refactor loop with the budget it had left (issue #175).
 #   7. That section amends the plan from an `uncovered-spec` flag and from **no other**
-#      flag class (issue #175).
+#      flag class, and the one add-ledger-step.sh call is fed that class's behaviours
+#      (issue #175).
 #   8. That section narrates a `beyond-spec` flag as a follow-up — in the `### 🛠️ Refactor`
 #      comment and in the PR body — and neither plans nor builds it in this run (issue #175).
 ##   9. That section runs a step's triangulation at most once, narrating a flag raised inside
 #      that triangulation's own refactor loop about the same code rather than triangulating
 #      it a second time (issue #175).
-#  10. That section's account of the leaf's report footer names exactly the report lines the
-#      built refactor prompt asks for — no line the prompt does not emit, none it emits left
-#      out (issue #175).
-#  11. SKILL.md grows the plan from the refactor leaf's FLAGS: classes alone: the one
-#      add-ledger-step.sh call is fed from uncovered-spec flags, and nowhere does the
-#      document read a NEW_STEP: or CANDIDATES: line of the leaf's into the plan (issue #175).
+#  10. SKILL.md grows the plan from the refactor leaf's FLAGS: classes alone: the one
+#      add-ledger-step.sh call is fed from flags' behaviours, and nowhere does the document
+#      read a NEW_STEP: or CANDIDATES: line of the leaf's into the plan (issue #175). Which
+#      class those flags are is case 7's question alone, so a document that grants the
+#      amendment to the wrong class fails case 7 and no other.
+#
+# That the section's account of the leaf's report footer names exactly the lines the built
+# refactor prompt asks for is skill-refactor-footer.test.sh's case, not one here: it runs
+# build-develop-prompt.sh, and the two guards that replant this suite into a tree holding
+# only the documents it reads would see it red there for a reason no plant put there.
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -138,8 +144,7 @@ refactor_heading='#### Refactor'
 # refactor_lines — the lines after the first heading starting `$refactor_heading`, up to the
 # next heading of any level, as the document has them. The prefix stops at the word the phase
 # is named for, so a heading reworded from "Refactor loop" — which is what this issue stops it
-# being — is still the section found. Case 10 reads these raw, because it needs the fences and
-# the numbered items that `refactor_section` below flattens away.
+# being — is still the section found.
 refactor_lines() {
   awk -v h="$refactor_heading" \
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path"
@@ -454,7 +459,7 @@ add_ledger_step='\$s/add-ledger-step\.sh'
 #    `VERI_STEP_GROWTH` while the one call this criterion asks for either fits them all or
 #    files them all as owed. A mention that is not an invocation — the script named in a
 #    sentence about what its exit 1 means — carries no `$S/` and is not counted.
-name="$skill_md's Refactor section passes the uncovered-spec flags to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
+name="$skill_md's Refactor section passes the flags' behaviours to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
 problems=()
 
 if unreadable_section; then
@@ -468,9 +473,11 @@ else
   elif [[ "$calls" -gt 1 ]]; then
     problems+=("$skill_md's Refactor section runs add-ledger-step.sh $calls times, so a step's NEW_STEP: values are inserted a call at a time and the growth budget is read once per value rather than once for the step")
   else
+    # The texts are a flag's behaviour; which class of flag is case 7's question, so a plant
+    # that hands the amendment to the wrong class fails there and not here too.
     added="$(win "$add_ledger_step")"
-    grep -qE 'uncovered-spec' <<<"$added" ||
-      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the uncovered-spec flags' behaviours, so what the inserted step says is left to judgement")
+    grep -qE "'<[^>]*behaviou?r>'" <<<"$added" ||
+      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the flags' behaviours, so what the inserted step says is left to judgement")
     grep -qE "after ['\"]?<step>" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
   fi
@@ -686,6 +693,16 @@ else
     grep -qE '(only|alone|no other|the one (flag|class))' <<<"$uncovered" ||
       problems+=("$skill_md's Refactor section amends the plan from an uncovered-spec flag without saying that no other flag class does, so an overfit or beyond-spec flag still becomes a ledger step with a refactor loop of its own")
   fi
+
+  # c. And that the call which grows the plan is fed from that class. Cases 3 and 10 ask
+  #    that its texts are flags' behaviours; which class is this case's question alone, so
+  #    a call handed another class's flags fails here and nowhere else — a rule that says
+  #    "only uncovered-spec" over a call fed `beyond-spec` is the routing broken in the
+  #    one place the conductor actually executes.
+  grown="$(win "$add_ledger_step")"
+  if [[ -n "$grown" ]] && ! grep -F 'uncovered-spec' >/dev/null <<<"$grown"; then
+    problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying its texts are the uncovered-spec flags' behaviours, so the plan grows from a class other than the one allowed to grow it")
+  fi
 fi
 
 report "$name"
@@ -794,56 +811,8 @@ fi
 
 report "$name"
 
-# 10. One criterion — SKILL.md describes the refactor leaf's report footer as the built prompt
-#     actually writes it — and so one case. The conductor reads that footer through SKILL.md's
-#     account of it, never through the template: a line the account names and the prompt never
-#     asks for is a line the conductor waits on and never gets, and a line the prompt asks for
-#     and the account never names is one the leaf writes and nothing reads. Issue #175 moved
-#     the overfit finding from `NEW_STEP:` onto a classed `FLAGS:` line, and it is the account
-#     that lagged: the prompt said `FLAGS:` while SKILL.md still said `NEW_STEP:`.
-#
-#     So the case asks the builder itself for the prompt, the way the conductor does, and
-#     compares the labels of that prompt's report lines with the labels SKILL.md's account of
-#     the footer names — both directions, since either gap is its own failure. The account is
-#     the prose after the first mention of `.tdd/develop-refactor.out` outside a fenced block,
-#     up to the next numbered item: the launch command also names that file, inside a fence,
-#     and says nothing about what the leaf's report contains.
-name="$skill_md's Refactor section names exactly the report lines the built refactor prompt asks the leaf for"
-problems=()
-
-spec_tmp="$(mktemp)"
-echo "spec" >"$spec_tmp"
-emitted="$("$ROOT/skills/tdd/scripts/build-develop-prompt.sh" refactor "$spec_tmp" "step" "make test" "a.sh" |
-  sed -nE 's/^([A-Z][A-Z_]+):.*/\1/p' | sort -u)"
-rm -f "$spec_tmp"
-
-footer="$(refactor_lines | awk '
-  /^[[:space:]]*```/ { fenced = !fenced; next }
-  !fenced && !found && index($0, "develop-refactor.out") { found = 1 }
-  found && /^[0-9]+\. / { exit }
-  found' | tr -d '*`' | tr '\n' ' ')"
-footer="${footer#*develop-refactor.out}"
-named="$(grep -oE '[A-Z][A-Z_]+:' <<<"$footer" | tr -d ':' | sort -u)"
-
-if [[ -z "$emitted" ]]; then
-  problems+=("build-develop-prompt.sh refactor printed no report line, so there is nothing to hold $skill_md's account against")
-elif [[ -z "${footer// /}" || -z "$named" ]]; then
-  problems+=("$(unreadable_problem "no account of the leaf's report after .tdd/develop-refactor.out could be found")")
-else
-  for label in $named; do
-    grep -qxF "$label" <<<"$emitted" ||
-      problems+=("$skill_md's Refactor section says the leaf's report carries $label:, a line the built refactor prompt never asks for, so the conductor reads for a line no leaf writes")
-  done
-  for label in $emitted; do
-    grep -qxF "$label" <<<"$named" ||
-      problems+=("$skill_md's Refactor section never names $label:, a line the built refactor prompt asks the leaf for, so the leaf writes it and nothing in the procedure reads it")
-  done
-fi
-
-report "$name"
-
-# 11. One criterion — the plan grows from the leaf's FLAGS: classes alone — and so one case.
-#     Case 10 established that the built refactor prompt asks for no `NEW_STEP:` line: the
+# 10. One criterion — the plan grows from the leaf's FLAGS: classes alone — and so one case.
+#     skill-refactor-footer.test.sh establishes that the built refactor prompt asks for no `NEW_STEP:` line: the
 #     overfit finding moved onto a classed `FLAGS:` line. A procedure that still feeds "the
 #     leaf's NEW_STEP: values" to add-ledger-step.sh reads a line no leaf writes, so the one
 #     class that is allowed to grow the plan (case 7) never reaches the call that grows it;
@@ -862,13 +831,15 @@ whole="$(flat <"$skill_path")"
 if unreadable_section; then
   problems+=("$(unreadable_problem "what the plan is grown from could not be established")")
 else
-  # a. The one plan-growing call names the flag class it is fed from.
+  # a. The one plan-growing call's texts are the behaviours of the leaf's flags of a class —
+  #    `<leaf … <class> behaviour>`. Which class is case 7's question, so a plant that hands
+  #    the amendment to the wrong class fails there and not here too.
   grown="$(win "$add_ledger_step")"
   if [[ -z "$grown" ]]; then
-    problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so an uncovered-spec flag is never planned")
+    problems+=("$skill_md's Refactor section never runs add-ledger-step.sh, so no flag is ever planned")
   else
-    grep -F 'uncovered-spec' >/dev/null <<<"$grown" ||
-      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying its texts are the leaf's uncovered-spec FLAGS: lines, so the plan grows from something other than the class that is allowed to grow it")
+    grep -E "'<[^>]*leaf[^>]* [a-z]+-[a-z]+ behaviou?r>'" >/dev/null <<<"$grown" ||
+      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying its texts come from the leaf's FLAGS: lines, so the plan grows from something other than the classed flags that are allowed to grow it")
   fi
 fi
 
