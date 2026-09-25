@@ -156,6 +156,14 @@ ledger_branch() {
     inside && $0 ~ ENVIRON["end"] { exit }' <<<"$section"
 }
 
+# joined_branch <start> <end> — `section` narrowed to the ledger_branch from <start> to <end>,
+# then joined. The cases that read a claim anywhere in one step's text slice and join through
+# this, so no two of them narrow the same way by different spellings.
+joined_branch() {
+  section="$(ledger_branch "$1" "$2")"
+  section="$(joined)"
+}
+
 # ledger_checkpoint <what> <start> <end> <anchor> — probe one ledger commit's branch for the
 # checkpoint that follows it. The branch is read out of `section` from its first line matching
 # <start> to the first line after it matching <end>; stop-requested.sh must come after the
@@ -577,8 +585,7 @@ report "$name"
 name="the Draft PR step says both checkpoints apply to the repair step a red full run appends, like any other step"
 problems=()
 if load_section 'Procedure'; then
-  section="$(ledger_branch '^### 4\. draft pr' '^### 5\.')"
-  section="$(joined)"
+  joined_branch '^### 4\. draft pr' '^### 5\.'
   require "$(either_order 'repair step' '(both|the two) checkpoints')" \
     "the Draft PR step never says both checkpoints apply to the repair step a red full run appends — a stop requested during a repair would run on to its end"
 fi
@@ -592,8 +599,7 @@ report "$name"
 name="step 1.2 runs stop-requested.sh --clear beside the .tdd/conductor.pid write, so a stale request from a killed run cannot stop the run that resumes it"
 problems=()
 if load_section 'Procedure'; then
-  section="$(ledger_branch '^2\. derive the slug' '^3\. ')"
-  section="$(joined)"
+  joined_branch '^2\. derive the slug' '^3\. '
   require '\.tdd/conductor\.pid' \
     "step 1.2 has no .tdd/conductor.pid write to read — nothing could be checked beside it"
   require 'stop-requested\.sh --clear' \
