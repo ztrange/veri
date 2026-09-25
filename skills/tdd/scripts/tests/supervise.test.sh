@@ -1850,6 +1850,16 @@ nest_err="$(cat "$nest_work/err" "$nest_work/inner-err" 2>/dev/null)"
   && [[ "$nest_err" != *refusing* ]]; } && ok \
   || no "#471: a verify-green launch made from inside a live verdict-green supervision is not refused (wrapper code=$nest_code want 0; inner code=$nest_inner want 0; ran='$nest_ran' want 'inner '; stderr='$nest_err' want no refusal)"
 
+# woke_with_own_exit <name> <case> — the suspend cases' one verdict: the supervisor reported
+# the leaf's own failure (exit 1, 3 in <name>.rc) after it woke, never killed-stuck (exit 2).
+woke_with_own_exit() {
+  local susp_rc
+  susp_rc="$(cat "$work/.tdd/$1.rc" 2>/dev/null || echo '<missing>')"
+  rm -f "$work/.test-suspended"
+  { [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
+    || no "$2 (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
+}
+
 # 43. time the machine spends SUSPENDED is not leaf silence (issue #472). A laptop asleep for an
 #     hour read as a leaf silent for an hour, because the heartbeat was measured on the wall
 #     clock: the leaf was killed as stuck and its retries spent asleep too. The clock here
@@ -1876,10 +1886,7 @@ L
 chmod +x "$stub/clock-suspend" "$stub/leaf-suspended"
 rm -f "$work/.test-suspended"
 sup suspended 2 30 leaf-suspended
-susp_rc="$(cat "$work/.tdd/suspended.rc" 2>/dev/null || echo '<missing>')"
-rm -f "$work/.test-suspended"
-{ [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
-  || no "#472: a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
+woke_with_own_exit suspended "#472: a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code"
 
 # 44. a run nobody configured measures awake time too (issue #472). Case 43 names the awake
 #     clock; here VERI_AWAKE_CLOCK is unset, so the supervisor must fall back to a REAL clock
@@ -1891,10 +1898,7 @@ rm -f "$work/.test-suspended" "$work/.tdd/suspended.rc"
 unset VERI_AWAKE_CLOCK
 sup suspended 2 30 leaf-suspended
 export VERI_AWAKE_CLOCK="$stub/awake-clock"
-susp_rc="$(cat "$work/.tdd/suspended.rc" 2>/dev/null || echo '<missing>')"
-rm -f "$work/.test-suspended"
-{ [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
-  || no "#472: with VERI_AWAKE_CLOCK unset, a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
+woke_with_own_exit suspended "#472: with VERI_AWAKE_CLOCK unset, a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code"
 
 # 45. time the machine spends SUSPENDED does not count toward the hard timeout either (issue
 #     #472). The same injected clock as case 43, with the windows swapped: a 30 s heartbeat the
@@ -1913,10 +1917,7 @@ L
 chmod +x "$stub/leaf-suspended-timeout"
 rm -f "$work/.test-suspended" "$work/.tdd/suspended-timeout.rc"
 sup suspended-timeout 30 2 leaf-suspended-timeout
-susp_rc="$(cat "$work/.tdd/suspended-timeout.rc" 2>/dev/null || echo '<missing>')"
-rm -f "$work/.test-suspended"
-{ [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
-  || no "#472: a leaf whose run spans a 3s suspend past a 2s VERI_TIMEOUT, awake time under it, is not killed for the timeout and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
+woke_with_own_exit suspended-timeout "#472: a leaf whose run spans a 3s suspend past a 2s VERI_TIMEOUT, awake time under it, is not killed for the timeout and finishes with its own exit code"
 
 echo "----"
 echo "$pass passed, $fail failed"
