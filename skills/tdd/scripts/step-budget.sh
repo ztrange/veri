@@ -8,6 +8,9 @@
 # one, at the point `refactor-budget.sh 0` already occupies in SKILL.md step 5.
 set -euo pipefail
 
+# It answers one question and has nothing to select, so any argument is a caller's mistake.
+[[ $# -eq 0 ]] || { echo "usage: step-budget.sh (takes no arguments)" >&2; exit 2; }
+
 step="${VERI_STEP_BUDGET-12}"
 run="${VERI_RUN_BUDGET-120}"
 
