@@ -619,5 +619,26 @@ else
   echo "    newline: $newline_outcome"
 fi
 
+# 31. show <worker> prints only that worker's group, and for a worker with no items prints
+#     nothing at all and exits 0: `show beta` prints beta's heading and its one item, none of
+#     alpha's around it, and `show gamma`, named on no line, writes zero bytes to stdout —
+#     read from a file rather than `$(…)`, which would strip a stray newline and hide it.
+new_repo "$work/show-no-items"
+seed_queue "$work/show-no-items" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\nalpha\t7\tqueued\t\n'
+(cd "$work/show-no-items" && "$SCRIPT" show beta > "$work/show-no-items.beta" \
+  2>"$work/show-no-items.err") && beta_code=0 || beta_code=$?
+(cd "$work/show-no-items" && "$SCRIPT" show gamma > "$work/show-no-items.gamma" \
+  2>>"$work/show-no-items.err") && gamma_code=0 || gamma_code=$?
+if [[ "$beta_code" -eq 0 && "$(cat "$work/show-no-items.beta")" == "$(printf 'beta\n\t4\tqueued')" &&
+  "$gamma_code" -eq 0 && ! -s "$work/show-no-items.gamma" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - show <worker> prints only that worker's group, and nothing with exit 0 for a worker with no items"
+  echo "    show beta: exit $beta_code (want 0), stdout: '$(cat "$work/show-no-items.beta")'"
+  echo "    show gamma: exit $gamma_code (want 0), stdout bytes: $(wc -c < "$work/show-no-items.gamma" | tr -d ' ') (want 0)"
+  echo "    stderr: $(cat "$work/show-no-items.err")"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
