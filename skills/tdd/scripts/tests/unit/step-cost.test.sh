@@ -66,6 +66,21 @@ if [[ "$code" != 3 || -n "$out" ]]; then
 fi
 verdict "a step no usage event carries prints nothing, exit 3"
 
+# 3. --run sums every `usage` event in the log, whatever step it carries — including one
+#    carrying none, which event.sh writes as `"step": ""` — to two decimals, exit 0. Without
+#    the step-less event the sum is 1.30, so a reader that skips it comes out different.
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30134540000000004"}
+{"ts": 2, "issue": "448", "actor": "developer", "phase": "green", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}
+{"ts": 3, "issue": "448", "actor": "conductor", "phase": "scope", "step": "", "event": "usage", "total_cost_usd": "0.25"}
+EOF
+run_cost --run
+problems=""
+if [[ "$code" != 0 || "$out" != "1.55" ]]; then
+  problems="    want exit 0 and stdout '1.55', got exit $code and stdout '$out' (stderr '$err')"$'\n'
+fi
+verdict "--run sums every usage event, step-less ones included, exit 0"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
