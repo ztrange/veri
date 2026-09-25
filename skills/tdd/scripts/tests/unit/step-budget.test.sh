@@ -86,6 +86,12 @@ expect 2 ''
 expect_err_names VERI_RUN_BUDGET
 verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
 
+# 5. both names invalid at once: exit 2 and nothing at all on stdout — both are validated
+#    before either is printed, so the run is never handed the first figure and then a failure.
+run_budget VERI_STEP_BUDGET=twelve VERI_RUN_BUDGET=-5 --
+expect 2 ''
+verdict "both budgets invalid at once exits 2 and prints nothing on stdout, not the first figure then a failure"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
