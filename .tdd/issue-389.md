@@ -1,6 +1,6 @@
 # Plan for #389 — SKILL.md's stop checkpoints: where the conductor looks, and clearing a stale request at claim time
 
-- [x] SKILL.md's *Launching a leaf* runs `stop-requested.sh` before every leaf launch: exit 3 launches as normal, mode `at-ledger` launches the leaf anyway, and modes `at-leaf` and `now` launch nothing and go to *Stopping* ⟦criterion 1⟧ ⟂ refactor pending
+- [x] SKILL.md's *Launching a leaf* runs `stop-requested.sh` before every leaf launch: exit 3 launches as normal, mode `at-ledger` launches the leaf anyway, and modes `at-leaf` and `now` launch nothing and go to *Stopping* ⟦criterion 1⟧
 - [ ] SKILL.md runs `stop-requested.sh` immediately after the atomic green commit's push and stops there on any mode ⟦criterion 2⟧
 - [ ] SKILL.md runs `stop-requested.sh` immediately after the refactor-pending clear's push, and after a pin's `test:` commit, and stops there on any mode ⟦criterion 2⟧
 - [ ] SKILL.md treats `stop-requested.sh` exit 2 as a stop in mode `at-ledger`, narrating that the request was unreadable ⟦criterion 3⟧
