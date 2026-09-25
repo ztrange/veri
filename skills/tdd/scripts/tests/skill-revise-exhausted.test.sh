@@ -292,11 +292,17 @@ report "$name"
 # The heading the cost check's section is found by, spelled once for the probe and the message.
 cost_heading="#### The step's cost check"
 
-# cost_check_sentences — that section's lines, up to the next heading, normalised through
-# `plain`, one sentence per line.
-cost_check_sentences() {
+# cost_check_lines — that section's raw lines, up to the next heading of level two to four:
+# the commands are probed as written, `$S` and all, and a sub-heading inside the section does
+# not end it.
+cost_check_lines() {
   awk -v h="$cost_heading" \
-    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
+    'index($0, h) == 1 { inside = 1; next } inside && /^(##|###|####) / { exit } inside' "$skill_path"
+}
+
+# cost_check_sentences — those lines normalised through `plain`, one sentence per line.
+cost_check_sentences() {
+  cost_check_lines |
     plain |
     awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
 }
@@ -390,14 +396,6 @@ report "$name"
 # leaf's pattern — the `over-budget` prompt, launched through supervise.sh like every other
 # leaf so stuck-detection still covers it, and its prose answer resolved by
 # exhausted-outcome.sh to an exit code rather than read and judged per run.
-
-# cost_check_lines — that section's raw lines, up to the next heading of level two to four:
-# the commands are probed as written, `$S` and all, and a sub-heading inside the section does
-# not end it.
-cost_check_lines() {
-  awk -v h="$cost_heading" \
-    'index($0, h) == 1 { inside = 1; next } inside && /^(##|###|####) / { exit } inside' "$skill_path"
-}
 
 name="'$cost_heading' builds the over-budget prompt, launches its leaf through supervise.sh, and reads its answer with exhausted-outcome.sh, never by eye"
 problems=()
