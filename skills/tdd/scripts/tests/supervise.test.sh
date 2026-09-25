@@ -1887,11 +1887,10 @@ rm -f "$work/.test-suspended"
 #     the wall clock and jump past the window; the real awake clock the supervisor reads does
 #     not see that jump, which is exactly what a suspend looks like to it. The same leaf as
 #     case 43 must therefore finish with its own exit code, never killed-stuck.
-rm -f "$work/.test-clock" "$work/.test-clock-reads" "$work/.test-suspended" "$work/.tdd/suspended.rc"
-out="$( cd "$work" && env -u VERI_AWAKE_CLOCK VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=2 VERI_TIMEOUT=30 \
-          VERI_POLL=0.02 VERI_KILL_POLL=0.01 \
-          "$SUP" suspended "$stub/leaf-suspended" 2>"$work/err" )"
-code=$?
+rm -f "$work/.test-suspended" "$work/.tdd/suspended.rc"
+unset VERI_AWAKE_CLOCK
+sup suspended 2 30 leaf-suspended
+export VERI_AWAKE_CLOCK="$stub/awake-clock"
 susp_rc="$(cat "$work/.tdd/suspended.rc" 2>/dev/null || echo '<missing>')"
 rm -f "$work/.test-suspended"
 { [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
