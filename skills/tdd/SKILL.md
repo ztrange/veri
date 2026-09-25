@@ -957,7 +957,10 @@ following step. The phase sub-steps are:
      rejected a non-fast-forward) launch the reconcile leaf — see
      *Reconciling a rejected push*; on exit **2** (its
      event could not be written) **bail**.
-     Continue to the Refactor loop.
+     **Then run `$S/stop-requested.sh`**, immediately after that push: this ledger commit is
+     the boundary `at-ledger` was waiting for, and `at-leaf` and `now` have nothing left to
+     abandon, so on exit 0 any mode it printed goes to *Stopping* here. On exit 3
+     continue to the Refactor loop.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
      **bail**.
