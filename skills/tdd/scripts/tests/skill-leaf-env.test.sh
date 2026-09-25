@@ -1193,7 +1193,7 @@ STUB
     launch="${launch//<phase>/red}"
     launch="${launch//<k>/2}"
     launch="$(sed -E 's/<[^<>]*>/probe/g' <<< "$launch")"
-    failed="" first="" expected="$title"
+    first="" expected="$title"
     [[ "$script" != tick-issue-criterion ]] || expected="$CRITERION_TEXT"
     for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
       i=$((i + 1))
