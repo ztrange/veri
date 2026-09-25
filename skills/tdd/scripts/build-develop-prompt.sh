@@ -14,6 +14,7 @@
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh exhausted <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh reconcile <issue-spec-file> <step-text> <test-cmd> <branch> <remote-sha>
+#   build-develop-prompt.sh over-budget <issue-spec-file> <step-text> <test-cmd> <spent> <budget>
 #
 # `refactor` also reads VERI_REFACTOR_BUDGET (default 5) from the environment, the number of
 # transforms the leaf may apply.
@@ -41,7 +42,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 #
 # The phase list is spelled once, here, so the usage line and the unknown-phase refusal
 # below cannot name different sets.
-phases="red|green|refactor|revise|reconcile|exhausted"
+phases="red|green|refactor|revise|reconcile|exhausted|over-budget"
 # Spelled once, and quoted back by both refusals below: a caller who dropped an argument
 # later than the phase word is as entitled to see the whole call as one who passed nothing.
 USAGE="build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
@@ -69,6 +70,9 @@ case "$phase" in
   # takes minus the phase being redone: there is no phase to redo here, only a step to
   # judge, so the spec, the step, the test command and the last rejection reason.
   exhausted) want=5 ;;
+  # The phase a step reaches when it crossed its spend budget (#450): the same question
+  # `exhausted` asks, with the cost fact — spent and budget — in the reason file's place.
+  over-budget) want=6 ;;
   *) echo "build-develop-prompt: unknown phase '$phase' (want $phases)" >&2; exit 2 ;;
 esac
 # refuse <what> — the shape every bad-arguments refusal past the phase word takes: say what
@@ -129,7 +133,7 @@ need test_cmd "${4:-}" '<test-cmd>'
 # each branch names only those. Everything else stays empty, and an empty variable's
 # placeholder expands to nothing — which is why red, the phase that writes the test and so
 # has nothing yet to name, needs no branch body at all.
-test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" branch="" remote_sha=""
+test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" branch="" remote_sha="" spent="" budget=""
 case "$phase" in
   red) ;;
   green)
@@ -156,6 +160,10 @@ case "$phase" in
   reconcile)
     need branch "${5:-}" '<branch>'
     need remote_sha "${6:-}" '<remote-sha>'
+    ;;
+  over-budget)
+    need spent "${5:-}" '<spent>'
+    need budget "${6:-}" '<budget>'
     ;;
 esac
 
@@ -224,5 +232,7 @@ out="${out//\{\{REVISE_PHASE\}\}/$revised_phase}"
 out="${out//\{\{REJECTION_REASON\}\}/$reason}"
 out="${out//\{\{BRANCH\}\}/$branch}"
 out="${out//\{\{REMOTE_SHA\}\}/$remote_sha}"
+out="${out//\{\{SPENT\}\}/$spent}"
+out="${out//\{\{BUDGET\}\}/$budget}"
 
 printf '%s\n' "$out"
