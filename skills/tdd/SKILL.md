@@ -318,6 +318,12 @@ leaf anyway, because every leaf between two ledger commits is on the way to the 
 meant to stop this run, and only how urgently is in doubt — the mode that cannot be wrong is
 the one that loses nothing.
 
+**A leaf's exit 2 is not read as killed-stuck until the stop request has been asked.** A `now`
+stop kills the live leaf, so its wait comes back 2 exactly as a hung leaf's does. So run
+`$S/stop-requested.sh` before reading any leaf's exit 2 as killed-stuck: a pending `now`
+explains the 2, and the run goes to *Stopping* instead of *Bailing*. Any other answer leaves
+the 2 to be read as the phase below reads it.
+
 Never `nohup … &` in place of that detach: `nohup` makes the leaf ignore a hang-up (SIGHUP),
 but it leaves it in the **process group** of the Bash call that launched it, so a harness
 that signals that group when the call ends takes the leaf with it. A leaf killed that way
