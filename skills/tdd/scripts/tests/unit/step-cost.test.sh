@@ -81,6 +81,17 @@ run_cost --run
 expect 0 "1.55"
 verdict "--run sums every usage event, step-less ones included, exit 0"
 
+# 4. --run against a log holding no `usage` event is nothing to do: nothing on stdout, exit
+#    3. The log is not empty — it holds a verdict and a test-run event, both carrying a step
+#    — so an empty file is not what makes the answer; the absence of `usage` events is.
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "verdict", "verdict": "PASS"}
+{"ts": 2, "issue": "448", "actor": "developer", "phase": "green", "step": "step one", "event": "test-run", "exit": "0"}
+EOF
+run_cost --run
+expect 3 ""
+verdict "--run against a log with no usage event prints nothing, exit 3"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
