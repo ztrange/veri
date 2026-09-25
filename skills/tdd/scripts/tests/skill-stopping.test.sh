@@ -115,6 +115,13 @@ reset_line() {
   first_line_matching 'git reset --hard head'
 }
 
+# joined — the text in `section` on one line, runs of spaces squeezed, so a sentence wrapped
+# over two lines is one sentence to a probe. Every case that reads a clause rather than a line
+# joins through this, so no two of them join by different rules.
+joined() {
+  tr '\n' ' ' <<<"$section" | tr -s ' '
+}
+
 # after <line> <other> — true when both are real line numbers and <line> falls after
 # <other>. Both cases ask their ordering question through this one predicate, for the same
 # reason reset_line is written once: a second spelling of the comparison is where "before
@@ -279,8 +286,8 @@ else
   # the entry also says "nothing on stdout" of exit 3 and exit 2, and a probe over the
   # whole entry would still find `stdout` there after exit 0 stopped naming it. Lines are
   # joined and split at ". ", so a sentence wrapped over two lines is still one sentence.
-  joined="$(tr '\n' ' ' <<<"$section" | tr -s ' ')"
-  exit0_sentence="$(grep -E 'exit 0([^0-9]|$)' <<<"${joined//. /.$'\n'}")"
+  one_line="$(joined)"
+  exit0_sentence="$(grep -E 'exit 0([^0-9]|$)' <<<"${one_line//. /.$'\n'}")"
   section="$exit0_sentence" require 'printed on stdout' \
     "the stop-requested.sh entry's exit 0 sentence never says the mode is printed on stdout"
   require '--clear' "the stop-requested.sh entry never names --clear, the Stopping section's second call"
@@ -298,7 +305,7 @@ report "$name"
 name="Launching a leaf runs stop-requested.sh before every leaf launch: exit 3 launches as normal, at-ledger launches the leaf anyway, at-leaf and now launch nothing and go to Stopping"
 problems=()
 if load_section 'Launching a leaf'; then
-  section="$(tr '\n' ' ' <<<"$section" | tr -s ' ')"
+  section="$(joined)"
   require 'stop-requested\.sh' \
     "the Launching a leaf section never runs stop-requested.sh — no launch asks whether a stop was requested"
   require 'before[^.;]*launch[^.;]*stop-requested\.sh|stop-requested\.sh[^.;]*before[^.;]*launch' \
@@ -339,7 +346,7 @@ if load_section 'Procedure'; then
     elif ! after "$stop_at" "$push_at"; then
       problems+=("the green PASS branch runs stop-requested.sh (line $stop_at) before the green commit's push (line ${push_at:-none}) — the checkpoint belongs after the commit is on the remote")
     fi
-    section="$(tr '\n' ' ' <<<"$section" | tr -s ' ')"
+    section="$(joined)"
     require '(any|every|whatever)[^.;]*mode[^.;]*stopping|stopping[^.;]*(any|every|whatever)[^.;]*mode' \
       "the green PASS branch never says any mode stop-requested.sh prints goes to Stopping there"
   fi
