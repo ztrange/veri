@@ -1,2 +1,4 @@
 ### The rule SKILL.md states once for how a step title reaches a command line says it reaches it as data, not in hand-typed double quotes, and no longer contradicts the launch lines ⟦added⟧ ⟦criterion 1⟧
 - cases 8 and 10 each split the single rule paragraph into `ruleno`/`ruletext` with the same two `cut` lines; could fold into the helper, but it is two lines and case 8 also needs the count, so the gain is marginal
+### A step title containing a dollar sign, a backtick and a double quote reaches a verifier launched by SKILL.md's documented verdict launch line byte-identical, both in its VERI_STEP environment and in its --step argument ⟦criterion 1⟧
+- scan_step_title and scan_verdict_step_title repeat the same cleared-context `bash -c "$launch"` run and recorder read (err=/got=) — foldable into one helper
