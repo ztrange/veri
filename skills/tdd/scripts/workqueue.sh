@@ -16,10 +16,10 @@
 #          workqueue.sh show [<worker>]
 # Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
 #          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand, an `assign`
-#          naming no worker or no issue, an empty issue, or naming one issue twice, an issue
-#          already queued or running for any worker, or a lock not taken within
-#          VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is written, so the file
-#          is left byte-identical
+#          naming no worker or no issue, an empty issue, or naming one issue twice, a `done`
+#          with no merge sha, an issue already queued or running for any worker, or a lock
+#          not taken within VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is
+#          written, so the file is left byte-identical
 set -euo pipefail
 
 # shellcheck source=lib/main-working-tree.sh
@@ -91,6 +91,12 @@ take_lock() {
 # line to `merged` with the sha as its detail and `park` it to `parked` with the reason, in place: every line keeps its
 # position, and the new file replaces the old one by `mv` from beside it.
 if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
+  # A `done` with no merge sha would write a `merged` line with no detail: refused before
+  # the lock is taken, so the file is left as it was.
+  if [[ "$1" == done && $# -lt 4 ]]; then
+    echo "workqueue.sh: usage: workqueue.sh done <worker> <issue> <merge-sha>" >&2
+    exit 2
+  fi
   case "$1" in
     start) from=queued to=running new_detail="" ;;
     done) from=running to=merged new_detail="$4" ;;
