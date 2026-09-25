@@ -957,7 +957,7 @@ following step. The phase sub-steps are:
    touched="$($S/refactor-touched.sh HEAD)"
    $S/build-develop-prompt.sh refactor .tdd/issue-<n>-spec.md "<STEP>" '<test-cmd>' "$touched" > .tdd/develop-refactor.prompt
    rm -f .tdd/develop-refactor.exit .tdd/develop-refactor.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh)" $S/detach-leaf.sh $S/supervise.sh develop-refactor $S/run-leaf.sh .tdd/develop-refactor.prompt --permission-mode bypassPermissions > .tdd/develop-refactor.out 2> .tdd/develop-refactor.err
    $S/wait-leaf.sh develop-refactor   # foreground; on exit 3 call it again
    ```
    **One leaf for the whole step**, not one per transform: the cold `claude -p` start and
