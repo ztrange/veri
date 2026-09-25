@@ -145,10 +145,16 @@ refactor_lines() {
     'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path"
 }
 
-# refactor_section — those lines normalised through `plain` and joined onto one line: none of
-# the probes below is about order, and a claim that wraps across two lines is still one claim.
+# flat — stdin normalised through `plain` and joined onto one line: none of the probes below
+# is about order, and a claim that wraps across two lines is still one claim. Spelled once for
+# the section and for the whole document case 11 reads, so the two cannot normalise apart.
+flat() {
+  plain | tr '\n' ' '
+}
+
+# refactor_section — those lines, flattened.
 refactor_section() {
-  refactor_lines | plain | tr '\n' ' '
+  refactor_lines | flat
 }
 section="$(refactor_section)"
 
@@ -851,7 +857,7 @@ report "$name"
 name="$skill_md grows the plan from the refactor leaf's FLAGS: classes alone, reading no NEW_STEP: or CANDIDATES: line of the leaf's into it"
 problems=()
 
-whole="$(plain <"$skill_path" | tr '\n' ' ')"
+whole="$(flat <"$skill_path")"
 
 if unreadable_section; then
   problems+=("$(unreadable_problem "what the plan is grown from could not be established")")
