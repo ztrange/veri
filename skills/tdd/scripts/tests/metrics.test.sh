@@ -2041,6 +2041,45 @@ print("\n".join(problems))
 report_on "$name" "$stopped_out"
 
 
+# A fixture for a stopped run the operator resumed (#390): a `stop` is not terminal the way
+# `done` and `bail` are, so the `resume` after it clears the ending, and with no `done` or
+# `bail` since, the run has not ended — its Outcome is the no-ending-mark one, not the stop.
+fixture_work resumed_stop_work
+
+picked_up="a step of a stopped run the operator resumed"
+
+sv "$picked_up" 70000 conductor ""  step-start ""
+sv "$picked_up" 70100 conductor red stop       "" '"mode": "at-leaf", "at": "red"'
+sv "$picked_up" 70200 conductor ""  resume     ""
+sv "$picked_up" 70300 conductor ""  step-start ""
+
+plan_of "$picked_up"
+
+
+name="a resume mark after a stop mark makes the report print the no-ending-mark Outcome for a run that has not ended since"
+problems=()
+
+resumed_stop_out="$resumed_stop_work/report.md"
+render "$resumed_stop_work" "$resumed_stop_out"
+
+probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+outcomes = [l for l in outside_tables(path) if l.startswith("Outcome:")]
+
+if not any("no mark ending the run" in l for l in outcomes):
+    complain("want an Outcome line saying the log carries no mark ending the run, "
+             "the report has: %s" % quoted(outcomes))
+stale = [l for l in outcomes if "stop" in l or "at-leaf" in l]
+if stale:
+    complain("the resume cleared the stop, so no Outcome line may still name it, these do: %s"
+             % quoted(stale))
+
+print("\n".join(problems))
+' "$resumed_stop_out"
+
+report_on "$name" "$resumed_stop_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
