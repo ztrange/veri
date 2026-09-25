@@ -262,6 +262,56 @@ probe_shared_report_and_plain
 
 report "$name"
 
+# 3. The same shared file also defines `records`, `bullet` and `says` (issue #225), the
+#    three helpers this suite and selection-order-recorded.test.sh carry identical copies
+#    of. Asked the same way as case 2: fixed inputs and the outputs those copies give, in a
+#    subshell with every local definition unset first. `bullet` reads the file named by
+#    `skill_path` and `says` reads `passage_text` / `passage_from`, the globals a sourcing
+#    suite sets, so the probe sets them to fixtures — `skill_path` is /dev/stdin, fed by a
+#    here-string, so no scratch file is left behind (a process substitution is closed
+#    before `bullet` reads it).
+probe_shared_records_bullet_says() {
+  if [[ ! -f "$helpers_path" ]]; then
+    problems+=("$helpers_rel does not exist, so there is no shared records, bullet or says to source")
+    return
+  fi
+
+  local got expected
+  got="$(
+    unset -f report plain records bullet says
+    pass=0 fail=0
+    # shellcheck source=/dev/null
+    source "$helpers_path"
+    printf 'records: [%s]\n' "$(printf -- '- One\n  cont\n\npara line1\nline2\n* **Two** `x`\n' | records)"
+    skill_path=/dev/stdin
+    printf 'bullet: [%s]\n' "$(bullet 'alpha' <<< $'# Head\n- alpha **One**\n  still alpha\n- beta')"
+    passage_text="$(printf 'first line has foo\nsecond has foo and bar\n')"
+    passage_from="doc.md"
+    problems=()
+    says "foo and bar" 'foo' 'bar'
+    printf 'says found: %s, %s problems\n' "$?" "${#problems[@]}"
+    says "baz" 'baz'
+    printf 'says missing: %s\n' "${problems[@]}"
+  )"
+  expected="records: [- one   cont
+para line1 line2
+ two x]
+bullet: [- alpha one   still alpha ]
+says found: 0, 0 problems
+says missing: doc.md does not say baz"
+
+  [[ "$got" == "$expected" ]] && return 0
+  problems+=("sourcing $helpers_rel and calling records, bullet and says printed:" \
+    "$got" "where the selection-order-recorded suite's and this suite's own copies print:" "$expected")
+}
+
+name="$helpers_rel, when sourced, also defines records, bullet and says with the same behaviour as the selection-order-recorded and model-knobs-recorded suites' copies"
+problems=()
+
+probe_shared_records_bullet_says
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
