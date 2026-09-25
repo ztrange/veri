@@ -18,7 +18,22 @@
 # it is in no figure this script prints — never quote one as "what this step cost" in full.
 set -uo pipefail
 
+# A call that cannot be answered exits 2 with stdout empty, so a caller capturing stdout
+# never reads a diagnostic as a figure.
+usage='usage: step-cost.sh <step-text> | --run | --steps'
+if [[ $# -ne 1 ]]; then
+  echo "step-cost.sh: expected exactly one argument, got $#; $usage" >&2
+  exit 2
+fi
 step="$1"
+if [[ "$step" == -* && "$step" != --run && "$step" != --steps ]]; then
+  echo "step-cost.sh: unknown option '$step'; $usage" >&2
+  exit 2
+fi
+if [[ ! -r .tdd/events.jsonl ]]; then
+  echo "step-cost.sh: cannot read .tdd/events.jsonl in $PWD — run from the run's worktree" >&2
+  exit 2
+fi
 all=0 per_step=0
 [[ "$step" == --run ]] && all=1
 [[ "$step" == --steps ]] && per_step=1

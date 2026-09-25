@@ -7,6 +7,6 @@
 - [x] `step-cost.sh --steps` prints one `<dollars> <leaves>` line per step that has a `usage` event, in the order the log first mentions each, and exits 0; with no `usage` event it prints nothing and exits 3 ⟦criterion 5⟧
 - [x] A `usage` event whose `total_cost_usd` is absent or empty contributes zero (while still counting as a leaf) rather than aborting the read ⟦criterion 6⟧
 - [x] Events that are not `usage` events (a `verdict` or `test-run` line carrying a step) are ignored by all three calls, so they create no step and add no cost ⟦criterion 7⟧
-- [ ] No argument, an unknown argument, `--run` or `--steps` with a step text besides, and a missing `.tdd/events.jsonl` each exit 2 with a diagnostic on stderr and nothing on stdout ⟦criterion 8⟧
+- [x] No argument, an unknown argument, `--run` or `--steps` with a step text besides, and a missing `.tdd/events.jsonl` each exit 2 with a diagnostic on stderr and nothing on stdout ⟦criterion 8⟧ ⟂ refactor pending
 - [ ] The unit suite's header states the fast-tier bar and the suite passes under `make unit`'s shims (no git, gh, curl or python3 called for real) ⟦criterion 9⟧
 - [ ] `step-cost.sh`'s own header says it reports leaf spend only — the conductor's own spending is in no `usage` event
