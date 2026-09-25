@@ -16,7 +16,7 @@
 #          workqueue.sh show [<worker>]
 # Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
 #          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand, an `assign`
-#          naming no worker or no issue, or naming one issue twice, an issue
+#          naming no worker or no issue, an empty issue, or naming one issue twice, an issue
 #          already queued or running for any worker, or a lock not taken within
 #          VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is written, so the file
 #          is left byte-identical
@@ -147,6 +147,11 @@ shift 2
 # same mistake, refused the same way, before anything is written.
 declare -A named=()
 for issue in "$@"; do
+  # An empty word names no issue: queuing it would write a line with no issue field.
+  if [[ -z "$issue" ]]; then
+    echo "workqueue.sh: an issue argument is empty" >&2
+    exit 2
+  fi
   if [[ -n "${named[$issue]:-}" ]]; then
     echo "workqueue.sh: issue $issue is named twice" >&2
     exit 2
