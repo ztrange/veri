@@ -512,6 +512,28 @@ revise|^## revising on a reject|exit 2 → bail
 PHASES
 report "$name"
 
+# ---------------------------------------------------------------------------
+# A stop request does not outrank a bail the run has already reached: a REJECT that spends the
+# last of REVISE_BUDGET, or a leaf killed-stuck with no `now` pending to explain it, is the
+# methodology or the plumbing speaking, and a pause would hide that answer from the resume. So
+# *Bailing* asks stop-requested.sh, bails anyway, and its comment says a stop was pending when
+# one was — joined, each claim inside one clause, as the cases above read theirs.
+name="Bailing keeps a bail reached first — REVISE_BUDGET exhausted, or killed-stuck with no now pending — as a bail, and its comment says a stop was pending when one was"
+problems=()
+if load_section 'Bailing'; then
+  section="$(joined)"
+  pending="$(word pending)" stop="$(word stop)"
+  require 'stop-requested\.sh' \
+    "the Bailing section never asks stop-requested.sh — it cannot say whether a stop was pending"
+  require "revise_budget[^.;]*$stop[^.;]*$pending|$stop[^.;]*$pending[^.;]*revise_budget" \
+    "the Bailing section never says a REJECT exhausting REVISE_BUDGET with a stop pending still bails"
+  require "killed-stuck[^.;]*no[^.;]*$(word now)[^.;]*$pending|no[^.;]*$(word now)[^.;]*$pending[^.;]*killed-stuck" \
+    "the Bailing section never says a killed-stuck leaf with no now pending still bails"
+  require "comment[^.;]*$stop[^.;]*$pending|$stop[^.;]*$pending[^.;]*comment" \
+    "the Bailing section's comment never says a stop was pending when one was"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -1502,6 +1502,14 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   plan → **process** failure (the step was too big for one green; `add-ledger-step.sh` exit 1
   says so, and nothing in the plumbing broke).
 
+**A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
+the plumbing has already answered, and a pause would hide that answer from the resume. Ask
+`$S/stop-requested.sh` once before sub-step 1 and keep what it printed. A `REJECT` that
+exhausts `REVISE_BUDGET` bails even with a stop pending, and a killed-stuck leaf with no `now`
+pending bails as it always has — only a pending `now` turns a leaf's exit 2 into the stop
+(see *Launching a leaf*). When exit 0 said one was waiting, the bail comment in sub-step 6
+adds that a stop was pending, naming its mode.
+
 To bail:
 
 1. **Preserve the attempt first.** The tree the troubled leaf left is the evidence a reader
