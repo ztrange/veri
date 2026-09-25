@@ -590,65 +590,65 @@ prompt_says "$with_base" "never spares the hunk that removes duplication with co
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor derives the cycle's files as git diff --name-only <base-sha>^ <base-sha> and REJECTs a changed file outside that list unless its hunk removes duplication with code in it (${problems#; })"
 
-# 32. an unhandled edge case the spec implies is a proposed step, not a REJECT (issue #362).
-#     Check 2 asks for code that is "reasonably robust (no obvious unhandled edge case the
-#     spec implies)", and handling an edge case changes behaviour — so a REJECT on that
-#     ground can only be met by the untested behaviour change develop-refactor forbids, and
-#     the revise leaf either fails or smuggles one in. Beck's answer to a missing case is a
-#     new test, so the finding becomes a `NEW_STEP:` line, the same protocol token the
-#     refactor leaf reports its overfit findings on (#361), written before the final
-#     `VERDICT:`/`REASON:` pair. Proposing a criterion reveals no developer reasoning, so
-#     blindness holds (ADR-0003).
+# 32. an unhandled edge case the spec implies is a finding on a FLAGS: line, not a REJECT
+#     (issues #362, #175). Check 2 asks for code that is "reasonably robust (no obvious
+#     unhandled edge case the spec implies)", and handling an edge case changes behaviour —
+#     so a REJECT on that ground can only be met by the untested behaviour change
+#     develop-refactor forbids, and the revise leaf either fails or smuggles one in. Beck's
+#     answer to a missing case is a new test. #362 wrote that finding as a `NEW_STEP:` line;
+#     #175 took that token away, because every such line became a whole ledger step whatever
+#     it named, so the finding now rides on the refactor leaf's own `FLAGS:` line (case 43
+#     pins the line and its classes), written before the final `VERDICT:`/`REASON:` pair.
+#     Classing a finding reveals no developer reasoning, so blindness holds (ADR-0003).
 #
-#     Four claims, four misses, for case 12's reason: the token without the edge case it
+#     Three claims, three misses, for case 12's reason: the line without the edge case it
 #     answers is a line the verifier fills with anything, the placement is what keeps
-#     parse-verdict.sh reading the final pair, and the token arriving while the REJECT stays
+#     parse-verdict.sh reading the final pair, and the line arriving while the REJECT stays
 #     leaves the verdict that #362 exists to remove. The prompt read is case 7's `$refactor`
 #     — same phase, same arguments — so there is no new invocation, and case 7 owns the
-#     build. `NEW_STEP` and `edge case` both appear at most once in the prompt built today,
-#     so no probe is answered by prose already there.
+#     build.
 problems=""
-prompt_says "$refactor" "verify-refactor never names a NEW_STEP: line" \
-  -F -e 'NEW_STEP:'
-prompt_says "$refactor" "verify-refactor never ties NEW_STEP: to an unhandled edge case the spec implies" \
-  -iE -e "unhandled edge case[^.]{0,200}NEW_STEP|NEW_STEP[^.]{0,200}unhandled edge case"
-prompt_says "$refactor" "verify-refactor never puts the NEW_STEP: line before the VERDICT: line" \
-  -iE -e "NEW_STEP[^.]{0,120}before[^.]{0,120}VERDICT"
+prompt_says "$refactor" "verify-refactor never ties FLAGS: to an unhandled edge case the spec implies" \
+  -iE -e "unhandled edge case[^.]{0,200}FLAGS|FLAGS[^.]{0,200}unhandled edge case"
+prompt_says "$refactor" "verify-refactor never puts the FLAGS: line before the VERDICT: line" \
+  -iE -e "FLAGS[^.]{0,120}before[^.]{0,120}VERDICT"
 prompt_says "$refactor" "verify-refactor never says an unhandled edge case is not a REJECT" \
   -iE -e "(edge case|robust)[^.]{0,200}not( by itself)? a REJECT|not( by itself)? a REJECT[^.]{0,200}(edge case|robust)"
 [[ -z "$problems" ]] && ok \
-  || no "verify-refactor reports an unhandled edge case the spec implies as a NEW_STEP: line before VERDICT: rather than a REJECT (${problems#; })"
+  || no "verify-refactor reports an unhandled edge case the spec implies as a FLAGS: line before VERDICT: rather than a REJECT (${problems#; })"
 
-# 33. every phase's built prompt allows NEW_STEP: lines before the final pair (issue #362).
-#     The footer every verifier writes is the conductor's whole reading of the leaf, and it
-#     says today to end with EXACTLY the two lines and nothing after them. Case 32 has the
-#     refactor verifier report an unhandled edge case on a `NEW_STEP:` line before that
-#     pair — a line the contract as written does not admit, so the verifier is told to
-#     break the contract to obey the check. The contract is what has to give: `NEW_STEP:`
-#     lines are allowed ahead of the final two, and the final two stay last, which is what
-#     keeps parse-verdict.sh reading the same verdict and reason as before.
+# 33. every phase's built prompt allows FLAGS: lines before the final pair (issues #362,
+#     #175). The footer every verifier writes is the conductor's whole reading of the leaf,
+#     and it says to end with EXACTLY the two lines and nothing after them. Case 32 has the
+#     refactor verifier report an unhandled edge case on a `FLAGS:` line before that pair —
+#     a line the contract as written does not admit, so the verifier is told to break the
+#     contract to obey the check. The contract is what has to give: `FLAGS:` lines are
+#     allowed ahead of the final two, and the final two stay last, which is what keeps
+#     parse-verdict.sh reading the same verdict and reason as before. #362 made that
+#     allowance for `NEW_STEP:`; #175 retired the token (case 43), and the allowance moves
+#     with the finding rather than staying behind as a line no check asks for.
 #
 #     Asked of all four phases, not just refactor, because the contract lives in _shared.md
 #     and a phase that kept the older footer would carry a rule contradicting the one the
-#     run acts on — and because the refactor leaf already reports on this token (#361), so
-#     any verifier may be handed output carrying it. Assert on the built prompts rather
-#     than on _shared.md, for case 12's reason: the behaviour is the rule reaching every
-#     phase, not which file holds it.
+#     run acts on — and because the refactor leaf reports on this token too, so any
+#     verifier may be handed output carrying it. Assert on the built prompts rather than on
+#     _shared.md, for case 12's reason: the behaviour is the rule reaching every phase, not
+#     which file holds it.
 #
-#     Two claims, two misses per phase: a prompt naming the token without permitting it
+#     Two claims, two misses per phase: a prompt naming the line without permitting it
 #     still forbids the line it asks for, and permission without the placement leaves
 #     parse-verdict.sh's final pair unguarded. The prompts read are cases 5, 6, 7 and 9's —
 #     same phases, same arguments — so this case invokes the builder not at all, and folds
 #     through `prompt_says` for the reason given at its definition.
-allows_new_step() {  # allows_new_step <phase label> <prompt>
+allows_flags() {  # allows_flags <phase label> <prompt>
   local label="$1" prompt="$2"
-  prompt_says "$prompt" "verify-$label's output contract never allows a NEW_STEP: line" \
-    -iE -e "NEW_STEP[^.]{0,200}(may|can|allow|permit)|(may|can|allow|permit)[^.]{0,200}NEW_STEP"
-  prompt_says "$prompt" "verify-$label never puts NEW_STEP: lines before the final VERDICT:/REASON: pair" \
-    -iE -e "NEW_STEP[^.]{0,160}before[^.]{0,160}(VERDICT|(final|last)[^.]{0,40}two lines)"
+  prompt_says "$prompt" "verify-$label's output contract never allows a FLAGS: line" \
+    -iE -e "FLAGS[^.]{0,200}(may|can|allow|permit)|(may|can|allow|permit)[^.]{0,200}FLAGS"
+  prompt_says "$prompt" "verify-$label never puts FLAGS: lines before the final VERDICT:/REASON: pair" \
+    -iE -e "FLAGS[^.]{0,160}before[^.]{0,160}(VERDICT|(final|last)[^.]{0,40}two lines)"
 }
 
-every_phase allows_new_step "every phase's prompt allows NEW_STEP: lines before the final VERDICT:/REASON: pair"
+every_phase allows_flags "every phase's prompt allows FLAGS: lines before the final VERDICT:/REASON: pair"
 
 # 34. the builder accepts a fifth phase, `plan`, and builds its prompt from the issue spec
 #     and the ledger named in the third positional (#439). The plan is the one artifact a
@@ -941,6 +941,31 @@ prompt_lacks "$red" "a spec with no Bug section still requires the failure to ma
 [[ -z "$problems" ]] \
   && ok || no "verify-red requires a bug's observed failure to match What happened, and requires nothing of the kind for a spec with no Bug section (${problems#; })"
 
+
+# 43. a verify-refactor finding rides on the refactor leaf's own FLAGS: classes, never on a
+#     NEW_STEP: line (issue #175). Case 32 gave the verifier `NEW_STEP:` for an unhandled edge
+#     case, the token the refactor leaf then used for its overfit findings, so that the
+#     conductor could hand either to `add-ledger-step.sh`. #175 took that token off the leaf:
+#     every finding became a whole ledger step whatever it named, and the plan grows now only
+#     from an `uncovered-spec` flag. A verifier still writing `NEW_STEP:` would be the one
+#     channel left that grows the plan from a finding nobody classed — so its finding carries
+#     the same three classes, `overfit`, `uncovered-spec` and `beyond-spec`, on a `FLAGS:`
+#     line, and the conductor routes it by the same rule as the leaf's. Classing a finding
+#     reveals no developer reasoning, so blindness holds (ADR-0003).
+#
+#     Cases 32 and 33 moved to the same line with it. Five claims,
+#     five misses: the line, each class it may carry — a `FLAGS:` line with no class is the
+#     unclassed finding again — and `NEW_STEP` absent from the prompt, since a prompt offering
+#     both lets the verifier fill either. The prompt read is case 7's `$refactor`, so this case
+#     invokes the builder not at all, and folds through `prompt_says`/`prompt_lacks`.
+problems=""
+prompt_says "$refactor" "no FLAGS: line" -F -e 'FLAGS:'
+for class in overfit uncovered-spec beyond-spec; do
+  prompt_says "$refactor" "does not name the $class class" -F -e "$class"
+done
+prompt_lacks "$refactor" "still asks for a NEW_STEP: line" -F -e 'NEW_STEP'
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor reports a finding on a FLAGS: line carrying the overfit, uncovered-spec or beyond-spec class, never on a NEW_STEP: line (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"

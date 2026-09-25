@@ -41,7 +41,7 @@ fence, no extra formatting:
 VERDICT: PASS        (or REJECT)
 REASON: <one or two sentences — the objective result plus the judgement behind it>
 
-Where a check below tells you to report something as a `NEW_STEP:` line, you may write
+Where a check below tells you to report something as a `FLAGS:` line, you may write
 one such line per finding immediately before those two, and only there: the final two
 lines stay last, so nothing else follows them.
 

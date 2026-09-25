@@ -317,14 +317,14 @@ report "$name"
 # 7. The Refactor phase's own insertion (issue #361): case 6 asks that every insertion
 #    prescribed anywhere carries the mark, which a section that prescribes no insertion at all
 #    satisfies vacuously. This case asks the one the Refactor phase makes — the call that grows
-#    the plan with the leaf's `NEW_STEP:` values after verify-refactor's final PASS, in the same
+#    the plan with the `uncovered-spec` flags (#175) after verify-refactor's final PASS, in the same
 #    breath as the refactor-pending clear — to carry it, so dropping that call or its mark from
 #    the phase that grows the plan mid-run is caught where it happens.
 name="$skill_md marks the Refactor section's own plan insertion with an event.sh step-added call beside it"
 problems=()
 if have_records "the Refactor section's step-added mark"; then
-  mark step-added "grows the plan with the leaf's \`NEW_STEP:\` values beside the refactor-pending clear" \
-    "$insertion_re" 'clear-refactor-pending\.sh' 'new_step:'
+  mark step-added "grows the plan with the \`uncovered-spec\` flags beside the refactor-pending clear" \
+    "$insertion_re" 'clear-refactor-pending\.sh' 'uncovered-spec'
 fi
 report "$name"
 
