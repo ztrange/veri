@@ -1,7 +1,7 @@
 # Plan for #448 — `step-cost.sh`: what this step and this run have spent so far, read from the event log
 
 - [x] `step-cost.sh <step-text>` prints the summed `total_cost_usd` of that step's `usage` events to two decimals and exits 0, from a new unit-tier suite under `skills/tdd/scripts/tests/unit/` whose header states the fast-tier bar it clears (no git, no network, no servers, no real `sleep`, no nested suites) ⟦criterion 1⟧
-- [x] `step-cost.sh <step-text>` for a step no `usage` event carries prints nothing and exits 3 ⟦criterion 2⟧ ⟂ refactor pending
+- [x] `step-cost.sh <step-text>` for a step no `usage` event carries prints nothing and exits 3 ⟦criterion 2⟧
 - [ ] `step-cost.sh --run` prints the summed `total_cost_usd` of every `usage` event in the log, including those carrying no step, to two decimals and exits 0 ⟦criterion 3⟧
 - [ ] `step-cost.sh --run` against a log holding no `usage` event prints nothing and exits 3 ⟦criterion 4⟧
 - [ ] `step-cost.sh --steps` prints one `<dollars> <leaves>` line per step that has a `usage` event, in the order the log first mentions each, and exits 0; with no `usage` event it prints nothing and exits 3 ⟦criterion 5⟧
