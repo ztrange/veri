@@ -219,15 +219,20 @@ report "$name"
 helpers_rel="skills/tdd/scripts/tests/record-helpers.sh"
 helpers_path="$ROOT/$helpers_rel"
 
+# need_helpers_file <helpers> — the shared file is there to source, or one problem naming
+# the helpers a probe went looking for in it and a non-zero return.
+need_helpers_file() {
+  [[ -f "$helpers_path" ]] && return 0
+  problems+=("$helpers_rel does not exist, so there is no shared $1 to source")
+  return 1
+}
+
 probe_shared_report_and_plain() {
   if [[ "$helpers_rel" == *.test.sh ]]; then
     problems+=("$helpers_rel is named *.test.sh, so make test would run it as a suite")
     return
   fi
-  if [[ ! -f "$helpers_path" ]]; then
-    problems+=("$helpers_rel does not exist, so there is no shared report or plain to source")
-    return
-  fi
+  need_helpers_file "report or plain" || return
 
   local got expected
   got="$(
@@ -271,10 +276,7 @@ report "$name"
 #    here-string, so no scratch file is left behind (a process substitution is closed
 #    before `bullet` reads it).
 probe_shared_records_bullet_says() {
-  if [[ ! -f "$helpers_path" ]]; then
-    problems+=("$helpers_rel does not exist, so there is no shared records, bullet or says to source")
-    return
-  fi
+  need_helpers_file "records, bullet or says" || return
 
   local got expected
   got="$(
