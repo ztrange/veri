@@ -1946,6 +1946,35 @@ rm -f "$work/.test-inside-window"
   && grep -E 'no heartbeat for [0-9]+s \(window 2s\)' "$work/err" > /dev/null; } && ok \
   || no "#472: a leaf silent 1s then 3s of awake time (no suspend) against a 2s heartbeat survives the first and is killed as stuck on the heartbeat (code=$code want 2, survived inside the window=$awake_inside want yes, err=$(cat "$work/err"))"
 
+# 47. a NOISY leaf running while the machine is AWAKE is still killed once its awake run time
+#     passes VERI_TIMEOUT, at the same threshold as today (issue #472). Case 45 takes suspended
+#     time out of the hard timeout; this one pins that awake run time is not taken out with it.
+#     No suspend here: every second is a `clock-jump`, which moves the awake clock and the wall
+#     clock together, and the leaf writes a line before each, so a 30 s heartbeat never nears.
+#     Against a 4 s VERI_TIMEOUT it runs two awake seconds — inside the cap, so it must survive,
+#     and marks ./.test-inside-window once the supervisor has polled across them — then keeps
+#     writing a line a second for ten more and exits 0 if nobody stops it. The supervisor must
+#     kill it on the hard timeout (exit 2, `hard timeout 4s exceeded`) and not before the mark.
+cat > "$stub/leaf-awake-runaway" <<'L'
+#!/bin/sh
+: > .test-clock-reads
+echo "leaf: starting"
+clock-jump 1; await-poll; await-poll
+echo "leaf: busy"
+clock-jump 1; await-poll; await-poll
+: > .test-inside-window
+for i in 1 2 3 4 5 6 7 8 9 10; do echo "leaf: busy $i"; clock-jump 1; await-poll; done
+exit 0
+L
+chmod +x "$stub/leaf-awake-runaway"
+rm -f "$work/.test-suspended" "$work/.test-inside-window"
+sup awake-runaway 30 4 leaf-awake-runaway
+runaway_inside="$([[ -e "$work/.test-inside-window" ]] && echo yes || echo no)"
+rm -f "$work/.test-inside-window"
+{ [[ "$code" == 2 ]] && [[ "$runaway_inside" == yes ]] \
+  && grep -F 'hard timeout 4s exceeded' "$work/err" > /dev/null; } && ok \
+  || no "#472: a noisy leaf running 2s then on past a 4s VERI_TIMEOUT of awake time (no suspend) survives the first and is killed on the hard timeout (code=$code want 2, survived inside the timeout=$runaway_inside want yes, err=$(cat "$work/err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
