@@ -590,11 +590,16 @@ step_lines() {
 name="$skill_md states the step-title rule in one place, and every fenced command carrying the title follows it"
 problems=()
 
-# The rule's paragraph, recognised by what it is about rather than by its wording: it names
-# the step title — as the English words, or as the placeholder every command spells — and it
-# says something about quoting. Anything that does both is a statement of this rule, which is
-# what makes "in one place" answerable at all.
-rules="$(prose_paragraphs | grep -i -E 'quot' | grep -F -e 'step title' -e "$step_ph" || true)"
+# step_title_rules — every prose paragraph stating the step-title rule, each prefixed with its
+# line number. The rule's paragraph is recognised by what it is about rather than by its
+# wording: it names the step title — as the English words, or as the placeholder every command
+# spells — and it says something about quoting. Anything that does both is a statement of this
+# rule, which is what makes "in one place" answerable at all.
+step_title_rules() {
+  prose_paragraphs | grep -i -E 'quot' | grep -F -e 'step title' -e "$step_ph" || true
+}
+
+rules="$(step_title_rules)"
 rule_count="$(grep -c . <<< "$rules")"
 if [[ "$rule_count" -eq 0 ]]; then
   problems+=("$skill_md states no rule for how a step title reaches a command line — no paragraph outside a fenced block says how the title is quoted")
@@ -697,7 +702,7 @@ step_readers() {
 name="$skill_md's step-title rule says the title reaches a command line as data, not hand-typed in double quotes, and names what the launch lines read it through (#437)"
 problems=()
 
-rules="$(prose_paragraphs | grep -i -E 'quot' | grep -F -e 'step title' -e "$step_ph" || true)"
+rules="$(step_title_rules)"
 readers="$(step_readers)"
 if [[ "$(grep -c . <<< "$rules")" -ne 1 ]]; then
   unreadable "single paragraph stating the step-title rule" "how the step's title reaches a command line"
