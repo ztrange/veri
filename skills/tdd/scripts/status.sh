@@ -30,8 +30,9 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 
 # The latest leaf launch in the event log, how many launches the current step has had, and the
 # run's cost so far: every `usage` line's dollars and its four token kinds, summed — and the
-# run's state. A `done` or `bail` event ends a run; otherwise it is stale when its newest event
-# is older than <timeout> seconds and <conductor.pid> does not answer `kill -0`, else running.
+# run's state. A `done` or `bail` event ends a run and a `stop` event reads `stopped <mode>`;
+# otherwise it is stale when its newest event is older than <timeout> seconds and
+# <conductor.pid> does not answer `kill -0`, else running.
 # With STATUS_JSON=1 the same fields print as one JSON object instead.
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
   PYTHONPATH="$lib" python3 - "$1" "$2" "$3" <<'PY'
@@ -48,7 +49,7 @@ for line in events:
             attempts = 0
         last = line
         attempts += 1
-    elif line.get("event") in ("done", "bail"):
+    elif line.get("event") in ("done", "bail", "stop"):
         ended = line
 
 
@@ -64,6 +65,8 @@ def conductor_answers(pid_file):
 now = int(time.time())
 if ended is not None and ended.get("event") == "done":
     state = "done %s" % ended.get("pr", "")
+elif ended is not None and ended.get("event") == "stop":
+    state = "stopped %s" % ended.get("mode", "")
 elif ended is not None:
     state = "bailed %s %s" % (ended.get("phase", ""), ended.get("classification", ""))
 elif newest is not None and now - int(newest["ts"]) > int(sys.argv[3]) \
@@ -80,7 +83,8 @@ if os.environ.get("STATUS_JSON") == "1":
                       "attempts": attempts, "dollars": round(dollars, 2), "tokens": tokens,
                       "state": state.split(" ")[0], "pr": end.get("pr", ""),
                       "bail_phase": end.get("phase", ""),
-                      "classification": end.get("classification", "")}))
+                      "classification": end.get("classification", ""),
+                      "stop_mode": end.get("mode", "")}))
 else:
     print("%s  %s  %s %ds  attempt %d  $%.2f  %d tokens  %s" % (last.get("phase", ""),
           last.get("actor", ""), last.get("name", ""), now - int(last["ts"]),

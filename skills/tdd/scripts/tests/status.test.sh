@@ -194,6 +194,30 @@ missing=()
 [[ "$out" == *"attempt 2 "* ]] || missing+=("attempt 2")
 expect_nothing_missing "a finished run's line reports its last step's attempt count, not attempt 0, when the done event carries an empty step"
 
+# --- a stopped run: `stopped <mode>`, and in --json "state": "stopped" with stop_mode (#390) ---
+# #16 launched develop-red, then the operator stopped it at the next leaf: its log ends in the
+# `stop mode=at-leaf at=planned` mark the conductor writes on *Stopping*. Both events are recent,
+# so nothing about the run is stale — the stop mark alone is what makes it read stopped.
+paused="$(repo paused)"
+now="$(date +%s)"
+run="$(launched_run "$paused" 16 $((now - 20)))"
+printf '{"ts": %s, "issue": "16", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "stop", "attempt": "", "skill_commit": "abc", "mode": "at-leaf", "at": "planned"}\n' \
+  "$((now - 10))" >> "$run/.tdd/events.jsonl"
+missing=()
+run_in "$paused"
+[[ "$out" == *"stopped at-leaf"* ]] || missing+=("stopped at-leaf")
+run_in "$paused" --json
+stopped="$(printf '%s' "$out" | python3 -c '
+import json, sys
+try:
+    run = json.loads(sys.stdin.read())["runs"][0]
+    print("%s %s" % (run["state"], run.get("stop_mode", "(no stop_mode)")))
+except (ValueError, KeyError, IndexError, TypeError) as err:
+    print("no run with a state: %r" % err)
+')"
+[[ "$stopped" == "stopped at-leaf" ]] || missing+=("--json state and stop_mode \"stopped at-leaf\", got: $stopped")
+expect_nothing_missing "a run whose log ends with a stop mark reads stopped <mode>, and --json reports state stopped with the mode in stop_mode"
+
 # --- --scope <name>: the scope's totals — attempted, done, bailed, wall time, dollars ---
 # Three runs in one repository. Wall time is each run's span from its first event to its last,
 # summed, so it is read from the files alone and never drifts with the clock: #21 is running,
