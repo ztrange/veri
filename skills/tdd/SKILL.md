@@ -329,8 +329,14 @@ is being solved or which step of its plan the leaf is on — so a launch that om
 leaves every one of that leaf's events with an empty `issue` and an empty `step`, and a
 reader can attribute the leaf to a step only by interleaving timestamps with `step-start`.
 
-**The step's title reaches every command line in double quotes** — `VERI_STEP="<STEP>"`,
-`--step "<STEP>"`, and the same on every other command on this page that carries the
+**The step's title reaches a command line as data, never hand-typed into it where a
+script can read it instead.** Double quotes stop an apostrophe but not an expansion: a
+`$`, a backtick or a `"` in the title is substituted, run or cut short inside `"<STEP>"`,
+silently, and the run carries on with a title nobody wrote (#437). So a developer leaf's
+launch reads `VERI_STEP` out of the committed ledger inside its own command substitution —
+`next-unchecked.sh` for develop-red, `next-pending-refactor.sh` for develop-refactor — and
+the title never passes through the line as text. Where a command still spells the title,
+it is in double quotes — `VERI_STEP="<STEP>"`, `--step "<STEP>"`, and the same on every other command on this page that carries the
 title or **a fragment of it** — the `"<substring>"` `tick-ledger.sh`,
 `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find the checkbox
 they tick is a piece of that same English, so it is quoted the same way.

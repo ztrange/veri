@@ -48,6 +48,9 @@
 #      `tick-issue-criterion.sh` calls handed a distinctive substring of STEP to find the
 #      checkbox they tick — read over the whole document, prose included, since three of
 #      those calls are written inline in a sentence rather than in a fenced block (#431).
+#  10. That one rule says the title reaches a command line as data rather than hand-typed in
+#      double quotes, which expand a `$`, a backtick or a `"` in it, and names every script
+#      the launch lines read it through, so it does not contradict them (#437).
 #
 # Case 1 is scoped to the launch LINES, not to the file, precisely so case 2 can exist:
 # *Launching a leaf* has to be free to explain why `nohup` is not enough, and a suite that
@@ -668,6 +671,50 @@ if [[ -z "$fragments" ]]; then
 else
   read_quoted_lines "$fragments" "a fragment of the step title" \
     "$fragment_ph" "$single_quoted_fragment" "$double_quoted_fragment"
+fi
+
+report "$name"
+
+# step_readers — every script a fenced launch line reads the step's title THROUGH rather than
+# having it typed: the `$S/<script>` names inside a `VERI_STEP="$(…)"` command substitution,
+# one per line, deduplicated. Those are the launch lines that already take the title as data
+# out of the ledger (#437), and so the ones a stated rule has to agree with.
+step_readers() {
+  fenced_lines 'VERI_STEP="\$\(' |
+    grep -o -E 'VERI_STEP="\$\([^)]*\)' |
+    grep -o -E '\$S/[A-Za-z0-9_.-]+' | sed 's|^\$S/||' | sort -u || true
+}
+
+# 10. Double quotes do not stop the shell from EXPANDING: a title carrying `$HOME`, a
+#     backtick or a `"` is substituted, run or cut short inside `"<STEP>"`, and silently —
+#     the run carries on with a step title nobody wrote (issue #437). The launch lines have
+#     started taking the title as data, read out of the ledger by a script inside the
+#     launch's own command substitution, and a rule that still tells a conductor to type it
+#     in double quotes contradicts them: the next command improvised from the rule puts the
+#     expansion back. So the one rule case 8 finds has to say the title reaches a command
+#     line as data, and has to name every script the launch lines read it through — the
+#     rule and the lines it governs describing the same mechanism.
+name="$skill_md's step-title rule says the title reaches a command line as data, not hand-typed in double quotes, and names what the launch lines read it through (#437)"
+problems=()
+
+rules="$(prose_paragraphs | grep -i -E 'quot' | grep -F -e 'step title' -e "$step_ph" || true)"
+readers="$(step_readers)"
+if [[ "$(grep -c . <<< "$rules")" -ne 1 ]]; then
+  unreadable "single paragraph stating the step-title rule" "how the step's title reaches a command line"
+elif [[ -z "$readers" ]]; then
+  unreadable "launch line reading VERI_STEP through a script inside a fenced block" "what the launch lines read the step's title through"
+else
+  ruleno="$(cut -f1 <<< "$rules")"
+  ruletext="$(cut -f2- <<< "$rules")"
+  faults=""
+  [[ "$(lowered <<< "$ruletext")" =~ (^|[^a-z])data([^a-z]|$) ]] ||
+    fault "does not say the title reaches a command line as data"
+  while IFS= read -r reader; do
+    [[ "$ruletext" == *"$reader"* ]] ||
+      fault "does not name $reader, which a launch line reads the title through"
+  done <<< "$readers"
+  [[ -z "$faults" ]] ||
+    problems+=("$skill_md:$ruleno states the step-title rule but $faults")
 fi
 
 report "$name"
