@@ -270,8 +270,8 @@ else
   # joined and split at ". ", so a sentence wrapped over two lines is still one sentence.
   joined="$(tr '\n' ' ' <<<"$section" | tr -s ' ')"
   exit0_sentence="$(grep -E 'exit 0([^0-9]|$)' <<<"${joined//. /.$'\n'}")"
-  grep -qE 'printed on stdout' <<<"$exit0_sentence" \
-    || problems+=("the stop-requested.sh entry's exit 0 sentence never says the mode is printed on stdout")
+  section="$exit0_sentence" require 'printed on stdout' \
+    "the stop-requested.sh entry's exit 0 sentence never says the mode is printed on stdout"
   require '--clear' "the stop-requested.sh entry never names --clear, the Stopping section's second call"
   for code in 0 2 3; do
     require "exits? ([0-9]+[ ,/]+(or |and )?)*$code([^0-9]|\$)" "the stop-requested.sh entry never names exit $code"
