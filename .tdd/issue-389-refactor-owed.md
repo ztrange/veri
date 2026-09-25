@@ -3,3 +3,5 @@
 ### SKILL.md's three ledger-commit checkpoints (the green push, the refactor-pending clear, the pin's `test:` commit) send a `stop-requested.sh` exit 2 found there to *Stopping* as `at-ledger`, narrating that the request was unreadable ⟦added⟧ ⟦criterion 3⟧
 - the three (what, start, end) triples for green PASS / refactor-pending clear / pin are written twice, once for the ledger_checkpoint cases and once for the ledger_exit2 case; one table or loop could drive both
 - SKILL.md repeats the exit-2 "Stopping in mode at-ledger, narrating that the request was unreadable" clause at all three ledger-commit checkpoints instead of pointing to *Launching a leaf*; each branch's own test currently requires the literal clause, so this is blocked
+### each phase's own leaf-exit-2 branch in SKILL.md (develop-red, green, refactor, revise, verify-plan) points back to the checkpoints spelled once in *Launching a leaf* — ask `stop-requested.sh` before reading the exit 2 as `killed-stuck` ⟦added⟧ ⟦criterion 4⟧
+- ledger_exit2 joins with an inline `tr '\n' ' ' | tr -s ' '` that duplicates `joined` — code from an earlier step, out of this cycle's bounds
