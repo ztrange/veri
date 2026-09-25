@@ -72,6 +72,16 @@ if [[ "$err" != *VERI_STEP_BUDGET* ]]; then
 fi
 verdict "a VERI_STEP_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
 
+# 4. VERI_RUN_BUDGET set to a negative number, not a non-negative decimal number, with
+#    VERI_STEP_BUDGET left at its default: exit 2, nothing on stdout, and the stderr
+#    diagnostic names the variable at fault.
+run_budget VERI_RUN_BUDGET=-5 --
+expect 2 ''
+if [[ "$err" != *VERI_RUN_BUDGET* ]]; then
+  problems+="    want stderr naming VERI_RUN_BUDGET, got '$err'"$'\n'
+fi
+verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
