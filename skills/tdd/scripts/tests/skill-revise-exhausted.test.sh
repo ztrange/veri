@@ -209,6 +209,47 @@ fi
 
 report "$name"
 
+# The step budget (#451), whose crossing is answered by a leaf built on the exhausted one's
+# pattern. step-cost.sh (#448), step-budget.sh (#449) and the over-budget prompt (#450) exist,
+# and nothing calls them: a step is only ever stopped at its budget if the procedure asks
+# step-cost.sh after each leaf that runs before the step's green commit — after that commit
+# there is nothing left for a crossing to change.
+
+# The cost check, spelled once for the probe and the message both.
+step_cost='step-cost.sh'
+
+# after_wait <leaf> — the raw lines after `wait-leaf.sh <leaf>` (the leaf has exited), up to
+# the next leaf launched (`detach-leaf.sh`) or the green commit's tick (`tick-ledger.sh`),
+# whichever comes first: what the conductor does between this leaf's answer and the next thing
+# that spends money or closes the step. Empty when the document never waits on that leaf.
+after_wait() {
+  awk -v w="wait-leaf.sh $1" \
+    '!inside && index($0, w) { inside = 1; next }
+     inside && (index($0, "detach-leaf.sh") || index($0, "tick-ledger.sh")) { exit }
+     inside' "$skill_path"
+}
+
+# The five leaves that run before a step's green commit, by the name each is waited on under.
+pre_commit_leaves=(develop-red verdict-red 'revise-<phase>-<k>' develop-green verdict-green)
+
+name="$skill_md checks $step_cost after develop-red, verify-red, each revise attempt, develop-green and verify-green, before the next leaf launches or the green commit ticks"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — where the cost check runs could not be established")
+else
+  for leaf in "${pre_commit_leaves[@]}"; do
+    window="$(after_wait "$leaf")"
+    if [[ -z "${window//[[:space:]]/}" ]]; then
+      problems+=("$skill_md never waits on $leaf, or launches the next leaf straight after it — where its cost check would go could not be established")
+    elif ! grep -F -- "$step_cost" > /dev/null <<<"$window"; then
+      problems+=("$skill_md runs no $step_cost between $leaf exiting and the next leaf's launch or the green commit, so a step that crossed its budget on $leaf spends on without anything asking")
+    fi
+  done
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

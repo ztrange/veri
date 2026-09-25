@@ -784,6 +784,16 @@ wording as the criterion the leaves pin, and as the `<substring>` for ticking). 
 step's cycle completes (refactor verified), loop back to `next-unchecked.sh` for the
 following step. The phase sub-steps are:
 
+#### The step's cost check
+
+Every leaf of a step that runs **before its green commit** — develop-red, each verify-red,
+each revise attempt of red or green, develop-green, each verify-green — is followed, once its
+wait has returned, by `$S/step-cost.sh '<STEP>'`: what the step's leaves have spent so far,
+read off their `usage` events, against the step budget `step-budget.sh` printed in preflight.
+None follows a leaf after the green commit: by then the step is ticked, and its refactor
+loop is one leaf already handed its own budget as a number (ADR-0017), so a check there
+could change nothing.
+
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
 1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
@@ -796,6 +806,7 @@ following step. The phase sub-steps are:
    rm -f .tdd/develop-red.exit .tdd/develop-red.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-red $S/run-leaf.sh .tdd/develop-red.prompt --permission-mode bypassPermissions > .tdd/develop-red.out 2> .tdd/develop-red.err
    $S/wait-leaf.sh develop-red     # foreground; on exit 3 call it again
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
    The template also states what a valid test is: behavior, not mechanism (no process, fork
    or call count and no timing across a suite run — those are `make profile`'s job — except
@@ -860,6 +871,7 @@ following step. The phase sub-steps are:
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
    That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —
    0 PASS, 1 REJECT, 2 malformed or killed-stuck — not the supervisor's status.
@@ -903,6 +915,7 @@ following step. The phase sub-steps are:
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-green $S/run-leaf.sh .tdd/develop-green.prompt --permission-mode bypassPermissions > .tdd/develop-green.out 2> .tdd/develop-green.err
    $S/wait-leaf.sh develop-green    # foreground; on exit 3 call it again
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
    The test path and target test id are the ones Red's report gave you. The leaf's report is
    in `.tdd/develop-green.out`, and ends with `IMPL_PATH:` (the production files it created
@@ -940,6 +953,7 @@ following step. The phase sub-steps are:
    rm -f .tdd/verdict-green.exit .tdd/verdict-green.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-green $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" --fast-cmd '<fast-cmd>' green .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-green.reason 2> .tdd/verify-green.err
    $S/wait-leaf.sh verdict-green    # foreground; on exit 3 call it again
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — see *The step's cost check*
    ```
 3. **Narrate + branch.** Post `### 🟢 Green` (implementation + green suite output) and
    `### 🔎 verify-green — PASS|REJECT` (the reason).
@@ -1351,6 +1365,7 @@ For attempt `k = 1 … REVISE_BUDGET`:
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh revise-<phase>-<k> $S/run-leaf.sh .tdd/revise-<phase>-<k>.prompt --permission-mode bypassPermissions > .tdd/revise-<phase>-<k>.out 2> .tdd/revise-<phase>-<k>.err
    $S/wait-leaf.sh revise-<phase>-<k>   # foreground; on exit 3 call it again
+   $S/step-cost.sh "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"   # the step's cost check — red or green only — see *The step's cost check*
    ```
    The reason travels as a **file**, not as prose you paste in — that is why the verify step
    redirected it. The template tells the leaf it is fresh, that the reason is the whole of
