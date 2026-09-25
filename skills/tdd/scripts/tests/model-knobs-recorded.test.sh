@@ -267,6 +267,12 @@ report "$name"
 #    line opening a function by one of the five names. The subshell sources in cases 2 and 3
 #    are indented and name `$helpers_path`, so they answer neither question.
 
+# defines_function <text> <fn> — whether some line of <text> opens a function named <fn>,
+# with or without the `function` keyword.
+defines_function() {
+  [[ "$1" =~ (^|$'\n')[[:space:]]*(function[[:space:]]+)?$2[[:space:]]*\(\) ]]
+}
+
 # probe_suite_uses_shared_helpers <stem> <helper>... — one problem when the suite
 # <stem>.test.sh does not source the shared file at its top level, and one per <helper> it
 # still defines itself.
@@ -282,7 +288,7 @@ probe_suite_uses_shared_helpers() {
   [[ "$text" =~ (^|$'\n')(source|\.)[[:space:]][^$'\n']*record-helpers\.sh ]] ||
     problems+=("$suite_rel does not source record-helpers.sh at its top level")
   for fn in "$@"; do
-    [[ "$text" =~ (^|$'\n')[[:space:]]*(function[[:space:]]+)?$fn[[:space:]]*\(\) ]] &&
+    defines_function "$text" "$fn" &&
       problems+=("$suite_rel still defines its own $fn")
   done
 }
@@ -307,7 +313,7 @@ report "$name"
 probe_suite_keeps_own_says() {
   local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text
   text="$(cat "$ROOT/$suite_rel" 2>/dev/null)" || return
-  [[ "$text" =~ (^|$'\n')[[:space:]]*(function[[:space:]]+)?says[[:space:]]*\(\) ]] ||
+  defines_function "$text" says ||
     problems+=("$suite_rel no longer defines its own says")
 }
 
