@@ -327,6 +327,38 @@ done
 
 report "$name"
 
+# 6. The shared file defines all five helpers whatever directory it is sourced from (issue
+#    #225): a file that reached a sibling by a path relative to the working directory would
+#    work from the repo root, where make test runs, and come back short from anywhere else.
+#    Sourced by its absolute path from `/`, which is never the repo root, in a subshell with
+#    every local definition unset first, as cases 2 and 3 do; each helper `declare -F` does
+#    not find there is named.
+probe_shared_helpers_from_elsewhere() {
+  need_helpers_file "report, plain, records, bullet or says" || return
+
+  local missing
+  missing="$(
+    unset -f report plain records bullet says
+    cd / || exit
+    # shellcheck source=/dev/null
+    source "$helpers_path" > /dev/null 2>&1
+    for fn in report plain records bullet says; do
+      declare -F "$fn" > /dev/null || printf '%s\n' "$fn"
+    done
+  )"
+  local fn
+  while IFS= read -r fn; do
+    [[ -n "$fn" ]] && problems+=("sourcing $helpers_rel from / did not define $fn")
+  done <<< "$missing"
+}
+
+name="$helpers_rel sourced from a working directory other than the repo root defines report, plain, records, bullet and says"
+problems=()
+
+probe_shared_helpers_from_elsewhere
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
