@@ -371,6 +371,27 @@ mark() {
 # `model=` is written on every launch, empty when the run chose none: event.sh's rule for
 # context keys is that an absent key and a chosen-nothing key must not look alike, and a
 # per-model cost comparison joins verdicts and revise counts on exactly this field.
+# One leaf owns a worktree at a time (issue #471). In #446 `verify-green` was launched while
+# `revise-green-1` was still running, and the two wrote one tree at once: `.tdd/<name>.pid`
+# only answers for a leaf of this name, and SKILL.md removes it before every launch. So every
+# supervision also records itself in `.tdd/leaf.owner` — `<pid> <name>`, a file no launch
+# recipe removes — and a launch finding a live pid there is refused with exit 2, since no
+# answer can be obtained from a leaf that would share its tree. A record whose process is gone
+# refuses nothing: `kill -0` sends no signal and answers only whether the pid exists.
+#
+# A `verdict-<phase>` supervision reads the record but never writes it: it is the wrapper
+# around the `verify-<phase>` supervision verify.sh launches inside it, and that one is the
+# leaf; a record written here would have the verifier refused by its own wrapper.
+ownerfile=".tdd/leaf.owner"
+if [[ -s "$ownerfile" ]]; then
+  read -r owner_pid owner_name < "$ownerfile"
+  if kill -0 "$owner_pid" 2>/dev/null; then
+    echo "supervise: refusing to launch $name: leaf ${owner_name:-?} (pid $owner_pid) is still alive in this worktree" >&2
+    exit 2
+  fi
+fi
+[[ "$heartbeat_watched" == 0 ]] || printf '%s %s\n' "$$" "$name" > "$ownerfile"
+
 mark launch name="$name" cmd="$*" model="$model"
 
 # This supervisor's own pid, recorded before any leaf is launched (issue #173), so
