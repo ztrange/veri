@@ -1,7 +1,7 @@
 # Plan for #175 — A refactor flag becomes a plan amendment only when it names spec behaviour no step covers
 
 - [x] The built refactor prompt reports overfit code on a FLAGS line carrying the class overfit, uncovered-spec or beyond-spec, or none, in place of the NEW_STEP line that carried it, and defines what each class names ⟦added⟧ ⟦criterion 1⟧
-- [x] SKILL.md describes the refactor leaf report footer as the built prompt actually writes it, naming no line the prompt does not emit ⟦added⟧ ⟦criterion 1⟧ ⟂ refactor pending
+- [x] SKILL.md describes the refactor leaf report footer as the built prompt actually writes it, naming no line the prompt does not emit ⟦added⟧ ⟦criterion 1⟧
 - [x] The refactor loop in SKILL.md answers an overfit flag with one triangulating red and green pair inside the current step, adding no ledger step and no second step-done, then resumes that step's refactor loop with the budget it had left ⟦criterion 2⟧
 - [x] SKILL.md amends the plan from an uncovered-spec flag and from no other flag class ⟦criterion 3⟧
 - [ ] The conductor grows the plan from the refactor leaf FLAGS classes alone, reading no NEW_STEP or CANDIDATES line from the leaf anywhere in SKILL.md ⟦added⟧ ⟦criterion 3⟧
