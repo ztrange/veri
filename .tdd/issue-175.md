@@ -11,4 +11,4 @@
 - [x] The skill-refactor-leaf suite goes red on a SKILL.md whose refactor loop plans and builds a beyond-spec flag instead of only narrating it ⟦added⟧ ⟦criterion 3⟧
 - [x] SKILL.md runs a step's triangulation at most once, narrating a flag raised inside that triangulation's own refactor loop about the same code instead of triangulating it again ⟦criterion 4⟧
 - [x] The flag-class amendment guard plants a document whose granted class SKILL.md does not already name, so it still asks whether only uncovered-spec amends the plan
-- [x] The two guard suites that replant SKILL.md, beyond-spec-narration-guard and flag-class-amendment-guard, pass over the committed tree and still see their one planted case fail alone, now that skill-refactor-leaf.test.sh builds the refactor prompt ⟂ refactor pending
+- [x] The two guard suites that replant SKILL.md, beyond-spec-narration-guard and flag-class-amendment-guard, pass over the committed tree and still see their one planted case fail alone, now that skill-refactor-leaf.test.sh builds the refactor prompt
