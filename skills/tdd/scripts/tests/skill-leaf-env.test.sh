@@ -1158,6 +1158,21 @@ STUB
   done
 }
 
+# fill_title — assign the caller's `launch` from its `cmd`: every placeholder that names the
+# title, a fragment of it or an anchor step given the caller's `title`, every other `<…>` a
+# probe word, since no recorder reads them. Written once because cases 8f and 8g fill their
+# lines the same way.
+fill_title() {
+  launch="${cmd//<n>/$SENTINEL_ISSUE}"
+  launch="${launch//<STEP>/$title}"
+  launch="${launch//<distinctive substring of STEP>/$title}"
+  launch="${launch//<substring>/$title}"
+  launch="${launch//<anchor>/$title}"
+  launch="${launch//<phase>/red}"
+  launch="${launch//<k>/2}"
+  launch="$(sed -E 's/<[^<>]*>/probe/g' <<< "$launch")"
+}
+
 scan_conductor_titles() {
   local title="$EXPANDING_STEP"
   local md_lines hits numbered lineno line launch script cmd stage seen tree err got argv
@@ -1193,14 +1208,7 @@ scan_conductor_titles() {
     line="$cmd"
     # A mark that carries neither VERI_STEP nor an anchor carries no title to ask about.
     [[ "$script" != event || "$cmd" == *VERI_STEP* || "$cmd" == *anchor=* ]] || continue
-    launch="${cmd//<n>/$SENTINEL_ISSUE}"
-    launch="${launch//<STEP>/$title}"
-    launch="${launch//<distinctive substring of STEP>/$title}"
-    launch="${launch//<substring>/$title}"
-    launch="${launch//<anchor>/$title}"
-    launch="${launch//<phase>/red}"
-    launch="${launch//<k>/2}"
-    launch="$(sed -E 's/<[^<>]*>/probe/g' <<< "$launch")"
+    fill_title
     first="" expected="$title"
     [[ "$script" != tick-issue-criterion ]] || expected="$CRITERION_TEXT"
     for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
@@ -1269,11 +1277,7 @@ scan_prompt_titles() {
     cmd="$(conductor_command "$lineno" "$script")"
     line="$cmd"
     [[ "$cmd" == *"$script.sh "* ]] || continue
-    launch="${cmd//<n>/$SENTINEL_ISSUE}"
-    launch="${launch//<STEP>/$title}"
-    launch="${launch//<phase>/red}"
-    launch="${launch//<k>/2}"
-    launch="$(sed -E 's/<[^<>]*>/probe/g' <<< "$launch")"
+    fill_title
     first=""
     for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
       i=$((i + 1))
