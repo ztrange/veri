@@ -131,6 +131,35 @@ after() {
   [[ -n "$1" && -n "$2" && "$1" -gt "$2" ]]
 }
 
+# ledger_checkpoint <what> <start> <end> <anchor> — probe one ledger commit's branch for the
+# checkpoint that follows it. The branch is read out of `section` from its first line matching
+# <start> to the first line after it matching <end>; stop-requested.sh must come after the
+# first line matching <anchor> — the commit's push, or the commit itself where there is none —
+# and the branch must send whatever mode it printed to Stopping. Every ledger commit is asked
+# the same three questions, so they are written once here: a copy that drifted would leave one
+# commit's checkpoint held to a looser rule than another's.
+ledger_checkpoint() {
+  local what="$1" anchor="$4" anchor_at stop_at
+  section="$(start="$2" end="$3" awk '
+    !inside && $0 ~ ENVIRON["start"] { inside = 1 }
+    inside { print }
+    inside && $0 ~ ENVIRON["end"] { exit }' <<<"$section")"
+  if [[ -z "$section" ]]; then
+    problems+=("$what has no branch to read — nothing could be checked")
+    return
+  fi
+  anchor_at="$(first_line_matching "$anchor")"
+  stop_at="$(first_line_matching 'stop-requested\.sh')"
+  if [[ -z "$stop_at" ]]; then
+    problems+=("$what is never followed by stop-requested.sh — a stop waiting for at-ledger is not seen at that ledger commit")
+  elif ! after "$stop_at" "$anchor_at"; then
+    problems+=("$what runs stop-requested.sh (line $stop_at) before its ledger commit lands (line ${anchor_at:-none})")
+  fi
+  section="$(joined)"
+  require '(any|every|whatever)[^.;]*mode[^.;]*stopping|stopping[^.;]*(any|every|whatever)[^.;]*mode' \
+    "$what never says any mode stop-requested.sh prints goes to Stopping there"
+}
+
 # ---------------------------------------------------------------------------
 name="the Stopping section waits with wait-leaf.sh on every .tdd/<name>.pid still running supervise.sh <name> before it touches the tree, and reaches only for git reset --hard HEAD, never git checkout"
 problems=()
@@ -332,24 +361,8 @@ report "$name"
 name="the green PASS branch runs stop-requested.sh immediately after the atomic green commit's push, and any mode it prints goes to Stopping"
 problems=()
 if load_section 'Procedure'; then
-  section="$(awk '
-    /git commit -m "feat: <step summary>/ { inside = 1 }
-    inside { print }
-    inside && /continue to the refactor loop/ { exit }' <<<"$section")"
-  if [[ -z "$section" ]]; then
-    problems+=("the Procedure section has no green commit git commit -m \"feat: <STEP summary> — nothing could be checked")
-  else
-    push_at="$(first_line_matching 'push-branch\.sh')"
-    stop_at="$(first_line_matching 'stop-requested\.sh')"
-    if [[ -z "$stop_at" ]]; then
-      problems+=("the green PASS branch never runs stop-requested.sh — a stop requested during the step is not seen at the ledger commit at-ledger waits for")
-    elif ! after "$stop_at" "$push_at"; then
-      problems+=("the green PASS branch runs stop-requested.sh (line $stop_at) before the green commit's push (line ${push_at:-none}) — the checkpoint belongs after the commit is on the remote")
-    fi
-    section="$(joined)"
-    require '(any|every|whatever)[^.;]*mode[^.;]*stopping|stopping[^.;]*(any|every|whatever)[^.;]*mode' \
-      "the green PASS branch never says any mode stop-requested.sh prints goes to Stopping there"
-  fi
+  ledger_checkpoint "the green PASS branch" 'git commit -m "feat: <step summary>' \
+    'continue to the refactor loop' 'push-branch\.sh'
 fi
 report "$name"
 
@@ -362,35 +375,14 @@ report "$name"
 # and that whatever mode it printed goes to Stopping.
 name="the refactor-pending clear's push and a pin's test: commit are each followed by stop-requested.sh, and any mode it prints goes to Stopping"
 problems=()
-for slice in refactor pin; do
-  if [[ "$slice" == refactor ]]; then
-    load_section 'Procedure' || continue
-    start='\$s/clear-refactor-pending\.sh \.tdd/issue-<n>\.md' anchor='push-branch\.sh'
-    what="the refactor-pending clear"
-  else
-    load_section 'Already satisfied' || continue
-    start='git commit -m "test: pin' anchor='git commit -m "test: pin'
-    what="the pin's test: commit"
-  fi
-  section="$(start="$start" awk '
-    !inside && $0 ~ ENVIRON["start"] { inside = 1 }
-    inside { print }
-    inside && /loop back to the top of step 3/ { exit }' <<<"$section")"
-  if [[ -z "$section" ]]; then
-    problems+=("$what has no branch to read — nothing could be checked")
-    continue
-  fi
-  anchor_at="$(first_line_matching "$anchor")"
-  stop_at="$(first_line_matching 'stop-requested\.sh')"
-  if [[ -z "$stop_at" ]]; then
-    problems+=("$what is never followed by stop-requested.sh — a stop waiting for at-ledger is not seen at that ledger commit")
-  elif ! after "$stop_at" "$anchor_at"; then
-    problems+=("$what runs stop-requested.sh (line $stop_at) before its ledger commit lands (line ${anchor_at:-none})")
-  fi
-  section="$(joined)"
-  require '(any|every|whatever)[^.;]*mode[^.;]*stopping|stopping[^.;]*(any|every|whatever)[^.;]*mode' \
-    "$what never says any mode stop-requested.sh prints goes to Stopping there"
-done
+if load_section 'Procedure'; then
+  ledger_checkpoint "the refactor-pending clear" '\$s/clear-refactor-pending\.sh \.tdd/issue-<n>\.md' \
+    'loop back to the top of step 3' 'push-branch\.sh'
+fi
+if load_section 'Already satisfied'; then
+  ledger_checkpoint "the pin's test: commit" 'git commit -m "test: pin' \
+    'loop back to the top of step 3' 'git commit -m "test: pin'
+fi
 report "$name"
 
 echo "----"
