@@ -561,5 +561,15 @@ expect_unchanged assign-empty-issue 2 \
   "assign given an empty issue argument exits 2 and leaves the queue file byte-identical" \
   assign alpha ''
 
+# 28. done with a worker and an issue but no merge sha exits 2 and leaves the queue file
+#     byte-identical: alpha's 12 is running, so the one thing wrong with the call is the
+#     missing sha, and a merged line with no sha as its detail is never written.
+repo="$work/done-missing-sha"
+new_repo "$repo"
+seed_queue "$repo" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
+expect_unchanged done-missing-sha 2 \
+  "done with a worker and an issue but no merge sha exits 2 and leaves the queue file byte-identical" \
+  done alpha 12
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
