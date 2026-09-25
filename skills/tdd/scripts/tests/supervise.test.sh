@@ -1874,11 +1874,8 @@ await-poll; await-poll
 echo "leaf: awake again"; exit 3
 L
 chmod +x "$stub/clock-suspend" "$stub/leaf-suspended"
-rm -f "$work/.test-clock" "$work/.test-clock-reads" "$work/.test-suspended"
-out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=2 VERI_TIMEOUT=30 VERI_POLL=0.02 \
-          VERI_KILL_POLL=0.01 VERI_AWAKE_CLOCK="$stub/awake-clock" \
-          "$SUP" suspended "$stub/leaf-suspended" 2>"$work/err" )"
-code=$?
+rm -f "$work/.test-suspended"
+sup suspended 2 30 leaf-suspended
 susp_rc="$(cat "$work/.tdd/suspended.rc" 2>/dev/null || echo '<missing>')"
 rm -f "$work/.test-suspended"
 { [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
