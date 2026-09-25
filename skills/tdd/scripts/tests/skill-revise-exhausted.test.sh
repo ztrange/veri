@@ -258,6 +258,10 @@ report "$name"
 # inline comment in the fenced command is the only place that said so; a conductor reading
 # the section's prose is told nothing, so the rule has to be a sentence of that prose.
 
+# Naming step-cost.sh, refactor and a negation is not yet the rule: "step-cost.sh is not
+# refactor-safe" holds all three and never says when the check does run. So the same sentence
+# must also state the condition — the phase being revised is red or green.
+
 # revise_prose_sentences — the revise section with its fenced blocks dropped, normalised
 # through `plain`, one sentence per line: what the section says outside its commands.
 revise_prose_sentences() {
@@ -267,15 +271,16 @@ revise_prose_sentences() {
     awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
 }
 
-name="$skill_md says in the prose of '$revise_heading', not only in an inline comment, that a refactor-phase revise runs no $step_cost"
+name="$skill_md says in the prose of '$revise_heading', not only in an inline comment, that the revise block runs $step_cost only when the phase is red or green, never for a refactor-phase revise"
 problems=()
 
 if [[ ! -r "$skill_path" ]]; then
   problems+=("$skill_md could not be read — what the revise block says about its cost check could not be established")
 elif ! revise_prose_sentences |
   grep -F -- "$step_cost" | grep -F -- 'refactor' |
-  grep -E -- "(^|[^a-z])(never|not|no)([^a-z]|$)|n't" > /dev/null; then
-  problems+=("no sentence of '$revise_heading' outside its fenced commands names $step_cost and refactor together and says the check does not run for a refactor-phase revise — the red-or-green-only rule lives only in an inline comment")
+  grep -E -- "(^|[^a-z])(never|not|no)([^a-z]|$)|n't" |
+  grep -E -- "red or green|red or the green|red and green" > /dev/null; then
+  problems+=("no sentence of '$revise_heading' outside its fenced commands names $step_cost and refactor together, says the check does not run for a refactor-phase revise and states that it runs when the phase is red or green — the red-or-green-only rule lives only in an inline comment")
 fi
 
 report "$name"
