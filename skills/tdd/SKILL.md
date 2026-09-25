@@ -335,7 +335,8 @@ script can read it instead.** Double quotes stop an apostrophe but not an expans
 silently, and the run carries on with a title nobody wrote (#437). So a developer leaf's
 launch reads `VERI_STEP` out of the committed ledger inside its own command substitution —
 `next-unchecked.sh` for develop-red, `next-pending-refactor.sh` for develop-refactor — and
-the title never passes through the line as text. Where a command still spells the title,
+the red cycle's verifier reads it the same way twice, once for `VERI_STEP` and once for
+`--step`, so the title never passes through the line as text. Where a command still spells the title,
 it is in double quotes — `VERI_STEP="<STEP>"`, `--step "<STEP>"`, and the same on every other command on this page that carries the
 title or **a fragment of it** — the `"<substring>"` `tick-ledger.sh`,
 `clear-refactor-pending.sh` and `tick-issue-criterion.sh` are handed to find the checkbox
@@ -830,7 +831,7 @@ following step. The phase sub-steps are:
    retype:
    ```
    rm -f .tdd/verdict-red.exit .tdd/verdict-red.pid
-   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="<STEP>" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "<STEP>" red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-red $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" red .tdd/issue-<n>-spec.md <test-path> <target-test-id> > .tdd/verify-red.reason 2> .tdd/verify-red.err
    $S/wait-leaf.sh verdict-red     # foreground; on exit 3 call it again
    ```
    That is the verifier shape from *Launching a leaf*: the wait returns the **verdict** —

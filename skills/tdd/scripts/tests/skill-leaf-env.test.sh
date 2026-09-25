@@ -959,6 +959,55 @@ run_case "a step title carrying a dollar sign, a backtick and a double quote rea
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the develop-refactor leaf $skill_md launches after the step is ticked, byte-identical (#437)" \
   scan_step_title "$EXPANDING_STEP" expanding-step-title-refactor develop-refactor plant_ticked_ledger
 
+# 8d. The same three characters, asked of a verifier launch (issue #437). A verdict line
+#    carries the title twice — as VERI_STEP in the launch's environment, and as the value of
+#    `run-verdict.sh --step` in its argv — and the two are separate routes, so each is asked
+#    on its own: a fix that repairs the prefix and leaves `--step "<STEP>"` hand-typed hands
+#    the verifier one title in its environment and another on its command line. The run is
+#    8b's shallow one: the detacher is a recorder, here writing down VERI_STEP and whatever
+#    follows `--step` in the argv it was handed, which is the argv `run-verdict.sh` would
+#    have received. The red cycle's verdict line is the one run, because it is the first a
+#    run reaches; every verdict line carries the title the same way.
+scan_verdict_step_title() {
+  local title="$EXPANDING_STEP" tag=expanding-step-title-verdict
+  local lineno line numbered launch stage seen tree err got argv
+  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh verdict-red \$S/run-verdict\.sh' "$md"))"
+  if [[ -z "$numbered" ]]; then
+    no_launch "verdict-red through supervise.sh into run-verdict.sh"
+    return
+  fi
+  take_line "$numbered" "$title" || return
+  stage="$WORK/$tag-scripts"
+  seen="$WORK/$tag-seen"
+  tree="$WORK/$tag-tree"
+  mkdir -p "$stage" "$tree/.tdd"
+  cp "$SCRIPTS"/*.sh "$stage/"
+  cp -R "$SCRIPTS/lib" "$SCRIPTS/prompts" "$stage/"
+  cat > "$stage/detach-leaf.sh" <<'STUB'
+#!/bin/sh
+printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
+step='<no --step argument>'
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = --step ]; then step="${2-<--step with no value>}"; break; fi
+  shift
+done
+printf '%s\n' "$step" > "$SEEN.argv"
+STUB
+  chmod +x "$stage/detach-leaf.sh"
+  plant_ledger "$tree" "$title"
+  err="$( cd "$tree" && "${cleared_run_context[@]}" \
+            S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
+  got="$(cat "$seen" 2>/dev/null)" || got='<no verifier was launched>'
+  argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
+  [[ "$got" == "$title" ]] ||
+    problem "launched with the step title <$title>, whose verifier saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
+  [[ "$argv" == "$title" ]] ||
+    problem "launched with the step title <$title>, whose verifier was handed --step <$argv> (the launching shell said: ${err//$'\n'//})"
+}
+
+run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the verifier $skill_md launches, byte-identical in VERI_STEP and in --step (#437)" \
+  scan_verdict_step_title
+
 # 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
 #    being gone and the completion file existing are two events, and nothing orders them: a
 #    detached launch returns at once, the pid its tree records can die while the supervisor
