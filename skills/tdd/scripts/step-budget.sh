@@ -13,14 +13,17 @@ run="${VERI_RUN_BUDGET-120}"
 
 number='^[0-9]+(\.[0-9]+)?$'
 
-if [[ ! "$step" =~ $number ]]; then
-  echo "step-budget: VERI_STEP_BUDGET must be a non-negative decimal number: $step" >&2
-  exit 2
-fi
-if [[ ! "$run" =~ $number ]]; then
-  echo "step-budget: VERI_RUN_BUDGET must be a non-negative decimal number: $run" >&2
-  exit 2
-fi
+# require_number <name> <value> — exit 2, naming <name> on stderr, unless <value> is a
+# non-negative decimal number.
+require_number() {
+  if [[ ! "$2" =~ $number ]]; then
+    echo "step-budget: $1 must be a non-negative decimal number: $2" >&2
+    exit 2
+  fi
+}
+
+require_number VERI_STEP_BUDGET "$step"
+require_number VERI_RUN_BUDGET "$run"
 
 echo "$step"
 echo "$run"
