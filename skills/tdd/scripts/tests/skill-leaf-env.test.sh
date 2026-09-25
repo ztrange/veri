@@ -231,6 +231,12 @@ launched_test_cmd() {
   # file name is not one of the fields: `problem` supplies `$skill_md` at the one place it
   # already does, so a tree can never claim to have come from another document.
   printf '%s\t%s\n' "$lineno" "$line" > "$dir/origin"
+  # The committed ledger every launch of a real run has beside it, its first unchecked step the
+  # one the run is on. A launch may read the step title out of it rather than off its own line
+  # (#437), so a tree without one would be a run that never planned — and the step its events
+  # carry, which case 3 asks about, would be the fixture's gap rather than the line's answer.
+  printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$SENTINEL_STEP" \
+    > "$dir/.tdd/issue-$SENTINEL_ISSUE.md"
   local file
   for file in "$@"; do
     printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
@@ -857,25 +863,29 @@ run_case "a derived leaf name no launch writes is answered once its supervisor i
 # voice, carrying the one character the launch breaks on.
 APOSTROPHE_STEP="A background process is killed by the pid recorded when it started, never by that shell's own job spec"
 
-# scan_step_title — the case's body, in the other cases' shape: it records what it finds into
-# `run_case`'s `problems`, and `lineno`/`line` are its own locals so `problem` builds this
-# case's messages out of the document line it actually ran.
+# scan_step_title [title] [tag] — the case's body, in the other cases' shape: it records what
+# it finds into `run_case`'s `problems`, and `lineno`/`line` are its own locals so `problem`
+# builds this case's messages out of the document line it actually ran. <title> is the step
+# title the line is run with and the value the leaf must see, defaulting to the apostrophe
+# this case is about; <tag> names the scratch paths, so a second title asked of the same line
+# (case 8b below) reads its own recorder and never the one this case left behind.
 scan_step_title() {
+  local title="${1:-$APOSTROPHE_STEP}" tag="${2:-step-title}"
   local lineno line numbered launch stage seen tree err got
   numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-red \$S/run-leaf\.sh' "$md"))"
   if [[ -z "$numbered" ]]; then
     no_launch "develop-red through supervise.sh into run-leaf.sh"
     return
   fi
-  take_line "$numbered" "$APOSTROPHE_STEP" || return
+  take_line "$numbered" "$title" || return
   # The scripts directory the line is run against: every script it ships, with the detacher —
   # the first process a launch starts, and so the first place the title is observable at all —
   # replaced by a recorder. `#!/bin/sh` like every other stub here (#322): Homebrew's bash
   # costs ~12 ms to start and a recorder buys nothing for it. The suites are not copied; the
   # line names none of them, and copying them would be ~100 files for nothing.
-  stage="$WORK/step-title-scripts"
-  seen="$WORK/step-title-seen"
-  tree="$WORK/step-title-tree"
+  stage="$WORK/$tag-scripts"
+  seen="$WORK/$tag-seen"
+  tree="$WORK/$tag-tree"
   mkdir -p "$stage" "$tree/.tdd"
   cp "$SCRIPTS"/*.sh "$stage/"
   cp -R "$SCRIPTS/lib" "$SCRIPTS/prompts" "$stage/"
@@ -886,7 +896,7 @@ STUB
   chmod +x "$stage/detach-leaf.sh"
   printf 'the prompt this launch names, which the recorder never reads\n' \
     > "$tree/.tdd/develop-red.prompt"
-  printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$APOSTROPHE_STEP" \
+  printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$title" \
     > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
   # Run with the run context cleared, like every other probe here. The launching shell's
   # stderr is kept, because the two failures read differently and a reader has to tell them
@@ -896,12 +906,26 @@ STUB
   err="$( cd "$tree" && "${cleared_run_context[@]}" \
             S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
   got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
-  [[ "$got" == "$APOSTROPHE_STEP" ]] ||
-    problem "launched with the step title <$APOSTROPHE_STEP>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
+  [[ "$got" == "$title" ]] ||
+    problem "launched with the step title <$title>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
 }
 
 run_case "a step title carrying an apostrophe reaches the leaf $skill_md launches with it intact" \
   scan_step_title
+
+# 8b. The same line, the same shallow run, and the three characters #431's double quotes do
+#    NOT protect (issue #437). Inside `"…"` the shell still expands: a `$` substitutes a
+#    variable, a backtick runs a command and splices in what it printed, and a `"` closes the
+#    quote early. None of the three is a syntax error, so the line launches and the leaf
+#    carries on with a title nobody wrote — worse than the apostrophe, which at least killed
+#    the line. `$HOME` is set in every shell a conductor types into, `kill %1` fails in one
+#    with no job table and prints nothing to stdout, and `"blind"` is how this repository's
+#    own issues quote a term — so each character arrives as something real and silent,
+#    rather than as an error a reader would notice.
+EXPANDING_STEP='A title naming `kill %1`, the "blind" verifier and $HOME reaches the leaf as written'
+
+run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the leaf $skill_md launches with it byte-identical (#437)" \
+  scan_step_title "$EXPANDING_STEP" expanding-step-title
 
 # 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
 #    being gone and the completion file existing are two events, and nothing orders them: a
