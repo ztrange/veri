@@ -115,10 +115,11 @@ Stop and report when any of these holds:
 One line per issue attempted, in the order attempted:
 
 ```
-#<n> — <PR url> | bailed: <phase> (<system|process> failure) | skipped: <why>
+#<n> — <PR url> | bailed: <phase> (<system|process> failure) | stopped: <mode> | skipped: <why>
 ```
 
-Then one line naming **what stopped the loop**: the bail, the empty list, or the cap. If
+Then one line naming **what stopped the loop**: the bail, the stop and the stopped issue's
+mode, the empty list, or the cap. If
 a run was left mid-issue, say that re-invoking the same command resumes it from its
 committed ledger — no step is repeated and none is skipped.
 
