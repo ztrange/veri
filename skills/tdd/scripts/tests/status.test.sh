@@ -218,6 +218,23 @@ except (ValueError, KeyError, IndexError, TypeError) as err:
 [[ "$stopped" == "stopped at-leaf" ]] || missing+=("--json state and stop_mode \"stopped at-leaf\", got: $stopped")
 expect_nothing_missing "a run whose log ends with a stop mark reads stopped <mode>, and --json reports state stopped with the mode in stop_mode"
 
+# --- a stopped run that was resumed reads running again (#390) ---
+# #17 was stopped at the next leaf, then the operator resumed it: the conductor wrote its
+# `resume` mark after the `stop`. A stop is not terminal the way done and bail are, so the
+# resume clears it. Every event is recent, so the run is not stale either.
+resumed="$(repo resumed)"
+now="$(date +%s)"
+run="$(launched_run "$resumed" 17 $((now - 30)))"
+printf '{"ts": %s, "issue": "17", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "stop", "attempt": "", "skill_commit": "abc", "mode": "at-leaf", "at": "planned"}\n' \
+  "$((now - 20))" >> "$run/.tdd/events.jsonl"
+printf '{"ts": %s, "issue": "17", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "resume", "attempt": "", "skill_commit": "abc"}\n' \
+  "$((now - 10))" >> "$run/.tdd/events.jsonl"
+missing=()
+run_in "$resumed"
+[[ "$out" == *"running"* ]] || missing+=("running, got: $out")
+[[ "$out" != *"stopped"* ]] || missing+=("no stopped")
+expect_nothing_missing "a resume mark after a stop mark makes the run read running again"
+
 # --- --scope <name>: the scope's totals — attempted, done, bailed, wall time, dollars ---
 # Three runs in one repository. Wall time is each run's span from its first event to its last,
 # summed, so it is read from the files alone and never drifts with the clock: #21 is running,

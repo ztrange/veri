@@ -30,8 +30,8 @@ ledger_step() {  # ledger_step <ledger> -> "<n> of <m>"
 
 # The latest leaf launch in the event log, how many launches the current step has had, and the
 # run's cost so far: every `usage` line's dollars and its four token kinds, summed — and the
-# run's state. A `done` or `bail` event ends a run and a `stop` event reads `stopped <mode>`;
-# otherwise it is stale when its newest event is older than <timeout> seconds and
+# run's state. A `done` or `bail` event ends a run and a `stop` event reads `stopped <mode>`,
+# until a later `resume` clears whichever it was; otherwise it is stale when its newest event is older than <timeout> seconds and
 # <conductor.pid> does not answer `kill -0`, else running.
 # With STATUS_JSON=1 the same fields print as one JSON object instead.
 run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<phase>  <actor>  <leaf> <n>s  attempt <k>  $<d>  <t> tokens  <state>"
@@ -51,6 +51,8 @@ for line in events:
         attempts += 1
     elif line.get("event") in ("done", "bail", "stop"):
         ended = line
+    elif line.get("event") == "resume":
+        ended = None
 
 
 def conductor_answers(pid_file):
