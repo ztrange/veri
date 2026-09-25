@@ -796,6 +796,9 @@ step has spent. None follows a leaf after the green commit: by then the step is 
 loop is one leaf already handed its own budget as a number (ADR-0017), so a check there
 could change nothing.
 
+`step-cost.sh` exit 3 means no leaf of this step has reported its usage yet, and that is not a
+crossing: nothing has been spent to weigh, so the step goes on and the next leaf is checked as usual.
+
 The check fires at most once per step. Once its crossing branch has run, the step's later
 leaves are not checked again and nothing re-arms it for this step,
 so a step that goes on to cost three times its budget is not asked about at every remaining leaf.
