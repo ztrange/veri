@@ -9,3 +9,6 @@
 - plant_done_ledger (new) and plant_ticked_ledger differ only in the ` ⟂ refactor pending` suffix and could share one helper
 ### The prompt SKILL.md builds with build-develop-prompt.sh for every developer phase, and the anchor it hands add-ledger-step.sh, carry a step title with a dollar sign, a backtick and a double quote byte-identical ⟦added⟧
 - scan_conductor_titles and scan_prompt_titles still share the md_lines/grep-hits/while-read/conductor_command skeleton, which could become one scan driver taking a callee regex and a check
+### Repair: make test is green with both the step-8 #431 guard pin in skill-leaf-launch.test.sh and verifier-launch-guard.test.sh's planted single-quoted title, which today fails the pin because the plant leaves no double-quoted fenced line carrying the step title ⟦criterion 3⟧
+- verifier-launch-guard.test.sh case 3's "carries no exemption table" problem message duplicates probe_exemption_with_a_reason_excuses_the_line's; could share one helper
+- verifier-launch-guard.test.sh case 3 is implied by case 2's probe_exemption_with_a_reason_excuses_the_line (guard exit 0, 0 failures over the same planted, exempted document); kept because it names which guard case broke
