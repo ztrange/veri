@@ -552,13 +552,15 @@ name="the Draft PR step runs to completion with a stop request pending, clears i
 problems=()
 if load_section 'Procedure'; then
   draft_pr="$(ledger_branch '^### 4\. draft pr' '^### 5\.')"
-  section="$(tr '\n' ' ' <<<"$draft_pr" | tr -s ' ')"
+  section="$draft_pr"
+  section="$(joined)"
   stop="$(word stop)"
   require 'stop-requested\.sh --clear' \
     "the Draft PR step never runs stop-requested.sh --clear — a stop arriving after the last step would outlive the run and pause the next one"
   require "$(either_order "($stop[^.;]*pending|pending[^.;]*$stop)" '(runs? to completion|not interrupted|finish(es)?)')" \
     "the Draft PR step never says it runs to completion with a stop request pending"
-  section="$(awk '/^4\. post a final/ { inside = 1 } inside && /^[[:space:]]*$/ { exit } inside' <<<"$draft_pr" | tr '\n' ' ' | tr -s ' ')"
+  section="$(awk '/^4\. post a final/ { inside = 1 } inside && /^[[:space:]]*$/ { exit } inside' <<<"$draft_pr")"
+  section="$(joined)"
   require '### ✅ done' \
     "the Draft PR step has no sub-step posting the final ### ✅ Done comment to read"
   require "$stop[^.;]*arrived[^.;]*after[^.;]*last step" \
