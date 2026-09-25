@@ -17,6 +17,10 @@ if [[ ! "$step" =~ $number ]]; then
   echo "step-budget: VERI_STEP_BUDGET must be a non-negative decimal number: $step" >&2
   exit 2
 fi
+if [[ ! "$run" =~ $number ]]; then
+  echo "step-budget: VERI_RUN_BUDGET must be a non-negative decimal number: $run" >&2
+  exit 2
+fi
 
 echo "$step"
 echo "$run"
