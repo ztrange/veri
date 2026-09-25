@@ -327,6 +327,26 @@ fi
 
 report "$name"
 
+# When in a leaf's life the check runs: only once that leaf has exited and supervise.sh has
+# harvested its `usage` event, which step-cost.sh sums — a check run while the leaf is still
+# going, or before its accounting is on disk, reads a figure short of what the step has spent.
+
+name="'$cost_heading' says the check runs only once the leaf has exited and its usage event has been harvested"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — when the cost check runs could not be established")
+else
+  cost_check_sentences |
+    grep -F -- 'harvest' |
+    grep -F -- 'usage' |
+    grep -E -- "(^|[^a-z])exited([^a-z]|$)" |
+    grep -E -- "(^|[^a-z])(once|only|after)([^a-z]|$)" > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says the check runs only once the leaf has exited and its usage event has been harvested")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
