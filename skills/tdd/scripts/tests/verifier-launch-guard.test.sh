@@ -462,19 +462,26 @@ probe_exemption_without_a_reason_excuses_nothing() {
     problems+=("${GUARD##*/} failed over that document without naming $SKILL:$step_line, the line the reasonless entry did not excuse; it said: $(flat "$guard_out")")
 }
 
+# reset_step_case — clears what a step-title case leaves behind, so the next one starts from
+# nothing: the problems it found, the plant tree and guard copy, the planted document and the
+# line it rewrote, and the guard's last output and exit code.
+reset_step_case() {
+  problems=()
+  tree=""
+  guard_copy=""
+  planted_step_skill=""
+  step_line=""
+  guard_out=""
+  guard_code=0
+}
+
 # 2. One criterion — the guard names file and line when a documented launch line inlines an
 #    unescaped step title, against an exemption table carrying a reason per entry — and so
 #    one case: the plant, the exemption that answers it and the entry that does not are three
 #    readings of the same guard over the same planted document, and any one of them alone
 #    would be satisfied by a guard that reported everything or nothing.
 name="${GUARD##*/} fails over a $SKILL whose launch line carries $STEP_SINGLE, naming that line and nothing else, unless its exemption table names it with a reason"
-problems=()
-tree=""
-guard_copy=""
-planted_step_skill=""
-step_line=""
-guard_out=""
-guard_code=0
+reset_step_case
 
 if probe_guard_is_there && plant_step_title; then
   if probe_step_plant_is_what_it_claims; then
@@ -498,13 +505,7 @@ PIN_CASE='FAIL - the #431 guard still refuses a single-quoted step title'
 #    nowhere left to plant a single-quoted title of its own. Asked of the pin's own FAIL line,
 #    not the guard's verdict, so this case says which of the guard's cases broke the pair.
 name="${GUARD##*/}'s #431 guard pin still answers over a $SKILL whose one $STEP_DOUBLE line is planted $STEP_SINGLE and exempted with a reason (#437)"
-problems=()
-tree=""
-guard_copy=""
-planted_step_skill=""
-step_line=""
-guard_out=""
-guard_code=0
+reset_step_case
 
 if probe_guard_is_there && plant_step_title; then
   if probe_step_plant_is_what_it_claims; then
