@@ -668,6 +668,33 @@ if load_scope_stop "$scope_loop_md's Loop 4 lists no issue that ended in a stop 
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# And what the scope run reports (issue #391): *Loop 5* prints one line per issue attempted
+# and one naming what stopped the loop. A stopped issue had no per-issue form — only a PR
+# url, `bailed:` or `skipped:` — and the stop was not among the things that could have
+# stopped the loop, so the report could not say what happened. The per-issue template is read
+# from Loop 5's code fence alone and the stop-naming sentence from the prose after it, so the
+# template's `stopped: <mode>` cannot answer for the sentence that names the stop.
+name="SCOPE-LOOP.md's Loop 5 report gives a stopped issue a stopped: <mode> per-issue line, and names the stop and the stopped issue's mode as what stopped the loop"
+problems=()
+loop5="$(awk '
+  /^### / { inside = ($0 ~ /^### Loop 5\./); next }
+  inside' "$ROOT/$scope_loop_md")"
+if [[ -z "$loop5" ]]; then
+  problems+=("$scope_loop_md has no ### Loop 5 section — nothing could be checked")
+else
+  section="$(awk '/^```/ { fence++; next } fence == 1' <<<"$loop5" | plain)"
+  require 'stopped: ?<mode>' \
+    "Loop 5's per-issue line has no stopped: <mode> form beside the PR url, bailed: and skipped:"
+  section="$(awk '/^```/ { fence++; next } fence >= 2' <<<"$loop5" | plain)"
+  section="$(joined)"
+  require "$(either_order 'what stopped the loop' "$(word stop)")" \
+    "Loop 5 never names the stop as what stopped the loop"
+  require "$(either_order 'what stopped the loop' '(^|[^a-z])mode')" \
+    "Loop 5 never names the stopped issue's mode as what stopped the loop"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
