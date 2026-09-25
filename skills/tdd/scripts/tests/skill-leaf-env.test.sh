@@ -909,6 +909,21 @@ STUB
   chmod +x "$stage/detach-leaf.sh"
 }
 
+# run_recorded <absent> — run the caller's `launch` in its `tree`, against the recorder
+# `stage_recorder` staged, with the run context cleared like every other probe here, and
+# assign the caller's `err`, `got` and `argv`: the launching shell's stderr, the VERI_STEP the
+# recorder saw — <absent> when nothing was launched — and what followed `--step` in its argv.
+# The stderr is kept because the two failures read differently and a reader has to tell them
+# apart: a line the shell refused outright launched nothing, while a title that arrived
+# truncated, or wearing quotes a second parse left on it, says the launch ran and mangled it.
+# Written once because cases 8 to 8e run their lines the same way.
+run_recorded() {
+  err="$( cd "$tree" && "${cleared_run_context[@]}" \
+            S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
+  got="$(cat "$seen" 2>/dev/null)" || got="$1"
+  argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
+}
+
 # The title under test, and the expected value at once: what the conductor is given is what
 # the leaf must receive. A real ledger line from this repository's own history, in its own
 # voice, carrying the one character the launch breaks on.
@@ -926,7 +941,7 @@ APOSTROPHE_STEP="A background process is killed by the pid recorded when it star
 scan_step_title() {
   local title="${1:-$APOSTROPHE_STEP}" tag="${2:-step-title}"
   local leaf="${3:-develop-red}" planter="${4:-plant_ledger}"
-  local lineno line numbered launch stage seen tree err got
+  local lineno line numbered launch stage seen tree err got argv
   numbered="$(head -1 < <(grep -nE "\\\$S/detach-leaf\\.sh .*\\\$S/supervise\\.sh $leaf \\\$S/run-leaf\\.sh" "$md"))"
   if [[ -z "$numbered" ]]; then
     no_launch "$leaf through supervise.sh into run-leaf.sh"
@@ -937,14 +952,7 @@ scan_step_title() {
   printf 'the prompt this launch names, which the recorder never reads\n' \
     > "$tree/.tdd/$leaf.prompt"
   "$planter" "$tree" "$title"
-  # Run with the run context cleared, like every other probe here. The launching shell's
-  # stderr is kept, because the two failures read differently and a reader has to tell them
-  # apart: a line the shell refused outright launched nothing, while a title that arrived
-  # truncated at the apostrophe, or wearing quotes a second parse left on it, says the launch
-  # ran and mangled it.
-  err="$( cd "$tree" && "${cleared_run_context[@]}" \
-            S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
-  got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
+  run_recorded '<no leaf was launched>'
   [[ "$got" == "$title" ]] ||
     problem "launched with the step title <$title>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
 }
@@ -997,10 +1005,7 @@ scan_verdict_step_title() {
   take_line "$numbered" "$title" || return
   stage_recorder "$tag"
   plant_ledger "$tree" "$title"
-  err="$( cd "$tree" && "${cleared_run_context[@]}" \
-            S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
-  got="$(cat "$seen" 2>/dev/null)" || got='<no verifier was launched>'
-  argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
+  run_recorded '<no verifier was launched>'
   [[ "$got" == "$title" ]] ||
     problem "launched with the step title <$title>, whose verifier saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
   [[ "$argv" == "$title" ]] ||
@@ -1062,13 +1067,10 @@ scan_every_step_title() {
     for planter in $(ledgers_for "$(arg_after supervise.sh "$line")"); do
       stage_recorder "every-step-title-$lineno-$planter"
       "$planter" "$tree" "$title"
-      err="$( cd "$tree" && "${cleared_run_context[@]}" \
-                S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
-      got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
+      run_recorded '<no leaf was launched>'
       [[ "$got" == "$title" ]] ||
         problem "launched $leaf beside a ledger from $planter with the step title <$title>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
       [[ "$line" == *--step* ]] || continue
-      argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
       [[ "$argv" == "$title" ]] ||
         problem "launched $leaf beside a ledger from $planter with the step title <$title>, whose verifier was handed --step <$argv> (the launching shell said: ${err//$'\n'//})"
     done
