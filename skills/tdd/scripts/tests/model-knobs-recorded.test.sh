@@ -294,6 +294,32 @@ probe_suite_uses_shared_helpers model-knobs-recorded
 
 report "$name"
 
+# 5. The two suites whose `says` reads a section rather than records carry only `report` and
+#    `plain` as the shared copy (issue #225): each sources record-helpers.sh at its top level
+#    and defines no `report` or `plain` of its own, but still defines its own `says` — sourced
+#    first, a local definition is the one the suite runs, so its different question survives.
+#    Asked of the source as text, as case 4 asks it.
+
+# probe_suite_keeps_own_says <stem> — one problem when the suite <stem>.test.sh no longer
+# opens a `says` function of its own.
+probe_suite_keeps_own_says() {
+  local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text
+  text="$(cat "$ROOT/$suite_rel" 2>/dev/null)" || return
+  [[ "$text" =~ (^|$'\n')[[:space:]]*(function[[:space:]]+)?says[[:space:]]*\(\) ]] ||
+    problems+=("$suite_rel no longer defines its own says")
+}
+
+name="the lane-rule-recorded and unit-tier-recorded suites source $helpers_rel and define no report or plain of their own, while each keeps its own says"
+problems=()
+
+shared_helpers=(report plain)
+for stem in lane-rule-recorded unit-tier-recorded; do
+  probe_suite_uses_shared_helpers "$stem"
+  probe_suite_keeps_own_says "$stem"
+done
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

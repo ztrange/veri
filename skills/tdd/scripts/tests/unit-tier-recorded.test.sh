@@ -36,22 +36,10 @@ section_name="Testing idiom"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array, one FAIL
-# line for the case and one indented line per problem. Same shape as
-# model-knobs-recorded.test.sh's.
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
-
-# plain — stdin with emphasis marks and backticks dropped and the case folded.
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
+# report and plain: the helpers the *-recorded.test.sh suites share (issue #225). This
+# suite's `says` asks a different question and stays below, defined after the source.
+# shellcheck source=record-helpers.sh
+source "$HERE/record-helpers.sh"
 
 # section_records — the "Testing idiom" section of CLAUDE.md, from its `## ` heading to the
 # next one, one line per paragraph or bullet, normalised through `plain`. A fact is asked of
