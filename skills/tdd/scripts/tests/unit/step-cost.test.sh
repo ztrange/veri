@@ -25,6 +25,15 @@ run_cost() {
   err="$(cat "$work/stderr")"
 }
 
+# expect <code> <stdout> — fill `problems` for the run just made: empty when it exited
+# <code> with exactly <stdout>, otherwise one indented line saying what it did instead.
+expect() {
+  problems=""
+  if [[ "$code" != "$1" || "$out" != "$2" ]]; then
+    problems="    want exit $1 and stdout '$2', got exit $code and stdout '$out' (stderr '$err')"$'\n'
+  fi
+}
+
 # verdict <name> — report one case from the `problems` the case just filled: empty is a
 # pass, otherwise a FAIL line naming the case and the indented lines it collected. Same
 # accounting idiom as stop-requested.test.sh's verdict().
@@ -47,10 +56,7 @@ cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 3, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.12"}
 EOF
 run_cost "step one"
-problems=""
-if [[ "$code" != 0 || "$out" != "0.42" ]]; then
-  problems="    want exit 0 and stdout '0.42', got exit $code and stdout '$out' (stderr '$err')"$'\n'
-fi
+expect 0 "0.42"
 verdict "a step's usage events are summed to two decimals, exit 0"
 
 # 2. a step no `usage` event carries yet — the state a step is in before its first leaf has
@@ -60,10 +66,7 @@ cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
 EOF
 run_cost "step two"
-problems=""
-if [[ "$code" != 3 || -n "$out" ]]; then
-  problems="    want exit 3 and empty stdout, got exit $code and stdout '$out' (stderr '$err')"$'\n'
-fi
+expect 3 ""
 verdict "a step no usage event carries prints nothing, exit 3"
 
 # 3. --run sums every `usage` event in the log, whatever step it carries — including one
@@ -75,10 +78,7 @@ cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 3, "issue": "448", "actor": "conductor", "phase": "scope", "step": "", "event": "usage", "total_cost_usd": "0.25"}
 EOF
 run_cost --run
-problems=""
-if [[ "$code" != 0 || "$out" != "1.55" ]]; then
-  problems="    want exit 0 and stdout '1.55', got exit $code and stdout '$out' (stderr '$err')"$'\n'
-fi
+expect 0 "1.55"
 verdict "--run sums every usage event, step-less ones included, exit 0"
 
 echo "----"
