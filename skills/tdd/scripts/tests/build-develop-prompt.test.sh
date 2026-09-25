@@ -1419,6 +1419,20 @@ grep -iE 'one behaviour[^.]*simply expensive' <<<"$over_budget_flat" > /dev/null
 [[ -z "$problems" ]] \
   && ok || no "develop-over-budget says a crossing is not a verdict and that one behaviour, simply expensive, is an available answer (${problems#; })"
 
+# 42. the "neither" answer's own report shape (issue #450, criterion 3). Offering the answer
+#     is case 41; a leaf that chooses it still has to know what to print, and `exhausted-outcome.sh`
+#     reads "neither" as the absence of both labels — so the Report section itself must tell a
+#     leaf answering "one behaviour, simply expensive" to print no SPLIT: and no NEEDS_USER:
+#     line. Only the text from `### Report` on is searched, so case 41's sentence higher up
+#     cannot satisfy this one. Case 41's flattened build is reused.
+over_budget_report="${over_budget_flat#*'### Report'}"
+problems=""
+[[ "$over_budget_report" != "$over_budget_flat" ]] || problems="$problems; no ### Report section"
+grep -iE 'simply expensive[^.]*(no|neither)[^.]*SPLIT:[^.]*NEEDS_USER:' <<<"$over_budget_report" > /dev/null \
+  || problems="$problems; the report section has no shape for the one-behaviour, simply-expensive answer that says to print no SPLIT: and no NEEDS_USER: line"
+[[ -z "$problems" ]] \
+  && ok || no "develop-over-budget gives the \"neither — one behaviour, simply expensive\" answer its own report shape, printing no SPLIT: and no NEEDS_USER: line (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
