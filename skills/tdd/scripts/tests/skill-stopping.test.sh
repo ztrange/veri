@@ -353,6 +353,46 @@ if load_section 'Procedure'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# The same checkpoint follows the two other ledger commits: the refactor PASS branch's clear
+# of the refactor-pending mark, read from its `$S/clear-refactor-pending.sh` call to the line
+# that loops back to step 3, and the pin's `test:` commit in *Already satisfied — the pin*,
+# read from its `git commit -m "test: pin …` line to the same loop-back. Each is asked that
+# stop-requested.sh runs after its ledger commit lands — after the push where there is one —
+# and that whatever mode it printed goes to Stopping.
+name="the refactor-pending clear's push and a pin's test: commit are each followed by stop-requested.sh, and any mode it prints goes to Stopping"
+problems=()
+for slice in refactor pin; do
+  if [[ "$slice" == refactor ]]; then
+    load_section 'Procedure' || continue
+    start='\$s/clear-refactor-pending\.sh \.tdd/issue-<n>\.md' anchor='push-branch\.sh'
+    what="the refactor-pending clear"
+  else
+    load_section 'Already satisfied' || continue
+    start='git commit -m "test: pin' anchor='git commit -m "test: pin'
+    what="the pin's test: commit"
+  fi
+  section="$(start="$start" awk '
+    !inside && $0 ~ ENVIRON["start"] { inside = 1 }
+    inside { print }
+    inside && /loop back to the top of step 3/ { exit }' <<<"$section")"
+  if [[ -z "$section" ]]; then
+    problems+=("$what has no branch to read — nothing could be checked")
+    continue
+  fi
+  anchor_at="$(first_line_matching "$anchor")"
+  stop_at="$(first_line_matching 'stop-requested\.sh')"
+  if [[ -z "$stop_at" ]]; then
+    problems+=("$what is never followed by stop-requested.sh — a stop waiting for at-ledger is not seen at that ledger commit")
+  elif ! after "$stop_at" "$anchor_at"; then
+    problems+=("$what runs stop-requested.sh (line $stop_at) before its ledger commit lands (line ${anchor_at:-none})")
+  fi
+  section="$(joined)"
+  require '(any|every|whatever)[^.;]*mode[^.;]*stopping|stopping[^.;]*(any|every|whatever)[^.;]*mode' \
+    "$what never says any mode stop-requested.sh prints goes to Stopping there"
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

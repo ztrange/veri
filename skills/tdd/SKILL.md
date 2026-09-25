@@ -1146,7 +1146,10 @@ following step. The phase sub-steps are:
      until that commit exists the step still says pending and the plan is still the one the
      leaf grew from. The push copies the step's
      finished state to the remote on the same terms as Green's above: exit **1** launches
-     the reconcile leaf (*Reconciling a rejected push*), exit **2** is a **bail**. Then **mirror to the issue**:
+     the reconcile leaf (*Reconciling a rejected push*), exit **2** is a **bail**.
+     **Then run `$S/stop-requested.sh`**, immediately after that push, as Green does after
+     its own: on exit 0 any mode it printed goes to *Stopping* here; on exit 3 carry on.
+     Then **mirror to the issue**:
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
      on exit **0** tick it in the **issue body** (`$S/tick-issue-criterion.sh <n>
@@ -1267,6 +1270,8 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   $S/tick-ledger.sh .tdd/issue-<n>.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
+  **Then run `$S/stop-requested.sh`**, immediately after that commit: it is a ledger commit
+  like Green's, so on exit 0 any mode it printed goes to *Stopping* here; on exit 3 carry on.
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the
