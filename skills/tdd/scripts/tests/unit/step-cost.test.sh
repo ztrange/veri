@@ -12,7 +12,7 @@ set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 STEP_COST="$HERE/../../step-cost.sh"
-pass=0 fail=0
+pass=0 fail=0 problems=""
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -25,18 +25,17 @@ run_cost() {
   err="$(cat "$work/stderr")"
 }
 
-# expect <code> <stdout> — fill `problems` for the run just made: empty when it exited
-# <code> with exactly <stdout>, otherwise one indented line saying what it did instead.
+# expect <code> <stdout> — add to the case's `problems` for the run just made: nothing when it
+# exited <code> with exactly <stdout>, otherwise one indented line saying what it did instead.
 expect() {
-  problems=""
   if [[ "$code" != "$1" || "$out" != "$2" ]]; then
-    problems="    want exit $1 and stdout '$2', got exit $code and stdout '$out' (stderr '$err')"$'\n'
+    problems+="    want exit $1 and stdout '$2', got exit $code and stdout '$out' (stderr '$err')"$'\n'
   fi
 }
 
 # verdict <name> — report one case from the `problems` the case just filled: empty is a
-# pass, otherwise a FAIL line naming the case and the indented lines it collected. Same
-# accounting idiom as stop-requested.test.sh's verdict().
+# pass, otherwise a FAIL line naming the case and the indented lines it collected. Then
+# empty it for the next case. Same accounting idiom as stop-requested.test.sh's verdict().
 verdict() {
   if [[ -z "$problems" ]]; then
     pass=$((pass + 1))
@@ -44,6 +43,7 @@ verdict() {
     fail=$((fail + 1)); echo "FAIL - $1"
     printf '%s' "$problems"
   fi
+  problems=""
 }
 
 # 1. a step's `usage` events are summed and printed to two decimals, exit 0. The fixture
@@ -106,13 +106,11 @@ cat > "$work/.tdd/events.jsonl" <<'EOF'
 EOF
 run_cost --steps
 expect 0 $'1.75 3\n0.42 2'
-found="$problems"
 cat > "$work/.tdd/events.jsonl" <<'EOF'
 {"ts": 1, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "verdict", "verdict": "PASS"}
 EOF
 run_cost --steps
 expect 3 ""
-problems="$found$problems"
 verdict "--steps prints one dollars-and-leaves line per step in first-mention order, exit 0; none is exit 3"
 
 echo "----"
