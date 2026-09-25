@@ -1197,7 +1197,9 @@ one more cycle, not a loop — and the bail names every suite still red, not onl
 With a stop request pending, this step is **not interrupted** and runs to completion: once
 `next-unchecked.sh` exits 3 there is no next ledger commit, and what remains launches no leaf
 and loses nothing. So no checkpoint runs here — sub-step 4 asks once, clears the request with
-`$S/stop-requested.sh --clear` and says so in the final comment.
+`$S/stop-requested.sh --clear` and says so in the final comment. The exception is the repair
+step a red full run appends: it launches leaves and ends in a ledger commit like any other
+step, so both checkpoints apply to the repair step as they do in step 3.
 
 1. **Ask the two questions that decide whether there is anything fit to push, and refuse to
    go on while either says no** — both from inside the worktree, before a human is asked to
