@@ -962,7 +962,8 @@ following step. The phase sub-steps are:
      event could not be written) **bail**.
      **Then run `$S/stop-requested.sh`**, immediately after that push: this ledger commit is
      the boundary `at-ledger` was waiting for, and `at-leaf` and `now` have nothing left to
-     abandon, so on exit 0 any mode it printed goes to *Stopping* here. On exit 3
+     abandon, so on exit 0 any mode it printed goes to *Stopping* here. On exit 2 go to
+     *Stopping* in mode `at-ledger`, narrating that the request was unreadable. On exit 3
      continue to the Refactor loop.
    - **REJECT (exit 1):** enter the **revise loop** — see *Revising on a REJECT*. On a
      recovered PASS, do the same atomic tick-and-commit and continue; on budget-exhausted,
@@ -1151,7 +1152,9 @@ following step. The phase sub-steps are:
      finished state to the remote on the same terms as Green's above: exit **1** launches
      the reconcile leaf (*Reconciling a rejected push*), exit **2** is a **bail**.
      **Then run `$S/stop-requested.sh`**, immediately after that push, as Green does after
-     its own: on exit 0 any mode it printed goes to *Stopping* here; on exit 3 carry on.
+     its own: on exit 0 any mode it printed goes to *Stopping* here; on exit 2 go to
+     *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
+     carry on.
      Then **mirror to the issue**:
      post a `### ✅ Step done` comment, then ask whether the step's criterion is finished
      (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`, k from the step's `⟦criterion k⟧`):
@@ -1274,7 +1277,9 @@ ran `$S/verify.sh pin …` in place of verify-red. Its verdict replaces the
   git add -A && git commit -m "test: pin <STEP summary> (#<n>)"
   ```
   **Then run `$S/stop-requested.sh`**, immediately after that commit: it is a ledger commit
-  like Green's, so on exit 0 any mode it printed goes to *Stopping* here; on exit 3 carry on.
+  like Green's, so on exit 0 any mode it printed goes to *Stopping* here; on exit 2 go to
+  *Stopping* in mode `at-ledger`, narrating that the request was unreadable; on exit 3
+  carry on.
   Then **mirror**: post a `### 📌 Already satisfied — <STEP>` comment carrying the
   verifier's reason, ask whether the step's criterion is finished
   (`$S/criterion-finished.sh <k> < .tdd/issue-<n>.md`) and on exit **0** tick it in the

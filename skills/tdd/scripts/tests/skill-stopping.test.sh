@@ -401,6 +401,45 @@ if load_section 'Launching a leaf'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# The same exit 2 answer is owed at the three ledger-commit checkpoints, which do not go
+# through *Launching a leaf*: each branch is read from its ledger commit to its loop-back, as
+# the two cases above read it, and only the text after its stop-requested.sh call is asked —
+# the push's own exit 2, earlier in the green branch, is a bail and says nothing about a stop.
+name="the three ledger-commit checkpoints send stop-requested.sh exit 2 to Stopping as at-ledger, narrating that the request was unreadable"
+problems=()
+# ledger_exit2 <what> <start> <end> — probe one ledger commit's branch, sliced as
+# ledger_checkpoint slices it, for the exit 2 answer after its stop-requested.sh call.
+ledger_exit2() {
+  local what="$1" text
+  text="$(start="$2" end="$3" awk '
+    !inside && $0 ~ ENVIRON["start"] { inside = 1 }
+    inside { print }
+    inside && $0 ~ ENVIRON["end"] { exit }' <<<"$section" | tr '\n' ' ' | tr -s ' ')"
+  if [[ "$text" != *stop-requested.sh* ]]; then
+    problems+=("$what has no stop-requested.sh checkpoint to read — nothing could be checked")
+    return
+  fi
+  section="${text#*stop-requested.sh}"
+  require 'exit 2[^.;]*at-ledger' \
+    "$what never says stop-requested.sh's exit 2 is a stop in mode at-ledger"
+  require 'exit 2[^.;]*unreadable|unreadable[^.;]*exit 2' \
+    "$what never says to narrate that the stop request was unreadable on exit 2"
+}
+if load_section 'Procedure'; then
+  procedure="$section"
+  ledger_exit2 "the green PASS branch" 'git commit -m "feat: <step summary>' \
+    'continue to the refactor loop'
+  section="$procedure"
+  ledger_exit2 "the refactor-pending clear" '\$s/clear-refactor-pending\.sh \.tdd/issue-<n>\.md' \
+    'loop back to the top of step 3'
+fi
+if load_section 'Already satisfied'; then
+  ledger_exit2 "the pin's test: commit" 'git commit -m "test: pin' \
+    'loop back to the top of step 3'
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
