@@ -1,7 +1,7 @@
 # Plan for #449 — `step-budget.sh`: VERI_STEP_BUDGET and VERI_RUN_BUDGET resolved, validated, and refused in preflight
 
 - [x] step-budget.sh with neither VERI_STEP_BUDGET nor VERI_RUN_BUDGET set prints 12 then 120, each on its own line, and exits 0 ⟦criterion 1⟧
-- [ ] step-budget.sh prints a set VERI_STEP_BUDGET then a set VERI_RUN_BUDGET, decimal values included, in that order ⟦criterion 2⟧
+- [x] step-budget.sh prints a set VERI_STEP_BUDGET then a set VERI_RUN_BUDGET, decimal values included, in that order ⟦criterion 2⟧
 - [ ] A VERI_STEP_BUDGET that is not a non-negative decimal number exits 2, names VERI_STEP_BUDGET on stderr, and prints nothing on stdout ⟦criterion 3⟧
 - [ ] A VERI_RUN_BUDGET that is not a non-negative decimal number exits 2, names VERI_RUN_BUDGET on stderr, and prints nothing on stdout ⟦criterion 4⟧
 - [ ] Both budget variables invalid at once exits 2 and prints nothing on stdout, not the first figure then a failure ⟦criterion 5⟧
