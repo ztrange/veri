@@ -51,13 +51,19 @@ report() {
   fi
 }
 
-# stopping_section — the `## Stopping` section's lines, up to the next `## ` heading, with
-# emphasis and code markup (`*`, backticks) dropped and case folded, so `**reset**` and
-# `git reset --hard HEAD` read the same to every probe. Line order is kept, because whether
-# the wait comes before the reset is half of what this case asks.
+# plain — stdin with emphasis and code markup (`*`, backticks) dropped and case folded, so
+# `**reset**` and `git reset --hard HEAD` read the same to every probe. Every slice of
+# SKILL.md this suite reads passes through it, so no two slices are read by different rules.
+plain() {
+  tr -d '*`' | tr '[:upper:]' '[:lower:]'
+}
+
+# stopping_section — the `## Stopping` section's lines, up to the next `## ` heading, read
+# plain. Line order is kept, because whether the wait comes before the reset is half of what
+# this case asks.
 stopping_section() {
   awk '/^## / { inside = (tolower($0) ~ /^## stopping([[:space:]]|$)/); next } inside' "$skill_path" \
-    | tr -d '*`' | tr '[:upper:]' '[:lower:]'
+    | plain
 }
 
 # load_section — put the `## Stopping` section in `section` for a case's probes to read, or
@@ -243,14 +249,14 @@ report "$name"
 # The Stopping section calls stop-requested.sh twice — for the mode it was entered with, and
 # with --clear at its end — so the script's contract belongs where every other script's is
 # read: its own entry in "The scripts" list, from its `- `$S/stop-requested.sh` bullet up to
-# the next bullet or heading, markup dropped and case folded like the section above.
+# the next bullet or heading, read plain like the section above.
 name="SKILL.md's script reference list has an entry for stop-requested.sh saying what it prints and which exit codes it answers with"
 problems=()
 entry="$(awk '
   /^## / { in_list = ($0 ~ /^## The scripts/); in_entry = 0; next }
   !in_list { next }
   /^- `\$S\// { in_entry = ($0 ~ /^- `\$S\/stop-requested\.sh/) }
-  in_entry' "$skill_path" | tr -d '*`' | tr '[:upper:]' '[:lower:]')"
+  in_entry' "$skill_path" | plain)"
 if [[ -z "$entry" ]]; then
   problems+=("the script reference list has no \$S/stop-requested.sh entry — the Stopping section's two calls have no contract to read")
 else
