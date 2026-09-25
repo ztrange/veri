@@ -359,6 +359,43 @@ probe_shared_helpers_from_elsewhere
 
 report "$name"
 
+# 7. Each of the four suites reaches the shared file by a path built from its own location
+#    (issue #225), and still prints its own count line. Asked of each suite's source as
+#    text, as cases 4 and 5 ask it: the top-level `source` or `.` line names
+#    record-helpers.sh under a variable, and that variable is assigned at top level from the
+#    suite's own path (`$0` or `BASH_SOURCE`) — a bare or working-directory-relative name
+#    would work from the repo root and nowhere else. And a line echoing the suite's own
+#    `$pass passed, $fail failed`, the count line make test's recipe waits for.
+
+# probe_suite_resolves_helpers_from_itself <stem> — one problem when the suite
+# <stem>.test.sh sources the shared file by a path not derived from its own location, and
+# one when it prints no count line of its own.
+probe_suite_resolves_helpers_from_itself() {
+  local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text var
+  if ! text="$(cat "$ROOT/$suite_rel" 2>/dev/null)"; then
+    problems+=("$suite_rel could not be read")
+    return
+  fi
+  if [[ "$text" =~ (^|$'\n')(source|\.)[[:space:]]+\"?\$\{?([A-Za-z_][A-Za-z_0-9]*)\}?/record-helpers\.sh ]]; then
+    var="${BASH_REMATCH[3]}"
+    [[ "$text" =~ (^|$'\n')$var=[^$'\n']*(\$0|BASH_SOURCE) ]] ||
+      problems+=("$suite_rel sources record-helpers.sh under \$$var, which is not assigned from the suite's own path")
+  else
+    problems+=("$suite_rel does not source record-helpers.sh by a path under a variable holding its own directory")
+  fi
+  [[ "$text" =~ (^|$'\n')echo[[:space:]]+\"\$pass\ passed,\ \$fail\ failed\" ]] ||
+    problems+=("$suite_rel prints no \$pass passed, \$fail failed count line of its own")
+}
+
+name="the selection-order-recorded, lane-rule-recorded, unit-tier-recorded and model-knobs-recorded suites each resolve $helpers_rel from their own location and each print their own count line"
+problems=()
+
+for stem in selection-order-recorded lane-rule-recorded unit-tier-recorded model-knobs-recorded; do
+  probe_suite_resolves_helpers_from_itself "$stem"
+done
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
