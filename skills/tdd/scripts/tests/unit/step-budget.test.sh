@@ -118,6 +118,18 @@ if [[ "$code" != 2 ]]; then
 fi
 verdict "any argument exits 2"
 
+# 9. this suite lives in the fast tier's directory, and its header comment — the comment lines
+#    after the shebang, up to the first line that is not one, read the way unit-tier.test.sh
+#    reads a header — states the bar it clears.
+BAR='no git, no network, no servers, no real sleep, no nested suites'
+self="$HERE/$(basename "$0")"
+[[ "$self" == */skills/tdd/scripts/tests/unit/step-budget.test.sh ]] ||
+  problems+="    want the suite under skills/tdd/scripts/tests/unit/, got '$self'"$'\n'
+header="$(sed -n '2,$p' "$self" | sed '/^#/!q' | grep '^#')"
+[[ "$header" == *"$BAR"* ]] ||
+  problems+="    want the header to state '$BAR', got '$header'"$'\n'
+verdict "the suite lives in tests/unit/ and its header states the fast-tier bar it clears"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
