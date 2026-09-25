@@ -334,7 +334,7 @@ report "$name"
 # otherwise.
 #
 # Contract under test:
-#   Over a copy of this tree whose one documented launch line has had `VERI_STEP="<STEP>"`
+#   Over a copy of this tree whose one documented command line has had its `"<STEP>"`
 #   put back into single quotes, skill-leaf-launch.test.sh fails, and the address it names
 #   is that line — `skills/tdd/SKILL.md:<n>`, file and line, and no other address. The same
 #   line named in the guard's own exemption table WITH a reason is excused, because a
@@ -349,19 +349,19 @@ report "$name"
 # EXEMPT=(` in the guard itself, keyed `<file>:<line>` and valued with the sentence that says
 # why — so no-job-spec-kills.test.sh's reader and this one describe the same thing.
 
-# The line the plant rewrites, found by a literal unique to it: the cycle loop's step-start
-# mark. It was the canonical launch in *Launching a leaf* until #437 made every leaf launch
-# read its title out of the ledger, which left no launch line spelling `VERI_STEP="<STEP>"`
-# to put back into single quotes; the mark still spells it, and the guard holds every fenced
-# command carrying `<STEP>` to the same rule. A literal, matched as a literal, for the reason
-# the first plant gives — `$` and `.` are characters in it, not a pattern.
-STEP_ANCHOR='$S/event.sh step-start'
+# The line the plant rewrites, found by a literal unique to it: the develop-red prompt
+# build. #437 made every leaf launch and every conductor mark read the title out of the
+# ledger, which left no line spelling `VERI_STEP="<STEP>"` to put back into single quotes;
+# the prompt builder still takes the title as a double-quoted argument, and the guard holds
+# every fenced command carrying `<STEP>` to the same rule. A literal, matched as a literal,
+# for the reason the first plant gives — `$` and `.` are characters in it, not a pattern.
+STEP_ANCHOR='$S/build-develop-prompt.sh red '
 
 # The two shapes that line carries the title in: the rule the document states, and the one
 # the incident happened in. The plant turns the first into the second; both are quoted into
 # this case's failure messages, so they are written down once here.
-STEP_DOUBLE='VERI_STEP="<STEP>"'
-STEP_SINGLE="VERI_STEP='<STEP>'"
+STEP_DOUBLE='"<STEP>"'
+STEP_SINGLE="'<STEP>'"
 
 # The exemption table's declaration, as every guard in this directory spells it, and the key
 # and reason an entry for the planted line would carry. The key is `<file>:<line>` because
