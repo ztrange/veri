@@ -208,6 +208,12 @@ completion_landed() {
   return 1
 }
 
+# plant_ledger <tree> <step> — the committed ledger of the sentinel issue in <tree>'s `.tdd/`,
+# <step> its one unchecked step: the title a launch reads with next-unchecked.sh (#437).
+plant_ledger() {
+  printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$2" > "$1/.tdd/issue-$SENTINEL_ISSUE.md"
+}
+
 launched_test_cmd() {
   local leaf="$1" launch="$2"
   shift 2
@@ -235,8 +241,7 @@ launched_test_cmd() {
   # one the run is on. A launch may read the step title out of it rather than off its own line
   # (#437), so a tree without one would be a run that never planned — and the step its events
   # carry, which case 3 asks about, would be the fixture's gap rather than the line's answer.
-  printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$SENTINEL_STEP" \
-    > "$dir/.tdd/issue-$SENTINEL_ISSUE.md"
+  plant_ledger "$dir" "$SENTINEL_STEP"
   local file
   for file in "$@"; do
     printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
@@ -896,8 +901,7 @@ STUB
   chmod +x "$stage/detach-leaf.sh"
   printf 'the prompt this launch names, which the recorder never reads\n' \
     > "$tree/.tdd/develop-red.prompt"
-  printf '# Plan for #%s\n\n- [ ] %s\n' "$SENTINEL_ISSUE" "$title" \
-    > "$tree/.tdd/issue-$SENTINEL_ISSUE.md"
+  plant_ledger "$tree" "$title"
   # Run with the run context cleared, like every other probe here. The launching shell's
   # stderr is kept, because the two failures read differently and a reader has to tell them
   # apart: a line the shell refused outright launched nothing, while a title that arrived
