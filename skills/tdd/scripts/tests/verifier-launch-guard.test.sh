@@ -487,6 +487,41 @@ if probe_guard_is_there && plant_step_title; then
 fi
 report "$name"
 
+# The name of the guard's own case that pins the #431 guard over the rewritten document
+# (#437) — the case the second plant above is the other half of, matched as the start of its
+# FAIL line so no other case's report is taken for its.
+PIN_CASE='FAIL - the #431 guard still refuses a single-quoted step title'
+
+# 3. One criterion — the guard's #431 pin and the second plant above hold together (#437).
+#    That plant single-quotes the one fenced line still spelling "<STEP>" and exempts it with
+#    a reason; the pin has to answer over that document too, rather than reporting it has
+#    nowhere left to plant a single-quoted title of its own. Asked of the pin's own FAIL line,
+#    not the guard's verdict, so this case says which of the guard's cases broke the pair.
+name="${GUARD##*/}'s #431 guard pin still answers over a $SKILL whose one $STEP_DOUBLE line is planted $STEP_SINGLE and exempted with a reason (#437)"
+problems=()
+tree=""
+guard_copy=""
+planted_step_skill=""
+step_line=""
+guard_out=""
+guard_code=0
+
+if probe_guard_is_there && plant_step_title; then
+  if probe_step_plant_is_what_it_claims; then
+    if guard_with_reason="$(exempting "$EXEMPT_REASON" pin)"; then
+      cp "$guard_with_reason" "$guard_copy"
+      run_guard_over "$planted_step_skill"
+      [[ "$(failures_in "$guard_out")" != '<none>' ]] ||
+        problems+=("${GUARD##*/} never reached its count line over that document, so its #431 pin went unasked: $(flat "$guard_out")")
+      grep -F "$PIN_CASE" <<< "$guard_out" > /dev/null &&
+        problems+=("${GUARD##*/}'s #431 pin failed over $SKILL with $SKILL:$step_line planted $STEP_SINGLE and exempted with a reason: $(flat "$guard_out")")
+    else
+      problems+=("${GUARD##*/} carries no exemption table — no '$EXEMPT_DECL' line — to name $SKILL:$step_line in")
+    fi
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
