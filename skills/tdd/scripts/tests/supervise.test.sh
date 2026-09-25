@@ -1801,6 +1801,34 @@ done_ran="$(tr '\n' ' ' < "$done_work/ran" 2>/dev/null)"
   && [[ "$done_code3" == 0 ]] && [[ "$done_ran" == 'first second third ' ]]; } && ok \
   || no "#471: a launch after the previous supervised leaf finished runs as today, under the same name and a different one (record='$done_record' want '<pid> revise-green-1'; codes=$done_code1/$done_code2/$done_code3 want 0/0/0; ran='$done_ran' want 'first second third '; stderr='$(cat "$done_work/err2" "$done_work/err3" 2>/dev/null)')"
 
+# 42. a supervised launch made from INSIDE a live supervised leaf is not refused (issue #471):
+#     SKILL.md's verify recipe supervises `verdict-<phase>` around run-verdict.sh, and verify.sh
+#     inside it launches the verifier through supervise.sh as `verify-<phase>` — so while the
+#     wrapper is alive, the verifier's own launch is the one leaf of the worktree, not a second
+#     writer over a live one. The wrapper here is a stub that does what verify.sh does: it
+#     launches `verify-green` through the supervisor under test and records that launch's exit
+#     code. Both must exit 0, the inner leaf must run, and nothing may be refused on stderr.
+#     Case 41's leaf-mark stub; a run directory of its own.
+nest_work="$work/nested-verifier"
+mkdir -p "$nest_work"
+cat > "$stub/leaf-verdict-wrapper" <<'L'
+#!/bin/sh
+"$NEST_SUP" verify-green "$NEST_LEAF" inner 2> inner-err
+echo $? > inner-code
+exit 0
+L
+chmod +x "$stub/leaf-verdict-wrapper"
+( cd "$nest_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 NEST_SUP="$SUP" NEST_LEAF="$stub/leaf-mark" \
+    "$SUP" verdict-green "$stub/leaf-verdict-wrapper" ) >/dev/null 2>"$nest_work/err"
+nest_code=$?
+nest_inner="$(cat "$nest_work/inner-code" 2>/dev/null || echo '<missing>')"
+nest_ran="$(tr '\n' ' ' < "$nest_work/ran" 2>/dev/null)"
+nest_err="$(cat "$nest_work/err" "$nest_work/inner-err" 2>/dev/null)"
+{ [[ "$nest_code" == 0 ]] && [[ "$nest_inner" == 0 ]] && [[ "$nest_ran" == 'inner ' ]] \
+  && [[ "$nest_err" != *refusing* ]]; } && ok \
+  || no "#471: a verify-green launch made from inside a live verdict-green supervision is not refused (wrapper code=$nest_code want 0; inner code=$nest_inner want 0; ran='$nest_ran' want 'inner '; stderr='$nest_err' want no refusal)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
