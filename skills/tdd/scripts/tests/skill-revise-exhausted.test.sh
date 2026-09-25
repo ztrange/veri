@@ -386,6 +386,49 @@ fi
 
 report "$name"
 
+# The crossing branch: on a crossing the run asks one leaf what to do, built on the exhausted
+# leaf's pattern — the `over-budget` prompt, launched through supervise.sh like every other
+# leaf so stuck-detection still covers it, and its prose answer resolved by
+# exhausted-outcome.sh to an exit code rather than read and judged per run.
+
+# cost_check_lines — that section's raw lines, up to the next heading of level two to four:
+# the commands are probed as written, `$S` and all, and a sub-heading inside the section does
+# not end it.
+cost_check_lines() {
+  awk -v h="$cost_heading" \
+    'index($0, h) == 1 { inside = 1; next } inside && /^(##|###|####) / { exit } inside' "$skill_path"
+}
+
+name="'$cost_heading' builds the over-budget prompt, launches its leaf through supervise.sh, and reads its answer with exhausted-outcome.sh, never by eye"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — how a crossing is answered could not be established")
+else
+  lines="$(cost_check_lines)"
+  grep -F -- 'build-develop-prompt.sh over-budget' <<<"$lines" > /dev/null ||
+    problems+=("'$cost_heading' never builds an over-budget prompt, so a crossing asks no leaf what to do about it")
+  launch="$(grep -F -- 'detach-leaf.sh $S/supervise.sh' <<<"$lines" | grep -F -- 'over-budget')"
+  if [[ -z "$launch" ]]; then
+    problems+=("'$cost_heading' never launches an over-budget leaf through detach-leaf.sh \$S/supervise.sh, the way the exhausted leaf is launched")
+  else
+    leaf="$(head -1 < <(sed -E 's/.*supervise\.sh ([^ ]+).*/\1/' <<<"$launch"))"
+    grep -F -- "wait-leaf.sh $leaf" <<<"$lines" > /dev/null ||
+      problems+=("'$cost_heading' launches $leaf but never waits on it with wait-leaf.sh")
+    grep -F -- "exhausted-outcome.sh < .tdd/$leaf.out" <<<"$lines" > /dev/null ||
+      problems+=("'$cost_heading' never reads $leaf's answer with exhausted-outcome.sh < .tdd/$leaf.out, so which answer it gave is a judgement made per run")
+  fi
+  if grep -F -- 'run-leaf.sh' <<<"$lines" | grep -vF -- 'supervise.sh' > /dev/null; then
+    problems+=("'$cost_heading' launches a leaf with run-leaf.sh outside supervise.sh, so nothing watches it for being stuck")
+  fi
+  cost_check_sentences |
+    grep -F -- 'by eye' |
+    grep -E -- "(^|[^a-z])(never|not)([^a-z]|$)" > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says the over-budget leaf's answer is read with the script, never by eye")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

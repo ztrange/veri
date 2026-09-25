@@ -803,6 +803,24 @@ The check fires at most once per step. Once its crossing branch has run, the ste
 leaves are not checked again and nothing re-arms it for this step,
 so a step that goes on to cost three times its budget is not asked about at every remaining leaf.
 
+On a crossing — the figure `step-cost.sh` printed is over the step budget — send one leaf the
+`over-budget` prompt, carrying the two figures, and launch it through the supervisor the way
+the `exhausted` leaf is launched:
+
+```
+$S/build-develop-prompt.sh over-budget .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <spent> <step-budget> > .tdd/develop-over-budget.prompt
+rm -f .tdd/develop-over-budget.exit .tdd/develop-over-budget.pid
+VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-over-budget $S/run-leaf.sh .tdd/develop-over-budget.prompt --permission-mode bypassPermissions > .tdd/develop-over-budget.out 2> .tdd/develop-over-budget.err
+$S/wait-leaf.sh develop-over-budget   # foreground; on exit 3 call it again
+```
+
+That leaf answers in prose around its report lines, so read its answer with the script, never
+by eye — which outcome it holds is an exit code, not a judgement made per run:
+
+```
+$S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer.txt; echo $?
+```
+
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
 1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
