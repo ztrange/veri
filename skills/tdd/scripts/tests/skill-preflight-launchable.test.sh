@@ -25,6 +25,11 @@
 # add-ledger-step.test.sh's; that the document orders a run to make the check is prose, and so
 # is pinned here.
 #
+# A third case (issue #451) holds the same item to calling `step-budget.sh`, the resolver for
+# the two money budgets (#449), beside `refactor-budget.sh 0`: a step or run budget that cannot
+# be read is the same misconfigured run, refused at the same point, and its exit 2 is spelled in
+# the paragraph that makes the call rather than borrowed from the refactor budget's.
+#
 # Before the baseline is the whole point of the position, not a tidiness: the baseline is the
 # expensive half of preflight — minutes on a slow repo — and it is wasted either way when no
 # leaf can launch. A launchability check placed after it would still refuse the run, but only
@@ -64,6 +69,8 @@ md="$ROOT/$skill_md"
 launchable="leaf-launchable.sh"
 detector="detect-test-command.sh"
 growth='VERI_STEP_GROWTH'
+step_budget='step-budget.sh'
+refactor_budget='refactor-budget.sh 0'
 preflight='### 0. Preflight'
 
 pass=0 fail=0
@@ -130,6 +137,19 @@ item_around() {
   sed -n "${start},${end}p" "$md"
 }
 
+# paragraph_around <line> — the paragraph that contains <line>, bounded by blank lines and by
+# numbered item openers, since preflight's items follow one another with no blank line. Narrower
+# than item_around: item 5 already spells exit 2 for the refactor budget, so a check that read
+# the whole item would find that sentence and never ask whether the money budgets' call has one
+# of its own.
+paragraph_around() {
+  awk -v at="$1" '
+    NR <= at { if ($0 ~ /^[[:space:]]*$/) buf = ""; else if ($0 ~ /^[0-9]+\./) buf = $0 "\n"; else buf = buf $0 "\n"; next }
+    $0 ~ /^[[:space:]]*$/ || $0 ~ /^[0-9]+\./ { exit }
+    { buf = buf $0 "\n" }
+    END { printf "%s", buf }' "$md"
+}
+
 # preflight_or_problem <what> — enter the preflight section, or record the one problem that
 # says the case could not be read at all. Non-zero when the heading is gone, so each case
 # below is a probe run inside the section rather than a probe and its own missing-section
@@ -171,6 +191,26 @@ if preflight_or_problem "a $growth check"; then
     problems+=("$skill_md's '$preflight' section never names $growth, so a run whose plan-growth budget cannot be read starts anyway and only finds out when a leaf first tries to grow the plan")
   elif ! grep -qiE 'exits? 2' < <(item_around "$growth_at"); then
     problems+=("$skill_md:$growth_at names $growth in a preflight item that spells no exit 2, so the document mentions the budget without refusing a run that cannot read it — the way item 5 refuses a bad VERI_REFACTOR_BUDGET")
+  fi
+fi
+
+report "$name"
+
+# 3. The money budgets are checked where the refactor budget is: `step-budget.sh` is called in
+#    the preflight item that runs `refactor-budget.sh 0`, and its exit 2 stops the run there,
+#    before any leaf is launched.
+name="$skill_md's preflight calls $step_budget beside $refactor_budget and stops on its exit 2"
+problems=()
+
+if preflight_or_problem "a $step_budget check"; then
+  sb_at="$(call_at "$step_budget")"
+  if [[ -z "$sb_at" ]]; then
+    problems+=("$skill_md's '$preflight' section never names $step_budget, so a run whose step or run budget cannot be read starts anyway and launches leaves it cannot price")
+  else
+    grep -F -- "$refactor_budget" > /dev/null < <(item_around "$sb_at") ||
+      problems+=("$skill_md:$sb_at calls $step_budget outside the preflight item that runs $refactor_budget")
+    grep -iE 'exits? 2' > /dev/null < <(paragraph_around "$sb_at") ||
+      problems+=("$skill_md:$sb_at calls $step_budget in a paragraph that spells no exit 2, so nothing says a budget it cannot read stops the run before a leaf launches")
   fi
 fi
 
