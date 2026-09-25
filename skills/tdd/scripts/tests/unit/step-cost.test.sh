@@ -53,6 +53,19 @@ if [[ "$code" != 0 || "$out" != "0.42" ]]; then
 fi
 verdict "a step's usage events are summed to two decimals, exit 0"
 
+# 2. a step no `usage` event carries yet — the state a step is in before its first leaf has
+#    exited — is nothing to do, not an error: nothing on stdout, exit 3. The log still holds
+#    other steps' events, so an empty log is not what makes the answer.
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
+EOF
+run_cost "step two"
+problems=""
+if [[ "$code" != 3 || -n "$out" ]]; then
+  problems="    want exit 3 and empty stdout, got exit $code and stdout '$out' (stderr '$err')"$'\n'
+fi
+verdict "a step no usage event carries prints nothing, exit 3"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

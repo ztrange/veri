@@ -6,7 +6,9 @@
 #
 # harvest-usage.sh appends one `usage` event per finished leaf to .tdd/events.jsonl, carrying
 # the leaf's `total_cost_usd` and the step it belongs to. This sums the events whose `step`
-# equals <step-text> and prints the dollars to two decimals.
+# equals <step-text> and prints the dollars to two decimals. A step no event carries yet —
+# the state it is in before its first leaf has exited — prints nothing and exits 3: nothing
+# to do, not an error.
 #
 # **The figure is leaf spend only.** The conductor's own spending is in no `usage` event, so
 # it is in no figure this script prints — never quote one as "what this step cost" in full.
@@ -23,6 +25,9 @@ awk -v step="$step" '
     sub("\"$", "", rest)
     return rest
   }
-  value($0, "step") == step { sum += value($0, "total_cost_usd") }
-  END { printf "%.2f\n", sum }
+  value($0, "step") == step { sum += value($0, "total_cost_usd"); seen = 1 }
+  END {
+    if (!seen) exit 3
+    printf "%.2f\n", sum
+  }
 ' .tdd/events.jsonl
