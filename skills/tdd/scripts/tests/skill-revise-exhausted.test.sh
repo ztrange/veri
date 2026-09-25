@@ -285,6 +285,48 @@ fi
 
 report "$name"
 
+# The other half of the placement: the leaves after the green commit — the refactor leaf and
+# its blind verifier — are followed by no cost check, and the check's own section says why, so
+# a reader who notices the gap does not "fix" it by adding one.
+
+# The heading the cost check's section is found by, spelled once for the probe and the message.
+cost_heading="#### The step's cost check"
+
+# cost_check_sentences — that section's lines, up to the next heading, normalised through
+# `plain`, one sentence per line.
+cost_check_sentences() {
+  awk -v h="$cost_heading" \
+    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
+    plain |
+    awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
+}
+
+# The two leaves that run after a step's green commit, by the name each is waited on under.
+post_commit_leaves=(develop-refactor verdict-refactor)
+
+name="$skill_md checks $step_cost after neither develop-refactor nor verify-refactor, and '$cost_heading' says why no check follows the green commit"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — where the cost check does not run could not be established")
+else
+  for leaf in "${post_commit_leaves[@]}"; do
+    if ! grep -F -- "wait-leaf.sh $leaf" "$skill_path" > /dev/null; then
+      problems+=("$skill_md never waits on $leaf — whether a cost check follows it could not be established")
+    elif grep -F -- "$step_cost" > /dev/null <<<"$(after_wait "$leaf")"; then
+      problems+=("$skill_md runs $step_cost after $leaf, which runs after the step's green commit, where a crossing can change nothing")
+    fi
+  done
+  cost_check_sentences |
+    grep -F -- 'after the green commit' |
+    grep -E -- "(^|[^a-z])(none|no|never|not)([^a-z]|$)" |
+    grep -F -- 'refactor' |
+    grep -E -- "(^|[^a-z])(because|since|so|by then)([^a-z]|$)" > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says that no cost check follows a leaf after the green commit, names the refactor loop, and gives the reason")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
