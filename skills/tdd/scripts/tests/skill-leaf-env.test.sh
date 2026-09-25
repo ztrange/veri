@@ -1173,10 +1173,37 @@ fill_title() {
   launch="$(sed -E 's/<[^<>]*>/probe/g' <<< "$launch")"
 }
 
+# beside_every_ledger <tag> <check> — run the caller's `launch` beside each of the three ledger
+# states in turn, and after each run that reached the caller's `script` call <check>, which
+# appends what it finds wrong to `failed`. Stops at the first state that leaves `failed` empty,
+# and assigns the caller's `failed` — empty when one state delivered the title — and `first`,
+# the first state's failure with what the typing shell said. Counts scratch trees on the
+# caller's `i`, so no two runs share one. Written once because cases 8f and 8g ask their lines
+# beside the ledgers the same way.
+beside_every_ledger() {
+  local planter
+  first=""
+  for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
+    i=$((i + 1))
+    tree="$WORK/$1-$i-tree" seen="$WORK/$1-$i-seen"
+    mkdir -p "$tree/.tdd"
+    "$planter" "$tree" "$title"
+    run_recorded '<not run>'
+    failed=""
+    if [[ ! -f "$seen.$script" ]]; then
+      failed="$script.sh was never run "
+    else
+      "$2"
+    fi
+    [[ -n "$failed" ]] || break
+    [[ -n "$first" ]] || first="$failed(the typing shell said: ${err//$'\n'//})"
+  done
+}
+
 scan_conductor_titles() {
   local title="$EXPANDING_STEP"
   local md_lines hits numbered lineno line launch script cmd stage seen tree err got argv
-  local planter i=0 rec want expected failed first
+  local i=0 rec want expected failed first
   # The five scripts whose calls carry the title, named once: the grep that finds the lines,
   # the recorder staged over each, and the match that says which one a line calls.
   local callees=(event preserve-attempt tick-ledger clear-refactor-pending tick-issue-criterion)
@@ -1209,36 +1236,27 @@ scan_conductor_titles() {
     # A mark that carries neither VERI_STEP nor an anchor carries no title to ask about.
     [[ "$script" != event || "$cmd" == *VERI_STEP* || "$cmd" == *anchor=* ]] || continue
     fill_title
-    first="" expected="$title"
+    expected="$title"
     [[ "$script" != tick-issue-criterion ]] || expected="$CRITERION_TEXT"
-    for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
-      i=$((i + 1))
-      tree="$WORK/conductor-title-$i-tree" seen="$WORK/conductor-title-$i-seen"
-      mkdir -p "$tree/.tdd"
-      "$planter" "$tree" "$title"
-      PATH="$bin:$PATH" run_recorded '<not run>'
-      failed=""
-      if [[ ! -f "$seen.$script" ]]; then
-        failed="$script.sh was never run"
-      else
-        mapfile -t rec < "$seen.$script"
-        [[ "$cmd" != *VERI_STEP* || "${rec[0]}" == "$title" ]] ||
-          failed+="VERI_STEP=<${rec[0]}> "
-        [[ "$cmd" != *anchor=* ]] || printf '%s\n' "${rec[@]:1}" | grep -xF "anchor=$title" > /dev/null ||
-          failed+="no argument anchor=<$title> "
-        case "$script" in
-          preserve-attempt|tick-issue-criterion) want="${rec[2]-<none>}" ;;
-          tick-ledger|clear-refactor-pending) want="${rec[${#rec[@]}-1]}" ;;
-          *) want="$title" ;;
-        esac
-        [[ "$want" == "$expected" ]] || failed+="title argument <$want> "
-      fi
-      [[ -n "$failed" ]] || break
-      [[ -n "$first" ]] || first="$failed(the typing shell said: ${err//$'\n'//})"
-    done
+    PATH="$bin:$PATH" beside_every_ledger conductor-title check_conductor_title
     [[ -z "$failed" ]] ||
       problem "passes $script.sh <$expected>, which arrived as $first beside every ledger state"
   done <<< "$hits"
+}
+
+# check_conductor_title — case 8f's question of one run, asked by `beside_every_ledger`.
+check_conductor_title() {
+  mapfile -t rec < "$seen.$script"
+  [[ "$cmd" != *VERI_STEP* || "${rec[0]}" == "$title" ]] ||
+    failed+="VERI_STEP=<${rec[0]}> "
+  [[ "$cmd" != *anchor=* ]] || printf '%s\n' "${rec[@]:1}" | grep -xF "anchor=$title" > /dev/null ||
+    failed+="no argument anchor=<$title> "
+  case "$script" in
+    preserve-attempt|tick-issue-criterion) want="${rec[2]-<none>}" ;;
+    tick-ledger|clear-refactor-pending) want="${rec[${#rec[@]}-1]}" ;;
+    *) want="$title" ;;
+  esac
+  [[ "$want" == "$expected" ]] || failed+="title argument <$want> "
 }
 
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every event.sh mark, preserve-attempt.sh call and tick fragment the conductor types from $skill_md, byte-identical (#437)" \
@@ -1260,7 +1278,7 @@ run_case "a step title carrying a dollar sign, a backtick and a double quote rea
 scan_prompt_titles() {
   local title="$EXPANDING_STEP"
   local md_lines hits numbered lineno line launch script cmd stage seen tree err got argv
-  local planter i=0 rec k want failed first
+  local i=0 rec k want failed first
   mapfile -t md_lines < "$md"
   hits="$(grep -nE '\$S/(build-develop-prompt|add-ledger-step)\.sh' "$md" |
           grep -vE '^[0-9]+:- `')"
@@ -1278,33 +1296,23 @@ scan_prompt_titles() {
     line="$cmd"
     [[ "$cmd" == *"$script.sh "* ]] || continue
     fill_title
-    first=""
-    for planter in plant_ledger plant_ticked_ledger plant_done_ledger; do
-      i=$((i + 1))
-      tree="$WORK/prompt-title-$i-tree" seen="$WORK/prompt-title-$i-seen"
-      mkdir -p "$tree/.tdd"
-      "$planter" "$tree" "$title"
-      run_recorded '<not run>'
-      failed=""
-      if [[ ! -f "$seen.$script" ]]; then
-        failed="$script.sh was never run "
-      else
-        mapfile -t rec < "$seen.$script"
-        want='<none>'
-        for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
-          case "$script:${rec[k]}" in
-            build-develop-prompt:*-spec.md|add-ledger-step:after|add-ledger-step:before|add-ledger-step:instead-of)
-              want="${rec[k+1]}"; break ;;
-          esac
-        done
-        [[ "$want" == "$title" ]] || failed="title argument <$want> "
-      fi
-      [[ -n "$failed" ]] || break
-      [[ -n "$first" ]] || first="$failed(the typing shell said: ${err//$'\n'//})"
-    done
+    beside_every_ledger prompt-title check_prompt_title
     [[ -z "$failed" ]] ||
       problem "passes $script.sh <$title>, which arrived as $first beside every ledger state"
   done <<< "$hits"
+}
+
+# check_prompt_title — case 8g's question of one run, asked by `beside_every_ledger`.
+check_prompt_title() {
+  mapfile -t rec < "$seen.$script"
+  want='<none>'
+  for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
+    case "$script:${rec[k]}" in
+      build-develop-prompt:*-spec.md|add-ledger-step:after|add-ledger-step:before|add-ledger-step:instead-of)
+        want="${rec[k+1]}"; break ;;
+    esac
+  done
+  [[ "$want" == "$title" ]] || failed="title argument <$want> "
 }
 
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every build-develop-prompt.sh prompt and add-ledger-step.sh anchor the conductor types from $skill_md, byte-identical (#437)" \
