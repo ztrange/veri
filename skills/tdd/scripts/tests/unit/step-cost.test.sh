@@ -184,6 +184,24 @@ run_cost "step one"
 refused "missing .tdd/events.jsonl"
 verdict "no argument, an unknown option, --run or --steps with a step text, and a missing log each exit 2 with stderr only"
 
+# 9. the suite belongs in the fast tier and says so: its header comment states each part of
+#    the bar — no git, no network, no servers, no real sleep, no nested suites — and the
+#    script answers with `make unit`'s shims first on PATH (unit-guard's git and python3,
+#    offline's gh and curl), each of which refuses on stderr when run for real. So a
+#    step-cost.sh that shelled out to any of them would print that refusal here, whatever
+#    `make test` — which adds no such shim — made of it.
+header="$(sed -n '2,$p' "$HERE/step-cost.test.sh" | sed '/^#/!q' | grep '^#')"
+for part in 'no git' 'no network' 'no servers' 'no real sleep' 'no nested suites'; do
+  grep -F "$part" <<< "$header" > /dev/null || problems+="    the header comment does not state '$part'"$'\n'
+done
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
+EOF
+PATH="$HERE/../unit-guard:$HERE/../offline:$PATH" run_cost "step one"
+expect 0 "0.30"
+[[ -z "$err" ]] || problems+="    under make unit's shims stderr said '$err', want nothing"$'\n'
+verdict "the header states the fast-tier bar and the script answers under make unit's git, python3, gh and curl shims"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
