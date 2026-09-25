@@ -102,6 +102,14 @@ expect 2 ''
 expect_err_names VERI_RUN_BUDGET
 verdict "either budget exported as the empty string exits 2 rather than falling back to its default"
 
+# 7. each name set to 0, the other left unset: exit 0 and the 0 printed back in its own line,
+#    the other at its default — 0 is legal, how the over-budget reaction is exercised by hand.
+run_budget VERI_STEP_BUDGET=0 --
+expect 0 $'0\n120'
+run_budget VERI_RUN_BUDGET=0 --
+expect 0 $'12\n0'
+verdict "a budget of 0 is accepted for either variable and printed back"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
