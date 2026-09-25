@@ -316,6 +316,36 @@ if load_section 'Launching a leaf'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# The second checkpoint sits after a ledger commit, not before a launch: the green PASS
+# branch's atomic tick-and-commit and its push are the boundary `at-ledger` waits for, so
+# the case reads that branch alone — from its `git commit -m "feat: …` line to the line that
+# sends the run on to the Refactor loop — and asks that stop-requested.sh runs after the push
+# and that whatever mode it printed goes to Stopping.
+name="the green PASS branch runs stop-requested.sh immediately after the atomic green commit's push, and any mode it prints goes to Stopping"
+problems=()
+if load_section 'Procedure'; then
+  section="$(awk '
+    /git commit -m "feat: <step summary>/ { inside = 1 }
+    inside { print }
+    inside && /continue to the refactor loop/ { exit }' <<<"$section")"
+  if [[ -z "$section" ]]; then
+    problems+=("the Procedure section has no green commit git commit -m \"feat: <STEP summary> — nothing could be checked")
+  else
+    push_at="$(first_line_matching 'push-branch\.sh')"
+    stop_at="$(first_line_matching 'stop-requested\.sh')"
+    if [[ -z "$stop_at" ]]; then
+      problems+=("the green PASS branch never runs stop-requested.sh — a stop requested during the step is not seen at the ledger commit at-ledger waits for")
+    elif ! after "$stop_at" "$push_at"; then
+      problems+=("the green PASS branch runs stop-requested.sh (line $stop_at) before the green commit's push (line ${push_at:-none}) — the checkpoint belongs after the commit is on the remote")
+    fi
+    section="$(tr '\n' ' ' <<<"$section" | tr -s ' ')"
+    require '(any|every|whatever)[^.;]*mode[^.;]*stopping|stopping[^.;]*(any|every|whatever)[^.;]*mode' \
+      "the green PASS branch never says any mode stop-requested.sh prints goes to Stopping there"
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
