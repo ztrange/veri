@@ -37,6 +37,14 @@ expect() {
   fi
 }
 
+# expect_err_names <name> — add to the case's `problems` unless the run just made named
+# <name> on stderr.
+expect_err_names() {
+  if [[ "$err" != *"$1"* ]]; then
+    problems+="    want stderr naming $1, got '$err'"$'\n'
+  fi
+}
+
 # verdict <name> — report one case from the `problems` the case just filled: empty is a
 # pass, otherwise a FAIL line naming the case and the indented lines it collected. Then
 # empty it for the next case. Same accounting idiom as step-cost.test.sh's verdict().
@@ -67,9 +75,7 @@ verdict "a set VERI_STEP_BUDGET then a set VERI_RUN_BUDGET, decimals included, p
 #    variable at fault.
 run_budget VERI_STEP_BUDGET=twelve --
 expect 2 ''
-if [[ "$err" != *VERI_STEP_BUDGET* ]]; then
-  problems+="    want stderr naming VERI_STEP_BUDGET, got '$err'"$'\n'
-fi
+expect_err_names VERI_STEP_BUDGET
 verdict "a VERI_STEP_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
 
 # 4. VERI_RUN_BUDGET set to a negative number, not a non-negative decimal number, with
@@ -77,9 +83,7 @@ verdict "a VERI_STEP_BUDGET that is not a non-negative decimal number exits 2, n
 #    diagnostic names the variable at fault.
 run_budget VERI_RUN_BUDGET=-5 --
 expect 2 ''
-if [[ "$err" != *VERI_RUN_BUDGET* ]]; then
-  problems+="    want stderr naming VERI_RUN_BUDGET, got '$err'"$'\n'
-fi
+expect_err_names VERI_RUN_BUDGET
 verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2, names it on stderr, prints nothing on stdout"
 
 echo "----"
