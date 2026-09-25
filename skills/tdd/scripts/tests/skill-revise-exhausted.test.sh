@@ -368,6 +368,27 @@ fi
 
 report "$name"
 
+# What exit 3 means: step-cost.sh exits 3 when no leaf of this step has reported a usage
+# event yet, and that is nothing to act on — not a crossing, so the branch does not run.
+
+name="'$cost_heading' says $step_cost exit 3 (no leaf of the step has reported yet) is not a crossing"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what $step_cost exit 3 means could not be established")
+else
+  cost_check_sentences |
+    grep -F -- 'exit 3' |
+    grep -F -- 'not a crossing' > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says $step_cost exit 3 is not a crossing")
+  cost_check_sentences |
+    grep -F -- 'exit 3' |
+    grep -E -- 'no leaf .*(reported|usage)' > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says exit 3 means no leaf of the step has reported yet")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
