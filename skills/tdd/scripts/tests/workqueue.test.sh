@@ -581,5 +581,42 @@ expect_unchanged done-empty-sha 2 \
   "done given an empty merge sha argument exits 2 and leaves the queue file byte-identical" \
   done alpha 12 ''
 
+# 30. park given a reason holding a tab, and one holding a newline, treats both the same way:
+#     either it exits 0 leaving the queue one line per item with exactly four tab-separated
+#     fields, or it refuses (non-zero) leaving the file byte-identical. A tab written raw into
+#     the detail would make a fifth field, a newline a second line — either one corrupts the
+#     file the script is the only writer of. Each reason gets its own repo, seeded alike.
+park_outcome() {
+  local name="$1" reason="$2" code
+  new_repo "$work/$name"
+  seed_queue "$work/$name" 'alpha\t12\trunning\t\nbeta\t4\tqueued\t\n'
+  cp "$work/$name/.tdd/workqueue" "$work/$name.before"
+  (cd "$work/$name" && "$SCRIPT" park alpha 12 "$reason" >/dev/null 2>&1) && code=0 || code=$?
+  if [[ "$code" -ne 0 ]]; then
+    if cmp -s "$work/$name.before" "$work/$name/.tdd/workqueue"; then
+      echo refused
+    else
+      echo "corrupt (exit $code, file changed)"
+    fi
+  elif [[ "$(wc -l < "$work/$name/.tdd/workqueue" | tr -d ' ')" == 2 ]] &&
+    awk -F '\t' 'NF != 4 { bad = 1 } END { exit bad }' "$work/$name/.tdd/workqueue"; then
+    echo well-formed
+  else
+    echo "corrupt (exit 0, $(wc -l < "$work/$name/.tdd/workqueue" | tr -d ' ') lines," \
+      "fields per line: $(awk -F '\t' '{ printf "%s ", NF }' "$work/$name/.tdd/workqueue"))"
+  fi
+}
+tab_outcome="$(park_outcome park-reason-tab "$(printf 'first\tsecond')")"
+newline_outcome="$(park_outcome park-reason-newline "$(printf 'first\nsecond')")"
+if [[ "$tab_outcome" == "$newline_outcome" &&
+  ( "$tab_outcome" == refused || "$tab_outcome" == well-formed ) ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - park given a reason holding a tab or a newline treats both the same way, leaving the queue well-formed or refusing with the file untouched"
+  echo "    tab: $tab_outcome"
+  echo "    newline: $newline_outcome"
+fi
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

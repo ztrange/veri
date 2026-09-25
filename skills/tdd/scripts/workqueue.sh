@@ -17,9 +17,10 @@
 # Exit:    0 done, 1 `start`/`done`/`park` naming no item of that worker's in the state it
 #          moves from, 3 `next` found nothing launchable, 2 an unknown subcommand, an `assign`
 #          naming no worker or no issue, an empty issue, or naming one issue twice, a `done`
-#          with no merge sha, an issue already queued or running for any worker, or a lock
-#          not taken within VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is
-#          written, so the file is left byte-identical
+#          with no merge sha, a `park` reason holding a tab or a newline, an issue already
+#          queued or running for any worker, or a lock not taken within
+#          VERI_WORKQUEUE_LOCK_WAIT seconds — refused before anything is written, so the file
+#          is left byte-identical
 set -euo pipefail
 
 # shellcheck source=lib/main-working-tree.sh
@@ -101,7 +102,14 @@ if [[ "${1:-}" == start || "${1:-}" == done || "${1:-}" == park ]]; then
         exit 2
       fi
       from=running to=merged new_detail="$4" ;;
-    park) from=running to=parked new_detail="$4" ;;
+    park)
+      # A tab in the reason would write a fifth field, a newline a second line: either one
+      # corrupts the file, so both are refused alike before the lock is taken.
+      if [[ "${4:-}" == *$'\t'* || "${4:-}" == *$'\n'* ]]; then
+        echo "workqueue.sh: a park reason may not hold a tab or a newline" >&2
+        exit 2
+      fi
+      from=running to=parked new_detail="$4" ;;
   esac
   take_lock
   tmp="$queue.tmp.$$"
