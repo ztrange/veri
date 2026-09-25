@@ -1407,6 +1407,18 @@ grep -qE '^NEEDS_USER:' <<<"$over_budget" || problems="$problems; no NEEDS_USER:
 [[ -z "$problems" ]] \
   && ok || no "develop-over-budget asks for SPLIT: lines or a NEEDS_USER: answer, the two shapes exhausted-outcome.sh reads (${problems#; })"
 
+# 41. the over-budget prompt says a crossing is not a verdict (issue #450, criterion 3). A leaf
+#     that believes it is being told off invents a split, so the prompt must say that nothing
+#     has judged this work and that "one behaviour, simply expensive" is an answer the run can
+#     act on. Whitespace is flattened first so a phrase the template wraps across lines still
+#     reads as one; both checks ignore case. Case 39's build is reused.
+over_budget_flat="$(tr -s '[:space:]' ' ' <<<"$over_budget")"
+problems=""
+grep -iE 'not a verdict' <<<"$over_budget_flat" > /dev/null || problems="$problems; does not say a crossing is not a verdict"
+grep -iE 'one behaviour[^.]*simply expensive' <<<"$over_budget_flat" > /dev/null || problems="$problems; does not offer \"one behaviour, simply expensive\" as an answer"
+[[ -z "$problems" ]] \
+  && ok || no "develop-over-budget says a crossing is not a verdict and that one behaviour, simply expensive, is an available answer (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
