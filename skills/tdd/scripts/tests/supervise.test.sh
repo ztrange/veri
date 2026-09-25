@@ -1635,6 +1635,50 @@ quiet_wrapper_reason="$(cat "$quiet_wrapper_work/.tdd/verify-red.reason" 2>/dev/
   && [[ "$quiet_wrapper_reason" == 'The test pins the criterion as observable behavior.' ]]; } && ok \
   || no "a working verification is not killed for its wrapper's silence: 6s of inner progress against a 2s window → the verdict the verifier recorded (code=$quiet_wrapper_code want 0, recorded=$quiet_wrapper_recorded want 0, reason='$quiet_wrapper_reason' want the verifier's own line, err=$(cat "$quiet_wrapper_work/err"))"
 
+# 37. a launch is refused while a leaf supervised under a DIFFERENT name is still alive in the
+#     same worktree (issue #471). In #446 the conductor started `verify-green` while
+#     `revise-green-1` was still running, and the two wrote one tree at once; nothing in the
+#     launcher looked past its own leaf's pidfile. So the second supervision must answer
+#     exit 2 — no answer could be obtained, the plumbing's code — start no leaf of its own,
+#     and say on stderr which leaf owns the worktree and under which pid.
+#
+#     The pid is the first supervisor's own, the value `.tdd/<name>.pid` carries (case 29) and
+#     wait-leaf.sh reads as the leaf's. The first supervisor is `exec`ed in the background,
+#     case 29's shape, so `$!` is supervise.sh itself; its leaf is case 30's own stub, which
+#     records its pid and `exec`s into a long sleep, so it is alive for as long as the case
+#     needs it — and is already recorded, with that reason, in the clock audit's exemptions. The second
+#     stub only leaves a marker, so "no second leaf started" is a file that must not exist. The
+#     first supervisor is sent TERM afterwards, whose handler takes the leaf down with it (case
+#     30), and a leaf that did survive is killed here. A run directory of its own, for case
+#     12's reason.
+owner_work="$work/live-owner"
+mkdir -p "$owner_work"
+cat > "$stub/leaf-second" <<'L'
+#!/bin/sh
+: > second-ran
+exit 0
+L
+chmod +x "$stub/leaf-second"
+( cd "$owner_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+owner_sup=$!
+for _ in $(seq 1 50); do [[ -s "$owner_work/leaf-pid" ]] && break; sleep 0.1; done
+owner_leaf="$(tr -d '[:space:]' < "$owner_work/leaf-pid" 2>/dev/null)"
+( cd "$owner_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" verify-green "$stub/leaf-second" ) >/dev/null 2>"$owner_work/err"
+owner_code=$?
+owner_second="no"; [[ -e "$owner_work/second-ran" ]] && owner_second="yes"
+owner_err="$(cat "$owner_work/err")"
+kill -TERM "$owner_sup" 2>/dev/null
+wait "$owner_sup"
+if [[ -n "$owner_leaf" ]]; then
+  for _ in $(seq 1 20); do kill -0 "$owner_leaf" 2>/dev/null || break; sleep 0.1; done
+  kill -0 "$owner_leaf" 2>/dev/null && kill -KILL "$owner_leaf" 2>/dev/null
+fi
+{ [[ -n "$owner_leaf" ]] && [[ "$owner_code" == 2 ]] && [[ "$owner_second" == no ]] \
+  && [[ "$owner_err" == *revise-green-1* ]] && [[ "$owner_err" =~ (^|[^0-9])$owner_sup([^0-9]|$) ]]; } && ok \
+  || no "#471: a launch under one name is refused while a leaf supervised under another name is alive in the same worktree (first leaf pid=${owner_leaf:-<never started>}; code=$owner_code want 2, second leaf ran=$owner_second want no, stderr='$owner_err' want it to name revise-green-1 and pid $owner_sup)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
