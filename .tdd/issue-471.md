@@ -1,6 +1,6 @@
 # Plan for #471 — A leaf launch is refused while another leaf still owns the worktree
 
-- [x] A launch through supervise.sh under one name is refused while a stub leaf supervised under a different name is still alive in the same worktree — exit 2, no second leaf started, stderr naming the live leaf and its pid ⟦criterion 5⟧ ⟂ refactor pending
+- [x] A launch through supervise.sh under one name is refused while a stub leaf supervised under a different name is still alive in the same worktree — exit 2, no second leaf started, stderr naming the live leaf and its pid ⟦criterion 5⟧
 - [ ] A launch through supervise.sh is refused the same way while a stub leaf supervised under the same name is still alive in the same worktree ⟦criterion 1⟧
 - [ ] The record the refusal reads survives the pre-launch rm -f .tdd/<name>.exit .tdd/<name>.pid, so the launch after that rm is still refused while the first leaf lives ⟦criterion 3⟧
 - [ ] A record left by a supervised leaf whose process is gone does not refuse the next launch ⟦criterion 2⟧
