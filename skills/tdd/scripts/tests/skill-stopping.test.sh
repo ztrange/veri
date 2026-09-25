@@ -643,6 +643,35 @@ else
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# And a stop is not a bail (issue #391): a bail stops the loop unless `--continue-on-bail`
+# says to keep going, and a reader who finds the stop condition beside it could take that
+# option to cover a stop too. It must not — a stop is the operator speaking, and the loop has
+# no business overruling it. Read from the same stop-condition bullet as the case above.
+name="SCOPE-LOOP.md says a stop, unlike a bail, has no continue-past option — no --continue-on-bail equivalent, because a stop is the operator speaking"
+problems=()
+section="$(awk '
+  /^### / { inside = ($0 ~ /^### Loop 4\./); next }
+  inside' "$ROOT/$scope_loop_md" | plain)"
+if [[ -z "$section" ]]; then
+  problems+=("$scope_loop_md has no ### Loop 4 section — nothing could be checked")
+else
+  section="$(awk '
+    /^- / { inside = ($0 ~ /^- [^.]*stop/) }
+    /^[^- ]/ { inside = 0 }
+    inside' <<<"$section")"
+  if [[ -z "$section" ]]; then
+    problems+=("$scope_loop_md's Loop 4 lists no issue that ended in a stop — nothing could be checked")
+  else
+    section="$(joined)"
+    require "$(either_order '(^|[^a-z])(no|not|never|nothing)[^a-z]' '(--continue-on-bail|continue[- ]past)')" \
+      "the stopped-issue condition never says a stop has no --continue-on-bail equivalent"
+    require '(^|[^a-z])operator' \
+      "the stopped-issue condition never says a stop is the operator speaking"
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
