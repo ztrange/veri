@@ -729,6 +729,52 @@ fi
 
 report "$name"
 
+# title_guard <document> — the report case 8's guard, the #431 one, makes of the fenced lines
+# of <document> carrying the step's title, one problem per line. `skill_path` is shadowed
+# rather than reassigned so every probe reading the document reads <document> for the length
+# of the call and the real one again afterwards, and `problems` is shadowed so the guard's
+# report is what this prints rather than a failure of the case it is called from.
+title_guard() {
+  local skill_path="$1"
+  local problems=()
+  read_quoted_lines "$(step_lines)" "the step title" \
+    "$step_ph" "$single_quoted_step" "$double_quoted_step"
+  [[ "${#problems[@]}" -eq 0 ]] || printf '%s\n' "${problems[@]}"
+}
+
+# 11. #437 rewrote the document's launch lines to take the title as data, and so took most of
+#     `<STEP>` out of the fenced blocks case 8's guard reads. The guard was #431's answer to an
+#     apostrophe, and the rewrite must not have left it with nothing to refuse: put a fenced
+#     line of the rewritten document back to the single-quoted shape #431 fixed, and the guard
+#     still reports that line by address; key that address in EXEMPT with a reason, and the
+#     same line is answered rather than reported. And every entry the table does hold still
+#     names a fenced line of the rewritten document that carries the title — an entry whose
+#     line moved or went excuses whatever lands there next (#437).
+name="the #431 guard still refuses a single-quoted step title and its exemption table still holds over the rewritten $skill_md (#437)"
+problems=()
+
+planted_line="$(fenced_lines "$double_quoted_step" | sed -n '1p' | cut -f1)"
+if [[ -z "$planted_line" ]]; then
+  unreadable "fenced line carrying $double_quoted_step" "where the #431 guard would meet a single-quoted title"
+else
+  planted_doc="$(mktemp)"
+  sed "${planted_line}s|$double_quoted_step|$single_quoted_step|" "$skill_path" > "$planted_doc"
+  refused="$(title_guard "$planted_doc")"
+  [[ "$refused" == *"$skill_md:$planted_line single-quotes the step title"* ]] ||
+    problems+=("the guard did not refuse $single_quoted_step planted at $skill_md:$planted_line — it reported: ${refused:-nothing}")
+  answered="$(EXEMPT["$skill_md:$planted_line"]="planted by case 11"; title_guard "$planted_doc")"
+  [[ "$answered" != *"$skill_md:$planted_line "* ]] ||
+    problems+=("an EXEMPT entry for $skill_md:$planted_line did not answer the report: $answered")
+  rm -f "$planted_doc"
+fi
+title_linenos="$(step_lines | cut -f1)"
+for key in "${!EXEMPT[@]}"; do
+  grep -qxF -- "${key##*:}" <<< "$title_linenos" ||
+    problems+=("EXEMPT[$key] names a line that no fenced command carrying $step_ph is on in the rewritten document")
+done
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
