@@ -548,6 +548,12 @@ unauthenticated baseline never gets a cycle.
    `VERI_REFACTOR_BUDGET`: stop and do not start, reporting the value verbatim. Caught here
    it costs nothing; left to the first leaf that tries to grow the plan, it surfaces as a
    refused insertion mid-cycle, with the branch, the worktree and the plan already built.
+
+   Then the two money budgets: run `$S/step-budget.sh` once, with no arguments. **Exit 2**
+   means `VERI_STEP_BUDGET` or `VERI_RUN_BUDGET` is not a non-negative decimal number — the
+   same preflight-class stop as a bad `VERI_REFACTOR_BUDGET`: report its stderr diagnostic
+   verbatim and do not start, before any leaf is launched. Exit 0 prints the step budget,
+   then the run budget, one per line.
 6. **Leaf models parse.** Run `$S/leaf-model.sh develop-red` and
    `$S/leaf-model.sh verify-green` once each. Both roles, because the three variables do not
    all reach both: `VERI_MODEL_DEVELOPER` is only ever read for a developer name and
