@@ -5,6 +5,6 @@
 - [x] The rendered over-budget prompt states that a crossing is not a verdict and that "one behaviour, simply expensive" is an available answer ⟦criterion 3⟧
 - [x] The over-budget prompt gives the "neither — one behaviour, simply expensive" answer its own report shape, telling the leaf to print no SPLIT: and no NEEDS_USER: line when it chooses it ⟦added⟧ ⟦criterion 3⟧
 - [x] A spent or budget figure that is not a non-negative decimal number exits 2 and renders nothing, both validated before any template is read ⟦criterion 4⟧
-- [ ] over-budget with fewer than five arguments after the phase exits 2 ⟦criterion 5⟧
+- [x] over-budget with fewer than five arguments after the phase exits 2 ⟦criterion 5⟧
 - [ ] The over-budget prompt names no rejection reason and no verdict, and the phase takes no parameter that could carry one ⟦criterion 6⟧
 - [ ] Every other phase renders byte-identically to before this change ⟦criterion 7⟧

@@ -1455,6 +1455,20 @@ grep -F 'qwixnum' "$work/err.txt" > /dev/null \
 [[ -z "$refusal_bad" ]] \
   && ok || no "develop-over-budget refuses a <spent> or <budget> that is not a non-negative decimal number with exit 2, a diagnostic and no prompt, before any template is read (${refusal_bad#; })"
 
+# 44. over-budget's arity (issue #450, criterion 5). The phase takes five arguments past its
+#     own name — spec, step, test command, spent, budget — and a call short of any of them is
+#     a bad-arguments case: exit 2, a diagnostic, no prompt. Every short call below passes
+#     real values for what it does pass, so the only thing wrong with it is the count; the
+#     four-argument call is the one a caller who dropped only `<budget>` makes.
+refusal_bad=""
+refuses "over-budget with no arguments"    "$BUILD" over-budget
+refuses "over-budget with one argument"    "$BUILD" over-budget "$work/spec.md"
+refuses "over-budget with two arguments"   "$BUILD" over-budget "$work/spec.md" "$step_text"
+refuses "over-budget with three arguments" "$BUILD" over-budget "$work/spec.md" "$step_text" "$test_cmd"
+refuses "over-budget with four arguments"  "$BUILD" over-budget "$work/spec.md" "$step_text" "$test_cmd" 3.47
+[[ -z "$refusal_bad" ]] \
+  && ok || no "develop-over-budget with fewer than five arguments after the phase exits 2, with a diagnostic and no prompt (${refusal_bad#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
