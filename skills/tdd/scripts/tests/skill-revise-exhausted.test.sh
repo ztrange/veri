@@ -51,12 +51,15 @@ plain() {
 # fail-closed message names it.
 revise_heading='## Revising on a REJECT'
 
-# revise_section — the lines after that heading, up to the next heading of any level,
-# normalised through `plain`.
-revise_section() {
+# revise_lines — the raw lines after that heading, up to the next heading of any level.
+revise_lines() {
   awk -v h="$revise_heading" \
-    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
-    plain
+    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path"
+}
+
+# revise_section — those lines normalised through `plain`.
+revise_section() {
+  revise_lines | plain
 }
 section="$(revise_section)"
 
@@ -258,10 +261,8 @@ report "$name"
 # revise_prose_sentences — the revise section with its fenced blocks dropped, normalised
 # through `plain`, one sentence per line: what the section says outside its commands.
 revise_prose_sentences() {
-  awk -v h="$revise_heading" \
-    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit }
-     inside && /^[[:space:]]*```/ { fenced = !fenced; next }
-     inside && !fenced' "$skill_path" |
+  revise_lines |
+    awk '/^[[:space:]]*```/ { fenced = !fenced; next } !fenced' |
     plain |
     awk '{ n = split($0, s, /[.!?] /); for (i = 1; i <= n; i++) print s[i] }'
 }
