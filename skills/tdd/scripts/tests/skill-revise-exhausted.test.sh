@@ -347,6 +347,27 @@ fi
 
 report "$name"
 
+# How often the check fires: at most once per step. Once its crossing branch has run, the
+# check is disarmed for the rest of the step and nothing re-arms it, so a step that goes on to
+# cost three times its budget is not asked about again at every remaining leaf.
+
+name="'$cost_heading' says the check fires at most once per step and is not re-armed"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — how often the cost check fires could not be established")
+else
+  cost_check_sentences |
+    grep -F -- 'at most once per step' > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says the check fires at most once per step")
+  cost_check_sentences |
+    grep -F -- 're-arm' |
+    grep -E -- "(^|[^a-z])(not|never|no|nothing)([^a-z]|$)" > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says the check is not re-armed once its branch has run")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

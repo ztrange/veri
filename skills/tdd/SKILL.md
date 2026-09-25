@@ -796,6 +796,10 @@ step has spent. None follows a leaf after the green commit: by then the step is 
 loop is one leaf already handed its own budget as a number (ADR-0017), so a check there
 could change nothing.
 
+The check fires at most once per step. Once its crossing branch has run, the step's later
+leaves are not checked again and nothing re-arms it for this step,
+so a step that goes on to cost three times its budget is not asked about at every remaining leaf.
+
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
 1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to
