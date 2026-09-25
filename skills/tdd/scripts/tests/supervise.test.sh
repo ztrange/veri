@@ -1919,6 +1919,33 @@ rm -f "$work/.test-suspended" "$work/.tdd/suspended-timeout.rc"
 sup suspended-timeout 30 2 leaf-suspended-timeout
 woke_with_own_exit suspended-timeout "#472: a leaf whose run spans a 3s suspend past a 2s VERI_TIMEOUT, awake time under it, is not killed for the timeout and finishes with its own exit code"
 
+# 46. a leaf silent while the machine is AWAKE is still killed at the same threshold as today
+#     (issue #472). Cases 43 to 45 take suspended time out of the windows; this one pins that
+#     awake silence is not taken out with it. The injected clock never suspends here: every
+#     second is a `clock-jump`, which moves the awake clock and the wall clock together. The
+#     leaf writes a line, is silent one second against a 2 s window — inside it, so it must
+#     survive, and marks ./.test-inside-window once the supervisor has polled across that — then
+#     is silent two more, three in all, past the window, and hangs. The supervisor must kill it
+#     as stuck on the heartbeat (exit 2, `no heartbeat … (window 2s)`) and not before the mark.
+cat > "$stub/leaf-awake-silent" <<'L'
+#!/bin/sh
+: > .test-clock-reads
+echo "leaf: starting"
+clock-jump 1
+await-poll; await-poll
+: > .test-inside-window
+clock-jump 2
+sleep 60; echo "unreachable"
+L
+chmod +x "$stub/leaf-awake-silent"
+rm -f "$work/.test-suspended" "$work/.test-inside-window"
+sup awake-silent 2 30 leaf-awake-silent
+awake_inside="$([[ -e "$work/.test-inside-window" ]] && echo yes || echo no)"
+rm -f "$work/.test-inside-window"
+{ [[ "$code" == 2 ]] && [[ "$awake_inside" == yes ]] \
+  && grep -E 'no heartbeat for [0-9]+s \(window 2s\)' "$work/err" > /dev/null; } && ok \
+  || no "#472: a leaf silent 1s then 3s of awake time (no suspend) against a 2s heartbeat survives the first and is killed as stuck on the heartbeat (code=$code want 2, survived inside the window=$awake_inside want yes, err=$(cat "$work/err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
