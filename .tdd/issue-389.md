@@ -6,7 +6,7 @@
 - [x] SKILL.md treats `stop-requested.sh` exit 2 as a stop in mode `at-ledger`, narrating that the request was unreadable ⟦criterion 3⟧
 - [x] SKILL.md's three ledger-commit checkpoints (the green push, the refactor-pending clear, the pin's `test:` commit) send a `stop-requested.sh` exit 2 found there to *Stopping* as `at-ledger`, narrating that the request was unreadable ⟦added⟧ ⟦criterion 3⟧
 - [x] SKILL.md asks `stop-requested.sh` before reading a leaf's `wait-leaf.sh` exit 2 as `killed-stuck`, and a pending `now` sends the run to *Stopping* instead of *Bailing* ⟦criterion 4⟧
-- [ ] each phase's own leaf-exit-2 branch in SKILL.md (develop-red, green, refactor, revise, verify-plan) points back to the checkpoints spelled once in *Launching a leaf* — ask `stop-requested.sh` before reading the exit 2 as `killed-stuck` ⟦added⟧ ⟦criterion 4⟧
+- [x] each phase's own leaf-exit-2 branch in SKILL.md (develop-red, green, refactor, revise, verify-plan) points back to the checkpoints spelled once in *Launching a leaf* — ask `stop-requested.sh` before reading the exit 2 as `killed-stuck` ⟦added⟧ ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] SKILL.md's *Bailing* keeps a bail condition reached first — a `REJECT` exhausting `REVISE_BUDGET`, or a killed-stuck leaf with no `now` pending — as a bail, and its bail comment says a stop was pending when one was
 - [ ] SKILL.md's Draft PR step runs to completion with a stop request pending, clears it with `stop-requested.sh --clear`, and says in the final `### ✅ Done` comment that a stop arrived after the last step ⟦criterion 5⟧
 - [ ] SKILL.md checkpoints the repair step a red full run appends at the Draft PR step like any other step — both checkpoints apply to it ⟦criterion 5⟧
