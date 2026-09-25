@@ -377,13 +377,10 @@ problems=()
 if [[ ! -r "$skill_path" ]]; then
   problems+=("$skill_md could not be read — what $step_cost exit 3 means could not be established")
 else
-  cost_check_sentences |
-    grep -F -- 'exit 3' |
-    grep -F -- 'not a crossing' > /dev/null ||
+  exit_3_sentences="$(cost_check_sentences | grep -F -- 'exit 3')"
+  grep -F -- 'not a crossing' <<<"$exit_3_sentences" > /dev/null ||
     problems+=("no sentence of '$cost_heading' says $step_cost exit 3 is not a crossing")
-  cost_check_sentences |
-    grep -F -- 'exit 3' |
-    grep -E -- 'no leaf .*(reported|usage)' > /dev/null ||
+  grep -E -- 'no leaf .*(reported|usage)' <<<"$exit_3_sentences" > /dev/null ||
     problems+=("no sentence of '$cost_heading' says exit 3 means no leaf of the step has reported yet")
 fi
 
