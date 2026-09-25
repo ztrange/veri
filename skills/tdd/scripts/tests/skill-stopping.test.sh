@@ -542,6 +542,30 @@ if load_section 'Bailing'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# Once next-unchecked.sh exits 3 there is no next ledger commit, and what the Draft PR step
+# does launches no leaf and loses nothing: a pending stop does not interrupt it. The run
+# finishes, clears the request, and its final `### ✅ Done` comment says a stop arrived after
+# the last step. The step is read from its `### 4. Draft PR` heading to the end of Procedure,
+# joined; the Done comment is read as sub-step 4's own list item, up to its first blank line.
+name="the Draft PR step runs to completion with a stop request pending, clears it with stop-requested.sh --clear, and its final ### ✅ Done comment says a stop arrived after the last step"
+problems=()
+if load_section 'Procedure'; then
+  draft_pr="$(ledger_branch '^### 4\. draft pr' '^### 5\.')"
+  section="$(tr '\n' ' ' <<<"$draft_pr" | tr -s ' ')"
+  stop="$(word stop)"
+  require 'stop-requested\.sh --clear' \
+    "the Draft PR step never runs stop-requested.sh --clear — a stop arriving after the last step would outlive the run and pause the next one"
+  require "$(either_order "($stop[^.;]*pending|pending[^.;]*$stop)" '(runs? to completion|not interrupted|finish(es)?)')" \
+    "the Draft PR step never says it runs to completion with a stop request pending"
+  section="$(awk '/^4\. post a final/ { inside = 1 } inside && /^[[:space:]]*$/ { exit } inside' <<<"$draft_pr" | tr '\n' ' ' | tr -s ' ')"
+  require '### ✅ done' \
+    "the Draft PR step has no sub-step posting the final ### ✅ Done comment to read"
+  require "$stop[^.;]*arrived[^.;]*after[^.;]*last step" \
+    "the final ### ✅ Done comment never says a stop arrived after the last step"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
