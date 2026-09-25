@@ -53,6 +53,9 @@
 ##   9. That section runs a step's triangulation at most once, narrating a flag raised inside
 #      that triangulation's own refactor loop about the same code rather than triangulating
 #      it a second time (issue #175).
+#  10. That section's account of the leaf's report footer names exactly the report lines the
+#      built refactor prompt asks for — no line the prompt does not emit, none it emits left
+#      out (issue #175).
 #
 # Case 1 is one criterion — the conductor launches one leaf and checks its result instead of
 # producing it — and its probes are its parts: a document that launched one leaf and then
@@ -773,6 +776,56 @@ else
     grep -qE "$(either_order 'narrat' '(again|a second (time|triangulation)|same code)' '[^.]{0,200}')" <<<"$triangulation" ||
       problems+=("$skill_md's Refactor section never says a flag raised inside a triangulation's own refactor loop about the same code is narrated, so what the second flag found is dropped without a word")
   fi
+fi
+
+report "$name"
+
+# 10. One criterion — SKILL.md describes the refactor leaf's report footer as the built prompt
+#     actually writes it — and so one case. The conductor reads that footer through SKILL.md's
+#     account of it, never through the template: a line the account names and the prompt never
+#     asks for is a line the conductor waits on and never gets, and a line the prompt asks for
+#     and the account never names is one the leaf writes and nothing reads. Issue #175 moved
+#     the overfit finding from `NEW_STEP:` onto a classed `FLAGS:` line, and it is the account
+#     that lagged: the prompt said `FLAGS:` while SKILL.md still said `NEW_STEP:`.
+#
+#     So the case asks the builder itself for the prompt, the way the conductor does, and
+#     compares the labels of that prompt's report lines with the labels SKILL.md's account of
+#     the footer names — both directions, since either gap is its own failure. The account is
+#     the prose after the first mention of `.tdd/develop-refactor.out` outside a fenced block,
+#     up to the next numbered item: the launch command also names that file, inside a fence,
+#     and says nothing about what the leaf's report contains.
+name="$skill_md's Refactor section names exactly the report lines the built refactor prompt asks the leaf for"
+problems=()
+
+spec_tmp="$(mktemp)"
+echo "spec" >"$spec_tmp"
+emitted="$("$ROOT/skills/tdd/scripts/build-develop-prompt.sh" refactor "$spec_tmp" "step" "make test" "a.sh" |
+  sed -nE 's/^([A-Z][A-Z_]+):.*/\1/p' | sort -u)"
+rm -f "$spec_tmp"
+
+footer="$(awk -v h="$refactor_heading" '
+  index($0, h) == 1 { inside = 1; next }
+  inside && /^#/ { exit }
+  inside && /^[[:space:]]*```/ { fenced = !fenced; next }
+  inside && !fenced && !found && index($0, "develop-refactor.out") { found = 1 }
+  found && /^[0-9]+\. / { exit }
+  found' "$skill_path" | tr -d '*`' | tr '\n' ' ')"
+footer="${footer#*develop-refactor.out}"
+named="$(grep -oE '[A-Z][A-Z_]+:' <<<"$footer" | tr -d ':' | sort -u)"
+
+if [[ -z "$emitted" ]]; then
+  problems+=("build-develop-prompt.sh refactor printed no report line, so there is nothing to hold $skill_md's account against")
+elif [[ -z "${footer// /}" || -z "$named" ]]; then
+  problems+=("$(unreadable_problem "no account of the leaf's report after .tdd/develop-refactor.out could be found")")
+else
+  for label in $named; do
+    grep -qxF "$label" <<<"$emitted" ||
+      problems+=("$skill_md's Refactor section says the leaf's report carries $label:, a line the built refactor prompt never asks for, so the conductor reads for a line no leaf writes")
+  done
+  for label in $emitted; do
+    grep -qxF "$label" <<<"$named" ||
+      problems+=("$skill_md's Refactor section never names $label:, a line the built refactor prompt asks the leaf for, so the leaf writes it and nothing in the procedure reads it")
+  done
 fi
 
 report "$name"

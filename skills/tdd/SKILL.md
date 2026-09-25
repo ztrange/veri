@@ -974,8 +974,9 @@ following step. The phase sub-steps are:
    (ADR-0007); it is the refactor commit that moved to the leaf. The report is in
    `.tdd/develop-refactor.out` and ends with `RESULT:` (one line per transform applied, or
    `nothing left to tidy`), `CANDIDATES:` (one line per leftover it still sees, each
-   carrying its class, or `none`) and `NEW_STEP:` (one behaviour-level criterion per line
-   that would force the general implementation of overfit code it found, or `none`).
+   carrying its class, or `none`) and `FLAGS:` (one finding per line, each carrying its
+   class — `overfit`, `uncovered-spec` or `beyond-spec` — or `none`; 3 and 4 below route
+   them).
 2. **Check what the leaf left.** The leaf produced the result; the conductor's job in this
    phase is to **check** it, because verify-refactor judges the **settled tree** and can see
    neither of the two faults below. Ask git, not the report:
