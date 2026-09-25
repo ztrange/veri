@@ -141,15 +141,6 @@ plain() {
 # re-pointed at a renamed heading while still telling a reader it searched for the old one.
 refactor_heading='#### Refactor'
 
-# refactor_lines — the lines after the first heading starting `$refactor_heading`, up to the
-# next heading of any level, as the document has them. The prefix stops at the word the phase
-# is named for, so a heading reworded from "Refactor loop" — which is what this issue stops it
-# being — is still the section found.
-refactor_lines() {
-  awk -v h="$refactor_heading" \
-    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path"
-}
-
 # flat — stdin normalised through `plain` and joined onto one line: none of the probes below
 # is about order, and a claim that wraps across two lines is still one claim. Spelled once for
 # the section and for the whole document case 11 reads, so the two cannot normalise apart.
@@ -157,9 +148,13 @@ flat() {
   plain | tr '\n' ' '
 }
 
-# refactor_section — those lines, flattened.
+# refactor_section — the lines after the first heading starting `$refactor_heading`, up to
+# the next heading of any level, flattened. The prefix stops at the word the phase is named
+# for, so a heading reworded from "Refactor loop" — which is what this issue stops it being —
+# is still the section found.
 refactor_section() {
-  refactor_lines | flat
+  awk -v h="$refactor_heading" \
+    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" | flat
 }
 section="$(refactor_section)"
 
