@@ -1142,6 +1142,22 @@ conductor_command() {
   printf '%s%s\n' "${before##*\`}" "${after%%\`*}"
 }
 
+# stage_title_recorders <script>... — replace each named script in the caller's `stage` with a
+# recorder writing to `$SEEN.<script>` the VERI_STEP it saw, then its argv one argument per
+# line. Written once because cases 8f and 8g record their callees the same way.
+stage_title_recorders() {
+  local script
+  for script in "$@"; do
+    cat > "$stage/$script.sh" <<'STUB'
+#!/bin/sh
+out="$SEEN.$(basename "$0" .sh)"
+printf '%s\n' "${VERI_STEP-<unset>}" > "$out"
+for a in "$@"; do printf '%s\n' "$a" >> "$out"; done
+STUB
+    chmod +x "$stage/$script.sh"
+  done
+}
+
 scan_conductor_titles() {
   local title="$EXPANDING_STEP"
   local md_lines hits numbered lineno line launch script cmd stage seen tree err got argv
@@ -1168,15 +1184,7 @@ scan_conductor_titles() {
     printf 'BODY\n'
   } > "$bin/gh"
   chmod +x "$bin/gh"
-  for script in "${callees[@]}"; do
-    cat > "$stage/$script.sh" <<'STUB'
-#!/bin/sh
-out="$SEEN.$(basename "$0" .sh)"
-printf '%s\n' "${VERI_STEP-<unset>}" > "$out"
-for a in "$@"; do printf '%s\n' "$a" >> "$out"; done
-STUB
-    chmod +x "$stage/$script.sh"
-  done
+  stage_title_recorders "${callees[@]}"
   while IFS= read -r numbered; do
     [[ -n "$numbered" ]] || continue
     lineno="${numbered%%:*}"
@@ -1253,15 +1261,7 @@ scan_prompt_titles() {
     return
   fi
   stage_recorder prompt-title
-  for script in build-develop-prompt add-ledger-step; do
-    cat > "$stage/$script.sh" <<'STUB'
-#!/bin/sh
-out="$SEEN.$(basename "$0" .sh)"
-: > "$out"
-for a in "$@"; do printf '%s\n' "$a" >> "$out"; done
-STUB
-    chmod +x "$stage/$script.sh"
-  done
+  stage_title_recorders build-develop-prompt add-ledger-step
   while IFS= read -r numbered; do
     [[ -n "$numbered" ]] || continue
     lineno="${numbered%%:*}"
@@ -1287,7 +1287,7 @@ STUB
       else
         mapfile -t rec < "$seen.$script"
         want='<none>'
-        for (( k = 0; k + 1 < ${#rec[@]}; k++ )); do
+        for (( k = 1; k + 1 < ${#rec[@]}; k++ )); do
           case "$script:${rec[k]}" in
             build-develop-prompt:*-spec.md|add-ledger-step:after|add-ledger-step:before|add-ledger-step:instead-of)
               want="${rec[k+1]}"; break ;;
