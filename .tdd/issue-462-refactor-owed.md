@@ -1,2 +1,4 @@
 ### workqueue.sh assign naming the same issue twice in one call exits 2 and leaves .tdd/workqueue byte-identical ⟦criterion 2⟧
 - assign's check against the existing queue could look up each held issue in the `named` table instead of looping over "$@", but only once an empty issue argument is refused first; until then it changes stderr for an empty-issue queue line
+### workqueue.sh assign given an empty issue argument exits 2 and leaves .tdd/workqueue byte-identical ⟦added⟧ ⟦criterion 2⟧
+- the `repo=…; new_repo "$repo"; seed_queue "$repo" …` setup is repeated across about 20 cases in `skills/tdd/scripts/tests/workqueue.test.sh`, and case 27 (lines 557–559) just adds one more. It is the suite's established idiom, and almost all of those cases were written in earlier cycles, so folding them into a helper would mean tidying code this cycle did not write. That puts it outside this step's bounds.
