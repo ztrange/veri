@@ -216,6 +216,29 @@ if load_section; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+name="the Stopping section ends the run with stop-requested.sh --clear, opening no PR, removing no worktree and deleting no .tdd/conductor.pid"
+problems=()
+if load_section; then
+  clear_at="$(first_line_matching 'stop-requested\.sh --clear')"
+  report_at="$(first_line_matching 'metrics\.sh <n>')"
+  if [[ -z "$clear_at" ]]; then
+    problems+=("the Stopping section never runs stop-requested.sh --clear — the request would outlive the stop it asked for and pause the resumed run at its first checkpoint")
+  elif after "$report_at" "$clear_at"; then
+    problems+=("the Stopping section clears the stop request (line $clear_at) before it reports the pause (line $report_at) — the clear is what ends the run")
+  fi
+
+  # A stopped run will be resumed: the PR, the worktree and the conductor's pid file are
+  # what the resume picks up, and liveness — the conductor exiting — is what frees the issue.
+  refuse 'gh pr (create|ready)' \
+    "the Stopping section opens or readies a PR; a stop pauses the run, it does not finish it"
+  refuse 'git worktree remove' \
+    "the Stopping section removes the worktree the resume has to run in"
+  refuse 'rm .*conductor\.pid' \
+    "the Stopping section deletes .tdd/conductor.pid; the conductor exiting is what frees the issue"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
