@@ -39,7 +39,7 @@ run_activity() {  # run_activity <events.jsonl> <conductor.pid> <timeout> -> "<p
 import json, os, sys, time
 from event_log import read_events, usage_totals
 last, attempts = None, 0
-newest, ended = None, None
+newest, end = None, {}
 events = read_events(sys.argv[1])
 dollars, tokens = usage_totals(events)
 for line in events:
@@ -50,9 +50,9 @@ for line in events:
         last = line
         attempts += 1
     elif line.get("event") in ("done", "bail", "stop"):
-        ended = line
+        end = line
     elif line.get("event") == "resume":
-        ended = None
+        end = {}
 
 
 def conductor_answers(pid_file):
@@ -65,7 +65,6 @@ def conductor_answers(pid_file):
 
 
 now = int(time.time())
-end = ended or {}
 if end.get("event") == "done":
     state = "done %s" % end.get("pr", "")
 elif end.get("event") == "stop":
