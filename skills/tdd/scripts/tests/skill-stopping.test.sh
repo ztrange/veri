@@ -449,6 +449,23 @@ if load_section 'Already satisfied'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# A `now` stop kills the live leaf, so the wait on it comes back 2 exactly as a hung leaf's
+# does. Read as killed-stuck, the stop the operator asked for would end the run as a bail. So
+# before any leaf's exit 2 is read that way, stop-requested.sh is asked, and a pending `now`
+# sends the run to Stopping rather than Bailing. The rule belongs to every leaf, so it is read
+# where every launch is spelled — *Launching a leaf* — joined, each claim inside one clause.
+name="Launching a leaf asks stop-requested.sh before reading a leaf's wait-leaf.sh exit 2 as killed-stuck, and a pending now goes to Stopping instead of Bailing"
+problems=()
+if load_section 'Launching a leaf'; then
+  section="$(joined)"
+  require 'stop-requested\.sh[^.;]*before[^.;]*killed-stuck|before[^.;]*killed-stuck[^.;]*stop-requested\.sh' \
+    "the Launching a leaf section never asks stop-requested.sh before reading a leaf's exit 2 as killed-stuck"
+  require '(^|[^a-z-])now([^a-z-]|$)[^.;]*stopping[^.;]*(instead of|rather than)[^.;]*bailing|(^|[^a-z-])now([^a-z-]|$)[^.;]*(instead of|rather than)[^.;]*bailing[^.;]*stopping' \
+    "the Launching a leaf section never sends a leaf's exit 2 with a pending now to Stopping instead of Bailing"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
