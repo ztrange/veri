@@ -5,3 +5,5 @@
 - SKILL.md repeats the exit-2 "Stopping in mode at-ledger, narrating that the request was unreadable" clause at all three ledger-commit checkpoints instead of pointing to *Launching a leaf*; each branch's own test currently requires the literal clause, so this is blocked
 ### each phase's own leaf-exit-2 branch in SKILL.md (develop-red, green, refactor, revise, verify-plan) points back to the checkpoints spelled once in *Launching a leaf* — ask `stop-requested.sh` before reading the exit 2 as `killed-stuck` ⟦added⟧ ⟦criterion 4⟧
 - ledger_exit2 joins with an inline `tr '\n' ' ' | tr -s ' '` that duplicates `joined` — code from an earlier step, out of this cycle's bounds
+### SKILL.md checkpoints the repair step a red full run appends at the Draft PR step like any other step — both checkpoints apply to it ⟦criterion 5⟧
+- skill-stopping.test.sh's new repair-step case re-runs the `ledger_branch '^### 4\. draft pr' '^### 5\.'` read that the Draft PR stop case just above it already does. Sharing that one-line read would couple two cases that each check their own ledger step, so it is not worth a transform.
