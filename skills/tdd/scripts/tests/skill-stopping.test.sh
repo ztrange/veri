@@ -122,6 +122,13 @@ joined() {
   tr '\n' ' ' <<<"$section" | tr -s ' '
 }
 
+# word <w> — a pattern matching <w> as a whole word, where a hyphen counts as part of a word,
+# so `now` is never found inside `known` and `at-leaf` never inside `at-leaf-x`. Both cases
+# that name a mode read it through this, so no two of them bound a word by different rules.
+word() {
+  printf '(^|[^a-z-])%s([^a-z-]|$)' "$1"
+}
+
 # after <line> <other> — true when both are real line numbers and <line> falls after
 # <other>. Both cases ask their ordering question through this one predicate, for the same
 # reason reset_line is written once: a second spelling of the comparison is where "before
@@ -351,7 +358,7 @@ if load_section 'Launching a leaf'; then
   require 'at-ledger[^.;]*launch' \
     "the Launching a leaf section never says mode at-ledger launches the leaf anyway"
   for mode in 'at-leaf' 'now'; do
-    require "(^|[^a-z-])$mode([^a-z-]|\$)[^.;]*launch(es)? nothing" \
+    require "$(word "$mode")[^.;]*launch(es)? nothing" \
       "the Launching a leaf section never says mode $mode launches nothing"
   done
   require 'launch(es)? nothing[^.;]*stopping' \
@@ -461,7 +468,7 @@ if load_section 'Launching a leaf'; then
   section="$(joined)"
   require 'stop-requested\.sh[^.;]*before[^.;]*killed-stuck|before[^.;]*killed-stuck[^.;]*stop-requested\.sh' \
     "the Launching a leaf section never asks stop-requested.sh before reading a leaf's exit 2 as killed-stuck"
-  require '(^|[^a-z-])now([^a-z-]|$)[^.;]*stopping[^.;]*(instead of|rather than)[^.;]*bailing|(^|[^a-z-])now([^a-z-]|$)[^.;]*(instead of|rather than)[^.;]*bailing[^.;]*stopping' \
+  require "$(word now)[^.;]*stopping[^.;]*(instead of|rather than)[^.;]*bailing|$(word now)[^.;]*(instead of|rather than)[^.;]*bailing[^.;]*stopping" \
     "the Launching a leaf section never sends a leaf's exit 2 with a pending now to Stopping instead of Bailing"
 fi
 report "$name"
