@@ -8,3 +8,4 @@
 - [x] The prompt SKILL.md builds with build-develop-prompt.sh for every developer phase, and the anchor it hands add-ledger-step.sh, carry a step title with a dollar sign, a backtick and a double quote byte-identical ⟦added⟧
 - [x] The pin probes with one title carrying all three characters at once and goes red when a launch line is put back to the hand-typed double-quoted form of #431 ⟦criterion 2⟧
 - [x] The #431 guard in skill-leaf-launch.test.sh still refuses a single-quoted step title and its exemption table still holds over the rewritten document ⟦criterion 3⟧
+- [ ] Repair: make test is green with both the step-8 #431 guard pin in skill-leaf-launch.test.sh and verifier-launch-guard.test.sh's planted single-quoted title, which today fails the pin because the plant leaves no double-quoted fenced line carrying the step title ⟦criterion 3⟧
