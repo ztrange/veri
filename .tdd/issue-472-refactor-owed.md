@@ -1,2 +1,4 @@
 ### With VERI_AWAKE_CLOCK unset, supervise.sh still measures awake time on a real clock that does not advance while the machine is suspended, on macOS and on Linux, so a run nobody configured does not count a suspend as leaf silence ⟦added⟧ ⟦criterion 1⟧
 - `seen_at=$(( ${seen_at:-0} + asleep ))` in `supervise.sh` also runs when the heartbeat is off (`heartbeat_watched=0`), where nothing reads it. Leave it until the VERI_TIMEOUT suspend step decides whether the hard timeout uses the same `asleep` total
+### A leaf whose run spans a simulated suspend that would put wall time past VERI_TIMEOUT, while its awake time stays under it, is not killed for the timeout and finishes with its own exit code ⟦criterion 1⟧
+- merge the `leaf-suspended` and `leaf-suspended-timeout` stubs, which differ only in reading VERI_HEARTBEAT or VERI_TIMEOUT; this needs a new stub parameter that no test asks for, so I left it
