@@ -1109,9 +1109,7 @@ following step. The phase sub-steps are:
      `next-unchecked.sh` never finds them there, so the run does not plan what it recorded.
      Narrate it as the owed steps it is and carry on to the clear below — the step verified
      PASS and the values are recorded; the plan simply did not grow, which is nothing to
-     stop a run for. The leaf was forbidden to
-     generalize the overfit code it found; this is where the step that forces it is owed to
-     somebody. That grown ledger rides the same commit as the clear.
+     stop a run for. That grown ledger rides the same commit as the clear.
      A clear left uncommitted is not a clear, and a step inserted into a ledger nothing
      commits is a step the next run never sees: resume reads the **committed** ledger, so
      until that commit exists the step still says pending and the plan is still the one the
