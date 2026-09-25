@@ -129,6 +129,14 @@ word() {
   printf '(^|[^a-z-])%s([^a-z-]|$)' "$1"
 }
 
+# either_order <a> <b> — a pattern matching <a> and <b> inside one clause (no `.` or `;`
+# between them), in either order, so a claim reads the same whichever way the sentence puts
+# it. Every two-part claim below is read through this, so no two of them bound a clause or
+# spell the swap by different rules.
+either_order() {
+  printf '%s[^.;]*%s|%s[^.;]*%s' "$1" "$2" "$2" "$1"
+}
+
 # after <line> <other> — true when both are real line numbers and <line> falls after
 # <other>. Both cases ask their ordering question through this one predicate, for the same
 # reason reset_line is written once: a second spelling of the comparison is where "before
@@ -170,7 +178,7 @@ ledger_checkpoint() {
     problems+=("$what runs stop-requested.sh (line $stop_at) before its ledger commit lands (line ${anchor_at:-none})")
   fi
   section="$(joined)"
-  require '(any|every|whatever)[^.;]*mode[^.;]*stopping|stopping[^.;]*(any|every|whatever)[^.;]*mode' \
+  require "$(either_order '(any|every|whatever)[^.;]*mode' 'stopping')" \
     "$what never says any mode stop-requested.sh prints goes to Stopping there"
 }
 
@@ -351,7 +359,7 @@ if load_section 'Launching a leaf'; then
   section="$(joined)"
   require 'stop-requested\.sh' \
     "the Launching a leaf section never runs stop-requested.sh — no launch asks whether a stop was requested"
-  require 'before[^.;]*launch[^.;]*stop-requested\.sh|stop-requested\.sh[^.;]*before[^.;]*launch' \
+  require "$(either_order 'before[^.;]*launch' 'stop-requested\.sh')" \
     "the Launching a leaf section never says stop-requested.sh runs before a leaf is launched"
   require 'exit 3[^.;]*launch' \
     "the Launching a leaf section never says stop-requested.sh's exit 3 launches as normal"
@@ -406,7 +414,7 @@ report "$name"
 require_unreadable_at_ledger() {
   require 'exit 2[^.;]*at-ledger' \
     "$1 never says stop-requested.sh's exit 2 is a stop in mode at-ledger"
-  require 'exit 2[^.;]*unreadable|unreadable[^.;]*exit 2' \
+  require "$(either_order 'exit 2' 'unreadable')" \
     "$1 never says to narrate that the stop request was unreadable on exit 2"
 }
 
@@ -466,7 +474,7 @@ name="Launching a leaf asks stop-requested.sh before reading a leaf's wait-leaf.
 problems=()
 if load_section 'Launching a leaf'; then
   section="$(joined)"
-  require 'stop-requested\.sh[^.;]*before[^.;]*killed-stuck|before[^.;]*killed-stuck[^.;]*stop-requested\.sh' \
+  require "$(either_order 'stop-requested\.sh' 'before[^.;]*killed-stuck')" \
     "the Launching a leaf section never asks stop-requested.sh before reading a leaf's exit 2 as killed-stuck"
   require "$(word now)[^.;]*stopping[^.;]*(instead of|rather than)[^.;]*bailing|$(word now)[^.;]*(instead of|rather than)[^.;]*bailing[^.;]*stopping" \
     "the Launching a leaf section never sends a leaf's exit 2 with a pending now to Stopping instead of Bailing"
@@ -525,11 +533,11 @@ if load_section 'Bailing'; then
   pending="$(word pending)" stop="$(word stop)"
   require 'stop-requested\.sh' \
     "the Bailing section never asks stop-requested.sh — it cannot say whether a stop was pending"
-  require "revise_budget[^.;]*$stop[^.;]*$pending|$stop[^.;]*$pending[^.;]*revise_budget" \
+  require "$(either_order revise_budget "$stop[^.;]*$pending")" \
     "the Bailing section never says a REJECT exhausting REVISE_BUDGET with a stop pending still bails"
-  require "killed-stuck[^.;]*no[^.;]*$(word now)[^.;]*$pending|no[^.;]*$(word now)[^.;]*$pending[^.;]*killed-stuck" \
+  require "$(either_order killed-stuck "no[^.;]*$(word now)[^.;]*$pending")" \
     "the Bailing section never says a killed-stuck leaf with no now pending still bails"
-  require "comment[^.;]*$stop[^.;]*$pending|$stop[^.;]*$pending[^.;]*comment" \
+  require "$(either_order comment "$stop[^.;]*$pending")" \
     "the Bailing section's comment never says a stop was pending when one was"
 fi
 report "$name"
