@@ -7,4 +7,4 @@
 - [x] The conductor's own title-carrying command lines in SKILL.md, the event.sh marks and preserve-attempt.sh calls and the title fragments handed to tick-ledger.sh, clear-refactor-pending.sh and tick-issue-criterion.sh, pass a title with a dollar sign, a backtick and a double quote through byte-identical
 - [x] The prompt SKILL.md builds with build-develop-prompt.sh for every developer phase, and the anchor it hands add-ledger-step.sh, carry a step title with a dollar sign, a backtick and a double quote byte-identical ⟦added⟧
 - [x] The pin probes with one title carrying all three characters at once and goes red when a launch line is put back to the hand-typed double-quoted form of #431 ⟦criterion 2⟧
-- [ ] The #431 guard in skill-leaf-launch.test.sh still refuses a single-quoted step title and its exemption table still holds over the rewritten document ⟦criterion 3⟧
+- [x] The #431 guard in skill-leaf-launch.test.sh still refuses a single-quoted step title and its exemption table still holds over the rewritten document ⟦criterion 3⟧
