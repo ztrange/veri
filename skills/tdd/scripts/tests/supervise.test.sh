@@ -1829,6 +1829,55 @@ nest_err="$(cat "$nest_work/err" "$nest_work/inner-err" 2>/dev/null)"
   && [[ "$nest_err" != *refusing* ]]; } && ok \
   || no "#471: a verify-green launch made from inside a live verdict-green supervision is not refused (wrapper code=$nest_code want 0; inner code=$nest_inner want 0; ran='$nest_ran' want 'inner '; stderr='$nest_err' want no refusal)"
 
+# 43. time the machine spends SUSPENDED is not leaf silence (issue #472). A laptop asleep for an
+#     hour read as a leaf silent for an hour, because the heartbeat was measured on the wall
+#     clock: the leaf was killed as stuck and its retries spent asleep too. The clock here
+#     simulates a suspend with no real sleep: `clock-suspend <s>` moves the wall clock (`date
+#     +%s`, and the offset the `stat` stub adds) by <s> while the awake clock does not move,
+#     and `clock-jump`, unchanged, is awake time — both clocks move. The awake clock is the
+#     executable VERI_AWAKE_CLOCK names, which prints whole awake seconds: this stub answers
+#     real time plus every jump minus every suspend. The leaf writes a line, is suspended one
+#     second past its 2 s window with nothing written, waits for the supervisor to read the
+#     clock twice across that gap, then writes again and exits 3 — so the supervisor must
+#     report the leaf's own failure (exit 1, 3 in .rc), never killed-stuck (exit 2).
+cat > "$stub/clock-suspend" <<'C'
+#!/bin/sh
+clock-jump "$1" && echo "$1" >> .test-suspended
+C
+cat > "$stub/awake-clock" <<'C'
+#!/bin/sh
+exec python3 -c '
+import time
+offset = suspended = 0
+try:
+    offset = int(open(".test-clock").read().split()[-1])
+except (OSError, IndexError):
+    pass
+try:
+    suspended = sum(int(x) for x in open(".test-suspended").read().split())
+except OSError:
+    pass
+print(int(time.time()) + offset - suspended)'
+C
+cat > "$stub/leaf-suspended" <<'L'
+#!/bin/sh
+: > .test-clock-reads
+echo "leaf: starting"
+clock-suspend "$(( ${VERI_HEARTBEAT:-999} + 1 ))"
+await-poll; await-poll
+echo "leaf: awake again"; exit 3
+L
+chmod +x "$stub/clock-suspend" "$stub/awake-clock" "$stub/leaf-suspended"
+rm -f "$work/.test-clock" "$work/.test-clock-reads" "$work/.test-suspended"
+out="$( cd "$work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=2 VERI_TIMEOUT=30 VERI_POLL=0.02 \
+          VERI_KILL_POLL=0.01 VERI_AWAKE_CLOCK="$stub/awake-clock" \
+          "$SUP" suspended "$stub/leaf-suspended" 2>"$work/err" )"
+code=$?
+susp_rc="$(cat "$work/.tdd/suspended.rc" 2>/dev/null || echo '<missing>')"
+rm -f "$work/.test-suspended"
+{ [[ "$code" == 1 ]] && [[ "$susp_rc" == 3 ]] && [[ "$out" == *'awake again'* ]]; } && ok \
+  || no "#472: a leaf silent only across a 3s suspend against a 2s heartbeat is not killed and finishes with its own exit code (code=$code want 1, rc=$susp_rc want 3, err=$(cat "$work/err"))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
