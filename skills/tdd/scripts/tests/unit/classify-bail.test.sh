@@ -75,6 +75,24 @@ check "untestable-criterion is process" untestable-criterion 0 process
 #    growth budget, so the step cannot go on — the methodology speaking, not the plumbing.
 check "step-too-big is process" step-too-big 0 process
 
+# 8. a stop is not a bail (issue #390): `stopped`, `stop` and the three stop modes are unknown
+#    causes, exit 2 with nothing on stdout. A stop has no system/process category, and giving
+#    it one would make every bail label in a run log ambiguous — so this pins the script as
+#    unchanged. One case: the five names are one contract.
+stop_name="stop words are unknown causes, exit 2"
+stop_bad=""
+for cause in stopped stop at-ledger at-leaf now; do
+  out="$("$CLASSIFY" "$cause" 2>/dev/null)" && code=0 || code=$?
+  [[ "$code" == 2 && -z "$out" ]] || stop_bad+="    $cause: want exit 2 and no stdout, got exit $code, stdout '$out'"$'\n'
+done
+if [[ -z "$stop_bad" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $stop_name"
+  printf '%s' "$stop_bad"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
