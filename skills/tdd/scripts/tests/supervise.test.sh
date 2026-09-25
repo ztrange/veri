@@ -1679,6 +1679,34 @@ fi
   && [[ "$owner_err" == *revise-green-1* ]] && [[ "$owner_err" =~ (^|[^0-9])$owner_sup([^0-9]|$) ]]; } && ok \
   || no "#471: a launch under one name is refused while a leaf supervised under another name is alive in the same worktree (first leaf pid=${owner_leaf:-<never started>}; code=$owner_code want 2, second leaf ran=$owner_second want no, stderr='$owner_err' want it to name revise-green-1 and pid $owner_sup)"
 
+# 38. the same refusal when the live leaf and the new launch share a NAME (issue #471): a
+#     second `revise-green-1` started while the first is still alive in the worktree. The
+#     name is no licence — `.tdd/<name>.pid` is the one trace the two would share, and a
+#     second supervision under that name would overwrite it and start a second writer on the
+#     same tree. So: exit 2, no second leaf, stderr naming the live leaf and its pid. Case
+#     37's shape and stubs throughout, with its cleanup; a run directory of its own.
+same_work="$work/live-owner-same-name"
+mkdir -p "$same_work"
+( cd "$same_work" && exec env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-term-sleep" ) >/dev/null 2>&1 &
+same_sup=$!
+for _ in $(seq 1 50); do [[ -s "$same_work/leaf-pid" ]] && break; sleep 0.1; done
+same_leaf="$(tr -d '[:space:]' < "$same_work/leaf-pid" 2>/dev/null)"
+( cd "$same_work" && env VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.02 \
+    VERI_KILL_POLL=0.01 "$SUP" revise-green-1 "$stub/leaf-second" ) >/dev/null 2>"$same_work/err"
+same_code=$?
+same_second="no"; [[ -e "$same_work/second-ran" ]] && same_second="yes"
+same_err="$(cat "$same_work/err")"
+kill -TERM "$same_sup" 2>/dev/null
+wait "$same_sup"
+if [[ -n "$same_leaf" ]]; then
+  for _ in $(seq 1 20); do kill -0 "$same_leaf" 2>/dev/null || break; sleep 0.1; done
+  kill -0 "$same_leaf" 2>/dev/null && kill -KILL "$same_leaf" 2>/dev/null
+fi
+{ [[ -n "$same_leaf" ]] && [[ "$same_code" == 2 ]] && [[ "$same_second" == no ]] \
+  && [[ "$same_err" == *revise-green-1* ]] && [[ "$same_err" =~ (^|[^0-9])$same_sup([^0-9]|$) ]]; } && ok \
+  || no "#471: a launch is refused while a leaf supervised under the same name is alive in the same worktree (first leaf pid=${same_leaf:-<never started>}; code=$same_code want 2, second leaf ran=$same_second want no, stderr='$same_err' want it to name revise-green-1 and pid $same_sup)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
