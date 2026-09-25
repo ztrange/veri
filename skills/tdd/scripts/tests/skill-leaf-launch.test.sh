@@ -758,7 +758,8 @@ title_guard() {
 name="the #431 guard still refuses a single-quoted step title and its exemption table still holds over the rewritten $skill_md (#437)"
 problems=()
 
-planted_line="$(step_lines | sed -n '1p' | cut -f1)"
+title_linenos="$(step_lines | cut -f1)"
+planted_line="$(sed -n '1p' <<< "$title_linenos")"
 if [[ -z "$planted_line" ]]; then
   unreadable "fenced line carrying $step_ph" "where the #431 guard would meet a single-quoted title"
 else
@@ -772,7 +773,6 @@ else
     problems+=("an EXEMPT entry for $skill_md:$planted_line did not answer the report: $answered")
   rm -f "$planted_doc"
 fi
-title_linenos="$(step_lines | cut -f1)"
 for key in "${!EXEMPT[@]}"; do
   grep -qxF -- "${key##*:}" <<< "$title_linenos" ||
     problems+=("EXEMPT[$key] names a line that no fenced command carrying $step_ph is on in the rewritten document")
