@@ -154,6 +154,35 @@ run_cost --run
 expect 0 "0.50"
 verdict "events that are not usage events create no step and add no cost in any of the three calls"
 
+# 8. a call that cannot be answered — no argument, an unknown option, `--run` or `--steps`
+#    with a step text besides, and a missing .tdd/events.jsonl — exits 2 with a diagnostic
+#    on stderr and nothing on stdout, so a conductor capturing stdout never reads a
+#    diagnostic as a figure. The log holds a `usage` event, so `--run extra` or `--steps
+#    extra` read as if the extra word were not there would print a figure and exit 0. The
+#    diagnostic is the script's own, opening `step-cost.sh:`, so a missing log is refused by
+#    the script and not left to whatever the tool reading it happens to print.
+# refused <call> — add to `problems` unless the run just made exited 2, silent on stdout,
+# with a diagnostic of the script's own on stderr; <call> names it in the line.
+refused() {
+  expect 2 ""
+  [[ "$err" == step-cost.sh:* ]] || problems+="    $1: stderr '$err' is not step-cost.sh's own diagnostic"$'\n'
+}
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
+EOF
+run_cost
+refused "no argument"
+run_cost --bogus
+refused "--bogus"
+run_cost --run "step one"
+refused "--run with a step text"
+run_cost --steps "step one"
+refused "--steps with a step text"
+rm "$work/.tdd/events.jsonl"
+run_cost "step one"
+refused "missing .tdd/events.jsonl"
+verdict "no argument, an unknown option, --run or --steps with a step text, and a missing log each exit 2 with stderr only"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
