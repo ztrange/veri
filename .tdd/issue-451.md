@@ -1,6 +1,6 @@
 # Plan for #451 — SKILL.md's pre-green-commit cost checkpoints, and the three-way branch on a crossing
 
-- [x] SKILL.md's preflight calls `step-budget.sh` beside `refactor-budget.sh 0`, and its exit 2 is a preflight-class stop before any leaf is launched ⟦criterion 1⟧ ⟂ refactor pending
+- [x] SKILL.md's preflight calls `step-budget.sh` beside `refactor-budget.sh 0`, and its exit 2 is a preflight-class stop before any leaf is launched ⟦criterion 1⟧
 - [ ] SKILL.md places a `step-cost.sh` cost check against the step budget after develop-red, after each verify-red, after each revise attempt, after develop-green and after each verify-green ⟦criterion 2⟧
 - [ ] SKILL.md places no cost check after the step's green commit — not in the refactor loop, not after verify-refactor — and says why ⟦criterion 2⟧
 - [ ] SKILL.md runs each cost check only once the leaf has exited and its `usage` event has been harvested
