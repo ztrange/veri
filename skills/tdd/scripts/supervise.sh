@@ -118,8 +118,12 @@ pidfile=".tdd/$name.pid"
 now() { date +%s; }
 
 # Whole seconds of time the machine spent awake, from the executable VERI_AWAKE_CLOCK names —
-# empty when it names none, and the watchdog then measures on `now` alone (issue #472).
-awake_clock="${VERI_AWAKE_CLOCK:-}"
+# or, when it names none, from `awake_seconds` below (issue #472).
+awake_clock="${VERI_AWAKE_CLOCK:-awake_seconds}"
+
+# Python's time.monotonic() is mach_absolute_time() on macOS and CLOCK_MONOTONIC on Linux,
+# and neither advances while the machine is suspended.
+awake_seconds() { python3 -c 'import time; print(int(time.monotonic()))'; }
 
 # Seconds-since-epoch of $1's last modification — the heartbeat sensor. There is no portable
 # `stat`: GNU/coreutils spells it `stat -c %Y`, BSD/macOS spells it `stat -f %m`. The two
@@ -243,6 +247,12 @@ attempt_once() {
   : > "$log"
   rm -f "$rcfile"
 
+  # Both clocks are read before the leaf starts, one straight after the other: a leaf that
+  # moves time before the second reading would otherwise land between them, and the awake
+  # time it moved would read as time asleep (issue #472).
+  t0="$(now)"
+  prev_t="$t0" prev_a="$("$awake_clock")"
+
   # Launch the leaf in its own process group (job-control monitor mode) so we can kill the
   # whole tree — including any grandchild like `sleep` — in one signal. A trailing rc file
   # marks natural completion without blocking the watch loop on `wait`.
@@ -251,7 +261,6 @@ attempt_once() {
   pid=$!
   set +m
 
-  t0="$(now)"
   status="" reason="" rc=0
   # The heartbeat's two readings must come off ONE clock. `now` and a file's mtime are two
   # (issue #300): `date +%s` counts whole seconds of this machine's wall clock, while the log's
@@ -269,8 +278,6 @@ attempt_once() {
   # slid too, unclamped: the two clocks are read a moment apart, so a whole-second tick can land
   # between them and one poll's gap is +1 and the next -1; summed, the gaps telescope to exactly
   # the wall time the awake clock did not see, where clamping each at zero would keep every +1.
-  prev_t="$t0"
-  [[ -z "$awake_clock" ]] || prev_a="$("$awake_clock")"
 
   while :; do
     if [[ -f "$rcfile" ]]; then
@@ -279,12 +286,10 @@ attempt_once() {
       break
     fi
     t="$(now)"
-    if [[ -n "$awake_clock" ]]; then
-      a="$("$awake_clock")"
-      asleep=$(( (t - prev_t) - (a - prev_a) ))
-      seen_at=$(( ${seen_at:-0} + asleep ))
-      prev_t="$t" prev_a="$a"
-    fi
+    a="$("$awake_clock")"
+    asleep=$(( (t - prev_t) - (a - prev_a) ))
+    seen_at=$(( ${seen_at:-0} + asleep ))
+    prev_t="$t" prev_a="$a"
     if (( t - t0 >= timeout )); then
       status="killed-stuck"; reason="hard timeout ${timeout}s exceeded"; kill_tree; break
     fi
