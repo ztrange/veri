@@ -36,26 +36,21 @@ section_name="Testing idiom"
 
 pass=0 fail=0
 
-# report and plain: the helpers the *-recorded.test.sh suites share (issue #225). This
-# suite's `says` asks a different question and stays below, defined after the source.
+# report, plain and records: the helpers the *-recorded.test.sh suites share (issue #225).
+# This suite's `says` asks a different question and stays below, defined after the source.
 # shellcheck source=record-helpers.sh
 source "$HERE/record-helpers.sh"
 
 # section_records — the "Testing idiom" section of CLAUDE.md, from its `## ` heading to the
-# next one, one line per paragraph or bullet, normalised through `plain`. A fact is asked of
-# one record so two sentences sections apart that share a word do not read as a statement.
-# Read by section rather than whole-file: the step asks that the rule sit where the other
-# rules about where a suite goes are written.
+# next one, split into records by the shared `records`. A fact is asked of one record so two
+# sentences sections apart that share a word do not read as a statement. Read by section
+# rather than whole-file: the step asks that the rule sit where the other rules about where
+# a suite goes are written.
 section_records() {
   awk -v want="## $section_name" '
     $0 == want { inside = 1; next }
     inside && /^## / { exit }
-    !inside { next }
-    /^[-*] / { if (rec != "") print rec; rec = $0; next }
-    /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
-    rec == "" { rec = $0; next }
-    { rec = rec " " $0 }
-    END { if (rec != "") print rec }' "$claude_path" | plain
+    inside' "$claude_path" | records
 }
 
 passage_text=""
