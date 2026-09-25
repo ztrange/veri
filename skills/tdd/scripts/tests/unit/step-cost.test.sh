@@ -113,6 +113,25 @@ run_cost --steps
 expect 3 ""
 verdict "--steps prints one dollars-and-leaves line per step in first-mention order, exit 0; none is exit 3"
 
+# 6. a `usage` event whose `total_cost_usd` is absent, or empty, contributes zero and still
+#    counts as a leaf, rather than aborting the read — one malformed leaf record must not
+#    blind the budget. "step one" holds one well-formed event, one with no cost key and one
+#    with an empty cost, so it is 0.30 over three leaves; the well-formed event of "step
+#    two" comes after both malformed ones, so a read that stopped at them would miss it.
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "448", "actor": "developer", "phase": "red", "step": "step one", "event": "usage", "total_cost_usd": "0.30"}
+{"ts": 2, "issue": "448", "actor": "verifier", "phase": "red", "step": "step one", "event": "usage"}
+{"ts": 3, "issue": "448", "actor": "developer", "phase": "green", "step": "step one", "event": "usage", "total_cost_usd": ""}
+{"ts": 4, "issue": "448", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}
+EOF
+run_cost --steps
+expect 0 $'0.30 3\n1.00 1'
+run_cost "step one"
+expect 0 "0.30"
+run_cost --run
+expect 0 "1.30"
+verdict "a usage event with an absent or empty total_cost_usd contributes zero and still counts as a leaf"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
