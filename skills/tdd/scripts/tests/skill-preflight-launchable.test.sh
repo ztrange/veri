@@ -71,6 +71,7 @@ detector="detect-test-command.sh"
 growth='VERI_STEP_GROWTH'
 step_budget='step-budget.sh'
 refactor_budget='refactor-budget.sh 0'
+refusal='exits? 2'
 preflight='### 0. Preflight'
 
 pass=0 fail=0
@@ -189,7 +190,7 @@ if preflight_or_problem "a $growth check"; then
   growth_at="$(call_at "$growth")"
   if [[ -z "$growth_at" ]]; then
     problems+=("$skill_md's '$preflight' section never names $growth, so a run whose plan-growth budget cannot be read starts anyway and only finds out when a leaf first tries to grow the plan")
-  elif ! grep -qiE 'exits? 2' < <(item_around "$growth_at"); then
+  elif ! grep -qiE "$refusal" < <(item_around "$growth_at"); then
     problems+=("$skill_md:$growth_at names $growth in a preflight item that spells no exit 2, so the document mentions the budget without refusing a run that cannot read it — the way item 5 refuses a bad VERI_REFACTOR_BUDGET")
   fi
 fi
@@ -209,7 +210,7 @@ if preflight_or_problem "a $step_budget check"; then
   else
     grep -F -- "$refactor_budget" > /dev/null < <(item_around "$sb_at") ||
       problems+=("$skill_md:$sb_at calls $step_budget outside the preflight item that runs $refactor_budget")
-    grep -iE 'exits? 2' > /dev/null < <(paragraph_around "$sb_at") ||
+    grep -iE "$refusal" > /dev/null < <(paragraph_around "$sb_at") ||
       problems+=("$skill_md:$sb_at calls $step_budget in a paragraph that spells no exit 2, so nothing says a budget it cannot read stops the run before a leaf launches")
   fi
 fi
