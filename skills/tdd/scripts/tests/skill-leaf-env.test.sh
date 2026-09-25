@@ -1318,6 +1318,40 @@ check_prompt_title() {
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every build-develop-prompt.sh prompt and add-ledger-step.sh anchor the conductor types from $skill_md, byte-identical (#437)" \
   scan_prompt_titles
 
+# 8h. The pin itself, watched going red (issue #437's second criterion). Cases 8b to 8g are
+#    green over the document as it stands, and a case that is only ever seen green has not
+#    shown it can tell a fixed line from the broken one. So this case runs 8b's probe twice
+#    with the one title that carries all three characters at once: over the document's own
+#    develop-red line, which must answer clean, and over a copy of the document in which
+#    that one line is put back to the hand-typed `VERI_STEP="<STEP>"` of #431 — which must
+#    draw exactly one complaint, and that complaint the mangled title the leaf saw. The first
+#    half is what ties the case to the document: a line that regressed to #431's form is red
+#    here as well as in 8b, rather than being reverted twice and compared with itself.
+#
+# scan_reverted_step_title — the case's body, in the other cases' shape. `md` is made its own
+# local, so the probe it calls reads the reverted copy through the name it always reads.
+scan_reverted_step_title() {
+  local md="$md" reverted="$WORK/reverted-431-SKILL.md" hit n
+  local -a doc
+  scan_step_title "$EXPANDING_STEP" reverted-431-as-is
+  if (( ${#problems[@]} )); then
+    problems=("the document's own develop-red line already fails the probe, so its #431 revert shows nothing: ${problems[*]}")
+    return
+  fi
+  hit="$(head -1 < <(grep -nE '\$S/supervise\.sh develop-red \$S/run-leaf\.sh' "$md"))"
+  n="${hit%%:*}"
+  mapfile -t doc < "$md"
+  doc[n - 1]="${doc[n - 1]/VERI_STEP=* \$S\/detach-leaf.sh/VERI_STEP=\"<STEP>\" \$S/detach-leaf.sh}"
+  printf '%s\n' "${doc[@]}" > "$reverted"
+  md="$reverted"
+  scan_step_title "$EXPANDING_STEP" reverted-431
+  only_complaint_about "whose leaf saw VERI_STEP=" \
+    "the develop-red line put back to #431's hand-typed VERI_STEP=\"<STEP>\""
+}
+
+run_case "the step-title probe, with one title carrying a dollar sign, a backtick and a double quote, goes red on a launch line put back to #431's hand-typed double quotes (#437)" \
+  scan_reverted_step_title
+
 # 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
 #    being gone and the completion file existing are two events, and nothing orders them: a
 #    detached launch returns at once, the pid its tree records can die while the supervisor
