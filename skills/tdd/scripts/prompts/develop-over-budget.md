@@ -37,3 +37,6 @@ SPLIT: <a behaviour-level criterion, one per line, in the order they must be bui
 If it needs a decision this run has no authority to make, one line naming that decision:
 
 NEEDS_USER: <the decision, stated so the user can answer it>
+
+If it is neither — this step is one behaviour that is simply expensive — print no SPLIT: line
+and no NEEDS_USER: line.
