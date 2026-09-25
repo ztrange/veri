@@ -424,6 +424,10 @@ with open(path) as f:
         ts = line.get("ts")
         if opening is None or event == "resume":
             opening = ts
+        # A `stop` is not terminal the way `done` and `bail` are: the run it paused may be
+        # resumed, and a resumed run has not ended until a mark after its `resume` says so.
+        if event == "resume" and ending is not None and ending.get("event") == "stop":
+            ending = None
         if event in ("done", "bail", "stop"):
             ending = line
         # The two brackets of a step, read before anything classifies the line below, since
