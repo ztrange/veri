@@ -110,6 +110,14 @@ run_budget VERI_RUN_BUDGET=0 --
 expect 0 $'12\n0'
 verdict "a budget of 0 is accepted for either variable and printed back"
 
+# 8. any argument at all, here a number the way `refactor-budget.sh 0` is called: exit 2 — the
+#    script answers one question and has nothing to select.
+run_budget -- 0
+if [[ "$code" != 2 ]]; then
+  problems+="    want exit 2, got exit $code and stdout '$out' (stderr '$err')"$'\n'
+fi
+verdict "any argument exits 2"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
