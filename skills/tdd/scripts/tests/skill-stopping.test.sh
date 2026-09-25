@@ -264,7 +264,14 @@ else
   for mode in 'at-ledger' 'at-leaf' 'now'; do
     require "$mode" "the stop-requested.sh entry never names the mode $mode it can print"
   done
-  require 'stdout' "the stop-requested.sh entry never says the mode is printed on stdout"
+  # The mode's channel is asked of the sentence that names exit 0, not of the whole entry:
+  # the entry also says "nothing on stdout" of exit 3 and exit 2, and a probe over the
+  # whole entry would still find `stdout` there after exit 0 stopped naming it. Lines are
+  # joined and split at ". ", so a sentence wrapped over two lines is still one sentence.
+  joined="$(tr '\n' ' ' <<<"$section" | tr -s ' ')"
+  exit0_sentence="$(grep -E 'exit 0([^0-9]|$)' <<<"${joined//. /.$'\n'}")"
+  grep -qE 'printed on stdout' <<<"$exit0_sentence" \
+    || problems+=("the stop-requested.sh entry's exit 0 sentence never says the mode is printed on stdout")
   require '--clear' "the stop-requested.sh entry never names --clear, the Stopping section's second call"
   for code in 0 2 3; do
     require "exits? ([0-9]+[ ,/]+(or |and )?)*$code([^0-9]|\$)" "the stop-requested.sh entry never names exit $code"
