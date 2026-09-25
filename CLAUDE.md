@@ -2,7 +2,7 @@
 
 A Claude Code skill suite that solves one GitHub issue under strict TDD. The whole
 product is `skills/tdd/`: a procedure in English (`SKILL.md`) that Claude
-follows, plus fifty-five bash scripts it calls — fifty-four, strictly: `invisible-work.sh`
+follows, plus fifty-six bash scripts it calls — fifty-five, strictly: `invisible-work.sh`
 is counted with them but the procedure never calls it; it is a maintenance utility a human or
 a loop runs to report a branch no PR was opened for, or one not on `origin` (#197). Read
 `CONTEXT.md` for the glossary — the terms there (conductor, leaf, supervisor, verdict, ledger, bail) are used precisely everywhere.
@@ -171,7 +171,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — 113 files for fifty-five scripts, plus ten suites under `unit/` (five moved there, three written for them, and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red), all run by `make test`.
+`skills/tdd/scripts/tests/` — 113 files for fifty-six scripts, plus eleven suites under `unit/` (five moved there, three written for them, one written with the script it tests — `step-cost.test.sh` — and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red), all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on
