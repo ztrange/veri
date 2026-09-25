@@ -392,6 +392,17 @@ if load_section 'Already satisfied'; then
 fi
 report "$name"
 
+# require_unreadable_at_ledger <what> — the joined text in `section` answers stop-requested.sh's
+# exit 2 as a stop in mode at-ledger and narrates that the request was unreadable, each claim
+# kept inside one clause. Every checkpoint owes the same answer, so it is asked once here: a
+# copy that drifted would hold one checkpoint to a looser reading than another.
+require_unreadable_at_ledger() {
+  require 'exit 2[^.;]*at-ledger' \
+    "$1 never says stop-requested.sh's exit 2 is a stop in mode at-ledger"
+  require 'exit 2[^.;]*unreadable|unreadable[^.;]*exit 2' \
+    "$1 never says to narrate that the stop request was unreadable on exit 2"
+}
+
 # ---------------------------------------------------------------------------
 # An unreadable request is still a request: `.tdd/stop` exists, so somebody meant to stop the
 # run and only the urgency is in doubt, and the mode that cannot be wrong is the one that
@@ -401,10 +412,7 @@ name="Launching a leaf treats stop-requested.sh exit 2 as a stop in mode at-ledg
 problems=()
 if load_section 'Launching a leaf'; then
   section="$(joined)"
-  require 'exit 2[^.;]*at-ledger' \
-    "the Launching a leaf section never says stop-requested.sh's exit 2 is a stop in mode at-ledger"
-  require 'exit 2[^.;]*unreadable|unreadable[^.;]*exit 2' \
-    "the Launching a leaf section never says to narrate that the stop request was unreadable on exit 2"
+  require_unreadable_at_ledger "the Launching a leaf section"
 fi
 report "$name"
 
@@ -425,10 +433,7 @@ ledger_exit2() {
     return
   fi
   section="${text#*stop-requested.sh}"
-  require 'exit 2[^.;]*at-ledger' \
-    "$what never says stop-requested.sh's exit 2 is a stop in mode at-ledger"
-  require 'exit 2[^.;]*unreadable|unreadable[^.;]*exit 2' \
-    "$what never says to narrate that the stop request was unreadable on exit 2"
+  require_unreadable_at_ledger "$what"
 }
 if load_section 'Procedure'; then
   procedure="$section"
