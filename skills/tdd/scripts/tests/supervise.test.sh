@@ -1285,14 +1285,20 @@ nores_cause="${nores_status#supervise\[verify-red\]: killed-stuck — }"
 #     The regexes are deliberately loose on wording and tight on the two claims, each bounded
 #     so it cannot span the whole header and match two unrelated sentences as one.
 header_text="$(awk 'NR > 1 { if ($0 !~ /^#/) exit; sub(/^# ?/, ""); print }' "$SUP" | tr '\n' ' ')"
-header_misses=""
-while IFS='|' read -r where regex; do
-  [[ -n "$where" ]] || continue
-  grep -qE "$regex" <<< "$header_text" || header_misses="$header_misses $where"
-done <<'CLAIMS'
+# header_unstated — read `<where>|<regex>` claims on stdin and print " <where>" for each one
+# the header does not state; case 49 checks its own claims the same way.
+header_unstated() {
+  local where regex
+  while IFS='|' read -r where regex; do
+    [[ -n "$where" ]] || continue
+    grep -qE "$regex" <<< "$header_text" || printf ' %s' "$where"
+  done
+}
+header_misses="$(header_unstated <<'CLAIMS'
 stream-finishes-before-rc|(finish|complete)[a-z]* .{0,120}before .{0,80}(rc file|rcfile|\.rc)
 kill-is-not-proof|kill.{0,160}not proof
 CLAIMS
+)"
 
 [[ -z "$header_misses" ]] && ok \
   || no "supervise.sh's header records that a leaf's stream can finish before its rc file is written, so a kill is not proof that no answer was obtained (unstated:$header_misses)"
@@ -2004,16 +2010,13 @@ woke_with_own_exit asleep-an-hour "#472: a leaf asleep an hour across a simulate
 #     does not answer for it, and each claim is bounded so two unrelated sentences cannot match
 #     as one. Loose on wording, tight on the four claims: the clock is named, each platform is
 #     named beside suspend/sleep, and the clock is said to stop advancing across it.
-clock_misses=""
-while IFS='|' read -r where regex; do
-  [[ -n "$where" ]] || continue
-  grep -qE "$regex" <<< "$header_text" || clock_misses="$clock_misses $where"
-done <<'CLAIMS'
+clock_misses="$(header_unstated <<'CLAIMS'
 clock-source|monotonic
 macos|macOS.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}macOS
 linux|Linux.{0,200}(suspend|sleep)|(suspend|sleep).{0,200}Linux
 pauses-in-suspend|(not advance|stop[a-z]* advancing|pause[a-z]*|stand[a-z]* still|stop[a-z]*).{0,160}(suspend|asleep|sleep)
 CLAIMS
+)"
 
 [[ -z "$clock_misses" ]] && ok \
   || no "#472: supervise.sh's header names the watchdog's clock source and why it pauses while the machine is suspended, for macOS and Linux (unstated:$clock_misses)"
