@@ -1010,6 +1010,74 @@ scan_verdict_step_title() {
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the verifier $skill_md launches, byte-identical in VERI_STEP and in --step (#437)" \
   scan_verdict_step_title
 
+# 8e. The same three characters, asked of every OTHER launch line that carries the title
+#    (issue #437): develop-green, revise, develop-exhausted, develop-reconcile, verify-pin,
+#    verify-green, verify-refactor, and the two general forms under *Launching a leaf*. Cases
+#    8b to 8d ask one line each; a fix that reaches those three and leaves the rest typing
+#    `"<STEP>"` still hands most of a run's leaves a title nobody wrote. So this case finds the
+#    lines by what they do — a detached supervised launch whose prefix sets VERI_STEP — and
+#    runs each through 8d's shallow recorder, asking VERI_STEP of all of them and `--step` of
+#    the ones that pass it. The three lines 8b to 8d already ask are found too and answer the
+#    same way; asking them again costs a recorder run each and keeps this case from depending
+#    on which lines some other case happens to cover.
+#
+#    The general developer form names its leaf `<name>` and its command `<cmd> [args...]`,
+#    which `runnable` rightly refuses; the recorder never runs either, so they are filled here
+#    with a probe leaf running run-leaf.sh over a prompt of its own. Each line runs beside
+#    the ledger as it stands when its leaf can launch: see `ledgers_for`.
+#
+# ledgers_for <leaf> — the planters for every ledger state <leaf>, as the document names it,
+# can launch beside. A refactor leaf runs after the step's green commit, the step ticked and
+# pending its refactor, the way case 8c's does; a red, pin or green leaf before it, the step
+# unchecked. A leaf the document names by placeholder — the general form's `<name>`, the
+# revise loop's `revise-<phase>-<k>` and `verdict-<phase>` — and the two that take over
+# whatever phase gave out, develop-exhausted and develop-reconcile, can launch on either side
+# of that commit, so their lines are run against both: asked of one only, a line that reads
+# the title for one side alone would answer right there and hand the other side's leaves a
+# title nobody wrote. Keyed on the leaf, never on what the line reads, so a line that stops
+# reading the ticked ledger is still run against it.
+ledgers_for() {
+  case "$1" in
+    *'<'*'>'*|develop-exhausted|develop-reconcile) echo plant_ledger plant_ticked_ledger ;;
+    *-refactor) echo plant_ticked_ledger ;;
+    *) echo plant_ledger ;;
+  esac
+}
+
+scan_every_step_title() {
+  local title="$EXPANDING_STEP"
+  local lines numbered filled lineno line launch leaf planter stage seen tree err got argv
+  lines="$(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh ' "$md" | grep -F 'VERI_STEP=')"
+  if [[ -z "$lines" ]]; then
+    no_launch "a leaf with VERI_STEP set through detach-leaf.sh and supervise.sh"
+    return
+  fi
+  while IFS= read -r numbered; do
+    [[ -n "$numbered" ]] || continue
+    filled="${numbered//<name>/probe-leaf}"
+    filled="${filled//<cmd> \[args...\]/\$S/run-leaf.sh .tdd/probe-leaf.prompt}"
+    take_line "$filled" "$title" || continue
+    line="${numbered#*:}"   # what every message quotes stays the document's own spelling
+    leaf="$(arg_after supervise.sh "$launch")"
+    for planter in $(ledgers_for "$(arg_after supervise.sh "$line")"); do
+      stage_recorder "every-step-title-$lineno-$planter"
+      "$planter" "$tree" "$title"
+      err="$( cd "$tree" && "${cleared_run_context[@]}" \
+                S="$stage" SEEN="$seen" bash -c "$launch" 2>&1 >/dev/null )"
+      got="$(cat "$seen" 2>/dev/null)" || got='<no leaf was launched>'
+      [[ "$got" == "$title" ]] ||
+        problem "launched $leaf beside a ledger from $planter with the step title <$title>, whose leaf saw VERI_STEP=<$got> (the launching shell said: ${err//$'\n'//})"
+      [[ "$line" == *--step* ]] || continue
+      argv="$(cat "$seen.argv" 2>/dev/null)" || argv='<no verifier was launched>'
+      [[ "$argv" == "$title" ]] ||
+        problem "launched $leaf beside a ledger from $planter with the step title <$title>, whose verifier was handed --step <$argv> (the launching shell said: ${err//$'\n'//})"
+    done
+  done <<< "$lines"
+}
+
+run_case "a step title carrying a dollar sign, a backtick and a double quote reaches every other developer and verifier leaf $skill_md launches with it, byte-identical (#437)" \
+  scan_every_step_title
+
 # 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
 #    being gone and the completion file existing are two events, and nothing orders them: a
 #    detached launch returns at once, the pid its tree records can die while the supervisor
