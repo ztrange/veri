@@ -454,7 +454,7 @@ add_ledger_step='\$s/add-ledger-step\.sh'
 #    `VERI_STEP_GROWTH` while the one call this criterion asks for either fits them all or
 #    files them all as owed. A mention that is not an invocation — the script named in a
 #    sentence about what its exit 1 means — carries no `$S/` and is not counted.
-name="$skill_md's Refactor section passes the leaf's NEW_STEP: values to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
+name="$skill_md's Refactor section passes the uncovered-spec flags to one add-ledger-step.sh call after the step, and commits the grown ledger with the refactor-pending clear"
 problems=()
 
 if unreadable_section; then
@@ -469,8 +469,8 @@ else
     problems+=("$skill_md's Refactor section runs add-ledger-step.sh $calls times, so a step's NEW_STEP: values are inserted a call at a time and the growth budget is read once per value rather than once for the step")
   else
     added="$(win "$add_ledger_step")"
-    grep -qE 'new_step' <<<"$added" ||
-      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the leaf's NEW_STEP: values, so what the inserted step says is left to judgement")
+    grep -qE 'uncovered-spec' <<<"$added" ||
+      problems+=("$skill_md's Refactor section runs add-ledger-step.sh without saying the texts are the uncovered-spec flags' behaviours, so what the inserted step says is left to judgement")
     grep -qE "after ['\"]?<step>" <<<"$added" ||
       problems+=("$skill_md's Refactor section runs add-ledger-step.sh without anchoring the insertion after the step just refactored, so the triangulating step lands somewhere other than next to the code it triangulates")
   fi
@@ -550,7 +550,7 @@ report "$name"
 #    on it, branching on its verdict — and a probe reading the whole section would be answered
 #    by one of those sentences and pass a document where the verifier's proposals still reach
 #    nobody.
-name="$skill_md's Refactor section passes the passing verify-refactor verdict's NEW_STEP: values to the same add-ledger-step.sh call as the leaf's"
+name="$skill_md's Refactor section passes the passing verify-refactor verdict's uncovered-spec flags to the same add-ledger-step.sh call as the leaf's"
 problems=()
 
 if unreadable_section; then

@@ -5,7 +5,7 @@
 - [x] The refactor loop in SKILL.md answers an overfit flag with one triangulating red and green pair inside the current step, adding no ledger step and no second step-done, then resumes that step's refactor loop with the budget it had left ⟦criterion 2⟧
 - [x] SKILL.md amends the plan from an uncovered-spec flag and from no other flag class ⟦criterion 3⟧
 - [x] The conductor grows the plan from the refactor leaf FLAGS classes alone, reading no NEW_STEP or CANDIDATES line from the leaf anywhere in SKILL.md ⟦added⟧ ⟦criterion 3⟧
-- [ ] A blind verify-refactor verdict reports a finding as a FLAGS line of the same three classes, so no plan amendment comes from a verifier NEW_STEP line ⟦added⟧ ⟦criterion 3⟧
+- [x] A blind verify-refactor verdict reports a finding as a FLAGS line of the same three classes, so no plan amendment comes from a verifier NEW_STEP line ⟦added⟧ ⟦criterion 3⟧ ⟂ refactor pending
 - [x] The skill-refactor-leaf suite goes red on a SKILL.md whose refactor loop amends the plan from a flag class other than uncovered-spec ⟦added⟧ ⟦criterion 3⟧
 - [x] SKILL.md narrates a beyond-spec flag as a follow-up in the Refactor comment and in the PR body, without planning or building it in this run ⟦criterion 3⟧
 - [x] The skill-refactor-leaf suite goes red on a SKILL.md whose refactor loop plans and builds a beyond-spec flag instead of only narrating it ⟦added⟧ ⟦criterion 3⟧

@@ -30,12 +30,17 @@ Render one verdict on the settled result.
    does, names things clearly, and is reasonably **robust**. It must not have smuggled in
    untested generality — generality is only earned through triangulation, not hand-written
    here.
-3. **A missing case is a step, not a REJECT.** An obvious unhandled edge case the spec
+3. **A missing case is a flag, not a REJECT.** An obvious unhandled edge case the spec
    implies is not by itself a REJECT: handling it changes behavior, which a
    behavior-preserving refactor may not do, so the REJECT would demand what no revise leaf
    can give you — the answer to a missing case is a new test, not tidier code. Report the
-   unhandled edge case as a `NEW_STEP: <behaviour-level criterion>` line instead, written
-   before the final `VERDICT:`/`REASON:` pair.
+   unhandled edge case on a `FLAGS:` line instead, written before the final
+   `VERDICT:`/`REASON:` pair, carrying the class it falls into: `FLAGS: overfit | <the
+   code> | <the case that would force the general implementation>` when the code passes the
+   step's test without implementing what the step's criterion states, `FLAGS:
+   uncovered-spec | <the behaviour> | <the criterion or spec line requiring it>` when the
+   spec requires a behaviour no step covers, or `FLAGS: beyond-spec | <what it names>` for
+   anything the spec does not ask for. One finding per line.
 4. **No assertion loosened.** A removed or weakened test assertion in the range is a REJECT,
    and the REJECT names that assertion: the suite stays green while it loosens, so the diff
    is the only place it shows.
