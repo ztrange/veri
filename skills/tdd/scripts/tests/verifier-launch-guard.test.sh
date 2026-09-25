@@ -349,10 +349,13 @@ report "$name"
 # EXEMPT=(` in the guard itself, keyed `<file>:<line>` and valued with the sentence that says
 # why — so no-job-spec-kills.test.sh's reader and this one describe the same thing.
 
-# The line the plant rewrites, found by a literal unique to it: the canonical launch in
-# *Launching a leaf*. A literal, matched as a literal, for the reason the first plant gives —
-# `$` and `.` are characters in it, not a pattern.
-STEP_ANCHOR='$S/detach-leaf.sh $S/supervise.sh <name>'
+# The line the plant rewrites, found by a literal unique to it: the cycle loop's step-start
+# mark. It was the canonical launch in *Launching a leaf* until #437 made every leaf launch
+# read its title out of the ledger, which left no launch line spelling `VERI_STEP="<STEP>"`
+# to put back into single quotes; the mark still spells it, and the guard holds every fenced
+# command carrying `<STEP>` to the same rule. A literal, matched as a literal, for the reason
+# the first plant gives — `$` and `.` are characters in it, not a pattern.
+STEP_ANCHOR='$S/event.sh step-start'
 
 # The two shapes that line carries the title in: the rule the document states, and the one
 # the incident happened in. The plant turns the first into the second; both are quoted into
