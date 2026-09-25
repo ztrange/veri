@@ -752,7 +752,8 @@ reaches the thread even on a PASS.
   last re-verification is still `REJECT`, **bail** as a process failure (see *Bailing*) —
   the plan, not a leaf, is what the methodology rejected.
 - **Malformed / killed-stuck (exit 2):** no verdict could be obtained — **bail** as a system
-  failure (see *Bailing*). A plan nobody looked at is never a PASS.
+  failure (see *Bailing*), after the stop check in *Launching a leaf*. A plan nobody looked
+  at is never a PASS.
 
 ### 3. The cycle loop
 
@@ -810,7 +811,7 @@ following step. The phase sub-steps are:
    that re-ran whole suites under a counter) — the leaf says so rather than writing that test
    to force a pass.
    If the wait exits **2 (killed-stuck)**, the leaf hung or ran away — **bail**
-   cleanly (see *Bailing*); do not retry.
+   cleanly (see *Bailing*), after the stop check in *Launching a leaf*; do not retry.
 2. **Verify (blind).** Branch on the leaf's `AGAINST_UNMODIFIED` line.
    On **`UNTESTABLE`** there is no test on disk for a blind verifier to judge — sending
    nothing to verify-red would only get a malformed-verdict `REJECT` for the wrong reason —
@@ -887,7 +888,8 @@ following step. The phase sub-steps are:
 
 1. **Develop.** Build the prompt from the `green` template — the **minimum** production
    code, no generality the test does not demand, the **test itself untouched**, full suite
-   green — and launch **through the supervisor** (exit **2** → **bail**):
+   green — and launch **through the supervisor** (exit **2** → **bail**, after the stop
+   check in *Launching a leaf*):
    ```
    $S/build-develop-prompt.sh green .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <test-path> '<target-test-id>' '<fast-cmd>' > .tdd/develop-green.prompt
    rm -f .tdd/develop-green.exit .tdd/develop-green.pid
@@ -981,7 +983,8 @@ following step. The phase sub-steps are:
    call is what decides whether the leaf runs at all, since `VERI_REFACTOR_BUDGET=0`
    switches refactoring off. Then build the prompt from the `refactor` template — which
    carries the budget to the leaf as the number of transforms it may apply — and launch
-   **through the supervisor** (exit **2** → **bail**):
+   **through the supervisor** (exit **2** → **bail**, after the stop check in *Launching a
+   leaf*):
    ```
    $S/refactor-budget.sh 0   # exit 0 ⇒ launch the leaf below; exit 3 ⇒ the budget is 0, go to 5
    touched="$($S/refactor-touched.sh HEAD)"
@@ -1323,7 +1326,8 @@ For attempt `k = 1 … REVISE_BUDGET`:
    ```
 2. **Fresh developer leaf.** Build the revise prompt from the `revise` template, naming the
    phase being redone and the **reason file** the verifier's stdout went to, then launch
-   **through the supervisor** (exit **2 → bail**, system failure):
+   **through the supervisor** (exit **2 → bail**, system failure, after the stop check in
+   *Launching a leaf*):
    ```
    $S/build-develop-prompt.sh revise <phase> .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' .tdd/verify-<phase>.reason > .tdd/revise-<phase>-<k>.prompt
    rm -f .tdd/revise-<phase>-<k>.exit .tdd/revise-<phase>-<k>.pid

@@ -473,6 +473,45 @@ if load_section 'Launching a leaf'; then
 fi
 report "$name"
 
+# ---------------------------------------------------------------------------
+# The rule above is spelled once, so every phase's own exit-2 branch has to lead a reader back
+# to it: a conductor reading *Develop (red)*'s "exits 2 (killed-stuck) — bail" in isolation
+# bails on the operator's own `now` stop. Each phase's branch is read as the paragraph — or
+# list item — holding its exit-2 clause, inside that phase's own heading, and asked to name
+# *Launching a leaf*.
+name="each phase's leaf-exit-2 branch (develop-red, green, refactor, revise, verify-plan) points back to Launching a leaf, where stop-requested.sh is asked before the exit 2 is read as killed-stuck"
+problems=()
+# phase_exit2 <heading> <anchor> — the paragraph holding the first line matching <anchor>
+# inside the `##`–`####` heading matching <heading>, read plain and joined; a paragraph ends
+# at a blank line (a code fence reads as one once plain drops its backticks) or a new list item.
+phase_exit2() {
+  start="$1" anchor="$2" awk '
+    /^#{2,4} / { inside = (tolower($0) ~ ENVIRON["start"]); next }
+    inside' "$skill_path" | plain | anchor="$2" awk '
+    function flush() { if (hit) { print buf; done = 1 } buf = "" }
+    done { next }
+    /^[[:space:]]*$/ { flush(); next }
+    /^[[:space:]]*(- |[0-9]+\. )/ { flush() }
+    { buf = buf " " $0; if ($0 ~ ENVIRON["anchor"]) hit = 1 }
+    END { if (hit && !done) print buf }' | tr -s ' '
+}
+while IFS='|' read -r phase heading anchor; do
+  section="$(phase_exit2 "$heading" "$anchor")"
+  if [[ -z "$section" ]]; then
+    problems+=("the $phase branch has no exit-2 clause to read — nothing could be checked")
+    continue
+  fi
+  require 'launching a leaf' \
+    "the $phase branch reads a leaf's exit 2 without pointing back to Launching a leaf — a pending now stop there would bail"
+done <<'PHASES'
+verify-plan|^### 2c\. verify the plan|killed-stuck \(exit 2\)
+develop-red|^#### red|exits 2 \(killed-stuck\)
+green|^#### green|exit 2 → bail
+refactor|^#### refactor loop|exit 2 → bail
+revise|^## revising on a reject|exit 2 → bail
+PHASES
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
