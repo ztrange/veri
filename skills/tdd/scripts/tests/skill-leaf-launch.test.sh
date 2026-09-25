@@ -466,8 +466,11 @@ blind_args() {
 # folded into the first: it carries no `--step` (the plan is verified before the first step,
 # so there is no step to scope a verdict to), its third positional is the proposed ledger
 # where a cycle phase names a test path, and it takes no target. Written as its own anchored
-# alternative, an argument added to either shape still fails this case.
-blind_re="^(--step $double_quoted_step( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) $spec_re <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|plan $spec_re \.tdd/issue-<n>\.md)$"
+# alternative, an argument added to either shape still fails this case. The step is either
+# the typed placeholder or the ledger's first unchecked step read inside the line's own
+# command substitution (#437) — a title, taken as data, and still nothing of the developer's.
+ledger_step_re='"\$\(cat \.tdd/issue-<n>\.md \| \$S/next-unchecked\.sh\)"'
+blind_re="^(--step ($double_quoted_step|$ledger_step_re)( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) $spec_re <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|plan $spec_re \.tdd/issue-<n>\.md)$"
 
 # 6. The verifier is blind **by construction**: `build-verify-prompt.sh` has no parameter for
 #    the developer's rationale, so it cannot leak one, and a launch that passes verify.sh
