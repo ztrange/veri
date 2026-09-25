@@ -53,52 +53,10 @@ skill_path="$ROOT/$skill_md"
 
 pass=0 fail=0
 
-# report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem,
-# so the output says which document is missing which sentence rather than just that one is.
-report() {
-  local name="$1"
-  if [[ "${#problems[@]}" -eq 0 ]]; then
-    pass=$((pass + 1))
-  else
-    fail=$((fail + 1))
-    echo "FAIL - $name"
-    printf '    %s\n' "${problems[@]}"
-  fi
-}
-
-# plain — stdin with emphasis marks and backticks dropped and the case folded, so a regex
-# below is written one way and still matches prose that marked the same words up as
-# `VERI_MODEL` or **separate**. The normalisation lane-rule-recorded.test.sh uses on these
-# same documents, for the same reason.
-plain() { tr -d '*`' | tr '[:upper:]' '[:lower:]'; }
-
-# records — markdown on stdin, one line per paragraph or bullet, normalised through
-# `plain`. A record runs from a `- ` or a `* ` in column one, or from the first line after
-# a blank, up to the next such line or the next blank; joining it onto one line is what
-# lets a claim ask whether ONE passage carries a whole fact, rather than two sentences
-# sections apart that happen to share a word. Both documents wrap mid-sentence, so this is
-# also what keeps a claim split over a line break readable as one sentence. Same shape as
-# skill-timeout.test.sh's `paragraphs`.
-records() {
-  awk '/^[-*] / { if (rec != "") print rec; rec = $0; next }
-       /^[[:space:]]*$/ { if (rec != "") print rec; rec = ""; next }
-       rec == "" { rec = $0; next }
-       { rec = rec " " $0 }
-       END { if (rec != "") print rec }' | plain
-}
-
-# bullet <regex> — the one top-level `- ` bullet of a document whose first line matches,
-# as one normalised line. The tunables belong in the bullet that documents the launcher
-# they are read by: a file-wide read of SKILL.md would answer "yes, it is in there" for a
-# document that named `VERI_MODEL` only in the preflight step that validates it, which is
-# where it is named today and is not where an operator looking up a tunable is reading.
-bullet() {
-  awk -v want="$1" '
-    $0 ~ want { inside = 1; print; next }
-    inside && /^([-*] |#)/ { exit }
-    inside' "$skill_path" | plain | tr '\n' ' '
-}
+# report, plain, records, bullet and says: the helpers the *-recorded.test.sh suites
+# share (issue #225). `bullet` reads "$skill_path"; `says` reads the passage_ globals.
+# shellcheck source=record-helpers.sh
+source "$HERE/record-helpers.sh"
 
 # The three variables, as the regexes that tell them apart. The bare `VERI_MODEL` is
 # bounded on the right, because `veri_model_developer` contains it: without the bound a
@@ -141,23 +99,6 @@ need_claude_md_records() {
   [[ -n "${passage_text// /}" ]] && return 0
   problems+=("$claude_md could not be read, so nothing could be asked of what it records")
   return 1
-}
-
-# says <fact> <regex>... — one fact the passage last read has to carry: some ONE record of
-# it has to match every <regex>, and one problem naming the passage and the fact is
-# appended if none does. A pair split across two records is not a statement — it is two
-# sentences that happen to share a word — which is why the regexes are asked of a record
-# and not of the passage as a whole.
-says() {
-  local fact="$1" line re
-  shift
-  while IFS= read -r line; do
-    for re in "$@"; do
-      [[ "$line" =~ $re ]] || continue 2
-    done
-    return 0
-  done <<< "$passage_text"
-  problems+=("$passage_from does not say $fact")
 }
 
 # names_all_three <what> — the three variables in one record of the passage last read.
@@ -315,6 +256,41 @@ name="$helpers_rel, when sourced, also defines records, bullet and says with the
 problems=()
 
 probe_shared_records_bullet_says
+
+report "$name"
+
+# 4. The two suites that carried identical copies of all five helpers now read them from
+#    the shared file (issue #225): each sources record-helpers.sh at its top level and
+#    defines no `report`, `plain`, `records`, `bullet` or `says` of its own, so a fix to the
+#    shared file is the fix every one of them runs. Asked of each suite's source as text,
+#    the way a reader checks it: a top-level `source` or `.` line naming the file, and no
+#    line opening a function by one of the five names. The subshell sources in cases 2 and 3
+#    are indented and name `$helpers_path`, so they answer neither question.
+shared_helpers=(report plain records bullet says)
+
+# probe_suite_uses_shared_helpers <stem> — one problem when the suite <stem>.test.sh does
+# not source the shared file at its top level, and one per helper it still defines itself.
+# Given the stem, not the file name: a sibling suite's name written out in full outside a
+# comment is what no-nested-suites.test.sh reads as launching it, and this only reads it.
+probe_suite_uses_shared_helpers() {
+  local suite_rel="skills/tdd/scripts/tests/$1.test.sh" text fn
+  if ! text="$(cat "$ROOT/$suite_rel" 2>/dev/null)"; then
+    problems+=("$suite_rel could not be read")
+    return
+  fi
+  [[ "$text" =~ (^|$'\n')(source|\.)[[:space:]][^$'\n']*record-helpers\.sh ]] ||
+    problems+=("$suite_rel does not source record-helpers.sh at its top level")
+  for fn in "${shared_helpers[@]}"; do
+    [[ "$text" =~ (^|$'\n')[[:space:]]*(function[[:space:]]+)?$fn[[:space:]]*\(\) ]] &&
+      problems+=("$suite_rel still defines its own $fn")
+  done
+}
+
+name="the selection-order-recorded and model-knobs-recorded suites source $helpers_rel and define no report, plain, records, bullet or says of their own"
+problems=()
+
+probe_suite_uses_shared_helpers selection-order-recorded
+probe_suite_uses_shared_helpers model-knobs-recorded
 
 report "$name"
 
