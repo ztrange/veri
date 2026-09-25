@@ -11,5 +11,12 @@ set -euo pipefail
 step="${VERI_STEP_BUDGET-12}"
 run="${VERI_RUN_BUDGET-120}"
 
+number='^[0-9]+(\.[0-9]+)?$'
+
+if [[ ! "$step" =~ $number ]]; then
+  echo "step-budget: VERI_STEP_BUDGET must be a non-negative decimal number: $step" >&2
+  exit 2
+fi
+
 echo "$step"
 echo "$run"
