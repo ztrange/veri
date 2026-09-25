@@ -485,7 +485,7 @@ problems=()
 # inside the `##`–`####` heading matching <heading>, read plain and joined; a paragraph ends
 # at a blank line (a code fence reads as one once plain drops its backticks) or a new list item.
 phase_exit2() {
-  heading="$1" anchor="$2" awk '
+  heading="$1" awk '
     /^#{2,4} / { inside = (tolower($0) ~ ENVIRON["heading"]); next }
     inside' "$skill_path" | plain | anchor="$2" awk '
     function flush() { if (hit) { print buf; done = 1 } buf = "" }
