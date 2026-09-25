@@ -617,15 +617,22 @@ report "$name"
 # bail bullet's own "continue at Loop 1" must not answer for it.
 scope_loop_md="skills/tdd/SCOPE-LOOP.md"
 
+# scope_loop_section <n> — print SCOPE-LOOP.md's *Loop <n>* raw, from its `### Loop <n>.`
+# heading to the next `### `; empty when there is no such section. The #391 cases read Loop 4
+# and Loop 5, so they slice a loop by one rule here.
+scope_loop_section() {
+  n="$1" awk '
+    /^### / { inside = ($0 ~ ("^### Loop " ENVIRON["n"] "\\.")); next }
+    inside' "$ROOT/$scope_loop_md"
+}
+
 # load_scope_stop <problem> — put SCOPE-LOOP.md's stopped-issue condition in `section`,
 # joined, for a case's probes to read: *Loop 4* from its `### Loop 4` heading to the next
 # `### `, split into its bullets, and the bullet whose bold label names a stop. Records the
 # fail-closed problem and returns 1 when there is no Loop 4, or <problem> when Loop 4 has no
 # such bullet. Every #391 case reads that bullet, so they slice it by one rule here.
 load_scope_stop() {
-  section="$(awk '
-    /^### / { inside = ($0 ~ /^### Loop 4\./); next }
-    inside' "$ROOT/$scope_loop_md" | plain)"
+  section="$(scope_loop_section 4 | plain)"
   if [[ -z "$section" ]]; then
     problems+=("$scope_loop_md has no ### Loop 4 section — nothing could be checked")
     return 1
@@ -677,9 +684,7 @@ report "$name"
 # template's `stopped: <mode>` cannot answer for the sentence that names the stop.
 name="SCOPE-LOOP.md's Loop 5 report gives a stopped issue a stopped: <mode> per-issue line, and names the stop and the stopped issue's mode as what stopped the loop"
 problems=()
-loop5="$(awk '
-  /^### / { inside = ($0 ~ /^### Loop 5\./); next }
-  inside' "$ROOT/$scope_loop_md")"
+loop5="$(scope_loop_section 5)"
 if [[ -z "$loop5" ]]; then
   problems+=("$scope_loop_md has no ### Loop 5 section — nothing could be checked")
 else
