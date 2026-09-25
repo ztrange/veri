@@ -241,7 +241,14 @@ launched_test_cmd() {
   # one the run is on. A launch may read the step title out of it rather than off its own line
   # (#437), so a tree without one would be a run that never planned — and the step its events
   # carry, which case 3 asks about, would be the fixture's gap rather than the line's answer.
-  plant_ledger "$dir" "$SENTINEL_STEP"
+  # develop-refactor launches after the step's green commit has ticked it, so its tree holds
+  # the ledger as it stands then: the step ticked with its `⟂ refactor pending` mark.
+  if [[ "$leaf" == develop-refactor ]]; then
+    printf '# Plan for #%s\n\n- [x] %s ⟂ refactor pending\n' "$SENTINEL_ISSUE" "$SENTINEL_STEP" \
+      > "$dir/.tdd/issue-$SENTINEL_ISSUE.md"
+  else
+    plant_ledger "$dir" "$SENTINEL_STEP"
+  fi
   local file
   for file in "$@"; do
     printf 'the %s this launch names, which the stub never reads\n' "$file" > "$dir/$file"
@@ -873,13 +880,17 @@ APOSTROPHE_STEP="A background process is killed by the pid recorded when it star
 # builds this case's messages out of the document line it actually ran. <title> is the step
 # title the line is run with and the value the leaf must see, defaulting to the apostrophe
 # this case is about; <tag> names the scratch paths, so a second title asked of the same line
-# (case 8b below) reads its own recorder and never the one this case left behind.
+# (case 8b below) reads its own recorder and never the one this case left behind. <leaf> is
+# the developer leaf whose launch line is run, defaulting to develop-red, and <planter> the
+# helper that writes the committed ledger the line runs beside, defaulting to `plant_ledger`
+# (case 8c asks develop-refactor, whose step is already ticked when it launches).
 scan_step_title() {
   local title="${1:-$APOSTROPHE_STEP}" tag="${2:-step-title}"
+  local leaf="${3:-develop-red}" planter="${4:-plant_ledger}"
   local lineno line numbered launch stage seen tree err got
-  numbered="$(head -1 < <(grep -nE '\$S/detach-leaf\.sh .*\$S/supervise\.sh develop-red \$S/run-leaf\.sh' "$md"))"
+  numbered="$(head -1 < <(grep -nE "\\\$S/detach-leaf\\.sh .*\\\$S/supervise\\.sh $leaf \\\$S/run-leaf\\.sh" "$md"))"
   if [[ -z "$numbered" ]]; then
-    no_launch "develop-red through supervise.sh into run-leaf.sh"
+    no_launch "$leaf through supervise.sh into run-leaf.sh"
     return
   fi
   take_line "$numbered" "$title" || return
@@ -900,8 +911,8 @@ printf '%s\n' "${VERI_STEP-<unset>}" > "$SEEN"
 STUB
   chmod +x "$stage/detach-leaf.sh"
   printf 'the prompt this launch names, which the recorder never reads\n' \
-    > "$tree/.tdd/develop-red.prompt"
-  plant_ledger "$tree" "$title"
+    > "$tree/.tdd/$leaf.prompt"
+  "$planter" "$tree" "$title"
   # Run with the run context cleared, like every other probe here. The launching shell's
   # stderr is kept, because the two failures read differently and a reader has to tell them
   # apart: a line the shell refused outright launched nothing, while a title that arrived
@@ -930,6 +941,24 @@ EXPANDING_STEP='A title naming `kill %1`, the "blind" verifier and $HOME reaches
 
 run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the leaf $skill_md launches with it byte-identical (#437)" \
   scan_step_title "$EXPANDING_STEP" expanding-step-title
+
+# 8c. The same three characters, asked of the develop-refactor launch instead (issue #437's
+#    triangulation). Every developer leaf carries the title the same way, so a fix that
+#    reaches only develop-red is not the fix; and develop-refactor is the launch where the
+#    title cannot be read back as "the ledger's first unchecked step", because by the time it
+#    launches the step's green commit has already ticked it. The ledger it runs beside holds
+#    the step ticked with its `⟂ refactor pending` mark, and an unchecked step after it — so
+#    a launch that asks the ledger for the next unchecked title hands the leaf the wrong step.
+#
+# plant_ticked_ledger <tree> <step> — the sentinel issue's committed ledger as it stands when
+# develop-refactor launches: <step> ticked and awaiting its refactor, a later step unchecked.
+plant_ticked_ledger() {
+  printf '# Plan for #%s\n\n- [x] %s ⟂ refactor pending\n- [ ] a later step the run has not reached\n' \
+    "$SENTINEL_ISSUE" "$2" > "$1/.tdd/issue-$SENTINEL_ISSUE.md"
+}
+
+run_case "a step title carrying a dollar sign, a backtick and a double quote reaches the develop-refactor leaf $skill_md launches after the step is ticked, byte-identical (#437)" \
+  scan_step_title "$EXPANDING_STEP" expanding-step-title-refactor develop-refactor plant_ticked_ledger
 
 # 9. The race issue #457 names, made to happen every time instead of on a slow runner. A pid
 #    being gone and the completion file existing are two events, and nothing orders them: a
