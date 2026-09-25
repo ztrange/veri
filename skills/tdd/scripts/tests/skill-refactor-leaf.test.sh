@@ -132,15 +132,20 @@ plain() {
 # re-pointed at a renamed heading while still telling a reader it searched for the old one.
 refactor_heading='#### Refactor'
 
-# refactor_section — the lines after the first heading starting `$refactor_heading`, up to
-# the next heading of any level, normalised through `plain` and joined onto one line: none of
-# the probes below is about order, and a claim that wraps across two lines is still one
-# claim. The prefix stops at the word the phase is named for, so a heading reworded from
-# "Refactor loop" — which is what this issue stops it being — is still the section found.
-refactor_section() {
+# refactor_lines — the lines after the first heading starting `$refactor_heading`, up to the
+# next heading of any level, as the document has them. The prefix stops at the word the phase
+# is named for, so a heading reworded from "Refactor loop" — which is what this issue stops it
+# being — is still the section found. Case 10 reads these raw, because it needs the fences and
+# the numbered items that `refactor_section` below flattens away.
+refactor_lines() {
   awk -v h="$refactor_heading" \
-    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path" |
-    plain | tr '\n' ' '
+    'index($0, h) == 1 { inside = 1; next } inside && /^#/ { exit } inside' "$skill_path"
+}
+
+# refactor_section — those lines normalised through `plain` and joined onto one line: none of
+# the probes below is about order, and a claim that wraps across two lines is still one claim.
+refactor_section() {
+  refactor_lines | plain | tr '\n' ' '
 }
 section="$(refactor_section)"
 
@@ -803,13 +808,11 @@ emitted="$("$ROOT/skills/tdd/scripts/build-develop-prompt.sh" refactor "$spec_tm
   sed -nE 's/^([A-Z][A-Z_]+):.*/\1/p' | sort -u)"
 rm -f "$spec_tmp"
 
-footer="$(awk -v h="$refactor_heading" '
-  index($0, h) == 1 { inside = 1; next }
-  inside && /^#/ { exit }
-  inside && /^[[:space:]]*```/ { fenced = !fenced; next }
-  inside && !fenced && !found && index($0, "develop-refactor.out") { found = 1 }
+footer="$(refactor_lines | awk '
+  /^[[:space:]]*```/ { fenced = !fenced; next }
+  !fenced && !found && index($0, "develop-refactor.out") { found = 1 }
   found && /^[0-9]+\. / { exit }
-  found' "$skill_path" | tr -d '*`' | tr '\n' ' ')"
+  found' | tr -d '*`' | tr '\n' ' ')"
 footer="${footer#*develop-refactor.out}"
 named="$(grep -oE '[A-Z][A-Z_]+:' <<<"$footer" | tr -d ':' | sort -u)"
 
