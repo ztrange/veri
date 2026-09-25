@@ -1043,6 +1043,42 @@ fi
 
 report "$name"
 
+# --- run_ended for a STOPPED run: not ended, so the Metrics pane keeps recomputing it ---
+# A stop mark (#388) is not the third ending beside `done` and `bail`: a stopped run is
+# resumed, commits no report, and is still spending, so the pair that splits recomputed from
+# quoted stays the pair it was (#390). Asked of run_ended directly, with no dashboard.sh
+# started, over a log that carries a stop mark and neither of the two that end a run.
+name="run_ended, called directly, answers false for a run whose log carries a stop mark and no done or bail"
+problems=()
+rstop_repo="$(repo runendedstop)"
+
+rstop_run="$(fabricate_run "$rstop_repo" 35 tdd/35-lamps-glow)"
+rstop_now="$(date +%s)"
+cat > "$rstop_run/.tdd/events.jsonl" <<EOF
+{"ts": $((rstop_now - 9000)), "issue": "35", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "step-start", "attempt": "", "skill_commit": "abc"}
+{"ts": $((rstop_now - 8900)), "issue": "35", "actor": "developer", "phase": "red", "step": "a lamp glows", "event": "launch", "attempt": "1", "skill_commit": "abc", "name": "develop-red"}
+{"ts": $((rstop_now - 8800)), "issue": "35", "actor": "conductor", "phase": "", "step": "a lamp glows", "event": "stop", "attempt": "", "skill_commit": "abc", "mode": "at-leaf", "at": "planned"}
+EOF
+
+if [[ -n "$module_problem" ]]; then
+  problems+=("$module_problem")
+else
+  add_problems < <(cd "$rstop_repo" && PYTHONPATH= PYTHONNOUSERSITE=1 python3 -c '
+import importlib, sys
+
+scripts, module, port, run = sys.argv[1:5]
+sys.path.insert(0, scripts)
+sys.argv = [scripts + "/" + module + ".py", scripts + "/dashboard.html", port,
+            scripts + "/status.sh", scripts + "/metrics.sh"]
+answer = importlib.import_module(module).run_ended(run)
+if answer is not False:
+    print("issue 35 logged a stop mark and no done or bail, so it has not ended and its "
+          "report must be recomputed: run_ended returned %r, want False" % (answer,))
+' "$scripts" "$module" "$PORT" "$rstop_run" 2>&1)
+fi
+
+report "$name"
+
 # --- the Metrics endpoint keys a run by its own directory, and runs metrics.sh once for it ---
 # Ledgers are committed, so a run worktree carries a copy of every earlier issue's plan: the
 # run under `.tdd/wt/7/` here holds issue-3.md and issue-5.md beside its own issue-7.md. The
