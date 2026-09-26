@@ -115,6 +115,16 @@ JSON
 gh2="$work/gh2"
 two_issue_fixture "$gh2"
 
+# ready_pr <gh-dir> — print the stub source a conductor ends with to answer "done": append a
+# ready PR saying `Closes #$n` to <gh-dir>'s `prs.lines` and rebuild `prs.json` from it, so the
+# issue leaves the solvable set the way a finished run's does.
+ready_pr() {
+  cat <<SH
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$1/prs.lines"
+printf '[%s]\n' "\$(paste -sd, "$1/prs.lines")" > "$1/prs.json"
+SH
+}
+
 # timeline_stub <path> <timeline> <gh-dir> [<lock-dir>] — write the stub conductor cases 2 and 3
 # share: it records `start <n>`, holds until a second conductor has started (or $PATIENCE s
 # pass), records `end <n>`, then answers "done" by opening a ready PR in <gh-dir>. Given a
@@ -136,8 +146,7 @@ while [ "\$i" -lt \$(( ${PATIENCE:-1} * 50 )) ] && [ "\$(grep -c '^start' "$time
   sleep 0.02; i=\$((i + 1))
 done
 echo "end \$n" >> "$timeline"
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh/prs.lines"
-printf '[%s]\n' "\$(paste -sd, "$gh/prs.lines")" > "$gh/prs.json"
+$(ready_pr "$gh")
 $lock_drop
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit 0
@@ -217,8 +226,7 @@ cat > "$order_stub" <<STUB
 #!/bin/sh
 n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
 echo "start \$n" >> "$order"
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh4/prs.lines"
-printf '[%s]\n' "\$(paste -sd, "$gh4/prs.lines")" > "$gh4/prs.json"
+$(ready_pr "$gh4")
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit 0
 STUB
@@ -257,8 +265,7 @@ cat > "$again_stub" <<STUB
 #!/bin/sh
 n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
 if grep -x "start \$n" "$again" > /dev/null 2>&1; then
-  printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh5/prs.lines"
-  printf '[%s]\n' "\$(paste -sd, "$gh5/prs.lines")" > "$gh5/prs.json"
+  $(ready_pr "$gh5")
 fi
 echo "start \$n" >> "$again"
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
