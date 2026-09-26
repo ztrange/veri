@@ -194,6 +194,36 @@ else
 fi
 report "$name"
 
+# does_not_hold <label> <record> — <record> must name both off-cycle markers and say an
+# unchecked line carrying one does not hold the run back from its draft PR. Fails closed on an
+# empty record: the condition it guards could not be found, so it could not be checked.
+does_not_hold() {
+  local label="$1" rec="$2" marker
+  if [[ -z "$rec" ]]; then
+    problems+=("$label: the condition could not be found — the rule could not be checked")
+    return
+  fi
+  for marker in '⟦full-suite⟧' '⟦human-owed⟧'; do
+    [[ "$rec" == *"$marker"* ]] ||
+      problems+=("$label: the condition never names $marker lines")
+  done
+  [[ "$rec" =~ unchecked[^.]*(not|never)\ hold[^.]*back ]] ||
+    problems+=("$label: the condition never says an unchecked off-cycle line does not hold the run back")
+}
+
+# 7. One criterion (#481) — next-unchecked.sh skips ⟦full-suite⟧ and ⟦human-owed⟧ lines, so
+#    they are still unchecked when the cycle loop runs out; the two conditions that send a run
+#    to its draft PR must say those lines do not hold it back, or a reader of either stops
+#    short of the PR — or launches a Red leaf for a line that can only answer UNTESTABLE and
+#    bail `untestable-criterion`.
+name="#481: $skill_md's Draft PR entry condition and Resume's go-to-draft-PR condition say unchecked ⟦full-suite⟧ and ⟦human-owed⟧ lines do not hold a run back from its draft PR"
+problems=()
+does_not_hold 'draft PR entry' \
+  "$(head -1 < <(section_records '### 4. Draft PR' | grep -F 'reached when'))"
+does_not_hold 'resume' \
+  "$(head -1 < <(section_records '## Resume' | grep -E 'go to the \*?\*?draft pr'))"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
