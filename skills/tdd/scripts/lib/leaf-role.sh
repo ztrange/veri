@@ -45,6 +45,8 @@ leaf_role() {
   # `-*`, leaving the leading word, which is the actor's.
   local actor_word="${name%%-*}"
   local actor
+  # The shapes both refusals below name, said once so the two cannot drift apart.
+  local want='develop-*|revise-*|verify-*'
 
   # An unknown leading word is refused rather than guessed at, since either guess is a silent
   # wrong answer in a log whose purpose is telling the pipeline's two halves apart: an actor
@@ -57,7 +59,7 @@ leaf_role() {
     # a fourth actor, the run itself rather than one of its leaves, whose "phase" is the issue.
     conductor)      actor=conductor ;;
     *)
-      echo "leaf-role: leaf name '$name' has an unknown leading word (want develop-*|revise-*|verify-*)" >&2
+      echo "leaf-role: leaf name '$name' has an unknown leading word (want $want)" >&2
       return 2
       ;;
   esac
@@ -78,7 +80,7 @@ leaf_role() {
   # `"phase": ""`, which reads as a leaf that had no phase rather than one whose phase nobody
   # could read.
   if [[ -z "$phase_attempt" ]]; then
-    echo "leaf-role: leaf name '$name' says no phase (want develop-*|revise-*|verify-*)" >&2
+    echo "leaf-role: leaf name '$name' says no phase (want $want)" >&2
     return 2
   fi
 
