@@ -439,114 +439,109 @@ launched = {}
 # written before event.sh recorded one, and a log with only some gained it partway; in either
 # case every figure below is wall-clock — a figure taking one end off each clock, or summing
 # attempts measured on different clocks, is on no clock at all — and the report says so
-# rather than letting a reader take them for awake time. Read in a pass of its own because
-# the attempt sums below are added line by line, before the last line is seen.
+# rather than letting a reader take them for awake time. Settled before the loop below because
+# the attempt sums there are added line by line, before the last line is seen.
 with open(path) as f:
     marks = [json.loads(raw) for raw in f if raw.strip()]
 clocked = bool(marks) and all("awake" in mark for mark in marks)
 
-with open(path) as f:
-    for raw in f:
-        raw = raw.strip()
-        if not raw:
-            continue
-        line = json.loads(raw)
-        event = line.get("event", "")
-        step = line.get("step", "")
-        phase = line.get("phase", "")
-        ts = line.get("ts")
-        if opening is None or event == "resume":
-            opening = line
-        # A `stop` is not terminal the way `done` and `bail` are: the run it paused may be
-        # resumed, and a resumed run has not ended until a mark after its `resume` says so.
-        if event == "resume" and ending is not None and ending.get("event") == "stop":
-            ending = None
-        if event in ("done", "bail", "stop"):
-            ending = line
-        # The two brackets of a step, read before anything classifies the line below, since
-        # neither is a leaf event and both would otherwise fall through to nothing.
-        if event in ("step-start", "step-done") and step:
-            spent.setdefault(step, {})[event] = line
-            if event == "step-done":
-                recovered.add(step)
-            continue
-        # The seconds one test-command run recorded, off the mark timed-test-run.sh writes
-        # for it. Read before the leaf events below and falling through to none of them: a
-        # `test-run` is not a launch, an exit or a verdict, and the seconds it carries are
-        # the test command own rather than any attempt.
-        #
-        # The figure travels as the text the mark carries rather than as a number parsed and
-        # printed again, so a run recorded as `4` is listed as `4` and this section invents
-        # no precision the writer did not claim. A mark with no seconds at all supplies no
-        # figure and raises no row of its own.
-        if event == "test-run":
-            seconds = line.get("seconds")
-            if seconds not in (None, ""):
-                tier_runs.setdefault(line.get("tier") or UNKNOWN, []).append(str(seconds))
-            continue
-        # A step whose criterion earlier work already satisfied is done on its `pin` mark and
-        # never writes `step-done` (SKILL.md, the verify-pin PASS branch).
-        if event == "pin" and step:
+for line in marks:
+    event = line.get("event", "")
+    step = line.get("step", "")
+    phase = line.get("phase", "")
+    ts = line.get("ts")
+    if opening is None or event == "resume":
+        opening = line
+    # A `stop` is not terminal the way `done` and `bail` are: the run it paused may be
+    # resumed, and a resumed run has not ended until a mark after its `resume` says so.
+    if event == "resume" and ending is not None and ending.get("event") == "stop":
+        ending = None
+    if event in ("done", "bail", "stop"):
+        ending = line
+    # The two brackets of a step, read before anything classifies the line below, since
+    # neither is a leaf event and both would otherwise fall through to nothing.
+    if event in ("step-start", "step-done") and step:
+        spent.setdefault(step, {})[event] = line
+        if event == "step-done":
             recovered.add(step)
-        # Time, off the two lines that carry it. An `exit` is also where a kill is counted
-        # below, so this adds and lets the line fall through rather than classifying it.
-        attempt_no = line.get("attempt", "")
-        attempt = attempt_in(phase, step, attempt_no)
-        if event == "launch":
-            launched[(step, phase, attempt_no)] = line
-        if event == "exit":
-            # On the awake clock when the attempt launch and exit both carry a reading, so a
-            # sleep inside the attempt is not counted as work (#486); off `secs` otherwise.
-            awake = span(reading(launched.get((step, phase, attempt_no)), "awake"),
-                         reading(line, "awake"))
-            seconds = int(awake if awake is not None else (line.get("secs") or 0))
-            add_seconds(phase, step, "wall s", seconds)
-            if attempt is not None:
-                attempt[WALL] += seconds
-        elif event == "usage":
-            add_seconds(phase, step, "API s",
-                        int(line.get("duration_api_ms") or 0) // 1000)
-            add_cost(phase, step, line)
-            if attempt is not None:
-                attempt[DOLLARS] += float(line.get("total_cost_usd") or 0)
-            if line.get("actor") == "conductor":
-                conductor_counted = True
-        elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
-            rejected.append((step, phase, attempt))
-        # The conductor budget marks next, and they fall through to nothing below: a
-        # `revise` is not a leaf launch, so counting it as an attempt would double-count the
-        # revise leaf that the mark is followed by.
-        if event == "revise" and step:
-            mark = spent.setdefault(step, {})
-            mark["revises"] = mark.get("revises", 0) + 1
-            mark["revise"] = line.get("budget", "")
-            continue
-        if event == "refactor" and step:
-            mark = spent.setdefault(step, {})
-            mark["transforms"] = line.get("transforms", "")
-            mark["refactor"] = line.get("budget", "")
-            mark["stopped"] = line.get("stopped", "")
-            continue
-        if event == "launch":
-            count = "attempts"
-        elif event == "verdict" and line.get("verdict") in ("PASS", "REJECT"):
-            count = line["verdict"]
-        elif event == "exit" and line.get("status") == "2":
-            count = "kills"
-        elif event == "retry":
-            count = "retries"
-        elif event == "relaunch" and line.get("cause") == "no-verdict":
-            count = "no-verdict"
-        else:
-            continue
-        # One classification, two tables: the line is the same event whichever way it is
-        # grouped, so reading `event` twice is the way the two sections come to disagree.
-        # A phase-less line still raises no phase row, and a retry has no phase column to
-        # land in.
-        if phase and count in COUNTS:
-            tally(counts, phase, PHASE_COLUMNS, count)
-        if step:
-            tally(steps, step, STEP_COLUMNS, count)
+        continue
+    # The seconds one test-command run recorded, off the mark timed-test-run.sh writes
+    # for it. Read before the leaf events below and falling through to none of them: a
+    # `test-run` is not a launch, an exit or a verdict, and the seconds it carries are
+    # the test command own rather than any attempt.
+    #
+    # The figure travels as the text the mark carries rather than as a number parsed and
+    # printed again, so a run recorded as `4` is listed as `4` and this section invents
+    # no precision the writer did not claim. A mark with no seconds at all supplies no
+    # figure and raises no row of its own.
+    if event == "test-run":
+        seconds = line.get("seconds")
+        if seconds not in (None, ""):
+            tier_runs.setdefault(line.get("tier") or UNKNOWN, []).append(str(seconds))
+        continue
+    # A step whose criterion earlier work already satisfied is done on its `pin` mark and
+    # never writes `step-done` (SKILL.md, the verify-pin PASS branch).
+    if event == "pin" and step:
+        recovered.add(step)
+    # Time, off the two lines that carry it. An `exit` is also where a kill is counted
+    # below, so this adds and lets the line fall through rather than classifying it.
+    attempt_no = line.get("attempt", "")
+    attempt = attempt_in(phase, step, attempt_no)
+    if event == "launch":
+        launched[(step, phase, attempt_no)] = line
+    if event == "exit":
+        # On the awake clock when the attempt launch and exit both carry a reading, so a
+        # sleep inside the attempt is not counted as work (#486); off `secs` otherwise.
+        awake = span(reading(launched.get((step, phase, attempt_no)), "awake"),
+                     reading(line, "awake"))
+        seconds = int(awake if awake is not None else (line.get("secs") or 0))
+        add_seconds(phase, step, "wall s", seconds)
+        if attempt is not None:
+            attempt[WALL] += seconds
+    elif event == "usage":
+        add_seconds(phase, step, "API s",
+                    int(line.get("duration_api_ms") or 0) // 1000)
+        add_cost(phase, step, line)
+        if attempt is not None:
+            attempt[DOLLARS] += float(line.get("total_cost_usd") or 0)
+        if line.get("actor") == "conductor":
+            conductor_counted = True
+    elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
+        rejected.append((step, phase, attempt))
+    # The conductor budget marks next, and they fall through to nothing below: a
+    # `revise` is not a leaf launch, so counting it as an attempt would double-count the
+    # revise leaf that the mark is followed by.
+    if event == "revise" and step:
+        mark = spent.setdefault(step, {})
+        mark["revises"] = mark.get("revises", 0) + 1
+        mark["revise"] = line.get("budget", "")
+        continue
+    if event == "refactor" and step:
+        mark = spent.setdefault(step, {})
+        mark["transforms"] = line.get("transforms", "")
+        mark["refactor"] = line.get("budget", "")
+        mark["stopped"] = line.get("stopped", "")
+        continue
+    if event == "launch":
+        count = "attempts"
+    elif event == "verdict" and line.get("verdict") in ("PASS", "REJECT"):
+        count = line["verdict"]
+    elif event == "exit" and line.get("status") == "2":
+        count = "kills"
+    elif event == "retry":
+        count = "retries"
+    elif event == "relaunch" and line.get("cause") == "no-verdict":
+        count = "no-verdict"
+    else:
+        continue
+    # One classification, two tables: the line is the same event whichever way it is
+    # grouped, so reading `event` twice is the way the two sections come to disagree.
+    # A phase-less line still raises no phase row, and a retry has no phase column to
+    # land in.
+    if phase and count in COUNTS:
+        tally(counts, phase, PHASE_COLUMNS, count)
+    if step:
+        tally(steps, step, STEP_COLUMNS, count)
 
 # Rework, once the log has been read whole: every rejected attempt of a step that reached its
 # closing mark, into the row of the phase it was rejected in. The two conditions are what the
