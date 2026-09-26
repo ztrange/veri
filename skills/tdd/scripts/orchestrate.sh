@@ -16,23 +16,38 @@
 # cache_creation_input_tokens, which is the context it re-read. No closing result record is
 # needed — harvest-usage.sh reads that one, and only at the end.
 #
+# A conductor whose context has crossed VERI_CONDUCTOR_CTX_BUDGET (tokens, default 120000,
+# ~2.2x a conductor's 53k first request) is stopped only at a step boundary: once its stream
+# shows the Bash call to `event.sh step-done` and that call's result, orchestrate.sh stops
+# reading, and the conductor dies on its next write to the closed stream. Never mid-leaf —
+# a leaf killed in Red or Green leaves work a resume does not reset (#194).
+#
 # Exit 0 once solvable-issues.sh answers 3 (nothing to take); exit 2, launching nothing, when
 # it exits with anything but 0 or 3, since then no answer about the solvable set was obtained.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
+
 # watch_context <issue>: read a conductor's stream-json on stdin and print one
-# `context <issue> <tokens>` line per assistant event, as each event arrives.
+# `context <issue> <tokens>` line per assistant event, as each event arrives. Returns, closing
+# the stream, at the first step-done result seen while the context is over the budget.
 watch_context() {
   local line read_re='"cache_read_input_tokens":([0-9]+)' create_re='"cache_creation_input_tokens":([0-9]+)'
-  local cache_read
+  local cache_read context=0 step_done=0
   while IFS= read -r line; do
+    if [[ $step_done -eq 1 && $line == *'"type":"user"'* ]]; then
+      [[ $context -gt $budget ]] && return 0
+      step_done=0
+    fi
     [[ $line == *'"type":"assistant"'* ]] || continue
+    [[ $line == *'event.sh step-done'* ]] && step_done=1
     [[ $line =~ $read_re ]] || continue
     cache_read=${BASH_REMATCH[1]}
     [[ $line =~ $create_re ]] || continue
-    echo "context $1 $((cache_read + BASH_REMATCH[1]))"
+    context=$((cache_read + BASH_REMATCH[1]))
+    echo "context $1 $context"
   done
 }
 
