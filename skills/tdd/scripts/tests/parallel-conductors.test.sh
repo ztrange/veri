@@ -359,6 +359,41 @@ done
 [[ -z "$bad" ]] \
   && ok || no "VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap ($bad )"
 
+# 8. A finished conductor's outcome is read from its PR and its run's event log, and reported one
+# line per issue: #7's stub conductor opens a ready PR — done — and #8's opens a draft PR and ends
+# its run's event log, `.tdd/wt/8/.tdd/events.jsonl` in the target, in a `bail` — bailed. Both
+# PRs say `Closes #<n>`, so each issue leaves the solvable set. #9's stub opens a draft PR too, but
+# its event log only *contains* a bail — a resumed run's `launch` follows it — so its draft is not a
+# bail and #9 must not be reported bailed. At the default VERI_PARALLEL=1 the launcher runs 7, 8
+# then 9, and its output carries `#7 — done <url>` and `#8 — bailed <url>`, and no bailed line for 9.
+gh8="$work/gh8"
+solvable_fixture "$gh8" 7 8 9
+
+outcome_stub="$work/claude-outcome"
+conductor_stub "$outcome_stub" <<STUB
+if [ "\$n" = 8 ] || [ "\$n" = 9 ]; then
+  mkdir -p ".tdd/wt/\$n/.tdd"
+  printf '%s\n' '{"ts": 1, "issue": "'"\$n"'", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "launch", "attempt": "1", "skill_commit": ""}' \
+    '{"ts": 2, "issue": "'"\$n"'", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}' \
+    >> ".tdd/wt/\$n/.tdd/events.jsonl"
+  [ "\$n" = 9 ] && printf '%s\n' '{"ts": 3, "issue": "9", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "launch", "attempt": "2", "skill_commit": ""}' \
+    >> ".tdd/wt/\$n/.tdd/events.jsonl"
+  printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": true, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh8/prs.lines"
+  printf '[%s]\n' "\$(paste -sd, "$gh8/prs.lines")" > "$gh8/prs.json"
+else
+  $(ready_pr "$gh8")
+fi
+STUB
+
+run_launcher "$gh8" "$outcome_stub" "$work/outcome.out"
+want_outcome="$(printf '#7 — done https://example.test/pull/7\n#8 — bailed https://example.test/pull/8')"
+got_outcome="$(grep -E '^#[0-9]+ — ' "$work/outcome.out")"
+[[ "$got_outcome" == "$want_outcome" ]] \
+  && ok || no "a ready PR is reported '#<n> — done <pr-url>', a draft PR whose event log ends in a bail '#<n> — bailed <pr-url>', and a draft PR whose log does not end in one never bailed (exit=$code)
+$(diff <(printf '%s\n' "$want_outcome") <(printf '%s\n' "$got_outcome"))
+launcher output:
+$(cat "$work/outcome.out")"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
