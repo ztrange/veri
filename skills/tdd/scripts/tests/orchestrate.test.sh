@@ -136,6 +136,119 @@ expected="$(printf '%s\n' 'context 301 53438' 'context 301 62000')"
 actual="$(grep '^context ' "$work/out")"
 expect_exit0_output
 
+# 4. A conductor whose context crosses VERI_CONDUCTOR_CTX_BUDGET mid-step is left running
+#    until the step's step-done mark, and stopped once that mark is seen. With the budget at
+#    100000, the stub's first incarnation streams an assistant event at 150000, then waits —
+#    up to ~2 s, polling orchestrate.sh's stdout — until orchestrate.sh has printed that
+#    event's context line, so the event is known to have been read, and only then writes
+#    `mid-step` (a conductor stopped on crossing the budget never gets there). It then streams
+#    the step-done mark as a real conductor does — the Bash call to `event.sh step-done` and
+#    its result — and keeps streaming heartbeat lines for ~2 s before writing `after-step-done`:
+#    a conductor that is stopped, by a signal or by its stream being closed, never writes it.
+#    Every later incarnation just leaves the solvable set, so the loop ends.
+name="a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is not stopped until step-done, and is stopped after it"
+budget="$work/budget"
+mkdir -p "$budget"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$budget/"
+cat > "$budget/run-conductor.sh" <<STUB
+#!/bin/sh
+"$scripts/run-conductor.sh" "\$1"
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
+i=0
+while [ \$i -lt 200 ] && ! grep -Fx 'context 401 150000' "$work/out" > /dev/null; do i=\$((i + 1)); sleep 0.01; done
+echo mid-step >> "\$MARKS"
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=401 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+i=0
+while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+echo after-step-done >> "\$MARKS"
+STUB
+chmod +x "$budget"/*.sh
+export SOLVABLE="$work/solvable-budget" LAUNCHES="$work/launches-budget" MARKS="$work/marks-budget"
+export VERI_CONDUCTOR_CTX_BUDGET=100000
+printf '%s\n' 401 > "$SOLVABLE"
+: > "$LAUNCHES"
+: > "$MARKS"
+orchestrate "$budget"
+unset VERI_CONDUCTOR_CTX_BUDGET
+expected="mid-step"
+actual="$(cat "$MARKS")"
+expect_exit0_output
+
+# 5. A step-done seen while the context is under the budget does not stop the conductor, and
+#    does not arm a stop for later: with VERI_CONDUCTOR_CTX_BUDGET unset, so its default
+#    applies, the stub's first incarnation streams the step-done mark at 110000 — under the
+#    default, over 100000 — then an assistant event at 150000 that is no step-done, then that
+#    event's tool result, and keeps streaming heartbeat lines for ~2 s before writing
+#    `after-step-done`. A conductor stopped at the under-budget step-done, or at the tool
+#    result that follows the later crossing, never writes it.
+name="a step-done under VERI_CONDUCTOR_CTX_BUDGET's default does not stop the conductor, then or at a later non-step-done crossing"
+underbudget="$work/underbudget"
+mkdir -p "$underbudget"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$underbudget/"
+cat > "$underbudget/run-conductor.sh" <<STUB
+#!/bin/sh
+"$scripts/run-conductor.sh" "\$1"
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=501 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":110000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"true"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":""}]}}'
+i=0
+while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+echo after-step-done >> "\$MARKS"
+STUB
+chmod +x "$underbudget"/*.sh
+export SOLVABLE="$work/solvable-underbudget" LAUNCHES="$work/launches-underbudget" MARKS="$work/marks-underbudget"
+unset VERI_CONDUCTOR_CTX_BUDGET
+printf '%s\n' 501 > "$SOLVABLE"
+: > "$LAUNCHES"
+: > "$MARKS"
+orchestrate "$underbudget"
+expected="after-step-done"
+actual="$(cat "$MARKS")"
+expect_exit0_output
+
+# 6. Over the budget, a conductor is stopped after the step-done call's result, not at the
+#    call itself: the call is streamed before its Bash command runs, and a conductor writes
+#    more before that result arrives. With the budget at 100000, the stub's first incarnation
+#    streams the step-done call at 150100, waits — up to ~2 s, polling orchestrate.sh's
+#    stdout — until orchestrate.sh has printed that event's context line, then streams
+#    heartbeat lines for ~0.5 s before writing `before-result` and the call's result, then
+#    heartbeats for ~2 s more before writing `after-step-done`. A conductor stopped at the
+#    call dies in the first heartbeats and never writes `before-result`.
+name="a conductor over VERI_CONDUCTOR_CTX_BUDGET is stopped after the step-done call's result, not at the call"
+atresult="$work/atresult"
+mkdir -p "$atresult"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$atresult/"
+cat > "$atresult/run-conductor.sh" <<STUB
+#!/bin/sh
+"$scripts/run-conductor.sh" "\$1"
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=601 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+i=0
+while [ \$i -lt 200 ] && ! grep -Fx 'context 601 150100' "$work/out" > /dev/null; do i=\$((i + 1)); sleep 0.01; done
+i=0
+while [ \$i -lt 50 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+echo before-result >> "\$MARKS"
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+i=0
+while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+echo after-step-done >> "\$MARKS"
+STUB
+chmod +x "$atresult"/*.sh
+export SOLVABLE="$work/solvable-atresult" LAUNCHES="$work/launches-atresult" MARKS="$work/marks-atresult"
+export VERI_CONDUCTOR_CTX_BUDGET=100000
+printf '%s\n' 601 > "$SOLVABLE"
+: > "$LAUNCHES"
+: > "$MARKS"
+orchestrate "$atresult"
+unset VERI_CONDUCTOR_CTX_BUDGET
+expected="before-result"
+actual="$(cat "$MARKS")"
+expect_exit0_output
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
