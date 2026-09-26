@@ -746,6 +746,37 @@ done
 [[ -z "$bad" ]] \
   && ok || no "the report prints one line per issue in launch order, then one line naming what stopped the loop ($bad )"
 
+# 20. /tdd <scope> gains VERI_PARALLEL: SCOPE-LOOP.md reads it as `${VERI_PARALLEL:-1}`, says that
+# at 1 nothing about rung 2 changes, and that above 1 the loop runs parallel-conductors.sh
+# detach-then-wait and relays its report. Read from the skill's own SCOPE-LOOP.md, one sentence
+# at a time — the file joined into one line and split after every `. ` — so a probe's two halves
+# must stand in the same sentence rather than anywhere in the file. Every probe that finds
+# nothing is named in the single FAIL line.
+scope_loop_md="$HERE/../../SCOPE-LOOP.md"
+sentences="$(tr '\n' ' ' < "$scope_loop_md" | tr -s ' ' | sed 's/\. /.\n/g')"
+# said <pattern>... — true when one sentence of SCOPE-LOOP.md matches every pattern, case-folded.
+said() {
+  local lines="$sentences" pattern
+  for pattern in "$@"; do
+    lines="$(grep -iE -e "$pattern" <<<"$lines")"
+  done
+  [[ -n "$lines" ]]
+}
+bad=""
+grep -F '${VERI_PARALLEL:-1}' "$scope_loop_md" > /dev/null \
+  || bad+=" [no \${VERI_PARALLEL:-1} read]"
+said 'VERI_PARALLEL|(at|is) 1([^0-9]|$)' 'rung 2' '(unchanged|nothing[^.]*chang)' \
+  || bad+=" [no sentence says at 1 rung 2 is unchanged]"
+said '(above|over|more than|greater than) 1([^0-9]|$)' 'parallel-conductors\.sh' \
+  || bad+=" [no sentence says above 1 it runs parallel-conductors.sh]"
+said 'parallel-conductors\.sh' 'detach(-| )then(-| )wait' \
+  || bad+=" [no sentence says parallel-conductors.sh runs detach-then-wait]"
+said 'relay' 'report' \
+  || bad+=" [no sentence says the report is relayed]"
+
+[[ -z "$bad" ]] \
+  && ok || no "SCOPE-LOOP.md documents VERI_PARALLEL: at 1 rung 2 is unchanged, above 1 it runs parallel-conductors.sh detach-then-wait and relays the report ($bad )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
