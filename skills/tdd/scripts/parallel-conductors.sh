@@ -25,6 +25,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # stops answering 0 — exit 3 once nothing is left — and `set -e` hands its status back as ours.
 while :; do
   solvable="$("$HERE/solvable-issues.sh")"
-  "$HERE/supervise.sh" "conductor-${solvable%%[[:space:]]*}" \
-    "$HERE/run-conductor.sh" "${solvable%%[[:space:]]*}" > /dev/null
+  n="${solvable%%[[:space:]]*}"
+  "$HERE/supervise.sh" "conductor-$n" "$HERE/run-conductor.sh" "$n" > /dev/null
 done
