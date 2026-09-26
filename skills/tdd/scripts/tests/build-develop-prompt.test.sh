@@ -1538,8 +1538,9 @@ rebase="$("$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto" "$
 [[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
 [[ "$rebase" == *"$rb_onto"* ]] || problems="$problems; no onto sha"
 [[ "$rebase" == *"$rb_pre"* ]] || problems="$problems; no pre-rebase sha"
-[[ "$rebase" == *'skills/tdd/SKILL.md'* ]] || problems="$problems; no conflicting file skills/tdd/SKILL.md"
-[[ "$rebase" == *'scripts/zorblat frob & nitz.sh'* ]] || problems="$problems; no conflicting file 'scripts/zorblat frob & nitz.sh'"
+while IFS= read -r rb_file; do
+  [[ "$rebase" == *"$rb_file"* ]] || problems="$problems; no conflicting file '$rb_file'"
+done <<< "$rb_files"
 [[ "$rebase" == *"$test_cmd"* ]] || problems="$problems; no test command"
 [[ "$rebase" == *"git rebase $rb_onto"* ]] || problems="$problems; no literal 'git rebase <onto-sha>'"
 [[ "$rebase" == *ledger* && "$rebase" == *'[x]'* && "$rebase" == *'⟂ refactor pending'* ]] \
