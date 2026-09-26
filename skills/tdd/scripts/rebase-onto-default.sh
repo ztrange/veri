@@ -15,7 +15,8 @@
 #
 # Exit 2 when git refuses the rebase for any other reason, such as a dirty working tree:
 # nothing was started, so HEAD is unchanged and stdout is empty. The same when origin cannot
-# be fetched: the local origin/<default> may be stale, so no rebase is attempted onto it.
+# be fetched, or a fetch leaves origin/<default> behind the remote's own branch: the local
+# copy is stale, so no rebase is attempted onto it.
 
 # rebase_in_progress — succeed when git holds a rebase in progress. Which directory holds it
 # depends on the backend: rebase-merge for the merge backend, rebase-apply for
@@ -41,6 +42,12 @@ main() {
   # What the clone last fetched may be stale: rebasing onto it would be rebasing onto a
   # guess, so an origin that cannot be fetched is no answer at all — exit 2.
   git fetch -q origin >/dev/null 2>&1 || exit 2
+
+  # A fetch that exits 0 need not have refreshed origin/<default> — a fetch refspec can
+  # leave it out — so the remote's own answer for the branch must match what the clone holds.
+  local remote_sha
+  remote_sha="$(git ls-remote origin "refs/heads/${default#origin/}" 2>/dev/null)" || exit 2
+  [[ "${remote_sha%%[[:space:]]*}" == "$(git rev-parse "$default")" ]] || exit 2
 
   git merge-base --is-ancestor "$default" HEAD && exit 3
 

@@ -240,6 +240,29 @@ rc=$?
 expect_refused "$repo" "$head_before" "$rc" "$dir/stdout" ", not rebased onto the stale origin/main"
 report "$name"
 
+# 7. The clone fetched origin/main once, after another run merged, so the branch is behind
+#    it. Its fetch refspec then narrows to the run's own branches, and another run merges
+#    again: the origin is in reach and `git fetch` succeeds, yet it refreshes nothing under
+#    origin/main, so what the clone holds is stale all the same. A fetch that exited 0 is
+#    not a default branch that was fetched: exit 2, no stdout, and HEAD where it was.
+#    stdout goes to a file for the reason case 4 gives.
+name="rebase-onto-default.test.sh: when a fetch succeeds without refreshing origin/<default>, exits 2 with nothing on stdout and never rebases onto the stale local copy"
+problems=()
+dir="$work/fetch-skips-default"
+origin_fixture "$dir"
+repo="$dir/clone"
+run_branch "$repo"
+echo "another run's work" > "$dir/seed/other.txt"
+advance_origin "$dir"
+git -C "$repo" config remote.origin.fetch '+refs/heads/tdd/*:refs/remotes/origin/tdd/*'
+echo "a third run's work" > "$dir/seed/third.txt"
+advance_origin "$dir"
+head_before="$(git -C "$repo" rev-parse HEAD)"
+(cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
+rc=$?
+expect_refused "$repo" "$head_before" "$rc" "$dir/stdout" ", not rebased onto the stale origin/main"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
