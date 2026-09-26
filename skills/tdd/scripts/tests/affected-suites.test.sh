@@ -589,6 +589,24 @@ expect_suites "#487: a caller whose source line ends at the lib path, with or wi
   skills/tdd/scripts/tests/delta.test.sh \
   skills/tdd/scripts/tests/epsilon.test.sh
 
+# 26. rule 2 over a comment that names a lib file (issue #487): widening the pattern to a `\`
+#     continuation must not turn commentary into a dependency. alpha.sh sources lib/bar.sh for
+#     real, so the answer is not empty; beta.sh comments out a continuation-form source line and
+#     gamma.sh an indented end-of-line one. Neither sources it, so neither suite may appear.
+new_repo rule2-comment
+mkdir -p "$s/tests" "$s/lib"
+printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
+hdr='#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\n'
+printf "${hdr}"'source "$HERE/lib/bar.sh"\n' > "$s/alpha.sh"
+printf "${hdr}"'# source "$HERE/lib/bar.sh" \\\n' > "$s/beta.sh"
+printf "${hdr}"'  # . "$HERE/lib/bar.sh"\n' > "$s/gamma.sh"
+for name in alpha beta gamma; do printf '# %s suite\n' "$name" > "$s/tests/$name.test.sh"; done
+commit_base
+printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
+commit_head
+expect_suites "#487: a comment that names a lib file is still not a dependency" \
+  skills/tdd/scripts/tests/alpha.test.sh
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
