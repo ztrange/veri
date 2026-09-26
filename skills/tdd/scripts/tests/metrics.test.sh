@@ -2273,6 +2273,73 @@ wall_clock_says "$clocked_out" no
 report_on "$name" "$clocked_out"
 
 
+# A fixture half written before the awake clock existed (#486): the step opened and its first
+# Red attempt ran with no `awake` reading, and from the second attempt on every line carries
+# one. The second attempt slept: launch (ts 30050, awake 1050) to exit (ts 40090, awake 1090)
+# is 10,040 wall seconds and 40 awake ones. Summing the first attempt's 30 wall seconds with
+# the second's 40 awake ones gives 70, a figure on no clock at all; on the one clock both
+# attempts carry it is 30 + 10,040 = 10,070. The step (30000 to 40100) and the issue (30000
+# to 40150) are 10,100 and 10,150 on that clock — every figure a distinct number — and since
+# they are wall-clock, the report owes the line saying so.
+fixture_work mixed_work
+
+mixed="a step of a run whose log gained the awake clock partway"
+
+sv "$mixed" 30000 conductor ""  step-start ""
+sv "$mixed" 30010 developer red launch     1  '"name": "develop-red"'
+sv "$mixed" 30040 developer red exit       1  '"status": "2", "cause": "no heartbeat for 300s (window 120s)", "secs": "30"'
+sv "$mixed" 30050 developer red launch     2  '"awake": 1050, "name": "develop-red"'
+sv "$mixed" 40090 developer red exit       2  '"awake": 1090, "status": "0", "secs": "10040"'
+sv "$mixed" 40100 conductor ""  step-done  "" '"awake": 1100'
+sv "$mixed" 40150 conductor ""  done       "" '"awake": 1150, "pr": "https://github.com/ztrange/veri/pull/994"'
+
+plan_of "$mixed"
+
+
+name="#486 given a log where only some events carry an awake reading, no figure mixes the two clocks and the report says the figures are wall-clock"
+problems=()
+
+mixed_out="$mixed_work/report.md"
+render "$mixed_work" "$mixed_out"
+
+times_say "$mixed_out" "$mixed=10100" red=10070
+
+probe '
+import re, sys
+
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+walls = [l for l in lines if l.startswith("Wall time for the issue:")]
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+elif re.search(r"(?<![0-9.])10150(?![0-9.])", walls[0]) is None:
+    print("want the issue wall to be the 10150 wall-clock seconds, it says: %r" % walls[0])
+' "$mixed_out"
+
+wall_clock_says "$mixed_out" yes
+
+report_on "$name" "$mixed_out"
+
+
+# An empty log carries no awake-clock reading at all, so it is the no-reading case at its
+# limit: a report of it says its figures are wall-clock, as one of a log written before the
+# awake clock does. "Every line carries a reading" is vacuously true of no lines, which is the
+# answer this case is here to refuse.
+fixture_work empty_work
+: > "$fixture_log"
+
+name="#486 given an empty log, the report says its figures are wall-clock"
+problems=()
+
+empty_out="$empty_work/report.md"
+render "$empty_work" "$empty_out"
+
+wall_clock_says "$empty_out" yes
+
+report_on "$name" "$empty_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

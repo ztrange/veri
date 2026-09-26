@@ -265,9 +265,13 @@ def span(start, end):
     return None if start is None or end is None else end - start
 
 # The reading of one clock off a mark of the log — `ts` or `awake` — or None when there is no mark,
-# or the mark carries no reading of that clock, which `span` above then carries through.
+# or the mark carries no reading of that clock, which `span` above then carries through. The
+# awake clock reads as None throughout a log not every line of which carries it (`clocked`
+# below), so no figure mixes the two clocks.
 def reading(mark, clock):
-    return None if mark is None else mark.get(clock)
+    if mark is None or (clock == "awake" and not clocked):
+        return None
+    return mark.get(clock)
 
 # The seconds between two marks as a figure measures them (#486): on the awake clock when both
 # carry a reading, so time the machine spent asleep is not counted as work, and on `ts`
@@ -431,10 +435,15 @@ ending = None
 # attempt span off the awake clock (#486).
 launched = {}
 
-# Whether any line of the log carries an awake-clock reading (#486). A log with none was
-# written before event.sh recorded one, so every figure below is wall-clock, and the report
-# says so rather than letting a reader take them for awake time.
-clocked = False
+# Whether every line of the log carries an awake-clock reading (#486). A log with none was
+# written before event.sh recorded one, and a log with only some gained it partway; in either
+# case every figure below is wall-clock — a figure taking one end off each clock, or summing
+# attempts measured on different clocks, is on no clock at all — and the report says so
+# rather than letting a reader take them for awake time. Read in a pass of its own because
+# the attempt sums below are added line by line, before the last line is seen.
+with open(path) as f:
+    marks = [json.loads(raw) for raw in f if raw.strip()]
+clocked = bool(marks) and all("awake" in mark for mark in marks)
 
 with open(path) as f:
     for raw in f:
@@ -446,8 +455,6 @@ with open(path) as f:
         step = line.get("step", "")
         phase = line.get("phase", "")
         ts = line.get("ts")
-        if "awake" in line:
-            clocked = True
         if opening is None or event == "resume":
             opening = line
         # A `stop` is not terminal the way `done` and `bail` are: the run it paused may be
