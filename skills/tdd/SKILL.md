@@ -1276,7 +1276,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
 
 ### 4. Draft PR
 
-Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off. The full suite
+Reached when `next-unchecked.sh` exits 3 — every ledger step is checked off but the
+`⟦full-suite⟧` and `⟦human-owed⟧` lines, which that script skips and no cycle closes: an
+unchecked line carrying either does not hold the run back from this step. The full suite
 must be green before this step: run `$S/detect-test-command.sh --tier all`'s command here,
 exactly once — the only full-suite gate left in the cycle, since every leaf runs the fast
 command, the affected suites, or both. That nothing is left uncommitted and no step is still only
@@ -1889,7 +1891,9 @@ is nothing to re-create or switch. The **resume check** then finds an existing
    `gh pr create` here — opening the first PR a branch has ever had is not opening a second.
    Then run the cycle loop as normal. Go to the **draft PR** only when
    `next-pending-refactor.sh` and `next-unchecked.sh` have **both** exited 3: every step is
-   checked, and every checked step's refactor is verified.
+   checked, and every checked step's refactor is verified. An unchecked `⟦full-suite⟧` or
+   `⟦human-owed⟧` line does not hold the run back from its draft PR — no cycle ticks either,
+   and `next-unchecked.sh` skips both.
 
 Because each step was checked off **atomically with its green commit**, the ledger and the
 git history agree on exactly what is done — so resume never repeats or skips a step.
