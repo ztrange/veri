@@ -2021,6 +2021,32 @@ CLAIMS
 [[ -z "$clock_misses" ]] && ok \
   || no "#472: supervise.sh's header names the watchdog's clock source and why it pauses while the machine is suspended, for macOS and Linux (unstated:$clock_misses)"
 
+# 50. the `secs` a supervised leaf's exit event carries is AWAKE time, the difference of two
+#     awake-clock readings, so a suspend the wall clock sees and the awake clock does not is
+#     not counted (issue #486). A phase's wall is summed from these, and the issue's wall is
+#     measured on the awake clock too; counted here, the same sleep would be in one and not
+#     the other. The leaf spends `$awake_spent` awake seconds (`clock-jump`, both clocks move),
+#     is then suspended 100 (`clock-suspend`, the wall clock alone moves), and exits 0 — so
+#     `secs` must be the awake seconds, plus at most one for a real second boundary landing
+#     between the two readings, never the ~100 of wall time the suspend added.
+cat > "$stub/leaf-slept-through" <<'L'
+#!/bin/sh
+echo "leaf: starting"
+clock-jump 2
+echo "leaf: busy"
+clock-suspend 100
+echo "leaf: awake again"; exit 0
+L
+chmod +x "$stub/leaf-slept-through"
+awake_spent=2
+slept_work="$work/slept"
+sup_run "$slept_work" VERI_HEARTBEAT=30 VERI_TIMEOUT=30 "$SUP" develop-red "$stub/leaf-slept-through"
+slept_status="$(event_field "$slept_work" exit status)"
+slept_secs="$(event_field   "$slept_work" exit secs)"
+{ [[ "$slept_status" == 0 ]] && [[ "$slept_secs" =~ ^[0-9]+$ ]] \
+  && (( slept_secs >= awake_spent && slept_secs <= awake_spent + 1 )); } && ok \
+  || no "#486: a leaf awake ${awake_spent}s and suspended 100s reports the awake seconds as its exit event's secs, not the wall seconds (status=$slept_status want 0, secs=$slept_secs want $awake_spent..$(( awake_spent + 1 )))"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
