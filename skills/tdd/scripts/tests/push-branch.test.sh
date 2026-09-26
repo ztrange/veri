@@ -621,6 +621,102 @@ problems=()
   problems+=("want the push to a missing origin to complete in under 5 s — a case pushing to a missing origin sets VERI_PUSH_BACKOFF=0 — took ${unreachable_seconds} s")
 report "$name"
 
+# 12. Issue #238's rebase is published by a force-push, and the only force this script may
+#     make is one pinned to the sha the run last saw: `--force-with-lease=<branch>:<sha>`.
+#     Three runs against a bare remote, git's own lease doing the deciding for real, since the
+#     lease IS the behaviour under test. (a) The remote still points at <sha> and the local
+#     branch was rewritten (pushed, then amended): the lease holds, the call exits 0 and the
+#     remote now carries HEAD. (b) The remote has moved on to a commit nobody told this run
+#     about: the lease is stale, the call refuses — exit 1, the rejection case 8 already names
+#     — and the remote is left where it moved to. (c) The same moved remote, the call made with
+#     no argument: it pushes exactly as before, so it is rejected and replaces nothing — no
+#     bare force hides behind the no-argument path. (d) The same moved remote, the call made
+#     with a bare `--force`: bad arguments, exit 2 before any push, the remote left untouched.
+name="push-branch.sh --force-with-lease=<branch>:<sha> replaces a remote still at <sha>, refuses one that has moved on, and with no argument still replaces nothing"
+problems=()
+branch=tdd/238-lease
+step='push-branch.sh pushes under a lease'
+
+# (a) the lease holds
+repo="$work/lease-holds"
+remote="$work/origin-lease-holds.git"
+git init -q --bare "$remote" >/dev/null 2>&1
+run_fixture "$repo" "$branch" 238 <<'LEDGER'
+# Plan for #238 — concurrent runs owe a rebase
+
+- [ ] push-branch.sh pushes under a lease
+LEDGER
+git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
+seen="$(git_q "$repo" rev-parse HEAD)"
+git_q "$repo" commit -q --amend -m "feat: the step's green commit, rebased (#238)" >/dev/null 2>&1
+head="$(git_q "$repo" rev-parse HEAD)"
+( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
+    "$PUSH" "--force-with-lease=$branch:$seen" ) \
+  >/dev/null 2>"$work/lease-holds.stderr" && code=0 || code=$?
+got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+[[ "$code" == 0 ]] ||
+  problems+=("lease that holds: want exit 0, got $code; stderr: $(printf '%q' "$(cat "$work/lease-holds.stderr")")")
+[[ "$got" == "$head" ]] ||
+  problems+=("lease that holds: want origin/$branch replaced by HEAD $head, got $got (the leased sha was $seen)")
+
+# (b) the lease is stale, and (c) the same remote pushed to with no argument
+repo="$work/lease-stale"
+remote="$work/origin-lease-stale.git"
+git init -q --bare "$remote" >/dev/null 2>&1
+run_fixture "$repo" "$branch" 238 <<'LEDGER'
+# Plan for #238 — concurrent runs owe a rebase
+
+- [ ] push-branch.sh pushes under a lease
+LEDGER
+git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
+seen="$(git_q "$repo" rev-parse HEAD)"
+# Someone else's commit lands on the remote branch after this run last looked at it.
+moved="$(git_q "$repo" commit-tree -p "$seen" -m "someone else's push (#238)" "$seen^{tree}")"
+git_q "$repo" push -q origin "$moved:refs/heads/$branch" >/dev/null 2>&1
+git_q "$repo" commit -q --amend -m "feat: the step's green commit, rebased (#238)" >/dev/null 2>&1
+( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
+    "$PUSH" "--force-with-lease=$branch:$seen" ) \
+  >/dev/null 2>"$work/lease-stale.stderr" && code=0 || code=$?
+got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+[[ "$code" == 1 ]] ||
+  problems+=("stale lease: want exit 1 — the remote moved on, a clean refusal — got $code")
+[[ "$got" == "$moved" ]] ||
+  problems+=("stale lease: want origin/$branch left at $moved, where it moved to, got $got")
+( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
+    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
+got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+[[ "$code" == 1 ]] ||
+  problems+=("no argument: want exit 1 — pushed exactly as before, so rejected — got $code")
+[[ "$got" == "$moved" ]] ||
+  problems+=("no argument: want origin/$branch left at $moved — never a bare force — got $got")
+( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
+    "$PUSH" --force ) >/dev/null 2>&1 && code=0 || code=$?
+got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+[[ "$code" == 2 ]] ||
+  problems+=("bare --force: want exit 2 — bad arguments, the one force allowed is pinned to a sha — got $code")
+[[ "$got" == "$moved" ]] ||
+  problems+=("bare --force: want origin/$branch left at $moved, got $got")
+# (e) Every lease not pinned to a sha, and a pinned one with anything beside it: bad
+#     arguments, exit 2, the remote left untouched. Each would replace this remote for real
+#     if handed to git: the earlier push of $moved moved refs/remotes/origin/$branch there
+#     too, so an unpinned lease compares against a tracking ref that already agrees, and the
+#     pinned lease below names $moved itself, so only its companion argument can refuse it.
+for args in "--force-with-lease" "--force-with-lease=$branch" \
+            "--force-with-lease=$branch:origin/$branch" \
+            "--force-with-lease=$branch:$moved --force"; do
+  # shellcheck disable=SC2086 # word-split on purpose: the last entry is two arguments
+  ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
+      "$PUSH" $args ) >/dev/null 2>&1 && code=0 || code=$?
+  got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+  [[ "$code" == 2 ]] ||
+    problems+=("'$args': want exit 2 — bad arguments, the one force allowed is a single lease pinned to a sha — got $code")
+  [[ "$got" == "$moved" ]] ||
+    problems+=("'$args': want origin/$branch left at $moved, got $got")
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
