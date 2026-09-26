@@ -687,6 +687,11 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    where k is the 1-based position of the acceptance criterion it serves, and leave a gap
    step without one: `criterion-finished.sh` reads that notation to decide when the issue's
    criterion may be ticked.
+
+   A criterion whose only observable is that the repository's test command passes — "the
+   suites are green" — is not planned as a Red/Green step: it has no failing test to write,
+   so a Red leaf could only answer `UNTESTABLE` and the run would bail. Write it as one line,
+   `- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧`, recorded as covered by the full-suite run.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
