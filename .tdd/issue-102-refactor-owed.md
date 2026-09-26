@@ -6,3 +6,5 @@
 - parallel-conductors.sh `report` starts one python3 per launched issue to match its PR; one call could classify every number in `order` at once
 - parallel-conductors.sh `report`'s `VERI_GH_JSON`-or-`gh pr list` read repeats the `gh_read` fixture switch in solvable-issues.sh:119-123; sharing it means extracting that switch into `scripts/lib/`
 - case 8's stub conductor in parallel-conductors.test.sh writes the same launch/bail event JSON literal on several `printf` lines; one event-line helper would remove that
+### A conductor its supervisor killed (supervise exit 2) is reported `#<n> — killed after <VERI_RUN_TIMEOUT>s` ⟦criterion 3⟧
+- test case 9 builds its `jump_clock` awake-clock stub inline with printf. It is the one such stub in this file, so no duplicate exists yet to justify extracting it
