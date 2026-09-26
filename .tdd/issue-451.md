@@ -10,7 +10,7 @@
 - [x] SKILL.md's crossing branch builds the `over-budget` prompt, launches its leaf through `supervise.sh` the way the exhausted leaf is launched, and reads its answer with `exhausted-outcome.sh`, never by eye ⟦criterion 5⟧
 - [x] The over-budget exit 0 branch restores the tree (`git reset --hard HEAD`, `git clean -f -- <test-path>`) before growing the plan, grows it in one `add-ledger-step.sh instead-of` call, and commits the plan before the run continues ⟦criterion 6⟧
 - [x] The over-budget exit 0 branch treats `add-ledger-step.sh` exit 1 as a `step-too-big` bail ⟦criterion 7⟧
-- [ ] The over-budget exit 1 branch parks the step carrying the leaf's answer and the spent and budget figures, and leaves the plan unchanged ⟦criterion 8⟧
+- [x] The over-budget exit 1 branch parks the step carrying the leaf's answer and the spent and budget figures, and leaves the plan unchanged ⟦criterion 8⟧ ⟂ refactor pending
 - [ ] The over-budget exit 3 branch records the crossing and continues the step, and SKILL.md says in so many words that it is not a bail and why ⟦criterion 9⟧
 - [ ] SKILL.md states once, in the over-budget section, why a crossing is not a failure and why no exit code changes meaning
 - [ ] A supervisor exit 2 on the over-budget leaf is a `killed-stuck` bail, and SKILL.md says the step's budget stays crossed rather than re-arming ⟦criterion 10⟧
