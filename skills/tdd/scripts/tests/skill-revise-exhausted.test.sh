@@ -448,8 +448,9 @@ if [[ ! -r "$skill_path" ]]; then
 else
   reset_at="$(first_line 'git reset --hard HEAD')"
   clean_at="$(first_line 'git clean -f -- <test-path>')"
-  grow_calls="$(cost_check_lines | grep -F -- '$S/add-ledger-step.sh' | grep -cF -- 'instead-of')"
-  grow_at="$(head -1 < <(cost_check_lines | grep -nF -- '$S/add-ledger-step.sh' | grep -F -- 'instead-of' | cut -d: -f1))"
+  grow_lines="$(cost_check_lines | grep -nF -- '$S/add-ledger-step.sh' | grep -F -- 'instead-of' | cut -d: -f1)"
+  grow_calls="$(grep -c . <<< "$grow_lines")"
+  grow_at="$(head -1 <<< "$grow_lines")"
   commit_at="$(first_line 'git commit')"
   [[ -n "$reset_at" ]] ||
     problems+=("'$cost_heading' never runs git reset --hard HEAD, so the over-budget split grows the plan on top of the step's uncommitted work")
