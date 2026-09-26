@@ -110,6 +110,23 @@ grep -Eq '(without|no |none|omit)' < <(grep -F '⟦criterion' <<<"$plan_recs" | 
   problems+=("plan guidance: no instruction in step 2 says a gap step carries no ⟦criterion k⟧")
 report "$name"
 
+# 3. One criterion (#481) — a criterion whose only observable is that the test command passes
+#    has no failing test to write, so a Red leaf can only answer UNTESTABLE and the run bails.
+#    Step 2 must write it as one `⟦full-suite⟧` ledger line the full-suite run covers, not as
+#    a Red/Green step.
+name="#481: $skill_md's step 2 writes a criterion whose only observable is the test command passing as one ⟦full-suite⟧ ledger line covered by the full-suite run, not a Red/Green step"
+problems=()
+grep -F -- '- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧' <<<"$plan_recs" > /dev/null ||
+  problems+=("plan guidance: step 2 never shows the ledger line '- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧'")
+full_rec="$(head -1 < <(grep -F '⟦full-suite⟧' <<<"$plan_recs" | grep -F 'test command' | grep -F 'full-suite run'))"
+if [[ -z "$full_rec" ]]; then
+  problems+=("plan guidance: no instruction in step 2 names ⟦full-suite⟧ for a criterion whose only observable is the test command passing, covered by the full-suite run")
+else
+  [[ "$full_rec" =~ (not|never|no)\ [^.]*red/green ]] ||
+    problems+=("plan guidance: the ⟦full-suite⟧ instruction never says such a criterion is not planned as a Red/Green step")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
