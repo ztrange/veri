@@ -8,6 +8,10 @@
 #                       → exit 3, "nothing to do": there is no rebase to make.
 #                       → nothing on stdout.
 #                       → HEAD and the working tree exactly what they were before the call.
+#   rebase-onto-default.sh, run on a branch behind origin/<default> with no conflict
+#                       → rebases onto it, exit 0.
+#                       → stdout is two lines: the pre-rebase sha, then the onto sha.
+#                       → HEAD contains origin/<default>, with the branch's own commits on top.
 #
 # The origin is a bare repository on the local disk, cloned so the clone carries
 # origin/HEAD the way a real one does: the default branch is whatever the remote says, and
@@ -74,6 +78,40 @@ head_after="$(git -C "$repo" rev-parse HEAD)"
 status_after="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
 [[ "$status_after" == "$status_before" ]] ||
   problems+=("working tree: want it unchanged at $(printf '%q' "$status_before"), got $(printf '%q' "$status_after")")
+report "$name"
+
+# 2. origin/main moved on by a commit touching another file than the branch's: the branch is
+#    behind, the rebase is clean, and the run's own commit lands on top of the new tip.
+name="rebase-onto-default.test.sh: a branch behind origin/<default> with no conflict rebases onto it, exits 0, prints the pre-rebase and onto shas, and keeps its own commit on top"
+problems=()
+dir="$work/behind"
+mkdir -p "$dir"
+origin_fixture "$dir"
+repo="$dir/clone"
+git_q "$repo" checkout -q -b tdd/1-a-run >/dev/null 2>&1
+echo "the run's work" > "$repo/work.txt"
+git_q "$repo" add -A >/dev/null 2>&1
+git_q "$repo" commit -q -m "feat: a step's green commit (#1)" >/dev/null 2>&1
+echo "another run's work" > "$dir/seed/other.txt"
+git_q "$dir/seed" add -A >/dev/null 2>&1
+git_q "$dir/seed" commit -q -m "feat: another run merged (#2)" >/dev/null 2>&1
+git_q "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
+git -C "$repo" fetch -q origin >/dev/null 2>&1
+pre="$(git -C "$repo" rev-parse HEAD)"
+onto="$(git -C "$repo" rev-parse origin/main)"
+out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
+rc=$?
+[[ "$rc" -eq 0 ]] || problems+=("exit: want 0, got $rc")
+want_out="$(printf '%s\n%s' "$pre" "$onto")"
+[[ "$out" == "$want_out" ]] ||
+  problems+=("stdout: want $(printf '%q' "$want_out"), got $(printf '%q' "$out")")
+git -C "$repo" merge-base --is-ancestor "$onto" HEAD ||
+  problems+=("HEAD: want it to contain origin/main $onto, it does not")
+parent="$(git -C "$repo" rev-parse HEAD~1 2>/dev/null)"
+[[ "$parent" == "$onto" ]] || problems+=("HEAD~1: want the onto sha $onto, got $parent")
+subject="$(git -C "$repo" log -1 --format=%s HEAD)"
+[[ "$subject" == "feat: a step's green commit (#1)" ]] ||
+  problems+=("HEAD subject: want the branch's own commit, got $(printf '%q' "$subject")")
 report "$name"
 
 echo "----"
