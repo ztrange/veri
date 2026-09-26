@@ -8,3 +8,5 @@
 - case 8's stub conductor in parallel-conductors.test.sh writes the same launch/bail event JSON literal on several `printf` lines; one event-line helper would remove that
 ### A conductor its supervisor killed (supervise exit 2) is reported `#<n> — killed after <VERI_RUN_TIMEOUT>s` ⟦criterion 3⟧
 - test case 9 builds its `jump_clock` awake-clock stub inline with printf. It is the one such stub in this file, so no duplicate exists yet to justify extracting it
+### The first bail or kill stops new launches while conductors already running are waited to completion, and --continue-on-bail keeps launching and skips the bailed number ⟦criterion 3⟧
+- move the `stopped=""` declaration in `parallel-conductors.sh` up next to the other loop-state declarations (`in_flight`, `launched`, `order`) instead of after `report()`
