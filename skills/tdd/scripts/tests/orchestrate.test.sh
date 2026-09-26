@@ -329,6 +329,29 @@ expected="$(printf '%s\n' 'argv 1: [1001]' 'argv 1: [1001]')"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
+# 11. A conductor's exit 0 says nothing about whether its run finished; an issue still in the
+#     solvable set, whose ledger still has an unchecked step, is unfinished and is launched
+#     again before the next issue is taken. The solvable set holds 1101 then 1102, and
+#     .tdd/issue-1101.md in the scratch root, where orchestrate.sh runs, has one ticked and
+#     one unchecked step. The first incarnation for 1101 puts it back at the head of the set
+#     and exits 0 streaming nothing; every later launch just leaves the set. An orchestrator
+#     that took the exit 0 as done would go on to 1102 without relaunching 1101.
+name="a conductor exiting 0 with its issue still solvable and an unchecked ledger step is relaunched, not treated as done"
+exitzero="$work/exitzero"
+conductor_stub "$exitzero" <<STUB
+[ "\$1" = 1101 ] && [ "\$(grep -cx 1101 "\$LAUNCHES")" -eq 1 ] || exit 0
+{ echo 1101; cat "\$SOLVABLE"; } > "\$SOLVABLE.next"
+mv "\$SOLVABLE.next" "\$SOLVABLE"
+exit 0
+STUB
+seed exitzero 1101 1102
+mkdir -p "$work/.tdd"
+printf '%s\n' '# Plan' '- [x] first step' '- [ ] second step' > "$work/.tdd/issue-1101.md"
+orchestrate "$exitzero"
+expected="$(printf '%s\n' 1101 1101 1102)"
+actual="$(cat "$LAUNCHES")"
+expect_exit0_output
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
