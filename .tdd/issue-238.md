@@ -16,7 +16,7 @@
 - [x] SKILL.md step 4, after a rebase that changed the tree, runs the full test command once on the rebased tip, bails on a red result without readying the PR, and on green pushes with $S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>, never a bare force ⟦added⟧ ⟦criterion 2⟧
 - [x] SKILL.md step 4 on rebase-onto-default.sh exit 1 launches a develop-rebase leaf through supervise.sh, then a blind verify-rebase through run-verdict.sh, runs the revise loop on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS ⟦criterion 3⟧
 - [x] SKILL.md step 4 on a rebase not resolved within budget (REBASE: FAILED, revise-exhausted, or a killed leaf) resets the branch to the pre-rebase sha, leaves the PR a draft, and posts a bail comment naming every conflicting file ⟦criterion 4⟧
-- [ ] CLAUDE.md's script and suite counts include rebase-onto-default.sh and its suite
+- [x] CLAUDE.md's script and suite counts include rebase-onto-default.sh and its suite
 
 ## Owed steps
 
