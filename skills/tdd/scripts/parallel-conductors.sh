@@ -10,13 +10,6 @@
 # Usage:   parallel-conductors.sh [--repo owner/name] [--continue-on-bail]
 set -euo pipefail
 
-parallel="${VERI_PARALLEL-1}"
-
-if [[ ! "$parallel" =~ ^[0-9]+$ ]] || (( 10#$parallel < 1 )); then
-  echo "parallel-conductors: VERI_PARALLEL must be a whole number >= 1: '$parallel'" >&2
-  exit 2
-fi
-
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib/appendable.sh
 source "$HERE/lib/appendable.sh"
@@ -60,6 +53,22 @@ exclude="$common_dir/info/exclude"
 if ! grep -xF '.tdd/*' "$exclude" > /dev/null 2>&1; then
   make_appendable "$exclude"
   echo '.tdd/*' >> "$exclude"
+fi
+
+# finish <code> — exit with <code>, leaving it in `.tdd/parallel.exit` first, so whoever waits
+# on a detached launcher reads the final code from a file on every exit path, the refusals
+# included. The exclude above is already in place, so the file never dirties the checkout.
+finish() {
+  mkdir -p .tdd
+  echo "$1" > .tdd/parallel.exit
+  exit "$1"
+}
+
+parallel="${VERI_PARALLEL-1}"
+
+if [[ ! "$parallel" =~ ^[0-9]+$ ]] || (( 10#$parallel < 1 )); then
+  echo "parallel-conductors: VERI_PARALLEL must be a whole number >= 1: '$parallel'" >&2
+  finish 2
 fi
 
 # A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
@@ -114,22 +123,27 @@ for pr in json.loads(sys.argv[1]):
   return 0
 }
 
-# report — one line per launched issue, in launch order.
+# report — one line per launched issue, in launch order; sets `failed` when any of them bailed
+# or was killed.
+failed=""
 report() {
   local prs n got
   prs="$(prs_json)"
   for n in "${order[@]+"${order[@]}"}"; do
     got="$(outcome "$n" "$prs")"
     [[ -z "$got" ]] || echo "#$n — $got"
+    case "$got" in killed\ *|bailed\ *) failed=1 ;; esac
   done
   return 0
 }
 stopped=""   # set once a bail or kill has stopped new launches
+plumbing=""  # set once solvable-issues.sh has exited 2
 while :; do
   while (( ${#in_flight[@]} < 10#$parallel )); do
     [[ -z "$stopped" ]] || break
     (( max_issues == 0 || ${#launched[@]} < max_issues )) || break
     solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
+    (( rc != 2 )) || plumbing=1
     (( rc == 0 )) || break
     n=""
     for candidate in $solvable; do
@@ -146,8 +160,13 @@ while :; do
     order+=("$n")
   done
   if (( ${#in_flight[@]} == 0 )); then
+    # Exit 2 when solvable-issues.sh could not answer, 1 when any launch bailed or was killed,
+    # 3 when nothing was launched at all, 0 when every launched issue is done.
     report
-    exit "${rc:-3}"
+    [[ -z "$plumbing" ]] || finish 2
+    [[ -z "$failed" ]] || finish 1
+    (( ${#order[@]} > 0 )) || finish 3
+    finish 0
   fi
   wait -n || true
   for n in "${!in_flight[@]}"; do
