@@ -411,6 +411,81 @@ want_killed="#7 — killed after 60s"
 got_killed="$(grep -E '^#[0-9]+ — ' "$work/killed.out")"
 expect_lines "a conductor its supervisor killed (supervise exit 2) is reported '#<n> — killed after <VERI_RUN_TIMEOUT>s'" "$want_killed" "$got_killed" "$work/killed.out"
 
+# 10. The first bail stops new launches while the conductors already running are waited to
+# completion, and --continue-on-bail keeps launching and skips the bailed number. The fixture
+# holds three solvable issues, #11, #12 and #13, at VERI_PARALLEL=2, so #11 and #12 start
+# together. #11's stub conductor bails at once: a draft PR saying `Closes #11` and an event log
+# at `.tdd/wt/11/.tdd/events.jsonl` ending in a `bail`. #12's is still running when it does —
+# it holds until #13 has started (or $PATIENCE s pass), then records `end 12` and answers "done"
+# with a ready PR — and #13's records `start 13` and answers "done". Without the flag the
+# launcher never starts #13 and still waits for #12 (`end 12` recorded, `#12 — done` reported);
+# with it, #13 is launched and #11 is never launched a second time. Each run gets a fresh
+# fixture, record and event log; every mode that misbehaves is named in the single FAIL line.
+bad=""
+for mode in stop continue; do
+  gh10="$work/gh10-$mode"
+  solvable_fixture "$gh10" 11 12 13
+  rm -rf .tdd/wt/11
+  bail_record="$work/bail-$mode"
+  bail_stub="$work/claude-bail-$mode"
+  conductor_stub "$bail_stub" <<STUB
+echo "start \$n" >> "$bail_record"
+case "\$n" in
+  11)
+    mkdir -p ".tdd/wt/11/.tdd"
+    printf '%s\n' '{"ts": 1, "issue": "11", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}' \
+      >> ".tdd/wt/11/.tdd/events.jsonl"
+    $(open_pr "$gh10" true)
+    ;;
+  12)
+    i=0
+    while [ "\$i" -lt \$(( ${PATIENCE:-1} * 50 )) ] && ! grep -x 'start 13' "$bail_record" > /dev/null 2>&1; do
+      sleep 0.02; i=\$((i + 1))
+    done
+    echo "end 12" >> "$bail_record"
+    $(ready_pr "$gh10")
+    ;;
+  *)
+    $(ready_pr "$gh10")
+    ;;
+esac
+STUB
+  if [[ "$mode" == continue ]]; then
+    env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+      VERI_PARALLEL=2 VERI_GH_JSON="$gh10" CLAUDE_BIN="$bail_stub" VERI_POLL=0.05 \
+      "$skill/scripts/parallel-conductors.sh" --continue-on-bail > "$work/bail-$mode.out" 2>&1 \
+      && code=0 || code=$?
+  else
+    run_launcher "$gh10" "$bail_stub" "$work/bail-$mode.out" VERI_PARALLEL=2
+  fi
+  got_bail="$(sort "$bail_record" 2>/dev/null | tr '\n' ',')"
+  case "$mode" in
+    stop)     want_bail="end 12,start 11,start 12," ;;
+    continue) want_bail="end 12,start 11,start 12,start 13," ;;
+  esac
+  twelve_done="$(grep -xF '#12 — done https://example.test/pull/12' "$work/bail-$mode.out")"
+  if [[ "$got_bail" != "$want_bail" || -z "$twelve_done" ]]; then
+    bad+=" [$mode: exit=$code, record '$got_bail' want '$want_bail', #12 reported done: $([[ -n "$twelve_done" ]] && echo yes || echo no); output: $(tr '\n' '|' < "$work/bail-$mode.out")]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "the first bail stops new launches while running conductors finish, and --continue-on-bail keeps launching and skips the bailed number ($bad )"
+
+# 11. The first kill stops new launches the way the first bail does. Two solvable issues, #7 and
+# #8, at the default VERI_PARALLEL=1, with case 9's never-answering stub conductor and jumping
+# awake clock, so every conductor's supervisor kills it at the first poll. #7 is killed, so the
+# launcher never starts #8: the report holds `#7 — killed after 60s` and no line for #8, which a
+# launcher that kept going would report killed too.
+gh11="$work/gh11"
+solvable_fixture "$gh11" 7 8
+rm -f "$work/awake-count"
+
+run_launcher "$gh11" "$hang_stub" "$work/kill-stop.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01
+want_kill_stop="#7 — killed after 60s"
+got_kill_stop="$(grep -E '^#[0-9]+ — ' "$work/kill-stop.out")"
+expect_lines "the first kill stops new launches: #8 is never launched after #7 is killed" "$want_kill_stop" "$got_kill_stop" "$work/kill-stop.out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
