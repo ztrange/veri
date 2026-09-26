@@ -96,6 +96,14 @@ written_ledger='# Plan for #42
 - [ ] pin the third step ⟦criterion 3⟧'
 check "a marker in the written position still skips its line (#484)" 0 "$written_ledger" "pin the third step ⟦criterion 3⟧"
 
+# 12. a line that carries a marker in the written position AND quotes one mid-sentence is
+# still marked — the written marker wins and the line is skipped (#484)
+both_ledger='# Plan for #42
+
+- [ ] the text quotes ⟦human-owed⟧ yet the suites are green ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] pin the second step ⟦criterion 2⟧'
+check "a line with a written marker that also quotes one is skipped (#484)" 0 "$both_ledger" "pin the second step ⟦criterion 2⟧"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
