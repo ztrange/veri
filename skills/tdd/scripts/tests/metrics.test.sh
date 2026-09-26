@@ -2196,6 +2196,28 @@ report_on "$name" "$phase_slept_out"
 # — three distinct numbers, each the wall-clock figure the report printed before #486. And
 # since none of them was measured on the awake clock, the report owes a line outside the
 # tables saying they are wall-clock, so a reader does not take them for awake time.
+# wall_clock_says <file> yes|no — whether a line outside the tables says the report's figures
+# are wall-clock (#486): owed when no event carried an awake reading, false when they did.
+# Matched on the phrase alone, the rest of the line being the implementation's to word.
+wall_clock_says() {
+  local out_file="$1" want="$2"
+  probe '
+import re, sys
+
+path, want = sys.argv[1], sys.argv[2]
+lines = [l.strip() for l in open(path).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+said = [l for l in lines if re.search(r"wall[- ]clock", l, re.I)]
+
+if want == "yes" and not said:
+    print("want a line outside the tables saying the figures are wall-clock, the report says outside them: %s"
+          % ", ".join(repr(l) for l in lines))
+if want == "no" and said:
+    print("want no line saying the figures are wall-clock, the report says: %s"
+          % ", ".join(repr(l) for l in said))
+' "$out_file" "$want"
+}
+
 fixture_work unclocked_work
 
 unclocked="a step of a run logged before the awake clock"
@@ -2217,16 +2239,7 @@ render "$unclocked_work" "$unclocked_out"
 
 times_say "$unclocked_out" "$unclocked=100" red=40
 issue_wall_says "$unclocked_out" 150
-
-probe '
-import re, sys
-
-lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
-         if l.strip() and not l.strip().startswith("|")]
-if not any(re.search(r"wall[- ]clock", l, re.I) for l in lines):
-    print("want a line outside the tables saying the figures are wall-clock, the report says outside them: %s"
-          % ", ".join(repr(l) for l in lines))
-' "$unclocked_out"
+wall_clock_says "$unclocked_out" yes
 
 report_on "$name" "$unclocked_out"
 
@@ -2240,16 +2253,7 @@ problems=()
 clocked_out="$step_slept_work/clocked-report.md"
 render "$step_slept_work" "$clocked_out"
 
-probe '
-import re, sys
-
-lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
-         if l.strip() and not l.strip().startswith("|")]
-said = [l for l in lines if re.search(r"wall[- ]clock", l, re.I)]
-if said:
-    print("want no line saying the figures are wall-clock, the report says: %s"
-          % ", ".join(repr(l) for l in said))
-' "$clocked_out"
+wall_clock_says "$clocked_out" no
 
 report_on "$name" "$clocked_out"
 
