@@ -352,6 +352,30 @@ expected="$(printf '%s\n' 1101 1101 1102)"
 actual="$(cat "$LAUNCHES")"
 expect_exit0_output
 
+# 12. A run that halts with a question writes .tdd/parked/<n>.md; orchestrate.sh records the
+#     issue as parked with a `parked <n>` line on its stdout, leaves its ledger as it found
+#     it, skips it on every later pass and takes the next solvable issue. The solvable set
+#     holds 1201 then 1202, and .tdd/issue-1201.md in the scratch root has one ticked and one
+#     unchecked step. Every launch for 1201 writes .tdd/parked/1201.md and puts 1201 back at
+#     the head of the set, since a parked run has not finished; 1202 just leaves the set. An
+#     orchestrator that ignored the parked file would relaunch 1201 until the stub's call cap.
+name="a conductor that wrote .tdd/parked/<n>.md is recorded as parked, its ledger left intact, and skipped for the next solvable issue"
+parked="$work/parked"
+conductor_stub "$parked" <<STUB
+[ "\$1" = 1201 ] || exit 0
+mkdir -p .tdd/parked
+echo 'Which test command should this run use?' > .tdd/parked/1201.md
+{ echo 1201; cat "\$SOLVABLE"; } > "\$SOLVABLE.next"
+mv "\$SOLVABLE.next" "\$SOLVABLE"
+STUB
+seed parked 1201 1202
+mkdir -p "$work/.tdd"
+printf '%s\n' '# Plan' '- [x] first step' '- [ ] second step' > "$work/.tdd/issue-1201.md"
+orchestrate "$parked"
+expected="$(printf '%s\n' 'parked 1201' 1201 1202 '# Plan' '- [x] first step' '- [ ] second step')"
+actual="$(grep '^parked ' "$work/out"; cat "$LAUNCHES" "$work/.tdd/issue-1201.md")"
+expect_exit0_output
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

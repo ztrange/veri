@@ -22,7 +22,12 @@
 # reading, and the conductor dies on its next write to the closed stream. Never mid-leaf —
 # a leaf killed in Red or Green leaves work a resume does not reset (#194).
 #
-# Exit 0 once solvable-issues.sh answers 3 (nothing to take); exit 2, launching nothing, when
+# A conductor that halts with a question writes it to .tdd/parked/<n>.md. orchestrate.sh
+# prints `parked <n>`, leaves that run's branch and ledger as they are, and skips the issue on
+# every later pass, so the night goes on with the next solvable issue.
+#
+# Exit 0 once solvable-issues.sh answers 3 (nothing to take) or every issue it names is
+# parked; exit 2, launching nothing, when
 # it exits with anything but 0 or 3, since then no answer about the solvable set was obtained,
 # or when VERI_CONDUCTOR_CTX_BUDGET is not a whole number.
 set -uo pipefail
@@ -64,6 +69,11 @@ while :; do
     echo "orchestrate.sh: solvable-issues.sh exited $rc; no answer about the solvable set" >&2
     exit 2
   fi
-  issue="${issues%%$'\n'*}"
+  issue=
+  while IFS= read -r n; do
+    [[ -e ".tdd/parked/$n.md" ]] || { issue=$n; break; }
+  done <<< "$issues"
+  [[ -n "$issue" ]] || exit 0
   "$HERE/run-conductor.sh" "$issue" | watch_context "$issue"
+  [[ -e ".tdd/parked/$issue.md" ]] && echo "parked $issue"
 done

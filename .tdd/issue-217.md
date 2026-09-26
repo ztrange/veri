@@ -9,6 +9,6 @@
 - [x] with VERI_CONDUCTOR_CTX_BUDGET unset, a conductor whose context crosses 120000 tokens is stopped after its next step-done, so the 120000 default is the budget in force ⟦added⟧ ⟦criterion 3⟧
 - [x] a conductor stopped over budget is relaunched for the same issue through run-conductor.sh with the same argv, so it takes the ledger's resume path rather than re-planning ⟦criterion 4⟧
 - [x] a conductor that exits 0 while its issue is still in the solvable set and its ledger still has an unchecked step is treated as unfinished, not done ⟦criterion 5⟧
-- [ ] an issue whose run wrote .tdd/parked/<n>.md is recorded as parked, its branch and ledger are left untouched, it is skipped on the next pass, and the next solvable issue is taken ⟦criterion 6⟧
+- [x] an issue whose run wrote .tdd/parked/<n>.md is recorded as parked, its branch and ledger are left untouched, it is skipped on the next pass, and the next solvable issue is taken ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] run-conductor.sh and SKILL.md launched directly for one issue, with no orchestrator, behave as before: nothing the orchestrator adds is required by a direct /tdd run ⟦criterion 7⟧
 - [ ] CLAUDE.md's script and suite counts include orchestrate.sh and its suite ⟦criterion 8⟧
