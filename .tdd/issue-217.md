@@ -11,4 +11,4 @@
 - [x] a conductor that exits 0 while its issue is still in the solvable set and its ledger still has an unchecked step is treated as unfinished, not done ⟦criterion 5⟧
 - [x] an issue whose run wrote .tdd/parked/<n>.md is recorded as parked, its branch and ledger are left untouched, it is skipped on the next pass, and the next solvable issue is taken ⟦criterion 6⟧
 - [x] run-conductor.sh and SKILL.md launched directly for one issue, with no orchestrator, behave as before: nothing the orchestrator adds is required by a direct /tdd run ⟦criterion 7⟧
-- [x] CLAUDE.md's script and suite counts include orchestrate.sh and its suite ⟦criterion 8⟧ ⟂ refactor pending
+- [x] CLAUDE.md's script and suite counts include orchestrate.sh and its suite ⟦criterion 8⟧
