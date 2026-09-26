@@ -1004,6 +1004,26 @@ probe_rebase_sha "pre-rebase with text" "$rb_onto" "$rb_pre because it was green
 [[ -z "$problems" ]] && ok \
   || no "verify-rebase renders from the spec and the two shas alone, tells the verifier to run the full test command on HEAD and judge that both the branch's and the default branch's changes survive, and refuses a sha that is not 7-40 lowercase hex with exit 2 and no stdout (${problems#; })"
 
+# 45. the plan prompt directs a REJECT for a plan that turns a criterion whose only observable
+#     is the test command passing into a Red/Green step, rather than the `⟦full-suite⟧` line
+#     *Scope & plan* writes for it (issue #481, criterion 3). Such a criterion has no failing
+#     test to write — a case asserting "the suites pass" would have to run the suites from
+#     inside itself, which no-nested-suites.test.sh forbids — so a Red leaf handed it answers
+#     UNTESTABLE and the run bails `untestable-criterion`, as #451 did twice. The plan verifier
+#     is the one reader who sees the plan before that leaf is paid for, and check 1 alone
+#     would PASS such a step: it does deliver the criterion as written. So the prompt has to
+#     name the shape, the marker that is its right spelling, and the REJECT, each in view of
+#     the others. Three claims, three misses, each named, for case 36's reason; matched over
+#     the newline-flattened prompt through `prompt_says`, every window under 255 for the same
+#     reason.
+problems=""
+prompt_says "$plan" "never names the ⟦full-suite⟧ marker" -F -e '⟦full-suite⟧'
+prompt_says "$plan" "never directs a REJECT for a criterion whose only observable is the test command passing" \
+  -iE -e 'REJECT[^.]{0,200}(test command|suites?)[^.]{0,120}pass|(test command|suites?)[^.]{0,120}pass[^.]{0,200}REJECT'
+prompt_says "$plan" "never sets a Red/Green step against the ⟦full-suite⟧ line it should have been" \
+  -iE -e 'Red[^.]{0,40}Green[^.]{0,200}full-suite|full-suite[^.]{0,200}Red[^.]{0,40}Green'
+[[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan that makes a criterion whose only observable is the test command passing a Red/Green step instead of a ⟦full-suite⟧ line (#481) (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
