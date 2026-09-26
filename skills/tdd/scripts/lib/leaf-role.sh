@@ -53,6 +53,9 @@ leaf_role() {
   case "$actor_word" in
     develop|revise) actor=developer ;;
     verify)         actor=verifier  ;;
+    # parallel-conductors.sh supervises each conductor it launches as `conductor-<n>` (#102):
+    # a fourth actor, the run itself rather than one of its leaves, whose "phase" is the issue.
+    conductor)      actor=conductor ;;
     *)
       echo "leaf-role: leaf name '$name' has an unknown leading word (want develop-*|revise-*|verify-*)" >&2
       return 2

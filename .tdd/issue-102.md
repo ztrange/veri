@@ -13,7 +13,7 @@
 - [x] The caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ⟦criterion 4⟧
 - [x] The outer supervisor of each conductor runs with heartbeat and timeout both VERI_RUN_TIMEOUT (default 14400) and no stuck retries ⟦criterion 4⟧
 - [x] In a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch ⟦criterion 5⟧
-- [ ] Supervising a conductor-<n> prints no leaf-role.sh refusal ⟦criterion 5⟧
+- [x] Supervising a conductor-<n> prints no leaf-role.sh refusal ⟦criterion 5⟧ ⟂ refactor pending
 - [ ] Exit 0 when every launched issue is done, 1 when one bailed or was killed, 2 when solvable-issues.sh exits 2, 3 when nothing is solvable and nothing was launched — and .tdd/parallel.exit carries that final code on every exit path ⟦criterion 6⟧
 - [ ] The report prints one line per issue in launch order followed by one line naming what stopped the loop ⟦criterion 6⟧
 - [ ] SCOPE-LOOP.md documents VERI_PARALLEL: at 1 rung 2 is unchanged, above 1 it runs parallel-conductors.sh detach-then-wait and relays the report ⟦criterion 7⟧
