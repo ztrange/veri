@@ -54,6 +54,10 @@
 #      pending-refactor check and before the `done` mark, the metrics commit and
 #      `gh pr ready`; its exit 3 continues unchanged and its exit 2 bails with `no-verdict`
 #      (issue #238).
+#  15. SKILL.md's Draft PR step, after a rebase that changed the tree, runs the full test
+#      command once on the rebased tip, bails on red with the PR left a draft, and on green
+#      pushes with `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, never a bare
+#      force (issue #238).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -615,6 +619,42 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
     [[ -n "$said" ]] ||
       problems+=("no instruction of $skill_md's Draft PR step naming rebase-onto-default.sh says its exit 2 bails with no-verdict")
   fi
+fi
+report "$name"
+
+# 15. The criterion, as one case (issue #238): a rebase that changed the tree has made a tip no
+#     suite has run on — two green branches can combine into a red one — and has rewritten the
+#     history already on origin, so the branch's remote copy can only be replaced, not
+#     fast-forwarded. What is pinned is the pair that makes that safe. The records: the full
+#     test command runs once on the rebased tip, and a red result there bails with the PR left
+#     a draft rather than readied. The command lines: the push after it is
+#     `$S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, run after the rebase,
+#     pinned to the sha the branch held before it, so a remote copy another writer moved in the
+#     meantime is refused rather than clobbered — and no command line of the step pushes with a
+#     bare force, which would clobber it. The positive probes run before the negative one so the
+#     case fails closed: a step that never pushes at all must not read as "never a bare force".
+name="$skill_md's Draft PR step runs the full test command once on a rebased tip, bails on red without readying the PR, and on green pushes with push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>, never a bare force"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what the step does after a rebase that changed the tree"; then
+  commands="$(section_commands)"
+  rebase="$(awk '/^[$]s\/rebase-onto-default[.]sh/ { print NR; exit }' <<< "$commands")"
+  leased="$(awk '/^[$]s\/push-branch[.]sh --force-with-lease=[^ :]+:[^ ]*pre-rebase/ { print NR; exit }' <<< "$commands")"
+  if [[ -z "$leased" ]]; then
+    problems+=("$skill_md's Draft PR step runs no \$S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>, so a rebased branch's rewritten history has no push pinned to the sha its remote copy held before the rebase")
+  elif [[ -z "$rebase" ]] || [[ "$leased" -le "$rebase" ]]; then
+    problems+=("$skill_md's Draft PR step runs push-branch.sh --force-with-lease (command line $leased) not after rebase-onto-default.sh (command line ${rebase:-none})")
+  fi
+  plain="$(tr -d '*`' <<< "$records")"
+  said="$(first_record "$plain" -F 'rebased tip' -E 'full (test )?command|full suite|--tier all' -wF 'once')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step runs the full test command once on the rebased tip, so a rebase that combined two green branches into a red one reaches review unrun")
+  said="$(first_record "$plain" -F 'rebased tip' -wF 'red' -wF 'bail' -F 'draft')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step bails on a red rebased tip with the PR left a draft, so a red rebase can still be readied for review")
+  bare="$(first_record "$commands" -E '(^git push|^[$]s/push-branch[.]sh).*( --force( |$)| -f( |$)| \+)')"
+  [[ -z "$bare" ]] ||
+    problems+=("$skill_md's Draft PR step pushes with a bare force, which replaces the branch's remote copy whatever another writer left there: $(printf '%.120s' "$bare")")
 fi
 report "$name"
 
