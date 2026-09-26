@@ -633,6 +633,56 @@ got_refusals="$(grep -F 'leaf-role:' "$work/role.out" | sort -u)"
 [[ -s "$work/role-record" ]] || got_refusals+="<conductor never ran>"
 expect_lines "supervising a conductor-<n> prints no leaf-role.sh refusal" "" "$got_refusals" "$work/role.out"
 
+# 18. The launcher's exit code says how the invocation went, and `.tdd/parallel.exit` in the
+# caller's checkout carries that same code on every exit path. Six runs, each from a fresh
+# repository over a fixture of its own: `done` — #7's stub conductor answers with a ready PR —
+# is 0; `bailed` — it opens a draft PR and ends its run's event log in a `bail` — is 1;
+# `killed` — case 9's never-answering stub under its jumping awake clock — is 1 too;
+# `plumbing` — VERI_PRIORITY_LABEL set but empty, so solvable-issues.sh exits 2 — is 2;
+# `nothing` — no issue in the fixture, nothing launched — is 3; and `bad-parallel` —
+# VERI_PARALLEL=0, refused before anything is launched — is 2. Every run that misbehaves is
+# named in the single FAIL line.
+bail_event='{"ts": 1, "issue": "7", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}'
+bad=""
+for shape in done bailed killed plumbing nothing bad-parallel; do
+  repo="$work/exit-$shape"
+  fresh_repo "$repo"
+  gh18="$work/gh18-$shape"
+  vars=()
+  case "$shape" in
+    nothing) solvable_fixture "$gh18" ;;
+    *)       solvable_fixture "$gh18" 7 ;;
+  esac
+  case "$shape" in
+    bailed)
+      conductor_stub "$work/claude-exit-$shape" <<STUB
+mkdir -p ".tdd/wt/\$n/.tdd"
+printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
+$(open_pr "$gh18" true)
+STUB
+      ;;
+    killed) cp "$hang_stub" "$work/claude-exit-$shape" ;;
+    *) record_stub "$work/claude-exit-$shape" "$work/exit-$shape-record" "$gh18" ;;
+  esac
+  case "$shape" in
+    done|nothing) want_exit=0; [[ "$shape" == nothing ]] && want_exit=3 ;;
+    bailed)       want_exit=1 ;;
+    killed)       want_exit=1; rm -f "$work/awake-count"
+                  vars=(VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01) ;;
+    plumbing)     want_exit=2; vars=(VERI_PRIORITY_LABEL=) ;;
+    bad-parallel) want_exit=2; vars=(VERI_PARALLEL=0) ;;
+  esac
+  (cd "$repo" && run_launcher "$gh18" "$work/claude-exit-$shape" "$work/exit-$shape.out" "${vars[@]+"${vars[@]}"}"; echo "$code" > "$work/exit-$shape.code")
+  code="$(cat "$work/exit-$shape.code")"
+  got_file="$(cat "$repo/.tdd/parallel.exit" 2>/dev/null || echo '<missing>')"
+  if [[ "$code" != "$want_exit" || "$got_file" != "$want_exit" ]]; then
+    bad+=" [$shape: exit=$code want $want_exit, .tdd/parallel.exit '$got_file' want '$want_exit'; output: $(tr '\n' '|' < "$work/exit-$shape.out")]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "exit 0 all done, 1 a bail or a kill, 2 plumbing, 3 nothing solvable, and .tdd/parallel.exit carries the final code on every exit path ($bad )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
