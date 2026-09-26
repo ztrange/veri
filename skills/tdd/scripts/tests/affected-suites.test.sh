@@ -607,6 +607,23 @@ commit_head
 expect_suites "#487: a comment that names a lib file is still not a dependency" \
   skills/tdd/scripts/tests/alpha.test.sh
 
+# 27. rule 2 over this repository's own callers of lib/bug-section.sh (issue #487), the lines the
+#     report was filed against: every real script under scripts/ is copied into the case's tree
+#     as it stands, with the real lib file beside them, so the answer rests on the source lines
+#     build-develop-prompt.sh and build-verify-prompt.sh actually carry, not on a fixture's copy
+#     of their shape. Only the scripts are copied, never a suite: rule 3 names a script's suite
+#     by the script's name whether or not the file is there.
+new_repo rule2-bug-section
+mkdir -p "$s/lib"
+cp "$HERE"/../*.sh "$s/"
+cp "$HERE/../lib/bug-section.sh" "$s/lib/"
+commit_base
+printf '# changed\n' >> "$s/lib/bug-section.sh"
+commit_head
+expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects build-develop-prompt.test.sh and build-verify-prompt.test.sh" \
+  skills/tdd/scripts/tests/build-develop-prompt.test.sh \
+  skills/tdd/scripts/tests/build-verify-prompt.test.sh
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
