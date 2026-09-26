@@ -186,6 +186,55 @@ $got_timeline
 launcher output:
 $(cat "$work/par.out")"
 
+# 4. Launches follow solvable-issues.sh's printed order and never include an issue it did not
+# print. The fixture holds four open issues: #5 is not opted in, #6 is opted in but blocked by
+# the open #9, #7 is solvable in the unlabelled band and #8 in the `priority` band — so
+# solvable-issues.sh prints 8 then 7, out of numeric order, and never 5, 6 or 9. Each stub
+# conductor records `start <n>` and answers "done" with a ready PR, so its issue leaves the set.
+# At the default VERI_PARALLEL=1 the launch order is the whole timeline: 8, then 7, nothing else.
+gh4="$work/gh4"
+mkdir -p "$gh4"
+: > "$gh4/prs.lines"
+printf '[]\n' > "$gh4/prs.json"
+cat > "$gh4/issues.json" <<'JSON'
+[
+  {"number": 5, "title": "not opted in", "labels": [], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 6, "title": "blocked", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\n- #9\n"},
+  {"number": 7, "title": "plain", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 8, "title": "urgent", "labels": [{"name": "ready-for-agent"}, {"name": "priority"}],
+   "state": "OPEN", "body": "## Blocked by\n\nNone.\n"},
+  {"number": 9, "title": "the open blocker", "labels": [], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+
+order="$work/order"
+order_stub="$work/claude-order"
+cat > "$order_stub" <<STUB
+#!/bin/sh
+n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+echo "start \$n" >> "$order"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh4/prs.lines"
+printf '[%s]\n' "\$(paste -sd, "$gh4/prs.lines")" > "$gh4/prs.json"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+exit 0
+STUB
+chmod +x "$order_stub"
+
+env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+  VERI_GH_JSON="$gh4" CLAUDE_BIN="$order_stub" VERI_POLL=0.05 \
+  "$skill/scripts/parallel-conductors.sh" > "$work/order.out" 2>&1 && code=0 || code=$?
+want_order="$(printf 'start 8\nstart 7')"
+got_order="$(cat "$order" 2>/dev/null)"
+[[ "$got_order" == "$want_order" ]] \
+  && ok || no "launches follow solvable-issues.sh's printed order and never an issue it did not print (exit=$code)
+$(diff <(printf '%s\n' "$want_order") <(printf '%s\n' "$got_order"))
+launcher output:
+$(cat "$work/order.out")"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
