@@ -4,7 +4,7 @@
 - [x] orchestrate.sh exits 2 without launching any conductor when solvable-issues.sh exits with anything other than 0 or 3, since then no answer about the solvable set could be obtained ⟦added⟧ ⟦criterion 1⟧
 - [x] orchestrate.sh computes the conductor's context as cache_read_input_tokens + cache_creation_input_tokens from each assistant event's usage in the launched stream, as the stream arrives, and never needs a closing result record to know it ⟦criterion 2⟧
 - [x] a conductor whose stream crosses VERI_CONDUCTOR_CTX_BUDGET mid-step is not stopped until a step-done is seen, and is stopped after it ⟦criterion 3⟧
-- [ ] a conductor whose stream never crosses VERI_CONDUCTOR_CTX_BUDGET is never stopped or restarted ⟦criterion 3⟧
+- [x] a conductor whose stream never crosses VERI_CONDUCTOR_CTX_BUDGET is never stopped or restarted ⟦criterion 3⟧
 - [ ] VERI_CONDUCTOR_CTX_BUDGET is a whole token count read as ${VAR:-default} with a default of 120000, and a value that is not a whole number is refused with exit 2 before any conductor launches ⟦criterion 3⟧
 - [ ] a conductor stopped over budget is relaunched for the same issue through run-conductor.sh with the same argv, so it takes the ledger's resume path rather than re-planning ⟦criterion 4⟧
 - [ ] a conductor that exits 0 while its issue is still in the solvable set and its ledger still has an unchecked step is treated as unfinished, not done ⟦criterion 5⟧

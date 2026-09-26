@@ -243,6 +243,32 @@ expected="before-result"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
+# 7. A conductor whose context never crosses VERI_CONDUCTOR_CTX_BUDGET is never stopped and
+#    never restarted, however many steps it finishes. With the budget at 100000, the stub's
+#    first incarnation streams two step-done marks — each the Bash call to `event.sh
+#    step-done` and its result — at 60000 and at 99100, both under the budget, then heartbeat
+#    lines for ~0.5 s before writing `after-step-done`: a conductor stopped at either mark
+#    never writes it. Every launch appends its issue to $LAUNCHES, so a restart shows there as
+#    a second `701`.
+name="a conductor that never crosses VERI_CONDUCTOR_CTX_BUDGET is never stopped or restarted"
+never="$work/never"
+conductor_stub "$never" <<STUB
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=701 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":60000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"VERI_ISSUE=701 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":99000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":""}]}}'
+heartbeats 50
+echo after-step-done >> "\$MARKS"
+STUB
+seed never 701
+export VERI_CONDUCTOR_CTX_BUDGET=100000
+orchestrate "$never"
+unset VERI_CONDUCTOR_CTX_BUDGET
+expected="$(printf '%s\n' after-step-done 701)"
+actual="$(cat "$MARKS" "$LAUNCHES")"
+expect_exit0_output
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
