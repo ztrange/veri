@@ -240,7 +240,7 @@ recover_finished_leaf() {
 }
 
 # Run the leaf once on a fresh log/rc, watching for stuck/timeout. Sets three globals, and
-# those three are its answers: status/reason, and `$secs` — how many wall seconds this attempt
+# those three are its answers: status/reason, and `$secs` — how many awake seconds this attempt
 # took, which the `exit` mark at the foot of this script reports. They are not `local` because
 # a run's last attempt is what every line below reads. Everything else the watchdog needs is,
 # so the list above is the whole of what this function says to the rest of the script: the
@@ -325,8 +325,9 @@ attempt_once() {
 
   wait "$pid" 2>/dev/null || true
   # Stopped here rather than where the mark is written, so the count is the attempt's own
-  # wall time and not that plus whatever the retry loop and the status line cost after it.
-  secs=$(( $(now) - t0 ))
+  # time and not that plus whatever the retry loop and the status line cost after it. Read
+  # off the awake clock, like the hard timeout, so a suspend is not counted (issue #486).
+  secs=$(( $("$awake_clock") - a0 ))
 }
 
 # The three assignments every mark below is written under, read once. A refusal leaves this
@@ -535,7 +536,7 @@ esac
 # The `exit` mark (issue #107, ADR-0014), beside the human-readable status line that says the
 # same thing to stderr, so the two cannot drift apart. It carries the three things only this
 # script holds at this moment: the 0/1/2 of the exit-code contract — this supervisor's own
-# code, not the leaf's raw one — the watchdog's kill cause, and the wall seconds the last
+# code, not the leaf's raw one — the watchdog's kill cause, and the awake seconds the last
 # attempt took, which is the `$secs` attempt_once measured for it. That duration is the first
 # anything in a run records, so no reader can recover it by subtracting two other marks.
 # `cause=` is passed only when there is one: what a run with no kill would put there is a
