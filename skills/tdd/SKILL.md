@@ -1313,7 +1313,19 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    An exit 3 from `rebase-onto-default.sh` — the branch already contains `origin/<default>` —
    continues unchanged to sub-step 2. An exit 2 from `rebase-onto-default.sh` — no answer
    could be obtained, such as an origin that cannot be fetched — does **bail**, as a
-   **system** failure (`no-verdict`), with the PR left a draft.
+   **system** failure (`no-verdict`), with the PR left a draft. An exit 0 — the branch was
+   behind and the rebase applied cleanly — has changed the tree, and the first line it
+   printed is `<pre-rebase-sha>`, the sha the branch held before the rebase. The rebased tip
+   is a tree no suite has run on, and two green branches can combine into a red one, so run
+   the full test command (`$S/detect-test-command.sh --tier all`'s) once on the rebased tip.
+   A red result on the rebased tip does **bail**, as a **process** failure, with the PR left
+   a draft: it is never readied. On green, publish the rewritten history:
+
+       $S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>
+
+   The lease is pinned to `<pre-rebase-sha>`, so a remote copy another writer moved in the
+   meantime is refused rather than clobbered. Never a bare force, which replaces the remote
+   copy whatever is there.
 2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
    PR into its final form and mark it ready for review** — one sub-step, in this order, from
    inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
