@@ -803,6 +803,10 @@ The check fires at most once per step. Once its crossing branch has run, the ste
 leaves are not checked again and nothing re-arms it for this step,
 so a step that goes on to cost three times its budget is not asked about at every remaining leaf.
 
+A crossing is not a failure, because the budget weighs what a step costs, not whether its work
+is right — every verdict may still be a PASS — so no exit code changes meaning: `1` is still a
+process failure, `2` still a system one, `3` still nothing to do.
+
 On a crossing — the figure `step-cost.sh` printed is over the step budget — send one leaf the
 `over-budget` prompt, carrying the two figures, and launch it through the supervisor the way
 the `exhausted` leaf is launched:

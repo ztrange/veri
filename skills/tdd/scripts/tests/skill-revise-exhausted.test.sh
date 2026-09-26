@@ -554,6 +554,36 @@ fi
 
 report "$name"
 
+# Why a crossing is not a failure, stated once: the exit branches above each act on it, but a
+# reader should not have to derive from them that an expensive step has not failed, nor that
+# the check leaves every script's exit code meaning what it already meant — 1 is still a
+# process failure, 2 still a system one, 3 still nothing to do.
+
+name="'$cost_heading' states once why a crossing is not a failure, and that no exit code changes meaning"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what the section says a crossing is could not be established")
+else
+  not_failure="$(cost_check_sentences |
+    grep -F -- 'crossing' |
+    grep -E -- "not a failure" |
+    grep -E -- "(^|[^a-z])(because|since)([^a-z]|$)")"
+  not_failure_count="$(grep -c . <<<"$not_failure")"
+  if [[ "$not_failure_count" -eq 0 ]]; then
+    problems+=("no sentence of '$cost_heading' says a crossing is not a failure and gives the reason")
+  elif [[ "$not_failure_count" -gt 1 ]]; then
+    problems+=("'$cost_heading' says why a crossing is not a failure in $not_failure_count sentences, not once")
+  fi
+  cost_check_sentences |
+    grep -F -- 'exit code' |
+    grep -E -- "(^|[^a-z])(no|none|nor|never|not)([^a-z]|$)" |
+    grep -F -- 'mean' > /dev/null ||
+    problems+=("no sentence of '$cost_heading' says that no exit code changes meaning")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
