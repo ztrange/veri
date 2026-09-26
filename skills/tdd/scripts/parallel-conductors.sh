@@ -31,6 +31,17 @@ max_issues="${VERI_MAX_ISSUES:-0}"
 # with — a killed conductor is not retried here; /tdd <n> resumes it.
 run_timeout="${VERI_RUN_TIMEOUT:-14400}"
 
+# The outer supervise.sh runs with heartbeat and timeout both VERI_RUN_TIMEOUT and no stuck
+# retries — pinned equal, because a conductor's stdout is silent for the length of a leaf. Those
+# values are for the outer supervisor only: the conductor gets the caller's own four leaf
+# tunables back exactly as they were, set or unset, through `env` — leaking
+# VERI_STUCK_RETRIES=0 into a conductor once turned its own baseline red (#87).
+# `env` takes its -u options before any assignment, so the unset ones go first.
+caller_env=()
+for var in VERI_HEARTBEAT VERI_TIMEOUT VERI_STUCK_RETRIES VERI_POLL; do
+  if [[ -n "${!var+set}" ]]; then caller_env+=("$var=${!var}"); else caller_env=(-u "$var" "${caller_env[@]+"${caller_env[@]}"}"); fi
+done
+
 # A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
 # per issue: exit 2 there is a conductor its supervisor killed.
 rc_dir="$(mktemp -d)"
@@ -106,7 +117,8 @@ while :; do
     done
     [[ -n "$n" ]] || break
     (
-      "$HERE/supervise.sh" "conductor-$n" "$HERE/run-conductor.sh" "$n" > /dev/null \
+      VERI_HEARTBEAT="$run_timeout" VERI_TIMEOUT="$run_timeout" VERI_STUCK_RETRIES=0 \
+        "$HERE/supervise.sh" "conductor-$n" env "${caller_env[@]}" "$HERE/run-conductor.sh" "$n" > /dev/null \
         || echo "$?" > "$rc_dir/$n"
     ) &
     in_flight[$n]=$!
