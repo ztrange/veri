@@ -264,6 +264,11 @@ def counted(total):
 def span(start, end):
     return None if start is None or end is None else end - start
 
+# The reading of one clock off a mark of the log — `ts` or `awake` — or None when there is no mark,
+# or the mark carries no reading of that clock, which `span` above then carries through.
+def reading(mark, clock):
+    return None if mark is None else mark.get(clock)
+
 # A checkbox step of the ledger, ticked or not — the same grammar next-unchecked.sh reads
 # (next-unchecked.sh:16), matched leaving the state inside the box open, because what is
 # wanted is how many steps the plan HAS, not how many are still to do.
@@ -403,10 +408,9 @@ def add_cost(phase, step, line):
 # it is, when there is none, since the mark that opens a run is the conductor own and a log
 # missing it still started somewhere. It is the opening end of the issue wall, whose closing
 # end is the mark below — a log holding several runs of one issue walls only the last (#229).
+# Kept whole, as `ending` is, because the issue wall reads two clocks off it: its `ts` and the
+# awake-clock reading event.sh writes beside it (#486).
 opening = None
-# The awake-clock reading event.sh writes beside the `ts` of that same line (#486), or None when
-# the line carries none.
-opening_awake = None
 
 # The mark that ended the run, any outcome, and None in the log of a run that has not
 # ended. Kept whole rather than as its timestamp beside itself: the issue wall reads its `ts`
@@ -426,8 +430,7 @@ with open(path) as f:
         phase = line.get("phase", "")
         ts = line.get("ts")
         if opening is None or event == "resume":
-            opening = ts
-            opening_awake = line.get("awake")
+            opening = line
         # A `stop` is not terminal the way `done` and `bail` are: the run it paused may be
         # resumed, and a resumed run has not ended until a mark after its `resume` says so.
         if event == "resume" and ending is not None and ending.get("event") == "stop":
@@ -621,8 +624,8 @@ print()
 # Measured on the awake clock when both ends carry a reading (#486), so time the machine
 # spent asleep is not counted as work; the wall-clock span is kept only to name the seconds
 # it excluded, on the line beside it.
-wall_span = span(opening, ending["ts"] if ending else None)
-awake_span = span(opening_awake, ending.get("awake") if ending else None)
+wall_span = span(reading(opening, "ts"), reading(ending, "ts"))
+awake_span = span(reading(opening, "awake"), reading(ending, "awake"))
 print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
       "there is none, to the mark that ended the run."
       % known(awake_span if awake_span is not None else wall_span))
