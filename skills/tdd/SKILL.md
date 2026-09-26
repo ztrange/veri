@@ -1326,6 +1326,29 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    The lease is pinned to `<pre-rebase-sha>`, so a remote copy another writer moved in the
    meantime is refused rather than clobbered. Never a bare force, which replaces the remote
    copy whatever is there.
+
+   An exit 1 from `rebase-onto-default.sh` — the rebase conflicted and was aborted, so HEAD
+   is back where it stood with a clean tree — prints the conflicting files, one per line.
+   Resolving them writes new code no verifier has seen, so a `develop-rebase` leaf does it,
+   launched **through the supervisor** like every other, and a blind `verify-rebase` judges
+   the resolution before the PR is readied:
+   ```
+   git rev-parse origin/<default>   # → <onto-sha>
+   git rev-parse HEAD               # → <pre-rebase-sha>
+   $S/build-develop-prompt.sh rebase .tdd/issue-<n>-spec.md "$($S/next-pending-refactor.sh < .tdd/issue-<n>.md || $S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <onto-sha> <pre-rebase-sha> "<conflicting-files>" > .tdd/develop-rebase.prompt
+   rm -f .tdd/develop-rebase.exit .tdd/develop-rebase.pid
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-rebase $S/run-leaf.sh .tdd/develop-rebase.prompt --permission-mode bypassPermissions > .tdd/develop-rebase.out 2> .tdd/develop-rebase.err
+   $S/wait-leaf.sh develop-rebase   # foreground; on exit 3 call it again
+   rm -f .tdd/verdict-rebase.exit .tdd/verdict-rebase.pid
+   VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
+   $S/wait-leaf.sh verdict-rebase   # foreground; on exit 3 call it again
+   ```
+   A leaf exit 1 or 2 does **bail**, with the PR left a draft. A verify-rebase `REJECT` goes
+   round *Revising on a REJECT* with phase `rebase`, within `REVISE_BUDGET` like any other
+   phase; a malformed verdict does **bail** as a **system** failure (`no-verdict`).
+   Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
+   the full test command once on the rebased tip, a bail on red, and on green the push under
+   the lease pinned to `<pre-rebase-sha>`.
 2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
    PR into its final form and mark it ready for review** — one sub-step, in this order, from
    inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so

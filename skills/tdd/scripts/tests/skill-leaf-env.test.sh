@@ -353,6 +353,9 @@ runnable() {
   launch="${launch//<target-test-id>/probe-target}"
   launch="${launch//<green-sha>/0123abc}"  # refactor's 4th slot must be a sha (#151)
   launch="${launch//<fast-cmd>/make probe-fast}"  # green's --fast-cmd (#341)
+  launch="${launch//<onto-sha>/0123abc}"  # rebase's two slots must be shas too (#238)
+  launch="${launch//<pre-rebase-sha>/4567def}"
+  launch="${launch//<conflicting-files>/probe.txt}"
   launch="${launch//\[target\]/probe-target}"
   [[ "$launch" != *'<'*'>'* ]] || return 1
   printf '%s\n' "$launch"

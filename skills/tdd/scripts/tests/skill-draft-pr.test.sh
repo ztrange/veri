@@ -58,6 +58,10 @@
 #      command once on the rebased tip, bails on red with the PR left a draft, and on green
 #      pushes with `push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>`, never a bare
 #      force (issue #238).
+#  16. SKILL.md's Draft PR step, on `rebase-onto-default.sh` exit 1, launches a develop-rebase
+#      leaf through `supervise.sh`, then a blind verify-rebase through `run-verdict.sh`, revises
+#      on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS
+#      (issue #238).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -658,6 +662,49 @@ if step_or_problem '### 4. Draft PR' "what the step does after a rebase that cha
   bare="$(first_record "$commands" -E '(^git push|^[$]s/push-branch[.]sh).*( --force( |$)| -f( |$)| \+)')"
   [[ -z "$bare" ]] ||
     problems+=("$skill_md's Draft PR step pushes with a bare force, which replaces the branch's remote copy whatever another writer left there: $(printf '%.120s' "$bare")")
+fi
+report "$name"
+
+# 16. The criterion, as one case (issue #238): a rebase that conflicts is exit 1 from
+#     `rebase-onto-default.sh`, and its resolution is new code no verifier has seen. So a leaf
+#     resolves it, launched through the supervisor like every other, and a blind verifier
+#     judges it before any human is asked to look. What is pinned, off the command lines: a
+#     `develop-rebase` leaf launched through `supervise.sh`, then a `verdict-rebase` launch of
+#     `run-verdict.sh … rebase`, both after the rebase and both before `gh pr ready`. Off the
+#     records: the step names `rebase-onto-default.sh`'s exit 1 as what launches the leaf, a
+#     `REJECT` goes round the revise loop within `REVISE_BUDGET`, and the PR is readied only
+#     after a verify-rebase `PASS`. The positive probes are all there is, so a step emptied of
+#     the path fails rather than reading as one that never needed it.
+name="$skill_md's Draft PR step, on rebase-onto-default.sh exit 1, launches a develop-rebase leaf through supervise.sh, then a blind verify-rebase through run-verdict.sh, revises on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what the step does with a conflicted rebase"; then
+  commands="$(section_commands)"
+  rebase="$(line_of '[$]s/rebase-onto-default[.]sh')"
+  develop="$(line_of '.*[$]s/supervise[.]sh develop-rebase ')"
+  verdict="$(line_of '.*[$]s/supervise[.]sh verdict-rebase [$]s/run-verdict[.]sh .* rebase ')"
+  ready="$(line_of 'gh pr ready')"
+  if [[ -z "$develop" ]]; then
+    problems+=("$skill_md's Draft PR step launches no develop-rebase leaf through \$S/supervise.sh, so a conflicted rebase has nothing to resolve it")
+  fi
+  if [[ -z "$verdict" ]]; then
+    problems+=("$skill_md's Draft PR step launches no verdict-rebase through \$S/supervise.sh \$S/run-verdict.sh … rebase, so a conflict's resolution reaches review seen by no blind verifier")
+  fi
+  if [[ -n "$develop" ]] && [[ -n "$verdict" ]]; then
+    { [[ -n "$rebase" ]] && [[ "$rebase" -lt "$develop" ]] && [[ "$develop" -lt "$verdict" ]] &&
+      [[ -n "$ready" ]] && [[ "$verdict" -lt "$ready" ]]; } ||
+      problems+=("$skill_md's Draft PR step does not run rebase-onto-default.sh (command line ${rebase:-none}), the develop-rebase leaf ($develop), the verdict-rebase ($verdict) and gh pr ready (${ready:-none}) in that order")
+  fi
+  plain="$(tr -d '*`' <<< "$records")"
+  said="$(first_record "$plain" -F 'rebase-onto-default.sh' -E 'exit 1' -F 'develop-rebase')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says rebase-onto-default.sh's exit 1 launches the develop-rebase leaf")
+  said="$(first_record "$plain" -wF 'reject' -F 'revise_budget')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step sends a verify-rebase REJECT round the revise loop within REVISE_BUDGET")
+  said="$(first_record "$plain" -F 'verify-rebase' -wF 'pass' -E 'ready|readie')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step readies the PR only after a verify-rebase PASS")
 fi
 report "$name"
 

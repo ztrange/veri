@@ -470,9 +470,12 @@ blind_args() {
 # the typed placeholder or a step read out of the ledger inside the line's own command
 # substitution (#437) — its first unchecked step, its step pending a refactor, or the second
 # failing over to the first — a title, taken as data, and still nothing of the developer's.
+# The `rebase` phase (#238) is the third alternative: after the scoped step and the spec file
+# it takes the commit the branch was rebased onto and the one it stood at before, two shas and
+# nothing else, so the resolving leaf's account of what it did has no slot to travel in.
 ledger_read_re='cat \.tdd/issue-<n>\.md \| \$S/next-(unchecked|pending-refactor)\.sh'
 ledger_step_re="\"\\\$\\($ledger_read_re( \\|\\| $ledger_read_re)?\\)\""
-blind_re="^(--step ($double_quoted_step|$ledger_step_re)( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) $spec_re <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|plan $spec_re \.tdd/issue-<n>\.md)$"
+blind_re="^(--step ($double_quoted_step|$ledger_step_re)( --fast-cmd '<fast-cmd>')? (red|green|refactor|pin|<phase>) $spec_re <test-path> (<target-test-id>|<green-sha>|<base-sha>|\[target\])|--step ($double_quoted_step|$ledger_step_re) rebase $spec_re <onto-sha> <pre-rebase-sha>|plan $spec_re \.tdd/issue-<n>\.md)$"
 
 # 6. The verifier is blind **by construction**: `build-verify-prompt.sh` has no parameter for
 #    the developer's rationale, so it cannot leak one, and a launch that passes verify.sh
