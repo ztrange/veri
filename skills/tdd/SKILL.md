@@ -1286,6 +1286,17 @@ verifier judges the fix against the full command, not the fast one.
 A second red result on the full run after a repair step does **bail** — the repair step is
 one more cycle, not a loop — and the bail names every suite still red, not only the first.
 
+A `⟦full-suite⟧` ledger line is the one step no cycle ticks — `next-unchecked.sh` skips it,
+so it is still unchecked here — and this step ticks it, only once the run's last full-suite
+run before the PR is readied is green: the rebased tip's run when sub-step 1 rebased the
+branch, this step's own run otherwise. Tick each with `tick-ledger.sh`, handed the literal
+matcher `'⟦full-suite⟧'` and called again until it exits 3, and without `--refactor-pending`,
+so the line carries no refactor-pending mark (it has no refactor loop to clear one); for each
+line's `⟦criterion k⟧` tick the issue criterion it finishes (`$S/tick-issue-criterion.sh <n>
+"$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p')"`),
+and commit the ledger before sub-step 2. A red run ticks nothing: never tick a `⟦full-suite⟧` line after a
+red full-suite run, whatever an earlier run said.
+
 With a stop request pending, this step is **not interrupted** and runs to completion: once
 `next-unchecked.sh` exits 3 there is no next ledger commit, and what remains launches no leaf
 and loses nothing. So no checkpoint runs here — sub-step 4 asks once, clears the request with

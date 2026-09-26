@@ -127,6 +127,29 @@ else
 fi
 report "$name"
 
+# 4. One criterion (#481) — a ⟦full-suite⟧ line has no Red/Green cycle to tick it, so the
+#    Draft PR step must: every such line and the issue criterion it finishes, with no
+#    refactor-pending mark, only once the last full-suite run before the PR is readied is
+#    green — the rebased tip's when the branch was rebased — and never after a red one.
+name="#481: $skill_md's Draft PR step ticks every ⟦full-suite⟧ line and its issue criterion, with no refactor-pending mark, only once the last full-suite run — the rebased tip's after a rebase — is green, never after a red one"
+problems=()
+pr_rec="$(head -1 < <(section_records '### 4. Draft PR' | grep -F '⟦full-suite⟧' | grep -E 'tick'))"
+if [[ -z "$pr_rec" ]]; then
+  problems+=("draft PR: no instruction in step 4 ticks a ⟦full-suite⟧ ledger line — the rule could not be checked")
+else
+  [[ "$pr_rec" == *tick-issue-criterion.sh* ]] ||
+    problems+=("draft PR: the ⟦full-suite⟧ tick never ticks the issue criterion it finishes with tick-issue-criterion.sh")
+  [[ "$pr_rec" =~ (no|without|never)\ [^.]*refactor.pending ]] ||
+    problems+=("draft PR: the ⟦full-suite⟧ tick never says it carries no refactor-pending mark")
+  [[ "$pr_rec" =~ last\ full-suite\ run[^.]*green ]] ||
+    problems+=("draft PR: the ⟦full-suite⟧ tick is not tied to the last full-suite run being green")
+  [[ "$pr_rec" == *"rebased tip"* ]] ||
+    problems+=("draft PR: the ⟦full-suite⟧ tick never says the rebased tip's run is the one that counts after a rebase")
+  [[ "$pr_rec" =~ (never|not|no)\ [^.]*red ]] ||
+    problems+=("draft PR: the ⟦full-suite⟧ tick never says a red run ticks nothing")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
