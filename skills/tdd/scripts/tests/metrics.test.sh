@@ -2216,19 +2216,13 @@ unclocked_out="$unclocked_work/report.md"
 render "$unclocked_work" "$unclocked_out"
 
 times_say "$unclocked_out" "$unclocked=100" red=40
+issue_wall_says "$unclocked_out" 150
 
 probe '
 import re, sys
 
-path = sys.argv[1]
-lines = [l.strip() for l in open(path).read().splitlines()
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
          if l.strip() and not l.strip().startswith("|")]
-walls = [l for l in lines if l.startswith("Wall time for the issue:")]
-
-if not walls:
-    print("want a line starting \"Wall time for the issue:\", the report has none")
-elif re.search(r"(?<![0-9.])150(?![0-9.])", walls[0]) is None:
-    print("want the issue wall to be the 150 wall-clock seconds, it says: %r" % walls[0])
 if not any(re.search(r"wall[- ]clock", l, re.I) for l in lines):
     print("want a line outside the tables saying the figures are wall-clock, the report says outside them: %s"
           % ", ".join(repr(l) for l in lines))
