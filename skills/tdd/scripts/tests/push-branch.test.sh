@@ -81,6 +81,11 @@ run_fixture() {
 # whatever user.name/user.email the machine running it happens to carry (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
+# remote_at <remote> <branch> — the sha refs/heads/<branch> points at in the bare repository
+# <remote>, or `<<absent>>` rather than an empty string when the ref is not there, so a report
+# distinguishes "no branch on the remote at all" from a branch at some other sha.
+remote_at() { git_q "$1" rev-parse --verify -q "refs/heads/$2" 2>/dev/null || echo '<<absent>>'; }
+
 # push_counting_git <stubdir> <calls> — a `git` stub in <stubdir> that appends one line to
 # <calls> for every `push` it sees and hands every call, push or not, to the real git. Put
 # <stubdir> first on PATH and `grep -c . <calls>` is the number of push attempts made.
@@ -199,9 +204,7 @@ head_sha="$(git_q "$repo" rev-parse HEAD)"
 
 [[ "$code" == 0 ]] || problems+=("want exit 0 from a push that lands, got $code")
 
-# `<<absent>>` rather than an empty string when the ref is not there, so the report
-# distinguishes "no branch on the remote at all" from a branch at some other sha.
-remote_sha="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+remote_sha="$(remote_at "$remote" "$branch")"
 [[ "$remote_sha" == "$head_sha" ]] ||
   problems+=("want refs/heads/$branch on the remote at $head_sha (the commit HEAD is on), got $remote_sha")
 report "$name"
@@ -342,7 +345,7 @@ head_sha="$(git_q "$repo" rev-parse HEAD)"
 
 [[ "$code" == 0 ]] || problems+=("want exit 0 from a push that lands on its second attempt, got $code")
 
-remote_sha="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+remote_sha="$(remote_at "$remote" "$branch")"
 [[ "$remote_sha" == "$head_sha" ]] ||
   problems+=("want refs/heads/$branch on the remote at $head_sha (the commit HEAD is on), got $remote_sha")
 
@@ -459,7 +462,7 @@ run_fixture "$repo" "$branch" 232 <<'LEDGER'
 LEDGER
 git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
 git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
-remote_before="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+remote_before="$(remote_at "$remote" "$branch")"
 git_q "$repo" commit -q --amend -m "feat: the step's green commit, rewritten (#232)" >/dev/null 2>&1
 
 stubdir="$work/stub-bin-non-ff"
@@ -654,7 +657,7 @@ head="$(git_q "$repo" rev-parse HEAD)"
 ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
     "$PUSH" "--force-with-lease=$branch:$seen" ) \
   >/dev/null 2>"$work/lease-holds.stderr" && code=0 || code=$?
-got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+got="$(remote_at "$remote" "$branch")"
 [[ "$code" == 0 ]] ||
   problems+=("lease that holds: want exit 0, got $code; stderr: $(printf '%q' "$(cat "$work/lease-holds.stderr")")")
 [[ "$got" == "$head" ]] ||
@@ -679,21 +682,21 @@ git_q "$repo" commit -q --amend -m "feat: the step's green commit, rebased (#238
 ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
     "$PUSH" "--force-with-lease=$branch:$seen" ) \
   >/dev/null 2>"$work/lease-stale.stderr" && code=0 || code=$?
-got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+got="$(remote_at "$remote" "$branch")"
 [[ "$code" == 1 ]] ||
   problems+=("stale lease: want exit 1 — the remote moved on, a clean refusal — got $code")
 [[ "$got" == "$moved" ]] ||
   problems+=("stale lease: want origin/$branch left at $moved, where it moved to, got $got")
 ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
     "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
-got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+got="$(remote_at "$remote" "$branch")"
 [[ "$code" == 1 ]] ||
   problems+=("no argument: want exit 1 — pushed exactly as before, so rejected — got $code")
 [[ "$got" == "$moved" ]] ||
   problems+=("no argument: want origin/$branch left at $moved — never a bare force — got $got")
 ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
     "$PUSH" --force ) >/dev/null 2>&1 && code=0 || code=$?
-got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+got="$(remote_at "$remote" "$branch")"
 [[ "$code" == 2 ]] ||
   problems+=("bare --force: want exit 2 — bad arguments, the one force allowed is pinned to a sha — got $code")
 [[ "$got" == "$moved" ]] ||
@@ -709,7 +712,7 @@ for args in "--force-with-lease" "--force-with-lease=$branch" \
   # shellcheck disable=SC2086 # word-split on purpose: the last entry is two arguments
   ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
       "$PUSH" $args ) >/dev/null 2>&1 && code=0 || code=$?
-  got="$(git_q "$remote" rev-parse --verify -q "refs/heads/$branch" 2>/dev/null || echo '<<absent>>')"
+  got="$(remote_at "$remote" "$branch")"
   [[ "$code" == 2 ]] ||
     problems+=("'$args': want exit 2 — bad arguments, the one force allowed is a single lease pinned to a sha — got $code")
   [[ "$got" == "$moved" ]] ||
