@@ -6,3 +6,5 @@
 - revise_prose_sentences and cost_check_sentences in skill-revise-exhausted.test.sh repeat the same awk sentence-splitter, which could become one shared `sentences` helper — outside scope, because an earlier step wrote both copies, not this cycle
 ### The over-budget exit 0 branch restores the tree (`git reset --hard HEAD`, `git clean -f -- <test-path>`) before growing the plan, grows it in one `add-ledger-step.sh instead-of` call, and commits the plan before the run continues ⟦criterion 6⟧
 - SKILL.md's over-budget split command block (L827-835) repeats the revise-exhausted split block (L1485-1493) word for word; it can't be replaced with a pointer while skill-revise-exhausted.test.sh requires the commands inside the cost check's section
+### The *Bailing* list's `step-too-big` entry names all three splits that lead to it — a Green leaf's `SPLIT:`, the revise-exhausted split and the over-budget split ⟦added⟧ ⟦criterion 7⟧
+- `step_too_big_cause` and `bailing_causes` each repeat the same awk scan of the `## Bailing` section; one helper taking a start pattern would remove the repeat
