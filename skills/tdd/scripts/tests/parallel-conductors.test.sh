@@ -164,6 +164,17 @@ SH
 # ready_pr <gh-dir> — the stub source a conductor ends with to answer "done": a ready PR.
 ready_pr() { open_pr "$1" false; }
 
+# bailed_pr <gh-dir> — the stub source a conductor ends with to answer "bailed": a `bail` last in
+# its run's `.tdd/wt/$n` event log, and a draft PR.
+bail_event='{"ts": 1, "issue": "7", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}'
+bailed_pr() {
+  cat <<SH
+mkdir -p ".tdd/wt/\$n/.tdd"
+printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
+SH
+  open_pr "$1" true
+}
+
 # conductor_stub <path> — write an executable stub conductor to <path> whose body is read from
 # stdin: it opens by reading the issue number the prompt names into `$n`, and closes by printing
 # a successful result line and exiting 0, the way a finished `claude -p` session does.
@@ -642,7 +653,6 @@ expect_lines "supervising a conductor-<n> prints no leaf-role.sh refusal" "" "$g
 # `nothing` — no issue in the fixture, nothing launched — is 3; and `bad-parallel` —
 # VERI_PARALLEL=0, refused before anything is launched — is 2. Every run that misbehaves is
 # named in the single FAIL line.
-bail_event='{"ts": 1, "issue": "7", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "bail", "attempt": "1", "skill_commit": "", "cause": "revise-budget"}'
 bad=""
 for shape in done bailed killed plumbing nothing bad-parallel; do
   repo="$work/exit-$shape"
@@ -655,9 +665,7 @@ for shape in done bailed killed plumbing nothing bad-parallel; do
     done)         want_exit=0 ;;
     bailed)       want_exit=1
                   conductor_stub "$stub18" <<STUB
-mkdir -p ".tdd/wt/\$n/.tdd"
-printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
-$(open_pr "$gh18" true)
+$(bailed_pr "$gh18")
 STUB
                   ;;
     killed)       want_exit=1; rm -f "$work/awake-count"; cp "$hang_stub" "$stub18"
@@ -705,9 +713,7 @@ for shape in drain bail cap plumbing first-bail; do
     drain)      record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
                 want_report="$(printf '#7 — done https://example.test/pull/7\n#8 — done https://example.test/pull/8\nstopped: nothing solvable')" ;;
     bail)       conductor_stub "$stub19" <<STUB
-mkdir -p ".tdd/wt/\$n/.tdd"
-printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
-$(open_pr "$gh19" true)
+$(bailed_pr "$gh19")
 STUB
                 want_report="$(printf '#7 — bailed https://example.test/pull/7\nstopped: #7 bailed')" ;;
     cap)        record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
@@ -724,9 +730,7 @@ if [ "\$n" = 8 ]; then
   done
   sleep 1
 fi
-mkdir -p ".tdd/wt/\$n/.tdd"
-printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
-$(open_pr "$gh19" true)
+$(bailed_pr "$gh19")
 STUB
                 vars=(VERI_PARALLEL=2)
                 want_report="$(printf '#7 — bailed https://example.test/pull/7\n#8 — bailed https://example.test/pull/8\nstopped: #7 bailed')" ;;
