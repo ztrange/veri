@@ -95,11 +95,14 @@ cp "$HERE/../../SKILL.md" "$skill/SKILL.md"
 cp -R "$HERE/.." "$skill/scripts"
 rm -rf "$skill/scripts/tests"
 
-gh2="$work/gh2"
-mkdir -p "$gh2"
-: > "$gh2/prs.lines"
-printf '[]\n' > "$gh2/prs.json"
-cat > "$gh2/issues.json" <<'JSON'
+# two_issue_fixture <dir> — a VERI_GH_JSON directory holding two solvable issues, #7 and #8, and
+# no PR yet. `prs.lines` is where a stub conductor appends its PR, one JSON object per line, and
+# rebuilds `prs.json` from.
+two_issue_fixture() {
+  mkdir -p "$1"
+  : > "$1/prs.lines"
+  printf '[]\n' > "$1/prs.json"
+  cat > "$1/issues.json" <<'JSON'
 [
   {"number": 7, "title": "first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
    "body": "## Blocked by\n\nNone.\n"},
@@ -107,6 +110,10 @@ cat > "$gh2/issues.json" <<'JSON'
    "body": "## Blocked by\n\nNone.\n"}
 ]
 JSON
+}
+
+gh2="$work/gh2"
+two_issue_fixture "$gh2"
 
 timeline="$work/timeline"
 seq_stub="$work/claude-seq"
@@ -145,10 +152,7 @@ $(cat "$work/seq.out")"
 # pass), then records `end <n>` and opens its ready PR. A launcher that ran them one after
 # another shows an `end` among the first two lines, after the first stub has waited out its hold.
 gh3="$work/gh3"
-mkdir -p "$gh3"
-: > "$gh3/prs.lines"
-printf '[]\n' > "$gh3/prs.json"
-cp "$gh2/issues.json" "$gh3/issues.json"
+two_issue_fixture "$gh3"
 
 timeline3="$work/timeline3"
 par_stub="$work/claude-par"
