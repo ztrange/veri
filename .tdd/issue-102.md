@@ -18,4 +18,4 @@
 - [x] The report prints one line per issue in launch order followed by one line naming what stopped the loop ⟦criterion 6⟧
 - [x] SCOPE-LOOP.md documents VERI_PARALLEL: at 1 rung 2 is unchanged, above 1 it runs parallel-conductors.sh detach-then-wait and relays the report ⟦criterion 7⟧
 - [x] CONTEXT.md's rung 3 entry names parallel-conductors.sh, a glossary entry defines in flight as local to one invocation, and a new ADR records rung 3's design and the rejected remote claim ⟦criterion 7⟧
-- [ ] The full suite passes with parallel-conductors.test.sh and hermetic-suites.test.sh green ⟦full-suite⟧
+- [x] The full suite passes with parallel-conductors.test.sh and hermetic-suites.test.sh green ⟦full-suite⟧
