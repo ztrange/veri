@@ -649,18 +649,25 @@ lease_push() {
   got="$(remote_at "$remote" "$branch")"
 }
 
-# (a) the lease holds
-repo="$work/lease-holds"
-remote="$work/origin-lease-holds.git"
-git init -q --bare "$remote" >/dev/null 2>&1
-run_fixture "$repo" "$branch" 238 <<'LEDGER'
+# lease_fixture <label> — a fresh run in "$work/lease-<label>" whose $branch is already on its
+# own bare origin, setting `repo` and `remote` to the two and `seen` to the sha the run
+# pushed: the one a lease pinned to what this run last saw names.
+lease_fixture() {
+  repo="$work/lease-$1"
+  remote="$work/origin-lease-$1.git"
+  git init -q --bare "$remote" >/dev/null 2>&1
+  run_fixture "$repo" "$branch" 238 <<'LEDGER'
 # Plan for #238 — concurrent runs owe a rebase
 
 - [ ] push-branch.sh pushes under a lease
 LEDGER
-git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
-git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
-seen="$(git_q "$repo" rev-parse HEAD)"
+  git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
+  git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
+  seen="$(git_q "$repo" rev-parse HEAD)"
+}
+
+# (a) the lease holds
+lease_fixture holds
 git_q "$repo" commit -q --amend -m "feat: the step's green commit, rebased (#238)" >/dev/null 2>&1
 head="$(git_q "$repo" rev-parse HEAD)"
 lease_push "--force-with-lease=$branch:$seen"
@@ -670,17 +677,7 @@ lease_push "--force-with-lease=$branch:$seen"
   problems+=("lease that holds: want origin/$branch replaced by HEAD $head, got $got (the leased sha was $seen)")
 
 # (b) the lease is stale, and (c) the same remote pushed to with no argument
-repo="$work/lease-stale"
-remote="$work/origin-lease-stale.git"
-git init -q --bare "$remote" >/dev/null 2>&1
-run_fixture "$repo" "$branch" 238 <<'LEDGER'
-# Plan for #238 — concurrent runs owe a rebase
-
-- [ ] push-branch.sh pushes under a lease
-LEDGER
-git_q "$repo" remote add origin "$remote" >/dev/null 2>&1
-git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
-seen="$(git_q "$repo" rev-parse HEAD)"
+lease_fixture stale
 # Someone else's commit lands on the remote branch after this run last looked at it.
 moved="$(git_q "$repo" commit-tree -p "$seen" -m "someone else's push (#238)" "$seen^{tree}")"
 git_q "$repo" push -q origin "$moved:refs/heads/$branch" >/dev/null 2>&1
