@@ -123,6 +123,13 @@ for pr in json.loads(sys.argv[1]):
   return 0
 }
 
+# is_failure <outcome> — true for a bailed or killed outcome: the kind that stops new launches
+# and makes the invocation exit 1.
+is_failure() {
+  case "$1" in killed\ *|bailed\ *) return 0 ;; esac
+  return 1
+}
+
 # report — one line per launched issue, in launch order; sets `failed` when any of them bailed
 # or was killed.
 failed=""
@@ -132,7 +139,7 @@ report() {
   for n in "${order[@]+"${order[@]}"}"; do
     got="$(outcome "$n" "$prs")"
     [[ -z "$got" ]] || echo "#$n — $got"
-    case "$got" in killed\ *|bailed\ *) failed=1 ;; esac
+    if is_failure "$got"; then failed=1; fi
   done
   return 0
 }
@@ -172,10 +179,8 @@ while :; do
   for n in "${!in_flight[@]}"; do
     kill -0 "${in_flight[$n]}" 2>/dev/null && continue
     unset "in_flight[$n]"
-    if [[ -z "$continue_on_bail" ]]; then
-      case "$(outcome "$n" "$(prs_json)")" in
-        killed\ *|bailed\ *) stopped=1 ;;
-      esac
+    if [[ -z "$continue_on_bail" ]] && is_failure "$(outcome "$n" "$(prs_json)")"; then
+      stopped=1
     fi
   done
 done
