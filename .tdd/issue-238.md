@@ -1,6 +1,6 @@
 # Plan for #238 — Concurrent runs owe a rebase over each other's merges, and nothing re-verifies the rebased branch before it lands
 
-- [ ] rebase-onto-default.sh, run in a worktree whose branch already contains origin/<default>, exits 3 with empty stdout and leaves HEAD and the working tree unchanged ⟦criterion 1⟧
+- [x] rebase-onto-default.sh, run in a worktree whose branch already contains origin/<default>, exits 3 with empty stdout and leaves HEAD and the working tree unchanged ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] rebase-onto-default.sh, run on a branch behind origin/<default> with no conflict, rebases onto it, exits 0, prints the pre-rebase sha and the onto sha, and leaves HEAD containing origin/<default> with the branch's own commits on top ⟦criterion 1⟧
 - [ ] rebase-onto-default.sh on a rebase that conflicts aborts it, exits 1, leaves HEAD at the pre-rebase sha with a clean tree and no rebase in progress, and prints the conflicting files one per line ⟦criterion 4⟧
 - [ ] rebase-onto-default.sh exits 2 with nothing on stdout when origin/<default> cannot be fetched or named, and never rebases onto a stale local branch ⟦criterion 1⟧
