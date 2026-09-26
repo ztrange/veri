@@ -94,6 +94,24 @@ conflicting_branch() {
   advance_origin "$dir"
 }
 
+# expect_conflict_aborted <repo> <pre> <rc> <out> — probe the answer to conflicting_branch's
+# rebase, adding to `problems`: exit 1, stdout naming file.txt and work.txt, HEAD back at
+# <pre>, and no rebase in progress under either backend's directory.
+expect_conflict_aborted() {
+  local repo="$1" pre="$2" rc="$3" out="$4" got_files want_files head_after d
+  [[ "$rc" -eq 1 ]] || problems+=("exit: want 1, got $rc")
+  got_files="$(printf '%s\n' "$out" | LC_ALL=C sort)"
+  want_files="$(printf 'file.txt\nwork.txt')"
+  [[ "$got_files" == "$want_files" ]] ||
+    problems+=("stdout: want the conflicting files $(printf '%q' "$want_files"), got $(printf '%q' "$out")")
+  head_after="$(git -C "$repo" rev-parse HEAD)"
+  [[ "$head_after" == "$pre" ]] || problems+=("HEAD: want the pre-rebase sha $pre, got $head_after")
+  for d in rebase-merge rebase-apply; do
+    [[ ! -e "$(git -C "$repo" rev-parse --path-format=absolute --git-path "$d")" ]] ||
+      problems+=("rebase: want none in progress, found $d")
+  done
+}
+
 # 1. A branch cut from origin/main, one commit ahead of it and not behind: nothing to rebase.
 name="rebase-onto-default.test.sh: a branch already containing origin/<default> exits 3 with empty stdout and HEAD and tree unchanged"
 problems=()
@@ -152,19 +170,9 @@ conflicting_branch "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
 rc=$?
-[[ "$rc" -eq 1 ]] || problems+=("exit: want 1, got $rc")
-got_files="$(printf '%s\n' "$out" | LC_ALL=C sort)"
-want_files="$(printf 'file.txt\nwork.txt')"
-[[ "$got_files" == "$want_files" ]] ||
-  problems+=("stdout: want the conflicting files $(printf '%q' "$want_files"), got $(printf '%q' "$out")")
-head_after="$(git -C "$repo" rev-parse HEAD)"
-[[ "$head_after" == "$pre" ]] || problems+=("HEAD: want the pre-rebase sha $pre, got $head_after")
+expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
 status_after="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
 [[ -z "$status_after" ]] || problems+=("working tree: want clean, got $(printf '%q' "$status_after")")
-for d in rebase-merge rebase-apply; do
-  [[ ! -e "$(git -C "$repo" rev-parse --path-format=absolute --git-path "$d")" ]] ||
-    problems+=("rebase: want none in progress, found $d")
-done
 report "$name"
 
 # 4. The branch is behind, but a tracked file carries an uncommitted edit: git refuses to
@@ -203,17 +211,7 @@ conflicting_branch "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
 rc=$?
-[[ "$rc" -eq 1 ]] || problems+=("exit: want 1, got $rc")
-got_files="$(printf '%s\n' "$out" | LC_ALL=C sort)"
-want_files="$(printf 'file.txt\nwork.txt')"
-[[ "$got_files" == "$want_files" ]] ||
-  problems+=("stdout: want the conflicting files $(printf '%q' "$want_files"), got $(printf '%q' "$out")")
-head_after="$(git -C "$repo" rev-parse HEAD)"
-[[ "$head_after" == "$pre" ]] || problems+=("HEAD: want the pre-rebase sha $pre, got $head_after")
-for d in rebase-merge rebase-apply; do
-  [[ ! -e "$(git -C "$repo" rev-parse --path-format=absolute --git-path "$d")" ]] ||
-    problems+=("rebase: want none in progress, found $d")
-done
+expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
 report "$name"
 
 echo "----"
