@@ -86,6 +86,16 @@ quoting_ledger='# Plan for #42
 - [ ] a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 2⟧'
 check "a line quoting a marker mid-sentence is handed to a leaf (#484)" 0 "$quoting_ledger" "a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 2⟧"
 
+# 11. anchoring the marker keeps the written position working: either marker immediately
+# before the closing ⟦criterion k⟧ still skips its line, so the first unmarked step is
+# printed (#484)
+written_ledger='# Plan for #42
+
+- [ ] the suites are green ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] each suite broken on purpose, its red output recorded ⟦human-owed⟧ ⟦criterion 2⟧
+- [ ] pin the third step ⟦criterion 3⟧'
+check "a marker in the written position still skips its line (#484)" 0 "$written_ledger" "pin the third step ⟦criterion 3⟧"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
