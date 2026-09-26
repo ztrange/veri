@@ -4,7 +4,7 @@
 - [x] With VERI_PARALLEL unset (default 1) parallel-conductors.sh runs two solvable issues' conductors one after another — the second starts only after the first has ended ⟦criterion 1⟧
 - [x] With VERI_PARALLEL=2 parallel-conductors.sh runs two conductors at once — their start and end stamps overlap ⟦criterion 1⟧
 - [x] Launches follow solvable-issues.sh's printed order and never include an issue it did not print, such as one blocked by an open issue ⟦criterion 2⟧
-- [x] An issue solvable-issues.sh still prints after its conductor finished is not launched a second time in the same invocation ⟦criterion 2⟧ ⟂ refactor pending
+- [x] An issue solvable-issues.sh still prints after its conductor finished is not launched a second time in the same invocation ⟦criterion 2⟧
 - [ ] The solvable set is re-asked after every completion, so an issue that became solvable while another conductor ran is launched next ⟦criterion 2⟧
 - [ ] VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap
 - [ ] A finished conductor whose PR is ready is reported `#<n> — done <pr-url>`, and one whose PR is a draft and whose event log ends in a bail is reported `#<n> — bailed <pr-url>` ⟦criterion 3⟧
