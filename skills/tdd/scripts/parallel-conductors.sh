@@ -36,11 +36,14 @@ run_timeout="${VERI_RUN_TIMEOUT:-14400}"
 # values are for the outer supervisor only: the conductor gets the caller's own four leaf
 # tunables back exactly as they were, set or unset, through `env` — leaking
 # VERI_STUCK_RETRIES=0 into a conductor once turned its own baseline red (#87).
-# `env` takes its -u options before any assignment, so the unset ones go first.
+# `env -u` strips all four, then the caller's set ones are re-added as they were.
 caller_env=()
+caller_set=()
 for var in VERI_HEARTBEAT VERI_TIMEOUT VERI_STUCK_RETRIES VERI_POLL; do
-  if [[ -n "${!var+set}" ]]; then caller_env+=("$var=${!var}"); else caller_env=(-u "$var" "${caller_env[@]+"${caller_env[@]}"}"); fi
+  caller_env+=(-u "$var")
+  [[ -n "${!var+set}" ]] && caller_set+=("$var=${!var}")
 done
+caller_env+=("${caller_set[@]+"${caller_set[@]}"}")
 
 # A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
 # per issue: exit 2 there is a conductor its supervisor killed.
