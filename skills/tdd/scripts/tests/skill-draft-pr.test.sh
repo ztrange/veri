@@ -589,21 +589,23 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
   if [[ -z "$rebase" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/rebase-onto-default.sh, so a branch behind the default one is still readied for review un-rebased")
   else
-    for before in 'git status --porcelain' '[$]s/next-pending-refactor[.]sh'; do
-      at="$(line_of "$before")"
+    # rebase_runs <after|before> <ere> — record a problem unless rebase-onto-default.sh runs
+    # on the side of the first command line matching <ere> that <after|before> names.
+    rebase_runs() {
+      local at
+      at="$(line_of "$2")"
       if [[ -z "$at" ]]; then
-        problems+=("$skill_md's Draft PR step runs no $before, so the rebase's order against it could not be checked")
-      elif [[ "$at" -ge "$rebase" ]]; then
-        problems+=("$skill_md's Draft PR step runs rebase-onto-default.sh (command line $rebase) before $before (command line $at), not after it")
+        problems+=("$skill_md's Draft PR step runs no $2, so the rebase's order against it could not be checked")
+      elif { [[ "$1" == after ]] && [[ "$at" -ge "$rebase" ]]; } ||
+           { [[ "$1" == before ]] && [[ "$at" -le "$rebase" ]]; }; then
+        problems+=("$skill_md's Draft PR step runs rebase-onto-default.sh (command line $rebase) not $1 $2 (command line $at)")
       fi
+    }
+    for before in 'git status --porcelain' '[$]s/next-pending-refactor[.]sh'; do
+      rebase_runs after "$before"
     done
     for after in 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done' '[$]s/metrics[.]sh' 'git commit -m "metrics:' 'gh pr ready'; do
-      at="$(line_of "$after")"
-      if [[ -z "$at" ]]; then
-        problems+=("$skill_md's Draft PR step runs no $after, so the rebase's order against it could not be checked")
-      elif [[ "$at" -le "$rebase" ]]; then
-        problems+=("$skill_md's Draft PR step runs rebase-onto-default.sh (command line $rebase) after $after (command line $at), not before it")
-      fi
+      rebase_runs before "$after"
     done
     plain="$(tr -d '*`' <<< "$records")"
     said="$(first_record "$plain" -F 'rebase-onto-default.sh' -E 'exit 3' -E 'continu')"
