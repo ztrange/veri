@@ -79,6 +79,13 @@ human_owed_ledger='# Plan for #42
 - [ ] pin the second step ⟦criterion 2⟧'
 check "a ⟦human-owed⟧ line is never handed to a leaf (#481)" 0 "$human_owed_ledger" "pin the second step ⟦criterion 2⟧"
 
+# 10. a line whose text only QUOTES a marker mid-sentence carries none — it is an ordinary
+# Red/Green step and is printed, not skipped (#484)
+quoting_ledger='# Plan for #42
+
+- [ ] a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 2⟧'
+check "a line quoting a marker mid-sentence is handed to a leaf (#484)" 0 "$quoting_ledger" "a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 2⟧"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
