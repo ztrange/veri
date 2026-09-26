@@ -584,6 +584,39 @@ fi
 
 report "$name"
 
+# The over-budget leaf that never answers: a supervisor exit 2 on it is a `killed-stuck` bail
+# like any other developer leaf's, and the step's budget stays crossed — the check was
+# disarmed when its branch began, and a hung leaf is no reason to arm it again.
+
+# supervisor_exit_2 — the paragraph of the cost check's section that names a supervisor exit 2,
+# normalised through `plain`; empty when the section names none.
+supervisor_exit_2() {
+  cost_check_lines |
+    awk 'BEGIN { RS = "" } { p = $0; gsub(/[*`]/, "", p); if (tolower(p) ~ /supervisor exit 2/) print }' |
+    plain
+}
+
+name="'$cost_heading' says a supervisor exit 2 on the over-budget leaf is a killed-stuck bail, and the step's budget stays crossed rather than re-arming"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what a supervisor exit 2 on the over-budget leaf does could not be established")
+else
+  paragraph="$(supervisor_exit_2)"
+  if [[ -z "${paragraph// /}" ]]; then
+    problems+=("'$cost_heading' has no paragraph naming a supervisor exit 2, so what the run does when the over-budget leaf never answers is left to the reader")
+  else
+    grep -F -- 'killed-stuck' <<<"$paragraph" > /dev/null ||
+      problems+=("'$cost_heading''s supervisor exit 2 paragraph does not name the killed-stuck cause")
+    grep -E -- "(^|[^a-z])bail" <<<"$paragraph" > /dev/null ||
+      problems+=("'$cost_heading''s supervisor exit 2 paragraph does not say the step is bailed")
+    grep -E -- "(stays|remains) crossed|(not|never|no|nothing)[^.]*re-arm" <<<"$paragraph" > /dev/null ||
+      problems+=("'$cost_heading''s supervisor exit 2 paragraph does not say the step's budget stays crossed rather than re-arming")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
