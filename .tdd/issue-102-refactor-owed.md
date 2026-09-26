@@ -1,2 +1,4 @@
 ### With VERI_PARALLEL unset (default 1) parallel-conductors.sh runs two solvable issues' conductors one after another — the second starts only after the first has ended ⟦criterion 1⟧
 - parallel-conductors.test.sh: both cases invoke the launcher behind the same `env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES … VERI_GH_JSON=… CLAUDE_BIN=…` prefix; a small hermetic-launch helper would dedupe it. Only two call sites so far, so the helper will pay off once later steps add cases.
+### An issue solvable-issues.sh still prints after its conductor finished is not launched a second time in the same invocation ⟦criterion 2⟧
+- the stub conductors in timeline_stub, case 4 and case 5 repeat the same prelude (`#!/bin/sh` plus the `n=` sed line) and epilogue (the result JSON line plus `exit 0`); a shared head/tail helper could remove it, but it is 2 lines each and I judged the extra indirection not worth a transform
