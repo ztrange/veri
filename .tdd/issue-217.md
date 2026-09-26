@@ -6,7 +6,7 @@
 - [x] a conductor whose stream crosses VERI_CONDUCTOR_CTX_BUDGET mid-step is not stopped until a step-done is seen, and is stopped after it ⟦criterion 3⟧
 - [x] a conductor whose stream never crosses VERI_CONDUCTOR_CTX_BUDGET is never stopped or restarted ⟦criterion 3⟧
 - [x] VERI_CONDUCTOR_CTX_BUDGET is a whole token count read as ${VAR:-default} with a default of 120000, and a value that is not a whole number is refused with exit 2 before any conductor launches ⟦criterion 3⟧
-- [ ] with VERI_CONDUCTOR_CTX_BUDGET unset, a conductor whose context crosses 120000 tokens is stopped after its next step-done, so the 120000 default is the budget in force ⟦added⟧ ⟦criterion 3⟧
+- [x] with VERI_CONDUCTOR_CTX_BUDGET unset, a conductor whose context crosses 120000 tokens is stopped after its next step-done, so the 120000 default is the budget in force ⟦added⟧ ⟦criterion 3⟧
 - [ ] a conductor stopped over budget is relaunched for the same issue through run-conductor.sh with the same argv, so it takes the ledger's resume path rather than re-planning ⟦criterion 4⟧
 - [ ] a conductor that exits 0 while its issue is still in the solvable set and its ledger still has an unchecked step is treated as unfinished, not done ⟦criterion 5⟧
 - [ ] an issue whose run wrote .tdd/parked/<n>.md is recorded as parked, its branch and ledger are left untouched, it is skipped on the next pass, and the next solvable issue is taken ⟦criterion 6⟧
