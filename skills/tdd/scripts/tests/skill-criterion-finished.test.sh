@@ -110,21 +110,33 @@ grep -Eq '(without|no |none|omit)' < <(grep -F '⟦criterion' <<<"$plan_recs" | 
   problems+=("plan guidance: no instruction in step 2 says a gap step carries no ⟦criterion k⟧")
 report "$name"
 
+# off_cycle_line <marker> <phrase> <phrase> <what> — step 2 must show the ledger line
+# `- [ ] <criterion> <marker> ⟦criterion k⟧` and carry an instruction naming <marker> and both
+# phrases that says such a criterion is not planned as a Red/Green step. Leaves that
+# instruction in `ledger_rec` and returns 1 when there is none, so a caller's further probes
+# of it are skipped rather than run against nothing.
+off_cycle_line() {
+  local marker="$1" phrase1="$2" phrase2="$3" what="$4"
+  grep -F -- "- [ ] <criterion> $marker ⟦criterion k⟧" <<<"$plan_recs" > /dev/null ||
+    problems+=("plan guidance: step 2 never shows the ledger line '- [ ] <criterion> $marker ⟦criterion k⟧'")
+  ledger_rec="$(head -1 < <(grep -F "$marker" <<<"$plan_recs" | grep -F "$phrase1" | grep -F "$phrase2"))"
+  if [[ -z "$ledger_rec" ]]; then
+    problems+=("plan guidance: no instruction in step 2 names $marker for a criterion $what")
+    return 1
+  fi
+  [[ "$ledger_rec" =~ (not|never|no)\ [^.]*red/green ]] ||
+    problems+=("plan guidance: the $marker instruction never says such a criterion is not planned as a Red/Green step")
+  return 0
+}
+
 # 3. One criterion (#481) — a criterion whose only observable is that the test command passes
 #    has no failing test to write, so a Red leaf can only answer UNTESTABLE and the run bails.
 #    Step 2 must write it as one `⟦full-suite⟧` ledger line the full-suite run covers, not as
 #    a Red/Green step.
 name="#481: $skill_md's step 2 writes a criterion whose only observable is the test command passing as one ⟦full-suite⟧ ledger line covered by the full-suite run, not a Red/Green step"
 problems=()
-grep -F -- '- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧' <<<"$plan_recs" > /dev/null ||
-  problems+=("plan guidance: step 2 never shows the ledger line '- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧'")
-full_rec="$(head -1 < <(grep -F '⟦full-suite⟧' <<<"$plan_recs" | grep -F 'test command' | grep -F 'full-suite run'))"
-if [[ -z "$full_rec" ]]; then
-  problems+=("plan guidance: no instruction in step 2 names ⟦full-suite⟧ for a criterion whose only observable is the test command passing, covered by the full-suite run")
-else
-  [[ "$full_rec" =~ (not|never|no)\ [^.]*red/green ]] ||
-    problems+=("plan guidance: the ⟦full-suite⟧ instruction never says such a criterion is not planned as a Red/Green step")
-fi
+off_cycle_line '⟦full-suite⟧' 'test command' 'full-suite run' \
+  'whose only observable is the test command passing, covered by the full-suite run'
 report "$name"
 
 # 4. One criterion (#481) — a ⟦full-suite⟧ line has no Red/Green cycle to tick it, so the
@@ -156,15 +168,9 @@ report "$name"
 #    a developer leaf.
 name="#481: $skill_md's step 2 writes a criterion whose deliverable is the record of a manual check as one ⟦human-owed⟧ ledger line owed by a human, not a Red/Green step, never handed to a developer leaf"
 problems=()
-grep -F -- '- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧' <<<"$plan_recs" > /dev/null ||
-  problems+=("plan guidance: step 2 never shows the ledger line '- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧'")
-human_rec="$(head -1 < <(grep -F '⟦human-owed⟧' <<<"$plan_recs" | grep -F 'manual check' | grep -F 'human'))"
-if [[ -z "$human_rec" ]]; then
-  problems+=("plan guidance: no instruction in step 2 names ⟦human-owed⟧ for a criterion whose deliverable is the record of a manual check, owed by a human")
-else
-  [[ "$human_rec" =~ (not|never|no)\ [^.]*red/green ]] ||
-    problems+=("plan guidance: the ⟦human-owed⟧ instruction never says such a criterion is not planned as a Red/Green step")
-  [[ "$human_rec" =~ (not|never|no)\ [^.]*developer\ leaf ]] ||
+if off_cycle_line '⟦human-owed⟧' 'manual check' 'human' \
+  'whose deliverable is the record of a manual check, owed by a human'; then
+  [[ "$ledger_rec" =~ (not|never|no)\ [^.]*developer\ leaf ]] ||
     problems+=("plan guidance: the ⟦human-owed⟧ instruction never says such a criterion is never handed to a developer leaf")
 fi
 report "$name"
