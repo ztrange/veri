@@ -856,8 +856,8 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   ```
 
 A **supervisor exit 2** on the over-budget leaf — `wait-leaf.sh` exits 2 — is a
-**`killed-stuck` bail** like any other developer leaf's (see *Bailing*), and the step's budget stays crossed: the check was disarmed when its branch
-began, and a leaf that never answered is no reason to re-arm it.
+**`killed-stuck` bail** like any other developer leaf's (see *Bailing*), and the step's budget
+stays crossed: the check has fired for this step, and, as above, nothing re-arms it.
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
