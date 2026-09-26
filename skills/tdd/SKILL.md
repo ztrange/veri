@@ -1305,6 +1305,15 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    reset is the whole remedy: sub-steps 2 and 3 both exit 3, sub-step 4's `### ▶️ Resuming`
    comment names the paths the reset discarded, and the run comes back here and readies the
    PR — refusing the same tree for ever is not an outcome, discarding it loudly is.
+   Once both have gone quiet, bring the branch up to the default one, which may have moved
+   while the run worked:
+   ```
+   $S/rebase-onto-default.sh
+   ```
+   An exit 3 from `rebase-onto-default.sh` — the branch already contains `origin/<default>` —
+   continues unchanged to sub-step 2. An exit 2 from `rebase-onto-default.sh` — no answer
+   could be obtained, such as an origin that cannot be fetched — does **bail**, as a
+   **system** failure (`no-verdict`), with the PR left a draft.
 2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
    PR into its final form and mark it ready for review** — one sub-step, in this order, from
    inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so

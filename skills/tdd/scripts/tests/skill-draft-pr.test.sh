@@ -50,6 +50,10 @@
 #      it neither closes it nor still says to open none (issue #195).
 #  13. SKILL.md's step 1.2 no longer explains the pid lock by saying the draft PR is opened
 #      once every step is green (issue #195).
+#  14. SKILL.md's Draft PR step runs `rebase-onto-default.sh` after its dirty-tree and
+#      pending-refactor check and before the `done` mark, the metrics commit and
+#      `gh pr ready`; its exit 3 continues unchanged and its exit 2 bails with `no-verdict`
+#      (issue #238).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -562,6 +566,52 @@ if step_or_problem '### 1. Read the issue' "what step 1.2 says the claim is befo
   stale="$(first_record "$records" -F 'every step is green')"
   [[ -z "$stale" ]] ||
     problems+=("$skill_md's worktree step still says the draft PR is opened once every step is green, the order #195 reversed — the PR now opens at the plan commit, so the window this passage gives as the reason for the pid lock no longer exists: $(printf '%.120s' "$stale")")
+fi
+report "$name"
+
+# 14. The criterion, as one case (issue #238): two runs branch from the same `main`, and when
+#     the first merges the second's branch owes a rebase. That rebase used to happen after veri
+#     finished, in the operator's merge routine, with nothing re-verified; `rebase-onto-default.sh`
+#     now does it inside the run, and a script's exit code is only an answer if the prose that
+#     calls it branches on it. Where it runs is read off the section's command lines, the order
+#     the conductor types them in: after sub-step 1's two questions, so it never rebases a tree
+#     holding work no verifier has seen, and before the `done` mark, the `metrics:` commit and
+#     `gh pr ready`, so nothing is recorded as finished and no human is asked to look at a branch
+#     still behind the default one. What its exit codes do is read off the records naming it.
+name="$skill_md's Draft PR step runs rebase-onto-default.sh after its dirty-tree and pending-refactor check and before the done mark, the metrics commit and gh pr ready; exit 3 continues unchanged, exit 2 bails with no-verdict"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "where the step rebases onto the default branch"; then
+  commands="$(section_commands)"
+  # line_of <ere> — the number of the first command line of the step matching <ere> at its start.
+  line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
+  rebase="$(line_of '[$]s/rebase-onto-default[.]sh')"
+  if [[ -z "$rebase" ]]; then
+    problems+=("$skill_md's Draft PR step runs no \$S/rebase-onto-default.sh, so a branch behind the default one is still readied for review un-rebased")
+  else
+    for before in 'git status --porcelain' '[$]s/next-pending-refactor[.]sh'; do
+      at="$(line_of "$before")"
+      if [[ -z "$at" ]]; then
+        problems+=("$skill_md's Draft PR step runs no $before, so the rebase's order against it could not be checked")
+      elif [[ "$at" -ge "$rebase" ]]; then
+        problems+=("$skill_md's Draft PR step runs rebase-onto-default.sh (command line $rebase) before $before (command line $at), not after it")
+      fi
+    done
+    for after in 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done' '[$]s/metrics[.]sh' 'git commit -m "metrics:' 'gh pr ready'; do
+      at="$(line_of "$after")"
+      if [[ -z "$at" ]]; then
+        problems+=("$skill_md's Draft PR step runs no $after, so the rebase's order against it could not be checked")
+      elif [[ "$at" -le "$rebase" ]]; then
+        problems+=("$skill_md's Draft PR step runs rebase-onto-default.sh (command line $rebase) after $after (command line $at), not before it")
+      fi
+    done
+    said="$(first_record "$(tr -d '*`' <<< "$records")" -F 'rebase-onto-default.sh' -E 'exit 3' -E 'continu')"
+    [[ -n "$said" ]] ||
+      problems+=("no instruction of $skill_md's Draft PR step naming rebase-onto-default.sh says its exit 3 continues unchanged")
+    said="$(first_record "$(tr -d '*`' <<< "$records")" -F 'rebase-onto-default.sh' -E 'exit 2' -E 'bail' -F 'no-verdict')"
+    [[ -n "$said" ]] ||
+      problems+=("no instruction of $skill_md's Draft PR step naming rebase-onto-default.sh says its exit 2 bails with no-verdict")
+  fi
 fi
 report "$name"
 
