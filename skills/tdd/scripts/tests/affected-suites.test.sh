@@ -612,15 +612,19 @@ expect_suites "#487: a comment that names a lib file is still not a dependency" 
 #     as it stands, with the real lib file beside them, so the answer rests on the source lines
 #     build-develop-prompt.sh and build-verify-prompt.sh actually carry, not on a fixture's copy
 #     of their shape. Only the scripts are copied, never a suite: rule 3 names a script's suite
-#     by the script's name whether or not the file is there.
+#     by the script's name whether or not the file is there. Copied by redirection rather than
+#     `cp`, which no-nested-suites.test.sh reads as this file launching the suites whose full
+#     paths it names in its expectations.
 new_repo rule2-bug-section
 mkdir -p "$s/lib"
-cp "$HERE"/../*.sh "$s/"
-cp "$HERE/../lib/bug-section.sh" "$s/lib/"
+for f in "$HERE"/../*.sh "$HERE/../lib/bug-section.sh"; do
+  rel="${f#"$HERE"/../}"
+  cat "$f" > "$s/$rel"
+done
 commit_base
 printf '# changed\n' >> "$s/lib/bug-section.sh"
 commit_head
-expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects build-develop-prompt.test.sh and build-verify-prompt.test.sh" \
+expect_suites "#487: in the real repo, a change to lib/bug-section.sh selects both build-*-prompt suites" \
   skills/tdd/scripts/tests/build-develop-prompt.test.sh \
   skills/tdd/scripts/tests/build-verify-prompt.test.sh
 

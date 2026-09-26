@@ -208,6 +208,17 @@ for reported in "${scanned[@]}"; do
 done
 report "affected-suites.test.sh's fixture and case-name mentions of claude-md-counts.test.sh are not read as launching it"
 
+# 3. the same false-positive half for the pin #487 added: affected-suites.test.sh asserts that
+#    a change to lib/bug-section.sh selects build-develop-prompt.test.sh and
+#    build-verify-prompt.test.sh, so those two basenames are lines of the ANSWER
+#    affected-suites.sh prints — data, not a command. Read from case 1's scan, like case 2.
+problems=()
+for reported in "${scanned[@]}"; do
+  [[ "$reported" == affected-suites.test.sh:*build-develop-prompt.test.sh* \
+    || "$reported" == affected-suites.test.sh:*build-verify-prompt.test.sh* ]] && problems+=("$reported")
+done
+report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
