@@ -841,6 +841,16 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   **Park the step** — the same park the revise-exhausted path takes (see *Revise*): stop the
   run there, carrying that answer and the two figures, what the step has spent and the
   step budget, and leave the plan as it is so the user's decision picks the run back up.
+- **exit 3 — neither answer: record the crossing and carry on with the step.** This is
+  **not a bail**, and it is where this path parts from the revise-exhausted one, whose exit 3
+  bails with cause `revise-exhausted` because a verifier that will not pass the work leaves
+  nothing to go on with. Here nothing has failed: every verdict may be a PASS and the step is
+  merely dear, and bailing a converging step because it is expensive is exactly what this
+  check exists not to do. Record the crossing, leave the check disarmed, and let the step
+  finish normally:
+  ```
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-over-budget spent=<spent> budget=<step-budget>
+  ```
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
