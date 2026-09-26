@@ -431,6 +431,11 @@ ending = None
 # attempt span off the awake clock (#486).
 launched = {}
 
+# Whether any line of the log carries an awake-clock reading (#486). A log with none was
+# written before event.sh recorded one, so every figure below is wall-clock, and the report
+# says so rather than letting a reader take them for awake time.
+clocked = False
+
 with open(path) as f:
     for raw in f:
         raw = raw.strip()
@@ -441,6 +446,8 @@ with open(path) as f:
         step = line.get("step", "")
         phase = line.get("phase", "")
         ts = line.get("ts")
+        if "awake" in line:
+            clocked = True
         if opening is None or event == "resume":
             opening = line
         # A `stop` is not terminal the way `done` and `bail` are: the run it paused may be
@@ -651,6 +658,9 @@ print("Wall time for the issue: %s s, from the last `resume`, or the first event
 if awake_span is not None and wall_span is not None:
     print("Seconds the machine was not running inside that span: %s s, excluded from it."
           % (wall_span - awake_span))
+if not clocked:
+    print("Every figure in this report is wall-clock: the log carries no awake-clock reading, "
+          "so time the machine spent asleep is counted in them.")
 # Beside the line above, and outside the tables for the same reason: progress is a figure of
 # the run and of no row in either. The steps done are the ones that reached their closing
 # mark — a step that took a revise to get there is one of them, since what the figure counts

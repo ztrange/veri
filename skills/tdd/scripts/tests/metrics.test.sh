@@ -2190,6 +2190,76 @@ times_say "$phase_slept_out" red=40
 report_on "$name" "$phase_slept_out"
 
 
+# A fixture written before the awake clock existed (#486): no line carries an `awake` reading,
+# so the only clock the log has is `ts`. The issue spans 150 wall seconds (ts 40000 to 40150),
+# the step 100 (step-start 40000 to step-done 40100) and the Red attempt 40 (its exit's `secs`)
+# — three distinct numbers, each the wall-clock figure the report printed before #486. And
+# since none of them was measured on the awake clock, the report owes a line outside the
+# tables saying they are wall-clock, so a reader does not take them for awake time.
+fixture_work unclocked_work
+
+unclocked="a step of a run logged before the awake clock"
+
+sv "$unclocked" 40000 conductor ""  step-start ""
+sv "$unclocked" 40010 developer red launch     1  '"name": "develop-red"'
+sv "$unclocked" 40050 developer red exit       1  '"status": "0", "secs": "40"'
+sv "$unclocked" 40100 conductor ""  step-done  ""
+sv "$unclocked" 40150 conductor ""  done       "" '"pr": "https://github.com/ztrange/veri/pull/995"'
+
+plan_of "$unclocked"
+
+
+name="#486 given a log with no awake readings at all, every figure is the wall-clock one and the report says the figures are wall-clock"
+problems=()
+
+unclocked_out="$unclocked_work/report.md"
+render "$unclocked_work" "$unclocked_out"
+
+times_say "$unclocked_out" "$unclocked=100" red=40
+
+probe '
+import re, sys
+
+path = sys.argv[1]
+lines = [l.strip() for l in open(path).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+walls = [l for l in lines if l.startswith("Wall time for the issue:")]
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+elif re.search(r"(?<![0-9.])150(?![0-9.])", walls[0]) is None:
+    print("want the issue wall to be the 150 wall-clock seconds, it says: %r" % walls[0])
+if not any(re.search(r"wall[- ]clock", l, re.I) for l in lines):
+    print("want a line outside the tables saying the figures are wall-clock, the report says outside them: %s"
+          % ", ".join(repr(l) for l in lines))
+' "$unclocked_out"
+
+report_on "$name" "$unclocked_out"
+
+
+# The other side of the case above (#486): the step_slept fixture carries an awake reading on
+# every line, so its figures were measured on the awake clock and a line calling them
+# wall-clock would be false.
+name="#486 given a log with awake readings, the report does not say the figures are wall-clock"
+problems=()
+
+clocked_out="$step_slept_work/clocked-report.md"
+render "$step_slept_work" "$clocked_out"
+
+probe '
+import re, sys
+
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+said = [l for l in lines if re.search(r"wall[- ]clock", l, re.I)]
+if said:
+    print("want no line saying the figures are wall-clock, the report says: %s"
+          % ", ".join(repr(l) for l in said))
+' "$clocked_out"
+
+report_on "$name" "$clocked_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
