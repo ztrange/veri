@@ -773,6 +773,27 @@ print("want a line outside the tables reporting the issue wall of %s seconds, th
 ' "$out_file" "$want"
 }
 
+# issue_wall_line_says <file> <seconds> — issue_wall_says held to the one line that owns the
+# figure: the wall-clock seconds must be on the "Wall time for the issue:" line itself, not
+# merely somewhere outside the tables, where a wrong issue wall would pass so long as the
+# number turned up on another line (#486).
+issue_wall_line_says() {
+  local out_file="$1" want="$2"
+  probe '
+import re, sys
+
+path, want = sys.argv[1], sys.argv[2]
+lines = [l.strip() for l in open(path).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+walls = [l for l in lines if l.startswith("Wall time for the issue:")]
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+elif re.search(r"(?<![0-9.])%s(?![0-9.])" % re.escape(want), walls[0]) is None:
+    print("want the issue wall to be the %s wall-clock seconds, it says: %r" % (want, walls[0]))
+' "$out_file" "$want"
+}
+
 # A fourth fixture, in its own directory for the reason the others have one: each case keeps
 # the log it was written against.
 #
@@ -2238,21 +2259,7 @@ unclocked_out="$unclocked_work/report.md"
 render "$unclocked_work" "$unclocked_out"
 
 times_say "$unclocked_out" "$unclocked=100" red=40
-
-# Not issue_wall_says: that helper accepts the number on any line outside the tables, and
-# this case must see the 150 wall-clock seconds on the issue-wall line itself.
-probe '
-import re, sys
-
-lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
-         if l.strip() and not l.strip().startswith("|")]
-walls = [l for l in lines if l.startswith("Wall time for the issue:")]
-
-if not walls:
-    print("want a line starting \"Wall time for the issue:\", the report has none")
-elif re.search(r"(?<![0-9.])150(?![0-9.])", walls[0]) is None:
-    print("want the issue wall to be the 150 wall-clock seconds, it says: %r" % walls[0])
-' "$unclocked_out"
+issue_wall_line_says "$unclocked_out" 150
 
 wall_clock_says "$unclocked_out" yes
 
@@ -2303,19 +2310,7 @@ mixed_out="$mixed_work/report.md"
 render "$mixed_work" "$mixed_out"
 
 times_say "$mixed_out" "$mixed=10100" red=10070
-
-probe '
-import re, sys
-
-lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
-         if l.strip() and not l.strip().startswith("|")]
-walls = [l for l in lines if l.startswith("Wall time for the issue:")]
-
-if not walls:
-    print("want a line starting \"Wall time for the issue:\", the report has none")
-elif re.search(r"(?<![0-9.])10150(?![0-9.])", walls[0]) is None:
-    print("want the issue wall to be the 10150 wall-clock seconds, it says: %r" % walls[0])
-' "$mixed_out"
+issue_wall_line_says "$mixed_out" 10150
 
 wall_clock_says "$mixed_out" yes
 
