@@ -257,6 +257,20 @@ advance_origin "$dir"
 expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
 report "$name"
 
+# 8. The branch is behind origin/main, but the clone records no origin/HEAD, and its remote
+#    is configured never to set one on fetch: the fetch succeeds and origin/HEAD still names
+#    no branch, so there is no default branch to rebase onto. No answer: exit 2, no stdout,
+#    and HEAD where it was. stdout goes to a file for the reason case 4 gives.
+name="rebase-onto-default.test.sh: when origin/HEAD still names no branch after a successful fetch, exits 2 with nothing on stdout and HEAD unchanged"
+problems=()
+dir="$work/no-origin-head"
+behind_branch "$dir"
+repo="$dir/clone"
+git -C "$repo" config remote.origin.followRemoteHEAD never
+git -C "$repo" remote set-head origin -d >/dev/null 2>&1
+expect_refused "$repo" "$dir/stdout" ", with no default branch to rebase onto"
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
