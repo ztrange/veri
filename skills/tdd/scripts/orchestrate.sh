@@ -61,6 +61,9 @@ watch_context() {
   done
 }
 
+# parked <issue>: true when that issue's run halted with a question in .tdd/parked/<issue>.md.
+parked() { [[ -e ".tdd/parked/$1.md" ]]; }
+
 while :; do
   issues="$("$HERE/solvable-issues.sh")"
   rc=$?
@@ -71,9 +74,9 @@ while :; do
   fi
   issue=
   while IFS= read -r n; do
-    [[ -e ".tdd/parked/$n.md" ]] || { issue=$n; break; }
+    parked "$n" || { issue=$n; break; }
   done <<< "$issues"
   [[ -n "$issue" ]] || exit 0
   "$HERE/run-conductor.sh" "$issue" | watch_context "$issue"
-  [[ -e ".tdd/parked/$issue.md" ]] && echo "parked $issue"
+  parked "$issue" && echo "parked $issue"
 done
