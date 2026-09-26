@@ -6,7 +6,7 @@
 - [x] Launches follow solvable-issues.sh's printed order and never include an issue it did not print, such as one blocked by an open issue ⟦criterion 2⟧
 - [x] An issue solvable-issues.sh still prints after its conductor finished is not launched a second time in the same invocation ⟦criterion 2⟧
 - [x] The solvable set is re-asked after every completion, so an issue that became solvable while another conductor ran is launched next ⟦criterion 2⟧
-- [x] VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap ⟂ refactor pending
+- [x] VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap
 - [ ] A finished conductor whose PR is ready is reported `#<n> — done <pr-url>`, and one whose PR is a draft and whose event log ends in a bail is reported `#<n> — bailed <pr-url>` ⟦criterion 3⟧
 - [ ] A conductor its supervisor killed (supervise exit 2) is reported `#<n> — killed after <VERI_RUN_TIMEOUT>s` ⟦criterion 3⟧
 - [ ] The first bail or kill stops new launches while conductors already running are waited to completion, and --continue-on-bail keeps launching and skips the bailed number ⟦criterion 3⟧
