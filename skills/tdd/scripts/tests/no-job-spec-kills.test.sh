@@ -65,7 +65,7 @@ JOB_SPEC_KILL="$KILL_WORD$JOB_ARGS$JOB_SPEC"
 # fails the run instead of excusing anything. The key is the repository-relative path and
 # the line, because a basename says which file only as long as no two of them share one.
 declare -A EXEMPT=(
-  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:972]="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
+  [skills/tdd/scripts/tests/skill-leaf-env.test.sh:975]="a step title's text, single-quoted, that the case hands a launch line as data (#437): the backticks around it are the character under test, and a fixed launch never runs it; an unfixed one runs it in a bash -c with no job table, where it reaches no process at all"
 )
 
 pass=0 fail=0
@@ -155,6 +155,35 @@ problems=()
 
 probe_every_exemption_carries_a_reason
 probe_no_file_kills_by_job_spec
+
+report "$name"
+
+# probe_every_exemption_still_names_its_site — an exemption is addressed by line, so a line
+# added above its site moves the site out from under it: the key then excuses a line with no
+# kill on it, and the kill it was written for is reported as an offence nobody answered. Every
+# key must still name a line the read above matches and that is not a comment.
+probe_every_exemption_still_names_its_site() {
+  local hit key
+  local -A matched=()
+  while IFS= read -r hit; do
+    split_site "$hit"
+    [[ "$site_text" =~ ^[[:space:]]*# ]] && continue
+    matched[$site_file:$site_line]=1
+  done < <(cd "$ROOT" && grep -rInE -- "$JOB_SPEC_KILL" "$SUBJECT")
+  for key in "${!EXEMPT[@]}"; do
+    [[ -n "${matched[$key]:-}" ]] && continue
+    problems+=("the exemption entry [$key] names a line that no longer ends a background process by a job spec, so it excuses nothing there: the site it was written for has moved, and its key must follow it")
+  done
+  return 0
+}
+
+# 2. The table's keys against the tree: every exemption still names the line it was written
+#    for. Case 1 goes red when a site moves away from its key; this case says which key was
+#    left behind.
+name="every exemption names a line under skills/ that ends a background process by a job spec"
+problems=()
+
+probe_every_exemption_still_names_its_site
 
 report "$name"
 
