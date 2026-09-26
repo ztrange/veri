@@ -14,5 +14,5 @@
 - [x] The over-budget exit 1 branch parks the step carrying the leaf's answer and the spent and budget figures, and leaves the plan unchanged ⟦criterion 8⟧
 - [x] The over-budget exit 3 branch records the crossing and continues the step, and SKILL.md says in so many words that it is not a bail and why ⟦criterion 9⟧
 - [x] SKILL.md states once, in the over-budget section, why a crossing is not a failure and why no exit code changes meaning
-- [x] A supervisor exit 2 on the over-budget leaf is a `killed-stuck` bail, and SKILL.md says the step's budget stays crossed rather than re-arming ⟦criterion 10⟧ ⟂ refactor pending
+- [x] A supervisor exit 2 on the over-budget leaf is a `killed-stuck` bail, and SKILL.md says the step's budget stays crossed rather than re-arming ⟦criterion 10⟧
 - [ ] `make unit` and every SKILL.md prose suite (`skill-*.test.sh`) pass against the finished SKILL.md ⟦criterion 11⟧
