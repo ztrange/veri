@@ -70,6 +70,16 @@ run_branch() {
   git_q "$repo" commit -q -m "feat: a step's green commit (#1)" >/dev/null 2>&1
 }
 
+# advance_origin <dir> — another run merged: commit whatever the caller wrote into
+# <dir>/seed, push it to origin's main, and fetch it into the clone, which is now behind.
+advance_origin() {
+  local dir="$1"
+  git_q "$dir/seed" add -A >/dev/null 2>&1
+  git_q "$dir/seed" commit -q -m "feat: another run merged (#2)" >/dev/null 2>&1
+  git_q "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
+  git -C "$dir/clone" fetch -q origin >/dev/null 2>&1
+}
+
 # 1. A branch cut from origin/main, one commit ahead of it and not behind: nothing to rebase.
 name="rebase-onto-default.test.sh: a branch already containing origin/<default> exits 3 with empty stdout and HEAD and tree unchanged"
 problems=()
@@ -101,10 +111,7 @@ origin_fixture "$dir"
 repo="$dir/clone"
 run_branch "$repo"
 echo "another run's work" > "$dir/seed/other.txt"
-git_q "$dir/seed" add -A >/dev/null 2>&1
-git_q "$dir/seed" commit -q -m "feat: another run merged (#2)" >/dev/null 2>&1
-git_q "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
-git -C "$repo" fetch -q origin >/dev/null 2>&1
+advance_origin "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
 onto="$(git -C "$repo" rev-parse origin/main)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
@@ -135,10 +142,7 @@ echo "the run's edit" > "$repo/file.txt"
 git_q "$repo" commit -q -a --amend --no-edit >/dev/null 2>&1
 echo "another run's edit" > "$dir/seed/file.txt"
 echo "another run's work" > "$dir/seed/work.txt"
-git_q "$dir/seed" add -A >/dev/null 2>&1
-git_q "$dir/seed" commit -q -m "feat: another run merged (#2)" >/dev/null 2>&1
-git_q "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
-git -C "$repo" fetch -q origin >/dev/null 2>&1
+advance_origin "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
 rc=$?
