@@ -21,11 +21,10 @@ set -euo pipefail
 re='^[[:space:]]*- \[ \] (.*)$'
 
 while IFS= read -r line || [[ -n "$line" ]]; do
-  if [[ "$line" =~ $re ]] && [[ "$line" != *'⟦full-suite⟧'* ]] \
-    && [[ "$line" != *'⟦human-owed⟧'* ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    exit 0
-  fi
+  [[ "$line" =~ $re ]] || continue
+  case "$line" in *'⟦full-suite⟧'* | *'⟦human-owed⟧'*) continue ;; esac
+  printf '%s\n' "${BASH_REMATCH[1]}"
+  exit 0
 done
 
 exit 3
