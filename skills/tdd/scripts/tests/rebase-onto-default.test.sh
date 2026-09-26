@@ -12,6 +12,10 @@
 #                       → rebases onto it, exit 0.
 #                       → stdout is two lines: the pre-rebase sha, then the onto sha.
 #                       → HEAD contains origin/<default>, with the branch's own commits on top.
+#   rebase-onto-default.sh, run on a branch whose rebase onto origin/<default> conflicts
+#                       → aborts the rebase, exit 1.
+#                       → stdout is the conflicting files, one per line.
+#                       → HEAD at the pre-rebase sha, a clean tree, and no rebase in progress.
 #
 # The origin is a bare repository on the local disk, cloned so the clone carries
 # origin/HEAD the way a real one does: the default branch is whatever the remote says, and
@@ -116,6 +120,41 @@ parent="$(git -C "$repo" rev-parse HEAD~1 2>/dev/null)"
 subject="$(git -C "$repo" log -1 --format=%s HEAD)"
 [[ "$subject" == "feat: a step's green commit (#1)" ]] ||
   problems+=("HEAD subject: want the branch's own commit, got $(printf '%q' "$subject")")
+report "$name"
+
+# 3. origin/main moved on by a commit touching the same files as the branch's own commit,
+#    differently: the rebase conflicts on both, and the script owes an abort.
+name="rebase-onto-default.test.sh: a rebase that conflicts is aborted, exits 1, leaves HEAD at the pre-rebase sha with a clean tree and no rebase in progress, and prints the conflicting files one per line"
+problems=()
+dir="$work/conflict"
+mkdir -p "$dir"
+origin_fixture "$dir"
+repo="$dir/clone"
+run_branch "$repo"
+echo "the run's edit" > "$repo/file.txt"
+git_q "$repo" commit -q -a --amend --no-edit >/dev/null 2>&1
+echo "another run's edit" > "$dir/seed/file.txt"
+echo "another run's work" > "$dir/seed/work.txt"
+git_q "$dir/seed" add -A >/dev/null 2>&1
+git_q "$dir/seed" commit -q -m "feat: another run merged (#2)" >/dev/null 2>&1
+git_q "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
+git -C "$repo" fetch -q origin >/dev/null 2>&1
+pre="$(git -C "$repo" rev-parse HEAD)"
+out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
+rc=$?
+[[ "$rc" -eq 1 ]] || problems+=("exit: want 1, got $rc")
+got_files="$(printf '%s\n' "$out" | LC_ALL=C sort)"
+want_files="$(printf 'file.txt\nwork.txt')"
+[[ "$got_files" == "$want_files" ]] ||
+  problems+=("stdout: want the conflicting files $(printf '%q' "$want_files"), got $(printf '%q' "$out")")
+head_after="$(git -C "$repo" rev-parse HEAD)"
+[[ "$head_after" == "$pre" ]] || problems+=("HEAD: want the pre-rebase sha $pre, got $head_after")
+status_after="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
+[[ -z "$status_after" ]] || problems+=("working tree: want clean, got $(printf '%q' "$status_after")")
+for d in rebase-merge rebase-apply; do
+  [[ ! -e "$(git -C "$repo" rev-parse --path-format=absolute --git-path "$d")" ]] ||
+    problems+=("rebase: want none in progress, found $d")
+done
 report "$name"
 
 echo "----"
