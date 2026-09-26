@@ -5,5 +5,5 @@
 - [x] metrics.sh's issue wall, given a log whose wall timestamps span a gap its awake-clock readings do not, excludes the gap and a figure beside it names the excluded seconds ⟦criterion 3⟧
 - [x] metrics.sh computes each step's wall from the awake-clock readings of its step-start and step-done events, so a sleep gap inside a step is not counted in that step's wall ⟦criterion 2⟧
 - [x] metrics.sh computes each phase's wall from awake-clock readings, so a sleep gap inside a leaf's attempt is not counted in that phase's wall ⟦criterion 2⟧
-- [x] metrics.sh, given a log with no awake-clock readings at all, prints every figure as the wall-clock one it prints today and says in its output that the figures are wall-clock ⟦criterion 4⟧ ⟂ refactor pending
+- [x] metrics.sh, given a log with no awake-clock readings at all, prints every figure as the wall-clock one it prints today and says in its output that the figures are wall-clock ⟦criterion 4⟧
 - [ ] metrics.sh, given a log where only some events carry an awake-clock reading, prints no figure computed from a mix of the two clocks and says which clock its figures are on ⟦criterion 5⟧
