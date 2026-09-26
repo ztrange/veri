@@ -305,6 +305,30 @@ expected="mid-step"
 actual="$(cat "$MARKS")"
 expect_exit0_output
 
+# 10. A conductor stopped over the budget is relaunched for the same issue through
+#     run-conductor.sh with the same argv as its first launch, so the second incarnation
+#     takes the ledger's resume path rather than re-planning. Every incarnation records its
+#     argv to $MARKS. With the budget at 100000, the first puts 1001 back into the solvable
+#     set — a stopped run has not finished — then streams the step-done mark at 150100 and
+#     heartbeat lines for ~2 s before writing `after-step-done`, which a stopped conductor
+#     never writes. The second just leaves the solvable set, so the loop ends.
+name="a conductor stopped over VERI_CONDUCTOR_CTX_BUDGET is relaunched for the same issue with the same argv"
+relaunch="$work/relaunch"
+conductor_stub "$relaunch" <<STUB
+{ printf 'argv %s:' "\$#"; printf ' [%s]' "\$@"; echo; } >> "\$MARKS"
+[ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
+echo 1001 >> "\$SOLVABLE"
+echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=1001 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
+echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
+heartbeats 200
+echo after-step-done >> "\$MARKS"
+STUB
+seed relaunch 1001
+VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$relaunch"
+expected="$(printf '%s\n' 'argv 1: [1001]' 'argv 1: [1001]')"
+actual="$(cat "$MARKS")"
+expect_exit0_output
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
