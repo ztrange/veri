@@ -169,6 +169,15 @@ which prints the solvable numbers of one scope in three bands — the issues lab
 there are none). `VERI_PRIORITY_LABEL` names the first band's label.
 _Avoid_: scheduler, picker, queue
 
+**In flight**:
+A conductor one `parallel-conductors.sh` invocation launched and has not yet seen finish.
+The set is local to one invocation: it lives in the launcher's own memory, is subtracted
+from what `solvable-issues.sh` prints before each launch, and nothing outside the invocation
+can read it. Two launchers on one label still collide — each sees only its own — which is
+why the answer stays one label per launcher; across machines the claim is the draft PR
+(ADR-0024), not this set. ADR-0025 records why it is not written anywhere.
+_Avoid_: running (a leaf runs too), claimed (a claim is the PR)
+
 **Scope**:
 The pool one `/tdd <scope>` invocation drains: the issues carrying that scope's opt-in
 label. `plain` is the default scope and is the bare `ready-for-agent` label; any other
@@ -254,4 +263,7 @@ selection changes per rung; everything below the selection layer stays the same:
    list captured once. The first bail stops the loop unless told otherwise. It adds no
    failure mode of its own: every outcome is one of rung 1's.
 3. **Parallel** — run several issue-conductors at once over the solvable set, respecting
-   the dependency graph, solving issues concurrently.
+   the dependency graph, solving issues concurrently. `parallel-conductors.sh` is its
+   selection layer, and `/tdd <scope>` runs it when `VERI_PARALLEL` is above 1: rung 2's
+   loop, keeping up to that many supervised print-mode conductors **in flight** and
+   re-selecting after each one finishes. ADR-0025 records the design.

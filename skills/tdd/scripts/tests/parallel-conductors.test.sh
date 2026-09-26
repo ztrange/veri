@@ -777,6 +777,49 @@ said 'relay' 'report' \
 [[ -z "$bad" ]] \
   && ok || no "SCOPE-LOOP.md documents VERI_PARALLEL: at 1 rung 2 is unchanged, above 1 it runs parallel-conductors.sh detach-then-wait and relays the report ($bad )"
 
+# 21. Rung 3 is recorded: CONTEXT.md's scope-ladder entry for rung 3 names parallel-conductors.sh,
+# a glossary entry `**In flight**:` defines the word as local to one invocation, and one of the
+# two sends a reader to a new decision record — an ADR numbered above 0024, the last one before
+# this issue. The ADR itself is a file in the documentation tree, which a suite here may not
+# name (no-docs-reads.test.sh, #143), so the pointer is the whole of what this case can ask of
+# it, as skill-refactor-leaf.test.sh's case 2 asks of ADR-0017. Each record is read as one line
+# — CONTEXT.md wraps mid-sentence — from its opening line to the blank line or next rung that
+# ends it. Every record short of what it owes is named in the single FAIL line.
+context_md="$HERE/../../../../CONTEXT.md"
+# record <opening ERE> — the CONTEXT.md record opening with a line matching it, joined into one.
+# The ERE escapes with brackets, not backslashes: `awk -v` eats a backslash before `.` or `*`.
+record() {
+  awk -v open="$1" '
+    hit && (/^$/ || /^[0-9]+\. / || /^## /) { exit }
+    $0 ~ open { hit = 1 }
+    hit { printf "%s ", $0 }
+  ' "$context_md"
+}
+rung3="$(record '^3[.] [*][*]Parallel[*][*]')"
+in_flight="$(record '^[*][*]In flight[*][*]:')"
+bad=""
+if [[ -z "$rung3" ]]; then
+  bad+=" [no rung 3 (**Parallel**) entry in the scope ladder]"
+else
+  grep -F 'parallel-conductors.sh' <<<"$rung3" > /dev/null \
+    || bad+=" [rung 3's entry does not name parallel-conductors.sh]"
+fi
+if [[ -z "$in_flight" ]]; then
+  bad+=" [no **In flight**: glossary entry]"
+else
+  grep -iE 'local' <<<"$in_flight" | grep -iE 'one invocation' > /dev/null \
+    || bad+=" [the In flight entry does not say it is local to one invocation]"
+fi
+newest_adr=0
+for n in $(grep -oE 'ADR-?0*[0-9]+' <<<"$rung3 $in_flight" | grep -oE '[1-9][0-9]*$'); do
+  (( n > newest_adr )) && newest_adr=$n
+done
+(( newest_adr > 24 )) \
+  || bad+=" [neither entry names an ADR numbered above 0024]"
+
+[[ -z "$bad" ]] \
+  && ok || no "CONTEXT.md records rung 3: its entry names parallel-conductors.sh, In flight is defined as local to one invocation, and a new ADR is cited ($bad )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
