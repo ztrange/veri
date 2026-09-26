@@ -1349,6 +1349,16 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
    the full test command once on the rebased tip, a bail on red, and on green the push under
    the lease pinned to `<pre-rebase-sha>`.
+
+   A rebase not resolved within budget — the leaf reports `REBASE: FAILED`, `REVISE_BUDGET`
+   runs out on verify-rebase `REJECT`s, or the leaf is killed — has left a resolution no
+   verifier passed on the branch, so first put the branch back where it stood:
+   ```
+   git reset --hard <pre-rebase-sha>
+   ```
+   The branch is left un-rebased, and the run does **bail** with the PR left a draft, its
+   bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human
+   it hands the conflict to knows where it is.
 2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
    PR into its final form and mark it ready for review** — one sub-step, in this order, from
    inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
