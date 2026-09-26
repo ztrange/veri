@@ -83,13 +83,18 @@ if [[ ( "$phase" == green || "$phase" == refactor ) && -z "$fast_cmd" ]]; then
   exit 2
 fi
 
+# need_sha <what> <value>: exit 2 unless <value> is a commit name, 7-40 lowercase hex. The
+# one shape a sha slot accepts, for every phase that has one (#151, #238).
+need_sha() {
+  [[ "$2" =~ ^[0-9a-f]{7,40}$ ]] && return 0
+  echo "build-verify-prompt: $phase needs $1 as 7-40 lowercase hex characters, got '$2'" >&2
+  exit 2
+}
+
 # For refactor, the 4th slot is the step's green commit, and only a sha may arrive in it:
 # a slot that accepted free text would be a channel for the developer's rationale (#151).
 base_sha="${4:-}"
-if [[ "$phase" == refactor && ! "$base_sha" =~ ^[0-9a-f]{7,40}$ ]]; then
-  echo "build-verify-prompt: refactor needs <base-sha> as 7-40 lowercase hex characters, got '$base_sha'" >&2
-  exit 2
-fi
+[[ "$phase" == refactor ]] && need_sha '<base-sha>' "$base_sha"
 
 # For rebase, the two slots after the spec are the commit the branch was rebased onto and the
 # one it stood at before, and #151's guard holds for both: a sha is all either may carry, so
@@ -98,10 +103,7 @@ onto_sha="" pre_rebase_sha=""
 if [[ "$phase" == rebase ]]; then
   onto_sha="$3" pre_rebase_sha="${4:-}"
   for sha in "$onto_sha" "$pre_rebase_sha"; do
-    [[ "$sha" =~ ^[0-9a-f]{7,40}$ ]] || {
-      echo "build-verify-prompt: rebase needs <onto-sha> <pre-rebase-sha> as 7-40 lowercase hex characters, got '$sha'" >&2
-      exit 2
-    }
+    need_sha '<onto-sha> <pre-rebase-sha>' "$sha"
   done
 fi
 
