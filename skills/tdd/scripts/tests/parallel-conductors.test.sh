@@ -564,6 +564,61 @@ want_outer="$(printf 'start 7\nsupervise[conductor-7]: killed-stuck — hard tim
 got_outer="$(cat "$outer_starts" 2>/dev/null; grep -E '^supervise\[conductor-7\]: (retry|killed-stuck|failure|success)' "$work/outer.out")"
 expect_lines "the outer supervisor runs with heartbeat and timeout both VERI_RUN_TIMEOUT and no stuck retries" "$want_outer" "$got_outer" "$work/outer.out"
 
+# 14. In a target repo that has never seen veri, the caller's `git status --porcelain` stays
+# empty after a launch: whatever the launcher and its supervisor write under `.tdd/` must be
+# ignored before it is written, or the first conductor's own preflight (a clean tree) fails on
+# the files that launched it. A fresh repository with one commit, no `.tdd/` and nothing in
+# `info/exclude` about it — not the suite's shared target, where earlier cases' stubs left
+# `.tdd/wt/<n>` event logs. One solvable issue; its stub conductor writes nothing in the tree
+# and answers "done" with a ready PR in the fixture.
+fresh="$work/fresh"
+git init -q -b main "$fresh" >/dev/null 2>&1
+git -C "$fresh" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+gh14="$work/gh14"
+solvable_fixture "$gh14" 7
+clean_stub="$work/claude-clean"
+record_stub "$clean_stub" "$work/clean-record" "$gh14"
+
+(cd "$fresh" && run_launcher "$gh14" "$clean_stub" "$work/clean.out"; echo "$code" > "$work/clean.code")
+code="$(cat "$work/clean.code")"
+got_status="$(git -C "$fresh" status --porcelain 2>&1)"
+[[ -s "$work/clean-record" ]] || got_status+="<conductor never ran>"
+expect_lines "in a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch" "" "$got_status" "$work/clean.out"
+
+# 15. The same holds in a repository whose git dir has no `info/` at all — `git init` from an
+# empty template directory makes one — so the launcher creates it rather than failing to write
+# the exclude.
+bare_info="$work/no-info"
+git init -q -b main --template= "$bare_info" >/dev/null 2>&1
+git -C "$bare_info" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+rm -rf "$bare_info/.git/info"
+gh15="$work/gh15"
+solvable_fixture "$gh15" 7
+no_info_stub="$work/claude-no-info"
+record_stub "$no_info_stub" "$work/no-info-record" "$gh15"
+(cd "$bare_info" && run_launcher "$gh15" "$no_info_stub" "$work/no-info.out"; echo "$code" > "$work/no-info.code")
+code="$(cat "$work/no-info.code")"
+got_status="$(git -C "$bare_info" status --porcelain 2>&1)"
+[[ -s "$work/no-info-record" ]] || got_status+="<conductor never ran>"
+expect_lines "a repo with no info/ directory still has an empty git status --porcelain after a launch" "" "$got_status" "$work/no-info.out"
+
+# 16. The caller's own exclude survives the launcher: a last line without a trailing newline is
+# not glued to `.tdd/*`, and a second invocation does not add the line again. Two launches, each
+# over its own one-issue fixture, in a repo whose exclude ends in `*.scratch` with no newline.
+own_exclude="$work/own-exclude"
+git init -q -b main "$own_exclude" >/dev/null 2>&1
+git -C "$own_exclude" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+printf '*.scratch' > "$own_exclude/.git/info/exclude"
+for run in 1 2; do
+  solvable_fixture "$work/gh16-$run" 7
+  record_stub "$work/claude-own-exclude-$run" "$work/own-exclude-record" "$work/gh16-$run"
+  (cd "$own_exclude" && run_launcher "$work/gh16-$run" "$work/claude-own-exclude-$run" "$work/own-exclude-$run.out"; echo "$code" > "$work/own-exclude.code")
+done
+code="$(cat "$work/own-exclude.code")"
+got_exclude="$(cat "$own_exclude/.git/info/exclude")"
+expect_lines "the caller's exclude keeps its last line intact and gains .tdd/* exactly once over two launches" \
+  "$(printf '*.scratch\n.tdd/*')" "$got_exclude" "$work/own-exclude-2.out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
