@@ -461,6 +461,17 @@ fi
 
 report "$name"
 
+# 8. The counts moved with `orchestrate.sh` and its suite (#217). Same question case 2 asks
+#    of #149's pair, asked of this issue's: one script, `orchestrate.sh`, and one suite,
+#    `orchestrate.test.sh`, and all three counts have to have moved off the number true of
+#    the tree without them. The reads are case 1's, taken once above.
+name="$claude_md's counts moved with orchestrate.sh and its suite"
+problems=()
+
+moved_with "skills/tdd/scripts/orchestrate.sh" "skills/tdd/scripts/tests/orchestrate.test.sh"
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
