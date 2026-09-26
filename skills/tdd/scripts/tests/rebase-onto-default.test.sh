@@ -59,6 +59,17 @@ stderr_file=/dev/null
 # whatever user.name/user.email the machine running it happens to carry (CI carries none).
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
+# identify <repo> — write that identity into <repo>'s own config, for the commits the SCRIPT
+# UNDER TEST makes rather than the ones this suite makes. `-c` on git_q covers only the
+# suite's own calls, and a rebase that replays a commit is a commit: with no identity to be
+# had, git's merge backend stops at `Committer identity unknown` after writing its state
+# directory, which rebase-onto-default.sh reads as a conflict with no conflicting files
+# (exit 1 where 0 was owed), and the apply backend refuses before writing one at all (exit 2
+# where 1 was owed). On this Mac git guesses an identity from the system and both cases pass;
+# on CI's Linux it cannot, and both failed. So the identity belongs in the repo, where
+# everything run inside it finds it.
+identify() { git -C "$1" config user.name veri && git -C "$1" config user.email veri@example.test; }
+
 # origin_fixture <dir> — a bare origin at <dir>/origin.git whose default branch `main`
 # holds one commit, and a clone of it at <dir>/clone. Creates <dir> itself.
 origin_fixture() {
@@ -71,6 +82,8 @@ origin_fixture() {
   git_q "$dir/seed" commit -q -m "initial" >/dev/null 2>&1
   git_q "$dir/seed" push -q "$dir/origin.git" main >/dev/null 2>&1
   git clone -q "$dir/origin.git" "$dir/clone" >/dev/null 2>&1
+  identify "$dir/seed"
+  identify "$dir/clone"
 }
 
 # run_branch <repo> — cut the run's branch from origin/main in <repo> and give it one commit
