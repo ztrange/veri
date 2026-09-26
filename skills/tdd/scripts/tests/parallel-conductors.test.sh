@@ -521,6 +521,40 @@ done
 [[ -z "$bad" ]] \
   && ok || no "the caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ($bad )"
 
+# 13. The outer supervisor of each conductor runs with heartbeat and timeout both
+# VERI_RUN_TIMEOUT and no stuck retries, whatever the caller set for its own leaves. The caller
+# sets VERI_HEARTBEAT=1, VERI_TIMEOUT=1 and VERI_STUCK_RETRIES=3, and VERI_RUN_TIMEOUT=60. #7's
+# stub conductor records `start 7` each time it is launched and never answers. The supervisor's
+# awake clock is injected as a stub that stands still until the conductor has started and then
+# moves 30 s on every reading, so the first poll after the start sees 30 s of awake time and 30 s
+# of silence — past the caller's 1 s windows, short of 60 — and the second
+# sees 60 s, the hard timeout. So the supervisor's status line names `hard timeout 60s exceeded`
+# (a caller's timeout would name 1s, a caller's heartbeat `no heartbeat … (window 1s)`), and the
+# conductor started exactly once with no `retry` line from its supervisor (a stuck retry would
+# print one, and may start it again).
+gh13="$work/gh13"
+solvable_fixture "$gh13" 7
+rm -f "$work/step-count"
+
+step_clock="$work/step-clock"
+printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\n[ -e "%s" ] && c=$((c + 30))\necho "$c" > "%s"\necho "$c"\n' \
+  "$work/step-count" "$work/outer-starts" "$work/step-count" > "$step_clock"
+chmod +x "$step_clock"
+
+outer_starts="$work/outer-starts"
+outer_stub="$work/claude-outer"
+conductor_stub "$outer_stub" <<STUB
+echo "start \$n" >> "$outer_starts"
+i=0
+while [ "\$i" -lt \$(( ${PATIENCE:-5} * 50 )) ]; do sleep 0.02; i=\$((i + 1)); done
+STUB
+
+run_launcher "$gh13" "$outer_stub" "$work/outer.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$step_clock" \
+  VERI_KILL_POLL=0.01 VERI_HEARTBEAT=1 VERI_TIMEOUT=1 VERI_STUCK_RETRIES=3
+want_outer="$(printf 'start 7\nsupervise[conductor-7]: killed-stuck — hard timeout 60s exceeded')"
+got_outer="$(cat "$outer_starts" 2>/dev/null; grep -E '^supervise\[conductor-7\]: (retry|killed-stuck|failure|success)' "$work/outer.out")"
+expect_lines "the outer supervisor runs with heartbeat and timeout both VERI_RUN_TIMEOUT and no stuck retries" "$want_outer" "$got_outer" "$work/outer.out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
