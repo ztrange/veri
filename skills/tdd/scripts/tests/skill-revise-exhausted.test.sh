@@ -525,6 +525,43 @@ fi
 
 report "$name"
 
+# The over-budget leaf's exit 3: neither answer. This is where the over-budget path parts
+# from the revise-exhausted one, whose exit 3 bails as a process failure. Here nothing has
+# failed — every verdict may be a PASS and the step is merely dear — so the crossing is
+# recorded and the step goes on to finish, and the bullet says so in so many words: not a bail,
+# and why.
+
+# over_budget_exit_3 — the cost check section's `exit 3` bullet, from its own line up to the
+# first line that is not indented under it, normalised through `plain`.
+over_budget_exit_3() {
+  cost_check_lines |
+    awk '/^- \*\*exit 3/ { inside = 1; print; next } inside && !/^  / { exit } inside' |
+    plain
+}
+
+name="'$cost_heading' records the crossing and continues the step on the over-budget leaf's exit 3, and says it is not a bail because nothing has failed"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what the over-budget leaf's exit 3 does could not be established")
+else
+  bullet="$(over_budget_exit_3)"
+  if [[ -z "${bullet// /}" ]]; then
+    problems+=("'$cost_heading' has no **exit 3** bullet, so what the run does when the over-budget leaf gives neither answer is left to the reader")
+  else
+    grep -E -- "record[a-z]* the crossing" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 3 bullet does not record the crossing")
+    grep -E -- "(carr(y|ies) on|continues?|goes on|finish(es)?)[^.]*step|step[^.]*(carr(y|ies) on|continues|goes on|finishes)" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 3 bullet does not say the step continues")
+    grep -E -- "not a bail" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 3 bullet does not say in so many words that it is not a bail")
+    grep -E -- "nothing has failed|not a failure" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 3 bullet does not say why it is not a bail: nothing has failed")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
