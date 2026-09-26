@@ -1,6 +1,6 @@
 # Plan for #102 — Rung 3: parallel-conductors.sh runs up to VERI_PARALLEL supervised conductors at once over the solvable set
 
-- [x] parallel-conductors.sh exits 2 and launches no conductor when VERI_PARALLEL is not a whole number ≥ 1 (0, a word, or set-but-empty) ⟦criterion 1⟧ ⟂ refactor pending
+- [x] parallel-conductors.sh exits 2 and launches no conductor when VERI_PARALLEL is not a whole number ≥ 1 (0, a word, or set-but-empty) ⟦criterion 1⟧
 - [ ] With VERI_PARALLEL unset (default 1) parallel-conductors.sh runs two solvable issues' conductors one after another — the second starts only after the first has ended ⟦criterion 1⟧
 - [ ] With VERI_PARALLEL=2 parallel-conductors.sh runs two conductors at once — their start and end stamps overlap ⟦criterion 1⟧
 - [ ] Launches follow solvable-issues.sh's printed order and never include an issue it did not print, such as one blocked by an open issue ⟦criterion 2⟧
