@@ -31,7 +31,14 @@ trap 'rm -rf "$work"' EXIT
 pass=0 fail=0
 
 # report <name> — close a case whose probes collected into the `problems` array: an empty
-# array is a pass, otherwise one FAIL line for the case and one indented line per problem.
+# array is a pass, otherwise one FAIL line for the case, one indented line per problem, and
+# then whatever the script wrote to stderr, which $stderr_file names.
+#
+# That last part is not decoration. Every case here discarded the script's stderr, so a
+# failure said the exit was 1 where 0 was wanted and nothing about WHY git refused — and when
+# two of these cases failed on CI's Linux while passing on this Mac, the log carried no line
+# that could tell the two platforms apart. A guess costs a CI round trip each time; git's own
+# complaint costs nothing and is already being written.
 report() {
   local name="$1"
   if [[ "${#problems[@]}" -eq 0 ]]; then
@@ -40,8 +47,13 @@ report() {
     fail=$((fail + 1))
     echo "FAIL - $name"
     printf '    %s\n' "${problems[@]}"
+    [[ -s "${stderr_file:-/dev/null}" ]] && sed 's/^/    stderr: /' "$stderr_file"
   fi
 }
+
+# Where the script's stderr goes for the case being run. Each case points it at a file of its
+# own before calling the script; report reads whichever one is current.
+stderr_file=/dev/null
 
 # git_q <repo> <args...> — git with an identity of its own, so the suite does not depend on
 # whatever user.name/user.email the machine running it happens to carry (CI carries none).
@@ -130,7 +142,7 @@ expect_conflict_aborted() {
 expect_refused() {
   local repo="$1" stdout="$2" why="$3" head_before rc head_after
   head_before="$(git -C "$repo" rev-parse HEAD)"
-  (cd "$repo" && bash "$REBASE" > "$stdout" 2>/dev/null)
+  (cd "$repo" && bash "$REBASE" > "$stdout" 2>"$stderr_file")
   rc=$?
   [[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
   [[ ! -s "$stdout" ]] || problems+=("stdout: want empty, got $(printf '%q' "$(cat "$stdout"; echo .)")")
@@ -142,12 +154,13 @@ expect_refused() {
 name="rebase-onto-default.test.sh: a branch already containing origin/<default> exits 3 with empty stdout and HEAD and tree unchanged"
 problems=()
 dir="$work/up-to-date"
+stderr_file="$work/up-to-date.err"
 origin_fixture "$dir"
 repo="$dir/clone"
 run_branch "$repo"
 head_before="$(git -C "$repo" rev-parse HEAD)"
 status_before="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
-out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
+out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
 rc=$?
 [[ "$rc" -eq 3 ]] || problems+=("exit: want 3, got $rc")
 [[ -z "$out" ]] || problems+=("stdout: want empty, got $(printf '%q' "$out")")
@@ -163,11 +176,12 @@ report "$name"
 name="rebase-onto-default.test.sh: a branch behind origin/<default> with no conflict rebases onto it, exits 0, prints the pre-rebase and onto shas, and keeps its own commit on top"
 problems=()
 dir="$work/behind"
+stderr_file="$work/behind.err"
 behind_branch "$dir"
 repo="$dir/clone"
 pre="$(git -C "$repo" rev-parse HEAD)"
 onto="$(git -C "$repo" rev-parse origin/main)"
-out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
+out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
 rc=$?
 [[ "$rc" -eq 0 ]] || problems+=("exit: want 0, got $rc")
 want_out="$(printf '%s\n%s' "$pre" "$onto")"
@@ -187,11 +201,12 @@ report "$name"
 name="rebase-onto-default.test.sh: a rebase that conflicts is aborted, exits 1, leaves HEAD at the pre-rebase sha with a clean tree and no rebase in progress, and prints the conflicting files one per line"
 problems=()
 dir="$work/conflict"
+stderr_file="$work/conflict.err"
 origin_fixture "$dir"
 repo="$dir/clone"
 conflicting_branch "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
-out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
+out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
 rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
 status_after="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
@@ -205,6 +220,7 @@ report "$name"
 name="rebase-onto-default.test.sh: a rebase git refuses for a reason other than a conflict, such as a dirty working tree, exits 2 with nothing on stdout and HEAD unchanged"
 problems=()
 dir="$work/dirty"
+stderr_file="$work/dirty.err"
 behind_branch "$dir"
 repo="$dir/clone"
 git -C "$repo" config rebase.autoStash false
@@ -218,12 +234,13 @@ report "$name"
 name="rebase-onto-default.test.sh: in a repo configured with rebase.backend=apply, a rebase that conflicts is still aborted, exits 1, prints the conflicting files, and leaves no rebase in progress"
 problems=()
 dir="$work/conflict-apply"
+stderr_file="$work/conflict-apply.err"
 origin_fixture "$dir"
 repo="$dir/clone"
 git -C "$repo" config rebase.backend apply
 conflicting_branch "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
-out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
+out="$(cd "$repo" && bash "$REBASE" 2>"$stderr_file")"
 rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
 report "$name"
@@ -234,6 +251,7 @@ report "$name"
 name="rebase-onto-default.test.sh: when origin/<default> cannot be fetched, exits 2 with nothing on stdout and never rebases onto the stale local copy"
 problems=()
 dir="$work/unreachable"
+stderr_file="$work/unreachable.err"
 behind_branch "$dir"
 repo="$dir/clone"
 mv "$dir/origin.git" "$dir/origin-gone.git"
@@ -249,6 +267,7 @@ report "$name"
 name="rebase-onto-default.test.sh: when a fetch succeeds without refreshing origin/<default>, exits 2 with nothing on stdout and never rebases onto the stale local copy"
 problems=()
 dir="$work/fetch-skips-default"
+stderr_file="$work/fetch-skips-default.err"
 behind_branch "$dir"
 repo="$dir/clone"
 git -C "$repo" config remote.origin.fetch '+refs/heads/tdd/*:refs/remotes/origin/tdd/*'
@@ -264,6 +283,7 @@ report "$name"
 name="rebase-onto-default.test.sh: when origin/HEAD still names no branch after a successful fetch, exits 2 with nothing on stdout and HEAD unchanged"
 problems=()
 dir="$work/no-origin-head"
+stderr_file="$work/no-origin-head.err"
 behind_branch "$dir"
 repo="$dir/clone"
 git -C "$repo" config remote.origin.followRemoteHEAD never
