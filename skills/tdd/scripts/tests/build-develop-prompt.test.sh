@@ -1516,6 +1516,44 @@ renders_as reconcile      '833555540 4704'       reconcile "$work/spec.md" "$ste
 [[ -z "$problems" ]] \
   && ok || no "every phase other than over-budget renders byte-identically to before #450 (${problems#; })"
 
+# 47. the rebase prompt (issue #238, criterion 3). A branch behind origin/<default> whose
+#     rebase conflicted comes back from `rebase-onto-default.sh` aborted, at its pre-rebase
+#     sha, with the conflicting files on stdout one per line — and is handed to a leaf. That
+#     leaf has to know what to rebase onto (the onto sha, not a moving `origin/main`), where
+#     it started (the pre-rebase sha), every file that conflicted, and the test command; it
+#     resolves by rebasing onto the onto sha, and it leaves the ledger alone, because every
+#     `[x]` tick and ` ⟂ refactor pending` mark is what a resumed run reads. Its answer is the
+#     one line the conductor branches on, so the prompt ends with it. A call short of any of
+#     its positionals is refused like every other (case 5's `refuses`): a prompt with no
+#     conflicting files, or no sha to return to, is a leaf sent in blind.
+#
+#     Signature: rebase <spec-file> <step-text> <test-cmd> <onto-sha> <pre-rebase-sha>
+#     <conflicting-files>, the last exactly as `rebase-onto-default.sh` printed it — one per
+#     line. Both shas are full 40 hex and distinct; one file carries & and a space.
+rb_onto='7c1e9a3f5b2d4e6a8c0f1b3d5e7a9c2e4f6b8d0a'
+rb_pre='e2b4d6f8a0c1e3b5d7f9a1c3e5b7d9f0a2c4e6b8'
+rb_files=$'skills/tdd/SKILL.md\nscripts/zorblat frob & nitz.sh'
+problems=""
+rebase="$("$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto" "$rb_pre" "$rb_files" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; exited $code, want 0"
+[[ "$rebase" == *"$rb_onto"* ]] || problems="$problems; no onto sha"
+[[ "$rebase" == *"$rb_pre"* ]] || problems="$problems; no pre-rebase sha"
+[[ "$rebase" == *'skills/tdd/SKILL.md'* ]] || problems="$problems; no conflicting file skills/tdd/SKILL.md"
+[[ "$rebase" == *'scripts/zorblat frob & nitz.sh'* ]] || problems="$problems; no conflicting file 'scripts/zorblat frob & nitz.sh'"
+[[ "$rebase" == *"$test_cmd"* ]] || problems="$problems; no test command"
+[[ "$rebase" == *"git rebase $rb_onto"* ]] || problems="$problems; no literal 'git rebase <onto-sha>'"
+[[ "$rebase" == *ledger* && "$rebase" == *'[x]'* && "$rebase" == *'⟂ refactor pending'* ]] \
+  || problems="$problems; does not tell the leaf to leave the ledger's [x] ticks and ⟂ refactor pending marks untouched"
+rb_last="$(printf '%s\n' "$rebase" | sed '/^[[:space:]]*$/d' | tail -n 1)"
+[[ "$rb_last" == 'REBASE: RESOLVED | FAILED'* ]] \
+  || problems="$problems; last line is '$rb_last', want 'REBASE: RESOLVED | FAILED …'"
+refusal_bad=""
+refuses "rebase missing conflicting files" "$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto" "$rb_pre"
+refuses "rebase missing pre-rebase sha" "$BUILD" rebase "$work/spec.md" "$step_text" "$test_cmd" "$rb_onto"
+[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
+[[ -z "$problems" ]] \
+  && ok || no "develop-rebase names the onto sha, the pre-rebase sha, every conflicting file and the test command, resolves by git rebase <onto-sha>, leaves the ledger's ticks and marks untouched, ends with REBASE: RESOLVED | FAILED, and refuses a missing argument with exit 2 and no stdout (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
