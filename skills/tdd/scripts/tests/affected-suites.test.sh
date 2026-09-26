@@ -550,6 +550,22 @@ expect_suites "a range that adds or deletes a script under scripts/ pulls in ski
   skills/tdd/scripts/tests/claude-md-counts.test.sh \
   skills/tdd/scripts/tests/newbie.test.sh
 
+# 24. rule 2 over a `source` line that ends in a `\` continuation, the shape both callers of
+#     lib/bug-section.sh use: `source "$HERE/lib/bug-section.sh" \` followed by a `|| { … }`
+#     line (issue #487). alpha.sh sources lib/bar.sh that way; gamma.sh does not source it, so
+#     its suite is what a widened answer would carry.
+new_repo rule2-continuation
+mkdir -p "$s/tests" "$s/lib"
+printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
+printf '#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\nsource "$HERE/lib/bar.sh" \\\n  || { echo "alpha: cannot read lib/bar.sh" >&2; exit 2; }\n' > "$s/alpha.sh"
+printf '#!/usr/bin/env bash\necho gamma\n' > "$s/gamma.sh"
+for name in alpha gamma; do printf '# %s suite\n' "$name" > "$s/tests/$name.test.sh"; done
+commit_base
+printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
+commit_head
+expect_suites "#487: a lib file whose caller's source line ends in a \\ continuation maps to that caller's suite" \
+  skills/tdd/scripts/tests/alpha.test.sh
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
