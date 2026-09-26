@@ -112,6 +112,17 @@ expect_conflict_aborted() {
   done
 }
 
+# expect_refused <repo> <head_before> <rc> <stdout-file> <why> — probe an answer that is no
+# answer, adding to `problems`: exit 2, nothing at all in <stdout-file>, and HEAD still at
+# <head_before>. <why> finishes the HEAD problem's line with what a moved HEAD would mean.
+expect_refused() {
+  local repo="$1" head_before="$2" rc="$3" stdout="$4" why="$5" head_after
+  [[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
+  [[ ! -s "$stdout" ]] || problems+=("stdout: want empty, got $(printf '%q' "$(cat "$stdout"; echo .)")")
+  head_after="$(git -C "$repo" rev-parse HEAD)"
+  [[ "$head_after" == "$head_before" ]] || problems+=("HEAD: want it unchanged at $head_before${why}, got $head_after")
+}
+
 # 1. A branch cut from origin/main, one commit ahead of it and not behind: nothing to rebase.
 name="rebase-onto-default.test.sh: a branch already containing origin/<default> exits 3 with empty stdout and HEAD and tree unchanged"
 problems=()
@@ -192,10 +203,7 @@ echo "an uncommitted edit" > "$repo/file.txt"
 head_before="$(git -C "$repo" rev-parse HEAD)"
 (cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
 rc=$?
-[[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
-[[ ! -s "$dir/stdout" ]] || problems+=("stdout: want empty, got $(printf '%q' "$(cat "$dir/stdout"; echo .)")")
-head_after="$(git -C "$repo" rev-parse HEAD)"
-[[ "$head_after" == "$head_before" ]] || problems+=("HEAD: want it unchanged at $head_before, got $head_after")
+expect_refused "$repo" "$head_before" "$rc" "$dir/stdout" ""
 report "$name"
 
 # 5. The same conflict as case 3, in a repo configured to rebase with the apply backend:
@@ -229,11 +237,7 @@ mv "$dir/origin.git" "$dir/origin-gone.git"
 head_before="$(git -C "$repo" rev-parse HEAD)"
 (cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
 rc=$?
-[[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
-[[ ! -s "$dir/stdout" ]] || problems+=("stdout: want empty, got $(printf '%q' "$(cat "$dir/stdout"; echo .)")")
-head_after="$(git -C "$repo" rev-parse HEAD)"
-[[ "$head_after" == "$head_before" ]] ||
-  problems+=("HEAD: want it unchanged at $head_before, not rebased onto the stale origin/main, got $head_after")
+expect_refused "$repo" "$head_before" "$rc" "$dir/stdout" ", not rebased onto the stale origin/main"
 report "$name"
 
 echo "----"
