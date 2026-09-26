@@ -474,6 +474,12 @@ section_commands() {
 # so the lookup is written here once rather than as an awk per probe.
 line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
 
+# unmarked_records — `records` with its Markdown emphasis and code marks stripped, so a probe
+# reads "rebase-onto-default.sh's exit 1" whether the document bolds it, backticks it or both.
+# Cases 14, 15 and 16 all read the Draft PR step's prose this way, so the set of marks
+# stripped is written once rather than as three copies that could come to strip different ones.
+unmarked_records() { tr -d '*`' <<< "$records"; }
+
 # 10. The criterion, as one case (issue #195): the run has had a PR since its plan commit, so
 #     the step named for opening one must open none. A second `gh pr create` against a branch
 #     that already has an open PR is not a no-op — it is either a refusal that ends the run at
@@ -618,7 +624,7 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
     for after in 'veri_issue=[^ ]* veri_actor=conductor [$]s/event[.]sh done' '[$]s/metrics[.]sh' 'git commit -m "metrics:' 'gh pr ready'; do
       rebase_runs before "$after"
     done
-    plain="$(tr -d '*`' <<< "$records")"
+    plain="$(unmarked_records)"
     said="$(first_record "$plain" -F 'rebase-onto-default.sh' -E 'exit 3' -E 'continu')"
     [[ -n "$said" ]] ||
       problems+=("no instruction of $skill_md's Draft PR step naming rebase-onto-default.sh says its exit 3 continues unchanged")
@@ -652,7 +658,7 @@ if step_or_problem '### 4. Draft PR' "what the step does after a rebase that cha
   elif [[ -z "$rebase" ]] || [[ "$leased" -le "$rebase" ]]; then
     problems+=("$skill_md's Draft PR step runs push-branch.sh --force-with-lease (command line $leased) not after rebase-onto-default.sh (command line ${rebase:-none})")
   fi
-  plain="$(tr -d '*`' <<< "$records")"
+  plain="$(unmarked_records)"
   said="$(first_record "$plain" -F 'rebased tip' -E 'full (test )?command|full suite|--tier all' -wF 'once')"
   [[ -n "$said" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step runs the full test command once on the rebased tip, so a rebase that combined two green branches into a red one reaches review unrun")
@@ -695,7 +701,7 @@ if step_or_problem '### 4. Draft PR' "what the step does with a conflicted rebas
       [[ -n "$ready" ]] && [[ "$verdict" -lt "$ready" ]]; } ||
       problems+=("$skill_md's Draft PR step does not run rebase-onto-default.sh (command line ${rebase:-none}), the develop-rebase leaf ($develop), the verdict-rebase ($verdict) and gh pr ready (${ready:-none}) in that order")
   fi
-  plain="$(tr -d '*`' <<< "$records")"
+  plain="$(unmarked_records)"
   said="$(first_record "$plain" -F 'rebase-onto-default.sh' -E 'exit 1' -F 'develop-rebase')"
   [[ -n "$said" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step says rebase-onto-default.sh's exit 1 launches the develop-rebase leaf")
