@@ -1,0 +1,12 @@
+# Plan for #481 — Planning turns a 'the suites pass' or 'a manual check was recorded' criterion into a TDD step, which can only bail
+
+- [ ] SKILL.md's *Scope & plan* writes a criterion whose only observable is that the repository's test command passes as one ledger line `- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧`, recorded as covered by the full-suite run and not planned as a Red/Green step ⟦criterion 1⟧
+- [ ] `next-unchecked.sh` skips an unchecked ledger line carrying `⟦full-suite⟧` and prints the first unchecked line without it, so the cycle loop never hands that line to a leaf ⟦criterion 1⟧
+- [ ] SKILL.md's *Draft PR* step ticks every `⟦full-suite⟧` ledger line, with no refactor-pending mark, and the issue-body criterion it finishes, only once the run's last full-suite run before the PR is readied is green — the rebased tip's run when the branch was rebased — and never after a red one ⟦criterion 1⟧
+- [ ] SKILL.md's *Scope & plan* writes a criterion whose deliverable is the record of a manual check as one ledger line `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked owed by a human, not planned as a Red/Green step and never handed to a developer leaf ⟦criterion 2⟧
+- [ ] `next-unchecked.sh` skips an unchecked ledger line carrying `⟦human-owed⟧` and prints the first unchecked line without it ⟦criterion 2⟧
+- [ ] SKILL.md's *Draft PR* step lists every `⟦human-owed⟧` ledger line in the PR body under an `## Owed by a human` heading, each naming its criterion number, and adds no such section when the ledger holds none ⟦criterion 2⟧
+- [ ] `prompts/verify-plan.md` tells the blind plan verifier to REJECT a plan that turns a criterion whose only observable is the test command passing into a Red/Green step instead of a `⟦full-suite⟧` line ⟦criterion 3⟧
+- [ ] `prompts/verify-plan.md` tells the blind plan verifier to REJECT a plan that turns a criterion whose deliverable is the record of a manual check into a Red/Green step instead of a `⟦human-owed⟧` line ⟦criterion 3⟧
+- [ ] `prompts/verify-plan.md` counts a `⟦full-suite⟧` or `⟦human-owed⟧` line tagged `⟦criterion k⟧` as delivering criterion k, so a plan written the way *Scope & plan* prescribes for either shape passes check 1 ⟦criterion 4⟧
+- [ ] SKILL.md's *Draft PR* entry condition and *Resume*'s go-to-draft-PR condition say that unchecked `⟦full-suite⟧` and `⟦human-owed⟧` lines do not hold a run back from its draft PR, so an issue carrying either shape reaches it with no Red leaf launched for them and no `untestable-criterion` bail ⟦criterion 4⟧
