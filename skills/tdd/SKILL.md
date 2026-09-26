@@ -821,6 +821,20 @@ by eye — which outcome it holds is an exit code, not a judgement made per run:
 $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer.txt; echo $?
 ```
 
+- **exit 0 — split.** Exactly the revise-exhausted path's split (see *Revise*):
+  `.tdd/over-budget-answer.txt` holds the criteria, one per line, and they replace the step.
+  Restore the tree first, so the step's uncommitted work cannot become the first replacement
+  step's inherited start, then grow the plan in **one** call, then commit it before the run
+  goes on, because the committed ledger is what a resumed run reads:
+  ```
+  git reset --hard HEAD
+  git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
+  $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
+  git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
+  ```
+  Then loop back to `next-unchecked.sh`, which now hands over the first of them.
+
 #### Red — one failing test (developer leaf), then verify-red (blind)
 
 1. **Develop.** Build the prompt from the `red` template — it already instructs the leaf to

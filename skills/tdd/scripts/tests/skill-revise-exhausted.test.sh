@@ -427,6 +427,46 @@ fi
 
 report "$name"
 
+# The over-budget leaf's split (exit 0), which is the revise-exhausted path's split exactly:
+# the step's uncommitted work is thrown away first, so it cannot become the first replacement
+# step's inherited start; the criteria replace the step in ONE add-ledger-step.sh call, so
+# VERI_STEP_GROWTH is spent on them all or on none; and the ledger is committed before the run
+# goes on, because the committed ledger is what a resumed run reads.
+
+# first_line <fixed-string> — the number of the first line of the cost check's section that
+# holds <fixed-string>, or nothing when none does: the order the branch's commands are written
+# in is the order the conductor runs them in.
+first_line() {
+  head -1 < <(cost_check_lines | grep -nF -- "$1" | cut -d: -f1)
+}
+
+name="'$cost_heading' on the over-budget split restores the tree (git reset --hard HEAD, git clean -f -- <test-path>), then grows the plan in one add-ledger-step.sh instead-of call, then commits it before the run goes on"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what the over-budget split does could not be established")
+else
+  reset_at="$(first_line 'git reset --hard HEAD')"
+  clean_at="$(first_line 'git clean -f -- <test-path>')"
+  grow_calls="$(cost_check_lines | grep -F -- '$S/add-ledger-step.sh' | grep -cF -- 'instead-of')"
+  grow_at="$(head -1 < <(cost_check_lines | grep -nF -- '$S/add-ledger-step.sh' | grep -F -- 'instead-of' | cut -d: -f1))"
+  commit_at="$(first_line 'git commit')"
+  [[ -n "$reset_at" ]] ||
+    problems+=("'$cost_heading' never runs git reset --hard HEAD, so the over-budget split grows the plan on top of the step's uncommitted work")
+  [[ -n "$clean_at" ]] ||
+    problems+=("'$cost_heading' never runs git clean -f -- <test-path>, so the untracked test file Red created survives the over-budget split")
+  if [[ "$grow_calls" -ne 1 ]]; then
+    problems+=("'$cost_heading' runs add-ledger-step.sh instead-of $grow_calls times, not once, so the over-budget split does not replace the step in one call")
+  else
+    [[ -n "$reset_at" && -n "$clean_at" && "$reset_at" -lt "$grow_at" && "$clean_at" -lt "$grow_at" ]] ||
+      problems+=("'$cost_heading' grows the plan before restoring the tree (reset at line '${reset_at}', clean at '${clean_at}', add-ledger-step.sh at '${grow_at}')")
+    [[ -n "$commit_at" && "$commit_at" -gt "$grow_at" ]] ||
+      problems+=("'$cost_heading' never commits the plan after add-ledger-step.sh instead-of (commit at line '${commit_at}', add-ledger-step.sh at '${grow_at}'), so a resumed run reads the plan without the replacement steps")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
