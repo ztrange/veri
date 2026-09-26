@@ -848,9 +848,8 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
 - **exit 3 — neither answer: record the crossing and carry on with the step.** This is
   **not a bail**, and it is where this path parts from the revise-exhausted one, whose exit 3
   bails with cause `revise-exhausted` because a verifier that will not pass the work leaves
-  nothing to go on with. Here nothing has failed: every verdict may be a PASS and the step is
-  merely dear, and bailing a converging step because it is expensive is exactly what this
-  check exists not to do. Record the crossing, leave the check disarmed, and let the step
+  nothing to go on with. Here nothing has failed, for the reason the section gives above, and
+  bailing a converging step because it is expensive is exactly what this check exists not to do. Record the crossing, leave the check disarmed, and let the step
   finish normally:
   ```
   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-over-budget spent=<spent> budget=<step-budget>
