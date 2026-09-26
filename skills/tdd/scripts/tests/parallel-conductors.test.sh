@@ -105,16 +105,16 @@ gh_fixture() {
   cat > "$1/issues.json"
 }
 
-# two_issue_fixture <dir> — a gh_fixture holding two solvable issues, #7 and #8.
-two_issue_fixture() {
-  gh_fixture "$1" <<'JSON'
-[
-  {"number": 7, "title": "first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"},
-  {"number": 8, "title": "second", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"}
-]
-JSON
+# solvable_fixture <dir> <n>... — a gh_fixture holding one solvable issue per number given:
+# open, opted in, blocked by nothing.
+solvable_fixture() {
+  local dir="$1" n sep="" issues="["
+  shift
+  for n in "$@"; do
+    issues+="$sep"'{"number": '"$n"', "title": "issue '"$n"'", "labels": [{"name": "ready-for-agent"}], "state": "OPEN", "body": "## Blocked by\n\nNone.\n"}'
+    sep=","
+  done
+  printf '%s]\n' "$issues" | gh_fixture "$dir"
 }
 
 # run_launcher <gh-dir> <stub> <out> [VAR=value ...] — run the copied skill's launcher over the
@@ -129,7 +129,7 @@ run_launcher() {
 }
 
 gh2="$work/gh2"
-two_issue_fixture "$gh2"
+solvable_fixture "$gh2" 7 8
 
 # ready_pr <gh-dir> — print the stub source a conductor ends with to answer "done": append a
 # ready PR saying `Closes #$n` to <gh-dir>'s `prs.lines` and rebuild `prs.json` from it, so the
@@ -211,7 +211,7 @@ $(cat "$work/seq.out")"
 # pass), then records `end <n>` and opens its ready PR. A launcher that ran them one after
 # another shows an `end` among the first two lines, after the first stub has waited out its hold.
 gh3="$work/gh3"
-two_issue_fixture "$gh3"
+solvable_fixture "$gh3" 7 8
 
 timeline3="$work/timeline3"
 par_stub="$work/claude-par"
@@ -338,23 +338,10 @@ $(cat "$work/unblock.out")"
 # "done" with a ready PR, so its issue leaves the set. With VERI_MAX_ISSUES=2 the launcher starts
 # 7 and 8 and stops, with 9 still solvable; with VERI_MAX_ISSUES=0 it starts all three. Each run
 # gets a fresh fixture and record; every value that misbehaves is named in the single FAIL line.
-cap_fixture() {
-  gh_fixture "$1" <<'JSON'
-[
-  {"number": 7, "title": "first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"},
-  {"number": 8, "title": "second", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"},
-  {"number": 9, "title": "third", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
-   "body": "## Blocked by\n\nNone.\n"}
-]
-JSON
-}
-
 bad=""
 for cap in 2 0; do
   gh7="$work/gh7-$cap"
-  cap_fixture "$gh7"
+  solvable_fixture "$gh7" 7 8 9
   capped="$work/capped-$cap"
   cap_stub="$work/claude-cap-$cap"
   record_stub "$cap_stub" "$capped" "$gh7"
