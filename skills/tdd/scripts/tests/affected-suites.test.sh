@@ -566,6 +566,29 @@ commit_head
 expect_suites "#487: a lib file whose caller's source line ends in a \\ continuation maps to that caller's suite" \
   skills/tdd/scripts/tests/alpha.test.sh
 
+# 25. rule 2 over a `source` line that ends at the lib path itself, the shape case 24's widening
+#     must not have narrowed (issue #487): alpha.sh closes the path with a quote, beta.sh with a
+#     quote and trailing spaces, delta.sh leaves it unquoted and epsilon.sh unquoted with trailing
+#     spaces. gamma.sh does not source lib/bar.sh, so its suite is what a widened answer would carry.
+new_repo rule2-line-end
+mkdir -p "$s/tests" "$s/lib"
+printf 'bar_fn() { :; }\n' > "$s/lib/bar.sh"
+hdr='#!/usr/bin/env bash\nHERE="$(cd "$(dirname "$0")" && pwd)"\n'
+printf "${hdr}"'source "$HERE/lib/bar.sh"\n' > "$s/alpha.sh"
+printf "${hdr}"'source "$HERE/lib/bar.sh"   \n' > "$s/beta.sh"
+printf "${hdr}"'source $HERE/lib/bar.sh\n' > "$s/delta.sh"
+printf "${hdr}"'source $HERE/lib/bar.sh  \n' > "$s/epsilon.sh"
+printf '#!/usr/bin/env bash\necho gamma\n' > "$s/gamma.sh"
+for name in alpha beta delta epsilon gamma; do printf '# %s suite\n' "$name" > "$s/tests/$name.test.sh"; done
+commit_base
+printf 'bar_fn() { echo 2; }\n' > "$s/lib/bar.sh"
+commit_head
+expect_suites "#487: a caller whose source line ends at the lib path, with or without a trailing quote and spaces, still maps to its suite" \
+  skills/tdd/scripts/tests/alpha.test.sh \
+  skills/tdd/scripts/tests/beta.test.sh \
+  skills/tdd/scripts/tests/delta.test.sh \
+  skills/tdd/scripts/tests/epsilon.test.sh
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
