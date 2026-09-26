@@ -183,9 +183,7 @@ heartbeats 200
 echo after-step-done >> "\$MARKS"
 STUB
 seed budget 401
-export VERI_CONDUCTOR_CTX_BUDGET=100000
-orchestrate "$budget"
-unset VERI_CONDUCTOR_CTX_BUDGET
+VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$budget"
 expected="mid-step"
 actual="$(cat "$MARKS")"
 expect_exit0_output
@@ -236,9 +234,7 @@ heartbeats 200
 echo after-step-done >> "\$MARKS"
 STUB
 seed atresult 601
-export VERI_CONDUCTOR_CTX_BUDGET=100000
-orchestrate "$atresult"
-unset VERI_CONDUCTOR_CTX_BUDGET
+VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$atresult"
 expected="before-result"
 actual="$(cat "$MARKS")"
 expect_exit0_output
@@ -262,9 +258,7 @@ heartbeats 50
 echo after-step-done >> "\$MARKS"
 STUB
 seed never 701
-export VERI_CONDUCTOR_CTX_BUDGET=100000
-orchestrate "$never"
-unset VERI_CONDUCTOR_CTX_BUDGET
+VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$never"
 expected="$(printf '%s\n' after-step-done 701)"
 actual="$(cat "$MARKS" "$LAUNCHES")"
 expect_exit0_output
@@ -274,9 +268,7 @@ expect_exit0_output
 #    and its stderr names the variable.
 name="refuses a VERI_CONDUCTOR_CTX_BUDGET that is not a whole number with exit 2 before any conductor launches"
 seed badbudget 801
-export VERI_CONDUCTOR_CTX_BUDGET=120k
-orchestrate "$scripts"
-unset VERI_CONDUCTOR_CTX_BUDGET
+VERI_CONDUCTOR_CTX_BUDGET=120k orchestrate "$scripts"
 launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
 if [[ "$rc" -eq 2 && "$launched" -eq 0 ]] && grep -F VERI_CONDUCTOR_CTX_BUDGET "$work/err" > /dev/null; then
   pass=$((pass + 1))
