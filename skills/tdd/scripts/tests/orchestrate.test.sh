@@ -116,11 +116,9 @@ name="reports each assistant event's cache_read + cache_creation tokens as the c
 streaming="$work/streaming"
 mkdir -p "$streaming"
 cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$streaming/"
-cat > "$streaming/run-conductor.sh" <<'STUB'
+cat > "$streaming/run-conductor.sh" <<STUB
 #!/bin/sh
-echo "$1" >> "$LAUNCHES"
-grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
-mv "$SOLVABLE.next" "$SOLVABLE"
+"$scripts/run-conductor.sh" "\$1"
 cat <<'JSON'
 {"type":"system","subtype":"init","session_id":"s1"}
 {"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":7,"cache_creation_input_tokens":3438,"cache_read_input_tokens":50000,"output_tokens":120}}}
