@@ -3,3 +3,6 @@
 ### a conductor whose stream crosses VERI_CONDUCTOR_CTX_BUDGET mid-step is not stopped until a step-done is seen, and is stopped after it ⟦criterion 3⟧
 - the first-incarnation guard `[ "$(wc -l < "$LAUNCHES")" -eq 1 ] || exit 0` is repeated in the stubs of cases 4–6 and could move into `conductor_stub`; I left it because that would change case 3's stub too
 - the `export VERI_CONDUCTOR_CTX_BUDGET=100000` … `unset` wrapped around `orchestrate` in cases 4 and 6 could become an argument to `orchestrate`
+### VERI_CONDUCTOR_CTX_BUDGET is a whole token count read as ${VAR:-default} with a default of 120000, and a value that is not a whole number is refused with exit 2 before any conductor launches ⟦criterion 3⟧
+- the conductor stubs in cases 4–7 repeat the same long assistant tool_use/usage JSON and user tool_result lines. A prelude helper taking (id, command, cache_read, cache_creation) could emit them, but earlier cycles wrote most of those stubs
+- the first-incarnation guard `[ "$(wc -l < "$LAUNCHES")" -eq 1 ] || exit 0` is repeated in every conductor stub (cases 4–7) and could move into the conductor_stub prelude
