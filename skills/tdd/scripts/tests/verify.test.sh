@@ -1099,6 +1099,52 @@ answered_verdicts="$(events_of_in "$answered_log_dir" verdict)"
   || no "a killed verifier leaves no verdict event while an answering one leaves its own (killed arm: code=$killed_log_code want 2, verdict lines=$killed_verdicts want 0, exit marks=$killed_exits want at least 1; answering arm: code=$answered_log_code want 1, verdict lines=$answered_verdicts want 1)"
 
 
+# 32. the rebase phase, through the launcher a conductor runs (#238). A conflicted rebase's
+#     resolution is judged by a blind verify-rebase leaf, and the conductor reads that verdict the
+#     way it reads every other: off run-verdict.sh's exit code, which is verify.sh's own — 0 PASS,
+#     1 REJECT, 2 malformed. Three arms in three directories, differing in the stub's text alone,
+#     each called with rebase's own slots — the commit rebased onto and the one the branch stood
+#     at before, both shas — and each asked for the name its leaf was supervised under, read off
+#     the supervisor's own `launch` mark in the run's event log, so a leaf launched under any
+#     other name, or not through supervise.sh at all, fails the arm. The malformed arm renders a
+#     verdict word no parser accepts rather than none at all, so it is not relaunched (#219) and
+#     logs one launch like the other two.
+#
+# rebase_verdict <dir> <fake-out-text> — one rebase verification through run-verdict.sh in <dir>;
+# sets $rv_code to its exit and $rv_name to the `name` of the one `launch` mark the run logged.
+rebase_verdict() {
+  mkdir -p "$1"
+  ( cd "$1" && env CLAUDE_BIN="$stubdir/claude" ARGV_OUT="$1/argv" FAKE_OUT_TEXT="$2" \
+      "$HERE/../run-verdict.sh" rebase "$work/spec.md" 0123abc 4567def ) >/dev/null 2>&1
+  rv_code=$?
+  rv_name="$(python3 -c '
+import sys, json
+hits = []
+for line in open(sys.argv[1]).read().splitlines():
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    if isinstance(obj, dict) and obj.get("event") == "launch":
+        hits.append(obj.get("name", "<<missing>>"))
+print(hits[0] if len(hits) == 1 else "<<%d launch lines>>" % len(hits))
+' "$1/.tdd/events.jsonl" 2>/dev/null || echo '<<no event log>>')"
+}
+
+rebase_verdict "$work/rebase-pass" 'VERDICT: PASS
+REASON: The resolution keeps both sides of the contract and the suite is green.'
+rb_pass_code=$rv_code rb_pass_name="$rv_name"
+rebase_verdict "$work/rebase-reject" 'VERDICT: REJECT
+REASON: The resolution drops the onto side of the conflicted hunk.'
+rb_reject_code=$rv_code rb_reject_name="$rv_name"
+rebase_verdict "$work/rebase-malformed" 'VERDICT: MAYBE
+REASON: The resolution might be fine.'
+rb_malformed_code=$rv_code rb_malformed_name="$rv_name"
+{ [[ "$rb_pass_code" == 0 ]] && [[ "$rb_reject_code" == 1 ]] && [[ "$rb_malformed_code" == 2 ]] \
+  && [[ "$rb_pass_name" == verify-rebase ]] && [[ "$rb_reject_name" == verify-rebase ]] \
+  && [[ "$rb_malformed_name" == verify-rebase ]]; } && ok \
+  || no "run-verdict.sh rebase returns a verify-rebase leaf's verdict, supervised under that name (PASS arm: code=$rb_pass_code want 0, leaf=$rb_pass_name; REJECT arm: code=$rb_reject_code want 1, leaf=$rb_reject_name; malformed arm: code=$rb_malformed_code want 2, leaf=$rb_malformed_name; every leaf want verify-rebase)"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
