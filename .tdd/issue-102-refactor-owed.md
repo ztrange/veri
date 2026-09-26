@@ -16,3 +16,6 @@
 - the `git rev-parse --git-common-dir` → `info/exclude` path resolution is written in both parallel-conductors.sh and ensure-run-state-ignored.sh (the latter also makes a relative answer relative to its root argument); could be one lib function
 ### Supervising a conductor-<n> prints no leaf-role.sh refusal ⟦criterion 5⟧
 - case 17 in parallel-conductors.test.sh repeats status_after_launch's "<conductor never ran>" guard for its own variable; merging them would mean changing the helper's interface, which is too much for two lines
+### The report prints one line per issue in launch order followed by one line naming what stopped the loop ⟦criterion 6⟧
+- cases 18 and 19 repeat the same per-shape scaffolding (fresh_repo, fixture, subshell `cd` + run_launcher, `.code` file read-back); could share a helper
+- the `plumbing` flag duplicates what `why="solvable-issues.sh could not answer"` already records; one could be derived from the other
