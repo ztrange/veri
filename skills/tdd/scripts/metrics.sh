@@ -404,6 +404,9 @@ def add_cost(phase, step, line):
 # missing it still started somewhere. It is the opening end of the issue wall, whose closing
 # end is the mark below — a log holding several runs of one issue walls only the last (#229).
 opening = None
+# The awake-clock reading event.sh writes beside the `ts` of that same line (#486), or None when
+# the line carries none.
+opening_awake = None
 
 # The mark that ended the run, any outcome, and None in the log of a run that has not
 # ended. Kept whole rather than as its timestamp beside itself: the issue wall reads its `ts`
@@ -424,6 +427,7 @@ with open(path) as f:
         ts = line.get("ts")
         if opening is None or event == "resume":
             opening = ts
+            opening_awake = line.get("awake")
         # A `stop` is not terminal the way `done` and `bail` are: the run it paused may be
         # resumed, and a resumed run has not ended until a mark after its `resume` says so.
         if event == "resume" and ending is not None and ending.get("event") == "stop":
@@ -614,9 +618,17 @@ def tier_section(heading, key_column):
 print("### 📊 Metrics — issue %s" % issue)
 print()
 # Outside the tables, because it is a figure of the whole run and not of a row in either.
+# Measured on the awake clock when both ends carry a reading (#486), so time the machine
+# spent asleep is not counted as work; the wall-clock span is kept only to name the seconds
+# it excluded, on the line beside it.
+wall_span = span(opening, ending["ts"] if ending else None)
+awake_span = span(opening_awake, ending.get("awake") if ending else None)
 print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
       "there is none, to the mark that ended the run."
-      % known(span(opening, ending["ts"] if ending else None)))
+      % known(awake_span if awake_span is not None else wall_span))
+if awake_span is not None and wall_span is not None:
+    print("Seconds the machine was not running inside that span: %s s, excluded from it."
+          % (wall_span - awake_span))
 # Beside the line above, and outside the tables for the same reason: progress is a figure of
 # the run and of no row in either. The steps done are the ones that reached their closing
 # mark — a step that took a revise to get there is one of them, since what the figure counts
