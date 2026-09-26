@@ -33,8 +33,10 @@ main() {
   onto="$(git rev-parse "$default")"
   if ! git rebase -q "$onto" >/dev/null; then
     # A rebase git refused to start — a dirty tree, say — leaves no rebase in progress.
-    # That is no conflict to name: the plumbing failed, so it is exit 2, not 1.
-    [[ -d "$(git rev-parse --git-path rebase-merge)" ]] || exit 2
+    # That is no conflict to name: the plumbing failed, so it is exit 2, not 1. Which
+    # directory holds a rebase in progress depends on the backend: rebase-merge for the
+    # merge backend, rebase-apply for rebase.backend=apply.
+    [[ -d "$(git rev-parse --git-path rebase-merge)" || -d "$(git rev-parse --git-path rebase-apply)" ]] || exit 2
     local conflicts
     conflicts="$(git diff --name-only --diff-filter=U)"
     git rebase --abort
