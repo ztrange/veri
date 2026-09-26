@@ -14,7 +14,8 @@
 # a clean tree and no rebase in progress, and stdout is the conflicting files, one per line.
 #
 # Exit 2 when git refuses the rebase for any other reason, such as a dirty working tree:
-# nothing was started, so HEAD is unchanged and stdout is empty.
+# nothing was started, so HEAD is unchanged and stdout is empty. The same when origin cannot
+# be fetched: the local origin/<default> may be stale, so no rebase is attempted onto it.
 
 # rebase_in_progress — succeed when git holds a rebase in progress. Which directory holds it
 # depends on the backend: rebase-merge for the merge backend, rebase-apply for
@@ -36,6 +37,10 @@ main() {
   # records — rather than a name this script assumes.
   local default
   default="$(git rev-parse --abbrev-ref origin/HEAD)"
+
+  # What the clone last fetched may be stale: rebasing onto it would be rebasing onto a
+  # guess, so an origin that cannot be fetched is no answer at all — exit 2.
+  git fetch -q origin >/dev/null 2>&1 || exit 2
 
   git merge-base --is-ancestor "$default" HEAD && exit 3
 

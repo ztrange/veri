@@ -214,6 +214,28 @@ rc=$?
 expect_conflict_aborted "$repo" "$pre" "$rc" "$out"
 report "$name"
 
+# 6. The clone fetched origin/main once, after another run merged, so the branch is behind
+#    it — but the origin has since gone out of reach, so what the clone holds may be stale. Rebasing onto it would be rebasing onto a guess: the answer is exit 2, no
+#    stdout, and HEAD where it was. stdout goes to a file for the reason case 4 gives.
+name="rebase-onto-default.test.sh: when origin/<default> cannot be fetched, exits 2 with nothing on stdout and never rebases onto the stale local copy"
+problems=()
+dir="$work/unreachable"
+origin_fixture "$dir"
+repo="$dir/clone"
+run_branch "$repo"
+echo "another run's work" > "$dir/seed/other.txt"
+advance_origin "$dir"
+mv "$dir/origin.git" "$dir/origin-gone.git"
+head_before="$(git -C "$repo" rev-parse HEAD)"
+(cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
+rc=$?
+[[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
+[[ ! -s "$dir/stdout" ]] || problems+=("stdout: want empty, got $(printf '%q' "$(cat "$dir/stdout"; echo .)")")
+head_after="$(git -C "$repo" rev-parse HEAD)"
+[[ "$head_after" == "$head_before" ]] ||
+  problems+=("HEAD: want it unchanged at $head_before, not rebased onto the stale origin/main, got $head_after")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
