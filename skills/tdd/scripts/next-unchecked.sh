@@ -10,13 +10,16 @@
 # the description printed here is a stable substring to hand back to tick-criterion.sh when
 # the step is checked off.
 #
+# A step marked `⟦full-suite⟧` is skipped: it is covered by the run's full-suite gate,
+# not by a Red/Green cycle, so it is never handed to a leaf (#481).
+#
 # Usage:   next-unchecked.sh < .tdd/issue-<n>.md
 set -euo pipefail
 
 re='^[[:space:]]*- \[ \] (.*)$'
 
 while IFS= read -r line || [[ -n "$line" ]]; do
-  if [[ "$line" =~ $re ]]; then
+  if [[ "$line" =~ $re ]] && [[ "$line" != *'⟦full-suite⟧'* ]]; then
     printf '%s\n' "${BASH_REMATCH[1]}"
     exit 0
   fi

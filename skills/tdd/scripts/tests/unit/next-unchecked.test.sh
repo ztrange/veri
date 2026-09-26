@@ -63,6 +63,14 @@ owed_ledger='# Plan for #42
 - an empty slug falls back to "n-a"'
 check "owed bullets are not steps" 3 "$owed_ledger" ""
 
+# 8. an unchecked line marked ⟦full-suite⟧ is covered by the run's full-suite gate, not a
+# Red/Green step — it is skipped, and the first unchecked line without it is printed (#481)
+full_suite_ledger='# Plan for #42
+
+- [ ] the suites are green ⟦full-suite⟧ ⟦criterion 1⟧
+- [ ] pin the second step ⟦criterion 2⟧'
+check "a ⟦full-suite⟧ line is never handed to a leaf (#481)" 0 "$full_suite_ledger" "pin the second step ⟦criterion 2⟧"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
