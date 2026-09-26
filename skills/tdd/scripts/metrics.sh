@@ -476,13 +476,14 @@ with open(path) as f:
             recovered.add(step)
         # Time, off the two lines that carry it. An `exit` is also where a kill is counted
         # below, so this adds and lets the line fall through rather than classifying it.
-        attempt = attempt_in(phase, step, line.get("attempt", ""))
+        attempt_no = line.get("attempt", "")
+        attempt = attempt_in(phase, step, attempt_no)
         if event == "launch":
-            launched[(step, phase, line.get("attempt", ""))] = line
+            launched[(step, phase, attempt_no)] = line
         if event == "exit":
             # On the awake clock when the attempt launch and exit both carry a reading, so a
             # sleep inside the attempt is not counted as work (#486); off `secs` otherwise.
-            awake = span(reading(launched.get((step, phase, line.get("attempt", ""))), "awake"),
+            awake = span(reading(launched.get((step, phase, attempt_no)), "awake"),
                          reading(line, "awake"))
             seconds = int(awake if awake is not None else (line.get("secs") or 0))
             add_seconds(phase, step, "wall s", seconds)
