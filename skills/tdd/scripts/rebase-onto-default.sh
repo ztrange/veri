@@ -6,6 +6,9 @@
 #
 # Exit 3 — nothing to do — when the branch already contains origin/<default>: there is no
 # rebase to make, so HEAD and the working tree are left exactly as they were.
+#
+# Exit 0 when the branch was behind and the rebase applied cleanly: stdout is two lines, the
+# pre-rebase sha and then the onto sha, so a caller can name both ends of what moved.
 
 # main — the whole script. Its logic lives behind this function so a unit suite can source
 # the file and run nothing (#339); executed directly, the guard at the bottom calls it.
@@ -18,6 +21,12 @@ main() {
   default="$(git rev-parse --abbrev-ref origin/HEAD)"
 
   git merge-base --is-ancestor "$default" HEAD && exit 3
+
+  local pre onto
+  pre="$(git rev-parse HEAD)"
+  onto="$(git rev-parse "$default")"
+  git rebase -q "$onto"
+  printf '%s\n%s\n' "$pre" "$onto"
 }
 
 [[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"
