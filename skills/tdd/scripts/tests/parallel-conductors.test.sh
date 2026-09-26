@@ -95,14 +95,19 @@ cp "$HERE/../../SKILL.md" "$skill/SKILL.md"
 cp -R "$HERE/.." "$skill/scripts"
 rm -rf "$skill/scripts/tests"
 
-# two_issue_fixture <dir> — a VERI_GH_JSON directory holding two solvable issues, #7 and #8, and
-# no PR yet. `prs.lines` is where a stub conductor appends its PR, one JSON object per line, and
+# gh_fixture <dir> — a VERI_GH_JSON directory whose issues.json is read from stdin, and no PR
+# yet. `prs.lines` is where a stub conductor appends its PR, one JSON object per line, and
 # rebuilds `prs.json` from.
-two_issue_fixture() {
+gh_fixture() {
   mkdir -p "$1"
   : > "$1/prs.lines"
   printf '[]\n' > "$1/prs.json"
-  cat > "$1/issues.json" <<'JSON'
+  cat > "$1/issues.json"
+}
+
+# two_issue_fixture <dir> — a gh_fixture holding two solvable issues, #7 and #8.
+two_issue_fixture() {
+  gh_fixture "$1" <<'JSON'
 [
   {"number": 7, "title": "first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
    "body": "## Blocked by\n\nNone.\n"},
@@ -209,10 +214,7 @@ $(cat "$work/par.out")"
 # conductor records `start <n>` and answers "done" with a ready PR, so its issue leaves the set.
 # At the default VERI_PARALLEL=1 the launch order is the whole timeline: 8, then 7, nothing else.
 gh4="$work/gh4"
-mkdir -p "$gh4"
-: > "$gh4/prs.lines"
-printf '[]\n' > "$gh4/prs.json"
-cat > "$gh4/issues.json" <<'JSON'
+gh_fixture "$gh4" <<'JSON'
 [
   {"number": 5, "title": "not opted in", "labels": [], "state": "OPEN",
    "body": "## Blocked by\n\nNone.\n"},
@@ -254,10 +256,7 @@ $(cat "$work/order.out")"
 # the launcher re-selects. A second launch of the same number is the failure; that stub opens
 # a ready PR on it, so a launcher that relaunches still ends rather than looping.
 gh5="$work/gh5"
-mkdir -p "$gh5"
-: > "$gh5/prs.lines"
-printf '[]\n' > "$gh5/prs.json"
-cat > "$gh5/issues.json" <<'JSON'
+gh_fixture "$gh5" <<'JSON'
 [
   {"number": 7, "title": "stays solvable", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
    "body": "## Blocked by\n\nNone.\n"}
