@@ -6,3 +6,5 @@
 ### VERI_CONDUCTOR_CTX_BUDGET is a whole token count read as ${VAR:-default} with a default of 120000, and a value that is not a whole number is refused with exit 2 before any conductor launches ⟦criterion 3⟧
 - the conductor stubs in cases 4–7 repeat the same long assistant tool_use/usage JSON and user tool_result lines. A prelude helper taking (id, command, cache_read, cache_creation) could emit them, but earlier cycles wrote most of those stubs
 - the first-incarnation guard `[ "$(wc -l < "$LAUNCHES")" -eq 1 ] || exit 0` is repeated in every conductor stub (cases 4–7) and could move into the conductor_stub prelude
+### CLAUDE.md's script and suite counts include orchestrate.sh and its suite ⟦criterion 8⟧
+- claude-md-counts.test.sh case 3 (#207's run-conductor.sh, ~lines 395–420) repeats `moved_with`'s body inline so that it can pass two suites. Making `moved_with` take several suites would remove that copy, but case 3 was not written this cycle, so it is outside this step's bounds.
