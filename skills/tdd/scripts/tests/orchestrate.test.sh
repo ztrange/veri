@@ -59,6 +59,16 @@ conductor_stub() {
   chmod +x "$1"/*.sh
 }
 
+# seed <tag> <issue>...: point $SOLVABLE, $LAUNCHES and $MARKS at fresh files for the case
+# <tag>, the solvable set holding <issue>... one per line and the other two empty.
+seed() {
+  export SOLVABLE="$work/solvable-$1" LAUNCHES="$work/launches-$1" MARKS="$work/marks-$1"
+  shift
+  printf '%s\n' "$@" > "$SOLVABLE"
+  : > "$LAUNCHES"
+  : > "$MARKS"
+}
+
 # expect_exit0_output: pass the case $name when orchestrate.sh exited 0 and $actual equals
 # $expected; otherwise fail it, showing the exit, the diff and orchestrate.sh's stderr.
 expect_exit0_output() {
@@ -76,9 +86,7 @@ expect_exit0_output() {
 # 1. Every issue the solvable set holds gets one conductor, launched through
 #    run-conductor.sh with that issue's number, and the loop exits 0 once the set is empty.
 name="launches one conductor per solvable issue through run-conductor.sh and exits 0 on an empty set"
-export SOLVABLE="$work/solvable" LAUNCHES="$work/launches"
-printf '%s\n' 101 102 > "$SOLVABLE"
-: > "$LAUNCHES"
+seed basic 101 102
 orchestrate "$scripts"
 expected="$(printf '%s\n' 101 102)"
 actual="$(cat "$LAUNCHES")"
@@ -99,9 +107,7 @@ echo "$calls" > "$SOLVABLE.calls"
 exit 3
 STUB
 chmod +x "$broken"/*.sh
-export SOLVABLE="$work/solvable-broken" LAUNCHES="$work/launches-broken"
-printf '%s\n' 201 > "$SOLVABLE"
-: > "$LAUNCHES"
+seed broken 201
 orchestrate "$broken"
 launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
 if [[ "$rc" -eq 2 && "$launched" -eq 0 ]]; then
@@ -133,9 +139,7 @@ cat <<'JSON'
 {"type":"result","subtype":"success","is_error":false,"usage":{"input_tokens":10,"cache_creation_input_tokens":5438,"cache_read_input_tokens":110000,"output_tokens":165}}
 JSON
 STUB
-export SOLVABLE="$work/solvable-streaming" LAUNCHES="$work/launches-streaming"
-printf '%s\n' 301 > "$SOLVABLE"
-: > "$LAUNCHES"
+seed streaming 301
 orchestrate "$streaming"
 expected="$(printf '%s\n' 'context 301 53438' 'context 301 62000')"
 actual="$(grep '^context ' "$work/out")"
@@ -165,11 +169,8 @@ i=0
 while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
 echo after-step-done >> "\$MARKS"
 STUB
-export SOLVABLE="$work/solvable-budget" LAUNCHES="$work/launches-budget" MARKS="$work/marks-budget"
+seed budget 401
 export VERI_CONDUCTOR_CTX_BUDGET=100000
-printf '%s\n' 401 > "$SOLVABLE"
-: > "$LAUNCHES"
-: > "$MARKS"
 orchestrate "$budget"
 unset VERI_CONDUCTOR_CTX_BUDGET
 expected="mid-step"
@@ -195,11 +196,8 @@ i=0
 while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
 echo after-step-done >> "\$MARKS"
 STUB
-export SOLVABLE="$work/solvable-underbudget" LAUNCHES="$work/launches-underbudget" MARKS="$work/marks-underbudget"
+seed underbudget 501
 unset VERI_CONDUCTOR_CTX_BUDGET
-printf '%s\n' 501 > "$SOLVABLE"
-: > "$LAUNCHES"
-: > "$MARKS"
 orchestrate "$underbudget"
 expected="after-step-done"
 actual="$(cat "$MARKS")"
@@ -228,11 +226,8 @@ i=0
 while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
 echo after-step-done >> "\$MARKS"
 STUB
-export SOLVABLE="$work/solvable-atresult" LAUNCHES="$work/launches-atresult" MARKS="$work/marks-atresult"
+seed atresult 601
 export VERI_CONDUCTOR_CTX_BUDGET=100000
-printf '%s\n' 601 > "$SOLVABLE"
-: > "$LAUNCHES"
-: > "$MARKS"
 orchestrate "$atresult"
 unset VERI_CONDUCTOR_CTX_BUDGET
 expected="before-result"
