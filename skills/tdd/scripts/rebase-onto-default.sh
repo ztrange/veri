@@ -45,15 +45,15 @@ main() {
 
   # A fetch that exits 0 need not have refreshed origin/<default> — a fetch refspec can
   # leave it out — so the remote's own answer for the branch must match what the clone holds.
-  local remote_sha
+  local remote_sha onto
   remote_sha="$(git ls-remote origin "refs/heads/${default#origin/}" 2>/dev/null)" || exit 2
-  [[ "${remote_sha%%[[:space:]]*}" == "$(git rev-parse "$default")" ]] || exit 2
-
-  git merge-base --is-ancestor "$default" HEAD && exit 3
-
-  local pre onto
-  pre="$(git rev-parse HEAD)"
   onto="$(git rev-parse "$default")"
+  [[ "${remote_sha%%[[:space:]]*}" == "$onto" ]] || exit 2
+
+  git merge-base --is-ancestor "$onto" HEAD && exit 3
+
+  local pre
+  pre="$(git rev-parse HEAD)"
   if ! git rebase -q "$onto" >/dev/null; then
     # A rebase git refused to start — a dirty tree, say — leaves no rebase in progress.
     # That is no conflict to name: the plumbing failed, so it is exit 2, not 1.
