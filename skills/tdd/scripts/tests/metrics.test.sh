@@ -2083,6 +2083,55 @@ print("\n".join(problems))
 report_on "$name" "$resumed_stop_out"
 
 
+# A fixture whose machine slept (#486): every line carries the `awake` reading event.sh writes
+# beside `ts`, and between the step-done (ts 80100, awake 5100) and the done mark (ts 90217,
+# awake 5217) the wall clock moved 10,117 s where the awake clock moved 117. So the issue ran
+# 217 awake seconds inside a 10,217-second wall span, and the 10,000 between them are the
+# seconds the machine was not running — three distinct numbers, so a report that printed the
+# wall span, or named no excluded figure, cannot pass.
+fixture_work slept_work
+
+slept="a step of a run the machine slept through"
+
+sv "$slept" 80000 conductor ""  step-start "" '"awake": 5000'
+sv "$slept" 80100 conductor ""  step-done  "" '"awake": 5100'
+sv "$slept" 90217 conductor ""  done       "" '"awake": 5217, "pr": "https://github.com/ztrange/veri/pull/998"'
+
+plan_of "$slept"
+
+
+name="#486 given a log whose wall timestamps span a gap its awake readings do not, the issue wall excludes the gap and a figure beside it names the excluded seconds"
+problems=()
+
+slept_out="$slept_work/report.md"
+render "$slept_work" "$slept_out"
+
+probe '
+import re, sys
+
+path = sys.argv[1]
+lines = [l.strip() for l in open(path).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+walls = [l for l in lines if l.startswith("Wall time for the issue:")]
+
+def names(line, number):
+    return re.search(r"(?<![0-9.])%s(?![0-9.])" % number, line) is not None
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+    raise SystemExit(0)
+
+wall = walls[0]
+if not names(wall, "217") or names(wall, "10217"):
+    print("want the issue wall to be the 217 awake seconds, not the 10217-second wall span, it says: %r" % wall)
+if not any(names(l, "10000") for l in lines):
+    print("want a line outside the tables naming the 10000 seconds the machine was not running, the report says outside them: %s"
+          % ", ".join(repr(l) for l in lines))
+' "$slept_out"
+
+report_on "$name" "$slept_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
