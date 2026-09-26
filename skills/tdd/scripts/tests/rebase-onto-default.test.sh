@@ -48,9 +48,10 @@ report() {
 git_q() { local repo="$1"; shift; git -C "$repo" -c user.name=veri -c user.email=veri@example.test "$@"; }
 
 # origin_fixture <dir> — a bare origin at <dir>/origin.git whose default branch `main`
-# holds one commit, and a clone of it at <dir>/clone.
+# holds one commit, and a clone of it at <dir>/clone. Creates <dir> itself.
 origin_fixture() {
   local dir="$1"
+  mkdir -p "$dir"
   git init -q --bare -b main "$dir/origin.git" >/dev/null 2>&1
   git init -q -b main "$dir/seed" >/dev/null 2>&1
   echo "base" > "$dir/seed/file.txt"
@@ -84,7 +85,6 @@ advance_origin() {
 name="rebase-onto-default.test.sh: a branch already containing origin/<default> exits 3 with empty stdout and HEAD and tree unchanged"
 problems=()
 dir="$work/up-to-date"
-mkdir -p "$dir"
 origin_fixture "$dir"
 repo="$dir/clone"
 run_branch "$repo"
@@ -106,7 +106,6 @@ report "$name"
 name="rebase-onto-default.test.sh: a branch behind origin/<default> with no conflict rebases onto it, exits 0, prints the pre-rebase and onto shas, and keeps its own commit on top"
 problems=()
 dir="$work/behind"
-mkdir -p "$dir"
 origin_fixture "$dir"
 repo="$dir/clone"
 run_branch "$repo"
@@ -134,7 +133,6 @@ report "$name"
 name="rebase-onto-default.test.sh: a rebase that conflicts is aborted, exits 1, leaves HEAD at the pre-rebase sha with a clean tree and no rebase in progress, and prints the conflicting files one per line"
 problems=()
 dir="$work/conflict"
-mkdir -p "$dir"
 origin_fixture "$dir"
 repo="$dir/clone"
 run_branch "$repo"
