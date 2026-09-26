@@ -1,0 +1,2 @@
+### event.sh writes an awake-clock reading on every event it appends, taken from the clock VERI_AWAKE_CLOCK names when set and otherwise from the same sleep-excluding clock supervise.sh uses for its windows ⟦criterion 1⟧
+- extract awake_seconds (the python3 time.monotonic() one-liner duplicated in event.sh and supervise.sh:133) into lib/awake-clock.sh sourced by both — tried as f222aaf8, reverted: supervise.test.sh's no-git case (supervise.test.sh:986) copies an explicit list of lib/ files and fails without the new one, and that fixture is outside this step's bounds
