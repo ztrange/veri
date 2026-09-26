@@ -1044,6 +1044,25 @@ plan_rejects_shape human-owed "whose deliverable is the record of a manual check
   '(manual|human)[^.]{0,120}(check|record)'
 [[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan that makes a criterion whose deliverable is the record of a manual check a Red/Green step instead of a ⟦human-owed⟧ line (#481) (${problems#; })"
 
+# 47. the other side of cases 45 and 46 (issue #481, criterion 4): a plan written the way
+#     *Scope & plan* prescribes carries such a criterion as one `⟦full-suite⟧ ⟦criterion k⟧`
+#     or `⟦human-owed⟧ ⟦criterion k⟧` line and no step, and check 1 reads only "the steps
+#     tagged ⟦criterion k⟧" and asks whether they deliver it. A verifier not told that the
+#     marker line itself delivers criterion k finds no step for it and REJECTs the very plan
+#     cases 45 and 46 demand — the run then bails at the plan instead of at the Red leaf. So
+#     the prompt has to say, in one sentence with each marker, that its line delivers its
+#     criterion. Two claims, one per marker, each named; "deliver" rather than "check 1",
+#     because the REJECT sentence already sets "check 1" beside both markers. The verb only,
+#     closed by a non-letter: the shape's own description says "deliverable" beside
+#     ⟦human-owed⟧, which is not a claim that the line delivers anything.
+problems=""
+deliver_verb='deliver(s|ed|ing)?[^a-z]'
+for marker in full-suite human-owed; do
+  prompt_says "$plan" "never counts a ⟦$marker⟧ line as delivering its criterion" \
+    -iE -e "⟦$marker⟧[^.]{0,200}$deliver_verb|$deliver_verb[^.]{0,200}⟦$marker⟧"
+done
+[[ -z "$problems" ]] && ok || no "verify-plan counts a ⟦full-suite⟧ or ⟦human-owed⟧ line tagged ⟦criterion k⟧ as delivering criterion k, so a plan written that way passes check 1 (#481) (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

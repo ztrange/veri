@@ -44,6 +44,9 @@ rather than a step:
   purpose, watched going red, the output recorded — is owed by a human, not by code, so it is
   one `⟦human-owed⟧ ⟦criterion k⟧` line that no developer leaf is ever handed.
 
+For check 1, a `⟦full-suite⟧ ⟦criterion k⟧` or `⟦human-owed⟧ ⟦criterion k⟧` line delivers
+criterion k by itself: such a criterion is owed no step, and its line is never a reason to REJECT.
+
 REJECT a plan that turns either shape — the test command or the suites passing, or the record
 of a manual check — into a Red/Green step instead of its `⟦full-suite⟧` or `⟦human-owed⟧`
 line, even where check 1 alone would pass it: a Red leaf handed that step can only answer
