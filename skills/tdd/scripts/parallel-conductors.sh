@@ -53,10 +53,11 @@ for pr in json.loads(sys.argv[1]):
         print("draft" if pr.get("isDraft") else "ready", pr.get("url", ""))
         break
 ' "$prs" "$n")"
-    last="$(tail -n 1 ".tdd/wt/$n/.tdd/events.jsonl" 2>/dev/null || true)"
     case "$pr" in
       ready\ *) echo "#$n — done ${pr#ready }" ;;
-      draft\ *) [[ "$last" == *'"event": "bail"'* ]] && echo "#$n — bailed ${pr#draft }" ;;
+      draft\ *)
+        last="$(tail -n 1 ".tdd/wt/$n/.tdd/events.jsonl" 2>/dev/null || true)"
+        [[ "$last" == *'"event": "bail"'* ]] && echo "#$n — bailed ${pr#draft }" ;;
     esac
   done
   return 0
