@@ -62,6 +62,37 @@ else
   sed 's/^/    stderr: /' "$work/err"
 fi
 
+# 2. A solvable-issues.sh that exits with anything but 0 or 3 gave no answer about the
+#    solvable set, so orchestrate.sh launches nothing and exits 2. The stub here exits 2 on
+#    its first call and 3 on every later one, so a loop that ignores the 2 still ends.
+name="exits 2 without launching a conductor when solvable-issues.sh exits other than 0 or 3"
+broken="$work/broken"
+mkdir -p "$broken"
+cp "$scripts/orchestrate.sh" "$scripts/run-conductor.sh" "$broken/"
+cat > "$broken/solvable-issues.sh" <<'STUB'
+#!/bin/sh
+calls=$(($(cat "$SOLVABLE.calls" 2>/dev/null || echo 0) + 1))
+echo "$calls" > "$SOLVABLE.calls"
+[ "$calls" -eq 1 ] && exit 2
+exit 3
+STUB
+chmod +x "$broken"/*.sh
+export SOLVABLE="$work/solvable-broken" LAUNCHES="$work/launches-broken"
+printf '%s\n' 201 > "$SOLVABLE"
+: > "$LAUNCHES"
+(cd "$work" && "$broken/orchestrate.sh") < /dev/null > "$work/out" 2> "$work/err"
+rc=$?
+launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
+if [[ "$rc" -eq 2 && "$launched" -eq 0 ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  echo "    exit: $rc (expected 2)"
+  echo "    launches: $launched (expected 0)"
+  sed 's/^/    stderr: /' "$work/err"
+fi
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
