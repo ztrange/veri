@@ -269,6 +269,14 @@ def span(start, end):
 def reading(mark, clock):
     return None if mark is None else mark.get(clock)
 
+# The seconds between two marks as a figure measures them (#486): on the awake clock when both
+# carry a reading, so time the machine spent asleep is not counted as work, and on `ts`
+# otherwise. Written once because the step wall and the issue wall apply the one rule, and two
+# spellings of it are two places for one of them to mix the clocks.
+def awake_span_or_wall(start, end):
+    awake = span(reading(start, "awake"), reading(end, "awake"))
+    return awake if awake is not None else span(reading(start, "ts"), reading(end, "ts"))
+
 # A checkbox step of the ledger, ticked or not — the same grammar next-unchecked.sh reads
 # (next-unchecked.sh:16), matched leaving the state inside the box open, because what is
 # wanted is how many steps the plan HAS, not how many are still to do.
@@ -556,14 +564,9 @@ def row(cells):
 def figure(column, value):
     return "%.2f" % value if column in MONEY else "%d" % value
 
-# Measured on the awake clock when both marks carry a reading (#486), as the issue wall is,
-# so a sleep inside the step is not counted in it; `ts` otherwise.
 def step_wall(step):
     mark = spent.get(step, {})
-    start, done = mark.get("step-start"), mark.get("step-done")
-    awake_span = span(reading(start, "awake"), reading(done, "awake"))
-    return known(awake_span if awake_span is not None
-                 else span(reading(start, "ts"), reading(done, "ts")))
+    return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done")))
 
 def budget_cells(step):
     mark = spent.get(step, {})
@@ -633,7 +636,7 @@ wall_span = span(reading(opening, "ts"), reading(ending, "ts"))
 awake_span = span(reading(opening, "awake"), reading(ending, "awake"))
 print("Wall time for the issue: %s s, from the last `resume`, or the first event of the log when "
       "there is none, to the mark that ended the run."
-      % known(awake_span if awake_span is not None else wall_span))
+      % known(awake_span_or_wall(opening, ending)))
 if awake_span is not None and wall_span is not None:
     print("Seconds the machine was not running inside that span: %s s, excluded from it."
           % (wall_span - awake_span))
