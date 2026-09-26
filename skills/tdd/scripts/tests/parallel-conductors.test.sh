@@ -620,6 +620,19 @@ got_exclude="$(cat "$own_exclude/.git/info/exclude")"
 expect_lines "the caller's exclude keeps its last line intact and gains .tdd/* exactly once over two launches" \
   "$(printf '*.scratch\n.tdd/*')" "$got_exclude" "$work/own-exclude-2.out"
 
+# 17. Supervising a `conductor-<n>` prints no leaf-role.sh refusal. supervise.sh hands every name
+# it is given to leaf-role, which refuses any leading word but develop/revise/verify with a
+# `leaf-role: …` line on stderr — and the launcher's supervisor is named `conductor-7`. One launch
+# from a fresh repository over a one-issue fixture; its output must carry no `leaf-role:` line.
+# Distinct lines only: how many of supervise.sh's callers reach leaf-role before something else
+# stops them is not this case's subject, only whether any refusal is printed at all.
+role_repo="$work/role"
+fresh_repo "$role_repo"
+status_after_launch "$role_repo" role
+got_refusals="$(grep -F 'leaf-role:' "$work/role.out" | sort -u)"
+[[ -s "$work/role-record" ]] || got_refusals+="<conductor never ran>"
+expect_lines "supervising a conductor-<n> prints no leaf-role.sh refusal" "" "$got_refusals" "$work/role.out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
