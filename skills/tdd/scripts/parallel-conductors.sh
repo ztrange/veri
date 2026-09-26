@@ -58,13 +58,13 @@ prs_json() {
 }
 
 # outcome <n> <prs> — issue <n>'s outcome, read from its PR and its run's event log rather than
-# the conductor's exit code, which is 0 for a finished run and a bail alike: `killed` when its
-# supervise.sh exited 2, `done <url>` for a ready PR saying `Closes #<n>`, `bailed <url>` for a
+# the conductor's exit code, which is 0 for a finished run and a bail alike: `killed after
+# <VERI_RUN_TIMEOUT>s` when its supervise.sh exited 2, `done <url>` for a ready PR saying `Closes #<n>`, `bailed <url>` for a
 # draft one whose `.tdd/wt/<n>` event log ends in a bail; nothing otherwise.
 outcome() {
   local n="$1" prs="$2" pr last
   if [[ "$(cat "$rc_dir/$n" 2>/dev/null)" == 2 ]]; then
-    echo "killed"
+    echo "killed after ${run_timeout}s"
     return 0
   fi
   pr="$(python3 -c '
@@ -89,10 +89,7 @@ report() {
   prs="$(prs_json)"
   for n in "${order[@]+"${order[@]}"}"; do
     got="$(outcome "$n" "$prs")"
-    case "$got" in
-      killed) echo "#$n — killed after ${run_timeout}s" ;;
-      ?*) echo "#$n — $got" ;;
-    esac
+    [[ -z "$got" ]] || echo "#$n — $got"
   done
   return 0
 }
@@ -126,7 +123,7 @@ while :; do
     unset "in_flight[$n]"
     if [[ -z "$continue_on_bail" ]]; then
       case "$(outcome "$n" "$(prs_json)")" in
-        killed|bailed\ *) stopped=1 ;;
+        killed\ *|bailed\ *) stopped=1 ;;
       esac
     fi
   done
