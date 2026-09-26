@@ -465,6 +465,11 @@ section_commands() {
        END { if (cont) print buf }' | tr '[:upper:]' '[:lower:]'
 }
 
+# line_of <ere> — the number of the first line of `commands` matching <ere> at its start, or
+# nothing. Cases 14 and 15 both order one command line of the Draft PR step against another,
+# so the lookup is written here once rather than as an awk per probe.
+line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
+
 # 10. The criterion, as one case (issue #195): the run has had a PR since its plan commit, so
 #     the step named for opening one must open none. A second `gh pr create` against a branch
 #     that already has an open PR is not a no-op — it is either a refusal that ends the run at
@@ -587,8 +592,6 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "where the step rebases onto the default branch"; then
   commands="$(section_commands)"
-  # line_of <ere> — the number of the first command line of the step matching <ere> at its start.
-  line_of() { awk -v re="$1" '$0 ~ ("^" re) { print NR; exit }' <<< "$commands"; }
   rebase="$(line_of '[$]s/rebase-onto-default[.]sh')"
   if [[ -z "$rebase" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/rebase-onto-default.sh, so a branch behind the default one is still readied for review un-rebased")
@@ -638,8 +641,8 @@ problems=()
 
 if step_or_problem '### 4. Draft PR' "what the step does after a rebase that changed the tree"; then
   commands="$(section_commands)"
-  rebase="$(awk '/^[$]s\/rebase-onto-default[.]sh/ { print NR; exit }' <<< "$commands")"
-  leased="$(awk '/^[$]s\/push-branch[.]sh --force-with-lease=[^ :]+:[^ ]*pre-rebase/ { print NR; exit }' <<< "$commands")"
+  rebase="$(line_of '[$]s/rebase-onto-default[.]sh')"
+  leased="$(line_of '[$]s/push-branch[.]sh --force-with-lease=[^ :]+:[^ ]*pre-rebase')"
   if [[ -z "$leased" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/push-branch.sh --force-with-lease=<branch>:<pre-rebase-sha>, so a rebased branch's rewritten history has no push pinned to the sha its remote copy held before the rebase")
   elif [[ -z "$rebase" ]] || [[ "$leased" -le "$rebase" ]]; then
