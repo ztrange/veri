@@ -1,0 +1,2 @@
+### orchestrate.sh exits 2 without launching any conductor when solvable-issues.sh exits with anything other than 0 or 3, since then no answer about the solvable set could be obtained ⟦added⟧ ⟦criterion 1⟧
+- the call-counter-and-cap preamble (`calls=$(( … ))`, write back to `$SOLVABLE.calls`, exit 3 past a threshold) is repeated between the main solvable-issues.sh stub and case 2's broken stub; one shared stub body would remove it, but with only two copies it is marginal
