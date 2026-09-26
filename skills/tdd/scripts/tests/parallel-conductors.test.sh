@@ -159,6 +159,15 @@ TAIL
   chmod +x "$1"
 }
 
+# record_stub <path> <record> <gh-dir> — write a stub conductor that appends `start <n>` to
+# <record> and answers "done" with a ready PR in <gh-dir>, so its issue leaves the solvable set.
+record_stub() {
+  conductor_stub "$1" <<STUB
+echo "start \$n" >> "$2"
+$(ready_pr "$3")
+STUB
+}
+
 # timeline_stub <path> <timeline> <gh-dir> [<lock-dir>] — write the stub conductor cases 2 and 3
 # share: it records `start <n>`, holds until a second conductor has started (or $PATIENCE s
 # pass), records `end <n>`, then answers "done" by opening a ready PR in <gh-dir>. Given a
@@ -244,10 +253,7 @@ JSON
 
 order="$work/order"
 order_stub="$work/claude-order"
-conductor_stub "$order_stub" <<STUB
-echo "start \$n" >> "$order"
-$(ready_pr "$gh4")
-STUB
+record_stub "$order_stub" "$order" "$gh4"
 
 run_launcher "$gh4" "$order_stub" "$work/order.out"
 want_order="$(printf 'start 8\nstart 7')"
@@ -351,10 +357,7 @@ for cap in 2 0; do
   cap_fixture "$gh7"
   capped="$work/capped-$cap"
   cap_stub="$work/claude-cap-$cap"
-  conductor_stub "$cap_stub" <<STUB
-echo "start \$n" >> "$capped"
-$(ready_pr "$gh7")
-STUB
+  record_stub "$cap_stub" "$capped" "$gh7"
   run_launcher "$gh7" "$cap_stub" "$work/cap-$cap.out" VERI_MAX_ISSUES="$cap"
   case "$cap" in
     2) want_cap="$(printf 'start 7\nstart 8')" ;;
