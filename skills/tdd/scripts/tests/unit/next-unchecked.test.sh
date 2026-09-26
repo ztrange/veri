@@ -104,6 +104,16 @@ both_ledger='# Plan for #42
 - [ ] pin the second step ⟦criterion 2⟧'
 check "a line with a written marker that also quotes one is skipped (#484)" 0 "$both_ledger" "pin the second step ⟦criterion 2⟧"
 
+# 13. anchoring the marker leaves the loop's end unchanged: a ledger whose every step is
+# ticked — ones quoting a marker, ones carrying it in the written position — still exits 3
+# with no output (#484)
+ticked_ledger='# Plan for #42
+
+- [x] a step whose text quotes ⟦full-suite⟧ or ⟦human-owed⟧ is still handed to a leaf ⟦criterion 1⟧
+- [x] the suites are green ⟦full-suite⟧ ⟦criterion 2⟧
+- [x] pin the third step ⟦criterion 3⟧'
+check "a fully ticked ledger quoting markers still exits 3 (#484)" 3 "$ticked_ledger" ""
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
