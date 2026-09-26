@@ -10,7 +10,7 @@
 - [x] A finished conductor whose PR is ready is reported `#<n> — done <pr-url>`, and one whose PR is a draft and whose event log ends in a bail is reported `#<n> — bailed <pr-url>` ⟦criterion 3⟧
 - [x] A conductor its supervisor killed (supervise exit 2) is reported `#<n> — killed after <VERI_RUN_TIMEOUT>s` ⟦criterion 3⟧
 - [x] The first bail or kill stops new launches while conductors already running are waited to completion, and --continue-on-bail keeps launching and skips the bailed number ⟦criterion 3⟧
-- [ ] The caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ⟦criterion 4⟧
+- [x] The caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ⟦criterion 4⟧
 - [ ] The outer supervisor of each conductor runs with heartbeat and timeout both VERI_RUN_TIMEOUT (default 14400) and no stuck retries ⟦criterion 4⟧
 - [ ] In a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch ⟦criterion 5⟧
 - [ ] Supervising a conductor-<n> prints no leaf-role.sh refusal ⟦criterion 5⟧

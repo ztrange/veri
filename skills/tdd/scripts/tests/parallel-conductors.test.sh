@@ -484,6 +484,43 @@ want_kill_stop="#7 — killed after 60s"
 got_kill_stop="$(grep -E '^#[0-9]+ — ' "$work/kill-stop.out")"
 expect_lines "the first kill stops new launches: #8 is never launched after #7 is killed" "$want_kill_stop" "$got_kill_stop" "$work/kill-stop.out"
 
+# 12. The caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each
+# conductor exactly as they were, set or unset: whatever the launcher sets for its own outer
+# supervisor must not leak into the conductor's environment, where `VERI_STUCK_RETRIES=0` once
+# turned a baseline red (#87). The stub conductor records every one of the four it can see, as
+# `NAME=value`, then answers "done" with a ready PR. Two runs, each over one solvable issue: in
+# the first the caller sets VERI_HEARTBEAT and VERI_STUCK_RETRIES and VERI_POLL and leaves
+# VERI_TIMEOUT unset; in the second it sets only VERI_TIMEOUT. The record must equal the caller's
+# own set of the four exactly — a value changed, a variable added or one dropped is the failure.
+# Every run that misbehaves is named in the single FAIL line.
+bad=""
+for shape in a b; do
+  gh12="$work/gh12-$shape"
+  solvable_fixture "$gh12" 7
+  seen="$work/seen-$shape"
+  env_stub="$work/claude-env-$shape"
+  conductor_stub "$env_stub" <<STUB
+env | grep -E '^VERI_(HEARTBEAT|TIMEOUT|STUCK_RETRIES|POLL)=' | sort > "$seen" || true
+$(ready_pr "$gh12")
+STUB
+  case "$shape" in
+    a) caller=(VERI_HEARTBEAT=111 VERI_POLL=0.05 VERI_STUCK_RETRIES=3) ;;
+    b) caller=(VERI_TIMEOUT=222) ;;
+  esac
+  env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+    -u VERI_HEARTBEAT -u VERI_TIMEOUT -u VERI_STUCK_RETRIES -u VERI_POLL \
+    VERI_GH_JSON="$gh12" CLAUDE_BIN="$env_stub" "${caller[@]}" \
+    "$skill/scripts/parallel-conductors.sh" > "$work/env-$shape.out" 2>&1 && code=0 || code=$?
+  want_seen="$(printf '%s\n' "${caller[@]}" | sort)"
+  got_seen="$(cat "$seen" 2>/dev/null || echo '<conductor never ran>')"
+  if [[ "$got_seen" != "$want_seen" ]]; then
+    bad+=" [caller '$(printf '%s' "$want_seen" | tr '\n' ' ')': exit=$code, conductor saw '$(printf '%s' "$got_seen" | tr '\n' ' ')'; output: $(tr '\n' '|' < "$work/env-$shape.out")]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "the caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ($bad )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
