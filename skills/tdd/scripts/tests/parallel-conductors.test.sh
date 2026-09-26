@@ -679,6 +679,69 @@ done
 [[ -z "$bad" ]] \
   && ok || no "exit 0 all done, 1 a bail or a kill, 2 plumbing, 3 nothing solvable, and .tdd/parallel.exit carries the final code on every exit path ($bad )"
 
+# 19. The report is one line per issue in launch order, then one line naming what stopped the
+# loop. Five runs, each from a fresh repository over a fixture of its own holding #7 and #8:
+# `drain` — both stub conductors answer "done" with a ready PR, so the loop ends on an empty
+# solvable set, `stopped: nothing solvable`; `bail` — #7's opens a draft PR and ends its run's
+# event log in a `bail`, so #8 is never launched and the loop ends on that bail,
+# `stopped: #7 bailed`; `cap` — VERI_MAX_ISSUES=1, so #8 is still solvable when the loop ends,
+# `stopped: VERI_MAX_ISSUES reached`; `plumbing` — VERI_PRIORITY_LABEL set but empty, so
+# solvable-issues.sh exits 2 before anything is launched, `stopped: solvable-issues.sh could not
+# answer`; and `first-bail` — VERI_PARALLEL=2, both conductors bail, #8 only once #7's supervisor
+# has written `.tdd/conductor-7.exit` and a second has passed for the launcher to read it, so the
+# stop line names the bail that stopped the loop, `stopped: #7 bailed`, not the later one. The
+# report lines — `#<n> — …` and `stopped: …` — are read in the order printed; a missing stop
+# line, a second one, or one ahead of an issue line is the failure. Every run that misbehaves is
+# named in the single FAIL line.
+bad=""
+for shape in drain bail cap plumbing first-bail; do
+  repo="$work/stop-$shape"
+  fresh_repo "$repo"
+  gh19="$work/gh19-$shape"
+  solvable_fixture "$gh19" 7 8
+  stub19="$work/claude-stop-$shape"
+  vars=()
+  case "$shape" in
+    drain)      record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
+                want_report="$(printf '#7 — done https://example.test/pull/7\n#8 — done https://example.test/pull/8\nstopped: nothing solvable')" ;;
+    bail)       conductor_stub "$stub19" <<STUB
+mkdir -p ".tdd/wt/\$n/.tdd"
+printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
+$(open_pr "$gh19" true)
+STUB
+                want_report="$(printf '#7 — bailed https://example.test/pull/7\nstopped: #7 bailed')" ;;
+    cap)        record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
+                vars=(VERI_MAX_ISSUES=1)
+                want_report="$(printf '#7 — done https://example.test/pull/7\nstopped: VERI_MAX_ISSUES reached')" ;;
+    plumbing)   record_stub "$stub19" "$work/stop-$shape-record" "$gh19"
+                vars=(VERI_PRIORITY_LABEL=)
+                want_report="stopped: solvable-issues.sh could not answer" ;;
+    first-bail) conductor_stub "$stub19" <<STUB
+if [ "\$n" = 8 ]; then
+  i=0
+  while [ "\$i" -lt \$(( ${PATIENCE:-5} * 50 )) ] && [ ! -e .tdd/conductor-7.exit ]; do
+    sleep 0.02; i=\$((i + 1))
+  done
+  sleep 1
+fi
+mkdir -p ".tdd/wt/\$n/.tdd"
+printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
+$(open_pr "$gh19" true)
+STUB
+                vars=(VERI_PARALLEL=2)
+                want_report="$(printf '#7 — bailed https://example.test/pull/7\n#8 — bailed https://example.test/pull/8\nstopped: #7 bailed')" ;;
+  esac
+  (cd "$repo" && run_launcher "$gh19" "$stub19" "$work/stop-$shape.out" "${vars[@]+"${vars[@]}"}"; echo "$code" > "$work/stop-$shape.code")
+  code="$(cat "$work/stop-$shape.code")"
+  got_report="$(grep -E '^(#[0-9]+ — |stopped: )' "$work/stop-$shape.out")"
+  if [[ "$got_report" != "$want_report" ]]; then
+    bad+=" [$shape: exit=$code, report '$(printf '%s' "$got_report" | tr '\n' '|')' want '$(printf '%s' "$want_report" | tr '\n' '|')'; output: $(tr '\n' '|' < "$work/stop-$shape.out")]"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "the report prints one line per issue in launch order, then one line naming what stopped the loop ($bad )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

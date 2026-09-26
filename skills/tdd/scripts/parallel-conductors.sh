@@ -143,14 +143,17 @@ report() {
   done
   return 0
 }
-stopped=""   # set once a bail or kill has stopped new launches
+stopped=""   # set once a bail or kill has stopped new launches: `#<n> bailed` or `#<n> killed`
 plumbing=""  # set once solvable-issues.sh has exited 2
+why=""       # what last kept the loop from launching, for the report's closing line
 while :; do
   while (( ${#in_flight[@]} < 10#$parallel )); do
     [[ -z "$stopped" ]] || break
-    (( max_issues == 0 || ${#launched[@]} < max_issues )) || break
+    (( max_issues == 0 || ${#launched[@]} < max_issues )) || { why="VERI_MAX_ISSUES reached"; break; }
     solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
     (( rc != 2 )) || plumbing=1
+    why="nothing solvable"
+    (( rc != 2 )) || why="solvable-issues.sh could not answer"
     (( rc == 0 )) || break
     n=""
     for candidate in $solvable; do
@@ -169,7 +172,9 @@ while :; do
   if (( ${#in_flight[@]} == 0 )); then
     # Exit 2 when solvable-issues.sh could not answer, 1 when any launch bailed or was killed,
     # 3 when nothing was launched at all, 0 when every launched issue is done.
+    # The report closes with one line naming what stopped the loop.
     report
+    echo "stopped: ${stopped:-$why}"
     [[ -z "$plumbing" ]] || finish 2
     [[ -z "$failed" ]] || finish 1
     (( ${#order[@]} > 0 )) || finish 3
@@ -179,8 +184,9 @@ while :; do
   for n in "${!in_flight[@]}"; do
     kill -0 "${in_flight[$n]}" 2>/dev/null && continue
     unset "in_flight[$n]"
-    if [[ -z "$continue_on_bail" ]] && is_failure "$(outcome "$n" "$(prs_json)")"; then
-      stopped=1
+    got="$(outcome "$n" "$(prs_json)")"
+    if [[ -z "$continue_on_bail" && -z "$stopped" ]] && is_failure "$got"; then
+      stopped="#$n ${got%% *}"
     fi
   done
 done
