@@ -115,25 +115,39 @@ JSON
 gh2="$work/gh2"
 two_issue_fixture "$gh2"
 
-timeline="$work/timeline"
-seq_stub="$work/claude-seq"
-cat > "$seq_stub" <<STUB
+# timeline_stub <path> <timeline> <gh-dir> [<lock-dir>] — write the stub conductor cases 2 and 3
+# share: it records `start <n>`, holds until a second conductor has started (or $PATIENCE s
+# pass), records `end <n>`, then answers "done" by opening a ready PR in <gh-dir>. Given a
+# <lock-dir>, it also holds that `mkdir` lock while it runs and records `overlap <n>` first when
+# another conductor already holds it.
+timeline_stub() {
+  local path="$1" timeline="$2" gh="$3" lock="${4:-}" lock_take="" lock_drop=""
+  if [[ -n "$lock" ]]; then
+    lock_take="if mkdir \"$lock\" 2>/dev/null; then held=1; else held=0; echo \"overlap \$n\" >> \"$timeline\"; fi"
+    lock_drop="[ \"\$held\" = 1 ] && rmdir \"$lock\""
+  fi
+  cat > "$path" <<STUB
 #!/bin/sh
 n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
-if mkdir "$work/running" 2>/dev/null; then held=1; else held=0; echo "overlap \$n" >> "$timeline"; fi
+$lock_take
 echo "start \$n" >> "$timeline"
 i=0
 while [ "\$i" -lt \$(( ${PATIENCE:-1} * 50 )) ] && [ "\$(grep -c '^start' "$timeline")" -lt 2 ]; do
   sleep 0.02; i=\$((i + 1))
 done
 echo "end \$n" >> "$timeline"
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh2/prs.lines"
-printf '[%s]\n' "\$(paste -sd, "$gh2/prs.lines")" > "$gh2/prs.json"
-[ "\$held" = 1 ] && rmdir "$work/running"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh/prs.lines"
+printf '[%s]\n' "\$(paste -sd, "$gh/prs.lines")" > "$gh/prs.json"
+$lock_drop
 printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
 exit 0
 STUB
-chmod +x "$seq_stub"
+  chmod +x "$path"
+}
+
+timeline="$work/timeline"
+seq_stub="$work/claude-seq"
+timeline_stub "$seq_stub" "$timeline" "$gh2" "$work/running"
 
 env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
   VERI_GH_JSON="$gh2" CLAUDE_BIN="$seq_stub" VERI_POLL=0.05 \
@@ -156,21 +170,7 @@ two_issue_fixture "$gh3"
 
 timeline3="$work/timeline3"
 par_stub="$work/claude-par"
-cat > "$par_stub" <<STUB
-#!/bin/sh
-n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
-echo "start \$n" >> "$timeline3"
-i=0
-while [ "\$i" -lt \$(( ${PATIENCE:-1} * 50 )) ] && [ "\$(grep -c '^start' "$timeline3")" -lt 2 ]; do
-  sleep 0.02; i=\$((i + 1))
-done
-echo "end \$n" >> "$timeline3"
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh3/prs.lines"
-printf '[%s]\n' "\$(paste -sd, "$gh3/prs.lines")" > "$gh3/prs.json"
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-exit 0
-STUB
-chmod +x "$par_stub"
+timeline_stub "$par_stub" "$timeline3" "$gh3"
 
 env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
   VERI_PARALLEL=2 VERI_GH_JSON="$gh3" CLAUDE_BIN="$par_stub" VERI_POLL=0.05 \
