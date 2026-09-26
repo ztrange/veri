@@ -24,6 +24,10 @@ trap 'rm -rf "$work"' EXIT
 scripts="$work/scripts"
 mkdir -p "$scripts"
 cp "$HERE/../orchestrate.sh" "$scripts/orchestrate.sh" 2>/dev/null
+# orchestrate.sh sources lib/background.sh from beside itself, so every scratch scripts
+# directory below carries the real lib too — the suite stubs what orchestrate.sh RUNS, not
+# what it sources.
+cp -R "$HERE/../lib" "$scripts/"
 
 cat > "$scripts/solvable-issues.sh" <<'STUB'
 #!/bin/sh
@@ -57,9 +61,18 @@ orchestrate() {
 conductor_stub() {
   mkdir -p "$1"
   cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$1/"
+  cp -R "$scripts/lib" "$1/"
   {
     printf '#!/bin/sh\n"%s/run-conductor.sh" "$1"\n' "$scripts"
     cat <<PRELUDE
+# A stopped conductor must be stopped by a signal, not by its writes failing, so this stub
+# IGNORES SIGPIPE — the state CI's Linux was observed in, where a write to the closed stream
+# came back as plain \`echo: I/O error\` and the conductor ran on. On this Mac SIGPIPE is fatal
+# and would end the stub whatever orchestrate.sh did, so without this line the cases below
+# cannot go red here at all, and the regression they exist for is only visible on CI. This is
+# a stub imitating a platform, not a suite repairing its own pipeline (#422).
+trap '' PIPE
+echo \$\$ >> "\$MARKS.pid"
 heartbeats() {
   i=0
   while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
@@ -72,6 +85,23 @@ PRELUDE
     cat
   } > "$1/run-conductor.sh"
   chmod +x "$1"/*.sh
+}
+
+# await_gone: wait up to ~4 s for every conductor incarnation of the case to be gone, so a
+# case asserting that a stopped conductor never wrote a mark reads $MARKS after the window in
+# which a LIVE one would have written it. Without this barrier those cases assert an absence
+# against a conductor that is merely still streaming, and pass or fail on how fast the machine
+# is — which is how case 4 came back green here and red on CI.
+await_gone() {
+  local i=0 pid alive=1
+  [[ -r "$MARKS.pid" ]] || return 0
+  while [[ $i -lt 400 && $alive -eq 1 ]]; do
+    alive=0
+    while read -r pid; do kill -0 "$pid" 2>/dev/null && alive=1; done < "$MARKS.pid"
+    [[ $alive -eq 1 ]] || break
+    sleep 0.01
+    i=$((i + 1))
+  done
 }
 
 # seed <tag> <issue>...: point $SOLVABLE, $LAUNCHES and $MARKS at fresh files for the case
@@ -130,6 +160,7 @@ name="exits 2 without launching a conductor when solvable-issues.sh exits other 
 broken="$work/broken"
 mkdir -p "$broken"
 cp "$scripts/orchestrate.sh" "$scripts/run-conductor.sh" "$broken/"
+cp -R "$scripts/lib" "$broken/"
 cat > "$broken/solvable-issues.sh" <<'STUB'
 #!/bin/sh
 calls=$(($(cat "$SOLVABLE.calls" 2>/dev/null || echo 0) + 1))
@@ -191,6 +222,7 @@ echo after-step-done >> "\$MARKS"
 STUB
 seed budget 401
 VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$budget"
+await_gone
 expected="mid-step"
 actual="$(cat "$MARKS")"
 expect_exit0_output
@@ -242,6 +274,7 @@ echo after-step-done >> "\$MARKS"
 STUB
 seed atresult 601
 VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$atresult"
+await_gone
 expected="before-result"
 actual="$(cat "$MARKS")"
 expect_exit0_output
@@ -301,6 +334,7 @@ STUB
 seed defaultbudget 901
 unset VERI_CONDUCTOR_CTX_BUDGET
 orchestrate "$defaultbudget"
+await_gone
 expected="mid-step"
 actual="$(cat "$MARKS")"
 expect_exit0_output
@@ -325,6 +359,7 @@ echo after-step-done >> "\$MARKS"
 STUB
 seed relaunch 1001
 VERI_CONDUCTOR_CTX_BUDGET=100000 orchestrate "$relaunch"
+await_gone
 expected="$(printf '%s\n' 'argv 1: [1001]' 'argv 1: [1001]')"
 actual="$(cat "$MARKS")"
 expect_exit0_output
