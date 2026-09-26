@@ -410,11 +410,16 @@ clock_stub() {
 jump_clock="$work/awake-clock"
 clock_stub "$jump_clock" "$work/awake-count" 1000
 
-hang_stub="$work/claude-hang"
-conductor_stub "$hang_stub" <<STUB
+# hang — the stub source a conductor that never answers runs: it holds for up to $PATIENCE s.
+hang() {
+  cat <<SH
 i=0
 while [ "\$i" -lt \$(( ${PATIENCE:-5} * 50 )) ]; do sleep 0.02; i=\$((i + 1)); done
-STUB
+SH
+}
+
+hang_stub="$work/claude-hang"
+hang | conductor_stub "$hang_stub"
 
 run_launcher "$gh9" "$hang_stub" "$work/killed.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01
 want_killed="#7 — killed after 60s"
@@ -550,8 +555,7 @@ clock_stub "$step_clock" "$work/step-count" 30 "$outer_starts"
 outer_stub="$work/claude-outer"
 conductor_stub "$outer_stub" <<STUB
 echo "start \$n" >> "$outer_starts"
-i=0
-while [ "\$i" -lt \$(( ${PATIENCE:-5} * 50 )) ]; do sleep 0.02; i=\$((i + 1)); done
+$(hang)
 STUB
 
 run_launcher "$gh13" "$outer_stub" "$work/outer.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$step_clock" \
