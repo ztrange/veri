@@ -1581,10 +1581,12 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   the step's criterion cannot be pinned as a lightweight, behavior-level test → **process**
   failure (the criterion as phrased cannot be tested as behavior, not that the plumbing
   broke).
-- `step-too-big` — a Green developer leaf reported `SPLIT:` and the insertion was refused for
-  `VERI_STEP_GROWTH`, so the smaller steps are filed under `## Owed steps` rather than in the
-  plan → **process** failure (the step was too big for one green; `add-ledger-step.sh` exit 1
-  says so, and nothing in the plumbing broke).
+- `step-too-big` — a split was refused for `VERI_STEP_GROWTH`, so the smaller steps are filed
+  under `## Owed steps` rather than in the plan → **process** failure (the step was too big for
+  one green; `add-ledger-step.sh` exit 1 says so, and nothing in the plumbing broke). Three
+  splits lead here, because all three grow the plan and share that one budget: a Green
+  developer leaf's `SPLIT:`, the split the revise-exhausted leaf answers, and the split the
+  over-budget leaf answers.
 
 **A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
 the plumbing has already answered, and a pause would hide that answer from the resume. Ask

@@ -195,6 +195,43 @@ fi
 
 report "$name"
 
+# Three paths grow a plan and all three share `VERI_STEP_GROWTH`: a Green leaf's volunteered
+# `SPLIT:`, the split the revise-exhausted leaf answers when REVISE_BUDGET runs out, and the
+# split the over-budget leaf answers when the step's cost crosses its budget. Each bails with
+# `step-too-big` when `add-ledger-step.sh` refuses the insertion, so the Bailing list's entry
+# for that cause must name all three — one naming only the Green leaf sends a reader of an
+# over-budget or exhausted bail looking for a `SPLIT:` line no leaf ever printed.
+
+# step_too_big_cause — the Bailing causes list's `step-too-big` bullet alone, from its own
+# line up to the next bullet or the first blank line, normalised through `plain`. The bullet
+# and not the list, because the `revise-exhausted` bullet sits right above it and would
+# otherwise answer for it.
+step_too_big_cause() {
+  awk '
+    !in_s && index($0, "## Bailing") == 1 { in_s = 1; next }
+    in_s && /^#/ { exit }
+    in_s && inside && (/^- / || /^$/) { exit }
+    in_s && /^- `step-too-big`/ { inside = 1 }
+    inside' "$skill_path" | plain
+}
+
+name="$skill_md's Bailing entry for step-too-big names all three splits that lead to it: a Green leaf's SPLIT:, the revise-exhausted split and the over-budget split"
+problems=()
+
+bullet="$(step_too_big_cause)"
+if [[ -z "${bullet// /}" ]]; then
+  problems+=("$skill_md's Bailing causes list has no step-too-big bullet — which splits lead to it could not be read")
+else
+  grep -E 'green[^.]*split:|split:[^.]*green' <<<"$bullet" > /dev/null ||
+    problems+=("$skill_md's step-too-big entry does not name a Green leaf's SPLIT:")
+  grep -E 'revise-exhausted|exhausted' <<<"$bullet" > /dev/null ||
+    problems+=("$skill_md's step-too-big entry does not name the revise-exhausted split")
+  grep -E 'over-budget' <<<"$bullet" > /dev/null ||
+    problems+=("$skill_md's step-too-big entry does not name the over-budget split")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
