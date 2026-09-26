@@ -855,9 +855,8 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-over-budget spent=<spent> budget=<step-budget>
   ```
 
-A **supervisor exit 2** on the over-budget leaf — `wait-leaf.sh` exits 2, the leaf hung or ran
-away past `VERI_STUCK_RETRIES` — is a **`killed-stuck` bail** like any other developer leaf's
-(see *Bailing*), and the step's budget stays crossed: the check was disarmed when its branch
+A **supervisor exit 2** on the over-budget leaf — `wait-leaf.sh` exits 2 — is a
+**`killed-stuck` bail** like any other developer leaf's (see *Bailing*), and the step's budget stays crossed: the check was disarmed when its branch
 began, and a leaf that never answered is no reason to re-arm it.
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
