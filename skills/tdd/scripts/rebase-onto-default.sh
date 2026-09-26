@@ -16,6 +16,17 @@
 # Exit 2 when git refuses the rebase for any other reason, such as a dirty working tree:
 # nothing was started, so HEAD is unchanged and stdout is empty.
 
+# rebase_in_progress — succeed when git holds a rebase in progress. Which directory holds it
+# depends on the backend: rebase-merge for the merge backend, rebase-apply for
+# rebase.backend=apply.
+rebase_in_progress() {
+  local d
+  for d in rebase-merge rebase-apply; do
+    [[ -d "$(git rev-parse --git-path "$d")" ]] && return 0
+  done
+  return 1
+}
+
 # main — the whole script. Its logic lives behind this function so a unit suite can source
 # the file and run nothing (#339); executed directly, the guard at the bottom calls it.
 main() {
@@ -33,10 +44,8 @@ main() {
   onto="$(git rev-parse "$default")"
   if ! git rebase -q "$onto" >/dev/null; then
     # A rebase git refused to start — a dirty tree, say — leaves no rebase in progress.
-    # That is no conflict to name: the plumbing failed, so it is exit 2, not 1. Which
-    # directory holds a rebase in progress depends on the backend: rebase-merge for the
-    # merge backend, rebase-apply for rebase.backend=apply.
-    [[ -d "$(git rev-parse --git-path rebase-merge)" || -d "$(git rev-parse --git-path rebase-apply)" ]] || exit 2
+    # That is no conflict to name: the plumbing failed, so it is exit 2, not 1.
+    rebase_in_progress || exit 2
     local conflicts
     conflicts="$(git diff --name-only --diff-filter=U)"
     git rebase --abort
