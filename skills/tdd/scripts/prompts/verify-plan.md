@@ -42,6 +42,13 @@ such a criterion, the test command or the suites passing, into a Red/Green step 
 that `⟦full-suite⟧` line, even where check 1 alone would pass it: a Red leaf handed that step
 can only answer `UNTESTABLE`, and the run bails.
 
+A criterion whose deliverable is the record of a manual check — each suite broken on purpose,
+watched going red, the output recorded — is owed by a human, not by code, so the plan carries
+it as one `⟦human-owed⟧ ⟦criterion k⟧` line that no developer leaf is ever handed. REJECT a
+plan that turns such a criterion, the record of a manual check, into a Red/Green step instead
+of that `⟦human-owed⟧` line, even where check 1 alone would pass it: a Red leaf handed that
+step can only answer `UNTESTABLE`, and the run bails.
+
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
 the criterion's own words, so that the plan can be rewritten from your reason alone.
 
