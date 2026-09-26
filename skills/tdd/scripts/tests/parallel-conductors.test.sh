@@ -329,6 +329,53 @@ $(diff <(printf '%s\n' "$want_unblock") <(printf '%s\n' "$got_unblock"))
 launcher output:
 $(cat "$work/unblock.out")"
 
+# 7. VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap. The fixture holds
+# three solvable issues, #7, #8 and #9; each stub conductor records `start <n>` and answers
+# "done" with a ready PR, so its issue leaves the set. With VERI_MAX_ISSUES=2 the launcher starts
+# 7 and 8 and stops, with 9 still solvable; with VERI_MAX_ISSUES=0 it starts all three. Each run
+# gets a fresh fixture and record; every value that misbehaves is named in the single FAIL line.
+cap_fixture() {
+  gh_fixture "$1" <<'JSON'
+[
+  {"number": 7, "title": "first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 8, "title": "second", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 9, "title": "third", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+}
+
+bad=""
+for cap in 2 0; do
+  gh7="$work/gh7-$cap"
+  cap_fixture "$gh7"
+  capped="$work/capped-$cap"
+  cap_stub="$work/claude-cap-$cap"
+  cat > "$cap_stub" <<STUB
+#!/bin/sh
+n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+echo "start \$n" >> "$capped"
+$(ready_pr "$gh7")
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+exit 0
+STUB
+  chmod +x "$cap_stub"
+  run_launcher "$gh7" "$cap_stub" "$work/cap-$cap.out" VERI_MAX_ISSUES="$cap"
+  case "$cap" in
+    2) want_cap="$(printf 'start 7\nstart 8')" ;;
+    0) want_cap="$(printf 'start 7\nstart 8\nstart 9')" ;;
+  esac
+  got_cap="$(cat "$capped" 2>/dev/null)"
+  if [[ "$got_cap" != "$want_cap" ]]; then
+    bad+=" [VERI_MAX_ISSUES=$cap: exit=$code, launched '$(printf '%s' "$got_cap" | tr '\n' ',')' want '$(printf '%s' "$want_cap" | tr '\n' ',')']"
+  fi
+done
+
+[[ -z "$bad" ]] \
+  && ok || no "VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap ($bad )"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
