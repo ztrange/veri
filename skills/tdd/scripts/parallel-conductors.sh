@@ -19,6 +19,11 @@ fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+# --continue-on-bail keeps launching past a bailed or killed conductor; without it the first one
+# stops new launches, and the conductors already running are still waited to completion.
+continue_on_bail=""
+[[ "${1:-}" == --continue-on-bail ]] && continue_on_bail=1
+
 # VERI_MAX_ISSUES caps the launches of one invocation, as at rung 2; 0, the default, is no cap.
 max_issues="${VERI_MAX_ISSUES:-0}"
 
@@ -43,40 +48,58 @@ declare -A in_flight=()   # issue number -> pid of its supervise.sh
 declare -A launched=()    # every issue number this invocation has launched
 order=()                  # the same numbers, in launch order: the order the report follows
 
-# report — one line per launched issue, in launch order, its outcome read from its PR and its
-# run's event log rather than the conductor's exit code, which is 0 for a finished run and a
-# bail alike: a ready PR saying `Closes #<n>` is done; a draft one whose `.tdd/wt/<n>` event log
-# ends in a bail is bailed.
-report() {
-  local prs n pr last
+# prs_json — the open PRs: the VERI_GH_JSON fixture when one is set.
+prs_json() {
   if [[ -n "${VERI_GH_JSON:-}" ]]; then
-    prs="$(cat "$VERI_GH_JSON/prs.json")"
+    cat "$VERI_GH_JSON/prs.json"
   else
-    prs="$(gh pr list --state open --limit 10000 --json body,isDraft,url)"
+    gh pr list --state open --limit 10000 --json body,isDraft,url
   fi
-  for n in "${order[@]+"${order[@]}"}"; do
-    if [[ "$(cat "$rc_dir/$n" 2>/dev/null)" == 2 ]]; then
-      echo "#$n — killed after ${run_timeout}s"
-      continue
-    fi
-    pr="$(python3 -c '
+}
+
+# outcome <n> <prs> — issue <n>'s outcome, read from its PR and its run's event log rather than
+# the conductor's exit code, which is 0 for a finished run and a bail alike: `killed` when its
+# supervise.sh exited 2, `done <url>` for a ready PR saying `Closes #<n>`, `bailed <url>` for a
+# draft one whose `.tdd/wt/<n>` event log ends in a bail; nothing otherwise.
+outcome() {
+  local n="$1" prs="$2" pr last
+  if [[ "$(cat "$rc_dir/$n" 2>/dev/null)" == 2 ]]; then
+    echo "killed"
+    return 0
+  fi
+  pr="$(python3 -c '
 import json, re, sys
 for pr in json.loads(sys.argv[1]):
     if sys.argv[2] in re.findall(r"\bCloses #(\d+)", pr.get("body") or ""):
         print("draft" if pr.get("isDraft") else "ready", pr.get("url", ""))
         break
 ' "$prs" "$n")"
-    case "$pr" in
-      ready\ *) echo "#$n — done ${pr#ready }" ;;
-      draft\ *)
-        last="$(tail -n 1 ".tdd/wt/$n/.tdd/events.jsonl" 2>/dev/null || true)"
-        [[ "$last" == *'"event": "bail"'* ]] && echo "#$n — bailed ${pr#draft }" ;;
+  case "$pr" in
+    ready\ *) echo "done ${pr#ready }" ;;
+    draft\ *)
+      last="$(tail -n 1 ".tdd/wt/$n/.tdd/events.jsonl" 2>/dev/null || true)"
+      [[ "$last" == *'"event": "bail"'* ]] && echo "bailed ${pr#draft }" ;;
+  esac
+  return 0
+}
+
+# report — one line per launched issue, in launch order.
+report() {
+  local prs n got
+  prs="$(prs_json)"
+  for n in "${order[@]+"${order[@]}"}"; do
+    got="$(outcome "$n" "$prs")"
+    case "$got" in
+      killed) echo "#$n — killed after ${run_timeout}s" ;;
+      ?*) echo "#$n — $got" ;;
     esac
   done
   return 0
 }
+stopped=""   # set once a bail or kill has stopped new launches
 while :; do
   while (( ${#in_flight[@]} < 10#$parallel )); do
+    [[ -z "$stopped" ]] || break
     (( max_issues == 0 || ${#launched[@]} < max_issues )) || break
     solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
     (( rc == 0 )) || break
@@ -99,6 +122,12 @@ while :; do
   fi
   wait -n || true
   for n in "${!in_flight[@]}"; do
-    kill -0 "${in_flight[$n]}" 2>/dev/null || unset "in_flight[$n]"
+    kill -0 "${in_flight[$n]}" 2>/dev/null && continue
+    unset "in_flight[$n]"
+    if [[ -z "$continue_on_bail" ]]; then
+      case "$(outcome "$n" "$(prs_json)")" in
+        killed|bailed\ *) stopped=1 ;;
+      esac
+    fi
   done
 done
