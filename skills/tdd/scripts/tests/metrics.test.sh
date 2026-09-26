@@ -2238,7 +2238,22 @@ unclocked_out="$unclocked_work/report.md"
 render "$unclocked_work" "$unclocked_out"
 
 times_say "$unclocked_out" "$unclocked=100" red=40
-issue_wall_says "$unclocked_out" 150
+
+# Not issue_wall_says: that helper accepts the number on any line outside the tables, and
+# this case must see the 150 wall-clock seconds on the issue-wall line itself.
+probe '
+import re, sys
+
+lines = [l.strip() for l in open(sys.argv[1]).read().splitlines()
+         if l.strip() and not l.strip().startswith("|")]
+walls = [l for l in lines if l.startswith("Wall time for the issue:")]
+
+if not walls:
+    print("want a line starting \"Wall time for the issue:\", the report has none")
+elif re.search(r"(?<![0-9.])150(?![0-9.])", walls[0]) is None:
+    print("want the issue wall to be the 150 wall-clock seconds, it says: %r" % walls[0])
+' "$unclocked_out"
+
 wall_clock_says "$unclocked_out" yes
 
 report_on "$name" "$unclocked_out"
