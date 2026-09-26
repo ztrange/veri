@@ -46,6 +46,14 @@ rung 1 leaves it.
   derived — which is what a launcher needs when the pool it wants is one no scope word
   spells. Two loops given the *same* value still collide; that is the human's choice. Set
   but empty is refused with exit 2 rather than matching every issue.
+- `VERI_PARALLEL` — how many conductors run at once. Read it as `${VERI_PARALLEL:-1}`; at 1,
+  the default, nothing about rung 2 changes and *Loop 1*–*Loop 5* below run as written.
+  Above 1 the loop is rung 3: run `$S/parallel-conductors.sh [--repo <owner/name>]
+  [--continue-on-bail]` detach-then-wait, with the derived label in `VERI_LABEL`, in place
+  of *Loop 1*–*Loop 4*. Then relay its report — one line per issue in launch order and
+  the line naming what stopped it — as *Loop 5*'s report, unedited. It is 1 by default
+  because N conductors are N concurrent `claude -p` sessions, billed as such. The
+  guardrails below hold unchanged at any value.
 
 ### Loop 0. Preflight — none of its own
 
