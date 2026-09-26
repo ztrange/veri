@@ -19,6 +19,9 @@ fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
+# VERI_MAX_ISSUES caps the launches of one invocation, as at rung 2; 0, the default, is no cap.
+max_issues="${VERI_MAX_ISSUES:-0}"
+
 # The loop: while fewer than VERI_PARALLEL conductors are in flight — launched here and not yet
 # seen to finish — select with solvable-issues.sh and launch the first printed issue this
 # invocation has not launched yet, in the background: one it already ran and saw finish may still
@@ -31,6 +34,7 @@ declare -A in_flight=()   # issue number -> pid of its supervise.sh
 declare -A launched=()    # every issue number this invocation has launched
 while :; do
   while (( ${#in_flight[@]} < 10#$parallel )); do
+    (( max_issues == 0 || ${#launched[@]} < max_issues )) || break
     solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
     (( rc == 0 )) || break
     n=""
