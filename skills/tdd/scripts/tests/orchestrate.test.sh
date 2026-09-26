@@ -269,6 +269,26 @@ expected="$(printf '%s\n' after-step-done 701)"
 actual="$(cat "$MARKS" "$LAUNCHES")"
 expect_exit0_output
 
+# 8. VERI_CONDUCTOR_CTX_BUDGET is a whole token count. A value that is not one — `120k` here —
+#    is refused before any conductor launches: orchestrate.sh exits 2, $LAUNCHES stays empty,
+#    and its stderr names the variable.
+name="refuses a VERI_CONDUCTOR_CTX_BUDGET that is not a whole number with exit 2 before any conductor launches"
+seed badbudget 801
+export VERI_CONDUCTOR_CTX_BUDGET=120k
+orchestrate "$scripts"
+unset VERI_CONDUCTOR_CTX_BUDGET
+launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
+if [[ "$rc" -eq 2 && "$launched" -eq 0 ]] && grep -F VERI_CONDUCTOR_CTX_BUDGET "$work/err" > /dev/null; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  echo "    exit: $rc (expected 2)"
+  echo "    launches: $launched (expected 0)"
+  echo "    stderr naming VERI_CONDUCTOR_CTX_BUDGET: expected"
+  sed 's/^/    stderr: /' "$work/err"
+fi
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
