@@ -182,6 +182,37 @@ head_after="$(git -C "$repo" rev-parse HEAD)"
 [[ "$head_after" == "$head_before" ]] || problems+=("HEAD: want it unchanged at $head_before, got $head_after")
 report "$name"
 
+# 5. The same conflict as case 3, in a repo configured to rebase with the apply backend:
+#    git then keeps its in-progress state under rebase-apply rather than rebase-merge, and
+#    the conflict is still a conflict — aborted, exit 1, the conflicting files named.
+name="rebase-onto-default.test.sh: in a repo configured with rebase.backend=apply, a rebase that conflicts is still aborted, exits 1, prints the conflicting files, and leaves no rebase in progress"
+problems=()
+dir="$work/conflict-apply"
+origin_fixture "$dir"
+repo="$dir/clone"
+git -C "$repo" config rebase.backend apply
+run_branch "$repo"
+echo "the run's edit" > "$repo/file.txt"
+git_q "$repo" commit -q -a --amend --no-edit >/dev/null 2>&1
+echo "another run's edit" > "$dir/seed/file.txt"
+echo "another run's work" > "$dir/seed/work.txt"
+advance_origin "$dir"
+pre="$(git -C "$repo" rev-parse HEAD)"
+out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
+rc=$?
+[[ "$rc" -eq 1 ]] || problems+=("exit: want 1, got $rc")
+got_files="$(printf '%s\n' "$out" | LC_ALL=C sort)"
+want_files="$(printf 'file.txt\nwork.txt')"
+[[ "$got_files" == "$want_files" ]] ||
+  problems+=("stdout: want the conflicting files $(printf '%q' "$want_files"), got $(printf '%q' "$out")")
+head_after="$(git -C "$repo" rev-parse HEAD)"
+[[ "$head_after" == "$pre" ]] || problems+=("HEAD: want the pre-rebase sha $pre, got $head_after")
+for d in rebase-merge rebase-apply; do
+  [[ ! -e "$(git -C "$repo" rev-parse --path-format=absolute --git-path "$d")" ]] ||
+    problems+=("rebase: want none in progress, found $d")
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
