@@ -7,8 +7,8 @@
 #
 # One call writes one JSON object to `.tdd/events.jsonl`, relative to the directory it runs
 # in — the issue's worktree, the way supervise.sh already spells `.tdd/<name>.log`. The line
-# always carries the eight fixed keys `ts`, `issue`, `actor`, `phase`, `step`, `event`,
-# `attempt` and `skill_commit`, plus one key per `key=value` argument.
+# always carries the nine fixed keys `ts`, `awake`, `issue`, `actor`, `phase`, `step`,
+# `event`, `attempt` and `skill_commit`, plus one key per `key=value` argument.
 #
 # `skill_commit` is the commit of the skill the line was written under (issue #165). A run
 # executes whatever is installed at `~/.claude/skills/tdd`, a symlink into a clone that `main`
@@ -24,7 +24,7 @@
 # VERI_ACTOR, VERI_PHASE, VERI_STEP, VERI_ATTEMPT and VERI_SKILL_COMMIT, the way SKILL.md's
 # preflight already exports VERI_TIMEOUT once for every child of the run. The payload stays
 # the caller's to choose; the context stays the run's. A variable that is not set writes its
-# key anyway, empty — the eight keys are the line's promise to a reader that groups by phase
+# key anyway, empty — the nine keys are the line's promise to a reader that groups by phase
 # or counts attempts, so "absent" must never be the spelling of "unknown".
 #
 # Perf (issue #290): this used to `exec python3 -c …` purely to escape and compose the line —
@@ -36,11 +36,12 @@
 # `json.dumps(str, ensure_ascii=True)`'s escape table byte for byte (json-escape.test.sh
 # proves it against a live python3, not by inspection), and `ts` comes from bash's own
 # `printf '%(%s)T'` clock (bash 4.2+, required since #320's bash-5 floor) instead of forking
-# `date`. The only process this script starts itself is `mkdir -p .tdd` below — unchanged
-# from before, and not python3.
+# `date`. The processes this script starts itself are `mkdir -p .tdd` below and, since #486,
+# the awake-clock read: one python3 per event for `time.monotonic()` unless VERI_AWAKE_CLOCK
+# names another executable — composing the line still starts none.
 #
 # No caller in this repo passes a `key=value` argument whose key collides with one of the
-# eight fixed keys above, or the same key twice (grepped for both before this was written).
+# nine fixed keys above, or the same key twice (grepped for both before this was written).
 # python's dict would have silently let the later one win; this writes both, as two
 # occurrences of the same key — an argument that did either would already be an ambiguous
 # line to a reader, and this does not manufacture the ambiguity, only fails to hide it.
@@ -85,8 +86,8 @@ json_escape_string esc_event        "$event"
 json_escape_string esc_attempt      "${VERI_ATTEMPT:-}"
 json_escape_string esc_skill_commit "${VERI_SKILL_COMMIT:-}"
 
-# `ts` alone is written unquoted (a JSON number, matching `int(time.time())` before it); the
-# other seven fixed keys are always strings, in the same field order the old python dict
+# `ts` and `awake` are written unquoted (JSON numbers, `ts` matching `int(time.time())` before
+# it); the other seven fixed keys are always strings, in the same field order the old python dict
 # literal declared them in — `metrics.sh` and the suites read either shape the same way, but
 # byte-identity is the goal here, not merely equivalence.
 line="{\"ts\": $ts, \"awake\": $awake, \"issue\": \"$esc_issue\", \"actor\": \"$esc_actor\", \"phase\": \"$esc_phase\", \"step\": \"$esc_step\", \"event\": \"$esc_event\", \"attempt\": \"$esc_attempt\", \"skill_commit\": \"$esc_skill_commit\"}"
