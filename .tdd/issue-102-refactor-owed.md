@@ -14,3 +14,5 @@
 - case 12 hand-rolls run_launcher's `env -u …` line because run_launcher always injects VERI_POLL=0.05, which case 12's unset-VERI_POLL run must not see; folding it in would mean run_launcher learning to not set VERI_POLL
 ### In a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch ⟦criterion 5⟧
 - the `git rev-parse --git-common-dir` → `info/exclude` path resolution is written in both parallel-conductors.sh and ensure-run-state-ignored.sh (the latter also makes a relative answer relative to its root argument); could be one lib function
+### Supervising a conductor-<n> prints no leaf-role.sh refusal ⟦criterion 5⟧
+- case 17 in parallel-conductors.test.sh repeats status_after_launch's "<conductor never ran>" guard for its own variable; merging them would mean changing the helper's interface, which is too much for two lines
