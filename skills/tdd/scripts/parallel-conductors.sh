@@ -45,6 +45,23 @@ for var in VERI_HEARTBEAT VERI_TIMEOUT VERI_STUCK_RETRIES VERI_POLL; do
 done
 caller_env+=("${caller_set[@]+"${caller_set[@]}"}")
 
+# The launcher's supervisors write `.tdd/conductor-<n>.{log,rc,exit}` into the caller's checkout,
+# and each conductor's first check is that `git status --porcelain` there is empty. So `.tdd/*` goes
+# into the shared info/exclude before anything is written — never the .gitignore, which is tracked
+# and would dirty the very tree it is meant to keep clean. --git-common-dir resolves a linked
+# worktree back to the primary's git dir, which every worktree reads, and answers relative to the
+# current directory when it answers relatively. Only when the line is absent, so a second
+# invocation does not grow the file.
+common_dir="$(git rev-parse --git-common-dir)"
+exclude="$common_dir/info/exclude"
+if ! grep -xF '.tdd/*' "$exclude" > /dev/null 2>&1; then
+  mkdir -p "$common_dir/info"
+  if [[ -s "$exclude" && -n "$(tail -c 1 "$exclude")" ]]; then
+    echo "" >> "$exclude"
+  fi
+  echo '.tdd/*' >> "$exclude"
+fi
+
 # A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
 # per issue: exit 2 there is a conductor its supervisor killed.
 rc_dir="$(mktemp -d)"
