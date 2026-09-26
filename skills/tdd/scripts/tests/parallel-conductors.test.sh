@@ -131,15 +131,18 @@ run_launcher() {
 gh2="$work/gh2"
 solvable_fixture "$gh2" 7 8
 
-# ready_pr <gh-dir> — print the stub source a conductor ends with to answer "done": append a
-# ready PR saying `Closes #$n` to <gh-dir>'s `prs.lines` and rebuild `prs.json` from it, so the
-# issue leaves the solvable set the way a finished run's does.
-ready_pr() {
+# open_pr <gh-dir> <is-draft> — print the stub source that appends a PR saying `Closes #$n`,
+# `isDraft` <is-draft>, to <gh-dir>'s `prs.lines` and rebuilds `prs.json` from it, so the issue
+# leaves the solvable set the way a run that opened its PR does.
+open_pr() {
   cat <<SH
-printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$1/prs.lines"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": $2, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$1/prs.lines"
 printf '[%s]\n' "\$(paste -sd, "$1/prs.lines")" > "$1/prs.json"
 SH
 }
+
+# ready_pr <gh-dir> — the stub source a conductor ends with to answer "done": a ready PR.
+ready_pr() { open_pr "$1" false; }
 
 # conductor_stub <path> — write an executable stub conductor to <path> whose body is read from
 # stdin: it opens by reading the issue number the prompt names into `$n`, and closes by printing
@@ -378,8 +381,7 @@ if [ "\$n" = 8 ] || [ "\$n" = 9 ]; then
     >> ".tdd/wt/\$n/.tdd/events.jsonl"
   [ "\$n" = 9 ] && printf '%s\n' '{"ts": 3, "issue": "9", "actor": "conductor", "phase": "develop-red", "step": "1", "event": "launch", "attempt": "2", "skill_commit": ""}' \
     >> ".tdd/wt/\$n/.tdd/events.jsonl"
-  printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": true, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh8/prs.lines"
-  printf '[%s]\n' "\$(paste -sd, "$gh8/prs.lines")" > "$gh8/prs.json"
+  $(open_pr "$gh8" true)
 else
   $(ready_pr "$gh8")
 fi
