@@ -63,6 +63,15 @@ source "$HERE/lib/json-escape.sh"
 ts=""
 printf -v ts '%(%s)T' -1
 
+# Whole seconds the machine spent awake (#486), from the same clock supervise.sh measures its
+# windows on: the executable VERI_AWAKE_CLOCK names, or python's time.monotonic() — which,
+# unlike `ts`, does not advance while the machine sleeps, so metrics.sh can subtract the sleep.
+if [[ -n "${VERI_AWAKE_CLOCK:-}" ]]; then
+  awake="$("$VERI_AWAKE_CLOCK")"
+else
+  awake="$(python3 -c 'import time; print(int(time.monotonic()))')"
+fi
+
 # Each `json_escape_string OUT VALUE` writes into OUT by nameref rather than being captured
 # from a `$(...)`: a command substitution still forks a subshell, and this line runs the
 # escaper eight-plus times — once per fixed key below, once per payload argument in the loop
@@ -80,7 +89,7 @@ json_escape_string esc_skill_commit "${VERI_SKILL_COMMIT:-}"
 # other seven fixed keys are always strings, in the same field order the old python dict
 # literal declared them in — `metrics.sh` and the suites read either shape the same way, but
 # byte-identity is the goal here, not merely equivalence.
-line="{\"ts\": $ts, \"issue\": \"$esc_issue\", \"actor\": \"$esc_actor\", \"phase\": \"$esc_phase\", \"step\": \"$esc_step\", \"event\": \"$esc_event\", \"attempt\": \"$esc_attempt\", \"skill_commit\": \"$esc_skill_commit\"}"
+line="{\"ts\": $ts, \"awake\": $awake, \"issue\": \"$esc_issue\", \"actor\": \"$esc_actor\", \"phase\": \"$esc_phase\", \"step\": \"$esc_step\", \"event\": \"$esc_event\", \"attempt\": \"$esc_attempt\", \"skill_commit\": \"$esc_skill_commit\"}"
 
 # The payload, one key=value argument at a time. `partition` splits on the FIRST `=` only
 # (python's own rule, kept here) — what leaves `cmd=env VERI_TIMEOUT=1200 …` intact instead

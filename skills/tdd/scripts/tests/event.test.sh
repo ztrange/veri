@@ -329,7 +329,8 @@ normalize_ts() {
   # sed rather than a third python3 call: the ts field is always `"ts": <digits>` at a fixed
   # position (event.sh writes it first), so a text substitution is exact and does not risk
   # re-serializing the very line this case is pinning the bytes of.
-  sed -E 's/"ts": [0-9]+/"ts": 0/' <<< "$1"
+  # `awake` (#486) follows `ts` and is blanked the same way, for the same reason.
+  sed -E 's/"ts": [0-9]+/"ts": 0/; s/"awake": [0-9]+/"awake": 0/' <<< "$1"
 }
 
 # reference_line <issue> <actor> <phase> <step> <event> <attempt> <skill_commit> [key=value …]
@@ -342,6 +343,7 @@ import json, sys
 
 d = {
     "ts": 0,
+    "awake": 0,
     "issue": sys.argv[1],
     "actor": sys.argv[2],
     "phase": sys.argv[3],
@@ -386,6 +388,52 @@ else
   fi
 fi
 rm -rf "$esc_work"
+report "$name"
+
+# #486: every line carries `awake`, a reading of the clock that does not advance while the
+# machine sleeps, so metrics.sh can tell a slow span from one the machine slept through. Two
+# probes, one per half of the criterion: with VERI_AWAKE_CLOCK naming an executable, the reading
+# is that executable's answer (a stub printing a fixed number, so no sleep is needed); with it
+# unset, the reading is supervise.sh's own awake clock, python's time.monotonic() — bracketed
+# by a read taken just before and one just after the call, since a real clock cannot be pinned
+# to one value.
+name="#486: event.sh writes an awake-clock reading on every line — the answer of the executable VERI_AWAKE_CLOCK names when set, and time.monotonic()'s whole seconds when it is unset"
+problems=()
+aw_work="$(mktemp -d)"
+cat > "$aw_work/awake-clock" <<'C'
+#!/bin/sh
+echo 424242
+C
+chmod +x "$aw_work/awake-clock"
+mkdir "$aw_work/stub" "$aw_work/real"
+
+( cd "$aw_work/stub" && env VERI_AWAKE_CLOCK="$aw_work/awake-clock" "$EVENT" step-start ) >/dev/null 2>&1
+aw_code=$?
+[[ "$aw_code" == 0 ]] || problems+=("VERI_AWAKE_CLOCK set: want exit 0, got $aw_code")
+if [[ -f "$aw_work/stub/.tdd/events.jsonl" ]] && want_parses "$aw_work/stub/.tdd/events.jsonl"; then
+  aw_got="$(jget "$aw_work/stub/.tdd/events.jsonl" awake)"
+  [[ "$aw_got" == 424242 ]] ||
+    problems+=("VERI_AWAKE_CLOCK set: awake: want 424242 (the injected clock's answer), got $(printf '%q' "$aw_got")")
+else
+  problems+=("VERI_AWAKE_CLOCK set: want a line in .tdd/events.jsonl, found none")
+fi
+
+aw_before="$(python3 -c 'import time; print(int(time.monotonic()))')"
+( cd "$aw_work/real" && env -u VERI_AWAKE_CLOCK "$EVENT" step-start ) >/dev/null 2>&1
+aw_code=$?
+aw_after="$(python3 -c 'import time; print(int(time.monotonic()))')"
+[[ "$aw_code" == 0 ]] || problems+=("VERI_AWAKE_CLOCK unset: want exit 0, got $aw_code")
+if [[ -f "$aw_work/real/.tdd/events.jsonl" ]] && want_parses "$aw_work/real/.tdd/events.jsonl"; then
+  aw_got="$(jget "$aw_work/real/.tdd/events.jsonl" awake)"
+  if [[ "$aw_got" =~ ^[0-9]+$ ]] && (( aw_before <= aw_got && aw_got <= aw_after )); then
+    :
+  else
+    problems+=("VERI_AWAKE_CLOCK unset: awake: want time.monotonic()'s whole seconds, between $aw_before and $aw_after, got $(printf '%q' "$aw_got")")
+  fi
+else
+  problems+=("VERI_AWAKE_CLOCK unset: want a line in .tdd/events.jsonl, found none")
+fi
+rm -rf "$aw_work"
 report "$name"
 
 echo "----"
