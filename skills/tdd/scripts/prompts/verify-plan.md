@@ -35,19 +35,19 @@ of what the verdict asks, so a plan meeting it passes even where you would have 
 work differently. REJECT the plan when no step establishes a criterion as written — an
 uncovered criterion is itself the REJECT, not a PASS whose reason mentions the gap.
 
-A criterion whose only observable is that the repository's test command passes — "the
-suites are green" — has no failing test to write, so the plan carries it as one
-`⟦full-suite⟧ ⟦criterion k⟧` line, covered by the full-suite run. REJECT a plan that turns
-such a criterion, the test command or the suites passing, into a Red/Green step instead of
-that `⟦full-suite⟧` line, even where check 1 alone would pass it: a Red leaf handed that step
-can only answer `UNTESTABLE`, and the run bails.
+Two shapes of criterion have no failing test to write, so the plan carries each as one line
+rather than a step:
 
-A criterion whose deliverable is the record of a manual check — each suite broken on purpose,
-watched going red, the output recorded — is owed by a human, not by code, so the plan carries
-it as one `⟦human-owed⟧ ⟦criterion k⟧` line that no developer leaf is ever handed. REJECT a
-plan that turns such a criterion, the record of a manual check, into a Red/Green step instead
-of that `⟦human-owed⟧` line, even where check 1 alone would pass it: a Red leaf handed that
-step can only answer `UNTESTABLE`, and the run bails.
+- A criterion whose only observable is that the repository's test command passes — "the
+  suites are green" — is one `⟦full-suite⟧ ⟦criterion k⟧` line, covered by the full-suite run.
+- A criterion whose deliverable is the record of a manual check — each suite broken on
+  purpose, watched going red, the output recorded — is owed by a human, not by code, so it is
+  one `⟦human-owed⟧ ⟦criterion k⟧` line that no developer leaf is ever handed.
+
+REJECT a plan that turns either shape — the test command or the suites passing, or the record
+of a manual check — into a Red/Green step instead of its `⟦full-suite⟧` or `⟦human-owed⟧`
+line, even where check 1 alone would pass it: a Red leaf handed that step can only answer
+`UNTESTABLE`, and the run bails.
 
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
 the criterion's own words, so that the plan can be rewritten from your reason alone.
