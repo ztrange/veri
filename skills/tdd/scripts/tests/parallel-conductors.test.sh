@@ -649,30 +649,26 @@ for shape in done bailed killed plumbing nothing bad-parallel; do
   fresh_repo "$repo"
   gh18="$work/gh18-$shape"
   vars=()
+  issues=(7)
+  stub18="$work/claude-exit-$shape"
   case "$shape" in
-    nothing) solvable_fixture "$gh18" ;;
-    *)       solvable_fixture "$gh18" 7 ;;
-  esac
-  case "$shape" in
-    bailed)
-      conductor_stub "$work/claude-exit-$shape" <<STUB
+    done)         want_exit=0 ;;
+    bailed)       want_exit=1
+                  conductor_stub "$stub18" <<STUB
 mkdir -p ".tdd/wt/\$n/.tdd"
 printf '%s\n' '$bail_event' >> ".tdd/wt/\$n/.tdd/events.jsonl"
 $(open_pr "$gh18" true)
 STUB
-      ;;
-    killed) cp "$hang_stub" "$work/claude-exit-$shape" ;;
-    *) record_stub "$work/claude-exit-$shape" "$work/exit-$shape-record" "$gh18" ;;
-  esac
-  case "$shape" in
-    done|nothing) want_exit=0; [[ "$shape" == nothing ]] && want_exit=3 ;;
-    bailed)       want_exit=1 ;;
-    killed)       want_exit=1; rm -f "$work/awake-count"
+                  ;;
+    killed)       want_exit=1; rm -f "$work/awake-count"; cp "$hang_stub" "$stub18"
                   vars=(VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01) ;;
     plumbing)     want_exit=2; vars=(VERI_PRIORITY_LABEL=) ;;
+    nothing)      want_exit=3; issues=() ;;
     bad-parallel) want_exit=2; vars=(VERI_PARALLEL=0) ;;
   esac
-  (cd "$repo" && run_launcher "$gh18" "$work/claude-exit-$shape" "$work/exit-$shape.out" "${vars[@]+"${vars[@]}"}"; echo "$code" > "$work/exit-$shape.code")
+  solvable_fixture "$gh18" "${issues[@]+"${issues[@]}"}"
+  [[ -e "$stub18" ]] || record_stub "$stub18" "$work/exit-$shape-record" "$gh18"
+  (cd "$repo" && run_launcher "$gh18" "$stub18" "$work/exit-$shape.out" "${vars[@]+"${vars[@]}"}"; echo "$code" > "$work/exit-$shape.code")
   code="$(cat "$work/exit-$shape.code")"
   got_file="$(cat "$repo/.tdd/parallel.exit" 2>/dev/null || echo '<missing>')"
   if [[ "$code" != "$want_exit" || "$got_file" != "$want_exit" ]]; then
