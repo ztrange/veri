@@ -183,6 +183,13 @@ probe_every_exemption_still_names_its_site() {
   done < <(kill_lines)
   for key in "${!EXEMPT[@]}"; do
     [[ -n "${matched[$key]:-}" ]] && continue
+    # An exemption whose file is not in this tree at all is not an exemption about this tree.
+    # This guard is copied into planted trees and run inside them — job-spec-guard.test.sh
+    # plants two files and none of the repository's own — and there every key names a file
+    # that was never there, which is not a key left behind by a moved site. The failure this
+    # probe exists for leaves the file in place: a line ADDED above the site moves the site,
+    # not the file, so `:972` against a fixture now at `:975` is still reported.
+    [[ -e "$ROOT/${key%%:*}" ]] || continue
     problems+=("the exemption entry [$key] names a line that no longer ends a background process by a job spec, so it excuses nothing there: the site it was written for has moved, and its key must follow it")
   done
   return 0
