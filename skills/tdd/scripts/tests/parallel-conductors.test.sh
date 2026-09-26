@@ -117,15 +117,18 @@ solvable_fixture() {
   printf '%s]\n' "$issues" | gh_fixture "$dir"
 }
 
-# run_launcher <gh-dir> <stub> <out> [VAR=value ...] — run the copied skill's launcher over the
-# fixture <gh-dir> with <stub> as the conductor's model, the caller's selection tunables stripped
-# and any VAR=value given set, its output in <out>. Sets `code` to the launcher's exit status.
+# run_launcher <gh-dir> <stub> <out> [VAR=value ...] [-- <arg>...] — run the copied skill's
+# launcher over the fixture <gh-dir> with <stub> as the conductor's model, the caller's selection
+# tunables stripped, any VAR=value given set and any <arg> after `--` passed to it, its output in
+# <out>. Sets `code` to the launcher's exit status.
 run_launcher() {
-  local gh="$1" stub="$2" out="$3"
+  local gh="$1" stub="$2" out="$3" vars=()
   shift 3
+  while (( $# )) && [[ "$1" != -- ]]; do vars+=("$1"); shift; done
+  (( $# )) && shift
   env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-    VERI_GH_JSON="$gh" CLAUDE_BIN="$stub" VERI_POLL=0.05 "$@" \
-    "$skill/scripts/parallel-conductors.sh" > "$out" 2>&1 && code=0 || code=$?
+    VERI_GH_JSON="$gh" CLAUDE_BIN="$stub" VERI_POLL=0.05 "${vars[@]+"${vars[@]}"}" \
+    "$skill/scripts/parallel-conductors.sh" "$@" > "$out" 2>&1 && code=0 || code=$?
 }
 
 # expect_lines <what> <want> <got> <out> — pass when <got> equals <want>; otherwise fail naming
@@ -450,14 +453,9 @@ case "\$n" in
     ;;
 esac
 STUB
-  if [[ "$mode" == continue ]]; then
-    env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-      VERI_PARALLEL=2 VERI_GH_JSON="$gh10" CLAUDE_BIN="$bail_stub" VERI_POLL=0.05 \
-      "$skill/scripts/parallel-conductors.sh" --continue-on-bail > "$work/bail-$mode.out" 2>&1 \
-      && code=0 || code=$?
-  else
-    run_launcher "$gh10" "$bail_stub" "$work/bail-$mode.out" VERI_PARALLEL=2
-  fi
+  flag=()
+  [[ "$mode" == continue ]] && flag=(-- --continue-on-bail)
+  run_launcher "$gh10" "$bail_stub" "$work/bail-$mode.out" VERI_PARALLEL=2 "${flag[@]+"${flag[@]}"}"
   got_bail="$(sort "$bail_record" 2>/dev/null | tr '\n' ',')"
   case "$mode" in
     stop)     want_bail="end 12,start 11,start 12," ;;
