@@ -472,6 +472,17 @@ moved_with "skills/tdd/scripts/orchestrate.sh" "skills/tdd/scripts/tests/orchest
 
 report "$name"
 
+# 9. The counts moved with `rebase-onto-default.sh` and its suite (#238). Same question
+#    case 8 asks of #217's pair, asked of this issue's: one script, `rebase-onto-default.sh`,
+#    and one suite, `rebase-onto-default.test.sh`, and all three counts have to have moved
+#    off the number true of the tree without them. The reads are case 1's, taken once above.
+name="$claude_md's counts moved with rebase-onto-default.sh and its suite"
+problems=()
+
+moved_with "skills/tdd/scripts/rebase-onto-default.sh" "skills/tdd/scripts/tests/rebase-onto-default.test.sh"
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
