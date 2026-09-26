@@ -56,6 +56,16 @@ origin_fixture() {
   git clone -q "$dir/origin.git" "$dir/clone" >/dev/null 2>&1
 }
 
+# run_branch <repo> — cut the run's branch from origin/main in <repo> and give it one commit
+# of its own, the step's green commit a rebase must keep on top.
+run_branch() {
+  local repo="$1"
+  git_q "$repo" checkout -q -b tdd/1-a-run >/dev/null 2>&1
+  echo "the run's work" > "$repo/work.txt"
+  git_q "$repo" add -A >/dev/null 2>&1
+  git_q "$repo" commit -q -m "feat: a step's green commit (#1)" >/dev/null 2>&1
+}
+
 # 1. A branch cut from origin/main, one commit ahead of it and not behind: nothing to rebase.
 name="rebase-onto-default.test.sh: a branch already containing origin/<default> exits 3 with empty stdout and HEAD and tree unchanged"
 problems=()
@@ -63,10 +73,7 @@ dir="$work/up-to-date"
 mkdir -p "$dir"
 origin_fixture "$dir"
 repo="$dir/clone"
-git_q "$repo" checkout -q -b tdd/1-a-run >/dev/null 2>&1
-echo "the run's work" > "$repo/work.txt"
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: a step's green commit (#1)" >/dev/null 2>&1
+run_branch "$repo"
 head_before="$(git -C "$repo" rev-parse HEAD)"
 status_before="$(git -C "$repo" status --porcelain=v1 --untracked-files=all)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
@@ -88,10 +95,7 @@ dir="$work/behind"
 mkdir -p "$dir"
 origin_fixture "$dir"
 repo="$dir/clone"
-git_q "$repo" checkout -q -b tdd/1-a-run >/dev/null 2>&1
-echo "the run's work" > "$repo/work.txt"
-git_q "$repo" add -A >/dev/null 2>&1
-git_q "$repo" commit -q -m "feat: a step's green commit (#1)" >/dev/null 2>&1
+run_branch "$repo"
 echo "another run's work" > "$dir/seed/other.txt"
 git_q "$dir/seed" add -A >/dev/null 2>&1
 git_q "$dir/seed" commit -q -m "feat: another run merged (#2)" >/dev/null 2>&1
