@@ -640,6 +640,15 @@ problems=()
 branch=tdd/238-lease
 step='push-branch.sh pushes under a lease'
 
+# lease_push [args...] — run push-branch.sh with <args> in this case's $repo, leaving its exit
+# status in `code`, its stderr in "$work/lease.stderr" and where origin's $branch now points
+# in `got`: every probe below reads those three, whatever arguments it made the call with.
+lease_push() {
+  ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
+      "$PUSH" "$@" ) >/dev/null 2>"$work/lease.stderr" && code=0 || code=$?
+  got="$(remote_at "$remote" "$branch")"
+}
+
 # (a) the lease holds
 repo="$work/lease-holds"
 remote="$work/origin-lease-holds.git"
@@ -654,12 +663,9 @@ git_q "$repo" push -q origin "$branch" >/dev/null 2>&1
 seen="$(git_q "$repo" rev-parse HEAD)"
 git_q "$repo" commit -q --amend -m "feat: the step's green commit, rebased (#238)" >/dev/null 2>&1
 head="$(git_q "$repo" rev-parse HEAD)"
-( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
-    "$PUSH" "--force-with-lease=$branch:$seen" ) \
-  >/dev/null 2>"$work/lease-holds.stderr" && code=0 || code=$?
-got="$(remote_at "$remote" "$branch")"
+lease_push "--force-with-lease=$branch:$seen"
 [[ "$code" == 0 ]] ||
-  problems+=("lease that holds: want exit 0, got $code; stderr: $(printf '%q' "$(cat "$work/lease-holds.stderr")")")
+  problems+=("lease that holds: want exit 0, got $code; stderr: $(printf '%q' "$(cat "$work/lease.stderr")")")
 [[ "$got" == "$head" ]] ||
   problems+=("lease that holds: want origin/$branch replaced by HEAD $head, got $got (the leased sha was $seen)")
 
@@ -679,24 +685,17 @@ seen="$(git_q "$repo" rev-parse HEAD)"
 moved="$(git_q "$repo" commit-tree -p "$seen" -m "someone else's push (#238)" "$seen^{tree}")"
 git_q "$repo" push -q origin "$moved:refs/heads/$branch" >/dev/null 2>&1
 git_q "$repo" commit -q --amend -m "feat: the step's green commit, rebased (#238)" >/dev/null 2>&1
-( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
-    "$PUSH" "--force-with-lease=$branch:$seen" ) \
-  >/dev/null 2>"$work/lease-stale.stderr" && code=0 || code=$?
-got="$(remote_at "$remote" "$branch")"
+lease_push "--force-with-lease=$branch:$seen"
 [[ "$code" == 1 ]] ||
   problems+=("stale lease: want exit 1 — the remote moved on, a clean refusal — got $code")
 [[ "$got" == "$moved" ]] ||
   problems+=("stale lease: want origin/$branch left at $moved, where it moved to, got $got")
-( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
-    "$PUSH" ) >/dev/null 2>&1 && code=0 || code=$?
-got="$(remote_at "$remote" "$branch")"
+lease_push
 [[ "$code" == 1 ]] ||
   problems+=("no argument: want exit 1 — pushed exactly as before, so rejected — got $code")
 [[ "$got" == "$moved" ]] ||
   problems+=("no argument: want origin/$branch left at $moved — never a bare force — got $got")
-( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
-    "$PUSH" --force ) >/dev/null 2>&1 && code=0 || code=$?
-got="$(remote_at "$remote" "$branch")"
+lease_push --force
 [[ "$code" == 2 ]] ||
   problems+=("bare --force: want exit 2 — bad arguments, the one force allowed is pinned to a sha — got $code")
 [[ "$got" == "$moved" ]] ||
@@ -710,9 +709,7 @@ for args in "--force-with-lease" "--force-with-lease=$branch" \
             "--force-with-lease=$branch:origin/$branch" \
             "--force-with-lease=$branch:$moved --force"; do
   # shellcheck disable=SC2086 # word-split on purpose: the last entry is two arguments
-  ( cd "$repo" && VERI_PUSH_RETRIES=0 VERI_PUSH_BACKOFF=0 VERI_ISSUE=238 VERI_ACTOR=conductor VERI_STEP="$step" \
-      "$PUSH" $args ) >/dev/null 2>&1 && code=0 || code=$?
-  got="$(remote_at "$remote" "$branch")"
+  lease_push $args
   [[ "$code" == 2 ]] ||
     problems+=("'$args': want exit 2 — bad arguments, the one force allowed is a single lease pinned to a sha — got $code")
   [[ "$got" == "$moved" ]] ||
