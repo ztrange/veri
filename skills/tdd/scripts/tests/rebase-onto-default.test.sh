@@ -112,11 +112,15 @@ expect_conflict_aborted() {
   done
 }
 
-# expect_refused <repo> <head_before> <rc> <stdout-file> <why> — probe an answer that is no
-# answer, adding to `problems`: exit 2, nothing at all in <stdout-file>, and HEAD still at
-# <head_before>. <why> finishes the HEAD problem's line with what a moved HEAD would mean.
+# expect_refused <repo> <stdout-file> <why> — run the script in <repo> and probe an answer
+# that is no answer, adding to `problems`: exit 2, nothing at all in <stdout-file>, and HEAD
+# still where it was before the call. <why> finishes the HEAD problem's line with what a
+# moved HEAD would mean.
 expect_refused() {
-  local repo="$1" head_before="$2" rc="$3" stdout="$4" why="$5" head_after
+  local repo="$1" stdout="$2" why="$3" head_before rc head_after
+  head_before="$(git -C "$repo" rev-parse HEAD)"
+  (cd "$repo" && bash "$REBASE" > "$stdout" 2>/dev/null)
+  rc=$?
   [[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
   [[ ! -s "$stdout" ]] || problems+=("stdout: want empty, got $(printf '%q' "$(cat "$stdout"; echo .)")")
   head_after="$(git -C "$repo" rev-parse HEAD)"
@@ -200,10 +204,7 @@ git -C "$repo" config rebase.autoStash false
 echo "another run's work" > "$dir/seed/other.txt"
 advance_origin "$dir"
 echo "an uncommitted edit" > "$repo/file.txt"
-head_before="$(git -C "$repo" rev-parse HEAD)"
-(cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
-rc=$?
-expect_refused "$repo" "$head_before" "$rc" "$dir/stdout" ""
+expect_refused "$repo" "$dir/stdout" ""
 report "$name"
 
 # 5. The same conflict as case 3, in a repo configured to rebase with the apply backend:
@@ -234,10 +235,7 @@ run_branch "$repo"
 echo "another run's work" > "$dir/seed/other.txt"
 advance_origin "$dir"
 mv "$dir/origin.git" "$dir/origin-gone.git"
-head_before="$(git -C "$repo" rev-parse HEAD)"
-(cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
-rc=$?
-expect_refused "$repo" "$head_before" "$rc" "$dir/stdout" ", not rebased onto the stale origin/main"
+expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
 report "$name"
 
 # 7. The clone fetched origin/main once, after another run merged, so the branch is behind
@@ -257,10 +255,7 @@ advance_origin "$dir"
 git -C "$repo" config remote.origin.fetch '+refs/heads/tdd/*:refs/remotes/origin/tdd/*'
 echo "a third run's work" > "$dir/seed/third.txt"
 advance_origin "$dir"
-head_before="$(git -C "$repo" rev-parse HEAD)"
-(cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
-rc=$?
-expect_refused "$repo" "$head_before" "$rc" "$dir/stdout" ", not rebased onto the stale origin/main"
+expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
 report "$name"
 
 echo "----"
