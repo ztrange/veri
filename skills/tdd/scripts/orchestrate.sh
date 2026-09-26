@@ -23,12 +23,17 @@
 # a leaf killed in Red or Green leaves work a resume does not reset (#194).
 #
 # Exit 0 once solvable-issues.sh answers 3 (nothing to take); exit 2, launching nothing, when
-# it exits with anything but 0 or 3, since then no answer about the solvable set was obtained.
+# it exits with anything but 0 or 3, since then no answer about the solvable set was obtained,
+# or when VERI_CONDUCTOR_CTX_BUDGET is not a whole number.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
+if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
+  echo "orchestrate.sh: VERI_CONDUCTOR_CTX_BUDGET must be a whole number of tokens: $budget" >&2
+  exit 2
+fi
 
 # watch_context <issue>: read a conductor's stream-json on stdin and print one
 # `context <issue> <tokens>` line per assistant event, as each event arrives. Returns, closing
