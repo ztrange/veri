@@ -235,6 +235,48 @@ $(diff <(printf '%s\n' "$want_order") <(printf '%s\n' "$got_order"))
 launcher output:
 $(cat "$work/order.out")"
 
+# 5. An issue solvable-issues.sh still prints after its conductor finished is not launched a
+# second time in the same invocation. The stub conductor for #7 records `start 7` and ends
+# without opening a PR — a run that left no claim behind — so #7 stays in the solvable set when
+# the launcher re-selects. A second launch of the same number is the failure; that stub opens
+# a ready PR on it, so a launcher that relaunches still ends rather than looping.
+gh5="$work/gh5"
+mkdir -p "$gh5"
+: > "$gh5/prs.lines"
+printf '[]\n' > "$gh5/prs.json"
+cat > "$gh5/issues.json" <<'JSON'
+[
+  {"number": 7, "title": "stays solvable", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+
+again="$work/again"
+again_stub="$work/claude-again"
+cat > "$again_stub" <<STUB
+#!/bin/sh
+n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+if grep -x "start \$n" "$again" > /dev/null 2>&1; then
+  printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh5/prs.lines"
+  printf '[%s]\n' "\$(paste -sd, "$gh5/prs.lines")" > "$gh5/prs.json"
+fi
+echo "start \$n" >> "$again"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+exit 0
+STUB
+chmod +x "$again_stub"
+
+env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+  VERI_GH_JSON="$gh5" CLAUDE_BIN="$again_stub" VERI_POLL=0.05 \
+  "$skill/scripts/parallel-conductors.sh" > "$work/again.out" 2>&1 && code=0 || code=$?
+want_again="start 7"
+got_again="$(cat "$again" 2>/dev/null)"
+[[ "$got_again" == "$want_again" ]] \
+  && ok || no "an issue still solvable after its conductor finished is not launched a second time (exit=$code)
+$(diff <(printf '%s\n' "$want_again") <(printf '%s\n' "$got_again"))
+launcher output:
+$(cat "$work/again.out")"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
