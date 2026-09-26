@@ -202,21 +202,26 @@ report "no suite under skills/tdd/scripts/tests/ (or its unit/ tier) launches an
 #    affected-suites.sh and that basename is a line of the ANSWER it prints. It launches
 #    nothing; the four mentions are data, not a command. Read from case 1's own scan rather
 #    than a second pass, so this case costs nothing and cannot disagree with it.
-problems=()
-for reported in "${scanned[@]}"; do
-  [[ "$reported" == affected-suites.test.sh:*claude-md-counts.test.sh* ]] && problems+=("$reported")
-done
+# mentions_reported <basename>... — the entries of case 1's scan that report affected-suites.test.sh
+# for naming any of the given suite basenames, collected into problems.
+mentions_reported() {
+  local reported name
+  problems=()
+  for reported in "${scanned[@]}"; do
+    for name in "$@"; do
+      [[ "$reported" == affected-suites.test.sh:*"$name"* ]] && { problems+=("$reported"); break; }
+    done
+  done
+}
+
+mentions_reported claude-md-counts.test.sh
 report "affected-suites.test.sh's fixture and case-name mentions of claude-md-counts.test.sh are not read as launching it"
 
 # 3. the same false-positive half for the pin #487 added: affected-suites.test.sh asserts that
 #    a change to lib/bug-section.sh selects build-develop-prompt.test.sh and
 #    build-verify-prompt.test.sh, so those two basenames are lines of the ANSWER
 #    affected-suites.sh prints — data, not a command. Read from case 1's scan, like case 2.
-problems=()
-for reported in "${scanned[@]}"; do
-  [[ "$reported" == affected-suites.test.sh:*build-develop-prompt.test.sh* \
-    || "$reported" == affected-suites.test.sh:*build-verify-prompt.test.sh* ]] && problems+=("$reported")
-done
+mentions_reported build-develop-prompt.test.sh build-verify-prompt.test.sh
 report "#487: affected-suites.test.sh's mentions of build-develop-prompt.test.sh and build-verify-prompt.test.sh are not read as launching them"
 
 echo "----"
