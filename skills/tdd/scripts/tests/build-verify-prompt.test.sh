@@ -967,6 +967,43 @@ prompt_lacks "$refactor" "still asks for a NEW_STEP: line" -F -e 'NEW_STEP'
 [[ -z "$problems" ]] && ok \
   || no "verify-refactor reports a finding on a FLAGS: line carrying the overfit, uncovered-spec or beyond-spec class, never on a NEW_STEP: line (${problems#; })"
 
+# 44. the rebase verifier's prompt (issue #238, criterion 3). A conflicted rebase is resolved by
+#     a developer leaf, and the resolution is new code no verifier has seen, so a blind
+#     verify-rebase judges it before the PR is marked ready. Its builder call takes the spec
+#     and the two shas alone — `rebase <spec-file> <onto-sha> <pre-rebase-sha>` — which is
+#     what keeps it blind (ADR-0003): no slot for the resolving leaf's account of what it did.
+#     The prompt tells the verifier to run the full test command on HEAD, and to judge that
+#     both sides survived — the branch's own changes and the default branch's, since a
+#     resolution that quietly drops either still merges green. Both shas get #151's guard:
+#     a slot that is not ^[0-9a-f]{7,40}$ is exit 2 with nothing on stdout, whichever of the
+#     two it is. One headline, every miss accumulated, for case 12's reason.
+problems=""
+rb_onto='8d05a4410c2e' rb_pre='278252a1b9f3'
+rebase_prompt="$("$BUILD" rebase "$work/spec.md" "$rb_onto" "$rb_pre" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; exit $code, want 0"
+[[ "$rebase_prompt" == *'slugify("Hello & World/Foo")'* ]] || problems="$problems; spec not carried verbatim"
+[[ "$rebase_prompt" == *"$rb_onto"* ]] || problems="$problems; no onto sha"
+[[ "$rebase_prompt" == *"$rb_pre"* ]] || problems="$problems; no pre-rebase sha"
+[[ "$rebase_prompt" != *'{{'* ]] || problems="$problems; an unfilled {{placeholder}} left in the prompt"
+prompt_says "$rebase_prompt" "does not tell the verifier to run the full test command" -iE -e 'full[^.]{0,80}(test|suite)'
+prompt_says "$rebase_prompt" "does not name HEAD as what is tested" -F -e 'HEAD'
+prompt_says "$rebase_prompt" "does not name the default branch's changes" -iE -e 'default branch'
+prompt_says "$rebase_prompt" "does not ask that both sides' changes survive" \
+  -iE -e 'both[^.]{0,200}(surviv|preserv|intact|kept)|(surviv|preserv|intact|kept)[^.]{0,200}both'
+probe_rebase_sha() {  # probe_rebase_sha <label> <onto-sha> <pre-rebase-sha>
+  local label="$1" out rc
+  out="$("$BUILD" rebase "$work/spec.md" "$2" "$3" 2>/dev/null)"; rc=$?
+  [[ "$rc" -eq 2 && -z "$out" ]] || problems="$problems; $label: exit $rc, ${#out} bytes on stdout, want exit 2 and none"
+}
+probe_rebase_sha "short onto" abc123 "$rb_pre"
+probe_rebase_sha "uppercase onto" 8D05A4410C2E "$rb_pre"
+probe_rebase_sha "onto with text" "$rb_onto because it merged" "$rb_pre"
+probe_rebase_sha "short pre-rebase" "$rb_onto" abc123
+probe_rebase_sha "uppercase pre-rebase" "$rb_onto" 278252A1B9F3
+probe_rebase_sha "pre-rebase with text" "$rb_onto" "$rb_pre because it was green"
+[[ -z "$problems" ]] && ok \
+  || no "verify-rebase renders from the spec and the two shas alone, tells the verifier to run the full test command on HEAD and judge that both the branch's and the default branch's changes survive, and refuses a sha that is not 7-40 lowercase hex with exit 2 and no stdout (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

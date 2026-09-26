@@ -8,7 +8,8 @@
 #
 # Usage:
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
-#     phase = red | green | refactor | pin | plan
+#   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
+#     phase = red | green | refactor | pin | plan | rebase
 #              for plan the third positional names the proposed ledger, not a test (#439)
 #     --step = the ledger's own line for the step under judgement (#223): it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
@@ -71,8 +72,8 @@ test_path="$3"
 target="${4:-the target test}"
 
 case "$phase" in
-  red|green|refactor|pin|plan) ;;
-  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan)" >&2; exit 2 ;;
+  red|green|refactor|pin|plan|rebase) ;;
+  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase)" >&2; exit 2 ;;
 esac
 
 # Green and refactor name the fast command in their checks; without one the verifier would be
@@ -88,6 +89,20 @@ base_sha="${4:-}"
 if [[ "$phase" == refactor && ! "$base_sha" =~ ^[0-9a-f]{7,40}$ ]]; then
   echo "build-verify-prompt: refactor needs <base-sha> as 7-40 lowercase hex characters, got '$base_sha'" >&2
   exit 2
+fi
+
+# For rebase, the two slots after the spec are the commit the branch was rebased onto and the
+# one it stood at before, and #151's guard holds for both: a sha is all either may carry, so
+# the resolving leaf's account of what it did has no way in (#238).
+onto_sha="" pre_rebase_sha=""
+if [[ "$phase" == rebase ]]; then
+  onto_sha="$3" pre_rebase_sha="${4:-}"
+  for sha in "$onto_sha" "$pre_rebase_sha"; do
+    [[ "$sha" =~ ^[0-9a-f]{7,40}$ ]] || {
+      echo "build-verify-prompt: rebase needs <onto-sha> <pre-rebase-sha> as 7-40 lowercase hex characters, got '$sha'" >&2
+      exit 2
+    }
+  done
 fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -170,6 +185,8 @@ out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"
 out="${out//\{\{BASE_SHA\}\}/$base_sha}"
 out="${out//\{\{FAST_CMD\}\}/$fast_cmd}"
+out="${out//\{\{ONTO_SHA\}\}/$onto_sha}"
+out="${out//\{\{PRE_REBASE_SHA\}\}/$pre_rebase_sha}"
 # The wrapper every test-command run goes through (#373), named at an absolute path: a
 # verifier works in the target repository, where the bare name resolves to nothing.
 out="${out//\{\{TIMED_TEST_RUN\}\}/$HERE/timed-test-run.sh}"
