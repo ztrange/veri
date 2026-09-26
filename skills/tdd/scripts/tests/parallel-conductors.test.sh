@@ -141,6 +141,24 @@ printf '[%s]\n' "\$(paste -sd, "$1/prs.lines")" > "$1/prs.json"
 SH
 }
 
+# conductor_stub <path> — write an executable stub conductor to <path> whose body is read from
+# stdin: it opens by reading the issue number the prompt names into `$n`, and closes by printing
+# a successful result line and exiting 0, the way a finished `claude -p` session does.
+conductor_stub() {
+  {
+    cat <<'HEAD'
+#!/bin/sh
+n="$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+HEAD
+    cat
+    cat <<'TAIL'
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+exit 0
+TAIL
+  } > "$1"
+  chmod +x "$1"
+}
+
 # timeline_stub <path> <timeline> <gh-dir> [<lock-dir>] — write the stub conductor cases 2 and 3
 # share: it records `start <n>`, holds until a second conductor has started (or $PATIENCE s
 # pass), records `end <n>`, then answers "done" by opening a ready PR in <gh-dir>. Given a
@@ -152,9 +170,7 @@ timeline_stub() {
     lock_take="if mkdir \"$lock\" 2>/dev/null; then held=1; else held=0; echo \"overlap \$n\" >> \"$timeline\"; fi"
     lock_drop="[ \"\$held\" = 1 ] && rmdir \"$lock\""
   fi
-  cat > "$path" <<STUB
-#!/bin/sh
-n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+  conductor_stub "$path" <<STUB
 $lock_take
 echo "start \$n" >> "$timeline"
 i=0
@@ -164,10 +180,7 @@ done
 echo "end \$n" >> "$timeline"
 $(ready_pr "$gh")
 $lock_drop
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-exit 0
 STUB
-  chmod +x "$path"
 }
 
 timeline="$work/timeline"
@@ -231,15 +244,10 @@ JSON
 
 order="$work/order"
 order_stub="$work/claude-order"
-cat > "$order_stub" <<STUB
-#!/bin/sh
-n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+conductor_stub "$order_stub" <<STUB
 echo "start \$n" >> "$order"
 $(ready_pr "$gh4")
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-exit 0
 STUB
-chmod +x "$order_stub"
 
 run_launcher "$gh4" "$order_stub" "$work/order.out"
 want_order="$(printf 'start 8\nstart 7')"
@@ -265,17 +273,12 @@ JSON
 
 again="$work/again"
 again_stub="$work/claude-again"
-cat > "$again_stub" <<STUB
-#!/bin/sh
-n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+conductor_stub "$again_stub" <<STUB
 if grep -x "start \$n" "$again" > /dev/null 2>&1; then
   $(ready_pr "$gh5")
 fi
 echo "start \$n" >> "$again"
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-exit 0
 STUB
-chmod +x "$again_stub"
 
 run_launcher "$gh5" "$again_stub" "$work/again.out"
 want_again="start 7"
@@ -306,19 +309,14 @@ JSON
 
 unblock="$work/unblock"
 unblock_stub="$work/claude-unblock"
-cat > "$unblock_stub" <<STUB
-#!/bin/sh
-n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+conductor_stub "$unblock_stub" <<STUB
 echo "start \$n" >> "$unblock"
 if [ "\$n" = 7 ]; then
   sed 's/"title": "the blocker", "labels": \[\], "state": "OPEN"/"title": "the blocker", "labels": [], "state": "CLOSED"/' \
     "$gh6/issues.json" > "$gh6/issues.json.new" && mv "$gh6/issues.json.new" "$gh6/issues.json"
 fi
 $(ready_pr "$gh6")
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-exit 0
 STUB
-chmod +x "$unblock_stub"
 
 run_launcher "$gh6" "$unblock_stub" "$work/unblock.out"
 want_unblock="$(printf 'start 7\nstart 8')"
@@ -353,15 +351,10 @@ for cap in 2 0; do
   cap_fixture "$gh7"
   capped="$work/capped-$cap"
   cap_stub="$work/claude-cap-$cap"
-  cat > "$cap_stub" <<STUB
-#!/bin/sh
-n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+  conductor_stub "$cap_stub" <<STUB
 echo "start \$n" >> "$capped"
 $(ready_pr "$gh7")
-printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
-exit 0
 STUB
-  chmod +x "$cap_stub"
   run_launcher "$gh7" "$cap_stub" "$work/cap-$cap.out" VERI_MAX_ISSUES="$cap"
   case "$cap" in
     2) want_cap="$(printf 'start 7\nstart 8')" ;;
