@@ -52,10 +52,25 @@ orchestrate() {
 # conductor_stub <dir>: make <dir> a scratch scripts directory holding the real
 # orchestrate.sh, the suite's solvable-issues.sh stub and a run-conductor.sh that first hands
 # its issue to the suite's base stub, for the bookkeeping, then runs the body read on stdin.
+# The body may call `heartbeats <n>`, which streams <n> heartbeat lines ~10 ms apart, and
+# `await_context <line>`, which waits up to ~2 s for orchestrate.sh to have printed <line>.
 conductor_stub() {
   mkdir -p "$1"
   cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$1/"
-  { printf '#!/bin/sh\n"%s/run-conductor.sh" "$1"\n' "$scripts"; cat; } > "$1/run-conductor.sh"
+  {
+    printf '#!/bin/sh\n"%s/run-conductor.sh" "$1"\n' "$scripts"
+    cat <<PRELUDE
+heartbeats() {
+  i=0
+  while [ \$i -lt \$1 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+}
+await_context() {
+  i=0
+  while [ \$i -lt 200 ] && ! grep -Fx "\$1" "$work/out" > /dev/null; do i=\$((i + 1)); sleep 0.01; done
+}
+PRELUDE
+    cat
+  } > "$1/run-conductor.sh"
   chmod +x "$1"/*.sh
 }
 
@@ -160,13 +175,11 @@ budget="$work/budget"
 conductor_stub "$budget" <<STUB
 [ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
 echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
-i=0
-while [ \$i -lt 200 ] && ! grep -Fx 'context 401 150000' "$work/out" > /dev/null; do i=\$((i + 1)); sleep 0.01; done
+await_context 'context 401 150000'
 echo mid-step >> "\$MARKS"
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=401 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-i=0
-while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+heartbeats 200
 echo after-step-done >> "\$MARKS"
 STUB
 seed budget 401
@@ -192,8 +205,7 @@ echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"true"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":30}}}'
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":""}]}}'
-i=0
-while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+heartbeats 200
 echo after-step-done >> "\$MARKS"
 STUB
 seed underbudget 501
@@ -216,14 +228,11 @@ atresult="$work/atresult"
 conductor_stub "$atresult" <<STUB
 [ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=601 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
-i=0
-while [ \$i -lt 200 ] && ! grep -Fx 'context 601 150100' "$work/out" > /dev/null; do i=\$((i + 1)); sleep 0.01; done
-i=0
-while [ \$i -lt 50 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+await_context 'context 601 150100'
+heartbeats 50
 echo before-result >> "\$MARKS"
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
-i=0
-while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
+heartbeats 200
 echo after-step-done >> "\$MARKS"
 STUB
 seed atresult 601
