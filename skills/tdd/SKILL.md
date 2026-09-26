@@ -1343,16 +1343,17 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh verdict-rebase $S/run-verdict.sh --step "$(cat .tdd/issue-<n>.md | $S/next-pending-refactor.sh || cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" rebase .tdd/issue-<n>-spec.md <onto-sha> <pre-rebase-sha> > .tdd/verify-rebase.reason 2> .tdd/verify-rebase.err
    $S/wait-leaf.sh verdict-rebase   # foreground; on exit 3 call it again
    ```
-   A leaf exit 1 or 2 does **bail**, with the PR left a draft. A verify-rebase `REJECT` goes
-   round *Revising on a REJECT* with phase `rebase`, within `REVISE_BUDGET` like any other
-   phase; a malformed verdict does **bail** as a **system** failure (`no-verdict`).
+   A verify-rebase `REJECT` goes round *Revising on a REJECT* with phase `rebase`, within
+   `REVISE_BUDGET` like any other phase; a malformed verdict does **bail** as a **system**
+   failure (`no-verdict`).
    Only on a verify-rebase `PASS` does the run go on to ready the PR, and first as on exit 0:
    the full test command once on the rebased tip, a bail on red, and on green the push under
    the lease pinned to `<pre-rebase-sha>`.
 
-   A rebase not resolved within budget — the leaf reports `REBASE: FAILED`, `REVISE_BUDGET`
-   runs out on verify-rebase `REJECT`s, or the leaf is killed — has left a resolution no
-   verifier passed on the branch, so first put the branch back where it stood:
+   A rebase not resolved within budget — the leaf reports `REBASE: FAILED` or exits 1 or 2,
+   a killed leaf among them, or `REVISE_BUDGET` runs out on verify-rebase `REJECT`s — has
+   left a resolution no verifier passed on the branch, so first put the branch back where it
+   stood:
    ```
    git reset --hard <pre-rebase-sha>
    ```
