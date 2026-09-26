@@ -128,6 +128,16 @@ run_launcher() {
     "$skill/scripts/parallel-conductors.sh" > "$out" 2>&1 && code=0 || code=$?
 }
 
+# expect_lines <what> <want> <got> <out> — pass when <got> equals <want>; otherwise fail naming
+# <what> with the launcher's exit status, a diff of the two, and the launcher's output in <out>.
+expect_lines() {
+  [[ "$3" == "$2" ]] \
+    && ok || no "$1 (exit=$code)
+$(diff <(printf '%s\n' "$2") <(printf '%s\n' "$3"))
+launcher output:
+$(cat "$4")"
+}
+
 gh2="$work/gh2"
 solvable_fixture "$gh2" 7 8
 
@@ -202,11 +212,7 @@ timeline_stub "$seq_stub" "$timeline" "$gh2" "$work/running"
 run_launcher "$gh2" "$seq_stub" "$work/seq.out"
 want_timeline="$(printf 'start 7\nend 7\nstart 8\nend 8')"
 got_timeline="$(cat "$timeline" 2>/dev/null)"
-[[ "$got_timeline" == "$want_timeline" ]] \
-  && ok || no "VERI_PARALLEL unset runs two solvable issues' conductors one after another (exit=$code)
-$(diff <(printf '%s\n' "$want_timeline") <(printf '%s\n' "$got_timeline"))
-launcher output:
-$(cat "$work/seq.out")"
+expect_lines "VERI_PARALLEL unset runs two solvable issues' conductors one after another" "$want_timeline" "$got_timeline" "$work/seq.out"
 
 # 3. With VERI_PARALLEL=2, two solvable issues' conductors run at once: both have started before
 # either has ended. The same stub shape as case 2's, over a fixture and timeline of its own —
@@ -261,11 +267,7 @@ record_stub "$order_stub" "$order" "$gh4"
 run_launcher "$gh4" "$order_stub" "$work/order.out"
 want_order="$(printf 'start 8\nstart 7')"
 got_order="$(cat "$order" 2>/dev/null)"
-[[ "$got_order" == "$want_order" ]] \
-  && ok || no "launches follow solvable-issues.sh's printed order and never an issue it did not print (exit=$code)
-$(diff <(printf '%s\n' "$want_order") <(printf '%s\n' "$got_order"))
-launcher output:
-$(cat "$work/order.out")"
+expect_lines "launches follow solvable-issues.sh's printed order and never an issue it did not print" "$want_order" "$got_order" "$work/order.out"
 
 # 5. An issue solvable-issues.sh still prints after its conductor finished is not launched a
 # second time in the same invocation. The stub conductor for #7 records `start 7` and ends
@@ -292,11 +294,7 @@ STUB
 run_launcher "$gh5" "$again_stub" "$work/again.out"
 want_again="start 7"
 got_again="$(cat "$again" 2>/dev/null)"
-[[ "$got_again" == "$want_again" ]] \
-  && ok || no "an issue still solvable after its conductor finished is not launched a second time (exit=$code)
-$(diff <(printf '%s\n' "$want_again") <(printf '%s\n' "$got_again"))
-launcher output:
-$(cat "$work/again.out")"
+expect_lines "an issue still solvable after its conductor finished is not launched a second time" "$want_again" "$got_again" "$work/again.out"
 
 # 6. The solvable set is re-asked after every completion, so an issue that became solvable while
 # another conductor ran is launched next. The fixture holds #7, solvable, and #8, blocked by the
@@ -330,11 +328,7 @@ STUB
 run_launcher "$gh6" "$unblock_stub" "$work/unblock.out"
 want_unblock="$(printf 'start 7\nstart 8')"
 got_unblock="$(cat "$unblock" 2>/dev/null)"
-[[ "$got_unblock" == "$want_unblock" ]] \
-  && ok || no "an issue that became solvable while another conductor ran is launched next (exit=$code)
-$(diff <(printf '%s\n' "$want_unblock") <(printf '%s\n' "$got_unblock"))
-launcher output:
-$(cat "$work/unblock.out")"
+expect_lines "an issue that became solvable while another conductor ran is launched next" "$want_unblock" "$got_unblock" "$work/unblock.out"
 
 # 7. VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap. The fixture holds
 # three solvable issues, #7, #8 and #9; each stub conductor records `start <n>` and answers
@@ -390,11 +384,7 @@ STUB
 run_launcher "$gh8" "$outcome_stub" "$work/outcome.out"
 want_outcome="$(printf '#7 — done https://example.test/pull/7\n#8 — bailed https://example.test/pull/8')"
 got_outcome="$(grep -E '^#[0-9]+ — ' "$work/outcome.out")"
-[[ "$got_outcome" == "$want_outcome" ]] \
-  && ok || no "a ready PR is reported '#<n> — done <pr-url>', a draft PR whose event log ends in a bail '#<n> — bailed <pr-url>', and a draft PR whose log does not end in one never bailed (exit=$code)
-$(diff <(printf '%s\n' "$want_outcome") <(printf '%s\n' "$got_outcome"))
-launcher output:
-$(cat "$work/outcome.out")"
+expect_lines "a ready PR is reported '#<n> — done <pr-url>', a draft PR whose event log ends in a bail '#<n> — bailed <pr-url>', and a draft PR whose log does not end in one never bailed" "$want_outcome" "$got_outcome" "$work/outcome.out"
 
 # 9. A conductor its supervisor killed — `supervise.sh` exit 2 — is reported `#<n> — killed after
 # <VERI_RUN_TIMEOUT>s`. #7's stub conductor never answers: it holds for up to $PATIENCE s and
@@ -419,11 +409,7 @@ STUB
 run_launcher "$gh9" "$hang_stub" "$work/killed.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01
 want_killed="#7 — killed after 60s"
 got_killed="$(grep -E '^#[0-9]+ — ' "$work/killed.out")"
-[[ "$got_killed" == "$want_killed" ]] \
-  && ok || no "a conductor its supervisor killed (supervise exit 2) is reported '#<n> — killed after <VERI_RUN_TIMEOUT>s' (exit=$code)
-$(diff <(printf '%s\n' "$want_killed") <(printf '%s\n' "$got_killed"))
-launcher output:
-$(cat "$work/killed.out")"
+expect_lines "a conductor its supervisor killed (supervise exit 2) is reported '#<n> — killed after <VERI_RUN_TIMEOUT>s'" "$want_killed" "$got_killed" "$work/killed.out"
 
 echo "----"
 echo "$pass passed, $fail failed"
