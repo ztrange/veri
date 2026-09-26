@@ -49,6 +49,16 @@ orchestrate() {
   rc=$?
 }
 
+# conductor_stub <dir>: make <dir> a scratch scripts directory holding the real
+# orchestrate.sh, the suite's solvable-issues.sh stub and a run-conductor.sh that first hands
+# its issue to the suite's base stub, for the bookkeeping, then runs the body read on stdin.
+conductor_stub() {
+  mkdir -p "$1"
+  cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$1/"
+  { printf '#!/bin/sh\n"%s/run-conductor.sh" "$1"\n' "$scripts"; cat; } > "$1/run-conductor.sh"
+  chmod +x "$1"/*.sh
+}
+
 # expect_exit0_output: pass the case $name when orchestrate.sh exited 0 and $actual equals
 # $expected; otherwise fail it, showing the exit, the diff and orchestrate.sh's stderr.
 expect_exit0_output() {
@@ -114,11 +124,7 @@ fi
 #    present and must not be counted, and a non-assistant event yields no line.
 name="reports each assistant event's cache_read + cache_creation tokens as the conductor's context, and none from the result record"
 streaming="$work/streaming"
-mkdir -p "$streaming"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$streaming/"
-cat > "$streaming/run-conductor.sh" <<STUB
-#!/bin/sh
-"$scripts/run-conductor.sh" "\$1"
+conductor_stub "$streaming" <<STUB
 cat <<'JSON'
 {"type":"system","subtype":"init","session_id":"s1"}
 {"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":7,"cache_creation_input_tokens":3438,"cache_read_input_tokens":50000,"output_tokens":120}}}
@@ -127,7 +133,6 @@ cat <<'JSON'
 {"type":"result","subtype":"success","is_error":false,"usage":{"input_tokens":10,"cache_creation_input_tokens":5438,"cache_read_input_tokens":110000,"output_tokens":165}}
 JSON
 STUB
-chmod +x "$streaming"/*.sh
 export SOLVABLE="$work/solvable-streaming" LAUNCHES="$work/launches-streaming"
 printf '%s\n' 301 > "$SOLVABLE"
 : > "$LAUNCHES"
@@ -148,11 +153,7 @@ expect_exit0_output
 #    Every later incarnation just leaves the solvable set, so the loop ends.
 name="a conductor over VERI_CONDUCTOR_CTX_BUDGET mid-step is not stopped until step-done, and is stopped after it"
 budget="$work/budget"
-mkdir -p "$budget"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$budget/"
-cat > "$budget/run-conductor.sh" <<STUB
-#!/bin/sh
-"$scripts/run-conductor.sh" "\$1"
+conductor_stub "$budget" <<STUB
 [ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
 echo '{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":150000,"output_tokens":40}}}'
 i=0
@@ -164,7 +165,6 @@ i=0
 while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
 echo after-step-done >> "\$MARKS"
 STUB
-chmod +x "$budget"/*.sh
 export SOLVABLE="$work/solvable-budget" LAUNCHES="$work/launches-budget" MARKS="$work/marks-budget"
 export VERI_CONDUCTOR_CTX_BUDGET=100000
 printf '%s\n' 401 > "$SOLVABLE"
@@ -185,11 +185,7 @@ expect_exit0_output
 #    result that follows the later crossing, never writes it.
 name="a step-done under VERI_CONDUCTOR_CTX_BUDGET's default does not stop the conductor, then or at a later non-step-done crossing"
 underbudget="$work/underbudget"
-mkdir -p "$underbudget"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$underbudget/"
-cat > "$underbudget/run-conductor.sh" <<STUB
-#!/bin/sh
-"$scripts/run-conductor.sh" "\$1"
+conductor_stub "$underbudget" <<STUB
 [ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=501 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":110000,"output_tokens":30}}}'
 echo '{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":""}]}}'
@@ -199,7 +195,6 @@ i=0
 while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
 echo after-step-done >> "\$MARKS"
 STUB
-chmod +x "$underbudget"/*.sh
 export SOLVABLE="$work/solvable-underbudget" LAUNCHES="$work/launches-underbudget" MARKS="$work/marks-underbudget"
 unset VERI_CONDUCTOR_CTX_BUDGET
 printf '%s\n' 501 > "$SOLVABLE"
@@ -220,11 +215,7 @@ expect_exit0_output
 #    call dies in the first heartbeats and never writes `before-result`.
 name="a conductor over VERI_CONDUCTOR_CTX_BUDGET is stopped after the step-done call's result, not at the call"
 atresult="$work/atresult"
-mkdir -p "$atresult"
-cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$atresult/"
-cat > "$atresult/run-conductor.sh" <<STUB
-#!/bin/sh
-"$scripts/run-conductor.sh" "\$1"
+conductor_stub "$atresult" <<STUB
 [ "\$(wc -l < "\$LAUNCHES")" -eq 1 ] || exit 0
 echo '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"VERI_ISSUE=601 VERI_ACTOR=conductor \$S/event.sh step-done"}}],"usage":{"input_tokens":5,"cache_creation_input_tokens":100,"cache_read_input_tokens":150000,"output_tokens":30}}}'
 i=0
@@ -237,7 +228,6 @@ i=0
 while [ \$i -lt 200 ]; do echo '{"type":"system","subtype":"heartbeat"}'; i=\$((i + 1)); sleep 0.01; done
 echo after-step-done >> "\$MARKS"
 STUB
-chmod +x "$atresult"/*.sh
 export SOLVABLE="$work/solvable-atresult" LAUNCHES="$work/launches-atresult" MARKS="$work/marks-atresult"
 export VERI_CONDUCTOR_CTX_BUDGET=100000
 printf '%s\n' 601 > "$SOLVABLE"
