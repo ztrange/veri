@@ -175,6 +175,25 @@ if off_cycle_line '⟦human-owed⟧' 'manual check' 'human' \
 fi
 report "$name"
 
+# 6. One criterion (#481) — no cycle ticks a ⟦human-owed⟧ line, so what a human still owes
+#    must reach the reviewer: the Draft PR step lists every such line in the PR body under an
+#    `## Owed by a human` heading, each naming its criterion number, and adds no such section
+#    when the ledger holds none.
+name="#481: $skill_md's Draft PR step lists every ⟦human-owed⟧ ledger line in the PR body under ## Owed by a human, each naming its criterion number, and adds no such section when the ledger holds none"
+problems=()
+owed_rec="$(head -1 < <(section_records '### 4. Draft PR' | grep -F '⟦human-owed⟧' | grep -F '## owed by a human'))"
+if [[ -z "$owed_rec" ]]; then
+  problems+=("draft PR: no instruction in step 4 lists ⟦human-owed⟧ ledger lines under '## Owed by a human' — the rule could not be checked")
+else
+  [[ "$owed_rec" == *"pr body"* ]] ||
+    problems+=("draft PR: the ⟦human-owed⟧ instruction never says the lines go into the PR body")
+  [[ "$owed_rec" =~ criterion\ (number|k) ]] ||
+    problems+=("draft PR: the ⟦human-owed⟧ instruction never says each listed line names its criterion number")
+  [[ "$owed_rec" =~ (no|none|omit|without)\ [^.]*(section|heading) ]] ||
+    problems+=("draft PR: the ⟦human-owed⟧ instruction never says no such section is added when the ledger holds none")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

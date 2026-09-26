@@ -1398,7 +1398,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    git commit -m "metrics: what solving #<n> cost (#<n>)"
    $S/push-branch.sh
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
-   gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets>"
+   gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
    gh pr ready <pr-url>
    ```
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
@@ -1424,6 +1424,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `add-ledger-step.sh` could not fit inside `VERI_STEP_GROWTH`, which nothing in the run
    reads again — goes into the PR body under a `## Owed steps` heading of its own. A ledger
    carrying no such heading adds no such section.
+   What a human still owes is copied last: every `⟦human-owed⟧` ledger line — a record of a
+   manual check, which no cycle ticks — goes into the PR body under an `## Owed by a human`
+   heading, each listed with its criterion number from its `⟦criterion k⟧` mark, so the
+   reviewer sees which issue criterion is still waiting on them. A ledger holding no
+   `⟦human-owed⟧` line adds no such section.
 3. **Never merge the PR.** Landing the code is always the human's deliberate act.
 4. Post a final `### ✅ Done — <pr-url>` comment with the same `### 📊 Metrics` block
    under it, pasted verbatim from the file just committed. It mirrors the
