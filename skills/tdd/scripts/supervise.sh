@@ -402,7 +402,14 @@ mark() {
 # A `verdict-<phase>` supervision reads the record but never writes it: it is the wrapper
 # around the `verify-<phase>` supervision verify.sh launches inside it, and that one is the
 # leaf; a record written here would have the verifier refused by its own wrapper.
+#
+# A `conductor-<n>` supervision reads the record but never writes it (#102): parallel-conductors.sh
+# launches several from one checkout at once, and each conductor's leaves work in that issue's
+# own worktree `.tdd/wt/<n>`, never in the tree this supervision runs from — so the conductors
+# share no tree for the record to guard, and a record written by one would have the next refused.
 ownerfile=".tdd/leaf.owner"
+owns_tree="$heartbeat_watched"
+case "$name" in conductor-*) owns_tree=0 ;; esac
 if [[ -s "$ownerfile" ]]; then
   read -r owner_pid owner_name < "$ownerfile"
   if kill -0 "$owner_pid" 2>/dev/null; then
@@ -410,7 +417,7 @@ if [[ -s "$ownerfile" ]]; then
     exit 2
   fi
 fi
-[[ "$heartbeat_watched" == 0 ]] || printf '%s %s\n' "$$" "$name" > "$ownerfile"
+[[ "$owns_tree" == 0 ]] || printf '%s %s\n' "$$" "$name" > "$ownerfile"
 
 # The run's `launch` mark, carrying the keys the header lists. Written here because this is
 # the one choke point every leaf goes through: a log missing one is a leaf nothing recorded

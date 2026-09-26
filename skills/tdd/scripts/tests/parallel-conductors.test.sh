@@ -139,6 +139,49 @@ $(diff <(printf '%s\n' "$want_timeline") <(printf '%s\n' "$got_timeline"))
 launcher output:
 $(cat "$work/seq.out")"
 
+# 3. With VERI_PARALLEL=2, two solvable issues' conductors run at once: both have started before
+# either has ended. The same stub shape as case 2's, over a fixture and timeline of its own —
+# each conductor records `start <n>`, holds until a second conductor has started (or $PATIENCE s
+# pass), then records `end <n>` and opens its ready PR. A launcher that ran them one after
+# another shows an `end` among the first two lines, after the first stub has waited out its hold.
+gh3="$work/gh3"
+mkdir -p "$gh3"
+: > "$gh3/prs.lines"
+printf '[]\n' > "$gh3/prs.json"
+cp "$gh2/issues.json" "$gh3/issues.json"
+
+timeline3="$work/timeline3"
+par_stub="$work/claude-par"
+cat > "$par_stub" <<STUB
+#!/bin/sh
+n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+echo "start \$n" >> "$timeline3"
+i=0
+while [ "\$i" -lt \$(( ${PATIENCE:-1} * 50 )) ] && [ "\$(grep -c '^start' "$timeline3")" -lt 2 ]; do
+  sleep 0.02; i=\$((i + 1))
+done
+echo "end \$n" >> "$timeline3"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh3/prs.lines"
+printf '[%s]\n' "\$(paste -sd, "$gh3/prs.lines")" > "$gh3/prs.json"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+exit 0
+STUB
+chmod +x "$par_stub"
+
+env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+  VERI_PARALLEL=2 VERI_GH_JSON="$gh3" CLAUDE_BIN="$par_stub" VERI_POLL=0.05 \
+  "$skill/scripts/parallel-conductors.sh" > "$work/par.out" 2>&1 && code=0 || code=$?
+got_timeline="$(cat "$timeline3" 2>/dev/null)"
+first_two="$(head -n 2 "$timeline3" 2>/dev/null | sort)"
+all_four="$(sort "$timeline3" 2>/dev/null)"
+[[ "$first_two" == "$(printf 'start 7\nstart 8')" \
+   && "$all_four" == "$(printf 'end 7\nend 8\nstart 7\nstart 8')" ]] \
+  && ok || no "VERI_PARALLEL=2 runs two solvable issues' conductors at once — both start before either ends (exit=$code)
+timeline:
+$got_timeline
+launcher output:
+$(cat "$work/par.out")"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

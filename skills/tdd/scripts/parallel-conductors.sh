@@ -19,12 +19,28 @@ fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# The loop: select with solvable-issues.sh, launch the first printed issue, wait for its
-# conductor to end, then select again — a blocker only closes when a human merges, so the set is
-# recomputed after every completion rather than cached. The loop ends when solvable-issues.sh
-# stops answering 0 — exit 3 once nothing is left — and `set -e` hands its status back as ours.
+# The loop: while fewer than VERI_PARALLEL conductors are in flight — launched here and not yet
+# seen to finish — select with solvable-issues.sh and launch the first printed issue that is not
+# already in flight, in the background. Then wait for whichever in-flight conductor ends first and
+# select again: a blocker only closes when a human merges, so the set is recomputed after every
+# completion rather than cached. With nothing in flight and nothing left to launch, the loop ends
+# with solvable-issues.sh's own status — exit 3 once nothing is left.
+declare -A in_flight=()   # issue number -> pid of its supervise.sh
 while :; do
-  solvable="$("$HERE/solvable-issues.sh")"
-  n="${solvable%%[[:space:]]*}"
-  "$HERE/supervise.sh" "conductor-$n" "$HERE/run-conductor.sh" "$n" > /dev/null
+  while (( ${#in_flight[@]} < 10#$parallel )); do
+    solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
+    (( rc == 0 )) || break
+    n=""
+    for candidate in $solvable; do
+      [[ -n "${in_flight[$candidate]:-}" ]] || { n="$candidate"; break; }
+    done
+    [[ -n "$n" ]] || break
+    "$HERE/supervise.sh" "conductor-$n" "$HERE/run-conductor.sh" "$n" > /dev/null &
+    in_flight[$n]=$!
+  done
+  (( ${#in_flight[@]} > 0 )) || exit "${rc:-3}"
+  wait -n || true
+  for n in "${!in_flight[@]}"; do
+    kill -0 "${in_flight[$n]}" 2>/dev/null || unset "in_flight[$n]"
+  done
 done
