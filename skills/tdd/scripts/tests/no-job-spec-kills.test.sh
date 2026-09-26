@@ -103,19 +103,31 @@ split_site() {
   site_text="${rest#*:}"
 }
 
-# sites — every line under the subject directory that ends a background process by a job
-# spec and is neither a comment nor an exemption, one `<file>:<line>:<text>` per line. One
-# recursive grep rather than a walk and a grep per file: the question is the same of every
-# file, and the paths it prints are already the addresses a report quotes. `-I` because a
-# compiled artefact under the tree — `__pycache__` — is not a file anyone writes a kill in.
-sites() {
+# kill_lines — every line under the subject directory that ends a background process by a
+# job spec and is not a comment, one `<file>:<line>:<text>` per line. One recursive grep
+# rather than a walk and a grep per file: the question is the same of every file, and the
+# paths it prints are already the addresses a report quotes. `-I` because a compiled artefact
+# under the tree — `__pycache__` — is not a file anyone writes a kill in. Both readers below
+# start here — the offences, and the check that every exemption still names one of these —
+# so the two can never disagree about what counts as a kill.
+kill_lines() {
   local hit
   while IFS= read -r hit; do
     split_site "$hit"
     [[ "$site_text" =~ ^[[:space:]]*# ]] && continue
-    [[ -n "${EXEMPT[$site_file:$site_line]:-}" ]] && continue
     printf '%s\n' "$hit"
   done < <(cd "$ROOT" && grep -rInE -- "$JOB_SPEC_KILL" "$SUBJECT")
+  return 0
+}
+
+# sites — the lines kill_lines found that no exemption answers.
+sites() {
+  local hit
+  while IFS= read -r hit; do
+    split_site "$hit"
+    [[ -n "${EXEMPT[$site_file:$site_line]:-}" ]] && continue
+    printf '%s\n' "$hit"
+  done < <(kill_lines)
   return 0
 }
 
@@ -161,15 +173,14 @@ report "$name"
 # probe_every_exemption_still_names_its_site — an exemption is addressed by line, so a line
 # added above its site moves the site out from under it: the key then excuses a line with no
 # kill on it, and the kill it was written for is reported as an offence nobody answered. Every
-# key must still name a line the read above matches and that is not a comment.
+# key must still name a line kill_lines prints.
 probe_every_exemption_still_names_its_site() {
   local hit key
   local -A matched=()
   while IFS= read -r hit; do
     split_site "$hit"
-    [[ "$site_text" =~ ^[[:space:]]*# ]] && continue
     matched[$site_file:$site_line]=1
-  done < <(cd "$ROOT" && grep -rInE -- "$JOB_SPEC_KILL" "$SUBJECT")
+  done < <(kill_lines)
   for key in "${!EXEMPT[@]}"; do
     [[ -n "${matched[$key]:-}" ]] && continue
     problems+=("the exemption entry [$key] names a line that no longer ends a background process by a job spec, so it excuses nothing there: the site it was written for has moved, and its key must follow it")
