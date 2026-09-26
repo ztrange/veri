@@ -1328,6 +1328,37 @@ fi
 
 report "$name"
 
+# 27. A direct launch needs nothing the orchestrator adds (issue #217). orchestrate.sh sits
+# above run-conductor.sh and brings three things of its own: itself, VERI_CONDUCTOR_CTX_BUDGET
+# and `.tdd/parked/<n>.md`. A `/tdd <n>` launched straight through run-conductor.sh, from a
+# caller with no `.tdd/` at all and no budget in its environment, must still reach the
+# conductor and exit 0, and the procedure it hands that conductor must name none of the three:
+# a procedure that did would be a direct run asked to do what only the orchestrator provides.
+name="run-conductor.sh launched directly, with no orchestrator, exits 0 and hands the conductor a procedure naming nothing orchestrate.sh adds"
+problems=()
+
+caller27="$work/caller27"
+caller_repo "$caller27"
+rm -f "$argv" "$prompt"
+
+( unset VERI_CONDUCTOR_CTX_BUDGET; launch_from "$caller27" "$work/tree" )
+status=$?
+
+if [[ "$status" -ne 0 ]]; then
+  problems+=("the direct launch exited $status, not 0: $(cat "$launch_err")")
+elif [[ ! -s "$argv" ]]; then
+  problems+=("the direct launch never reached the conductor binary")
+else
+  for added in orchestrate.sh VERI_CONDUCTOR_CTX_BUDGET .tdd/parked/; do
+    ! grep -F -- "$added" "$prompt" > /dev/null ||
+      problems+=("the procedure a direct launch hands the conductor names '$added'")
+  done
+  [[ ! -e "$caller27/.tdd/parked" ]] ||
+    problems+=("a direct launch created $caller27/.tdd/parked")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
