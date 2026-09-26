@@ -580,15 +580,19 @@ expect_lines "the outer supervisor runs with heartbeat and timeout both VERI_RUN
 # and answers "done" with a ready PR in the fixture.
 fresh="$work/fresh"
 fresh_repo "$fresh"
-gh14="$work/gh14"
-solvable_fixture "$gh14" 7
-clean_stub="$work/claude-clean"
-record_stub "$clean_stub" "$work/clean-record" "$gh14"
-
-(cd "$fresh" && run_launcher "$gh14" "$clean_stub" "$work/clean.out"; echo "$code" > "$work/clean.code")
-code="$(cat "$work/clean.code")"
-got_status="$(git -C "$fresh" status --porcelain 2>&1)"
-[[ -s "$work/clean-record" ]] || got_status+="<conductor never ran>"
+# status_after_launch <repo> <name> — launch over a one-issue fixture from <repo>, set `code`, and
+# set `got_status` to the repo's `git status --porcelain` afterwards, flagged when the stub
+# conductor never ran — an empty status from a launch that launched nothing proves nothing.
+status_after_launch() {
+  local repo="$1" name="$2"
+  solvable_fixture "$work/gh-$name" 7
+  record_stub "$work/claude-$name" "$work/$name-record" "$work/gh-$name"
+  (cd "$repo" && run_launcher "$work/gh-$name" "$work/claude-$name" "$work/$name.out"; echo "$code" > "$work/$name.code")
+  code="$(cat "$work/$name.code")"
+  got_status="$(git -C "$repo" status --porcelain 2>&1)"
+  [[ -s "$work/$name-record" ]] || got_status+="<conductor never ran>"
+}
+status_after_launch "$fresh" clean
 expect_lines "in a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch" "" "$got_status" "$work/clean.out"
 
 # 15. The same holds in a repository whose git dir has no `info/` at all — `git init` from an
@@ -597,14 +601,7 @@ expect_lines "in a target repo that has never seen veri, the caller's git status
 bare_info="$work/no-info"
 fresh_repo "$bare_info" --template=
 rm -rf "$bare_info/.git/info"
-gh15="$work/gh15"
-solvable_fixture "$gh15" 7
-no_info_stub="$work/claude-no-info"
-record_stub "$no_info_stub" "$work/no-info-record" "$gh15"
-(cd "$bare_info" && run_launcher "$gh15" "$no_info_stub" "$work/no-info.out"; echo "$code" > "$work/no-info.code")
-code="$(cat "$work/no-info.code")"
-got_status="$(git -C "$bare_info" status --porcelain 2>&1)"
-[[ -s "$work/no-info-record" ]] || got_status+="<conductor never ran>"
+status_after_launch "$bare_info" no-info
 expect_lines "a repo with no info/ directory still has an empty git status --porcelain after a launch" "" "$got_status" "$work/no-info.out"
 
 # 16. The caller's own exclude survives the launcher: a last line without a trailing newline is
