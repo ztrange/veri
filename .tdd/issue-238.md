@@ -17,7 +17,7 @@
 - [x] SKILL.md step 4 on rebase-onto-default.sh exit 1 launches a develop-rebase leaf through supervise.sh, then a blind verify-rebase through run-verdict.sh, runs the revise loop on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS ⟦criterion 3⟧
 - [x] SKILL.md step 4 on a rebase not resolved within budget (REBASE: FAILED, revise-exhausted, or a killed leaf) resets the branch to the pre-rebase sha, leaves the PR a draft, and posts a bail comment naming every conflicting file ⟦criterion 4⟧
 - [x] CLAUDE.md's script and suite counts include rebase-onto-default.sh and its suite
-- [ ] no-job-spec-kills.test.sh passes on the branch: its exemption for skill-leaf-env.test.sh's kill %1 step-title fixture still matches that line after this branch's three added lines moved it from 972 to 975
+- [x] no-job-spec-kills.test.sh passes on the branch: its exemption for skill-leaf-env.test.sh's kill %1 step-title fixture still matches that line after this branch's three added lines moved it from 972 to 975 ⟂ refactor pending
 
 ## Owed steps
 
