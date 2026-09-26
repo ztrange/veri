@@ -49,6 +49,20 @@ orchestrate() {
   rc=$?
 }
 
+# expect_exit0_output: pass the case $name when orchestrate.sh exited 0 and $actual equals
+# $expected; otherwise fail it, showing the exit, the diff and orchestrate.sh's stderr.
+expect_exit0_output() {
+  if [[ "$rc" -eq 0 && "$actual" == "$expected" ]]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    echo "    exit: $rc (expected 0)"
+    diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/    /'
+    sed 's/^/    stderr: /' "$work/err"
+  fi
+}
+
 # 1. Every issue the solvable set holds gets one conductor, launched through
 #    run-conductor.sh with that issue's number, and the loop exits 0 once the set is empty.
 name="launches one conductor per solvable issue through run-conductor.sh and exits 0 on an empty set"
@@ -58,15 +72,7 @@ printf '%s\n' 101 102 > "$SOLVABLE"
 orchestrate "$scripts"
 expected="$(printf '%s\n' 101 102)"
 actual="$(cat "$LAUNCHES")"
-if [[ "$rc" -eq 0 && "$actual" == "$expected" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  echo "    exit: $rc (expected 0)"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/    /'
-  sed 's/^/    stderr: /' "$work/err"
-fi
+expect_exit0_output
 
 # 2. A solvable-issues.sh that exits with anything but 0 or 3 gave no answer about the
 #    solvable set, so orchestrate.sh launches nothing and exits 2. The stub here exits 2 on
@@ -130,15 +136,7 @@ printf '%s\n' 301 > "$SOLVABLE"
 orchestrate "$streaming"
 expected="$(printf '%s\n' 'context 301 53438' 'context 301 62000')"
 actual="$(grep '^context ' "$work/out")"
-if [[ "$rc" -eq 0 && "$actual" == "$expected" ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  echo "    exit: $rc (expected 0)"
-  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/    /'
-  sed 's/^/    stderr: /' "$work/err"
-fi
+expect_exit0_output
 
 echo
 echo "$pass passed, $fail failed"
