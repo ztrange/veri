@@ -81,6 +81,17 @@ advance_origin() {
   git -C "$dir/clone" fetch -q origin >/dev/null 2>&1
 }
 
+# behind_branch <dir> — the origin fixture at <dir>, the run's branch in <dir>/clone, and
+# another run's merge to origin's main touching a file the branch does not: the branch is
+# behind origin/main, and rebasing it onto that would not conflict.
+behind_branch() {
+  local dir="$1"
+  origin_fixture "$dir"
+  run_branch "$dir/clone"
+  echo "another run's work" > "$dir/seed/other.txt"
+  advance_origin "$dir"
+}
+
 # conflicting_branch <dir> — the run's branch in <dir>/clone and another run's merge to
 # origin's main both edit file.txt and work.txt, differently, so rebasing the one onto the
 # other conflicts on both files.
@@ -152,11 +163,8 @@ report "$name"
 name="rebase-onto-default.test.sh: a branch behind origin/<default> with no conflict rebases onto it, exits 0, prints the pre-rebase and onto shas, and keeps its own commit on top"
 problems=()
 dir="$work/behind"
-origin_fixture "$dir"
+behind_branch "$dir"
 repo="$dir/clone"
-run_branch "$repo"
-echo "another run's work" > "$dir/seed/other.txt"
-advance_origin "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
 onto="$(git -C "$repo" rev-parse origin/main)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
@@ -197,12 +205,9 @@ report "$name"
 name="rebase-onto-default.test.sh: a rebase git refuses for a reason other than a conflict, such as a dirty working tree, exits 2 with nothing on stdout and HEAD unchanged"
 problems=()
 dir="$work/dirty"
-origin_fixture "$dir"
+behind_branch "$dir"
 repo="$dir/clone"
-run_branch "$repo"
 git -C "$repo" config rebase.autoStash false
-echo "another run's work" > "$dir/seed/other.txt"
-advance_origin "$dir"
 echo "an uncommitted edit" > "$repo/file.txt"
 expect_refused "$repo" "$dir/stdout" ""
 report "$name"
@@ -229,11 +234,8 @@ report "$name"
 name="rebase-onto-default.test.sh: when origin/<default> cannot be fetched, exits 2 with nothing on stdout and never rebases onto the stale local copy"
 problems=()
 dir="$work/unreachable"
-origin_fixture "$dir"
+behind_branch "$dir"
 repo="$dir/clone"
-run_branch "$repo"
-echo "another run's work" > "$dir/seed/other.txt"
-advance_origin "$dir"
 mv "$dir/origin.git" "$dir/origin-gone.git"
 expect_refused "$repo" "$dir/stdout" ", not rebased onto the stale origin/main"
 report "$name"
@@ -247,11 +249,8 @@ report "$name"
 name="rebase-onto-default.test.sh: when a fetch succeeds without refreshing origin/<default>, exits 2 with nothing on stdout and never rebases onto the stale local copy"
 problems=()
 dir="$work/fetch-skips-default"
-origin_fixture "$dir"
+behind_branch "$dir"
 repo="$dir/clone"
-run_branch "$repo"
-echo "another run's work" > "$dir/seed/other.txt"
-advance_origin "$dir"
 git -C "$repo" config remote.origin.fetch '+refs/heads/tdd/*:refs/remotes/origin/tdd/*'
 echo "a third run's work" > "$dir/seed/third.txt"
 advance_origin "$dir"
