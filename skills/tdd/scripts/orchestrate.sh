@@ -11,11 +11,30 @@
 # The solvable set is asked afresh after every launch rather than read once, because a
 # finished run leaves the set and that is how the loop learns it finished.
 #
+# While a conductor runs, its stream-json stdout is read line by line as it arrives, and every
+# assistant event prints `context <issue> <tokens>`: that request's cache_read_input_tokens +
+# cache_creation_input_tokens, which is the context it re-read. No closing result record is
+# needed — harvest-usage.sh reads that one, and only at the end.
+#
 # Exit 0 once solvable-issues.sh answers 3 (nothing to take); exit 2, launching nothing, when
 # it exits with anything but 0 or 3, since then no answer about the solvable set was obtained.
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# watch_context <issue>: read a conductor's stream-json on stdin and print one
+# `context <issue> <tokens>` line per assistant event, as each event arrives.
+watch_context() {
+  local line read_re='"cache_read_input_tokens":([0-9]+)' create_re='"cache_creation_input_tokens":([0-9]+)'
+  local cache_read
+  while IFS= read -r line; do
+    [[ $line == *'"type":"assistant"'* ]] || continue
+    [[ $line =~ $read_re ]] || continue
+    cache_read=${BASH_REMATCH[1]}
+    [[ $line =~ $create_re ]] || continue
+    echo "context $1 $((cache_read + BASH_REMATCH[1]))"
+  done
+}
 
 while :; do
   issues="$("$HERE/solvable-issues.sh")"
@@ -26,5 +45,5 @@ while :; do
     exit 2
   fi
   issue="${issues%%$'\n'*}"
-  "$HERE/run-conductor.sh" "$issue"
+  "$HERE/run-conductor.sh" "$issue" | watch_context "$issue"
 done

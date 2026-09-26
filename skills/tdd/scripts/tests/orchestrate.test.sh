@@ -98,6 +98,48 @@ else
   sed 's/^/    stderr: /' "$work/err"
 fi
 
+# 3. The conductor's context is each assistant event's cache_read_input_tokens +
+#    cache_creation_input_tokens, computed per event as the launched stream arrives: every
+#    assistant event yields one `context <issue> <tokens>` line on orchestrate.sh's stdout.
+#    The stub's stream closes on a {"type":"result"} record whose usage carries its own
+#    cache_read + cache_creation total (115438), so a context read from that record would
+#    print that number and not the two per-event ones, and a parser that did not filter on
+#    the assistant type would print it as a third line; input_tokens and output_tokens are
+#    present and must not be counted, and a non-assistant event yields no line.
+name="reports each assistant event's cache_read + cache_creation tokens as the conductor's context, and none from the result record"
+streaming="$work/streaming"
+mkdir -p "$streaming"
+cp "$scripts/orchestrate.sh" "$scripts/solvable-issues.sh" "$streaming/"
+cat > "$streaming/run-conductor.sh" <<'STUB'
+#!/bin/sh
+echo "$1" >> "$LAUNCHES"
+grep -vx -- "$1" "$SOLVABLE" > "$SOLVABLE.next"
+mv "$SOLVABLE.next" "$SOLVABLE"
+cat <<'JSON'
+{"type":"system","subtype":"init","session_id":"s1"}
+{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":7,"cache_creation_input_tokens":3438,"cache_read_input_tokens":50000,"output_tokens":120}}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"ok"}]}}
+{"type":"assistant","message":{"role":"assistant","usage":{"input_tokens":3,"cache_creation_input_tokens":2000,"cache_read_input_tokens":60000,"output_tokens":45}}}
+{"type":"result","subtype":"success","is_error":false,"usage":{"input_tokens":10,"cache_creation_input_tokens":5438,"cache_read_input_tokens":110000,"output_tokens":165}}
+JSON
+STUB
+chmod +x "$streaming"/*.sh
+export SOLVABLE="$work/solvable-streaming" LAUNCHES="$work/launches-streaming"
+printf '%s\n' 301 > "$SOLVABLE"
+: > "$LAUNCHES"
+orchestrate "$streaming"
+expected="$(printf '%s\n' 'context 301 53438' 'context 301 62000')"
+actual="$(grep '^context ' "$work/out")"
+if [[ "$rc" -eq 0 && "$actual" == "$expected" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $name"
+  echo "    exit: $rc (expected 0)"
+  diff <(printf '%s\n' "$expected") <(printf '%s\n' "$actual") | sed 's/^/    /'
+  sed 's/^/    stderr: /' "$work/err"
+fi
+
 echo
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
