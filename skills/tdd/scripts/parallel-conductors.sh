@@ -151,9 +151,8 @@ while :; do
     [[ -z "$stopped" ]] || break
     (( max_issues == 0 || ${#launched[@]} < max_issues )) || { why="VERI_MAX_ISSUES reached"; break; }
     solvable="$("$HERE/solvable-issues.sh")" && rc=0 || rc=$?
-    (( rc != 2 )) || plumbing=1
     why="nothing solvable"
-    (( rc != 2 )) || why="solvable-issues.sh could not answer"
+    (( rc != 2 )) || { plumbing=1; why="solvable-issues.sh could not answer"; }
     (( rc == 0 )) || break
     n=""
     for candidate in $solvable; do
