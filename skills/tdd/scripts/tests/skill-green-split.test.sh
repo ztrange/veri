@@ -224,7 +224,7 @@ if [[ -z "${bullet// /}" ]]; then
 else
   grep -E 'green[^.]*split:|split:[^.]*green' <<<"$bullet" > /dev/null ||
     problems+=("$skill_md's step-too-big entry does not name a Green leaf's SPLIT:")
-  grep -E 'revise-exhausted|exhausted' <<<"$bullet" > /dev/null ||
+  grep -E 'exhausted' <<<"$bullet" > /dev/null ||
     problems+=("$skill_md's step-too-big entry does not name the revise-exhausted split")
   grep -E 'over-budget' <<<"$bullet" > /dev/null ||
     problems+=("$skill_md's step-too-big entry does not name the over-budget split")
