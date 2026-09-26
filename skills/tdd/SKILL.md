@@ -837,6 +837,10 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as it already is on the
   other two paths that grow a plan — see *Bailing*. The split shares `VERI_STEP_GROWTH` with
   them, because all three are plan growth.
+- **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
+  **Park the step** — the same park the revise-exhausted path takes (see *Revise*): stop the
+  run there, carrying that answer and the two figures, what the step has spent and the
+  step budget, and leave the plan as it is so the user's decision picks the run back up.
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 

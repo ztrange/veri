@@ -487,6 +487,44 @@ fi
 
 report "$name"
 
+# The over-budget leaf's exit 1: the step needs the user. Parked — the run stops there, with
+# the leaf's answer and the two figures that made it a crossing (what the step has spent, and
+# the step budget) in hand, and the plan left as it is so the user's decision picks the run
+# back up — the same park the revise-exhausted path takes.
+
+# over_budget_exit_1 — the cost check section's `exit 1` bullet, from its own line up to the
+# first line that is not indented under it, normalised through `plain`.
+over_budget_exit_1() {
+  cost_check_lines |
+    awk '/^- \*\*exit 1/ { inside = 1; print; next } inside && !/^  / { exit } inside' |
+    plain
+}
+
+name="'$cost_heading' parks the step on the over-budget leaf's exit 1, carrying the leaf's answer and the spent and budget figures, and leaves the plan unchanged"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what the over-budget leaf's exit 1 does could not be established")
+else
+  bullet="$(over_budget_exit_1)"
+  if [[ -z "${bullet// /}" ]]; then
+    problems+=("'$cost_heading' has no **exit 1** bullet, so what the run does when the over-budget leaf says the step needs the user is left to the reader")
+  else
+    grep -E -- "(^|[^a-z])park" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 1 bullet never parks the step")
+    grep -E -- "over-budget-answer\.txt|leaf's answer" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 1 bullet does not carry the leaf's answer (.tdd/over-budget-answer.txt)")
+    grep -E -- "(^|[^a-z])spent" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 1 bullet does not carry what the step has spent")
+    grep -E -- "step[- ]budget" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 1 bullet does not carry the step budget")
+    grep -E -- "plan[^.]*(as it is|unchanged)" <<<"$bullet" > /dev/null ||
+      problems+=("'$cost_heading''s exit 1 bullet does not say the plan is left as it is")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
