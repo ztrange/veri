@@ -1024,6 +1024,22 @@ prompt_says "$plan" "never sets a Red/Green step against the ⟦full-suite⟧ li
   -iE -e 'Red[^.]{0,40}Green[^.]{0,200}full-suite|full-suite[^.]{0,200}Red[^.]{0,40}Green'
 [[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan that makes a criterion whose only observable is the test command passing a Red/Green step instead of a ⟦full-suite⟧ line (#481) (${problems#; })"
 
+# 46. case 45's other shape (issue #481, criterion 3): a criterion whose deliverable is the
+#     record of a manual check — each suite broken on purpose, watched going red, the output
+#     recorded, as #225 criterion 4 asked — is owed by a human, and *Scope & plan* writes it as
+#     a `⟦human-owed⟧` line that no developer leaf is ever handed. Made a Red/Green step, it
+#     reaches a Red leaf that can only answer UNTESTABLE, and the run bails
+#     `untestable-criterion`, as #225 did twice. Check 1 alone would PASS that step, so the
+#     prompt has to name the shape, the marker, and the REJECT, each in view of the others —
+#     three claims, three misses, matched the way case 45 matches its own.
+problems=""
+prompt_says "$plan" "never names the ⟦human-owed⟧ marker" -F -e '⟦human-owed⟧'
+prompt_says "$plan" "never directs a REJECT for a criterion whose deliverable is the record of a manual check" \
+  -iE -e 'REJECT[^.]{0,200}(manual|human)[^.]{0,120}(check|record)|(manual|human)[^.]{0,120}(check|record)[^.]{0,200}REJECT'
+prompt_says "$plan" "never sets a Red/Green step against the ⟦human-owed⟧ line it should have been" \
+  -iE -e 'Red[^.]{0,40}Green[^.]{0,200}human-owed|human-owed[^.]{0,200}Red[^.]{0,40}Green'
+[[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan that makes a criterion whose deliverable is the record of a manual check a Red/Green step instead of a ⟦human-owed⟧ line (#481) (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
