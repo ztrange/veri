@@ -76,6 +76,69 @@ done
 [[ -z "$bad" ]] \
   && ok || no "VERI_PARALLEL not a whole number >= 1 (0, a word, set-but-empty) is exit 2 with no conductor launched ($bad )"
 
+# 2. With VERI_PARALLEL unset — the default, 1 — two solvable issues' conductors run one after
+# another: the second starts only after the first has ended. Observed through what each stub
+# conductor writes to a shared timeline: `start <n>` when it begins, `end <n>` when it is done,
+# and `overlap <n>` if another conductor was already running when it began — the running one
+# holds a `mkdir` lock, which is atomic, so two at once cannot both miss it. Each stub then holds
+# for up to $PATIENCE s, released early the moment another conductor starts, so a launcher that
+# ran them together would be caught overlapping rather than winning a race by being slow.
+#
+# The launcher runs from a copy of the skill outside any git clone: from the real one,
+# run-conductor.sh would fetch this repository's `origin` to pin its skill, and a suite never
+# reaches a remote. Unpinned, it runs the copy as it is, which is all this case asks of it.
+# Each stub answers "done" by opening a ready PR saying `Closes #<n>` in the fixture, so its
+# issue leaves the solvable set the way a finished run's does.
+skill="$work/skill"
+mkdir -p "$skill"
+cp "$HERE/../../SKILL.md" "$skill/SKILL.md"
+cp -R "$HERE/.." "$skill/scripts"
+rm -rf "$skill/scripts/tests"
+
+gh2="$work/gh2"
+mkdir -p "$gh2"
+: > "$gh2/prs.lines"
+printf '[]\n' > "$gh2/prs.json"
+cat > "$gh2/issues.json" <<'JSON'
+[
+  {"number": 7, "title": "first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 8, "title": "second", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+
+timeline="$work/timeline"
+seq_stub="$work/claude-seq"
+cat > "$seq_stub" <<STUB
+#!/bin/sh
+n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+if mkdir "$work/running" 2>/dev/null; then held=1; else held=0; echo "overlap \$n" >> "$timeline"; fi
+echo "start \$n" >> "$timeline"
+i=0
+while [ "\$i" -lt \$(( ${PATIENCE:-1} * 50 )) ] && [ "\$(grep -c '^start' "$timeline")" -lt 2 ]; do
+  sleep 0.02; i=\$((i + 1))
+done
+echo "end \$n" >> "$timeline"
+printf '{"body": "Closes #%s", "state": "OPEN", "isDraft": false, "url": "https://example.test/pull/%s"}\n' "\$n" "\$n" >> "$gh2/prs.lines"
+printf '[%s]\n' "\$(paste -sd, "$gh2/prs.lines")" > "$gh2/prs.json"
+[ "\$held" = 1 ] && rmdir "$work/running"
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+exit 0
+STUB
+chmod +x "$seq_stub"
+
+env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+  VERI_GH_JSON="$gh2" CLAUDE_BIN="$seq_stub" VERI_POLL=0.05 \
+  "$skill/scripts/parallel-conductors.sh" > "$work/seq.out" 2>&1 && code=0 || code=$?
+want_timeline="$(printf 'start 7\nend 7\nstart 8\nend 8')"
+got_timeline="$(cat "$timeline" 2>/dev/null)"
+[[ "$got_timeline" == "$want_timeline" ]] \
+  && ok || no "VERI_PARALLEL unset runs two solvable issues' conductors one after another (exit=$code)
+$(diff <(printf '%s\n' "$want_timeline") <(printf '%s\n' "$got_timeline"))
+launcher output:
+$(cat "$work/seq.out")"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
