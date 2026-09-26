@@ -4,7 +4,7 @@
 - [x] `next-unchecked.sh` skips an unchecked ledger line carrying `⟦full-suite⟧` and prints the first unchecked line without it, so the cycle loop never hands that line to a leaf ⟦criterion 1⟧
 - [x] SKILL.md's *Draft PR* step ticks every `⟦full-suite⟧` ledger line, with no refactor-pending mark, and the issue-body criterion it finishes, only once the run's last full-suite run before the PR is readied is green — the rebased tip's run when the branch was rebased — and never after a red one ⟦criterion 1⟧
 - [x] SKILL.md's *Scope & plan* writes a criterion whose deliverable is the record of a manual check as one ledger line `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked owed by a human, not planned as a Red/Green step and never handed to a developer leaf ⟦criterion 2⟧
-- [ ] `next-unchecked.sh` skips an unchecked ledger line carrying `⟦human-owed⟧` and prints the first unchecked line without it ⟦criterion 2⟧
+- [x] `next-unchecked.sh` skips an unchecked ledger line carrying `⟦human-owed⟧` and prints the first unchecked line without it ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] SKILL.md's *Draft PR* step lists every `⟦human-owed⟧` ledger line in the PR body under an `## Owed by a human` heading, each naming its criterion number, and adds no such section when the ledger holds none ⟦criterion 2⟧
 - [ ] `prompts/verify-plan.md` tells the blind plan verifier to REJECT a plan that turns a criterion whose only observable is the test command passing into a Red/Green step instead of a `⟦full-suite⟧` line ⟦criterion 3⟧
 - [ ] `prompts/verify-plan.md` tells the blind plan verifier to REJECT a plan that turns a criterion whose deliverable is the record of a manual check into a Red/Green step instead of a `⟦human-owed⟧` line ⟦criterion 3⟧
