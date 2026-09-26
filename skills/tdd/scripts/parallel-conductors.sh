@@ -18,6 +18,8 @@ if [[ ! "$parallel" =~ ^[0-9]+$ ]] || (( 10#$parallel < 1 )); then
 fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib/appendable.sh
+source "$HERE/lib/appendable.sh"
 
 # --continue-on-bail keeps launching past a bailed or killed conductor; without it the first one
 # stops new launches, and the conductors already running are still waited to completion.
@@ -50,15 +52,13 @@ caller_env+=("${caller_set[@]+"${caller_set[@]}"}")
 # into the shared info/exclude before anything is written — never the .gitignore, which is tracked
 # and would dirty the very tree it is meant to keep clean. --git-common-dir resolves a linked
 # worktree back to the primary's git dir, which every worktree reads, and answers relative to the
-# current directory when it answers relatively. Only when the line is absent, so a second
-# invocation does not grow the file.
+# current directory when it answers relatively. make_appendable keeps the caller's own last line
+# from being glued to ours. Only when the line is absent, so a second invocation does not grow the
+# file.
 common_dir="$(git rev-parse --git-common-dir)"
 exclude="$common_dir/info/exclude"
 if ! grep -xF '.tdd/*' "$exclude" > /dev/null 2>&1; then
-  mkdir -p "$common_dir/info"
-  if [[ -s "$exclude" && -n "$(tail -c 1 "$exclude")" ]]; then
-    echo "" >> "$exclude"
-  fi
+  make_appendable "$exclude"
   echo '.tdd/*' >> "$exclude"
 fi
 
