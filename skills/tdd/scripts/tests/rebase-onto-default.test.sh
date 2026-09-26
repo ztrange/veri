@@ -159,6 +159,29 @@ for d in rebase-merge rebase-apply; do
 done
 report "$name"
 
+# 4. The branch is behind, but a tracked file carries an uncommitted edit: git refuses to
+#    start the rebase at all. That is no conflict — the plumbing failed, not the merge — so
+#    the answer is exit 2, not 1. stdout goes to a file rather than through $(…), which
+#    would strip a stray newline and let one pass for "nothing on stdout".
+name="rebase-onto-default.test.sh: a rebase git refuses for a reason other than a conflict, such as a dirty working tree, exits 2 with nothing on stdout and HEAD unchanged"
+problems=()
+dir="$work/dirty"
+origin_fixture "$dir"
+repo="$dir/clone"
+run_branch "$repo"
+git -C "$repo" config rebase.autoStash false
+echo "another run's work" > "$dir/seed/other.txt"
+advance_origin "$dir"
+echo "an uncommitted edit" > "$repo/file.txt"
+head_before="$(git -C "$repo" rev-parse HEAD)"
+(cd "$repo" && bash "$REBASE" > "$dir/stdout" 2>/dev/null)
+rc=$?
+[[ "$rc" -eq 2 ]] || problems+=("exit: want 2, got $rc")
+[[ ! -s "$dir/stdout" ]] || problems+=("stdout: want empty, got $(printf '%q' "$(cat "$dir/stdout"; echo .)")")
+head_after="$(git -C "$repo" rev-parse HEAD)"
+[[ "$head_after" == "$head_before" ]] || problems+=("HEAD: want it unchanged at $head_before, got $head_after")
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

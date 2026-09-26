@@ -12,6 +12,9 @@
 #
 # Exit 1 when the rebase conflicts: it is aborted, so HEAD is back at the pre-rebase sha with
 # a clean tree and no rebase in progress, and stdout is the conflicting files, one per line.
+#
+# Exit 2 when git refuses the rebase for any other reason, such as a dirty working tree:
+# nothing was started, so HEAD is unchanged and stdout is empty.
 
 # main — the whole script. Its logic lives behind this function so a unit suite can source
 # the file and run nothing (#339); executed directly, the guard at the bottom calls it.
@@ -29,6 +32,9 @@ main() {
   pre="$(git rev-parse HEAD)"
   onto="$(git rev-parse "$default")"
   if ! git rebase -q "$onto" >/dev/null; then
+    # A rebase git refused to start — a dirty tree, say — leaves no rebase in progress.
+    # That is no conflict to name: the plumbing failed, so it is exit 2, not 1.
+    [[ -d "$(git rev-parse --git-path rebase-merge)" ]] || exit 2
     local conflicts
     conflicts="$(git diff --name-only --diff-filter=U)"
     git rebase --abort
