@@ -1016,12 +1016,19 @@ probe_rebase_sha "pre-rebase with text" "$rb_onto" "$rb_pre because it was green
 #     the others. Three claims, three misses, each named, for case 36's reason; matched over
 #     the newline-flattened prompt through `prompt_says`, every window under 255 for the same
 #     reason.
+#
+#     plan_rejects_shape <marker> <shape> <shape ERE> — the three claims, for case 46 as well.
+plan_rejects_shape() {
+  local marker="$1" shape="$2" ere="$3"
+  prompt_says "$plan" "never names the ⟦$marker⟧ marker" -F -e "⟦$marker⟧"
+  prompt_says "$plan" "never directs a REJECT for a criterion $shape" \
+    -iE -e "REJECT[^.]{0,200}$ere|$ere[^.]{0,200}REJECT"
+  prompt_says "$plan" "never sets a Red/Green step against the ⟦$marker⟧ line it should have been" \
+    -iE -e "Red[^.]{0,40}Green[^.]{0,200}$marker|$marker[^.]{0,200}Red[^.]{0,40}Green"
+}
 problems=""
-prompt_says "$plan" "never names the ⟦full-suite⟧ marker" -F -e '⟦full-suite⟧'
-prompt_says "$plan" "never directs a REJECT for a criterion whose only observable is the test command passing" \
-  -iE -e 'REJECT[^.]{0,200}(test command|suites?)[^.]{0,120}pass|(test command|suites?)[^.]{0,120}pass[^.]{0,200}REJECT'
-prompt_says "$plan" "never sets a Red/Green step against the ⟦full-suite⟧ line it should have been" \
-  -iE -e 'Red[^.]{0,40}Green[^.]{0,200}full-suite|full-suite[^.]{0,200}Red[^.]{0,40}Green'
+plan_rejects_shape full-suite "whose only observable is the test command passing" \
+  '(test command|suites?)[^.]{0,120}pass'
 [[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan that makes a criterion whose only observable is the test command passing a Red/Green step instead of a ⟦full-suite⟧ line (#481) (${problems#; })"
 
 # 46. case 45's other shape (issue #481, criterion 3): a criterion whose deliverable is the
@@ -1031,13 +1038,10 @@ prompt_says "$plan" "never sets a Red/Green step against the ⟦full-suite⟧ li
 #     reaches a Red leaf that can only answer UNTESTABLE, and the run bails
 #     `untestable-criterion`, as #225 did twice. Check 1 alone would PASS that step, so the
 #     prompt has to name the shape, the marker, and the REJECT, each in view of the others —
-#     three claims, three misses, matched the way case 45 matches its own.
+#     three claims, three misses, through case 45's plan_rejects_shape.
 problems=""
-prompt_says "$plan" "never names the ⟦human-owed⟧ marker" -F -e '⟦human-owed⟧'
-prompt_says "$plan" "never directs a REJECT for a criterion whose deliverable is the record of a manual check" \
-  -iE -e 'REJECT[^.]{0,200}(manual|human)[^.]{0,120}(check|record)|(manual|human)[^.]{0,120}(check|record)[^.]{0,200}REJECT'
-prompt_says "$plan" "never sets a Red/Green step against the ⟦human-owed⟧ line it should have been" \
-  -iE -e 'Red[^.]{0,40}Green[^.]{0,200}human-owed|human-owed[^.]{0,200}Red[^.]{0,40}Green'
+plan_rejects_shape human-owed "whose deliverable is the record of a manual check" \
+  '(manual|human)[^.]{0,120}(check|record)'
 [[ -z "$problems" ]] && ok || no "verify-plan REJECTs a plan that makes a criterion whose deliverable is the record of a manual check a Red/Green step instead of a ⟦human-owed⟧ line (#481) (${problems#; })"
 
 echo "----"
