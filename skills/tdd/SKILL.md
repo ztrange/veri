@@ -834,6 +834,9 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
+  **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as it already is on the
+  other two paths that grow a plan — see *Bailing*. The split shares `VERI_STEP_GROWTH` with
+  them, because all three are plan growth.
 
 #### Red — one failing test (developer leaf), then verify-red (blind)
 

@@ -468,6 +468,25 @@ fi
 
 report "$name"
 
+# The over-budget split meets the same growth budget the other two plan-growing paths do:
+# add-ledger-step.sh exit 1 (VERI_STEP_GROWTH reached) is a step-too-big bail, as it already is
+# for a Green leaf's volunteered split and the revise-exhausted split — all three are plan
+# growth, so none of them may grow the plan past that budget.
+
+name="'$cost_heading' says that add-ledger-step.sh exit 1 on the over-budget split is a bail with cause step-too-big"
+problems=()
+
+if [[ ! -r "$skill_path" ]]; then
+  problems+=("$skill_md could not be read — what the over-budget split does when the plan may not grow could not be established")
+elif ! cost_check_sentences |
+  grep -F -- 'add-ledger-step.sh exit 1' |
+  grep -F -- 'step-too-big' |
+  grep -E -- "(^|[^a-z])bail" > /dev/null; then
+  problems+=("no sentence of '$cost_heading' names add-ledger-step.sh exit 1 and a step-too-big bail together, so what the over-budget split does when VERI_STEP_GROWTH refuses the insertion is left to the reader")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
