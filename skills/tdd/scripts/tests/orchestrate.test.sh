@@ -98,6 +98,22 @@ expect_exit0_output() {
   fi
 }
 
+# expect_exit2_no_launch [<needle>]: pass the case $name when orchestrate.sh exited 2, launched
+# no conductor and, given <needle>, wrote it to stderr; otherwise fail it, showing all three.
+expect_exit2_no_launch() {
+  launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
+  if [[ "$rc" -eq 2 && "$launched" -eq 0 ]] && { [[ $# -eq 0 ]] || grep -F -- "$1" "$work/err" > /dev/null; }; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "FAIL - $name"
+    echo "    exit: $rc (expected 2)"
+    echo "    launches: $launched (expected 0)"
+    [[ $# -eq 0 ]] || echo "    stderr naming $1: expected"
+    sed 's/^/    stderr: /' "$work/err"
+  fi
+}
+
 # 1. Every issue the solvable set holds gets one conductor, launched through
 #    run-conductor.sh with that issue's number, and the loop exits 0 once the set is empty.
 name="launches one conductor per solvable issue through run-conductor.sh and exits 0 on an empty set"
@@ -124,16 +140,7 @@ STUB
 chmod +x "$broken"/*.sh
 seed broken 201
 orchestrate "$broken"
-launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
-if [[ "$rc" -eq 2 && "$launched" -eq 0 ]]; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  echo "    exit: $rc (expected 2)"
-  echo "    launches: $launched (expected 0)"
-  sed 's/^/    stderr: /' "$work/err"
-fi
+expect_exit2_no_launch
 
 # 3. The conductor's context is each assistant event's cache_read_input_tokens +
 #    cache_creation_input_tokens, computed per event as the launched stream arrives: every
@@ -269,17 +276,7 @@ expect_exit0_output
 name="refuses a VERI_CONDUCTOR_CTX_BUDGET that is not a whole number with exit 2 before any conductor launches"
 seed badbudget 801
 VERI_CONDUCTOR_CTX_BUDGET=120k orchestrate "$scripts"
-launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
-if [[ "$rc" -eq 2 && "$launched" -eq 0 ]] && grep -F VERI_CONDUCTOR_CTX_BUDGET "$work/err" > /dev/null; then
-  pass=$((pass + 1))
-else
-  fail=$((fail + 1))
-  echo "FAIL - $name"
-  echo "    exit: $rc (expected 2)"
-  echo "    launches: $launched (expected 0)"
-  echo "    stderr naming VERI_CONDUCTOR_CTX_BUDGET: expected"
-  sed 's/^/    stderr: /' "$work/err"
-fi
+expect_exit2_no_launch VERI_CONDUCTOR_CTX_BUDGET
 
 echo
 echo "$pass passed, $fail failed"
