@@ -286,6 +286,49 @@ $(diff <(printf '%s\n' "$want_again") <(printf '%s\n' "$got_again"))
 launcher output:
 $(cat "$work/again.out")"
 
+# 6. The solvable set is re-asked after every completion, so an issue that became solvable while
+# another conductor ran is launched next. The fixture holds #7, solvable, and #8, blocked by the
+# open #9 — so the first selection prints only 7. #7's stub conductor closes #9 while it runs, the
+# way a human's merge would, and answers "done" with a ready PR; #8 is solvable only from then on.
+# A launcher that re-selects after #7 finishes launches #8 next; one that cached its first answer
+# has nothing left to launch and ends after #7 alone.
+gh6="$work/gh6"
+gh_fixture "$gh6" <<'JSON'
+[
+  {"number": 7, "title": "runs first", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"},
+  {"number": 8, "title": "unblocked mid-run", "labels": [{"name": "ready-for-agent"}], "state": "OPEN",
+   "body": "## Blocked by\n\n- #9\n"},
+  {"number": 9, "title": "the blocker", "labels": [], "state": "OPEN",
+   "body": "## Blocked by\n\nNone.\n"}
+]
+JSON
+
+unblock="$work/unblock"
+unblock_stub="$work/claude-unblock"
+cat > "$unblock_stub" <<STUB
+#!/bin/sh
+n="\$(sed -n 's/^Solve issue #\([0-9]*\) .*/\1/p')"
+echo "start \$n" >> "$unblock"
+if [ "\$n" = 7 ]; then
+  sed 's/"title": "the blocker", "labels": \[\], "state": "OPEN"/"title": "the blocker", "labels": [], "state": "CLOSED"/' \
+    "$gh6/issues.json" > "$gh6/issues.json.new" && mv "$gh6/issues.json.new" "$gh6/issues.json"
+fi
+$(ready_pr "$gh6")
+printf '%s\n' '{"type":"result","subtype":"success","is_error":false,"result":"ok"}'
+exit 0
+STUB
+chmod +x "$unblock_stub"
+
+run_launcher "$gh6" "$unblock_stub" "$work/unblock.out"
+want_unblock="$(printf 'start 7\nstart 8')"
+got_unblock="$(cat "$unblock" 2>/dev/null)"
+[[ "$got_unblock" == "$want_unblock" ]] \
+  && ok || no "an issue that became solvable while another conductor ran is launched next (exit=$code)
+$(diff <(printf '%s\n' "$want_unblock") <(printf '%s\n' "$got_unblock"))
+launcher output:
+$(cat "$work/unblock.out")"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
