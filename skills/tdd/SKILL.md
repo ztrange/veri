@@ -692,6 +692,12 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    suites are green" — is not planned as a Red/Green step: it has no failing test to write,
    so a Red leaf could only answer `UNTESTABLE` and the run would bail. Write it as one line,
    `- [ ] <criterion> ⟦full-suite⟧ ⟦criterion k⟧`, recorded as covered by the full-suite run.
+
+   A criterion whose deliverable is the record of a manual check — a suite broken on purpose,
+   watched going red, restored — is a human's act, not code: it is not planned as a Red/Green
+   step and is never handed to a developer leaf, which may not run another suite to produce
+   it. Write it as one line, `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked owed by a
+   human.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`

@@ -150,6 +150,25 @@ else
 fi
 report "$name"
 
+# 5. One criterion (#481) — a criterion whose deliverable is the record of a manual check has
+#    no failing test to write and is a human's act, not a leaf's. Step 2 must write it as one
+#    `⟦human-owed⟧` ledger line owed by a human, not as a Red/Green step, and never hand it to
+#    a developer leaf.
+name="#481: $skill_md's step 2 writes a criterion whose deliverable is the record of a manual check as one ⟦human-owed⟧ ledger line owed by a human, not a Red/Green step, never handed to a developer leaf"
+problems=()
+grep -F -- '- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧' <<<"$plan_recs" > /dev/null ||
+  problems+=("plan guidance: step 2 never shows the ledger line '- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧'")
+human_rec="$(head -1 < <(grep -F '⟦human-owed⟧' <<<"$plan_recs" | grep -F 'manual check' | grep -F 'human'))"
+if [[ -z "$human_rec" ]]; then
+  problems+=("plan guidance: no instruction in step 2 names ⟦human-owed⟧ for a criterion whose deliverable is the record of a manual check, owed by a human")
+else
+  [[ "$human_rec" =~ (not|never|no)\ [^.]*red/green ]] ||
+    problems+=("plan guidance: the ⟦human-owed⟧ instruction never says such a criterion is not planned as a Red/Green step")
+  [[ "$human_rec" =~ (not|never|no)\ [^.]*developer\ leaf ]] ||
+    problems+=("plan guidance: the ⟦human-owed⟧ instruction never says such a criterion is never handed to a developer leaf")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
