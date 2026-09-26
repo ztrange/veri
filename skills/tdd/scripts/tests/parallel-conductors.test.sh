@@ -396,6 +396,35 @@ $(diff <(printf '%s\n' "$want_outcome") <(printf '%s\n' "$got_outcome"))
 launcher output:
 $(cat "$work/outcome.out")"
 
+# 9. A conductor its supervisor killed — `supervise.sh` exit 2 — is reported `#<n> — killed after
+# <VERI_RUN_TIMEOUT>s`. #7's stub conductor never answers: it holds for up to $PATIENCE s and
+# opens no PR. The supervisor's awake clock is injected (VERI_AWAKE_CLOCK) as a stub that jumps
+# 1000 s on every reading, so any hard timeout is exceeded at the first poll and the kill lands
+# without waiting on wall time. With VERI_RUN_TIMEOUT=60 the launcher's report carries
+# `#7 — killed after 60s`.
+gh9="$work/gh9"
+solvable_fixture "$gh9" 7
+
+jump_clock="$work/awake-clock"
+printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\nc=$((c + 1000))\necho "$c" > "%s"\necho "$c"\n' \
+  "$work/awake-count" "$work/awake-count" > "$jump_clock"
+chmod +x "$jump_clock"
+
+hang_stub="$work/claude-hang"
+conductor_stub "$hang_stub" <<STUB
+i=0
+while [ "\$i" -lt \$(( ${PATIENCE:-5} * 50 )) ]; do sleep 0.02; i=\$((i + 1)); done
+STUB
+
+run_launcher "$gh9" "$hang_stub" "$work/killed.out" VERI_RUN_TIMEOUT=60 VERI_AWAKE_CLOCK="$jump_clock" VERI_KILL_POLL=0.01
+want_killed="#7 — killed after 60s"
+got_killed="$(grep -E '^#[0-9]+ — ' "$work/killed.out")"
+[[ "$got_killed" == "$want_killed" ]] \
+  && ok || no "a conductor its supervisor killed (supervise exit 2) is reported '#<n> — killed after <VERI_RUN_TIMEOUT>s' (exit=$code)
+$(diff <(printf '%s\n' "$want_killed") <(printf '%s\n' "$got_killed"))
+launcher output:
+$(cat "$work/killed.out")"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
