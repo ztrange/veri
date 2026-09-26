@@ -605,10 +605,11 @@ if step_or_problem '### 4. Draft PR' "where the step rebases onto the default br
         problems+=("$skill_md's Draft PR step runs rebase-onto-default.sh (command line $rebase) after $after (command line $at), not before it")
       fi
     done
-    said="$(first_record "$(tr -d '*`' <<< "$records")" -F 'rebase-onto-default.sh' -E 'exit 3' -E 'continu')"
+    plain="$(tr -d '*`' <<< "$records")"
+    said="$(first_record "$plain" -F 'rebase-onto-default.sh' -E 'exit 3' -E 'continu')"
     [[ -n "$said" ]] ||
       problems+=("no instruction of $skill_md's Draft PR step naming rebase-onto-default.sh says its exit 3 continues unchanged")
-    said="$(first_record "$(tr -d '*`' <<< "$records")" -F 'rebase-onto-default.sh' -E 'exit 2' -E 'bail' -F 'no-verdict')"
+    said="$(first_record "$plain" -F 'rebase-onto-default.sh' -E 'exit 2' -E 'bail' -F 'no-verdict')"
     [[ -n "$said" ]] ||
       problems+=("no instruction of $skill_md's Draft PR step naming rebase-onto-default.sh says its exit 2 bails with no-verdict")
   fi
