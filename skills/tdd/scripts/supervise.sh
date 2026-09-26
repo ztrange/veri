@@ -244,8 +244,9 @@ recover_finished_leaf() {
 # took, which the `exit` mark at the foot of this script reports. They are not `local` because
 # a run's last attempt is what every line below reads. Everything else the watchdog needs is,
 # so the list above is the whole of what this function says to the rest of the script: the
-# launch stamps `$t0` (the subtraction below turns it into `secs`) and `$a0` (the awake
-# clock's, the hard timeout's baseline), the loop's clock reading `$t` and its silence measure
+# launch stamps `$a0` (the awake clock's, the baseline both `secs` and the hard timeout are
+# subtracted from) and `$t0` (the wall clock's, the seed for the heartbeat's and the suspend
+# detection's readings), the loop's clock reading `$t` and its silence measure
 # `$silence`, and `$rc`, the leaf's own raw exit code — which `status` already summarises into
 # the vocabulary everything below speaks, so nothing down there reads the number itself.
 # `$pid` is the one non-answer that must stay global anyway: `kill_tree` is a separate
