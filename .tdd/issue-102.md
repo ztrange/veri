@@ -1,0 +1,21 @@
+# Plan for #102 — Rung 3: parallel-conductors.sh runs up to VERI_PARALLEL supervised conductors at once over the solvable set
+
+- [ ] parallel-conductors.sh exits 2 and launches no conductor when VERI_PARALLEL is not a whole number ≥ 1 (0, a word, or set-but-empty) ⟦criterion 1⟧
+- [ ] With VERI_PARALLEL unset (default 1) parallel-conductors.sh runs two solvable issues' conductors one after another — the second starts only after the first has ended ⟦criterion 1⟧
+- [ ] With VERI_PARALLEL=2 parallel-conductors.sh runs two conductors at once — their start and end stamps overlap ⟦criterion 1⟧
+- [ ] Launches follow solvable-issues.sh's printed order and never include an issue it did not print, such as one blocked by an open issue ⟦criterion 2⟧
+- [ ] An issue solvable-issues.sh still prints after its conductor finished is not launched a second time in the same invocation ⟦criterion 2⟧
+- [ ] The solvable set is re-asked after every completion, so an issue that became solvable while another conductor ran is launched next ⟦criterion 2⟧
+- [ ] VERI_MAX_ISSUES caps the launches of one invocation, 0 meaning no cap
+- [ ] A finished conductor whose PR is ready is reported `#<n> — done <pr-url>`, and one whose PR is a draft and whose event log ends in a bail is reported `#<n> — bailed <pr-url>` ⟦criterion 3⟧
+- [ ] A conductor its supervisor killed (supervise exit 2) is reported `#<n> — killed after <VERI_RUN_TIMEOUT>s` ⟦criterion 3⟧
+- [ ] The first bail or kill stops new launches while conductors already running are waited to completion, and --continue-on-bail keeps launching and skips the bailed number ⟦criterion 3⟧
+- [ ] The caller's VERI_HEARTBEAT, VERI_TIMEOUT, VERI_STUCK_RETRIES and VERI_POLL reach each conductor exactly as they were, set or unset ⟦criterion 4⟧
+- [ ] The outer supervisor of each conductor runs with heartbeat and timeout both VERI_RUN_TIMEOUT (default 14400) and no stuck retries ⟦criterion 4⟧
+- [ ] In a target repo that has never seen veri, the caller's git status --porcelain stays empty after a launch ⟦criterion 5⟧
+- [ ] Supervising a conductor-<n> prints no leaf-role.sh refusal ⟦criterion 5⟧
+- [ ] Exit 0 when every launched issue is done, 1 when one bailed or was killed, 2 when solvable-issues.sh exits 2, 3 when nothing is solvable and nothing was launched — and .tdd/parallel.exit carries that final code on every exit path ⟦criterion 6⟧
+- [ ] The report prints one line per issue in launch order followed by one line naming what stopped the loop ⟦criterion 6⟧
+- [ ] SCOPE-LOOP.md documents VERI_PARALLEL: at 1 rung 2 is unchanged, above 1 it runs parallel-conductors.sh detach-then-wait and relays the report ⟦criterion 7⟧
+- [ ] CONTEXT.md's rung 3 entry names parallel-conductors.sh, a glossary entry defines in flight as local to one invocation, and a new ADR records rung 3's design and the rejected remote claim ⟦criterion 7⟧
+- [ ] The full suite passes with parallel-conductors.test.sh and hermetic-suites.test.sh green ⟦full-suite⟧
