@@ -22,6 +22,15 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # VERI_MAX_ISSUES caps the launches of one invocation, as at rung 2; 0, the default, is no cap.
 max_issues="${VERI_MAX_ISSUES:-0}"
 
+# VERI_RUN_TIMEOUT is the wall-clock cap on one conductor, and the figure a killed one is reported
+# with — a killed conductor is not retried here; /tdd <n> resumes it.
+run_timeout="${VERI_RUN_TIMEOUT:-14400}"
+
+# A conductor whose supervise.sh exits non-zero leaves that status in this directory, one file
+# per issue: exit 2 there is a conductor its supervisor killed.
+rc_dir="$(mktemp -d)"
+trap 'rm -rf "$rc_dir"' EXIT
+
 # The loop: while fewer than VERI_PARALLEL conductors are in flight — launched here and not yet
 # seen to finish — select with solvable-issues.sh and launch the first printed issue this
 # invocation has not launched yet, in the background: one it already ran and saw finish may still
@@ -46,6 +55,10 @@ report() {
     prs="$(gh pr list --state open --limit 10000 --json body,isDraft,url)"
   fi
   for n in "${order[@]+"${order[@]}"}"; do
+    if [[ "$(cat "$rc_dir/$n" 2>/dev/null)" == 2 ]]; then
+      echo "#$n — killed after ${run_timeout}s"
+      continue
+    fi
     pr="$(python3 -c '
 import json, re, sys
 for pr in json.loads(sys.argv[1]):
@@ -72,7 +85,10 @@ while :; do
       [[ -n "${launched[$candidate]:-}" ]] || { n="$candidate"; break; }
     done
     [[ -n "$n" ]] || break
-    "$HERE/supervise.sh" "conductor-$n" "$HERE/run-conductor.sh" "$n" > /dev/null &
+    (
+      "$HERE/supervise.sh" "conductor-$n" "$HERE/run-conductor.sh" "$n" > /dev/null \
+        || echo "$?" > "$rc_dir/$n"
+    ) &
     in_flight[$n]=$!
     launched[$n]=1
     order+=("$n")
