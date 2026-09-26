@@ -62,6 +62,10 @@
 #      leaf through `supervise.sh`, then a blind verify-rebase through `run-verdict.sh`, revises
 #      on REJECT within REVISE_BUDGET, and readies the PR only after a verify-rebase PASS
 #      (issue #238).
+#  17. SKILL.md's Draft PR step, on a conflicted rebase not resolved within budget — a
+#      `REBASE: FAILED`, `REVISE_BUDGET` exhausted, or a killed leaf — resets the branch to
+#      `<pre-rebase-sha>`, leaves the PR a draft and bails with a comment naming every
+#      conflicting file (issue #238).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -711,6 +715,32 @@ if step_or_problem '### 4. Draft PR' "what the step does with a conflicted rebas
   said="$(first_record "$plain" -F 'verify-rebase' -wF 'pass' -E 'ready|readie')"
   [[ -n "$said" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step readies the PR only after a verify-rebase PASS")
+fi
+report "$name"
+
+# 17. The criterion, as one case (issue #238): the conflicted-rebase path of case 16 can end
+#     without a resolution — the leaf reports `REBASE: FAILED`, `REVISE_BUDGET` runs out on
+#     verify-rebase `REJECT`s, or the leaf is killed — and then the branch holds a half-made
+#     resolution no verifier has passed. What is pinned, off the records: the step names all
+#     three of those endings together, it resets the branch hard to `<pre-rebase-sha>` so the
+#     branch is left un-rebased, and its bail leaves the PR a draft with a comment naming every
+#     conflicting file, so the human the bail hands the conflict to knows where it is. The
+#     positive probes are all there is, so a step emptied of the path fails rather than
+#     reading as one that never needed it.
+name="$skill_md's Draft PR step, on a rebase not resolved within budget (REBASE: FAILED, REVISE_BUDGET exhausted or a killed leaf), resets the branch to <pre-rebase-sha>, leaves the PR a draft and bails naming every conflicting file"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what the step does with a rebase it could not resolve"; then
+  plain="$(unmarked_records)"
+  said="$(first_record "$plain" -F 'rebase: failed' -F 'revise_budget' -wE 'killed|kill')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step names REBASE: FAILED, an exhausted REVISE_BUDGET and a killed leaf together as a rebase not resolved within budget")
+  said="$(first_record "$plain" -E 'git reset --hard <pre-rebase-sha>')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step resets the branch with git reset --hard <pre-rebase-sha>, so a rebase it could not resolve leaves a half-made resolution on the branch")
+  said="$(first_record "$plain" -wF 'bail' -E '(every|each|all) (of the )?conflicting file' -F 'draft')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step bails on an unresolved rebase with the PR left a draft and a comment naming every conflicting file")
 fi
 report "$name"
 
