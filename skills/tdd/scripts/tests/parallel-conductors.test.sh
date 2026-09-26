@@ -25,13 +25,20 @@ pass=0 fail=0
 ok() { pass=$((pass + 1)); }
 no() { fail=$((fail + 1)); echo "FAIL - $1"; }
 
+# fresh_repo <dir> [git-init option]... — a new repository at <dir> with one empty commit on main.
+fresh_repo() {
+  local dir="$1"
+  shift
+  git init -q -b main "$@" "$dir" >/dev/null 2>&1
+  git -C "$dir" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+}
+
 # The target repo every case launches from: a fresh repository with one commit, standing in for
 # the primary checkout of a repo that has never seen veri. The suite's cwd from here down, for
 # the reason solvable-issues.test.sh gives for its own: a claim lock under THIS repository's
 # `.tdd/wt/<n>` must never answer a question a case asked of its fixture.
 target="$work/target"
-git init -q -b main "$target" >/dev/null 2>&1
-git -C "$target" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+fresh_repo "$target"
 cd "$target" || exit 2
 
 # The solvable set: one open, opted-in, unblocked, unclaimed issue, so a launcher that ignored
@@ -572,8 +579,7 @@ expect_lines "the outer supervisor runs with heartbeat and timeout both VERI_RUN
 # `.tdd/wt/<n>` event logs. One solvable issue; its stub conductor writes nothing in the tree
 # and answers "done" with a ready PR in the fixture.
 fresh="$work/fresh"
-git init -q -b main "$fresh" >/dev/null 2>&1
-git -C "$fresh" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+fresh_repo "$fresh"
 gh14="$work/gh14"
 solvable_fixture "$gh14" 7
 clean_stub="$work/claude-clean"
@@ -589,8 +595,7 @@ expect_lines "in a target repo that has never seen veri, the caller's git status
 # empty template directory makes one — so the launcher creates it rather than failing to write
 # the exclude.
 bare_info="$work/no-info"
-git init -q -b main --template= "$bare_info" >/dev/null 2>&1
-git -C "$bare_info" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+fresh_repo "$bare_info" --template=
 rm -rf "$bare_info/.git/info"
 gh15="$work/gh15"
 solvable_fixture "$gh15" 7
@@ -606,8 +611,7 @@ expect_lines "a repo with no info/ directory still has an empty git status --por
 # not glued to `.tdd/*`, and a second invocation does not add the line again. Two launches, each
 # over its own one-issue fixture, in a repo whose exclude ends in `*.scratch` with no newline.
 own_exclude="$work/own-exclude"
-git init -q -b main "$own_exclude" >/dev/null 2>&1
-git -C "$own_exclude" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init >/dev/null 2>&1
+fresh_repo "$own_exclude"
 printf '*.scratch' > "$own_exclude/.git/info/exclude"
 for run in 1 2; do
   solvable_fixture "$work/gh16-$run" 7
