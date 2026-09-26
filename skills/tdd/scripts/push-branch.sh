@@ -8,6 +8,9 @@
 # invisible to everyone and recoverable by nobody.
 #
 # Usage:   push-branch.sh          # run from the issue's worktree
+#          push-branch.sh --force-with-lease=<branch>:<sha>
+#                                  # replace the remote copy only if it is still at <sha>
+#                                  # (issue #238: publishing a rebase). Never a bare force.
 #
 # **An unreachable remote is not a bail, so that failure exits 0.** (A non-fast-forward
 # rejection is different, and exits 1: see the loop below.) A run
@@ -35,6 +38,17 @@ main() {
   set -uo pipefail
 
   local retries backoff tunable attempt out branch remote_sha
+  local -a lease=()
+
+  # The one force this script makes is pinned to a sha: a bare `--force` or an unpinned
+  # `--force-with-lease` would replace whatever the remote holds, so either is bad arguments.
+  if (( $# > 0 )); then
+    if [[ $# -ne 1 || ! "$1" =~ ^--force-with-lease=[^:]+:[0-9a-f]{7,40}$ ]]; then
+      echo "push-branch.sh: the only argument is --force-with-lease=<branch>:<sha>, got '$*'" >&2
+      exit 2
+    fi
+    lease=("$1")
+  fi
 
   # `--set-upstream` so the first call creates the remote branch and later ones fast-forward
   # against it; `HEAD` rather than a branch name so the script reads the branch off the
@@ -60,7 +74,7 @@ main() {
   attempt=0
   while (( attempt <= retries )); do
     attempt=$((attempt + 1))
-    if out="$(git push --set-upstream origin HEAD 2>&1)"; then
+    if out="$(git push "${lease[@]}" --set-upstream origin HEAD 2>&1)"; then
       exit 0
     fi
     # A ref rejection is not a blip: the remote holds commits HEAD does not, so every retry
