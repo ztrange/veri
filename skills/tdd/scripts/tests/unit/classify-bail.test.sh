@@ -10,6 +10,7 @@
 #   classify-bail.sh reconcile-failed     → first stdout line `system`,  exit 0
 #   classify-bail.sh untestable-criterion → first stdout line `process`, exit 0
 #   classify-bail.sh step-too-big         → first stdout line `process`, exit 0
+#   classify-bail.sh rebase-unresolved    → first stdout line `process`, exit 0
 #   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
 #
 # Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
@@ -74,6 +75,11 @@ check "untestable-criterion is process" untestable-criterion 0 process
 #    step needs more than one new behaviour at once and the split steps would not fit the plan's
 #    growth budget, so the step cannot go on — the methodology speaking, not the plumbing.
 check "step-too-big is process" step-too-big 0 process
+
+# 9. a rebase-unresolved cause classifies as process (issue #238): a rebase onto a moved
+#    default branch could not be resolved within budget — two green branches that do not
+#    combine is a finding about the work, not the plumbing breaking.
+check "rebase-unresolved is process" rebase-unresolved 0 process
 
 # 8. a stop is not a bail (issue #390): `stopped`, `stop` and the three stop modes are unknown
 #    causes, exit 2 with nothing on stdout. A stop has no system/process category, and giving
