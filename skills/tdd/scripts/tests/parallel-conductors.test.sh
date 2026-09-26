@@ -112,6 +112,17 @@ two_issue_fixture() {
 JSON
 }
 
+# run_launcher <gh-dir> <stub> <out> [VAR=value ...] — run the copied skill's launcher over the
+# fixture <gh-dir> with <stub> as the conductor's model, the caller's selection tunables stripped
+# and any VAR=value given set, its output in <out>. Sets `code` to the launcher's exit status.
+run_launcher() {
+  local gh="$1" stub="$2" out="$3"
+  shift 3
+  env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
+    VERI_GH_JSON="$gh" CLAUDE_BIN="$stub" VERI_POLL=0.05 "$@" \
+    "$skill/scripts/parallel-conductors.sh" > "$out" 2>&1 && code=0 || code=$?
+}
+
 gh2="$work/gh2"
 two_issue_fixture "$gh2"
 
@@ -158,9 +169,7 @@ timeline="$work/timeline"
 seq_stub="$work/claude-seq"
 timeline_stub "$seq_stub" "$timeline" "$gh2" "$work/running"
 
-env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-  VERI_GH_JSON="$gh2" CLAUDE_BIN="$seq_stub" VERI_POLL=0.05 \
-  "$skill/scripts/parallel-conductors.sh" > "$work/seq.out" 2>&1 && code=0 || code=$?
+run_launcher "$gh2" "$seq_stub" "$work/seq.out"
 want_timeline="$(printf 'start 7\nend 7\nstart 8\nend 8')"
 got_timeline="$(cat "$timeline" 2>/dev/null)"
 [[ "$got_timeline" == "$want_timeline" ]] \
@@ -181,9 +190,7 @@ timeline3="$work/timeline3"
 par_stub="$work/claude-par"
 timeline_stub "$par_stub" "$timeline3" "$gh3"
 
-env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-  VERI_PARALLEL=2 VERI_GH_JSON="$gh3" CLAUDE_BIN="$par_stub" VERI_POLL=0.05 \
-  "$skill/scripts/parallel-conductors.sh" > "$work/par.out" 2>&1 && code=0 || code=$?
+run_launcher "$gh3" "$par_stub" "$work/par.out" VERI_PARALLEL=2
 got_timeline="$(cat "$timeline3" 2>/dev/null)"
 first_two="$(head -n 2 "$timeline3" 2>/dev/null | sort)"
 all_four="$(sort "$timeline3" 2>/dev/null)"
@@ -232,9 +239,7 @@ exit 0
 STUB
 chmod +x "$order_stub"
 
-env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-  VERI_GH_JSON="$gh4" CLAUDE_BIN="$order_stub" VERI_POLL=0.05 \
-  "$skill/scripts/parallel-conductors.sh" > "$work/order.out" 2>&1 && code=0 || code=$?
+run_launcher "$gh4" "$order_stub" "$work/order.out"
 want_order="$(printf 'start 8\nstart 7')"
 got_order="$(cat "$order" 2>/dev/null)"
 [[ "$got_order" == "$want_order" ]] \
@@ -273,9 +278,7 @@ exit 0
 STUB
 chmod +x "$again_stub"
 
-env -u VERI_PARALLEL -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES \
-  VERI_GH_JSON="$gh5" CLAUDE_BIN="$again_stub" VERI_POLL=0.05 \
-  "$skill/scripts/parallel-conductors.sh" > "$work/again.out" 2>&1 && code=0 || code=$?
+run_launcher "$gh5" "$again_stub" "$work/again.out"
 want_again="start 7"
 got_again="$(cat "$again" 2>/dev/null)"
 [[ "$got_again" == "$want_again" ]] \
