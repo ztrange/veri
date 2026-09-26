@@ -1,0 +1,2 @@
+### With VERI_PARALLEL unset (default 1) parallel-conductors.sh runs two solvable issues' conductors one after another — the second starts only after the first has ended ⟦criterion 1⟧
+- parallel-conductors.test.sh: both cases invoke the launcher behind the same `env -u VERI_LABEL -u VERI_PRIORITY_LABEL -u VERI_MAX_ISSUES … VERI_GH_JSON=… CLAUDE_BIN=…` prefix; a small hermetic-launch helper would dedupe it. Only two call sites so far, so the helper will pay off once later steps add cases.
