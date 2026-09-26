@@ -2132,6 +2132,35 @@ if not any(names(l, "10000") for l in lines):
 report_on "$name" "$slept_out"
 
 
+# A fixture whose machine slept INSIDE a step (#486): between the Red leaf's launch (ts 60010,
+# awake 3010) and its exit (ts 70050, awake 3050) the wall clock moved 10,040 s where the awake
+# clock moved 40. The step's own marks, step-start (ts 60000, awake 3000) and step-done (ts
+# 70100, awake 3100), so bracket 100 awake seconds inside a 10,100-second wall span — two
+# distinct numbers, so a step wall read off `ts` cannot pass.
+fixture_work step_slept_work
+
+step_slept="a step the machine slept through"
+
+sv "$step_slept" 60000 conductor ""  step-start "" '"awake": 3000'
+sv "$step_slept" 60010 developer red launch     1  '"awake": 3010, "name": "develop-red"'
+sv "$step_slept" 70050 developer red exit       1  '"awake": 3050, "status": "0", "secs": "40"'
+sv "$step_slept" 70100 conductor ""  step-done  "" '"awake": 3100'
+sv "$step_slept" 70150 conductor ""  done       "" '"awake": 3150, "pr": "https://github.com/ztrange/veri/pull/997"'
+
+plan_of "$step_slept"
+
+
+name="#486 a step's wall is read off the awake readings of its step-start and step-done, so a sleep gap inside the step is not counted in it"
+problems=()
+
+step_slept_out="$step_slept_work/report.md"
+render "$step_slept_work" "$step_slept_out"
+
+times_say "$step_slept_out" "$step_slept=100"
+
+report_on "$name" "$step_slept_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

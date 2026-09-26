@@ -311,7 +311,7 @@ lost = {}
 # beside it rather than inside it because these are read off marks rather than counted one
 # line per unit. One table rather than one per kind of mark: a revise attempt is counted from
 # its own marks, a refactor mark is read once whole, and the two brackets of the step are two
-# timestamps — but all three answer "what did this step spend", all three are keyed by step,
+# marks kept whole (#486) — but all three answer "what did this step spend", all three are keyed by step,
 # and two tables on one key are two tables to keep in step with each other. Each budget is
 # the LAST one its marks reported — the budget the run finished under, and the same number as
 # the first in every log where nobody re-exported the variable mid-run.
@@ -440,7 +440,7 @@ with open(path) as f:
         # The two brackets of a step, read before anything classifies the line below, since
         # neither is a leaf event and both would otherwise fall through to nothing.
         if event in ("step-start", "step-done") and step:
-            spent.setdefault(step, {})[event] = ts
+            spent.setdefault(step, {})[event] = line
             if event == "step-done":
                 recovered.add(step)
             continue
@@ -556,9 +556,14 @@ def row(cells):
 def figure(column, value):
     return "%.2f" % value if column in MONEY else "%d" % value
 
+# Measured on the awake clock when both marks carry a reading (#486), as the issue wall is,
+# so a sleep inside the step is not counted in it; `ts` otherwise.
 def step_wall(step):
     mark = spent.get(step, {})
-    return known(span(mark.get("step-start"), mark.get("step-done")))
+    start, done = mark.get("step-start"), mark.get("step-done")
+    awake_span = span(reading(start, "awake"), reading(done, "awake"))
+    return known(awake_span if awake_span is not None
+                 else span(reading(start, "ts"), reading(done, "ts")))
 
 def budget_cells(step):
     mark = spent.get(step, {})
