@@ -71,6 +71,14 @@ full_suite_ledger='# Plan for #42
 - [ ] pin the second step ⟦criterion 2⟧'
 check "a ⟦full-suite⟧ line is never handed to a leaf (#481)" 0 "$full_suite_ledger" "pin the second step ⟦criterion 2⟧"
 
+# 9. an unchecked line marked ⟦human-owed⟧ is the record of a manual check, owed by a
+# human — it is skipped, and the first unchecked line without it is printed (#481)
+human_owed_ledger='# Plan for #42
+
+- [ ] each suite broken on purpose, its red output recorded ⟦human-owed⟧ ⟦criterion 1⟧
+- [ ] pin the second step ⟦criterion 2⟧'
+check "a ⟦human-owed⟧ line is never handed to a leaf (#481)" 0 "$human_owed_ledger" "pin the second step ⟦criterion 2⟧"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
