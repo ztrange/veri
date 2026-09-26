@@ -398,10 +398,17 @@ expect_lines "a ready PR is reported '#<n> — done <pr-url>', a draft PR whose 
 gh9="$work/gh9"
 solvable_fixture "$gh9" 7
 
+# clock_stub <path> <count-file> <step> [<gate-file>] — write a stub awake clock to <path> that
+# keeps its reading in <count-file> and moves it <step> s on every reading — once <gate-file>
+# exists, when one is named, and standing still before that.
+clock_stub() {
+  printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\n[ -e "%s" ] && c=$((c + %s))\necho "$c" > "%s"\necho "$c"\n' \
+    "$2" "${4:-/}" "$3" "$2" > "$1"
+  chmod +x "$1"
+}
+
 jump_clock="$work/awake-clock"
-printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\nc=$((c + 1000))\necho "$c" > "%s"\necho "$c"\n' \
-  "$work/awake-count" "$work/awake-count" > "$jump_clock"
-chmod +x "$jump_clock"
+clock_stub "$jump_clock" "$work/awake-count" 1000
 
 hang_stub="$work/claude-hang"
 conductor_stub "$hang_stub" <<STUB
@@ -536,12 +543,10 @@ gh13="$work/gh13"
 solvable_fixture "$gh13" 7
 rm -f "$work/step-count"
 
-step_clock="$work/step-clock"
-printf '#!/bin/sh\nc="$(cat "%s" 2>/dev/null || echo 0)"\n[ -e "%s" ] && c=$((c + 30))\necho "$c" > "%s"\necho "$c"\n' \
-  "$work/step-count" "$work/outer-starts" "$work/step-count" > "$step_clock"
-chmod +x "$step_clock"
-
 outer_starts="$work/outer-starts"
+step_clock="$work/step-clock"
+clock_stub "$step_clock" "$work/step-count" 30 "$outer_starts"
+
 outer_stub="$work/claude-outer"
 conductor_stub "$outer_stub" <<STUB
 echo "start \$n" >> "$outer_starts"
