@@ -81,6 +81,19 @@ advance_origin() {
   git -C "$dir/clone" fetch -q origin >/dev/null 2>&1
 }
 
+# conflicting_branch <dir> — the run's branch in <dir>/clone and another run's merge to
+# origin's main both edit file.txt and work.txt, differently, so rebasing the one onto the
+# other conflicts on both files.
+conflicting_branch() {
+  local dir="$1" repo="$1/clone"
+  run_branch "$repo"
+  echo "the run's edit" > "$repo/file.txt"
+  git_q "$repo" commit -q -a --amend --no-edit >/dev/null 2>&1
+  echo "another run's edit" > "$dir/seed/file.txt"
+  echo "another run's work" > "$dir/seed/work.txt"
+  advance_origin "$dir"
+}
+
 # 1. A branch cut from origin/main, one commit ahead of it and not behind: nothing to rebase.
 name="rebase-onto-default.test.sh: a branch already containing origin/<default> exits 3 with empty stdout and HEAD and tree unchanged"
 problems=()
@@ -135,12 +148,7 @@ problems=()
 dir="$work/conflict"
 origin_fixture "$dir"
 repo="$dir/clone"
-run_branch "$repo"
-echo "the run's edit" > "$repo/file.txt"
-git_q "$repo" commit -q -a --amend --no-edit >/dev/null 2>&1
-echo "another run's edit" > "$dir/seed/file.txt"
-echo "another run's work" > "$dir/seed/work.txt"
-advance_origin "$dir"
+conflicting_branch "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
 rc=$?
@@ -191,12 +199,7 @@ dir="$work/conflict-apply"
 origin_fixture "$dir"
 repo="$dir/clone"
 git -C "$repo" config rebase.backend apply
-run_branch "$repo"
-echo "the run's edit" > "$repo/file.txt"
-git_q "$repo" commit -q -a --amend --no-edit >/dev/null 2>&1
-echo "another run's edit" > "$dir/seed/file.txt"
-echo "another run's work" > "$dir/seed/work.txt"
-advance_origin "$dir"
+conflicting_branch "$dir"
 pre="$(git -C "$repo" rev-parse HEAD)"
 out="$(cd "$repo" && bash "$REBASE" 2>/dev/null)"
 rc=$?
