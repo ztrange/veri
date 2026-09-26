@@ -427,6 +427,10 @@ opening = None
 # mark is one of them going stale.
 ending = None
 
+# Each attempt `launch` mark, keyed as `attempts_spent` is, so its `exit` can read the
+# attempt span off the awake clock (#486).
+launched = {}
+
 with open(path) as f:
     for raw in f:
         raw = raw.strip()
@@ -473,8 +477,14 @@ with open(path) as f:
         # Time, off the two lines that carry it. An `exit` is also where a kill is counted
         # below, so this adds and lets the line fall through rather than classifying it.
         attempt = attempt_in(phase, step, line.get("attempt", ""))
+        if event == "launch":
+            launched[(step, phase, line.get("attempt", ""))] = line
         if event == "exit":
-            seconds = int(line.get("secs") or 0)
+            # On the awake clock when the attempt launch and exit both carry a reading, so a
+            # sleep inside the attempt is not counted as work (#486); off `secs` otherwise.
+            awake = span(reading(launched.get((step, phase, line.get("attempt", ""))), "awake"),
+                         reading(line, "awake"))
+            seconds = int(awake if awake is not None else (line.get("secs") or 0))
             add_seconds(phase, step, "wall s", seconds)
             if attempt is not None:
                 attempt[WALL] += seconds

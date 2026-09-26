@@ -2161,6 +2161,35 @@ times_say "$step_slept_out" "$step_slept=100"
 report_on "$name" "$step_slept_out"
 
 
+# A fixture whose machine slept INSIDE a leaf's attempt (#486): between the Red leaf's launch
+# (ts 50010, awake 2010) and its exit (ts 60050, awake 2050) the wall clock moved 10,040 s
+# where the awake clock moved 40. The exit's `secs` is the 10,040 wall seconds a supervise.sh
+# measuring on the wall clock wrote, so the only place the 40 is to be found is the two awake
+# readings — a phase wall summed off `secs` cannot pass.
+fixture_work phase_slept_work
+
+phase_slept="a leaf attempt the machine slept through"
+
+sv "$phase_slept" 50000 conductor ""  step-start "" '"awake": 2000'
+sv "$phase_slept" 50010 developer red launch     1  '"awake": 2010, "name": "develop-red"'
+sv "$phase_slept" 60050 developer red exit       1  '"awake": 2050, "status": "0", "secs": "10040"'
+sv "$phase_slept" 60100 conductor ""  step-done  "" '"awake": 2100'
+sv "$phase_slept" 60150 conductor ""  done       "" '"awake": 2150, "pr": "https://github.com/ztrange/veri/pull/996"'
+
+plan_of "$phase_slept"
+
+
+name="#486 a phase's wall is read off the awake readings of each attempt's launch and exit, so a sleep gap inside a leaf's attempt is not counted in it"
+problems=()
+
+phase_slept_out="$phase_slept_work/report.md"
+render "$phase_slept_work" "$phase_slept_out"
+
+times_say "$phase_slept_out" red=40
+
+report_on "$name" "$phase_slept_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
