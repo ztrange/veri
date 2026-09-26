@@ -42,14 +42,20 @@ mv "$SOLVABLE.next" "$SOLVABLE"
 STUB
 chmod +x "$scripts"/*.sh
 
+# orchestrate <dir>: run the orchestrate.sh copied into <dir> from the scratch root, with no
+# stdin, its stdout and stderr in $work/out and $work/err; sets rc to its exit status.
+orchestrate() {
+  (cd "$work" && "$1/orchestrate.sh") < /dev/null > "$work/out" 2> "$work/err"
+  rc=$?
+}
+
 # 1. Every issue the solvable set holds gets one conductor, launched through
 #    run-conductor.sh with that issue's number, and the loop exits 0 once the set is empty.
 name="launches one conductor per solvable issue through run-conductor.sh and exits 0 on an empty set"
 export SOLVABLE="$work/solvable" LAUNCHES="$work/launches"
 printf '%s\n' 101 102 > "$SOLVABLE"
 : > "$LAUNCHES"
-(cd "$work" && "$scripts/orchestrate.sh") < /dev/null > "$work/out" 2> "$work/err"
-rc=$?
+orchestrate "$scripts"
 expected="$(printf '%s\n' 101 102)"
 actual="$(cat "$LAUNCHES")"
 if [[ "$rc" -eq 0 && "$actual" == "$expected" ]]; then
@@ -80,8 +86,7 @@ chmod +x "$broken"/*.sh
 export SOLVABLE="$work/solvable-broken" LAUNCHES="$work/launches-broken"
 printf '%s\n' 201 > "$SOLVABLE"
 : > "$LAUNCHES"
-(cd "$work" && "$broken/orchestrate.sh") < /dev/null > "$work/out" 2> "$work/err"
-rc=$?
+orchestrate "$broken"
 launched="$(wc -l < "$LAUNCHES" | tr -d ' ')"
 if [[ "$rc" -eq 2 && "$launched" -eq 0 ]]; then
   pass=$((pass + 1))
