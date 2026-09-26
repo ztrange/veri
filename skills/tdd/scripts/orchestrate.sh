@@ -19,8 +19,15 @@
 # A conductor whose context has crossed VERI_CONDUCTOR_CTX_BUDGET (tokens, default 120000,
 # ~2.2x a conductor's 53k first request) is stopped only at a step boundary: once its stream
 # shows the Bash call to `event.sh step-done` and that call's result, orchestrate.sh stops
-# reading, and the conductor dies on its next write to the closed stream. Never mid-leaf —
-# a leaf killed in Red or Green leaves work a resume does not reset (#194).
+# reading and SIGTERMs the conductor's process group. Never mid-leaf — a leaf killed in Red
+# or Green leaves work a resume does not reset (#194).
+#
+# Closing the stream is not itself the stop. A write to a pipe no one reads raises SIGPIPE
+# only where SIGPIPE is fatal, and it is not everywhere: on CI's Linux the stopped conductor's
+# writes came back as plain `echo: I/O error` and it ran on to the end of its step, so the
+# case pinning "stopped after step-done" was green on this Mac and red there. The stop is
+# therefore an explicit signal to a recorded pid, which is why the launch goes through
+# bg_start and a session of its own rather than a pipeline (#424, #422).
 #
 # A conductor that halts with a question writes it to .tdd/parked/<n>.md. orchestrate.sh
 # prints `parked <n>`, leaves that run's branch and ledger as they are, and skips the issue on
@@ -33,6 +40,10 @@
 set -uo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# bg_start records the pid of what it starts, so the stop below names a process rather than a
+# row in a job table this shell may no longer have (#424).
+. "$HERE/lib/background.sh"
 
 budget="${VERI_CONDUCTOR_CTX_BUDGET:-120000}"
 if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
@@ -61,6 +72,28 @@ watch_context() {
   done
 }
 
+# launch <issue> <fifo>: become run-conductor.sh for <issue>, with its stdout on <fifo>, in a
+# session of its own. `exec` twice, so the pid bg_start recorded is the conductor's own and
+# nothing of this function is left in the process tree; os.setsid makes that pid a session and
+# so a process-group leader, which is what lets `stop` reach the `claude` the conductor forks.
+# python3's setsid rather than the binary, for the reason detach-leaf.sh:16 gives: macOS ships
+# no `setsid`. The fifo is what a pipeline would have been, and it exists so the pid is
+# knowable — `$!` in `a | b` names b.
+launch() {
+  exec > "$2"
+  exec python3 -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' \
+    "$HERE/run-conductor.sh" "$1"
+}
+
+# stop <pid>: end the conductor whose stream watch_context stopped reading. The signal goes to
+# the process GROUP, the way supervise.sh:155 sends it and with the same fallback to the pid
+# alone, because the conductor forks `claude`: a TERM to the conductor by itself would leave
+# that child alive, writing into a fifo nobody reads. A pid already gone is not an error — the
+# point of the call is that nothing of the conductor is left running.
+stop() {
+  kill -TERM -"$1" 2>/dev/null || kill -TERM "$1" 2>/dev/null || true
+}
+
 # parked <issue>: true when that issue's run halted with a question in .tdd/parked/<issue>.md.
 parked() { [[ -e ".tdd/parked/$1.md" ]]; }
 
@@ -77,6 +110,13 @@ while :; do
     parked "$n" || { issue=$n; break; }
   done <<< "$issues"
   [[ -n "$issue" ]] || exit 0
-  "$HERE/run-conductor.sh" "$issue" | watch_context "$issue"
+  run="$(mktemp -d)"
+  mkfifo "$run/stream"
+  : > "$run/bg"
+  bg_start "$run/bg" launch "$issue" "$run/stream"
+  read -r pid _ < "$run/bg"
+  watch_context "$issue" < "$run/stream"
+  stop "$pid"
+  rm -rf "$run"
   parked "$issue" && echo "parked $issue"
 done
