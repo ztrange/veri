@@ -99,6 +99,24 @@ else
   printf '%s' "$stop_bad"
 fi
 
+# 10. a budget crossing is not a bail (issue #452): `step-over-budget` and `over-budget` are
+#     unknown causes, exit 2 with nothing on stdout. A crossing is neither a system nor a
+#     process failure — the same line #390 draws for a stop — so this pins the script as not
+#     knowing the new words. One case: the two names are one contract.
+budget_name="budget crossing words are unknown causes, exit 2"
+budget_bad=""
+for cause in step-over-budget over-budget; do
+  out="$("$CLASSIFY" "$cause" 2>/dev/null)" && code=0 || code=$?
+  [[ "$code" == 2 && -z "$out" ]] || budget_bad+="    $cause: want exit 2 and no stdout, got exit $code, stdout '$out'"$'\n'
+done
+if [[ -z "$budget_bad" ]]; then
+  pass=$((pass + 1))
+else
+  fail=$((fail + 1))
+  echo "FAIL - $budget_name"
+  printf '%s' "$budget_bad"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
