@@ -1164,12 +1164,14 @@ rejects_rationale_comment "$refactor" verify-refactor
 # 50. verify-green and verify-refactor say a contract header or a shell-hazard warning is not
 #     grounds for REJECT (#500, criterion 4).
 problems=""
+not_reject='\b(not|never)\b[^.]{0,40}REJECT'
+contract='contract header' hazard='shell[^.]{0,40}hazard'
 for pair in "verify-green:$green" "verify-refactor:$refactor"; do
   phase="${pair%%:*}" prompt="${pair#*:}"
   prompt_says "$prompt" "$phase never says a contract header is not grounds for REJECT" \
-    -iE -e "contract header[^.]{0,200}\b(not|never)\b[^.]{0,40}REJECT|\b(not|never)\b[^.]{0,40}REJECT[^.]{0,200}contract header"
+    -iE -e "$contract[^.]{0,200}$not_reject|$not_reject[^.]{0,200}$contract"
   prompt_says "$prompt" "$phase never says a shell-hazard warning is not grounds for REJECT" \
-    -iE -e "shell[^.]{0,40}hazard[^.]{0,200}\b(not|never)\b[^.]{0,40}REJECT|\b(not|never)\b[^.]{0,40}REJECT[^.]{0,200}shell[^.]{0,40}hazard"
+    -iE -e "$hazard[^.]{0,200}$not_reject|$not_reject[^.]{0,200}$hazard"
 done
 [[ -z "$problems" ]] && ok \
   || no "a contract header or a shell-hazard warning is not grounds for REJECT (${problems#; })"
