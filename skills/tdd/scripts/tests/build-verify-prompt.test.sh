@@ -1142,6 +1142,17 @@ grep -F '_verify-plan-refactor.md' "$work/no-refactor-plan.err" > /dev/null \
 [[ -z "$problems" ]] \
   && ok || no "the refactor-plan paragraph is read by the plan phase alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
 
+# 51. verify-green REJECTs a rationale comment outside the two allowed classes (#500, criterion 3).
+problems=""
+prompt_says "$green" "verify-green never makes a rationale comment a REJECT" \
+  -iE -e "REJECT[^.]{0,200}rationale comment|rationale comment[^.]{0,200}REJECT"
+prompt_says "$green" "verify-green never names the contract header as an allowed comment" \
+  -iE -e "contract header"
+prompt_says "$green" "verify-green never names the shell-hazard warning as an allowed comment" \
+  -iE -e "shell[^.]{0,40}hazard"
+[[ -z "$problems" ]] && ok \
+  || no "verify-green REJECTs a rationale comment outside the two allowed classes (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
