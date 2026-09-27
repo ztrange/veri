@@ -68,9 +68,10 @@ verdict() {
   problems=""
 }
 
-# full_step <step> <dollars…> — the `usage` events of one completed step, one per leaf, each
-# carrying the dollars given, appended to the fixture log.
-full_step() {
+# step_leaves <step> <dollars…> — the `usage` events of one completed step, one per leaf,
+# each carrying the dollars given, appended to the fixture log. Six leaves make a full step
+# and two a pin (pin_step): the count is what run-affordable.sh tells them apart by.
+step_leaves() {
   local step="$1" d; shift
   for d in "$@"; do
     printf '{"ts": 1, "issue": "453", "actor": "developer", "phase": "red", "step": "%s", "event": "usage", "total_cost_usd": "%s"}\n' \
@@ -80,7 +81,7 @@ full_step() {
 
 # pin_step <step> — the two `usage` events of one pin, a step already satisfied: its red leaf
 # and its verify-pin, at 0.25 each, so the step costs 0.50 against a full step's six leaves.
-pin_step() { full_step "$1" 0.25 0.25; }
+pin_step() { step_leaves "$1" 0.25 0.25; }
 
 # 1. three completed full steps of six leaves each, costing 5.25, 7.50 and 9.75: spent is
 #    22.50 and the median full step 7.50, so four steps still to go project 22.50 + 4 × 7.50
@@ -88,9 +89,9 @@ pin_step() { full_step "$1" 0.25 0.25; }
 #    the four figures it decided on — spent, steps remaining, median and projection. No
 #    figure is another's substring, so each is read on its own.
 : > "$work/.tdd/events.jsonl"
-full_step "step one"   0.25 1.00 1.00 1.00 1.00 1.00
-full_step "step two"   0.50 1.00 1.50 1.50 1.50 1.50
-full_step "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
+step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
+step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
 run_affordable VERI_RUN_BUDGET=50 -- 4
 expect_code 1
 expect_figures 22.50 4 7.50 52.50
@@ -103,10 +104,10 @@ verdict "a projection over VERI_RUN_BUDGET exits 1 printing spent, steps remaini
 #    projection under the ceiling; so the sort and the even-count mean are both what this
 #    case needs.
 : > "$work/.tdd/events.jsonl"
-full_step "step one"   1.50 1.50 1.50 1.50 1.50 1.50
-full_step "step two"   0.50 0.50 0.50 0.50 0.50 0.50
-full_step "step three" 1.00 1.20 1.20 1.20 1.20 1.20
-full_step "step four"  0.50 0.90 0.90 0.90 0.90 0.90
+step_leaves "step one"   1.50 1.50 1.50 1.50 1.50 1.50
+step_leaves "step two"   0.50 0.50 0.50 0.50 0.50 0.50
+step_leaves "step three" 1.00 1.20 1.20 1.20 1.20 1.20
+step_leaves "step four"  0.50 0.90 0.90 0.90 0.90 0.90
 run_affordable VERI_RUN_BUDGET=50 -- 5
 expect_code 1
 expect_figures 24.00 5 6.00 54.00
@@ -116,9 +117,9 @@ verdict "the median of an even count of steps logged out of order is the mean of
 #    project 22.50 + 3 × 7.50 = 45.00, within a 50 ceiling. The run can afford to finish:
 #    exit 0, and stdout is empty, so a caller reads the answer from the code alone.
 : > "$work/.tdd/events.jsonl"
-full_step "step one"   0.25 1.00 1.00 1.00 1.00 1.00
-full_step "step two"   0.50 1.00 1.50 1.50 1.50 1.50
-full_step "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
+step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
+step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 0
 [[ -z "$out" ]] || problems+="    want empty stdout, got '$out'"$'\n'
@@ -131,12 +132,12 @@ verdict "a projection within VERI_RUN_BUDGET exits 0 printing nothing"
 #    only a median over the full steps, told apart by their leaf count, parks this run.
 : > "$work/.tdd/events.jsonl"
 pin_step  "pin one"
-full_step "step one"   1.00 1.00 1.00 1.00 1.00 1.00
+step_leaves "step one"   1.00 1.00 1.00 1.00 1.00 1.00
 pin_step  "pin two"
 pin_step  "pin three"
-full_step "step two"   1.00 1.00 1.50 1.50 1.50 1.50
+step_leaves "step two"   1.00 1.00 1.50 1.50 1.50 1.50
 pin_step  "pin four"
-full_step "step three" 1.50 1.50 1.75 1.75 1.75 1.75
+step_leaves "step three" 1.50 1.50 1.75 1.75 1.75 1.75
 pin_step  "pin five"
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 1
