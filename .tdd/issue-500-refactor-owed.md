@@ -1,0 +1,2 @@
+### The verify-refactor prompt tells the verifier to REJECT code carrying a rationale comment outside the two allowed classes ⟦criterion 3⟧
+- the comment-rule check text is duplicated verbatim between verify-green.md check 5 and verify-refactor.md check 9; sharing it needs a green/refactor-only fragment in build-verify-prompt.sh, since _shared.md reaches verify-red/plan/pin/rebase too — new generality no test requires
