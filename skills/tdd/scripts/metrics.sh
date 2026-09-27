@@ -191,6 +191,11 @@ CROSSED = "crossed at"
 # growth are two facts about the run, so the report keeps the word rather than a count.
 SPLIT = "split"
 
+# The two marks above keep one attribute each, so one table says which: the mark, the column
+# its cell lands in, and the attribute the cell is read from. The reading loop and the step
+# row both go through it, so the cell of a mark cannot come apart from the heading it prints under.
+CELL_MARKS = {"step-over-budget": (CROSSED, "spent"), "step-split": (SPLIT, "at")}
+
 # The two time columns, printed in both sections, in this order. The heading carries the
 # unit so the cell stays a bare number a reader can compare down the column. The wall column
 # is named apart because it is the one cell the two sections read differently: a phase is
@@ -532,13 +537,12 @@ for line in marks:
         mark["refactor"] = line.get("budget", "")
         mark["stopped"] = line.get("stopped", "")
         continue
-    # The cost-budget crossing (#452): what the step had spent when it crossed, kept as the
-    # figure rather than a flag, since a crossing at $12 and one at $28 are different findings.
-    if event == "step-over-budget" and step:
-        spent.setdefault(step, {})["crossed"] = line.get("spent", "")
-        continue
-    if event == "step-split" and step:
-        spent.setdefault(step, {})["split"] = line.get("at", "")
+    # The cost-budget crossing and the cause of a split (#452): what the step had spent when
+    # it crossed, kept as the figure rather than a flag, since a crossing at $12 and one at $28
+    # are different findings, and the `at=` its split carried.
+    if event in CELL_MARKS and step:
+        column, attribute = CELL_MARKS[event]
+        spent.setdefault(step, {})[column] = line.get(attribute, "")
         continue
     if event == "launch":
         count = "attempts"
@@ -626,7 +630,7 @@ def budget_cells(step):
 # `section` takes one reader for its text columns, and the step section has two groups of
 # them: this is the one, so the cells cannot come apart from the order the headings print in.
 def step_cells(step):
-    return [step_wall(step)] + budget_cells(step) + [spent.get(step, {}).get(key, "") for key in ("crossed", "split")]
+    return [step_wall(step)] + budget_cells(step) + [spent.get(step, {}).get(column, "") for column, _ in CELL_MARKS.values()]
 
 # The lines every table in this report opens with: a blank line, the heading, another blank,
 # the header row and the markdown alignment row under it. Both renderers below go through it
@@ -728,7 +732,7 @@ section("#### By phase", "phase", PHASE_COLUMNS, counts)
 # a reader reaches "what did this phase throw away" by way of what it spent.
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
-        ([WALL] + BUDGETS + [CROSSED, SPLIT], step_cells))
+        ([WALL] + BUDGETS + [column for column, _ in CELL_MARKS.values()], step_cells))
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
