@@ -474,10 +474,16 @@ probe_entry_is_in_the_table() {
 probe_guard_exempts_the_listed_site() {
   [[ "$guard_code" == 0 ]] ||
     problems+=("want the guard to pass over a site listed in its exemption table as [$1] with a reason; it exited $guard_code and said: $(flat "$guard_out")")
+  probe_guard_no_longer_names "$EXEMPT_OFFENDER:$offender_line" "$1"
+}
+
+# probe_guard_no_longer_names <site> <key> — the guard's output carries no line naming <site>,
+# which its exemption table lists as <key> with a reason.
+probe_guard_no_longer_names() {
   local named
-  named="$(grep -F "$EXEMPT_OFFENDER:$offender_line" <<< "$guard_out")"
+  named="$(grep -F "$1" <<< "$guard_out")"
   [[ -z "$named" ]] ||
-    problems+=("the guard still named $EXEMPT_OFFENDER:$offender_line, which its exemption table lists as [$1] with a reason: $(flat "$named")")
+    problems+=("the guard still named $1, which its exemption table lists as [$2] with a reason: $(flat "$named")")
 }
 
 # probe_guard_refuses_a_reasonless_entry <key> — the second half: an entry with no reason is
@@ -941,10 +947,7 @@ report "$name"
 # the guard's own case about the real recipe to find, and that case's verdict over this tree
 # is not what this one is about.
 probe_guard_exempts_the_listed_recipe() {
-  local named
-  named="$(grep -F "$MAKEFILE_NAME:$offender_line" <<< "$guard_out")"
-  [[ -z "$named" ]] ||
-    problems+=("the guard still named $MAKEFILE_NAME:$offender_line, which its exemption table lists as [$1] with a reason: $(flat "$named")")
+  probe_guard_no_longer_names "$MAKEFILE_NAME:$offender_line" "$1"
 }
 
 # 9. One criterion, one case (#524): a Makefile recipe site where leaving before EOF is the
