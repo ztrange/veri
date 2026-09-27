@@ -196,6 +196,8 @@ SPLIT = "split"
 # row both go through it, so the cell of a mark cannot come apart from the heading it prints under.
 CELL_MARKS = {"step-over-budget": (CROSSED, "spent"), "step-split": (SPLIT, "at")}
 
+KIND = "kind"
+
 # The two time columns, printed in both sections, in this order. The heading carries the
 # unit so the cell stays a bare number a reader can compare down the column. The wall column
 # is named apart because it is the one cell the two sections read differently: a phase is
@@ -497,6 +499,7 @@ for line in marks:
     # never writes `step-done` (SKILL.md, the verify-pin PASS branch).
     if event == "pin" and step:
         recovered.add(step)
+        spent.setdefault(step, {})[KIND] = "pin"
     # Time, off the two lines that carry it. An `exit` is also where a kill is counted
     # below, so this adds and lets the line fall through rather than classifying it.
     attempt_no = line.get("attempt", "")
@@ -630,7 +633,7 @@ def budget_cells(step):
 # `section` takes one reader for its text columns, and the step section has two groups of
 # them: this is the one, so the cells cannot come apart from the order the headings print in.
 def step_cells(step):
-    return [step_wall(step)] + budget_cells(step) + [spent.get(step, {}).get(column, "") for column, _ in CELL_MARKS.values()]
+    return [step_wall(step)] + budget_cells(step) + [spent.get(step, {}).get(column, "") for column, _ in CELL_MARKS.values()] + [spent.get(step, {}).get(KIND, "full")]
 
 # The lines every table in this report opens with: a blank line, the heading, another blank,
 # the header row and the markdown alignment row under it. Both renderers below go through it
@@ -732,7 +735,7 @@ section("#### By phase", "phase", PHASE_COLUMNS, counts)
 # a reader reaches "what did this phase throw away" by way of what it spent.
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
-        ([WALL] + BUDGETS + [column for column, _ in CELL_MARKS.values()], step_cells))
+        ([WALL] + BUDGETS + [column for column, _ in CELL_MARKS.values()] + [KIND], step_cells))
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
