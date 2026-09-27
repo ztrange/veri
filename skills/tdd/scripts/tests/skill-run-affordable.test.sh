@@ -56,13 +56,15 @@ cycle_loop() {
   awk '/^### 3\. The cycle loop/ { inside = 1; next } /^### 4\./ { inside = 0 } inside' "$skill_path"
 }
 
+# Both cases read the same cycle loop, and anchor on the same line of it: the call.
+loop="$(cycle_loop)"
+call_at="$(grep -n -m1 '\$S/run-affordable\.sh' <<<"$loop" | cut -d: -f1)"
+
 # 1. The step boundary asks run-affordable.sh, and parks on its exit 1 carrying the projection.
 name="$skill_md calls run-affordable.sh at the step boundary, after the step's ledger commit, with the count next-unchecked.sh implies, and parks on exit 1 carrying spent, steps remaining, the median, the projection, the ceiling and the two answers"
 problems=()
 
-loop="$(cycle_loop)"
 commit_at="$(grep -n -m1 'git commit -m "chore: refactor verified' <<<"$loop" | cut -d: -f1)"
-call_at="$(grep -n -m1 '\$S/run-affordable\.sh' <<<"$loop" | cut -d: -f1)"
 
 if [[ -z "$call_at" ]]; then
   problems+=("the cycle loop has no \$S/run-affordable.sh call")
@@ -89,7 +91,6 @@ report "$name"
 name="$skill_md says what the step boundary does when run-affordable.sh exits 3 (no full step done yet, carry on) or exits 2 (no answer could be obtained)"
 problems=()
 
-call_at="$(grep -n -m1 '\$S/run-affordable\.sh' <<<"$loop" | cut -d: -f1)"
 if [[ -z "$call_at" ]]; then
   problems+=("the cycle loop has no \$S/run-affordable.sh call")
 else
