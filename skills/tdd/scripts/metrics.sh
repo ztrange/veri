@@ -346,6 +346,8 @@ lost = {}
 # the first in every log where nobody re-exported the variable mid-run.
 spent = {}
 
+passes = {}
+
 # What each ATTEMPT cost, keyed by the three fields that identify one — its step, its phase
 # and its attempt number — so the developer leaf and the verifier that judged it land in one
 # bucket, which is what an attempt is. Kept beside the rows rather than added into them,
@@ -542,6 +544,7 @@ for line in marks:
         mark["transforms"] = line.get("transforms", "")
         mark["refactor"] = line.get("budget", "")
         mark["stopped"] = line.get("stopped", "")
+        passes[(step, line.get("pass", ""))] = line
         continue
     # The cost-budget crossing and the cause of a split (#452): what the step had spent when
     # it crossed, kept as the figure rather than a flag, since a crossing at $12 and one at $28
@@ -744,6 +747,10 @@ print()
 print("The figure comparable across runs is turns, the same measurement on any model; dollars "
       "are not comparable, the same measurement only at the same VERI_MODEL, "
       "VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.")
+if passes:
+    table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped"], ["---:", "---:", "---"])
+    for (step, index), mark in passes.items():
+        row([step, index, "%s/%s" % (mark["transforms"], mark["budget"]), mark["stopped"]])
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
