@@ -1161,6 +1161,19 @@ rejects_rationale_comment() {
 rejects_rationale_comment "$green" verify-green
 rejects_rationale_comment "$refactor" verify-refactor
 
+# 50. verify-green and verify-refactor say a contract header or a shell-hazard warning is not
+#     grounds for REJECT (#500, criterion 4).
+problems=""
+for pair in "verify-green:$green" "verify-refactor:$refactor"; do
+  phase="${pair%%:*}" prompt="${pair#*:}"
+  prompt_says "$prompt" "$phase never says a contract header is not grounds for REJECT" \
+    -iE -e "contract header[^.]{0,200}\b(not|never)\b[^.]{0,40}REJECT|\b(not|never)\b[^.]{0,40}REJECT[^.]{0,200}contract header"
+  prompt_says "$prompt" "$phase never says a shell-hazard warning is not grounds for REJECT" \
+    -iE -e "shell[^.]{0,40}hazard[^.]{0,200}\b(not|never)\b[^.]{0,40}REJECT|\b(not|never)\b[^.]{0,40}REJECT[^.]{0,200}shell[^.]{0,40}hazard"
+done
+[[ -z "$problems" ]] && ok \
+  || no "a contract header or a shell-hazard warning is not grounds for REJECT (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
