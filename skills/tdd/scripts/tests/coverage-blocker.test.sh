@@ -54,6 +54,22 @@ run_blocker() {
   env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$create" FAKE_OUT="$out" "$BLOCKER" "$@"
 }
 
+# expect_edit <case> <name> <body> <want> — runs coverage-blocker.sh on refactor issue #60 with
+# <body> as its current body, and passes when it exits 0 having written exactly <want>.
+expect_edit() {
+  local case="$1" name="$2" body="$3" want="$4" code new_body=""
+  local edited="$work/edited$case.body"
+  run_blocker "$body" "$work/create$case.args" "$edited" 60 >/dev/null 2>"$work/blocker$case.err" && code=0 || code=$?
+  [[ -f "$edited" ]] && new_body="$(cat "$edited")"
+  if [[ "$code" == 0 && "$new_body" == "$want" ]]; then
+    ok
+  else
+    no "$name (exit=$code want 0)
+$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$new_body"))
+$(cat "$work/blocker$case.err")"
+  fi
+}
+
 # solvable-issues.sh reads a run's claim off the main working tree of the repository it is run
 # in; a repository of the suite's own claims nothing, so only the fixture answers.
 no_claims="$work/no-claims"
@@ -117,10 +133,6 @@ None of the callers change.
 
 None (can start immediately).
 '
-edited2="$work/edited2.body"
-run_blocker "$body" "$work/create2.args" "$edited2" 60 >/dev/null 2>"$work/blocker2.err" && code=0 || code=$?
-new_body=""
-[[ -f "$edited2" ]] && new_body="$(cat "$edited2")"
 want='## What to build
 
 None of the callers change.
@@ -128,13 +140,7 @@ None of the callers change.
 ## Blocked by
 
 - #77'
-if [[ "$code" == 0 && "$new_body" == "$want" ]]; then
-  ok
-else
-  no "$name (exit=$code want 0)
-$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$new_body"))
-$(cat "$work/blocker2.err")"
-fi
+expect_edit 2 "$name" "$body" "$want"
 
 # 3. Called with no issue number, it refuses with exit 2 and a usage line, and files nothing.
 name="coverage-blocker with no issue number exits 2 with a usage line and files no issue"
@@ -164,10 +170,6 @@ Extract the parser.
 
 Test command: make test
 '
-edited4="$work/edited4.body"
-run_blocker "$body" "$work/create4.args" "$edited4" 60 >/dev/null 2>"$work/blocker4.err" && code=0 || code=$?
-new_body=""
-[[ -f "$edited4" ]] && new_body="$(cat "$edited4")"
 want='## What to build
 
 Extract the parser.
@@ -182,13 +184,7 @@ Extract the parser.
 - #30
 
 Test command: make test'
-if [[ "$code" == 0 && "$new_body" == "$want" ]]; then
-  ok
-else
-  no "$name (exit=$code want 0)
-$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$new_body"))
-$(cat "$work/blocker4.err")"
-fi
+expect_edit 4 "$name" "$body" "$want"
 
 echo "----"
 echo "$pass passed, $fail failed"
