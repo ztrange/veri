@@ -11,6 +11,6 @@
 - [x] a coverage-blocker script files an unlabelled coverage issue for the refactor issue and adds that new issue under the refactor issue's `## Blocked by` heading, replacing a `None` line, so solvable-issues.sh no longer lists the refactor issue ⟦criterion 5⟧
 - [x] coverage-blocker.sh blocks the refactor issue on the new coverage issue when its `## Blocked by` section already lists blockers (no `None` line), appending the new issue there ⟦added⟧ ⟦criterion 5⟧
 - [x] SKILL.md's Cover step on `COVERED: no` bails with cause `uncovered`, narrates the remedy (find a seam, surround the behaviour) and runs the coverage-blocker script ⟦criterion 5⟧
-- [ ] transform-touches-tests.sh exits 1 naming the file when any commit in `<base-sha>..HEAD` changes a test file, and exits 0 when none does ⟦criterion 6⟧
+- [x] transform-touches-tests.sh exits 1 naming the file when any commit in `<base-sha>..HEAD` changes a test file, and exits 0 when none does ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] SKILL.md's refactor-kind cycle runs Cover → Transform → Verify, rejects a transform whose commits touch a test file via transform-touches-tests.sh, and abandons a step by resetting to its base sha ⟦criterion 6⟧
 - [ ] SKILL.md's Draft PR step titles a run on an issue labelled `refactor` with the `refactor:` prefix, beside `fix:` and `feat:` ⟦criterion 7⟧
