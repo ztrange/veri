@@ -58,6 +58,24 @@ fi
 
 report "$name"
 
+pass_text="${section#*one structural pass}"
+
+name="$skill_md's structural pass checks each transform leaf's commits with transform-touches-tests.sh <base-sha> and has the blind transform verifier judge them against that base sha, one commit per transform"
+problems=()
+
+if [[ "$pass_text" == "$section" ]]; then
+  problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — how its transforms are checked could not be established")
+else
+  grep -F 'transform-touches-tests.sh <base-sha>' > /dev/null <<<"$pass_text" ||
+    problems+=("$skill_md's structural pass never runs transform-touches-tests.sh <base-sha> on a transform leaf's commits, so a structural transform that edits a test file is never rejected")
+  grep -F 'transform verifier against <base-sha>' > /dev/null <<<"$pass_text" ||
+    problems+=("$skill_md's structural pass never has the blind transform verifier judge a transform against its <base-sha>")
+  grep -F 'one commit per transform' > /dev/null <<<"$pass_text" ||
+    problems+=("$skill_md's structural pass never says one commit per transform")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

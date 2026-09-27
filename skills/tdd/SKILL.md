@@ -1459,7 +1459,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    Its prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
    `list` printed it, the test command and `<issue-touched-files>`, written to
    `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
-   `develop-structural`, then judged by the long
+   `develop-structural`. Its commits are checked with
+   `$S/transform-touches-tests.sh <base-sha>` — exit 1 rejects the transform, exit 2 is no
+   answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform. A
    `REJECT` resets to `<base-sha>` and moves on to the next candidate. No candidate — `list`
    exits 3 — skips the pass, with no bail.
