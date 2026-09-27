@@ -698,6 +698,12 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    step and is never handed to a developer leaf, which may not run another suite to produce
    it. Write it as one line, `- [ ] <criterion> ⟦human-owed⟧ ⟦criterion k⟧`, marked owed by a
    human.
+
+   A **refactor-kind** run — the spec carries the `## Refactor` section `capture-spec.sh`
+   writes for the `refactor` label — changes no behaviour, so it has no failing test to plan
+   around. Plan each step as one named refactoring whose criterion is a shell predicate,
+   false before the step and true after it: the smell being present is the step's Red. The
+   plan verifier REJECTs a refactor plan whose steps are not written that way.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
