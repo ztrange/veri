@@ -67,12 +67,17 @@ pass_text="${section#*one structural pass}"
 touches_phrase='transform-touches-tests.sh <base-sha>'
 verifier_phrase='transform verifier against <base-sha>'
 
+# missing_pass <what> — when the Draft PR step has no 'one structural pass', records that <what>
+# could not be established and succeeds; fails otherwise.
+missing_pass() {
+  [[ "$pass_text" == "$section" ]] || return 1
+  problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — $1 could not be established")
+}
+
 name="$skill_md's structural pass checks each transform leaf's commits with transform-touches-tests.sh <base-sha> and has the blind transform verifier judge them against that base sha, one commit per transform"
 problems=()
 
-if [[ "$pass_text" == "$section" ]]; then
-  problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — how its transforms are checked could not be established")
-else
+if ! missing_pass 'how its transforms are checked'; then
   require "$touches_phrase" "$pass_text" \
     "$skill_md's structural pass never runs transform-touches-tests.sh <base-sha> on a transform leaf's commits, so a structural transform that edits a test file is never rejected"
   require "$verifier_phrase" "$pass_text" \
@@ -92,9 +97,7 @@ offset() {
 name="$skill_md's structural pass runs transform-touches-tests.sh before the blind transform verifier, and both before the next candidate's structural leaf is launched"
 problems=()
 
-if [[ "$pass_text" == "$section" ]]; then
-  problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — the order of its checks could not be established")
-else
+if ! missing_pass 'the order of its checks'; then
   touches="$(offset "$touches_phrase" "$pass_text")"
   verifier="$(offset "$verifier_phrase" "$pass_text")"
   next="$(offset 'before the next candidate' "$pass_text")"
@@ -110,9 +113,7 @@ report "$name"
 name="$skill_md's structural pass, when refactor-owed.sh list exits 3, is skipped with no bail and marks the log event.sh structural-pass stopped=nothing-structural"
 problems=()
 
-if [[ "$pass_text" == "$section" ]]; then
-  problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — how an empty pass ends could not be established")
-else
+if ! missing_pass 'how an empty pass ends'; then
   require 'event.sh structural-pass' "$pass_text" \
     "$skill_md's structural pass never writes an event.sh structural-pass mark, so a skipped pass leaves nothing in the log"
   require 'stopped=nothing-structural' "$pass_text" \
