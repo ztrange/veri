@@ -75,6 +75,13 @@ calls_event() {
   [[ "$1" =~ event\.sh[[:space:]]+"$2"([^a-z0-9-]|$) ]]
 }
 
+# exit_bullet_after <line> <code> — the line number of the first `- **exit <code> ` branch
+# bullet after line <line>, or nothing. The cost check's three branches are read this way by
+# every case that needs where one of them starts, so what counts as a branch is one decision.
+exit_bullet_after() {
+  awk -v from="$1" -v n="$2" 'NR > from && index($0, "- **exit " n " ") == 1 { print NR; exit }' "$ROOT/$skill_md"
+}
+
 # insertion_re — how this document spells a call to `add-ledger-step.sh`, as a regex over a
 # lowercased record: the call, not a mention. Every script the document orders run is written
 # `$S/<script>`, and preflight names `add-ledger-step.sh` bare while reading its budget, so the
@@ -464,7 +471,7 @@ else
   [[ "$shared" -ge 1 ]] ||
     problems+=("no top-level \`event.sh step-over-budget\` between $skill_md:$section_at and the over-budget answer's read at $skill_md:$read_at, so not every crossing — split, park or carry on — writes it")
   for outcome in 0 1 3; do
-    bullet_at="$(awk -v from="$section_at" -v n="$outcome" 'NR > from && index($0, "- **exit " n " ") == 1 { print NR; exit }' "$ROOT/$skill_md")"
+    bullet_at="$(exit_bullet_after "$section_at" "$outcome")"
     if [[ -z "$bullet_at" ]]; then
       problems+=("$skill_md's cost check has no \`- **exit $outcome\` branch — the crossing that takes it could not be read")
     elif [[ "$bullet_at" -le "$read_at" ]]; then
@@ -486,9 +493,9 @@ problems=()
 section_at="$(grep -m1 -nE "^#### The step's cost check" "$ROOT/$skill_md" | cut -d: -f1)"
 split_at="" park_at=""
 if [[ -n "$section_at" ]]; then
-  split_at="$(awk -v from="$section_at" 'NR > from && index($0, "- **exit 0 ") == 1 { print NR; exit }' "$ROOT/$skill_md")"
+  split_at="$(exit_bullet_after "$section_at" 0)"
   [[ -z "$split_at" ]] ||
-    park_at="$(awk -v from="$split_at" 'NR > from && index($0, "- **exit 1 ") == 1 { print NR; exit }' "$ROOT/$skill_md")"
+    park_at="$(exit_bullet_after "$split_at" 1)"
 fi
 if [[ -z "$split_at" || -z "$park_at" ]]; then
   problems+=("$skill_md's cost check has no \`- **exit 0\` branch followed by an \`- **exit 1\` one — where the cost-driven split's mark belongs could not be read")
