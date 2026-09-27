@@ -39,10 +39,9 @@ nothing; write `None (can start immediately).` when there is none.
 End every issue's body with a final `Test command:` line naming the command that runs the
 repository's tests — the line veri reads to know how to run them, so nothing may follow it.
 
-A candidate with no checkable predicate — nothing about the tree that is true or false and a
-check could settle — is not filed: an issue whose criteria no verifier can hold the code
-against is one veri cannot finish. File nothing for it, and say which candidate you skipped,
-by name, and the reason it was skipped, so a dropped candidate never reads as a complete
-filing.
+A candidate with no checkable predicate, in the sense above, is not filed: an issue whose
+criteria no verifier can hold the code against is one veri cannot finish. File nothing for
+it, and say which candidate you skipped, by name, and the reason it was skipped, so a dropped
+candidate never reads as a complete filing.
 
 File each issue with `gh issue create`.
