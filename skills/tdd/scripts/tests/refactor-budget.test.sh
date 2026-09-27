@@ -253,6 +253,36 @@ SKILL.md-refactor|skills/tdd/SKILL.md|VERI_REFACTOR_BUDGET.{0,3} \(default [0-9]
 SITES
 report "$name"
 
+# 9. `--issue` bounds the per-issue structural pass by its own budget,
+#    VERI_ISSUE_REFACTOR_BUDGET (default 10), never by the per-step one: with the issue
+#    budget unset and VERI_REFACTOR_BUDGET=0, count 9 exits 0 and count 10 exits 3; a
+#    non-numeric or negative issue budget exits 2 with a diagnostic naming
+#    VERI_ISSUE_REFACTOR_BUDGET, the variable to fix; and without the flag the script still
+#    reads VERI_REFACTOR_BUDGET, whatever VERI_ISSUE_REFACTOR_BUDGET says.
+#    `problems` says which probe broke.
+name="--issue reads VERI_ISSUE_REFACTOR_BUDGET (default 10): exit 0 under it, 3 once spent, 2 on a bad value; without the flag VERI_REFACTOR_BUDGET still applies"
+problems=()
+# Each probe: <label> | <env assignments for the child> | <args> | <expected exit>
+#             | <text stderr must contain, or empty for no check>
+while IFS='|' read -r label envs args exp_code exp_err; do
+  [[ -n "$label" ]] || continue
+  read -ra env_words <<<"$envs"
+  read -ra arg_words <<<"$args"
+  err="$(env -u VERI_ISSUE_REFACTOR_BUDGET -u VERI_REFACTOR_BUDGET "${env_words[@]}" \
+    "$BUDGET" "${arg_words[@]}" 2>&1 >/dev/null)" && code=0 || code=$?
+  [[ "$code" == "$exp_code" ]] ||
+    problems+=("$label: want exit $exp_code, got $code")
+  [[ -z "$exp_err" || "$err" == *"$exp_err "* ]] ||
+    problems+=("$label: want stderr naming '$exp_err', got: $(printf '%q' "$err")")
+done <<'PROBES'
+--issue default count 9|VERI_REFACTOR_BUDGET=0|--issue 9|0|
+--issue default count 10|VERI_REFACTOR_BUDGET=0|--issue 10|3|
+--issue VERI_ISSUE_REFACTOR_BUDGET=two|VERI_ISSUE_REFACTOR_BUDGET=two|--issue 0|2|VERI_ISSUE_REFACTOR_BUDGET
+--issue VERI_ISSUE_REFACTOR_BUDGET=-1|VERI_ISSUE_REFACTOR_BUDGET=-1|--issue 0|2|VERI_ISSUE_REFACTOR_BUDGET
+no flag VERI_REFACTOR_BUDGET=2 count 2|VERI_REFACTOR_BUDGET=2 VERI_ISSUE_REFACTOR_BUDGET=20|2|3|
+PROBES
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
