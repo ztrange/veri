@@ -168,6 +168,25 @@ if has_skill_md; then
 fi
 report "$name"
 
+# 5. Criterion 4 of #501: a candidate with no checkable predicate — nothing about the tree
+#    that is true or false and a check could settle — is not filed, since an issue whose
+#    criteria no verifier can hold the code against is one veri cannot finish; and the skill
+#    says which candidate it skipped and why, so a silent drop never reads as a complete
+#    filing. Read as prose, like case 2.
+name="$skill_md files nothing for a candidate with no checkable predicate and says which it skipped and why"
+problems=()
+if has_skill_md; then
+  says '(no|without)[^.]{0,40}checkable predicates?' \
+    "$skill_md never names a candidate with no checkable predicate"
+  says 'checkable predicates?[^.]{0,120}(not|never|nothing)[^.]{0,20}files?|(not|never|nothing)[^.]{0,20}files?[^.]{0,120}checkable predicates?' \
+    "$skill_md never says a candidate with no checkable predicate is not filed"
+  says '(names?|says?|which)[^.]{0,80}skipped|skipped[^.]{0,80}(by name|which)' \
+    "$skill_md never says it names which candidate it skipped"
+  says 'skipped[^.]{0,120}(why|reason)|(why|reason)[^.]{0,120}skipped' \
+    "$skill_md never says why a candidate was skipped"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
