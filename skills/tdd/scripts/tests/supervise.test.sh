@@ -2043,12 +2043,16 @@ echo "leaf: awake again"; exit 0
 L
 chmod +x "$stub/leaf-slept-through"
 awake_spent=2
+# the exit event a slept-through leaf must leave: status 0, and secs the awake seconds plus at
+# most one — shared by case 50 and case 52, which runs the same leaf under a spy clock.
+slept_exit_ok() {
+  [[ "$1" == 0 ]] && [[ "$2" =~ ^[0-9]+$ ]] && (( $2 >= awake_spent && $2 <= awake_spent + 1 ))
+}
 slept_work="$work/slept"
 sup_run "$slept_work" VERI_HEARTBEAT=30 VERI_TIMEOUT=30 "$SUP" develop-red "$stub/leaf-slept-through"
 slept_status="$(event_field "$slept_work" exit status)"
 slept_secs="$(event_field   "$slept_work" exit secs)"
-{ [[ "$slept_status" == 0 ]] && [[ "$slept_secs" =~ ^[0-9]+$ ]] \
-  && (( slept_secs >= awake_spent && slept_secs <= awake_spent + 1 )); } && ok \
+slept_exit_ok "$slept_status" "$slept_secs" && ok \
   || no "#486: a leaf awake ${awake_spent}s and suspended 100s reports the awake seconds as its exit event's secs, not the wall seconds (status=$slept_status want 0, secs=$slept_secs want $awake_spent..$(( awake_spent + 1 )))"
 
 # 51. the clock-suspend stub never lets the injected awake clock run ahead of the true awake
@@ -2106,9 +2110,8 @@ sup_run "$across_work" VERI_AWAKE_CLOCK="$across_work/awake-spy" VERI_HEARTBEAT=
 across_status="$(event_field "$across_work" exit status)"
 across_secs="$(event_field   "$across_work" exit secs)"
 across_polls="$(grep -c '^yes yes$' "$across_work/.test-awake-spy" 2>/dev/null)"
-{ [[ "$across_polls" =~ ^[0-9]+$ ]] && (( across_polls >= 2 )) && [[ "$across_status" == 0 ]] \
-  && [[ "$across_secs" =~ ^[0-9]+$ ]] \
-  && (( across_secs >= awake_spent && across_secs <= awake_spent + 1 )); } && ok \
+{ [[ "$across_polls" =~ ^[0-9]+$ ]] && (( across_polls >= 2 )) \
+  && slept_exit_ok "$across_status" "$across_secs"; } && ok \
   || no "#512: case 50's slept-through leaf stays suspended across two watchdog polls before it exits 0, and still reports status 0 with secs in the awake range (polls while suspended=$across_polls want >=2, status=$across_status want 0, secs=$across_secs want $awake_spent..$(( awake_spent + 1 )))"
 
 echo "----"
