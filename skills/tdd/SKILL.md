@@ -1277,8 +1277,25 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      "$(gh issue view <n> --json body -q .body | sed -n '/^## Acceptance criteria/,/^## /s/^[[:space:]]*- \[[ x]\] //p' | sed -n '<k>p')"`, the human mirror); on exit **3** tick nothing, since a step serving it is
      still open or pending. Mark
      the same moment in the log —
-     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" $S/event.sh step-done` — then
-     loop back to the top of **step 3** for the next unchecked ledger step.
+     `VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(sed -n 's/^[[:space:]]*- \[x\] //p' .tdd/issue-<n>.md | tail -1)" $S/event.sh step-done`.
+     **Then ask whether the run can still afford to finish** — this step boundary is where
+     the run first knows what is left. When `next-unchecked.sh` exits 3 there is no next
+     step and nothing to ask; otherwise pass it the count of steps it has still to hand
+     over — the ledger's unchecked boxes under the same grammar, leaving out the
+     `⟦full-suite⟧` and `⟦human-owed⟧` lines it skips, since no cycle closes those and
+     counting them would overstate what is left and park a run about to finish:
+     ```
+     $S/next-unchecked.sh < .tdd/issue-<n>.md > /dev/null && $S/run-affordable.sh "$(grep '^[[:space:]]*- \[ \] ' .tdd/issue-<n>.md | grep -cvE ' ⟦(full-suite|human-owed)⟧ ⟦criterion [0-9]+⟧$')"
+     ```
+     On exit **0** loop back to the top of **step 3** for the next unchecked ledger step.
+     On exit **1** the projection is over the ceiling: **park the run** here, while parking
+     is still cheap — the ledger is committed, so a resume loses none of what was spent.
+     Post a `### ⏸️ Parked — run budget (needs the user)` comment carrying the projection
+     rather than the fact: the spent, steps remaining, median and projection figures
+     `run-affordable.sh` printed, the ceiling (`VERI_RUN_BUDGET`, the second line
+     `step-budget.sh` printed), and the two answers available — raise `VERI_RUN_BUDGET` and
+     resume, or split the issue, since a run projected far past its ceiling is usually one
+     whose issue was too big, a decision no leaf has the authority to make.
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
    - **Malformed / killed-stuck (exit 2):** **bail**. (Earlier steps' commits are preserved.)
