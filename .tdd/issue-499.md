@@ -14,4 +14,4 @@
 - [x] transform-touches-tests.sh exits 1 naming the file when any commit in `<base-sha>..HEAD` changes a test file, and exits 0 when none does ⟦criterion 6⟧
 - [x] transform-touches-tests.sh exits 2 with a diagnostic, never 0, when `<base-sha>` does not resolve to a commit ⟦added⟧ ⟦criterion 6⟧
 - [x] SKILL.md's refactor-kind cycle runs Cover → Transform → Verify, rejects a transform whose commits touch a test file via transform-touches-tests.sh, and abandons a step by resetting to its base sha ⟦criterion 6⟧
-- [x] SKILL.md's Draft PR step titles a run on an issue labelled `refactor` with the `refactor:` prefix, beside `fix:` and `feat:` ⟦criterion 7⟧ ⟂ refactor pending
+- [x] SKILL.md's Draft PR step titles a run on an issue labelled `refactor` with the `refactor:` prefix, beside `fix:` and `feat:` ⟦criterion 7⟧
