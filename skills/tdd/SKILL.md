@@ -1465,9 +1465,10 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `gh pr ready` is what turns the run's claim into a review request: a finished run that left
    a draft behind asks nobody to look.
    `<type>` is **`fix`** on a bug run — the issue carries the `bug` label, so the title
-   starts with the `fix:` prefix, the same prefix its green commits took — and `feat`
-   otherwise. A bug run's PR titled `feat:` announces to the human deciding the merge a
-   capability the run did not add.
+   starts with the `fix:` prefix, the same prefix its green commits took — **`refactor`** on
+   a refactor-kind run, the issue labelled `refactor`, so the title starts with the
+   `refactor:` prefix — and `feat` otherwise. A bug run's PR titled `feat:` announces to the
+   human deciding the merge a capability the run did not add, and so does a refactor run's.
    One `metrics:` commit, and the report sits beside the ledger it describes — the
    `issue-<n>-metrics.md` name is already on the keep side of the run-state ignore rule, so
    nothing else has to change for it to be tracked.
