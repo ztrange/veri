@@ -927,6 +927,46 @@ drop_tree
 
 report "$name"
 
+# probe_guard_exempts_the_listed_recipe <key> — the first half of case 9's criterion: a recipe
+# site listed in the table as `Makefile:<line>` with a reason is no longer named. Asked of the
+# output rather than the exit code, because the scratch tree carries no count-line check for
+# the guard's own case about the real recipe to find, and that case's verdict over this tree
+# is not what this one is about.
+probe_guard_exempts_the_listed_recipe() {
+  local named
+  named="$(grep -F "$MAKEFILE_NAME:$offender_line" <<< "$guard_out")"
+  [[ -z "$named" ]] ||
+    problems+=("the guard still named $MAKEFILE_NAME:$offender_line, which its exemption table lists as [$1] with a reason: $(flat "$named")")
+}
+
+# 9. One criterion, one case (#524): a Makefile recipe site where leaving before EOF is the
+#    point is exempted the way a suite's is — by an entry keyed `Makefile:<line>` carrying a
+#    reason — and an entry keyed that way with no reason still fails the run, named. The same
+#    plant as case 8 and the same two runs as case 3, for the reason case 3 gives.
+name="no-sigpipe-pipelines.test.sh stops naming a Makefile recipe site its exemption table lists as Makefile:<line> with a reason, and fails naming that entry when its reason is missing (#524)"
+begin_case
+
+if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_makefile_offender; then
+  if probe_makefile_plant_is_what_it_claims; then
+    exempt_key="$MAKEFILE_NAME:$offender_line"
+
+    exempt "$exempt_key" "$EXEMPT_REASON"
+    if probe_entry_is_in_the_table "$exempt_key"; then
+      run_guard
+      probe_guard_exempts_the_listed_recipe "$exempt_key"
+    fi
+
+    exempt "$exempt_key" ""
+    if probe_entry_is_in_the_table "$exempt_key"; then
+      run_guard
+      probe_guard_refuses_a_reasonless_entry "$exempt_key"
+    fi
+  fi
+fi
+drop_tree
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
