@@ -1,2 +1,4 @@
 ### capture-spec.sh appends a `## Refactor` section naming the refactor run kind when the issue carries the `refactor` label, and emits no such section for an issue without it ⟦criterion 1⟧
 - split capture-spec.test.sh case 4 into two cases (labelled / unlabelled) so the run_problems save-and-merge around the second run_spec disappears
+### build-verify-prompt.sh accepts a `transform` phase that takes the step's predicate record in the test-path slot and a hex base sha, and prints a prompt telling the verifier to judge `git diff <base-sha>..HEAD` rather than the files a green commit touched, while an unknown phase is still refused with exit 2 ⟦criterion 2⟧
+- the accepted-phase list is written twice in `build-verify-prompt.sh:77-78`, once as the `case` pattern and once in the exit-2 message. The duplication predates this cycle, which only appended `transform` to both copies, so it is left for a later tidy-up.
