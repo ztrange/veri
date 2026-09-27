@@ -2028,13 +2028,17 @@ CLAIMS
 #     the other. The leaf spends `$awake_spent` awake seconds (`clock-jump`, both clocks move),
 #     is then suspended 100 (`clock-suspend`, the wall clock alone moves), and exits 0 — so
 #     `secs` must be the awake seconds, plus at most one for a real second boundary landing
-#     between the two readings, never the ~100 of wall time the suspend added.
+#     between the two readings, never the ~100 of wall time the suspend added. The leaf waits
+#     out three polls while suspended, so at least two whole ones — `date` and the awake clock
+#     both — land inside the suspension before it exits (#512, case 52).
 cat > "$stub/leaf-slept-through" <<'L'
 #!/bin/sh
 echo "leaf: starting"
+: > .test-clock-reads
 clock-jump 2
 echo "leaf: busy"
 clock-suspend 100
+await-poll; await-poll; await-poll
 echo "leaf: awake again"; exit 0
 L
 chmod +x "$stub/leaf-slept-through"
@@ -2077,6 +2081,35 @@ suspend_ahead="$(awk '$1 > $2 { print "awake=" $1 " real=" $2 }' <<<"$suspend_re
 rm -rf "$suspend_probe"
 { [[ "$suspend_code" == 0 ]] && [[ -n "$suspend_reads" ]] && [[ -z "$suspend_ahead" ]]; } && ok \
   || no "#512: clock-suspend 100 never lets the awake clock read higher than the true awake seconds during its run (code=$suspend_code want 0, readings ahead of the real time: '${suspend_ahead//$'\n'/; }' want none, all readings: '${suspend_reads//$'\n'/; }')"
+
+# 52. case 50's slept-through leaf is still suspended when the watchdog looks, twice (issue
+#     #512). Case 51 makes the stub safe to poll across; this one makes sure a poll actually
+#     lands there, or case 50 would go on passing only because its leaf exits before any poll
+#     sees the suspension. Case 50's own leaf runs under a spy awake clock that runs the stub's
+#     and records, per read, whether ./.test-suspended exists yet and whether the leaf's rc file
+#     does: a read with the suspension recorded and no rc file is a watchdog poll made while the
+#     leaf is suspended and still running. There must be at least two, and the exit event must
+#     still say status 0 with the awake seconds as secs.
+across_work="$work/slept-across"
+mkdir -p "$across_work"
+cat > "$across_work/awake-spy" <<C
+#!/bin/sh
+suspended=no; running=yes
+[ -e .test-suspended ] && suspended=yes
+[ -e .tdd/develop-red.rc ] && running=no
+echo "\$suspended \$running" >> .test-awake-spy
+exec "$stub/awake-clock"
+C
+chmod +x "$across_work/awake-spy"
+sup_run "$across_work" VERI_AWAKE_CLOCK="$across_work/awake-spy" VERI_HEARTBEAT=30 VERI_TIMEOUT=30 \
+  "$SUP" develop-red "$stub/leaf-slept-through"
+across_status="$(event_field "$across_work" exit status)"
+across_secs="$(event_field   "$across_work" exit secs)"
+across_polls="$(grep -c '^yes yes$' "$across_work/.test-awake-spy" 2>/dev/null)"
+{ [[ "$across_polls" =~ ^[0-9]+$ ]] && (( across_polls >= 2 )) && [[ "$across_status" == 0 ]] \
+  && [[ "$across_secs" =~ ^[0-9]+$ ]] \
+  && (( across_secs >= awake_spent && across_secs <= awake_spent + 1 )); } && ok \
+  || no "#512: case 50's slept-through leaf stays suspended across two watchdog polls before it exits 0, and still reports status 0 with secs in the awake range (polls while suspended=$across_polls want >=2, status=$across_status want 0, secs=$across_secs want $awake_spent..$(( awake_spent + 1 )))"
 
 echo "----"
 echo "$pass passed, $fail failed"
