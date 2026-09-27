@@ -350,7 +350,7 @@ passes = {}
 open_passes = {}
 
 def open_pass(step):
-    return open_passes.setdefault(step, {"verdict": "", WALL: 0, DOLLARS: 0.0})
+    return open_passes.setdefault(step, {"verdict": "", "revise": 0, WALL: 0, DOLLARS: 0.0})
 
 # What each ATTEMPT cost, keyed by the three fields that identify one — its step, its phase
 # and its attempt number — so the developer leaf and the verifier that judged it land in one
@@ -552,6 +552,8 @@ for line in marks:
         # revised in two phases spent two budgets, not one (#488).
         per_phase = spent.setdefault(step, {}).setdefault("revise phases", {})
         per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
+        if phase == "refactor":
+            open_pass(step)["revise"] += 1
         continue
     if event == "refactor" and step:
         mark = spent.setdefault(step, {})
@@ -766,11 +768,11 @@ print("The figure comparable across runs is turns, the same measurement on any m
       "are not comparable, the same measurement only at the same VERI_MODEL, "
       "VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.")
 if passes:
-    table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", WALL, DOLLARS],
-               ["---:", "---:", "---", "---", "---:", "---:"])
+    table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", "revise", WALL, DOLLARS],
+               ["---:", "---:", "---", "---", "---:", "---:", "---:"])
     for (step, index), (mark, spent_by) in passes.items():
         row([step, index, "%s/%s" % (mark["transforms"], mark["budget"]), mark["stopped"],
-             spent_by["verdict"], figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
+             spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")

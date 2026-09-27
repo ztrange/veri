@@ -5,6 +5,6 @@
 - [x] A step whose log carries one `refactor` mark (with or without a `pass=` key) renders as it does today: its By-step row keeps the same refactor and stopped cells, and it appears once in the per-pass section ⟦criterion 2⟧
 - [x] Each per-pass row carries that pass's verify-refactor verdict, the wall seconds and the cost of that pass's refactor-phase leaves ⟦criterion 3⟧
 - [x] Each per-pass row carries its own verdict, wall seconds and cost on a log in the order SKILL.md writes it: that pass's refactor leaf, then its verify-refactor verdict, then the conductor's `refactor` mark for the pass ⟦added⟧ ⟦criterion 3⟧
-- [ ] Each per-pass row carries the count of refactor-phase revises spent in that pass
+- [x] Each per-pass row carries the count of refactor-phase revises spent in that pass ⟂ refactor pending
 - [ ] The per-pass section is part of metrics.sh's `### 📊 Metrics` block whichever mark ended the run — done, bail or stop — so it reaches the issue thread with the rest of the metrics ⟦criterion 4⟧
 - [ ] No existing table's key column or column names change, and the per-pass section adds no column named `kind` (prose says run kind) ⟦criterion 5⟧
