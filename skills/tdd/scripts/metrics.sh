@@ -512,12 +512,9 @@ for line in marks:
     # `revise` is not a leaf launch, so counting it as an attempt would double-count the
     # revise leaf that the mark is followed by.
     if event == "revise" and step:
-        mark = spent.setdefault(step, {})
-        mark["revises"] = mark.get("revises", 0) + 1
-        mark["revise"] = line.get("budget", "")
-        # REVISE_BUDGET is per phase, so the attempts are also kept per phase: a step
+        # REVISE_BUDGET is per phase, so the attempts are kept per phase: a step
         # revised in two phases spent two budgets, not one (#488).
-        per_phase = mark.setdefault("revise phases", {})
+        per_phase = spent.setdefault(step, {}).setdefault("revise phases", {})
         per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
         continue
     if event == "refactor" and step:
@@ -594,12 +591,15 @@ def step_wall(step):
 
 def budget_cells(step):
     mark = spent.get(step, {})
-    used = mark.get("revises")
-    revise = "%d/%s" % (used, mark.get("revise") or "?") if used else UNKNOWN
     phases = mark.get("revise phases", {})
     if len(phases) > 1:
         revise = ", ".join("%s %d/%s" % (phase, count, budget or "?")
                            for phase, (count, budget) in phases.items())
+    elif phases:
+        (count, budget), = phases.values()
+        revise = "%d/%s" % (count, budget or "?")
+    else:
+        revise = UNKNOWN
     if mark.get("refactor"):
         refactor = "%s/%s" % (mark.get("transforms") or "?", mark["refactor"])
     else:
