@@ -215,6 +215,24 @@ if has_skill_md; then
 fi
 report "$name"
 
+# 7. Criterion 5 of #501, triangulated: the re-run's check for an issue already filed must not
+#    rest on the issue's title. A title is edited by people — renamed, rephrased, the module
+#    spelled differently — and a lookup that searches titles for the module name then finds
+#    nothing and files the candidate a second time. So each filed issue carries an identity
+#    marker for its candidate in its body, the re-run looks for that marker, and the skill
+#    says the check does not depend on the title. Read as prose, like case 2.
+name="$skill_md recognises an already-filed candidate by a marker in the issue body, not by its title"
+problems=()
+if has_skill_md; then
+  says_near '(marker|identifier)' 'body' 120 \
+    "$skill_md never says each filed issue carries an identity marker in its body"
+  says_near '(search|look|find|match)[a-z]*' '(marker|identifier)' 120 \
+    "$skill_md never says the re-run looks for that marker"
+  says_near '(not|never)[^.]{0,40}(depend|rely|rest)[a-z]*' 'title' 80 \
+    "$skill_md never says the already-filed check does not depend on the issue title"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
