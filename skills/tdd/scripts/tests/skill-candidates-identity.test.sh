@@ -152,6 +152,22 @@ if has_skill_md; then
 fi
 report "$name"
 
+# 4. Criterion 3 of #501: every issue the skill files ends its body with a final
+#    `Test command:` line — the line veri reads to know how to run the issue's tests — and
+#    lists under `## Blocked by` only real blockers, since veri reads every #N there as one
+#    and would hold the issue back for a mere reference. Read as prose, like case 2.
+name="$skill_md ends every issue with a final Test command: line and lists only real blockers under ## Blocked by"
+problems=()
+if has_skill_md; then
+  says '(ends?|final|last)[^.]{0,80}test command:|test command:[^.]{0,80}(final|last) line' \
+    "$skill_md never says each issue ends with a final Test command: line"
+  says '## blocked by' \
+    "$skill_md never says the issue carries a ## Blocked by section"
+  says 'only real blockers?|real blockers? only' \
+    "$skill_md never says it lists only real blockers there"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

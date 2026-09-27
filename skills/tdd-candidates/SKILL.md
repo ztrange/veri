@@ -31,4 +31,12 @@ shape that are either true or false of the tree, such as "no module outside `bil
 imports `billing/internal`" — each carrying a runnable check where one exists: the command
 whose output settles the predicate, such as a `grep` that must find nothing.
 
+Under a `## Blocked by` heading, list only real blockers: an issue that must land before this
+one can start. veri reads every `#N` in that section as a blocker and holds the issue back
+until it closes, so a related issue mentioned there for context is a queue stalled for
+nothing; write `None (can start immediately).` when there is none.
+
+End every issue's body with a final `Test command:` line naming the command that runs the
+repository's tests — the line veri reads to know how to run them, so nothing may follow it.
+
 File each issue with `gh issue create`.
