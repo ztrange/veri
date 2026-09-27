@@ -30,6 +30,11 @@ report() {
   fi
 }
 
+# require <needle> <text> <problem> — records <problem> when <text> does not hold <needle>.
+require() {
+  grep -F -- "$1" > /dev/null <<<"$2" || problems+=("$3")
+}
+
 # before_ready — the Draft PR section's lines up to its first `gh pr ready`, backticks and
 # emphasis dropped and joined onto one line.
 before_ready() {
@@ -46,14 +51,14 @@ problems=()
 if [[ -z "${section// /}" ]]; then
   problems+=("$skill_md has no '### 4. Draft PR' section before a gh pr ready to read — where the structural pass runs could not be established")
 else
-  grep -F 'refactor-owed.sh list' > /dev/null <<<"$section" ||
-    problems+=("$skill_md's Draft PR step never runs refactor-owed.sh list before gh pr ready, so the recorded structural candidates are never taken up")
-  grep -F 'build-develop-prompt.sh structural' > /dev/null <<<"$section" ||
-    problems+=("$skill_md's Draft PR step never builds a build-develop-prompt.sh structural prompt before gh pr ready, so no structural transform leaf is launched")
-  grep -F 'refactor-touched.sh --issue' > /dev/null <<<"$section" ||
-    problems+=("$skill_md's Draft PR step never computes refactor-touched.sh --issue before gh pr ready, so the structural pass has no bounds")
-  grep -F 'refactor-budget.sh --issue' > /dev/null <<<"$section" ||
-    problems+=("$skill_md's Draft PR step never asks refactor-budget.sh --issue before gh pr ready, so the structural pass has no budget")
+  require 'refactor-owed.sh list' "$section" \
+    "$skill_md's Draft PR step never runs refactor-owed.sh list before gh pr ready, so the recorded structural candidates are never taken up"
+  require 'build-develop-prompt.sh structural' "$section" \
+    "$skill_md's Draft PR step never builds a build-develop-prompt.sh structural prompt before gh pr ready, so no structural transform leaf is launched"
+  require 'refactor-touched.sh --issue' "$section" \
+    "$skill_md's Draft PR step never computes refactor-touched.sh --issue before gh pr ready, so the structural pass has no bounds"
+  require 'refactor-budget.sh --issue' "$section" \
+    "$skill_md's Draft PR step never asks refactor-budget.sh --issue before gh pr ready, so the structural pass has no budget"
 fi
 
 report "$name"
@@ -66,12 +71,12 @@ problems=()
 if [[ "$pass_text" == "$section" ]]; then
   problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — how its transforms are checked could not be established")
 else
-  grep -F 'transform-touches-tests.sh <base-sha>' > /dev/null <<<"$pass_text" ||
-    problems+=("$skill_md's structural pass never runs transform-touches-tests.sh <base-sha> on a transform leaf's commits, so a structural transform that edits a test file is never rejected")
-  grep -F 'transform verifier against <base-sha>' > /dev/null <<<"$pass_text" ||
-    problems+=("$skill_md's structural pass never has the blind transform verifier judge a transform against its <base-sha>")
-  grep -F 'one commit per transform' > /dev/null <<<"$pass_text" ||
-    problems+=("$skill_md's structural pass never says one commit per transform")
+  require 'transform-touches-tests.sh <base-sha>' "$pass_text" \
+    "$skill_md's structural pass never runs transform-touches-tests.sh <base-sha> on a transform leaf's commits, so a structural transform that edits a test file is never rejected"
+  require 'transform verifier against <base-sha>' "$pass_text" \
+    "$skill_md's structural pass never has the blind transform verifier judge a transform against its <base-sha>"
+  require 'one commit per transform' "$pass_text" \
+    "$skill_md's structural pass never says one commit per transform"
 fi
 
 report "$name"
