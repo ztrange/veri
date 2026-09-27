@@ -58,9 +58,12 @@ cycle_loop() {
   awk '/^### 3\. The cycle loop/ { inside = 1; next } /^### 4\./ { inside = 0 } inside' "$skill_path"
 }
 
-# Both cases read the same cycle loop, and anchor on the same line of it: the call.
+# Every case reads the same cycle loop, and anchors on the same line of it: the call. Cases 2
+# and 3 read what follows it, from the call to the end of the loop.
 loop="$(cycle_loop)"
 call_at="$(grep -n -m1 '\$S/run-affordable\.sh' <<<"$loop" | cut -d: -f1)"
+after_call=""
+[[ -n "$call_at" ]] && after_call="$(sed -n "${call_at},\$p" <<<"$loop")"
 
 # 1. The step boundary asks run-affordable.sh, and parks on its exit 1 carrying the projection.
 name="$skill_md calls run-affordable.sh at the step boundary, after the step's ledger commit, with the count next-unchecked.sh implies, and parks on exit 1 carrying spent, steps remaining, the median, the projection, the ceiling and the two answers"
@@ -97,7 +100,7 @@ if [[ -z "$call_at" ]]; then
   problems+=("the cycle loop has no \$S/run-affordable.sh call")
 else
   # The boundary: from the call to the next verdict bullet, which belongs to verify-refactor.
-  boundary="$(sed -n "${call_at},\$p" <<<"$loop" | awk '/^[[:space:]]*- \*\*REJECT/ { exit } { print }' | plain)"
+  boundary="$(awk '/^[[:space:]]*- \*\*REJECT/ { exit } { print }' <<<"$after_call" | plain)"
   for probe in 'exit 3' 'no full step' 'exit 2' 'no answer'; do
     [[ "$boundary" == *"$probe"* ]] ||
       problems+=("the step boundary after the \$S/run-affordable.sh call never says '$probe'")
@@ -113,7 +116,7 @@ if [[ -z "$call_at" ]]; then
   problems+=("the cycle loop has no \$S/run-affordable.sh call")
 else
   # The park: from the exit 1 answer after the call up to the exit 2 answer, which is a bail.
-  park="$(sed -n "${call_at},\$p" <<<"$loop" | plain |
+  park="$(plain <<<"$after_call" |
     awk '/on exit 1/ { inside = 1 } /on exit 2/ { exit } inside')"
   if [[ -z "$park" ]]; then
     problems+=("the step boundary after the \$S/run-affordable.sh call has no exit 1 answer")
