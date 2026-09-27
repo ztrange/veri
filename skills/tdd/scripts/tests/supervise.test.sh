@@ -1879,7 +1879,7 @@ woke_with_own_exit() {
 #     report the leaf's own failure (exit 1, 3 in .rc), never killed-stuck (exit 2).
 cat > "$stub/clock-suspend" <<'C'
 #!/bin/sh
-clock-jump "$1" && echo "$1" >> .test-suspended
+echo "$1" >> .test-suspended && clock-jump "$1"
 C
 cat > "$stub/leaf-suspended" <<'L'
 #!/bin/sh
@@ -2046,6 +2046,33 @@ slept_secs="$(event_field   "$slept_work" exit secs)"
 { [[ "$slept_status" == 0 ]] && [[ "$slept_secs" =~ ^[0-9]+$ ]] \
   && (( slept_secs >= awake_spent && slept_secs <= awake_spent + 1 )); } && ok \
   || no "#486: a leaf awake ${awake_spent}s and suspended 100s reports the awake seconds as its exit event's secs, not the wall seconds (status=$slept_status want 0, secs=$slept_secs want $awake_spent..$(( awake_spent + 1 )))"
+
+# 51. the clock-suspend stub never lets the injected awake clock run ahead of the true awake
+#     seconds, not even between its own writes (issue #512). The awake clock is real time plus
+#     every jump minus every suspend, so a stub that appends the jump to ./.test-clock before it
+#     records the suspension in ./.test-suspended leaves a moment where the awake clock reads
+#     the whole suspend ahead — and a watchdog poll landing there kills case 50's leaf on the
+#     hard timeout. Here the stub runs alone, in a fresh directory where no second has been
+#     jumped or suspended, so the true awake seconds are the real time. A same-named
+#     `clock-jump` placed ahead of the stub's on PATH runs the real one and then reads the
+#     awake clock beside the real time, so the reading taken right after the jump is on record;
+#     one more reading follows the stub's exit. Every reading must be at most the real time.
+suspend_probe="$(mktemp -d)"
+mkdir -p "$suspend_probe/spy" "$suspend_probe/cwd"
+cat > "$suspend_probe/spy/clock-jump" <<C
+#!/bin/sh
+"$stub/clock-jump" "\$@" || exit \$?
+echo "\$("$stub/awake-clock") \$("$realdate" +%s)" >> .test-awake-reads
+C
+chmod +x "$suspend_probe/spy/clock-jump"
+( cd "$suspend_probe/cwd" && PATH="$suspend_probe/spy:$PATH" "$stub/clock-suspend" 100 \
+    && echo "$("$stub/awake-clock") $("$realdate" +%s)" >> .test-awake-reads )
+suspend_code=$?
+suspend_reads="$(cat "$suspend_probe/cwd/.test-awake-reads" 2>/dev/null)"
+suspend_ahead="$(awk '$1 > $2 { print "awake=" $1 " real=" $2 }' <<<"$suspend_reads")"
+rm -rf "$suspend_probe"
+{ [[ "$suspend_code" == 0 ]] && [[ -n "$suspend_reads" ]] && [[ -z "$suspend_ahead" ]]; } && ok \
+  || no "#512: clock-suspend 100 never lets the awake clock read higher than the true awake seconds during its run (code=$suspend_code want 0, readings ahead of the real time: '${suspend_ahead//$'\n'/; }' want none, all readings: '${suspend_reads//$'\n'/; }')"
 
 echo "----"
 echo "$pass passed, $fail failed"
