@@ -1287,7 +1287,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      ```
      $S/next-unchecked.sh < .tdd/issue-<n>.md > /dev/null && $S/run-affordable.sh "$(grep '^[[:space:]]*- \[ \] ' .tdd/issue-<n>.md | grep -cvE ' ⟦(full-suite|human-owed)⟧ ⟦criterion [0-9]+⟧$')"
      ```
-     On exit **0** loop back to the top of **step 3** for the next unchecked ledger step.
+     On exit **0** — or exit **3**, when no full step has completed yet and so there is no
+     median to project with — loop back to the top of **step 3** for the next unchecked
+     ledger step.
      On exit **1** the projection is over the ceiling: **park the run** here, while parking
      is still cheap — the ledger is committed, so a resume loses none of what was spent.
      Post a `### ⏸️ Parked — run budget (needs the user)` comment carrying the projection
@@ -1296,11 +1298,9 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
      `step-budget.sh` printed), and the two answers available — raise `VERI_RUN_BUDGET` and
      resume, or split the issue, since a run projected far past its ceiling is usually one
      whose issue was too big, a decision no leaf has the authority to make.
-     On exit **3** no full step has completed yet, so there is no median to project with:
-     loop back to the top of **step 3** as on exit 0. On exit **2** no answer could be
-     obtained — a missing event log, a bad `VERI_RUN_BUDGET`, a count that is not a whole
-     number — a system failure, not a projection: **bail**. (Earlier steps' commits are
-     preserved.)
+     On exit **2** no answer could be obtained — a missing event log, a bad
+     `VERI_RUN_BUDGET`, a count that is not a whole number — a system failure, not a
+     projection: **bail**. (Earlier steps' commits are preserved.)
    - **REJECT (exit 1):** enter the **revise loop**; on recovered PASS, mirror and loop; on
      budget-exhausted, **bail**. (Earlier steps' commits are preserved.)
    - **Malformed / killed-stuck (exit 2):** **bail**. (Earlier steps' commits are preserved.)
