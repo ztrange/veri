@@ -633,7 +633,8 @@ def budget_cells(step):
 # `section` takes one reader for its text columns, and the step section has two groups of
 # them: this is the one, so the cells cannot come apart from the order the headings print in.
 def step_cells(step):
-    return [step_wall(step)] + budget_cells(step) + [spent.get(step, {}).get(column, "") for column, _ in CELL_MARKS.values()] + [spent.get(step, {}).get(KIND, "full")]
+    mark = spent.get(step, {})
+    return [step_wall(step)] + budget_cells(step) + [mark.get(column, "") for column, _ in CELL_MARKS.values()] + [mark.get(KIND, "full")]
 
 # The lines every table in this report opens with: a blank line, the heading, another blank,
 # the header row and the markdown alignment row under it. Both renderers below go through it
