@@ -288,6 +288,9 @@ report "$name"
 probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader() {
   local site
   while IFS= read -r site; do
+    # A recipe site is exempted the way a suite's is, keyed `Makefile:<line>`; a key with no
+    # reason exempts nothing here, and case 1 fails the run naming it.
+    [[ -n "${EXEMPT[Makefile:${site%%:*}]:-}" ]] && continue
     problems+=("Makefile:${site%%:*} ends a pipeline in a reader that leaves before EOF, so the writer feeding it can die of SIGPIPE, complain and fail the recipe over an answer the reader already had: $(flat "${site#*:}")")
   done < <(grep -nE "$PIPE_INTO_READER" "$ROOT/Makefile")
   return 0
@@ -312,6 +315,10 @@ report "$name"
 # variables are asked of make through the `count-line-guard` target, as run-suite.sh does.
 probe_count_line_check_lets_its_writer_finish() {
   local check scratch status
+  if [[ ! -e "$ROOT/Makefile" ]]; then
+    echo "note: no Makefile at $ROOT, so no count-line check was run: nothing this case could ask about"
+    return 0
+  fi
   check="$(grep -m 1 'tail -n 1 "\$\$suite_out"' "$ROOT/Makefile")"
   if [[ -z "$check" ]]; then
     problems+=("no count-line check reading \"\$\$suite_out\" through tail was found in the Makefile, so the criterion went unasked")
