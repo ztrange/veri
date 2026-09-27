@@ -96,6 +96,40 @@ if [[ "$code" == 3 && -z "$out" ]]; then ok; else
   no "commit touching only .tdd/ → exit 3 and nothing on stdout (code=$code, stdout=$out)"
 fi
 
+# 4. `--issue <base>` → every file changed between <base> and HEAD outside `.tdd/`, comma-joined
+#    in `git diff --name-only` order, across several commits; exit 3 and nothing on stdout when
+#    everything after <base> is under `.tdd/`; exit 2 when <base> does not resolve. HEAD itself
+#    touches only the ledger, so reading HEAD's own commit instead of the range answers 3.
+repo="$(new_repo issue-range)"
+mkdir -p "$repo/.tdd" "$repo/lib" "$repo/src"
+printf -- '- [ ] a step\n' > "$repo/.tdd/issue-11.md"
+commit_all "$repo" "plan: scope #11"
+base="$(git -C "$repo" rev-parse HEAD)"
+printf 'zeta\n' > "$repo/src/zeta.sh"
+printf -- '- [x] a step\n' > "$repo/.tdd/issue-11.md"
+commit_all "$repo" "feat: a step (#11)"
+printf 'alpha\n' > "$repo/lib/alpha.test.sh"
+commit_all "$repo" "refactor: alpha (#11)"
+last_code="$(git -C "$repo" rev-parse HEAD)"
+printf -- '- [x] a step ⟂ done\n' > "$repo/.tdd/issue-11.md"
+commit_all "$repo" "chore: tick the ledger (#11)"
+out="$(cd "$repo" && "$TOUCHED" --issue "$base" 2>&1)"; code=$?
+none_out="$(cd "$repo" && "$TOUCHED" --issue "$last_code" 2>/dev/null)"; none_code=$?
+missing="deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+bad_err="$(cd "$repo" && "$TOUCHED" --issue "$missing" 2>&1 >/dev/null)"; bad_code=$?
+if [[ "$code" == 0 && "$out" == "lib/alpha.test.sh,src/zeta.sh" \
+   && "$none_code" == 3 && -z "$none_out" \
+   && "$bad_code" == 2 && "$bad_err" == *"$missing"* ]]; then ok; else
+  no "--issue <base> → base..HEAD files outside .tdd/ comma-joined, 3 when none, 2 when unresolvable (code=$code, stdout=$out; none_code=$none_code, none_out=$none_out; bad_code=$bad_code, bad_err=$bad_err)"
+fi
+
+# 5. `--issue` with no base → exit 2 naming the usage, nothing on stdout.
+out="$(cd "$repo" && "$TOUCHED" --issue 2>/dev/null)"; code=$?
+err="$(cd "$repo" && "$TOUCHED" --issue 2>&1 >/dev/null)"
+if [[ "$code" == 2 && -z "$out" && "$err" == *"usage: refactor-touched.sh"* ]]; then ok; else
+  no "--issue with no base → exit 2 with the usage (code=$code, stdout=$out, stderr=$err)"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
