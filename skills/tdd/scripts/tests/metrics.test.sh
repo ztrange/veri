@@ -2461,6 +2461,41 @@ revise_cell_spent "$spent_out" "$spent" red 2
 report_on "$name" "$spent_out"
 
 
+# revise_cell_is <file> <step> <want> — the step's revise cell reads exactly <want>.
+revise_cell_is() {
+  probe "$PROBE_PRELUDE"'
+path, step, want = sys.argv[1:4]
+header, row = located(tables_in(path), step, "a table", table_with)
+if row is not None:
+    i = column(header, "the revise attempts", lambda c: "revise" in c, step)
+    if i is not None:
+        cell = (row[i] if i < len(row) else "").strip()
+        if cell != want:
+            complain("step %r revise cell: want %r, got %r" % (step, want, cell))
+print("\n".join(problems))
+' "$@"
+}
+
+# A step that was never revised: a leaf launched, no `revise` mark. ADR-0014 keeps a figure no
+# mark supplied at `unknown` rather than `0`, and splitting the cell per phase must not turn an
+# absent phase list into an empty cell, a `0/?`, or anything else.
+fixture_work unrevised_work
+unrevised="a step with no revise marks"
+sv "$unrevised" 10000 conductor ""  step-start ""
+sv "$unrevised" 10010 developer red launch  1 '"name": "develop-red"'
+sv "$unrevised" 10020 conductor ""  step-done ""
+
+name="#488 a step with no revise marks renders its revise cell as unknown, as before"
+problems=()
+
+unrevised_out="$unrevised_work/report.md"
+render "$unrevised_work" "$unrevised_out"
+
+revise_cell_is "$unrevised_out" "$unrevised" unknown
+
+report_on "$name" "$unrevised_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
