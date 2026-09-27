@@ -848,9 +848,12 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   git reset --hard HEAD
   git clean -f -- <test-path>   # a test file Red created is untracked, so the reset leaves it
   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-split at=over-budget anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" added=<count>
   $S/add-ledger-step.sh .tdd/issue-<n>.md instead-of "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<criterion>' …   # every line of the answer in ONE call
   git add -A && git commit -m "plan: replace <STEP summary> with <count> smaller steps (#<n>)"
   ```
+  The `at=over-budget` is what tells this split apart from the other two causes that grow a
+  plan: a Green leaf volunteering one (no `at=`) and a spent revise budget (`at=exhausted`).
   Then loop back to `next-unchecked.sh`, which now hands over the first of them.
   **`add-ledger-step.sh` exit 1 → bail with cause `step-too-big`**, as it already is on the
   other two paths that grow a plan — see *Bailing*. The split shares `VERI_STEP_GROWTH` with

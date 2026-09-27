@@ -474,6 +474,42 @@ else
 fi
 report "$name"
 
+# 11. The cost-driven split's own spelling (issue #452): three causes now grow a plan — a Green
+#    leaf volunteering a split (no `at=`), a spent revise budget (`at=exhausted`, #408) and a
+#    crossed cost budget. Without a spelling of its own the third reads in the log as one of the
+#    other two. So the over-budget leaf's exit 0 branch — from its `- **exit 0` bullet under the
+#    cost-check heading up to the `- **exit 1` bullet after it — prescribes `event.sh step-split`
+#    carrying `at=over-budget`, and the revise-exhausted split's `step-split at=exhausted` is
+#    still spelled that way outside that branch.
+name="$skill_md's over-budget exit 0 branch writes step-split carrying at=over-budget, and the revise-exhausted split keeps at=exhausted"
+problems=()
+section_at="$(grep -m1 -nE "^#### The step's cost check" "$ROOT/$skill_md" | cut -d: -f1)"
+split_at="" park_at=""
+if [[ -n "$section_at" ]]; then
+  split_at="$(awk -v from="$section_at" 'NR > from && index($0, "- **exit 0 ") == 1 { print NR; exit }' "$ROOT/$skill_md")"
+  [[ -z "$split_at" ]] ||
+    park_at="$(awk -v from="$split_at" 'NR > from && index($0, "- **exit 1 ") == 1 { print NR; exit }' "$ROOT/$skill_md")"
+fi
+if [[ -z "$split_at" || -z "$park_at" ]]; then
+  problems+=("$skill_md's cost check has no \`- **exit 0\` branch followed by an \`- **exit 1\` one — where the cost-driven split's mark belongs could not be read")
+else
+  over_budget=0 exhausted=0 lineno=0
+  while IFS= read -r line; do
+    lineno=$((lineno + 1))
+    calls_event "$line" step-split || continue
+    if (( lineno > split_at && lineno < park_at )); then
+      [[ "$line" =~ event\.sh\ step-split.*[[:space:]]at=over-budget([[:space:]]|$) ]] && over_budget=$((over_budget + 1))
+    else
+      [[ "$line" =~ event\.sh\ step-split[[:space:]]+at=exhausted([[:space:]]|$) ]] && exhausted=$((exhausted + 1))
+    fi
+  done < "$ROOT/$skill_md"
+  [[ "$over_budget" -ge 1 ]] ||
+    problems+=("no \`event.sh step-split\` carrying \`at=over-budget\` in the over-budget exit 0 branch at $skill_md:$split_at–$park_at, so a cost-driven split reads in the log as another cause's")
+  [[ "$exhausted" -ge 1 ]] ||
+    problems+=("no \`event.sh step-split at=exhausted\` outside the over-budget branch, so the revise-exhausted split lost the spelling #408 gave it")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
