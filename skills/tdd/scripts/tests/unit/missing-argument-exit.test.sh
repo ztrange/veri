@@ -84,6 +84,7 @@ roster=(
   tick-ledger.sh
   tier-usual.sh
   timed-test-run.sh
+  transform-touches-tests.sh
   verify.sh
   wait-leaf.sh
 )
