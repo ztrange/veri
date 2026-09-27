@@ -78,6 +78,10 @@ full_step() {
   done
 }
 
+# pin_step <step> — the two `usage` events of one pin, a step already satisfied: its red leaf
+# and its verify-pin, at 0.25 each, so the step costs 0.50 against a full step's six leaves.
+pin_step() { full_step "$1" 0.25 0.25; }
+
 # 1. three completed full steps of six leaves each, costing 5.25, 7.50 and 9.75: spent is
 #    22.50 and the median full step 7.50, so four steps still to go project 22.50 + 4 × 7.50
 #    = 52.50, over a 50 ceiling. The run cannot afford to finish: exit 1, and stdout carries
@@ -119,6 +123,25 @@ run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 0
 [[ -z "$out" ]] || problems+="    want empty stdout, got '$out'"$'\n'
 verdict "a projection within VERI_RUN_BUDGET exits 0 printing nothing"
+
+# 4. three completed full steps costing 6.00, 8.00 and 10.00 among five pins of two leaves
+#    at 0.50 each: spent is 24.00 + 2.50 = 26.50 and the median full step 8.00, so three
+#    steps to go project 26.50 + 3 × 8.00 = 50.50, over a 50 ceiling — exit 1. A median over
+#    all eight steps is the mean of two pins, 0.50, projecting 28.00 under the ceiling; so
+#    only a median over the full steps, told apart by their leaf count, parks this run.
+: > "$work/.tdd/events.jsonl"
+pin_step  "pin one"
+full_step "step one"   1.00 1.00 1.00 1.00 1.00 1.00
+pin_step  "pin two"
+pin_step  "pin three"
+full_step "step two"   1.00 1.00 1.50 1.50 1.50 1.50
+pin_step  "pin four"
+full_step "step three" 1.50 1.50 1.75 1.75 1.75 1.75
+pin_step  "pin five"
+run_affordable VERI_RUN_BUDGET=50 -- 3
+expect_code 1
+expect_figures 26.50 3 8.00 50.50
+verdict "the median is over completed full steps only, so a log of mostly pins still projects at the full-step median"
 
 echo "----"
 echo "$pass passed, $fail failed"
