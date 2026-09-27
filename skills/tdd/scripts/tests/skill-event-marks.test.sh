@@ -75,6 +75,12 @@ calls_event() {
   [[ "$1" =~ event\.sh[[:space:]]+"$2"([^a-z0-9-]|$) ]]
 }
 
+# cost_check_at — the line number of the `#### The step's cost check` heading, or nothing: the
+# point every case reading the crossing's branches starts from.
+cost_check_at() {
+  grep -m1 -nE "^#### The step's cost check" "$ROOT/$skill_md" | cut -d: -f1
+}
+
 # exit_bullet_after <line> <code> — the line number of the first `- **exit <code> ` branch
 # bullet after line <line>, or nothing. The cost check's three branches are read this way by
 # every case that needs where one of them starts, so what counts as a branch is one decision.
@@ -459,7 +465,7 @@ report "$name"
 #    over-budget leaf's answer, and all three branch bullets have to come after that read.
 name="$skill_md writes step-over-budget on every crossing, before the branch that splits, parks or carries on"
 problems=()
-section_at="$(grep -m1 -nE "^#### The step's cost check" "$ROOT/$skill_md" | cut -d: -f1)"
+section_at="$(cost_check_at)"
 read_at="$(grep -m1 -nE 'exhausted-outcome\.sh < \.tdd/develop-over-budget\.out' "$ROOT/$skill_md" | cut -d: -f1)"
 if [[ -z "$section_at" || -z "$read_at" ]]; then
   problems+=("$skill_md has no cost-check section or no exhausted-outcome.sh read of the over-budget answer — where every crossing's mark belongs could not be read")
@@ -490,7 +496,7 @@ report "$name"
 #    still spelled that way outside that branch.
 name="$skill_md's over-budget exit 0 branch writes step-split carrying at=over-budget, and the revise-exhausted split keeps at=exhausted"
 problems=()
-section_at="$(grep -m1 -nE "^#### The step's cost check" "$ROOT/$skill_md" | cut -d: -f1)"
+section_at="$(cost_check_at)"
 split_at="" park_at=""
 if [[ -n "$section_at" ]]; then
   split_at="$(exit_bullet_after "$section_at" 0)"
