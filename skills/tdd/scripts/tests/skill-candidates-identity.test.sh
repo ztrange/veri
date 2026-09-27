@@ -70,6 +70,12 @@ says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
+# says_near <a> <b> <gap> <fact> — the body has <a> and <b> in one sentence, at most <gap>
+# characters apart, in either order.
+says_near() {
+  says "$1[^.]{0,$3}$2|$2[^.]{0,$3}$1" "$4"
+}
+
 # has_skill_md — true when the SKILL.md exists; otherwise records that as the case's problem,
 # so each case reports a missing file in the same words and reads nothing further.
 has_skill_md() {
@@ -119,7 +125,7 @@ report "$name"
 name="$skill_md files one issue per module from conversation candidates, criteria as predicates with a runnable check"
 problems=()
 if has_skill_md; then
-  says 'candidates?[^.]{0,120}conversation|conversation[^.]{0,120}candidates?' \
+  says_near 'candidates?' 'conversation' 120 \
     "$skill_md never says it takes the candidates from the conversation"
   says 'gh issue create' \
     "$skill_md never says how an issue is filed (gh issue create)"
@@ -127,11 +133,11 @@ if has_skill_md; then
     "$skill_md never says it files one issue per module"
   says '(not|never)[^.]{0,40}(one )?(issue )?per smell' \
     "$skill_md never says it does not file one issue per smell"
-  says 'acceptance criteri(on|a)[^.]{0,120}predicates?|predicates?[^.]{0,120}acceptance criteri(on|a)' \
+  says_near 'acceptance criteri(on|a)' 'predicates?' 120 \
     "$skill_md never says the acceptance criteria are phrased as predicates"
   says 'structural predicates?' \
     "$skill_md never says the predicates are structural"
-  says 'runnable check[^.]{0,80}where one exists|where one exists[^.]{0,80}runnable check' \
+  says_near 'runnable check' 'where one exists' 80 \
     "$skill_md never says each predicate carries a runnable check where one exists"
 fi
 report "$name"
@@ -143,7 +149,7 @@ report "$name"
 name="$skill_md reads the candidates from the analysis's HTML report path and files the same issues"
 problems=()
 if has_skill_md; then
-  says 'path[^.]{0,80}html report|html report[^.]{0,80}path' \
+  says_near 'path' 'html report' 80 \
     "$skill_md never says it accepts the path to the analysis's HTML report"
   says 'reads?[^.]{0,60}candidates?[^.]{0,60}(report|file)|candidates?[^.]{0,40}from (the|that) (html )?(report|file)' \
     "$skill_md never says it reads the candidates from that file"
@@ -178,11 +184,11 @@ problems=()
 if has_skill_md; then
   says '(no|without)[^.]{0,40}checkable predicates?' \
     "$skill_md never names a candidate with no checkable predicate"
-  says 'checkable predicates?[^.]{0,120}(not|never|nothing)[^.]{0,20}files?|(not|never|nothing)[^.]{0,20}files?[^.]{0,120}checkable predicates?' \
+  says_near 'checkable predicates?' '(not|never|nothing)[^.]{0,20}files?' 120 \
     "$skill_md never says a candidate with no checkable predicate is not filed"
   says '(names?|says?|which)[^.]{0,80}skipped|skipped[^.]{0,80}(by name|which)' \
     "$skill_md never says it names which candidate it skipped"
-  says 'skipped[^.]{0,120}(why|reason)|(why|reason)[^.]{0,120}skipped' \
+  says_near 'skipped' '(why|reason)' 120 \
     "$skill_md never says why a candidate was skipped"
 fi
 report "$name"
@@ -196,11 +202,11 @@ report "$name"
 name="$skill_md looks for an issue it already filed for a candidate and files no duplicate on a re-run"
 problems=()
 if has_skill_md; then
-  says '(re-?runs?|again|second (run|pass))[^.]{0,120}duplicates?|duplicates?[^.]{0,120}(re-?runs?|again|second (run|pass))' \
+  says_near '(re-?runs?|again|second (run|pass))' 'duplicates?' 120 \
     "$skill_md never says a re-run files no duplicate"
   says 'gh (issue list|search issues)' \
     "$skill_md never says how it finds the issues it already filed (gh issue list or gh search issues)"
-  says '(already filed|already exists?|existing issue)[^.]{0,120}(not|never|nothing)[^.]{0,20}files?|(not|never|nothing)[^.]{0,20}files?[^.]{0,120}(already filed|already exists?|existing issue)' \
+  says_near '(already filed|already exists?|existing issue)' '(not|never|nothing)[^.]{0,20}files?' 120 \
     "$skill_md never says a candidate whose issue already exists is not filed again"
 fi
 report "$name"
