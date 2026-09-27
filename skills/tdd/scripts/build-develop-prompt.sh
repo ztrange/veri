@@ -11,6 +11,8 @@
 #   build-develop-prompt.sh red      <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh green    <issue-spec-file> <step-text> <test-cmd> <test-path> <target> <fast-cmd>
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
+#   build-develop-prompt.sh cover     <issue-spec-file> <step-text> <test-cmd>
+#   build-develop-prompt.sh transform <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh exhausted <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh reconcile <issue-spec-file> <step-text> <test-cmd> <branch> <remote-sha>
@@ -43,7 +45,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 #
 # The phase list is spelled once, here, so the usage line and the unknown-phase refusal
 # below cannot name different sets.
-phases="red|green|refactor|revise|reconcile|exhausted|over-budget|rebase"
+phases="red|green|refactor|cover|transform|revise|reconcile|exhausted|over-budget|rebase"
 # Spelled once, and quoted back by both refusals below: a caller who dropped an argument
 # later than the phase word is as entitled to see the whole call as one who passed nothing.
 USAGE="build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
@@ -65,6 +67,10 @@ case "$phase" in
   red) want=4 ;;
   green) want=7 ;;
   refactor) want=5 ;;
+  # The refactor run kind's two developer phases (#499): Cover probes whether the code a step
+  # will move is covered, Transform applies the step's one named refactoring. Each takes only
+  # the three arguments every phase shares.
+  cover|transform) want=4 ;;
   revise) want=6 ;;
   reconcile) want=6 ;;
   # The phase a step reaches when its revise budget ran out (#408). It takes what `revise`
@@ -139,7 +145,7 @@ need test_cmd "${4:-}" '<test-cmd>'
 # has nothing yet to name, needs no branch body at all.
 test_path="" target="" fast_cmd="" touched="" reason_file="" refactor_budget="" branch="" remote_sha="" spent="" budget="" onto_sha="" pre_rebase_sha="" conflicting=""
 case "$phase" in
-  red) ;;
+  red|cover|transform) ;;
   green)
     need test_path "${5:-}" '<test-path>'
     need target "${6:-}" '<target-test>'
