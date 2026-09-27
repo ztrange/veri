@@ -1464,7 +1464,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    answer — then judged by the long
    refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
    both before the next candidate's leaf is launched. A `REJECT` resets to `<base-sha>` and moves on to the next candidate. No candidate — `list`
-   exits 3 — skips the pass, with no bail.
+   exits 3 — skips the pass with no bail, marking the log and going straight on to readying
+   the PR:
+   ```
+   VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh structural-pass stopped=nothing-structural
+   ```
 2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
    PR into its final form and mark it ready for review** — one sub-step, in this order, from
    inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
