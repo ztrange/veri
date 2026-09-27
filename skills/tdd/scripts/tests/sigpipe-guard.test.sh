@@ -1004,22 +1004,18 @@ probe_lines_loop() {
 # than by `write_plant`, whose probe slot is the condition of an `if` and so holds one
 # command, not a loop; the skeleton around it is the same, down to the count line.
 plant_loop_offender() {
-  open_tree "$1" || return 1
-  shift
-
-  write_loop_suite probe_lines_loop "$@"
-
-  seal_tree
+  plant_loop_suite probe_lines_loop "$@"
 }
 
-# write_loop_suite <emitter> <body-line>... — the loop suite itself, at `offender_path`: the
-# skeleton every loop plant shares, with the loop printed by <emitter> around the body lines
-# it is handed. The emitter is an argument because the loop plants differ in where the
-# writer feeding the loop sits — a process substitution after its `done`, or a pipe ahead of
-# its `while` — and in nothing else.
-write_loop_suite() {
+# plant_loop_suite <emitter> <suite-name> <body-line>... — the tree every loop plant shares:
+# one suite at `offender_path`, with the loop printed by <emitter> around the body lines it is
+# handed, and the guard. The emitter is an argument because the loop plants differ in where
+# the writer feeding the loop sits — a process substitution after its `done`, or a pipe ahead
+# of its `while` — and in nothing else.
+plant_loop_suite() {
   local emitter="$1"
-  shift
+  open_tree "$2" || return 1
+  shift 2
 
   {
     echo '#!/usr/bin/env bash'
@@ -1036,6 +1032,8 @@ write_loop_suite() {
     echo '[[ "$fail" -eq 0 ]]'
   } > "$offender_path"
   chmod 755 "$offender_path"
+
+  seal_tree
 }
 
 # probe_marked_line_closes_a_loop — the premise every loop plant shares: its marked line
@@ -1192,12 +1190,7 @@ probe_lines_piped_loop() {
 # plant_piped_loop_offender <suite-name> <body-line>... — a tree holding one suite that
 # declares `pipefail` and carries the pipe-fed loop with that body, and the guard.
 plant_piped_loop_offender() {
-  open_tree "$1" || return 1
-  shift
-
-  write_loop_suite probe_lines_piped_loop "$@"
-
-  seal_tree
+  plant_loop_suite probe_lines_piped_loop "$@"
 }
 
 # probe_piped_loop_plant_is_what_it_claims — the plant's premises: the marked line feeds a
