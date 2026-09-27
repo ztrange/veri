@@ -18,6 +18,10 @@ doing: that was the analysis's job, done before you were invoked.
 Take the candidates from the conversation: the analysis has just run in this session, and its
 list is what you shape.
 
+When you are handed the path to the analysis's HTML report instead — a cleared context has
+lost the list, and the report on disk is what is left of it — read the candidates from that
+file and file the same issues you would have filed from the conversation.
+
 File one issue per module, never one issue per smell. A single smell is one step of a plan,
 and a veri run's fixed overhead is too large to spend on one step; the smells a candidate
 names in one module become the steps of that module's issue.
