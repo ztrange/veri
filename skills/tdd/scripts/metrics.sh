@@ -530,10 +530,11 @@ for line in marks:
         add_seconds(phase, step, "API s",
                     int(line.get("duration_api_ms") or 0) // 1000)
         add_cost(phase, step, line)
+        dollars = float(line.get("total_cost_usd") or 0)
         if attempt is not None:
-            attempt[DOLLARS] += float(line.get("total_cost_usd") or 0)
+            attempt[DOLLARS] += dollars
         if phase == "refactor":
-            open_pass(step)[DOLLARS] += float(line.get("total_cost_usd") or 0)
+            open_pass(step)[DOLLARS] += dollars
         if line.get("actor") == "conductor":
             conductor_counted = True
     elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
