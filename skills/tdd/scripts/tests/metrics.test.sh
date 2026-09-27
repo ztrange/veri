@@ -3092,36 +3092,33 @@ print("\n".join(problems))
 fixture_work costs_work
 
 costed="a step whose two refactor passes each spent their own"
-pass_usage() {
-  printf '"duration_ms": "0", "duration_api_ms": "0", "num_turns": "3", "total_cost_usd": "%s", "input_tokens": "100", "output_tokens": "200", "cache_read_input_tokens": "300", "cache_creation_input_tokens": "400"' "$1"
-}
 
 sv "$costed" 70000 conductor ""       step-start ""
 sv "$costed" 70001 developer green    launch  1 '"name": "develop-green"'
 sv "$costed" 70001 developer green    exit    1 '"status": "0", "secs": "9"'
-sv "$costed" 70001 developer green    usage   1 "$(pass_usage 0.70)"
+sv "$costed" 70001 developer green    usage   1 "$(old_usage 0 3 0.70)"
 sv "$costed" 70002 developer refactor launch  1 '"name": "develop-refactor"'
 sv "$costed" 70008 developer refactor exit    1 '"status": "0", "secs": "6"'
-sv "$costed" 70008 developer refactor usage   1 "$(pass_usage 0.30)"
+sv "$costed" 70008 developer refactor usage   1 "$(old_usage 0 3 0.30)"
 sv "$costed" 70010 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
 sv "$costed" 70012 verifier  refactor launch  1 '"name": "verify-refactor"'
 sv "$costed" 70016 verifier  refactor exit    1 '"status": "0", "secs": "4"'
-sv "$costed" 70016 verifier  refactor usage   1 "$(pass_usage 0.20)"
+sv "$costed" 70016 verifier  refactor usage   1 "$(old_usage 0 3 0.20)"
 sv "$costed" 70016 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
 sv "$costed" 70050 developer green    launch  2 '"name": "develop-green"'
 sv "$costed" 70058 developer green    exit    2 '"status": "0", "secs": "8"'
-sv "$costed" 70058 developer green    usage   2 "$(pass_usage 0.60)"
+sv "$costed" 70058 developer green    usage   2 "$(old_usage 0 3 0.60)"
 sv "$costed" 70102 developer refactor launch  2 '"name": "develop-refactor"'
 sv "$costed" 70109 developer refactor exit    2 '"status": "0", "secs": "7"'
-sv "$costed" 70109 developer refactor usage   2 "$(pass_usage 0.25)"
+sv "$costed" 70109 developer refactor usage   2 "$(old_usage 0 3 0.25)"
 sv "$costed" 70110 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
 sv "$costed" 70112 verifier  refactor launch  2 '"name": "verify-refactor"'
 sv "$costed" 70117 verifier  refactor exit    2 '"status": "0", "secs": "5"'
-sv "$costed" 70117 verifier  refactor usage   2 "$(pass_usage 0.15)"
+sv "$costed" 70117 verifier  refactor usage   2 "$(old_usage 0 3 0.15)"
 sv "$costed" 70117 verifier  refactor verdict 2 '"verdict": "REJECT", "reason": "behaviour changed"'
 sv "$costed" 70118 verifier  green    launch  2 '"name": "verify-green"'
 sv "$costed" 70119 verifier  green    exit    2 '"status": "0", "secs": "3"'
-sv "$costed" 70119 verifier  green    usage   2 "$(pass_usage 0.05)"
+sv "$costed" 70119 verifier  green    usage   2 "$(old_usage 0 3 0.05)"
 sv "$costed" 70119 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the test is green"'
 sv "$costed" 70120 conductor ""       bail    "" '"cause": "revise-exhausted", "classification": "process"'
 
