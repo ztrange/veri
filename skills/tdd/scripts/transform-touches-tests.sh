@@ -9,11 +9,14 @@
 #
 # Usage:   transform-touches-tests.sh <base-sha>
 #
-# Exit: 1 naming each test file the range changed, 0 when it changed none.
+# Exit: 1 naming each test file the range changed, 0 when it changed none, 2 when
+# <base-sha> is missing or resolves to no commit — an unreadable range is no answer.
 set -euo pipefail
 
 [[ -n "${1:-}" ]] || { echo "usage: transform-touches-tests.sh <base-sha>" >&2; exit 2; }
 base="$1"
+git rev-parse --verify --quiet "$base^{commit}" > /dev/null \
+  || { echo "transform-touches-tests.sh: base-sha does not resolve to a commit: $base" >&2; exit 2; }
 
 touched="$(git log --format= --name-only "$base..HEAD" | grep -E '(^|/)tests/|\.test\.' | sort -u || true)"
 [[ -z "$touched" ]] && exit 0
