@@ -56,6 +56,15 @@ if [[ "$clean_code" == 0 && "$dirty_code" == 1 && "$dirty_out" == *"tests/widget
   no "transform range: production-only → exit 0; a test file changed → exit 1 naming it (clean code=$clean_code out=$clean_out; dirty code=$dirty_code out=$dirty_out)"
 fi
 
+# 2. a <base-sha> that resolves to no commit → exit 2 with a diagnostic naming it, never 0:
+#    an unreadable range is no answer, and reading it as "changed no test file" would pass a
+#    transform nothing checked.
+bogus="0123456789abcdef0123456789abcdef01234567"
+bad_out="$(cd "$repo" && "$TOUCHES" "$bogus" 2>&1)"; bad_code=$?
+if [[ "$bad_code" == 2 && "$bad_out" == *"$bogus"* ]]; then ok; else
+  no "unresolvable base-sha → exit 2 with a diagnostic naming it (code=$bad_code out=$bad_out)"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
