@@ -1491,7 +1491,8 @@ grep -E 'REJECT|VERDICT' <<<"$over_budget" > /dev/null && problems="$problems; n
 #     other phase leaves empty — so none of their prompts may change by a byte. Each call below
 #     is built with fixed inputs (the ones the cases above use) and reduced to a POSIX `cksum`,
 #     which prints the same on BSD and GNU; the expected sums are what the builder at
-#     9dffab38, the merge base #450 branched from, printed for the same calls. The scripts
+#     9dffab38, the merge base #450 branched from, printed for the same calls, plus the comment
+#     rule #500 added to every developer prompt. The scripts
 #     directory is the one part of a prompt that depends on where the clone sits — the
 #     `timed-test-run.sh` path is absolute — so it is replaced by a token before summing.
 #     `VERI_REFACTOR_BUDGET` is pinned for the refactor call, since that phase reads it.
@@ -1505,14 +1506,14 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
   got="$(printf '%s\n' "${out//"$scripts_dir"/@SCRIPTS@}" | cksum)"
   [[ "$got" == "$want" ]] || problems="$problems; $label renders as '$got', want '$want'"
 }
-renders_as red            '1517027772 9369'       red "$work/spec.md" "$step_text" "$test_cmd"
-renders_as green          '577147033 6274'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '1094439882 8028'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
-renders_as 'revise red'   '3876022551 6477'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise green' '3653834645 6479'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise refactor' '3271905 6482' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as exhausted      '2209251247 3101'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as reconcile      '833555540 4704'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
+renders_as red            '3136506101 9807'       red "$work/spec.md" "$step_text" "$test_cmd"
+renders_as green          '1497158245 6712'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
+renders_as refactor       '1857658530 8466'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as 'revise red'   '3515319556 6915'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise green' '2841114 6917'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise refactor' '1510446784 6920' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as exhausted      '3034833963 3539'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as reconcile      '4193057490 5142'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
 [[ -z "$problems" ]] \
   && ok || no "every phase other than over-budget renders byte-identically to before #450 (${problems#; })"
 
@@ -1578,6 +1579,30 @@ refuses "unknown phase beside cover/transform" "$BUILD" covers "$work/spec.md" "
 [[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
 [[ -z "$problems" ]] \
   && ok || no "cover and transform each print their own prompt carrying the step, and an unknown phase is still refused with exit 2 and no stdout (${problems#; })"
+
+# 49. every built developer prompt states the comment rule (issue #500, criterion 1): a
+#     comment is a contract header (usage line and exit-code table) or a succinct warning
+#     where the shell itself is the hazard, and nothing else is written.
+states_comment_rule() {  # states_comment_rule <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "develop-$label never names the contract header as an allowed comment" \
+    -iE -e 'contract header'
+  prompt_says "$prompt" "develop-$label never names the usage line and exit-code table" \
+    -iE -e 'usage line[^.]{0,40}exit[- ]code table'
+  prompt_says "$prompt" "develop-$label never allows a warning where the shell itself is the hazard" \
+    -iE -e 'warning[^.]{0,60}shell itself is the hazard'
+  prompt_says "$prompt" "develop-$label never requires a comment to be succinct" \
+    -iE -e 'succinct'
+  prompt_says "$prompt" "develop-$label never forbids rationale comments" \
+    -iE -e 'no rationale'
+  prompt_says "$prompt" "develop-$label never forbids issue archaeology" \
+    -iE -e 'no issue archaeology'
+  prompt_says "$prompt" "develop-$label never forbids restating the next line" \
+    -iE -e 'no restatement of the next line'
+}
+
+every_phase states_comment_rule \
+  "every built developer prompt states the comment rule: contract header or shell-hazard warning, succinct, nothing else"
 
 echo "----"
 echo "$pass passed, $fail failed"
