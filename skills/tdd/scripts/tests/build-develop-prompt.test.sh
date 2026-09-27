@@ -1492,7 +1492,7 @@ grep -E 'REJECT|VERDICT' <<<"$over_budget" > /dev/null && problems="$problems; n
 #     is built with fixed inputs (the ones the cases above use) and reduced to a POSIX `cksum`,
 #     which prints the same on BSD and GNU; the expected sums are what the builder at
 #     9dffab38, the merge base #450 branched from, printed for the same calls, plus the comment
-#     rule and rationale home #500 added to every developer prompt. The scripts
+#     rule and rationale home #500 added to every developer prompt and the refactor scope #503 narrowed. The scripts
 #     directory is the one part of a prompt that depends on where the clone sits — the
 #     `timed-test-run.sh` path is absolute — so it is replaced by a token before summing.
 #     `VERI_REFACTOR_BUDGET` is pinned for the refactor call, since that phase reads it.
@@ -1508,7 +1508,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 }
 renders_as red            '2493217892 9982'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '1771614540 6887'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '1632405217 8641'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as refactor       '2145869060 8816'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '2544846531 7090'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '3729173025 7092'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise refactor' '3524891017 7095' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
@@ -1618,6 +1618,25 @@ states_rationale_home() {  # states_rationale_home <phase label> <prompt>
 
 every_phase states_rationale_home \
   "every built developer prompt states where rationale goes instead of a comment: a test first, an ADR second, nowhere third"
+
+# 50. the per-step refactor keeps only duplication removal against code this cycle wrote
+#     (issue #503, criterion 1); every other structural transform waits for the per-issue
+#     pass, so the prompt names the three it withholds.
+problems=""
+says_both_ways "$refactor" "does not say to apply only duplication removal" \
+  30 'only' 'duplication removal'
+prompt_says "$refactor" "does not bound the duplication to code this cycle wrote" \
+  -iE -e 'duplication[^.]{0,80}(this|the) cycle wrote'
+prompt_says "$refactor" "does not say to apply no other structural transform" \
+  -iE -e '(no|never|not)[^.]{0,30}other structural transform'
+prompt_says "$refactor" "does not name extracting a module as withheld" \
+  -iE -e 'extract(ing)? a module'
+prompt_says "$refactor" "does not name moving behaviour as withheld" \
+  -iE -e 'mov(e|ing) behaviou?r'
+prompt_says "$refactor" "does not name renaming across files as withheld" \
+  -iE -e 'renam(e|ing)[^.]{0,20}across files'
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor applies only duplication removal against code this cycle wrote and no other structural transform: extract a module, move behaviour, rename across files (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"

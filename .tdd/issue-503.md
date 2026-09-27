@@ -1,6 +1,6 @@
 # Plan for #503 — the per-step refactor narrows to this cycle's duplication; structural work runs once per issue
 
-- [ ] build-develop-prompt.sh refactor prints a prompt telling the per-step leaf to apply only duplication removal against code this cycle wrote, and to apply no other structural transform (extract a module, move behaviour, rename across files) ⟦criterion 1⟧
+- [x] build-develop-prompt.sh refactor prints a prompt telling the per-step leaf to apply only duplication removal against code this cycle wrote, and to apply no other structural transform (extract a module, move behaviour, rename across files) ⟦criterion 1⟧ ⟂ refactor pending
 - [ ] The per-step refactor prompt tells the leaf to report every other structural candidate it sees as a `CANDIDATES: structural | …` line rather than apply it, and refactor-owed.sh append records such a line under the step's name ⟦criterion 2⟧
 - [ ] refactor-touched.sh given a base sha and `--issue` prints, comma-joined, every file changed between that base and HEAD outside `.tdd/`, exits 3 with empty stdout when there is none, and exits 2 when the base does not resolve ⟦criterion 3⟧
 - [ ] refactor-owed.sh list prints every recorded structural candidate of the run one per line, without the step headings, and exits 3 with empty stdout when the owed file is missing or holds none ⟦criterion 5⟧
