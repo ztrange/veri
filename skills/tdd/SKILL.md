@@ -708,6 +708,10 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    expects red, restores and reports `COVERED:` and `CAUGHT_BY:`. If
    `git status --porcelain` prints anything once it exits, refuse to continue — stop the
    run: the transform would otherwise commit the leftover mutation as a refactoring.
+   On `COVERED: no`, refuse the step: **bail with cause `uncovered`**, narrating the remedy —
+   find a seam and surround the behaviour with tests first — and run
+   `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,
+   so the queue cannot retake it only to refuse again.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`

@@ -17,6 +17,7 @@
 #   1. SKILL.md's Scope & plan section tells a refactor-kind run to plan each step as one named
 #      refactoring whose criterion is a shell predicate false before the step and true after it.
 #   2. The develop-cover prompt and SKILL.md's Cover step — see case 2's comment.
+#   3. SKILL.md's Cover step on `COVERED: no` — see case 3's comment.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -125,6 +126,31 @@ skill_text="$(plain < "$skill_path")"
 cover_near="$(window "$skill_text" '(develop-cover|cover (phase|step|leaf))')"
 if ! grep -F 'git status --porcelain' <<<"$cover_near" | grep -E 'refus|stop|bail|(not|never) (go on|continue)' > /dev/null; then
   problems+=("$skill_md never refuses to continue past Cover when git status --porcelain is non-empty afterwards, so a mutation the cover leaf left behind reaches the transform")
+fi
+report "$name"
+
+# 3. Cover answers `COVERED: no` (criterion 5). The code the step would move has no test
+#    that catches it breaking, so transforming it would be unverifiable. SKILL.md refuses:
+#    it bails with the cause `uncovered` (which classify-bail.sh maps to a methodology
+#    answer), says what the human should do next — find a seam and surround the behaviour
+#    with tests — and runs coverage-blocker.sh, which files the coverage issue and blocks
+#    the refactor issue on it so the queue cannot retake it only to refuse again.
+name="$skill_md's Cover step on COVERED: no bails with cause uncovered, narrates the remedy (find a seam, surround the behaviour) and runs coverage-blocker.sh"
+problems=()
+
+skill_text="$(plain < "$skill_path")"
+uncovered_near="$(window "$skill_text" 'covered: no')"
+if [[ -z "$uncovered_near" ]]; then
+  problems+=("$skill_md never says what a run does when Cover answers COVERED: no, so an uncovered refactor step goes on to transform code no test watches")
+else
+  grep -E 'bail[^.]*cause uncovered|cause uncovered' <<<"$uncovered_near" > /dev/null ||
+    problems+=("$skill_md's COVERED: no handling never bails with cause uncovered")
+  grep -E 'seam' <<<"$uncovered_near" > /dev/null ||
+    problems+=("$skill_md's COVERED: no handling never narrates the remedy of finding a seam")
+  grep -E 'surround' <<<"$uncovered_near" > /dev/null ||
+    problems+=("$skill_md's COVERED: no handling never narrates the remedy of surrounding the behaviour")
+  grep -F 'coverage-blocker.sh' <<<"$uncovered_near" > /dev/null ||
+    problems+=("$skill_md's COVERED: no handling never runs coverage-blocker.sh, so the refactor issue stays in the queue to be retaken and refused again")
 fi
 report "$name"
 
