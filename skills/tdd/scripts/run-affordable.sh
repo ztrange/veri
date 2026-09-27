@@ -26,13 +26,16 @@ steps="$("$HERE/step-cost.sh" --steps)"
 # The step costs sorted ascending, so the median is read by position. Every step counts
 # toward spent, but only a full step toward the median: a pin or an already-satisfied step
 # is two leaves (red and its verify), a full step more, and costs a quarter of one — so a
-# median over all steps would project a remainder cheaper than the one actually left. The
+# median over all steps would project a remainder cheaper than the one actually left. No
+# full step yet is exit 3, silent: there is no median to project with, and one borrowed
+# from elsewhere would be a claim about a repository, not about this run. The
 # comparison and the arithmetic are awk's: every figure is a decimal, and bash's arithmetic
 # is integer.
 sort -n <<< "$steps" | awk -v n="$remaining" -v ceiling="$ceiling" '
   { spent += $1 }
   $2 > 2 { cost[++full] = $1 }
   END {
+    if (!full) exit 3
     median = full % 2 ? cost[(full + 1) / 2] : (cost[full / 2] + cost[full / 2 + 1]) / 2
     projection = spent + n * median
     if (projection > ceiling) {
