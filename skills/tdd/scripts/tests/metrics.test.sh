@@ -3315,6 +3315,56 @@ done
 
 report_on "$name" "$ended_out"
 
+# headings_say <file> — every table the report carried before the per-pass section keeps its
+# heading, key column and column names, and the per-pass table carries no column named `kind`.
+headings_say() {
+  local out_file="$1"
+  probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+want = {
+    "#### By phase": ["phase", "attempts", "PASS", "REJECT", "kills", "wall s", "API s", "turns",
+                      "input", "output", "cache read", "cache creation", "$"],
+    "#### Rework and waste, by phase": ["phase", "rework wall s", "rework $", "waste wall s", "waste $"],
+    "#### By step": ["step", "attempts", "PASS", "REJECT", "kills", "retries", "no-verdict", "API s",
+                     "turns", "input", "output", "cache read", "cache creation", "$", "wall s",
+                     "revise", "refactor", "stopped", "crossed at", "split", "kind"],
+    "#### Total": ["run", "turns", "input", "output", "cache read", "cache creation", "$"],
+}
+lines = open(path).read().splitlines()
+def header_under(heading):
+    at = next((i for i, l in enumerate(lines) if l.strip() == heading), None)
+    if at is None:
+        return None
+    return next((cells(l) for l in lines[at + 1:] if l.strip().startswith("|")), None)
+for heading, columns in want.items():
+    got = header_under(heading)
+    if got != columns:
+        complain("want %r headed %s, got %s" % (heading, "|".join(columns), got and "|".join(got)))
+tier = header_under("#### Test-command seconds, by tier")
+if not tier or tier[0] != "tier":
+    complain("want the tier table keyed by tier, got %s" % (tier and "|".join(tier)))
+per_pass = [t for t in tables_in(path) if "pass" in t[0] and t[0][0] == "step"]
+if not per_pass:
+    complain("want a per-pass table keyed by step with a pass column, the report has none")
+for t in per_pass:
+    if any(c.lower() == "kind" for c in t[0]):
+        complain("want no kind column in the per-pass table, it is headed %s" % "|".join(t[0]))
+print("\n".join(problems))
+' "$out_file"
+}
+
+name="#502 no existing table's key or column names change, and the per-pass table has no kind column"
+problems=()
+
+fixture_work headed_work
+headed="a step with two refactor passes, read for its table headings"
+two_pass_log "$headed" verdict-first
+headed_out="$headed_work/report.md"
+render "$headed_work" "$headed_out"
+headings_say "$headed_out"
+
+report_on "$name" "$headed_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
