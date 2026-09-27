@@ -13,9 +13,10 @@
 # that never tells the planner to write one would have every refactor run pay for a REJECT
 # before its first step.
 #
-# Contract under test (this step only):
-#   SKILL.md's Scope & plan section tells a refactor-kind run to plan each step as one named
-#   refactoring whose criterion is a shell predicate false before the step and true after it.
+# Contract under test:
+#   1. SKILL.md's Scope & plan section tells a refactor-kind run to plan each step as one named
+#      refactoring whose criterion is a shell predicate false before the step and true after it.
+#   2. The develop-cover prompt and SKILL.md's Cover step — see case 2's comment.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -90,6 +91,40 @@ else
     grep -E 'true after' <<<"$near" > /dev/null ||
       problems+=("$skill_md's '$plan_heading' section never says the predicate is true after the step")
   fi
+fi
+report "$name"
+
+# 2. Cover (criterion 4). Before a refactoring moves code, a cover leaf proves some test
+#    catches that code breaking: it mutates the code by hand, runs the suite, expects red,
+#    restores the edit and proves the tree is as it found it, then reports `COVERED:` and
+#    `CAUGHT_BY:`. A leaf that forgets to restore leaves its mutation for the transform to
+#    commit as a "refactoring", so SKILL.md does not take its word for it: a non-empty
+#    `git status --porcelain` after Cover refuses the run rather than continuing.
+name="the develop-cover prompt tells the leaf to mutate, run the suite, expect red, restore and prove the tree unchanged, ending in COVERED: and CAUGHT_BY:; $skill_md refuses to continue past Cover on a non-empty git status --porcelain"
+problems=()
+
+cover_spec="$(mktemp)"
+printf 'QWIXTLE spec\n' > "$cover_spec"
+cover_raw="$("$HERE/../build-develop-prompt.sh" cover "$cover_spec" 'Extract Function QWIXTLE' 'make test' 2>/dev/null)"
+rm -f "$cover_spec"
+if [[ -z "$cover_raw" ]]; then
+  problems+=("build-develop-prompt.sh cover printed no prompt to read")
+else
+  cover="$(plain <<<"$cover_raw")"
+  grep -E 'mutat|break' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to mutate the code the step will move")
+  grep -E 'run the suite|run the (affected )?suites' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to run the suite")
+  grep -E 'expect red' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to expect red")
+  grep -E 'restore' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to restore the edit")
+  grep -E 'git diff --exit-code|git status --porcelain' <<<"$cover" > /dev/null || problems+=("the cover prompt never tells the leaf to prove the tree unchanged")
+  cover_tail="$(sed '/^[[:space:]]*$/d' <<<"$cover_raw" | tail -n 3)"
+  grep -E '^COVERED:' <<<"$cover_tail" > /dev/null || problems+=("the cover prompt's closing lines carry no COVERED: line")
+  grep -E '^CAUGHT_BY:' <<<"$cover_tail" > /dev/null || problems+=("the cover prompt's closing lines carry no CAUGHT_BY: line")
+fi
+
+skill_text="$(plain < "$skill_path")"
+cover_near="$(grep -oE '.{0,250}(develop-cover|cover (phase|step|leaf)).{0,250}' <<<"$skill_text")"
+if ! grep -F 'git status --porcelain' <<<"$cover_near" | grep -E 'refus|stop|bail|(not|never) (go on|continue)' > /dev/null; then
+  problems+=("$skill_md never refuses to continue past Cover when git status --porcelain is non-empty afterwards, so a mutation the cover leaf left behind reaches the transform")
 fi
 report "$name"
 
