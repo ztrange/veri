@@ -3162,6 +3162,63 @@ pass_costs_say "$ordered_out" "$ordered" "1=PASS,10,0.50" "2=REJECT,12,0.40"
 
 report_on "$name" "$ordered_out"
 
+# pass_revises_say <file> <step> <pass>=<revises> … — each per-pass row of a step carries the
+# refactor-phase revises spent in that pass, under a heading saying `revise`. The section is found
+# as passes_say finds it.
+pass_revises_say() {
+  local out_file="$1" step="$2"; shift 2
+  probe "$PROBE_PRELUDE$PASSES_PRELUDE"'
+path, step = sys.argv[1], sys.argv[2]
+wanted = sys.argv[3:]
+header, rows, at = pass_rows(path, step, wanted)
+revises = column(header, "the revises", lambda c: "revise" in c, step)
+if None not in (at, revises):
+    for arg in wanted:
+        index, want = arg.split("=", 1)
+        row = pass_row(rows, at, index, step)
+        if row is None:
+            continue
+        got = row[revises] if revises < len(row) else ""
+        if got != want:
+            complain("pass %s of step %r revises: want %r, got %r" % (index, step, want, got))
+
+print("\n".join(problems))
+' "$out_file" "$step" "$@"
+}
+
+# A step whose first refactor pass was revised once and whose second was revised twice, with a
+# green-phase revise between the passes, so a pass counting the other's revises, the step's
+# total, or a revise of another phase cannot pass.
+fixture_work revised_work
+
+revised="a step whose two refactor passes each spent their own revises"
+
+sv "$revised" 80000 conductor ""       step-start ""
+sv "$revised" 80010 verifier  refactor verdict 1 '"verdict": "REJECT", "reason": "behaviour changed"'
+sv "$revised" 80011 conductor refactor revise  1 '"budget": "3"'
+sv "$revised" 80020 verifier  refactor verdict 2 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$revised" 80021 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
+sv "$revised" 80030 verifier  green    verdict 2 '"verdict": "REJECT", "reason": "a second criterion was pinned in passing"'
+sv "$revised" 80031 conductor green    revise  1 '"budget": "3"'
+sv "$revised" 80040 verifier  green    verdict 3 '"verdict": "PASS", "reason": "the test is green"'
+sv "$revised" 80050 verifier  refactor verdict 3 '"verdict": "REJECT", "reason": "behaviour changed"'
+sv "$revised" 80051 conductor refactor revise  1 '"budget": "3"'
+sv "$revised" 80060 verifier  refactor verdict 4 '"verdict": "REJECT", "reason": "behaviour changed"'
+sv "$revised" 80061 conductor refactor revise  2 '"budget": "3"'
+sv "$revised" 80070 verifier  refactor verdict 5 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$revised" 80071 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
+sv "$revised" 80072 conductor ""       step-done ""
+
+name="#502 each per-pass row carries the count of refactor-phase revises spent in that pass"
+problems=()
+
+revised_out="$revised_work/report.md"
+render "$revised_work" "$revised_out"
+
+pass_revises_say "$revised_out" "$revised" "1=1" "2=2"
+
+report_on "$name" "$revised_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
