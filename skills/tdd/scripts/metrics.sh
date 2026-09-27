@@ -352,6 +352,10 @@ open_passes = {}
 def open_pass(step):
     return open_passes.setdefault(step, {"verdict": "", "revise": 0, WALL: 0, DOLLARS: 0.0})
 
+def settle_pass(step, current):
+    if current["verdict"] == "PASS" and current.get("marked"):
+        open_passes.pop(step)
+
 # What each ATTEMPT cost, keyed by the three fields that identify one — its step, its phase
 # and its attempt number — so the developer leaf and the verifier that judged it land in one
 # bucket, which is what an attempt is. Kept beside the rows rather than added into them,
@@ -542,8 +546,7 @@ for line in marks:
     if event == "verdict" and phase == "refactor":
         current = open_pass(step)
         current["verdict"] = line.get("verdict", "")
-        if current["verdict"] == "PASS" and current.get("marked"):
-            open_passes.pop(step)
+        settle_pass(step, current)
     # The conductor budget marks next, and they fall through to nothing below: a
     # `revise` is not a leaf launch, so counting it as an attempt would double-count the
     # revise leaf that the mark is followed by.
@@ -563,8 +566,7 @@ for line in marks:
         current = open_pass(step)
         passes[(step, line.get("pass", ""))] = (line, current)
         current["marked"] = True
-        if current["verdict"] == "PASS":
-            open_passes.pop(step)
+        settle_pass(step, current)
         continue
     # The cost-budget crossing and the cause of a split (#452): what the step had spent when
     # it crossed, kept as the figure rather than a flag, since a crossing at $12 and one at $28
