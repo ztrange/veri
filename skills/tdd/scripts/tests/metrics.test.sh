@@ -3085,39 +3085,56 @@ print("\n".join(problems))
 # so a pass showing the other's figures, or the step's sum, cannot pass. Green-phase leaves and
 # a green verdict of the same step sit before and between the passes and after the last
 # refactor verdict, so a pass that took a figure or a verdict from another phase cannot pass.
+#
+# two_pass_log <step> <mark-order> — the two passes below on the current fixture log, each
+# pass's conductor `refactor` mark written before its verify-refactor leaf (`mark-first`) or
+# after its verdict (`verdict-first`), the order SKILL.md writes.
+two_pass_log() {
+  local step="$1" order="$2"
+  sv "$step" 70000 conductor ""       step-start ""
+  sv "$step" 70001 developer green    launch  1 '"name": "develop-green"'
+  sv "$step" 70001 developer green    exit    1 '"status": "0", "secs": "9"'
+  sv "$step" 70001 developer green    usage   1 "$(old_usage 0 3 0.70)"
+  sv "$step" 70002 developer refactor launch  1 '"name": "develop-refactor"'
+  sv "$step" 70008 developer refactor exit    1 '"status": "0", "secs": "6"'
+  sv "$step" 70008 developer refactor usage   1 "$(old_usage 0 3 0.30)"
+  if [[ "$order" == mark-first ]]; then
+    sv "$step" 70010 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
+  fi
+  sv "$step" 70012 verifier  refactor launch  1 '"name": "verify-refactor"'
+  sv "$step" 70016 verifier  refactor exit    1 '"status": "0", "secs": "4"'
+  sv "$step" 70016 verifier  refactor usage   1 "$(old_usage 0 3 0.20)"
+  sv "$step" 70016 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
+  if [[ "$order" == verdict-first ]]; then
+    sv "$step" 70017 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
+  fi
+  sv "$step" 70050 developer green    launch  2 '"name": "develop-green"'
+  sv "$step" 70058 developer green    exit    2 '"status": "0", "secs": "8"'
+  sv "$step" 70058 developer green    usage   2 "$(old_usage 0 3 0.60)"
+  sv "$step" 70102 developer refactor launch  2 '"name": "develop-refactor"'
+  sv "$step" 70109 developer refactor exit    2 '"status": "0", "secs": "7"'
+  sv "$step" 70109 developer refactor usage   2 "$(old_usage 0 3 0.25)"
+  if [[ "$order" == mark-first ]]; then
+    sv "$step" 70110 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
+  fi
+  sv "$step" 70112 verifier  refactor launch  2 '"name": "verify-refactor"'
+  sv "$step" 70117 verifier  refactor exit    2 '"status": "0", "secs": "5"'
+  sv "$step" 70117 verifier  refactor usage   2 "$(old_usage 0 3 0.15)"
+  sv "$step" 70117 verifier  refactor verdict 2 '"verdict": "REJECT", "reason": "behaviour changed"'
+  if [[ "$order" == verdict-first ]]; then
+    sv "$step" 70118 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
+  fi
+  sv "$step" 70119 verifier  green    launch  2 '"name": "verify-green"'
+  sv "$step" 70120 verifier  green    exit    2 '"status": "0", "secs": "3"'
+  sv "$step" 70120 verifier  green    usage   2 "$(old_usage 0 3 0.05)"
+  sv "$step" 70120 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the test is green"'
+  sv "$step" 70121 conductor ""       bail    "" '"cause": "revise-exhausted", "classification": "process"'
+}
+
 fixture_work costs_work
 
 costed="a step whose two refactor passes each spent their own"
-
-sv "$costed" 70000 conductor ""       step-start ""
-sv "$costed" 70001 developer green    launch  1 '"name": "develop-green"'
-sv "$costed" 70001 developer green    exit    1 '"status": "0", "secs": "9"'
-sv "$costed" 70001 developer green    usage   1 "$(old_usage 0 3 0.70)"
-sv "$costed" 70002 developer refactor launch  1 '"name": "develop-refactor"'
-sv "$costed" 70008 developer refactor exit    1 '"status": "0", "secs": "6"'
-sv "$costed" 70008 developer refactor usage   1 "$(old_usage 0 3 0.30)"
-sv "$costed" 70010 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
-sv "$costed" 70012 verifier  refactor launch  1 '"name": "verify-refactor"'
-sv "$costed" 70016 verifier  refactor exit    1 '"status": "0", "secs": "4"'
-sv "$costed" 70016 verifier  refactor usage   1 "$(old_usage 0 3 0.20)"
-sv "$costed" 70016 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
-sv "$costed" 70050 developer green    launch  2 '"name": "develop-green"'
-sv "$costed" 70058 developer green    exit    2 '"status": "0", "secs": "8"'
-sv "$costed" 70058 developer green    usage   2 "$(old_usage 0 3 0.60)"
-sv "$costed" 70102 developer refactor launch  2 '"name": "develop-refactor"'
-sv "$costed" 70109 developer refactor exit    2 '"status": "0", "secs": "7"'
-sv "$costed" 70109 developer refactor usage   2 "$(old_usage 0 3 0.25)"
-sv "$costed" 70110 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
-sv "$costed" 70112 verifier  refactor launch  2 '"name": "verify-refactor"'
-sv "$costed" 70117 verifier  refactor exit    2 '"status": "0", "secs": "5"'
-sv "$costed" 70117 verifier  refactor usage   2 "$(old_usage 0 3 0.15)"
-sv "$costed" 70117 verifier  refactor verdict 2 '"verdict": "REJECT", "reason": "behaviour changed"'
-sv "$costed" 70118 verifier  green    launch  2 '"name": "verify-green"'
-sv "$costed" 70119 verifier  green    exit    2 '"status": "0", "secs": "3"'
-sv "$costed" 70119 verifier  green    usage   2 "$(old_usage 0 3 0.05)"
-sv "$costed" 70119 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the test is green"'
-sv "$costed" 70120 conductor ""       bail    "" '"cause": "revise-exhausted", "classification": "process"'
-
+two_pass_log "$costed" mark-first
 
 name="#502 each per-pass row carries that pass's verify-refactor verdict, wall seconds and cost"
 problems=()
@@ -3129,40 +3146,11 @@ pass_costs_say "$costs_out" "$costed" "1=PASS,10,0.50" "2=REJECT,12,0.40"
 
 report_on "$name" "$costs_out"
 
-# The same two passes on a log in the order SKILL.md writes them: each pass's refactor leaf,
-# then its verify-refactor verdict, and only then the conductor's `refactor` mark for the pass.
+# The same two passes on a log in the order SKILL.md writes them.
 fixture_work ordered_work
 
 ordered="a step whose refactor marks follow each pass's verdict"
-
-sv "$ordered" 80000 conductor ""       step-start ""
-sv "$ordered" 80001 developer green    launch  1 '"name": "develop-green"'
-sv "$ordered" 80001 developer green    exit    1 '"status": "0", "secs": "9"'
-sv "$ordered" 80001 developer green    usage   1 "$(old_usage 0 3 0.70)"
-sv "$ordered" 80002 developer refactor launch  1 '"name": "develop-refactor"'
-sv "$ordered" 80008 developer refactor exit    1 '"status": "0", "secs": "6"'
-sv "$ordered" 80008 developer refactor usage   1 "$(old_usage 0 3 0.30)"
-sv "$ordered" 80012 verifier  refactor launch  1 '"name": "verify-refactor"'
-sv "$ordered" 80016 verifier  refactor exit    1 '"status": "0", "secs": "4"'
-sv "$ordered" 80016 verifier  refactor usage   1 "$(old_usage 0 3 0.20)"
-sv "$ordered" 80016 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
-sv "$ordered" 80017 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
-sv "$ordered" 80050 developer green    launch  2 '"name": "develop-green"'
-sv "$ordered" 80058 developer green    exit    2 '"status": "0", "secs": "8"'
-sv "$ordered" 80058 developer green    usage   2 "$(old_usage 0 3 0.60)"
-sv "$ordered" 80102 developer refactor launch  2 '"name": "develop-refactor"'
-sv "$ordered" 80109 developer refactor exit    2 '"status": "0", "secs": "7"'
-sv "$ordered" 80109 developer refactor usage   2 "$(old_usage 0 3 0.25)"
-sv "$ordered" 80112 verifier  refactor launch  2 '"name": "verify-refactor"'
-sv "$ordered" 80117 verifier  refactor exit    2 '"status": "0", "secs": "5"'
-sv "$ordered" 80117 verifier  refactor usage   2 "$(old_usage 0 3 0.15)"
-sv "$ordered" 80117 verifier  refactor verdict 2 '"verdict": "REJECT", "reason": "behaviour changed"'
-sv "$ordered" 80118 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
-sv "$ordered" 80119 verifier  green    launch  2 '"name": "verify-green"'
-sv "$ordered" 80120 verifier  green    exit    2 '"status": "0", "secs": "3"'
-sv "$ordered" 80120 verifier  green    usage   2 "$(old_usage 0 3 0.05)"
-sv "$ordered" 80120 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the test is green"'
-sv "$ordered" 80121 conductor ""       bail    "" '"cause": "revise-exhausted", "classification": "process"'
+two_pass_log "$ordered" verdict-first
 
 name="#502 each per-pass row carries its own verdict, wall and cost when the mark follows the verdict"
 problems=()
