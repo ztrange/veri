@@ -101,6 +101,34 @@ else
 fi
 report "$name"
 
+# 2. Criterion 1 of #501: handed candidates in the conversation, the skill files one GitHub
+#    issue per module — not one per smell, since a single smell is one step and a run's fixed
+#    overhead is too large to spend on one — and each issue's acceptance criteria are
+#    structural predicates carrying a runnable check where one exists. Read as prose: the
+#    procedure is the whole of what the session filing the issues follows.
+name="$skill_md files one issue per module from conversation candidates, criteria as predicates with a runnable check"
+problems=()
+if [[ -f "$ROOT/$skill_md" ]]; then
+  text="$(body_text "$ROOT/$skill_md")"
+  says 'candidates?[^.]{0,120}conversation|conversation[^.]{0,120}candidates?' \
+    "$skill_md never says it takes the candidates from the conversation"
+  says 'gh issue create' \
+    "$skill_md never says how an issue is filed (gh issue create)"
+  says 'one (github )?issue per module' \
+    "$skill_md never says it files one issue per module"
+  says '(not|never)[^.]{0,40}(one )?(issue )?per smell' \
+    "$skill_md never says it does not file one issue per smell"
+  says 'acceptance criteri(on|a)[^.]{0,120}predicates?|predicates?[^.]{0,120}acceptance criteri(on|a)' \
+    "$skill_md never says the acceptance criteria are phrased as predicates"
+  says 'structural predicates?' \
+    "$skill_md never says the predicates are structural"
+  says 'runnable check[^.]{0,80}where one exists|where one exists[^.]{0,80}runnable check' \
+    "$skill_md never says each predicate carries a runnable check where one exists"
+else
+  problems+=("want a SKILL.md at $skill_md, found none")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
