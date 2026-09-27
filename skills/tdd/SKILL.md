@@ -1462,8 +1462,8 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    `develop-structural`. Its commits are checked with
    `$S/transform-touches-tests.sh <base-sha>` — exit 1 rejects the transform, exit 2 is no
    answer — then judged by the long
-   refactor's blind `transform` verifier against `<base-sha>`, one commit per transform. A
-   `REJECT` resets to `<base-sha>` and moves on to the next candidate. No candidate — `list`
+   refactor's blind `transform` verifier against `<base-sha>`, one commit per transform —
+   both before the next candidate's leaf is launched. A `REJECT` resets to `<base-sha>` and moves on to the next candidate. No candidate — `list`
    exits 3 — skips the pass, with no bail.
 2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
    PR into its final form and mark it ready for review** — one sub-step, in this order, from
