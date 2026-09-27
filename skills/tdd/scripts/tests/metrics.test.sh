@@ -2422,6 +2422,45 @@ revise_cell_within_budget "$twice_out" "$twice"
 report_on "$name" "$twice_out"
 
 
+# revise_cell_spent <file> <step> <phase> <budget> — the step's revise cell reads
+# `<budget>/<budget>`, the phase named before it or not: a step revised in one phase only has
+# no second phase to tell it from, which is why the step-wide spelling `3/3` still stands.
+revise_cell_spent() {
+  probe "$PROBE_PRELUDE"'
+path, step, phase, budget = sys.argv[1:5]
+header, row = located(tables_in(path), step, "a table", table_with)
+if row is not None:
+    i = column(header, "the revise attempts", lambda c: "revise" in c, step)
+    if i is not None:
+        cell = (row[i] if i < len(row) else "").strip()
+        if not re.fullmatch(r"(%s )?%s/%s" % (re.escape(phase), budget, budget), cell):
+            complain("step %r revise cell: want %s/%s, spent in %s, got %r"
+                     % (step, budget, budget, phase, cell))
+print("\n".join(problems))
+' "$@"
+}
+
+# A step that revised Red twice under a REVISE_BUDGET of two, and nothing else: the budget
+# genuinely spent, in one phase. Splitting the cell per phase must not turn it into less.
+fixture_work spent_work
+spent="a step that spent its revise budget in Red"
+sv "$spent" 9900 conductor ""  step-start ""
+sv "$spent" 9910 developer red launch  1 '"name": "develop-red"'
+sv "$spent" 9920 conductor red revise  1 '"budget": "2"'
+sv "$spent" 9930 conductor red revise  2 '"budget": "2"'
+sv "$spent" 9940 conductor ""  step-done ""
+
+name="#488 a step that revised one phase REVISE_BUDGET times renders that phase as 2/2"
+problems=()
+
+spent_out="$spent_work/report.md"
+render "$spent_work" "$spent_out"
+
+revise_cell_spent "$spent_out" "$spent" red 2
+
+report_on "$name" "$spent_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
