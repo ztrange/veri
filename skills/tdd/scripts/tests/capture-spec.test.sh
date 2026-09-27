@@ -28,11 +28,9 @@ trap 'rm -rf "$tmp"' EXIT
 # stdin: <dir>/body.md is that body, and <dir>/bin/gh is the stub `gh` run_spec puts first on
 # PATH. The two questions the script asks are answered from the environment the case sets: the
 # label question from $LABELS (the issue's label names, space-separated, or empty for an issue
-# that carries none) and the body question from $FIXTURES/body.md. The label answer applies
-# the script's own `-q` filter the one way the stub can: a label is printed when the call
-# names it in quotes (`select(.name == "bug")`), and every label when the call names none
-# (`.labels[].name`), so a question about `bug` is never answered `refactor`. `labels` is matched first, so a single call asking for both is
-# answered as the label question. A call it does not recognise is refused loudly rather than
+# that carries none, printed one per line as the script's `.labels[].name` filter does) and
+# the body question from $FIXTURES/body.md. `labels` is matched first, so a single call asking
+# for both is answered as the label question. A call it does not recognise is refused loudly rather than
 # answered with the body anyway, so a script that starts asking for something else fails here
 # instead of quietly reading the wrong fixture.
 new_fixture() {
@@ -41,14 +39,7 @@ new_fixture() {
   cat > "$1/bin/gh" <<'STUB'
 #!/bin/sh
 case "$*" in
-  *labels*)
-    for l in $LABELS; do
-      case "$*" in
-        *"\"$l\""*) echo "$l" ;;
-        *\"*) ;;
-        *) echo "$l" ;;
-      esac
-    done ;;
+  *labels*) for l in $LABELS; do echo "$l"; done ;;
   *body*) cat "$FIXTURES/body.md" ;;
   *) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
 esac
