@@ -132,6 +132,24 @@ else
 fi
 report "$name"
 
+# 3. Criterion 2 of #501: handed the path to the analysis's HTML report instead of candidates
+#    in the conversation — a cleared context has lost the list, and the report on disk is all
+#    that is left of it — the skill reads the candidates from that file and files the same
+#    issues it would have filed from the conversation. Read as prose, like case 2.
+name="$skill_md reads the candidates from the analysis's HTML report path and files the same issues"
+problems=()
+if [[ -f "$ROOT/$skill_md" ]]; then
+  says 'path[^.]{0,80}html report|html report[^.]{0,80}path' \
+    "$skill_md never says it accepts the path to the analysis's HTML report"
+  says 'reads?[^.]{0,60}candidates?[^.]{0,60}(report|file)|candidates?[^.]{0,40}from (the|that) (html )?(report|file)' \
+    "$skill_md never says it reads the candidates from that file"
+  says 'same issues?' \
+    "$skill_md never says it files the same issues it would have filed from the conversation"
+else
+  problems+=("want a SKILL.md at $skill_md, found none")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
