@@ -2675,6 +2675,44 @@ kind_cell_is "$sat_out" "$satisfied" already-satisfied
 report_on "$name" "$sat_out"
 
 
+# A pinned and a satisfied step that each launched many leaves, beside a full step whose log
+# holds only two leaf launches: the kind follows the step's marks, not how many leaves it ran.
+fixture_work leafcount_work
+many_pin="a pinned step that launched many leaves"
+many_sat="a satisfied step that launched many leaves"
+two_leaf="a full step with only two leaves in the log"
+for t in 20000 20100; do
+  step=$many_pin; [[ $t -eq 20100 ]] && step=$many_sat
+  sv "$step" "$t"         conductor ""    step-start ""
+  sv "$step" $((t + 10)) developer red   launch  1 '"name": "develop-red"'
+  sv "$step" $((t + 20)) verifier  red   launch  1 '"name": "verify-red"'
+  sv "$step" $((t + 30)) verifier  red   verdict 1 '"verdict": "REJECT", "reason": "passes already"'
+  sv "$step" $((t + 40)) developer red   launch  2 '"name": "revise-red"'
+  sv "$step" $((t + 50)) verifier  red   launch  2 '"name": "verify-red"'
+  sv "$step" $((t + 60)) verifier  red   verdict 2 '"verdict": "REJECT", "reason": "passes already"'
+  sv "$step" $((t + 70)) verifier  pin   launch  1 '"name": "verdict-pin"'
+  sv "$step" $((t + 80)) verifier  pin   verdict 1 '"verdict": "PASS", "reason": "already satisfied"'
+done
+sv "$many_pin" 20090 conductor pin pin ""
+sv "$two_leaf" 20200 conductor ""    step-start ""
+sv "$two_leaf" 20210 developer green launch  1 '"name": "develop-green"'
+sv "$two_leaf" 20220 verifier  green launch  1 '"name": "verify-green"'
+sv "$two_leaf" 20230 verifier  green verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$two_leaf" 20240 conductor ""    step-done ""
+
+name="#454 the By-step kind follows the step's pin mark or verify-pin verdict, not its leaf count"
+problems=()
+
+leafcount_out="$leafcount_work/report.md"
+render "$leafcount_work" "$leafcount_out"
+
+kind_cell_is "$leafcount_out" "$many_pin" pin
+kind_cell_is "$leafcount_out" "$many_sat" already-satisfied
+kind_cell_is "$leafcount_out" "$two_leaf" full
+
+report_on "$name" "$leafcount_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
