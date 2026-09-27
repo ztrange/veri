@@ -501,6 +501,8 @@ for line in marks:
     if event == "pin" and step:
         recovered.add(step)
         spent.setdefault(step, {})[KIND] = "pin"
+    elif event == "verdict" and phase == "pin" and line.get("verdict") == "PASS" and step:
+        spent.setdefault(step, {}).setdefault(KIND, "already-satisfied")
     # Time, off the two lines that carry it. An `exit` is also where a kill is counted
     # below, so this adds and lets the line fall through rather than classifying it.
     attempt_no = line.get("attempt", "")
