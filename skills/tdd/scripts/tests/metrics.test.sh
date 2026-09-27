@@ -2896,6 +2896,28 @@ report_reads_as_before "$before_out" "$before_report"
 
 report_on "$name" "$before_out"
 
+PASSES_PRELUDE='
+def pass_rows(path, step, wanted):
+    tables = tables_in(path)
+    section = next((t for t in tables
+                    if sum(1 for r in t[1:] if is_row(r, step)) == len(wanted)), None)
+    if section is None:
+        labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
+        complain("want a table with %d rows for step %r, one per refactor pass, the report has tables with rows: %s"
+                 % (len(wanted), step, "; ".join(labels) or "nothing"))
+        print("\n".join(problems))
+        raise SystemExit(0)
+    header, rows = section[0], [r for r in section[1:] if is_row(r, step)]
+    return header, rows, column(header, "the pass", lambda c: c.strip() == "pass", step)
+
+def pass_row(rows, at, index, step):
+    row = next((r for r in rows if at < len(r) and r[at] == index), None)
+    if row is None:
+        complain("want a row for pass %s of step %r, its rows have passes: %s"
+                 % (index, step, ", ".join(repr(r[at]) for r in rows if at < len(r))))
+    return row
+'
+
 # passes_say <file> <step> <pass>=<transforms>/<budget>,<stopped> … — the per-pass section
 # (#502): one row per refactor pass of a step. The table is the one holding a row for the step
 # once per expected pass, so the By-step table, which holds it once, is never it. The pass is
@@ -2903,22 +2925,10 @@ report_on "$name" "$before_out"
 # against budget by one saying `refactor` or `transform`, the reason by one saying `stop`.
 passes_say() {
   local out_file="$1" step="$2"; shift 2
-  probe "$PROBE_PRELUDE"'
+  probe "$PROBE_PRELUDE$PASSES_PRELUDE"'
 path, step = sys.argv[1], sys.argv[2]
 wanted = sys.argv[3:]
-tables = tables_in(path)
-
-section = next((t for t in tables
-                if sum(1 for r in t[1:] if is_row(r, step)) == len(wanted)), None)
-if section is None:
-    labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
-    complain("want a table with %d rows for step %r, one per refactor pass, the report has tables with rows: %s"
-             % (len(wanted), step, "; ".join(labels) or "nothing"))
-    print("\n".join(problems))
-    raise SystemExit(0)
-
-header, rows = section[0], [r for r in section[1:] if is_row(r, step)]
-at = column(header, "the pass", lambda c: c.strip() == "pass", step)
+header, rows, at = pass_rows(path, step, wanted)
 spent = column(header, "the transforms against budget",
                lambda c: "refactor" in c or "transform" in c, step)
 stop = column(header, "why the pass stopped", lambda c: "stop" in c, step)
@@ -2926,10 +2936,8 @@ if None not in (at, spent, stop):
     for arg in wanted:
         index, expected = arg.split("=", 1)
         pair, reason = expected.split(",", 1)
-        row = next((r for r in rows if at < len(r) and r[at] == index), None)
+        row = pass_row(rows, at, index, step)
         if row is None:
-            complain("want a row for pass %s of step %r, its rows have passes: %s"
-                     % (index, step, ", ".join(repr(r[at]) for r in rows if at < len(r))))
             continue
         for what, i, want in (("transforms/budget", spent, pair), ("stopped", stop, reason)):
             got = row[i] if i < len(row) else ""
@@ -3046,21 +3054,10 @@ report_on "$name" "$once_out"
 # one saying `$` or `cost`. The section is found as passes_say finds it.
 pass_costs_say() {
   local out_file="$1" step="$2"; shift 2
-  probe "$PROBE_PRELUDE"'
+  probe "$PROBE_PRELUDE$PASSES_PRELUDE"'
 path, step = sys.argv[1], sys.argv[2]
 wanted = sys.argv[3:]
-tables = tables_in(path)
-
-section = next((t for t in tables
-                if sum(1 for r in t[1:] if is_row(r, step)) == len(wanted)), None)
-if section is None:
-    complain("want a table with %d rows for step %r, one per refactor pass, the report has none"
-             % (len(wanted), step))
-    print("\n".join(problems))
-    raise SystemExit(0)
-
-header, rows = section[0], [r for r in section[1:] if is_row(r, step)]
-at = column(header, "the pass", lambda c: c.strip() == "pass", step)
+header, rows, at = pass_rows(path, step, wanted)
 verdict = column(header, "the verdict", lambda c: "verdict" in c, step)
 wall = column(header, "the wall seconds", lambda c: "wall" in c, step)
 cost = column(header, "the cost", lambda c: "$" in c or "cost" in c, step)
@@ -3068,9 +3065,8 @@ if None not in (at, verdict, wall, cost):
     for arg in wanted:
         index, expected = arg.split("=", 1)
         want_verdict, want_wall, want_cost = expected.split(",")
-        row = next((r for r in rows if at < len(r) and r[at] == index), None)
+        row = pass_row(rows, at, index, step)
         if row is None:
-            complain("want a row for pass %s of step %r, it has none" % (index, step))
             continue
         got = row[verdict] if verdict < len(row) else ""
         if got != want_verdict:
