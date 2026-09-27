@@ -183,6 +183,15 @@ for arg in "" two 1.5; do
 done
 verdict "a missing or non-whole-number <steps-remaining> exits 2 printing nothing"
 
+# 7. no .tdd/events.jsonl at all in the run's worktree, with a valid count and ceiling. There
+#    is no spend to read, so no answer: exit 2 with stdout empty — not exit 3, which would
+#    say the run has no full step yet when nothing about the run could be read.
+rm -f "$work/.tdd/events.jsonl"
+run_affordable VERI_RUN_BUDGET=50 -- 3
+expect_code 2
+expect_silent "a missing event log"
+verdict "a missing .tdd/events.jsonl exits 2 printing nothing"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

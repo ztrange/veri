@@ -5,7 +5,7 @@
 - [x] The median is taken over completed full steps only, told apart by leaf count from `step-cost.sh --steps`, so a log whose completed steps are mostly cheap pins still projects the remainder at the full-step median ⟦criterion 3⟧
 - [x] `run-affordable.sh <n>` exits 3 with nothing on stdout when the event log holds no completed full step, only pins or no usage at all ⟦criterion 4⟧
 - [x] `run-affordable.sh` exits 2 with nothing on stdout for a missing or non-whole-number `<steps-remaining>` argument ⟦criterion 5⟧
-- [ ] `run-affordable.sh <n>` exits 2 with nothing on stdout when `.tdd/events.jsonl` is missing ⟦criterion 5⟧
+- [x] `run-affordable.sh <n>` exits 2 with nothing on stdout when `.tdd/events.jsonl` is missing ⟦criterion 5⟧
 - [ ] `run-affordable.sh <n>` exits 2 with nothing on stdout when `VERI_RUN_BUDGET` is not a non-negative decimal number ⟦criterion 5⟧
 - [ ] A run at 8 of 9 steps done with one median step left and a ceiling above the projection is exit 0, so a converging run near its finish is not parked ⟦criterion 6⟧
 - [ ] A run early in a long plan whose projection exceeds the ceiling is exit 1, so it parks while parking is still cheap ⟦criterion 7⟧
