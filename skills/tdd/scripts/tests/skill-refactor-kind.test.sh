@@ -18,6 +18,7 @@
 #      refactoring whose criterion is a shell predicate false before the step and true after it.
 #   2. The develop-cover prompt and SKILL.md's Cover step — see case 2's comment.
 #   3. SKILL.md's Cover step on `COVERED: no` — see case 3's comment.
+#   4. SKILL.md's refactor-kind cycle, transform rejection and abandonment — see case 4's comment.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -154,6 +155,29 @@ else
   grep -F 'coverage-blocker.sh' <<<"$uncovered_near" > /dev/null ||
     problems+=("$skill_md's COVERED: no handling never runs coverage-blocker.sh, so the refactor issue stays in the queue to be retaken and refused again")
 fi
+report "$name"
+
+# 4. The cycle (criterion 6). A refactor-kind step is Cover, then Transform, then Verify —
+#    not Red, Green, Refactor. A transform changes structure only, so a commit in its range
+#    that edits a test file has moved the goalposts: SKILL.md runs transform-touches-tests.sh
+#    over the range and rejects the transform when it exits 1. A step that is abandoned has
+#    no untracked test to clean — its transform commits are the work — so it is abandoned by
+#    resetting to the step's base sha, `git reset --hard <base-sha>` (never matching the
+#    rebase's `<pre-rebase-sha>`, which the leading `<` rules out).
+name="$skill_md's refactor-kind cycle runs Cover → Transform → Verify, rejects a transform whose commits touch a test file via transform-touches-tests.sh, and abandons a step by resetting to its base sha"
+problems=()
+
+grep -E 'cover (→|->|, then|then) transform (→|->|, then|then) verify' <<<"$skill_text" > /dev/null ||
+  problems+=("$skill_md never states the refactor-kind cycle as Cover → Transform → Verify, so a refactor step is run as Red → Green → Refactor")
+touches_near="$(window "$skill_text" 'transform-touches-tests\.sh')"
+if [[ -z "$touches_near" ]]; then
+  problems+=("$skill_md never runs transform-touches-tests.sh, so a transform that edits a test file is accepted as a refactoring")
+else
+  grep -E 'reject|refus' <<<"$touches_near" > /dev/null ||
+    problems+=("$skill_md runs transform-touches-tests.sh without saying a transform touching a test file is rejected")
+fi
+grep -E 'git reset --hard <base-sha>|reset(ting)? (it )?to (its|the step.s) base sha' <<<"$skill_text" > /dev/null ||
+  problems+=("$skill_md never abandons a refactor-kind step by resetting to its base sha, so an abandoned transform's commits stay on the branch")
 report "$name"
 
 echo "----"

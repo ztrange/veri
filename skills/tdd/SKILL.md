@@ -712,6 +712,14 @@ did in #43's step 5 and #41's step 6, instead of at scoping time.
    find a seam and surround the behaviour with tests first — and run
    `$S/coverage-blocker.sh <n>`, which files the coverage issue and blocks this one on it,
    so the queue cannot retake it only to refuse again.
+   A refactor-kind step therefore runs **Cover → Transform → Verify**, not Red → Green →
+   Refactor. After Cover, a transform leaf applies the step's one named refactoring and
+   commits it; then `$S/transform-touches-tests.sh <base-sha>` reads every commit since the
+   step's base sha, and exit 1 rejects the transform — a refactoring that edits a test file
+   has moved the goalposts — while exit 2 is no answer. The blind `transform` verifier reads
+   the diff from the same base sha. An abandoned refactor-kind step has no untracked test to
+   clean — its transform commits are the work — so it is abandoned by resetting to its base
+   sha, `git reset --hard <base-sha>`.
 2. **Commit the ledger** as the run's starting point:
    `git add .tdd/issue-<n>.md && git commit -m "plan: scope #<n> into <k> steps (#<n>)"`.
    (The ledger is committed — step 1.4 guaranteed `.gitignore` tracks `.tdd/issue-*.md`
