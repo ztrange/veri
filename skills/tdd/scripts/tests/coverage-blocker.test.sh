@@ -146,6 +146,50 @@ else
   no "$name (exit=$code want 2; stderr='$err' want a usage line; issue created=$([[ -f "$create3" ]] && echo yes || echo no) want no)"
 fi
 
+# 4. A `## Blocked by` section that already lists a blocker has no `None` line to replace; the
+# new issue is appended after the blockers already there, which stay, and the prose after them
+# survives. A `- #N` bullet in a later section is not a blocker, so nothing is appended there.
+name="coverage-blocker appends the new blocker to a Blocked by section that already lists blockers"
+body='## What to build
+
+Extract the parser.
+
+## Blocked by
+
+- #12
+
+## Related
+
+- #30
+
+Test command: make test
+'
+edited4="$work/edited4.body"
+run_blocker "$body" "$work/create4.args" "$edited4" 60 >/dev/null 2>"$work/blocker4.err" && code=0 || code=$?
+new_body=""
+[[ -f "$edited4" ]] && new_body="$(cat "$edited4")"
+want='## What to build
+
+Extract the parser.
+
+## Blocked by
+
+- #12
+- #77
+
+## Related
+
+- #30
+
+Test command: make test'
+if [[ "$code" == 0 && "$new_body" == "$want" ]]; then
+  ok
+else
+  no "$name (exit=$code want 0)
+$(diff <(printf '%s\n' "$want") <(printf '%s\n' "$new_body"))
+$(cat "$work/blocker4.err")"
+fi
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

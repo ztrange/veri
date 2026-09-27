@@ -3,8 +3,9 @@
 #
 # Files an unlabelled coverage issue for the refactor issue — no opt-in label, so the queue
 # never takes it itself — and names that new issue under the refactor issue's `## Blocked by`
-# heading, in place of a `None` line, so solvable-issues.sh stops listing the refactor issue
-# until the coverage exists and it cannot be retaken only to refuse again.
+# heading, in place of a `None` line or after the blockers already listed, so
+# solvable-issues.sh stops listing the refactor issue until the coverage exists and it cannot
+# be retaken only to refuse again.
 #
 # Usage:
 #   coverage-blocker.sh <refactor-issue-number>
@@ -26,11 +27,19 @@ body="$(gh issue view "$n" --json body -q .body)"
 
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
-# Inside the `## Blocked by` section, a `None` line becomes the new blocker.
+# Inside the `## Blocked by` section, a `None` line becomes the new blocker; with no `None`
+# line, the new blocker goes after the last one already listed there.
 printf '%s\n' "$body" | awk -v blocker="- #$new" '
   /^## / { in_blocked = ($0 ~ /^## Blocked by/) }
-  in_blocked && /^None/ { print blocker; next }
-  { print }
+  in_blocked && /^None/ { line[++n] = blocker; next }
+  in_blocked && /^- #/ { last = n + 1 }
+  { line[++n] = $0 }
+  END {
+    for (i = 1; i <= n; i++) {
+      print line[i]
+      if (i == last) print blocker
+    }
+  }
 ' > "$tmp"
 gh issue edit "$n" --body-file "$tmp" >/dev/null
 echo "$url"
