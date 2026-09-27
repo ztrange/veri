@@ -1508,7 +1508,7 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
 }
 renders_as red            '2493217892 9982'       red "$work/spec.md" "$step_text" "$test_cmd"
 renders_as green          '1771614540 6887'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '2145869060 8816'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as refactor       '2694733224 8933'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
 renders_as 'revise red'   '2544846531 7090'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise green' '3729173025 7092'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
 renders_as 'revise refactor' '3524891017 7095' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
@@ -1637,6 +1637,23 @@ prompt_says "$refactor" "does not name renaming across files as withheld" \
   -iE -e 'renam(e|ing)[^.]{0,20}across files'
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor applies only duplication removal against code this cycle wrote and no other structural transform: extract a module, move behaviour, rename across files (${problems#; })"
+
+# 51. every other structural candidate the per-step leaf sees is recorded, not applied (issue
+#     #503, criterion 2): the prompt sends it to a `CANDIDATES: structural | …` line instead,
+#     and refactor-owed.sh append files that line under the step that saw it.
+problems=""
+says_both_ways "$refactor" "does not tell the leaf to report every other structural candidate on a CANDIDATES: structural line" \
+  120 'every other structural candidate' 'CANDIDATES: structural'
+says_both_ways "$refactor" "does not say to report it rather than apply it" \
+  120 'structural candidate' '(rather than|instead of) apply(ing)?'
+printf 'RESULT: nothing left to tidy\nCANDIDATES: structural | extract the zorblat parser into its own module\nFLAGS: none\n' \
+  | "$HERE/../refactor-owed.sh" append "$work/owed.md" "$step_text" 2>/dev/null
+step_at="$(grep -nxF "### $step_text" "$work/owed.md" 2>/dev/null | cut -d: -f1)"
+candidate_at="$(grep -nxF -- '- extract the zorblat parser into its own module' "$work/owed.md" 2>/dev/null | cut -d: -f1)"
+[[ -n "$step_at" && -n "$candidate_at" && "$step_at" -lt "$candidate_at" ]] \
+  || problems="$problems; refactor-owed.sh append does not record the CANDIDATES: structural line under the step's name"
+[[ -z "$problems" ]] \
+  && ok || no "develop-refactor reports every other structural candidate as a CANDIDATES: structural line rather than apply it, and refactor-owed.sh append records it under the step's name (${problems#; })"
 
 echo "----"
 echo "$pass passed, $fail failed"
