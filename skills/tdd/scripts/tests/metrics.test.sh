@@ -161,6 +161,11 @@ while fields:
 # a table by its rows AND its subject; everything after that search is the same three lines
 # in every probe, and they are here rather than three times over.
 #
+# `cell_in(tables, key, name, matches)` goes one step further for a probe that reads a single
+# column: the stripped cell of `key`'s row under the one heading `matches` picks, or `None`
+# after `located` or `column` has complained. A row too short to reach the column reads as
+# an empty cell rather than a crash.
+#
 # It is a shell variable because that is the only way several `python3 -c` programs can share
 # a definition without a file of their own. Each call site concatenates its double-quoted
 # expansion with the single-quoted rest of its program, so the rest keeps the quoting it
@@ -244,6 +249,15 @@ def located(tables, key, what, find):
                  % (what, key, "; ".join(labels) or "nothing"))
         return None, None
     return section[0], next(r for r in section[1:] if is_row(r, key))
+
+def cell_in(tables, key, name, matches):
+    header, row = located(tables, key, "a table", table_with)
+    if row is None:
+        return None
+    i = column(header, name, matches, key)
+    if i is None:
+        return None
+    return row[i].strip() if i < len(row) else ""
 '
 
 # counts_table_says <file> <noun> <columns> <key>=<n>,<n>,… — read a counts table out of the
@@ -1899,13 +1913,9 @@ tables = tables_in(path)
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
-    header, row = located(tables, key, "a table", table_with)
-    if row is None:
+    got = cell_in(tables, key, "why the refactor loop stopped", lambda c: "stop" in c)
+    if got is None:
         continue
-    i = column(header, "why the refactor loop stopped", lambda c: "stop" in c, key)
-    if i is None:
-        continue
-    got = row[i].strip() if i < len(row) else ""
     if got != expected:
         complain("step %r stopped: want %r, got %r" % (key, expected, got))
 
@@ -1961,14 +1971,10 @@ tables = tables_in(path)
 
 for arg in sys.argv[2:]:
     key, expected = arg.split("=", 1)
-    header, row = located(tables, key, "a table", table_with)
-    if row is None:
+    got = cell_in(tables, key, "what the step had spent when it crossed its cost budget",
+                  lambda c: "over" in c or "cross" in c)
+    if got is None:
         continue
-    i = column(header, "what the step had spent when it crossed its cost budget",
-               lambda c: "over" in c or "cross" in c, key)
-    if i is None:
-        continue
-    got = row[i].strip() if i < len(row) else ""
     if expected == "":
         if got != "":
             complain("step %r never crossed: want the cell empty, got %r" % (key, got))
