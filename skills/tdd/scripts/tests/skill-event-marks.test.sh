@@ -180,6 +180,12 @@ refactor_mark() {
   mark refactor 'posts the `### 🛠️ Refactor` comment' '### [^ ]+ refactor( |`|$)' 'post' 'rev-list --count'
 }
 
+# refactor_call — sets the global `call` to the `event.sh refactor …` call in `marked`.
+refactor_call() {
+  [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
+  call="${BASH_REMATCH[1]}"
+}
+
 # 1. The whole of this step's criterion, as one case: seven marks, each beside the comment
 #    it mirrors. They are one case because they are one wiring — an event log missing any
 #    one of them cannot answer when a step started, why a run stopped, or what it cost —
@@ -210,8 +216,7 @@ problems=()
 if have_records 'the refactor mark'; then
   refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
-    [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
-    call="${BASH_REMATCH[1]}"
+    refactor_call
     for key in transforms budget stopped; do
       [[ "$call" =~ (^|[[:space:]])"$key"= ]] ||
         problems+=("$skill_md calls \`$call\` without \`$key=\` — metrics.sh's cell stays unknown")
@@ -648,8 +653,7 @@ problems=()
 if have_records "the refactor mark's pass index"; then
   refactor_mark
   if [[ "${#problems[@]}" -eq 0 ]]; then
-    [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
-    call="${BASH_REMATCH[1]}"
+    refactor_call
     [[ "$call" =~ (^|[[:space:]])pass= ]] ||
       problems+=("$skill_md calls \`$call\` without \`pass=\` — two passes of one step cannot be told apart")
     [[ "$marked" =~ (^|[^0-9])1([^0-9]|$)[^.\;]{0,40}first || "$marked" =~ first[^.\;]{0,60}[^0-9]1([^0-9]|$) ]] ||
