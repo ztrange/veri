@@ -2731,6 +2731,41 @@ kind_cell_is "$allfull_out" "$second_full" full
 
 report_on "$name" "$allfull_out"
 
+
+# by_step_note_names <file> — the first line of prose under the By-step table names turns as
+# the comparable figure, dollars as the one that is not, and the three model knobs.
+by_step_note_names() {
+  probe "$PROBE_PRELUDE"'
+lines = open(sys.argv[1]).read().splitlines()
+start = next((i for i, l in enumerate(lines) if l.strip() == "#### By step"), None)
+if start is None:
+    complain("want a #### By step heading, the report has none")
+else:
+    i = start + 1
+    while i < len(lines) and not lines[i].strip().startswith("|"):
+        i += 1
+    while i < len(lines) and lines[i].strip().startswith("|"):
+        i += 1
+    note = next((l for l in lines[i:] if l.strip()), "")
+    if note.startswith("#"):
+        complain("want a line under the By-step table, the next line is the heading %r" % note)
+    else:
+        for word in ("turns", "dollars", "comparable", "VERI_MODEL",
+                     "VERI_MODEL_DEVELOPER", "VERI_MODEL_VERIFIER"):
+            if word not in note:
+                complain("want the line under the By-step table to name %r, got %r"
+                         % (word, note))
+print("\n".join(problems))
+' "$@"
+}
+
+name="#454 the By-step table is followed by a line naming turns as comparable across runs, dollars as not, and the three model knobs"
+problems=()
+
+by_step_note_names "$allfull_out"
+
+report_on "$name" "$allfull_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

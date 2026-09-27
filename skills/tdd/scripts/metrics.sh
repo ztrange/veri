@@ -740,6 +740,10 @@ section("#### By phase", "phase", PHASE_COLUMNS, counts)
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
         ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], step_cells))
+print()
+print("The figure comparable across runs is turns, the same measurement on any model; dollars "
+      "are not comparable, the same measurement only at the same VERI_MODEL, "
+      "VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.")
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
