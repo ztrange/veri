@@ -3040,6 +3040,102 @@ one_pass_says "$once_out" "$unindexed=3/5,structural-owed" "$indexed=1/4,nothing
 
 report_on "$name" "$once_out"
 
+# pass_costs_say <file> <step> <pass>=<verdict>,<wall>,<dollars> … — each per-pass row of a
+# step carries its own verify-refactor verdict, under a heading saying `verdict`, the wall
+# seconds of that pass's refactor-phase leaves, under one saying `wall`, and their cost, under
+# one saying `$` or `cost`. The section is found as passes_say finds it.
+pass_costs_say() {
+  local out_file="$1" step="$2"; shift 2
+  probe "$PROBE_PRELUDE"'
+path, step = sys.argv[1], sys.argv[2]
+wanted = sys.argv[3:]
+tables = tables_in(path)
+
+section = next((t for t in tables
+                if sum(1 for r in t[1:] if is_row(r, step)) == len(wanted)), None)
+if section is None:
+    complain("want a table with %d rows for step %r, one per refactor pass, the report has none"
+             % (len(wanted), step))
+    print("\n".join(problems))
+    raise SystemExit(0)
+
+header, rows = section[0], [r for r in section[1:] if is_row(r, step)]
+at = column(header, "the pass", lambda c: c.strip() == "pass", step)
+verdict = column(header, "the verdict", lambda c: "verdict" in c, step)
+wall = column(header, "the wall seconds", lambda c: "wall" in c, step)
+cost = column(header, "the cost", lambda c: "$" in c or "cost" in c, step)
+if None not in (at, verdict, wall, cost):
+    for arg in wanted:
+        index, expected = arg.split("=", 1)
+        want_verdict, want_wall, want_cost = expected.split(",")
+        row = next((r for r in rows if at < len(r) and r[at] == index), None)
+        if row is None:
+            complain("want a row for pass %s of step %r, it has none" % (index, step))
+            continue
+        got = row[verdict] if verdict < len(row) else ""
+        if got != want_verdict:
+            complain("pass %s of step %r verdict: want %r, got %r" % (index, step, want_verdict, got))
+        for what, i, want in (("wall s", wall, want_wall), ("$", cost, want_cost)):
+            got = row[i] if i < len(row) else ""
+            if number(got) is None or abs(number(got) - float(want)) > 0.005:
+                complain("pass %s of step %r %s: want %s, got %r" % (index, step, what, want, got))
+
+print("\n".join(problems))
+' "$out_file" "$step" "$@"
+}
+
+# A step whose two refactor passes differ in every figure: the first PASSed, the second was
+# REJECTed and the run bailed, and each pass's two leaves report their own seconds and dollars,
+# so a pass showing the other's figures, or the step's sum, cannot pass. Green-phase leaves and
+# a green verdict of the same step sit before and between the passes and after the last
+# refactor verdict, so a pass that took a figure or a verdict from another phase cannot pass.
+fixture_work costs_work
+
+costed="a step whose two refactor passes each spent their own"
+pass_usage() {
+  printf '"duration_ms": "0", "duration_api_ms": "0", "num_turns": "3", "total_cost_usd": "%s", "input_tokens": "100", "output_tokens": "200", "cache_read_input_tokens": "300", "cache_creation_input_tokens": "400"' "$1"
+}
+
+sv "$costed" 70000 conductor ""       step-start ""
+sv "$costed" 70001 developer green    launch  1 '"name": "develop-green"'
+sv "$costed" 70001 developer green    exit    1 '"status": "0", "secs": "9"'
+sv "$costed" 70001 developer green    usage   1 "$(pass_usage 0.70)"
+sv "$costed" 70002 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$costed" 70008 developer refactor exit    1 '"status": "0", "secs": "6"'
+sv "$costed" 70008 developer refactor usage   1 "$(pass_usage 0.30)"
+sv "$costed" 70010 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
+sv "$costed" 70012 verifier  refactor launch  1 '"name": "verify-refactor"'
+sv "$costed" 70016 verifier  refactor exit    1 '"status": "0", "secs": "4"'
+sv "$costed" 70016 verifier  refactor usage   1 "$(pass_usage 0.20)"
+sv "$costed" 70016 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$costed" 70050 developer green    launch  2 '"name": "develop-green"'
+sv "$costed" 70058 developer green    exit    2 '"status": "0", "secs": "8"'
+sv "$costed" 70058 developer green    usage   2 "$(pass_usage 0.60)"
+sv "$costed" 70102 developer refactor launch  2 '"name": "develop-refactor"'
+sv "$costed" 70109 developer refactor exit    2 '"status": "0", "secs": "7"'
+sv "$costed" 70109 developer refactor usage   2 "$(pass_usage 0.25)"
+sv "$costed" 70110 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
+sv "$costed" 70112 verifier  refactor launch  2 '"name": "verify-refactor"'
+sv "$costed" 70117 verifier  refactor exit    2 '"status": "0", "secs": "5"'
+sv "$costed" 70117 verifier  refactor usage   2 "$(pass_usage 0.15)"
+sv "$costed" 70117 verifier  refactor verdict 2 '"verdict": "REJECT", "reason": "behaviour changed"'
+sv "$costed" 70118 verifier  green    launch  2 '"name": "verify-green"'
+sv "$costed" 70119 verifier  green    exit    2 '"status": "0", "secs": "3"'
+sv "$costed" 70119 verifier  green    usage   2 "$(pass_usage 0.05)"
+sv "$costed" 70119 verifier  green    verdict 2 '"verdict": "PASS", "reason": "the test is green"'
+sv "$costed" 70120 conductor ""       bail    "" '"cause": "revise-exhausted", "classification": "process"'
+
+
+name="#502 each per-pass row carries that pass's verify-refactor verdict, wall seconds and cost"
+problems=()
+
+costs_out="$costs_work/report.md"
+render "$costs_work" "$costs_out"
+
+pass_costs_say "$costs_out" "$costed" "1=PASS,10,0.50" "2=REJECT,12,0.40"
+
+report_on "$name" "$costs_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

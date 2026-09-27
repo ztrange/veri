@@ -347,6 +347,10 @@ lost = {}
 spent = {}
 
 passes = {}
+open_passes = {}
+
+def open_pass(step):
+    return open_passes.setdefault(step, {"verdict": "", WALL: 0, DOLLARS: 0.0})
 
 # What each ATTEMPT cost, keyed by the three fields that identify one — its step, its phase
 # and its attempt number — so the developer leaf and the verifier that judged it land in one
@@ -520,16 +524,24 @@ for line in marks:
         add_seconds(phase, step, "wall s", seconds)
         if attempt is not None:
             attempt[WALL] += seconds
+        if phase == "refactor":
+            open_pass(step)[WALL] += seconds
     elif event == "usage":
         add_seconds(phase, step, "API s",
                     int(line.get("duration_api_ms") or 0) // 1000)
         add_cost(phase, step, line)
         if attempt is not None:
             attempt[DOLLARS] += float(line.get("total_cost_usd") or 0)
+        if phase == "refactor":
+            open_pass(step)[DOLLARS] += float(line.get("total_cost_usd") or 0)
         if line.get("actor") == "conductor":
             conductor_counted = True
     elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
         rejected.append((step, phase, attempt))
+    if event == "verdict" and phase == "refactor":
+        open_pass(step)["verdict"] = line.get("verdict", "")
+        if line.get("verdict") == "PASS":
+            open_passes.pop(step)
     # The conductor budget marks next, and they fall through to nothing below: a
     # `revise` is not a leaf launch, so counting it as an attempt would double-count the
     # revise leaf that the mark is followed by.
@@ -544,7 +556,7 @@ for line in marks:
         mark["transforms"] = line.get("transforms", "")
         mark["refactor"] = line.get("budget", "")
         mark["stopped"] = line.get("stopped", "")
-        passes[(step, line.get("pass", ""))] = line
+        passes[(step, line.get("pass", ""))] = (line, open_pass(step))
         continue
     # The cost-budget crossing and the cause of a split (#452): what the step had spent when
     # it crossed, kept as the figure rather than a flag, since a crossing at $12 and one at $28
@@ -748,9 +760,11 @@ print("The figure comparable across runs is turns, the same measurement on any m
       "are not comparable, the same measurement only at the same VERI_MODEL, "
       "VERI_MODEL_DEVELOPER and VERI_MODEL_VERIFIER.")
 if passes:
-    table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped"], ["---:", "---:", "---"])
-    for (step, index), mark in passes.items():
-        row([step, index, "%s/%s" % (mark["transforms"], mark["budget"]), mark["stopped"]])
+    table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", WALL, DOLLARS],
+               ["---:", "---:", "---", "---", "---:", "---:"])
+    for (step, index), (mark, spent_by) in passes.items():
+        row([step, index, "%s/%s" % (mark["transforms"], mark["budget"]), mark["stopped"],
+             spent_by["verdict"], figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
