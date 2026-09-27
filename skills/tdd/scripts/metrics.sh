@@ -195,6 +195,7 @@ SPLIT = "split"
 # its cell lands in, and the attribute the cell is read from. The reading loop and the step
 # row both go through it, so the cell of a mark cannot come apart from the heading it prints under.
 CELL_MARKS = {"step-over-budget": (CROSSED, "spent"), "step-split": (SPLIT, "at")}
+MARK_COLUMNS = [column for column, _ in CELL_MARKS.values()]
 
 KIND = "kind"
 
@@ -634,7 +635,7 @@ def budget_cells(step):
 # them: this is the one, so the cells cannot come apart from the order the headings print in.
 def step_cells(step):
     mark = spent.get(step, {})
-    return [step_wall(step)] + budget_cells(step) + [mark.get(column, "") for column, _ in CELL_MARKS.values()] + [mark.get(KIND, "full")]
+    return [step_wall(step)] + budget_cells(step) + [mark.get(column, "") for column in MARK_COLUMNS] + [mark.get(KIND, "full")]
 
 # The lines every table in this report opens with: a blank line, the heading, another blank,
 # the header row and the markdown alignment row under it. Both renderers below go through it
@@ -736,7 +737,7 @@ section("#### By phase", "phase", PHASE_COLUMNS, counts)
 # a reader reaches "what did this phase throw away" by way of what it spent.
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
-        ([WALL] + BUDGETS + [column for column, _ in CELL_MARKS.values()] + [KIND], step_cells))
+        ([WALL] + BUDGETS + MARK_COLUMNS + [KIND], step_cells))
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
