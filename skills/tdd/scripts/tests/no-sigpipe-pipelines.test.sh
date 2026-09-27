@@ -165,9 +165,10 @@ wrapped_sites() {
 loop_break_sites() {
   awk '
     /^[[:space:]]*#/ { next }
-    /^[[:space:]]*(while|until|for)([[:space:]]|$)/ || /(^|[^|])\|[[:space:]]*(while|until)([[:space:]]|$)/ {
+    { piped = /(^|[^|])\|[[:space:]]*(while|until)([[:space:]]|$)/ }
+    piped || /^[[:space:]]*(while|until|for)([[:space:]]|$)/ {
       depth++; broke[depth] = 0
-      fed[depth] = /(^|[^|])\|[[:space:]]*(while|until)([[:space:]]|$)/ ? NR ":" $0 : ""
+      fed[depth] = piped ? NR ":" $0 : ""
     }
     depth > 0 && /(^|[[:space:];&|])break([[:space:];]|$)/ { broke[depth] = 1 }
     depth > 0 && /(^[[:space:]]*|;[[:space:]]*)done([[:space:];]|$)/ {
