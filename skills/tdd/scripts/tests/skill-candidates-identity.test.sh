@@ -70,6 +70,14 @@ says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
+# has_skill_md — true when the SKILL.md exists; otherwise records that as the case's problem,
+# so each case reports a missing file in the same words and reads nothing further.
+has_skill_md() {
+  [[ -f "$ROOT/$skill_md" ]] && return 0
+  problems+=("want a SKILL.md at $skill_md, found none")
+  return 1
+}
+
 # The body every case reads, read once: empty when the SKILL.md is missing, which each case
 # reports on its own terms.
 text=""
@@ -83,7 +91,7 @@ name="$skill_md is the /$want_name skill and says it shapes and files candidates
 problems=()
 [[ -d "$ROOT/$skill_dir" ]] ||
   problems+=("want a directory at $skill_dir, found none")
-if [[ -f "$ROOT/$skill_md" ]]; then
+if has_skill_md; then
   got="$(frontmatter_name "$ROOT/$skill_md")"
   [[ "$got" == "$want_name" ]] ||
     problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
@@ -100,8 +108,6 @@ if [[ -f "$ROOT/$skill_md" ]]; then
     says '(not|never|no)[^.]{0,80}judge' \
       "$skill_md never says it does not judge"
   fi
-else
-  problems+=("want a SKILL.md at $skill_md, found none")
 fi
 report "$name"
 
@@ -112,7 +118,7 @@ report "$name"
 #    procedure is the whole of what the session filing the issues follows.
 name="$skill_md files one issue per module from conversation candidates, criteria as predicates with a runnable check"
 problems=()
-if [[ -f "$ROOT/$skill_md" ]]; then
+if has_skill_md; then
   says 'candidates?[^.]{0,120}conversation|conversation[^.]{0,120}candidates?' \
     "$skill_md never says it takes the candidates from the conversation"
   says 'gh issue create' \
@@ -127,8 +133,6 @@ if [[ -f "$ROOT/$skill_md" ]]; then
     "$skill_md never says the predicates are structural"
   says 'runnable check[^.]{0,80}where one exists|where one exists[^.]{0,80}runnable check' \
     "$skill_md never says each predicate carries a runnable check where one exists"
-else
-  problems+=("want a SKILL.md at $skill_md, found none")
 fi
 report "$name"
 
@@ -138,15 +142,13 @@ report "$name"
 #    issues it would have filed from the conversation. Read as prose, like case 2.
 name="$skill_md reads the candidates from the analysis's HTML report path and files the same issues"
 problems=()
-if [[ -f "$ROOT/$skill_md" ]]; then
+if has_skill_md; then
   says 'path[^.]{0,80}html report|html report[^.]{0,80}path' \
     "$skill_md never says it accepts the path to the analysis's HTML report"
   says 'reads?[^.]{0,60}candidates?[^.]{0,60}(report|file)|candidates?[^.]{0,40}from (the|that) (html )?(report|file)' \
     "$skill_md never says it reads the candidates from that file"
   says 'same issues?' \
     "$skill_md never says it files the same issues it would have filed from the conversation"
-else
-  problems+=("want a SKILL.md at $skill_md, found none")
 fi
 report "$name"
 
