@@ -164,6 +164,19 @@ chmod +x "$stub/claude"
 # The supervisor's windows are shrunk the way supervise.test.sh shrinks them, so nothing
 # here waits on wall time; retries are pinned off because a stub leaf that failed to record
 # anything should be reported, not run again.
+#
+# BOTH retry axes are pinned off, and the second one is not optional here (#514). The stub
+# below prints a result record and no `VERDICT:` line, so every verifier launch is a
+# no-verdict one: verify.sh's default `VERI_NO_VERDICT_RETRIES=1` therefore relaunched each
+# of them exactly once, and supervise.sh's first act is `rm -f .tdd/<name>.exit`
+# (supervise.sh:448). The completion file this probe waits on thus appeared, vanished and
+# came back on every verifier line, and the wait below could return in the gap — it stops at
+# the file's FIRST appearance, which under one relaunch is the middle of the launch rather
+# than its end. The final `-f` check then read the window and reported
+# `<no completion file under leaf verify-<phase>>` for a launch that was correctly wired,
+# naming whichever of the six verifier lines happened to land in it. With the axis at 0 the
+# file is written once and never removed, so the probe observes an end state. A relaunch is
+# no part of what this suite asks — the criterion is what one leaf saw in its environment.
 # The runnable copy is bound as `launch`, the name `runnable` gives it, and not as `line`:
 # `line` is `scan_launches`'s, holding the document's own spelling, and a local of that name
 # here would shadow it — so the `origin` file below would record the substituted copy as
@@ -280,7 +293,7 @@ launched_test_cmd() {
   # `<no leaf ran>` rather than hanging the suite.
   ( cd "$dir" && "${cleared_run_context[@]}" \
       S="$SCRIPTS" CLAUDE_BIN="$stub/claude" SEEN="$seen" \
-      VERI_STUCK_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
+      VERI_STUCK_RETRIES=0 VERI_NO_VERDICT_RETRIES=0 VERI_HEARTBEAT=30 VERI_TIMEOUT=60 VERI_POLL=0.2 \
       bash -c "$launch" ) >/dev/null 2>&1
   local deadline=$(( SECONDS + 60 ))
   until [[ -f "$dir/.tdd/$leaf.exit" ]]; do
