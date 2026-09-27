@@ -65,6 +65,10 @@ section() {
 
 plan_heading='### 2. Scope & plan'
 
+# The whole document through `plain`, for the cases that probe it by `window` rather than by
+# `section`.
+skill_text="$(plain < "$skill_path")"
+
 # window <text> <extended-regex> — the text within 250 characters either side of the first
 # match, or the empty string when there is none. 250 because BSD grep refuses an interval
 # bound over 255.
@@ -122,7 +126,6 @@ else
   grep -E '^CAUGHT_BY:' <<<"$cover_tail" > /dev/null || problems+=("the cover prompt's closing lines carry no CAUGHT_BY: line")
 fi
 
-skill_text="$(plain < "$skill_path")"
 cover_near="$(window "$skill_text" '(develop-cover|cover (phase|step|leaf))')"
 if ! grep -F 'git status --porcelain' <<<"$cover_near" | grep -E 'refus|stop|bail|(not|never) (go on|continue)' > /dev/null; then
   problems+=("$skill_md never refuses to continue past Cover when git status --porcelain is non-empty afterwards, so a mutation the cover leaf left behind reaches the transform")
@@ -138,7 +141,6 @@ report "$name"
 name="$skill_md's Cover step on COVERED: no bails with cause uncovered, narrates the remedy (find a seam, surround the behaviour) and runs coverage-blocker.sh"
 problems=()
 
-skill_text="$(plain < "$skill_path")"
 uncovered_near="$(window "$skill_text" 'covered: no')"
 if [[ -z "$uncovered_near" ]]; then
   problems+=("$skill_md never says what a run does when Cover answers COVERED: no, so an uncovered refactor step goes on to transform code no test watches")
