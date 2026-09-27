@@ -7,7 +7,7 @@
 - [x] SKILL.md tells a refactor-kind run to plan each step as one named refactoring whose criterion is a shell predicate false before the step and true after it ⟦criterion 3⟧
 - [x] cover-outcome.sh reads a cover leaf's report and exits 0 printing the catching test on `COVERED: yes` with a `CAUGHT_BY:` line, exits 1 on `COVERED: no`, and exits 2 on a report with neither ⟦criterion 4⟧
 - [x] the develop-cover template instructs the leaf to mutate the code the step will move, run the suite, expect red, restore the edit, prove the tree unchanged, and end with `COVERED:` and `CAUGHT_BY:` lines; SKILL.md refuses to continue past Cover when `git status --porcelain` is non-empty afterwards ⟦criterion 4⟧
-- [x] classify-bail.sh classifies the `uncovered` cause as `process` ⟦criterion 5⟧ ⟂ refactor pending
+- [x] classify-bail.sh classifies the `uncovered` cause as `process` ⟦criterion 5⟧
 - [ ] a coverage-blocker script files an unlabelled coverage issue for the refactor issue and adds that new issue under the refactor issue's `## Blocked by` heading, replacing a `None` line, so solvable-issues.sh no longer lists the refactor issue ⟦criterion 5⟧
 - [ ] SKILL.md's Cover step on `COVERED: no` bails with cause `uncovered`, narrates the remedy (find a seam, surround the behaviour) and runs the coverage-blocker script ⟦criterion 5⟧
 - [ ] transform-touches-tests.sh exits 1 naming the file when any commit in `<base-sha>..HEAD` changes a test file, and exits 0 when none does ⟦criterion 6⟧
