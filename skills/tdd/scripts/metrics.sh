@@ -186,6 +186,11 @@ BUDGETS = ["revise", "refactor", "stopped"]
 # empty for a step that never crossed — a `0` there would read as a crossing at nothing.
 CROSSED = "crossed at"
 
+# And the cause of a split, the `at=` a `step-split` mark carried (#452): `exhausted` for a
+# spent REVISE_BUDGET, `over-budget` for a crossed cost budget. Two causes of the same plan
+# growth are two facts about the run, so the report keeps the word rather than a count.
+SPLIT = "split"
+
 # The two time columns, printed in both sections, in this order. The heading carries the
 # unit so the cell stays a bare number a reader can compare down the column. The wall column
 # is named apart because it is the one cell the two sections read differently: a phase is
@@ -532,6 +537,9 @@ for line in marks:
     if event == "step-over-budget" and step:
         spent.setdefault(step, {})["crossed"] = line.get("spent", "")
         continue
+    if event == "step-split" and step:
+        spent.setdefault(step, {})["split"] = line.get("at", "")
+        continue
     if event == "launch":
         count = "attempts"
     elif event == "verdict" and line.get("verdict") in ("PASS", "REJECT"):
@@ -618,7 +626,7 @@ def budget_cells(step):
 # `section` takes one reader for its text columns, and the step section has two groups of
 # them: this is the one, so the cells cannot come apart from the order the headings print in.
 def step_cells(step):
-    return [step_wall(step)] + budget_cells(step) + [spent.get(step, {}).get("crossed", "")]
+    return [step_wall(step)] + budget_cells(step) + [spent.get(step, {}).get(key, "") for key in ("crossed", "split")]
 
 # The lines every table in this report opens with: a blank line, the heading, another blank,
 # the header row and the markdown alignment row under it. Both renderers below go through it
@@ -720,7 +728,7 @@ section("#### By phase", "phase", PHASE_COLUMNS, counts)
 # a reader reaches "what did this phase throw away" by way of what it spent.
 section("#### Rework and waste, by phase", "phase", LOST_COLUMNS, lost)
 section("#### By step", "step", STEP_COUNTS + [API] + COST_COLUMNS, steps,
-        ([WALL] + BUDGETS + [CROSSED], step_cells))
+        ([WALL] + BUDGETS + [CROSSED, SPLIT], step_cells))
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")

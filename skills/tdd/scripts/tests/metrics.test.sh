@@ -2016,6 +2016,38 @@ crossed_says "$crossing_out" "$crossed=12.40" "$under="
 report_on "$name" "$crossing_out"
 
 
+# Two causes of a split (#452): a spent REVISE_BUDGET writes `step-split at=exhausted` (#408),
+# a crossed cost budget `step-split at=over-budget`. The two fixtures below are the same log
+# byte for byte but for that one value, so whatever tells their reports apart can only be the
+# `at=` of the split — and a report that reads both the same has lost which cause grew the plan.
+split_log() {
+  sv "$split_step" 44000 conductor ""    step-start ""
+  sv "$split_step" 44002 developer green launch  1 '"name": "develop-green"'
+  sv "$split_step" 44008 developer green exit    1 '"status": "0", "secs": "6"'
+  sv "$split_step" 44010 conductor ""    step-split "" "\"at\": \"$1\""
+}
+
+split_step="a step whose plan grew by a split"
+
+fixture_work split_exhausted_work
+split_log exhausted
+fixture_work split_over_work
+split_log over-budget
+
+name="#452 a log whose step-split carries at=over-budget and one whose step-split carries at=exhausted render different reports"
+problems=()
+
+split_exhausted_out="$split_exhausted_work/report.md"
+split_over_out="$split_over_work/report.md"
+render "$split_exhausted_work" "$split_exhausted_out"
+render "$split_over_work" "$split_over_out"
+
+cmp -s "$split_exhausted_out" "$split_over_out" &&
+  problems+=("the at=over-budget and at=exhausted logs rendered byte-identical reports")
+
+report_on "$name" "$split_over_out"
+
+
 # tier_seconds_say <file> <tier>=<s>,<s>,… … — the per-tier section of the `test-run` marks
 # timed-test-run.sh leaves behind (#342, part of PRD #335). Each expectation names a tier and
 # the seconds its runs recorded, in the order the log carries them, and every one of those
