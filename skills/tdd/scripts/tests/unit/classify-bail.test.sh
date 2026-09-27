@@ -11,6 +11,7 @@
 #   classify-bail.sh untestable-criterion → first stdout line `process`, exit 0
 #   classify-bail.sh step-too-big         → first stdout line `process`, exit 0
 #   classify-bail.sh rebase-unresolved    → first stdout line `process`, exit 0
+#   classify-bail.sh uncovered            → first stdout line `process`, exit 0
 #   classify-bail.sh <unrecognised>       → error on stderr, exit non-zero
 #
 # Admitted to the fast tier (#336) by its own usage count: git 0, python3 0, server 0, sleep 0.
@@ -116,6 +117,12 @@ else
   echo "FAIL - $budget_name"
   printf '%s' "$budget_bad"
 fi
+
+# 11. an uncovered cause classifies as process (issue #499): a refactor step's Cover leaf
+#     reported `COVERED: no` — the code the step would move has no test that catches it
+#     breaking, which is a finding about the work (find a seam, surround the behaviour),
+#     not the plumbing breaking.
+check "uncovered is process" uncovered 0 process
 
 echo "----"
 echo "$pass passed, $fail failed"
