@@ -968,6 +968,191 @@ drop_tree
 
 report "$name"
 
+# The suite the loop case plants. A name of its own, like every other plant here, because
+# all of them exist in the same run and a failure message has to say which shape it was
+# asked about.
+LOOP_OFFENDER='probes-loop-break-under-pipefail.test.sh'
+
+# The third early-leaving reader (#526): a `while read` loop that can `break`. Once it
+# leaves, nothing reads the pipe behind it, and a writer with bytes still to push dies of
+# SIGPIPE exactly as it does into `grep -q` — and GNU `tail` then says so on stderr, after
+# the suite's count line, which is what failed skill-event-marks.test.sh case 13 on CI. The
+# loop's two halves and the feed are kept apart and assembled by printf, for the reason the
+# header gives: once the guard reads this shape, a line of this suite spelling it would be
+# its own first offender.
+LOOP_OPEN='while IFS= read -r line; do'
+LOOP_BREAK='[[ "$line" == "$want" ]] && break'
+LOOP_CLOSE='done'
+PROC_SUB_FEED='< <(printf "%s\n" "$body")'
+
+# What the loop case's messages call the reader, since it is not one command but a loop.
+LOOP_READER='a while loop that can break'
+
+# probe_lines_loop <body-line>... — a loop in bash: it opens, runs the body lines it is handed,
+# and closes on a process substitution whose writer holds 400 lines. The mark goes on the
+# closing line, because that is where the writer is and so where the repair is made — the
+# address the guard owes. The body is an argument because the three loop cases differ in
+# nothing but what sits between the loop's two ends.
+probe_lines_loop() {
+  printf '%s\n' "$LOOP_OPEN"
+  printf '  %s\n' "$@"
+  printf '%s %s  # %s\n' "$LOOP_CLOSE" "$PROC_SUB_FEED" "$MARK"
+}
+
+# plant_loop_offender <suite-name> <body-line>... — a tree holding one suite that declares
+# `pipefail` and carries that loop with that body, and the guard. Written out here rather
+# than by `write_plant`, whose probe slot is the condition of an `if` and so holds one
+# command, not a loop; the skeleton around it is the same, down to the count line.
+plant_loop_offender() {
+  open_tree "$1" || return 1
+  shift
+
+  {
+    echo '#!/usr/bin/env bash'
+    echo '# Unit tests for a prompt template — the loop below reads a process substitution.'
+    echo "$PIPEFAIL_LINE"
+    echo 'body="$(printf "line %s\n" $(seq 1 400))"'
+    echo 'want="line 3"'
+    echo 'pass=0 fail=0 line=""'
+    probe_lines_loop "$@"
+    echo 'if [[ "$line" == "$want" ]]'
+    echo 'then pass=1; else fail=1; fi'
+    echo 'echo "----"'
+    echo 'echo "$pass passed, $fail failed"'
+    echo '[[ "$fail" -eq 0 ]]'
+  } > "$offender_path"
+  chmod 755 "$offender_path"
+
+  seal_tree
+}
+
+# probe_loop_plant_is_what_it_claims — the plant's premises: the marked line closes a loop on
+# a process substitution, a `break` sits inside that loop above it, and the suite declares
+# `pipefail`. Without all three, a silent guard was handed something that is not the shape.
+# Returns non-zero when there is no marked line.
+probe_loop_plant_is_what_it_claims() {
+  local above
+  probe_marked_line_is_findable || return 1
+  [[ "$marked" == "$LOOP_CLOSE $PROC_SUB_FEED"* ]] ||
+    problems+=("the planted offender's marked line $offender_line does not close a loop on a process substitution: $(flat "$marked")")
+  above="$(sed -n "$((offender_line - 1))p" "$offender_path")"
+  [[ "$above" == *"$LOOP_BREAK"* ]] ||
+    problems+=("the line above the planted offender's marked line carries no break, so the loop never leaves early: $(flat "$above")")
+  probe_plant_declares_pipefail
+}
+
+# probe_guard_exempts_the_listed_loop <key> — the loop site listed in the table with a reason
+# is no longer named. Asked of the output, as the recipe case's is.
+probe_guard_exempts_the_listed_loop() {
+  probe_guard_no_longer_names "$LOOP_OFFENDER:$offender_line" "$1"
+}
+
+# 10. One criterion, one case (#526): a `while` loop that can `break`, fed by a process
+#     substitution, under a suite that declares `pipefail`, is named as `<suite>:<line>` at
+#     the line that closes it on its writer — and not once an exemption entry carrying a
+#     reason lists that site, while a reasonless one still fails the run. That is the shape
+#     of skill-event-marks.test.sh case 13, whose `tail` outlived its loop on CI.
+name="no-sigpipe-pipelines.test.sh names a while loop that can break while fed by a process substitution, under pipefail, as <suite>:<line>, unless its exemption table lists that site with a reason (#526)"
+begin_case
+
+if probe_guard_is_there && probe_guard_carries_an_exemption_table &&
+  plant_loop_offender "$LOOP_OFFENDER" "$LOOP_BREAK"; then
+  if probe_loop_plant_is_what_it_claims; then
+    run_guard
+    probe_guard_names_the_offender_with_its_line "$LOOP_OFFENDER" "$LOOP_READER"
+
+    exempt_key="$LOOP_OFFENDER:$offender_line"
+    probe_exemption_both_ways "$exempt_key" probe_guard_exempts_the_listed_loop
+  fi
+fi
+drop_tree
+
+report "$name"
+
+# The two plants the loop's edges are asked about, each named for its shape, for the reason
+# LOOP_OFFENDER gives.
+NESTED_LOOP_OFFENDER='probes-loop-break-after-nested-loops.test.sh'
+COMMENTED_BREAK_LOOP='probes-loop-commented-break.test.sh'
+
+# Two loops nested in the offending one, each closed on its own line before the `break`. A
+# `done` ends whichever loop opened last, so a guard that counted only `while` as an opener
+# would read the inner loop's `done` as the outer one's, and the `break` after it as sitting
+# outside any loop at all. One per opener the loop grammar has besides `while`.
+NESTED_FOR='for word in $line; do :; done'
+NESTED_UNTIL='until true; do :; done'
+
+# A `break` that cannot run: a comment line in the loop's body. The loop it sits in never
+# leaves early, so its writer is always read to EOF.
+COMMENTED_BREAK="# $LOOP_BREAK"
+
+# probe_nested_plant_is_what_it_claims — case 11's premises on top of case 10's: both nested
+# loops sit between the loop's opener and its `break`, so the `break` is only the outer
+# loop's once both inner loops are known to have closed.
+probe_nested_plant_is_what_it_claims() {
+  local body
+  probe_loop_plant_is_what_it_claims || return 1
+  body="$(sed -n "$((offender_line - 3)),$((offender_line - 2))p" "$offender_path")"
+  [[ "$body" == *"$NESTED_FOR"*"$NESTED_UNTIL"* ]] ||
+    problems+=("the two lines above the planted loop's break are not a nested for loop and a nested until loop: $(flat "$body")")
+}
+
+# probe_commented_plant_is_what_it_claims — case 12's premises: the marked line closes a loop
+# on a process substitution, and the only line between the loop's two ends is the commented
+# `break`, so nothing in the loop can leave it early.
+probe_commented_plant_is_what_it_claims() {
+  local body
+  probe_marked_line_is_findable || return 1
+  [[ "$marked" == "$LOOP_CLOSE $PROC_SUB_FEED"* ]] ||
+    problems+=("the planted loop's marked line $offender_line does not close a loop on a process substitution: $(flat "$marked")")
+  body="$(sed -n "$((offender_line - 1))p" "$offender_path")"
+  [[ "$body" == "  $COMMENTED_BREAK" ]] ||
+    problems+=("the planted loop's body is not the one commented break: $(flat "$body")")
+  probe_plant_declares_pipefail
+}
+
+# probe_guard_says_nothing_of <suite> — the guard's output carries no line naming <suite>.
+probe_guard_says_nothing_of() {
+  local named
+  named="$(grep -F "$1" <<< "$guard_out")"
+  [[ -z "$named" ]] ||
+    problems+=("the guard named $1, whose loop's only break is a comment and so never leaves the loop: $(flat "$named")")
+}
+
+# 11. Criterion 2's loop, with a `for` loop and an `until` loop nested in it ahead of its
+#     `break` (#526): still named at the line that closes it on its writer. A loop in a real
+#     suite holds loops of its own, and the `break` that leaves the outer one is the one that
+#     strands its writer.
+name="no-sigpipe-pipelines.test.sh names a while loop that can break while fed by a process substitution as <suite>:<line> when a nested for and until loop close ahead of the break (#526)"
+begin_case
+
+if probe_guard_is_there &&
+  plant_loop_offender "$NESTED_LOOP_OFFENDER" "$NESTED_FOR" "$NESTED_UNTIL" "$LOOP_BREAK"; then
+  if probe_nested_plant_is_what_it_claims; then
+    run_guard
+    probe_guard_names_the_offender_with_its_line "$NESTED_LOOP_OFFENDER" "$LOOP_READER"
+  fi
+fi
+drop_tree
+
+report "$name"
+
+# 12. The same loop whose only `break` is commented out (#526): not named, because it can
+#     never leave before its writer's EOF. A `break` in a comment is prose, and a guard that
+#     read it as code would send the author to a loop with nothing to repair.
+name="no-sigpipe-pipelines.test.sh says nothing about a while loop fed by a process substitution whose only break is a comment (#526)"
+begin_case
+
+if probe_guard_is_there &&
+  plant_loop_offender "$COMMENTED_BREAK_LOOP" "$COMMENTED_BREAK"; then
+  if probe_commented_plant_is_what_it_claims; then
+    run_guard
+    probe_guard_says_nothing_of "$COMMENTED_BREAK_LOOP"
+  fi
+fi
+drop_tree
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
