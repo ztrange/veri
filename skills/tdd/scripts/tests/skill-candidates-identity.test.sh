@@ -70,6 +70,10 @@ says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
+# not_filed — the words that say the skill files nothing for a candidate, near enough to a
+# verb of filing that the sentence is about filing it.
+not_filed='(not|never|nothing)[^.]{0,20}files?'
+
 # says_near <a> <b> <gap> <fact> — the body has <a> and <b> in one sentence, at most <gap>
 # characters apart, in either order.
 says_near() {
@@ -184,7 +188,7 @@ problems=()
 if has_skill_md; then
   says '(no|without)[^.]{0,40}checkable predicates?' \
     "$skill_md never names a candidate with no checkable predicate"
-  says_near 'checkable predicates?' '(not|never|nothing)[^.]{0,20}files?' 120 \
+  says_near 'checkable predicates?' "$not_filed" 120 \
     "$skill_md never says a candidate with no checkable predicate is not filed"
   says '(names?|says?|which)[^.]{0,80}skipped|skipped[^.]{0,80}(by name|which)' \
     "$skill_md never says it names which candidate it skipped"
@@ -206,7 +210,7 @@ if has_skill_md; then
     "$skill_md never says a re-run files no duplicate"
   says 'gh (issue list|search issues)' \
     "$skill_md never says how it finds the issues it already filed (gh issue list or gh search issues)"
-  says_near '(already filed|already exists?|existing issue)' '(not|never|nothing)[^.]{0,20}files?' 120 \
+  says_near '(already filed|already exists?|existing issue)' "$not_filed" 120 \
     "$skill_md never says a candidate whose issue already exists is not filed again"
 fi
 report "$name"
