@@ -2335,6 +2335,53 @@ wall_clock_says "$empty_out" yes
 report_on "$name" "$empty_out"
 
 
+# revise_cell_says <file> <step> <phase>=<used>/<budget> … — the step's revise cell in the
+# `#### By step` table, read as its `<phase> <used>/<budget>` entries, must be exactly the
+# ones given. REVISE_BUDGET is per phase, so the cell carries one entry per revised phase;
+# what separates the entries, and their order, is the report's own to choose.
+revise_cell_says() {
+  local out_file="$1" step="$2"; shift 2
+  probe "$PROBE_PRELUDE"'
+path, step = sys.argv[1], sys.argv[2]
+want = set(tuple(re.split(r"[=/]", arg)) for arg in sys.argv[3:])
+header, row = located(tables_in(path), step, "a table", table_with)
+if row is not None:
+    i = column(header, "the revise attempts", lambda c: "revise" in c, step)
+    if i is not None:
+        cell = row[i] if i < len(row) else ""
+        got = set(re.findall(r"([a-z]+) ([0-9]+)/([0-9?]+)", cell))
+        if got != want:
+            complain("step %r revise cell: want one entry per phase %s, got %r"
+                     % (step, " ".join(sorted(sys.argv[3:])), cell))
+print("\n".join(problems))
+' "$out_file" "$step" "$@"
+}
+
+# A step revised in two phases: Red twice and Refactor once, each against a REVISE_BUDGET of
+# three. Three revises in all, which a step-wide counter renders `3/3` — a budget spent that
+# no phase spent. Three rather than two so this case is only about the split, not about the
+# overrun the split cures. One leaf launch besides the marks, since a step raises a row of
+# the table only by a counted leaf event and the cell is read off that row.
+fixture_work phased_work
+phased="a step revised in Red and in Refactor"
+sv "$phased" 9000 conductor ""       step-start ""
+sv "$phased" 9010 developer red      launch  1 '"name": "develop-red"'
+sv "$phased" 9100 conductor red      revise  1 '"budget": "3"'
+sv "$phased" 9200 conductor red      revise  2 '"budget": "3"'
+sv "$phased" 9300 conductor refactor revise  1 '"budget": "3"'
+sv "$phased" 9400 conductor ""       step-done ""
+
+name="#488 a step revised in two phases renders its revise cell as one <phase> <used>/<budget> entry per phase"
+problems=()
+
+phased_out="$phased_work/report.md"
+render "$phased_work" "$phased_out"
+
+revise_cell_says "$phased_out" "$phased" red=2/3 refactor=1/3
+
+report_on "$name" "$phased_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

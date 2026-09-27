@@ -515,6 +515,10 @@ for line in marks:
         mark = spent.setdefault(step, {})
         mark["revises"] = mark.get("revises", 0) + 1
         mark["revise"] = line.get("budget", "")
+        # REVISE_BUDGET is per phase, so the attempts are also kept per phase: a step
+        # revised in two phases spent two budgets, not one (#488).
+        per_phase = mark.setdefault("revise phases", {})
+        per_phase[phase] = (per_phase.get(phase, (0, ""))[0] + 1, line.get("budget", ""))
         continue
     if event == "refactor" and step:
         mark = spent.setdefault(step, {})
@@ -592,6 +596,10 @@ def budget_cells(step):
     mark = spent.get(step, {})
     used = mark.get("revises")
     revise = "%d/%s" % (used, mark.get("revise") or "?") if used else UNKNOWN
+    phases = mark.get("revise phases", {})
+    if len(phases) > 1:
+        revise = ", ".join("%s %d/%s" % (phase, count, budget or "?")
+                           for phase, (count, budget) in phases.items())
     if mark.get("refactor"):
         refactor = "%s/%s" % (mark.get("transforms") or "?", mark["refactor"])
     else:
