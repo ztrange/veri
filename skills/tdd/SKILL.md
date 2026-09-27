@@ -820,9 +820,12 @@ process failure, `2` still a system one, `3` still nothing to do.
 
 On a crossing — the figure `step-cost.sh` printed is over the step budget — send one leaf the
 `over-budget` prompt, carrying the two figures, and launch it through the supervisor the way
-the `exhausted` leaf is launched:
+the `exhausted` leaf is launched. Record the crossing first, before the leaf starts: the
+crossing and the leaf's answer are two facts, and a mark written only after the answer would
+record nothing for a crossing whose leaf never came back:
 
 ```
+VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-over-budget spent=<spent> budget=<step-budget>
 $S/build-develop-prompt.sh over-budget .tdd/issue-<n>-spec.md "$($S/next-unchecked.sh < .tdd/issue-<n>.md)" '<test-cmd>' <spent> <step-budget> > .tdd/develop-over-budget.prompt
 rm -f .tdd/develop-over-budget.exit .tdd/develop-over-budget.pid
 VERI_TEST_CMD='<test-cmd>' VERI_ISSUE=<n> VERI_STEP="$(cat .tdd/issue-<n>.md | $S/next-unchecked.sh)" $S/detach-leaf.sh $S/supervise.sh develop-over-budget $S/run-leaf.sh .tdd/develop-over-budget.prompt --permission-mode bypassPermissions > .tdd/develop-over-budget.out 2> .tdd/develop-over-budget.err
@@ -860,11 +863,9 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
   **not a bail**, and it is where this path parts from the revise-exhausted one, whose exit 3
   bails with cause `revise-exhausted` because a verifier that will not pass the work leaves
   nothing to go on with. Here nothing has failed, for the reason the section gives above, and
-  bailing a converging step because it is expensive is exactly what this check exists not to do. Record the crossing, leave the check disarmed, and let the step
-  finish normally:
-  ```
-  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-over-budget spent=<spent> budget=<step-budget>
-  ```
+  bailing a converging step because it is expensive is exactly what this check exists not to do. The
+  `step-over-budget` mark written before the launch already records the crossing, so this branch
+  writes none of its own: leave the check disarmed, and let the step finish normally.
 
 A **supervisor exit 2** on the over-budget leaf — `wait-leaf.sh` exits 2 — is a
 **`killed-stuck` bail** like any other developer leaf's (see *Bailing*), and the step's budget
