@@ -174,7 +174,7 @@ Two traps, both already cost something once:
 ## Testing idiom
 
 Plain-shell asserts, zero dependencies, under
-`skills/tdd/scripts/tests/` — 121 files for sixty-four scripts, plus fourteen suites under `unit/` (five moved there, three written for them, four written with the script they test — `step-cost.test.sh`, `step-budget.test.sh`, `run-affordable.test.sh` and `cover-outcome.test.sh` — and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red), all run by `make test`.
+`skills/tdd/scripts/tests/` — 122 files for sixty-four scripts, plus fourteen suites under `unit/` (five moved there, three written for them, four written with the script they test — `step-cost.test.sh`, `step-budget.test.sh`, `run-affordable.test.sh` and `cover-outcome.test.sh` — and two written for the argument contract they all share — `missing-argument-exit.test.sh`, which audits it over every script, and `missing-argument-guard.test.sh`, which plants an offender so that audit is known to go red), all run by `make test`.
 `supervise.sh` has a second suite for its retry axis, and two suites belong to no single
 script: `hermetic-suites.test.sh` is a cross-suite test that pins the suites' independence
 from ambient `VERI_*` tunables, and `workflow-timeouts.test.sh` is the first to assert on

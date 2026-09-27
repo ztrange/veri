@@ -1441,6 +1441,28 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    The branch is left un-rebased, and the run does **bail** with the PR left a draft, its
    bail comment naming every conflicting file `rebase-onto-default.sh` printed, so the human
    it hands the conflict to knows where it is.
+
+   Then run the issue's **one structural pass**, once, before the PR is readied: the
+   structural candidates the steps recorded rather than applied, each taken up by one
+   `structural` transform leaf, bounded to every file the issue touched and counted against
+   the issue's budget, not a step's:
+   ```
+   git merge-base HEAD origin/<default>                 # → <issue-base>
+   $S/refactor-touched.sh --issue <issue-base>          # → <issue-touched-files>
+   $S/refactor-owed.sh list .tdd/issue-<n>-refactor-owed.md   # one candidate per line; exit 3 ⇒ no pass
+   ```
+   For each candidate, in order, `<count>` being the transforms the pass has already landed:
+   ```
+   $S/refactor-budget.sh --issue <count>   # exit 0 ⇒ launch; exit 3 ⇒ the pass is over
+   git rev-parse HEAD                      # → <base-sha>
+   ```
+   Its prompt is `build-develop-prompt.sh structural`'s, handed the spec, the candidate as
+   `list` printed it, the test command and `<issue-touched-files>`, written to
+   `.tdd/develop-structural.prompt`; the leaf is launched through the supervisor as
+   `develop-structural`, then judged by the long
+   refactor's blind `transform` verifier against `<base-sha>`, one commit per transform. A
+   `REJECT` resets to `<base-sha>` and moves on to the next candidate. No candidate — `list`
+   exits 3 — skips the pass, with no bail.
 2. **Close the run's log with the PR's URL, render the metrics, commit them, then rewrite the
    PR into its final form and mark it ready for review** — one sub-step, in this order, from
    inside the worktree. **This step opens no PR.** Step 2.3 opened it at the plan commit, so
