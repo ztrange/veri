@@ -144,6 +144,21 @@ expect_code 1
 expect_figures 26.50 3 8.00 50.50
 verdict "the median is over completed full steps only, so a log of mostly pins still projects at the full-step median"
 
+# 5. no completed full step, so there is no median to project with: first a log of two pins
+#    and nothing else, then a log holding no `usage` event at all. Each exits 3 — nothing to
+#    decide, not an answer — with stdout empty, so a caller never reads a figure off it.
+: > "$work/.tdd/events.jsonl"
+pin_step "pin one"
+pin_step "pin two"
+run_affordable VERI_RUN_BUDGET=50 -- 3
+expect_code 3
+[[ -z "$out" ]] || problems+="    want empty stdout for a log of pins only, got '$out'"$'\n'
+printf '{"ts": 1, "issue": "453", "actor": "conductor", "event": "phase-start"}\n' > "$work/.tdd/events.jsonl"
+run_affordable VERI_RUN_BUDGET=50 -- 3
+expect_code 3
+[[ -z "$out" ]] || problems+="    want empty stdout for a log with no usage, got '$out'"$'\n'
+verdict "no completed full step, only pins or no usage at all, exits 3 printing nothing"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
