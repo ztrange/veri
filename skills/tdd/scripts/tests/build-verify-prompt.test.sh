@@ -1142,27 +1142,24 @@ grep -F '_verify-plan-refactor.md' "$work/no-refactor-plan.err" > /dev/null \
 [[ -z "$problems" ]] \
   && ok || no "the refactor-plan paragraph is read by the plan phase alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
 
-# 51. verify-green REJECTs a rationale comment outside the two allowed classes (#500, criterion 3).
-problems=""
-prompt_says "$green" "verify-green never makes a rationale comment a REJECT" \
-  -iE -e "REJECT[^.]{0,200}rationale comment|rationale comment[^.]{0,200}REJECT"
-prompt_says "$green" "verify-green never names the contract header as an allowed comment" \
-  -iE -e "contract header"
-prompt_says "$green" "verify-green never names the shell-hazard warning as an allowed comment" \
-  -iE -e "shell[^.]{0,40}hazard"
-[[ -z "$problems" ]] && ok \
-  || no "verify-green REJECTs a rationale comment outside the two allowed classes (${problems#; })"
-
-# 49. verify-refactor REJECTs a rationale comment outside the two allowed classes (#500, criterion 3).
-problems=""
-prompt_says "$refactor" "verify-refactor never makes a rationale comment a REJECT" \
-  -iE -e "REJECT[^.]{0,200}rationale comment|rationale comment[^.]{0,200}REJECT"
-prompt_says "$refactor" "verify-refactor never names the contract header as an allowed comment" \
-  -iE -e "contract header"
-prompt_says "$refactor" "verify-refactor never names the shell-hazard warning as an allowed comment" \
-  -iE -e "shell[^.]{0,40}hazard"
-[[ -z "$problems" ]] && ok \
-  || no "verify-refactor REJECTs a rationale comment outside the two allowed classes (${problems#; })"
+# 51–52. verify-green and verify-refactor REJECT a rationale comment outside the two allowed
+#     classes (#500, criterion 3).
+#
+#     rejects_rationale_comment <prompt> <phase> — one case, the three claims.
+rejects_rationale_comment() {
+  local prompt="$1" phase="$2"
+  problems=""
+  prompt_says "$prompt" "$phase never makes a rationale comment a REJECT" \
+    -iE -e "REJECT[^.]{0,200}rationale comment|rationale comment[^.]{0,200}REJECT"
+  prompt_says "$prompt" "$phase never names the contract header as an allowed comment" \
+    -iE -e "contract header"
+  prompt_says "$prompt" "$phase never names the shell-hazard warning as an allowed comment" \
+    -iE -e "shell[^.]{0,40}hazard"
+  [[ -z "$problems" ]] && ok \
+    || no "$phase REJECTs a rationale comment outside the two allowed classes (${problems#; })"
+}
+rejects_rationale_comment "$green" verify-green
+rejects_rationale_comment "$refactor" verify-refactor
 
 echo "----"
 echo "$pass passed, $fail failed"
