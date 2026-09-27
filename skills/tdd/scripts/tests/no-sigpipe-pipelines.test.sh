@@ -151,6 +151,27 @@ wrapped_sites() {
   return 0
 }
 
+# loop_break_sites <file> — the lines of <file> that close a loop on a process substitution
+# when that loop can `break`, one `<lineno>:<text>` per line (#526). The third early-leaving
+# reader: once the loop breaks nothing reads the pipe behind it, and a writer with bytes still
+# to push dies of SIGPIPE — GNU `tail` then says so on stderr, after the suite's count line,
+# which is what failed skill-event-marks.test.sh case 13 on CI. The site is the closing line,
+# because that is where the writer is and so where the repair is made. One awk over the file
+# keeps a stack of open loops: an opener is a line whose first word is `while`, `until` or
+# `for`, a closer one whose first word is the loop's end, and a `break` marks the innermost
+# loop open around it. A comment line is not read.
+loop_break_sites() {
+  awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*(while|until|for)([[:space:]]|$)/ { depth++; broke[depth] = 0 }
+    depth > 0 && /(^|[[:space:];&|])break([[:space:];]|$)/ { broke[depth] = 1 }
+    depth > 0 && /(^[[:space:]]*|;[[:space:]]*)done([[:space:];]|$)/ {
+      if (broke[depth] && /done[[:space:]]*<[[:space:]]*<\(/) print NR ":" $0
+      depth--
+    }
+  ' "$1"
+}
+
 # unexempted_sites <file> — the lines of <file> that feed a writer into a reader leaving
 # before EOF and are neither a comment nor an exemption, one `<lineno>:<text>` per line.
 # Both cases ask exactly this of a file and differ only in the consequence they then name,
@@ -174,7 +195,7 @@ unexempted_sites() {
     [[ -n "${seen[$lineno]:-}" ]] && continue
     seen["$lineno"]=1
     printf '%s:%s\n' "$lineno" "$text"
-  done < <(grep -nE "$PIPE_INTO_READER" "$file"; wrapped_sites "$file")
+  done < <(grep -nE "$PIPE_INTO_READER" "$file"; wrapped_sites "$file"; loop_break_sites "$file")
   return 0
 }
 
