@@ -428,7 +428,9 @@ launch_at="$(grep -m1 -nE 'detach-leaf\.sh.*develop-over-budget' "$ROOT/$skill_m
 if [[ -z "$launch_at" ]]; then
   problems+=("$skill_md launches no develop-over-budget leaf through detach-leaf.sh — where the crossing's mark belongs could not be read")
 else
-  before_launch="$(head -n "$((launch_at - 1))" "$ROOT/$skill_md" | grep -E 'event\.sh step-over-budget([^a-z0-9-]|$)')"
+  before_launch="$(head -n "$((launch_at - 1))" "$ROOT/$skill_md" | while IFS= read -r line; do
+    calls_event "$line" step-over-budget && printf '%s\n' "$line"
+  done)"
   calls=0
   [[ -z "$before_launch" ]] || calls="$(wc -l <<< "$before_launch" | tr -d ' ')"
   if [[ "$calls" -ne 1 ]]; then
