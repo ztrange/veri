@@ -94,14 +94,20 @@ exit_bullet_after() {
   awk -v from="$1" -v n="$2" 'NR > from && index($0, "- **exit " n " ") == 1 { print NR; exit }' "$ROOT/$skill_md"
 }
 
+# cost_bullet_at <code> — the line of the cost check's `- **exit <code>` bullet, or nothing when
+# the heading or the bullet is missing.
+cost_bullet_at() {
+  local section_at
+  section_at="$(cost_check_at)"
+  [[ -z "$section_at" ]] || exit_bullet_after "$section_at" "$1"
+}
+
 # cost_branch <code> <next> — "<start> <end>": the line of the cost check's `- **exit <code>`
 # bullet and of the `- **exit <next>` bullet after it, which bound that branch — or nothing when
 # either is missing. The cases pinning one branch's mark read its bounds this way.
 cost_branch() {
-  local section_at from to=""
-  section_at="$(cost_check_at)"
-  [[ -n "$section_at" ]] || return 0
-  from="$(exit_bullet_after "$section_at" "$1")"
+  local from to=""
+  from="$(cost_bullet_at "$1")"
   [[ -z "$from" ]] || to="$(exit_bullet_after "$from" "$2")"
   [[ -z "$to" ]] || echo "$from $to"
 }
@@ -566,9 +572,7 @@ report "$name"
 #    line in column one — prescribes no `event.sh` call at all.
 name="$skill_md's over-budget exit 3 branch writes no event mark beyond the crossing's step-over-budget"
 problems=()
-section_at="$(cost_check_at)"
-carry_at=""
-[[ -z "$section_at" ]] || carry_at="$(exit_bullet_after "$section_at" 3)"
+carry_at="$(cost_bullet_at 3)"
 if [[ -z "$carry_at" ]]; then
   problems+=("$skill_md's cost check has no \`- **exit 3\` branch — where the carry-on writes nothing could not be read")
 else
@@ -603,9 +607,7 @@ scratch="$(mktemp -d)"
 mkdir -p "$scratch/$(dirname "$skill_md")"
 fixture="$scratch/$skill_md"
 case13="$(awk '/^# 13\. / { on = 1 } on && /^report "\$name"$/ { exit } on { print }' "${BASH_SOURCE[0]}")"
-section_at="$(cost_check_at)"
-carry_at=""
-[[ -z "$section_at" ]] || carry_at="$(exit_bullet_after "$section_at" 3)"
+carry_at="$(cost_bullet_at 3)"
 if [[ -z "$case13" ]]; then
   problems+=("case 13's code could not be cut out of this suite's source, so how it reads the branch could not be asked")
 elif [[ -z "$carry_at" ]]; then
