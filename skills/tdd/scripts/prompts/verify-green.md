@@ -41,6 +41,11 @@ A developer agent has written the implementation intended to make the target tes
    stay green nothing required it. Then restore the tree exactly — `git checkout --
    <file>`, and confirm with `git diff --exit-code` — before you report, since a verifier
    that reports first leaves the developer's tree mutated for the next leaf.
+5. **Only the two allowed comments.** A comment the change adds is allowed only as a
+   contract header (a usage line or exit-code table) or a succinct warning where the shell
+   itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
+   load-bearing `|| true`). REJECT any other rationale comment the change adds, and name
+   it in REASON:.
 
 PASS only if the target test, the fast command and the affected suites are green and the pass genuinely reflects
 the behavior the spec requires.
