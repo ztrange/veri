@@ -88,6 +88,18 @@ exit_bullet_after() {
   awk -v from="$1" -v n="$2" 'NR > from && index($0, "- **exit " n " ") == 1 { print NR; exit }' "$ROOT/$skill_md"
 }
 
+# cost_branch <code> <next> — "<start> <end>": the line of the cost check's `- **exit <code>`
+# bullet and of the `- **exit <next>` bullet after it, which bound that branch — or nothing when
+# either is missing. The cases pinning one branch's mark read its bounds this way.
+cost_branch() {
+  local section_at from to=""
+  section_at="$(cost_check_at)"
+  [[ -n "$section_at" ]] || return 0
+  from="$(exit_bullet_after "$section_at" "$1")"
+  [[ -z "$from" ]] || to="$(exit_bullet_after "$from" "$2")"
+  [[ -z "$to" ]] || echo "$from $to"
+}
+
 # insertion_re — how this document spells a call to `add-ledger-step.sh`, as a regex over a
 # lowercased record: the call, not a mention. Every script the document orders run is written
 # `$S/<script>`, and preflight names `add-ledger-step.sh` bare while reading its budget, so the
@@ -496,14 +508,8 @@ report "$name"
 #    still spelled that way outside that branch.
 name="$skill_md's over-budget exit 0 branch writes step-split carrying at=over-budget, and the revise-exhausted split keeps at=exhausted"
 problems=()
-section_at="$(cost_check_at)"
-split_at="" park_at=""
-if [[ -n "$section_at" ]]; then
-  split_at="$(exit_bullet_after "$section_at" 0)"
-  [[ -z "$split_at" ]] ||
-    park_at="$(exit_bullet_after "$split_at" 1)"
-fi
-if [[ -z "$split_at" || -z "$park_at" ]]; then
+read -r split_at park_at <<< "$(cost_branch 0 1)"
+if [[ -z "$park_at" ]]; then
   problems+=("$skill_md's cost check has no \`- **exit 0\` branch followed by an \`- **exit 1\` one — where the cost-driven split's mark belongs could not be read")
 else
   over_budget=0 exhausted=0 lineno=0
@@ -530,14 +536,8 @@ report "$name"
 #    `event.sh step-escalated` carrying `at=over-budget`.
 name="$skill_md's over-budget exit 1 branch writes step-escalated carrying at=over-budget"
 problems=()
-section_at="$(cost_check_at)"
-park_at="" carry_at=""
-if [[ -n "$section_at" ]]; then
-  park_at="$(exit_bullet_after "$section_at" 1)"
-  [[ -z "$park_at" ]] ||
-    carry_at="$(exit_bullet_after "$park_at" 3)"
-fi
-if [[ -z "$park_at" || -z "$carry_at" ]]; then
+read -r park_at carry_at <<< "$(cost_branch 1 3)"
+if [[ -z "$carry_at" ]]; then
   problems+=("$skill_md's cost check has no \`- **exit 1\` branch followed by an \`- **exit 3\` one — where the cost-driven park's mark belongs could not be read")
 else
   over_budget=0
