@@ -140,6 +140,13 @@ bug_file=""
 if spec_has_bug_section "$spec_file"; then
   bug_file="$HERE/prompts/_verify-red-bug.md"
 fi
+# The refactor kind reaches the plan verifier the same way (#499): `capture-spec.sh` writes a
+# `## Refactor` section into the blind spec, and that section is what asks for the checks a
+# plan of named refactorings owes — never a new parameter.
+refactor_plan_file=""
+if [[ "$phase" == plan ]] && grep -qE '^## Refactor[[:space:]]*$' "$spec_file" 2>/dev/null; then
+  refactor_plan_file="$HERE/prompts/_verify-plan-refactor.md"
+fi
 
 # The ledger is read by this builder rather than by the leaf, so it joins the list of
 # files whose unreadability is this script's refusal: `cat` failing under `set -e` would
@@ -148,6 +155,9 @@ fi
 readable=("$tpl_file" "$shared_file" "$spec_file")
 if [[ -n "$bug_file" ]]; then
   readable+=("$bug_file")
+fi
+if [[ -n "$refactor_plan_file" ]]; then
+  readable+=("$refactor_plan_file")
 fi
 if [[ "$phase" == plan ]]; then
   readable+=("$test_path")
@@ -161,6 +171,8 @@ shared="$(cat "$shared_file")"
 spec="$(cat "$spec_file")"
 bug_reproduction=""
 if [[ -n "$bug_file" ]]; then bug_reproduction="$(cat "$bug_file")"; fi
+refactor_plan=""
+if [[ -n "$refactor_plan_file" ]]; then refactor_plan="$(cat "$refactor_plan_file")"; fi
 # The plan is its phase's subject, so its own text goes into the prompt — a verifier given
 # only a path, in a target repository, would judge a file it was never handed. The read
 # belongs here, beside the prompt's other on-disk inputs, rather than up among the argument
@@ -188,6 +200,7 @@ out="${tpl//\{\{SHARED\}\}/$shared}"
 out="${out//\{\{STEP\}\}/$step_block}"
 out="${out//\{\{ISSUE_SPEC\}\}/$spec}"
 out="${out//\{\{BUG_REPRODUCTION\}\}/$bug_reproduction}"
+out="${out//\{\{REFACTOR_PLAN\}\}/$refactor_plan}"
 out="${out//\{\{LEDGER\}\}/$ledger}"
 out="${out//\{\{TEST_PATH\}\}/$test_path}"
 out="${out//\{\{TARGET_TEST\}\}/$target}"

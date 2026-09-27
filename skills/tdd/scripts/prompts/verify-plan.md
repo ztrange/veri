@@ -52,6 +52,8 @@ of a manual check — into a Red/Green step instead of its `⟦full-suite⟧` or
 line, even where check 1 alone would pass it: a Red leaf handed that step can only answer
 `UNTESTABLE`, and the run bails.
 
+{{REFACTOR_PLAN}}
+
 A REJECT must name the criterion it fails on and state the part of it no step covers, in
 the criterion's own words, so that the plan can be rewritten from your reason alone.
 

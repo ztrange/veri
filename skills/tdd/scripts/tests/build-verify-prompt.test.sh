@@ -1086,6 +1086,62 @@ prompt_lacks "$tf" "transform prompt bounds the diff to a green commit" -iE -e '
 [[ -z "$problems" ]] \
   && ok || no "transform takes the predicate record and a hex base sha, tells the verifier to judge git diff <base-sha>..HEAD rather than a green commit's files, and an unknown phase is still exit 2 (${problems#; })"
 
+# 49. the plan verifier's refactor-kind check (issue #499, criterion 3). A refactor step's Red
+#     is the smell being present, stated as a shell command in the criterion — false before the
+#     step, true after — and its Transform applies one named refactoring. A plan whose steps
+#     paraphrase the issue ("tidy the helpers") gives the Cover leaf nothing to mutate against
+#     and the verifier nothing to run, so the plan verifier is where that shape is refused. The
+#     kind reaches the verifier the way `bug` does: `capture-spec.sh` writes a `## Refactor`
+#     section into the blind spec, and the builder asks the spec, never a new parameter
+#     (ADR-0003). So the prompt built from a refactor spec has to direct a REJECT for a step
+#     that does not name one refactoring, and one for a step whose smell is not a runnable
+#     shell predicate; the prompt built from case 34's plain spec has to say neither. Four
+#     claims, each named; windows under 255 for case 36's reason. The fixture's section is
+#     capture-spec.sh's own text, which carries none of the probed words.
+cp "$work/spec.md" "$work/refactor-spec.md"
+printf '\n## Refactor\n\nRun kind: refactor. This issue changes structure, not behaviour.\n' \
+  >> "$work/refactor-spec.md"
+problems=""
+rf_plan="$("$BUILD" plan "$work/refactor-spec.md" "$work/ledger.md" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; plan with a refactor spec exited $code, want 0"
+names_one_refactoring='REJECT[^.]{0,200}(one|a single|named) refactoring|(one|a single|named) refactoring[^.]{0,200}REJECT'
+runnable_predicate='REJECT[^.]{0,200}(runnable|shell)[^.]{0,40}predicate|(runnable|shell)[^.]{0,40}predicate[^.]{0,200}REJECT'
+prompt_says "$rf_plan" "never directs a REJECT for a step that does not name one refactoring" \
+  -iE -e "$names_one_refactoring"
+prompt_says "$rf_plan" "never directs a REJECT for a step whose smell is not a runnable shell predicate" \
+  -iE -e "$runnable_predicate"
+prompt_lacks "$plan" "a spec with no Refactor section still demands one named refactoring per step" \
+  -iE -e "$names_one_refactoring"
+prompt_lacks "$plan" "a spec with no Refactor section still demands a runnable shell predicate" \
+  -iE -e "$runnable_predicate"
+[[ -z "$problems" ]] \
+  && ok || no "verify-plan, for a spec with a Refactor section, REJECTs a plan whose steps do not each name one refactoring and state its smell as a runnable shell predicate, and says neither for a spec without one (${problems#; })"
+
+# 50. the refactor-plan paragraph is an input of the plan phase alone, and one the builder
+#     refuses to go without (issue #499, criterion 3). Its file joins the readability check the
+#     way the ledger does (#439): a plan call on a refactor spec whose paragraph cannot be read
+#     is exit 2 with nothing on stdout and the file named on stderr — never `cat` dying under
+#     `set -e` with 1, the code for an answer that came back, and never a prompt that silently
+#     drops the two REJECT checks. And only the plan phase asks for it: a red call on the same
+#     spec, in the same broken copy, still renders — no other template carries the
+#     placeholder, so another phase refusing over the file would be a refusal for nothing.
+#     The copy is the builder with its prompts and lib, minus that one file.
+mkdir -p "$work/no-refactor-plan"
+cp "$BUILD" "$work/no-refactor-plan/"
+cp -R "$HERE/../prompts" "$HERE/../lib" "$work/no-refactor-plan/"
+rm "$work/no-refactor-plan/prompts/_verify-plan-refactor.md"
+problems=""
+out="$("$work/no-refactor-plan/build-verify-prompt.sh" plan "$work/refactor-spec.md" "$work/ledger.md" 2>"$work/no-refactor-plan.err")"; code=$?
+[[ "$code" -eq 2 ]] || problems="$problems; plan without the paragraph's file exited $code, want 2"
+[[ -z "$out" ]] || problems="$problems; plan without the paragraph's file printed ${#out} bytes, want none"
+grep -F '_verify-plan-refactor.md' "$work/no-refactor-plan.err" > /dev/null \
+  || problems="$problems; stderr does not name _verify-plan-refactor.md"
+"$work/no-refactor-plan/build-verify-prompt.sh" red "$work/refactor-spec.md" "$testpath" test_slugify_lowercases \
+  >/dev/null 2>&1; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; red on a refactor spec without the plan paragraph's file exited $code, want 0"
+[[ -z "$problems" ]] \
+  && ok || no "the refactor-plan paragraph is read by the plan phase alone, and an unreadable one is exit 2 with no stdout (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
