@@ -81,6 +81,30 @@ fi
 
 report "$name"
 
+# offset <needle> <text> — the byte offset of <needle>'s first occurrence in <text>, or -1.
+offset() {
+  local head="${2%%"$1"*}"
+  if [[ "$head" == "$2" ]]; then echo -1; else echo "${#head}"; fi
+}
+
+name="$skill_md's structural pass runs transform-touches-tests.sh before the blind transform verifier, and both before the next candidate's structural leaf is launched"
+problems=()
+
+if [[ "$pass_text" == "$section" ]]; then
+  problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — the order of its checks could not be established")
+else
+  touches="$(offset 'transform-touches-tests.sh <base-sha>' "$pass_text")"
+  verifier="$(offset 'transform verifier against <base-sha>' "$pass_text")"
+  next="$(offset 'before the next candidate' "$pass_text")"
+  if [[ "$touches" -lt 0 || "$verifier" -lt 0 || "$next" -lt 0 ]]; then
+    problems+=("$skill_md's structural pass is missing a phrase to order: transform-touches-tests.sh at $touches, transform verifier at $verifier, 'before the next candidate' at $next (-1 = absent)")
+  elif [[ ! ( "$touches" -lt "$verifier" && "$verifier" -lt "$next" ) ]]; then
+    problems+=("$skill_md's structural pass orders its checks wrongly: transform-touches-tests.sh at $touches, transform verifier at $verifier, 'before the next candidate' at $next — expected ascending")
+  fi
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
