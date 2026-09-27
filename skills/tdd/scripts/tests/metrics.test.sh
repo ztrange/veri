@@ -2642,6 +2642,38 @@ kind_cell_is "$kinds_out" "$pinned_kind" pin
 report_on "$name" "$kinds_out"
 
 
+# A full step beside one whose verify-pin verdict passed but which never wrote a `pin` mark.
+fixture_work satisfied_work
+full="a step that ran red, green and refactor"
+satisfied="a step whose red leaf found its criterion already satisfied"
+sv "$full" 19000 conductor ""       step-start ""
+sv "$full" 19010 developer red      launch  1 '"name": "develop-red"'
+sv "$full" 19020 verifier  red      launch  1 '"name": "verify-red"'
+sv "$full" 19030 verifier  red      verdict 1 '"verdict": "PASS", "reason": "fails for the reason it names"'
+sv "$full" 19040 developer green    launch  1 '"name": "develop-green"'
+sv "$full" 19050 verifier  green    launch  1 '"name": "verify-green"'
+sv "$full" 19060 verifier  green    verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$full" 19070 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$full" 19080 verifier  refactor launch  1 '"name": "verify-refactor"'
+sv "$full" 19090 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour unchanged"'
+sv "$full" 19100 conductor ""       step-done ""
+sv "$satisfied" 19200 conductor ""  step-start ""
+sv "$satisfied" 19210 developer red launch  1 '"name": "develop-red"'
+sv "$satisfied" 19220 verifier  pin launch  1 '"name": "verdict-pin"'
+sv "$satisfied" 19230 verifier  pin verdict 1 '"verdict": "PASS", "reason": "already satisfied"'
+
+name="#454 the By-step kind cell reads already-satisfied for a verify-pin PASS with no pin mark and full for a full step"
+problems=()
+
+sat_out="$satisfied_work/report.md"
+render "$satisfied_work" "$sat_out"
+
+kind_cell_is "$sat_out" "$full" full
+kind_cell_is "$sat_out" "$satisfied" already-satisfied
+
+report_on "$name" "$sat_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
