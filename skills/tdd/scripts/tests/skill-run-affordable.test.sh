@@ -20,6 +20,8 @@
 #   2. The same step boundary — from the call to the next verdict bullet (`- **REJECT`) — also
 #      says what its exit 3 does (no full step done yet, so no median: carry on) and what its
 #      exit 2 does (no answer could be obtained), so neither is left for the session to guess.
+#   3. The park on exit 1 — up to the exit 2 answer — says it is not a bail and that
+#      `classify-bail.sh` is not called on it: nothing failed, and a resume handles the ledger.
 #
 # Run: scripts/tests/skill-run-affordable.test.sh
 set -uo pipefail
@@ -100,6 +102,27 @@ else
     [[ "$boundary" == *"$probe"* ]] ||
       problems+=("the step boundary after the \$S/run-affordable.sh call never says '$probe'")
   done
+fi
+report "$name"
+
+# 3. The affordability park is not a bail, and classify-bail.sh is not called on it.
+name="$skill_md says an affordability park on run-affordable.sh exit 1 is not a bail and that classify-bail.sh is not called on it"
+problems=()
+
+if [[ -z "$call_at" ]]; then
+  problems+=("the cycle loop has no \$S/run-affordable.sh call")
+else
+  # The park: from the exit 1 answer after the call up to the exit 2 answer, which is a bail.
+  park="$(sed -n "${call_at},\$p" <<<"$loop" | plain |
+    awk '/on exit 1/ { inside = 1 } /on exit 2/ { exit } inside')"
+  if [[ -z "$park" ]]; then
+    problems+=("the step boundary after the \$S/run-affordable.sh call has no exit 1 answer")
+  else
+    for probe in 'not a bail' 'classify-bail.sh'; do
+      [[ "$park" == *"$probe"* ]] ||
+        problems+=("the exit 1 park after the \$S/run-affordable.sh call never says '$probe'")
+    done
+  fi
 fi
 report "$name"
 
