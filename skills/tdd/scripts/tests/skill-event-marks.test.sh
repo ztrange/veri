@@ -572,14 +572,69 @@ carry_at=""
 if [[ -z "$carry_at" ]]; then
   problems+=("$skill_md's cost check has no \`- **exit 3\` branch — where the carry-on writes nothing could not be read")
 else
+  # Read from a redirection, not a pipe: the loop `break`s a few lines in, and a writer
+  # left with bytes to push would die of SIGPIPE or say so on stderr (#526).
+  mapfile -t -s "$((carry_at - 1))" branch < "$ROOT/$skill_md"
   lineno="$carry_at"
-  while IFS= read -r line; do
+  for line in "${branch[@]}"; do
     (( lineno > carry_at )) && [[ "$line" =~ ^[^[:space:]] ]] && break
     [[ "$line" =~ event\.sh[[:space:]]+[a-z] ]] &&
       problems+=("the over-budget exit 3 branch writes a mark of its own at $skill_md:$lineno: $(printf '%.130s' "$line")")
     lineno=$((lineno + 1))
-  done < <(tail -n "+$carry_at" "$ROOT/$skill_md")
+  done
 fi
+report "$name"
+
+# 14. Case 13's reading leaves no writer mid-stream, and still names a mark it finds (issue #526).
+#    Case 13 fed its loop from `tail` and `break`s a few lines in, so on Linux CI `tail` still had
+#    bytes to push, found the pipe closed, and printed `tail: error writing 'standard output':
+#    Broken pipe` on stderr — after the count line, which is what `make test` reads. That stderr
+#    line needs a writer that outlives its reader AND a SIGPIPE it does not die of; the CI runner
+#    supplies the second, so this case supplies it too: it runs case 13's own code — cut out of
+#    this file's source, from its `# 13.` header up to its `report` — under an ignored SIGPIPE,
+#    over a copy of SKILL.md long enough past the branch that no pipe buffer holds it whole. The
+#    copy carries one planted `event.sh` mark inside the exit 3 branch, so the same code has to
+#    name it by its line. Its stderr is read through a command substitution, which returns only
+#    once every holder of the pipe — a writer left behind included — has closed it, so a late
+#    error is not missed.
+name="case 13 reads $skill_md's exit 3 branch without leaving a writer mid-stream, and still names a mark planted there by its line (#526)"
+problems=()
+scratch="$(mktemp -d)"
+mkdir -p "$scratch/$(dirname "$skill_md")"
+fixture="$scratch/$skill_md"
+case13="$(awk '/^# 13\. / { on = 1 } on && /^report "\$name"$/ { exit } on { print }' "${BASH_SOURCE[0]}")"
+section_at="$(cost_check_at)"
+carry_at=""
+[[ -z "$section_at" ]] || carry_at="$(exit_bullet_after "$section_at" 3)"
+if [[ -z "$case13" ]]; then
+  problems+=("case 13's code could not be cut out of this suite's source, so how it reads the branch could not be asked")
+elif [[ -z "$carry_at" ]]; then
+  problems+=("$skill_md's cost check has no \`- **exit 3\` branch — where to plant a mark could not be read")
+else
+  planted_at=$((carry_at + 1))
+  planted='  run `$S/event.sh step-not-split` before carrying on.'
+  {
+    sed -n "1,${carry_at}p" "$ROOT/$skill_md"
+    printf '%s\n' "$planted"
+    sed -n "$((carry_at + 1)),\$p" "$ROOT/$skill_md"
+    for _ in {1..4000}; do printf '%s\n' 'Padding past the branch, so the rest of the file outgrows any pipe buffer.'; done
+  } > "$fixture"
+  [[ "$(sed -n "${planted_at}p" "$fixture")" == "$planted" ]] ||
+    problems+=("the fixture does not carry the planted mark at line $planted_at, so what case 13 names could not be asked")
+  stderr_out="$( (
+    trap '' PIPE
+    ROOT="$scratch"
+    problems=()
+    eval "$case13"
+    printf '%s\n' "${problems[@]}" > "$scratch/named"
+  ) 2>&1 > /dev/null)"
+  [[ -z "$stderr_out" ]] ||
+    problems+=("case 13 wrote to stderr reading the exit 3 branch, so a writer outlived its reader and its error would land after the count line: $(printf '%.200s' "$stderr_out")")
+  named="$(cat "$scratch/named" 2> /dev/null)"
+  [[ "$named" == *"$skill_md:$planted_at"* ]] ||
+    problems+=("case 13 did not name a mark planted in the exit 3 branch at $skill_md:$planted_at; it filed: ${named:-nothing}")
+fi
+rm -rf "$scratch"
 report "$name"
 
 echo "----"
