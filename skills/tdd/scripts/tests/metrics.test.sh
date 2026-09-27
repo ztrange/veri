@@ -2608,22 +2608,29 @@ print("\n".join(problems))
 ' "$@"
 }
 
+# full_step <step> <ts> — the marks of a step that ran Red → Green → Refactor, each phase
+# launched once and passed, from <ts> on.
+full_step() {
+  local step=$1 t=$2
+  sv "$step" "$t"          conductor ""       step-start ""
+  sv "$step" $((t + 10))  developer red      launch  1 '"name": "develop-red"'
+  sv "$step" $((t + 20))  verifier  red      launch  1 '"name": "verify-red"'
+  sv "$step" $((t + 30))  verifier  red      verdict 1 '"verdict": "PASS", "reason": "fails for the reason it names"'
+  sv "$step" $((t + 40))  developer green    launch  1 '"name": "develop-green"'
+  sv "$step" $((t + 50))  verifier  green    launch  1 '"name": "verify-green"'
+  sv "$step" $((t + 60))  verifier  green    verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+  sv "$step" $((t + 70))  developer refactor launch  1 '"name": "develop-refactor"'
+  sv "$step" $((t + 80))  verifier  refactor launch  1 '"name": "verify-refactor"'
+  sv "$step" $((t + 90))  verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour unchanged"'
+  sv "$step" $((t + 100)) conductor ""       step-done ""
+}
+
 # A step that ran Red → Green → Refactor and closed on `step-done`, beside one whose red leaf
 # found the criterion already satisfied and which closed on its `pin` mark (#454).
 fixture_work kinds_work
 full="a step that ran red, green and refactor"
 pinned_kind="a step that closed on its pin mark"
-sv "$full" 18000 conductor ""       step-start ""
-sv "$full" 18010 developer red      launch  1 '"name": "develop-red"'
-sv "$full" 18020 verifier  red      launch  1 '"name": "verify-red"'
-sv "$full" 18030 verifier  red      verdict 1 '"verdict": "PASS", "reason": "fails for the reason it names"'
-sv "$full" 18040 developer green    launch  1 '"name": "develop-green"'
-sv "$full" 18050 verifier  green    launch  1 '"name": "verify-green"'
-sv "$full" 18060 verifier  green    verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
-sv "$full" 18070 developer refactor launch  1 '"name": "develop-refactor"'
-sv "$full" 18080 verifier  refactor launch  1 '"name": "verify-refactor"'
-sv "$full" 18090 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour unchanged"'
-sv "$full" 18100 conductor ""       step-done ""
+full_step "$full" 18000
 sv "$pinned_kind" 18200 conductor ""  step-start ""
 sv "$pinned_kind" 18210 developer red launch  1 '"name": "develop-red"'
 sv "$pinned_kind" 18220 verifier  pin launch  1 '"name": "verdict-pin"'
@@ -2646,17 +2653,7 @@ report_on "$name" "$kinds_out"
 fixture_work satisfied_work
 full="a step that ran red, green and refactor"
 satisfied="a step whose red leaf found its criterion already satisfied"
-sv "$full" 19000 conductor ""       step-start ""
-sv "$full" 19010 developer red      launch  1 '"name": "develop-red"'
-sv "$full" 19020 verifier  red      launch  1 '"name": "verify-red"'
-sv "$full" 19030 verifier  red      verdict 1 '"verdict": "PASS", "reason": "fails for the reason it names"'
-sv "$full" 19040 developer green    launch  1 '"name": "develop-green"'
-sv "$full" 19050 verifier  green    launch  1 '"name": "verify-green"'
-sv "$full" 19060 verifier  green    verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
-sv "$full" 19070 developer refactor launch  1 '"name": "develop-refactor"'
-sv "$full" 19080 verifier  refactor launch  1 '"name": "verify-refactor"'
-sv "$full" 19090 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour unchanged"'
-sv "$full" 19100 conductor ""       step-done ""
+full_step "$full" 19000
 sv "$satisfied" 19200 conductor ""  step-start ""
 sv "$satisfied" 19210 developer red launch  1 '"name": "develop-red"'
 sv "$satisfied" 19220 verifier  pin launch  1 '"name": "verdict-pin"'
