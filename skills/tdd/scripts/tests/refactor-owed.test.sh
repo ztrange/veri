@@ -252,6 +252,68 @@ rm -f "$empty_file"
 report "$name"
 
 
+# 5. what `list` prints. The structural pass that runs once per issue takes the run's
+#    recorded candidates one at a time, so it needs them bare — one per line, no step
+#    heading among them — where `render` groups them under their steps for a reader. And
+#    with nothing recorded, absent file or empty, it answers exit 3 with nothing on stdout,
+#    so the conductor skips the pass rather than launching a leaf on an empty line.
+name="list prints every recorded candidate one per line without step headings, and exits 3 on none"
+problems=()
+
+owed_file="$(mktemp)"
+"$OWED" append "$owed_file" 'first step' <<'REPORT'
+RESULT: applied "split the verdict parser out of run-leaf.sh", suite green
+FLAGS: none
+CANDIDATES: structural | fold verify.sh's two mktemp calls into one helper
+REPORT
+"$OWED" append "$owed_file" 'second step' <<'REPORT'
+RESULT: applied "name the ledger path once", suite green
+FLAGS: none
+CANDIDATES: structural | hoist the ledger path into one variable
+CANDIDATES: structural | rename $tmp to $prompt_file, which is what it holds
+REPORT
+
+listed="$(mktemp)"
+"$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
+
+[[ "$code" == 0 ]] ||
+  problems+=("want exit 0 from list, got $code")
+
+want="$(mktemp)"
+cat >"$want" <<'WANT'
+fold verify.sh's two mktemp calls into one helper
+hoist the ledger path into one variable
+rename $tmp to $prompt_file, which is what it holds
+WANT
+diff "$want" "$listed" >/dev/null ||
+  problems+=("list printed:" "$(cat "$listed")" "want exactly the three candidates, one per line, no step heading:" "$(cat "$want")")
+
+rm -f "$owed_file" "$listed" "$want"
+
+missing_file="$(mktemp)"
+rm -f "$missing_file"
+empty_file="$(mktemp)"
+
+for owed_file in "$missing_file" "$empty_file"; do
+  [[ "$owed_file" == "$missing_file" ]] && what="an absent file" || what="a file holding no candidate"
+
+  listed="$(mktemp)"
+  "$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
+
+  [[ "$code" == 3 ]] ||
+    problems+=("want exit 3 from list on $what, got $code")
+
+  printed="$(cat "$listed")"
+  [[ -z "$printed" ]] ||
+    problems+=("list printed '$printed' on stdout for $what; want nothing")
+
+  rm -f "$listed"
+done
+
+rm -f "$empty_file"
+report "$name"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

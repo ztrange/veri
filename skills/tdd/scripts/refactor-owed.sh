@@ -11,6 +11,7 @@
 #
 #     refactor-owed.sh append <file> '<STEP>' < leaf-report.txt
 #     refactor-owed.sh render <file>
+#     refactor-owed.sh list <file>
 #
 # Reads a finished refactor leaf's report on stdin, the same lines refactor-triage.sh
 # reads, and appends the transform of every `CANDIDATES: structural | …` line to <file>
@@ -67,9 +68,14 @@ case "$verb" in
     printf '## Refactor owed\n\n'
     cat "$file"
     ;;
+  list)
+    [[ -s "$file" ]] || exit 3
+    sed -n 's/^- //p' "$file"
+    ;;
   *)
     echo "refactor-owed: usage: refactor-owed.sh append <file> '<STEP>' < leaf-report.txt" >&2
     echo "                      refactor-owed.sh render <file>" >&2
+    echo "                      refactor-owed.sh list <file>" >&2
     exit 2
     ;;
 esac
