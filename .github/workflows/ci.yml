@@ -10,14 +10,26 @@ name: CI
 # PR, with macOS minutes billed at ten times Linux. Documentation drifting behind code
 # must never block a TDD run (CLAUDE.md), so the docs gates are a local step of a docs
 # PR — run `make docs-check` before merging one — not a tax on every commit.
+#
+# A draft PR runs nothing. veri opens its PR as a draft when the plan is committed (#195)
+# and pushes after every phase of every step, so `pull_request` on its default types ran
+# this job 20-40 times per issue (#238: 42, #102: 36) — ~85% of the ~1,880 minutes billed
+# 2026-09-15..27, and what exhausted the account's Actions allowance twice. None of those
+# runs gated anything: each step's green leaf and both blind verifiers already run
+# `make test` locally, and the merge skill reads CI only on the head it merges. So the job
+# is skipped while the PR is a draft, and `ready_for_review` is added to the default
+# types so the moment a run marks its PR ready — or the merge skill readies it — is the
+# run that counts. Pushes to a PR that is already ready (a rebase before merge) still run.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
 jobs:
   gates:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
 
     # A job that declares no timeout-minutes inherits GitHub's default ceiling of 6
     # hours, and while it burns those minutes it looks exactly like a slow run. This

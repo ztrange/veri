@@ -28,7 +28,10 @@ documentation drifting behind code must never block a TDD run. Since 2026-09-11 
 in CI either: its thirty sandboxed page builds made every job ~4× longer on both runners.
 `make merge-gates` runs the right subset of it at merge time; CI runs `make test` only, on
 Linux only — the BSD-tools half of the portability promise is covered by the development
-machine being a Mac, not by a runner (macOS minutes bill at 10× Linux).
+machine being a Mac, not by a runner (macOS minutes bill at 10× Linux). And never on a
+draft PR (since 2026-09-27): a veri run pushes its draft 20–40 times per issue, each push
+ran the job, and none of those runs gated anything — so CI runs when the PR is marked
+ready, on each push after that, and on `main`.
 
 **veri needs bash 5 or newer** (since 2026-09-18; it promised bash 3.2 before). On a Mac,
 `brew install bash` — it lands ahead of `/bin/bash`, macOS's 3.2, on PATH. Nothing tests veri
