@@ -23,12 +23,17 @@ ceiling="${budgets##*$'\n'}"
 
 steps="$("$HERE/step-cost.sh" --steps)"
 
-# The step costs sorted ascending, so the median is read by position. The comparison and
-# the arithmetic are awk's: every figure is a decimal, and bash's arithmetic is integer.
+# The step costs sorted ascending, so the median is read by position. Every step counts
+# toward spent, but only a full step toward the median: a pin or an already-satisfied step
+# is two leaves (red and its verify), a full step more, and costs a quarter of one — so a
+# median over all steps would project a remainder cheaper than the one actually left. The
+# comparison and the arithmetic are awk's: every figure is a decimal, and bash's arithmetic
+# is integer.
 sort -n <<< "$steps" | awk -v n="$remaining" -v ceiling="$ceiling" '
-  { cost[NR] = $1; spent += $1 }
+  { spent += $1 }
+  $2 > 2 { cost[++full] = $1 }
   END {
-    median = NR % 2 ? cost[(NR + 1) / 2] : (cost[NR / 2] + cost[NR / 2 + 1]) / 2
+    median = full % 2 ? cost[(full + 1) / 2] : (cost[full / 2] + cost[full / 2 + 1]) / 2
     projection = spent + n * median
     if (projection > ceiling) {
       printf "spent %.2f, steps remaining %d, median %.2f, projection %.2f\n", spent, n, median, projection
