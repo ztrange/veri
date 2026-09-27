@@ -47,10 +47,14 @@ candidate never reads as a complete filing.
 Every issue you file carries an identity marker for its candidate in its body: its first line
 is `<!-- tdd-candidates: <module> -->`, naming the module the candidate is about.
 
-Before filing a candidate, look for that marker in the repository's existing issues: list them
-with `gh issue list --state all --limit 1000 --json number,body` and match the marker line in
-each body. The check does not depend on the issue title — people rename, rephrase and respell
-titles, and a lookup by title would then miss the issue and file the candidate a second time.
+Before filing a candidate, look for that marker in the repository's existing issues: list every
+one of them, page by page, with
+`gh api --paginate 'repos/{owner}/{repo}/issues?state=all&per_page=100' --jq '.[] | {number, body}'`
+and match the marker line in each body. The lookup finds the marker however many issues the
+repository holds — which is why it is not `gh issue list`, whose `--limit` caps the listing at
+a fixed count: past that count it stops short, misses the marker on the issues beyond it, and
+files their candidates a second time. The check does not depend on the issue title — people
+rename, rephrase and respell titles, and a lookup by title would then miss the issue and file the candidate a second time.
 When an existing issue already carries the marker, do not file it again — a re-run over the
 same candidates, after a cleared context or over the same report, files no duplicate.
 
