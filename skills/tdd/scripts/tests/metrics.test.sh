@@ -2973,6 +2973,73 @@ passes_say "$twice_out" "$twice" "1=2/5,nothing-structural" "2=1/5,structural-ow
 
 report_on "$name" "$twice_out"
 
+# one_pass_says <file> <step>=<transforms>/<budget>,<stopped> … — a step with one refactor
+# mark: its By-step row, the table holding a `revise` heading, carries the pair under the
+# heading `refactor` and the reason under the one saying `stop`; and the per-pass section,
+# the table holding a heading `pass`, holds exactly one row for it.
+one_pass_says() {
+  local out_file="$1"; shift
+  probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+tables = tables_in(path)
+by_step = next((t for t in tables if "revise" in t[0]), None)
+per_pass = next((t for t in tables if "pass" in t[0]), None)
+for arg in sys.argv[2:]:
+    step, expected = arg.split("=", 1)
+    pair, reason = expected.split(",", 1)
+    if by_step is None:
+        complain("want a By-step table headed with a revise column, the report has none")
+    else:
+        row = next((r for r in by_step[1:] if is_row(r, step)), None)
+        if row is None:
+            complain("want a By-step row for step %r, it has none" % step)
+        else:
+            for what, heading, want in (("refactor", lambda c: c == "refactor", pair),
+                                        ("stopped", lambda c: "stop" in c, reason)):
+                i = column(by_step[0], what, heading, step)
+                got = row[i] if i is not None and i < len(row) else ""
+                if i is not None and got != want:
+                    complain("By-step %s of step %r: want %r, got %r" % (what, step, want, got))
+    if per_pass is None:
+        complain("want a per-pass table headed with a pass column, the report has none")
+    else:
+        n = sum(1 for r in per_pass[1:] if is_row(r, step))
+        if n != 1:
+            complain("want exactly one per-pass row for step %r, got %d" % (step, n))
+print("\n".join(problems))
+' "$out_file" "$@"
+}
+
+# Two steps with one refactor mark each: one written before the mark carried a pass index,
+# one carrying `pass=1`. Distinct pairs and reasons, so one step's figures in the other's
+# row cannot pass.
+fixture_work once_work
+
+unindexed="a step whose one refactor mark carries no pass index"
+indexed="a step whose one refactor mark carries pass one"
+
+sv "$unindexed" 60000 conductor ""       step-start ""
+sv "$unindexed" 60002 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$unindexed" 60008 developer refactor exit    1 '"status": "0", "secs": "6"'
+sv "$unindexed" 60010 conductor refactor refactor "" '"transforms": "3", "budget": "5", "stopped": "structural-owed"'
+sv "$unindexed" 60020 conductor ""       step-done ""
+sv "$indexed"   61000 conductor ""       step-start ""
+sv "$indexed"   61002 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$indexed"   61008 developer refactor exit    1 '"status": "0", "secs": "6"'
+sv "$indexed"   61010 conductor refactor refactor "" '"transforms": "1", "budget": "4", "stopped": "nothing-structural", "pass": "1"'
+sv "$indexed"   61020 conductor ""       step-done ""
+
+
+name="#502 a step with one refactor mark, with or without a pass index, keeps its By-step refactor and stopped cells and appears once in the per-pass section"
+problems=()
+
+once_out="$once_work/report.md"
+render "$once_work" "$once_out"
+
+one_pass_says "$once_out" "$unindexed=3/5,structural-owed" "$indexed=1/4,nothing-structural"
+
+report_on "$name" "$once_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
