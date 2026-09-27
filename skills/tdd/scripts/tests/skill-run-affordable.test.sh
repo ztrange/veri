@@ -17,6 +17,9 @@
 #      lines that script skips, or the count overstates what is left; on exit 1 the run parks, and the park's comment carries
 #      spent, steps remaining, the median, the projection, the ceiling, and the two answers —
 #      raise `VERI_RUN_BUDGET` and resume, or split the issue.
+#   2. The same step boundary — from the call to the next verdict bullet (`- **REJECT`) — also
+#      says what its exit 3 does (no full step done yet, so no median: carry on) and what its
+#      exit 2 does (no answer could be obtained), so neither is left for the session to guess.
 #
 # Run: scripts/tests/skill-run-affordable.test.sh
 set -uo pipefail
@@ -78,6 +81,23 @@ else
                '⟦full-suite⟧' '⟦human-owed⟧'; do
     [[ "$around" == *"$probe"* ]] ||
       problems+=("the text around the \$S/run-affordable.sh call never says '$probe'")
+  done
+fi
+report "$name"
+
+# 2. The step boundary also answers run-affordable.sh's exit 3 and exit 2.
+name="$skill_md says what the step boundary does when run-affordable.sh exits 3 (no full step done yet, carry on) or exits 2 (no answer could be obtained)"
+problems=()
+
+call_at="$(grep -n -m1 '\$S/run-affordable\.sh' <<<"$loop" | cut -d: -f1)"
+if [[ -z "$call_at" ]]; then
+  problems+=("the cycle loop has no \$S/run-affordable.sh call")
+else
+  # The boundary: from the call to the next verdict bullet, which belongs to verify-refactor.
+  boundary="$(sed -n "${call_at},\$p" <<<"$loop" | awk '/^[[:space:]]*- \*\*REJECT/ { exit } { print }' | plain)"
+  for probe in 'exit 3' 'no full step' 'exit 2' 'no answer'; do
+    [[ "$boundary" == *"$probe"* ]] ||
+      problems+=("the step boundary after the \$S/run-affordable.sh call never says '$probe'")
   done
 fi
 report "$name"
