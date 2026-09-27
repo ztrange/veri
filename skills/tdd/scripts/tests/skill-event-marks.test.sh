@@ -415,6 +415,33 @@ if have_records 'the exhausted-budget marks'; then
 fi
 report "$name"
 
+# 9. The crossing's own mark (issue #452): the step's cost check reacts to a crossing by
+#    launching the over-budget leaf, and what that leaf answers — split, park, carry on — is a
+#    second fact. A log that records only the reaction cannot count how often the budget fired,
+#    and one written after the leaf records nothing for a crossing whose leaf never came back.
+#    So one `event.sh step-over-budget` carrying both figures is prescribed before the launch
+#    of `develop-over-budget`, read off the raw document in order: the call has to precede the
+#    `detach-leaf.sh` line that starts the leaf, and exactly one such call does.
+name="$skill_md writes one event.sh step-over-budget carrying spent= and budget= at the crossing, before the over-budget leaf is launched"
+problems=()
+launch_at="$(grep -m1 -nE 'detach-leaf\.sh.*develop-over-budget' "$ROOT/$skill_md" | cut -d: -f1)"
+if [[ -z "$launch_at" ]]; then
+  problems+=("$skill_md launches no develop-over-budget leaf through detach-leaf.sh — where the crossing's mark belongs could not be read")
+else
+  before_launch="$(head -n "$((launch_at - 1))" "$ROOT/$skill_md" | grep -E 'event\.sh step-over-budget([^a-z0-9-]|$)')"
+  calls=0
+  [[ -z "$before_launch" ]] || calls="$(wc -l <<< "$before_launch" | tr -d ' ')"
+  if [[ "$calls" -ne 1 ]]; then
+    problems+=("want one \`event.sh step-over-budget\` before the develop-over-budget launch at $skill_md:$launch_at, found $calls")
+  else
+    for key in spent budget; do
+      [[ "$before_launch" =~ event\.sh\ step-over-budget.*[[:space:]]"$key"= ]] ||
+        problems+=("$skill_md's crossing mark carries no \`$key=\`: $(printf '%.130s' "$before_launch")")
+    done
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
