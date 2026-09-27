@@ -74,6 +74,12 @@ says() {
 # verb of filing that the sentence is about filing it.
 not_filed='(not|never|nothing)[^.]{0,20}files?'
 
+# paged_lookup — the command that lists every issue the repository holds, page by page: `gh api
+# --paginate` over the issues endpoint follows GitHub's pages to the last one. Not `gh issue
+# list`, whose `--limit` caps the listing at a fixed count, nor `gh search issues`, which the
+# search API stops at 1,000 results.
+paged_lookup='gh api --paginate[^.]{0,80}/issues'
+
 # says_near <a> <b> <gap> <fact> — the body has <a> and <b> in one sentence, at most <gap>
 # characters apart, in either order.
 says_near() {
@@ -208,8 +214,8 @@ problems=()
 if has_skill_md; then
   says_near '(re-?runs?|again|second (run|pass))' 'duplicates?' 120 \
     "$skill_md never says a re-run files no duplicate"
-  says 'gh (issue list|search issues)' \
-    "$skill_md never says how it finds the issues it already filed (gh issue list or gh search issues)"
+  says "$paged_lookup" \
+    "$skill_md never says how it finds the issues it already filed (gh api --paginate over the issues endpoint)"
   says_near '(already filed|already exists?|existing issue)' "$not_filed" 120 \
     "$skill_md never says a candidate whose issue already exists is not filed again"
 fi
@@ -230,6 +236,25 @@ if has_skill_md; then
     "$skill_md never says the re-run looks for that marker"
   says_near '(not|never)[^.]{0,40}(depend|rely|rest)[a-z]*' 'title' 80 \
     "$skill_md never says the already-filed check does not depend on the issue title"
+fi
+report "$name"
+
+# 8. Criterion 5 of #501, at scale: the lookup for an issue already filed must see every issue
+#    the repository holds. A listing capped at a fixed count — `--limit 1000` — silently stops
+#    short in a repository with more issues than that, misses the marker on the ones past the
+#    cap, and files those candidates a second time. So the procedure lists the issues with a
+#    paginated lookup that follows every page, carries no fixed cap on it, and says the marker
+#    is found however many issues the repository holds. Read as prose, like case 2.
+name="$skill_md finds an already-filed marker however many issues the repository holds"
+problems=()
+if has_skill_md; then
+  if [[ "$text" =~ --limit[[:space:]=]+[0-9]+ ]]; then
+    problems+=("$skill_md caps the already-filed lookup at a fixed count: ${BASH_REMATCH[0]}")
+  fi
+  says "$paged_lookup" \
+    "$skill_md never lists the existing issues page by page, uncapped (gh api --paginate over the issues endpoint)"
+  says '(however many|no matter how many|regardless of how many)[^.]{0,40}issues?' \
+    "$skill_md never says the lookup finds the marker however many issues the repository holds"
 fi
 report "$name"
 
