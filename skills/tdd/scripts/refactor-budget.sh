@@ -13,14 +13,23 @@
 # The count gets the same treatment, for the same reason: a malformed call is not a
 # decision either.
 #
-# Usage:   refactor-budget.sh <count>   # <count> a whole number >= 0
+# With --issue, the per-issue structural pass is bounded instead, by
+# VERI_ISSUE_REFACTOR_BUDGET (default 10).
+#
+# Usage:   refactor-budget.sh [--issue] <count>   # <count> a whole number >= 0
 set -euo pipefail
 
-count="${1:-}"
+budget_var=VERI_REFACTOR_BUDGET
 budget="${VERI_REFACTOR_BUDGET:-5}"
+if [[ "${1:-}" == --issue ]]; then
+  shift
+  budget_var=VERI_ISSUE_REFACTOR_BUDGET
+  budget="${VERI_ISSUE_REFACTOR_BUDGET:-10}"
+fi
+count="${1:-}"
 
 if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
-  echo "refactor-budget: VERI_REFACTOR_BUDGET must be a whole number >= 0: $budget" >&2
+  echo "refactor-budget: $budget_var must be a whole number >= 0: $budget" >&2
   exit 2
 fi
 
