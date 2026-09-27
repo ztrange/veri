@@ -19,6 +19,7 @@
 #   2. The develop-cover prompt and SKILL.md's Cover step — see case 2's comment.
 #   3. SKILL.md's Cover step on `COVERED: no` — see case 3's comment.
 #   4. SKILL.md's refactor-kind cycle, transform rejection and abandonment — see case 4's comment.
+#   5. SKILL.md's Draft PR step titles a refactor-labelled run's PR refactor: — see case 5's comment.
 #
 # Run: skills/tdd/scripts/tests/skill-refactor-kind.test.sh
 set -uo pipefail
@@ -178,6 +179,29 @@ else
 fi
 grep -E 'git reset --hard <base-sha>|reset(ting)? (it )?to (its|the step.s) base sha' <<<"$skill_text" > /dev/null ||
   problems+=("$skill_md never abandons a refactor-kind step by resetting to its base sha, so an abandoned transform's commits stay on the branch")
+report "$name"
+
+# 5. The PR title (criterion 7). The Draft PR step picks the title's `<type>` from the
+#    issue's labels: `fix` for a bug run, `feat` otherwise. A refactor run adds no capability
+#    and repairs no regression, so a PR titled either way misdescribes it to the human deciding
+#    the merge; SKILL.md gives it a third branch, the `refactor:` prefix, for an issue labelled
+#    `refactor`, stated beside the other two so the conductor meets all three in one place.
+pr_heading='### 4. Draft PR'
+name="$skill_md's Draft PR step titles a run on an issue labelled refactor with the refactor: prefix, beside fix: and feat:"
+problems=()
+
+text="$(section "$pr_heading")"
+if [[ -z "${text// /}" ]]; then
+  problems+=("$skill_md has no '$pr_heading' section to read — what prefix a refactor run's PR title takes could not be established")
+elif ! grep -F 'refactor:' <<<"$text" > /dev/null; then
+  problems+=("$skill_md's '$pr_heading' section never names the refactor: prefix, so a refactor run's PR is titled feat: and announces a capability the run did not add")
+else
+  near="$(window "$text" 'refactor:')"
+  grep -E 'label' <<<"$near" > /dev/null ||
+    problems+=("$skill_md's '$pr_heading' section names the refactor: prefix without tying it to the refactor label")
+  grep -E 'fix' <<<"$near" > /dev/null && grep -E 'feat' <<<"$near" > /dev/null ||
+    problems+=("$skill_md's '$pr_heading' section names the refactor: prefix away from the fix: and feat: branches it sits beside")
+fi
 report "$name"
 
 echo "----"
