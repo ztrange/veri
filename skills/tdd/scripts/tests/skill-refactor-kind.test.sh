@@ -122,7 +122,7 @@ else
 fi
 
 skill_text="$(plain < "$skill_path")"
-cover_near="$(grep -oE '.{0,250}(develop-cover|cover (phase|step|leaf)).{0,250}' <<<"$skill_text")"
+cover_near="$(window "$skill_text" '(develop-cover|cover (phase|step|leaf))')"
 if ! grep -F 'git status --porcelain' <<<"$cover_near" | grep -E 'refus|stop|bail|(not|never) (go on|continue)' > /dev/null; then
   problems+=("$skill_md never refuses to continue past Cover when git status --porcelain is non-empty afterwards, so a mutation the cover leaf left behind reaches the transform")
 fi
