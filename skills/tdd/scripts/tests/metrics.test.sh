@@ -2713,6 +2713,24 @@ kind_cell_is "$leafcount_out" "$two_leaf" full
 report_on "$name" "$leafcount_out"
 
 
+# A log holding only full steps, none with a pin mark or a verify-pin verdict.
+fixture_work allfull_work
+first_full="the first of two steps that ran red, green and refactor"
+second_full="the second of two steps that ran red, green and refactor"
+full_step "$first_full" 21000
+full_step "$second_full" 21200
+
+name="#454 a report over only full steps still renders the kind column, reading full on every row"
+problems=()
+
+allfull_out="$allfull_work/report.md"
+render "$allfull_work" "$allfull_out"
+
+kind_cell_is "$allfull_out" "$first_full" full
+kind_cell_is "$allfull_out" "$second_full" full
+
+report_on "$name" "$allfull_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
