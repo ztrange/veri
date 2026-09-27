@@ -70,6 +70,11 @@ says() {
   [[ "$text" =~ $1 ]] || problems+=("$2")
 }
 
+# The body every case reads, read once: empty when the SKILL.md is missing, which each case
+# reports on its own terms.
+text=""
+[[ -f "$ROOT/$skill_md" ]] && text="$(body_text "$ROOT/$skill_md")"
+
 # 1. The skill exists under the name a user types, and it says what its job is and is not.
 #    Both halves are one criterion: a document under a directory Claude Code does not load is
 #    not a command, and a command that surveys, ranks or judges is not the one this issue asks
@@ -82,7 +87,6 @@ if [[ -f "$ROOT/$skill_md" ]]; then
   got="$(frontmatter_name "$ROOT/$skill_md")"
   [[ "$got" == "$want_name" ]] ||
     problems+=("$skill_md frontmatter: want name '$want_name', got $(printf '%q' "$got")")
-  text="$(body_text "$ROOT/$skill_md")"
   if [[ -z "${text// /}" ]]; then
     # Fail closed: an unread body must not read as a pass.
     problems+=("$skill_md has no body after its frontmatter — its scope could not be read")
@@ -109,7 +113,6 @@ report "$name"
 name="$skill_md files one issue per module from conversation candidates, criteria as predicates with a runnable check"
 problems=()
 if [[ -f "$ROOT/$skill_md" ]]; then
-  text="$(body_text "$ROOT/$skill_md")"
   says 'candidates?[^.]{0,120}conversation|conversation[^.]{0,120}candidates?' \
     "$skill_md never says it takes the candidates from the conversation"
   says 'gh issue create' \
