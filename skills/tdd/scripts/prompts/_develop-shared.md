@@ -33,3 +33,9 @@ every other run on the machine, and a cleanup that never runs (a `trap` in a kil
 process) leaves the change behind for all of them. To simulate a condition, use
 environment variables scoped to the one command, or a throwaway directory made with
 `mktemp -d` and removed afterwards.
+
+**The comment rule.** A comment you write is one of two things only: a contract header —
+the usage line and the exit-code table, which no code expresses — or a warning where the
+shell itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
+`|| true` that is load-bearing under `pipefail`). Either must be succinct. Nothing else is
+written: no rationale, no issue archaeology, no restatement of the next line.
