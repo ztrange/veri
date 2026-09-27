@@ -3214,6 +3214,55 @@ pass_revises_say "$revised_out" "$revised" "1=1" "2=2"
 
 report_on "$name" "$revised_out"
 
+# A step whose first pass was REJECTed, marked, and then revised to a PASS — the revise loop
+# written after the mark, as SKILL.md writes it — before a triangulation's green leaf and a
+# second pass that PASSed at once. A revise loop counted toward the next pass, or a first pass
+# keeping its first verdict, cannot pass.
+fixture_work looped_work
+
+looped="a step whose first pass was revised after its refactor mark"
+
+sv "$looped" 90000 conductor ""       step-start ""
+sv "$looped" 90002 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$looped" 90008 developer refactor exit    1 '"status": "0", "secs": "6"'
+sv "$looped" 90008 developer refactor usage   1 "$(old_usage 0 3 0.30)"
+sv "$looped" 90010 verifier  refactor launch  1 '"name": "verify-refactor"'
+sv "$looped" 90014 verifier  refactor exit    1 '"status": "0", "secs": "4"'
+sv "$looped" 90014 verifier  refactor usage   1 "$(old_usage 0 3 0.20)"
+sv "$looped" 90014 verifier  refactor verdict 1 '"verdict": "REJECT", "reason": "behaviour changed"'
+sv "$looped" 90015 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
+sv "$looped" 90016 conductor refactor revise  1 '"budget": "3"'
+sv "$looped" 90017 developer refactor launch  2 '"name": "revise-refactor"'
+sv "$looped" 90022 developer refactor exit    2 '"status": "0", "secs": "5"'
+sv "$looped" 90022 developer refactor usage   2 "$(old_usage 0 3 0.10)"
+sv "$looped" 90023 verifier  refactor launch  2 '"name": "verify-refactor"'
+sv "$looped" 90026 verifier  refactor exit    2 '"status": "0", "secs": "3"'
+sv "$looped" 90026 verifier  refactor usage   2 "$(old_usage 0 3 0.05)"
+sv "$looped" 90026 verifier  refactor verdict 2 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$looped" 90050 developer green    launch  2 '"name": "develop-green"'
+sv "$looped" 90058 developer green    exit    2 '"status": "0", "secs": "8"'
+sv "$looped" 90058 developer green    usage   2 "$(old_usage 0 3 0.60)"
+sv "$looped" 90060 developer refactor launch  3 '"name": "develop-refactor"'
+sv "$looped" 90067 developer refactor exit    3 '"status": "0", "secs": "7"'
+sv "$looped" 90067 developer refactor usage   3 "$(old_usage 0 3 0.25)"
+sv "$looped" 90068 verifier  refactor launch  3 '"name": "verify-refactor"'
+sv "$looped" 90070 verifier  refactor exit    3 '"status": "0", "secs": "2"'
+sv "$looped" 90070 verifier  refactor usage   3 "$(old_usage 0 3 0.15)"
+sv "$looped" 90070 verifier  refactor verdict 3 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$looped" 90071 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "nothing-left", "pass": "2"'
+sv "$looped" 90072 conductor ""       step-done ""
+
+name="#502 a pass's revise loop written after its refactor mark counts toward that pass, whose verdict is its last"
+problems=()
+
+looped_out="$looped_work/report.md"
+render "$looped_work" "$looped_out"
+
+pass_costs_say "$looped_out" "$looped" "1=PASS,18,0.65" "2=PASS,9,0.40"
+pass_revises_say "$looped_out" "$looped" "1=1" "2=0"
+
+report_on "$name" "$looped_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
