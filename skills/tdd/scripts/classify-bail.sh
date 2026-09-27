@@ -13,7 +13,7 @@ case "$cause" in
   killed-stuck | no-verdict | reconcile-failed)
     echo system
     ;;
-  revise-exhausted | untestable-criterion | step-too-big | rebase-unresolved)
+  revise-exhausted | untestable-criterion | step-too-big | rebase-unresolved | uncovered)
     echo process
     ;;
   *)
