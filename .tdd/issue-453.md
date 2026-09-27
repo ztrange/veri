@@ -9,5 +9,6 @@
 - [x] `run-affordable.sh <n>` exits 2 with nothing on stdout when `VERI_RUN_BUDGET` is not a non-negative decimal number ⟦criterion 5⟧
 - [x] A run at 8 of 9 steps done with one median step left and a ceiling above the projection is exit 0, so a converging run near its finish is not parked ⟦criterion 6⟧
 - [x] A run early in a long plan whose projection exceeds the ceiling is exit 1, so it parks while parking is still cheap ⟦criterion 7⟧
-- [x] `SKILL.md` calls `run-affordable.sh` at each step boundary, after a step's ledger commit, with the remaining count `next-unchecked.sh` implies, and parks on exit 1 with a comment carrying spent, steps remaining, the median, the projection, the ceiling and the two answers (raise `VERI_RUN_BUDGET` and resume, or split the issue) ⟦criterion 8⟧ ⟂ refactor pending
+- [x] `SKILL.md` calls `run-affordable.sh` at each step boundary, after a step's ledger commit, with the remaining count `next-unchecked.sh` implies, and parks on exit 1 with a comment carrying spent, steps remaining, the median, the projection, the ceiling and the two answers (raise `VERI_RUN_BUDGET` and resume, or split the issue) ⟦criterion 8⟧
+- [ ] `SKILL.md` says what the step boundary does when `run-affordable.sh` exits 3 (no full step done yet — carry on) or exits 2 (no answer could be obtained) ⟦added⟧ ⟦criterion 8⟧
 - [ ] `SKILL.md` states that an affordability park is not a bail and that `classify-bail.sh` is not called on it ⟦criterion 9⟧
