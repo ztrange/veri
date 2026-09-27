@@ -89,15 +89,21 @@ step_leaves() {
 # and its verify-pin, at 0.25 each, so the step costs 0.50 against a full step's six leaves.
 pin_step() { step_leaves "$1" 0.25 0.25; }
 
+# three_full_steps — three completed full steps of six leaves each, costing 5.25, 7.50 and
+# 9.75, appended to the fixture log: spent 22.50, median full step 7.50.
+three_full_steps() {
+  step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
+  step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
+  step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+}
+
 # 1. three completed full steps of six leaves each, costing 5.25, 7.50 and 9.75: spent is
 #    22.50 and the median full step 7.50, so four steps still to go project 22.50 + 4 × 7.50
 #    = 52.50, over a 50 ceiling. The run cannot afford to finish: exit 1, and stdout carries
 #    the four figures it decided on — spent, steps remaining, median and projection. No
 #    figure is another's substring, so each is read on its own.
 : > "$work/.tdd/events.jsonl"
-step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
-step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
-step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+three_full_steps
 run_affordable VERI_RUN_BUDGET=50 -- 4
 expect_code 1
 expect_figures 22.50 4 7.50 52.50
@@ -123,9 +129,7 @@ verdict "the median of an even count of steps logged out of order is the mean of
 #    project 22.50 + 3 × 7.50 = 45.00, within a 50 ceiling. The run can afford to finish:
 #    exit 0, and stdout is empty, so a caller reads the answer from the code alone.
 : > "$work/.tdd/events.jsonl"
-step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
-step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
-step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+three_full_steps
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 0
 expect_silent
@@ -171,9 +175,7 @@ verdict "no completed full step, only pins or no usage at all, exits 3 printing 
 #    reading the word as zero steps or projecting a fraction of one, which both land under
 #    the 50 ceiling and would say exit 0.
 : > "$work/.tdd/events.jsonl"
-step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
-step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
-step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+three_full_steps
 for arg in "" two 1.5; do
   if [[ -z "$arg" ]]; then
     run_affordable VERI_RUN_BUDGET=50 --
