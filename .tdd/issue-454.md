@@ -5,4 +5,4 @@
 - [x] The kind is read off the step's own events: a step with a `pin` mark or a verify-pin verdict is short however many leaves it launched, and a full step with only two leaves in the log still reads `full` ⟦criterion 3⟧
 - [x] A report over a log of only full steps still renders the kind column, reading `full` on every row ⟦criterion 4⟧
 - [x] `#### By step` is followed by one line naming turns as the figure comparable across runs, dollars as the figure that is not, and `VERI_MODEL`, `VERI_MODEL_DEVELOPER` and `VERI_MODEL_VERIFIER` as the reason ⟦criterion 5⟧
-- [ ] Every By-step column that existed before, and every other section of the report, renders the same cells for an existing log as before the kind column was added ⟦criterion 6⟧
+- [x] Every By-step column that existed before, and every other section of the report, renders the same cells for an existing log as before the kind column was added ⟦criterion 6⟧

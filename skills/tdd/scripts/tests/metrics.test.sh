@@ -2766,6 +2766,136 @@ by_step_note_names "$allfull_out"
 
 report_on "$name" "$allfull_out"
 
+# report_reads_as_before <file> <before> — the report, with the By-step kind column and the
+# line under that table taken out, is <before> line for line.
+report_reads_as_before() {
+  probe "$PROBE_PRELUDE"'
+path, before = sys.argv[1:3]
+lines = open(path).read().splitlines()
+start = next((i for i, l in enumerate(lines) if l.strip() == "#### By step"), None)
+if start is None:
+    complain("want a #### By step heading, the report has none")
+else:
+    i = start + 1
+    while i < len(lines) and not lines[i].strip().startswith("|"):
+        i += 1
+    header = cells(lines[i]) if i < len(lines) else []
+    drop = header.index("kind") if "kind" in header else None
+    while i < len(lines) and lines[i].strip().startswith("|"):
+        if drop is not None:
+            row = lines[i].strip()[1:-1].split("|")
+            lines[i] = "|" + "|".join(row[:drop] + row[drop + 1:]) + "|"
+        i += 1
+    j = i + 1
+    if j < len(lines) and lines[j].strip() and not lines[j].startswith("#"):
+        del lines[j:j + 2]
+    want = open(before).read().splitlines()
+    for n, (got, exp) in enumerate(zip(lines, want), 1):
+        if got != exp:
+            complain("line %d: want %r, got %r" % (n, exp, got))
+    if len(lines) != len(want):
+        complain("want %d lines, got %d" % (len(want), len(lines)))
+print("\n".join(problems))
+' "$@"
+}
+
+# A log of the shape runs wrote before the kind column: a full step rejected once in red,
+# beside a step closed on its pin mark, each leaf carrying its exit and usage lines.
+fixture_work before_work
+old_full="a full step"
+old_pin="a pinned step"
+old_usage() {
+  printf '"duration_ms": "0", "duration_api_ms": "%s", "num_turns": "%s", "total_cost_usd": "%s", "input_tokens": "100", "output_tokens": "200", "cache_read_input_tokens": "300", "cache_creation_input_tokens": "400"' "$1" "$2" "$3"
+}
+sv "$old_full" 1000 conductor ""    step-start ""
+sv "$old_full" 1010 developer red   launch  1 '"name": "develop-red"'
+sv "$old_full" 1100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$old_full" 1100 developer red   usage   1 "$(old_usage 70000 5 0.40)"
+sv "$old_full" 1110 verifier  red   launch  1 '"name": "verify-red"'
+sv "$old_full" 1130 verifier  red   exit    1 '"status": "0", "secs": "20"'
+sv "$old_full" 1130 verifier  red   usage   1 "$(old_usage 15000 2 0.10)"
+sv "$old_full" 1130 verifier  red   verdict 1 '"verdict": "REJECT", "reason": "wrong reason"'
+sv "$old_full" 1140 developer red   launch  2 '"name": "revise-red"'
+sv "$old_full" 1200 developer red   exit    2 '"status": "0", "secs": "60"'
+sv "$old_full" 1200 developer red   usage   2 "$(old_usage 50000 4 0.30)"
+sv "$old_full" 1210 verifier  red   launch  2 '"name": "verify-red"'
+sv "$old_full" 1230 verifier  red   exit    2 '"status": "0", "secs": "20"'
+sv "$old_full" 1230 verifier  red   usage   2 "$(old_usage 15000 2 0.10)"
+sv "$old_full" 1230 verifier  red   verdict 2 '"verdict": "PASS", "reason": "fails as written"'
+sv "$old_full" 1300 developer green launch  1 '"name": "develop-green"'
+sv "$old_full" 1400 developer green exit    1 '"status": "0", "secs": "100"'
+sv "$old_full" 1400 developer green usage   1 "$(old_usage 80000 9 0.70)"
+sv "$old_full" 1410 verifier  green launch  1 '"name": "verify-green"'
+sv "$old_full" 1430 verifier  green exit    1 '"status": "0", "secs": "20"'
+sv "$old_full" 1430 verifier  green usage   1 "$(old_usage 10000 3 0.20)"
+sv "$old_full" 1430 verifier  green verdict 1 '"verdict": "PASS", "reason": "pinned"'
+sv "$old_full" 1500 conductor ""    step-done ""
+sv "$old_pin"  2000 conductor ""    step-start ""
+sv "$old_pin"  2010 developer red   launch  1 '"name": "develop-red"'
+sv "$old_pin"  2100 developer red   exit    1 '"status": "0", "secs": "90"'
+sv "$old_pin"  2100 developer red   usage   1 "$(old_usage 60000 6 0.50)"
+sv "$old_pin"  2110 verifier  pin   launch  1 '"name": "verdict-pin"'
+sv "$old_pin"  2130 verifier  pin   exit    1 '"status": "0", "secs": "20"'
+sv "$old_pin"  2130 verifier  pin   usage   1 "$(old_usage 12000 2 0.15)"
+sv "$old_pin"  2130 verifier  pin   verdict 1 '"verdict": "PASS", "reason": "already satisfied"'
+sv "$old_pin"  2140 conductor pin   pin     ""
+
+# What metrics.sh printed for that log before the kind column was added.
+before_report="$before_work/before.md"
+cat > "$before_report" <<'EOF'
+### 📊 Metrics — issue 108
+
+Wall time for the issue: unknown s, from the last `resume`, or the first event of the log when there is none, to the mark that ended the run.
+Every figure in this report is wall-clock: the log carries no awake-clock reading, so time the machine spent asleep is counted in them.
+Steps done: 2 of unknown planned.
+Outcome: unknown — the log carries no mark ending the run.
+Cost is every leaf of the run, and the conductor own spending is not in it: this log carries no usage record of the conductor own.
+
+#### By phase
+
+| phase | attempts | PASS | REJECT | kills | wall s | API s | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| red | 5 | 1 | 1 | 0 | 280 | 210 | 19 | 500 | 1000 | 1500 | 2000 | 1.40 |
+| green | 2 | 1 | 0 | 0 | 120 | 90 | 12 | 200 | 400 | 600 | 800 | 0.90 |
+| pin | 1 | 1 | 0 | 0 | 20 | 12 | 2 | 100 | 200 | 300 | 400 | 0.15 |
+
+#### Rework and waste, by phase
+
+| phase | rework wall s | rework $ | waste wall s | waste $ |
+| --- | ---: | ---: | ---: | ---: |
+| red | 110 | 0.50 | 0 | 0.00 |
+| green | 0 | 0.00 | 0 | 0.00 |
+| pin | 0 | 0.00 | 0 | 0.00 |
+
+#### By step
+
+| step | attempts | PASS | REJECT | kills | retries | no-verdict | API s | turns | input | output | cache read | cache creation | $ | wall s | revise | refactor | stopped | crossed at | split |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- |
+| a full step | 6 | 2 | 1 | 0 | 0 | 0 | 240 | 25 | 600 | 1200 | 1800 | 2400 | 1.80 | 500 | unknown | unknown | unknown |  |  |
+| a pinned step | 2 | 1 | 0 | 0 | 0 | 0 | 72 | 8 | 200 | 400 | 600 | 800 | 0.65 | unknown | unknown | unknown | unknown |  |  |
+
+#### Test-command seconds, by tier
+
+| tier |
+| --- |
+
+#### Total
+
+| run | turns | input | output | cache read | cache creation | $ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| total | 33 | 800 | 1600 | 2400 | 3200 | 2.45 |
+EOF
+
+name="#454 every By-step column that existed before, and every other section, reads the same for an existing log"
+problems=()
+
+before_out="$before_work/report.md"
+render "$before_work" "$before_out"
+
+report_reads_as_before "$before_out" "$before_report"
+
+report_on "$name" "$before_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
