@@ -2625,16 +2625,23 @@ full_step() {
   sv "$step" $((t + 100)) conductor ""       step-done ""
 }
 
+# satisfied_red <step> <ts> — the marks of a step whose red leaf found its criterion already
+# satisfied and whose verify-pin verdict passed, from <ts> on; no `pin` mark.
+satisfied_red() {
+  local step=$1 t=$2
+  sv "$step" "$t"         conductor ""  step-start ""
+  sv "$step" $((t + 10)) developer red launch  1 '"name": "develop-red"'
+  sv "$step" $((t + 20)) verifier  pin launch  1 '"name": "verdict-pin"'
+  sv "$step" $((t + 30)) verifier  pin verdict 1 '"verdict": "PASS", "reason": "already satisfied"'
+}
+
 # A step that ran Red → Green → Refactor and closed on `step-done`, beside one whose red leaf
 # found the criterion already satisfied and which closed on its `pin` mark (#454).
 fixture_work kinds_work
 full="a step that ran red, green and refactor"
 pinned_kind="a step that closed on its pin mark"
 full_step "$full" 18000
-sv "$pinned_kind" 18200 conductor ""  step-start ""
-sv "$pinned_kind" 18210 developer red launch  1 '"name": "develop-red"'
-sv "$pinned_kind" 18220 verifier  pin launch  1 '"name": "verdict-pin"'
-sv "$pinned_kind" 18230 verifier  pin verdict 1 '"verdict": "PASS", "reason": "already satisfied"'
+satisfied_red "$pinned_kind" 18200
 sv "$pinned_kind" 18240 conductor pin pin     ""
 
 name="#454 the By-step kind cell reads pin for a step with a pin mark and full for a Red-Green-Refactor step"
@@ -2654,10 +2661,7 @@ fixture_work satisfied_work
 full="a step that ran red, green and refactor"
 satisfied="a step whose red leaf found its criterion already satisfied"
 full_step "$full" 19000
-sv "$satisfied" 19200 conductor ""  step-start ""
-sv "$satisfied" 19210 developer red launch  1 '"name": "develop-red"'
-sv "$satisfied" 19220 verifier  pin launch  1 '"name": "verdict-pin"'
-sv "$satisfied" 19230 verifier  pin verdict 1 '"verdict": "PASS", "reason": "already satisfied"'
+satisfied_red "$satisfied" 19200
 
 name="#454 the By-step kind cell reads already-satisfied for a verify-pin PASS with no pin mark and full for a full step"
 problems=()
