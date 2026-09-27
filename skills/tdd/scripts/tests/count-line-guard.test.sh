@@ -1020,6 +1020,40 @@ fi
 
 report "$name"
 
+# 15. The repair of #524 left the refusal where it was (#524). Its count-line check now reads
+#     the suite's last line to EOF rather than leaving at the first match, and the one thing
+#     such a rewrite can quietly change is WHICH line it reads: a check that came to search the
+#     whole output would pass a suite that printed its count line and then kept going, since
+#     the line it asks for is in there somewhere. So the suite handed to the recipe here does
+#     exactly that — reaches a count line reporting nothing failed, prints one more line, exits
+#     0 — and the answer owed is the one the recipe gave before the repair: a non-zero exit and
+#     the refusal line, word for word, naming it. Written into a scratch tree beside a copy of
+#     the committed Makefile, the way case 3 adds a suite, so nothing here globs it.
+name="make test still fails a suite whose last line is not its count line, naming it exactly as before the repair (#524)"
+problems=()
+
+trailing_tree="$(mktemp -d)" || {
+  problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
+  trailing_tree=""
+}
+if [[ -n "$trailing_tree" ]]; then
+  trailing_name='count-then-chatter.test.sh'
+  mkdir -p "$trailing_tree/$TESTS_DIR"
+  cp "$MAKEFILE" "$trailing_tree/Makefile"
+  printf '#!/bin/sh\necho "3 passed, 0 failed"\necho "one more line after the count"\nexit 0\n' \
+    > "$trailing_tree/$TESTS_DIR/$trailing_name"
+  chmod +x "$trailing_tree/$TESTS_DIR/$trailing_name"
+
+  trailing_out="$(make -C "$trailing_tree" test 2>&1)" && trailing_code=0 || trailing_code=$?
+  [[ "$trailing_code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite whose last line is not its count line; it exited 0 and said: $(flat "$trailing_out")")
+  grep -Fx "$trailing_name$GUARD_MESSAGE" <<< "$trailing_out" > /dev/null ||
+    problems+=("want the line '$trailing_name$GUARD_MESSAGE' in the run's output; it said: $(flat "$trailing_out")")
+  rm -rf "$trailing_tree"
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
