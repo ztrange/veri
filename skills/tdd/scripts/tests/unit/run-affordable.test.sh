@@ -192,6 +192,19 @@ expect_code 2
 expect_silent "a missing event log"
 verdict "a missing .tdd/events.jsonl exits 2 printing nothing"
 
+# 8. case 3's log — spent 22.50, median 7.50, three steps to go projecting 45.00 — run with
+#    VERI_RUN_BUDGET set to a word, to a negative number and to the empty string. None is a
+#    ceiling, so none is an answer: each exits 2 with stdout empty, rather than comparing the
+#    projection against a ceiling that is no number and printing figures as if it had.
+: > "$work/.tdd/events.jsonl"
+three_full_steps
+for budget in fifty -5 ""; do
+  run_affordable VERI_RUN_BUDGET="$budget" -- 3
+  expect_code 2
+  expect_silent "VERI_RUN_BUDGET '$budget'"
+done
+verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2 printing nothing"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
