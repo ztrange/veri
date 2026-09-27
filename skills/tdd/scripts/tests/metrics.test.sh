@@ -2896,6 +2896,83 @@ report_reads_as_before "$before_out" "$before_report"
 
 report_on "$name" "$before_out"
 
+# passes_say <file> <step> <pass>=<transforms>/<budget>,<stopped> … — the per-pass section
+# (#502): one row per refactor pass of a step. The table is the one holding a row for the step
+# once per expected pass, so the By-step table, which holds it once, is never it. The pass is
+# found by a column heading saying `pass` and nothing else of substance, the transforms
+# against budget by one saying `refactor` or `transform`, the reason by one saying `stop`.
+passes_say() {
+  local out_file="$1" step="$2"; shift 2
+  probe "$PROBE_PRELUDE"'
+path, step = sys.argv[1], sys.argv[2]
+wanted = sys.argv[3:]
+tables = tables_in(path)
+
+section = next((t for t in tables
+                if sum(1 for r in t[1:] if is_row(r, step)) == len(wanted)), None)
+if section is None:
+    labels = [", ".join(repr(r[0]) for r in t[1:] if r) for t in tables]
+    complain("want a table with %d rows for step %r, one per refactor pass, the report has tables with rows: %s"
+             % (len(wanted), step, "; ".join(labels) or "nothing"))
+    print("\n".join(problems))
+    raise SystemExit(0)
+
+header, rows = section[0], [r for r in section[1:] if is_row(r, step)]
+at = column(header, "the pass", lambda c: c.strip() == "pass", step)
+spent = column(header, "the transforms against budget",
+               lambda c: "refactor" in c or "transform" in c, step)
+stop = column(header, "why the pass stopped", lambda c: "stop" in c, step)
+if None not in (at, spent, stop):
+    for arg in wanted:
+        index, expected = arg.split("=", 1)
+        pair, reason = expected.split(",", 1)
+        row = next((r for r in rows if at < len(r) and r[at] == index), None)
+        if row is None:
+            complain("want a row for pass %s of step %r, its rows have passes: %s"
+                     % (index, step, ", ".join(repr(r[at]) for r in rows if at < len(r))))
+            continue
+        for what, i, want in (("transforms/budget", spent, pair), ("stopped", stop, reason)):
+            got = row[i] if i < len(row) else ""
+            if got != want:
+                complain("pass %s of step %r %s: want %r, got %r" % (index, step, what, want, got))
+
+print("\n".join(problems))
+' "$out_file" "$step" "$@"
+}
+
+# A step whose refactor phase ran twice — the triangulation path resumed its loop — with a
+# `refactor` mark per pass, each with its own transforms and stop reason, so one pass's
+# figures in the other's row cannot pass.
+fixture_work twice_work
+
+twice="a step whose refactor phase ran twice"
+
+sv "$twice" 50000 conductor ""       step-start ""
+sv "$twice" 50002 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$twice" 50008 developer refactor exit    1 '"status": "0", "secs": "6"'
+sv "$twice" 50010 conductor refactor refactor "" '"transforms": "2", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
+sv "$twice" 50012 verifier  refactor launch  1 '"name": "verify-refactor"'
+sv "$twice" 50016 verifier  refactor exit    1 '"status": "0", "secs": "4"'
+sv "$twice" 50016 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$twice" 50102 developer refactor launch  2 '"name": "develop-refactor"'
+sv "$twice" 50108 developer refactor exit    2 '"status": "0", "secs": "6"'
+sv "$twice" 50110 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "structural-owed", "pass": "2"'
+sv "$twice" 50112 verifier  refactor launch  2 '"name": "verify-refactor"'
+sv "$twice" 50116 verifier  refactor exit    2 '"status": "0", "secs": "4"'
+sv "$twice" 50116 verifier  refactor verdict 2 '"verdict": "PASS", "reason": "behaviour is preserved"'
+sv "$twice" 50120 conductor ""       step-done ""
+
+
+name="#502 a step with two refactor marks shows one per-pass row each, with its own transforms against budget and its own stop reason"
+problems=()
+
+twice_out="$twice_work/report.md"
+render "$twice_work" "$twice_out"
+
+passes_say "$twice_out" "$twice" "1=2/5,nothing-structural" "2=1/5,structural-owed"
+
+report_on "$name" "$twice_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
