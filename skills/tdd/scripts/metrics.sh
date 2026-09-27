@@ -563,7 +563,7 @@ for line in marks:
         current = open_pass(step)
         passes[(step, line.get("pass", ""))] = (line, current)
         current["marked"] = True
-        if current["verdict"]:
+        if current["verdict"] == "PASS":
             open_passes.pop(step)
         continue
     # The cost-budget crossing and the cause of a split (#452): what the step had spent when
