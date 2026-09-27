@@ -861,7 +861,12 @@ $S/exhausted-outcome.sh < .tdd/develop-over-budget.out > .tdd/over-budget-answer
 - **exit 1 — a decision for the user.** `.tdd/over-budget-answer.txt` holds the leaf's answer.
   **Park the step** — the same park the revise-exhausted path takes (see *Revise*): stop the
   run there, carrying that answer and the two figures, what the step has spent and the
-  step budget, and leave the plan as it is so the user's decision picks the run back up.
+  step budget, and leave the plan as it is so the user's decision picks the run back up:
+  ```
+  VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-unchecked.sh < .tdd/issue-<n>.md)" $S/event.sh step-escalated at=over-budget anchor="$($S/next-unchecked.sh < .tdd/issue-<n>.md)"
+  ```
+  The `at=over-budget` is what tells this park apart from the revise-exhausted one: a verifier
+  that could not be satisfied and a step that got expensive are different facts about the run.
 - **exit 3 — neither answer: record the crossing and carry on with the step.** This is
   **not a bail**, and it is where this path parts from the revise-exhausted one, whose exit 3
   bails with cause `revise-exhausted` because a verifier that will not pass the work leaves

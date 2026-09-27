@@ -523,6 +523,34 @@ else
 fi
 report "$name"
 
+# 12. The cost-driven park's own spelling (issue #452): a park because a verifier could not be
+#    satisfied and a park because the step got expensive are different facts, and the comment on
+#    the issue thread is not the log. So the over-budget leaf's exit 1 branch — from its `- **exit 1`
+#    bullet under the cost-check heading up to the `- **exit 3` bullet after it — prescribes
+#    `event.sh step-escalated` carrying `at=over-budget`.
+name="$skill_md's over-budget exit 1 branch writes step-escalated carrying at=over-budget"
+problems=()
+section_at="$(cost_check_at)"
+park_at="" carry_at=""
+if [[ -n "$section_at" ]]; then
+  park_at="$(exit_bullet_after "$section_at" 1)"
+  [[ -z "$park_at" ]] ||
+    carry_at="$(exit_bullet_after "$park_at" 3)"
+fi
+if [[ -z "$park_at" || -z "$carry_at" ]]; then
+  problems+=("$skill_md's cost check has no \`- **exit 1\` branch followed by an \`- **exit 3\` one — where the cost-driven park's mark belongs could not be read")
+else
+  over_budget=0
+  while IFS= read -r line; do
+    calls_event "$line" step-escalated &&
+      [[ "$line" =~ event\.sh\ step-escalated.*[[:space:]]at=over-budget([[:space:]]|$) ]] &&
+      over_budget=$((over_budget + 1))
+  done < <(sed -n "$((park_at)),$((carry_at - 1))p" "$ROOT/$skill_md")
+  [[ "$over_budget" -ge 1 ]] ||
+    problems+=("no \`event.sh step-escalated\` carrying \`at=over-budget\` in the over-budget exit 1 branch at $skill_md:$park_at–$carry_at, so a cost-driven park reads in the log as a verifier's")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
