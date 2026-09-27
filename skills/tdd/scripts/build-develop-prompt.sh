@@ -13,6 +13,7 @@
 #   build-develop-prompt.sh refactor <issue-spec-file> <step-text> <test-cmd> <touched-files>
 #   build-develop-prompt.sh cover     <issue-spec-file> <step-text> <test-cmd>
 #   build-develop-prompt.sh transform <issue-spec-file> <step-text> <test-cmd>
+#   build-develop-prompt.sh structural <issue-spec-file> <candidate> <test-cmd> <issue-touched-files>
 #   build-develop-prompt.sh revise <phase> <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh exhausted <issue-spec-file> <step-text> <test-cmd> <reason-file>
 #   build-develop-prompt.sh reconcile <issue-spec-file> <step-text> <test-cmd> <branch> <remote-sha>
@@ -45,7 +46,7 @@ shopt -u patsub_replacement 2>/dev/null || true
 #
 # The phase list is spelled once, here, so the usage line and the unknown-phase refusal
 # below cannot name different sets.
-phases="red|green|refactor|cover|transform|revise|reconcile|exhausted|over-budget|rebase"
+phases="red|green|refactor|cover|transform|structural|revise|reconcile|exhausted|over-budget|rebase"
 # Spelled once, and quoted back by both refusals below: a caller who dropped an argument
 # later than the phase word is as entitled to see the whole call as one who passed nothing.
 USAGE="build-develop-prompt: usage: $phases <issue-spec-file> <step-text> <test-cmd> ..."
@@ -71,6 +72,7 @@ case "$phase" in
   # will move is covered, Transform applies the step's one named refactoring. Each takes only
   # the three arguments every phase shares.
   cover|transform) want=4 ;;
+  structural) want=5 ;;
   revise) want=6 ;;
   reconcile) want=6 ;;
   # The phase a step reaches when its revise budget ran out (#408). It takes what `revise`
@@ -152,6 +154,9 @@ case "$phase" in
     # The fast tier's command (#341): green runs it plus the affected suites instead of the
     # full suite, and a leaf in a target repository has no way to ask for it itself.
     need fast_cmd "${7:-}" '<fast-cmd>'
+    ;;
+  structural)
+    need touched "${5:-}" '<issue-touched-files>'
     ;;
   refactor)
     need touched "${5:-}" '<touched-files>'

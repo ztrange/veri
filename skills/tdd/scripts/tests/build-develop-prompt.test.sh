@@ -1655,6 +1655,26 @@ candidate_at="$(grep -nxF -- '- extract the zorblat parser into its own module' 
 [[ -z "$problems" ]] \
   && ok || no "develop-refactor reports every other structural candidate as a CANDIDATES: structural line rather than apply it, and refactor-owed.sh append records it under the step's name (${problems#; })"
 
+# 52. the per-issue structural pass builds one transform prompt per recorded candidate (issue
+#     #503, criterion 4): the candidate rides in the step-text slot, the issue's touched files
+#     are its bounds, and the leaf commits that one transform as its own `refactor:` commit
+#     without touching a test file.
+candidate='extract the zorblat parser into its own module & {rename} it'
+issue_touched='scripts/zorblat.sh, scripts/lib/frob & nitz.sh'
+structural="$("$BUILD" structural "$work/spec.md" "$candidate" "$test_cmd" "$issue_touched" 2>/dev/null)"; code=$?
+problems=""
+[[ "$code" -eq 0 ]] || problems="$problems; exit $code"
+[[ "$structural" == *"$candidate"* ]] || problems="$problems; does not carry the candidate verbatim"
+[[ "$structural" == *"$issue_touched"* ]] || problems="$problems; does not name the issue's touched files"
+says_both_ways "$structural" "does not name the touched files as its bounds" \
+  80 '(bound|limit|confine|only)' '(touched|files)'
+says_both_ways "$structural" "does not say to commit the one transform as its own refactor: commit" \
+  80 'commit' 'refactor:'
+says_both_ways "$structural" "does not say to touch no test file" \
+  40 '(no|never|not|must not)' 'test file'
+[[ -z "$problems" ]] \
+  && ok || no "develop-structural builds a transform prompt for one structural candidate, bounded to the issue's touched files, committed as its own refactor: commit, touching no test file (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
