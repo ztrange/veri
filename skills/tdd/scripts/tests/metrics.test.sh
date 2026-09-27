@@ -2597,6 +2597,51 @@ revise_cell_is "$unrevised_out" "$unrevised" unknown
 report_on "$name" "$unrevised_out"
 
 
+# kind_cell_is <file> <step> <want> — the step's By-step kind cell reads exactly <want>.
+kind_cell_is() {
+  probe "$PROBE_PRELUDE"'
+path, step, want = sys.argv[1:4]
+cell = cell_in(tables_in(path), step, "the kind", lambda c: "kind" in c)
+if cell is not None and cell != want:
+    complain("step %r kind cell: want %r, got %r" % (step, want, cell))
+print("\n".join(problems))
+' "$@"
+}
+
+# A step that ran Red → Green → Refactor and closed on `step-done`, beside one whose red leaf
+# found the criterion already satisfied and which closed on its `pin` mark (#454).
+fixture_work kinds_work
+full="a step that ran red, green and refactor"
+pinned_kind="a step that closed on its pin mark"
+sv "$full" 18000 conductor ""       step-start ""
+sv "$full" 18010 developer red      launch  1 '"name": "develop-red"'
+sv "$full" 18020 verifier  red      launch  1 '"name": "verify-red"'
+sv "$full" 18030 verifier  red      verdict 1 '"verdict": "PASS", "reason": "fails for the reason it names"'
+sv "$full" 18040 developer green    launch  1 '"name": "develop-green"'
+sv "$full" 18050 verifier  green    launch  1 '"name": "verify-green"'
+sv "$full" 18060 verifier  green    verdict 1 '"verdict": "PASS", "reason": "the step is pinned and no wider"'
+sv "$full" 18070 developer refactor launch  1 '"name": "develop-refactor"'
+sv "$full" 18080 verifier  refactor launch  1 '"name": "verify-refactor"'
+sv "$full" 18090 verifier  refactor verdict 1 '"verdict": "PASS", "reason": "behaviour unchanged"'
+sv "$full" 18100 conductor ""       step-done ""
+sv "$pinned_kind" 18200 conductor ""  step-start ""
+sv "$pinned_kind" 18210 developer red launch  1 '"name": "develop-red"'
+sv "$pinned_kind" 18220 verifier  pin launch  1 '"name": "verdict-pin"'
+sv "$pinned_kind" 18230 verifier  pin verdict 1 '"verdict": "PASS", "reason": "already satisfied"'
+sv "$pinned_kind" 18240 conductor pin pin     ""
+
+name="#454 the By-step kind cell reads pin for a step with a pin mark and full for a Red-Green-Refactor step"
+problems=()
+
+kinds_out="$kinds_work/report.md"
+render "$kinds_work" "$kinds_out"
+
+kind_cell_is "$kinds_out" "$full" full
+kind_cell_is "$kinds_out" "$pinned_kind" pin
+
+report_on "$name" "$kinds_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
