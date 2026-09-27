@@ -2382,6 +2382,46 @@ revise_cell_says "$phased_out" "$phased" red=2/3 refactor=1/3
 report_on "$name" "$phased_out"
 
 
+# revise_cell_within_budget <file> <step> — no `<used>/<budget>` count anywhere in the step's
+# revise cell may exceed its budget, whether it sits in a phase entry or stands alone.
+revise_cell_within_budget() {
+  probe "$PROBE_PRELUDE"'
+path, step = sys.argv[1], sys.argv[2]
+header, row = located(tables_in(path), step, "a table", table_with)
+if row is not None:
+    i = column(header, "the revise attempts", lambda c: "revise" in c, step)
+    if i is not None:
+        cell = row[i] if i < len(row) else ""
+        over = [u + "/" + b for u, b in re.findall(r"([0-9]+)/([0-9]+)", cell) if int(u) > int(b)]
+        if over:
+            complain("step %r revise cell: counts above the budget %s in %r"
+                     % (step, " ".join(over), cell))
+print("\n".join(problems))
+' "$1" "$2"
+}
+
+# A step that revised Red once and Refactor once under a REVISE_BUDGET of two. Two revises in
+# all, which a step-wide counter renders `2/2` — a budget spent that neither phase spent.
+fixture_work twice_work
+twice="a step revised once in Red and once in Refactor"
+sv "$twice" 9500 conductor ""       step-start ""
+sv "$twice" 9510 developer red      launch  1 '"name": "develop-red"'
+sv "$twice" 9600 conductor red      revise  1 '"budget": "2"'
+sv "$twice" 9700 conductor refactor revise  1 '"budget": "2"'
+sv "$twice" 9800 conductor ""       step-done ""
+
+name="#488 a step revised once in each of two phases renders each as 1/2, no count above the budget"
+problems=()
+
+twice_out="$twice_work/report.md"
+render "$twice_work" "$twice_out"
+
+revise_cell_says "$twice_out" "$twice" red=1/2 refactor=1/2
+revise_cell_within_budget "$twice_out" "$twice"
+
+report_on "$name" "$twice_out"
+
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
