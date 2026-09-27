@@ -58,6 +58,11 @@ Render one verdict on the settled result.
    them; derive that list yourself, and read it as paths and nothing else. A changed file
    outside that list is a REJECT, unless its hunk removes duplication between that file and
    code in the list — the one reason a transform was allowed to leave the list for.
+9. **Only the two allowed comments.** A comment the range adds is allowed only as a
+   contract header (a usage line or exit-code table) or a succinct warning where the shell
+   itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
+   load-bearing `|| true`). REJECT any other rationale comment the range adds, and name
+   it in REASON:.
 
 PASS if the suite is green and the code is up to standard. REJECT, naming the specific
 weakness, if the tidy-up left the code below standard or altered behavior.
