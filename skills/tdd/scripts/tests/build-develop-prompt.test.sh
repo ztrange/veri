@@ -1555,6 +1555,30 @@ refuses "rebase missing pre-rebase sha" "$BUILD" rebase "$work/spec.md" "$step_t
 [[ -z "$problems" ]] \
   && ok || no "develop-rebase names the onto sha, the pre-rebase sha, every conflicting file and the test command, resolves by git rebase <onto-sha>, leaves the ledger's ticks and marks untouched, ends with REBASE: RESOLVED | FAILED, and refuses a missing argument with exit 2 and no stdout (${problems#; })"
 
+# 48. the refactor run kind's two developer phases (issue #499, criterion 2). A refactor
+#     issue cycles Cover → Transform → Verify, so the builder owes a prompt for `cover` and
+#     one for `transform`, each called with the three arguments every phase shares. Each
+#     comes from its own template: the two prompts differ from each other and from red's,
+#     the phase they stand in for. Adding them must not loosen the whitelist — an unknown
+#     phase is still exit 2 with nothing on stdout.
+problems=""
+rk_red="$("$BUILD" red "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"
+declare -A rk_out=()
+for rk_phase in cover transform; do
+  rk_out[$rk_phase]="$("$BUILD" "$rk_phase" "$work/spec.md" "$step_text" "$test_cmd" 2>/dev/null)"; code=$?
+  [[ "$code" -eq 0 ]] || problems="$problems; $rk_phase exited $code, want 0"
+  [[ -n "${rk_out[$rk_phase]}" ]] || problems="$problems; $rk_phase printed no prompt"
+  [[ "${rk_out[$rk_phase]}" == *"$step_text"* ]] || problems="$problems; $rk_phase prompt lacks the step text"
+  [[ "${rk_out[$rk_phase]}" != "$rk_red" ]] || problems="$problems; $rk_phase prompt is red's"
+done
+[[ -z "${rk_out[cover]}" || "${rk_out[cover]}" != "${rk_out[transform]}" ]] \
+  || problems="$problems; cover and transform printed the same prompt"
+refusal_bad=""
+refuses "unknown phase beside cover/transform" "$BUILD" covers "$work/spec.md" "$step_text" "$test_cmd"
+[[ -z "$refusal_bad" ]] || problems="$problems${refusal_bad}"
+[[ -z "$problems" ]] \
+  && ok || no "cover and transform each print their own prompt carrying the step, and an unknown phase is still refused with exit 2 and no stdout (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
