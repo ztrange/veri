@@ -47,6 +47,13 @@ fi
 STUB
 chmod +x "$stubdir/gh"
 
+# run_blocker <body> <create-file> <out-file> [args...] — runs coverage-blocker.sh against the stub.
+run_blocker() {
+  local body="$1" create="$2" out="$3"
+  shift 3
+  env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$create" FAKE_OUT="$out" "$BLOCKER" "$@"
+}
+
 # solvable-issues.sh reads a run's claim off the main working tree of the repository it is run
 # in; a repository of the suite's own claims nothing, so only the fixture answers.
 no_claims="$work/no-claims"
@@ -69,8 +76,7 @@ None (can start immediately).
 Test command: make test
 '
 create="$work/create.args" edited="$work/edited.body"
-env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$create" FAKE_OUT="$edited" \
-  "$BLOCKER" 60 >/dev/null 2>"$work/blocker.err" && code=0 || code=$?
+run_blocker "$body" "$create" "$edited" 60 >/dev/null 2>"$work/blocker.err" && code=0 || code=$?
 
 fx="$work/fx"
 mkdir -p "$fx"
@@ -112,8 +118,7 @@ None of the callers change.
 None (can start immediately).
 '
 edited2="$work/edited2.body"
-env PATH="$stubdir:$PATH" FAKE_BODY="$body" FAKE_CREATE="$work/create2.args" FAKE_OUT="$edited2" \
-  "$BLOCKER" 60 >/dev/null 2>"$work/blocker2.err" && code=0 || code=$?
+run_blocker "$body" "$work/create2.args" "$edited2" 60 >/dev/null 2>"$work/blocker2.err" && code=0 || code=$?
 new_body=""
 [[ -f "$edited2" ]] && new_body="$(cat "$edited2")"
 want='## What to build
@@ -134,8 +139,7 @@ fi
 # 3. Called with no issue number, it refuses with exit 2 and a usage line, and files nothing.
 name="coverage-blocker with no issue number exits 2 with a usage line and files no issue"
 create3="$work/create3.args"
-err="$(env PATH="$stubdir:$PATH" FAKE_BODY="x" FAKE_CREATE="$create3" FAKE_OUT="$work/edited3.body" \
-  "$BLOCKER" 2>&1 >/dev/null)" && code=0 || code=$?
+err="$(run_blocker x "$create3" "$work/edited3.body" 2>&1 >/dev/null)" && code=0 || code=$?
 if [[ "$code" == 2 && "$err" == *usage* && ! -f "$create3" ]]; then
   ok
 else
