@@ -1032,24 +1032,31 @@ report "$name"
 name="make test still fails a suite whose last line is not its count line, naming it exactly as before the repair (#524)"
 problems=()
 
-trailing_tree="$(mktemp -d)" || {
-  problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
-  trailing_tree=""
+# scratch_suite_run <name> <body> — write a suite called <name> whose body is <body> into a
+# scratch tree beside a copy of the committed Makefile, run `make test` there, and leave the
+# run's output in `scratch_out` and its exit status in `scratch_code`. Returns 1, with a
+# problem named, when no scratch tree could be made.
+scratch_suite_run() {
+  local tree
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
+    return 1
+  }
+  mkdir -p "$tree/$TESTS_DIR"
+  cp "$MAKEFILE" "$tree/Makefile"
+  printf '#!/bin/sh\n%s\nexit 0\n' "$2" > "$tree/$TESTS_DIR/$1"
+  chmod +x "$tree/$TESTS_DIR/$1"
+  scratch_out="$(make -C "$tree" test 2>&1)" && scratch_code=0 || scratch_code=$?
+  rm -rf "$tree"
 }
-if [[ -n "$trailing_tree" ]]; then
-  trailing_name='count-then-chatter.test.sh'
-  mkdir -p "$trailing_tree/$TESTS_DIR"
-  cp "$MAKEFILE" "$trailing_tree/Makefile"
-  printf '#!/bin/sh\necho "3 passed, 0 failed"\necho "one more line after the count"\nexit 0\n' \
-    > "$trailing_tree/$TESTS_DIR/$trailing_name"
-  chmod +x "$trailing_tree/$TESTS_DIR/$trailing_name"
 
-  trailing_out="$(make -C "$trailing_tree" test 2>&1)" && trailing_code=0 || trailing_code=$?
-  [[ "$trailing_code" != 0 ]] ||
-    problems+=("want 'make test' to fail a suite whose last line is not its count line; it exited 0 and said: $(flat "$trailing_out")")
-  grep -Fx "$trailing_name$GUARD_MESSAGE" <<< "$trailing_out" > /dev/null ||
-    problems+=("want the line '$trailing_name$GUARD_MESSAGE' in the run's output; it said: $(flat "$trailing_out")")
-  rm -rf "$trailing_tree"
+trailing_name='count-then-chatter.test.sh'
+if scratch_suite_run "$trailing_name" 'echo "3 passed, 0 failed"
+echo "one more line after the count"'; then
+  [[ "$scratch_code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite whose last line is not its count line; it exited 0 and said: $(flat "$scratch_out")")
+  grep -Fx "$trailing_name$GUARD_MESSAGE" <<< "$scratch_out" > /dev/null ||
+    problems+=("want the line '$trailing_name$GUARD_MESSAGE' in the run's output; it said: $(flat "$scratch_out")")
 fi
 
 report "$name"
@@ -1067,37 +1074,19 @@ report "$name"
 name="make test passes a suite whose stderr outlives its stdout count line, and still fails one whose stdout never reaches it (#526)"
 problems=()
 
-# stderr_suite_run <body> — write a suite whose body is <body> into a scratch tree beside a
-# copy of the committed Makefile, run `make test` there, and leave the run's output in
-# `stderr_out` and its exit status in `stderr_code`. Returns 1, with a problem named, when no
-# scratch tree could be made.
 stderr_suite_name='count-then-stderr.test.sh'
-stderr_suite_run() {
-  local tree
-  tree="$(mktemp -d)" || {
-    problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
-    return 1
-  }
-  mkdir -p "$tree/$TESTS_DIR"
-  cp "$MAKEFILE" "$tree/Makefile"
-  printf '#!/bin/sh\n%s\nexit 0\n' "$1" > "$tree/$TESTS_DIR/$stderr_suite_name"
-  chmod +x "$tree/$TESTS_DIR/$stderr_suite_name"
-  stderr_out="$(make -C "$tree" test 2>&1)" && stderr_code=0 || stderr_code=$?
-  rm -rf "$tree"
-}
-
 broken_pipe="echo \"tail: error writing 'standard output': Broken pipe\" >&2"
-if stderr_suite_run "echo '13 passed, 0 failed'
+if scratch_suite_run "$stderr_suite_name" "echo '13 passed, 0 failed'
 $broken_pipe"; then
-  [[ "$stderr_code" == 0 ]] ||
-    problems+=("want 'make test' to pass a suite whose stdout ended in its count line and exited 0 with a stderr line after it; it exited $stderr_code and said: $(flat "$stderr_out")")
+  [[ "$scratch_code" == 0 ]] ||
+    problems+=("want 'make test' to pass a suite whose stdout ended in its count line and exited 0 with a stderr line after it; it exited $scratch_code and said: $(flat "$scratch_out")")
 fi
-if stderr_suite_run "echo 'a case ran'
+if scratch_suite_run "$stderr_suite_name" "echo 'a case ran'
 $broken_pipe"; then
-  [[ "$stderr_code" != 0 ]] ||
-    problems+=("want 'make test' to fail a suite whose stdout never reached its count line; it exited 0 and said: $(flat "$stderr_out")")
-  grep -Fx "$stderr_suite_name$GUARD_MESSAGE" <<< "$stderr_out" > /dev/null ||
-    problems+=("want the line '$stderr_suite_name$GUARD_MESSAGE' for a suite whose stdout never reached its count line; it said: $(flat "$stderr_out")")
+  [[ "$scratch_code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite whose stdout never reached its count line; it exited 0 and said: $(flat "$scratch_out")")
+  grep -Fx "$stderr_suite_name$GUARD_MESSAGE" <<< "$scratch_out" > /dev/null ||
+    problems+=("want the line '$stderr_suite_name$GUARD_MESSAGE' for a suite whose stdout never reached its count line; it said: $(flat "$scratch_out")")
 fi
 
 report "$name"
