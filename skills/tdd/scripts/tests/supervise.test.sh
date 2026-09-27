@@ -135,21 +135,24 @@ print(int(m) + offset)' "\$3"
 fi
 exec "$realstat" "\$@"
 D
-cat > "$stub/clock-jump" <<'C'
-#!/bin/sh
-exec python3 -c '
-import sys, time
-offset = suspended = 0
+# The latest ./.test-clock line's wall offset and suspended total, parsed the one way both
+# `clock-jump` and `awake-clock` below read it (#512).
+latest_clock_py='offset = suspended = 0
 try:
     last = open(".test-clock").read().splitlines()[-1].split()
     offset = int(last[1])
     suspended = int(last[2]) if len(last) > 2 else 0
 except (OSError, IndexError):
-    pass
+    pass'
+cat > "$stub/clock-jump" <<C
+#!/bin/sh
+exec python3 -c '
+import sys, time
+$latest_clock_py
 if sys.argv[2:] == ["suspend"]:
     suspended += int(sys.argv[1])
 with open(".test-clock", "a") as f:
-    f.write("%r %d %d\n" % (time.time(), offset + int(sys.argv[1]), suspended))' "$@"
+    f.write("%r %d %d\\n" % (time.time(), offset + int(sys.argv[1]), suspended))' "\$@"
 C
 cat > "$stub/await-poll" <<'C'
 #!/bin/sh
@@ -163,17 +166,11 @@ C
 # third field of ./.test-clock's latest line, written in the same line as the jump so no
 # reading sees one clock moved without the other (#512). Named for every case below, so a jump is silence and not a suspend; the
 # case that asks for the supervisor's own real clock unsets it.
-cat > "$stub/awake-clock" <<'C'
+cat > "$stub/awake-clock" <<C
 #!/bin/sh
 exec python3 -c '
 import time
-offset = suspended = 0
-try:
-    last = open(".test-clock").read().splitlines()[-1].split()
-    offset = int(last[1])
-    suspended = int(last[2]) if len(last) > 2 else 0
-except (OSError, IndexError):
-    pass
+$latest_clock_py
 print(int(time.time()) + offset - suspended)'
 C
 chmod +x "$stub/date" "$stub/stat" "$stub/clock-jump" "$stub/await-poll" "$stub/awake-clock"
