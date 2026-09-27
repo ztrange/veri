@@ -1,7 +1,7 @@
 # Plan for #453 — `run-affordable.sh`: a run parks when it can no longer afford to finish, not when it crosses the ceiling
 
 - [x] `run-affordable.sh <n>`, run from a worktree whose event log holds completed full steps, exits 1 and prints spent, steps remaining, the median full-step cost and the projection when `spent + n × median` exceeds `VERI_RUN_BUDGET` ⟦criterion 1⟧
-- [ ] `run-affordable.sh <n>` exits 0 and prints nothing when `spent + n × median` is within `VERI_RUN_BUDGET` ⟦criterion 2⟧
+- [x] `run-affordable.sh <n>` exits 0 and prints nothing when `spent + n × median` is within `VERI_RUN_BUDGET` ⟦criterion 2⟧
 - [ ] The median is taken over completed full steps only, told apart by leaf count from `step-cost.sh --steps`, so a log whose completed steps are mostly cheap pins still projects the remainder at the full-step median ⟦criterion 3⟧
 - [ ] `run-affordable.sh <n>` exits 3 with nothing on stdout when the event log holds no completed full step, only pins or no usage at all ⟦criterion 4⟧
 - [ ] `run-affordable.sh` exits 2 with nothing on stdout for a missing or non-whole-number `<steps-remaining>` argument ⟦criterion 5⟧

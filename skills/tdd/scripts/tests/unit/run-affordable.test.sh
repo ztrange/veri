@@ -108,6 +108,18 @@ expect_code 1
 expect_figures 24.00 5 6.00 54.00
 verdict "the median of an even count of steps logged out of order is the mean of the sorted middle two"
 
+# 3. case 1's three completed full steps — spent 22.50, median 7.50 — with three steps to go
+#    project 22.50 + 3 × 7.50 = 45.00, within a 50 ceiling. The run can afford to finish:
+#    exit 0, and stdout is empty, so a caller reads the answer from the code alone.
+: > "$work/.tdd/events.jsonl"
+full_step "step one"   0.25 1.00 1.00 1.00 1.00 1.00
+full_step "step two"   0.50 1.00 1.50 1.50 1.50 1.50
+full_step "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+run_affordable VERI_RUN_BUDGET=50 -- 3
+expect_code 0
+[[ -z "$out" ]] || problems+="    want empty stdout, got '$out'"$'\n'
+verdict "a projection within VERI_RUN_BUDGET exits 0 printing nothing"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
