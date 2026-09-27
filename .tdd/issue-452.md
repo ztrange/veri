@@ -5,6 +5,6 @@
 - [x] SKILL.md's over-budget exit 0 branch writes `step-split` carrying `at=over-budget`, while the revise-exhausted split keeps its `at=exhausted` spelling unchanged ⟦criterion 3⟧
 - [x] SKILL.md's over-budget exit 1 branch writes `step-escalated` carrying `at=over-budget` ⟦criterion 4⟧
 - [x] SKILL.md's over-budget exit 3 branch writes no event mark beyond the crossing's `step-over-budget` ⟦criterion 5⟧
-- [ ] metrics.sh's `#### By step` table reports, for a step whose log holds `step-over-budget`, the `spent=` figure it carried, and leaves that column empty for a step that did not cross ⟦criterion 6⟧
+- [x] metrics.sh's `#### By step` table reports, for a step whose log holds `step-over-budget`, the `spent=` figure it carried, and leaves that column empty for a step that did not cross ⟦criterion 6⟧ ⟂ refactor pending
 - [ ] metrics.sh's report distinguishes a log holding `step-split` with `at=over-budget` from one holding `step-split` with `at=exhausted` ⟦criterion 7⟧
 - [ ] classify-bail.sh refuses `step-over-budget` and `over-budget` as bail causes, knowing none of the new words ⟦criterion 8⟧

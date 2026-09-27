@@ -1947,6 +1947,69 @@ stopped_says "$triage_out" "$tidied=nothing-structural" "$owing=structural-owed"
 report_on "$name" "$triage_out"
 
 
+# crossed_says <file> <step>=<cell> … — the step table's crossing column (#452): what a step
+# had spent when it crossed its cost budget, read off its `step-over-budget` mark's `spent=`.
+# An expectation with a figure is compared as a number, so the report is free to print a `$`
+# or a trailing zero; an empty expectation wants the cell empty, since a step that never
+# crossed has no figure and a `0` there would read as a crossing at nothing. The column is
+# found by a heading saying `over` or `cross`, and nothing else in the table says either.
+crossed_says() {
+  local out_file="$1"; shift
+  probe "$PROBE_PRELUDE"'
+path = sys.argv[1]
+tables = tables_in(path)
+
+for arg in sys.argv[2:]:
+    key, expected = arg.split("=", 1)
+    header, row = located(tables, key, "a table", table_with)
+    if row is None:
+        continue
+    i = column(header, "what the step had spent when it crossed its cost budget",
+               lambda c: "over" in c or "cross" in c, key)
+    if i is None:
+        continue
+    got = row[i].strip() if i < len(row) else ""
+    if expected == "":
+        if got != "":
+            complain("step %r never crossed: want the cell empty, got %r" % (key, got))
+    elif number(got) != float(expected):
+        complain("step %r crossed: want spent %s, got %r" % (key, expected, got))
+
+print("\n".join(problems))
+' "$out_file" "$@"
+}
+
+# A fixture for the crossing column (#452): two steps, one whose log carries the conductor's
+# `step-over-budget spent=12.40 budget=10.00` mark and one whose log carries none. Each
+# launches one leaf, since a step with no leaf launched raises no row to read. The crossing
+# figure is one no other cell of that row holds, so a column that printed the budget, or a
+# cost summed off the usage lines, cannot pass.
+fixture_work crossing_work
+
+crossed="a step that crossed its cost budget"
+under="a step that stayed under its cost budget"
+
+sv "$crossed" 42000 conductor ""    step-start ""
+sv "$crossed" 42002 developer green launch  1 '"name": "develop-green"'
+sv "$crossed" 42008 developer green exit    1 '"status": "0", "secs": "6"'
+sv "$crossed" 42010 conductor ""    step-over-budget "" '"spent": "12.40", "budget": "10.00"'
+sv "$crossed" 42020 conductor ""    step-done ""
+sv "$under"   43000 conductor ""    step-start ""
+sv "$under"   43002 developer green launch  1 '"name": "develop-green"'
+sv "$under"   43008 developer green exit    1 '"status": "0", "secs": "6"'
+sv "$under"   43020 conductor ""    step-done ""
+
+name="#452 the By step table reports the spent= a step's step-over-budget carried, and leaves that column empty for a step that did not cross"
+problems=()
+
+crossing_out="$crossing_work/report.md"
+render "$crossing_work" "$crossing_out"
+
+crossed_says "$crossing_out" "$crossed=12.40" "$under="
+
+report_on "$name" "$crossing_out"
+
+
 # tier_seconds_say <file> <tier>=<s>,<s>,… … — the per-tier section of the `test-run` marks
 # timed-test-run.sh leaves behind (#342, part of PRD #335). Each expectation names a tier and
 # the seconds its runs recorded, in the order the log carries them, and every one of those
