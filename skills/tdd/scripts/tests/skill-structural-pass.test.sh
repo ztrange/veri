@@ -107,6 +107,22 @@ fi
 
 report "$name"
 
+name="$skill_md's structural pass, when refactor-owed.sh list exits 3, is skipped with no bail and marks the log event.sh structural-pass stopped=nothing-structural"
+problems=()
+
+if [[ "$pass_text" == "$section" ]]; then
+  problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — how an empty pass ends could not be established")
+else
+  require 'event.sh structural-pass' "$pass_text" \
+    "$skill_md's structural pass never writes an event.sh structural-pass mark, so a skipped pass leaves nothing in the log"
+  require 'stopped=nothing-structural' "$pass_text" \
+    "$skill_md's structural pass never marks stopped=nothing-structural, so the log cannot say the pass was skipped for want of candidates"
+  require 'with no bail' "$pass_text" \
+    "$skill_md's structural pass never says a pass with no candidate is skipped with no bail"
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
