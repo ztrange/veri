@@ -1,2 +1,4 @@
 ### The verify-refactor prompt tells the verifier to REJECT code carrying a rationale comment outside the two allowed classes ⟦criterion 3⟧
 - the comment-rule check text is duplicated verbatim between verify-green.md check 5 and verify-refactor.md check 9; sharing it needs a green/refactor-only fragment in build-verify-prompt.sh, since _shared.md reaches verify-red/plan/pin/rebase too — new generality no test requires
+### The verify-green and verify-refactor prompts tell the verifier that a contract header or a shell-hazard warning is not grounds for REJECT ⟦criterion 4⟧
+- fold case 50's `for pair in "verify-green:…" "verify-refactor:…"` loop into a per-phase helper called twice, the way cases 48–49 use `rejects_rationale_comment`, so the file loops over phases one way only (this changes the case count from 1 to 2)

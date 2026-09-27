@@ -4,4 +4,4 @@
 - [x] Every developer prompt states where rationale goes instead of a comment: a test first, an ADR second, and nowhere third ⟦criterion 2⟧
 - [x] The verify-green prompt tells the verifier to REJECT code carrying a rationale comment outside the two allowed classes ⟦criterion 3⟧
 - [x] The verify-refactor prompt tells the verifier to REJECT code carrying a rationale comment outside the two allowed classes ⟦criterion 3⟧
-- [x] The verify-green and verify-refactor prompts tell the verifier that a contract header or a shell-hazard warning is not grounds for REJECT ⟦criterion 4⟧ ⟂ refactor pending
+- [x] The verify-green and verify-refactor prompts tell the verifier that a contract header or a shell-hazard warning is not grounds for REJECT ⟦criterion 4⟧
