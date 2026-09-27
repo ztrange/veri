@@ -63,7 +63,11 @@ count-line-guard:
 # `tee` rather than a plain capture so a 70 s suite's lines still appear while it runs; the
 # file it leaves behind is read only once the suite is done. The suite's own exit status
 # travels in a second file because a pipeline's status is its last command's — tee's — and
-# PIPESTATUS is bash's, not the /bin/sh make runs recipes with.
+# PIPESTATUS is bash's, not the /bin/sh make runs recipes with. Only the suite's stdout goes
+# through tee into that file; its stderr goes straight to the recipe's own (fd 3), so a line a
+# dying writer prints there after the count line — GNU tail's `error writing 'standard output':
+# Broken pipe`, on Linux CI under a suite that passed 13 of 13 (#526) — can never become the
+# last line the count-line check reads. A suite prints its count line on stdout.
 #
 # Every suite also runs offline (#301), in this same run rather than a second one. gh and curl are
 # not the hot path — a run makes a handful of calls to each, against ~1,900 git calls — so they
@@ -139,7 +143,7 @@ test unit:
 	  suite_name="$$(basename "$$t")"; \
 	  printf '== %s\n' "$$suite_name"; \
 	  : > "$$reach_log"; \
-	  { $(OFFLINE_ENV) "$$t" < /dev/null; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
+	  { $(OFFLINE_ENV) "$$t" < /dev/null 2>&3; echo $$? > "$$suite_status"; } 3>&2 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -E '$(COUNT_LINE)' > /dev/null || { \
 	    printf '$(COUNTLESS)' "$$suite_name"; fail=1; \

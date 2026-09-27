@@ -1054,6 +1054,54 @@ fi
 
 report "$name"
 
+# 16. A suite's stderr outliving its count line does not turn it red (#526). The recipe folds
+#     each suite's stderr into the output it reads the last line of, so a writer that dies
+#     after the count line — GNU tail's `error writing 'standard output': Broken pipe`, on
+#     Linux CI, under a suite that passed 13 of 13 — became that last line, and the suite was
+#     refused although it exited 0 and every case passed. So two suites go in front of the
+#     recipe here, each in a scratch tree beside a copy of the committed Makefile the way case
+#     15's does: one whose stdout ends in its count line, exits 0 and then writes that very
+#     error to stderr, which is owed a pass; and one whose stdout never reaches a count line
+#     and writes the same stderr line, which is owed the refusal it always got — so a repair
+#     that stopped reading the last line at all would not answer this case.
+name="make test passes a suite whose stderr outlives its stdout count line, and still fails one whose stdout never reaches it (#526)"
+problems=()
+
+# stderr_suite_run <body> — write a suite whose body is <body> into a scratch tree beside a
+# copy of the committed Makefile, run `make test` there, and leave the run's output in
+# `stderr_out` and its exit status in `stderr_code`. Returns 1, with a problem named, when no
+# scratch tree could be made.
+stderr_suite_name='count-then-stderr.test.sh'
+stderr_suite_run() {
+  local tree
+  tree="$(mktemp -d)" || {
+    problems+=("could not make a scratch tree to hold the suite, so the criterion went unasked")
+    return 1
+  }
+  mkdir -p "$tree/$TESTS_DIR"
+  cp "$MAKEFILE" "$tree/Makefile"
+  printf '#!/bin/sh\n%s\nexit 0\n' "$1" > "$tree/$TESTS_DIR/$stderr_suite_name"
+  chmod +x "$tree/$TESTS_DIR/$stderr_suite_name"
+  stderr_out="$(make -C "$tree" test 2>&1)" && stderr_code=0 || stderr_code=$?
+  rm -rf "$tree"
+}
+
+broken_pipe="echo \"tail: error writing 'standard output': Broken pipe\" >&2"
+if stderr_suite_run "echo '13 passed, 0 failed'
+$broken_pipe"; then
+  [[ "$stderr_code" == 0 ]] ||
+    problems+=("want 'make test' to pass a suite whose stdout ended in its count line and exited 0 with a stderr line after it; it exited $stderr_code and said: $(flat "$stderr_out")")
+fi
+if stderr_suite_run "echo 'a case ran'
+$broken_pipe"; then
+  [[ "$stderr_code" != 0 ]] ||
+    problems+=("want 'make test' to fail a suite whose stdout never reached its count line; it exited 0 and said: $(flat "$stderr_out")")
+  grep -Fx "$stderr_suite_name$GUARD_MESSAGE" <<< "$stderr_out" > /dev/null ||
+    problems+=("want the line '$stderr_suite_name$GUARD_MESSAGE' for a suite whose stdout never reached its count line; it said: $(flat "$stderr_out")")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
