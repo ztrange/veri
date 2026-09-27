@@ -205,6 +205,25 @@ for budget in fifty -5 ""; do
 done
 verdict "a VERI_RUN_BUDGET that is not a non-negative decimal number exits 2 printing nothing"
 
+# 9. #409's shape: a run at 8 of 9 steps done, eight completed full steps costing 5.50,
+#    5.80, 6.00, 6.10, 6.20, 6.40, 6.56 and 6.80 — spent 49.36, the median full step
+#    (6.10 + 6.20) / 2 = 6.15 — with the one step left projecting 49.36 + 1 × 6.15 = 55.51,
+#    under a 60 ceiling. A converging run near its finish can afford to finish: exit 0 with
+#    stdout empty, so it is not parked one step from its draft PR.
+: > "$work/.tdd/events.jsonl"
+step_leaves "step one"   1.00 1.00 1.00 1.00 1.00 0.50
+step_leaves "step two"   1.00 1.00 1.00 1.00 1.00 0.80
+step_leaves "step three" 1.00 1.00 1.00 1.00 1.00 1.00
+step_leaves "step four"  1.00 1.00 1.00 1.00 1.00 1.10
+step_leaves "step five"  1.00 1.00 1.00 1.00 1.00 1.20
+step_leaves "step six"   1.00 1.00 1.00 1.00 1.00 1.40
+step_leaves "step seven" 1.00 1.00 1.00 1.00 1.00 1.56
+step_leaves "step eight" 1.00 1.00 1.00 1.00 1.00 1.80
+run_affordable VERI_RUN_BUDGET=60 -- 1
+expect_code 0
+expect_silent "a run at 8 of 9 steps"
+verdict "a run at 8 of 9 steps with one median step left and a ceiling above the projection exits 0"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
