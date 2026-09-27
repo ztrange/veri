@@ -187,6 +187,24 @@ if has_skill_md; then
 fi
 report "$name"
 
+# 6. Criterion 5 of #501: re-running the skill over candidates it has already filed files no
+#    duplicate — a second pass after a cleared context, or over the same report, is the
+#    normal way the skill gets re-run, and a queue holding the same module twice is two runs
+#    spent on one piece of work. So before filing, it looks among the repository's existing
+#    issues for one it already filed for that candidate, and files nothing when one is there.
+#    Read as prose, like case 2.
+name="$skill_md looks for an issue it already filed for a candidate and files no duplicate on a re-run"
+problems=()
+if has_skill_md; then
+  says '(re-?runs?|again|second (run|pass))[^.]{0,120}duplicates?|duplicates?[^.]{0,120}(re-?runs?|again|second (run|pass))' \
+    "$skill_md never says a re-run files no duplicate"
+  says 'gh (issue list|search issues)' \
+    "$skill_md never says how it finds the issues it already filed (gh issue list or gh search issues)"
+  says '(already filed|already exists?|existing issue)[^.]{0,120}(not|never|nothing)[^.]{0,20}files?|(not|never|nothing)[^.]{0,20}files?[^.]{0,120}(already filed|already exists?|existing issue)' \
+    "$skill_md never says a candidate whose issue already exists is not filed again"
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

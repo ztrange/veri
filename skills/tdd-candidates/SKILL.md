@@ -44,4 +44,9 @@ criteria no verifier can hold the code against is one veri cannot finish. File n
 it, and say which candidate you skipped, by name, and the reason it was skipped, so a dropped
 candidate never reads as a complete filing.
 
+Before filing a candidate, look for an issue you already filed for it: list the repository's
+issues with `gh issue list --state all --search "<module> in:title"` and read their titles.
+When an existing issue already covers that module, do not file it again — a re-run over the
+same candidates, after a cleared context or over the same report, files no duplicate.
+
 File each issue with `gh issue create`.
