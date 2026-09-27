@@ -1240,9 +1240,11 @@ stays crossed: the check has fired for this step, and, as above, nothing re-arms
    count with no items is not a backlog, and the two classes run together are a backlog
    nobody can size. Mark the same three figures in the log — the observed count, unclamped,
    the budget, and why it stopped (`nothing-left`, `budget`, `malformed`, `nothing-structural` for triage exit **3** or
-   `structural-owed` for triage exit **0**):
+   `structural-owed` for triage exit **0**) — and which pass of the step's refactor this is,
+   `pass`: `1` for the step's first pass, and one more each time the triangulation path at 3
+   resumes the refactor loop and reaches this sub-step again:
    ```
-   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason>
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$($S/next-pending-refactor.sh < .tdd/issue-<n>.md)" VERI_PHASE=refactor $S/event.sh refactor transforms=<count> budget=<VERI_REFACTOR_BUDGET> stopped=<reason> pass="$pass"
    ```
    Then **record the leftovers themselves**, which is not a log mark and does not belong in
    that line: the narration above is a comment and `.tdd/develop-refactor.out` is overwritten

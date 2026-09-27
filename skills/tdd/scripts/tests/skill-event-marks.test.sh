@@ -639,6 +639,27 @@ fi
 rm -rf "$scratch"
 report "$name"
 
+# 15. The refactor mark's pass index (issue #502): a step runs the refactor phase twice when the
+#     triangulation path resumes the loop, and two marks with nothing to tell them apart leave
+#     the report keeping only the last. So the call carries `pass=`, and the record prescribing
+#     it says the first pass is 1 and that each triangulation resume counts one more.
+name="$skill_md writes the refactor mark with pass=<k>: 1 for a step's first pass, one more each time the triangulation path resumes the refactor loop"
+problems=()
+if have_records "the refactor mark's pass index"; then
+  refactor_mark
+  if [[ "${#problems[@]}" -eq 0 ]]; then
+    [[ "$marked" =~ (event\.sh[[:space:]]+refactor([^a-z0-9-][^\`]*)?) ]]
+    call="${BASH_REMATCH[1]}"
+    [[ "$call" =~ (^|[[:space:]])pass= ]] ||
+      problems+=("$skill_md calls \`$call\` without \`pass=\` — two passes of one step cannot be told apart")
+    [[ "$marked" =~ (^|[^0-9])1([^0-9]|$)[^.\;]{0,40}first || "$marked" =~ first[^.\;]{0,60}[^0-9]1([^0-9]|$) ]] ||
+      problems+=("$skill_md does not say a step's first refactor pass marks \`pass=1\`: $(printf '%.160s' "$marked")")
+    [[ "$marked" =~ (one more|increments?|\+ ?1)[^.]{0,120}triangulat || "$marked" =~ triangulat[^.]{0,160}(one more|increments?|\+ ?1) ]] ||
+      problems+=("$skill_md does not say the pass index counts one more each time the triangulation path resumes the refactor loop: $(printf '%.160s' "$marked")")
+  fi
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
