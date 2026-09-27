@@ -177,11 +177,7 @@ verdict "no completed full step, only pins or no usage at all, exits 3 printing 
 : > "$work/.tdd/events.jsonl"
 three_full_steps
 for arg in "" two 1.5; do
-  if [[ -z "$arg" ]]; then
-    run_affordable VERI_RUN_BUDGET=50 --
-  else
-    run_affordable VERI_RUN_BUDGET=50 -- "$arg"
-  fi
+  run_affordable VERI_RUN_BUDGET=50 -- ${arg:+"$arg"}
   expect_code 2
   expect_silent "<steps-remaining> '${arg:-missing}'"
 done
