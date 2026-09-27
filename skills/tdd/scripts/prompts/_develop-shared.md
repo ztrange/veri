@@ -39,3 +39,5 @@ the usage line and the exit-code table, which no code expresses — or a warning
 shell itself is the hazard (bash 3.2, BSD versus GNU flags, `set -u`'s exit status, a
 `|| true` that is load-bearing under `pipefail`). Either must be succinct. Nothing else is
 written: no rationale, no issue archaeology, no restatement of the next line.
+Rationale goes to a test first — a comment claiming a line is load-bearing is a missing
+test — to an ADR second, and nowhere third: blame already holds the issue numbers.

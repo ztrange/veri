@@ -1492,7 +1492,7 @@ grep -E 'REJECT|VERDICT' <<<"$over_budget" > /dev/null && problems="$problems; n
 #     is built with fixed inputs (the ones the cases above use) and reduced to a POSIX `cksum`,
 #     which prints the same on BSD and GNU; the expected sums are what the builder at
 #     9dffab38, the merge base #450 branched from, printed for the same calls, plus the comment
-#     rule #500 added to every developer prompt. The scripts
+#     rule and rationale home #500 added to every developer prompt. The scripts
 #     directory is the one part of a prompt that depends on where the clone sits — the
 #     `timed-test-run.sh` path is absolute — so it is replaced by a token before summing.
 #     `VERI_REFACTOR_BUDGET` is pinned for the refactor call, since that phase reads it.
@@ -1506,14 +1506,14 @@ renders_as() {  # <label> <want-cksum> <args...> — records a prompt whose sum 
   got="$(printf '%s\n' "${out//"$scripts_dir"/@SCRIPTS@}" | cksum)"
   [[ "$got" == "$want" ]] || problems="$problems; $label renders as '$got', want '$want'"
 }
-renders_as red            '3136506101 9807'       red "$work/spec.md" "$step_text" "$test_cmd"
-renders_as green          '1497158245 6712'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
-renders_as refactor       '1857658530 8466'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
-renders_as 'revise red'   '3515319556 6915'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise green' '2841114 6917'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as 'revise refactor' '1510446784 6920' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as exhausted      '3034833963 3539'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
-renders_as reconcile      '4193057490 5142'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
+renders_as red            '2493217892 9982'       red "$work/spec.md" "$step_text" "$test_cmd"
+renders_as green          '1771614540 6887'     green "$work/spec.md" "$step_text" "$test_cmd" "$test_path" "$target" "make unit"
+renders_as refactor       '1632405217 8641'  refactor "$work/spec.md" "$step_text" "$test_cmd" "$touched"
+renders_as 'revise red'   '2544846531 7090'    revise red "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise green' '3729173025 7092'  revise green "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as 'revise refactor' '3524891017 7095' revise refactor "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as exhausted      '3417210291 3714'       exhausted "$work/spec.md" "$step_text" "$test_cmd" "$work/reason.md"
+renders_as reconcile      '3527139660 5317'       reconcile "$work/spec.md" "$step_text" "$test_cmd" "$rc_branch" "$rc_sha"
 [[ -z "$problems" ]] \
   && ok || no "every phase other than over-budget renders byte-identically to before #450 (${problems#; })"
 
@@ -1603,6 +1603,21 @@ states_comment_rule() {  # states_comment_rule <phase label> <prompt>
 
 every_phase states_comment_rule \
   "every built developer prompt states the comment rule: contract header or shell-hazard warning, succinct, nothing else"
+
+# 49. every built developer prompt states where rationale goes instead of a comment (issue
+#     #500, criterion 2): a test first, an ADR second, and nowhere third.
+states_rationale_home() {  # states_rationale_home <phase label> <prompt>
+  local label="$1" prompt="$2"
+  prompt_says "$prompt" "develop-$label never sends rationale to a test first" \
+    -iE -e 'rationale[^.]{0,80}test first'
+  prompt_says "$prompt" "develop-$label never sends rationale to an ADR second" \
+    -iE -e 'ADR second'
+  prompt_says "$prompt" "develop-$label never says rationale goes nowhere third" \
+    -iE -e 'nowhere third'
+}
+
+every_phase states_rationale_home \
+  "every built developer prompt states where rationale goes instead of a comment: a test first, an ADR second, nowhere third"
 
 echo "----"
 echo "$pass passed, $fail failed"
