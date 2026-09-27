@@ -9,8 +9,10 @@
 # Usage:
 #   build-verify-prompt.sh [--step '<STEP>'] [--fast-cmd '<CMD>'] <phase> <issue-spec-file> <test-path> [<target-test-id>]
 #   build-verify-prompt.sh rebase <issue-spec-file> <onto-sha> <pre-rebase-sha>
-#     phase = red | green | refactor | pin | plan | rebase
-#              for plan the third positional names the proposed ledger, not a test (#439)
+#     phase = red | green | refactor | pin | plan | rebase | transform
+#              for plan the third positional names the proposed ledger, not a test (#439);
+#              for transform it names the step's predicate record, and the fourth is the
+#              step's base sha (#499)
 #     --step = the ledger's own line for the step under judgement (#223): it scopes the
 #              verdict to that criterion, and carries the conductor's words, not the leaf's
 #     --fast-cmd = the fast tier's test command (#341), required for green and refactor:
@@ -72,8 +74,8 @@ test_path="$3"
 target="${4:-the target test}"
 
 case "$phase" in
-  red|green|refactor|pin|plan|rebase) ;;
-  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase)" >&2; exit 2 ;;
+  red|green|refactor|pin|plan|rebase|transform) ;;
+  *) echo "build-verify-prompt: unknown phase '$phase' (want red|green|refactor|pin|plan|rebase|transform)" >&2; exit 2 ;;
 esac
 
 # Green and refactor name the fast command in their checks; without one the verifier would be
@@ -93,8 +95,12 @@ need_sha() {
 
 # For refactor, the 4th slot is the step's green commit, and only a sha may arrive in it:
 # a slot that accepted free text would be a channel for the developer's rationale (#151).
+# A transform step has no green commit, so its 4th slot is the step's base sha, under the
+# same guard (#499).
 base_sha="${4:-}"
-[[ "$phase" == refactor ]] && need_sha '<base-sha>' "$base_sha"
+if [[ "$phase" == refactor || "$phase" == transform ]]; then
+  need_sha '<base-sha>' "$base_sha"
+fi
 
 # For rebase, the two slots after the spec are the commit the branch was rebased onto and the
 # one it stood at before, and #151's guard holds for both: a sha is all either may carry, so

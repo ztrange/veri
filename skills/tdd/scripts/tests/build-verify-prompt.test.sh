@@ -1063,6 +1063,29 @@ for marker in full-suite human-owed; do
 done
 [[ -z "$problems" ]] && ok || no "verify-plan counts a ⟦full-suite⟧ or ⟦human-owed⟧ line tagged ⟦criterion k⟧ as delivering criterion k, so a plan written that way passes check 1 (#481) (${problems#; })"
 
+# 48. the refactor run kind's blind verifier (issue #499, criterion 2). A refactor issue
+#     cycles Cover → Transform → Verify, and a long refactor has no green commit, so the
+#     `transform` phase takes the step's predicate record in the test-path slot — the way
+#     `plan` reuses it for the ledger, so the arity does not change — and a base sha in the
+#     fourth, and tells the verifier to judge `git diff <base-sha>..HEAD` rather than bound
+#     the diff to the files a green commit touched. The base slot is a sha or nothing (#151):
+#     free text there is a channel for the developer's rationale. And the whitelist does not
+#     loosen: an unknown phase is still exit 2.
+problems=""
+printf '%s\n' 'grep -q "extract_helper" lib/foo.sh' > "$work/predicate.md"
+tf_base=0123abcdef
+tf="$("$BUILD" transform "$work/spec.md" "$work/predicate.md" "$tf_base" 2>/dev/null)"; code=$?
+[[ "$code" -eq 0 ]] || problems="$problems; transform exited $code, want 0"
+[[ "$tf" == *'slugify("Hello & World/Foo")'* ]] || problems="$problems; transform prompt lacks the spec"
+[[ "$tf" == *"git diff $tf_base..HEAD"* ]] || problems="$problems; transform prompt never says git diff $tf_base..HEAD"
+prompt_lacks "$tf" "transform prompt bounds the diff to a green commit" -iE -e 'green commit'
+"$BUILD" transform "$work/spec.md" "$work/predicate.md" 'tidied the helper' >/dev/null 2>&1; code=$?
+[[ "$code" -eq 2 ]] || problems="$problems; transform with a non-hex base exited $code, want 2"
+"$BUILD" transforms "$work/spec.md" "$work/predicate.md" "$tf_base" >/dev/null 2>&1; code=$?
+[[ "$code" -eq 2 ]] || problems="$problems; unknown phase 'transforms' exited $code, want 2"
+[[ -z "$problems" ]] \
+  && ok || no "transform takes the predicate record and a hex base sha, tells the verifier to judge git diff <base-sha>..HEAD rather than a green commit's files, and an unknown phase is still exit 2 (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
