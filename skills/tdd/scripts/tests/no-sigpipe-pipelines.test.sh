@@ -303,6 +303,50 @@ probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"
 
+# probe_count_line_check_lets_its_writer_finish — the recipe's own count-line check, run as
+# make would run it, behind a stub `tail` that writes the count line and then 1 MB more —
+# past any pipe buffer, on either runner — and records whether it got to write it all. A
+# reader that consumes to EOF lets it finish; one that leaves at its first match closes the
+# pipe under it, and the stub's write is cut, which is the SIGPIPE GNU tail complained of on
+# CI (#524). The check is read out of the Makefile rather than restated, and its make
+# variables are asked of make through the `count-line-guard` target, as run-suite.sh does.
+probe_count_line_check_lets_its_writer_finish() {
+  local check scratch status
+  check="$(grep -m 1 'tail -n 1 "\$\$suite_out"' "$ROOT/Makefile")"
+  if [[ -z "$check" ]]; then
+    problems+=("no count-line check reading \"\$\$suite_out\" through tail was found in the Makefile, so the criterion went unasked")
+    return 0
+  fi
+  eval "$(make -s -C "$ROOT" count-line-guard)"
+  check="${check%%||*}"
+  check="${check//\$\$/\$}"
+  check="${check//\$(COUNT_LINE)/$COUNT_LINE}"
+  scratch="$(mktemp -d)"
+  cat > "$scratch/tail" <<'STUB'
+#!/bin/sh
+printf '13 passed, 0 failed\n'
+if dd if=/dev/zero bs=65536 count=16 2>/dev/null; then echo finished > "$STUB_MARK"; else echo cut > "$STUB_MARK"; fi
+STUB
+  chmod 755 "$scratch/tail"
+  STUB_MARK="$scratch/mark" PATH="$scratch:$PATH" suite_out=/dev/null sh -c "$check"
+  status=$?
+  [[ "$status" -eq 0 ]] ||
+    problems+=("the count-line check exited $status over a writer whose first line is a count line: $(flat "$check")")
+  [[ "$(cat "$scratch/mark" 2>/dev/null)" == finished ]] ||
+    problems+=("the count-line check's writer was cut off mid-write ($(cat "$scratch/mark" 2>/dev/null || echo 'no mark')), so its reader left before EOF: $(flat "$check")")
+  rm -rf "$scratch"
+  return 0
+}
+
+# 4. The repair itself, as behaviour rather than text (#524): case 3 asks what the recipe
+#    lines spell, this asks what the count-line check does to the writer feeding it.
+name="make test's count-line check reads the suite's last line to EOF, so its writer is never cut off (#524)"
+problems=()
+
+probe_count_line_check_lets_its_writer_finish
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
