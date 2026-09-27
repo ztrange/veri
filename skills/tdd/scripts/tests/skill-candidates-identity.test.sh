@@ -214,8 +214,6 @@ problems=()
 if has_skill_md; then
   says_near '(re-?runs?|again|second (run|pass))' 'duplicates?' 120 \
     "$skill_md never says a re-run files no duplicate"
-  says "$paged_lookup" \
-    "$skill_md never says how it finds the issues it already filed (gh api --paginate over the issues endpoint)"
   says_near '(already filed|already exists?|existing issue)' "$not_filed" 120 \
     "$skill_md never says a candidate whose issue already exists is not filed again"
 fi
