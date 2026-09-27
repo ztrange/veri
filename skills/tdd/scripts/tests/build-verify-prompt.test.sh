@@ -1153,6 +1153,17 @@ prompt_says "$green" "verify-green never names the shell-hazard warning as an al
 [[ -z "$problems" ]] && ok \
   || no "verify-green REJECTs a rationale comment outside the two allowed classes (${problems#; })"
 
+# 49. verify-refactor REJECTs a rationale comment outside the two allowed classes (#500, criterion 3).
+problems=""
+prompt_says "$refactor" "verify-refactor never makes a rationale comment a REJECT" \
+  -iE -e "REJECT[^.]{0,200}rationale comment|rationale comment[^.]{0,200}REJECT"
+prompt_says "$refactor" "verify-refactor never names the contract header as an allowed comment" \
+  -iE -e "contract header"
+prompt_says "$refactor" "verify-refactor never names the shell-hazard warning as an allowed comment" \
+  -iE -e "shell[^.]{0,40}hazard"
+[[ -z "$problems" ]] && ok \
+  || no "verify-refactor REJECTs a rationale comment outside the two allowed classes (${problems#; })"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
