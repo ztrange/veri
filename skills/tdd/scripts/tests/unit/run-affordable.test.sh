@@ -39,6 +39,12 @@ expect_code() {
   fi
 }
 
+# expect_silent <what> — add to the case's `problems` unless the run just made printed
+# nothing on stdout; <what> names the log it ran on, or is empty.
+expect_silent() {
+  [[ -z "$out" ]] || problems+="    want empty stdout${1:+ for $1}, got '$out'"$'\n'
+}
+
 # expect_figure <what> <figure> — add to the case's `problems` unless stdout carries <figure>
 # as a word of its own; <what> names the figure in the line.
 expect_figure() {
@@ -122,7 +128,7 @@ step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
 step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 0
-[[ -z "$out" ]] || problems+="    want empty stdout, got '$out'"$'\n'
+expect_silent
 verdict "a projection within VERI_RUN_BUDGET exits 0 printing nothing"
 
 # 4. three completed full steps costing 6.00, 8.00 and 10.00 among five pins of two leaves
@@ -152,11 +158,11 @@ pin_step "pin one"
 pin_step "pin two"
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 3
-[[ -z "$out" ]] || problems+="    want empty stdout for a log of pins only, got '$out'"$'\n'
+expect_silent "a log of pins only"
 printf '{"ts": 1, "issue": "453", "actor": "conductor", "event": "phase-start"}\n' > "$work/.tdd/events.jsonl"
 run_affordable VERI_RUN_BUDGET=50 -- 3
 expect_code 3
-[[ -z "$out" ]] || problems+="    want empty stdout for a log with no usage, got '$out'"$'\n'
+expect_silent "a log with no usage"
 verdict "no completed full step, only pins or no usage at all, exits 3 printing nothing"
 
 echo "----"
