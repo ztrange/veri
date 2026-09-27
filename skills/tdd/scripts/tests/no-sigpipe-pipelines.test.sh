@@ -158,15 +158,21 @@ wrapped_sites() {
 # which is what failed skill-event-marks.test.sh case 13 on CI. The site is the closing line,
 # because that is where the writer is and so where the repair is made. One awk over the file
 # keeps a stack of open loops: an opener is a line whose first word is `while`, `until` or
-# `for`, a closer one whose first word is the loop's end, and a `break` marks the innermost
-# loop open around it. A comment line is not read.
+# `for`, or one that pipes a writer into a `while` or `until`, a closer one whose first word is
+# the loop's end, and a `break` marks the innermost loop open around it. A comment line is not
+# read. A loop fed by a pipe (`writer … | while …`) is named at its opening line instead,
+# because that is where its writer is.
 loop_break_sites() {
   awk '
     /^[[:space:]]*#/ { next }
-    /^[[:space:]]*(while|until|for)([[:space:]]|$)/ { depth++; broke[depth] = 0 }
+    /^[[:space:]]*(while|until|for)([[:space:]]|$)/ || /(^|[^|])\|[[:space:]]*(while|until)([[:space:]]|$)/ {
+      depth++; broke[depth] = 0
+      fed[depth] = /(^|[^|])\|[[:space:]]*(while|until)([[:space:]]|$)/ ? NR ":" $0 : ""
+    }
     depth > 0 && /(^|[[:space:];&|])break([[:space:];]|$)/ { broke[depth] = 1 }
     depth > 0 && /(^[[:space:]]*|;[[:space:]]*)done([[:space:];]|$)/ {
-      if (broke[depth] && /done[[:space:]]*<[[:space:]]*<\(/) print NR ":" $0
+      if (broke[depth] && fed[depth] != "") print fed[depth]
+      else if (broke[depth] && /done[[:space:]]*<[[:space:]]*<\(/) print NR ":" $0
       depth--
     }
   ' "$1"
