@@ -8,4 +8,4 @@
 - [x] Each per-pass row carries the count of refactor-phase revises spent in that pass
 - [x] On a log in the order SKILL.md writes it — a pass's first verify-refactor verdict, then its `refactor` mark, then that pass's revise loop (revise marks, revise-refactor leaves, re-verify verdicts) — the revises, the wall seconds and the cost of that revise loop count toward that pass and not the next one, and the pass's verdict is its last verify-refactor verdict ⟦added⟧
 - [x] The per-pass section is part of metrics.sh's `### 📊 Metrics` block whichever mark ended the run — done, bail or stop — so it reaches the issue thread with the rest of the metrics ⟦criterion 4⟧
-- [ ] No existing table's key column or column names change, and the per-pass section adds no column named `kind` (prose says run kind) ⟦criterion 5⟧
+- [x] No existing table's key column or column names change, and the per-pass section adds no column named `kind` (prose says run kind) ⟦criterion 5⟧
