@@ -540,8 +540,9 @@ for line in marks:
     elif event == "verdict" and line.get("verdict") == "REJECT" and attempt is not None:
         rejected.append((step, phase, attempt))
     if event == "verdict" and phase == "refactor":
-        open_pass(step)["verdict"] = line.get("verdict", "")
-        if line.get("verdict") == "PASS" and open_pass(step).get("marked"):
+        current = open_pass(step)
+        current["verdict"] = line.get("verdict", "")
+        if current["verdict"] == "PASS" and current.get("marked"):
             open_passes.pop(step)
     # The conductor budget marks next, and they fall through to nothing below: a
     # `revise` is not a leaf launch, so counting it as an attempt would double-count the
@@ -557,9 +558,10 @@ for line in marks:
         mark["transforms"] = line.get("transforms", "")
         mark["refactor"] = line.get("budget", "")
         mark["stopped"] = line.get("stopped", "")
-        passes[(step, line.get("pass", ""))] = (line, open_pass(step))
-        open_pass(step)["marked"] = True
-        if open_pass(step)["verdict"]:
+        current = open_pass(step)
+        passes[(step, line.get("pass", ""))] = (line, current)
+        current["marked"] = True
+        if current["verdict"]:
             open_passes.pop(step)
         continue
     # The cost-budget crossing and the cause of a split (#452): what the step had spent when
