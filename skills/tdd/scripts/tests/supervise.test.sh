@@ -2059,14 +2059,18 @@ slept_secs="$(event_field   "$slept_work" exit secs)"
 #     one more reading follows the stub's exit. Every reading must be at most the real time.
 suspend_probe="$(mktemp -d)"
 mkdir -p "$suspend_probe/spy" "$suspend_probe/cwd"
+cat > "$suspend_probe/awake-read" <<C
+#!/bin/sh
+echo "\$("$stub/awake-clock") \$("$realdate" +%s)" >> .test-awake-reads
+C
 cat > "$suspend_probe/spy/clock-jump" <<C
 #!/bin/sh
 "$stub/clock-jump" "\$@" || exit \$?
-echo "\$("$stub/awake-clock") \$("$realdate" +%s)" >> .test-awake-reads
+"$suspend_probe/awake-read"
 C
-chmod +x "$suspend_probe/spy/clock-jump"
+chmod +x "$suspend_probe/awake-read" "$suspend_probe/spy/clock-jump"
 ( cd "$suspend_probe/cwd" && PATH="$suspend_probe/spy:$PATH" "$stub/clock-suspend" 100 \
-    && echo "$("$stub/awake-clock") $("$realdate" +%s)" >> .test-awake-reads )
+    && "$suspend_probe/awake-read" )
 suspend_code=$?
 suspend_reads="$(cat "$suspend_probe/cwd/.test-awake-reads" 2>/dev/null)"
 suspend_ahead="$(awk '$1 > $2 { print "awake=" $1 " real=" $2 }' <<<"$suspend_reads")"
