@@ -24,15 +24,13 @@ new="${url##*/}"
 
 body="$(gh issue view "$n" --json body -q .body)"
 
+tmp="$(mktemp)"
+trap 'rm -f "$tmp"' EXIT
 # Inside the `## Blocked by` section, a `None` line becomes the new blocker.
-edited="$(printf '%s\n' "$body" | awk -v blocker="- #$new" '
+printf '%s\n' "$body" | awk -v blocker="- #$new" '
   /^## / { in_blocked = ($0 ~ /^## Blocked by/) }
   in_blocked && /^None/ { print blocker; next }
   { print }
-')"
-
-tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
-printf '%s\n' "$edited" > "$tmp"
+' > "$tmp"
 gh issue edit "$n" --body-file "$tmp" >/dev/null
 echo "$url"
