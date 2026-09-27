@@ -224,6 +224,19 @@ expect_code 0
 expect_silent "a run at 8 of 9 steps"
 verdict "a run at 8 of 9 steps with one median step left and a ceiling above the projection exits 0"
 
+# 10. a run early in a long plan: two completed full steps costing 7.00 and 8.00 — spent
+#     15.00, far under a 50 ceiling, the median full step (7.00 + 8.00) / 2 = 7.50 — with ten
+#     steps still to go projecting 15.00 + 10 × 7.50 = 90.00, over the ceiling. Nothing has
+#     crossed the ceiling yet, but the run already knows it cannot finish: exit 1 with the
+#     four figures, so it parks while parking is still cheap rather than at the crossing.
+: > "$work/.tdd/events.jsonl"
+step_leaves "step one" 1.00 1.00 1.00 1.00 1.00 2.00
+step_leaves "step two" 1.00 1.00 1.00 1.00 2.00 2.00
+run_affordable VERI_RUN_BUDGET=50 -- 10
+expect_code 1
+expect_figures 15.00 10 7.50 90.00
+verdict "a run early in a long plan whose projection exceeds VERI_RUN_BUDGET exits 1 while spent is still under it"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
