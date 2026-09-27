@@ -1,7 +1,7 @@
 # Plan for #452 — A crossing, a cost-driven split and a cost-driven park are distinct marks in the run's event log
 
 - [x] SKILL.md's step cost check writes one `step-over-budget` event carrying `spent=` and `budget=` at the crossing, before the over-budget leaf is launched ⟦criterion 1⟧
-- [ ] SKILL.md writes that `step-over-budget` event on every crossing, so a crossing that goes on to split, one that goes on to park and one that goes on to continue each carry it ⟦criterion 2⟧
+- [x] SKILL.md writes that `step-over-budget` event on every crossing, so a crossing that goes on to split, one that goes on to park and one that goes on to continue each carry it ⟦criterion 2⟧
 - [ ] SKILL.md's over-budget exit 0 branch writes `step-split` carrying `at=over-budget`, while the revise-exhausted split keeps its `at=exhausted` spelling unchanged ⟦criterion 3⟧
 - [ ] SKILL.md's over-budget exit 1 branch writes `step-escalated` carrying `at=over-budget` ⟦criterion 4⟧
 - [ ] SKILL.md's over-budget exit 3 branch writes no event mark beyond the crossing's `step-over-budget` ⟦criterion 5⟧

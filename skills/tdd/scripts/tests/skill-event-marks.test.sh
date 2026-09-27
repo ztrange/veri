@@ -444,6 +444,36 @@ else
 fi
 report "$name"
 
+# 10. Every crossing carries that mark (issue #452): the over-budget leaf's answer sends the step
+#    one of three ways — split (exit 0), park (exit 1), carry on (exit 3) — and a mark written in
+#    only one of those branches would count the crossings that took it and miss the rest. So the
+#    call has to sit on the path all three share: a top-level line (not indented under one
+#    branch's bullet) between the cost-check heading and the `exhausted-outcome.sh` read of the
+#    over-budget leaf's answer, and all three branch bullets have to come after that read.
+name="$skill_md writes step-over-budget on every crossing, before the branch that splits, parks or carries on"
+problems=()
+section_at="$(grep -m1 -nE "^#### The step's cost check" "$ROOT/$skill_md" | cut -d: -f1)"
+read_at="$(grep -m1 -nE 'exhausted-outcome\.sh < \.tdd/develop-over-budget\.out' "$ROOT/$skill_md" | cut -d: -f1)"
+if [[ -z "$section_at" || -z "$read_at" ]]; then
+  problems+=("$skill_md has no cost-check section or no exhausted-outcome.sh read of the over-budget answer — where every crossing's mark belongs could not be read")
+else
+  shared=0
+  while IFS= read -r line; do
+    [[ "$line" =~ ^[^[:space:]] ]] && calls_event "$line" step-over-budget && shared=$((shared + 1))
+  done < <(sed -n "$((section_at + 1)),$((read_at - 1))p" "$ROOT/$skill_md")
+  [[ "$shared" -ge 1 ]] ||
+    problems+=("no top-level \`event.sh step-over-budget\` between $skill_md:$section_at and the over-budget answer's read at $skill_md:$read_at, so not every crossing — split, park or carry on — writes it")
+  for outcome in 0 1 3; do
+    bullet_at="$(awk -v from="$section_at" -v n="$outcome" 'NR > from && index($0, "- **exit " n " ") == 1 { print NR; exit }' "$ROOT/$skill_md")"
+    if [[ -z "$bullet_at" ]]; then
+      problems+=("$skill_md's cost check has no \`- **exit $outcome\` branch — the crossing that takes it could not be read")
+    elif [[ "$bullet_at" -le "$read_at" ]]; then
+      problems+=("$skill_md's exit $outcome branch at line $bullet_at comes before the over-budget answer's read at line $read_at")
+    fi
+  done
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
