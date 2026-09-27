@@ -1026,15 +1026,22 @@ plant_loop_offender() {
   seal_tree
 }
 
+# probe_marked_line_closes_a_loop — the premise every loop plant shares: its marked line
+# closes a loop on a process substitution. Returns non-zero when there is no marked line.
+probe_marked_line_closes_a_loop() {
+  probe_marked_line_is_findable || return 1
+  [[ "$marked" == "$LOOP_CLOSE $PROC_SUB_FEED"* ]] ||
+    problems+=("the planted loop's marked line $offender_line does not close a loop on a process substitution: $(flat "$marked")")
+  return 0
+}
+
 # probe_loop_plant_is_what_it_claims — the plant's premises: the marked line closes a loop on
 # a process substitution, a `break` sits inside that loop above it, and the suite declares
 # `pipefail`. Without all three, a silent guard was handed something that is not the shape.
 # Returns non-zero when there is no marked line.
 probe_loop_plant_is_what_it_claims() {
   local above
-  probe_marked_line_is_findable || return 1
-  [[ "$marked" == "$LOOP_CLOSE $PROC_SUB_FEED"* ]] ||
-    problems+=("the planted offender's marked line $offender_line does not close a loop on a process substitution: $(flat "$marked")")
+  probe_marked_line_closes_a_loop || return 1
   above="$(sed -n "$((offender_line - 1))p" "$offender_path")"
   [[ "$above" == *"$LOOP_BREAK"* ]] ||
     problems+=("the line above the planted offender's marked line carries no break, so the loop never leaves early: $(flat "$above")")
@@ -1101,9 +1108,7 @@ probe_nested_plant_is_what_it_claims() {
 # `break`, so nothing in the loop can leave it early.
 probe_commented_plant_is_what_it_claims() {
   local body
-  probe_marked_line_is_findable || return 1
-  [[ "$marked" == "$LOOP_CLOSE $PROC_SUB_FEED"* ]] ||
-    problems+=("the planted loop's marked line $offender_line does not close a loop on a process substitution: $(flat "$marked")")
+  probe_marked_line_closes_a_loop || return 1
   body="$(sed -n "$((offender_line - 1))p" "$offender_path")"
   [[ "$body" == "  $COMMENTED_BREAK" ]] ||
     problems+=("the planted loop's body is not the one commented break: $(flat "$body")")
