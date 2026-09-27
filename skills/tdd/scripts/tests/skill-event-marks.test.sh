@@ -75,6 +75,12 @@ calls_event() {
   [[ "$1" =~ event\.sh[[:space:]]+"$2"([^a-z0-9-]|$) ]]
 }
 
+# at_over_budget <instruction> <event> — does its `event.sh <event>` carry `at=over-budget`, the
+# spelling that tells a cost-driven mark from the same event written for another cause?
+at_over_budget() {
+  [[ "$1" =~ event\.sh\ "$2".*[[:space:]]at=over-budget([[:space:]]|$) ]]
+}
+
 # cost_check_at — the line number of the `#### The step's cost check` heading, or nothing: the
 # point every case reading the crossing's branches starts from.
 cost_check_at() {
@@ -517,7 +523,7 @@ else
     lineno=$((lineno + 1))
     calls_event "$line" step-split || continue
     if (( lineno > split_at && lineno < park_at )); then
-      [[ "$line" =~ event\.sh\ step-split.*[[:space:]]at=over-budget([[:space:]]|$) ]] && over_budget=$((over_budget + 1))
+      at_over_budget "$line" step-split && over_budget=$((over_budget + 1))
     else
       [[ "$line" =~ event\.sh\ step-split[[:space:]]+at=exhausted([[:space:]]|$) ]] && exhausted=$((exhausted + 1))
     fi
@@ -543,7 +549,7 @@ else
   over_budget=0
   while IFS= read -r line; do
     calls_event "$line" step-escalated &&
-      [[ "$line" =~ event\.sh\ step-escalated.*[[:space:]]at=over-budget([[:space:]]|$) ]] &&
+      at_over_budget "$line" step-escalated &&
       over_budget=$((over_budget + 1))
   done < <(sed -n "$((park_at)),$((carry_at - 1))p" "$ROOT/$skill_md")
   [[ "$over_budget" -ge 1 ]] ||
