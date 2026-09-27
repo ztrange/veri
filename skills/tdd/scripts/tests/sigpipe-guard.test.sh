@@ -847,6 +847,86 @@ drop_tree
 
 report "$name"
 
+# The file the Makefile case plants, at the root of the scratch tree where a repository keeps
+# it, and the name the guard has to report its site under.
+MAKEFILE_NAME='Makefile'
+
+# The reader the planted recipe line ends in. A make-safe spelling of `GREP_Q`: a recipe line
+# is read by make before the shell sees it, and make would expand `$w` out of `"$want"`, so
+# this one quotes a literal instead. Kept apart from the `|` for the reason the header gives.
+MAKE_GREP_Q='grep -qF -- ok'
+
+# plant_makefile_offender — a scratch tree holding the guard's own copy and a Makefile with
+# one recipe whose line feeds a writer into an early-exiting reader, marked like every other
+# plant here. No suite is planted at all, so the only site the tree holds is the recipe's —
+# and the target is not `test`, so the roster read finds nothing and the verdict is about the
+# recipe alone. The recipe declares no `pipefail`: make's recipe shell is `/bin/sh`, which has
+# none to declare, and the criterion says the Makefile is audited without that condition.
+plant_makefile_offender() {
+  open_tree "$ABSENT_OFFENDER" || return 1
+  offender_path="$tree/$MAKEFILE_NAME"
+  {
+    echo '.PHONY: check'
+    echo 'check:'
+    printf '\t@printf "%%s\\n" ok | %s  # %s\n' "$MAKE_GREP_Q" "$MARK"
+  } > "$offender_path"
+
+  seal_tree
+}
+
+# probe_makefile_plant_is_what_it_claims — the plant's premises: the marked line is findable,
+# it is a recipe line (make reads a line as recipe only when it opens with a tab), it really
+# feeds a writer into the reader, and nothing in the file declares `pipefail` — so a guard
+# that names it is auditing the Makefile without that condition, as the criterion says.
+# Returns non-zero when there is no marked line, so the case stops rather than asking after
+# a line there is none of.
+probe_makefile_plant_is_what_it_claims() {
+  probe_marked_line_is_findable || return 1
+  [[ "$marked" == $'\t'* ]] ||
+    problems+=("the planted Makefile's line $offender_line does not open with a tab, so make reads it as no recipe at all: $(flat "$marked")")
+  [[ "$marked" == *"|"*"$MAKE_GREP_Q"* ]] ||
+    problems+=("the planted Makefile's line $offender_line does not end a pipeline in $MAKE_GREP_Q, so there is nothing there to catch: $(flat "$marked")")
+  ! grep -F pipefail "$offender_path" > /dev/null ||
+    problems+=("the planted Makefile mentions pipefail, so a guard that names it could still be one that requires the declaration")
+}
+
+# probe_guard_names_the_recipe_with_its_line — the criterion: the guard fails over the tree,
+# and names the recipe's site as `Makefile:<line>`, the address that sends the next author to
+# the recipe rather than to a file of hundreds of lines. Its own probe rather than a call to
+# `probe_guard_names_the_offender_with_its_line`, whose complaint is worded about a suite
+# declaring `pipefail` — a premise this plant deliberately does not have.
+probe_guard_names_the_recipe_with_its_line() {
+  local named
+  [[ "$guard_code" != 0 ]] ||
+    problems+=("want the guard to fail over a Makefile whose recipe line $offender_line ends a pipeline in $MAKE_GREP_Q; it exited 0 and said: $(flat "$guard_out")")
+  named="$(grep -F "$MAKEFILE_NAME" <<< "$guard_out")"
+  [[ -n "$named" ]] || {
+    problems+=("no line of the guard's output names $MAKEFILE_NAME, whose recipe line $offender_line ends a pipeline in $MAKE_GREP_Q; it said: $(flat "$guard_out")")
+    return
+  }
+  grep -F -- "$MAKEFILE_NAME:$offender_line" <<< "$named" > /dev/null ||
+    problems+=("the guard named $MAKEFILE_NAME but not as $MAKEFILE_NAME:$offender_line, where the recipe's pipeline is; the lines naming it were: $(flat "$named")")
+}
+
+# 8. One criterion, one case (#524): the guard audits the Makefile's recipe lines too. The
+#    `make test` recipe's own count-line check ended a pipeline in `grep -Eq` and failed a
+#    green suite on CI, while this guard read only the suites under `skills/`. A recipe line
+#    that feeds a writer into an early-exiting reader is named as `Makefile:<line>`, and it
+#    is named although the recipe shell declares no `pipefail` — that condition is the
+#    suites', and a recipe fails over the reader's status plus the writer's own complaint.
+name="no-sigpipe-pipelines.test.sh names a Makefile recipe line that ends a pipeline in grep -q as Makefile:<line>, without asking for pipefail (#524)"
+begin_case
+
+if probe_guard_is_there && plant_makefile_offender; then
+  if probe_makefile_plant_is_what_it_claims; then
+    run_guard
+    probe_guard_names_the_recipe_with_its_line
+  fi
+fi
+drop_tree
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -279,6 +279,30 @@ probe_no_suite_the_target_runs_ends_a_pipeline_in_an_early_exiting_reader
 
 report "$name"
 
+# probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader — the criterion asked of the
+# repository's Makefile: every recipe line that ends a pipeline in either early-exiting reader
+# is named as `Makefile:<line>`. No `pipefail` condition here: the recipe shell is `/bin/sh`,
+# which declares none, and the hazard does not need it — a writer killed mid-write complains
+# on stderr and exits non-zero, and a reader's early exit is what kills it (#524, where GNU
+# tail's `Broken pipe` failed a green suite).
+probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader() {
+  local site
+  while IFS= read -r site; do
+    problems+=("Makefile:${site%%:*} ends a pipeline in a reader that leaves before EOF, so the writer feeding it can die of SIGPIPE, complain and fail the recipe over an answer the reader already had: $(flat "${site#*:}")")
+  done < <(grep -nE "$PIPE_INTO_READER" "$ROOT/Makefile")
+  return 0
+}
+
+# 3. The same rule asked of the recipes that enforce it (#524). The `make test` recipe's own
+#    count-line check ended a pipeline in a reader leaving before EOF and failed a green suite
+#    on CI, while cases 1 and 2 read only suites.
+name="no Makefile recipe line ends a pipeline in a reader that leaves before EOF"
+problems=()
+
+probe_no_recipe_ends_a_pipeline_in_an_early_exiting_reader
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

@@ -141,7 +141,7 @@ test unit:
 	  : > "$$reach_log"; \
 	  { $(OFFLINE_ENV) "$$t" < /dev/null; echo $$? > "$$suite_status"; } 2>&1 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
-	  tail -n 1 "$$suite_out" | grep -Eq '$(COUNT_LINE)' || { \
+	  tail -n 1 "$$suite_out" | grep -E '$(COUNT_LINE)' > /dev/null || { \
 	    printf '$(COUNTLESS)' "$$suite_name"; fail=1; \
 	  }; \
 	  while IFS= read -r reached; do \
