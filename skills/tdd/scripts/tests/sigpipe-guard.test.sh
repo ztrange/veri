@@ -1007,6 +1007,20 @@ plant_loop_offender() {
   open_tree "$1" || return 1
   shift
 
+  write_loop_suite probe_lines_loop "$@"
+
+  seal_tree
+}
+
+# write_loop_suite <emitter> <body-line>... — the loop suite itself, at `offender_path`: the
+# skeleton every loop plant shares, with the loop printed by <emitter> around the body lines
+# it is handed. The emitter is an argument because the loop plants differ in where the
+# writer feeding the loop sits — a process substitution after its `done`, or a pipe ahead of
+# its `while` — and in nothing else.
+write_loop_suite() {
+  local emitter="$1"
+  shift
+
   {
     echo '#!/usr/bin/env bash'
     echo '# Unit tests for a prompt template — the loop below reads a process substitution.'
@@ -1014,7 +1028,7 @@ plant_loop_offender() {
     echo 'body="$(printf "line %s\n" $(seq 1 400))"'
     echo 'want="line 3"'
     echo 'pass=0 fail=0 line=""'
-    probe_lines_loop "$@"
+    "$emitter" "$@"
     echo 'if [[ "$line" == "$want" ]]'
     echo 'then pass=1; else fail=1; fi'
     echo 'echo "----"'
@@ -1022,8 +1036,6 @@ plant_loop_offender() {
     echo '[[ "$fail" -eq 0 ]]'
   } > "$offender_path"
   chmod 755 "$offender_path"
-
-  seal_tree
 }
 
 # probe_marked_line_closes_a_loop — the premise every loop plant shares: its marked line
@@ -1152,6 +1164,77 @@ if probe_guard_is_there &&
   if probe_commented_plant_is_what_it_claims; then
     run_guard
     probe_guard_says_nothing_of "$COMMENTED_BREAK_LOOP"
+  fi
+fi
+drop_tree
+
+report "$name"
+
+# The suite the pipe-fed loop case plants, named for its shape for the reason LOOP_OFFENDER
+# gives.
+PIPED_LOOP_OFFENDER='probes-piped-loop-break-under-pipefail.test.sh'
+
+# The other place a loop's writer can sit (#526): ahead of its `while`, feeding it through a
+# pipe. The loop leaves on its `break` and the writer is stranded exactly as it is behind a
+# process substitution. Kept apart from the loop's opener and assembled by printf, for the
+# reason the header gives.
+PIPE_FEED='printf "%s\n" "$body" |'
+
+# probe_lines_piped_loop <body-line>... — the same loop, fed by a pipe: the writer opens the
+# loop's first line and the loop closes on a bare `done`. The mark goes on the opening line,
+# because that is where the writer is and so where the repair is made.
+probe_lines_piped_loop() {
+  printf '%s %s  # %s\n' "$PIPE_FEED" "$LOOP_OPEN" "$MARK"
+  printf '  %s\n' "$@"
+  printf '%s\n' "$LOOP_CLOSE"
+}
+
+# plant_piped_loop_offender <suite-name> <body-line>... — a tree holding one suite that
+# declares `pipefail` and carries the pipe-fed loop with that body, and the guard.
+plant_piped_loop_offender() {
+  open_tree "$1" || return 1
+  shift
+
+  write_loop_suite probe_lines_piped_loop "$@"
+
+  seal_tree
+}
+
+# probe_piped_loop_plant_is_what_it_claims — the plant's premises: the marked line feeds a
+# writer through a pipe into a `while` loop, a `break` sits in that loop on the line below
+# it, and the suite declares `pipefail`. Returns non-zero when there is no marked line.
+probe_piped_loop_plant_is_what_it_claims() {
+  local below
+  probe_marked_line_is_findable || return 1
+  [[ "$marked" == "$PIPE_FEED $LOOP_OPEN"* ]] ||
+    problems+=("the planted loop's marked line $offender_line does not feed a while loop through a pipe: $(flat "$marked")")
+  below="$(sed -n "$((offender_line + 1))p" "$offender_path")"
+  [[ "$below" == *"$LOOP_BREAK"* ]] ||
+    problems+=("the line below the planted offender's marked line carries no break, so the loop never leaves early: $(flat "$below")")
+  probe_plant_declares_pipefail
+}
+
+# probe_guard_exempts_the_listed_piped_loop <key> — the pipe-fed loop site listed in the table
+# with a reason is no longer named.
+probe_guard_exempts_the_listed_piped_loop() {
+  probe_guard_no_longer_names "$PIPED_LOOP_OFFENDER:$offender_line" "$1"
+}
+
+# 13. One criterion, one case (#526): a `while` loop that can `break`, fed by a pipe
+#     (`writer … | while …`), is named as `<suite>:<line>` at the line where its writer
+#     feeds it — and not once an exemption entry carrying a reason lists that site, while a
+#     reasonless one still fails the run. Case 10's loop with its writer moved ahead of it.
+name="no-sigpipe-pipelines.test.sh names a while loop that can break while fed by a pipe as <suite>:<line>, unless its exemption table lists that site with a reason (#526)"
+begin_case
+
+if probe_guard_is_there && probe_guard_carries_an_exemption_table &&
+  plant_piped_loop_offender "$PIPED_LOOP_OFFENDER" "$LOOP_BREAK"; then
+  if probe_piped_loop_plant_is_what_it_claims; then
+    run_guard
+    probe_guard_names_the_offender_with_its_line "$PIPED_LOOP_OFFENDER" "$LOOP_READER"
+
+    exempt_key="$PIPED_LOOP_OFFENDER:$offender_line"
+    probe_exemption_both_ways "$exempt_key" probe_guard_exempts_the_listed_piped_loop
   fi
 fi
 drop_tree
