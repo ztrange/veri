@@ -3263,6 +3263,58 @@ pass_revises_say "$looped_out" "$looped" "1=1" "2=0"
 
 report_on "$name" "$looped_out"
 
+# pass_rows_in_block_says <file> <step> <passes> — the report's `### 📊 Metrics` block, from
+# that heading to the next heading of its level or the end, holds a per-pass table with
+# <passes> rows for the step: of the tables with a heading saying `pass` and nothing else —
+# `By phase`'s `PASS` among them — the one holding the most rows for it.
+pass_rows_in_block_says() {
+  local out_file="$1" step="$2" passes="$3"
+  probe "$PROBE_PRELUDE"'
+path, step, passes = sys.argv[1], sys.argv[2], int(sys.argv[3])
+with open(path) as f:
+    lines = f.read().splitlines()
+start = next((i for i, l in enumerate(lines) if l.startswith("### ") and "Metrics" in l), None)
+if start is None:
+    complain("want a ### Metrics heading, the report has none")
+else:
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("### ")), len(lines))
+    block = path + ".block"
+    with open(block, "w") as f:
+        f.write("\n".join(lines[start:end]) + "\n")
+    tables = tables_in(block)
+    n = max([sum(1 for r in t[1:] if is_row(r, step)) for t in tables
+             if any(c.lower() == "pass" for c in t[0])] or [0])
+    if n != passes:
+        complain("want %d per-pass rows for step %r inside the Metrics block, got %d" % (passes, step, n))
+print("\n".join(problems))
+' "$out_file" "$step" "$passes"
+}
+
+# The two passes of two_pass_log on three logs, each ended by a different mark: its own bail,
+# a done carrying the draft PR, and a stop.
+name="#502 the per-pass section is part of the Metrics block whether the run ended in done, bail or stop"
+problems=()
+
+for ending in done bail stop; do
+  fixture_work ended_work
+  ended="a step with two refactor passes, of a run that ended in $ending"
+  two_pass_log "$ended" verdict-first
+  if [[ "$ending" != bail ]]; then
+    grep -v '"event": "bail"' "$fixture_log" > "$fixture_log.kept"
+    mv "$fixture_log.kept" "$fixture_log"
+  fi
+  case "$ending" in
+    done) sv "$ended" 70122 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"' ;;
+    stop) sv "$ended" 70122 conductor refactor stop "" '"mode": "at-ledger", "at": "refactor"' ;;
+  esac
+  ended_out="$ended_work/report.md"
+  render "$ended_work" "$ended_out"
+  pass_rows_in_block_says "$ended_out" "$ended" 2
+  passes_say "$ended_out" "$ended" "1=2/5,nothing-structural" "2=1/5,structural-owed"
+done
+
+report_on "$name" "$ended_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
