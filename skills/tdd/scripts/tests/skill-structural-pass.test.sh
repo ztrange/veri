@@ -64,6 +64,8 @@ fi
 report "$name"
 
 pass_text="${section#*one structural pass}"
+touches_phrase='transform-touches-tests.sh <base-sha>'
+verifier_phrase='transform verifier against <base-sha>'
 
 name="$skill_md's structural pass checks each transform leaf's commits with transform-touches-tests.sh <base-sha> and has the blind transform verifier judge them against that base sha, one commit per transform"
 problems=()
@@ -71,9 +73,9 @@ problems=()
 if [[ "$pass_text" == "$section" ]]; then
   problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — how its transforms are checked could not be established")
 else
-  require 'transform-touches-tests.sh <base-sha>' "$pass_text" \
+  require "$touches_phrase" "$pass_text" \
     "$skill_md's structural pass never runs transform-touches-tests.sh <base-sha> on a transform leaf's commits, so a structural transform that edits a test file is never rejected"
-  require 'transform verifier against <base-sha>' "$pass_text" \
+  require "$verifier_phrase" "$pass_text" \
     "$skill_md's structural pass never has the blind transform verifier judge a transform against its <base-sha>"
   require 'one commit per transform' "$pass_text" \
     "$skill_md's structural pass never says one commit per transform"
@@ -93,8 +95,8 @@ problems=()
 if [[ "$pass_text" == "$section" ]]; then
   problems+=("$skill_md's Draft PR step has no 'one structural pass' before gh pr ready — the order of its checks could not be established")
 else
-  touches="$(offset 'transform-touches-tests.sh <base-sha>' "$pass_text")"
-  verifier="$(offset 'transform verifier against <base-sha>' "$pass_text")"
+  touches="$(offset "$touches_phrase" "$pass_text")"
+  verifier="$(offset "$verifier_phrase" "$pass_text")"
   next="$(offset 'before the next candidate' "$pass_text")"
   if [[ "$touches" -lt 0 || "$verifier" -lt 0 || "$next" -lt 0 ]]; then
     problems+=("$skill_md's structural pass is missing a phrase to order: transform-touches-tests.sh at $touches, transform verifier at $verifier, 'before the next candidate' at $next (-1 = absent)")
