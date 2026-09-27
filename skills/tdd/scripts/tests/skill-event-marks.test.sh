@@ -557,6 +557,31 @@ else
 fi
 report "$name"
 
+# 13. The carry-on writes nothing of its own (issue #452): when the over-budget leaf answers
+#    neither split nor park, the step goes on, and the `step-over-budget` written before the
+#    launch already says the whole of it — the budget was crossed, a leaf was asked, the run went
+#    on. A second mark there (a `step-not-split`, say) would be a mark for a non-event, and a log
+#    reader counting marks would count the crossing twice. So the exit 3 branch — its `- **exit 3`
+#    bullet under the cost-check heading and the indented lines that continue it, up to the next
+#    line in column one — prescribes no `event.sh` call at all.
+name="$skill_md's over-budget exit 3 branch writes no event mark beyond the crossing's step-over-budget"
+problems=()
+section_at="$(cost_check_at)"
+carry_at=""
+[[ -z "$section_at" ]] || carry_at="$(exit_bullet_after "$section_at" 3)"
+if [[ -z "$carry_at" ]]; then
+  problems+=("$skill_md's cost check has no \`- **exit 3\` branch — where the carry-on writes nothing could not be read")
+else
+  lineno="$carry_at"
+  while IFS= read -r line; do
+    (( lineno > carry_at )) && [[ "$line" =~ ^[^[:space:]] ]] && break
+    [[ "$line" =~ event\.sh[[:space:]]+[a-z] ]] &&
+      problems+=("the over-budget exit 3 branch writes a mark of its own at $skill_md:$lineno: $(printf '%.130s' "$line")")
+    lineno=$((lineno + 1))
+  done < <(tail -n "+$carry_at" "$ROOT/$skill_md")
+fi
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
