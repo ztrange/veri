@@ -43,6 +43,33 @@ line_of() {
   head -1 < <(grep -nF "$2" "$1") | cut -d: -f1
 }
 
+# answers_none <verb> <why> — probe that <verb> exits 3 with empty stdout on an absent owed
+# file and on an empty one; <why> ends the problem line for stray stdout.
+answers_none() {
+  local verb="$1" why="$2" missing_file empty_file owed_file what out code printed
+  missing_file="$(mktemp)"
+  rm -f "$missing_file"
+  empty_file="$(mktemp)"
+
+  for owed_file in "$missing_file" "$empty_file"; do
+    [[ "$owed_file" == "$missing_file" ]] && what="an absent file" || what="a file holding no candidate"
+
+    out="$(mktemp)"
+    "$OWED" "$verb" "$owed_file" >"$out" 2>/dev/null && code=0 || code=$?
+
+    [[ "$code" == 3 ]] ||
+      problems+=("want exit 3 from $verb on $what, got $code")
+
+    printed="$(cat "$out")"
+    [[ -z "$printed" ]] ||
+      problems+=("$verb printed '$printed' on stdout for $what$why")
+
+    rm -f "$out"
+  done
+
+  rm -f "$empty_file"
+}
+
 # under_step <file> <step> <transform> — probe that <file> carries <transform>, and carries
 # it after the step that left it behind. Two cases ask exactly that of two different files —
 # the file `append` wrote, and the output `render` printed — so it is asked in one place, and
@@ -228,27 +255,7 @@ report "$name"
 name="render exits 3 and prints nothing when the file is absent or holds no candidate"
 problems=()
 
-missing_file="$(mktemp)"
-rm -f "$missing_file"
-empty_file="$(mktemp)"
-
-for owed_file in "$missing_file" "$empty_file"; do
-  [[ "$owed_file" == "$missing_file" ]] && what="an absent file" || what="a file holding no candidate"
-
-  rendered="$(mktemp)"
-  "$OWED" render "$owed_file" >"$rendered" 2>/dev/null && code=0 || code=$?
-
-  [[ "$code" == 3 ]] ||
-    problems+=("want exit 3 from render on $what, got $code")
-
-  printed="$(cat "$rendered")"
-  [[ -z "$printed" ]] ||
-    problems+=("render printed '$printed' on stdout for $what; a PR body must not carry a heading promising leftovers nobody left")
-
-  rm -f "$rendered"
-done
-
-rm -f "$empty_file"
+answers_none render "; a PR body must not carry a heading promising leftovers nobody left"
 report "$name"
 
 
@@ -290,27 +297,7 @@ diff "$want" "$listed" >/dev/null ||
 
 rm -f "$owed_file" "$listed" "$want"
 
-missing_file="$(mktemp)"
-rm -f "$missing_file"
-empty_file="$(mktemp)"
-
-for owed_file in "$missing_file" "$empty_file"; do
-  [[ "$owed_file" == "$missing_file" ]] && what="an absent file" || what="a file holding no candidate"
-
-  listed="$(mktemp)"
-  "$OWED" list "$owed_file" >"$listed" 2>/dev/null && code=0 || code=$?
-
-  [[ "$code" == 3 ]] ||
-    problems+=("want exit 3 from list on $what, got $code")
-
-  printed="$(cat "$listed")"
-  [[ -z "$printed" ]] ||
-    problems+=("list printed '$printed' on stdout for $what; want nothing")
-
-  rm -f "$listed"
-done
-
-rm -f "$empty_file"
+answers_none list "; want nothing"
 report "$name"
 
 
