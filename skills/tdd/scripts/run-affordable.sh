@@ -13,7 +13,12 @@
 # live in one place.
 set -euo pipefail
 
-remaining="$1"
+# A count of steps is a whole number; a word or a fraction is no count, so no answer.
+remaining="${1-}"
+if [[ ! "$remaining" =~ ^[0-9]+$ ]]; then
+  echo "usage: run-affordable.sh <steps-remaining> (a whole number): '$remaining'" >&2
+  exit 2
+fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 

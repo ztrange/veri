@@ -165,6 +165,26 @@ expect_code 3
 expect_silent "a log with no usage"
 verdict "no completed full step, only pins or no usage at all, exits 3 printing nothing"
 
+# 6. case 3's log — spent 22.50, median 7.50, affordable for any count up to three — run with
+#    no <steps-remaining> at all, then with a word and with a fraction in its place. None is
+#    a number of steps, so none is an answer: each exits 2 with stdout empty, rather than
+#    reading the word as zero steps or projecting a fraction of one, which both land under
+#    the 50 ceiling and would say exit 0.
+: > "$work/.tdd/events.jsonl"
+step_leaves "step one"   0.25 1.00 1.00 1.00 1.00 1.00
+step_leaves "step two"   0.50 1.00 1.50 1.50 1.50 1.50
+step_leaves "step three" 0.75 1.50 1.50 2.00 2.00 2.00
+for arg in "" two 1.5; do
+  if [[ -z "$arg" ]]; then
+    run_affordable VERI_RUN_BUDGET=50 --
+  else
+    run_affordable VERI_RUN_BUDGET=50 -- "$arg"
+  fi
+  expect_code 2
+  expect_silent "<steps-remaining> '${arg:-missing}'"
+done
+verdict "a missing or non-whole-number <steps-remaining> exits 2 printing nothing"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
