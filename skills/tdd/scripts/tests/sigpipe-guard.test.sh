@@ -1059,9 +1059,10 @@ probe_loop_plant_is_what_it_claims() {
 }
 
 # probe_guard_exempts_the_listed_loop <key> — the loop site listed in the table with a reason
-# is no longer named. Asked of the output, as the recipe case's is.
+# is no longer named. Asked of the output, as the recipe case's is. A loop's key is its site,
+# `<suite>:<line>`, so the one argument serves every loop plant whichever writer feeds it.
 probe_guard_exempts_the_listed_loop() {
-  probe_guard_no_longer_names "$LOOP_OFFENDER:$offender_line" "$1"
+  probe_guard_no_longer_names "$1" "$1"
 }
 
 # 10. One criterion, one case (#526): a `while` loop that can `break`, fed by a process
@@ -1207,12 +1208,6 @@ probe_piped_loop_plant_is_what_it_claims() {
   probe_plant_declares_pipefail
 }
 
-# probe_guard_exempts_the_listed_piped_loop <key> — the pipe-fed loop site listed in the table
-# with a reason is no longer named.
-probe_guard_exempts_the_listed_piped_loop() {
-  probe_guard_no_longer_names "$PIPED_LOOP_OFFENDER:$offender_line" "$1"
-}
-
 # 13. One criterion, one case (#526): a `while` loop that can `break`, fed by a pipe
 #     (`writer … | while …`), is named as `<suite>:<line>` at the line where its writer
 #     feeds it — and not once an exemption entry carrying a reason lists that site, while a
@@ -1227,7 +1222,7 @@ if probe_guard_is_there && probe_guard_carries_an_exemption_table &&
     probe_guard_names_the_offender_with_its_line "$PIPED_LOOP_OFFENDER" "$LOOP_READER"
 
     exempt_key="$PIPED_LOOP_OFFENDER:$offender_line"
-    probe_exemption_both_ways "$exempt_key" probe_guard_exempts_the_listed_piped_loop
+    probe_exemption_both_ways "$exempt_key" probe_guard_exempts_the_listed_loop
   fi
 fi
 drop_tree
