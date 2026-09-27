@@ -125,7 +125,7 @@ except OSError:
 offset = 0
 try:
     for line in open(".test-clock"):
-        at, value = line.split()
+        at, value = line.split()[:2]
         if float(at) <= m:
             offset = int(value)
 except OSError:
@@ -139,13 +139,17 @@ cat > "$stub/clock-jump" <<'C'
 #!/bin/sh
 exec python3 -c '
 import sys, time
-offset = 0
+offset = suspended = 0
 try:
-    offset = int(open(".test-clock").read().split()[-1])
+    last = open(".test-clock").read().splitlines()[-1].split()
+    offset = int(last[1])
+    suspended = int(last[2]) if len(last) > 2 else 0
 except (OSError, IndexError):
     pass
+if sys.argv[2:] == ["suspend"]:
+    suspended += int(sys.argv[1])
 with open(".test-clock", "a") as f:
-    f.write("%r %d\n" % (time.time(), offset + int(sys.argv[1])))' "$1"
+    f.write("%r %d %d\n" % (time.time(), offset + int(sys.argv[1]), suspended))' "$@"
 C
 cat > "$stub/await-poll" <<'C'
 #!/bin/sh
@@ -155,8 +159,9 @@ exit 1
 C
 # The awake clock (issue #472): whole seconds the machine spent awake, which the supervisor
 # reads from the executable VERI_AWAKE_CLOCK names. A `clock-jump` is awake time, so this stub
-# answers real time plus every jump, minus every second `clock-suspend` (case 43) put in
-# ./.test-suspended. Named for every case below, so a jump is silence and not a suspend; the
+# answers real time plus every jump, minus every second `clock-suspend` (case 43) slept — the
+# third field of ./.test-clock's latest line, written in the same line as the jump so no
+# reading sees one clock moved without the other (#512). Named for every case below, so a jump is silence and not a suspend; the
 # case that asks for the supervisor's own real clock unsets it.
 cat > "$stub/awake-clock" <<'C'
 #!/bin/sh
@@ -164,12 +169,10 @@ exec python3 -c '
 import time
 offset = suspended = 0
 try:
-    offset = int(open(".test-clock").read().split()[-1])
+    last = open(".test-clock").read().splitlines()[-1].split()
+    offset = int(last[1])
+    suspended = int(last[2]) if len(last) > 2 else 0
 except (OSError, IndexError):
-    pass
-try:
-    suspended = sum(int(x) for x in open(".test-suspended").read().split())
-except OSError:
     pass
 print(int(time.time()) + offset - suspended)'
 C
@@ -1877,9 +1880,11 @@ woke_with_own_exit() {
 #     second past its 2 s window with nothing written, waits for the supervisor to read the
 #     clock twice across that gap, then writes again and exits 3 — so the supervisor must
 #     report the leaf's own failure (exit 1, 3 in .rc), never killed-stuck (exit 2).
+# One `clock-jump ... suspend` line moves both clocks at once (#512); ./.test-suspended is
+# written afterwards only as a marker that a suspension happened (case 52 reads it).
 cat > "$stub/clock-suspend" <<'C'
 #!/bin/sh
-echo "$1" >> .test-suspended && clock-jump "$1"
+clock-jump "$1" suspend && echo "$1" >> .test-suspended
 C
 cat > "$stub/leaf-suspended" <<'L'
 #!/bin/sh
@@ -2113,6 +2118,42 @@ across_polls="$(grep -c '^yes yes$' "$across_work/.test-awake-spy" 2>/dev/null)"
 { [[ "$across_polls" =~ ^[0-9]+$ ]] && (( across_polls >= 2 )) \
   && slept_exit_ok "$across_status" "$across_secs"; } && ok \
   || no "#512: case 50's slept-through leaf stays suspended across two watchdog polls before it exits 0, and still reports status 0 with secs in the awake range (polls while suspended=$across_polls want >=2, status=$across_status want 0, secs=$across_secs want $awake_spent..$(( awake_spent + 1 )))"
+
+# 53. the clock-suspend stub moves the wall clock and the awake clock together, so no reading
+#     taken during its run sees one moved without the other (issue #512). Case 51 stops the
+#     awake clock running ahead; recording the suspension first instead left it 100 s behind a
+#     wall clock that had not moved yet, and a watchdog poll there credits 100 s of sleep that
+#     a log write at the same poll then discards — the next poll reads 100 s of silence and
+#     kills case 50's leaf. Here the stub runs alone in a fresh directory, under a same-named
+#     `clock-jump` spy that reads both clocks and the real time just before and just after it
+#     runs the real one; one more reading follows the stub's exit. In each reading the wall
+#     clock has moved (at least 50 s past the real time) exactly when the gap a watchdog
+#     credits as sleep has opened (the wall clock at least 50 s past the awake clock), and the
+#     last reading has both.
+atomic_probe="$(mktemp -d)"
+mkdir -p "$atomic_probe/spy" "$atomic_probe/cwd"
+cat > "$atomic_probe/both-read" <<C
+#!/bin/sh
+echo "\$("$stub/awake-clock") \$("$stub/date" +%s) \$("$realdate" +%s)" >> .test-both-reads
+C
+cat > "$atomic_probe/spy/clock-jump" <<C
+#!/bin/sh
+"$atomic_probe/both-read"
+"$stub/clock-jump" "\$@" || exit \$?
+"$atomic_probe/both-read"
+C
+chmod +x "$atomic_probe/both-read" "$atomic_probe/spy/clock-jump"
+( cd "$atomic_probe/cwd" && PATH="$atomic_probe/spy:$PATH" "$stub/clock-suspend" 100 \
+    && "$atomic_probe/both-read" )
+atomic_code=$?
+atomic_reads="$(cat "$atomic_probe/cwd/.test-both-reads" 2>/dev/null)"
+atomic_torn="$(awk '{ moved = ($2 - $3 >= 50); slept = ($2 - $1 >= 50) }
+  moved != slept { print "awake=" $1 " wall=" $2 " real=" $3 }' <<<"$atomic_reads")"
+atomic_last="$(awk 'END { print (($2 - $3 >= 50) && ($2 - $1 >= 50)) ? "both" : "not both" }' \
+  <<<"$atomic_reads")"
+rm -rf "$atomic_probe"
+{ [[ "$atomic_code" == 0 ]] && [[ -z "$atomic_torn" ]] && [[ "$atomic_last" == both ]]; } && ok \
+  || no "#512: clock-suspend 100 moves the wall clock and the awake clock together, so no reading during its run sees one moved without the other (code=$atomic_code want 0, torn readings: '${atomic_torn//$'\n'/; }' want none, last reading: $atomic_last want both, all readings (awake wall real): '${atomic_reads//$'\n'/; }')"
 
 echo "----"
 echo "$pass passed, $fail failed"
