@@ -502,6 +502,24 @@ probe_guard_refuses_a_reasonless_entry() {
     problems+=("the guard named $key but never said its reason is what is missing, so the author is told a pipeline is there rather than that their exemption is not one: $(flat "$named")")
 }
 
+# probe_exemption_both_ways <key> <exempts-probe> — both halves of an exemption criterion
+# over one key: listed with a reason, the guard is run and <exempts-probe> asks that the site
+# is let through; listed with none, the guard is run again and must refuse the entry.
+probe_exemption_both_ways() {
+  local key="$1" exempts_probe="$2"
+  exempt "$key" "$EXEMPT_REASON"
+  if probe_entry_is_in_the_table "$key"; then
+    run_guard
+    "$exempts_probe" "$key"
+  fi
+
+  exempt "$key" ""
+  if probe_entry_is_in_the_table "$key"; then
+    run_guard
+    probe_guard_refuses_a_reasonless_entry "$key"
+  fi
+}
+
 # 3. One criterion, one case: the exemption table is what lets a site where the early exit is
 #    the point stay as it is, and a reason is what makes an entry one. Both halves over one
 #    plant and one table, run twice — the same site, exempted with a reason and then with
@@ -516,17 +534,7 @@ if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_lone_
   if probe_plant_is_what_it_claims "$GREP_Q"; then
     exempt_key="$EXEMPT_OFFENDER:$offender_line"
 
-    exempt "$exempt_key" "$EXEMPT_REASON"
-    if probe_entry_is_in_the_table "$exempt_key"; then
-      run_guard
-      probe_guard_exempts_the_listed_site "$exempt_key"
-    fi
-
-    exempt "$exempt_key" ""
-    if probe_entry_is_in_the_table "$exempt_key"; then
-      run_guard
-      probe_guard_refuses_a_reasonless_entry "$exempt_key"
-    fi
+    probe_exemption_both_ways "$exempt_key" probe_guard_exempts_the_listed_site
   fi
 fi
 drop_tree
@@ -950,17 +958,7 @@ if probe_guard_is_there && probe_guard_carries_an_exemption_table && plant_makef
   if probe_makefile_plant_is_what_it_claims; then
     exempt_key="$MAKEFILE_NAME:$offender_line"
 
-    exempt "$exempt_key" "$EXEMPT_REASON"
-    if probe_entry_is_in_the_table "$exempt_key"; then
-      run_guard
-      probe_guard_exempts_the_listed_recipe "$exempt_key"
-    fi
-
-    exempt "$exempt_key" ""
-    if probe_entry_is_in_the_table "$exempt_key"; then
-      run_guard
-      probe_guard_refuses_a_reasonless_entry "$exempt_key"
-    fi
+    probe_exemption_both_ways "$exempt_key" probe_guard_exempts_the_listed_recipe
   fi
 fi
 drop_tree
