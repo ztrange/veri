@@ -2916,6 +2916,13 @@ def pass_row(rows, at, index, step):
         complain("want a row for pass %s of step %r, its rows have passes: %s"
                  % (index, step, ", ".join(repr(r[at]) for r in rows if at < len(r))))
     return row
+
+def expected_rows(rows, at, wanted, step):
+    for arg in wanted:
+        index, expected = arg.split("=", 1)
+        row = pass_row(rows, at, index, step)
+        if row is not None:
+            yield index, expected, row
 '
 
 # passes_say <file> <step> <pass>=<transforms>/<budget>,<stopped> … — the per-pass section
@@ -2933,12 +2940,8 @@ spent = column(header, "the transforms against budget",
                lambda c: "refactor" in c or "transform" in c, step)
 stop = column(header, "why the pass stopped", lambda c: "stop" in c, step)
 if None not in (at, spent, stop):
-    for arg in wanted:
-        index, expected = arg.split("=", 1)
+    for index, expected, row in expected_rows(rows, at, wanted, step):
         pair, reason = expected.split(",", 1)
-        row = pass_row(rows, at, index, step)
-        if row is None:
-            continue
         for what, i, want in (("transforms/budget", spent, pair), ("stopped", stop, reason)):
             got = row[i] if i < len(row) else ""
             if got != want:
@@ -3062,12 +3065,8 @@ verdict = column(header, "the verdict", lambda c: "verdict" in c, step)
 wall = column(header, "the wall seconds", lambda c: "wall" in c, step)
 cost = column(header, "the cost", lambda c: "$" in c or "cost" in c, step)
 if None not in (at, verdict, wall, cost):
-    for arg in wanted:
-        index, expected = arg.split("=", 1)
+    for index, expected, row in expected_rows(rows, at, wanted, step):
         want_verdict, want_wall, want_cost = expected.split(",")
-        row = pass_row(rows, at, index, step)
-        if row is None:
-            continue
         got = row[verdict] if verdict < len(row) else ""
         if got != want_verdict:
             complain("pass %s of step %r verdict: want %r, got %r" % (index, step, want_verdict, got))
@@ -3173,11 +3172,7 @@ wanted = sys.argv[3:]
 header, rows, at = pass_rows(path, step, wanted)
 revises = column(header, "the revises", lambda c: "revise" in c, step)
 if None not in (at, revises):
-    for arg in wanted:
-        index, want = arg.split("=", 1)
-        row = pass_row(rows, at, index, step)
-        if row is None:
-            continue
+    for index, want, row in expected_rows(rows, at, wanted, step):
         got = row[revises] if revises < len(row) else ""
         if got != want:
             complain("pass %s of step %r revises: want %r, got %r" % (index, step, want, got))
