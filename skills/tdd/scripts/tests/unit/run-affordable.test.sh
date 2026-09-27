@@ -46,6 +46,15 @@ expect_figure() {
     problems+="    want stdout to carry $1 '$2', got '$out'"$'\n'
 }
 
+# expect_figures <spent> <remaining> <median> <projection> — expect_figure for each of the
+# four figures a projection over the ceiling prints, in the order the script prints them.
+expect_figures() {
+  expect_figure "spent" "$1"
+  expect_figure "steps remaining" "$2"
+  expect_figure "the median" "$3"
+  expect_figure "the projection" "$4"
+}
+
 # verdict <name> — report one case from the `problems` the case just filled: empty is a
 # pass, otherwise a FAIL line naming the case and the indented lines it collected. Then
 # empty it for the next case. Same accounting idiom as step-cost.test.sh's verdict().
@@ -80,10 +89,7 @@ full_step "step two"   0.50 1.00 1.50 1.50 1.50 1.50
 full_step "step three" 0.75 1.50 1.50 2.00 2.00 2.00
 run_affordable VERI_RUN_BUDGET=50 -- 4
 expect_code 1
-expect_figure "spent" 22.50
-expect_figure "steps remaining" 4
-expect_figure "the median" 7.50
-expect_figure "the projection" 52.50
+expect_figures 22.50 4 7.50 52.50
 verdict "a projection over VERI_RUN_BUDGET exits 1 printing spent, steps remaining, median and projection"
 
 # 2. four completed full steps, logged out of cost order at 9.00, 3.00, 7.00 and 5.00: the
@@ -99,10 +105,7 @@ full_step "step three" 1.00 1.20 1.20 1.20 1.20 1.20
 full_step "step four"  0.50 0.90 0.90 0.90 0.90 0.90
 run_affordable VERI_RUN_BUDGET=50 -- 5
 expect_code 1
-expect_figure "spent" 24.00
-expect_figure "steps remaining" 5
-expect_figure "the median" 6.00
-expect_figure "the projection" 54.00
+expect_figures 24.00 5 6.00 54.00
 verdict "the median of an even count of steps logged out of order is the mean of the sorted middle two"
 
 echo "----"
