@@ -3,3 +3,6 @@
 ### SKILL.md's Draft PR step waits on CI by calling `wait-ci.sh` again on its exit 3, with no wait loop inside one Bash call and no pending test that reads `.status` alone ⟦criterion 1⟧
 - skill-draft-pr.test.sh case 25's first check (wait-ci.sh between gh pr ready and the done mark) re-pins what cases 18 and 21 already pin
 - SKILL.md's step-added line computes the same last-ticked-step awk twice (not this cycle's code)
+### SKILL.md's Draft PR step stops at a `ci-timeout` or `ci-red` bail: it goes to *Bailing*, and neither the `done` mark nor the `metrics:` commit follows it in that step's command block ⟦criterion 3⟧
+- SKILL.md Draft PR step: the older prose line after the block ("Both are read before the `done` mark and the `metrics:` commit, so a run that goes on to repair or bail has not already recorded itself done") partly repeats this cycle's new line between the blocks ("A `ci-timeout` or `ci-red` bail ends the step there…"). Not applied: the older text predates this cycle, and cases 21 and 22 may pin its wording.
+- skill-draft-pr.test.sh: case 26's bail regex `^[^#]*[$]s/event[.]sh bail cause=ci-(timeout|red)` and case 24's `^[^#]*[$]s/event[.]sh bail cause=` are the same bail-line prefix written twice. It could become one `bail_run` pattern next to `wait_ci_run`.
