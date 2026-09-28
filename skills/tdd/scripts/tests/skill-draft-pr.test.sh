@@ -1011,16 +1011,15 @@ name="$skill_md's Draft PR step stops at a ci-timeout or ci-red bail: no done ma
 problems=()
 
 if step_or_problem '### 4. Draft PR' "whether a CI bail stops the step"; then
-  followed="$(section_lines "$section_heading" "$section_closer" | tr '[:upper:]' '[:lower:]' |
-    awk -v done_re="$done_mark" '
-      /^[[:space:]]*```/ { block++; fenced = !fenced; next }
+  commands="$(section_commands)"
+  followed="$(awk -v done_re="$done_mark" '
+      /^```/ { block++; fenced = !fenced; next }
       !fenced { next }
-      { sub(/^[[:space:]]+/, "") }
       /^[^#]*[$]s\/event[.]sh bail cause=ci-(timeout|red)/ {
         match($0, /cause=ci-(timeout|red)/); bails[block] = bails[block] " " substr($0, RSTART + 6, RLENGTH - 6); next }
       bails[block] != "" && ($0 ~ ("^" done_re) || $0 ~ /^git commit -m "metrics:/) {
-        print "after" bails[block] ": " $0 }')"
-  bailed="$(section_lines "$section_heading" "$section_closer" | grep -F 'event.sh bail cause=ci-')"
+        print "after" bails[block] ": " $0 }' <<< "$commands")"
+  bailed="$(grep -F 'event.sh bail cause=ci-' <<< "$commands")"
   [[ -n "$bailed" ]] ||
     problems+=("$skill_md's Draft PR step runs no event.sh bail cause=ci-timeout or cause=ci-red, so whether a CI bail stops the step could not be checked")
   while IFS= read -r line; do
