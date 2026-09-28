@@ -81,6 +81,9 @@
 #  22. SKILL.md's Draft PR command block itself reads the rollup for a check still pending
 #      once the wait's bound has run out, and bails with cause `ci-timeout`, between the wait
 #      and the `done` mark (issue #542).
+#  23. SKILL.md's Draft PR step answers a failed CI check by reading `gh run view --log-failed`,
+#      appending a repair step that quotes the failing suite and its `FAIL -` line, committing
+#      it and returning to the cycle loop, all before the `done` mark (issue #542).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -881,6 +884,42 @@ if step_or_problem '### 4. Draft PR' "whether the step's command block bails on 
       problems+=("no command line of $skill_md's Draft PR step reads the statusCheckRollup for a check still pending (PENDING, IN_PROGRESS or QUEUED) between the CI wait and the done mark")
     [[ -n "$pending" && -n "$timeout" && "$timeout" -ge "$pending" && "$timeout" -lt "$done_at" ]] ||
       problems+=("no command line of $skill_md's Draft PR step bails with cause ci-timeout on that pending-check read before the done mark")
+  fi
+fi
+report "$name"
+
+# 23. The criterion, as one case (issue #542): a red check is answered the way a red full run
+#     is — a repair step the run resumes into — and that step's evidence is the failed log, so
+#     the command block reads it, appends the step and commits the ledger before the run marks
+#     itself done, and the prose says what the step quotes and where the run goes next.
+name="$skill_md's Draft PR step answers a failed CI check with a repair step quoting the gh run view --log-failed FAIL line, committed, resuming the cycle loop (#542)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the step repairs a failed CI check"; then
+  commands="$(section_commands)"
+  rollup="$(line_of 'gh pr view .*--json statuscheckrollup')"
+  done_at="$(line_of "$done_mark")"
+  log="$(line_of '[^#]*gh run view [^#]*--log-failed')"
+  if [[ -z "$rollup" || -z "$done_at" ]]; then
+    problems+=("$skill_md's Draft PR step reads no statusCheckRollup or runs no done mark, so where it repairs a failed check could not be checked")
+  elif [[ -z "$log" || "$log" -le "$rollup" || "$log" -ge "$done_at" ]]; then
+    problems+=("no command line of $skill_md's Draft PR step runs gh run view --log-failed between the rollup read and the done mark, so a failed check's log is never read")
+  else
+    added="$(awk -v from="$log" -v to="$done_at" 'NR > from && NR < to && /^[$]s\/add-ledger-step[.]sh [.]tdd\/issue-<n>[.]md / { print NR; exit }' <<< "$commands")"
+    [[ -n "$added" ]] ||
+      problems+=("no command line of $skill_md's Draft PR step appends a repair step with add-ledger-step.sh between the --log-failed read and the done mark")
+    [[ -n "$added" ]] && ! awk -v from="$added" -v to="$done_at" 'NR > from && NR < to && /^git commit / { found = 1 } END { exit !found }' <<< "$commands" &&
+      problems+=("no command line of $skill_md's Draft PR step commits the ledger after appending the repair step and before the done mark")
+    plain="$(unmarked_records)"
+    record="$(first_record "$plain" -F 'log-failed' -F 'repair step')"
+    if [[ -z "$record" ]]; then
+      problems+=("no record of $skill_md's Draft PR step says what the repair step a failed check appends carries from --log-failed")
+    else
+      grep -F 'fail -' > /dev/null <<< "$record" ||
+        problems+=("$skill_md's Draft PR step never says the CI repair step quotes the failing suite's FAIL - line: $(printf '%.120s' "$record")")
+      grep -E 'step 3|cycle loop' > /dev/null <<< "$record" ||
+        problems+=("$skill_md's Draft PR step never says the run returns to the cycle loop after appending the CI repair step: $(printf '%.120s' "$record")")
+    fi
   fi
 fi
 report "$name"

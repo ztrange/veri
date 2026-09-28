@@ -1500,6 +1500,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    kill "$watch" 2> /dev/null
    gh pr view <pr-url> --json statusCheckRollup
    [ "$(gh pr view <pr-url> --json statusCheckRollup -q '[.statusCheckRollup[] | select(.status == "PENDING" or .status == "IN_PROGRESS" or .status == "QUEUED")] | length')" = 0 ] || VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh bail cause=ci-timeout classification="$($S/classify-bail.sh ci-timeout)"
+   gh run view <run-id> --log-failed          # a failed check only → its suite and FAIL - line
+   VERI_ISSUE=<n> VERI_ACTOR=conductor VERI_STEP="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" $S/event.sh step-added anchor="$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" added=1
+   $S/add-ledger-step.sh .tdd/issue-<n>.md after "$(awk 'sub(/^- \[x\] /, "") { last = $0 } END { print last }' .tdd/issue-<n>.md)" '<fix the CI failure: <suite> — <its FAIL - line>>'
+   git add .tdd/issue-<n>.md
+   git commit -m "plan: repair the red CI check (#<n>)"
    VERI_ISSUE=<n> VERI_ACTOR=conductor $S/event.sh done pr=<pr-url>
    $S/metrics.sh <n> > .tdd/issue-<n>-metrics.md
    git add .tdd/issue-<n>-metrics.md
@@ -1515,6 +1520,11 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    out does **bail**, with cause `ci-timeout`, rather than waiting on. Both are read before
    the `done` mark and the `metrics:` commit, so a run that goes on to repair or bail has not
    already recorded itself done.
+   A failed check does not bail: read its run's log with `gh run view <run-id> --log-failed`,
+   append a repair step to the ledger whose text quotes the failing suite and its `FAIL -`
+   line — or the error line, when the suite died before writing one — commit the ledger, and
+   return to step 3, *The cycle loop*, without the `done` mark: the quoted line is that
+   step's red evidence, the same way a red full run's repair step is.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
