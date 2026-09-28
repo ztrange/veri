@@ -123,6 +123,15 @@ survived() {
     || problems+=("the process bg_start recorded as $1 was already gone when its starting shell exited, so there was nothing to report")
 }
 
+# named_once <pid> <stderr-file> — <pid> is named on exactly one line of <stderr-file>, so a
+# survivor reported twice over is told apart from one reported once.
+named_once() {
+  local lines
+  lines="$(grep -c -F "$1" "$2" || true)"
+  [[ "$lines" -eq 1 ]] \
+    || problems+=("the survivor $1 is named on $lines lines of the starting shell's stderr, not 1: stderr said '$(flat "$2")'")
+}
+
 # make_victim <path> <pid-file> — a background process that reports its own pid and then
 # `exec`s a sleep, so the pid in the file is the pid still running when the kill arrives, and
 # the record can be checked to be that process rather than a number that merely looks like one.
@@ -245,7 +254,6 @@ if ! appeared "$record3" "$PATIENCE"; then
 else
   { read -r victim3a_pid _; read -r victim3b_pid _; } < "$record3" || true
   victims+=("$victim3a_pid" "$victim3b_pid")
-  said3="$(flat "$pair_err")"
 
   if [[ ! "$victim3a_pid" =~ ^[0-9]+$ || ! "$victim3b_pid" =~ ^[0-9]+$ ]]; then
     problems+=("two bg_start calls on one record left '$victim3a_pid' and '$victim3b_pid' in $record3, not two pids")
@@ -253,11 +261,7 @@ else
     # Both, since the count below could otherwise be right for the wrong reason.
     for probe_pid in "$victim3a_pid" "$victim3b_pid"; do survived "$probe_pid"; done
 
-    for probe_pid in "$victim3a_pid" "$victim3b_pid"; do
-      lines="$(grep -c -F "$probe_pid" "$pair_err" || true)"
-      [[ "$lines" -eq 1 ]] \
-        || problems+=("the survivor $probe_pid is named on $lines lines of the starting shell's stderr, not 1 — a record started into twice is reported twice over: stderr said '$said3'")
-    done
+    for probe_pid in "$victim3a_pid" "$victim3b_pid"; do named_once "$probe_pid" "$pair_err"; done
   fi
 
   end_victim "$victim3a_pid"
@@ -361,7 +365,6 @@ else
   { read -r victim6a1_pid _; read -r victim6a2_pid _; } < "$record6a" || true
   read -r victim6b_pid _ < "$record6b" || true
   victims+=("$victim6a1_pid" "$victim6a2_pid" "$victim6b_pid")
-  said6="$(flat "$repeat_err")"
 
   for probe_pid in "$victim6a1_pid" "$victim6a2_pid" "$victim6b_pid"; do
     if [[ ! "$probe_pid" =~ ^[0-9]+$ ]]; then
@@ -369,9 +372,7 @@ else
       continue
     fi
     survived "$probe_pid"
-    lines="$(grep -c -F "$probe_pid" "$repeat_err" || true)"
-    [[ "$lines" -eq 1 ]] \
-      || problems+=("the survivor $probe_pid is named on $lines lines of the starting shell's stderr, not 1: stderr said '$said6'")
+    named_once "$probe_pid" "$repeat_err"
   done
 
   ran="$(grep -c -F ran "$marker6" 2>/dev/null || true)"
