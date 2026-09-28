@@ -9,7 +9,8 @@
 # VERI_STEP_GROWTH (default 3) caps how many ⟦added⟧ steps one ledger may hold, and
 # the call is all or nothing: a batch that would exceed the cap inserts nothing, exits 1 and
 # records every text as a plain bullet under `## Owed steps`, where next-unchecked.sh will
-# not find it. The added step inherits the anchor's criterion, so criterion-finished.sh keeps
+# not find it. A <text> carrying ⟦ci-repair⟧ is inserted without ⟦added⟧ and never counts
+# against the cap. The added step inherits the anchor's criterion, so criterion-finished.sh keeps
 # counting it against the same acceptance criterion; the ⟦added⟧ mark goes first because that
 # reader takes the criterion from the line's end.
 #
@@ -25,6 +26,7 @@ shift 3
 texts=("$@")
 
 added='⟦added⟧'
+repair='⟦ci-repair⟧'
 
 # hazard: the marks are multibyte, and under LC_ALL=C a regex reads them byte by byte.
 criterion_of() {
@@ -38,12 +40,17 @@ added_steps() {
   local line="$1" crit text
   crit="$(criterion_of "$line")"
   for text in "${texts[@]}"; do
-    printf '%s\n' "- [ ] $text $added$crit"
+    if is_repair "$text"; then
+      printf '%s\n' "- [ ] $text$crit"
+    else
+      printf '%s\n' "- [ ] $text $added$crit"
+    fi
   done
 }
 
 is_anchor_step() { [[ "$1" == "- ["*"]"* && "$1" == *"$anchor"* ]]; }
 is_added_step() { [[ "$1" == *"$added"* ]]; }
+is_repair() { [[ "$1" == *"$repair"* ]]; }
 
 count_lines() {
   local pred="$1" line n=0
@@ -66,7 +73,12 @@ if [[ ! "$budget" =~ ^[0-9]+$ ]]; then
   exit 2
 fi
 
-if (( $(count_lines is_added_step) + ${#texts[@]} > budget )); then
+growth=0
+for text in "${texts[@]}"; do
+  if ! is_repair "$text"; then growth=$((growth + 1)); fi
+done
+
+if (( $(count_lines is_added_step) + growth > budget )); then
   {
     printf '\n## Owed steps\n\n'
     for text in "${texts[@]}"; do printf -- '- %s\n' "$text"; done
