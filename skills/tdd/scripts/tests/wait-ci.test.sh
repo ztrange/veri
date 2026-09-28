@@ -190,5 +190,14 @@ rollup all-skipped.json "$(check COMPLETED SKIPPED),$(check COMPLETED SKIPPED)"
 expect_exit all-skipped 3
 report "$name"
 
+name="wait-ci.sh takes the head sha it waits for, and exits 3 at the end of its slice while the PR still reports a different head, even one whose checks all completed SUCCESS (#550)"
+problems=()
+rollup stale-head.json "$(check COMPLETED SUCCESS)" 0123456789abcdef0123456789abcdef01234567
+mkdir -p "$work/stale-head/.tdd"
+: > "$work/stale-head.clock"; : > "$work/stale-head.json.calls"
+got="$(wait_in "$work/stale-head" stale-head "$work/stale-head.err" 60 60 89abcdef0123456789abcdef0123456789abcdef)"
+[[ "$got" == 3 ]] || problems+=("PR reports a green previous head, waiting for 89abcdef…: want exit 3, got $got (stderr: $(cat "$work/stale-head.err"))")
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

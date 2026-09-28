@@ -2,13 +2,13 @@
 # wait-ci.sh — wait a bounded slice for a PR's checks to finish, and be called again.
 #
 # Usage:
-#   wait-ci.sh <pr-url> [slice-seconds] [total-seconds]
+#   wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]
 #
 # Status: 0 every check completed SUCCESS, NEUTRAL or SKIPPED, not all SKIPPED · 1 a completed check
 # concluded anything else · 2 no answer (bad arguments, gh failed, unreadable rollup), or a
 # check still pending past the deadline an earlier call recorded for the same head commit ·
-# 3 a check is still pending, none has appeared yet, or every one was SKIPPED, when this call's <slice-seconds> run
-# out.
+# 3 a check is still pending, none has appeared yet, every one was SKIPPED, or the PR still
+# reports a head other than <head-sha>, when this call's <slice-seconds> run out.
 #
 # The deadline, <total-seconds> (default <slice-seconds>) after the first call for a head
 # commit, is recorded in .tdd/ci-deadline-<sha>.
@@ -16,10 +16,11 @@
 # Tunables (env): VERI_POLL poll interval secs (default 10).
 set -uo pipefail
 
-[[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds]" >&2; exit 2; }
+[[ -n "${1:-}" ]] || { echo "usage: wait-ci.sh <pr-url> [slice-seconds] [total-seconds] [head-sha]" >&2; exit 2; }
 pr="$1"
 max="${2:-540}"
 total="${3:-$max}"
+want="${4:-}"
 poll="${VERI_POLL:-10}"
 
 deadline=""
@@ -51,6 +52,7 @@ print(state, doc.get("headRefOid") or "")
 while :; do
   read -r state head < <(rollup_state) && [[ -n "$head" ]] \
     || { echo "wait-ci.sh: could not read the checks of $pr" >&2; exit 2; }
+  [[ -n "$want" && "$head" != "$want" ]] && state=pending
   case "$state" in
     green) exit 0 ;;
     red) exit 1 ;;
