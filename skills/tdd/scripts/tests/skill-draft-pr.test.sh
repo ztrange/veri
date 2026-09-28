@@ -95,6 +95,9 @@
 #  27. SKILL.md's Draft PR step appends its CI repair step with a `⟦ci-repair⟧` text and
 #      recognises a second red by that mark on a ledger line, not by the repair step's prose
 #      (#544).
+#  28. SKILL.md's Draft PR step leaves no CI run on the readied PR that nothing reads: every push
+#      its command lines make after the first `wait-ci.sh` call has a `wait-ci.sh` call after
+#      it (#544).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -1061,6 +1064,28 @@ if step_or_problem '### 4. Draft PR' "how the step marks and recognises a CI rep
       problems+=("$skill_md's Draft PR step recognises a second red CI result without the $ci_repair_mark mark: $(printf '%.160s' "$red")")
     grep -F 'fix the ci failure' > /dev/null <<< "$red" &&
       problems+=("$skill_md's Draft PR step recognises a second red CI result by the repair step's prose: $(printf '%.160s' "$red")")
+  fi
+fi
+report "$name"
+
+# 28. The criterion, as one case (issue #544): a push to a PR already out of draft starts a CI
+#     run, so a push after the CI read with no `wait-ci.sh` after it is a run nothing reads.
+name="$skill_md's Draft PR step leaves no CI run on the readied PR that nothing reads: every push after the CI read is followed by a wait-ci.sh call (#544)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether a push after the CI read has its run read"; then
+  commands="$(section_commands)"
+  read_at="$(line_of "$wait_ci_run")"
+  if [[ -z "$read_at" ]]; then
+    problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh, so whether a later push has its CI run read could not be checked")
+  else
+    unread="$(awk -v from="$read_at" -v wait_re="^$wait_ci_run" '
+        NR <= from { next }
+        /^[^#]*([$]s\/push-branch[.]sh|git push)/ { pushed = $0; next }
+        pushed != "" && $0 ~ wait_re { pushed = "" }
+        END { print pushed }' <<< "$commands")"
+    [[ -z "$unread" ]] ||
+      problems+=("$skill_md's Draft PR step pushes after the CI read with no wait-ci.sh after it, leaving that push's CI run unread: $(printf '%.120s' "$unread")")
   fi
 fi
 report "$name"
