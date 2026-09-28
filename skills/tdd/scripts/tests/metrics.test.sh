@@ -3365,6 +3365,79 @@ headings_say "$headed_out"
 
 report_on "$name" "$headed_out"
 
+# structural_section_says <file> <step> <step-pair> <want> — the report's `### 📊 Metrics`
+# block holds a `####` section whose heading names the structural pass exactly when <want> is
+# `present`, whose body before the next heading carries <transforms>/<budget> as figures and
+# <stopped> as text (<want> = `present:<transforms>,<budget>,<stopped>`), while <step>'s
+# By-step refactor cell still says <step-pair>.
+structural_section_says() {
+  local out_file="$1" step="$2" pair="$3" want="$4"
+  probe "$PROBE_PRELUDE"'
+path, step, pair, want = sys.argv[1:5]
+lines = open(path).read().splitlines()
+start = next((i for i, l in enumerate(lines) if l.startswith("### ") and "Metrics" in l), None)
+end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("### ")), len(lines)) if start is not None else 0
+block = lines[start:end] if start is not None else []
+heads = [i for i, l in enumerate(block) if l.startswith("#### ") and "structural" in l.lower()]
+if want == "absent":
+    if heads:
+        complain("want no structural-pass section for a log with no such mark, got %r" % block[heads[0]])
+elif not heads:
+    complain("want a #### section naming the structural pass inside the Metrics block, the report has none")
+else:
+    transforms, budget, stopped = want.split(":", 1)[1].split(",")
+    at = heads[0]
+    stop = next((i for i in range(at + 1, len(block)) if block[i].startswith("#")), len(block))
+    body = "\n".join(block[at + 1:stop])
+    figures = re.findall(r"\d+(?:\.\d+)?", body)
+    for what, value in (("transforms", transforms), ("budget", budget)):
+        if value not in figures:
+            complain("want the structural-pass section to carry its %s %s, its body is %r" % (what, value, body))
+    if stopped not in body:
+        complain("want the structural-pass section to carry stopped=%s, its body is %r" % (stopped, body))
+tables = tables_in(path)
+cell = cell_in(tables, step, "refactor", lambda c: c == "refactor")
+if cell is not None and cell != pair:
+    complain("By-step refactor of step %r: want %r, got %r" % (step, pair, cell))
+print("\n".join(problems))
+' "$out_file" "$step" "$pair" "$want"
+}
+
+# structural_log <step> — one step whose own refactor mark spent 1 of 5 and stopped on
+# nothing-structural, on the current fixture log, closed by its step-done.
+structural_log() {
+  sv "$1" 80000 conductor ""       step-start ""
+  sv "$1" 80002 developer refactor launch  1 '"name": "develop-refactor"'
+  sv "$1" 80008 developer refactor exit    1 '"status": "0", "secs": "6"'
+  sv "$1" 80010 conductor refactor refactor "" '"transforms": "1", "budget": "5", "stopped": "nothing-structural", "pass": "1"'
+  sv "$1" 80020 conductor ""       step-done ""
+}
+
+# Two runs of one step each: one whose structural pass applied 3 of its 10 and stopped on
+# budget-spent, one whose log carries no structural-pass mark. The pass's figures differ from
+# the step's in every field, so a pass read into the step's cells, or the other way, cannot pass.
+name="#503 the structural-pass mark renders as its own Metrics section, apart from the per-step refactor cells, and a log without one renders none"
+problems=()
+
+fixture_work structural_work
+structured="a step followed by a structural pass"
+structural_log "$structured"
+sv "" 80030 conductor "" structural-pass "" '"transforms": "3", "budget": "10", "stopped": "budget-spent"'
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+structural_out="$structural_work/report.md"
+render "$structural_work" "$structural_out"
+structural_section_says "$structural_out" "$structured" "1/5" "present:3,10,budget-spent"
+
+fixture_work unstructured_work
+unstructured="a step with no structural pass after it"
+structural_log "$unstructured"
+sv "" 80040 conductor "" done "" '"pr": "https://github.com/ztrange/veri/pull/999"'
+unstructured_out="$unstructured_work/report.md"
+render "$unstructured_work" "$unstructured_out"
+structural_section_says "$unstructured_out" "$unstructured" "1/5" "absent"
+
+report_on "$name" "$structural_out"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
