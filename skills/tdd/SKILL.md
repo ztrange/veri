@@ -1522,9 +1522,7 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    green, and the wait is `wait-ci.sh`, one bounded slice per Bash call: its exit 3 means a
    check is still pending, so call it again in a new Bash call; its exit 2 — a check still
    pending past the deadline its first call recorded, or no answer from `gh` — does
-   **bail**, with cause `ci-timeout`, rather than waiting on. Both are read before
-   the `done` mark and the `metrics:` commit, so a run that goes on to repair or bail has not
-   already recorded itself done.
+   **bail**, with cause `ci-timeout`, rather than waiting on.
    A failed check does not bail: read its run's log with `gh run view <run-id> --log-failed`,
    append a repair step to the ledger whose text quotes the failing suite and its `FAIL -`
    line — or the error line, when the suite died before writing one — commit the ledger, and
