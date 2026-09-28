@@ -641,6 +641,9 @@ def row(cells):
 def figure(column, value):
     return "%.2f" % value if column in MONEY else "%d" % value
 
+def refactor_spent(mark):
+    return "%s/%s" % (mark["transforms"], mark["budget"])
+
 def step_wall(step):
     mark = spent.get(step, {})
     return known(awake_span_or_wall(mark.get("step-start"), mark.get("step-done")))
@@ -777,11 +780,11 @@ if passes:
     table_head("#### By refactor pass", "step", ["pass", "refactor", "stopped", "verdict", "revise", WALL, DOLLARS],
                ["---:", "---:", "---", "---", "---:", "---:", "---:"])
     for (step, index), (mark, spent_by) in passes.items():
-        row([step, index, "%s/%s" % (mark["transforms"], mark["budget"]), mark["stopped"],
+        row([step, index, refactor_spent(mark), mark["stopped"],
              spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
 if structural is not None:
     table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
-    row(["issue", "%s/%s" % (structural["transforms"], structural["budget"]), structural["stopped"]])
+    row(["issue", refactor_spent(structural), structural["stopped"]])
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
