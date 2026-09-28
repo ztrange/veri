@@ -29,9 +29,10 @@ done
 ltrim() { printf '%s' "${1#"${1%%[![:space:]]*}"}"; }
 rtrim() { printf '%s' "${1%"${1##*[![:space:]]}"}"; }
 
+verdict_re='^[[:space:]]*[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:[[:space:]]*(.*)$'
 vidx=-1
 for i in "${!lines[@]}"; do
-  if [[ "${lines[$i]}" =~ ^[[:space:]]*[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:[[:space:]]*(.*)$ ]]; then
+  if [[ "${lines[$i]}" =~ $verdict_re ]]; then
     vidx=$i
   fi
 done
@@ -41,7 +42,7 @@ if [[ "$vidx" -lt 0 ]]; then
   exit 2
 fi
 
-[[ "${lines[$vidx]}" =~ ^[[:space:]]*[Vv][Ee][Rr][Dd][Ii][Cc][Tt]:[[:space:]]*(.*)$ ]]
+[[ "${lines[$vidx]}" =~ $verdict_re ]]
 tail="${BASH_REMATCH[1]}"
 
 word="${tail%%[[:space:]]*}"
