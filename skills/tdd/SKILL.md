@@ -1506,7 +1506,9 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    ```
    The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
    rollup is never a pass, and a completed check whose conclusion is anything other than
-   `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed.
+   `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed. A pending check never counts as
+   green, and the wait is bounded at 30 minutes: a check still pending when that bound runs
+   out does **bail**, with cause `ci-timeout`, rather than waiting on.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
@@ -1793,6 +1795,8 @@ a **cause token** that maps to a classification via `$S/classify-bail.sh <cause>
   splits lead here, because all three grow the plan and share that one budget: a Green
   developer leaf's `SPLIT:`, the split the revise-exhausted leaf answers, and the split the
   over-budget leaf answers.
+- `ci-timeout` — a readied PR's check was still pending when the Draft PR step's bounded CI
+  wait ran out → **system** failure (CI never answered, not the methodology).
 
 **A bail reached first stays a bail**, whatever stop is waiting behind it: the methodology or
 the plumbing has already answered, and a pause would hide that answer from the resume. Ask

@@ -1,7 +1,7 @@
 # Plan for #542 — a run ends at gh pr ready and never reads CI, so a Linux-only red leaves the PR stuck
 
 - [x] SKILL.md's Draft PR step, after `gh pr ready`, waits for the readied PR's CI checks and reads their statusCheckRollup fail-closed the way the merge skill does: an empty rollup is never a pass, and any completed check whose conclusion is not SUCCESS (or NEUTRAL/SKIPPED) counts as failed ⟦criterion 1⟧
-- [ ] SKILL.md's CI wait never counts a pending check as green, and is bounded: a check still pending when the bound runs out bails the run with a cause `classify-bail.sh` classifies, rather than waiting on ⟦criterion 4⟧
+- [x] SKILL.md's CI wait never counts a pending check as green, and is bounded: a check still pending when the bound runs out bails the run with a cause `classify-bail.sh` classifies, rather than waiting on ⟦criterion 4⟧ ⟂ refactor pending
 - [ ] SKILL.md's Draft PR step answers a failed CI check by appending a repair step to the ledger whose text quotes the failing suite and its `FAIL -` line (or the error line) read from `gh run view --log-failed`, committing it, and returning to the cycle loop so the run resumes into that step ⟦criterion 2⟧
 - [ ] SKILL.md's Draft PR step bails on a second red CI result after a CI repair step, with a cause token `classify-bail.sh` maps to a system or process label, never a silent stop ⟦criterion 3⟧
 - [ ] the suite pinning SKILL.md's closing sequence carries cases for the CI wait, the repair step and the second-red bail, each of which goes red against the pre-#542 SKILL.md text ⟦criterion 5⟧

@@ -69,6 +69,9 @@
 #  18. SKILL.md's Draft PR step, after `gh pr ready`, waits on `gh pr checks --watch` and then
 #      reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass, and a conclusion other than SUCCESS,
 #      NEUTRAL or SKIPPED counts as failed (issue #542).
+#  19. SKILL.md's Draft PR step never counts a pending check as green, and bounds its CI
+#      wait: a check still pending when the bound runs out bails with a cause
+#      `classify-bail.sh` classifies (issue #542).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -772,6 +775,31 @@ if step_or_problem '### 4. Draft PR' "whether the step reads the readied PR's CI
   said="$(first_record "$plain" -F 'conclusion' -F 'success' -F 'neutral' -F 'skipped' -E 'fail')"
   [[ -n "$said" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step counts a completed check whose conclusion is not SUCCESS, NEUTRAL or SKIPPED as failed")
+fi
+report "$name"
+
+# 19. The criterion, as one case (issue #542): the bail's cause is handed to classify-bail.sh
+#     itself, so a cause the script does not know fails here rather than at the bail.
+name="$skill_md's Draft PR step never counts a pending check as green, and a check still pending when its bounded CI wait runs out bails with a cause classify-bail.sh classifies (#542)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "what the step does with a check still pending"; then
+  plain="$(unmarked_records)"
+  said="$(first_record "$plain" -E 'pending check|check[a-z ]* pending' -wF 'never' -E 'green|pass')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says a pending check never counts as green")
+  bail="$(first_record "$records" -E 'pending check|check[a-z ]* pending' -E 'bound|timeout|time out|runs out' -wF 'bail')"
+  if [[ -z "$bail" ]]; then
+    problems+=("no instruction of $skill_md's Draft PR step bounds the CI wait and bails on a check still pending when the bound runs out, so a hung CI job waits forever")
+  else
+    classified=""
+    while IFS= read -r cause; do
+      [[ -n "$cause" ]] || continue
+      "$ROOT/skills/tdd/scripts/classify-bail.sh" "$cause" > /dev/null 2>&1 && classified="$cause"
+    done < <(grep -o '`[^`]*`' <<< "$bail" | tr -d '`')
+    [[ -n "$classified" ]] ||
+      problems+=("$skill_md's Draft PR step bails on a check still pending past its bound with no cause classify-bail.sh classifies: $(printf '%.120s' "$bail")")
+  fi
 fi
 report "$name"
 
