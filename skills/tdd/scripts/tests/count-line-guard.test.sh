@@ -1091,6 +1091,23 @@ fi
 
 report "$name"
 
+# 17. A countless suite's refusal quotes the line that came last (#508).
+name="make test quotes a countless suite's last line verbatim in its refusal (#508)"
+problems=()
+
+quoted_name='count-then-rm.test.sh'
+quoted_line="rm: cannot remove '/tmp/clone26/.git': Directory not empty"
+if scratch_suite_run "$quoted_name" "echo '27 passed, 0 failed'
+echo \"$quoted_line\""; then
+  refusal="$(awk -v p="$quoted_name$GUARD_MESSAGE" 'index($0, p) == 1 { f = 1 } f' <<< "$scratch_out")"
+  [[ -n "$refusal" ]] ||
+    problems+=("want a line beginning '$quoted_name$GUARD_MESSAGE'; it said: $(flat "$scratch_out")")
+  grep -F "$quoted_line" <<< "$refusal" > /dev/null ||
+    problems+=("want the refusal to quote the suite's last line '$quoted_line'; from the refusal on it said: $(flat "$refusal")")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

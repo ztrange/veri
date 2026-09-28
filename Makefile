@@ -146,7 +146,8 @@ test unit:
 	  { $(OFFLINE_ENV) "$$t" < /dev/null 2>&3; echo $$? > "$$suite_status"; } 3>&2 | tee "$$suite_out"; \
 	  [ "$$(cat "$$suite_status")" -eq 0 ] || fail=1; \
 	  tail -n 1 "$$suite_out" | grep -E '$(COUNT_LINE)' > /dev/null || { \
-	    printf '$(COUNTLESS)' "$$suite_name"; fail=1; \
+	    printf '$(COUNTLESS)' "$$suite_name"; \
+	    printf '%s: its last line was: %s\n' "$$suite_name" "$$(tail -n 1 "$$suite_out")"; fail=1; \
 	  }; \
 	  while IFS= read -r reached; do \
 	    printf '%s: tried the network: %s\n' "$$suite_name" "$$reached"; fail=1; \
