@@ -167,5 +167,24 @@ expect_exit legacy-success-pending 3
 expect_exit legacy-success-green 0
 report "$name"
 
+name="wait-ci.sh keeps its total bound separate from one call's slice: with a total of 1800 s and a slice of 540 s, a call made 600 s after the first that still finds a check pending exits 3, not 2, and SKILL.md's Draft PR step passes that total bound (#544)"
+problems=()
+rollup total.json "$(check IN_PROGRESS '')" 00112233445566778899aabbccddeeff00112233
+mkdir -p "$work/total/.tdd"
+: > "$work/total.clock"; : > "$work/total.json.calls"
+for call in first second; do
+  got="$( cd "$work/total" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/total.clock" \
+      PR_URL="$PR" ROLLUP="$work/total.json" PATH="$work/bin:$PATH" \
+      "$WAIT" "$PR" 540 1800 >/dev/null 2>"$work/total.$call.err"; echo $? )"
+  [[ "$got" == 3 ]] || problems+=("$call call, slice 540, total 1800: want exit 3, got $got (stderr: $(cat "$work/total.$call.err"))")
+done
+calls="$(grep -F 'wait-ci.sh <pr-url>' "$HERE/../../SKILL.md")"
+[[ -n "$calls" ]] || problems+=("SKILL.md: no wait-ci.sh <pr-url> call found")
+while IFS= read -r line; do
+  [[ "$line" =~ wait-ci\.sh\ \<pr-url\>\ [0-9]+\ [0-9]+ ]] \
+    || problems+=("SKILL.md passes wait-ci.sh no total bound: $line")
+done <<< "$calls"
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
