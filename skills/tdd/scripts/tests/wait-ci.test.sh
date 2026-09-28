@@ -87,6 +87,13 @@ waited() {
   wait_in "$dir" "$1" "$work/$1.err" "${@:2}"
 }
 
+# shared <name> — give fixture <name> a fresh clock and read count, and the working directory
+# $work/<name> that successive wait_in calls share.
+shared() {
+  mkdir -p "$work/$1/.tdd"
+  : > "$work/$1.clock"; : > "$work/$1.json.calls"
+}
+
 # expect_exit <name> <code> [bound] — waited <name> [bound], and record a problem unless it
 # exited <code>.
 expect_exit() {
@@ -130,8 +137,7 @@ report "$name"
 name="wait-ci.sh enforces its bound across calls: a second call for the same head commit that still finds a check pending past the deadline the first call recorded exits 2, not 3 with a fresh bound (#544)"
 problems=()
 rollup across.json "$(check IN_PROGRESS '')" fedcba9876543210fedcba9876543210fedcba98
-mkdir -p "$work/across/.tdd"
-: > "$work/across.clock"; : > "$work/across.json.calls"
+shared across
 got_first="$(wait_in "$work/across" across "$work/across.first.err" 120)"
 got_second="$(wait_in "$work/across" across "$work/across.second.err" 120)"
 [[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/across.first.err"))")
@@ -172,8 +178,7 @@ report "$name"
 name="wait-ci.sh keeps its total bound separate from one call's slice: with a total of 1800 s and a slice of 540 s, a call made 600 s after the first that still finds a check pending exits 3, not 2, and SKILL.md's Draft PR step passes that total bound (#544)"
 problems=()
 rollup total.json "$(check IN_PROGRESS '')" 00112233445566778899aabbccddeeff00112233
-mkdir -p "$work/total/.tdd"
-: > "$work/total.clock"; : > "$work/total.json.calls"
+shared total
 for call in first second; do
   got="$(wait_in "$work/total" total "$work/total.$call.err" 540 1800)"
   [[ "$got" == 3 ]] || problems+=("$call call, slice 540, total 1800: want exit 3, got $got (stderr: $(cat "$work/total.$call.err"))")
@@ -204,8 +209,7 @@ problems=()
 rollup stale-across.json.1 "$(check COMPLETED SUCCESS)" 0123456789abcdef0123456789abcdef01234567
 cp "$work/stale-across.json.1" "$work/stale-across.json.2"
 rollup stale-across.json "$(check COMPLETED SUCCESS)" 76543210fedcba9876543210fedcba9876543210
-mkdir -p "$work/stale-across/.tdd"
-: > "$work/stale-across.clock"; : > "$work/stale-across.json.calls"
+shared stale-across
 sha=89abcdef0123456789abcdef0123456789abcdef
 got_first="$(wait_in "$work/stale-across" stale-across "$work/stale-across.first.err" 60 60 "$sha")"
 got_second="$(wait_in "$work/stale-across" stale-across "$work/stale-across.second.err" 60 60 "$sha")"
