@@ -223,5 +223,14 @@ got_second="$(again stale-across second 60 60 "$sha")"
 [[ "$got_second" == 2 ]] || problems+=("second call for $sha past the recorded deadline, PR reporting another head: want exit 2, got $got_second (stderr: $(cat "$work/stale-across.second.err"))")
 report "$name"
 
+name="wait-ci.sh exits 2 on its first read of a legacy StatusContext row that carries no state key, rather than reading it as pending and waiting out its bound (#550)"
+problems=()
+rollup stateless.json "$(check COMPLETED SUCCESS),{\"__typename\":\"StatusContext\",\"context\":\"legacy\"}"
+got="$(waited stateless)"
+reads="$(wc -l < "$work/stateless.json.calls" | tr -d ' ')"
+[[ "$got" == 2 ]] || problems+=("StatusContext with no state: want exit 2, got $got (stderr: $(cat "$work/stateless.err"))")
+[[ "$reads" == 1 ]] || problems+=("StatusContext with no state: want 1 read of the checks, got $reads")
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
