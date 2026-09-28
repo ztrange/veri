@@ -148,7 +148,8 @@ test unit:
 	  last_line="$$(tail -n 1 "$$suite_out")"; \
 	  printf '%s\n' "$$last_line" | grep -E '$(COUNT_LINE)' > /dev/null || { \
 	    printf '$(COUNTLESS)' "$$suite_name"; \
-	    printf '%s: its last line was: %s\n' "$$suite_name" "$$last_line"; fail=1; \
+	    if [ -s "$$suite_out" ]; then printf '%s: its last line was: %s\n' "$$suite_name" "$$last_line"; \
+	    else printf '%s: its output was empty\n' "$$suite_name"; fi; fail=1; \
 	  }; \
 	  while IFS= read -r reached; do \
 	    printf '%s: tried the network: %s\n' "$$suite_name" "$$reached"; fail=1; \

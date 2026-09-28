@@ -1108,6 +1108,23 @@ fi
 
 report "$name"
 
+# 18. A suite that printed nothing is called empty, not quoted (#508).
+name="make test reports a suite that printed nothing as empty rather than quoting an empty line (#508)"
+problems=()
+
+empty_name='prints-nothing.test.sh'
+if scratch_suite_run "$empty_name" ':'; then
+  refusal="$(awk -v p="$empty_name$GUARD_MESSAGE" 'index($0, p) == 1 { f = 1 } f' <<< "$scratch_out")"
+  [[ -n "$refusal" ]] ||
+    problems+=("want a line beginning '$empty_name$GUARD_MESSAGE'; it said: $(flat "$scratch_out")")
+  grep -E "^$empty_name: .*: ?$" <<< "$refusal" > /dev/null &&
+    problems+=("want no line quoting an empty last line; from the refusal on it said: $(flat "$refusal")")
+  grep -E "^$empty_name: .*empty" <<< "$refusal" > /dev/null ||
+    problems+=("want a line naming the suite and saying its output was empty; from the refusal on it said: $(flat "$refusal")")
+fi
+
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
