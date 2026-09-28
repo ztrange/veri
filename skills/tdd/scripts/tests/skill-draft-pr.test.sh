@@ -66,6 +66,9 @@
 #      `REBASE: FAILED`, `REVISE_BUDGET` exhausted, or a killed leaf — resets the branch to
 #      `<pre-rebase-sha>`, leaves the PR a draft and bails with a comment naming every
 #      conflicting file (issue #238).
+#  18. SKILL.md's Draft PR step, after `gh pr ready`, waits on `gh pr checks --watch` and then
+#      reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass, and a conclusion other than SUCCESS,
+#      NEUTRAL or SKIPPED counts as failed (issue #542).
 #
 # Run: scripts/tests/skill-draft-pr.test.sh
 set -uo pipefail
@@ -741,6 +744,34 @@ if step_or_problem '### 4. Draft PR' "what the step does with a rebase it could 
   said="$(first_record "$plain" -wF 'bail' -E '(every|each|all) (of the )?conflicting file' -F 'draft')"
   [[ -n "$said" ]] ||
     problems+=("no instruction of $skill_md's Draft PR step bails on an unresolved rebase with the PR left a draft and a comment naming every conflicting file")
+fi
+report "$name"
+
+# 18. The criterion, as one case (issue #542): a readied PR's CI is the Linux half of the
+#     portability promise, so a run that stops at `gh pr ready` never sees a Linux-only red.
+#     What is pinned: `gh pr checks --watch` runs after `gh pr ready`, a `gh pr view` reading
+#     `statusCheckRollup` runs after that wait, and the step reads it the way the merge skill
+#     does — an empty rollup is never a pass, and a completed check whose conclusion is not
+#     SUCCESS, NEUTRAL or SKIPPED counts as failed.
+name="$skill_md's Draft PR step, after gh pr ready, waits on gh pr checks --watch and reads the readied PR's statusCheckRollup fail-closed: an empty rollup is never a pass and a conclusion other than SUCCESS, NEUTRAL or SKIPPED counts as failed (#542)"
+problems=()
+
+if step_or_problem '### 4. Draft PR' "whether the step reads the readied PR's CI"; then
+  commands="$(section_commands)"
+  ready="$(line_of 'gh pr ready')"
+  watch="$(line_of 'gh pr checks .*--watch')"
+  rollup="$(line_of 'gh pr view .*--json statuscheckrollup')"
+  [[ -n "$ready" && -n "$watch" && "$watch" -gt "$ready" ]] ||
+    problems+=("$skill_md's Draft PR step runs no gh pr checks --watch after gh pr ready, so nothing waits for the readied PR's CI to finish")
+  [[ -n "$watch" && -n "$rollup" && "$rollup" -gt "$watch" ]] ||
+    problems+=("$skill_md's Draft PR step runs no gh pr view --json statusCheckRollup after its gh pr checks --watch, so the run reads CI before it has answered")
+  plain="$(unmarked_records)"
+  said="$(first_record "$plain" -F 'rollup' -wF 'empty' -E 'never[a-z ]* pass')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step says an empty rollup is never a pass")
+  said="$(first_record "$plain" -F 'conclusion' -F 'success' -F 'neutral' -F 'skipped' -E 'fail')"
+  [[ -n "$said" ]] ||
+    problems+=("no instruction of $skill_md's Draft PR step counts a completed check whose conclusion is not SUCCESS, NEUTRAL or SKIPPED as failed")
 fi
 report "$name"
 

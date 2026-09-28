@@ -1501,7 +1501,12 @@ step, so both checkpoints apply to the repair step as they do in step 3.
    $S/refactor-owed.sh render .tdd/issue-<n>-refactor-owed.md
    gh pr edit <pr-url> --title "<type>: <criterion summary> (#<n>)" --body "<Closes #<n> — summary: the plan's steps, each a blind-verified R→G→R cycle, ledger committed; followed by the contents of .tdd/issue-<n>-metrics.md, followed by that render's output, followed by the ledger's ## Owed steps bullets, followed by its ⟦human-owed⟧ lines under ## Owed by a human>"
    gh pr ready <pr-url>
+   gh pr checks <pr-url> --watch
+   gh pr view <pr-url> --json statusCheckRollup
    ```
+   The readied PR's CI is read fail-closed, the way the `merge` skill reads it: an empty
+   rollup is never a pass, and a completed check whose conclusion is anything other than
+   `SUCCESS`, `NEUTRAL` or `SKIPPED` counts as failed.
    The `done` mark comes before the render because `metrics.sh` reads it for both the Outcome
    and the issue's wall time: a report rendered before it exists says `unknown` for both. The
    body is rewritten only after the `metrics:` commit is pushed, so it never quotes a file the
