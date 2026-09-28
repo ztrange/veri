@@ -838,7 +838,7 @@ if step_or_problem '### 4. Draft PR' "whether the step's CI wait is bounded by i
   if [[ -z "$ready" || -z "$waits" || "$waits" -le "$ready" ]]; then
     problems+=("$skill_md's Draft PR step runs no \$S/wait-ci.sh after gh pr ready, so there is no CI wait to bound")
   else
-    slice="$(awk -v at="$waits" 'NR == at { sub(/^[^#]*[$]s\/wait-ci[.]sh +[^ ]+/, ""); print $1 }' <<< "$commands")"
+    slice="$(awk -v at="$waits" -v re="$wait_ci_run" 'NR == at { sub("^" re " *[^ ]+", ""); print $1 }' <<< "$commands")"
     [[ ! "$slice" =~ ^[0-9]+$ || "$slice" -lt 600 ]] ||
       problems+=("$skill_md's Draft PR step gives wait-ci.sh a slice of $slice seconds, longer than one Bash call lives")
   fi
