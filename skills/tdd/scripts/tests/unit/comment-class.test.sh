@@ -117,6 +117,19 @@ want_line "$f:2:2"
 want_line "$f:5:2"
 verdict "a # line in a heredoc piped to dd or sponge writing a file is class 2"
 
+# 9. the sweepable report lists class 1 and class 2 lines, and never a class 3 line.
+problems=""
+f="$work/sweepable.sh"
+printf '%s\n' '# a comment in code' 'cat > "$dir/fixture.txt" <<EOF' '# written to a file' 'EOF' \
+  'claude -p <<EOF' '# sent to a model' 'EOF' > "$f"
+classify --sweepable "$f"
+want_line "$f:1:1"
+want_line "$f:3:2"
+if grep -E "^$f:6(:|$)" <<< "$out" > /dev/null; then
+  problems+="    want no line for $f:6, a class 3 line, got:"$'\n'"$out"$'\n'
+fi
+verdict "the sweepable report lists class 1 and class 2 lines and never a class 3 line"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
