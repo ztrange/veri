@@ -141,5 +141,20 @@ grep -F "could not read the checks of $PR" "$work/headless.err" > /dev/null \
   || problems+=("no headRefOid: stderr does not name the PR: $(cat "$work/headless.err")")
 report "$name"
 
+# context <state> — one legacy StatusContext row of the rollup: a state and no status key.
+context() {
+  printf '{"__typename":"StatusContext","context":"legacy","state":"%s"}' "$1"
+}
+
+name="wait-ci.sh reads a legacy StatusContext by its state: PENDING or EXPECTED is pending and exits 3, never 0; FAILURE or ERROR is failed and exits 1 (#544)"
+problems=()
+for want in PENDING:3 EXPECTED:3 FAILURE:1 ERROR:1; do
+  st="${want%%:*}" code="${want##*:}"
+  rollup "legacy-$st.json" "$(check COMPLETED SUCCESS),$(context "$st")"
+  got="$(waited "legacy-$st")"
+  [[ "$got" == "$code" ]] || problems+=("legacy $st: want exit $code, got $got (stderr: $(cat "$work/legacy-$st.err"))")
+done
+report "$name"
+
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
