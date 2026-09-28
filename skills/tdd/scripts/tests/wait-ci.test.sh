@@ -53,9 +53,9 @@ report() {
   fi
 }
 
-# rollup <name> <rows> — write the fixture document gh serves for the PR, rows being the
-# JSON array's contents. A file <name>.json.<n> beside it is served on the n-th read instead.
-rollup() { printf '{"statusCheckRollup":[%s]}\n' "$2" > "$work/$1.json"; }
+# rollup <file> <rows> — write the fixture document gh serves for the PR, rows being the
+# JSON array's contents. A file <name>.json.<n> beside <name>.json is served on the n-th read.
+rollup() { printf '{"statusCheckRollup":[%s]}\n' "$2" > "$work/$1"; }
 
 # check <status> <conclusion> — one CheckRun row of the rollup.
 check() {
@@ -72,10 +72,10 @@ waited() {
   echo $?
 }
 
-rollup pending "$(check COMPLETED SUCCESS),$(check IN_PROGRESS '')"
-rollup green   "$(check COMPLETED SUCCESS),$(check COMPLETED NEUTRAL),$(check COMPLETED SKIPPED)"
-rollup red     "$(check COMPLETED SUCCESS),$(check COMPLETED FAILURE)"
-rollup empty   ""
+rollup pending.json "$(check COMPLETED SUCCESS),$(check IN_PROGRESS '')"
+rollup green.json   "$(check COMPLETED SUCCESS),$(check COMPLETED NEUTRAL),$(check COMPLETED SKIPPED)"
+rollup red.json     "$(check COMPLETED SUCCESS),$(check COMPLETED FAILURE)"
+rollup empty.json   ""
 
 name="wait-ci.sh exits 3 while a check is pending, 0 when every check completed SUCCESS, NEUTRAL or SKIPPED, 1 on any other conclusion, and never 0 on an empty rollup (#544)"
 problems=()
@@ -88,8 +88,8 @@ got="$(waited empty)"
 [[ "$got" != 0 ]] || problems+=("empty rollup: exited 0")
 report "$name"
 
-rollup late "$(check COMPLETED SUCCESS)"
-printf '{"statusCheckRollup":[%s]}\n' "$(check IN_PROGRESS '')" > "$work/late.json.1"
+rollup late.json "$(check COMPLETED SUCCESS)"
+rollup late.json.1 "$(check IN_PROGRESS '')"
 cp "$work/late.json.1" "$work/late.json.2"
 
 name="wait-ci.sh polls a pending check until its bound runs out: a check that completes on the third read exits 0 within 1800 s and 3 within 60 s (#544)"
