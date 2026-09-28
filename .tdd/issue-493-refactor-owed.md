@@ -3,3 +3,6 @@
 - every case in comment-class.test.sh opens with `problems=""`; `verdict` could reset it instead. The pattern predates this cycle, so I left it.
 ### A `#` line inside a heredoc whose output is redirected to a file is class 2, and a `#` line inside any other heredoc — one sent to a model, a variable or stdout — is class 3 ⟦criterion 1⟧
 - comment-class.sh's awk tests `/^[[:space:]]*#/` twice, once for a heredoc body line and once for a code comment. An earlier cycle wrote both, not this one, so it is out of this step's bounds
+### The sweepable report is empty for issue-worktree.sh, verify.sh, parse-verdict.sh and extract-result.sh ⟦criterion 4⟧
+- parse-verdict.sh repeats the `VERDICT:` regex literally (once in the scan loop, once to recover BASH_REMATCH); binding it to one `verdict_re` would remove the duplicate, but the duplicate existed before this cycle, which only deleted comments
+- comment-class.test.sh cases 11–13 repeat the same three lines (`problems=""`, `want_empty_sweepable …`, `verdict "the sweepable report is empty for …"`); a `sweep_case <desc> <files…>` helper would fold them together, but it would break the per-case shape every other case in the suite uses, so I left it
