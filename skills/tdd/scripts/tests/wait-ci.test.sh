@@ -35,7 +35,7 @@ cat > "$work/bin/gh" <<'G'
 #!/bin/sh
 case "$*" in
   *-q*|*--jq*|*--template*) echo "gh stub: unexpected call: gh $*" >&2; exit 1 ;;
-  "pr view $PR_URL --json statusCheckRollup")
+  "pr view $PR_URL --json "*statusCheckRollup*)
     if [ -n "${GH_FAIL:-}" ]; then echo "HTTP 502: Bad Gateway" >&2; exit 1; fi
     echo >> "$ROLLUP.calls"
     n="$(wc -l < "$ROLLUP.calls" | tr -d ' ')"
@@ -53,9 +53,13 @@ report() {
   fi
 }
 
-# rollup <file> <rows> — write the fixture document gh serves for the PR, rows being the
-# JSON array's contents. A file <name>.json.<n> beside <name>.json is served on the n-th read.
-rollup() { printf '{"statusCheckRollup":[%s]}\n' "$2" > "$work/$1"; }
+# rollup <file> <rows> [head] — write the fixture document gh serves for the PR, rows being
+# the JSON array's contents and <head> its head commit. A file <name>.json.<n> beside
+# <name>.json is served on the n-th read.
+rollup() {
+  printf '{"headRefOid":"%s","statusCheckRollup":[%s]}\n' \
+    "${3:-0123456789abcdef0123456789abcdef01234567}" "$2" > "$work/$1"
+}
 
 # check <status> <conclusion> — one CheckRun row of the rollup.
 check() {
@@ -63,10 +67,13 @@ check() {
 }
 
 # waited <name> [bound] — run wait-ci.sh against fixture <name> with a <bound>-second limit
-# (default 1800) on a clock that moves 60 s a reading, and echo its exit code.
+# (default 1800) on a clock that moves 60 s a reading, from a working directory of its own,
+# and echo its exit code.
 waited() {
+  local dir
+  dir="$(mktemp -d "$work/cwd.XXXXXX")"; mkdir "$dir/.tdd"
   : > "$work/$1.clock"; : > "$work/$1.json.calls"
-  ( cd "$work" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/$1.clock" \
+  ( cd "$dir" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/$1.clock" \
       PR_URL="$PR" ROLLUP="$work/$1.json" PATH="$work/bin:$PATH" \
       "$WAIT" "$PR" "${2:-1800}" >/dev/null 2>"$work/$1.err" )
   echo $?
@@ -106,6 +113,32 @@ got="$(GH_FAIL=1 waited pending)"
 [[ "$got" == 2 ]] || problems+=("failing gh: want exit 2, got $got")
 grep -F "could not read the checks of $PR" "$work/pending.err" > /dev/null \
   || problems+=("failing gh: stderr does not name the PR: $(cat "$work/pending.err")")
+report "$name"
+
+name="wait-ci.sh enforces its bound across calls: a second call for the same head commit that still finds a check pending past the deadline the first call recorded exits 2, not 3 with a fresh bound (#544)"
+problems=()
+rollup across.json "$(check IN_PROGRESS '')" fedcba9876543210fedcba9876543210fedcba98
+mkdir -p "$work/across/.tdd"
+: > "$work/across.clock"; : > "$work/across.json.calls"
+across() {
+  ( cd "$work/across" && env VERI_POLL=0 VERI_CLOCK_STEP=60 VERI_CLOCK_LOG="$work/across.clock" \
+      PR_URL="$PR" ROLLUP="$work/across.json" PATH="$work/bin:$PATH" \
+      "$WAIT" "$PR" 120 >/dev/null 2>"$work/across.$1.err" )
+  echo $?
+}
+got_first="$(across first)"
+got_second="$(across second)"
+[[ "$got_first" == 3 ]] || problems+=("first call: want exit 3, got $got_first (stderr: $(cat "$work/across.first.err"))")
+[[ "$got_second" == 2 ]] || problems+=("second call past the recorded deadline: want exit 2, got $got_second (stderr: $(cat "$work/across.second.err"))")
+report "$name"
+
+name="wait-ci.sh exits 2 and names the PR when the rollup carries no head commit, rather than recording a deadline no later call can find (#544)"
+problems=()
+printf '{"statusCheckRollup":[%s]}\n' "$(check IN_PROGRESS '')" > "$work/headless.json"
+got="$(waited headless)"
+[[ "$got" == 2 ]] || problems+=("no headRefOid: want exit 2, got $got (stderr: $(cat "$work/headless.err"))")
+grep -F "could not read the checks of $PR" "$work/headless.err" > /dev/null \
+  || problems+=("no headRefOid: stderr does not name the PR: $(cat "$work/headless.err")")
 report "$name"
 
 echo "$pass passed, $fail failed"
