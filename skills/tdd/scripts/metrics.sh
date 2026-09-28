@@ -458,6 +458,8 @@ opening = None
 # mark is one of them going stale.
 ending = None
 
+structural = None
+
 # Each attempt `launch` mark, keyed as `attempts_spent` is, so its `exit` can read the
 # attempt span off the awake clock (#486).
 launched = {}
@@ -485,6 +487,8 @@ for line in marks:
         ending = None
     if event in ("done", "bail", "stop"):
         ending = line
+    if event == "structural-pass":
+        structural = line
     # The two brackets of a step, read before anything classifies the line below, since
     # neither is a leaf event and both would otherwise fall through to nothing.
     if event in ("step-start", "step-done") and step:
@@ -775,6 +779,9 @@ if passes:
     for (step, index), (mark, spent_by) in passes.items():
         row([step, index, "%s/%s" % (mark["transforms"], mark["budget"]), mark["stopped"],
              spent_by["verdict"], str(spent_by["revise"]), figure(WALL, spent_by[WALL]), figure(DOLLARS, spent_by[DOLLARS])])
+if structural is not None:
+    table_head("#### Structural pass", "pass", ["refactor", "stopped"], ["---:", "---"])
+    row(["issue", "%s/%s" % (structural["transforms"], structural["budget"]), structural["stopped"]])
 # After the two sections keyed by the run own structure and before the total, because it is
 # keyed by neither: the seconds of the test command itself, per tier, in log order.
 tier_section("#### Test-command seconds, by tier", "tier")
