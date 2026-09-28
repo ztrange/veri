@@ -1,7 +1,7 @@
 # Plan for #493 — a heredoc-aware comment predicate, and the sweep across the scripts and lib
 
 - [x] A committed script under `skills/tdd/scripts/`, given shell files, prints every `#` line with its file, line number and class, and reports a comment in code outside any heredoc as class 1 ⟦criterion 1⟧
-- [ ] On a file containing both a comment and a heredoc carrying `#` lines, the classifier counts the heredoc's `#` lines separately from the comment, never as class 1 ⟦criterion 2⟧
+- [x] On a file containing both a comment and a heredoc carrying `#` lines, the classifier counts the heredoc's `#` lines separately from the comment, never as class 1 ⟦criterion 2⟧ ⟂ refactor pending
 - [ ] A `#` line inside a heredoc whose output is redirected to a file is class 2, and a `#` line inside any other heredoc — one sent to a model, a variable or stdout — is class 3 ⟦criterion 1⟧
 - [ ] The classifier's sweepable report lists class 1 and class 2 lines only, and never a class 3 line ⟦criterion 3⟧
 - [ ] The sweepable report omits a file's leading contract header and any comment marked as a shell-hazard warning, so a file whose comments are only those reports nothing sweepable ⟦criterion 4⟧
