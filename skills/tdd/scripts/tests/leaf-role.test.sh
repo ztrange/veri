@@ -192,6 +192,18 @@ refusal_probe develop
 refusal_probe develop-
 report "$name"
 
+# 4. Both refusals list every accepted shape, conductor-* included (#506).
+name="leaf-role.sh's two refusals name all four accepted shapes, conductor-* alongside develop-*, revise-* and verify-* (#506)"
+problems=()
+for leaf in plan-red develop; do
+  capture "$leaf"
+  for shape in 'develop-*' 'revise-*' 'verify-*' 'conductor-*'; do
+    [[ "$err_text" == *"$shape"* ]] ||
+      problems+=("$leaf: want $shape named on stderr, got: $(printf '%q' "$err_text")")
+  done
+done
+report "$name"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]

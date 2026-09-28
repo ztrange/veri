@@ -46,7 +46,7 @@ leaf_role() {
   local actor_word="${name%%-*}"
   local actor
   # The shapes both refusals below name, said once so the two cannot drift apart.
-  local want='develop-*|revise-*|verify-*'
+  local want='develop-*|revise-*|verify-*|conductor-*'
 
   # An unknown leading word is refused rather than guessed at, since either guess is a silent
   # wrong answer in a log whose purpose is telling the pipeline's two halves apart: an actor
