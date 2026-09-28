@@ -213,6 +213,21 @@ for part in 'leaf spend only' "conductor's own spending is in no \`usage\` event
 done
 verdict "step-cost.sh's header says it reports leaf spend only and the conductor's spending is in no usage event"
 
+# 11. a step whose title carries an em dash and ⟦criterion k⟧ is summed like any other
+#     (#521). event.sh writes the step as JSON with ensure_ascii, so the log holds `\u2014`,
+#     `\u27e6` and `\u27e7` where the ledger — and so the argument — holds the UTF-8
+#     characters. The step-cost.sh call must print the same figure --steps prints for it.
+cat > "$work/.tdd/events.jsonl" <<'EOF'
+{"ts": 1, "issue": "521", "actor": "developer", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.30"}
+{"ts": 2, "issue": "521", "actor": "verifier", "phase": "red", "step": "cost a step \u2014 its title \u27e6criterion 1\u27e7", "event": "usage", "total_cost_usd": "0.12"}
+{"ts": 3, "issue": "521", "actor": "developer", "phase": "red", "step": "step two", "event": "usage", "total_cost_usd": "1.0"}
+EOF
+run_cost --steps
+expect 0 $'0.42 2\n1.00 1'
+run_cost "cost a step — its title ⟦criterion 1⟧"
+expect 0 "0.42"
+verdict "#521: a step title carrying an em dash and ⟦criterion k⟧ is summed to the figure --steps prints for it"
+
 echo "----"
 echo "$pass passed, $fail failed"
 [[ "$fail" -eq 0 ]]
